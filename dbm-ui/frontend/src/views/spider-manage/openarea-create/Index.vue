@@ -49,6 +49,7 @@
     </template>
     <BkSideslider
       v-model:is-show="isShowTemplateDetail"
+      render-directive="if"
       :title="t('模板详情【templateName配置 】', { name: openareaTemplateData?.config_name })"
       :width="1100">
       <TemplateDetail

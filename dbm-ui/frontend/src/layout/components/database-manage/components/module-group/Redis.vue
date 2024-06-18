@@ -26,6 +26,7 @@
       </BkSubmenu>
       <BkSubmenu
         key="RedisHaManage"
+        v-db-console="'redis.haClusterManage'"
         :title="t('主从')">
         <template #icon>
           <DbIcon type="cluster" />

@@ -614,7 +614,8 @@ class DorisActuatorActionEnum(str, StructuredEnum):
     RestartProcess = EnumField("restart_process", _("restart_process"))
     CleanData = EnumField("clean_data", _("clean_data"))
     UpdateMetadata = EnumField("update_metadata", _("update_metadata"))
-    CheckDecommission = EnumField("check_decommission", "check_decommission")
+    CheckDecommission = EnumField("check_decommission", _("check_decommission"))
+    CheckProcessStart = EnumField("check_process_start", _("check_process_start"))
 
 
 class RiakModuleId(int, StructuredEnum):

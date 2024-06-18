@@ -183,7 +183,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 	}
 	sourceIp := strings.Split(m.Source.Address, ":")[0]
 	targetIp := strings.Split(m.Target.Address, ":")[0]
-	var mysql5Tomysql8, mysql80Tomysql57, mysql57Tomysql56 bool
+	var mysql5Tomysql8, mysql80Tomysql57, mysql57Tomysql56, mysql8 bool
 	// mysql8.0克隆到mysql5.7。后面有新版本比如验证mysql8.1，就把8000改为8001
 
 	if instanceType == machineTypeBackend || instanceType == machineTypeSingle ||
@@ -197,6 +197,8 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 		} else if MySQLVersionParse(sourceVersion, "")/1000 < 8000 &&
 			MySQLVersionParse(targetVersion, "")/1000 >= 8000 {
 			mysql5Tomysql8 = true
+		} else if MySQLVersionParse(sourceVersion, "")/1000 == 8000 {
+			mysql8 = true
 		}
 	}
 
@@ -234,7 +236,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 				}
 				row.Grants = tmp
 			}
-			errInner := DiffVersionConvert(&row.Grants, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8)
+			errInner := DiffVersionConvert(&row.Grants, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8, mysql8)
 			if errInner != nil {
 				errorChan <- errInner
 				return
@@ -258,7 +260,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 }
 
 // DiffVersionConvert 跨版本克隆权限对授权语句变形，做兼容
-func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8 bool) error {
+func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8, mysql8 bool) error {
 	var err error
 	var tmp []string
 	regForCreateUser := regexp.MustCompile(
@@ -287,6 +289,8 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 		if err != nil {
 			return err
 		}
+	case mysql8:
+		PrivMysql8(grants)
 	default:
 		for _, str := range *grants {
 			if regForCreateUser.MatchString(str) {
@@ -297,6 +301,28 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 		*grants = tmp
 	}
 	return nil
+}
+
+// PrivMysql8 剔除txsql 8.0包含的动态权限
+func PrivMysql8(grants *[]string) {
+	var tmp []string
+	// 8.0.30-txsql 包含的动态权限，但是开源版本不支持
+	var onlyForTxsql = []string{"READ_MASK"}
+	for _, item := range *grants {
+		dynamicGrantsFlag := false
+		for _, priv := range onlyForTxsql {
+			if regexp.MustCompile(priv).MatchString(item) {
+				slog.Info("dynamicGrantExist", "sql", item)
+				dynamicGrantsFlag = true
+				break
+			}
+		}
+		if dynamicGrantsFlag == true {
+			continue
+		}
+		tmp = append(tmp, item)
+	}
+	*grants = tmp
 }
 
 // PrivMysql5ToMysql8 Mysql5授权语句向Mysql8兼容
@@ -420,7 +446,7 @@ func PrivMysql80ToMysql57(grants *[]string) error {
 			}
 		}
 		if dynamicGrantsFlag == true {
-			break
+			continue
 		}
 
 		for _, _static := range staticGrantsForMySQL8 {

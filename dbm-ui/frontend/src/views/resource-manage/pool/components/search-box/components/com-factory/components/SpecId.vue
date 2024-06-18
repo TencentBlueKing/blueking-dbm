@@ -335,6 +335,7 @@
         fetchResourceSpecList({
           spec_cluster_type: currentCluster.value,
           spec_machine_type: currentMachine.value,
+          limit: -1,
         });
       }
     },

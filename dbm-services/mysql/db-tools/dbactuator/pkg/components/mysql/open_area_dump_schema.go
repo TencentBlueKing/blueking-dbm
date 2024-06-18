@@ -187,7 +187,8 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 				DumpCmdFile:  c.dumpCmd,
 				Charset:      c.charset,
 				MySQLDumpOption: mysqlutil.MySQLDumpOption{
-					NoData:        true,
+					// NoData:        true,
+					DumpSchema:    true,
 					AddDropTable:  false,
 					DumpRoutine:   true,
 					DumpTrigger:   true,
@@ -231,7 +232,8 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 				DumpCmdFile:  c.dumpCmd,
 				Charset:      c.charset,
 				MySQLDumpOption: mysqlutil.MySQLDumpOption{
-					NoData:        false,
+					DumpSchema:    true,
+					DumpData:      true,
 					AddDropTable:  false,
 					NoCreateTb:    true,
 					DumpRoutine:   false,

@@ -17,9 +17,9 @@ from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import DorisRoleEnum, LevelInfoEnum
+from backend.flow.utils.doris.consts import DEFAULT_BE_WEB_PORT
 
 logger = logging.getLogger("flow")
-DEFAULT_BE_WEB_PORT = 8040
 
 
 class DorisDBMeta(object):
@@ -56,8 +56,8 @@ class DorisDBMeta(object):
         self.role_port_dict = {
             DorisRoleEnum.HOT.value: DEFAULT_BE_WEB_PORT,
             DorisRoleEnum.COLD.value: DEFAULT_BE_WEB_PORT,
-            DorisRoleEnum.FOLLOWER.value: ticket_data["http_port"],
-            DorisRoleEnum.OBSERVER.value: ticket_data["http_port"],
+            DorisRoleEnum.FOLLOWER.value: ticket_data["query_port"],
+            DorisRoleEnum.OBSERVER.value: ticket_data["query_port"],
         }
 
     def __get_node_ips_by_role(self, role: str) -> list:

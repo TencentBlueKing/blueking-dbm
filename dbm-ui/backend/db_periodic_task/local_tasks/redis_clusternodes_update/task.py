@@ -130,7 +130,7 @@ def redis_clusternodes_update_record():
                 TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
                 TicketType.REDIS_MASTER_SLAVE_SWITCH.value,
                 TicketType.REDIS_CLUSTER_ADD_SLAVE.value,
-                TicketType.REDIS_CLUSTER_VERSION_UPDATE_ONLINE.value,
+                TicketType.REDIS_VERSION_UPDATE_ONLINE.value,
             ]:
                 oper_title = oper["title"]
                 oper_type = oper["ticket_type"]
@@ -214,7 +214,7 @@ class RedisClusterNodesUpdateJob:
                 # 更新 nodes 域名的映射关系
                 exists_insts = [f"{meta_obj.machine.ip}#{meta_obj.port}"]
                 try:
-                    dns_manage.recycle_domain_record(del_instance_list=exists_insts)
+                    dns_manage.remove_domain_ip(domain=nodes_domain, del_instance_list=exists_insts)
                     self.detail_msg += _("域名{} 删除 {} 记录成功").format(nodes_domain, exists_insts)
                 except Exception as e:
                     logger.error(traceback.format_exc())

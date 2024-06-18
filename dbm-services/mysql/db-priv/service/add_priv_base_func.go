@@ -48,7 +48,8 @@ func GetAccountRuleInfo(bkBizId int64, clusterType string, user, dbname string) 
 
 // ImportBackendPrivilege 生成 mysql 授权语句，mysql 执行授权语句
 func ImportBackendPrivilege(account TbAccounts, accountRule TbAccountRules, address string, proxyIPs []string,
-	sourceIps []string, clusterType string, tendbhaMasterDomain bool, bkCloudId int64, dedicated bool) error {
+	sourceIps []string, clusterType string, tendbhaMasterDomain bool, bkCloudId int64, dedicated bool,
+	tendbhaPaddingProxy bool) error {
 	var backendSQL []string
 	var localhostSQL []string
 	mysqlVersion, err := GetMySQLVersion(address, bkCloudId)
@@ -56,7 +57,7 @@ func ImportBackendPrivilege(account TbAccounts, accountRule TbAccountRules, addr
 		slog.Error("mysqlVersion", err)
 		return err
 	}
-	if tendbhaMasterDomain {
+	if tendbhaMasterDomain && !tendbhaPaddingProxy {
 		hasLocahost := util.HasElem("localhost", sourceIps)
 		hasIp := !hasLocahost || (hasLocahost && len(sourceIps) > 1)
 		if hasIp {

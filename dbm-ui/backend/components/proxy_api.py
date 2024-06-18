@@ -14,6 +14,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.components.base import DataAPI
 from backend.components.exception import DataAPIException
+from backend.components.utils.params import add_esb_info_before_request
 from backend.db_proxy.models import DBCloudProxy
 
 
@@ -39,3 +40,38 @@ class ProxyAPI(DataAPI):
         host = "https://" if self.ssl else "http://"
         external_address = f"{host}{proxy.external_address}"
         return url.replace(self.base.rstrip("/"), external_address)
+
+
+class ExternalProxyAPI(DataAPI):
+    """
+    外部代理API，用于将API接口从外部路由转发到内部
+    """
+
+    def __call__(
+        self,
+        params=None,
+        data=None,
+        raw=False,
+        timeout=None,
+        raise_exception=True,
+        use_admin=False,
+        headers=None,
+        current_retry_times=0,
+    ):
+        # 解析url
+        params = params or None
+        if "_url_path" not in params and not self.url:
+            raise DataAPIException(_("必须在请求体中传入 url 参数"))
+
+        self.url = f'{self.base.rstrip("/")}/{params["_url_path"].lstrip("/")}'
+
+        # 添加自定义headers
+        headers = headers or {}
+        headers.update({"IS-EXTERNAL": "true"})
+        params = add_esb_info_before_request(params)
+
+        return self._send(params, headers, use_admin)
+
+    def _set_session_cookies(self, session, cookies=None, use_admin=False):
+        # 转发路由要设置session为空，否则网关会优先以session的用户认证，而忽略headers的bk_username
+        session.cookies.clear()

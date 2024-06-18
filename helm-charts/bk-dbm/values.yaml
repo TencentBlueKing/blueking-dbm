@@ -301,8 +301,6 @@ db-simulation:
     TRACE_DATA_ID: ""
     # 模拟执行使用专用Node
     # 需要迁移给专用节点打标签和污点
-  simulationNodeLables: { bkdbm/simulation: "high-performance" }
-  simulationtaintLables: { bkdbm/simulation: "high-performance" }
   # 配置模拟执行 pod 的资源限额
 #  tdbctlPodResource:
 #    limits:

@@ -83,6 +83,7 @@
             v-model="item.title"
             class="title-select"
             :clearable="false"
+            :filterable="false"
             @change="(value) => handleTitleChange(index, value)">
             <BkOption
               v-for="data in item.titleList"
@@ -90,7 +91,11 @@
               :label="data.label"
               :value="data.value" />
           </BkSelect>
-          <span v-else>{{ item.title }}</span>
+          <BkOverflowTitle
+            v-else
+            class="title-txt"
+            >{{ item.title }}</BkOverflowTitle
+          >
         </div>
         <div class="content">
           <BkSelect
@@ -569,34 +574,6 @@
         }
       }
 
-      .left-bar {
-        position: absolute;
-        top: 15px;
-        left: -40px;
-        width: 40px;
-        height: 0;
-        border-bottom: 1px solid #c4c6cc;
-      }
-
-      .title-box {
-        display: flex;
-        width: 80px;
-        height: 32px;
-        background: #fafbfd;
-        align-items: center;
-        justify-content: space-between;
-
-        .title-select {
-          width: 100%;
-
-          :deep(.bk-input) {
-            border-left-width: 0;
-            border-bottom-left-radius: 0;
-            border-top-left-radius: 0;
-          }
-        }
-      }
-
       .item-box {
         position: relative;
         display: flex;
@@ -632,6 +609,10 @@
         .content {
           flex: 1;
 
+          :deep(.bk-select-tag-wrapper) {
+            gap: 4px;
+          }
+
           .is-focus {
             :deep(.bk-select-tag) {
               border-left-color: #3a84ff;
@@ -645,13 +626,7 @@
           :deep(.bk-input) {
             outline: none;
           }
-        }
 
-        :deep(.bk-select-tag-wrapper) {
-          gap: 4px;
-        }
-
-        .is-focus {
           :deep(.bk-select-tag) {
             width: 100%;
             min-height: 32px;
@@ -668,50 +643,14 @@
               height: auto;
               max-height: 100px;
               overflow-y: auto;
+              gap: 4px;
             }
           }
 
           .content-custom {
             display: flex;
             width: 100%;
-          }
 
-          .condition {
-            width: 60px;
-            height: 32px;
-            line-height: 32px;
-            text-align: center;
-            border: 1px solid #c4c6cc;
-            border-right: none;
-          }
-
-          .bk-tag-input {
-            flex: 1;
-
-            :deep(.bk-tag-input-trigger) {
-              border-radius: 0;
-            }
-          }
-          &:hover {
-            border-left-color: #a4a2a2;
-          }
-
-          .bk-select-tag-wrapper {
-            height: auto;
-            max-height: 100px;
-            overflow-y: auto;
-            gap: 4px;
-          }
-        }
-
-        .operate-box {
-          display: flex;
-          width: 85px;
-          align-items: center;
-          padding-left: 12px;
-
-          .plus {
-            margin-right: 12px;
             .condition {
               width: 60px;
               height: 32px;
@@ -721,25 +660,16 @@
               border-right: none;
             }
 
-            .icon {
-              font-size: 18px;
-              color: #979ba5;
-              cursor: pointer;
-            }
+            .bk-tag-input {
+              flex: 1;
 
-            .active-icon {
-              color: #979ba5;
-            }
-
-            .no-active-icon {
-              color: #c4c6cc;
+              :deep(.bk-tag-input-trigger) {
+                border-radius: 0;
+              }
             }
           }
         }
 
-        .other {
-          margin-top: 21px;
-        }
         .operate-box {
           display: flex;
           width: 85px;
@@ -764,19 +694,27 @@
             color: #c4c6cc;
           }
         }
+      }
 
-        .custom {
-          .title-box {
-            width: auto;
-            min-width: 80px;
-            padding: 0 8px;
-            background: #f5f7fa;
-            border: none;
-            justify-content: center;
+      .other {
+        margin-top: 21px;
+      }
 
-            span {
-              font-size: 12px;
-            }
+      .custom {
+        .title-box {
+          width: auto;
+          min-width: 80px;
+          max-width: 300px;
+          padding: 0 8px;
+          background: #f5f7fa;
+          border: none;
+          justify-content: center;
+
+          .title-txt {
+            font-size: 12px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
           }
         }
       }

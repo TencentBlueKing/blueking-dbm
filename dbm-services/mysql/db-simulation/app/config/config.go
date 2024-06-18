@@ -17,6 +17,7 @@ import (
 	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
 )
 
@@ -37,8 +38,8 @@ type AppConfig struct {
 	LoadRuleFromdb        bool              `yaml:"loadRuleFromdb"`
 	MySQLPodResource      MySQLPodResource  `yaml:"mysqlPodResource"`
 	TdbctlPodResource     TdbctlPodResource `yaml:"tdbctlPodResource"`
-	SimulationNodeLables  map[string]string `yaml:"simulationNodeLables"`
-	SimulationtaintLables map[string]string `yaml:"simulationtaintLables"`
+	SimulationNodeLables  []LabelItem       `yaml:"simulationNodeLables"`
+	SimulationtaintLables []LabelItem       `yaml:"simulationtaintLables"`
 }
 
 // BkRepoConfig TODO
@@ -48,6 +49,12 @@ type BkRepoConfig struct {
 	User         string `yaml:"user"`
 	Pwd          string `yaml:"pwd"`
 	EndPointUrl  string `yaml:"endpointUrl"`
+}
+
+// LabelItem kubernert lable item
+type LabelItem struct {
+	Key   string `json:"key" yaml:"key"`
+	Value string `json:"value" yaml:"value"`
 }
 
 // Images TODO
@@ -199,6 +206,14 @@ func init() {
 		}
 	}
 	logger.Info("app config %v", GAppConfig)
+	logger.Info("simulationNodeLables: %v", lo.SliceToMap(GAppConfig.SimulationNodeLables, func(item LabelItem) (k,
+		v string) {
+		return item.Key, item.Value
+	}))
+	logger.Info("simulationtaintLables: %v", lo.SliceToMap(GAppConfig.SimulationtaintLables, func(item LabelItem) (k,
+		v string) {
+		return item.Key, item.Value
+	}))
 }
 
 // IsEmptyMySQLPodResourceConfig determine whether the pod resource limit configuration is empty

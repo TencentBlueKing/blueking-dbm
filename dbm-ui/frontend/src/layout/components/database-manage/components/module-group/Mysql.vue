@@ -33,7 +33,7 @@
         module-id="mysql">
         <BkMenuItem
           key="DatabaseTendbsingle"
-          v-db-console="'mysql.partitionManage'">
+          v-db-console="'mysql.singleClusterList'">
           <template #icon>
             <DbIcon type="node" />
           </template>
@@ -44,7 +44,9 @@
           </span>
         </BkMenuItem>
       </FunController>
-      <BkMenuItem key="mysqlPartitionManage">
+      <BkMenuItem
+        key="mysqlPartitionManage"
+        v-db-console="'mysql.partitionManage'">
         <template #icon>
           <DbIcon type="mobanshili" />
         </template>

@@ -108,6 +108,10 @@
             :disabled="!createFileState.formdata.version"
             :header="[
               {
+                name: 'Content-Type',
+                value: 'application/octet-stream',
+              },
+              {
                 name: 'X-CSRFToken',
                 value: Cookies.get('dbm_csrftoken'),
               },
@@ -118,7 +122,7 @@
             ]"
             method="put"
             :multiple="false"
-            name="file"
+            name=""
             :select-change="handleSelectFileChange"
             :size="10240"
             :tip="acceptInfo.tips"

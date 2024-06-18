@@ -21,6 +21,7 @@ from backend.db_services.mysql.dumper.handlers import DumperHandler
 from backend.db_services.mysql.dumper.serializers import DumperInstanceConfigSerializer
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.permission import Permission
 
 SWAGGER_TAG = "dumper"
@@ -31,7 +32,7 @@ class DumperInstanceViewSet(viewsets.AuditedModelViewSet):
     queryset = ExtraProcessInstance.objects.filter(proc_type=ExtraProcessType.TBINLOGDUMPER)
     serializer_class = DumperInstanceConfigSerializer
     filter_class = DumperInstanceListFilter
-    default_permission_class = []
+    default_permission_class = [DBManagePermission()]
 
     def get_queryset(self):
         return self.queryset.filter(bk_biz_id=self.kwargs["bk_biz_id"])

@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <div
-    ref="formWrapperRef"
-    class="spec-create-form">
+  <div class="spec-create-form">
     <DbForm
       ref="formRef"
       form-type="vertical"
@@ -99,9 +97,7 @@
       </BkFormItem>
     </DbForm>
   </div>
-  <div
-    ref="formFooterRef"
-    class="spec-create-footer">
+  <div class="spec-create-footer">
     <span
       v-bk-tooltips="{
         content: t('请编辑配置'),
@@ -132,8 +128,6 @@
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { createResourceSpec, updateResourceSpec, verifyDuplicatedSpecName } from '@services/source/dbresourceSpec';
-
-  import { useStickyFooter } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -248,8 +242,6 @@
 
   const formRef = ref();
   const nameInputRef = ref();
-  const formWrapperRef = ref<HTMLDivElement>();
-  const formFooterRef = ref<HTMLDivElement>();
   const formdata = ref(initFormdata());
   const isLoading = ref(false);
   const isCustomInput = ref(false);
@@ -278,8 +270,6 @@
       trigger: 'blur',
     },
   ]);
-
-  useStickyFooter(formWrapperRef, formFooterRef);
 
   watch(
     [() => formdata.value.cpu, () => formdata.value.mem, () => formdata.value.storage_spec, () => formdata.value.qps],
@@ -396,6 +386,8 @@
 <style lang="less" scoped>
   .spec-create-form {
     padding: 28px 40px 21px;
+    max-height: calc(100vh - 105px);
+    overflow-y: auto;
 
     :deep(.bk-form-label) {
       font-weight: bold;

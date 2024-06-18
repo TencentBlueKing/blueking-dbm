@@ -149,7 +149,7 @@ func (c *DumpSchemaComp) DumpSchema() (err error) {
 			DumpCmdFile:  c.dumpCmd,
 			Charset:      c.charset,
 			MySQLDumpOption: mysqlutil.MySQLDumpOption{
-				NoData:       true,
+				DumpSchema:   true,
 				AddDropTable: true,
 				// NeedUseDb:    true,
 				DumpRoutine: true,

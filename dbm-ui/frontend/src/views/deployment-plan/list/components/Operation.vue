@@ -120,6 +120,7 @@
       {
         spec_cluster_type: props.clusterType,
         spec_machine_type: props.machineType,
+        limit: -1,
       },
     ],
   });

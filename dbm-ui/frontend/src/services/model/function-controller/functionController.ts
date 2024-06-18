@@ -144,6 +144,7 @@ interface ControllerData {
   'redis.clusterManage.enable': ControllerItem<string>;
   'redis.clusterManage.delete': ControllerItem<string>;
   'redis.instanceManage': ControllerItem<string>;
+  'redis.haClusterManage': ControllerItem<string>;
   'redis.haInstanceManage': ControllerItem<string>;
   'redis.toolbox.capacityChange': ControllerItem<string>;
   'redis.toolbox.proxyScaleUp': ControllerItem<string>;
@@ -265,6 +266,7 @@ export default class FunctionController {
   'redis.clusterManage.enable': ControllerItem<string>;
   'redis.clusterManage.delete': ControllerItem<string>;
   'redis.instanceManage': ControllerItem<string>;
+  'redis.haClusterManage': ControllerItem<string>;
   'redis.haInstanceManage': ControllerItem<string>;
   'redis.toolbox.capacityChange': ControllerItem<string>;
   'redis.toolbox.proxyScaleUp': ControllerItem<string>;

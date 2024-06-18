@@ -37,9 +37,9 @@ type Dumper interface {
 
 // MySQLDumpOption TODO
 type MySQLDumpOption struct {
-	/* 	DumpSchema   bool
-	   	DumpData     bool */
-	NoData       bool
+	DumpSchema bool
+	DumpData   bool
+	// NoData       bool
 	AddDropTable bool // 默认 false 代表添加 --skip-add-drop-table 选项
 	// NeedUseDb     bool
 	NoCreateDb    bool
@@ -223,9 +223,16 @@ DumpSchema 功能概述：
 >/data/dbbak/$dump_file.$old_db_name 2>/data/dbbak/$dump_file.$old_db_name.$SUBJOB_ID.err;
 */
 func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCmd string) {
-	if m.NoData {
+
+	switch {
+	case m.DumpData && m.DumpSchema:
+		// no options represents backup library table data
+	case m.DumpData:
+		dumpOption += " --no-create-info "
+	case m.DumpSchema:
 		dumpOption += " -d "
 	}
+
 	if m.AddDropTable {
 		dumpOption += " --add-drop-table "
 	} else {

@@ -271,18 +271,19 @@ def tendis_cluster_swap(payload: Dict, bk_cloud_id: int):
     3. 切换CC 服务实例 角色
     """
     try:
-        cluster_obj = Cluster.objects.get(immute_domain=payload["domain"])
+        cluster_obj = Cluster.objects.get(immute_domain=payload["domain"], bk_cloud_id=bk_cloud_id)
     except ObjectDoesNotExist:
         raise TendisClusterNotExistException(cluser=payload["domain"])
 
-    master = payload["master"]
-    slave = payload["slave"]
-
+    master, slave = payload["master"], payload["slave"]
     ins1_obj = StorageInstance.objects.get(
-        machine__ip=master["ip"], port=master["port"], machine__bk_cloud_id=bk_cloud_id
+        machine__ip=master["ip"],
+        port=master["port"],
+        machine__bk_cloud_id=bk_cloud_id,
+        bk_biz_id=cluster_obj.bk_biz_id,
     )
     ins2_obj = StorageInstance.objects.get(
-        machine__ip=slave["ip"], port=slave["port"], machine__bk_cloud_id=bk_cloud_id
+        machine__ip=slave["ip"], port=slave["port"], machine__bk_cloud_id=bk_cloud_id, bk_biz_id=cluster_obj.bk_biz_id
     )
 
     if (
@@ -294,18 +295,25 @@ def tendis_cluster_swap(payload: Dict, bk_cloud_id: int):
                 ins1_obj.machine.ip, ins1_obj.port, ins2_obj.machine.ip, ins2_obj.port
             )
         )
+    if cluster_obj.cluster_type == ClusterType.TendisRedisInstance.value:
+        # 1. master 故障，需要把master 的entry 转移到 slave ，重建热备的时候，再纠正slave域名
+        for bind_entry in ins1_obj.bind_entry.all():
+            entry_obj = cluster_obj.clusterentry_set.get(id=bind_entry.id)
+            ins1_obj.bind_entry.remove(entry_obj)
+            ins2_obj.bind_entry.add(entry_obj)
+        # 2. slave  故障，需要把slave 的entry 转移到master，重建热备的时候，再纠正slave域名 // TODO(update_status.)
+    else:
+        # 修改表db_meta_storagesetdtl  关联对象-->改成slave
+        try:
+            cluster_obj.nosqlstoragesetdtl_set.filter(instance=ins1_obj).update(instance=ins2_obj)
+        except ObjectDoesNotExist:
+            raise ClusterSetDtlExistException(cluster=payload["domain"], master=master)
 
-    # 修改表db_meta_storagesetdtl  关联对象-->改成slave
-    try:
-        cluster_obj.nosqlstoragesetdtl_set.filter(instance=ins1_obj).update(instance=ins2_obj)
-    except ObjectDoesNotExist:
-        raise ClusterSetDtlExistException(cluster=payload["domain"], master=master)
-
-    # 修改表db_meta_proxyinstance_storageinstance  关联对象-->改成slave
-    temp_proxy_set = list(ins1_obj.proxyinstance_set.all())
-    ins1_obj.proxyinstance_set.clear()
-    ins2_obj.proxyinstance_set.clear()
-    ins2_obj.proxyinstance_set.add(*temp_proxy_set)
+        # 修改表db_meta_proxyinstance_storageinstance  关联对象-->改成slave
+        temp_proxy_set = list(ins1_obj.proxyinstance_set.all())
+        ins1_obj.proxyinstance_set.clear()
+        ins2_obj.proxyinstance_set.clear()
+        ins2_obj.proxyinstance_set.add(*temp_proxy_set)
 
     StorageInstanceTuple.objects.get(ejector=ins1_obj, receiver=ins2_obj).delete(keep_parents=True)
     StorageInstanceTuple.objects.create(ejector=ins2_obj, receiver=ins1_obj)

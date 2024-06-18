@@ -15,6 +15,7 @@
   <BkSideslider
     :before-close="handleBeforeClose"
     :is-show="isShow"
+    render-directive="if"
     :title="t('添加授权规则')"
     :width="840"
     @closed="handleClose">
@@ -185,7 +186,7 @@
         @cancel="handleVerifyCancel"
         @confirm="handleVerifyConfirm">
         <BkButton
-          class="mr-8"
+          class="w-88 mr-8"
           :loading="state.isSubmitting"
           theme="primary"
           @click="handleSubmit">
@@ -193,6 +194,7 @@
         </BkButton>
       </BkPopConfirm>
       <BkButton
+        class="w-88"
         :disabled="state.isSubmitting"
         @click="handleClose">
         {{ t('取消') }}
@@ -464,13 +466,15 @@
           return;
         }
         submitCreateAccountRule(params);
+      }).finally(() => {
+        state.isSubmitting = false;
       });
   };
 </script>
 
 <style lang="less" scoped>
   .rule-form {
-    padding: 24px 40px 40px;
+    padding: 24px 40px 32px;
 
     .rule-setting-box {
       padding: 16px 0 16px 16px;

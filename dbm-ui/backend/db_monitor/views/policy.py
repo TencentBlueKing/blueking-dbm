@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from django_filters import rest_framework as filters
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -292,7 +293,12 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
         tags=[constants.SWAGGER_TAG],
         request_body=serializers.AlarmCallBackDataSerializer,
     )
-    @action(methods=["POST"], detail=False, serializer_class=serializers.AlarmCallBackDataSerializer)
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=serializers.AlarmCallBackDataSerializer,
+        permission_classes=[AllowAny],
+    )
     def callback(self, request, *args, **kwargs):
         # 监控回调需要使用 Bearer Token 进行验证
         # 从请求头中获取 Authorization 头

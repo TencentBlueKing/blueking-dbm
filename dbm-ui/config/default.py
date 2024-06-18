@@ -96,6 +96,7 @@ INSTALLED_APPS += (
     # DB重连
     "backend.django_dbconn_retry",
     # backend
+    "backend.bk_web",
     "backend.core.storages",
     "backend.core.encrypt",
     "backend.core.translation",
@@ -131,6 +132,8 @@ MIDDLEWARE = (
     "corsheaders.middleware.CorsMiddleware",
     # 接口耗时调试工具
     "pyinstrument.middleware.ProfilerMiddleware",
+    # 外部代理中间件
+    "backend.bk_web.middleware.ExternalProxyMiddleware",
     # JWT认证，透传的应用信息，透传的用户信息
     "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",
@@ -150,6 +153,7 @@ MIDDLEWARE = (
     # Auth middleware
     "blueapps.account.middlewares.RioLoginRequiredMiddleware",
     "blueapps.account.middlewares.WeixinLoginRequiredMiddleware",
+    # dbm登录中间件
     # "blueapps.account.middlewares.LoginRequiredMiddleware",
     "backend.bk_web.middleware.DBMLoginRequiredMiddleware",
     # exception middleware
@@ -161,7 +165,7 @@ MIDDLEWARE = (
 
 AUTHENTICATION_BACKENDS = [
     *AUTHENTICATION_BACKENDS,
-    'apigw_manager.apigw.authentication.UserModelBackend',
+    "apigw_manager.apigw.authentication.UserModelBackend",
 ]
 
 RIO_TOKEN = env.RIO_TOKEN
