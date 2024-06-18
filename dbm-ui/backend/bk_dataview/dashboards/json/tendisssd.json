@@ -5487,7 +5487,7 @@
           "expressionList": [],
           "format": "time_series",
           "host": [],
-          "mode": "ui",
+          "mode": "code",
           "module": [],
           "promqlAlias": "",
           "query_configs": [
@@ -5511,7 +5511,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "twemproxy_cmdstat_calls_total",
               "refId": "a",
               "result_table_id": "exporter_dbm_twemproxy_exporter.__default__",
@@ -5617,7 +5617,7 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_rocksdb_level_size_sum",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -5643,7 +5643,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[2m]))",
+          "source": "sum by (bk_target_cloud_id) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_rocksdb_level_size_sum{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "",
           "type": "instant"
         }
@@ -5729,7 +5729,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_memory_used_rss_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -5801,6 +5801,7 @@
         "x": 18,
         "y": 3
       },
+      "hideTimeOverride": true,
       "id": 83,
       "options": {
         "colorMode": "value",
@@ -5851,7 +5852,7 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "AVG",
+              "method": "avg_without_time",
               "metric_field": "total",
               "refId": "a",
               "result_table_id": "dbm_system.mem",
@@ -5882,6 +5883,7 @@
           "type": "instant"
         }
       ],
+      "timeShift": "2m",
       "title": "MemTotal",
       "type": "stat"
     },
@@ -6409,7 +6411,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_commands_total",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -6527,8 +6529,8 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
-              "metric_field": "redis_rocksdb_level_size_sum",
+              "method": "max_without_time",
+              "metric_field": "redis_datadir_df_usage",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
@@ -6553,7 +6555,7 @@
             }
           ],
           "refId": "A",
-          "source": "max by (bk_target_cloud_id) (max_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+          "source": "max by (bk_target_cloud_id) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "",
           "type": "instant"
         }
@@ -6663,7 +6665,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(avg by (bk_target_ip) (max_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_used_mb{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])))",
+          "source": "sum(avg by (bk_target_ip) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_used_mb{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))",
           "step": "",
           "type": "instant"
         }
@@ -6760,7 +6762,7 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "AVG",
+              "method": "avg_without_time",
               "metric_field": "redis_datadir_df_total_mb",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -7696,7 +7698,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -8146,7 +8149,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -8348,7 +8352,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -8537,7 +8542,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -10097,7 +10103,7 @@
   "timezone": "",
   "title": "tendisSsd集群",
   "uid": "plMeGb8Vk",
-  "version": 21,
+  "version": 23,
   "weekStart": "",
   "__inputs": [
     {
