@@ -306,6 +306,9 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 // PrivMysql8 剔除txsql 8.0包含的动态权限
 func PrivMysql8(grants *[]string) {
 	var tmp []string
+	regForCreateUser := regexp.MustCompile(
+		`(?i)^\s*CREATE USER `,
+	) // CREATE USER变为CREATE USER IF NOT EXISTS
 	// 8.0.30-txsql 包含的动态权限，但是开源版本不支持
 	var onlyForTxsql = []string{"READ_MASK"}
 	for _, item := range *grants {
@@ -319,6 +322,9 @@ func PrivMysql8(grants *[]string) {
 		}
 		if dynamicGrantsFlag == true {
 			continue
+		}
+		if regForCreateUser.MatchString(item) {
+			item = regForCreateUser.ReplaceAllString(item, `CREATE USER /*!50706 IF NOT EXISTS */ `)
 		}
 		tmp = append(tmp, item)
 	}
