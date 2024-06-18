@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
 
 # 常规字段长度定义
 from blue_krill.data_types.enum import EnumField, StructuredEnum
@@ -18,6 +19,8 @@ LEN_MIDDLE = 128
 LEN_LONG = 255
 LEN_X_LONG = 1000
 LEN_XX_LONG = 10000
+
+IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 
 # 字段默认值
 EMPTY_INT = 0
