@@ -113,42 +113,6 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 	return objects, nil
 }
 
-/*
-// CheckSpiderPartitionConfigs TODO
-func (m *Checker) CheckSpiderPartitionConfigs(configs []*PartitionConfig) ([]PartitionObject, error) {
-	fmt.Printf("do CheckSpiderPartitionConfigs")
-
-	address := fmt.Sprintf("%s:%d", m.ImmuteDomain, m.Port)
-	backends, splitCnt, err := GetSpiderBackends(address, *m.BkCloudId)
-	if err != nil {
-		return nil, err
-	}
-	var all []PartitionObject
-	for _, item := range backends {
-		newconfigs := make([]*PartitionConfig, len(configs))
-		host := item["HOST"].(string)
-		port, _ := strconv.Atoi(item["PORT"].(string))
-		for k, v := range configs {
-			newconfig := *v
-			newconfig.ImmuteDomain = host
-			newconfig.Port = port
-			if item["WRAPPER"] == "mysql" {
-				newconfig.DbLike = fmt.Sprintf("%s_%s", newconfig.DbLike, item["SPLIT_NUM"].(string))
-			}
-			newconfigs[k] = &newconfig
-		}
-		execute, err := CheckPartitionConfigs(newconfigs, item["WRAPPER"].(string), splitCnt, m.FromCron)
-		if err != nil {
-			slog.Error("msg", "CheckPartitionConfigs", err)
-			return all, errno.GetPartitionSqlFail.Add(fmt.Sprintf("spit%s %s:%s\n%s", item["SPLIT_NUM"], item["HOST"],
-				item["PORT"], err.Error()))
-		}
-		all = append(all, PartitionObject{host, port, item["SERVER_NAME"].(string), execute})
-	}
-	return all, nil
-}
-*/
-
 // CheckPartitionConfigs TODO
 func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt int, fromCron bool, host Host) ([]PartitionSql,
 	[]PartitionConfig, []PartitionConfig, error) {
