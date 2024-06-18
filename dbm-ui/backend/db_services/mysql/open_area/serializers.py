@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-import itertools
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
@@ -19,24 +18,24 @@ from backend.db_meta.models import Cluster
 from backend.db_services.mysql.open_area import mock_data
 from backend.db_services.mysql.open_area.handlers import OpenAreaHandler
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
+from backend.ticket.builders.mysql.base import DBTableField
 
 
 class TendbOpenAreaSubConfigSerializer(serializers.Serializer):
     source_db = serializers.CharField(help_text=_("获取库表结构的源db"))
     # json字段，直接存储待克隆表结构列表，克隆所有表时为空列表
-    schema_tblist = serializers.JSONField(help_text=_("获取表结构的源tb列表"), default=list)
-    data_tblist = serializers.JSONField(help_text=_("获取表数据的源tb列表"), default=list)
+    schema_tblist = serializers.ListField(help_text=_("获取表结构的源tb列表"), child=DBTableField())
+    data_tblist = serializers.ListField(help_text=_("获取表数据的源tb列表"), child=DBTableField())
     target_db_pattern = serializers.CharField(help_text=_("目标db范式"))
-    # json字段，存储权限模板列表
-    priv_data = serializers.JSONField(help_text=_("权限关联模板数据"), default=list)
 
 
 class TendbOpenAreaConfigSerializer(AuditedSerializer, serializers.ModelSerializer):
     config_rules = serializers.ListSerializer(child=TendbOpenAreaSubConfigSerializer(), help_text=_("模板克隆规则列表"))
+    related_authorize = serializers.JSONField(help_text=_("授权ID列表"), required=False, default=[])
 
     class Meta:
         model = TendbOpenAreaConfig
-        exclude = ("related_authorize",)
+        fields = "__all__"
         swagger_schema_fields = {"example": mock_data.OPENAREA_TEMPLATE_DATA}
 
     def validate(self, attrs):
@@ -59,7 +58,6 @@ class TendbOpenAreaConfigSerializer(AuditedSerializer, serializers.ModelSerializ
 
     def to_internal_value(self, data):
         data = super().to_internal_value(data)
-        data["related_authorize"] = list(set(itertools.chain(*[_data["priv_data"] for _data in data["config_rules"]])))
         return data
 
 
