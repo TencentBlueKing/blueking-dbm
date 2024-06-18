@@ -278,7 +278,7 @@
       :data="previewData"
       :is-show-nodes="formData.details.ip_source === 'manual_input'"
       :is-single-type="isSingleType"
-      :nodes="previewNodes" />
+      :node-list="previewNodes" />
     <template #footer>
       <BkButton @click="() => (isShowPreview = false)">
         {{ t('关闭') }}
@@ -419,14 +419,13 @@
   /**
    * 预览功能
    */
-  const previewNodes = computed(() => ({
-    backend: formData.details.nodes.backend.map(host => ({
-      ip: host.ip,
-      bk_host_id: host.host_id,
-      bk_cloud_id: host.cloud_id,
-      bk_biz_id: host.biz.id,
-    })),
-  }));
+  const previewNodes = computed(() => formData.details.nodes.backend.map(host => ({
+    ip: host.ip,
+    bk_host_id: host.host_id,
+    bk_cloud_id: host.cloud_id,
+    bk_biz_id: host.biz.id,
+  })),
+  );
 
   const tableData = computed(() => {
     if (moduleName.value && (formData.details.db_app_abbr)) {
@@ -489,7 +488,7 @@
             configMap[configName] = `${confValue}GB`
             break
           case 'sync_type':
-            configMap[configName] = confValue === 'image' ? t('镜像') : 'always on'
+            configMap[configName] = confValue === 'mirroring' ? t('镜像') : 'always on'
             break
           case 'system_version':
             systemVersionList.value = (confValue || '').split(',')
@@ -611,6 +610,7 @@
       const { details } = formData;
       const { cityCode } = regionItemRef.value!.getValue();
       if (details.ip_source === 'resource_pool') {
+        delete details.nodes
         return {
           ...details,
           resource_spec: {
@@ -629,10 +629,12 @@
           },
         };
       }
+
+      delete details.resource_spec
       return {
         ...details,
         nodes: {
-          backend: formatNodes(details.nodes.backend),
+          [clusterType]: formatNodes(details.nodes.backend),
         }
       }
     };

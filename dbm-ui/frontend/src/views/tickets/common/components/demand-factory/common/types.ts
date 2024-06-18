@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { SpecInfo } from '@services/model/ticket/details/common';
-import type {  clustersItems } from '@services/types/ticket';
+import type { clustersItems } from '@services/types/ticket';
 
 import { ClusterTypes } from '@common/const';
 
@@ -104,15 +104,21 @@ export interface DetailsSqlserver {
   }[];
   inst_num: number;
   ip_source: string;
-  nodes: {
-    backend: {
+  nodes?: {
+    [ClusterTypes.SQLSERVER_SINGLE]: {
+      ip: string;
+      bk_host_id: number;
+      bk_cloud_id: number;
+      bk_biz_id: number;
+    }[];
+    [ClusterTypes.SQLSERVER_HA]: {
       ip: string;
       bk_host_id: number;
       bk_cloud_id: number;
       bk_biz_id: number;
     }[];
   };
-  resource_spec: {
+  resource_spec?: {
     [ClusterTypes.SQLSERVER_SINGLE]: SpecInfo;
     [ClusterTypes.SQLSERVER_HA]: SpecInfo;
   };
