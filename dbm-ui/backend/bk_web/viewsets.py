@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import json
+import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from blueapps.account.decorators import login_exempt
@@ -19,6 +21,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from backend import env
+from backend.bk_web.constants import IP_RE
 from backend.components.dbconsole.client import DBConsoleApi
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
@@ -178,7 +181,7 @@ class ExternalProxyViewSet(viewsets.ViewSet):
         return None
 
     def after_response(self, request, response, *args, **kwargs):
-        # 请求内部的dashboard url，但是host要替换为当前dbm的
+        # 请求内部的dashboard url，但是host要替换为当前dbm的host
         if "/grafana/get_dashboard/" in request.path:
             data = response.json()["data"]
             data["url"] = f"{env.BK_SAAS_HOST}/grafana/{data['url'].split('grafana/')[1]}"
@@ -194,9 +197,23 @@ class ExternalProxyViewSet(viewsets.ViewSet):
             return Response(data)
         # 业务列表只展示有权限的业务
         if "/cmdb/list_bizs/" in request.path:
-            data = response.json()["data"]
-            biz_list = [d for d in data if d["permission"][ActionEnum.DB_MANAGE.id]]
-            return Response(biz_list)
+            data = [d for d in response.json()["data"] if d["permission"][ActionEnum.DB_MANAGE.id]]
+            return Response(data)
+
+        if request.path.startswith("/external/apis/"):
+            # 外部 API 转发请求，把 IP 替换为 *.*.*.*
+            data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
+            return Response(json.loads(data))
+        # for path in [
+        #     "/timeseries/time_series/unify_query/",
+        #     "/timeseries/graph_promql_query/",
+        #     "/timeseries/grafana/query/",
+        #     "/timeseries/grafana/query_log/",
+        # ]:
+        #     if request.path.endswith(path):
+        #         # 外部 API 转发请求，把 IP 替换为 *.*.*.*
+        #         data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
+        #         return Response(json.loads(data))
 
         return HttpResponse(response)
 
