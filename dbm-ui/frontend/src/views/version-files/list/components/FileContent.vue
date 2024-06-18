@@ -495,8 +495,8 @@
    */
   const handleConfirmCreate = async () => {
     await versionFormRef.value?.validate();
-
     createFileState.isLoading = true;
+
     createPackage({
       ...createFileState.formdata,
       ...typeParams.value,
@@ -518,7 +518,7 @@
    * 文件上传成功
    */
   const handleUpdateSuccess = (file: any) => {
-    Object.assign(createFileState.formdata, file?.data || {});
+    Object.assign(createFileState.formdata, file?.data, { path: file?.data.fullPath } || {});
     versionFormRef.value?.clearValidate();
   };
 
