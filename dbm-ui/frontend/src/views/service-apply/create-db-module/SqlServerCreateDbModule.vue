@@ -205,7 +205,7 @@
 
   const haModeList = [
     {
-      value: 'image',
+      value: 'mirroring',
       label: t('镜像'),
     },
     {
@@ -347,7 +347,7 @@
       if (Number(version.slice(-4)) > 2017) {
         formData.haMode = 'alwaysOn';
       } else {
-        formData.haMode = 'image';
+        formData.haMode = 'mirroring';
       }
     }
   }, { immediate: true });
