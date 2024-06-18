@@ -46,6 +46,7 @@ from backend.flow.utils.redis.redis_proxy_util import (
     get_storage_version_names_by_cluster_type,
     get_twemproxy_cluster_server_shards,
 )
+from backend.flow.utils.redis.redis_util import version_ge
 
 logger = logging.getLogger("flow")
 
@@ -108,6 +109,10 @@ class RedisClusterVersionUpdateOnline(object):
                 redis_ver = get_cluster_redis_version(input_item["cluster_id"])
                 if redis_ver == input_item["target_version"]:
                     err = _("集群{} storage当前版本{} == 目标版本:{},无需升级").format(
+                        cluster.immute_domain, redis_ver, input_item["target_version"]
+                    )
+                elif version_ge(redis_ver, input_item["target_version"]):
+                    err = _("集群{} storage当前版本{} > 目标版本:{},不支持降级").format(
                         cluster.immute_domain, redis_ver, input_item["target_version"]
                     )
             if err:

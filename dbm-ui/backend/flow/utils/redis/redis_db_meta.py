@@ -1213,11 +1213,17 @@ class RedisDBMeta(object):
         new_domain = self.cluster["new_domain"]
         new_name = new_domain.split(".")[-3]
         cluster = Cluster.objects.get(id=cluster_id)
-        cluster_entry = ClusterEntry.objects.get(
+        master_cluster_entry = ClusterEntry.objects.get(
             Q(cluster__id=cluster.id)
             & Q(cluster_entry_type=ClusterEntryType.DNS)
             & (Q(role=ClusterEntryRole.PROXY_ENTRY) | Q(role=ClusterEntryRole.MASTER_ENTRY)),
         )
+
+        node_cluster_entry = ClusterEntry.objects.filter(
+            Q(cluster__id=cluster.id)
+            & Q(cluster_entry_type=ClusterEntryType.DNS)
+            & Q(role=ClusterEntryRole.NODE_ENTRY),
+        ).first()
         host_ids = set()
         for inst in cluster.proxyinstance_set.all():
             host_ids.add(inst.machine.bk_host_id)
@@ -1233,8 +1239,12 @@ class RedisDBMeta(object):
         cluster.name = new_name
         cluster.save(update_fields=["immute_domain", "name"])
 
-        cluster_entry.entry = new_domain
-        cluster_entry.save(update_fields=["entry"])
+        master_cluster_entry.entry = new_domain
+        master_cluster_entry.save(update_fields=["entry"])
+
+        if node_cluster_entry:
+            node_cluster_entry.entry = "nodes." + new_domain
+            node_cluster_entry.save(update_fields=["entry"])
 
         storageinstances = cluster.storageinstance_set.all()
         proxyinstances = cluster.proxyinstance_set.all()
