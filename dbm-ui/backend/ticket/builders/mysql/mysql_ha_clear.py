@@ -59,3 +59,11 @@ class MySQLHaClearFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLHaClearDetailSerializer
     inner_flow_builder = MySQLHaClearFlowParamBuilder
     inner_flow_name = _("清档执行")
+
+    @property
+    def need_itsm(self):
+        """
+            清档插件支持在非安全模式下，提单自动跳过审批节点
+        :return:
+        """
+        return self.ticket.details["need_itsm"]
