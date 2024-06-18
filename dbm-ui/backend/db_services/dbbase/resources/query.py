@@ -464,7 +464,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         if count == 0:
             return ResourceList(count=0, data=[])
 
-        # 预取proxy_queryset，storage_queryset，加块查询效率
+        # 预取proxy_queryset，storage_queryset，clusterentry_set,加块查询效率
         cluster_queryset = cluster_queryset[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
@@ -472,6 +472,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             # 预取优化access_port。TODO: 如果access port作为集群字段则删除当前逻辑
             "proxyinstance_set",
             "storageinstance_set",
+            Prefetch("clusterentry_set", to_attr="entries"),
         )
         cluster_ids = list(cluster_queryset.values_list("id", flat=True))
 
@@ -496,6 +497,10 @@ class ListRetrieveResource(BaseListRetrieveResource):
         for cluster in cluster_queryset:
             cluster_info = cls._to_cluster_representation(
                 cluster=cluster,
+                cluster_entry=[
+                    {"cluster_entry_type": entry.cluster_entry_type, "entry": entry.entry, "role": entry.role}
+                    for entry in cluster.entries
+                ],
                 db_module_names_map=db_module_names_map,
                 cluster_entry_map=cluster_entry_map,
                 cluster_operate_records_map=cluster_operate_records_map,
@@ -512,6 +517,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
+        cluster_entry: List[Dict[str, str]],
         db_module_names_map: Dict[int, str],
         cluster_entry_map: Dict[int, Dict[str, str]],
         cluster_operate_records_map: Dict[int, List],
@@ -527,7 +533,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
         """
-        cluster_entry = cluster_entry_map.get(cluster.id, {})
+        cluster_entry_map_value = cluster_entry_map.get(cluster.id, {})
         bk_cloud_name = cloud_info.get(str(cluster.bk_cloud_id), {}).get("bk_cloud_name", "")
         return {
             "id": cluster.id,
@@ -542,8 +548,9 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "cluster_stats": cluster_stats_map.get(cluster.immute_domain, {}),
             "cluster_type": cluster.cluster_type,
             "cluster_type_name": ClusterType.get_choice_label(cluster.cluster_type),
-            "master_domain": cluster_entry.get("master_domain", ""),
-            "slave_domain": cluster_entry.get("slave_domain", ""),
+            "master_domain": cluster_entry_map_value.get("master_domain", ""),
+            "slave_domain": cluster_entry_map_value.get("slave_domain", ""),
+            "cluster_entry": cluster_entry,
             "bk_biz_id": cluster.bk_biz_id,
             "bk_biz_name": biz_info.bk_biz_name,
             "bk_cloud_id": cluster.bk_cloud_id,

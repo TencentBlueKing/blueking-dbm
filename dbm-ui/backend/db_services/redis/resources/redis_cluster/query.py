@@ -89,6 +89,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
+        cluster_entry: List[Dict[str, str]],
         db_module_names_map: Dict[int, str],
         cluster_entry_map: Dict[int, Dict[str, str]],
         cluster_operate_records_map: Dict[int, List],
@@ -122,7 +123,6 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         cluster_extra_info = {
             "cluster_spec": cluster_spec,
             "cluster_capacity": cluster_capacity,
-            "cluster_entry": list(cluster.clusterentry_set.values("cluster_entry_type", "entry")),
             "dns_to_clb": dns_to_clb,
             "proxy": [m.simple_desc for m in cluster.proxies],
             "redis_master": redis_master,
@@ -132,6 +132,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         }
         cluster_info = super()._to_cluster_representation(
             cluster,
+            cluster_entry,
             db_module_names_map,
             cluster_entry_map,
             cluster_operate_records_map,
