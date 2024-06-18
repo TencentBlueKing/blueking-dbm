@@ -299,7 +299,7 @@ class RedisClusterVersionUpdateOnline(object):
                 }
                 # 先将 old_slave 切换成 new_master
                 act_kwargs.cluster["switch_info"] = cluster_meta_data["master_slave_pairs"]
-                act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_arch_switch_4_scene.__name__
+                act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__
                 sub_pipeline.add_act(
                     act_name=_("集群:{} 主从切换").format(cluster_meta_data["cluster_name"]),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
