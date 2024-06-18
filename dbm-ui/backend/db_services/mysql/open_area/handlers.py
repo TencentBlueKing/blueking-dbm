@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
-import itertools
+import re
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
@@ -21,12 +21,13 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbpermission.constants import AccountType
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
+from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 
 
 class OpenAreaHandler:
     """封装开区的一些处理函数"""
 
-    ALL_TABLE_FLAG = "*all*"
+    ALL_TABLE_FLAG = "*"
 
     @classmethod
     def validate_only_openarea(cls, bk_biz_id, config_name, config_id: int = -1) -> bool:
@@ -46,15 +47,28 @@ class OpenAreaHandler:
     def __check_table_list(cls, real_tables, source_db, check_tables):
         """检查表是否合法"""
         if cls.ALL_TABLE_FLAG in check_tables:
-            check_tables = real_tables[source_db]
+            return real_tables[source_db], ""
 
         error_msg = ""
+        match_tables = []
         if cls.ALL_TABLE_FLAG not in check_tables and check_tables:
-            not_exist_tables = set(check_tables) - set(real_tables[source_db])
+            # 尝试精确匹配
+            exact = [t for t in check_tables if not contain_glob(t)]
+            not_exist_tables = set(exact) - set(real_tables[source_db])
             if not_exist_tables:
-                error_msg = _("源集群库{}中不存在表{}，请检查或修改开区模板".format(source_db, not_exist_tables))
+                error_msg = _("源集群库{}中不存在表{}，请检查或修改开区模板\n".format(source_db, not_exist_tables))
+            match_tables.extend(exact)
 
-        return check_tables, error_msg
+            # 尝试模糊匹配
+            fuzzy = [t.replace("*", "%").replace("%", ".*").replace("?", ".") for t in check_tables if contain_glob(t)]
+            for pattern in fuzzy:
+                re_pattern = re.compile(f"^{pattern}$")
+                pattern_match = [t for t in real_tables[source_db] if re_pattern.match(t)]
+                if not pattern_match:
+                    error_msg += _("源集群库{}中不存在表匹配[{}]，请检查或修改开区模板".format(source_db, pattern))
+                match_tables.extend(pattern_match)
+
+        return match_tables, error_msg
 
     @classmethod
     def __get_openarea_execute_objects(cls, config, config_data, cluster_id__cluster):
@@ -74,7 +88,6 @@ class OpenAreaHandler:
                 "target_db": config_rule["target_db_pattern"],
                 "schema_tblist": config_rule["schema_tblist"],
                 "data_tblist": config_rule["data_tblist"],
-                "priv_data": config_rule["priv_data"],
                 "authorize_ips": [],
             }
             for config_rule in config.config_rules
@@ -117,7 +130,7 @@ class OpenAreaHandler:
     @classmethod
     def __get_openarea_rules_set(cls, config, config_data, operator, cluster_id__cluster):
         """获取开区授权数据"""
-        priv_ids = list(itertools.chain(*[rule["priv_data"] for rule in config.config_rules]))
+        priv_ids = config.related_authorize
         # 如果没有授权ID，则直接返回为空
         if not priv_ids:
             return []
