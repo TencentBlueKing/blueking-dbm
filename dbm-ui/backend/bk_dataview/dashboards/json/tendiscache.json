@@ -4347,7 +4347,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_memory_used_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -4459,7 +4459,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_memory_used_rss_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -4922,7 +4922,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_db_keys",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -5251,7 +5251,7 @@
             {
               "active": true,
               "alias": "",
-              "expression": "max(a/b)",
+              "expression": "max(a / b)",
               "functions": []
             }
           ],
@@ -5274,7 +5274,7 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_memory_used_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -5310,7 +5310,7 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_config_maxmemory",
               "refId": "b",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -5336,7 +5336,7 @@
             }
           ],
           "refId": "A",
-          "source": "max(sum by (instance) (sum_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / sum by (instance) (sum_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])))",
+          "source": "max(sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) / sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))",
           "step": "",
           "type": "instant"
         }
@@ -5423,7 +5423,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "MIN",
+              "method": "min_without_time",
               "metric_field": "redis_config_maxmemory",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -6092,8 +6092,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -6282,8 +6281,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -10365,7 +10363,7 @@
   "timezone": "",
   "title": "tendis-cache",
   "uid": "6nXM8aF42",
-  "version": 26,
+  "version": 27,
   "weekStart": "",
   "__inputs": [
     {

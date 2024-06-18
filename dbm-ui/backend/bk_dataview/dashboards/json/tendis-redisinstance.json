@@ -21,7 +21,7 @@
       }
     ]
   },
-  "description": "tendisCache集群",
+  "description": "RedisInstance",
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
@@ -2595,7 +2595,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_memory_used_rss_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -2716,7 +2716,7 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "AVG",
+              "method": "avg_without_time",
               "metric_field": "total",
               "refId": "a",
               "result_table_id": "dbm_system.mem",
@@ -3557,7 +3557,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_memory_used_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -3670,7 +3670,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "MIN",
+              "method": "avg_without_time",
               "metric_field": "redis_config_maxmemory",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -4111,8 +4111,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -4315,8 +4314,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -6502,7 +6500,7 @@
   "timezone": "",
   "title": "RedisInstance",
   "uid": "RedisInstance",
-  "version": 27,
+  "version": 29,
   "weekStart": "",
   "__inputs": [
     {
