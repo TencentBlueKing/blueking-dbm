@@ -213,15 +213,12 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         else:
             # 解析来自外部转发的header
             request.is_external = str2bool(request.headers.get("IS-EXTERNAL", ""), strict=False)
-        return self.get_response(request)
+        response = self.get_response(request)
 
-    def process_response(self, request, response):
-        if env.ENABLE_EXTERNAL_PROXY:
-            response.content = self.replace_ip(response.content.decode("utf-8")).encode("utf-8")
         return response
 
     @staticmethod
-    def replace_ip(self, text):
+    def replace_ip(text):
         return re.sub(IP_RE, "*.*.*.*", text)
 
 
