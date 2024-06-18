@@ -20,6 +20,7 @@ class TendbOpenAreaConfigListFilter(filters.FilterSet):
     bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", label=_("业务ID"))
     cluster_type = filters.CharFilter(field_name="cluster_type", method="filter_cluster_type", label=_("集群类型"))
     ticket_types = filters.CharFilter(field_name="ticket__ticket_type", method="filter_ticket_types", label=_("单据类型"))
+    desc = filters.CharFilter(field_name="desc", method="order_by_desc", label=_("排序类型"))
 
     class Meta:
         model = TendbOpenAreaConfig
@@ -27,3 +28,6 @@ class TendbOpenAreaConfigListFilter(filters.FilterSet):
 
     def filter_cluster_type(self, queryset, name, value):
         return queryset.filter(cluster_type__in=value.split(","))
+
+    def order_by_desc(self, queryset, name, value):
+        return queryset.order_by(value)

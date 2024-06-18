@@ -16,9 +16,9 @@ OPENAREA_TEMPLATE_DATA = {
             "schema_tblist": ["tb1", "tb2"],
             "data_tblist": ["tb1", "tb2"],
             "target_db_pattern": "DB_{APP}",
-            "priv_data": [1, 2, 3],
         }
     ],
+    "related_authorize": [1, 2, 3],
     "bk_biz_id": 3,
     "config_name": "test——config7",
     "source_cluster_id": 63,

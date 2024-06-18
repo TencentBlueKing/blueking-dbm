@@ -558,7 +558,7 @@ class ActionEnum:
 
     TENDBCLUSTER_VIEW = ActionMeta(
         id="tendbcluster_view",
-        name=_("TenDB Cluster 集群查看"),
+        name=_("TenDB Cluster 集群详情查看"),
         name_en="tendbcluster_view",
         type="view",
         related_actions=[DB_MANAGE.id],
