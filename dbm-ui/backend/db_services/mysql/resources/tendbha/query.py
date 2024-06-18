@@ -98,6 +98,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
+        cluster_entry: List[Dict[str, str]],
         db_module_names_map: Dict[int, str],
         cluster_entry_map: Dict[int, Dict[str, str]],
         cluster_operate_records_map: Dict[int, List],
@@ -120,6 +121,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster_role_info = {"proxies": proxies, "masters": masters, "slaves": slaves}
         cluster_info = super()._to_cluster_representation(
             cluster,
+            cluster_entry,
             db_module_names_map,
             cluster_entry_map,
             cluster_operate_records_map,
