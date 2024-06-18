@@ -334,7 +334,7 @@ class Cluster(AuditedModel):
 
     def is_dbha_disabled(self) -> bool:
         try:
-            return self.clusterdbhaext.end_time < datetime.now(timezone.utc)
+            return self.clusterdbhaext.end_time >= datetime.now(timezone.utc)
         except ObjectDoesNotExist:
             return False
 
