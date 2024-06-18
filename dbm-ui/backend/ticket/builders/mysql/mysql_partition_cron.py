@@ -26,6 +26,8 @@ class MysqlPartitionCronDetailSerializer(MySQLBaseOperateDetailSerializer):
         file_name = serializers.CharField(help_text=_("分区文件名"))
 
     infos = serializers.ListSerializer(help_text=_("分区信息"), child=PartitionInfoSerializer())
+    immute_domain = serializers.CharField(help_text=_("域名"))
+    cron_date = serializers.CharField(help_text=_("定时任务执行日期"))
 
 
 class MysqlPartitionCronParamBuilder(builders.FlowParamBuilder):

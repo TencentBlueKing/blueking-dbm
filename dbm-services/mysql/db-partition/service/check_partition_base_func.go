@@ -288,7 +288,7 @@ func (m *ConfigDetail) GetDropPartitionSql(host Host) (string, error) {
 	var sql, dropSql, fx string
 	// 保留时间+1天，考虑时区差异引起的时间计算不稳定
 	reserve := m.ReservedPartition*m.PartitionTimeInterval + 1
-	address := fmt.Sprintf("%s:%d", m.ImmuteDomain, m.Port)
+	address := fmt.Sprintf("%s:%d", host.Ip, host.Port)
 	base0 := fmt.Sprintf(`select PARTITION_NAME as PARTITION_NAME from INFORMATION_SCHEMA.PARTITIONS `+
 		`where TABLE_SCHEMA='%s' and TABLE_NAME='%s' and PARTITION_DESCRIPTION<`, m.DbName, m.TbName)
 	base1 := "order by PARTITION_DESCRIPTION asc;"
