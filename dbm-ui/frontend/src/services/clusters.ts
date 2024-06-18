@@ -143,3 +143,17 @@ export const updateClusterEntryConfig = (params: {
     target_instances: string[];
   }[];
 }) => http.post<{ cluster_id?: number }>('/apis/cluster_entry/refresh_cluster_domain/', params);
+
+/**
+ * 通过集群查询同机关联集群
+ */
+export const findRelatedClusters = (
+  params: Record<'cluster_ids', Array<number>> & { dbType: 'mysql' | 'mongodb' | 'sqlserver'; bizId: number },
+) =>
+  http.post<
+    Array<{
+      cluster_id: number;
+      cluster_info: MySQLClusterInfos;
+      related_clusters: Array<MySQLClusterInfos>;
+    }>
+  >(`/apis/${params.dbType}/bizs/${params.bizId}/cluster/find_related_clusters_by_cluster_ids/`, params);

@@ -58,6 +58,7 @@ interface ControllerData {
   'personalWorkbench.serviceApply': ControllerItem<string>;
   'personalWorkbench.myTickets': ControllerItem<string>;
   'personalWorkbench.myTodos': ControllerItem<string>;
+  'personalWorkbench.myTodosNew': ControllerItem<string>;
   observableManage: ControllerItem<string>;
   'observableManage.DBHASwitchEvents': ControllerItem<string>;
   'observableManage.healthReport': ControllerItem<string>;
@@ -159,7 +160,6 @@ interface ControllerData {
   'redis.toolbox.recoverFromInstance': ControllerItem<string>;
   'redis.toolbox.dataCopy': ControllerItem<string>;
   'redis.toolbox.dataCopyRecord': ControllerItem<string>;
-
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
@@ -179,6 +179,7 @@ export default class FunctionController {
   'personalWorkbench.serviceApply': ControllerItem<string>;
   'personalWorkbench.myTickets': ControllerItem<string>;
   'personalWorkbench.myTodos': ControllerItem<string>;
+  'personalWorkbench.myTodosNew': ControllerItem<string>;
   observableManage: ControllerItem<string>;
   'observableManage.DBHASwitchEvents': ControllerItem<string>;
   'observableManage.healthReport': ControllerItem<string>;

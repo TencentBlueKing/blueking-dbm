@@ -26,7 +26,7 @@ const selfServiceMyTicketsRoute = {
     fullscreen: true,
   },
   component: () => import('@views/tickets/my-tickets/Index.vue'),
-}
+};
 
 const myTodosRoute = {
   name: 'MyTodos',
@@ -36,7 +36,39 @@ const myTodosRoute = {
     fullscreen: true,
   },
   component: () => import('@views/tickets/my-todos/Index.vue'),
-}
+};
+
+const myTodosNewRoute = {
+  name: 'MyTodosNew',
+  path: 'my-todos-new',
+  meta: {
+    navName: t('我的待办[新]'),
+    fullscreen: true,
+  },
+  redirect: {
+    name: 'MyTodosNewIndex',
+  },
+  children: [
+    {
+      name: 'MyTodosNewIndex',
+      path: 'index',
+      meta: {
+        navName: t('我的待办[新]'),
+        fullscreen: true,
+      },
+      component: () => import('@views/tickets/my-todos-new/Index.vue'),
+    },
+    {
+      name: 'MyTodosDetailsNew',
+      path: 'details',
+      meta: {
+        navName: t('我的待办[新]'),
+        fullscreen: true,
+      },
+      component: () => import('@views/tickets/my-todos-new/Details.vue'),
+    },
+  ],
+};
 
 export default function getRoutes(funControllerData: FunctionControllModel) {
   const routes: RouteRecordRaw[] = [];
@@ -47,6 +79,10 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
 
   if (checkDbConsole(funControllerData, 'personalWorkbench.myTodos')) {
     routes.push(myTodosRoute);
+  }
+
+  if (checkDbConsole(funControllerData, 'personalWorkbench.myTodosNew')) {
+    routes.push(myTodosNewRoute);
   }
 
   return routes;
