@@ -18,7 +18,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import InstanceRole, InstanceStatus
+from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.flow.consts import DEFAULT_LAST_IO_SECOND_AGO, DEFAULT_MASTER_DIFF_TIME, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -46,11 +46,13 @@ class RedisClusterMSSSceneFlow(object):
     #### 1. 正常手动切换
     #### 2. 异常情况，强制切换 (1. 整机切换;2.部分切换)
     #### 3. 这里只做元数据层的 master/slave 对调,不对old master 下架
+
+    ### 这里需要兼容下 RedisInstance 单实例类型的主从切换 @2024-06-17
     {
         "bk_biz_id": 3,
         "uid": "2023051612120001",
         "created_by":"vitox",
-        "ticket_type":"REDIS_CLUSTER_MASTER_FAILOVER",
+        "ticket_type":"REDIS_MASTER_SLAVE_SWITCH",
         "force":false, # 是否需要强制切换
         "infos": [
             {
@@ -105,6 +107,11 @@ class RedisClusterMSSSceneFlow(object):
             )
             master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
 
+        proxy_port, proxy_ips = 0, []
+        if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+            proxy_port = cluster.proxyinstance_set.first().port
+            proxy_ips = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
+
         return {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": cluster.bk_biz_id,
@@ -116,8 +123,8 @@ class RedisClusterMSSSceneFlow(object):
             "slave_ins_map": dict(slave_ins_map),
             "master_pair_map": dict(master_pair_map),
             "master_slave_map": dict(master_slave_map),
-            "proxy_port": cluster.proxyinstance_set.first().port,
-            "proxy_ips": [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()],
+            "proxy_port": proxy_port,
+            "proxy_ips": proxy_ips,
             "db_version": cluster.major_version,
         }
 
@@ -213,7 +220,7 @@ class RedisClusterMSSSceneFlow(object):
         # 执行切换 #####################################################################################
         act_kwargs.cluster["switch_condition"] = {
             "sync_type": SyncType.SYNC_MS.value,
-            "is_check_sync": force,  # 强制切换
+            "is_check_sync": not force,  # 强制切换
             "slave_master_diff_time": DEFAULT_MASTER_DIFF_TIME,
             "last_io_second_ago": DEFAULT_LAST_IO_SECOND_AGO,
             "can_write_before_switch": True,
