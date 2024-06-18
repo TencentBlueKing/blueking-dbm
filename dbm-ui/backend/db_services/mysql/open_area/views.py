@@ -59,7 +59,7 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
     def get_queryset(self):
         # 过滤业务下的集群模板
         bk_biz_id = self.request.parser_context["kwargs"].get("bk_biz_id")
-        return self.queryset.filter(bk_biz_id=bk_biz_id)
+        return self.queryset.filter(bk_biz_id=bk_biz_id).order_by("-update_at")
 
     @common_swagger_auto_schema(
         operation_summary=_("创建开区模板"),
