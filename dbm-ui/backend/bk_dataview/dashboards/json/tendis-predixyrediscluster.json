@@ -4423,7 +4423,7 @@
             }
           ],
           "refId": "A",
-          "source": "max(sum by (instance) (sum_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / sum by (instance) (sum_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])))",
+          "source": "max(sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) / sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))",
           "step": "",
           "type": "instant"
         }
@@ -4604,14 +4604,7 @@
             "type": "bkmonitor-timeseries-datasource",
             "uid": "bkmonitor_timeseries"
           },
-          "expressionList": [
-            {
-              "active": true,
-              "alias": "",
-              "expression": "sum(a)",
-              "functions": []
-            }
-          ],
+          "expressionList": [],
           "format": "time_series",
           "host": [],
           "mode": "code",
@@ -4625,12 +4618,10 @@
               "display": false,
               "filter_dict": {},
               "functions": [],
-              "group_by": [
-                "bk_target_ip"
-              ],
+              "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "AVG",
+              "method": "avg_without_time",
               "metric_field": "total",
               "refId": "a",
               "result_table_id": "dbm_system.mem",
@@ -4656,7 +4647,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(avg by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])))",
+          "source": "sum(avg(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (bk_target_ip))",
           "step": "",
           "type": "instant"
         }
@@ -5199,7 +5190,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_commands_total",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -5311,7 +5302,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_memory_used_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -6093,8 +6084,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -6283,8 +6273,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               }
             ]
           },
@@ -10260,9 +10249,9 @@
     ]
   },
   "timezone": "",
-  "title": "PredixyRedisCluster",
+  "title": "tendis-PredixyRedisCluster",
   "uid": "PredixyRedisCluster",
-  "version": 17,
+  "version": 19,
   "weekStart": "",
   "__inputs": [
     {
