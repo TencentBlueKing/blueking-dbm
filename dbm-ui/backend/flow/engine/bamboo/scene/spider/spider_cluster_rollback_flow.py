@@ -56,9 +56,11 @@ class TenDBRollBackDataFlow(object):
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = [self.data["source_cluster_id"], self.data["target_cluster_id"]]
-        tendb_rollback_pipeline = Builder(
+        tendb_rollback_pipeline_all = Builder(
             root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
         )
+        tendb_rollback_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
         source_cluster = Cluster.objects.get(id=self.data["source_cluster_id"])
         target_cluster = Cluster.objects.get(id=self.data["target_cluster_id"])
         clusters_info = get_rollback_clusters_info(
@@ -232,4 +234,7 @@ class TenDBRollBackDataFlow(object):
             )
             ins_sub_pipeline_list.append(ins_sub_pipeline.build_sub_process(sub_name=_("恢复remote节点数据")))
         tendb_rollback_pipeline.add_parallel_sub_pipeline(sub_flow_list=ins_sub_pipeline_list)
-        tendb_rollback_pipeline.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
+        tendb_rollback_pipeline_all.add_sub_pipeline(
+            sub_flow=tendb_rollback_pipeline.build_sub_process(sub_name=_("tendb_cluster定点回档"))
+        )
+        tendb_rollback_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)
