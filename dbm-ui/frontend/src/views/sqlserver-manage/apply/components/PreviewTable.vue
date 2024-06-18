@@ -22,23 +22,17 @@
       version:string,
       charset:string,
     }[],
-    nodes:{
-      backend: {
-        ip: string,
-        bk_host_id: number,
-        bk_cloud_id: number
-      }[]
-    }
+    nodeList: {
+      ip: string,
+      bk_host_id: number,
+      bk_cloud_id: number
+    }[],
     isShowNodes?: boolean,
     isSingleType?: boolean,
     maxHeight?: number
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => [],
-    nodes: () => ({
-      backend: [],
-    }),
     isShowNodes: true,
     isSingleType: false,
     maxHeight: 436,
@@ -77,12 +71,12 @@
           width: 200,
           rowspan: () => props.data.length || 1,
           render: () => {
-            const hosts = props.nodes.backend;
+            const {nodeList} = props;
             return (
               <div class="host-list">
                 <div class="host-list-wrapper">
                   {
-                    hosts.map(item => (
+                    nodeList.map(item => (
                       <div class="host-list-item">
                         <span class='host-list-tag host-list-tag-master'></span>
                         <span class="host-list-ip">{ item.ip }</span>
@@ -128,70 +122,69 @@
   });
 
   const setCellClass = ({ field }: { field: string }) => ('backend' === field ? 'host-td' : '');
-
 </script>
 
 <style lang="less" scoped>
-.preview-table {
-  :deep(.bk-table-body) {
-    td {
-      position: relative;
-
-      &.host-td .cell {
-        height: 100% !important;
-        padding: 0;
-        line-height: normal !important;
-      }
-    }
-
-    .host-list {
-      height: 100%;
-      text-align: center;
-
-      .host-list-wrapper {
+  .preview-table {
+    :deep(.bk-table-body) {
+      td {
         position: relative;
-        top: 50%;
-        display: inline-block;
-        transform: translateY(-50%);
+
+        &.host-td .cell {
+          height: 100% !important;
+          padding: 0;
+          line-height: normal !important;
+        }
       }
 
-      .host-list-group {
-        display: flex;
-        align-items: center;
-      }
-
-      .host-list-item {
-        display: flex;
-        align-items: center;
-        min-width: 130px;
-        line-height: 32px;
-      }
-
-      .host-list-tag {
-        width: 16px;
-        height: 16px;
-        margin-right: 4px;
-        font-size: @font-size-mini;
-        font-weight: bolder;
-        line-height: 16px;
+      .host-list {
+        height: 100%;
         text-align: center;
 
-        .host-list-proxy {
-          color: #ff9c01;
-          background-color: #ffe8c3;
+        .host-list-wrapper {
+          position: relative;
+          top: 50%;
+          display: inline-block;
+          transform: translateY(-50%);
         }
 
-        .host-list-master {
-          color: @primary-color;
-          background-color: #cad7eb;
+        .host-list-group {
+          display: flex;
+          align-items: center;
         }
 
-        .host-list-slave {
-          color: #2dcb56;
-          background-color: #c8e5cd;
+        .host-list-item {
+          display: flex;
+          align-items: center;
+          min-width: 130px;
+          line-height: 32px;
+        }
+
+        .host-list-tag {
+          width: 16px;
+          height: 16px;
+          margin-right: 4px;
+          font-size: @font-size-mini;
+          font-weight: bolder;
+          line-height: 16px;
+          text-align: center;
+
+          .host-list-proxy {
+            color: #ff9c01;
+            background-color: #ffe8c3;
+          }
+
+          .host-list-master {
+            color: @primary-color;
+            background-color: #cad7eb;
+          }
+
+          .host-list-slave {
+            color: #2dcb56;
+            background-color: #c8e5cd;
+          }
         }
       }
     }
   }
-}
 </style>
