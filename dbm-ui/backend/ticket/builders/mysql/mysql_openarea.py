@@ -44,6 +44,7 @@ class MysqlOpenAreaDetailSerializer(MySQLBaseOperateDetailSerializer):
         access_dbs = serializers.ListField(help_text=_("准入DB列表"), child=serializers.CharField())
 
     cluster_id = serializers.IntegerField(help_text=_("源集群ID"))
+    config_id = serializers.IntegerField(help_text=_("模板ID"), required=False)
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
     config_data = serializers.ListSerializer(help_text=_("分区信息"), child=ConfigDataSerializer())
     rules_set = serializers.ListSerializer(
