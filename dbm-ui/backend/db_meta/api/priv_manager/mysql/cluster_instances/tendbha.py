@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 from django.core.exceptions import ObjectDoesNotExist
 
 from backend.configuration.constants import SystemSettingsEnum
@@ -18,7 +17,7 @@ from backend.db_meta.exceptions import ClusterEntryNotBindException, ClusterEntr
 from backend.db_meta.models import ClusterEntry
 
 
-def cluster_instances(entry_name: str):
+def tendbha(entry_name: str):
     """
     用任意访问入口查询 TenDBHA 集群信息
     bind_to 是访问入口绑定的 AccessLayer 名称

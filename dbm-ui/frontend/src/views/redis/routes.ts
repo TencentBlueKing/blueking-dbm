@@ -208,6 +208,16 @@ const redisHaInstanceListRoute = {
   component: () => import('@views/redis/instance-list-ha/Index.vue'),
 }
 
+const redisDatabaseHaList = {
+  name: 'DatabaseRedisHaList',
+  path: 'ha-list',
+  meta: {
+    navName: t('Redis 主从管理'),
+    fullscreen: true,
+  },
+  component: () => import('@views/redis/list-ha/Index.vue'),
+};
+
 const routes: RouteRecordRaw[] = [
   {
     name: 'RedisManage',
@@ -229,15 +239,6 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/redis/list/Index.vue'),
       },
-      {
-        name: 'DatabaseRedisHaList',
-        path: 'ha-list',
-        meta: {
-          navName: t('Redis 主从管理'),
-          fullscreen: true,
-        },
-        component: () => import('@views/redis/list-ha/Index.vue'),
-      },
     ],
   },
 ];
@@ -255,6 +256,10 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
 
   if (checkDbConsole(funControllerData, 'redis.haInstanceManage')) {
     routes[0].children!.push(redisHaInstanceListRoute);
+  }
+
+  if (checkDbConsole(funControllerData, 'redis.haClusterManage')) {
+    routes[0].children!.push(redisDatabaseHaList);
   }
 
   // const renderRoutes = routes.find((item) => item.name === 'RedisManage');

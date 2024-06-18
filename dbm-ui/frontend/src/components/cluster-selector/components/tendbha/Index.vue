@@ -28,7 +28,7 @@
       :is-anomalies="isAnomalies"
       :is-searching="searchValue.length > 0"
       :max-height="528"
-      :pagination="pagination.count < 10 ? false: pagination"
+      :pagination="pagination.count < 10 ? false : pagination"
       remote-pagination
       :row-class="getRowClass"
       row-style="cursor: pointer"
@@ -61,6 +61,8 @@
   interface Props {
     activeTab: ClusterTypes,
     selected: Record<string, any[]>,
+    // 多选模式
+    multiple: TabItem['multiple'],
     // eslint-disable-next-line vue/no-unused-properties
     getResourceList: TabItem['getResourceList'],
     disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>,
@@ -116,7 +118,7 @@
   const columns = computed(() => [
     {
       width: 60,
-      label: () => (
+      label: () => props.multiple && (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
           model-value={isSelectedAll.value}
@@ -138,13 +140,20 @@
             </bk-popover>
           );
         }
-        return (
+        return props.multiple ? (
           <bk-checkbox
             style="vertical-align: middle;"
             model-value={Boolean(selectedDomainMap.value[data.id])}
             label={true}
             onChange={(value: boolean) => handleSelecteRow(data, value)}
           />
+          ) : (
+          <bk-radio-group
+            model-value={Boolean(selectedDomainMap.value[data.id])}
+            onChange={(value: boolean) => handleSelecteRow(data, value)}
+          >
+            <bk-radio label={true}/>
+          </bk-radio-group>
         );
       },
     },
@@ -320,7 +329,7 @@
    * 选择当行数据
    */
   const handleSelecteRow = (data: ResourceItem, value: boolean) => {
-    const selectedMapMemo = { ...selectedMap.value };
+    const selectedMapMemo = props.multiple ? { ...selectedMap.value } : {};
     if (!selectedMapMemo[activeTab.value]) {
       selectedMapMemo[activeTab.value] = {};
     }
@@ -350,27 +359,26 @@
 </script>
 
 <style lang="less" scoped>
-.table-box {
-  :deep(.cluster-name-box) {
-    display: flex;
-    width: 100%;
-    align-items: center;
-    overflow: hidden;
-
-    .cluster-name {
-      width: auto;
-      margin-right: 8px;
+  .table-box {
+    :deep(.cluster-name-box) {
+      display: flex;
+      width: 100%;
+      align-items: center;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
 
-    .tag-box {
-      height: 16px;
-      color: #3A84FF;
-      border-radius: 8px !important;
+      .cluster-name {
+        width: auto;
+        margin-right: 8px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .tag-box {
+        height: 16px;
+        color: #3a84ff;
+        border-radius: 8px !important;
+      }
     }
   }
-}
 </style>
-

@@ -133,7 +133,6 @@ class DorisReplaceFlow(DorisBaseFlow):
         scale_up_sub_pipeline.add_act(
             act_name=_("获取机器信息"), act_component_code=GetDorisResourceComponent.code, kwargs=asdict(new_act_kwargs)
         )
-        """
         new_act_kwargs.exec_ip = get_all_node_ips_in_ticket(data=scale_up_data)
         scale_up_sub_pipeline.add_act(
             act_name=_("下发DORIS介质"), act_component_code=TransFileComponent.code, kwargs=asdict(new_act_kwargs)
@@ -145,13 +144,12 @@ class DorisReplaceFlow(DorisBaseFlow):
         scale_up_sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_common_pipelines)
 
         new_act_kwargs.exec_ip = scale_up_data["master_fe_ip"]
-        new_act_kwargs.get_doris_payload_func = DorisActPayload.get_add_nodes_metadata_payload.__name__
+        new_act_kwargs.get_doris_payload_func = DorisActPayload.get_add_metadata_payload.__name__
         scale_up_sub_pipeline.add_act(
             act_name=_("集群元数据更新"),
             act_component_code=ExecuteDorisActuatorScriptComponent.code,
             kwargs=asdict(new_act_kwargs),
         )
-        """
 
         # 扩容FE节点子流程
         if fe_exists_in_ticket(data=scale_up_data):

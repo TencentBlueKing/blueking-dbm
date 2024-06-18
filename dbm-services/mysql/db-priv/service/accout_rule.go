@@ -145,12 +145,10 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 			allTypePriv = fmt.Sprintf("%s,%s", allTypePriv, value)
 		}
 	}
-
 	dmlDdlPriv = strings.Trim(dmlDdlPriv, ",")
 	globalPriv = strings.Trim(globalPriv, ",")
 	allTypePriv = strings.Trim(allTypePriv, ",")
 	vtime := time.Now()
-
 	tx := DB.Self.Begin()
 	for _, db := range dbs {
 		accountRule = TbAccountRules{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, AccountId: m.AccountId, Dbname: db,
@@ -177,11 +175,11 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 func (m *AccountRulePara) AddAccountRuleDryRun() (bool, error) {
 	err := m.ParaPreCheck()
 	if err != nil {
-		return true, err
+		return false, err
 	}
 	dbs, err := util.String2Slice(m.Dbname)
 	if err != nil {
-		return true, err
+		return false, err
 	}
 	allowForce, err := AccountRulePreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, true)
 	if err != nil {
@@ -407,8 +405,7 @@ func CrossCheckBetweenDbList(newDbs []string, exist []string) string {
 			if CrossCheck(newDb, existDb) {
 				// （已授权的数据库+准备授权的数据库）和准备授权的数据库有包含关系
 				msg := fmt.Sprintf("新增规则中的数据库[`%s`]与已存在的规则中的数据库[`%s`]存在交集，授权时可能冲突",
-					strings.Replace(newDb, "%", "%%", -1),
-					strings.Replace(existDb, "%", "%%", -1))
+					newDb, existDb)
 				errMsg = append(errMsg, msg)
 				continue
 			}
@@ -433,8 +430,7 @@ func CrossCheckBetweenDbList(newDbs []string, exist []string) string {
 	for db := range UniqMap {
 		d := strings.Split(db, "|")
 		msg := fmt.Sprintf("新增规则中的数据库[`%s`]与新增规则中的数据库[`%s`]存在交集，授权时可能冲突",
-			strings.Replace(d[0], "%", "%%", -1),
-			strings.Replace(d[1], "%", "%%", -1))
+			d[0], d[1])
 		errMsg = append(errMsg, msg)
 	}
 	if len(errMsg) > 0 {
@@ -471,19 +467,45 @@ func (m *AccountRulePara) ParaPreCheck() error {
 	// 1、"priv": {}
 	// 2、"priv": {"dml":"","ddl":"","global":""}  or  "priv": {"dml":""} or ...
 
+	var allTypePriv string
 	nullFlag := true
 	for _, _type := range ConstPrivType {
 		value, exists := m.Priv[_type]
 		if exists {
 			if value != "" {
+				allTypePriv = fmt.Sprintf("%s,%s", allTypePriv, value)
 				nullFlag = false
-				break
 			}
 		}
 	}
-
 	if len(m.Priv) == 0 || nullFlag {
 		return errno.PrivNull
 	}
+	allTypePriv = strings.Trim(allTypePriv, ",")
+	slog.Info("msg", "allTypePriv", allTypePriv, "type", *m.ClusterType)
+	if *m.ClusterType == tendbcluster {
+		privs, ok := AllowedSpiderPriv(allTypePriv)
+		if !ok {
+			return fmt.Errorf("can not grant %s privileges in tendbcluster", privs)
+		}
+	}
 	return nil
+}
+
+func AllowedSpiderPriv(source string) (string, bool) {
+	var notAllowed string
+	source = strings.ToLower(source)
+	privs := strings.Split(source, ",")
+	for _, p := range privs {
+		p = strings.Trim(p, " ")
+		if !(p == "select" || p == "insert" || p == "update" || p == "delete" || p == "execute" || p == "file" || p == "reload" ||
+			p == "process" || p == "show databases") {
+			notAllowed = fmt.Sprintf("%s;%s", notAllowed, p)
+		}
+	}
+	notAllowed = strings.Trim(notAllowed, ";")
+	if len(notAllowed) > 0 {
+		return notAllowed, false
+	}
+	return notAllowed, true
 }

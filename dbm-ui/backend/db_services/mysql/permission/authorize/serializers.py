@@ -19,3 +19,25 @@ class GetHostInAuthorizeSerializer(serializers.Serializer):
 
     class Meta:
         swagger_schema_fields = {"example": {"ticket_id": 1}}
+
+
+class IntegrationGrantSerializer(serializers.Serializer):
+    client_hosts = serializers.CharField(help_text=_("客户端主机"))
+    client_version = serializers.CharField(help_text=_("客户端版本"), required=False, default="5")
+    db_hosts = serializers.CharField(help_text=_("DB主机（domain#port）"))
+    db_name = serializers.CharField(help_text=_("数据库名"))
+    user_name = serializers.CharField(help_text=_("用户名"))
+    password = serializers.CharField(help_text=_("密码"))
+    privileges = serializers.CharField(help_text=_("权限列表，多个权限以逗号分隔"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "example": {
+                "client_hosts": "%",
+                "db_hosts": "test.db#10001",
+                "db_name": "test_db_name",
+                "user_name": "test_username",
+                "password": "test_password",
+                "privileges": "SELECT,INSERT,UPDATE,DELETE,EXECUTE,CREATE,ALTER,DROP",
+            }
+        }

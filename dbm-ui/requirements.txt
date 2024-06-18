@@ -117,6 +117,7 @@ pymysql==1.0.2; python_version >= "3.6"
 pyparsing==2.4.7; python_version >= "3.6" and python_full_version < "3.0.0" and python_version < "4" or python_version >= "3.6" and python_version < "4" and python_full_version >= "3.3.0"
 pysocks==1.7.1; python_version >= "3.7" and python_full_version >= "3.6.2" and python_version < "3.11" and (python_version >= "3.7" and python_full_version < "3.0.0" or python_full_version >= "3.6.0" and python_version < "4" and python_version >= "3.7") and (python_full_version < "3.0.0" and python_version >= "3.7" or python_full_version >= "3.6.0" and python_version >= "3.7")
 pytest-cov==2.10.1; (python_version >= "2.7" and python_full_version < "3.0.0") or (python_full_version >= "3.5.0")
+promql-parser==0.4.0
 pytest-cover==3.0.0
 pytest-django==3.9.0; (python_version >= "2.7" and python_full_version < "3.0.0") or (python_full_version >= "3.4.0")
 pytest==6.2.4; python_version >= "3.6"

@@ -88,6 +88,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 					proxySQL, proxyIPs, errMsgInner               []string
 					err                                           error
 					tendbhaMasterDomain                           bool // 是否为集群的主域名
+					tendbhaPaddingProxy                           bool //集群伪造了proxy，但是不使用proxy
 					successInfo, failInfo, baseInfo, ips, address string
 				)
 				dns = strings.Trim(strings.TrimSpace(dns), ".")
@@ -112,6 +113,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 					// 当"cluster_type": "tendbha", "bind_to": "proxy" tendbha的主域名, "bind_to": "storage" tendbha的备域名
 					if instance.ClusterType == tendbha && instance.BindTo == machineTypeProxy {
 						tendbhaMasterDomain = true
+						tendbhaPaddingProxy = instance.PaddingProxy
 						for _, proxy := range instance.Proxies {
 							proxyIPs = append(proxyIPs, proxy.IP)
 						}
@@ -124,7 +126,8 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 						}
 						address = fmt.Sprintf("%s:%d", storage.IP, storage.Port)
 						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
-							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false)
+							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false,
+							tendbhaPaddingProxy)
 						if err != nil {
 							errMsgInner = append(errMsgInner, err.Error())
 						}
@@ -133,7 +136,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 						AddErrorOnly(&errMsg, errors.New(failInfo+sep+strings.Join(errMsgInner, sep)))
 						return
 					}
-					if tendbhaMasterDomain { // proxy授权放到mysql授权执行之后，mysql授权成功，才在proxy执行
+					if tendbhaMasterDomain && !tendbhaPaddingProxy { // proxy授权放到mysql授权执行之后，mysql授权成功，才在proxy执行
 						proxySQL = GenerateProxyPrivilege(account.User, m.SourceIPs)
 						var runningNum int
 						for _, proxy := range instance.Proxies {
@@ -164,7 +167,8 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 					for _, spider := range spiders {
 						address = fmt.Sprintf("%s:%d", spider.IP, spider.Port)
 						err = ImportBackendPrivilege(account, accountRule, address, proxyIPs, m.SourceIPs,
-							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false)
+							instance.ClusterType, tendbhaMasterDomain, instance.BkCloudId, false,
+							tendbhaPaddingProxy)
 						if err != nil {
 							errMsgInner = append(errMsgInner, err.Error())
 						}
@@ -213,7 +217,7 @@ func (m *AddPrivWithoutAccountRule) AddPrivWithoutAccountRule(jsonPara string, t
 		clusterType = tendbsingle
 	}
 	err = ImportBackendPrivilege(tmpAccount, tmpAccountRule, m.Address, nil, m.Hosts,
-		clusterType, false, *m.BkCloudId, true)
+		clusterType, false, *m.BkCloudId, true, false)
 	if err != nil {
 		return errno.GrantPrivilegesFail.Add(err.Error())
 	}

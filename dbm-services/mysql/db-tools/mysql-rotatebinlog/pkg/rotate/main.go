@@ -216,6 +216,13 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 	} else {
 		return fmt.Errorf("unknown keep_policy %s", keepPolicy)
 	}
+	if requestSizeToFree, err := cmutil.ViperGetSizeInBytesE("request-size-to-free"); err != nil {
+		return err
+	} else {
+		for _, inst := range servers {
+			inst.rotate.sizeToFreeMB = requestSizeToFree / 1024 / 1024
+		}
+	}
 
 	var diskPartInst = make(map[string][]*ServerObj)      // 每个挂载目录上，放了哪些binlog实例以及对应的binlog空间
 	var diskParts = make(map[string]*cmutil.DiskPartInfo) // 目录对应的空间信息
@@ -258,7 +265,9 @@ func (c *RotateBinlogComp) decideSizeToFree(servers []*ServerObj) error {
 
 			if binlogSizeMB > maxBinlogSizeAllowedMB {
 				sizeToFree := binlogSizeMB - maxBinlogSizeAllowedMB
-				inst.rotate.sizeToFreeMB = sizeToFree
+				if sizeToFree > inst.rotate.sizeToFreeMB {
+					inst.rotate.sizeToFreeMB = sizeToFree
+				}
 				logger.Info("plan to free space: %+v", inst.rotate)
 			}
 		}

@@ -540,12 +540,16 @@ func (tf *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (e
 
 		// 判断是否有语法错误
 		if res.ErrorCode != 0 {
+			errMsg := res.ErrorMsg
 			vl := strings.Split(mysqlVersion, ".")
+			if len(vl) >= 2 {
+				errMsg = fmt.Sprintf("[%s]: %s", fmt.Sprintf("MySQL-%s.%s", vl[0], vl[1]), res.ErrorMsg)
+			}
 			syntaxFailInfos = append(syntaxFailInfos, FailedInfo{
 				Line:      int64(res.QueryId),
 				Sqltext:   res.QueryString,
 				ErrorCode: int64(res.ErrorCode),
-				ErrorMsg:  fmt.Sprintf("[%s]: %s", fmt.Sprintf("MySQL-%s.%s", vl[0], vl[1]), res.ErrorMsg),
+				ErrorMsg:  errMsg,
 			})
 			continue
 		}

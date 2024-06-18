@@ -99,7 +99,7 @@ const (
 	KeepPolicyMost = "most"
 	// KeepPolicyLeast 尽可能少的保留binlog
 	KeepPolicyLeast = "least"
-	// PolicyLeastMaxSize keep_policy=least 尽可能少的保留 binlog 时，使用一个特殊常量代表需要删除的binlog大小
+	// PolicyLeastMaxSize keep_policy=least 尽可能少的保留 binlog 时，使用一个特殊常量代表需要删除的binlog大小. MB
 	PolicyLeastMaxSize int64 = 99999999
 )
 

@@ -61,6 +61,8 @@
   interface Props {
     activeTab: ClusterTypes,
     selected: Record<string, any[]>,
+    // 多选模式
+    multiple: TabItem['multiple'],
     // eslint-disable-next-line vue/no-unused-properties
     getResourceList: TabItem['getResourceList'],
     disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>,
@@ -112,7 +114,7 @@
   const columns = computed(() => [
     {
       width: 60,
-      label: () => (
+      label: () => props.multiple && (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
           model-value={isSelectedAll.value}
@@ -137,7 +139,7 @@
             </bk-popover>
           );
         }
-        return (
+        return props.multiple ? (
           <bk-checkbox
             style="vertical-align: middle;"
             model-value={Boolean(selectedDomainMap.value[data.id])}
@@ -145,6 +147,13 @@
             onClick={(e: Event) => e.stopPropagation()}
             onChange={(value: boolean) => handleSelecteRow(data, value)}
           />
+          ) : (
+          <bk-radio-group
+            model-value={Boolean(selectedDomainMap.value[data.id])}
+            onChange={(value: boolean) => handleSelecteRow(data, value)}
+          >
+            <bk-radio label={true}/>
+          </bk-radio-group>
         );
       },
     },
@@ -324,7 +333,7 @@
    * 选择当行数据
    */
   const handleSelecteRow = (data: ResourceItem, value: boolean) => {
-    const selectedMapMemo = { ...selectedMap.value };
+    const selectedMapMemo = props.multiple ? { ...selectedMap.value } : {};
     if (!selectedMapMemo[activeTab.value]) {
       selectedMapMemo[activeTab.value] = {};
     }

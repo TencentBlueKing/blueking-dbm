@@ -16,6 +16,7 @@
   "script":"xxx",
   "type":"cluster",
   "secondary": false,
+  "scriptName": "xxx",
   "adminUsername":"xxx",
   "adminPassword":"xxxxxx",
   "repoUrl":"url",
@@ -26,5 +27,11 @@
   "repoPath":"path"
 }
 ```
+
+"script" 为JavaScript脚本内容
+
+"scriptName" 为脚本名称
+
+"secondary" 为true时,表示在secondary节点执行；为false时，表示在primary节点执行
 
 以repo为前缀的字段为制品库信息

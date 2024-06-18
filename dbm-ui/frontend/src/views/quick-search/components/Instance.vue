@@ -11,7 +11,7 @@
           <I18nT
             class="ml-8"
             keypath="共n条"
-            style="color: #63656E;"
+            style="color: #63656e"
             tag="span">
             <template #n>
               <strong>{{ item.dataList.length }}</strong>
@@ -189,6 +189,10 @@
             ),
           },
           {
+            label: t('部署角色'),
+            field: 'role',
+          },
+          {
             label: t('所属DB模块'),
             field: 'cluster_type',
             render: ({ data }: { data: QuickSearchInstanceModel }) => data.cluster_type || '--',
@@ -228,6 +232,7 @@
       'cluster_name',
       'bk_idc_name',
       'instance',
+      'role',
       'cluster_type',
       'bk_biz_id',
     ],

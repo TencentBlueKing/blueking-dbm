@@ -73,6 +73,7 @@ func init() {
 	_ = registerItemConstructor(mysqlerrlog.RegisterSpiderErrNotice())
 	_ = registerItemConstructor(mysqlerrlog.RegisterSpiderErrWarn())
 	_ = registerItemConstructor(mysqlerrlog.RegisterSpiderErrCritical())
+	_ = registerItemConstructor(mysqlerrlog.RegisterMySQLDRestartWarn())
 	_ = registerItemConstructor(mysqlprocesslist.RegisterMySQLLock())
 	_ = registerItemConstructor(mysqlprocesslist.RegisterMySQLInject())
 	_ = registerItemConstructor(rotateslowlog.RegisterRotateSlowLog())

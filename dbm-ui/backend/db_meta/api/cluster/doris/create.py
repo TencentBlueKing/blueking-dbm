@@ -87,5 +87,5 @@ def create(
         ins.save()
         m.save()
 
-    # 生成域名模块、es主机转移模块、添加对应的服务实例
-    DorisCCTopoOperator(cluster).transfer_instances_to_cluster_module(storage_objs)
+    # 生成域名模块、doris主机转移模块、添加对应的服务实例
+    DorisCCTopoOperator(cluster=cluster).transfer_instances_to_cluster_module(storage_objs)

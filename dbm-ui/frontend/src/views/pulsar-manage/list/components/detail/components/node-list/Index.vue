@@ -681,11 +681,6 @@
     }
   }
 
-  .action-box {
-    display: flex;
-    margin-bottom: 16px;
-  }
-
   .action-copy-icon {
     margin-left: 6px;
     color: #979ba5;

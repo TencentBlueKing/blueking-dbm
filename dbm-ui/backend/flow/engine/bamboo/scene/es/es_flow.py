@@ -51,6 +51,7 @@ class EsFlow(object):
             self.domain = data.get("domain")
             self.http_port = data.get("http_port")
             self.bk_cloud_id = data.get("bk_cloud_id")
+            self.city_code = data.get("city_code")
 
             # 从dbconfig获取配置信息
             dbconfig = DBConfigApi.query_conf_item(
@@ -71,6 +72,7 @@ class EsFlow(object):
             self.cluster_id = data.get("cluster_id")
             cluster = Cluster.objects.get(id=self.cluster_id)
             self.cluster_name = cluster.name
+            self.city_code = cluster.region
             masters = StorageInstance.objects.filter(cluster=cluster, instance_role=InstanceRole.ES_MASTER)
             if not masters:
                 logger.info("found 0 master node")
@@ -132,6 +134,7 @@ class EsFlow(object):
             "domain": self.domain,
             "es_config": self.es_config,
             "resource_spec": self.resource_spec,
+            "city_code": self.city_code,
         }
         return flow_data
 

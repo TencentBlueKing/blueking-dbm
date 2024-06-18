@@ -76,9 +76,14 @@ export function importResource(params: {
 export function fetchList(params: Record<string, any>, payload = {} as IRequestPayload) {
   return http.post<ListBase<DbResourceModel[]>>(`${path}/list/`, params, payload).then((data) => ({
     ...data,
-    results: data.results.map((item) => new DbResourceModel(Object.assign(item, {
-      permission: data.permission
-    }))),
+    results: data.results.map(
+      (item) =>
+        new DbResourceModel(
+          Object.assign(item, {
+            permission: data.permission,
+          }),
+        ),
+    ),
   }));
 }
 
@@ -165,6 +170,7 @@ export function getSpecResourceCount(params: {
 export function updateResource(params: {
   bk_host_ids: number[];
   for_bizs: number[];
+  rack_id: string;
   resource_types: string[];
   set_empty_biz: boolean;
   set_empty_resource_type: boolean;

@@ -17,6 +17,7 @@ require (
 replace go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.10.6
 
 require (
+	github.com/deckarep/golang-set v1.8.0
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

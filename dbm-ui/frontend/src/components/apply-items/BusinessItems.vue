@@ -143,7 +143,7 @@
       const englishName = currentBiz.value?.english_name;
       hasEnglishName.value = !!englishName;
       appAbbr.value = englishName ?? '';
-      // 从实例申请 跳转过来，需要同步数据出去
+      // 从申请实例 跳转过来，需要同步数据出去
       if (route.query.bizId && currentBiz.value) {
         handleAppChange(currentBiz.value);
       }

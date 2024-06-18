@@ -46,6 +46,9 @@ DEFAULT_REDIS_START_PORT = 30000
 DEFAULT_TWEMPROXY_ADMIN_PORT_EXTRA = 1000
 # 默认Redis dbnum
 DEFAULT_REDIS_DBNUM = 0
+# 默认Redis databases
+DEFAULT_REDIS_INSTANCE_DATABASES = 2
+DEFAULT_REDIS_CLUSTER_DATABASES = 1
 
 # 切换时， 默认允许多久心跳
 DEFAULT_MASTER_DIFF_TIME = 61
@@ -611,7 +614,8 @@ class DorisActuatorActionEnum(str, StructuredEnum):
     RestartProcess = EnumField("restart_process", _("restart_process"))
     CleanData = EnumField("clean_data", _("clean_data"))
     UpdateMetadata = EnumField("update_metadata", _("update_metadata"))
-    CheckDecommission = EnumField("check_decommission", "check_decommission")
+    CheckDecommission = EnumField("check_decommission", _("check_decommission"))
+    CheckProcessStart = EnumField("check_process_start", _("check_process_start"))
 
 
 class RiakModuleId(int, StructuredEnum):

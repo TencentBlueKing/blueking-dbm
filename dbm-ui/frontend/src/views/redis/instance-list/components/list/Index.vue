@@ -15,11 +15,11 @@
   <div class="redis-instance-list-page">
     <div class="operation-box">
       <AuthButton
-        action-id="resource_manage"
+        action-id="redis_cluster_apply"
         class="mb-16"
         theme="primary"
         @click="handleApply">
-        {{ t('实例申请') }}
+        {{ t('申请实例') }}
       </AuthButton>
       <DbSearchSelect
         :data="searchSelectData"

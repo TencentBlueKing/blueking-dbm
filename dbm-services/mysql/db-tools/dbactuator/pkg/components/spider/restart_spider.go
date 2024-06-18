@@ -11,13 +11,13 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
-// RestartSpiderComp TODO
+// RestartSpiderComp restart spider comp
 type RestartSpiderComp struct {
 	GeneralParam *components.GeneralParam `json:"general"`
 	Params       *RestartSpiderParam      `json:"extend"`
 }
 
-// RestartSpiderParam TODO
+// RestartSpiderParam  restart spider param
 type RestartSpiderParam struct {
 	Host    string `json:"host"  validate:"required,ip"`
 	Port    int    `json:"port"  validate:"required,gte=3306"`
@@ -25,7 +25,7 @@ type RestartSpiderParam struct {
 	instObj *native.InsObject
 }
 
-// Example TODO
+// Example subcommand example input
 func (d *RestartSpiderComp) Example() interface{} {
 	comp := RestartSpiderComp{
 		Params: &RestartSpiderParam{
@@ -36,7 +36,7 @@ func (d *RestartSpiderComp) Example() interface{} {
 	return comp
 }
 
-// Init TODO
+// Init prepare run env
 func (u *RestartSpiderComp) Init() (err error) {
 	f := util.GetMyCnfFileName(u.Params.Port)
 	u.Params.myCnf = &util.CnfFile{
@@ -59,7 +59,7 @@ func (u *RestartSpiderComp) Init() (err error) {
 	return
 }
 
-// PreCheck TODO
+// PreCheck pre check
 func (u *RestartSpiderComp) PreCheck() (err error) {
 	_, err = u.Params.instObj.ConnSpiderAdmin()
 	if err != nil {
@@ -69,7 +69,7 @@ func (u *RestartSpiderComp) PreCheck() (err error) {
 	return
 }
 
-// RestartSpider TODO
+// RestartSpider restart
 func (u *RestartSpiderComp) RestartSpider() (err error) {
 	err = computil.RestartMysqlInstanceNormal(*u.Params.instObj)
 	if err != nil {

@@ -14,6 +14,19 @@ data:
     listenAddr: "0.0.0.0:80"
     rulePath: "rule.yaml"
     spiderRulePath: "spider_rule.yaml"
+    
+    {{- if index .Values "db-simulation" "simulationNodeLables" }}
+    simulationNodeLables:
+      - key: "{{ index .Values "db-simulation" "simulationNodeLables" "key" }}"
+        value: "{{ index .Values "db-simulation" "simulationNodeLables" "value" }}"
+    {{- end }}
+
+    {{- if index .Values "db-simulation" "simulationtaintLables" }}
+    simulationtaintLables:
+      - key: "{{ index .Values "db-simulation" "simulationtaintLables" "key" }}"
+        value: "{{ index .Values "db-simulation" "simulationtaintLables" "value" }}"
+    {{- end }}
+
     bkrepo:
       project: "{{ .Values.bk.bkRepoProject }}"
       publicBucket: "{{ .Values.bk.bkRepoPublicBucket }}"

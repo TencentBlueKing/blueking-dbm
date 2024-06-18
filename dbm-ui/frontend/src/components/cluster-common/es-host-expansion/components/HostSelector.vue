@@ -6,6 +6,7 @@
       :cloud-info="cloudInfo"
       :disable-host-method="disableHostMethod"
       :disable-tips="data.targetDisk < 1 ? t('请先设置期望容量') : ''"
+      :os-types="[OSTypes.Linux]"
       :show-view="false"
       @change="handleHostChange">
       <template #submitTips="{ hostList }">
@@ -84,6 +85,8 @@
   import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
+
+  import { OSTypes } from '@common/const';
 
   import EditHostInstance from '@components/cluster-common/big-data-host-table/es-host-table/components/EditHostInstance.vue';
   import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';

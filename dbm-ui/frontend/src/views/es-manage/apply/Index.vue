@@ -84,6 +84,7 @@
                   :data="formData.details.nodes.master"
                   :disable-dialog-submit-method="masterDisableDialogSubmitMethod"
                   :disable-host-method="masterDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   required
                   :show-view="false"
                   style="display: inline-block"
@@ -114,6 +115,7 @@
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.client"
                 :disable-host-method="clientDisableHostMethod"
+                :os-types="[OSTypes.Linux]"
                 :show-view="false"
                 @change="handleClientIpListChange" />
               <RenderHostTable
@@ -134,6 +136,7 @@
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.hot"
                 :disable-host-method="hotDisableHostMethod"
+                :os-types="[OSTypes.Linux]"
                 :show-view="false"
                 @change="handleHotIpListChange" />
               <WithInstanceHostTable
@@ -148,6 +151,7 @@
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes.cold"
                 :disable-host-method="coldDisableHostMethod"
+                :os-types="[OSTypes.Linux]"
                 :show-view="false"
                 @change="handleColdIpListChange" />
               <WithInstanceHostTable
@@ -338,6 +342,8 @@
   } from '@services/types';
 
   import { useApplyBase  } from '@hooks';
+
+  import { OSTypes } from '@common/const';
 
   // import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';

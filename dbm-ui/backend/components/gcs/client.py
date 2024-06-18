@@ -12,7 +12,7 @@ See the License for the specific language governing permissions and limitations 
 from django.utils.translation import ugettext_lazy as _
 
 from ..base import BaseApi
-from ..domains import GCS_APIGW_DOMAIN
+from ..domains import GCS_APIGW_DOMAIN, GCS_DIRECT_APIGW_DOMAIN
 
 
 class _GcsApi(BaseApi):
@@ -31,4 +31,17 @@ class _GcsApi(BaseApi):
         )
 
 
+class _GcsDirectApi(BaseApi):
+    MODULE = _("Gcs平台")
+    BASE = GCS_DIRECT_APIGW_DOMAIN
+
+    def __init__(self):
+        self.blueking_grant = self.generate_data_api(
+            method="POST",
+            url="blueking_grant/",
+            description=_("直接授权接口"),
+        )
+
+
 GcsApi = _GcsApi()
+GcsDirectApi = _GcsDirectApi()

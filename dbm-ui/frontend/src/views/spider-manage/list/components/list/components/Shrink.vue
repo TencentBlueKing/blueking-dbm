@@ -191,7 +191,7 @@
               headerAlign: 'center',
               contentAlign: 'center',
               footerAlign: 'center',
-              onClosed: () => reject(),
+              onClose: () => reject(),
               onConfirm: () => {
                 const { id } = props.data;
                 const infos: {

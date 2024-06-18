@@ -558,7 +558,7 @@ class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
     params:
     {
         "bk_biz_id": 3,
-        "ticket_type":"REDIS_CLUSTER_VERSION_UPDATE_ONLINE",
+        "ticket_type":"REDIS_VERSION_UPDATE_ONLINE",
         "created_by":"admin",
         "uid":"1111",
         "infos": [

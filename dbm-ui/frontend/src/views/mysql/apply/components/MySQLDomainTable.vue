@@ -28,7 +28,6 @@
   import type { HostDetails } from '@services/types';
 
   import { TicketTypes } from '@common/const';
-  import { nameRegx } from '@common/regex';
 
   import BatchEdit from './BatchEdit.vue';
 
@@ -97,9 +96,9 @@
       validator: (val: string) => val.length <= 63,
     },
     {
-      message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+      message: t('以小写英文字母或数字开头_且只能包含英文字母_数字_连字符'),
       trigger: 'blur',
-      validator: (val: string) => nameRegx.test(val),
+      validator: (val: string) => /^[a-z0-9][a-z0-9-]*$/.test(val),
     },
     {
       message: t('主访问入口重复'),
@@ -207,7 +206,7 @@
                     trigger: 'click',
                     placement: 'top',
                     theme: 'light',
-                    content: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
+                    content: t('以小写英文字母或数字开头_且只能包含英文字母_数字_连字符'),
                   }}
                   onInput={(value: string) => handleChangeDomain(value, rowIndex)}
                 />

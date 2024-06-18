@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package computil
 
 import (
@@ -32,7 +42,7 @@ type StartMySQLParam struct {
 	SkipGrantTables bool   // --skip-grant-tables
 }
 
-// RestartMysqlInstanceNormal TODO
+// RestartMysqlInstanceNormal  nomarl restart  mysql instance
 func RestartMysqlInstanceNormal(inst native.InsObject) error {
 	mycnf := util.GetMyCnfFileName(inst.Port)
 	startParam := StartMySQLParam{
@@ -51,7 +61,7 @@ func RestartMysqlInstanceNormal(inst native.InsObject) error {
 	return nil
 }
 
-// IsInstanceRunning TODO
+// IsInstanceRunning mysqld process exist
 func IsInstanceRunning(inst native.InsObject) bool {
 	mycnf := util.GetMyCnfFileName(inst.Port)
 	startParam := StartMySQLParam{
@@ -70,7 +80,7 @@ func IsInstanceRunning(inst native.InsObject) bool {
 	return true
 }
 
-// RestartMysqlInstance TODO
+// RestartMysqlInstance restart mysql instance
 func (p *StartMySQLParam) RestartMysqlInstance() (pid int, err error) {
 	if err := ForceShutDownMySQL(p.MySQLUser, p.MySQLPwd, p.Socket); err != nil {
 		return 0, err
@@ -125,7 +135,7 @@ func (p *StartMySQLParam) CheckMysqlProcess() (err error) {
 		errStr := fmt.Sprintf("exec shell error %s", checkMysqldCmd)
 		err = errors.WithMessage(err, errStr)
 		logger.Error(err.Error())
-		return
+		return err
 	}
 	regStr := fmt.Sprintf("mysqld_safe\\s+--defaults-file=%s", p.MyCnfName)
 	if !regexp.MustCompile(regStr).MatchString(out) {
@@ -144,7 +154,8 @@ func (p *StartMySQLParam) CheckMysqlProcess() (err error) {
 	}
 	// 没有 error 可以认为连接成功
 	if _, err = native.NewDbWorker(dsn); err != nil {
-		return
+		logger.Error("test conn mysql %d failed:%v", p.Port, err)
+		return err
 	}
 	logger.Info("connect %s successfully", addr)
 	return err
@@ -195,10 +206,6 @@ func ForceShutDownMySQL(user, password, socket string) (err error) {
 //	@receiver param
 //	@return err
 func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
-	if param.Socket == "" {
-		//return errors.Errorf("no socket file givien")
-		//param.Socket = getSocketByPort()
-	}
 	mysqladminCmd := []string{"mysqladmin", "-u", param.MySQLUser, "-p" + param.MySQLPwd}
 	if param.Socket != "" {
 		mysqladminCmd = append(mysqladminCmd, "--socket", param.Socket)
@@ -207,7 +214,7 @@ func (param ShutdownMySQLParam) ForceShutDownMySQL() (err error) {
 	} else {
 		return errors.Errorf("no socket file givien")
 	}
-	//shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
+	// shellCMD := fmt.Sprintf("mysqladmin -u%s -p%s -S%s shutdown", param.MySQLUser, param.MySQLPwd, param.Socket)
 	output, err := mysqlutil.ExecCommandMySQLShell(strings.Join(mysqladminCmd, " "))
 	if err != nil {
 		logger.Warn("使用mysqladmin shutdown 失败:%s output:%s", err.Error(), string(output))
@@ -288,7 +295,7 @@ func KillMySQLD(regexpStr string) error {
 	if strings.TrimSpace(regexpStr) == "" {
 		return errors.New("grep 参数为空，不允许！！！")
 	}
-	shellCMD := fmt.Sprintf("ps -efwww|grep %s|egrep -v grep |wc -l", regexpStr)
+	shellCMD := fmt.Sprintf("ps -efwww|grep %s|grep -E 'mysqld |mysqld_safe'|egrep -v grep |wc -l", regexpStr)
 	processCnts, err := osutil.ExecShellCommand(false, shellCMD)
 	processCnt := cast.ToInt(strings.TrimSpace(processCnts))
 	if err != nil {
@@ -303,7 +310,8 @@ func KillMySQLD(regexpStr string) error {
 		return errors.Errorf("expect found mysql process %s count 1, bug got %d", regexpStr, processCnt)
 	}
 	logger.Info("will kill this %s  %d", regexpStr, processCnt)
-	killCmd := fmt.Sprintf("ps -efwww|grep %s|egrep -v grep |awk '{print $2}'|xargs  kill -15", regexpStr)
+	killCmd := fmt.Sprintf(
+		"ps -efwww|grep %s|grep -E 'mysqld |mysqld_safe' |egrep -v grep |awk '{print $2}'|xargs  kill -15", regexpStr)
 	logger.Info(" kill command is %s", killCmd)
 	kOutput, err := osutil.ExecShellCommand(false, killCmd)
 	if err != nil {

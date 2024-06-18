@@ -18,6 +18,7 @@ from pipeline.core.flow.activity import Service
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DnsOpType, DorisRoleEnum
+from backend.flow.engine.bamboo.scene.doris.doris_base_flow import get_all_node_ips_in_ticket
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.dns_manage import DnsManage
 
@@ -37,7 +38,7 @@ class DorisDnsManageService(BaseService):
             DorisRoleEnum.HOT.value,
             DorisRoleEnum.COLD.value,
         ]
-        self.es_role_to_instance_role_map = {
+        self.instance_role_map = {
             DorisRoleEnum.OBSERVER.value: InstanceRole.DORIS_OBSERVER.value,
             DorisRoleEnum.FOLLOWER.value: InstanceRole.DORIS_FOLLOWER.value,
             DorisRoleEnum.HOT.value: InstanceRole.DORIS_BACKEND_HOT.value,
@@ -79,12 +80,17 @@ class DorisDnsManageService(BaseService):
             add_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in exec_ips]
             result = dns_manage.create_domain(instance_list=add_instance_list, add_domain_name=global_data["domain"])
         if dns_op_type == DnsOpType.UPDATE:
-            # 更新域名
+            # 扩容 调用 更新域名
             cluster = Cluster.objects.get(id=global_data["cluster_id"])
-            # 获取域名映射的IP
+            # 获取当前域名映射的IP
             dns_ips = [item["ip"] for item in dns_manage.get_domain(domain_name=cluster.immute_domain)]
             for role in self.order_list:
-                role_ips = self.__get_ips_by_es_role(global_data, role)
+                instance_role = self.instance_role_map[role]
+                role_ips = list(
+                    cluster.storageinstance_set.filter(instance_role=instance_role).values_list(
+                        "machine__ip", flat=True
+                    )
+                )
                 diff_set = set(role_ips) - set(dns_ips)
                 if diff_set:
                     add_instance_list = [f"{ip}#{global_data['http_port']}" for ip in diff_set]
@@ -100,6 +106,39 @@ class DorisDnsManageService(BaseService):
                         dns_manage.remove_domain_ip(domain=cluster.immute_domain, del_instance_list=del_instance_list)
                     # 有高优先级角色的节点存在，退出，不需要把更低优先级角色的节点加入域名
                     break
+            result = True
+
+        elif dns_op_type == DnsOpType.RECYCLE_RECORD:
+            # 集群缩容时调用
+            cluster = Cluster.objects.get(id=global_data["cluster_id"])
+            # 获取当前域名映射的IP
+            dns_ips = [item["ip"] for item in dns_manage.get_domain(domain_name=cluster.immute_domain)]
+            shrink_ips = get_all_node_ips_in_ticket(data=global_data)
+            if set(dns_ips) - set(shrink_ips) == 0:
+                # 原域名IP 均需要被删除
+                for role in self.order_list:
+                    instance_role = self.instance_role_map[role]
+                    role_ips = list(
+                        cluster.storageinstance_set.filter(instance_role=instance_role).values_list(
+                            "machine__ip", flat=True
+                        )
+                    )
+                    # 缩容时先操作更新域名，后变更dbmeta，因此此时dbmeta数据包含待下架的IP
+                    if len(set(role_ips) - set(shrink_ips)) > 0:
+                        # 加入域名
+                        add_dns_ips = set(role_ips) - set(shrink_ips)
+                        add_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in add_dns_ips]
+                        dns_manage.create_domain(
+                            instance_list=add_instance_list, add_domain_name=kwargs["domain_name"]
+                        )
+                        break
+
+            del_ips = list(set(dns_ips) & set(shrink_ips))
+            del_instance_list = [f"{ip}#{kwargs['dns_op_exec_port']}" for ip in del_ips]
+            if del_instance_list:
+                result = dns_manage.remove_domain_ip(domain=kwargs["domain_name"], del_instance_list=del_instance_list)
+            else:
+                result = True
         elif dns_op_type == DnsOpType.CLUSTER_DELETE:
             # 集群下架场景 清理域名
             result = dns_manage.delete_domain(cluster_id=global_data["cluster_id"])

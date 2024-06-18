@@ -135,7 +135,10 @@
               data.rules.length > 1 && (
                 <Db-Icon
                   type='down-shape'
-                  class={ ['user-icon', { 'user-icon-expand': !rowExpandMap.value[data.account.account_id] }] } />
+                  class={{
+                    'user-icon': true,
+                    'user-icon-expand': !rowExpandMap.value[data.account.account_id],
+                  }} />
               )
             }
             <div class="user-name">

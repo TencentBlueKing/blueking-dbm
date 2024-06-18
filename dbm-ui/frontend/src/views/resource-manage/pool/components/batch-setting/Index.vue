@@ -70,6 +70,9 @@
           <DbFormItem :label="t('磁盘')">
             <ResourceSpecStorage v-model="formData.storage_spec" />
           </DbFormItem>
+          <DbFormItem :label="t('机架')">
+            <BkInput v-model="formData.rack_id" />
+          </DbFormItem>
         </DbForm>
       </div>
     </div>
@@ -119,6 +122,7 @@
 
   const genDefaultData = () => ({
     for_bizs: [],
+    rack_id: '',
     resource_types: [],
     storage_spec: [] as IStorageSpecItem[],
     set_empty_biz: false,
@@ -170,6 +174,7 @@
         return updateResource({
           bk_host_ids: props.data.map((item) => ~~item),
           for_bizs: formData.set_empty_biz ? [] : formData.for_bizs,
+          rack_id: formData.rack_id,
           resource_types: formData.set_empty_resource_type ? [] : formData.resource_types,
           set_empty_biz: formData.set_empty_biz,
           set_empty_resource_type: formData.set_empty_resource_type,

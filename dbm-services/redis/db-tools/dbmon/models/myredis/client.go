@@ -988,17 +988,18 @@ func (db *RedisClient) SlaveOf(masterIP, masterPort string) (ret string, err err
 
 // IsClusterEnabled 'cluster-enabled' 是否启动
 func (db *RedisClient) IsClusterEnabled() (clusterEnabled bool, err error) {
-	confData, err := db.ConfigGet("cluster-enabled")
+	infoRet, err := db.Info("Cluster")
 	if err != nil {
 		return
 	}
-	val, ok := confData["cluster-enabled"]
-	if ok && (strings.ToLower(val) == "yes" ||
-		strings.ToLower(val) == "on" ||
-		strings.ToLower(val) == "1") {
-		clusterEnabled = true
+	ret, ok := infoRet["cluster_enabled"]
+	if !ok {
+		return false, nil
 	}
-	return
+	if ret == "1" {
+		return true, nil
+	}
+	return false, nil
 }
 
 // ClusterMeet  'cluster meet' command

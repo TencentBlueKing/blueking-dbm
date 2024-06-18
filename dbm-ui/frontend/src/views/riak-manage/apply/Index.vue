@@ -154,6 +154,7 @@
                 :cloud-info="cloudInfo"
                 :data="formData.details.nodes"
                 :disable-dialog-submit-method="disableHostSubmitMethods"
+                :os-types="[OSTypes.Linux]"
                 @change="handleProxyIpChange">
                 <template #desc>
                   {{ t('至少n台', { n: 3 }) }}
@@ -216,7 +217,7 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
 
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';

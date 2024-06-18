@@ -267,6 +267,13 @@ class RedisDtsPrecheckService(BaseService):
             raise Exception(
                 "src_cluster:{} not found masters(with_slots),master:{}".format(src_data["cluster_addr"], master_addr)
             )
+        if dts_copy_type == DtsCopyType.COPY_FROM_ROLLBACK_INSTANCE.value:
+            self.log_info(
+                "src_cluster:{} dst_copy_type:{} skip checking if master has a slave".format(
+                    src_data["cluster_addr"], dts_copy_type
+                )
+            )
+            return
         slaves_by_masterid = group_slaves_by_master_id(cluster_nodes_str)
         meta_slaves = {}
         for src_slave in src_data["slave_instances"]:

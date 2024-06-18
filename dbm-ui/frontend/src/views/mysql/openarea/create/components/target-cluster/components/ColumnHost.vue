@@ -78,16 +78,22 @@
       name: clusterData.bk_cloud_name,
     }"
     :data="localHostList"
+    :os-types="[OSTypes.Linux]"
+    :panel-list="['staticTopo', 'dbmWhitelist', 'manualInput']"
     service-mode="all"
     :show-view="false"
-    @change="handleHostChange" />
+    @change="handleHostChange"
+    @change-whitelist="handleWhitelistChange" />
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { HostDetails } from '@services/types/ip';
 
-  import IpSelector from '@components/ip-selector/IpSelector.vue';
+  import { OSTypes } from '@common/const';
+
+  import IpSelector, { type IPSelectorResult } from '@components/ip-selector/IpSelector.vue';
 
   import type { IDataRow } from './Row.vue';
   import useValidtor, { type Rules } from './useValidtor';
@@ -166,6 +172,12 @@
 
   const handleHostChange = (hostList: HostDetails[]) => {
     localHostList.value = hostList;
+  };
+
+  const handleWhitelistChange = (whiteList: IPSelectorResult['dbm_whitelist']) => {
+    localHostList.value = localHostList.value.concat(
+      _.flatMap(whiteList.map((item) => item.ips.map((ip: string) => ({ ip })))),
+    );
   };
 
   defineExpose<Exposes>({

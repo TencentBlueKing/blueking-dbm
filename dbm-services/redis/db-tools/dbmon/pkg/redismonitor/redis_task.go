@@ -126,7 +126,12 @@ func (task *RedisMonitorTask) SetDbmonKeyOnMaster() {
 		if clusterEnabled {
 			continue
 		}
-		cliItem.SelectDB(1)
+		task.Err = cliItem.SelectDB(1)
+		if task.Err != nil {
+			task.eventSender.SendWarning(consts.EventRedisLogin, task.Err.Error(),
+				consts.WarnLevelError, task.ServerConf.ServerIP)
+			return
+		}
 
 		dbmonKey = fmt.Sprintf("dbmon:%s:%d", task.ServerConf.ServerIP, task.ServerConf.ServerPorts[idx])
 		_, task.Err = cliItem.Set(dbmonKey, timeStr, 0)

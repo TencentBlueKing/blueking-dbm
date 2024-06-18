@@ -38,10 +38,10 @@ class DBAdministratorHandler(object):
             new_dba = dba["users"]
             platform_dba = db_type_platform_dba.get(db_type, [])
             biz_dba = db_type_biz_dba.get(db_type, [])
-            if set(new_dba) == set(platform_dba) and not biz_dba:
+            if new_dba == platform_dba and not biz_dba:
                 # 业务新设置的与平台人员一致，则无需新建
                 continue
-            if set(new_dba) == set(biz_dba):
+            if new_dba == biz_dba:
                 # 新 DBA 与 旧DBA 一致，也无需更新
                 continue
             dba_obj, created = DBAdministrator.objects.update_or_create(

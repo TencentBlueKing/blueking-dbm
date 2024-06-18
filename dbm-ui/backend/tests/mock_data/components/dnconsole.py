@@ -8,6 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .biz_clusters import biz_clusters
-from .cluster_instances import cluster_instances
-from .instance_detail import instance_detail
+
+
+class DBConsoleApiMock(object):
+    common_response = {"message": "ok", "data": {}, "result": True, "code": 0}
+
+    def get(self, *args, **kwargs):
+        return self.common_response
+
+    def post(self, *args, **kwargs):
+        return self.common_response

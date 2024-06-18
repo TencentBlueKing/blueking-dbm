@@ -50,6 +50,11 @@
       field: 'config_name',
     },
     {
+      label: t('类型'),
+      field: 'cluster_type',
+      render: ({ data }: {data: OpenareaTemplateModel}) => data.cluster_type === 'tendbha' ? t('主从') : t('单节点'),
+    },
+    {
       label: t('源集群'),
       field: 'config_name',
       render: ({ data }: {data: OpenareaTemplateModel}) => data.source_cluster.immute_domain || '--',
@@ -119,7 +124,7 @@
 
   const fetchData = () => {
     tableRef.value.fetchData({
-      cluster_type: 'tendbha',
+      cluster_type: 'tendbha,tendbsingle',
     });
   };
 

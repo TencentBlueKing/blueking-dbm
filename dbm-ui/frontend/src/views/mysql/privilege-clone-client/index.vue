@@ -73,6 +73,7 @@
     v-model:show-dialog="isShowIpSelector"
     :biz-id="globalBizsStore.currentBizId"
     button-text=""
+    :os-types="[OSTypes.Linux]"
     service-mode="all"
     :show-view="false"
     @change="handleHostChange" />
@@ -93,7 +94,7 @@
 
   import { useTableMaxHeight, useTicketCloneInfo } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { OSTypes,TicketTypes  } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';

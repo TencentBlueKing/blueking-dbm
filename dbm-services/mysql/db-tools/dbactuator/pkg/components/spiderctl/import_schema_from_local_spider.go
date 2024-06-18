@@ -282,7 +282,7 @@ func (c *ImportSchemaFromLocalSpiderComp) commonMigrate() (err error) {
 func (c *ImportSchemaFromLocalSpiderComp) dumpSchema() (err error) {
 	var dumper mysqlutil.Dumper
 	dumpOption := mysqlutil.MySQLDumpOption{
-		NoData:       true,
+		DumpSchema:   true,
 		AddDropTable: c.Params.DropBefore,
 		DumpRoutine:  true,
 		DumpTrigger:  true,

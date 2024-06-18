@@ -161,7 +161,7 @@
 
     .copy-info {
       position: absolute;
-      top: 18px;
+      top: -18px;
       left: 160px;
     }
 

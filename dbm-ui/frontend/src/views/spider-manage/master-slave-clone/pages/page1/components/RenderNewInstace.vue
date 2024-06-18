@@ -97,6 +97,7 @@
       :data="localHostList"
       :disable-dialog-submit-method="disableDialogSubmitMethod"
       :disable-host-method="disableHostMethod"
+      :os-types="[OSTypes.Linux]"
       service-mode="idle_only"
       :show-view="false"
       @change="handleHostChange">
@@ -138,6 +139,7 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { OSTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';

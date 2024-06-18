@@ -147,25 +147,29 @@ func DiskUsage(path string) (disk DiskStatus, err error) {
 }
 
 // CheckDiskSpace Check whether disk free space is enough
-func CheckDiskSpace(backupDir string, mysqlPort int) error {
+// 如果返回的值 <0，则表示空间不足，且还需要对应的空间大小
+// 如果返回值 >0，则表示空间足够，且还剩余的空间大小
+func CheckDiskSpace(backupDir string, mysqlPort int) (sizeLeft int64, err error) {
 	diskSpaceInfo, err := DiskUsage(backupDir)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	backupSize, err := CalServerDataSize(mysqlPort)
 	if err != nil {
-		return err
+		return 0, err
 	}
-
-	if diskSpaceInfo.Free < backupSize*1 {
+	expectSize := backupSize * 1 // 预计备份需要多少实际空间
+	expectSizeLeft := float64(diskSpaceInfo.Free) - float64(expectSize)
+	if expectSizeLeft < 0 {
 		err = errors.New("free space is not enough")
-		return err
+		return int64(expectSizeLeft), err
 	}
-	if float64(diskSpaceInfo.Free-backupSize*1) < 0.06*float64(diskSpaceInfo.Total) {
+	sizeLeft = int64(expectSizeLeft - 0.06*float64(diskSpaceInfo.Total))
+	if sizeLeft < 0 { // 为负，说明expectSize用掉后，空间可能会超过 94%
 		err = errors.New("disk space usage may be over 94%")
-		return err
+		return sizeLeft, err
 	}
-	return nil
+	return sizeLeft, nil
 }
 
 // ExeCommand execute shell command

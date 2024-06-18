@@ -225,6 +225,7 @@
                   :data="formdata.details.nodes.proxy"
                   :disable-dialog-submit-method="disableHostSubmitMethods.proxy"
                   :disable-host-method="proxyDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   @change="handleProxyIpChange">
                   <template #desc>
                     {{ t('需n台', { n: hostNums }) }}
@@ -251,6 +252,7 @@
                   :data="formdata.details.nodes.backend"
                   :disable-dialog-submit-method="disableHostSubmitMethods.backend"
                   :disable-host-method="backendDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   @change="handleBackendIpChange">
                   <template #desc>
                     {{ t('需n台', { n: hostNums }) }}
@@ -386,6 +388,7 @@
   import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
   import { ClusterTypes, mysqlType,type MysqlTypeString, TicketTypes } from '@common/const';
+  import { OSTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';

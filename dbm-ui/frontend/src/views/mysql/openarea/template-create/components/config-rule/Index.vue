@@ -50,6 +50,13 @@
   const isShowVariable = ref(false);
 
   watch(
+    () => props.clusterId,
+    () => {
+      tableData.value = [createRowData({})];
+    },
+  );
+
+  watch(
     () => props.data,
     () => {
       if (props.data.length < 1) {

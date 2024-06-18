@@ -176,7 +176,7 @@ func (c *SemanticDumpSchemaComp) Precheck() (err error) {
 func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 	var dumper mysqlutil.Dumper
 	dumpOption := mysqlutil.MySQLDumpOption{
-		NoData:       true,
+		DumpSchema:   true,
 		AddDropTable: true,
 		DumpRoutine:  true,
 		DumpTrigger:  false,

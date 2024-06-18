@@ -52,13 +52,16 @@ DBA_APP_BK_BIZ_ID = get_type_env(key="DBA_APP_BK_BIZ_ID", _type=int)
 # esb 访问地址
 BK_COMPONENT_API_URL = get_type_env(key="BK_COMPONENT_API_URL", _type=str, default="https://bk-component.example.com")
 
+# 开启外部路由，供外部环境使用(DBConsole)
+ENABLE_EXTERNAL_PROXY = get_type_env(key="ENABLE_EXTERNAL_PROXY", _type=bool, default=False)
+
 # ITSM 服务ID
 BK_ITSM_PROJECT_KEY = get_type_env(key="BK_ITSM_PROJECT_KEY", _type=str, default="0")
 
 # IAM 相关配置
 BK_IAM_SYSTEM_ID = "bk_dbm"  # BK_IAM_SYSTEM_ID固定为bk_dbm，不可更改
 BK_IAM_SKIP = get_type_env(key="BK_IAM_SKIP", _type=bool, default=False)
-BK_IAM_SYSTEM_NAME = get_type_env(key="BK_IAM_SYSTEM_NAME", _type=str, default="DB管理平台")
+BK_IAM_SYSTEM_NAME = get_type_env(key="BK_IAM_SYSTEM_NAME", _type=str, default="数据库管理")
 BK_IAM_INNER_HOST = get_type_env(key="BK_IAM_V3_INNER_HOST", _type=str, default="https://iam-inner.example.com")
 BK_IAM_USE_APIGATEWAY = True
 BK_IAM_APIGATEWAY = get_type_env(key="BK_IAM_APIGATEWAY", _type=str, default="https://iam-apigw.example.com")

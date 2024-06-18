@@ -245,6 +245,7 @@ func (b *BaseOptions) Deserialize(s interface{}) (err error) {
 		err = errors.WithMessage(err, "参数解析错误")
 		return err
 	}
+	logger.Warn("xxxx body:%+v", bip)
 	s = bip.ExtendParam
 	if err = validate.GoValidateStruct(bip, false, true); err != nil {
 		logger.Error("validate struct failed, %v", s, err)

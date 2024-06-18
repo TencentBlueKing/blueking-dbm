@@ -8,6 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from .biz_clusters import biz_clusters
-from .cluster_instances import cluster_instances
-from .instance_detail import instance_detail
+from blueapps.account.models import User
+from django.contrib.auth.backends import BaseBackend
+
+
+class FakeUserBackend(BaseBackend):
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        # 不进行用户校验，仅赋值request的user对象
+        return User(username=username)
+
+    def get_user(self, user_id):
+        return User.objects.get(id=user_id)

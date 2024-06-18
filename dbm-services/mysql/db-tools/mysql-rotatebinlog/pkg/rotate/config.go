@@ -20,7 +20,8 @@ type Config struct {
 type PublicCfg struct {
 	KeepPolicy         string `json:"keep_policy" mapstructure:"keep_policy"`
 	MaxBinlogTotalSize string `json:"max_binlog_total_size" mapstructure:"max_binlog_total_size"`
-	MaxDiskUsedPct     int    `json:"max_disk_used_pct" mapstructure:"max_disk_used_pct"  validate:"required"`
+	// MaxDiskUsedPct 100 制
+	MaxDiskUsedPct float64 `json:"max_disk_used_pct" mapstructure:"max_disk_used_pct"  validate:"required"`
 	// 本地 binlog 最大保留时间，超过会直接删除
 	MaxKeepDuration string `json:"max_keep_duration" mapstructure:"max_keep_duration"`
 	// 间隔多久执行一次 purge index

@@ -84,6 +84,7 @@
                   :data="formData.details.nodes.zookeeper"
                   :disable-dialog-submit-method="zookeeperDisableDialogSubmitMethod"
                   :disable-host-method="zookeeperDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   required
                   :show-view="false"
                   style="display: inline-block"
@@ -116,6 +117,7 @@
                   :cloud-info="cloudInfo"
                   :data="formData.details.nodes.broker"
                   :disable-host-method="brokerDisableHostMethod"
+                  :os-types="[OSTypes.Linux]"
                   required
                   :show-view="false"
                   style="display: inline-block"
@@ -315,6 +317,8 @@
   import { useApplyBase } from '@hooks';
 
   // import AffinityItem from '@components/apply-items/AffinityItem.vue';
+  import { OSTypes } from '@common/const';
+
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
   import CloudItem from '@components/apply-items/CloudItem.vue';
   import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
