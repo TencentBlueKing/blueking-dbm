@@ -1501,8 +1501,8 @@ class RedisActPayload(object):
             "payload": {"instances": instances, "cluster_type": params["cluster_type"]},
         }
 
-    # twemproxy 架构-实例切换
-    def redis_twemproxy_arch_switch_4_scene(self, **kwargs) -> dict:
+    # Tendis 单实例/集群 架构-实例切换;
+    def redis__switch_4_scene(self, **kwargs) -> dict:
         """{
             "cluster_id":0,
             "immute_domain":"",
