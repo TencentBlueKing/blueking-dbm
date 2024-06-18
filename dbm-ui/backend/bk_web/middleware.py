@@ -24,7 +24,7 @@ from django.utils.deprecation import MiddlewareMixin
 from django.utils.translation import ugettext as _
 
 from backend import env
-from backend.bk_web.constants import NON_EXTERNAL_PROXY_ROUTING, ROUTING_WHITELIST_PATTERNS
+from backend.bk_web.constants import IP_RE, NON_EXTERNAL_PROXY_ROUTING, ROUTING_WHITELIST_PATTERNS
 from backend.bk_web.exceptions import ExternalProxyBaseException, ExternalRouteInvalidException
 from backend.bk_web.handlers import _error
 from backend.ticket.constants import TicketType
@@ -151,6 +151,7 @@ class ExternalProxyMiddleware(MiddlewareMixin):
 
     def __check_specific_request_params(self, request):
         """校验特殊接口的参数是否满足要求"""
+
         # 单据创建校验函数
         def check_create_ticket():
             data = json.loads(request.body.decode("utf-8"))
@@ -213,6 +214,15 @@ class ExternalProxyMiddleware(MiddlewareMixin):
             # 解析来自外部转发的header
             request.is_external = str2bool(request.headers.get("IS-EXTERNAL", ""), strict=False)
         return self.get_response(request)
+
+    def process_response(self, request, response):
+        if env.ENABLE_EXTERNAL_PROXY:
+            response.content = self.replace_ip(response.content.decode("utf-8")).encode("utf-8")
+        return response
+
+    @staticmethod
+    def replace_ip(self, text):
+        return re.sub(IP_RE, "*.*.*.*", text)
 
 
 class ExternalUserModelBackend(UserModelBackend):
