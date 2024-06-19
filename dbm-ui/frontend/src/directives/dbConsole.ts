@@ -14,8 +14,6 @@ import type { DirectiveBinding } from 'vue';
 
 import type { ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
 
-import { useFunController } from '@stores';
-
 import { checkDbConsole } from '@utils';
 
 /**
@@ -24,13 +22,12 @@ import { checkDbConsole } from '@utils';
  * @returns
  */
 function init(el: HTMLElement, binding: DirectiveBinding<ExtractedControllerDataKeys>) {
-  const { funControllerData } = useFunController();
   const { value } = binding;
   
-  if (!value || checkDbConsole(funControllerData, value)) {
+  if (!value || checkDbConsole(value)) {
     return;
   }
-
+  
   // 不在 function_controller 范围内，用空节点替换
   const substitudeElement = document.createElement("span");
   const tempParentNode = document.createElement('node')
