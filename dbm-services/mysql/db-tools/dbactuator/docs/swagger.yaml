@@ -664,6 +664,8 @@ definitions:
       charset:
         description: 字符集参数
         type: string
+      com:
+        type: string
       db_cloud_token:
         description: 云区域token
         type: string
@@ -886,9 +888,10 @@ definitions:
         description: 当前实例的主机地址
         type: string
       options:
-        allOf:
-        - $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions'
+        additionalProperties:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions'
         description: 选项参数配置
+        type: object
       pkg:
         description: 安装包名
         type: string
@@ -1299,7 +1302,7 @@ definitions:
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql_restore.MySQLBinlogUtil:
     properties:
       databases:
-        description: row event 解析指定 databases
+        description: row event 解析指定 databases。必须是精确，不能是通配
         items:
           type: string
         type: array
@@ -1361,7 +1364,7 @@ definitions:
         description: --stop-datetime   时间格式同 StartTime，可带时区，会转换成机器本地时间
         type: string
       tables:
-        description: row event 解析指定 tables
+        description: row event 解析指定 tables。必须是精确，不能是通配
         items:
           type: string
         type: array

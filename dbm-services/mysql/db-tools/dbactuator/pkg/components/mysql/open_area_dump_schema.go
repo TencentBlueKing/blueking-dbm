@@ -170,14 +170,14 @@ func (c *OpenAreaDumpSchemaComp) Precheck() (err error) {
 func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 
 	for _, oneOpenAreaSchema := range c.Params.OpenAreaParam {
-		var dumper mysqlutil.Dumper
+		var dumper mysqlutil.OADumper
 		outputfileName := fmt.Sprintf("%s.sql", oneOpenAreaSchema.Schema)
 		schema := fmt.Sprintf("%s %s",
 			oneOpenAreaSchema.Schema, strings.Join(oneOpenAreaSchema.Tables, " "),
 		)
 		// 导出表结构，同时导出存储过程、触发器、event
-		dumper = &mysqlutil.MySQLDumperTogether{
-			MySQLDumper: mysqlutil.MySQLDumper{
+		dumper = &mysqlutil.OpenAreaDumperTogether{
+			OpenAreaDumper: mysqlutil.OpenAreaDumper{
 				DumpDir:      c.dumpDirPath,
 				Ip:           c.Params.Host,
 				Port:         c.Params.Port,
@@ -186,9 +186,8 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 				DbNames:      []string{schema},
 				DumpCmdFile:  c.dumpCmd,
 				Charset:      c.charset,
-				MySQLDumpOption: mysqlutil.MySQLDumpOption{
-					// NoData:        true,
-					DumpSchema:    true,
+				OpenAreaDumpOption: mysqlutil.OpenAreaDumpOption{
+					NoData:        true,
 					AddDropTable:  false,
 					DumpRoutine:   true,
 					DumpTrigger:   true,
@@ -198,7 +197,7 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 			},
 			OutputfileName: outputfileName,
 		}
-		if err := dumper.Dump(); err != nil {
+		if err := dumper.OpenAreaDump(); err != nil {
 			logger.Error("dump failed: ", err.Error())
 			return err
 		}
@@ -211,7 +210,7 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 
 	for _, oneOpenAreaSchema := range c.Params.OpenAreaParam {
-		var dumper mysqlutil.Dumper
+		var dumper mysqlutil.OADumper
 		if len(oneOpenAreaSchema.Tables) == 0 {
 
 			continue
@@ -221,8 +220,8 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 			oneOpenAreaSchema.Schema, strings.Join(oneOpenAreaSchema.Tables, " "),
 		)
 
-		dumper = &mysqlutil.MySQLDumperTogether{
-			MySQLDumper: mysqlutil.MySQLDumper{
+		dumper = &mysqlutil.OpenAreaDumperTogether{
+			OpenAreaDumper: mysqlutil.OpenAreaDumper{
 				DumpDir:      c.dumpDirPath,
 				Ip:           c.Params.Host,
 				Port:         c.Params.Port,
@@ -231,10 +230,10 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 				DbNames:      []string{schema},
 				DumpCmdFile:  c.dumpCmd,
 				Charset:      c.charset,
-				MySQLDumpOption: mysqlutil.MySQLDumpOption{
-					DumpSchema:    true,
-					DumpData:      true,
+				OpenAreaDumpOption: mysqlutil.OpenAreaDumpOption{
+					NoData:        false,
 					AddDropTable:  false,
+					NeedUseDb:     false,
 					NoCreateTb:    true,
 					DumpRoutine:   false,
 					GtidPurgedOff: c.GtidPurgedOff,
@@ -242,7 +241,7 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 			},
 			OutputfileName: outputfileName,
 		}
-		if err := dumper.Dump(); err != nil {
+		if err := dumper.OpenAreaDump(); err != nil {
 			logger.Error("dump failed: ", err.Error())
 			return err
 		}
@@ -255,13 +254,13 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 func (c *OpenAreaDumpSchemaComp) MysqlDataMigrate() (err error) {
 	for _, oneOpenAreaSchema := range c.Params.OpenAreaParam {
 		for _, db := range oneOpenAreaSchema.DbList {
-			var dumper mysqlutil.Dumper
+			var dumper mysqlutil.OADumper
 			// schema := strings.Join(oneOpenAreaSchema.DbList, " ")
 			outputfileName := fmt.Sprintf("%s.sql", db)
 
 			// 导出库，同时导出存储过程、触发器、event
-			dumper = &mysqlutil.MySQLDumperTogether{
-				MySQLDumper: mysqlutil.MySQLDumper{
+			dumper = &mysqlutil.OpenAreaDumperTogether{
+				OpenAreaDumper: mysqlutil.OpenAreaDumper{
 					DumpDir:      c.dumpDirPath,
 					Ip:           c.Params.Host,
 					Port:         c.Params.Port,
@@ -270,16 +269,17 @@ func (c *OpenAreaDumpSchemaComp) MysqlDataMigrate() (err error) {
 					DbNames:      []string{db},
 					DumpCmdFile:  c.dumpCmd,
 					Charset:      c.charset,
-					MySQLDumpOption: mysqlutil.MySQLDumpOption{
+					OpenAreaDumpOption: mysqlutil.OpenAreaDumpOption{
 						DumpRoutine:   true,
 						DumpTrigger:   true,
 						DumpEvent:     true,
+						NeedUseDb:     true,
 						GtidPurgedOff: c.GtidPurgedOff,
 					},
 				},
 				OutputfileName: outputfileName,
 			}
-			if err := dumper.Dump(); err != nil {
+			if err := dumper.OpenAreaDump(); err != nil {
 				logger.Error("dump failed: ", err.Error())
 				return err
 			}
