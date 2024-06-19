@@ -39,6 +39,25 @@ chmod +x dbactuator
 ./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} -c {{non_sensitive_payload}} --payload $1 
 """  # noqa
 
+# riak actuator 执行的shell命令，引入文件MD5值的比较，避免并发执行过程中输出错误信息，误导日志的捕捉
+riak_actuator_template = """
+mkdir -p /data/install/dbactuator-{{uid}}/logs
+if [[ ! -f /data/install/dbactuator-{{uid}}/dbactuator ]];then
+   cp /data/install/dbactuator /data/install/dbactuator-{{uid}}
+
+else
+   md5_1=`md5sum /data/install/dbactuator | cut -d ' ' -f1 `
+   md5_2=`md5sum /data/install/dbactuator-{{uid}}/dbactuator | cut -d ' ' -f1`
+   if [[ ${md5_1} != ${md5_2} ]];then
+      cp /data/install/dbactuator /data/install/dbactuator-{{uid}}
+   fi
+fi
+
+cd /data/install/dbactuator-{{uid}}
+chmod +x dbactuator
+./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} --payload $1
+"""  # noqa
+
 # 运行dba_toolkit的命令
 dba_toolkit_actuator_template = """
 cd /home/mysql/dba-toolkit

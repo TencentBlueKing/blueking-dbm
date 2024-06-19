@@ -24,7 +24,7 @@ from backend.flow.consts import DBA_ROOT_USER
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
 from backend.flow.utils.riak.riak_act_payload import RiakActPayload
-from backend.flow.utils.script_template import actuator_template, fast_execute_script_common_kwargs
+from backend.flow.utils.script_template import fast_execute_script_common_kwargs, riak_actuator_template
 from backend.utils.string import base64_encode
 
 logger = logging.getLogger("json")
@@ -104,7 +104,7 @@ class ExecuteRiakActuatorScriptService(BkJobService):
 
         # 脚本内容
         jinja_env = Environment()
-        template = jinja_env.from_string(actuator_template)
+        template = jinja_env.from_string(riak_actuator_template)
 
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
