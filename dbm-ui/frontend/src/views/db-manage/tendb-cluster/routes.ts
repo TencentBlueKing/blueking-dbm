@@ -379,15 +379,15 @@ export default function getRoutes() {
     renderRoutes[0].children.push(spiderToolboxRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'tendbCluster.instanceManage')) {
+  if (checkDbConsole('tendbCluster.instanceManage')) {
     renderRoutes[0].children.push(tendbClusterInstanceRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'tendbCluster.partitionManage')) {
+  if (checkDbConsole('tendbCluster.partitionManage')) {
     renderRoutes[0].children.push(spiderPartitionManageRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'tendbCluster.permissionManage')) {
+  if (checkDbConsole('tendbCluster.permissionManage')) {
     renderRoutes[0].children.push(...permissionManageRoutes);
   }
 

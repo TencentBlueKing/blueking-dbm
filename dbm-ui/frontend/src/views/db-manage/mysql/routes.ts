@@ -325,7 +325,7 @@ export default function getRoutes() {
     return commonRouters;
   }
 
-  // if (checkDbConsole(funControllerData, 'mysql.dataSubscription')) {
+  // if (checkDbConsole('mysql.dataSubscription')) {
   //   commonRouters[0].children!.push(dumperDataSubscription);
   // }
 

@@ -253,11 +253,11 @@ export default function getRoutes() {
     return [];
   }
 
-  if (checkDbConsole(funControllerData, 'redis.instanceManage')) {
+  if (checkDbConsole('redis.instanceManage')) {
     routes[0].children!.push(redisInstanceListRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'redis.haInstanceManage')) {
+  if (checkDbConsole('redis.haInstanceManage')) {
     routes[0].children!.push(redisHaInstanceListRoute);
   }
 
