@@ -486,3 +486,149 @@ func (s *MyStreamDumpLoad) Run() (err error) {
 	}
 	return nil
 }
+
+// OADumper TODO
+type OADumper interface {
+	OpenAreaDump() error
+}
+
+// OpenAreaDumperTogether TODO
+type OpenAreaDumperTogether struct {
+	OpenAreaDumper
+	OutputfileName string
+	UseTMySQLDump  bool // 是否使用的是自研的mysqldump,一般介质在备份目录下
+}
+
+// OpenAreaDumpOption TODO
+type OpenAreaDumpOption struct {
+	/* 	DumpSchema   bool
+	   	DumpData     bool */
+	NoData        bool
+	AddDropTable  bool // 默认 false 代表添加 --skip-add-drop-table 选项
+	NeedUseDb     bool
+	NoCreateDb    bool
+	NoCreateTb    bool
+	DumpRoutine   bool // 默认 false 代表添加不导出存储过程,True导出存储过程
+	DumpTrigger   bool // 默认 false 代表添加不导出触发器
+	DumpEvent     bool // 默认 false 导出 event
+	GtidPurgedOff bool // --set-gtid-purged=OFF
+}
+
+// OpenAreaDumper TODO
+type OpenAreaDumper struct {
+	OpenAreaDumpOption
+	DumpDir      string // 备份到哪个目录
+	DbBackupUser string
+	DbBackupPwd  string
+	Ip           string
+	Port         int
+	Charset      string
+	DumpCmdFile  string // mysqldump 的绝对路径
+	DbNames      []string
+	IsMaster     bool
+	// Todo
+	// SelfDefineArgs []string  ...
+	// Precheck ...
+	runtimectx
+}
+
+func (m *OpenAreaDumper) init() {
+	m.maxConcurrency = runtime.NumCPU() / 2
+	m.maxResourceUsePercent = 50
+	if m.IsMaster || m.maxConcurrency == 0 {
+		// 如果是在Master Dump的话不允许开启并发
+		m.maxConcurrency = 1
+	}
+}
+
+func (m *OpenAreaDumper) getTMySQLDumpOption() (dumpOption string) {
+	return fmt.Sprintf(
+		`
+	--ignore-show-create-table-error
+	--skip-foreign-key-check
+	--max-concurrency=%d 
+	--max-resource-use-percent=%d
+	`, m.maxConcurrency, m.maxResourceUsePercent,
+	)
+}
+
+// OpenAreaDump TODO
+func (m *OpenAreaDumperTogether) OpenAreaDump() (err error) {
+	m.init()
+	outputFile := path.Join(m.DumpDir, m.OutputfileName)
+	errFile := path.Join(m.DumpDir, m.OutputfileName+".err")
+	dumpOption := ""
+	if m.UseTMySQLDump {
+		dumpOption = m.getTMySQLDumpOption()
+	}
+	dumpCmd := m.getOpenAreaDumpCmd(strings.Join(m.DbNames, " "), outputFile, errFile, dumpOption)
+	logger.Info("mysqldump cmd:%s", ClearSensitiveInformation(dumpCmd))
+	output, err := osutil.StandardShellCommand(false, dumpCmd)
+	if err != nil {
+		return fmt.Errorf("execte %s get an error:%s,%w", dumpCmd, output, err)
+	}
+	if err := checkDumpComplete(outputFile); err != nil {
+		logger.Error("checkDumpComplete failed %s", err.Error())
+		return err
+	}
+	return
+}
+
+func (m *OpenAreaDumper) getOpenAreaDumpCmd(dbName, outputFile, errFile, dumpOption string) (dumpCmd string) {
+	if m.NoData {
+		dumpOption += " -d "
+	}
+	if m.AddDropTable {
+		dumpOption += " --add-drop-table "
+	} else {
+		dumpOption += "--skip-add-drop-table"
+	}
+	if m.NeedUseDb {
+		dumpOption += " -B "
+	}
+	if m.NoCreateDb {
+		dumpOption += " -n "
+	}
+	if m.NoCreateTb {
+		dumpOption += " -t "
+	}
+	if m.DumpRoutine {
+		dumpOption += " -R "
+	}
+	if m.DumpTrigger {
+		dumpOption += " --triggers "
+	} else {
+		dumpOption += " --skip-triggers "
+	}
+	if m.DumpEvent {
+		dumpOption += " --events"
+	}
+	if m.GtidPurgedOff {
+		dumpOption += " --set-gtid-purged=OFF"
+	}
+	dumpCmd = fmt.Sprintf(
+		`%s 
+		-h%s 
+		-P%d 
+		-u%s 
+		-p%s 
+		--skip-opt 
+		--create-options  
+		--single-transaction  
+		--max-allowed-packet=1G  
+		-q 
+		--no-autocommit 
+		--default-character-set=%s %s %s > %s 2>%s`,
+		m.DumpCmdFile,
+		m.Ip,
+		m.Port,
+		m.DbBackupUser,
+		m.DbBackupPwd,
+		m.Charset,
+		dumpOption,
+		dbName,
+		outputFile,
+		errFile,
+	)
+	return strings.ReplaceAll(dumpCmd, "\n", " ")
+}
