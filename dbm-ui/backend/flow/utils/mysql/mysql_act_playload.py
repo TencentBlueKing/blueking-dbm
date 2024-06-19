@@ -674,6 +674,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         # 获取url
         nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last().internal_address
         bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if bk_cloud_id else settings.BKREPO_ENDPOINT_URL
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket_data["bk_biz_id"])
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -694,7 +695,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "username": settings.BKREPO_USERNAME,
                         "password": settings.BKREPO_PASSWORD,
                         "project": settings.BKREPO_PROJECT,
-                        "upload_path": BKREPO_SQLFILE_PATH,
+                        "upload_path": upload_sql_path,
                     },
                 },
             },
@@ -1869,6 +1870,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         )
         nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
         bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket_data["bk_biz_id"])
 
         if self.cluster["is_upload_bkrepo"]:
             fileserver.update(
@@ -1878,7 +1880,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "username": settings.BKREPO_USERNAME,
                     "password": settings.BKREPO_PASSWORD,
                     "project": settings.BKREPO_PROJECT,
-                    "upload_path": BKREPO_SQLFILE_PATH,
+                    "upload_path": upload_sql_path,
                 }
             )
 
@@ -1937,6 +1939,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
         bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket_data["bk_biz_id"])
 
         if self.cluster["is_upload_bkrepo"]:
             fileserver.update(
@@ -1946,7 +1949,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "username": settings.BKREPO_USERNAME,
                     "password": settings.BKREPO_PASSWORD,
                     "project": settings.BKREPO_PROJECT,
-                    "upload_path": BKREPO_SQLFILE_PATH,
+                    "upload_path": upload_sql_path,
                 }
             )
         return {
@@ -2070,6 +2073,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         )
         nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
         bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket_data["bk_biz_id"])
 
         fileserver.update(
             {
@@ -2078,7 +2082,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "username": settings.BKREPO_USERNAME,
                 "password": settings.BKREPO_PASSWORD,
                 "project": settings.BKREPO_PROJECT,
-                "upload_path": BKREPO_SQLFILE_PATH,
+                "upload_path": upload_sql_path,
             }
         )
 
@@ -2167,7 +2171,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                             "username": settings.BKREPO_USERNAME,
                             "password": settings.BKREPO_PASSWORD,
                             "project": settings.BKREPO_PROJECT,
-                            "upload_path": BKREPO_DBCONSOLE_DUMPFILE_PATH,
+                            "upload_path": BKREPO_DBCONSOLE_DUMPFILE_PATH.format(biz=self.ticket_data["bk_biz_id"]),
                         },
                     },
                 },

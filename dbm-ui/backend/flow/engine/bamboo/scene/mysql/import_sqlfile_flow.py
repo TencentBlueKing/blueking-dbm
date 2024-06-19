@@ -156,7 +156,7 @@ class ImportSQLFlow(object):
         if len(cluster_ids) <= 0:
             raise Exception(_("查询不到可执行的集群！！！"))
         templ_cluster_id = cluster_ids[0]
-        cluster = Cluster.objects.filter(id=templ_cluster_id)
+        cluster = Cluster.objects.get(id=templ_cluster_id)
         template_cluster = self.__get_master_instance_info(cluster=cluster)
         cluster_type = template_cluster["cluster_type"]
         template_db_version = self.__get_version_and_charset(
@@ -207,7 +207,7 @@ class ImportSQLFlow(object):
                     "uid": self.data["uid"],
                     "mysql_version": template_db_version,
                     "mysql_charset": backend_charset,
-                    "path": BKREPO_SQLFILE_PATH,
+                    "path": BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
                     "task_id": self.root_id,
                     "schema_sql_file": self.semantic_dump_schema_file_name,
                     "execute_objects": self.data["execute_objects"],
@@ -253,7 +253,7 @@ class ImportSQLFlow(object):
     def __get_sql_file_name_list(self) -> list:
         file_list = []
         for obj in self.data["execute_objects"]:
-            file_list.append(obj["sql_file"])
+            file_list.extend(obj["sql_files"])
         return file_list
 
     def __get_version_and_charset(self, db_module_id, cluster_type) -> Any:

@@ -55,9 +55,8 @@ class MySQLDumpDataFlowParamBuilder(builders.FlowParamBuilder):
         # 往flow的detail中写入制品库的下载链接
         flow = self.ticket.current_flow()
         dump_file_name = f"{flow.flow_obj_id}_dbm_console_dump.sql.zip"
-        flow.details["ticket_data"].update(
-            dump_file_name=dump_file_name, dump_file_path=f"{BKREPO_DBCONSOLE_DUMPFILE_PATH}/{dump_file_name}"
-        )
+        dump_file_path = f"{BKREPO_DBCONSOLE_DUMPFILE_PATH.format(biz=self.ticket.bk_biz_id)}/{dump_file_name}"
+        flow.details["ticket_data"].update(dump_file_name=dump_file_name, dump_file_path=dump_file_path)
         flow.save(update_fields=["details"])
 
 

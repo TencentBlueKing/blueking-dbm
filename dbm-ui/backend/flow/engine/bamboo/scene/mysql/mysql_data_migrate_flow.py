@@ -171,7 +171,7 @@ class MysqlDataMigrateFlow(object):
                         exec_ip=exec_ip_list,
                         file_target_path=self.work_dir,
                         file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                            path=BKREPO_SQLFILE_PATH,
+                            path=BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
                             filelist=[self.migrate_tar_file_name, self.migrate_md5sum_file_name],
                         ),
                     )

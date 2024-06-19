@@ -111,3 +111,11 @@ class StorageHandler(object):
             "repo": env.BKREPO_BUCKET,
             "path": path,
         }
+
+    def download_dirs(self, file_path_list: List[str]):
+        """
+        指定目录下载（返回下载链接）
+        :param file_path_list: 文件目录列表
+        """
+        url_map = {path: self.storage.url(path) for path in file_path_list}
+        return url_map

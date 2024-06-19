@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 import os.path
 import re
 import tempfile
@@ -115,7 +116,8 @@ class SQLHandler(object):
         if sql_filenames:
             sql_file_info_list = [{"sql_path": filename} for filename in sql_filenames]
         else:
-            sql_file_info_list = self.upload_sql_file(BKREPO_SQLFILE_PATH, sql_content, sql_files)
+            upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.bk_biz_id)
+            sql_file_info_list = self.upload_sql_file(upload_sql_path, sql_content, sql_files)
 
         file_name_list = [os.path.split(sql_file_info["sql_path"])[1] for sql_file_info in sql_file_info_list]
         dir_name = os.path.split(sql_file_info_list[0]["sql_path"])[0]
@@ -143,10 +145,8 @@ class SQLHandler(object):
     def semantic_check(
         self,
         charset: str,
-        path: str,
         cluster_ids: List[int],
-        execute_sql_files: List[str],
-        execute_db_infos: List[Dict[str, List]],
+        execute_objects: List[Dict[str, Union[int, List[str]]]],
         ticket_type: str,
         ticket_mode: Dict,
         import_mode: SQLImportMode,
@@ -156,10 +156,8 @@ class SQLHandler(object):
         """
         sql 模拟执行(sql 语义检查)
         @param charset: 字符集
-        @param path: sql文件路径
         @param cluster_ids: 集群列表
-        @param execute_sql_files: 待执行的sql文件名
-        @param execute_db_infos: 待执行的db匹配模式
+        @param execute_objects: 执行的结构体
         @param ticket_type: 单据类型
         @param ticket_mode: sql导入单据的触发类型
         @param import_mode: sql文件导入类型
@@ -168,9 +166,8 @@ class SQLHandler(object):
         """
 
         # 语义检查参数准备
-        execute_objects: List[Dict[str, Union[str, List]]] = []
-        for sql_file in execute_sql_files:
-            execute_objects.extend([{"sql_file": sql_file, **db_info} for db_info in execute_db_infos])
+        for index, execute in enumerate(execute_objects):
+            execute["line_id"] = index
 
         # 异步执行语义检查
         root_id = generate_root_id()
@@ -179,9 +176,8 @@ class SQLHandler(object):
             "bk_biz_id": self.bk_biz_id,
             "ticket_type": ticket_type,
             "charset": charset,
-            "path": path,
+            "path": BKREPO_SQLFILE_PATH.format(biz=self.bk_biz_id),
             "cluster_ids": cluster_ids,
-            "execute_sql_files": execute_sql_files,
             "execute_objects": execute_objects,
             "ticket_mode": ticket_mode,
             "import_mode": import_mode,
@@ -196,10 +192,6 @@ class SQLHandler(object):
         except Exception as e:  # pylint: disable=broad-except
             raise SQLImportBaseException(_("模拟流程构建失败，错误信息: {}").format(e))
 
-        # 获取语义执行的node id
-        tree = FlowTree.objects.get(root_id=root_id)
-        node_id = TaskFlowHandler.get_node_id_by_component(tree=tree.tree, component_code=SemanticCheckComponent.code)
-
         # 缓存用户的语义检查，并删除过期的数据。注：django的cache不支持redis命令，这里只能使用原生redis客户端进行操作
         now = int(time.time())
         key = CACHE_SEMANTIC_TASK_FIELD.format(user=self.context["user"], cluster_type=self.cluster_type)
@@ -209,7 +201,7 @@ class SQLHandler(object):
         expired_task_ids = RedisConn.zrangebyscore(key, "-inf", now - SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME)
         self.delete_user_semantic_tasks(task_ids=expired_task_ids)
 
-        return {"root_id": root_id, "node_id": node_id}
+        return {"root_id": root_id}
 
     def delete_user_semantic_tasks(self, task_ids: List[int]) -> None:
         """
@@ -244,8 +236,8 @@ class SQLHandler(object):
             return {"sql_files": "", "import_mode": "", "sql_data_ready": False}
 
         import_mode = details["import_mode"]
-        details["execute_sql_files"] = [detail.pop("sql_file") for detail in details["execute_objects"]]
-        details["execute_db_infos"] = details.pop("execute_objects")
+        execute_sql_files = list(itertools.chain(*[detail["sql_files"] for detail in details["execute_objects"]]))
+        details["execute_sql_files"] = execute_sql_files
         return {"semantic_data": details, "import_mode": import_mode, "sql_data_ready": True}
 
     def _get_user_semantic_tasks(self, cluster_type, code) -> List[Dict]:
@@ -260,7 +252,6 @@ class SQLHandler(object):
             {
                 "bk_biz_id": tree.bk_biz_id,
                 "root_id": tree.root_id,
-                "node_id": TaskFlowHandler.get_node_id_by_component(tree.tree, code),
                 "created_at": tree.created_at,
                 "status": tree.status,
                 "is_alter": task_ids__status_map[tree.root_id] != tree.status,
@@ -360,7 +351,7 @@ class SQLHandler(object):
 
     def get_semantic_check_result_logs(self, root_id: str, node_id: str) -> List[Dict]:
         """
-        获取语义执行的结果日志
+        获取语义执行的结果日志 TODO: 该函数被替换为get_semantic_execute_result，暂无解析日志需求
         :param root_id: 语义执行的root id
         :param node_id: 语义执行的node id
         """
@@ -382,3 +373,26 @@ class SQLHandler(object):
         semantic_data = semantic_data["semantic_data"]
         parsed_sql_logs_results = self.parse_semantic_check_logs(root_id, logs, semantic_data["execute_sql_files"])
         return parsed_sql_logs_results
+
+    def get_semantic_execute_result(self, root_id: str) -> List[Dict]:
+        """
+        获取语义执行的结果
+        :param root_id: 语义执行的root id
+        """
+        flow_tree = FlowTree.objects.get(root_id=root_id).tree
+        taskflow_handler = TaskFlowHandler(root_id)
+
+        # 获取语义执行的版本ID，查询执行结果
+        node_id = taskflow_handler.get_node_id_by_component(flow_tree, component_code=SemanticCheckComponent.code)[0]
+        version_id = FlowNode.objects.get(node_id=node_id).version_id
+        results = SQLSimulationApi.query_semantic_result(params={"root_id": root_id, "version_id": version_id})
+
+        # 拼接执行的变更DB
+        node_data = BambooEngine(root_id=root_id).get_node_input_data(node_id).data["global_data"]
+        execute_objects = node_data["execute_objects"]
+        line_id__execute = {obj["line_id"]: obj for obj in execute_objects}
+        for data in results:
+            execute = line_id__execute[data["line_id"]]
+            data.update(dbnames=execute["dbnames"], ignore_dbnames=execute["ignore_dbnames"])
+
+        return results

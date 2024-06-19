@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from backend.db_services.mysql.sql_import.handlers import SQLHandler as MySQLSQLHandler
-from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLFILE_PATH
+from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 
 
 class SQLHandler(object):
@@ -23,13 +23,15 @@ class SQLHandler(object):
 
     @classmethod
     def upload_sql_file(
-        cls, sql_content: str = None, sql_files: List[InMemoryUploadedFile] = None
+        cls, bk_biz_id: int, sql_content: str = None, sql_files: List[InMemoryUploadedFile] = None
     ) -> List[Dict[str, Any]]:
         """
         将sql文本或者sql文件上传到制品库
+        @param bk_biz_id: 业务ID
         @param sql_content: sql 语句内容
         @param sql_files: sql 语句文件
         """
         # 逻辑同mysql的sql文件上传，直接复用即可
-        sql_file_info_list = MySQLSQLHandler.upload_sql_file(BKREPO_SQLFILE_PATH, sql_content, sql_files)
+        upload_sql_file = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=bk_biz_id)
+        sql_file_info_list = MySQLSQLHandler.upload_sql_file(upload_sql_file, sql_content, sql_files)
         return sql_file_info_list

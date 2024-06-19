@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
 import logging
 import os
 
@@ -47,20 +46,20 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     editable = False
 
     def patch_ticket_detail(self):
-        # 上传sql文件
-        sql_content = self.ticket.details.pop("execute_sql_content")
-        sql_files = self.ticket.details.pop("execute_sql_files")
-        execute_sql_files = SQLHandler.upload_sql_file(BKREPO_SQLFILE_PATH, sql_content, sql_files)
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)
+        execute_sql_files = []
+        # 解构execute_objects，1. 上传sql文件 2. 平铺sql执行体信息
+        for index, execute in enumerate(self.ticket.details["execute_objects"]):
+            # 上传sql文件
+            sql_content = execute.pop("sql_content", None)
+            sql_files = execute.pop("sql_files", None)
+            upload_sql_files = SQLHandler.upload_sql_file(upload_sql_path, sql_content, sql_files)
+            real_sql_files = [os.path.split(file["sql_path"])[1] for file in upload_sql_files]
+            # 更新sql执行体结构
+            execute.update(sql_files=real_sql_files, line_id=index)
+            execute_sql_files.extend(sql_files)
 
-        # 获取sql执行体结构
-        execute_sql_filenames = [os.path.split(file["sql_path"])[1] for file in execute_sql_files]
-        execute_objects = [
-            [{"sql_file": sql_file, **db_info} for db_info in self.ticket.details["execute_db_infos"]]
-            for sql_file in execute_sql_filenames
-        ]
-        execute_objects = list(itertools.chain(*execute_objects))
-
-        self.ticket.update_details(execute_sql_files=execute_sql_files, execute_objects=execute_objects)
+        self.ticket.update_details(execute_sql_files=execute_sql_files)
         super().patch_ticket_detail()
 
     def init_ticket_flows(self):

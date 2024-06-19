@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from backend.flow.engine.controller.redis import RedisController
@@ -58,18 +57,7 @@ class RedisBackupFlowParamBuilder(builders.FlowParamBuilder):
             }
         }
         """
-
-        self.ticket_data.update(
-            {
-                "fileserver": {
-                    "url": settings.BKREPO_ENDPOINT_URL,
-                    "bucket": settings.BKREPO_BUCKET,
-                    "password": settings.BKREPO_PASSWORD,
-                    "username": settings.BKREPO_USERNAME,
-                    "project": settings.BKREPO_PROJECT,
-                }
-            }
-        )
+        super().format_ticket_data()
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_BACKUP)

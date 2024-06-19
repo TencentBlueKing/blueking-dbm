@@ -1940,7 +1940,7 @@
                 "storage_spec": [
                     {
                         "size": 400,
-                        "type": "ALL",
+                        "type": "HDD",
                         "mount_point": "/data"
                     }
                 ],
@@ -1967,7 +1967,7 @@
                 "storage_spec": [
                     {
                         "size": 600,
-                        "type": "ALL",
+                        "type": "HDD",
                         "mount_point": "/data"
                     }
                 ],
@@ -2124,7 +2124,7 @@
                 "storage_spec": [
                     {
                         "size": 400,
-                        "type": "ALL",
+                        "type": "HDD",
                         "mount_point": "/data"
                     }
                 ],
@@ -2151,7 +2151,7 @@
                 "storage_spec": [
                     {
                         "size": 600,
-                        "type": "ALL",
+                        "type": "HDD",
                         "mount_point": "/data"
                     }
                 ],
