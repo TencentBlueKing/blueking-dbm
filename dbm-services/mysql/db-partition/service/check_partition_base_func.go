@@ -637,7 +637,7 @@ func CreatePartitionTicket(flows []Info, ClusterType string, domain string, vdat
 	}
 	ticket = Ticket{BkBizId: viper.GetInt("dba.bk_biz_id"),
 		TicketType: ticketType, Remark: "auto partition", IgnoreDuplication: true,
-		Details: Detail{Infos: flows}, CronDate: vdate, ImmuteDomain: domain}
+		Details: Detail{Infos: flows, CronDate: vdate, ImmuteDomain: domain}}
 	slog.Info("msg", "ticket info", fmt.Sprintf("%v", ticket))
 	_, err := CreateDbmTicket(ticket)
 	if err != nil {
