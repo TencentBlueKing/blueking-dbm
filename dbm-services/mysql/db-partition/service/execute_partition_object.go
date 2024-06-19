@@ -65,8 +65,6 @@ type Ticket struct {
 	Remark            string `json:"remark"`
 	IgnoreDuplication bool   `json:"ignore_duplication"`
 	Details           Detail `json:"details"`
-	ImmuteDomain      string `json:"immute_domain"`
-	CronDate          string `json:"cron_date"`
 }
 
 // Details 单据参数
@@ -77,7 +75,9 @@ type Details struct {
 
 // Detail 用于创建单据
 type Detail struct {
-	Infos []Info `json:"infos"`
+	Infos        []Info `json:"infos"`
+	ImmuteDomain string `json:"immute_domain"`
+	CronDate     string `json:"cron_date"`
 }
 
 // Info 用于创建单据
