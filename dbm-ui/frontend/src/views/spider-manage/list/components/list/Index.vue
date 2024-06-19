@@ -125,6 +125,10 @@
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
     :get-detail-info="getSpiderDetail" />
+  <ClusterExportData
+    v-if="currentData"
+    v-model:is-show="showDataExportSlider"
+    :data="currentData" />
 </template>
 
 <script setup lang="tsx">
@@ -171,6 +175,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -237,6 +242,8 @@
   const excelAuthorizeShow = ref(false);
   const showEditEntryConfig = ref(false);
   const clusterAuthorizeShow = ref(false);
+  const showDataExportSlider = ref(false)
+  const currentData = ref<IColumn['data']>()
 
   const selected = shallowRef<ResourceItem[]>([]);
   const operationData = shallowRef({} as TendbClusterModel);
@@ -718,6 +725,18 @@
                 { t('集群容量变更') }
               </auth-button>
             </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="tendbCluster.clusterManage.exportData">
+              <bk-button
+                disabled={data.operationDisabled}
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={() => handleShowDataExportSlider(data)}>
+                { t('导出数据') }
+              </bk-button>
+            </OperationBtnStatusTips>
           ];
           if (data.isOffline) {
             operations.push(...[
@@ -1151,6 +1170,10 @@
     selected.value = [];
   };
 
+  const handleShowDataExportSlider = (data: IColumn['data']) => {
+    currentData.value = data
+    showDataExportSlider.value = true;
+  };
 
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;

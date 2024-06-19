@@ -62,6 +62,7 @@
   import DumperInstall from './mysql/DumperInstall.vue';
   import DumperNodeStatusUpdate from './mysql/DumperNodeStatusUpdate.vue';
   import DumperSwitchNode from './mysql/DumperSwitchNode.vue';
+  import MysqlExportData from './mysql/ExportData.vue';
   import MySQLFlashback from './mysql/Flashback.vue';
   import MySQLFullBackup from './mysql/FullBackup.vue';
   import MySQLHATruncate from './mysql/HATruncate.vue';
@@ -348,6 +349,7 @@
     [TicketTypes.SQLSERVER_BACKUP_DBS]: SqlserverDbBackup,
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: SpiderMigrateCluster,
     [TicketTypes.REDIS_INS_APPLY]: DetailsRedisHa,
+    [TicketTypes.MYSQL_DUMP_DATA]: MysqlExportData,
   };
 
   // 不同集群详情组件

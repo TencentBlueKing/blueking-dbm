@@ -87,6 +87,10 @@
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
     :get-detail-info="getTendbsingleDetail" />
+  <ClusterExportData
+    v-if="currentData"
+    v-model:is-show="showDataExportSlider"
+    :data="currentData" />
 </template>
 
 <script setup lang="tsx">
@@ -132,6 +136,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -192,7 +197,9 @@
 
   const tableRef = ref();
   const isShowExcelAuthorize = ref(false);
+  const showDataExportSlider = ref(false)
   const showEditEntryConfig = ref(false);
+  const currentData = ref<ColumnData['data']>()
 
   const authorizeState = reactive({
     isShow: false,
@@ -497,6 +504,18 @@
             onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
           </bk-button>
+          <OperationBtnStatusTips
+            data={data}
+            v-db-console="mysql.singleClusterList.exportData">
+            <bk-button
+              disabled={data.operationDisabled}
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleShowDataExportSlider(data)}>
+              { t('导出数据') }
+            </bk-button>
+          </OperationBtnStatusTips>
           {
             data.isOnline ? (
               <OperationBtnStatusTips
@@ -646,6 +665,11 @@
   const handleOpenEntryConfig = (row: TendbsingleModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
+  };
+
+  const handleShowDataExportSlider = (data: TendbsingleModel) => {
+    currentData.value = data
+    showDataExportSlider.value = true;
   };
 
   /**
