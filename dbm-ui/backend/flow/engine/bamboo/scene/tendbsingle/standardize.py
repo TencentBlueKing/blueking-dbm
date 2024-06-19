@@ -24,6 +24,7 @@ from backend.db_package.models import Package
 from backend.flow.consts import DBA_ROOT_USER, DEPENDENCIES_PLUGINS, MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder, SubProcess
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
     InstallNodemanPluginServiceComponent,
 )
@@ -35,7 +36,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_cluster_instantiate
     MySQLClusterInstantiateConfigComponent,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.common_act_dataclass import InstallNodemanPluginKwargs
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
@@ -83,7 +84,7 @@ class TenDBSingleStandardizeFlow(object):
                 self._build_storage_sub(ips=storage_ips),
             ]
         )
-        logger.info(_("构建TenDBHA集群标准化流程成功"))
+        logger.info(_("构建TenDBSingle集群标准化流程成功"))
         standardize_pipe.run_pipeline(is_drop_random_user=True)
 
     def _trans_file(self, ips_group: Dict) -> SubProcess:
@@ -124,6 +125,18 @@ class TenDBSingleStandardizeFlow(object):
                         InstallNodemanPluginKwargs(ips=unique_ips, plugin_name=plugin_name, bk_cloud_id=bk_cloud_id)
                     ),
                 )
+
+            cloud_trans_file_pipe.add_act(
+                act_name=_("安装backup-client工具"),
+                act_component_code=DownloadBackupClientComponent.code,
+                kwargs=asdict(
+                    DownloadBackupClientKwargs(
+                        bk_cloud_id=bk_cloud_id,
+                        bk_biz_id=self.data["bk_biz_id"],
+                        download_host_list=unique_ips,
+                    )
+                ),
+            )
 
             trans_file_pipes.append(
                 cloud_trans_file_pipe.build_sub_process(sub_name=_("cloud {} 下发文件".format(bk_cloud_id)))
@@ -223,6 +236,19 @@ class TenDBSingleStandardizeFlow(object):
             )
 
             single_pipe.add_act(
+                act_name=_("部署备份程序"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=ip,
+                        bk_cloud_id=bk_cloud_id,
+                        get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
+                        cluster_type=ClusterType.TenDBSingle.value,
+                    )
+                ),
+            )
+
+            single_pipe.add_act(
                 act_name=_("部署DBA工具箱"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
@@ -230,7 +256,7 @@ class TenDBSingleStandardizeFlow(object):
                         bk_cloud_id=bk_cloud_id,
                         exec_ip=ip,
                         get_mysql_payload_func=MysqlActPayload.get_install_dba_toolkit_payload.__name__,
-                        cluster_type=ClusterType.TenDBHA.value,
+                        cluster_type=ClusterType.TenDBSingle.value,
                     )
                 ),
             )
