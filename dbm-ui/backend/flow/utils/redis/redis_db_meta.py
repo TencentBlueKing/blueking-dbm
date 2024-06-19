@@ -1358,3 +1358,43 @@ class RedisDBMeta(object):
             )
             api.proxy_instance.create(proxies=proxies, creator=self.cluster["created_by"], status=ins_status)
         return True
+
+    def update_cluster_entry(self) -> bool:
+        """
+        更新nodes cluster_entry记录
+        cluster_id
+        bk_biz_id
+        nodes_domain
+        """
+        nodes_domain = self.cluster["nodes_domain"]
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"], bk_biz_id=self.cluster["bk_biz_id"])
+        cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+        storageinstances = cluster.storageinstance_set.all()
+
+        if is_redis_cluster_protocal(cluster.cluster_type):
+            if not cluster_entry:
+                cluster_entry = ClusterEntry.objects.create(
+                    cluster=cluster,
+                    cluster_entry_type=ClusterEntryType.DNS,
+                    entry=nodes_domain,
+                    creator=cluster.creator,
+                    role=ClusterEntryRole.NODE_ENTRY,
+                )
+                cluster_entry.storageinstance_set.add(*storageinstances)
+                cluster_entry.save()
+                logger.info(
+                    _("redis集群:%s cluster_type:%s 新增 %s cluster_entry").format(
+                        cluster.immute_domain, cluster.cluster_type, nodes_domain
+                    )
+                )
+            else:
+                # 应该存在的,确实存在,则更新
+                cluster_entry.storageinstance_set.clear()
+                cluster_entry.storageinstance_set.add(*storageinstances)
+                cluster_entry.save()
+                logger.info(
+                    _("redis集群:%s cluster_type:%s 更新 cluster_entry:%s").format(
+                        cluster.immute_domain, cluster.cluster_type, cluster_entry.entry
+                    )
+                )
+        return True

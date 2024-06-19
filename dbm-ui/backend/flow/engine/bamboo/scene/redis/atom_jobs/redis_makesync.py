@@ -53,7 +53,9 @@ def RedisMakeSyncAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, params: Di
 
     # 下发介质包
     exec_ip = [params["origin_1"], params["sync_dst1"]]
-    if ins_sync_type in [SyncType.SYNC_MMS, SyncType.SYNC_SMS]:
+    if ins_sync_type in [SyncType.SYNC_MMS, SyncType.SYNC_SMS] and not is_redis_cluster_protocal(
+        act_kwargs.cluster["cluster_type"]
+    ):
         exec_ip.append(params["sync_dst2"])
     act_kwargs.exec_ip = exec_ip
     act_kwargs.file_list = GetFileList(db_type=DBType.Redis).redis_actuator()
@@ -303,7 +305,7 @@ def RedisClusterMakeSyncAtomJob(sub_pipeline: SubBuilder, sub_kwargs: ActKwargs,
     # 第一步 新节点加入集群
     act_kwargs.exec_ip = params[data_to]
     act_kwargs.cluster["meet_instances"] = [
-        {"master_ip": params[data_to], "master_port": int(portlink[data_from])} for portlink in params["ins_link"]
+        {"master_ip": params[data_to], "master_port": int(portlink[data_to])} for portlink in params["ins_link"]
     ]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_meet_4_scene.__name__
     sub_pipeline.add_act(

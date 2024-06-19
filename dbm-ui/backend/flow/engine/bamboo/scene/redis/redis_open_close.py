@@ -128,7 +128,7 @@ class RedisClusterOpenCloseFlow(object):
         sub_pipelines = []
         status = (
             InstanceStatus.UNAVAILABLE.value
-            if self.data["ticket_type"] == TicketType.REDIS_PROXY_OPEN
+            if self.data["ticket_type"] == TicketType.REDIS_PROXY_CLOSE
             else InstanceStatus.RUNNING.value
         )
         for ip in proxy_ips:
