@@ -6,6 +6,7 @@ import (
 	"dbm-services/common/dbha/ha-module/dbmodule/dbmysql"
 	"dbm-services/common/dbha/ha-module/dbmodule/redis"
 	"dbm-services/common/dbha/ha-module/dbmodule/riak"
+	"dbm-services/common/dbha/ha-module/dbmodule/sqlserver"
 	"dbm-services/common/dbha/ha-module/dbutil"
 )
 
@@ -87,5 +88,12 @@ func init() {
 		FetchDBCallback:              riak.NewRiakInstanceByCmDB,
 		DeserializeCallback:          riak.DeserializeRiak,
 		GetSwitchInstanceInformation: riak.NewRiakSwitchInstance,
+	}
+
+	//SqlserverHA used
+	DBCallbackMap[constvar.SqlserverHA] = Callback{
+		FetchDBCallback:              sqlserver.NewSqlserverInstanceByCmDB,
+		DeserializeCallback:          sqlserver.DeserializeSqlserver,
+		GetSwitchInstanceInformation: sqlserver.NewSqlserverSwitchInstance,
 	}
 }

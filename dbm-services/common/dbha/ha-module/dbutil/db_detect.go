@@ -143,6 +143,45 @@ func (b *BaseDetectDB) DoSSH(shellStr string) error {
 	return nil
 }
 
+// DoSSHForWindows do ssh detect for window
+// todo 后面需要考虑去掉cygwin的依赖
+func (b *BaseDetectDB) DoSSHForWindows(shellStr string) error {
+	conf := &ssh.ClientConfig{
+		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout), // ssh 连接time out 时间一秒钟, 如果ssh验证错误 会在一秒内返回
+		User:            b.SshInfo.User,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
+		Config: ssh.Config{
+			Ciphers: []string{"arcfour"}, // 指定加密算法，目前利用sygwin联调
+		},
+	}
+	conf.Auth = []ssh.AuthMethod{
+		ssh.KeyboardInteractive(b.ReturnSshInteractive()),
+		ssh.Password(b.SshInfo.Pass),
+	}
+	addr := fmt.Sprintf("%s:%d", b.Ip, b.SshInfo.Port)
+	sshClient, err := ssh.Dial("tcp", addr, conf)
+	if err != nil {
+		log.Logger.Warnf("ssh connect failed. ip:%s, port:%d, err:%s", b.Ip, b.Port, err.Error())
+		return err
+	}
+	defer sshClient.Close()
+
+	session, err := sshClient.NewSession()
+	if err != nil {
+		log.Logger.Warnf("ssh new session failed. ip:%s, port:%d, err:%s", b.Ip, b.Port, err.Error())
+		return err
+	}
+	defer session.Close()
+
+	_, err = session.CombinedOutput(shellStr)
+	if err != nil {
+		log.Logger.Warnf("ssh run command failed. ip:%s, port:%d, err:%s", b.Ip, b.Port, err.Error())
+		return err
+	}
+
+	return nil
+}
+
 // NeedReporter decide whether need report detect result to HADB
 func (b *BaseDetectDB) NeedReporter() bool {
 	var need bool
