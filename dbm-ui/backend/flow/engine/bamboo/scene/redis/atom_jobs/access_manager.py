@@ -235,6 +235,9 @@ def AccessManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dic
         主要操作：增删改查，不包含创建
         要求：根据域名的类型，同步更新操作相关的组件
 
+        # nodes域名注意！！！
+        # DNS域名记录中，端口没有实际意义，(domain,ip)为唯一键，如果有多条记录，还会报错。这个地方设置起始端口的值就行。
+
         Args:
         param (Dict): {
             "cluster_id",       必传
@@ -242,14 +245,26 @@ def AccessManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dic
             "port": 30000,
             "add_ips": [],
             "del_ips": [],
+            "role": []
     }
     """
     #  1. 根据cluster_id从db_meta_clusterentry表中查询出所有记录。看下这个集群都有些啥接入组件
     #  2. 然后根据使用的接入组件，进行对应的操作
     # op_type in [DnsOpType.CREATE、DnsOpType.RECYCLE_RECORD、DnsOpType.CLUSTER_DELETE]
 
+    # 如果指定了角色，那么就需要操作指定node域名。 否则默认只对proxy操作
+    if "role" in param:
+        role = param["role"]
+    else:
+        role = [ClusterEntryRole.PROXY_ENTRY.value]
+
     cluster_id = param["cluster_id"]
-    cluster_enterys = ClusterEntry.objects.filter(cluster__id=cluster_id).values()
+    cluster_enterys = ClusterEntry.objects.filter(cluster__id=cluster_id, role__in=role).values()
+
+    # 老的rediscluster集群可能不存在nodes域名
+    if not cluster_enterys:
+        return None
+
     sub_builder_list = []
     for ce in cluster_enterys:
         if ce["forward_to_id"]:

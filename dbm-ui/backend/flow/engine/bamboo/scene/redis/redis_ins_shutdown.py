@@ -16,7 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterEntryRole, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import DEFAULT_MONITOR_TIME, DEFAULT_REDIS_SYSTEM_CMDS, DnsOpType, RedisBackupEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
@@ -124,7 +124,7 @@ class RedisInsShutdownFlow(object):
         act_kwargs.cluster = {
             **all_ins_info,
             **ip_ports,
-            "backup_type": RedisBackupEnum.NORMAL_BACKUP.value,
+            "backup_type": RedisBackupEnum.FOREVER_BACKUP.value,
             "monitor_time_ms": DEFAULT_MONITOR_TIME,
             "ignore_req": True,
             "ignore_keys": DEFAULT_REDIS_SYSTEM_CMDS,
@@ -183,6 +183,7 @@ class RedisInsShutdownFlow(object):
             params = {
                 "cluster_id": cluster_id,
                 "op_type": DnsOpType.CLUSTER_DELETE,
+                "role": [ClusterEntryRole.NODE_ENTRY.value, ClusterEntryRole.PROXY_ENTRY.value],
             }
             access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipeline_list.append(access_sub_builder)
