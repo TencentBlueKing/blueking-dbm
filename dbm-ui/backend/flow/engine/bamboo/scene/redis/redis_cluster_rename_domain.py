@@ -25,8 +25,10 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterIPsDbmonInstallAtomJob
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
+from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.dns_manage import DnsManage
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_util import domain_without_port
@@ -133,6 +135,19 @@ class RedisClusterRenameDomainFlow(object):
             sub_pipeline.add_act(
                 act_name=_("更新元数据和cc模块"),
                 act_component_code=RedisDBMetaComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+            act_kwargs.cluster = {
+                "bill_id": self.data["uid"],
+                "cluster_id": cluster.id,
+                "old_domain": cluster.immute_domain,
+                "new_domain": new_domain,
+            }
+            act_kwargs.get_redis_payload_func = RedisActPayload.redis_custer_rename_domain_update_dbconfig.__name__
+            sub_pipeline.add_act(
+                act_name=_("更新集群dbconfig配置"),
+                act_component_code=RedisConfigComponent.code,
                 kwargs=asdict(act_kwargs),
             )
 
