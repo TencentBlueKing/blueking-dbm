@@ -119,6 +119,8 @@ type DBConfig struct {
 	Redis RedisConfig `yaml:"redis"`
 	// Riak instance detect info
 	Riak RiakConfig `yaml:"riak"`
+	// Sqlserver instance detect info
+	Sqlserver SqlserverConfig `yaml:"sqlserver"`
 }
 
 // MySQLConfig mysql instance connect info
@@ -140,13 +142,22 @@ type RiakConfig struct {
 	Timeout int `yaml:"timeout"`
 }
 
-// SSHConfig ssh detect configure
-type SSHConfig struct {
-	Port    int    `yaml:"port"`
+// SqlserverConfig sqlserver detect configure
+type SqlserverConfig struct {
 	User    string `yaml:"user"`
 	Pass    string `yaml:"pass"`
-	Dest    string `yaml:"dest"`
 	Timeout int    `yaml:"timeout"`
+}
+
+// SSHConfig ssh detect configure
+type SSHConfig struct {
+	Port             int    `yaml:"port"`
+	User             string `yaml:"user"`
+	Pass             string `yaml:"pass"`
+	SqlserverSSHUser string `yaml:"sqlserver_ssh_user"`
+	SqlserverSSHPass string `yaml:"sqlserver_ssh_pass"`
+	Dest             string `yaml:"dest"`
+	Timeout          int    `yaml:"timeout"`
 }
 
 // DNSConfig dns api configure info

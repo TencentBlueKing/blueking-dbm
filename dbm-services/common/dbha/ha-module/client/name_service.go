@@ -131,6 +131,43 @@ func (c *NameServiceClient) DeleteDomain(domainName string, app string, ip strin
 	return nil
 }
 
+// CreateDomain update address from domain for dns
+func (c *NameServiceClient) CreateDomain(domainName string, app string, ip string, port int) error {
+	var data DomainRes
+	addr := fmt.Sprintf("%s#%d", ip, port)
+	req := map[string]interface{}{
+		"db_cloud_token": c.Conf.BKConf.BkToken,
+		"bk_cloud_id":    c.CloudId,
+		"app":            app,
+		"domains": []map[string]interface{}{
+			{
+				"domain_name": domainName,
+				"instances":   []string{addr},
+			},
+		},
+	}
+
+	log.Logger.Debugf("CreateDomain param:%v", req)
+
+	response, err := c.DoNew(http.MethodPut,
+		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CreateDomainUrl, ""), req, nil)
+	if err != nil {
+		return err
+	}
+	if response.Code != 0 {
+		return fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+	err = json.Unmarshal(response.Data, &data)
+	if err != nil {
+		return err
+	}
+	if data.RowsNum != 1 {
+		return fmt.Errorf("rowsAffected = %d, create domain %s failed. ip:%s, port:%d, app:%s",
+			data.RowsNum, domainName, ip, port, app)
+	}
+	return nil
+}
+
 // PolarisClbGWResp the response format for polaris and clb
 type PolarisClbGWResp struct {
 	Ips []string `json:"ips,omitempty"`

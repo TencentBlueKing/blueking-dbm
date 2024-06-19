@@ -64,6 +64,19 @@ type SwapRedisRoleRequest struct {
 	Payload      SwapRedisRolePayload `json:"payload"`
 }
 
+// SwapSqlserverRolePayload sqlserver instance need to swap role
+type SwapSqlserverRolePayload struct {
+	Instance1 DBInstanceInfo `json:"instance1"`
+	Instance2 DBInstanceInfo `json:"instance2"`
+}
+
+// SwapSqlserverRoleRequest swap sqlserver instance's role in cmdb
+type SwapSqlserverRoleRequest struct {
+	DBCloudToken string                     `json:"db_cloud_token"`
+	BKCloudID    int                        `json:"bk_cloud_id"`
+	Payloads     []SwapSqlserverRolePayload `json:"payloads"`
+}
+
 // UpdateInstanceStatusPayload update instance status
 type UpdateInstanceStatusPayload struct {
 	IP     string `json:"ip"`
@@ -240,6 +253,38 @@ func (c *CmDBClient) SwapMySQLRole(masterIp string, masterPort int, slaveIp stri
 
 	response, err := c.DoNew(
 		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBSwapRoleUrl, ""), req, nil)
+	if err != nil {
+		return err
+	}
+	if response.Code != 0 {
+		return fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+	return nil
+}
+
+// SwapSqlserverRole swap sqlserver master and slave's cmdb info
+func (c *CmDBClient) SwapSqlserverRole(masterIp string, masterPort int, slaveIp string, slavePort int) error {
+	payload := SwapSqlserverRolePayload{
+		Instance1: DBInstanceInfo{
+			IP:   masterIp,
+			Port: masterPort,
+		},
+		Instance2: DBInstanceInfo{
+			IP:   slaveIp,
+			Port: slavePort,
+		},
+	}
+
+	req := SwapSqlserverRoleRequest{
+		DBCloudToken: c.Conf.BKConf.BkToken,
+		BKCloudID:    c.CloudId,
+		Payloads:     []SwapSqlserverRolePayload{payload},
+	}
+
+	log.Logger.Debugf("SwapSqlserverRole param:%v", req)
+
+	response, err := c.DoNew(
+		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBSqlserverSwapRoleUrl, ""), req, nil)
 	if err != nil {
 		return err
 	}

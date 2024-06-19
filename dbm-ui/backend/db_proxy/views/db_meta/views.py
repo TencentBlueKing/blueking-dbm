@@ -66,6 +66,21 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
         return Response(DBHA.swap_role(validated_data["payloads"], validated_data["bk_cloud_id"]))
 
     @common_swagger_auto_schema(
+        operation_summary=_("[dbmeta]sqlserver实例角色交换"),
+        request_body=SwapRoleSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=SwapRoleSerializer,
+        url_path="dbmeta/dbha/sqlserver_cluster_swap",
+    )
+    def sqlserver_swap_role(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(DBHA.sqlserver_cluster_swap(validated_data["payloads"], validated_data["bk_cloud_id"]))
+
+    @common_swagger_auto_schema(
         operation_summary=_("[dbmeta]tendis集群交换"),
         request_body=TendisClusterSwapSerializer(),
         tags=[SWAGGER_TAG],

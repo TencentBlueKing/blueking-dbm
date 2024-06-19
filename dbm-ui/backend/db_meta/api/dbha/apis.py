@@ -21,6 +21,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
 from backend.db_meta import flatten, meta_validator, request_validator
+from backend.db_meta.api.cluster.sqlserverha.handler import SqlserverHAClusterHandler
 from backend.db_meta.enums import (
     ClusterEntryType,
     ClusterStatus,
@@ -45,6 +46,7 @@ from backend.db_meta.models import (
 )
 from backend.db_meta.request_validator import DBHASwapRequestSerializer, DBHAUpdateStatusRequestSerializer
 from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("root")
 
@@ -389,3 +391,47 @@ def swap_cc_svr_instance_role(ins1_obj: StorageInstance, ins2_obj: StorageInstan
         bk_instance_ids=[ins2_obj.bk_instance_id],
         labels_dict={"instance_role": ins2_obj.instance_role},
     )
+
+
+@transaction.atomic
+def sqlserver_cluster_swap(payloads: List, bk_cloud_id: int):
+    """
+    用于切换sqlserver集群实例
+    @param payloads: 传入主从参数
+    @param bk_cloud_id: 云区域ID
+    """
+    DBHASwapRequestSerializer(data={"payloads": payloads}).is_valid(raise_exception=True)
+    for pl in payloads:
+        old_master = pl["instance1"]
+        new_master = pl["instance2"]
+
+        old_master_obj = StorageInstance.objects.get(
+            machine__ip=old_master["ip"], port=old_master["port"], machine__bk_cloud_id=bk_cloud_id
+        )
+        new_master_obj = StorageInstance.objects.get(
+            machine__ip=new_master["ip"], port=new_master["port"], machine__bk_cloud_id=bk_cloud_id
+        )
+
+        if (
+            not StorageInstanceTuple.objects.filter(ejector=old_master_obj, receiver=new_master_obj).exists()
+            and not StorageInstanceTuple.objects.filter(ejector=new_master_obj, receiver=old_master_obj).exists()
+        ):
+            raise Exception(
+                "no replicate relate between {}:{} {}:{}".format(
+                    old_master_obj.machine.ip, old_master_obj.port, new_master_obj.machine.ip, new_master_obj.port
+                )
+            )
+
+        if (
+            old_master_obj.instance_inner_role == InstanceInnerRole.REPEATER
+            or new_master_obj.instance_role == InstanceInnerRole.REPEATER
+        ):
+            raise Exception("repeater found, may be not prod cluster")
+
+        # 切换元数据
+        cluster_id = old_master_obj.cluster.get().id
+        SqlserverHAClusterHandler.switch_role(
+            cluster_ids=[cluster_id],
+            old_master=Host(ip=old_master["ip"], bk_cloud_id=bk_cloud_id),
+            new_master=Host(ip=new_master["ip"], bk_cloud_id=bk_cloud_id),
+        )

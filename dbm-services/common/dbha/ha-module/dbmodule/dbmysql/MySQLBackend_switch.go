@@ -1,11 +1,12 @@
 package dbmysql
 
 import (
+	"fmt"
+
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbutil"
 	"dbm-services/common/dbha/ha-module/log"
-	"fmt"
 )
 
 // MySQLSwitch defined mysql switch struct
