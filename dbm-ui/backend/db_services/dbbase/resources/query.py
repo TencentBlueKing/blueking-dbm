@@ -529,6 +529,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
         """
         将集群对象转为可序列化的 dict 结构
         @param cluster: model Cluster 对象, 增加了 storages 和 proxies 属性
+        @param cluster_entry: 集群的访问入口列表
         @param db_module_names_map: key 是 db_module_id, value 是 db_module_name
         @param cluster_entry_map: key 是 cluster.id, value 是当前集群对应的 entry 映射
         @param cluster_operate_records_map: key 是 cluster.id, value 是当前集群对应的 操作记录 映射
