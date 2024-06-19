@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -86,6 +84,6 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
-  return checkDbConsole(funControllerData, 'bizConfigManage.dbConfigure') ? routes : [];
+export default function getRoutes() {
+  return checkDbConsole('bizConfigManage.dbConfigure') ? routes : [];
 }

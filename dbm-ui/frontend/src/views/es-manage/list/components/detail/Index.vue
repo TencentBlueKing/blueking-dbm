@@ -20,6 +20,7 @@
       class="detail-tab"
       type="card-tab">
       <BkTabPanel
+        v-if="checkDbConsole('es.clusterManage.clusterTopo')"
         :label="t('集群拓扑')"
         name="topo" />
       <BkTabPanel
@@ -29,6 +30,7 @@
         :label="t('基本信息')"
         name="baseInfo" />
       <BkTabPanel
+        v-if="checkDbConsole('es.clusterManage.changeLog')"
         :label="t('变更记录')"
         name="record" />
       <BkTabPanel
@@ -71,6 +73,7 @@
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
+  import { checkDbConsole } from '@utils';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
