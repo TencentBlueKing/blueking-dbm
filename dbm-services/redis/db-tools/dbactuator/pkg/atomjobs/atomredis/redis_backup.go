@@ -355,6 +355,10 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64,
 	bakCli backupsys.BackupClient,
 	sqDB *gorm.DB) *BackupTask {
 	timeZone, _ := time.Now().Local().Zone()
+	backupTag := consts.RedisFullBackupTAG
+	if backupType == consts.ForeverBackupType {
+		backupTag = consts.RedisForeverBackupTAG
+	}
 	ret := &BackupTask{
 		Password:         password,
 		ToBackupSystem:   toBackupSys,
@@ -376,7 +380,7 @@ func NewFullBackupTask(bkBizID string, bkCloudID int64,
 		BackupDir:    backupDir,
 		BackupTaskID: "",
 		BackupMD5:    "",
-		BackupTag:    consts.RedisFullBackupTAG,
+		BackupTag:    backupTag,
 		TimeZone:     timeZone,
 	}
 	return ret
