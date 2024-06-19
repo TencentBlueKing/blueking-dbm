@@ -14,7 +14,7 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.flow.consts import DBM_MYSQL_JOB_TMP_USER_PREFIX
+from backend.flow.consts import DBM_MYSQL_JOB_TMP_USER_PREFIX, UserName
 
 logger = logging.getLogger("flow")
 
@@ -27,7 +27,7 @@ def get_mysql_sys_users(bk_cloud_id) -> list:
         ExtensionType.DRS: env.DRS_USERNAME,
         ExtensionType.DBHA: env.DBHA_USERNAME,
     }
-    sys_users = []
+    sys_users = [UserName.ADMIN.value, UserName.PARTITION_YW.value]
     for key, value in sys_users_map.items():
         if value:
             sys_users.append(value)
