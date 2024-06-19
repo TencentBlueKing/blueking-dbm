@@ -333,6 +333,8 @@ export enum TicketTypes {
   REDIS_INSTANCE_PROXY_OPEN = 'REDIS_INSTANCE_PROXY_OPEN', // redis 主从集群启用
   REDIS_INSTANCE_PROXY_CLOSE = 'REDIS_INSTANCE_PROXY_CLOSE', // redis 主从集群禁用
   REDIS_INSTANCE_DESTROY = 'REDIS_INSTANCE_DESTROY', // redis 主从集群删除
+  MYSQL_DUMP_DATA = 'MYSQL_DUMP_DATA', // mysql 数据导出
+  TENDBCLUSTER_DUMP_DATA = 'TENDBCLUSTER_DUMP_DATA', // spider 数据导出
 }
 export type TicketTypesStrings = keyof typeof TicketTypes;
 

@@ -105,6 +105,7 @@
       overflow: hidden;
       line-height: 32px;
       flex: 0 0 50%;
+      align-items: flex-start;
 
       .ticket-details-item-label {
         flex-shrink: 0;
