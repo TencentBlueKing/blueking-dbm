@@ -130,6 +130,7 @@
           :start-time="utcTimeToSeconds(content.start_time)"
           :value="content.cost_time" />
       </template>
+      <slot name="extra-text" />
       <template v-if="content.url">
         ，
         <a
@@ -138,7 +139,6 @@
           {{ t('查看详情') }} &gt;
         </a>
       </template>
-      <slot name="extra-text" />
     </div>
     <div
       v-if="content.end_time"
