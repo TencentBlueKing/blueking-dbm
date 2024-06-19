@@ -441,7 +441,7 @@ func DownLoadFilesCreateTicketByMachine(cloudMachineList map[int64][]string, mac
 				}
 				time.Sleep(60 * time.Second)
 				// 创建执行分区单据
-				err = CreatePartitionTicket(files, clusterType, "", vdate)
+				err = CreatePartitionTicket(files, clusterType, "mixed", vdate)
 				if err != nil {
 					msg := "create ticket error"
 					SendMonitor(msg, err)
