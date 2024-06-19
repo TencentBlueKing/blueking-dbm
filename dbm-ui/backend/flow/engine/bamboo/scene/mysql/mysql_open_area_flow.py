@@ -222,6 +222,7 @@ class MysqlOpenAreaFlow(object):
             ),
         )
 
+        # 不管目标集群有多少个 源只有一个 源库的规则也是一样的
         pipeline.add_act(
             act_name=_("从源实例获取开区所需库表结构"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
