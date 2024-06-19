@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisCache)集群平均延迟",
+  "name": "Redis(TendisSSD)主机BinlogSizeK",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisCache)集群平均延迟",
+    "name": "Redis(TendisSSD)主机BinlogSizeK",
     "source": "dbm",
-    "scenario": "component",
+    "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisCache]集群平均延迟",
+        "name": "[TendisSSD]主机BinlogSizeK",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -26,11 +26,10 @@
             "data_source_label": "prometheus",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "max by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid) ((bkmonitor:exporter_dbm_twemproxy_exporter:twem",
+            "metric_id": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (bkmonitor:exporter_dbm_redis_expor",
             "functions": [],
-            "promql": "max by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid) ((bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_response_latency_sum{cluster_type=\"TwemproxyRedisInstance\"}/bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_response_latency_count{cluster_type=\"TwemproxyRedisInstance\"})/1000)",
-            "agg_interval": 60,
-            "name": ""
+            "promql": "max by (app,cluster_domain,bk_target_ip,instance_role,cluster_type,bk_target_cloud_id,appid) (bkmonitor:exporter_dbm_redis_exporter:redis_rocksdb_binlogsize_length{cluster_type=\"TwemproxyTendisSSDInstance\"}/1000)",
+            "agg_interval": 60
           }
         ],
         "algorithms": [
@@ -41,7 +40,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 256
+                  "threshold": 50000
                 }
               ]
             ],
@@ -54,7 +53,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 32
+                  "threshold": 10000
                 }
               ]
             ],
@@ -112,8 +111,9 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 47117,
+      "config_id": 47983,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
         "abnormal",
         "no_data"
@@ -178,7 +178,7 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false,
+          "need_biz_converge": true,
           "sub_converge_config": {
             "timedelta": 60,
             "count": 2,
@@ -241,17 +241,17 @@
         "template": [
           {
             "signal": "abnormal",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "recovered",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "closed",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           }
         ]
@@ -265,13 +265,15 @@
     "path": "",
     "priority": 0,
     "priority_group_key": "",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "Prometheus",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisCache]集群平均延迟",
-  "version": 22,
+  "monitor_indicator": "[TendisSSD]主机BinlogSizeK",
+  "version": 1,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-07-01T15:46:29+08:00"
 }

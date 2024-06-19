@@ -1,16 +1,16 @@
 {
   "bk_biz_id": 0,
-  "name": "Redis(TendisCache)集群延迟超过1秒的请求数量-分钟",
+  "name": "Redis(RedisCluster)主机网络流量使用率",
   "db_type": "redis",
   "details": {
     "bk_biz_id": "",
-    "name": "Redis(TendisCache)集群延迟超过1秒的请求数量/分钟",
+    "name": "Redis(RedisCluster)主机网络流量使用率",
     "source": "dbm",
-    "scenario": "component",
+    "scenario": "os",
     "type": "monitor",
     "items": [
       {
-        "name": "[TendisCache]集群延迟超过1秒的请求数量/分钟",
+        "name": "[RedisCluster]主机网络流量使用率",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -26,27 +26,13 @@
             "data_source_label": "prometheus",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "max by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid) (sum(increase(bkmonitor:exporter_dbm_twemproxy_e",
+            "metric_id": "100 * (max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_recv{device_name=\"eth1\",cluster_type=\"Pred",
             "functions": [],
-            "promql": "max by (app,cluster_domain,instance_role,cluster_type,bk_target_cloud_id,appid) (sum(increase(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_response_latency_bucket{cluster_type=\"TwemproxyRedisInstance\",le=\"+Inf\"}[2m]) ) without(le) - sum(increase(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_response_latency_bucket{cluster_type=\"TwemproxyRedisInstance\",le=\"1.024e+06\"}[2m]) ) without(le))",
-            "agg_interval": 60,
-            "name": ""
+            "promql": "100 * (max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_recv{device_name=\"eth1\",cluster_type=\"PredixyRedisCluster\"}[1m])) + max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_sent{device_name=\"eth1\",cluster_type=\"PredixyRedisCluster\"}[1m]))) / sum by (metric_label_list_by_ip) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyRedisCluster\"}[1m])) / (96 * 1024 * 1024) and sum by (metric_label_list_by_ip) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyRedisCluster\"}[1m])) <= 2 or (100 * (max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_recv{device_name=\"eth1\",cluster_type=\"PredixyRedisCluster\"}[1m])) + max by (metric_label_list_by_ip) (max_over_time(bkmonitor:dbm_system:net:speed_sent{device_name=\"eth1\",cluster_type=\"PredixyRedisCluster\"}[1m]))) / sum by (metric_label_list_by_ip) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyRedisCluster\"}[1m])) / (48 * 1024 * 1024) and sum by (metric_label_list_by_ip) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_type=\"PredixyRedisCluster\"}[1m])) > 2)",
+            "agg_interval": 60
           }
         ],
         "algorithms": [
-          {
-            "type": "Threshold",
-            "level": 1,
-            "config": [
-              [
-                {
-                  "method": "gte",
-                  "threshold": 100
-                }
-              ]
-            ],
-            "unit_prefix": ""
-          },
           {
             "type": "Threshold",
             "level": 2,
@@ -54,7 +40,7 @@
               [
                 {
                   "method": "gte",
-                  "threshold": 1
+                  "threshold": 90
                 }
               ]
             ],
@@ -112,8 +98,9 @@
     ],
     "actions": [],
     "notice": {
-      "config_id": 47085,
+      "config_id": 48029,
       "user_groups": [],
+      "user_type": "main",
       "signal": [
         "abnormal",
         "no_data"
@@ -178,7 +165,7 @@
           "timedelta": 60,
           "is_enabled": true,
           "converge_func": "collect",
-          "need_biz_converge": false,
+          "need_biz_converge": true,
           "sub_converge_config": {
             "timedelta": 60,
             "count": 2,
@@ -241,17 +228,17 @@
         "template": [
           {
             "signal": "abnormal",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "recovered",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           },
           {
             "signal": "closed",
-            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n通知人:{{alarm.receivers}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.assign_detail}}\n{{content.related_info}}",
+            "message_tmpl": "{{content.level}}\n{{content.begin_time}}\n{{content.time}}\n{{content.duration}}\n{{content.target_type}}\n{{content.data_source}}\n{{content.content}}\n{{content.current_value}}\n{{content.biz}}\n{{content.target}}\n{{content.dimension}}\n{{content.detail}}\n{{content.related_info}}",
             "title_tmpl": "{{business.bk_biz_name}} - {{alarm.name}}{{alarm.display_type}}"
           }
         ]
@@ -265,13 +252,15 @@
     "path": "",
     "priority": 0,
     "priority_group_key": "",
+    "edit_allowed": true,
     "metric_type": "time_series",
     "data_source_type": "Prometheus",
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "[TendisCache]集群延迟超过1秒的请求数量/分钟",
-  "version": 22,
+  "monitor_indicator": "[RedisCluster]主机网络流量使用率",
+  "version": 1,
   "alert_source": "time_series",
-  "custom_conditions": []
+  "custom_conditions": [],
+  "export_at": "2024-07-01T15:48:15+08:00"
 }
