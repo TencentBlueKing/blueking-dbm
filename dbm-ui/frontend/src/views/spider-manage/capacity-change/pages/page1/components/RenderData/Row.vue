@@ -71,6 +71,7 @@
       id: number;
       machinePairCnt: number;
       masterDomain: string;
+      remoteShardNum: number;
     };
     resourceSpec?: {
       id: number;

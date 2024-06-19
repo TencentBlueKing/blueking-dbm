@@ -2,7 +2,7 @@
   <DbForm
     ref="formRef"
     class="capacity-form"
-    form-type="vertical"
+    label-width="135"
     :model="formdata">
     <div class="spec-box mb-24">
       <table>
@@ -21,15 +21,17 @@
       </table>
     </div>
     <SpecPlanSelector
+      v-model:custom-spec-info="formdata"
       class="mb-24"
       :cloud-id="data.bk_cloud_id"
+      :cluster-shard-num="data.cluster_shard_num"
       cluster-type="tendbcluster"
       machine-type="remote"
       :plan-form-item-props="{
         property: 'specId',
         required: true,
       }"
-      :shard-num="data.cluster_shard_num"
+      :remote-shard-num="data.remote_shard_num"
       @change="handlePlanChange" />
     <BkFormItem
       :label="t('备份源')"
@@ -91,7 +93,7 @@
   import { useTicketMessage } from '@hooks';
 
   import SpecPlanSelector, {
-    type IRowData,
+    type TicketSpecInfo,
   }  from '@components/cluster-spec-plan-selector/Index.vue';
 
   import { t } from '@/locales';
@@ -113,16 +115,17 @@
     need_checksum: false,
     trigger_checksum_type: 'timer',
     trigger_checksum_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    backup_source: 'local'
+    backup_source: 'local',
+    count: 1,
   });
   const initformdata = JSON.stringify(formdata.value);
-  const currentSpec = shallowRef<IRowData>();
+  const currentSpec = shallowRef<TicketSpecInfo>();
 
   watch(formdata, () => {
     isChange.value = (JSON.stringify(formdata.value) !== initformdata);
   }, { deep: true });
 
-  const handlePlanChange = (specId: number, specData: IRowData) => {
+  const handlePlanChange = (specId: number, specData: TicketSpecInfo) => {
     currentSpec.value = specData;
     formdata.value.specId = specId;
   };
@@ -205,9 +208,9 @@
   .capacity-form {
     padding: 28px 40px 24px;
 
-    :deep(.bk-form-label) {
-      font-weight: bold;
-    }
+    // :deep(.bk-form-label) {
+    //   font-weight: bold;
+    // }
 
     .spec-box {
       width: 100%;

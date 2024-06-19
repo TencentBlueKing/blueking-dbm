@@ -1,77 +1,161 @@
 <template>
   <div class="redis-backend-spec">
     <BkFormItem
-      :label="targetCapacityTitle"
-      property="details.resource_spec.backend_group.capacity"
+      :label="t('部署方案选择')"
       required>
-      <BkInput
-        :min="1"
-        :model-value="modelValue.capacity"
-        style="width: 314px"
-        type="number"
-        @blur="handleBlurCapacity"
-        @change="handleChangeCapacity"
-        @focus="handleFocusCapacity" />
-      <span class="input-desc">G</span>
+      <BkRadioGroup
+        v-model="applyType"
+        style="width: 314px">
+        <BkRadioButton
+          label="auto"
+          style="flex: 1">
+          {{ t('自动推荐方案') }}
+          <BkTag
+            size="small"
+            theme="success">
+            {{ t('实验') }}
+          </BkTag>
+        </BkRadioButton>
+        <BkRadioButton
+          label="custom"
+          style="flex: 1">
+          {{ t('自定义方案') }}
+        </BkRadioButton>
+      </BkRadioGroup>
     </BkFormItem>
-    <BkFormItem
-      :label="futureCapacityTitle"
-      property="details.resource_spec.backend_group.future_capacity"
-      required>
-      <BkInput
-        :min="Number(modelValue.capacity)"
-        :model-value="modelValue.future_capacity"
-        style="width: 314px"
-        type="number"
-        @blur="handleBlurCapacity"
-        @change="handleChangeFutureCapacity"
-        @focus="handleFocusCapacity" />
-      <span class="input-desc">G</span>
-    </BkFormItem>
-    <BkFormItem
-      :label="t('QPS预估范围')"
-      required>
-      <BkSlider
-        v-model="sliderProps.value"
-        :disable="sliderProps.disabled"
-        :formatter-label="formatterLabel"
-        :max-value="sliderProps.max"
-        :min-value="sliderProps.min"
-        range
-        show-between-label
-        show-input
-        show-tip
-        style="width: 800px; font-size: 12px" />
-    </BkFormItem>
-    <BkFormItem
-      ref="specRef"
-      :label="t('集群部署方案')"
-      property="details.resource_spec.backend_group.spec_id"
-      required>
-      <DbOriginalTable
-        v-bkloading="{ loading: isLoading }"
-        class="custom-edit-table"
-        :columns="columns"
-        :data="renderSpecs"
-        @row-click="handleRowClick">
-        <template #empty>
-          <p
-            v-if="!sliderProps.value[1]"
-            style="width: 100%; line-height: 128px; text-align: center">
-            <DbIcon
-              class="mr-4"
-              type="attention" />
-            <span>{{ t('请先设置容量及QPS范围') }}</span>
-          </p>
-          <BkException
-            v-else
-            :description="t('无匹配的资源规格_请先修改容量及QPS设置')"
-            scene="part"
-            style="font-size: 12px"
-            type="empty" />
-        </template>
-      </DbOriginalTable>
-    </BkFormItem>
+    <template v-if="applyType === 'auto'">
+      <BkFormItem
+        :label="t('集群容量需求')"
+        property="details.resource_spec.backend_group.capacity"
+        required>
+        <BkInput
+          :min="1"
+          :model-value="modelValue.capacity"
+          style="width: 314px"
+          type="number"
+          @blur="handleBlurCapacity"
+          @change="handleChangeCapacity"
+          @focus="handleFocusCapacity" />
+        <span class="input-desc">G</span>
+      </BkFormItem>
+      <BkFormItem
+        :label="t('未来集群容量需求')"
+        property="details.resource_spec.backend_group.future_capacity"
+        required>
+        <BkInput
+          :min="Number(modelValue.capacity)"
+          :model-value="modelValue.future_capacity"
+          style="width: 314px"
+          type="number"
+          @blur="handleBlurCapacity"
+          @change="handleChangeFutureCapacity"
+          @focus="handleFocusCapacity" />
+        <span class="input-desc">G</span>
+      </BkFormItem>
+      <BkFormItem
+        :label="t('QPS预估范围')"
+        required>
+        <BkSlider
+          v-model="sliderProps.value"
+          :disable="sliderProps.disabled"
+          :formatter-label="formatterLabel"
+          :max-value="sliderProps.max"
+          :min-value="sliderProps.min"
+          range
+          show-between-label
+          show-input
+          show-tip
+          style="width: 800px; font-size: 12px" />
+      </BkFormItem>
+      <BkFormItem
+        ref="specRef"
+        :label="t('集群部署方案')"
+        property="details.resource_spec.backend_group.spec_id"
+        required>
+        <DbOriginalTable
+          v-bkloading="{ loading: isLoading }"
+          class="custom-edit-table"
+          :columns="columns"
+          :data="renderSpecs"
+          @row-click="handleRowClick">
+          <template #empty>
+            <p
+              v-if="!sliderProps.value[1]"
+              style="width: 100%; line-height: 128px; text-align: center">
+              <DbIcon
+                class="mr-4"
+                type="attention" />
+              <span>{{ t('请先设置容量及QPS范围') }}</span>
+            </p>
+            <BkException
+              v-else
+              :description="t('无匹配的资源规格_请先修改容量及QPS设置')"
+              scene="part"
+              style="font-size: 12px"
+              type="empty" />
+          </template>
+        </DbOriginalTable>
+      </BkFormItem>
+    </template>
+    <template v-else>
+      <BkFormItem
+        :label="t('规格')"
+        property="details.resource_spec.backend_group.spec_id"
+        required>
+        <SpecSelector
+          ref="specSelectorRef"
+          v-model="modelValue.spec_id"
+          :biz-id="bizId"
+          :cloud-id="cloudId"
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          machine-type="remote"
+          style="width: 314px" />
+      </BkFormItem>
+      <BkFormItem
+        :label="t('数量')"
+        property="details.resource_spec.backend_group.count"
+        required>
+        <BkInput
+          v-model="modelValue.count"
+          clearable
+          :min="1"
+          show-clear-only-hover
+          style="width: 314px"
+          type="number" />
+        <span class="input-desc">{{ t('台') }}</span>
+      </BkFormItem>
+      <BkFormItem
+        :label="t('单机分片数')"
+        required>
+        <BkInput
+          v-model="shardNum"
+          :min="1"
+          style="width: 314px"
+          type="number" />
+      </BkFormItem>
+      <BkFormItem
+        :label="t('总容量')"
+        :required="false">
+        <BkInput
+          v-model="specInfo.totalCapcity"
+          disabled
+          :placeholder="t('自动生成')"
+          style="width: 314px"
+          type="number" />
+        <span class="input-desc">G</span>
+      </BkFormItem>
+      <BkFormItem
+        :label="t('QPS')"
+        :required="false">
+        <BkInput
+          v-model="specInfo.qps"
+          disabled
+          :placeholder="t('自动生成')"
+          style="width: 314px"
+          type="number" />
+        <span class="input-desc">/s</span>
+      </BkFormItem>
+    </template>
   </div>
 </template>
 
@@ -80,6 +164,7 @@
   import { useI18n } from 'vue-i18n';
 
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
+  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import {
     getFilterClusterSpec,
@@ -88,8 +173,10 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import SpecSelector from '@components/apply-items/SpecSelector.vue';
+
   interface ModelValue {
-    spec_id: number,
+    spec_id: number | string,
     capacity: number | string,
     count: number,
     future_capacity: number | string,
@@ -108,6 +195,7 @@
   const { t } = useI18n();
 
   const specRef = ref();
+  const specSelectorRef = ref<InstanceType<typeof SpecSelector>>()
   const specs = shallowRef<ClusterSpecModel[]>([]);
   const renderSpecs = shallowRef<ClusterSpecModel[]>([]);
   const isLoading = ref(false);
@@ -118,9 +206,8 @@
     disabled: true,
   });
 
-  const isTendisCache = computed(() => props.clusterType === ClusterTypes.TWEMPROXY_REDIS_INSTANCE);
-  const targetCapacityTitle = computed(() => (isTendisCache.value ? t('集群容量需求(内存容量)') : t('集群容量需求(磁盘容量)')));
-  const futureCapacityTitle = computed(() => (isTendisCache.value ? t('未来集群容量需求(内存容量)') : t('未来集群容量需求(磁盘容量)')));
+  const applyType = ref('auto')
+  const shardNum = ref(1)
 
   const columns = [
     {
@@ -165,6 +252,37 @@
       label: t('可用主机数'),
     },
   ];
+
+  const specInfo = computed(() => {
+    const data = specSelectorRef.value?.getData()
+    const {count} = modelValue.value
+
+    if (_.isEmpty(data)) {
+      return {
+        totalCapcity: '',
+        qps: ''
+      }
+    }
+
+    return {
+      totalCapcity: count * getSpecCapacity(data.storage_spec),
+      qps: count * (data.qps.min ?? 0)
+    }
+  })
+
+  const getSpecCapacity = (storageSpec: ResourceSpecModel['storage_spec']) => {
+    let specCapacity = 0
+    for (let i = 0; i < storageSpec.length; i++) {
+      const storageSpecItem = storageSpec[i]
+      if (storageSpecItem.mount_point === '/data1') {
+        return storageSpecItem.size
+      }
+      if (storageSpecItem.mount_point === '/data') {
+        specCapacity = storageSpecItem.size / 2
+      }
+    }
+    return specCapacity
+  }
 
   const formatterLabel = (value: string) => `${value}/s`;
 
@@ -277,7 +395,7 @@
   }, 100);
 
   watch(() => sliderProps.value, _.debounce(() => {
-    modelValue.value.spec_id = -1;
+    modelValue.value.spec_id = '';
     if (sliderProps.value[1] > 0) {
       fetchFilterClusterSpec();
     } else {
@@ -288,7 +406,7 @@
 
   watch(() => modelValue.value.spec_id, () => {
     if (modelValue.value.spec_id) {
-      specRef.value.clearValidate();
+      specRef.value?.clearValidate();
     }
   });
 
@@ -332,8 +450,25 @@
 
   defineExpose({
     getData() {
-      const item = specs.value.find(item => item.spec_id === Number(modelValue.value.spec_id));
-      return item ?? {};
+      if (applyType.value === 'auto') {
+        const item = specs.value.find(item => item.spec_id === Number(modelValue.value.spec_id))!;
+        return {
+          spec_name: item.spec_name,
+          machine_pair: item.machine_pair,
+          cluster_shard_num: item.cluster_shard_num,
+          cluster_capacity: item.cluster_capacity,
+          qps: item.qps
+        };
+      }
+      const item = specSelectorRef.value!.getData()!
+      const { count } = modelValue.value
+      return {
+        spec_name: item.spec_name,
+        machine_pair: count,
+        cluster_shard_num: count * shardNum.value,
+        cluster_capacity: count * getSpecCapacity(item.storage_spec!),
+        qps: item.qps
+      };
     },
   });
 </script>

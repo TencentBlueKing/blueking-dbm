@@ -56,12 +56,14 @@
           </tr>
         </table>
       </div>
-      <BkForm form-type="vertical">
+      <BkForm label-width="135">
         <ClusterSpecPlanSelector
+          v-model:custom-spec-info="customSpecInfo"
           :cloud-id="clusterData.bkCloudId"
+          :cluster-shard-num="clusterData.clusterShardNum"
           cluster-type="tendbcluster"
           machine-type="remote"
-          :shard-num="clusterData.clusterShardNum"
+          :remote-shard-num="clusterData.remoteShardNum"
           @change="handlePlanChange" />
       </BkForm>
     </div>
@@ -79,14 +81,14 @@
   </DbSideslider>
 </template>
 <script setup lang="ts">
-  import { ref, shallowRef, type UnwrapRef, watch } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { getResourceSpec } from '@services/source/dbresourceSpec';
 
   import { useBeforeClose } from '@hooks';
 
-  import ClusterSpecPlanSelector from '@components/cluster-spec-plan-selector/Index.vue';
+  import ClusterSpecPlanSelector, { type TicketSpecInfo } from '@components/cluster-spec-plan-selector/Index.vue';
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
   import type { IDataRow } from './Row.vue';
@@ -116,13 +118,15 @@
     futureCapacity: 0,
   });
   const choosedSpecId = ref(-1);
-  const localSpec = shallowRef<{
-    spec_id: number;
-    spec_name: string;
-    machine_pair: number;
-    capacity: number;
-  }>();
-  const showText = computed(() => `${localSpec.value ? `${localSpec.value.capacity} G` : ''}`);
+
+  const localSpec = shallowRef<TicketSpecInfo>();
+
+  const customSpecInfo = reactive({
+    specId: '',
+    count: 0,
+  });
+
+  const showText = computed(() => `${localSpec.value ? `${localSpec.value.cluster_capacity} G` : ''}`);
 
   const rules = [
     {
@@ -161,7 +165,7 @@
             spec_id: newSpecId,
             spec_name: specData.spec_name,
             machine_pair: backend?.count ?? 0,
-            capacity: backend?.futureCapacity ?? 0,
+            cluster_capacity: backend?.futureCapacity ?? 0,
           });
         });
       }
@@ -179,12 +183,12 @@
     choosedSpecId.value = -1;
   };
 
-  const handlePlanChange = (specId: number, specData: NonNullable<UnwrapRef<typeof localSpec>>) => {
+  const handlePlanChange = (specId: number, specData: TicketSpecInfo) => {
     choosedSpecId.value = specId;
     localSpec.value = specData;
     futureSpec.value = {
       name: specData.spec_name,
-      futureCapacity: specData.capacity,
+      futureCapacity: specData.cluster_capacity,
     };
   };
 
@@ -230,7 +234,7 @@
                 spec_id: localSpec.value.spec_id,
                 count: localSpec.value.machine_pair,
                 affinity: '',
-                futureCapacity: localSpec.value.capacity,
+                futureCapacity: localSpec.value.cluster_capacity,
                 specName: localSpec.value.spec_name,
               },
             },
@@ -243,9 +247,9 @@
   .cluster-spec-plan-selector-box {
     padding: 20px 40px;
 
-    .bk-form-label {
-      font-weight: bold;
-    }
+    // .bk-form-label {
+    //   font-weight: bold;
+    // }
 
     .spec-box {
       width: 100%;
