@@ -83,7 +83,7 @@
   }
 
   const props = defineProps<Props>();
-  const moduleId = defineModel<number>({ required: true });
+  const moduleId = defineModel<number | null>({ required: true });
 
   const router = useRouter();
 
@@ -118,7 +118,9 @@
   );
 
   watch(moduleId, () => {
-    fetchLevelConfig(moduleId.value);
+    if (moduleId.value) {
+      fetchLevelConfig(moduleId.value);
+    }
   });
 
   // 获取配置详情

@@ -2,6 +2,7 @@
   <div class="spec-selector-wrapper">
     <BkSelect
       class="spec-selector"
+      :clearable="clearable"
       :loading="loading"
       :model-value="modelValue"
       @change="handleChange">
@@ -29,21 +30,21 @@
               <div
                 v-if="typeof item.count === 'number'"
                 class="info">
-                <span class="info-title">{{ $t('可用主机数') }}：</span>
+                <span class="info-title">{{ t('可用主机数') }}：</span>
                 <span class="info-value">{{ item.count ?? 0 }}</span>
               </div>
               <div class="info">
                 <span class="info-title">CPU：</span>
-                <span class="info-value">({{ item.cpu.min }} ~ {{ item.cpu.max }}) {{ $t('核') }}</span>
+                <span class="info-value">({{ item.cpu.min }} ~ {{ item.cpu.max }}) {{ t('核') }}</span>
               </div>
               <div class="info">
-                <span class="info-title">{{ $t('内存') }}：</span>
+                <span class="info-title">{{ t('内存') }}：</span>
                 <span class="info-value">({{ item.mem.min }} ~ {{ item.mem.max }}) G</span>
               </div>
               <div
                 class="info"
                 style="align-items: start">
-                <span class="info-title">{{ $t('磁盘') }}：</span>
+                <span class="info-title">{{ t('磁盘') }}：</span>
                 <span class="info-value">
                   <DbOriginalTable
                     :border="['row', 'col', 'outer']"
@@ -58,10 +59,12 @@
                 style="align-items: start">
                 <span
                   v-overflow-tips="{
-                    content: $t('每台主机实例数量'),
+                    content: t('每台主机实例数量'),
                     zIndex: 99999,
                   }"
-                  class="info-title text-overflow">{{ $t('每台主机实例数量') }}：</span>
+                  class="info-title text-overflow">
+                  {{ t('每台主机实例数量') }}：
+                </span>
                 <span class="info-value">{{ item.instance_num }}</span>
               </div>
             </div>
@@ -71,7 +74,7 @@
     </BkSelect>
     <DbIcon
       v-if="showRefreshIcon"
-      v-bk-tooltips="$t('刷新获取最新资源规格')"
+      v-bk-tooltips="t('刷新获取最新资源规格')"
       class="spec-refresh-icon"
       type="refresh"
       @click="getData" />
@@ -102,10 +105,12 @@
     bizId: number | string;
     cloudId: number | string;
     showRefresh?: boolean;
+    clearable?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     showRefresh: true,
+    clearable: true,
   });
   const emits = defineEmits<Emits>();
 
@@ -205,6 +210,7 @@
           mem: item.mem,
           storage_spec: item.storage_spec,
           instance_num: instanceNum && instanceNum > 0 ? instanceNum : undefined,
+          qps: item.qps,
         };
       }
       return {};

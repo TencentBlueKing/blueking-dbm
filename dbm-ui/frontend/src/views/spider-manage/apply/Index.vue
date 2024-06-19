@@ -216,17 +216,17 @@
       cluster_name: '',
       cluster_alias: '',
       city_code: '',
-      db_module_id: 0,
+      db_module_id: null as null | number,
       cluster_shard_num: 0,
       remote_shard_num: 0,
       disaster_tolerance_level: 'NONE',
       resource_spec: {
         spider: {
-          spec_id: 0,
+          spec_id: '' as number | '',
           count: 2,
         },
         backend_group: {
-          spec_id: 0,
+          spec_id: '' as number | '',
           count: 0,
           capacity: '',
           future_capacity: '',
@@ -246,7 +246,7 @@
 
   const formRef = ref();
   const specProxyRef = ref();
-  const specBackendRef = ref();
+  const specBackendRef = ref<InstanceType<typeof BackendQPSSpec>>();
   const regionItemRef = ref();
 
   const formdata = reactive(initData());
@@ -258,7 +258,13 @@
       {
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
-        validator: (val: string) => nameRegx.test(val),
+        validator: (value: string) => nameRegx.test(value),
+      },
+    ],
+    'details.resource_spec.backend_group.count': [
+      {
+        message: t('数量不能为空'),
+        validator: (value: number) => value > 0,
       },
     ],
   };
@@ -307,7 +313,7 @@
         },
       };
 
-      const specInfo = specBackendRef.value.getData();
+      const specInfo = specBackendRef.value!.getData();
       return {
         ...details,
         cluster_shard_num: Number(specInfo.cluster_shard_num),
