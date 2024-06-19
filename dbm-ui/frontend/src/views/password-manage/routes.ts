@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -43,6 +41,6 @@ const routes: RouteRecordRaw[] = [
   },
 ];
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
-  return checkDbConsole(funControllerData, 'globalConfigManage.passwordSafe') ? routes : [];
+export default function getRoutes() {
+  return checkDbConsole('globalConfigManage.passwordSafe') ? routes : [];
 }

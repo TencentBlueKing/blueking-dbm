@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -43,14 +41,14 @@ const dbMonitorAlarmGroupRoute = {
   component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
 }
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
+export default function getRoutes() {
   const routes: RouteRecordRaw[] = [];
 
-  if (checkDbConsole(funControllerData, 'bizConfigManage.monitorStrategy')) {
+  if (checkDbConsole('bizConfigManage.monitorStrategy')) {
     routes.push(dbMonitorStrategyRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'bizConfigManage.alarmGroup')) {
+  if (checkDbConsole('bizConfigManage.alarmGroup')) {
     routes.push(dbMonitorAlarmGroupRoute);
   }
 

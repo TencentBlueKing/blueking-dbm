@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -68,23 +66,23 @@ const mainRoute = [
 ];
 
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
+export default function getRoutes() {
   let existResourcePool = false;
 
-  if (checkDbConsole(funControllerData, 'resourceManage.resourceSpec')) {
+  if (checkDbConsole('resourceManage.resourceSpec')) {
     mainRoute[0].children.push(resourceSpecRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'resourceManage.resourcePool')) {
+  if (checkDbConsole('resourceManage.resourcePool')) {
     mainRoute[0].children.push(resourcePoolRoute);
     existResourcePool = true;
   }
 
-  if (checkDbConsole(funControllerData, 'resourceManage.dirtyHostManage')) {
+  if (checkDbConsole('resourceManage.dirtyHostManage')) {
     mainRoute[0].children.push(resourcePoolDirtyMachinesRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'resourceManage.resourceOperationRecord')) {
+  if (checkDbConsole('resourceManage.resourceOperationRecord')) {
     mainRoute[0].children.push(resourcePoolOperationRecordRoute);
   }
 
