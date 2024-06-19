@@ -17,27 +17,35 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterEntryRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster, Machine
+from backend.db_services.redis.util import is_redis_cluster_protocal
 from backend.flow.consts import (
     DEFAULT_LAST_IO_SECOND_AGO,
     DEFAULT_MASTER_DIFF_TIME,
     DEFAULT_REDIS_START_PORT,
+    DnsOpType,
     SyncType,
 )
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
+    AccessManagerAtomJob,
+    ClusterPredixyConfigServersRewriteAtomJob,
     RedisBatchInstallAtomJob,
     RedisBatchShutdownAtomJob,
     RedisClusterSwitchAtomJob,
     RedisMakeSyncAtomJob,
 )
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
+from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
+from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
 
@@ -84,6 +92,8 @@ class RedisBackendScaleFlow(object):
         master_ip_ports_map = defaultdict(list)
         ins_pair_map = defaultdict()
         master_slave_map = defaultdict()
+        old_master_list = []
+        old_slave_list = []
         for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
             slave_obj = master_obj.as_ejector.get().receiver
             master_ip_ports_map[master_obj.machine.ip].append(master_obj.port)
@@ -98,6 +108,8 @@ class RedisBackendScaleFlow(object):
                 )
 
             master_slave_map[master_obj.machine.ip] = slave_obj.machine.ip
+            old_master_list.append(master_obj.machine.ip)
+            old_slave_list.append(slave_obj.machine.ip)
         return {
             "cluster_id": cluster.id,
             "immute_domain": cluster.immute_domain,
@@ -114,6 +126,8 @@ class RedisBackendScaleFlow(object):
             "cluster_shard_num": len(
                 cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
             ),
+            "old_master_list": list(set(old_master_list)),
+            "old_slave_list": list(set(old_slave_list)),
         }
 
     def __init_builder(self, operate_name: str, info: dict):
@@ -344,6 +358,24 @@ class RedisBackendScaleFlow(object):
                 redis_sync_sub_pipelines.append(sub_builder)
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_sync_sub_pipelines)
 
+            # 如果是cluster架构切换后要把新slave给加入到集群，以及同步数据
+            if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
+                sync_relations2 = self.generate_sync_relation(
+                    act_kwargs=act_kwargs,
+                    master_ips=new_slave_ips,
+                    slave_ips=new_slave_ips,
+                    ins_num=ins_num,
+                    superfluous_ins_num=superfluous_ins_num,
+                )
+
+                redis_sync_sub_pipelines = []
+                for sync_params in sync_relations2:
+                    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance:
+                        pass
+                    sub_builder = RedisMakeSyncAtomJob(self.root_id, self.data, act_kwargs, sync_params)
+                    redis_sync_sub_pipelines.append(sub_builder)
+                sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_sync_sub_pipelines)
+
             # 进行切换
             act_kwargs.cluster["cluster_id"] = info["cluster_id"]
             act_kwargs.cluster["switch_condition"] = {
@@ -355,6 +387,59 @@ class RedisBackendScaleFlow(object):
             }
             sub_builder = RedisClusterSwitchAtomJob(self.root_id, self.data, act_kwargs, sync_relations)
             sub_pipeline.add_sub_pipeline(sub_flow=sub_builder)
+
+            if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
+                # nodes写入元数据。这个必须在添加nodes域名之前
+                # 这个地方的node需要先保证都是这种格式
+                act_kwargs.cluster["nodes_domain"] = "nodes." + act_kwargs.cluster["immute_domain"]
+                act_kwargs.cluster["meta_func_name"] = RedisDBMeta.update_cluster_entry.__name__
+                sub_pipeline.add_act(
+                    act_name=_("更新storageinstance_bind_entry元数据"),
+                    act_component_code=RedisDBMetaComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
+
+                # 增加nodes域名
+                params = {
+                    "cluster_id": info["cluster_id"],
+                    "port": DEFAULT_REDIS_START_PORT,
+                    "add_ips": new_master_ips + new_slave_ips,
+                    "op_type": DnsOpType.CREATE,
+                    "role": [ClusterEntryRole.NODE_ENTRY.value],
+                }
+                access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
+
+                if access_sub_builder:
+                    sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
+                # 如果这里为空，说明之前并不存在nodes接入层记录，此时，需要用另一种方式初始化nodes域名
+                else:
+                    dns_kwargs = DnsKwargs(
+                        dns_op_type=DnsOpType.CREATE,
+                        add_domain_name="nodes." + act_kwargs.cluster["immute_domain"],
+                        dns_op_exec_port=DEFAULT_REDIS_START_PORT,
+                    )
+
+                    act_kwargs.exec_ip = new_master_ips + new_slave_ips
+                    sub_pipeline.add_act(
+                        act_name=_("初始化新增nodes域名"),
+                        act_component_code=RedisDnsManageComponent.code,
+                        kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
+                    )
+
+            sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+            if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
+                # 删除老实例的nodes域名
+                params = {
+                    "cluster_id": info["cluster_id"],
+                    "port": DEFAULT_REDIS_START_PORT,
+                    "del_ips": act_kwargs.cluster["old_master_list"] + act_kwargs.cluster["old_slave_list"],
+                    "op_type": DnsOpType.RECYCLE_RECORD,
+                    "role": [ClusterEntryRole.NODE_ENTRY.value],
+                }
+                access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
+                if access_sub_builder:
+                    sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
 
             # 下架老实例
             redis_shutdown_sub_pipelines = []
@@ -370,13 +455,9 @@ class RedisBackendScaleFlow(object):
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_shutdown_sub_pipelines)
 
             # 更新 dbconfig 中版本信息
-            act_kwargs.cluster = {
-                "bk_biz_id": self.data["bk_biz_id"],
-                "cluster_domain": act_kwargs.cluster["immute_domain"],
-                "current_version": act_kwargs.cluster["origin_db_version"],
-                "target_version": act_kwargs.cluster["db_version"],
-                "cluster_type": act_kwargs.cluster["cluster_type"],
-            }
+            act_kwargs.cluster["cluster_domain"] = act_kwargs.cluster["immute_domain"]
+            act_kwargs.cluster["current_version"] = act_kwargs.cluster["origin_db_version"]
+            act_kwargs.cluster["target_version"] = act_kwargs.cluster["db_version"]
             act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_version_update_dbconfig.__name__
             sub_pipeline.add_act(
                 act_name=_("Redis-更新dbconfig中集群版本"),
@@ -384,8 +465,19 @@ class RedisBackendScaleFlow(object):
                 kwargs=asdict(act_kwargs),
             )
 
+            if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
+                # 重写predixy配置文件
+                predixy_conf_rewrite_bulider = ClusterPredixyConfigServersRewriteAtomJob(
+                    self.root_id,
+                    self.data,
+                    act_kwargs,
+                    {"cluster_domain": act_kwargs.cluster["immute_domain"], "to_remove_servers": []},
+                )
+                if predixy_conf_rewrite_bulider:
+                    sub_pipeline.add_sub_pipeline(predixy_conf_rewrite_bulider)
+
             sub_pipelines.append(
-                sub_pipeline.build_sub_process(sub_name=_("{}backend扩缩容").format(act_kwargs.cluster["cluster_domain"]))
+                sub_pipeline.build_sub_process(sub_name=_("{}backend扩缩容").format(act_kwargs.cluster["immute_domain"]))
             )
 
         redis_pipeline.add_parallel_sub_pipeline(sub_pipelines)

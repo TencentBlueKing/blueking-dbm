@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_services.redis.util import is_redis_cluster_protocal
 from backend.flow.consts import (
     DEFAULT_LAST_IO_SECOND_AGO,
     DEFAULT_MASTER_DIFF_TIME,
@@ -45,7 +46,7 @@ def RedisClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
     ]:
         return TwemproxyClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs, master_replace_info)
 
-    elif sub_kwargs.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster:
+    elif is_redis_cluster_protocal(sub_kwargs.cluster["cluster_type"]):
         return TendisClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs, master_replace_info)
 
     else:

@@ -16,7 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterEntryRole, InstanceRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.consts import (
     DEFAULT_MONITOR_TIME,
@@ -100,7 +100,7 @@ class RedisClusterShutdownFlow(object):
         act_kwargs.is_update_trans_data = True
         act_kwargs.cluster = {
             **cluster_info,
-            "backup_type": RedisBackupEnum.NORMAL_BACKUP.value,
+            "backup_type": RedisBackupEnum.FOREVER_BACKUP.value,
             **cluster_info["redis_map"],
             **cluster_info["proxy_map"],
             "monitor_time_ms": DEFAULT_MONITOR_TIME,
@@ -153,6 +153,7 @@ class RedisClusterShutdownFlow(object):
         params = {
             "cluster_id": self.data["cluster_id"],
             "op_type": DnsOpType.CLUSTER_DELETE,
+            "role": [ClusterEntryRole.NODE_ENTRY.value, ClusterEntryRole.PROXY_ENTRY.value],
         }
         access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
         redis_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
