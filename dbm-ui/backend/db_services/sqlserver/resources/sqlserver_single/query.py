@@ -58,7 +58,15 @@ class ListRetrieveResource(query.ListRetrieveResource):
         storages = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.ORPHAN]
         cluster_role_info = {"storages": storages}
         cluster_info = super()._to_cluster_representation(
-            cluster, cluster_entry, db_module_names_map, cluster_entry_map, cluster_operate_records_map, **kwargs
+            cluster,
+            cluster_entry,
+            db_module_names_map,
+            cluster_entry_map,
+            cluster_operate_records_map,
+            cloud_info,
+            biz_info,
+            cluster_stats_map,
+            **kwargs
         )
         cluster_info.update(cluster_role_info)
         return cluster_info

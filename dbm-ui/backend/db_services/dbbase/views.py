@@ -54,11 +54,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     action_permission_map = {
+        ("verify_duplicated_cluster_name",): [],
         (
-            "verify_duplicated_cluster_name",
             "simple_query_cluster",
             "common_query_cluster",
-        ): []
+        ): [DBManagePermission()],
     }
     default_permission_class = [DBManagePermission()]
 
@@ -76,7 +76,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(is_duplicated)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询全集群简略信息"),
+        operation_summary=_("查询业务集群简略信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=QueryAllTypeClusterSerializer(),
         responses={status.HTTP_200_OK: QueryAllTypeClusterResponseSerializer()},
@@ -91,7 +91,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询集群通用信息"),
+        operation_summary=_("查询业务集群通用信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=CommonQueryClusterSerializer(),
         responses={status.HTTP_200_OK: CommonQueryClusterResponseSerializer()},
@@ -104,7 +104,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        operation_summary=_("根据过滤条件查询集群详细信息"),
+        operation_summary=_("根据过滤条件查询业务集群详细信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=ClusterFilterSerializer(),
         tags=[SWAGGER_TAG],
