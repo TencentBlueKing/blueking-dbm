@@ -230,7 +230,11 @@ class TenDBRemoteSlaveRecoverFlow(object):
                         )
                     ),
                 )
-                sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
+                sync_data_sub_pipeline_list.append(
+                    sync_data_sub_pipeline.build_sub_process(
+                        sub_name=_("{}:{}恢复实例数据".format(node["new_slave"]["ip"], node["new_slave"]["port"]))
+                    )
+                )
             # 阶段4 切换
             switch_sub_pipeline_list = []
             # 切换后写入元数据

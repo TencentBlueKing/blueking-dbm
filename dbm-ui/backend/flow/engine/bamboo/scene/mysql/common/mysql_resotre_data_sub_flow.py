@@ -270,7 +270,9 @@ def mysql_rollback_data_sub_flow(
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
-    return sub_pipeline.build_sub_process(sub_name=_("用本地备份恢复数据{}".format(exec_act_kwargs.exec_ip)))
+    return sub_pipeline.build_sub_process(
+        sub_name=_("用本地备份恢复数据{}:{}".format(exec_act_kwargs.exec_ip, cluster["rollback_port"]))
+    )
 
 
 def mysql_restore_master_slave_sub_flow(
