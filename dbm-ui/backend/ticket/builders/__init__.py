@@ -24,7 +24,7 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.ticket.constants import FlowRetryType, FlowType
+from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
 
 logger = logging.getLogger("root")
@@ -465,6 +465,10 @@ class BuilderFactory:
 
         def inner_wrapper(wrapped_class: TicketFlowBuilder) -> TicketFlowBuilder:
             wrapped_class.ticket_type = ticket_type
+            # 若未自定义 flow 流程名称，则使用 单据类型
+            if not getattr(wrapped_class, "inner_flow_name", ""):
+                setattr(wrapped_class, "inner_flow_name", TicketType.get_choice_label(ticket_type))
+
             if ticket_type in cls.registry:
                 logger.warning(f"Builder [{ticket_type}] already exists. Will replace it")
             cls.registry[ticket_type] = wrapped_class

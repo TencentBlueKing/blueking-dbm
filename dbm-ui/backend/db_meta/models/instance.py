@@ -51,6 +51,7 @@ class InstanceMixin(object):
             "port": self.port,
             "instance": self.ip_port,
             "status": self.status,
+            "version": self.version,
             "phase": getattr(self, "phase", None),
             "bk_instance_id": self.bk_instance_id,
             "bk_host_id": self.machine.bk_host_id,

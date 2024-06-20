@@ -578,15 +578,14 @@ class MySQLController(BaseController):
         "created_by": "xxx",
         "bk_biz_id": "152",
         "ticket_type": "MYSQL_PROXY_UPGRADE",
-        "new_proxy_version": "mysql-proxy-0.82.13.tar.gz",
-        "proxy_ip_list":[
+        "infos":[
                 {
-                    "bk_cloud_id: 0,
-                    "ip":"1.1.1.1",
+                    "cluster_ids: [1,2,3],
+                    "new_proxy_version": "0.82.14"
                 }
                 {
-                    "bk_cloud_id: 0,
-                    "ip":"2.2.2.2",
+                    "cluster_ids: [4],
+                    "new_proxy_version": "0.82.15"
                 }
             ]
         }
@@ -595,7 +594,7 @@ class MySQLController(BaseController):
         flow = MySQLProxyLocalUpgradeFlow(root_id=self.root_id, data=self.ticket_data)
         flow.upgrade_mysql_proxy_flow()
 
-    def mysql_upgrade_scene(self):
+    def mysql_local_upgrade_scene(self):
         """
         mysql实例本地升级场景(新flow编排)
         ticket_data 参数结构体样例
@@ -609,12 +608,10 @@ class MySQLController(BaseController):
                 {
                     "new_mysql_version": "MySQL-5.7",
                     "cluster_ids":[1001,1002,1003],
-                    "cluster_type":"tendbha"
-                }
+                },
                 {
                     "new_mysql_version": "MySQL-5.7",
                     "cluster_ids":[2001,2002,2003],
-                    "cluster_type":"tendbha"
                 }
             ]
         }

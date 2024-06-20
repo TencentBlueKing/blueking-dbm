@@ -18,6 +18,7 @@ from backend.db_services.cmdb.biz import list_bizs, list_modules_by_biz
 from backend.tests.conftest import mark_global_skip
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components.cc import CCApiMock
+from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 
 pytestmark = pytest.mark.django_db
@@ -34,6 +35,7 @@ class TestCMDBViewSet:
 
     @patch("backend.db_services.cmdb.biz.CCApi", CCApiMock())
     @patch("backend.db_services.cmdb.biz.Permission", PermissionMock)
+    @patch("backend.db_services.dbconfig.handlers.DBConfigApi", DBConfigApiMock)
     def test_list_modules(self, init_db_module):
         modules = list_modules_by_biz(bk_biz_id=constant.BK_BIZ_ID, cluster_type=ClusterType.TenDBHA.value)
         assert len(modules) == 1

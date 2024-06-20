@@ -205,8 +205,14 @@ class MySQLStorageLocalUpgradeFlow(object):
             sub_pipeline = SubBuilder(
                 root_id=self.root_id, data=copy.deepcopy(sub_flow_context), need_random_pass_cluster_ids=cluster_ids
             )
+            # 取集群列表中的第一个集群类型
+            cluster_type = None
+            first_cluster = Cluster.objects.filter(id__in=cluster_ids).first()
+            if first_cluster:
+                cluster_type = first_cluster.cluster_type
 
-            if upgrade_info["cluster_type"] == ClusterType.TenDBHA:
+            # 高可用升级
+            if cluster_type == ClusterType.TenDBHA:
                 slave_instances = self.__get_clusters_slave_instance(cluster_ids)
                 if len(slave_instances) <= 0:
                     raise DBMetaException(message=_("无法找到对应的从实例记录"))
@@ -217,7 +223,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 for master_instance in master_instances:
                     master_ip_list.append(master_instance.machine.ip)
 
-                if len(list(set(master_ip_list))) != 1:
+                if len(set(master_ip_list)) != 1:
                     raise DBMetaException(message=_("集群的master应该同属于一个机器,当前分布在{}").format(list(set(master_ip_list))))
 
                 master_ip = master_ip_list[0]
@@ -319,7 +325,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[TendbHa]本地升级MySQL版本")))
 
             # tendbsingle 本地升级流程
-            elif upgrade_info["cluster_type"] == ClusterType.TenDBSingle:
+            elif cluster_type == ClusterType.TenDBSingle:
                 instances = self.__get_tendbsingle_instance(cluster_ids)
                 ipList = []
                 ports = []

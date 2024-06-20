@@ -92,4 +92,3 @@ class MySQLDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
 class MySQLDataMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLDataMigrateDetailSerializer
     inner_flow_builder = MySQLDataMigrateFlowParamBuilder
-    inner_flow_name = _("数据迁移执行")

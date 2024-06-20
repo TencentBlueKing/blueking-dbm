@@ -166,7 +166,7 @@ def request_multi_thread(func, params_list, get_data=lambda x: [], in_order=Fals
 
     # 参数预处理，添加request_id
     for params in params_list:
-        if "params" in params:
+        if isinstance(params, dict) and "params" in params:
             params["params"]["_request"] = local.request
 
     result = []

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import logging.config
+from collections import defaultdict
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -42,7 +43,7 @@ class MySQLProxyLocalUpgradeFlow(object):
         infos:[
             {
                 cluster_ids:[],
-                new_proxy_version:"",
+                new_proxy_version:""
             }
         ]
     }
@@ -56,7 +57,6 @@ class MySQLProxyLocalUpgradeFlow(object):
         self.root_id = root_id
         self.data = data
         self.uid = data["uid"]
-        self.bk_cloud_id = data["bk_cloud_id"]
         self.upgrade_cluster_list = data["infos"]
 
     def upgrade_mysql_proxy_flow(self):
@@ -77,7 +77,7 @@ class MySQLProxyLocalUpgradeFlow(object):
             sub_flow_context = copy.deepcopy(self.data)
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
             proxy_ports = []
-            proxy_ip_list = []
+            cloud_proxy_ip_list = defaultdict(list)
 
             for proxy_instance in proxies:
                 current_version = proxy_version_parse(proxy_instance.version)
@@ -89,19 +89,20 @@ class MySQLProxyLocalUpgradeFlow(object):
                     )
                     raise DBMetaException(message=_("待升级版本大于等于新版本，请确认升级的版本"))
                 proxy_ports.append(proxy_instance.port)
-                proxy_ip_list.append(proxy_instance.machine.ip)
+                cloud_proxy_ip_list[proxy_instance.machine.ip].append(proxy_instance.machine.ip)
 
-            for proxy_ip in proxy_ip_list:
-                sub_pipeline.add_sub_pipeline(
-                    sub_flow=self.upgrade_mysql_proxy_subflow(
-                        bk_cloud_id=self.bk_cloud_id,
-                        ip=proxy_ip,
-                        pkg_id=pkg_id,
-                        proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
-                        proxy_ports=proxy_ports,
+            for bk_cloud_id, ips in cloud_proxy_ip_list.items():
+                for ip in ips:
+                    sub_pipeline.add_sub_pipeline(
+                        sub_flow=self.upgrade_mysql_proxy_subflow(
+                            bk_cloud_id=bk_cloud_id,
+                            ip=ip,
+                            pkg_id=pkg_id,
+                            proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
+                            proxy_ports=proxy_ports,
+                        )
                     )
-                )
-                sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+                    sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("本地升级proxy版本")))
         proxy_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)

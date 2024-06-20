@@ -69,8 +69,7 @@ class CMDBViewSet(viewsets.SystemViewSet):
     def list_modules(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
         cluster_type = validated_data["cluster_type"]
-        serializer = serializers.ModuleSLZ(biz.list_modules_by_biz(bk_biz_id, cluster_type), many=True)
-        return Response(serializer.data)
+        return Response(biz.list_modules_by_biz(bk_biz_id, cluster_type))
 
     @common_swagger_auto_schema(
         operation_summary=_("创建数据库模块"),

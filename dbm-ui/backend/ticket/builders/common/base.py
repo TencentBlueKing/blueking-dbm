@@ -91,6 +91,14 @@ class HostInfoSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
 
 
+class DisplayInfoSerializer(serializers.Serializer):
+    """
+    前端展示使用的字段，由前端与产品定义即可，无需后端调整
+    """
+
+    display_info = serializers.DictField(help_text=_("展示字段"), required=False)
+
+
 class InstanceInfoSerializer(HostInfoSerializer):
     port = serializers.IntegerField(help_text=_("端口号"))
 
