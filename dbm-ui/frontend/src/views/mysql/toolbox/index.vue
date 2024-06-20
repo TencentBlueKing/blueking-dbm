@@ -31,7 +31,9 @@
             MySQL
           </BkTag>
         </div>
-        <div class="toolbox-content-wrapper">
+        <div
+          :key="route.path"
+          class="toolbox-content-wrapper">
           <ScrollFaker style="padding: 0 24px">
             <RouterView />
           </ScrollFaker>

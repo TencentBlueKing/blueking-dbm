@@ -17,6 +17,7 @@
     :class="{ ['is-error']: Boolean(errorMessage) }">
     <BkTagInput
       v-model="localValue"
+      allow-auto-match
       allow-create
       :clearable="false"
       has-delete-icon
@@ -94,6 +95,7 @@
   };
 
   const handleBlur = () => {
+    validator(localValue.value);
     emits('blur');
   };
 

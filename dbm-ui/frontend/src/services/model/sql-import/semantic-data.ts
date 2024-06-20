@@ -28,16 +28,20 @@ export default class SemanticData {
   execute_objects: Array<{
     dbnames: string[];
     ignore_dbnames: string[];
-    sql_file: string;
+    import_mode: string;
+    sql_files: string[];
   }>;
   execute_sql_files: string[];
-  import_mode: string;
+  is_auto_commit: boolean;
+  job_root_id: string;
   path: string;
+  sql_path: string;
   ticket_mode: {
     mode: string;
     trigger_time: string;
   };
   ticket_type: string;
+  uid: string;
 
   constructor(payload = {} as SemanticData) {
     this.backup = payload.backup;
@@ -48,9 +52,12 @@ export default class SemanticData {
     this.execute_db_infos = payload.execute_db_infos;
     this.execute_objects = payload.execute_objects;
     this.execute_sql_files = payload.execute_sql_files;
-    this.import_mode = payload.import_mode;
+    this.is_auto_commit = payload.is_auto_commit;
+    this.job_root_id = payload.job_root_id;
     this.path = payload.path;
+    this.sql_path = payload.sql_path;
     this.ticket_mode = payload.ticket_mode;
     this.ticket_type = payload.ticket_type;
+    this.uid = payload.uid;
   }
 }

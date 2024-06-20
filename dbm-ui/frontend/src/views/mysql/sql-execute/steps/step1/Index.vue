@@ -12,193 +12,154 @@
 -->
 
 <template>
-  <SmartAction>
-    <div class="mysql-sql-execute-page">
-      <TaskTips />
-      <DbForm
-        ref="formRef"
-        form-type="vertical"
-        :model="formData">
-        <TargetCluster v-model="formData.cluster_ids" />
-        <TargetDb
-          v-model="formData.execute_db_infos"
-          style="margin-top: 16px" />
-        <SqlFile
+  <BkLoading :loading="isEditLoading">
+    <SmartAction>
+      <div class="mysql-sql-execute-page">
+        <TaskTips :db-type="DBTypes.MYSQL" />
+        <DbForm
           :key="resetFormKey"
-          ref="sqlFileRef"
-          v-model="formData.execute_sql_files"
-          v-model:importMode="formData.import_mode"
-          @grammar-check="handleGrammarCheck" />
-        <BkFormItem
-          :label="t('字符集')"
-          property="charset"
-          required>
-          <BkSelect
-            v-model="formData.charset"
-            style="width: 360px">
-            <BkOption value="default"> default </BkOption>
-            <BkOption value="utf8mb4"> utf8mb4 </BkOption>
-            <BkOption value="utf8"> utf8 </BkOption>
-            <BkOption value="latin1"> latin1 </BkOption>
-            <BkOption value="gbk"> gbk </BkOption>
-            <BkOption value="gb2312"> gb2312 </BkOption>
-          </BkSelect>
-        </BkFormItem>
-        <Backup v-model="formData.backup" />
-        <ExecuteMode v-model="formData.ticket_mode" />
-      </DbForm>
-    </div>
-    <template #action>
-      <span
-        v-bk-tooltips="{
-          ...submitButtonTips,
-        }">
+          ref="formRef"
+          form-type="vertical"
+          :model="formData">
+          <ClusterIds
+            v-model="formData.cluster_ids"
+            v-model:clusterVersionList="clusterVersionList"
+            :cluster-type-list="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]" />
+          <ExecuteObjects
+            v-model="formData.execute_objects"
+            :cluster-version-list="clusterVersionList"
+            style="margin-top: 16px" />
+          <RenderCharset v-model="formData.charset" />
+          <Backup v-model="formData.backup" />
+          <TicketMode v-model="formData.ticket_mode" />
+        </DbForm>
+      </div>
+      <template #action>
         <BkButton
           class="w-88"
-          :disabled="!submitButtonTips.disabled"
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
           {{ t('模拟执行') }}
         </BkButton>
-      </span>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
-    </template>
-  </SmartAction>
+        <DbPopconfirm
+          :confirm-handler="handleReset"
+          :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
+          :title="t('确认重置页面')">
+          <BkButton
+            class="ml8 w-88"
+            :disabled="isSubmitting">
+            {{ t('重置') }}
+          </BkButton>
+        </DbPopconfirm>
+      </template>
+    </SmartAction>
+  </BkLoading>
 </template>
-<script lang="ts">
-  import { reactive, ref } from 'vue';
-
-  export const updateFilePath = ref('');
-</script>
 <script setup lang="ts">
+  import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
   import { querySemanticData, semanticCheck } from '@services/source/sqlImport';
 
   import { useTicketCloneInfo } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
+  import { useSqlImport } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
-  import Backup from './components/backup/Index.vue';
-  import type { IDataRow as BackupRow } from './components/backup/RenderData/Row.vue';
-  import ExecuteMode from './components/ExecuteMode.vue';
-  import SqlFile from './components/sql-file/Index.vue';
-  import TargetDb from './components/target-db/Index.vue';
-  import type { IDataRow as TargetDbRow } from './components/target-db/RenderData/Row.vue';
-  import TargetCluster from './components/TargetCluster.vue';
-  import TaskTips from './components/TaskTips.vue';
+  import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
+  import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
+  import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
+  import ExecuteObjects from '@views/db-manage/common/sql-execute/execute-objects/Index.vue';
+  import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
+  import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
 
   const router = useRouter();
   const route = useRoute();
-  const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
+  const { updateUploadFilePath } = useSqlImport();
+
   const { rootId } = route.query as { rootId: string | undefined };
 
   const createDefaultData = () => ({
-    bk_biz_id: currentBizId,
+    bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    is_auto_commit: true,
     charset: 'default',
-    cluster_ids: [] as number[],
-    import_mode: 'manual',
-    execute_sql_files: [] as string[],
-    execute_db_infos: [] as TargetDbRow[],
-    backup: [] as BackupRow[],
+    cluster_ids: [],
+    execute_objects: [],
+    backup: [],
     ticket_mode: {
       mode: 'manual',
       trigger_time: '',
     },
     ticket_type: 'MYSQL_SEMANTIC_CHECK',
-  });
-
-  const { t } = useI18n();
-
-  useTicketCloneInfo({
-    type: TicketTypes.MYSQL_IMPORT_SQLFILE,
-    onSuccess(cloneData) {
-      const {
-        backup,
-        charset,
-        path,
-        import_mode: importMode,
-        execute_db_infos: executeDbInfos,
-        cluster_ids: clusterIds,
-        ticket_mode: ticketMode,
-        execute_sql_files: executeSqlFiles,
-      } = cloneData;
-      formData.backup = backup;
-      formData.charset = charset;
-      formData.import_mode = importMode;
-      formData.execute_db_infos = executeDbInfos;
-      formData.cluster_ids = clusterIds;
-      formData.ticket_mode = ticketMode;
-      formData.execute_sql_files = executeSqlFiles;
-      updateFilePath.value = path;
-      window.changeConfirm = true;
-    },
+    cluster_type: DBTypes.MYSQL,
   });
 
   const formRef = ref();
-  const sqlFileRef = ref();
-  const formData = reactive(createDefaultData());
-  const submitButtonTips = reactive({
-    disabled: false,
-    content: t('先执行语法检测'),
-  });
-
   const resetFormKey = ref(0);
-
   const isSubmitting = ref(false);
 
-  const fetchData = () => {
-    if (!rootId) {
-      return;
-    }
-    querySemanticData({
-      bk_biz_id: currentBizId,
-      root_id: rootId,
-    }).then((data) => {
-      const { semantic_data: semanticData } = data;
+  const clusterVersionList = ref<string[]>([]);
+
+  const formData = reactive(createDefaultData());
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_IMPORT_SQLFILE,
+    onSuccess(cloneData) {
+      Object.assign(formData, {
+        backup: cloneData.backup,
+        charset: cloneData.charset,
+        cluster_ids: cloneData.cluster_ids,
+        execute_objects: cloneData.execute_objects,
+        ticket_mode: cloneData.ticket_mode,
+      });
+      window.changeConfirm = true;
+      updateUploadFilePath(cloneData.path);
+      console.log('cloneData = ', cloneData);
+    },
+  });
+
+  // 模拟执行日志重新修改
+  const { loading: isEditLoading } = useRequest(querySemanticData, {
+    defaultParams: [
+      {
+        root_id: rootId as string,
+      },
+    ],
+    manual: !rootId,
+    onSuccess(semanticData) {
       Object.assign(formData, {
         charset: semanticData.charset,
-        import_mode: semanticData.import_mode,
         cluster_ids: semanticData.cluster_ids,
-        execute_sql_files: semanticData.execute_sql_files,
-        execute_db_infos: semanticData.execute_db_infos,
+        execute_objects: semanticData.execute_objects,
         backup: semanticData.backup,
         ticket_mode: semanticData.ticket_mode,
       });
-      updateFilePath.value = semanticData.path;
-      submitButtonTips.disabled = true;
-    });
-  };
+      updateUploadFilePath(semanticData.path);
+    },
+  });
 
-  fetchData();
-
-  const handleGrammarCheck = (doCheck: boolean, passed: boolean) => {
-    if (!doCheck) {
-      submitButtonTips.disabled = false;
-      submitButtonTips.content = t('先执行语法检测');
-      return;
-    }
-    if (!passed) {
-      submitButtonTips.disabled = false;
-      submitButtonTips.content = t('语法检测不通过，请先修正');
-      return;
-    }
-    submitButtonTips.disabled = true;
-    submitButtonTips.content = '';
-  };
+  const { run: runSemanticCheck } = useRequest(semanticCheck, {
+    manual: true,
+    onSuccess(data) {
+      window.changeConfirm = false;
+      router.push({
+        name: 'MySQLExecute',
+        params: {
+          step: 'log',
+        },
+        query: {
+          rootId: data.root_id,
+          nodeId: data.node_id,
+        },
+      });
+    },
+  });
 
   // 开始模拟执行
   const handleSubmit = () => {
@@ -207,21 +168,9 @@
     formRef.value
       .validate()
       .then(() =>
-        semanticCheck({
+        runSemanticCheck({
           ...formData,
           cluster_type: 'mysql',
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MySQLExecute',
-            params: {
-              step: 'log',
-            },
-            query: {
-              rootId: data.root_id,
-              nodeId: data.node_id,
-            },
-          });
         }),
       )
       .finally(() => {

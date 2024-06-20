@@ -13,9 +13,8 @@
 
 <template>
   <div
-    ref="rootRef"
     class="service-apply-page"
-    :style="rootStyle">
+    style="height: calc(100vh - var(--notice-height) - 124px)">
     <ScrollFaker style="height: calc(100% - 72px)">
       <ApplyCollapse
         v-if="historyCacheIdList.length > 0"
@@ -109,8 +108,6 @@
     ExtractedControllerDataKeys,
     FunctionKeys,
   } from '@services/model/function-controller/functionController';
-
-  import { useFullscreenStyle } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -328,8 +325,6 @@
   );
 
   const lastFavorIdMap = makeMap(userProfile.profile[UserPersonalSettings.SERVICE_APPLY_FAVOR] || []);
-  const rootRef = ref<HTMLElement>();
-  const rootStyle = useFullscreenStyle(rootRef);
   const historyCacheIdList = ref<string[]>(
     _.sortBy(JSON.parse(localStorage.getItem(localHistroyKey) || '[]'), (item) => lastFavorIdMap[item]),
   );
