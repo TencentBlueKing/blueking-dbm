@@ -16,7 +16,7 @@
     v-bind="attrs"
     :before-close="beforeCloseCallback"
     :is-show="isShow"
-    render-directive="if"
+    :render-directive="renderDirective"
     @update:is-show="handleUpdateShow">
     <template
       v-if="slots.header"
@@ -61,6 +61,7 @@
     confirmText?: string;
     cancelText?: string;
     disabledConfirm?: boolean;
+    renderDirective?: 'if' | 'show';
   }
 
   interface Emits {
@@ -77,6 +78,7 @@
     disabledConfirm: false,
     confirmText: '',
     cancelText: '',
+    renderDirective: 'if',
   });
 
   const emit = defineEmits<Emits>();

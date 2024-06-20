@@ -21,24 +21,40 @@
     <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238">
       {{ t('模拟执行成功') }}
     </div>
-    <div style="margin-top: 8px; line-height: 32px; color: #313238">
-      {{ t('接下你可以直接_提交申请_或返回上一步修改重试') }}
-    </div>
-    <div class="action-wrapper">
-      <div class="confirm-action">
-        <span>{{ t('生产执行时无需再确认') }}</span>
-        <BkSwitcher
-          size="small"
-          style="margin-left: 12px"
-          theme="primary" />
-      </div>
+    <div
+      v-if="isViewResultLog"
+      class="sql-execute-more-action-box">
+      <BkButton
+        class="ml8"
+        @click="handleLastStep">
+        {{ t('返回继续提单') }}
+      </BkButton>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
+
+  const router = useRouter();
+  const route = useRoute();
+
+  const { step } = route.params as { step: string };
 
   const { t } = useI18n();
+
+  // 查看执行结果日志
+  const isViewResultLog = step === 'result';
+
+  // 返回继续提单
+  const handleLastStep = () => {
+    router.push({
+      name: 'spiderSqlExecute',
+      params: {
+        step: '',
+      },
+    });
+  };
 </script>
 <style lang="less" scoped>
   .sql-execute-success {
@@ -75,5 +91,12 @@
       background: #f5f7fa;
       border-radius: 20px;
     }
+  }
+  .sql-execute-more-action-box {
+    display: flex;
+    margin-top: 12px;
+    background: #fff;
+    justify-content: center;
+    align-items: center;
   }
 </style>

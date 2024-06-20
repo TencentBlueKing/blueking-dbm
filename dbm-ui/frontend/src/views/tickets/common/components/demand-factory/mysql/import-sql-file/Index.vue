@@ -26,27 +26,6 @@
       <span class="ticket-details__item-value">{{ importModeType }}</span>
     </div>
     <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('SQL执行内容') }}：</span>
-      <BkButton
-        text
-        @click="handleClickFile">
-        <I18nT
-          keypath="共n个文件，含有m个高危语句"
-          tag="div">
-          <span
-            class="tip-number"
-            style="color: #3a84ff"
-            >{{ ticketDetails.details.execute_sql_files.length }}</span
-          >
-          <span
-            class="tip-number"
-            style="color: #ea3636"
-            >{{ highRiskNum }}</span
-          >
-        </I18nT>
-      </BkButton>
-    </div>
-    <div class="ticket-details__item">
       <span class="ticket-details__item-label">{{ t('字符集') }}：</span>
       <span class="ticket-details__item-value">{{ ticketDetails.details.charset }}</span>
     </div>
@@ -83,7 +62,7 @@
       <span>{{ t('目标DB') }}：</span>
       <DbOriginalTable
         :columns="targetDB"
-        :data="dataList"
+        :data="ticketDetails.details.execute_objects"
         style="width: 800px" />
     </div>
     <div
@@ -104,14 +83,38 @@
     :width="960"
     :z-index="99999"
     @closed="handleClose">
+    <template
+      v-if="currentExecuteObject"
+      #header>
+      <span>{{ t('SQL 内容') }}</span>
+      <span style="color: #63656e; font-size: 12px; font-weight: normal; margin-left: 30px">
+        <span>{{ t('变更的 DB:') }}</span>
+        <span class="ml-4">
+          <BkTag
+            v-for="item in currentExecuteObject.dbnames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+          <template v-if="currentExecuteObject.dbnames.length < 1">--</template>
+        </span>
+        <span class="ml-25">{{ t('忽略的 DB:') }}</span>
+        <span class="ml-4">
+          <BkTag
+            v-for="item in currentExecuteObject.ignore_dbnames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+          <template v-if="currentExecuteObject.ignore_dbnames.length < 1">--</template>
+        </span>
+      </span>
+    </template>
     <div
-      v-if="uploadFileList.length > 1"
+      v-if="currentExecuteObject"
       class="editor-layout">
       <div class="editor-layout-left">
         <RenderFileList
           v-model="selectFileName"
-          :data="uploadFileList"
-          @sort="handleFileSortChange" />
+          :data="currentExecuteObject.sql_files" />
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
@@ -120,19 +123,15 @@
           :title="selectFileName" />
       </div>
     </div>
-    <template v-else>
-      <RenderFileContent
-        :model-value="currentFileContent"
-        readonly
-        :title="uploadFileList.toString()" />
-    </template>
   </BkSideslider>
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request'
 
-  import type { MySQLForceImportSQLFileExecuteSqlFiles,MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
+  import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
 
@@ -142,6 +141,8 @@
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
 
+  import { getSQLFilename} from '@utils'
+
   import RenderFileContent from './components/RenderFileContent.vue';
   import RenderFileList from './components/SqlFileList.vue';
 
@@ -149,18 +150,7 @@
     ticketDetails: TicketModel<MySQLImportSQLFileDetails>
   }
 
-  interface RowData {
-    immute_domain: string,
-    cluster_type: string,
-    status: string,
-  }
-
   const props = defineProps<Props>();
-
-  type targetDBItem = {
-    dbnames: [],
-    ignore_dbnames: [],
-  }
 
   type backupDBItem = {
     backup_on: string,
@@ -171,15 +161,14 @@
   const { t } = useI18n();
 
   const selectFileName = ref('');
-
+  const currentExecuteObject = ref<MySQLImportSQLFileDetails['execute_objects'][number]>();
   const fileContentMap = shallowRef<Record<string, string>>({});
-  const uploadFileList = shallowRef<Array<string>>([]);
   const isShow = ref(false);
 
   const clusterState = reactive({
     clusterType: '',
     tableProps: {
-      data: [] as RowData[],
+      data: [] as ValueOf<MySQLImportSQLFileDetails['clusters']>[],
       pagination: useDefaultPagination(),
       columns: [
         {
@@ -190,7 +179,13 @@
         },
         {
           label: t('类型'),
+          width: 220,
           field: 'cluster_type',
+          render: ({ cell }: { cell: string }) => <span>{cell}</span>,
+        },
+        {
+          label: t('版本'),
+          field: 'major_version',
           render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
         },
         {
@@ -209,13 +204,7 @@
     },
   });
 
-  const highRiskNum = computed(() => props.ticketDetails.details.grammar_check_info ? Object.values(props.ticketDetails.details.grammar_check_info)
-    .reduce((results, item) => {
-      if (item.highrisk_warnings) {
-        return results + item.highrisk_warnings.length;
-      }
-      return results;
-    }, 0) : 0);
+  const uploadFileList = computed(() => _.flatten(props.ticketDetails.details.execute_objects.map(item => item.sql_files)))
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
@@ -232,25 +221,56 @@
       label: t('变更的DB'),
       field: 'dbnames',
       showOverflowTooltip: false,
-      render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
-            content: cell,
-          }}>
-          {cell.map(item => <bk-tag>{item}</bk-tag>)}
-        </div>
+      render: ({ data }: { data: MySQLImportSQLFileDetails['execute_objects'][number] }) => (
+        <>
+          {data.dbnames.map(item => (
+            <bk-tag key={item}>
+              {item}
+            </bk-tag>
+          ))}
+        </>
       ),
     },
     {
       label: t('忽略的DB'),
       field: 'ignore_dbnames',
       showOverflowTooltip: false,
-      render: ({ cell }: { cell: string[] }) => (
-        <div class="text-overflow" v-overflow-tips={{
-            content: cell,
-          }}>
-          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-        </div>
-      ),
+      render: ({ data }: { data: MySQLImportSQLFileDetails['execute_objects'][number] }) => data.ignore_dbnames.length > 0 ? (
+        <>
+          {data.ignore_dbnames.map(item => (
+            <bk-tag key={item}>
+              {item}
+            </bk-tag>
+          ))}
+        </>
+        ) : '--',
+    },
+    {
+      label: t('执行的 SQL'),
+      field: 'sql_files',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: MySQLImportSQLFileDetails['execute_objects'][number] }) => {
+        const firstFileName = data.sql_files[0];
+        const fileTotal = data.sql_files.length;
+
+        return (
+          <bk-button
+            text
+            theme="primary"
+            onClick={() => handleSelectFile(firstFileName, data)}>
+            {
+              fileTotal < 2 ? (
+                <>
+                  <db-icon
+                    style="color: #3a84ff; margin-right: 4px"
+                    type="file" />
+                  {getSQLFilename(firstFileName)}
+                </>
+              ) : t('n 个 SQL 文件', {n: fileTotal})
+            }
+          </bk-button>
+        )
+      },
     },
   ];
 
@@ -308,23 +328,6 @@
     return modeItem;
   });
 
-
-  // 目标DB
-  const dataList = computed(() => {
-    const list: targetDBItem[] = [];
-    const dbList = props.ticketDetails.details.execute_objects || [];
-    const checkDbsMap: Record<string, boolean> = {};
-    dbList.forEach((item) => {
-      const key = `${item.dbnames.join('-')}_${item.ignore_dbnames.join('-')}`;
-      if (checkDbsMap[key]) {
-        return;
-      }
-      checkDbsMap[key] = true;
-      list.push(item);
-    });
-    return list;
-  });
-
   // 备份设置
   const backupList = computed(() => {
     const list: backupDBItem[] = [];
@@ -339,54 +342,46 @@
     return list;
   });
 
-  // 查看日志详情
-  const handleClickFile = () => {
-    isShow.value = true;
-    const uploadSQLFileList = isForceSql.value ? (props.ticketDetails.details.execute_sql_files as MySQLForceImportSQLFileExecuteSqlFiles[]).map(item => item.sql_path) : props.ticketDetails.details.execute_sql_files as string[];
-    uploadFileList.value = uploadSQLFileList;
-
-    const filePathList = uploadSQLFileList.reduce((result, item) => {
+  const {run: runBatchFetchFile} = useRequest(() => {
+    const filePathList = uploadFileList.value.reduce<string[]>((result, item) => {
       result.push(isForceSql.value ? item : `${props.ticketDetails.details.path}/${item}`);
       return result;
-    }, [] as string[]);
+    }, []);
 
-    batchFetchFile({
+    return batchFetchFile({
       file_path_list: filePathList,
-    }).then((result) => {
-      fileContentMap.value = result.reduce((result, fileInfo) => {
+    })
+  }, {
+    manual: true,
+    onSuccess(result) {
+      fileContentMap.value = result.reduce<Record<string, string>>((result, fileInfo) => {
         const fileName = isForceSql.value ? fileInfo.path : fileInfo.path.split('/').pop() as string;
         return Object.assign(result, {
           [fileName]: fileInfo.content,
         });
-      }, {} as Record<string, string>);
+      }, {});
+    }
+  })
+  const handleSelectFile = (filename: string, executeObject: MySQLImportSQLFileDetails['execute_objects'][number]) => {
+    if (_.isEmpty(fileContentMap.value)){
+      runBatchFetchFile();
+    }
 
-      [selectFileName.value] = uploadSQLFileList;
-    });
-  };
+    selectFileName.value = filename;
+    currentExecuteObject.value = executeObject;
+    isShow.value = true;
+  }
 
   const handleClose = () => {
     isShow.value = false;
   };
 
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileList.value = list;
-  };
-
   // 目标集群
   onBeforeMount(() => {
-    const { clusters, cluster_ids: clusterIds } = props.ticketDetails.details;
-    clusterState.tableProps.pagination.count = clusterIds.length;
-    clusterState.tableProps.data = clusterIds.reduce((results, id) => {
-      const clusterType = clusters[id].cluster_type;
-      clusterState.clusterType = clusterType === 'tendbha' ? t('主从') : t('单节点');
-      const type = clusterType === 'tendbcluster' ? 'spider' : clusterType;
-      results.push({
-        immute_domain: clusters[id].immute_domain,
-        cluster_type: type,
-        status: clusters[id].status
-      });
-      return results;
-    }, [] as RowData[]);
+    const { clusters } = props.ticketDetails.details
+    clusterState.tableProps.data = Object.values(clusters);
+    clusterState.tableProps.pagination.count = clusterState.tableProps.data.length;
+    clusterState.clusterType = clusterState.tableProps.data[0].cluster_type_name
   });
 </script>
 

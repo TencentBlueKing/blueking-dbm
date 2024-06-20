@@ -35,7 +35,7 @@
       :border="false"
       class="resize-wrapper"
       :class="{
-        'resize-disabled': isMessageListFolded
+        'resize-disabled': isMessageListFolded,
       }"
       :disabled="isMessageListFolded"
       :initial-divide="resizeLayoutInitialDivide"
@@ -67,12 +67,10 @@
 
   import { grammarCheck } from '@services/source/sqlImport';
 
-  import RenderMessageList, {
-    type IMessageList,
-  } from '@views/mysql/sql-execute/steps/step1/components/sql-file/editor/MessageList.vue';
-  import SyntaxChecking from '@views/mysql/sql-execute/steps/step1/components/sql-file/manual-input/components/SyntaxChecking.vue';
-
   import { getSQLFilename } from '@utils';
+
+  import RenderMessageList, { type IMessageList } from './MessageList.vue';
+  import SyntaxChecking from './SyntaxChecking.vue';
 
   interface Props {
     modelValue: string;
@@ -125,31 +123,39 @@
 
   let editor: monaco.editor.IStandaloneCodeEditor;
 
-  watch(() => props.modelValue, () => {
-    if (!props.modelValue) {
-      return;
-    }
-
-    handleGrammarCheck();
-    setTimeout(() => {
-      if (props.modelValue !== editor.getValue()) {
-        editor.setValue(props.modelValue);
-        isMessageListFolded.value = true;
+  watch(
+    () => props.modelValue,
+    () => {
+      if (!props.modelValue) {
+        return;
       }
-    });
-  }, {
-    immediate: true,
-  });
 
-  watch(isMessageListFolded, () => {
-    if (isMessageListFolded.value && messageList.value.length === 0) {
-      resizeLayoutInitialDivide.value = 0;
-      return;
-    }
-    resizeLayoutInitialDivide.value = Math.min(24 + messageList.value.length * 24, 200);
-  }, {
-    immediate: true,
-  });
+      handleGrammarCheck();
+      setTimeout(() => {
+        if (props.modelValue !== editor.getValue()) {
+          editor.setValue(props.modelValue);
+          isMessageListFolded.value = true;
+        }
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    isMessageListFolded,
+    () => {
+      if (isMessageListFolded.value && messageList.value.length === 0) {
+        resizeLayoutInitialDivide.value = 0;
+        return;
+      }
+      resizeLayoutInitialDivide.value = Math.min(24 + messageList.value.length * 24, 200);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleToggleScreenfull = () => {
     if (screenfull.isFullscreen) {

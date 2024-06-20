@@ -75,8 +75,8 @@
               v-for="item of state.list"
               :key="item.id"
               class="side-item"
-              :class="[{ 'side-item-active': state.activeTicket?.id === item.id }]"
-              @click="handleSelected(item)">
+              :class="[{ 'side-item-active': modelValue === item.id }]"
+              @click="handleChange(item.id)">
               <div class="side-item-title">
                 <strong
                   v-overflow-tips
@@ -156,23 +156,13 @@
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRequest } from 'vue-request';
+  import { useRoute } from 'vue-router';
 
-  import {
-    type StatusTypeKeys,
-    StatusTypes,
-  } from '@services/model/ticket/ticket';
-  import {
-    getTickets,
-    getTicketTypes,
-  } from '@services/source/ticket';
+  import { type StatusTypeKeys, StatusTypes } from '@services/model/ticket/ticket';
+  import { getTickets, getTicketTypes } from '@services/source/ticket';
 
-  import {
-    useGlobalBizs,
-  } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderRow from '@components/render-row/index.vue';
@@ -181,24 +171,18 @@
 
   import { useTimeoutPoll } from '@vueuse/core';
 
-  interface Emits {
-    (e: 'change', value: TicketModel<unknown>): void
-  }
-
-  const emits = defineEmits<Emits>();
-
   const { t } = useI18n();
-  const router = useRouter();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
 
   const isBizTicketManagePage = route.name === 'bizTicketManage';
   const isSelfManage = route.query.self_manage === '1';
+  const viewId = Number(route.query.viewId);
   const searchPlaceholder = isBizTicketManagePage ? t('单号_单据类型_申请人') : t('单号_单据类型_业务');
 
   const needPollIds: {
-    index: number,
-    id: number,
+    index: number;
+    id: number;
   }[] = [];
   // 状态过滤列表
   const filters = Object.keys(StatusTypes).map((key: string) => ({
@@ -206,11 +190,13 @@
     value: key,
   }));
 
-  // 状态选择设置
-  const isShowDropdown = ref(false);
+  const modelValue = defineModel<number>();
+
   // 视图定位到激活项
   const sideListRef = ref<HTMLDivElement>();
-  const selfManage = ref<'0'|'1'>(isSelfManage ? '1' : '0');
+  // 状态选择设置
+  const isShowDropdown = ref(false);
+  const selfManage = ref<'0' | '1'>(isSelfManage ? '1' : '0');
   const state = reactive<TicketsState>({
     list: [],
     isLoading: false,
@@ -227,37 +213,39 @@
       total: 0,
     },
     ticketTypes: [],
-    bkBizIdList: globalBizsStore.bizs.map(item => ({
+    bkBizIdList: globalBizsStore.bizs.map((item) => ({
       id: item.bk_biz_id,
       name: item.name,
     })),
   });
 
-  const searchSelectData = computed(() => [
-    {
-      name: t('单号'),
-      id: 'id',
-    },
-    !isBizTicketManagePage && {
-      name: t('业务'),
-      id: 'bk_biz_id',
-      children: state.bkBizIdList,
-    },
-    {
-      name: t('单据类型'),
-      id: 'ticket_type__in',
-      multiple: true,
-      children: state.ticketTypes,
-    },
-    isBizTicketManagePage && {
-      name: t('申请人'),
-      id: 'creator',
-    },
-  ].filter(_ => _));
+  const searchSelectData = computed(() =>
+    [
+      {
+        name: t('单号'),
+        id: 'id',
+      },
+      !isBizTicketManagePage && {
+        name: t('业务'),
+        id: 'bk_biz_id',
+        children: state.bkBizIdList,
+      },
+      {
+        name: t('单据类型'),
+        id: 'ticket_type__in',
+        multiple: true,
+        children: state.ticketTypes,
+      },
+      isBizTicketManagePage && {
+        name: t('申请人'),
+        id: 'creator',
+      },
+    ].filter((_) => _),
+  );
 
   const isSearching = computed(() => state.filters.status !== 'ALL' || state.filters.search.length > 0);
 
-  const activeItemInfo = computed(() => filters.find(item => item.value === state.filters.status));
+  const activeItemInfo = computed(() => filters.find((item) => item.value === state.filters.status));
 
   /**
    * 获取单据列表
@@ -300,17 +288,14 @@
           }
         });
 
-        if (isPoll) return;
+        if (isPoll) {
+          return;
+        }
 
-        if (results.length > 0) {
-          // 刷新界面自动选中
-          // 默认选中第一条
-          if (!state.activeTicket) {
-            [state.activeTicket] = results;
-          }
-
-          handleSelected(state.activeTicket);
-
+        if (viewId > 0) {
+          handleChange(viewId);
+        } else if (results.length > 0) {
+          handleChange(results[0].id);
           nextTick(() => {
             if (sideListRef.value) {
               const activeItem = sideListRef.value.querySelector('.side-item-active');
@@ -332,13 +317,14 @@
       });
   };
 
-  getTicketTypes()
-    .then((res) => {
-      state.ticketTypes = res.map(item => ({
+  useRequest(getTicketTypes, {
+    onSuccess(data) {
+      state.ticketTypes = data.map((item) => ({
         id: item.key,
         name: item.value,
       }));
-    });
+    },
+  });
 
   watch(selfManage, () => {
     fetchTickets();
@@ -365,30 +351,32 @@
         });
       }
 
-      getTickets(params)
-        .then((res) => {
-          const { results = [] } = res;
-          const statusMap = results.reduce((results, item) => {
+      getTickets(params).then((res) => {
+        const { results = [] } = res;
+        const statusMap = results.reduce(
+          (results, item) => {
             Object.assign(results, {
               [item.id]: item.status,
             });
             return results;
-          }, {} as Record<string, string>);
+          },
+          {} as Record<string, string>,
+        );
 
-          const needRemoveIndexs: number[] = [];
-          needPollIds.forEach((item, index) => {
-            const newStatus = statusMap[item.id] as StatusTypeKeys;
-            if (newStatus && newStatus !== 'RUNNING' && state.list[item.index].status === 'RUNNING') {
-              needRemoveIndexs.push(index);
-              state.list[item.index].status = newStatus;
-            }
-          });
-          if (needRemoveIndexs.length > 0) {
-            needRemoveIndexs.forEach((index) => {
-              needPollIds.splice(index, 1);
-            });
+        const needRemoveIndexs: number[] = [];
+        needPollIds.forEach((item, index) => {
+          const newStatus = statusMap[item.id] as StatusTypeKeys;
+          if (newStatus && newStatus !== 'RUNNING' && state.list[item.index].status === 'RUNNING') {
+            needRemoveIndexs.push(index);
+            state.list[item.index].status = newStatus;
           }
         });
+        if (needRemoveIndexs.length > 0) {
+          needRemoveIndexs.forEach((index) => {
+            needPollIds.splice(index, 1);
+          });
+        }
+      });
     }
   };
 
@@ -413,7 +401,7 @@
     isShowDropdown.value = false;
   };
 
-  const handleChangeStatus = (item: {label: string, value: string}) => {
+  const handleChangeStatus = (item: { label: string; value: string }) => {
     state.filters.status = item.value;
     isShowDropdown.value = false;
     handleChangePage(1);
@@ -424,21 +412,9 @@
     state.filters.search = [];
     handleChangePage(1);
   };
-  /**
-   * 选中单据
-   */
-  const handleSelected = (data: TicketModel<unknown>) => {
-    state.activeTicket = data;
-    router.replace({
-      query: {
-        ...route.query,
-        limit: state.page.limit,
-        current: state.page.current,
-        id: data.id,
-        self_manage: selfManage.value,
-      },
-    });
-    emits('change', state.activeTicket);
+
+  const handleChange = (ticketId: number) => {
+    modelValue.value = ticketId;
   };
 
   /**
