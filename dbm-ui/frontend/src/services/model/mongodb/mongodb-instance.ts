@@ -130,6 +130,9 @@ export default class MongodbInstance {
   };
   status: string;
   version: string;
+  permission: {
+    mongodb_view: boolean;
+  };
 
   constructor(payload = {} as MongodbInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -155,6 +158,7 @@ export default class MongodbInstance {
     this.spec_config = payload.spec_config;
     this.status = payload.status;
     this.version = payload.version;
+    this.permission = payload.permission;
   }
 
   get isNew() {

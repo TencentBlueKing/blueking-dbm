@@ -138,7 +138,7 @@
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
     getMenuListSearch,
@@ -151,7 +151,6 @@
   import type {
     SearchSelectData,
     SearchSelectItem,
-    TableColumnRender,
   } from '@/types/bkui-vue';
 
   const clusterId = defineModel<number>('clusterId');
@@ -310,17 +309,28 @@
         );
 
         return (
-          <div>
-            <RenderTextEllipsisOneLine
-              text={data.cluster_name}
-              textStyle={{
-                fontWeight: '700',
+          <>
+            <TextOverflowLayout>
+              {{
+                default: () => (
+                  <auth-button
+                    style={{
+                      fontWeight: '700',
+                    }}
+                    action-id="mongodb_view"
+                    resource={data.id}
+                    permission={data.permission.mongodb_view}
+                    text
+                    theme="primary"
+                    onClick={() => handleToDetails(data.id)}>
+                      {data.cluster_name}
+                  </auth-button>
+                ),
+                append: () => content
               }}
-              onClick={() => handleToDetails(data.id)}>
-              {content}
-            </RenderTextEllipsisOneLine>
+            </TextOverflowLayout>
             <span class="cluster-alias">{ data.cluster_alias }</span>
-          </div>
+          </>
         );
       },
     },
@@ -823,6 +833,12 @@
           color: #3a84ff;
           vertical-align: middle;
           cursor: pointer;
+        }
+      }
+
+      .text-overflow-layout {
+        .layout-content {
+          min-width: 50px;
         }
       }
     }
