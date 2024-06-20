@@ -492,6 +492,8 @@ class MySQLRestoreSlaveFlow(object):
                 )
             )
 
+            # 卸载流程人工确认
+            tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             #  克隆权限
             new_slave = "{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, master.port)
             old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
@@ -539,6 +541,18 @@ class MySQLRestoreSlaveFlow(object):
                         is_update_trans_data=False,
                     )
                 ),
+            )
+
+            tendb_migrate_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=cluster_model.bk_cloud_id,
+                    master_ip_list=None,
+                    slave_ip_list=[target_slave.machine.ip],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(self.data),
+                    is_init=True,
+                    cluster_type=ClusterType.TenDBHA.value,
+                )
             )
 
             tendb_migrate_pipeline_list.append(
