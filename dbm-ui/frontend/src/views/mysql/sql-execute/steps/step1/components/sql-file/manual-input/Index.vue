@@ -18,7 +18,7 @@
     required
     :rules="rules">
     <template #labelAppend>
-      <span style="font-size: 12px; font-weight: normal; color: #8a8f99;">
+      <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
         （{{ t('最终执行结果以 SQL 内容为准') }}）
       </span>
     </template>
@@ -38,7 +38,7 @@
             theme="primary"
             @click="handleGrammarCheck">
             <DbIcon type="right-shape" />
-            <span style="margin-left: 4px;">{{ t('语法检测') }}</span>
+            <span style="margin-left: 4px">{{ t('语法检测') }}</span>
           </BkButton>
         </div>
         <template v-else>
@@ -64,7 +64,7 @@
   import { grammarCheck } from '@services/source/sqlImport';
   import { getFileContent } from '@services/source/storage';
 
-  import { updateFilePath } from '../../../Index.vue';
+  import { updateFilePath } from '../../../Index.bak.vue';
   import Editor from '../editor/Index.vue';
 
   import SyntaxChecking from './components/SyntaxChecking.vue';

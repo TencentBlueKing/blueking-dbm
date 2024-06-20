@@ -134,10 +134,8 @@
       return;
     }
     querySemanticData({
-      bk_biz_id: currentBizId,
       root_id: rootId,
-    }).then((data) => {
-      const { semantic_data: semanticData } = data;
+    }).then((semanticData) => {
       Object.assign(formData, {
         charset: semanticData.charset,
         import_mode: semanticData.import_mode,

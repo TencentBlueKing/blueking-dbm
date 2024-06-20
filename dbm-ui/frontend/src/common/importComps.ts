@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { Table } from 'bkui-vue';
 import type { App } from 'vue';
 
 import AuthButton from '@components/auth-component/button.vue';
@@ -62,4 +63,5 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('AuthOption', AuthOption);
   app.component('AuthSwitcher', AuthSwitch);
   app.component('AuthRouterLink', AuthRouterLink);
+  app.component('BKTableColumn', Table.Column);
 };

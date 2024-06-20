@@ -62,8 +62,6 @@
 
   import { querySemanticData } from '@services/source/sqlImport';
 
-  import { useGlobalBizs } from '@stores';
-
   import RenderFileList, {
     type IFileItem,
   } from '@views/mysql/sql-execute/steps/step2/components/render-file-list/Index.vue';
@@ -81,7 +79,6 @@
     nodeId: '',
   });
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const selectFileName = ref('');
@@ -127,11 +124,10 @@
 
   onMounted(() => {
     querySemanticData({
-      bk_biz_id: currentBizId,
       root_id: props.rootId,
-    }).then((data) => {
-      fileImportMode.value = data.import_mode;
-      fileList.value = data.semantic_data.execute_sql_files.map((item) => item.replace(/[^_]+_/, ''));
+    }).then((semanticData) => {
+      fileImportMode.value = semanticData.execute_objects[0].import_mode;
+      fileList.value = _.flatten(semanticData.execute_objects.map(({ sql_files: sqlFiels }) => sqlFiels));
       // 默认选中第一个问题件
       [selectFileName.value] = fileList.value;
     });
