@@ -22,6 +22,10 @@ export default class MongodbPermissonAccount {
     password: string;
     user: string;
   };
+  permission: {
+    mongodb_account_delete: boolean;
+    mongodb_add_account_rule: boolean;
+  };
   rules: Array<{
     access_db: string;
     account_id: number;
@@ -34,6 +38,7 @@ export default class MongodbPermissonAccount {
 
   constructor(payload = {} as MongodbPermissonAccount) {
     this.account = payload.account;
+    this.permission = payload.permission;
     this.rules = payload.rules;
   }
 
