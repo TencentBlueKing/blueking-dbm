@@ -31,7 +31,7 @@ class SQLUploadSerializer(serializers.Serializer):
             raise ValidationError(_("不允许语法检查的sql的内容为空！"))
 
         for file in attrs.get("sql_files", []):
-            if file.name.rsplit(".")[-1] != "sql":
+            if file.name.rsplit(".")[-1].lower() != "sql":
                 raise ValidationError(_("请保证sql文件[{}]的后缀为.sql").format(file.name))
 
         return attrs
