@@ -23,7 +23,7 @@ export function useTicketCloneInfo<T extends CloneDataHandlerMapKeys>(params: {
 }) {
   const { type, onSuccess } = params;
   const route = useRoute();
-  const ticketId = route.query.ticket_id;
+  const { ticketId } = route.query;
 
   const data = ref<ServiceReturnType<CloneDataHandlerMap[T]>>();
 

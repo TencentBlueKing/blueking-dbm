@@ -1,6 +1,8 @@
 <template>
-  <NoticeComponent :api-url="noticeApi" />
-  <Layout>
+  <NoticeComponent
+    :api-url="noticeApi"
+    @show-alert-change="showNoticChange" />
+  <Layout :style="{ '--notice-height': isShowBKNotice ? '40px' : '0px' }">
     <template #navigationHeaderRight>
       <SystemSearch
         class="mr-8"
@@ -62,7 +64,7 @@
 
   import { useSQLTaskNotify } from '@hooks';
 
-  import { useFunController,useUserProfile } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
   import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';
@@ -87,6 +89,7 @@
   };
 
   const noticeApi = urlJoin(window.PROJECT_ENV.VITE_AJAX_URL_PREFIX, '/notice/announcements/');
+  const isShowBKNotice = ref(false);
   const isShowHelp = ref(false);
   const isShowLogout = ref(false);
   const isShowSystemVersionLog = ref(false);
@@ -98,6 +101,10 @@
     },
     { immediate: true },
   );
+
+  const showNoticChange = (value: boolean) => {
+    isShowBKNotice.value = value;
+  };
 
   const handleShowSystemVersionLog = () => {
     isShowSystemVersionLog.value = true;

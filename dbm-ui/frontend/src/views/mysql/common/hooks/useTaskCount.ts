@@ -17,13 +17,12 @@ import { useRouter } from 'vue-router';
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 import { deleteUserSemanticTasks, getUserSemanticTasks } from '@services/source/sqlImport';
 
-import { useGlobalBizs, useSQLTaskCount } from '@stores';
+import { useSQLTaskCount } from '@stores';
 
 import { useTimeoutPoll } from '@vueuse/core';
 
 export const useTaskCount = (clusterType: string) => {
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
   const taskCountStore = useSQLTaskCount();
 
   const rootRef = ref();
@@ -62,7 +61,6 @@ export const useTaskCount = (clusterType: string) => {
 
   const fetchData = () => {
     getUserSemanticTasks({
-      bk_biz_id: currentBizId,
       cluster_type: clusterType,
     }).then((data) => {
       if (taskCountStore.isPolling === false) {
@@ -92,7 +90,6 @@ export const useTaskCount = (clusterType: string) => {
 
   const handleRevokeTask = (taskData: UserSemanticTaskModel) => {
     deleteUserSemanticTasks({
-      bk_biz_id: currentBizId,
       task_ids: [taskData.root_id],
       cluster_type: clusterType,
     }).then(() => {

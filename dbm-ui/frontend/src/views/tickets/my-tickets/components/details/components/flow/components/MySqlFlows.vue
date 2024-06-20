@@ -20,14 +20,14 @@
             keypath="共n个文件，含有m个高危语句"
             tag="div">
             <span style="font-weight: 700; color: #63656e">
-              {{ ticketData.details.execute_sql_files.length }}
+              {{ executeSqlFileList.length }}
             </span>
             <span style="font-weight: 700; color: #ea3636">
               {{ totalWarnCount }}
             </span>
           </I18nT>
           <div
-            v-for="fileName in sqlFileNames"
+            v-for="fileName in renderSqlFileList"
             :key="fileName">
             <BkButton
               text
@@ -36,8 +36,10 @@
                 style="color: #3a84ff"
                 type="file" />
               <span>
-                <span style="color: #3a84ff">{{ fileName.replace(/[^_]+_/, '') }}</span
-                >，
+                <span style="color: #3a84ff">
+                  {{ fileName?.replace(/[^_]+_/, '') }}
+                </span>
+                ，
                 <span v-if="ticketData.details.grammar_check_info[fileName].highrisk_warnings?.length > 0">
                   <I18nT
                     keypath="含有n个高危语句"
@@ -70,24 +72,11 @@
       <template v-if="content.flow_type === 'DESCRIBE_TASK'">
         <p>
           <span
-            v-if="counts.fail === 0"
-            style="color: #2dcb56"
-            >{{ t('执行成功') }}</span
-          >
-          <span
-            v-else
-            style="color: #ea3636"
-            >{{ t('执行失败') }}</span
-          >
-          , {{ t('共执行') }}
-          <span class="sql-count">{{ sqlFileTotal }}</span>
-          {{ t('个SQL文件_成功') }}
-          <span class="sql-count success">{{ counts.success }}</span>
-          {{ t('个_待执行') }}
-          <span class="sql-count warning">{{ notExecutedCount }}</span>
-          {{ t('个_失败') }}
-          <span class="sql-count danger">{{ counts.fail }}</span>
-          {{ t('个') }}
+            :style="{
+              color: content.status === 'SUCCEEDED' ? '#2dcb56' : 'inherit',
+            }">
+            {{ content.summary }}
+          </span>
           <template v-if="content.summary"> ，{{ t('耗时') }}：{{ getCostTimeDisplay(content.cost_time) }}， </template>
           <BkButton
             text
@@ -107,31 +96,40 @@
     </template>
   </BkTimeline>
   <BkSideslider
-    :is-show="isShow"
-    render-directive="if"
-    :title="t('模拟执行_日志详情')"
-    :width="960"
-    @closed="handleClose">
-    <SqlFileComponent
-      :node-id="nodeId"
-      :root-id="rootId" />
-  </BkSideslider>
-  <BkSideslider
     class="sql-log-sideslider"
     :is-show="isShowSqlFile"
-    render-directive="if"
-    :title="t('执行SQL变更_内容详情')"
     :width="960"
-    :z-index="99999"
     @closed="() => (isShowSqlFile = false)">
-    <div
-      v-if="uploadFileList.length > 1"
-      class="editor-layout">
+    <template
+      v-if="currentFileExecuteObject"
+      #header>
+      <span>{{ t('SQL 内容') }}</span>
+      <span style="color: #63656e; font-size: 12px; font-weight: normal; margin-left: 30px">
+        <span>{{ t('变更的 DB:') }}</span>
+        <span class="ml-4">
+          <BkTag
+            v-for="item in currentFileExecuteObject.dbnames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+          <template v-if="currentFileExecuteObject.dbnames.length < 1">--</template>
+        </span>
+        <span class="ml-25">{{ t('忽略的 DB:') }}</span>
+        <span class="ml-4">
+          <BkTag
+            v-for="item in currentFileExecuteObject.ignore_dbnames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+          <template v-if="currentFileExecuteObject.ignore_dbnames.length < 1">--</template>
+        </span>
+      </span>
+    </template>
+    <div class="editor-layout">
       <div class="editor-layout-left">
         <RenderFileList
           v-model="selectFileName"
-          :data="uploadFileList"
-          @sort="handleFileSortChange" />
+          :data="executeSqlFileList" />
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
@@ -140,27 +138,21 @@
           :title="selectFileName" />
       </div>
     </div>
-    <template v-else>
-      <RenderFileContent
-        :model-value="currentFileContent"
-        readonly
-        :title="uploadFileList.toString()" />
-    </template>
   </BkSideslider>
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
+  import { useRouter} from 'vue-router'
 
+  import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { semanticCheckResultLogs } from '@services/source/sqlImport';
   import { batchFetchFile } from '@services/source/storage';
-  import type { FlowItem, MySQLImportSQLFileDetails } from '@services/types/ticket';
+  import type { FlowItem } from '@services/types/ticket';
 
   import RenderFileContent from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/RenderFileContent.vue';
   import RenderFileList from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/SqlFileList.vue';
-  import SqlFileComponent from '@views/tickets/common/components/demand-factory/mysql/LogDetails.vue';
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
@@ -180,28 +172,24 @@
   });
   const emits = defineEmits<Emits>();
 
+  const router = useRouter();
   const { t } = useI18n();
 
-  const isShow = ref(false);
   const isShowCollapse = ref(false);
   const isShowSqlFile = ref(false);
   const selectFileName = ref('');
 
   const fileContentMap = shallowRef<Record<string, string>>({});
-  const uploadFileList = shallowRef<Array<string>>([]);
+  const executeSqlFileList = computed(() => _.flatten(props.ticketData.details.execute_objects.map(item => item.sql_files)))
 
-  const counts = reactive({
-    success: 0,
-    fail: 0,
-  });
+  const isShowMore = computed(() => executeSqlFileList.value.length > 6);
 
-  const isShowMore = computed(() => props.ticketData.details.execute_sql_files.length > 6);
-
-  const sqlFileNames = computed(() => {
+  const renderSqlFileList = computed(() => {
+    console.log('props.ticketData = ', props.ticketData);
     if (isShowMore.value && !isShowCollapse.value) {
-      return props.ticketData.details.execute_sql_files.slice(0, 6);
+      return executeSqlFileList.value.slice(0, 6);
     }
-    return props.ticketData.details.execute_sql_files;
+    return executeSqlFileList.value;
   });
 
   const totalWarnCount = computed(() => Object.values(props.ticketData.details.grammar_check_info)
@@ -212,47 +200,16 @@
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
-  const notExecutedCount = computed(() => {
-    const count = sqlFileTotal.value - counts.success - counts.fail;
-    return count >= 0 ? count : 0;
-  });
+  const currentFileExecuteObject = computed(() => _.find(props.ticketData.details.execute_objects, item => item.sql_files.includes(selectFileName.value)));
+
 
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem) => ({
     tag: flow.flow_type_display,
     type: 'default',
     filled: true,
     content: flow,
-    // color,
     icon: () => <FlowIcon data={flow} />,
   })));
-
-  const sqlFileTotal = computed(() => props.ticketData.details.execute_sql_files?.length || 0);
-  const rootId = computed(() => props.ticketData.details.root_id);
-  const nodeId = computed(() => props.ticketData.details.semantic_node_id);
-
-  const { run: fetchSemanticCheckResultLogs } = useRequest(semanticCheckResultLogs, {
-    manual: true,
-    onSuccess(logData) {
-      logData.forEach((item) => {
-        if (item.status === 'SUCCEEDED') {
-          counts.success += 1;
-        }
-        if (item.status === 'FAILED') {
-          counts.fail += 1;
-        }
-      });
-    },
-  });
-
-  watch([rootId, nodeId], ([rootId, nodeId]) => {
-    if (rootId && nodeId) {
-      fetchSemanticCheckResultLogs({
-        cluster_type: 'mysql',
-        root_id: rootId,
-        node_id: nodeId,
-      });
-    }
-  }, { immediate: true });
 
   const handleToggleShowMore = () => {
     isShowCollapse.value = !isShowCollapse.value;
@@ -264,28 +221,25 @@
     selectFileName.value = value;
   };
 
-
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileList.value = list;
-  };
-
   const handleFetchData = () => {
     emits('fetch-data');
   };
 
   const handleClickDetails = () => {
-    isShow.value = true;
-  };
-
-  const handleClose = () => {
-    isShow.value = false;
+    const {href} = router.resolve({
+      name: 'MySQLExecute',
+      params: {
+        step: 'result'
+      },
+      query: {
+        rootId: props.ticketData.details.root_id,
+      }
+    })
+    window.open(href)
   };
 
   onMounted(() => {
-    const uploadSQLFileList = props.ticketData.details.execute_sql_files;
-    uploadFileList.value = uploadSQLFileList;
-
-    const filePathList = uploadSQLFileList.reduce((result, item) => {
+    const filePathList = executeSqlFileList.value.reduce((result, item) => {
       result.push(`${props.ticketData.details.path}/${item}`);
       return result;
     }, [] as string[]);
@@ -299,7 +253,7 @@
           [fileName]: fileInfo.content,
         });
       }, {} as Record<string, string>);
-      // [selectFileName.value] = uploadSQLFileList;
+      [selectFileName.value] = executeSqlFileList.value;
     });
   });
 </script>

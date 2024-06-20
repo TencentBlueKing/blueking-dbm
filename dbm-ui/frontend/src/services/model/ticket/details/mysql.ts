@@ -71,8 +71,8 @@ export interface MySQLImportSQLFileDetails {
   ticket_type: string;
   execute_objects: {
     dbnames: [];
-    sql_file: string;
     ignore_dbnames: [];
+    sql_files: string[];
   }[];
   execute_db_infos: {
     dbnames: [];
