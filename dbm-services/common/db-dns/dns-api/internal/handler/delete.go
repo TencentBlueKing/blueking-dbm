@@ -3,13 +3,13 @@ package handler
 import (
 	"bk-dnsapi/internal/domain/entity"
 	"bk-dnsapi/internal/domain/repo/domain"
+	"bk-dnsapi/pkg/logger"
 	"bk-dnsapi/pkg/tools"
 	"fmt"
 	"runtime/debug"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-mesh/openlogging"
 )
 
 // DnsBaseDelReqParam base表删除参数
@@ -27,7 +27,7 @@ type DnsBaseDelReqParam struct {
 func (h *Handler) DelDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
 			SendResponse(c,
 				fmt.Errorf("panic error:%v", r),
 				Data{})
