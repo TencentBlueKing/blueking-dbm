@@ -22,11 +22,6 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="170"
-          :width="180">
-          {{ t('克隆表结构') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="170"
           :required="false"
           :width="180">
           {{ t('克隆表数据') }}
@@ -35,17 +30,26 @@
           :min-width="100"
           :width="190">
           <BkPopover
-            :content="t('支持使用 { } 占位，如db_{id} , id在执行开区时传入', { x: '{ }', y: '{id}'})"
+            :content="t('支持使用 { } 占位，如db_{id} , id在执行开区时传入', { x: '{ }', y: '{id}' })"
             placement="top"
             theme="dark">
-            <span style="border-bottom: 1px dashed #979BA5;">{{ t('生成的目标DB名') }}</span>
+            <span style="border-bottom: 1px dashed #979ba5">{{ t('生成的目标DB名') }}</span>
           </BkPopover>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
-          :required="false"
-          :width="180">
-          {{ t('初始化授权') }}
+          <template #append>
+            <BatchEditColumn
+              v-model="showBatchEdit"
+              :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
+              :title="t('生成的目标DB名')"
+              type="textarea"
+              @change="(value: string) => handleBatchEdit(value)">
+              <span
+                v-bk-tooltips="t('批量编辑：通过换行分隔，快速批量录入多个值')"
+                class="batch-edit-btn"
+                @click="handleShowBatchEdit">
+                <DbIcon type="piliangluru" />
+              </span>
+            </BatchEditColumn>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
@@ -64,10 +68,28 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  interface Emits {
+    (e: 'batchEdit', value: string[]): void;
+  }
+
+  const emits = defineEmits<Emits>();
+
   const { t } = useI18n();
+
+  const showBatchEdit = ref(false);
+
+  const handleShowBatchEdit = () => {
+    showBatchEdit.value = true;
+  };
+
+  const handleBatchEdit = (value: string) => {
+    const list = value.trim().split('\n');
+    emits('batchEdit', list);
+  };
 </script>
 <style lang="less">
   .render-data {

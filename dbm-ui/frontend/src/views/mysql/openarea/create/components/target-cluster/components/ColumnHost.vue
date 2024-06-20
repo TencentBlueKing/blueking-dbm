@@ -175,9 +175,10 @@
   };
 
   const handleWhitelistChange = (whiteList: IPSelectorResult['dbm_whitelist']) => {
-    localHostList.value = localHostList.value.concat(
-      _.flatMap(whiteList.map((item) => item.ips.map((ip: string) => ({ ip })))),
-    );
+    const localIps = localHostList.value.map((item) => item.ip);
+    const whiteIps = _.flatMap(whiteList.map((item) => item.ips));
+    const finalIps = Array.from(new Set([...localIps, ...whiteIps]));
+    localHostList.value = finalIps.map((ip) => ({ ip }) as HostDetails);
   };
 
   defineExpose<Exposes>({

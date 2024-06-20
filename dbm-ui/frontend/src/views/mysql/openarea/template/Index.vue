@@ -33,7 +33,9 @@
     remove,
   } from '@services/openarea';
 
-  import { useDebouncedRef } from '@hooks';
+  import { useDebouncedRef, useTicketCloneInfo } from '@hooks';
+
+  import { TicketTypes } from '@common/const';
 
   import { messageSuccess } from '@utils';
 
@@ -43,6 +45,22 @@
 
   const tableRef = ref();
   const serachKey = useDebouncedRef('');
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_OPEN_AREA,
+    onSuccess(cloneData) {
+      router.push({
+        name: 'mysqlOpenareaCreate',
+        params: {
+          id: cloneData.id,
+        },
+        query: {
+          from: route.name as string
+        }
+      })
+    },
+  });
 
   const tableColumns = [
     {

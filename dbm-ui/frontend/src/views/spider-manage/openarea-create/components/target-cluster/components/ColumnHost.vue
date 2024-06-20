@@ -79,18 +79,21 @@
     }"
     :data="localHostList"
     :os-types="[OSTypes.Linux]"
+    :panel-list="['staticTopo', 'dbmWhitelist', 'manualInput']"
     service-mode="all"
     :show-view="false"
-    @change="handleHostChange" />
+    @change="handleHostChange"
+    @change-whitelist="handleWhitelistChange" />
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { HostDetails } from '@services/types/ip';
 
   import { OSTypes } from '@common/const';
 
-  import IpSelector from '@components/ip-selector/IpSelector.vue';
+  import IpSelector, { type IPSelectorResult } from '@components/ip-selector/IpSelector.vue';
 
   import type { IDataRow } from './Row.vue';
   import useValidtor, { type Rules } from './useValidtor';
@@ -168,6 +171,13 @@
 
   const handleHostChange = (hostList: HostDetails[]) => {
     localHostList.value = hostList;
+  };
+
+  const handleWhitelistChange = (whiteList: IPSelectorResult['dbm_whitelist']) => {
+    const localIps = localHostList.value.map((item) => item.ip);
+    const whiteIps = _.flatMap(whiteList.map((item) => item.ips));
+    const finalIps = Array.from(new Set([...localIps, ...whiteIps]));
+    localHostList.value = finalIps.map((ip) => ({ ip }) as HostDetails);
   };
 
   defineExpose<Exposes>({

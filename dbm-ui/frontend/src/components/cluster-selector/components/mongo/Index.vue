@@ -32,7 +32,8 @@
       row-style="cursor: pointer;"
       @page-limit-change="handleTableLimitChange"
       @page-value-change="handleTablePageChange"
-      @refresh="fetchResources" />
+      @refresh="fetchResources"
+      @row-click.stop.prevent="handleRowClick" />
   </BkLoading>
 </template>
 <script setup lang="tsx">
@@ -304,6 +305,15 @@
     selectedMap.value = selectedMapMemo;
     emits('change', selectedMap.value);
     checkSelectedAll();
+  };
+
+  const handleRowClick = (row:any, data: ResourceItem) => {
+    if (props.disabledRowConfig.find(item => item.handler(data))) {
+      return;
+    }
+    const currentSelected = selectedMap.value[activeTab.value];
+    const isChecked = !!(currentSelected && currentSelected[data.id]);
+    handleSelecteRow(data, !isChecked);
   };
 
   const handleTablePageChange = (value: number) => {

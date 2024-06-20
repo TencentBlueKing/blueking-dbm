@@ -7,6 +7,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import {
     shallowRef,
@@ -20,7 +21,9 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { messageSuccess } from '@utils';
+  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue'
+
+  import { messageError,messageSuccess } from '@utils';
 
   interface Props {
     data: ServiceReturnType<typeof getPreview>,
@@ -45,69 +48,30 @@
       label: t('目标集群'),
       field: 'target_cluster_domain',
       showOverflowTooltip: true,
-      width: 220,
+      width: 280,
     },
     {
       label: t('新 DB'),
       field: 'target_db',
       showOverflowTooltip: true,
-    },
-    {
-      label: t('源 DB'),
-      field: 'source_db',
-      showOverflowTooltip: true,
+      width: 230,
     },
     {
       label: t('表结构'),
       showOverflowTooltip: true,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <>
-          {data.schema_tblist.map(item => (
-            <bk-tag>{item}</bk-tag>
-          ))}
-        </>
-      ),
+      width: 80,
+      render: () => t('所有表'),
     },
     {
       label: t('表数据'),
       showOverflowTooltip: true,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <>
-          {data.data_tblist.map(item => (
-            <bk-tag>{item}</bk-tag>
-          ))}
-        </>
-      ),
+      width: 300,
+      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => <RenderTagOverflow data={_.flatMap(data.data_tblist)} />,
     },
     {
       label: t('授权 IP'),
       showOverflowTooltip: true,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <>
-          {data.authorize_ips.map(item => (
-            <bk-tag>{item}</bk-tag>
-          ))}
-        </>
-      ),
-    },
-    {
-      label: t('授权规则'),
-      showOverflowTooltip: false,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <div class="rules-main">
-          <bk-button
-            text
-            theme="primary">
-            {t('n 条全新规则', { n: data.priv_data.length })}
-          </bk-button>
-          {data.error_msg && (
-            <db-icon
-              v-bk-tooltips={data.error_msg}
-              class="error-icon"
-              type="exclamation-fill" />
-          )}
-        </div>
-      ),
+      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => data.authorize_ips.join(','),
     },
   ];
 
@@ -129,6 +93,12 @@
 
   defineExpose<Expose>({
     submit() {
+      const errorRow = tableData.value.find(item => item.error_msg);
+      if (errorRow) {
+        messageError(errorRow.error_msg);
+        return Promise.resolve(false);
+      }
+
       return createTicket({
         ticket_type: 'TENDBCLUSTER_OPEN_AREA',
         remark: '',

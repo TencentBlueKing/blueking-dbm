@@ -231,6 +231,7 @@
           tip: t('集群已禁用'),
         },
       ],
+      multiple: true,
       getResourceList: getSpiderList,
       tableContent: SpiderTable,
       resultContent: ResultPreview,

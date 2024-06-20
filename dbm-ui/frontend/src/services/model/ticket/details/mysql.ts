@@ -343,6 +343,7 @@ export interface MySQLMigrateDetails {
 export interface MysqlOpenAreaDetails {
   cluster_id: number;
   clusters: DetailClusters;
+  config_id: number;
   config_data: {
     cluster_id: number;
     execute_objects: {

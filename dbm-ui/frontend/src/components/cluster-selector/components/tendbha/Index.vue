@@ -36,7 +36,8 @@
       @column-filter="columnFilterChange"
       @page-limit-change="handleTableLimitChange"
       @page-value-change="handleTablePageChange"
-      @refresh="fetchResources" />
+      @refresh="fetchResources"
+      @row-click.stop.prevent="handleRowClick" />
   </BkLoading>
 </template>
 <script setup lang="tsx">
@@ -134,7 +135,7 @@
           return (
             <bk-popover theme="dark" placement="top" popoverDelay={0}>
               {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
+                default: () => props.multiple ? <bk-checkbox style="vertical-align: middle;" disabled /> : <bk-radio disabled label={false}/>,
                 content: () => <span>{disabledRowConfig.tip}</span>,
               }}
             </bk-popover>
@@ -341,6 +342,15 @@
     selectedMap.value = selectedMapMemo;
     emits('change', selectedMap.value);
     checkSelectedAll();
+  };
+
+  const handleRowClick = (row:any, data: ResourceItem) => {
+    if (props.disabledRowConfig.find(item => item.handler(data))) {
+      return;
+    }
+    const currentSelected = selectedMap.value[activeTab.value];
+    const isChecked = !!(currentSelected && currentSelected[data.id]);
+    handleSelecteRow(data, !isChecked);
   };
 
   const handleTablePageChange = (value: number) => {
