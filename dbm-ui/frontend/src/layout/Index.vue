@@ -44,10 +44,9 @@
       <div id="dbContentHeaderAppend" />
     </div>
     <div
-      ref="contentWrapperRef"
       class="db-navigation-content-wrapper"
       :class="{ 'is-fullscreen': isContendFullscreen }"
-      :style="contentWrapperStyle">
+      style="height: calc(100vh - var(--notice-height) - 104px)">
       <slot />
     </div>
   </BkNavigation>
@@ -57,8 +56,6 @@
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
-
-  import { useFullscreenStyle } from '@hooks';
 
   import { useUserProfile } from '@stores';
 
@@ -156,8 +153,6 @@
     [menuEnum.personalWorkbench]: ['SelfServiceMyTickets', 'MyTodos', 'serviceApply'],
   } as Record<string, string[]>;
 
-  const contentWrapperRef = ref<HTMLElement>();
-  const contentWrapperStyle = useFullscreenStyle(contentWrapperRef);
   const menuType = ref('');
   const isSideMenuFlod = ref(localStorage.getItem(SIDE_MENU_TOGGLE_KEY) !== null);
 

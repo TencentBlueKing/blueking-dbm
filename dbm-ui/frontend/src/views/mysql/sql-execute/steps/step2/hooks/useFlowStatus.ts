@@ -12,6 +12,7 @@
  */
 
 import { onBeforeUnmount, ref } from 'vue';
+import { useRequest } from 'vue-request';
 
 import { getTaskflowDetails } from '@services/source/taskflow';
 
@@ -29,30 +30,24 @@ export default function (rootId: string) {
     return 'failed';
   });
 
-  let timer = 0;
-
-  const fetchStatus = () => {
-    getTaskflowDetails({
-      rootId,
-    }).then((data) => {
+  const { cancel } = useRequest(getTaskflowDetails, {
+    pollingInterval: 2000,
+    defaultParams: [
+      {
+        rootId,
+      },
+    ],
+    onSuccess: (data) => {
       status.value = data.flow_info.status;
       ticketId.value = data.flow_info.uid;
-      if (timer < 0) {
-        return;
+      if (statusText.value !== 'pending') {
+        cancel();
       }
-      if (statusText.value === 'pending') {
-        timer = setTimeout(() => {
-          fetchStatus();
-        }, 2000);
-      }
-    });
-  };
-
-  fetchStatus();
+    },
+  });
 
   onBeforeUnmount(() => {
-    clearTimeout(timer);
-    timer = -1;
+    cancel();
   });
 
   return {

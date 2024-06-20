@@ -38,11 +38,6 @@ export const useSQLTaskNotify = () => {
   };
 
   const { cancel: cancelRequest } = useRequest(getUserSemanticTasks, {
-    defaultParams: [
-      {
-        bk_biz_id: 0,
-      },
-    ],
     pollingInterval: 10000,
     onSuccess(data) {
       const isAlterItem = _.find(data, (item) => item.is_alter);
