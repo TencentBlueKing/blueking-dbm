@@ -137,7 +137,7 @@
       router.push({
         name,
         query: {
-          ticket_id: props.data.id,
+          ticketId: props.data.id,
         },
       });
     }

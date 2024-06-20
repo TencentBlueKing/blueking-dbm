@@ -108,11 +108,13 @@
         </span>
       </span>
     </template>
-    <div class="editor-layout">
+    <div
+      v-if="currentExecuteObject"
+      class="editor-layout">
       <div class="editor-layout-left">
         <RenderFileList
           v-model="selectFileName"
-          :data="uploadFileList" />
+          :data="currentExecuteObject.sql_files" />
       </div>
       <div class="editor-layout-right">
         <RenderFileContent

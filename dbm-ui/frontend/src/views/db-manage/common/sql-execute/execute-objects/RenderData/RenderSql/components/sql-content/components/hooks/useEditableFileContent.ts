@@ -82,7 +82,6 @@ export default (modelValue: Ref<string[]>) => {
       }),
       {} as Record<string, IFileData>,
     );
-    console.log('fileDataMap.value = ', fileDataMap.value);
   };
 
   return {

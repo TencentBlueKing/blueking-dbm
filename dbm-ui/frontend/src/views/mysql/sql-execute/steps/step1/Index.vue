@@ -119,6 +119,8 @@
         ticket_mode: cloneData.ticket_mode,
       });
       window.changeConfirm = true;
+      updateUploadFilePath(cloneData.path);
+      console.log('cloneData = ', cloneData);
     },
   });
 

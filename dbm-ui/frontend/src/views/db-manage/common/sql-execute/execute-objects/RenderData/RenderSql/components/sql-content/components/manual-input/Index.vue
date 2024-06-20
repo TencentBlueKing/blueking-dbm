@@ -147,7 +147,6 @@
   watch(
     modelValue,
     () => {
-      console.log('from wtach modelvale = ', isInnerChange);
       if (isInnerChange) {
         isInnerChange = false;
         return;
@@ -194,7 +193,7 @@
     uploadFileDataMap.value[fileName] = createFileData({
       realFilePath: fileName,
       isSuccess: false,
-      content: '',
+      content: '-- Please enter the SQL statement\n\n',
       messageList: [],
       isCheckFailded: false,
       isUploadFailed: false,

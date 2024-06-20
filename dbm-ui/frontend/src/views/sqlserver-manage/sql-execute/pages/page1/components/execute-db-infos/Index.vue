@@ -14,8 +14,8 @@
 <template>
   <DbFormItem
     ref="formItemRef"
-    :label="$t('目标DB')"
-    property="execute_db_infos"
+    :label="t('目标DB')"
+    property="execute_objects"
     required
     :rules="rules">
     <RenderData>
@@ -23,6 +23,7 @@
         v-for="(item, index) in modelValue"
         :key="item.rowKey"
         ref="rowRef"
+        :cluster-version-list="clusterVersionList"
         :data="item"
         :removeable="modelValue.length < 2"
         @add="(value: IDataRow) => handleAppend(value, index)"
@@ -39,33 +40,33 @@
   import RenderDataRow, { createRowData, type IDataRow } from './RenderData/Row.vue';
 
   interface Props {
-    modelValue: Array<IDataRow>;
-  }
-  interface Emits {
-    (e: 'update:modelValue', value: Array<IDataRow>): void;
+    clusterVersionList: string[];
   }
 
-  const props = defineProps<Props>();
-  const emit = defineEmits<Emits>();
+  defineProps<Props>();
 
   const { t } = useI18n();
 
+  const modelValue = defineModel<Array<IDataRow>>({
+    default: () => [],
+  });
+
   const formItemRef = ref();
-  const rowRef = ref();
+  const rowRef = ref<InstanceType<typeof RenderDataRow>[]>();
 
   const rules = [
     {
-      validator: () => Promise.all(rowRef.value.map((item: { getValue: () => Promise<string[]> }) => item.getValue())),
-      message: t('目标DB不能为空'),
+      validator: () => Promise.all(rowRef.value!.map((item) => item.getValue())),
+      message: t('目标DB设置不正确'),
       trigger: 'change',
     },
   ];
 
   watch(
-    () => props.modelValue,
+    modelValue,
     () => {
-      if (props.modelValue.length < 1) {
-        emit('update:modelValue', [createRowData()]);
+      if (modelValue.value.length < 1) {
+        modelValue.value = [createRowData()];
       }
     },
     {
@@ -74,23 +75,23 @@
   );
 
   const handleChange = (data: IDataRow, index: number) => {
-    const result = [...props.modelValue];
+    const result = [...modelValue.value];
     result.splice(index, 1, data);
     formItemRef.value.clearValidate();
-    emit('update:modelValue', result);
+    modelValue.value = result;
   };
 
   // 追加一个集群
   const handleAppend = (data: IDataRow, index: number) => {
-    const result = [...props.modelValue];
+    const result = [...modelValue.value];
     result.splice(index + 1, 0, data);
     formItemRef.value.clearValidate();
-    emit('update:modelValue', result);
+    modelValue.value = result;
   };
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const result = [...props.modelValue];
+    const result = [...modelValue.value];
     result.splice(index, 1);
-    emit('update:modelValue', result);
+    modelValue.value = result;
   };
 </script>

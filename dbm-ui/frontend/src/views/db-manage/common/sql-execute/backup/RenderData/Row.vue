@@ -12,34 +12,32 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="dbPatternsRef"
-          :cluster-id="0"
-          :model-value="data.db_patterns"
-          @change="handleDbPatternsChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderBackupSource
-          ref="backupOnRef"
-          :model-value="data.backup_on"
-          @change="handleBackupOnChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablePatternsRef"
-          :cluster-id="0"
-          :model-value="data.table_patterns"
-          @change="handleTablePatternsChange" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="dbPatternsRef"
+        :cluster-id="0"
+        :model-value="data.db_patterns"
+        @change="handleDbPatternsChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderBackupSource
+        ref="backupOnRef"
+        :model-value="data.backup_on"
+        @change="handleBackupOnChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="tablePatternsRef"
+        :cluster-id="0"
+        :model-value="data.table_patterns"
+        @change="handleTablePatternsChange" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
@@ -60,8 +58,6 @@
   });
 </script>
 <script setup lang="ts">
-  import { ref } from 'vue';
-
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
