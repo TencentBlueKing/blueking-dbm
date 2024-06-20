@@ -178,13 +178,17 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
                 details=MysqlSqlImportFlowParamBuilder(self.ticket).get_params(),
                 flow_alias=_("SQL模拟执行状态查询"),
             ),
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.BK_ITSM.value,
-                details=MysqlSqlImportItsmParamBuilder(self.ticket).get_params(),
-                flow_alias=_("单据审批"),
-            ),
         ]
+
+        if self.need_itsm:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.BK_ITSM.value,
+                    details=MysqlSqlImportItsmParamBuilder(self.ticket).get_params(),
+                    flow_alias=_("单据审批"),
+                )
+            )
 
         mode = self.ticket.details["ticket_mode"]["mode"]
         if mode == SQLExecuteTicketMode.MANUAL.value:
