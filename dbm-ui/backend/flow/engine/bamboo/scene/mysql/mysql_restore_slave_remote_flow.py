@@ -445,7 +445,8 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
                 )
             )
-
+            # 卸载流程人工确认
+            tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             #  克隆权限
             new_slave = "{}{}{}".format(target_slave.machine.ip, IP_PORT_DIVIDER, master.port)
             old_master = "{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)
@@ -497,8 +498,20 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 ),
             )
 
+            tendb_migrate_pipeline.add_sub_pipeline(
+                sub_flow=build_surrounding_apps_sub_flow(
+                    bk_cloud_id=cluster_model.bk_cloud_id,
+                    master_ip_list=None,
+                    slave_ip_list=[target_slave.machine.ip],
+                    root_id=self.root_id,
+                    parent_global_data=copy.deepcopy(self.data),
+                    is_init=True,
+                    cluster_type=ClusterType.TenDBHA.value,
+                )
+            )
+
             tendb_migrate_pipeline_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}").format(target_slave.machine.ip))
+                tendb_migrate_pipeline.build_sub_process(_("{}slave原地重建").format(target_slave.ip_port))
             )
 
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=tendb_migrate_pipeline_list)

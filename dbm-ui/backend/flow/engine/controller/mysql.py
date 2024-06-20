@@ -464,6 +464,13 @@ class MySQLController(BaseController):
         flow = MySQLRollbackDataFlow(root_id=self.root_id, data=self.ticket_data)
         flow.rollback_data_flow()
 
+    def mysql_rollback_to_cluster_scene(self):
+        """
+        数据定点回档
+        """
+        flow = MySQLRollbackDataFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.rollback_to_cluster_flow()
+
     def mysql_pt_table_sync_scene(self):
         """
         mysql数据修复场景

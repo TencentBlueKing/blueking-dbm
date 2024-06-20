@@ -175,4 +175,6 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
-    return sub_pipeline.build_sub_process(sub_name=_("RemoteDB从节点重建子流程{}".format(exec_act_kwargs.exec_ip)))
+    return sub_pipeline.build_sub_process(
+        sub_name=_("{}:{}从节点重建".format(cluster["new_slave_ip"], cluster["new_slave_port"]))
+    )

@@ -110,3 +110,31 @@ def get_local_backup(instances: list, cluster: Cluster, end_time: str = None):
         return max_backup
     else:
         return None
+
+
+def check_storage_database(cluster: Cluster, ip: str, port: int) -> bool:
+    """
+    检查数据库是否为空实例
+    @param ip: 实例ip
+    @param port: 实例端口
+    @param cluster: 集群
+    @return:
+    """
+    query_cmds = """select SCHEMA_NAME from information_schema.schemata where SCHEMA_NAME not in
+     ('information_schema','db_infobase','infodba_schema','mysql','test','sys','performance_schema')"""
+    res = DRSApi.rpc(
+        {
+            "addresses": ["{}{}{}".format(ip, IP_PORT_DIVIDER, port)],
+            "cmds": [query_cmds],
+            "force": False,
+            "bk_cloud_id": cluster.bk_cloud_id,
+        }
+    )
+    if res[0]["error_msg"]:
+        logging.error("get databases  error {}".format(res[0]["error_msg"]))
+        return False
+    if isinstance(res[0]["cmd_results"][0]["table_data"], list) and len(res[0]["cmd_results"][0]["table_data"]) == 0:
+        logging.info(res[0]["cmd_results"])
+        return True
+    else:
+        return False
