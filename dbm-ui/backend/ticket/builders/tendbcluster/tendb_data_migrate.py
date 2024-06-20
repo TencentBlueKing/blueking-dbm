@@ -9,8 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from django.utils.translation import ugettext_lazy as _
-
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_data_migrate import (
@@ -39,4 +37,3 @@ class TenDBClusterDataMigrateFlowParamBuilder(MySQLDataMigrateFlowParamBuilder):
 class TenDBClusterDataMigrateFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TenDBClusterDataMigrateDetailSerializer
     inner_flow_builder = TenDBClusterDataMigrateFlowParamBuilder
-    inner_flow_name = _("数据迁移执行")

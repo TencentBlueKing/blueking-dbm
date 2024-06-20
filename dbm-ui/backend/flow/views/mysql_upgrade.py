@@ -32,7 +32,7 @@ class UpgradeMySQLSceneApiView(FlowTestView):
         root_id = generate_root_id()
         logger.info("define root_id: {}".format(root_id))
         test = MySQLController(root_id=root_id, ticket_data=request.data)
-        test.mysql_upgrade_scene()
+        test.mysql_local_upgrade_scene()
         return Response({"root_id": root_id})
 
 

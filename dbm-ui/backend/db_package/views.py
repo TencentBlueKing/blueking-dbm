@@ -50,12 +50,10 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     def get_action_permission_map(self):
         return {
             (
+                "list",
                 "list_install_pkg_types",
                 "list_install_packages",
-            ): [],
-            ("list",): [
-                ResourceActionPermission([ActionEnum.PACKAGE_VIEW], ResourceEnum.DBTYPE, self.instance_getter)
-            ],
+            ): []
         }
 
     def get_default_permission_class(self):

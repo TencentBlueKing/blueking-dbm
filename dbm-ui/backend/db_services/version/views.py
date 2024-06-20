@@ -49,6 +49,19 @@ class VersionViewSet(viewsets.SystemViewSet):
         return Response(versions)
 
     @common_swagger_auto_schema(
+        operation_summary=_("查询数据库版本列表"),
+        query_serializer=serializers.ListVersionSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=serializers.ListVersionSerializer)
+    def list_sub_versions(self, requests, *args, **kwargs):
+        """子版本列表"""
+        validated_data = self.params_validate(self.get_serializer_class())
+        query_key = validated_data["query_key"]
+        versions = query_versions_by_key(query_key)
+        return Response(versions)
+
+    @common_swagger_auto_schema(
         operation_summary=_("根据sqlserver部署版本查询可支持的系统版本"),
         query_serializer=serializers.ListSQLServerSystemVersionSerializer(),
         tags=[SWAGGER_TAG],

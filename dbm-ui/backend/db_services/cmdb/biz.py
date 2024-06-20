@@ -10,23 +10,28 @@ specific language governing permissions and limitations under the License.
 """
 import collections
 import logging
-from typing import List
+from typing import Dict, List
 
 from backend.components import CCApi
+from backend.components.dbconfig.constants import DEPLOY_FILE_NAME, ConfType, LevelName
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.cmdb.exceptions import BkAppAttrAlreadyExistException
+from backend.db_services.dbconfig.dataclass import DBBaseConfig, DBConfigLevelData
+from backend.db_services.dbconfig.handlers import DBConfigHandler
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 from backend.exceptions import ApiError
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.permission import Permission
+from backend.utils.batch_request import request_multi_thread
 
 logger = logging.getLogger("root")
 BIZModel = collections.namedtuple("BIZModel", ["bk_biz_id", "name", "english_name", "permission"])
 
-ModuleModel = collections.namedtuple("ModuleModel", ["bk_biz_id", "db_module_id", "name"])
-
 
 def list_bizs(user: str = "", action: ActionEnum = None) -> List[BIZModel]:
+    """
+    业务列表，补充业务权限
+    """
     biz_infos = CCApi.search_business(
         {
             "fields": ["bk_biz_id", "bk_biz_name", CC_APP_ABBR_ATTR],
@@ -49,9 +54,39 @@ def list_bizs(user: str = "", action: ActionEnum = None) -> List[BIZModel]:
     return sorted(biz_list, key=lambda biz: biz.permission[ActionEnum.DB_MANAGE.id], reverse=True)
 
 
-def list_modules_by_biz(bk_biz_id: int, cluster_type: str) -> List[ModuleModel]:
+def list_modules_by_biz(bk_biz_id: int, cluster_type: str) -> List[Dict]:
+    """
+    拉取业务 DB 模块，结合 dbconfig 批量拉取得到模块信息
+    """
     modules = DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
-    return [ModuleModel(m.bk_biz_id, m.db_module_id, m.db_module_name) for m in modules]
+    # 批量请求 dbconfig
+    module_infos = request_multi_thread(
+        func=DBConfigHandler(DBBaseConfig(cluster_type, ConfType.DEPLOY.value), True).get_level_config,
+        params_list=[
+            {
+                "dbconfig_level_data": DBConfigLevelData.from_dict(
+                    {
+                        "bk_biz_id": bk_biz_id,
+                        "level_name": LevelName.MODULE.value,
+                        "level_value": module.db_module_id,
+                        "version": DEPLOY_FILE_NAME,
+                    }
+                )
+            }
+            for module in DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
+        ],
+        get_data=lambda x: x,
+        in_order=True,
+    )
+    return [
+        {
+            "bk_biz_id": module.bk_biz_id,
+            "db_module_id": module.db_module_id,
+            "name": module.db_module_name,
+            "db_module_info": module_infos[index][1],
+        }
+        for index, module in enumerate(modules)
+    ]
 
 
 def set_db_app_abbr(bk_biz_id: int, db_app_abbr: str):
@@ -105,8 +140,6 @@ def list_cc_obj_user(bk_biz_id: int) -> list:
         }
         for role, role_display in roles.items()
     ]
-    # TODO dbm 角色录入 cmdb ？不合适， db type 会导致角色太多
-    #  考虑以虚拟角色维护 DBA
     return cc_obj_users
 
 
