@@ -12,6 +12,7 @@ export * from './instanceClone';
 export * from './masterFailover';
 export * from './masterSlaveSwitch';
 export * from './migrateCluster';
+export * from './openArea';
 export * from './proxyAdd';
 export * from './proxyReplace';
 export * from './restoreLocalSlave';

@@ -17,6 +17,7 @@ import {
   generateMysqlMasterFailoverCloneData,
   generateMysqlMasterSlaveSwicthCloneData,
   generateMysqlMigrateClusterCloneData,
+  generateMysqlOpenAreaCloneData,
   generateMysqlProxyAddCloneData,
   generateMysqlProxyReplaceCloneData,
   generateMysqlRestoreLocalSlaveCloneData,
@@ -127,6 +128,8 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: generateSpiderMasterSlaveCloneCloneData, // spider 迁移主从
   [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: generateSpiderSlaveRebuildLocalCloneData, // spider 重建从库-原地重建
   [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: generateSpiderSlaveRebuildNewCloneData, // spider 重建从库-新机重建
+  [TicketTypes.MYSQL_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Mysql 开区
+  [TicketTypes.TENDBCLUSTER_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Spider 开区
 };
 
 export type CloneDataHandlerMap = typeof generateCloneDataHandlerMap;

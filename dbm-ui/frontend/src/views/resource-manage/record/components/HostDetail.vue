@@ -7,7 +7,7 @@
     {{ data.bk_host_ids.length }}
   </BkButton>
   <BkDialog
-    :is-show="isShowDetail"
+    v-model:is-show="isShowDetail"
     :title="t('主机预览')"
     :width="dialogWidth">
     <BkLoading :loading="isHostListLoading">

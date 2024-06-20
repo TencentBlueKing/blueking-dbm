@@ -16,8 +16,22 @@
     <TableEditInput
       ref="editRef"
       v-model="modelValue"
-      :placeholder="t('可使用全局变量，如_test', { var: '{test}'})"
+      :placeholder="t('支持使用 { } 占位，如db_{id} , id在执行开区时传入', { x: '{ }', y: '{id}' })"
       :rules="rules" />
+    <!-- <BkSelect
+      ref="selectRef"
+      v-model="selectedValue"
+      filterable
+      @select="handleSelect">
+    <template #trigger>
+      <span></span>
+    </template>
+      <BkOption
+        v-for="(item, index) in dataList"
+        :id="item.value"
+        :key="index"
+        :name="item.label"/>
+    </BkSelect> -->
   </div>
 </template>
 <script setup lang="ts">
@@ -36,18 +50,37 @@
   const modelValue = defineModel<string>({
     default: '',
   });
-  const editRef = ref();
+  const editRef = ref<InstanceType<typeof TableEditInput>>();
+  // const selectRef = ref();
+  // const selectedValue = ref('')
 
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('目标集群不能为空'),
+      message: t('不能为空'),
     },
   ];
 
+  // const dataList = [
+  //   {
+  //     value: 'APP',
+  //     label: 'APP',
+  //   }
+  // ];
+
+  // watch(modelValue, () => {
+  //   if (/{$/.test(modelValue.value)) {
+  //     selectRef.value.showPopover();
+  //   }
+  // })
+
+  // const handleSelect = (value: string) => {
+  //   modelValue.value = `${modelValue.value}${value}}`;
+  // }
+
   defineExpose<Exposes>({
     getValue() {
-      return (editRef.value as InstanceType<typeof TableEditInput>).getValue().then(() => ({
+      return editRef.value!.getValue().then(() => ({
         target_db_pattern: modelValue.value,
       }));
     },

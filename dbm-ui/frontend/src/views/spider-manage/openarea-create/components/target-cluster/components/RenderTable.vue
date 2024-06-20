@@ -21,6 +21,7 @@
           {{ t('目标集群') }}
           <template #append>
             <span
+              v-bk-tooltips="t('批量选择集群')"
               class="batch-edit-btn"
               @click="handleShowBatchSelector">
               <DbIcon type="batch-host-select" />
@@ -54,6 +55,14 @@
           :required="false"
           :width="190">
           {{ t('授权 IP') }}
+          <template #append>
+            <span
+              v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+              class="batch-edit-btn"
+              @click="handleShowBatchChangeIp">
+              <DbIcon type="bulk-edit" />
+            </span>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
@@ -62,7 +71,6 @@
           {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
-
       <template #data>
         <slot />
       </template>
@@ -82,6 +90,7 @@
 
   interface Emits {
     (e: 'batchSelectCluster'): void;
+    (e: 'batchIpSelecter'): void;
     (e: 'batchEdit', varName: string, value: string[]): void;
   }
 
@@ -112,6 +121,10 @@
 
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
+  };
+
+  const handleShowBatchChangeIp = () => {
+    emits('batchIpSelecter');
   };
 </script>
 <style lang="less">

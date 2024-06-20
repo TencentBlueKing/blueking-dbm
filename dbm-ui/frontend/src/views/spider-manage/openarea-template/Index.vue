@@ -37,7 +37,9 @@
     remove,
   } from '@services/openarea';
 
-  import { useDebouncedRef } from '@hooks';
+  import { useDebouncedRef,useTicketCloneInfo  } from '@hooks';
+
+  import { TicketTypes } from '@common/const';
 
   import { messageSuccess } from '@utils';
 
@@ -45,9 +47,25 @@
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+  const serachKey = useDebouncedRef('');
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_OPEN_AREA,
+    onSuccess(cloneData) {
+      router.push({
+        name: 'spiderOpenareaCreate',
+        params: {
+          id: cloneData.id,
+        },
+        query: {
+          from: route.name as string
+        }
+      })
+    },
+  });
 
   const tableRef = ref();
-  const serachKey = useDebouncedRef('');
 
   const tableColumns = [
     {

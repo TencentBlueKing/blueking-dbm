@@ -49,6 +49,7 @@ export interface PermissionRulesParams {
   limit?: number;
   offset?: number;
   bk_biz_id: number;
+  rule_ids?: string;
   user?: string;
   access_db?: string;
   privilege?: string;

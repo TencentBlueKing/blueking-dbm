@@ -29,11 +29,11 @@ export const create = function (params: {
   config_name: string;
   config_rules: {
     data_tblist: string[];
-    priv_data: number[];
     schema_tblist: string[];
     source_db: string;
     target_db_pattern: string;
   }[];
+  related_authorize: number[];
   source_cluster_id: number;
   cluster_type?: string;
 }) {
@@ -97,11 +97,11 @@ export const update = function (params: {
   config_name: string;
   config_rules: {
     data_tblist: string[];
-    priv_data: number[];
     schema_tblist: string[];
     source_db: string;
     target_db_pattern: string;
   }[];
+  related_authorize: number[];
   source_cluster_id: number;
   cluster_type?: string;
 }) {

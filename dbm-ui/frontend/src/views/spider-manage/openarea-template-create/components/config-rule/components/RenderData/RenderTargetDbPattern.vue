@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="modelValue"
-      :placeholder="t('可使用全局变量，如_test', { var: '{test}'})"
+      :placeholder="t('支持使用 { } 占位，如db_{id} , id在执行开区时传入', { x: '{ }', y: '{id}' })"
       :rules="rules" />
   </div>
 </template>
@@ -42,7 +42,7 @@
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('目标集群不能为空'),
+      message: t('不能为空'),
     },
   ];
 

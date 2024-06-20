@@ -32,6 +32,7 @@ export default class Opeanarea {
     tendb_openarea_config_destroy: boolean;
     tendb_openarea_config_update: boolean;
   };
+  related_authorize: number[];
   source_cluster: {
     bk_cloud_id: number;
     cluster_type: string;
@@ -54,6 +55,7 @@ export default class Opeanarea {
     this.creator = payload.creator;
     this.id = payload.id;
     this.permission = payload.permission || {};
+    this.related_authorize = payload.related_authorize || [];
     this.source_cluster = payload.source_cluster || {};
     this.source_cluster_id = payload.source_cluster_id;
     this.update_at = payload.update_at;

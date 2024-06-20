@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { MysqlOpenAreaDetails } from '@services/model/ticket/details/mysql';
@@ -45,25 +46,30 @@
     return results;
   }, {} as Record<string, MysqlOpenAreaDetails['rules_set'][number]>);
 
-  const tableData = props.ticketDetails.details.config_data.map((item) => {
+  const tableData = computed(() => _.flatMap(props.ticketDetails.details.config_data.map((item) => {
     const clusterName = clustersMap[item.cluster_id].immute_domain;
-    return ({
+    return item.execute_objects.map(executeObject => ({
       targetCluster: clusterName,
-      newDb: item.execute_objects[0].target_db,
-      tbStruct: item.execute_objects[0].schema_tblist,
-      tbData: item.execute_objects[0].data_tblist,
-      ips: rulesSetMap[clusterName].source_ips,
-      rules: rulesSetMap[clusterName].account_rules.map(item => item.dbname),
-    });
-  });
+      newDb: executeObject.target_db,
+      tbStruct: executeObject.schema_tblist,
+      tbData: executeObject.data_tblist,
+      ips: rulesSetMap[clusterName]?.source_ips ?? [],
+      rules: rulesSetMap[clusterName]?.account_rules.map(item => item.dbname) ?? [],
+    }))
+  })));
 
   const { t } = useI18n();
 
-  const columns = [
+  const columns = computed(() => [
     {
       label: t('目标集群'),
       minWidth: 150,
       width: 200,
+      rowspan: ({ row }: { row: RowData }) => {
+        const { targetCluster } = row;
+        const rowSpan = tableData.value.filter(item => item.targetCluster === targetCluster).length;
+        return rowSpan > 1 ? rowSpan : 1;
+      },
       field: 'targetCluster',
     },
     {
@@ -109,5 +115,5 @@
         </span>
       ),
     },
-  ];
+  ]);
 </script>
