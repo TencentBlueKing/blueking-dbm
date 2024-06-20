@@ -8,22 +8,23 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"bk-dnsapi/pkg/logger"
+
 	"github.com/gin-gonic/gin"
-	"github.com/go-mesh/openlogging"
 )
 
 // GetDns 查询dns记录
 func (h *Handler) GetDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
 			SendResponse(c,
 				fmt.Errorf("panic error:%v", r),
 				Data{})
 		}
 	}()
 
-	openlogging.Info("get dns query begin")
+	logger.Info("get dns query begin")
 	app := tools.TransZeroStrings(c.QueryArray("app"))
 	insList := tools.TransZeroStrings(c.QueryArray("ip"))
 	domainName := tools.TransZeroStrings(c.QueryArray("domain_name"))
@@ -84,7 +85,7 @@ func (h *Handler) GetDns(c *gin.Context) {
 	if len(columns) == 0 {
 		columns = new(entity.TbDnsBase).Columns()
 	}
-	openlogging.Info(fmt.Sprintf("query exec. params[%+v], columns[%+v]", params, columns))
+	logger.Info(fmt.Sprintf("query exec. params[%+v], columns[%+v]", params, columns))
 	rs, err := domain.DnsDomainResource().Get(params, columns)
 	if err != nil {
 		SendResponse(c, err, Data{})
@@ -102,7 +103,7 @@ func (h *Handler) GetDns(c *gin.Context) {
 func (h *Handler) GetAllDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
 			SendResponse(c,
 				fmt.Errorf("panic error:%v", r),
 				Data{})
@@ -111,7 +112,7 @@ func (h *Handler) GetAllDns(c *gin.Context) {
 
 	bkCloudId := tools.TransZeroString(c.Query("bk_cloud_id"))
 	columns := []string{"ip", "domain_name"}
-	openlogging.Info(fmt.Sprintf("get all dns  query begin. bk_cloud_id is %v", bkCloudId))
+	logger.Info(fmt.Sprintf("get all dns  query begin. bk_cloud_id is %v", bkCloudId))
 
 	params := make(map[string]interface{})
 	params["bk_cloud_id"] = bkCloudId
@@ -130,7 +131,7 @@ func (h *Handler) GetAllDns(c *gin.Context) {
 func (h *Handler) GetAllConfig(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
 			SendResponse(c,
 				fmt.Errorf("panic error:%v", r),
 				Data{})
