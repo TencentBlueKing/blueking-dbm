@@ -221,7 +221,9 @@ def rollback_remote_and_time(root_id: str, ticket_data: dict, cluster_info: dict
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
     )
-    return sub_pipeline.build_sub_process(sub_name=_("{}定点回滚数据 REMOTE_AND_TIME ".format(cluster_info["rollback_ip"])))
+    return sub_pipeline.build_sub_process(
+        sub_name=_("{}:{}定点回滚数据 REMOTE_AND_TIME ".format(cluster_info["rollback_ip"], cluster_info["rollback_port"]))
+    )
 
 
 def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: dict):
@@ -267,7 +269,9 @@ def rollback_remote_and_backupid(root_id: str, ticket_data: dict, cluster_info: 
         write_payload_var="change_master_info",
     )
     return sub_pipeline.build_sub_process(
-        sub_name=_("{}定点回滚数据 REMOTE_AND_BACKUPID ".format(cluster_info["rollback_ip"]))
+        sub_name=_(
+            "{}:{}定点回滚数据 REMOTE_AND_BACKUPID ".format(cluster_info["rollback_ip"], cluster_info["rollback_port"])
+        )
     )
 
 
@@ -314,5 +318,7 @@ def rollback_local_and_backupid(root_id: str, ticket_data: dict, cluster_info: d
         write_payload_var="change_master_info",
     )
     return sub_pipeline.build_sub_process(
-        sub_name=_("{}定点回滚数据 LOCAL_AND_BACKUPID ".format(cluster_info["rollback_ip"]))
+        sub_name=_(
+            "{}:{}定点回滚数据 LOCAL_AND_BACKUPID ".format(cluster_info["rollback_ip"], cluster_info["rollback_port"])
+        )
     )

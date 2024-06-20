@@ -279,7 +279,9 @@ class TendbClusterMigrateRemoteFlow(object):
                         )
                     ),
                 )
-                sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
+                sync_data_sub_pipeline_list.append(
+                    sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复分片{}数据".format(shard_id)))
+                )
 
             # 阶段4 切换remotedb
             switch_sub_pipeline_list = []
