@@ -125,6 +125,7 @@ from backend.flow.views.mysql_restore_local_slave import RestoreMysqlLocalSlaveS
 from backend.flow.views.mysql_restore_slave import RestoreMysqlSlaveSceneApiView
 from backend.flow.views.mysql_restore_slave_remote import RestoreMysqlSlaveRemoteSceneApiView
 from backend.flow.views.mysql_rollback_data import MysqlRollbackDataSceneApiView
+from backend.flow.views.mysql_rollback_to_cluster import MysqlRollbackToClusterSceneApiView
 from backend.flow.views.mysql_single_apply import InstallMySQLSingleSceneApiView
 from backend.flow.views.mysql_single_destroy import (
     DestroyMySQLSingleSceneApiView,
@@ -386,6 +387,7 @@ urlpatterns = [
     url(r"^scene/migrate_cluster_remote$", MysqlMigrateRemoteSceneApiView.as_view()),
     url(r"^scene/migrate_cluster$", MigrateMysqlClusterSceneApiView.as_view()),
     url(r"^scene/mysql_rollback_data", MysqlRollbackDataSceneApiView.as_view()),
+    url(r"^scene/mysql_rollback_to_cluster", MysqlRollbackToClusterSceneApiView.as_view()),
     url(r"^scene/install_es$", InstallEsSceneApiView.as_view()),
     url(r"^scene/redis_keys_delete$", RedisKeysDeleteSceneApiView.as_view()),
     url(r"^scene/disable_mysql_ha$", DisableMySQLHASceneApiView.as_view()),
