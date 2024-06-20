@@ -38,9 +38,10 @@ func FilterMigratePriv(appWhere string, exclude *[]AppUser) ([]string, []string,
 		}
 		if !excludeFlag {
 			suid := strconv.Itoa(module.Uid)
-			uids = append(uids, suid)
-			// gcs spider_master 、spider_slave 的帐号规则不被添加到dbm tendbha的帐号规则中
-			if module.DbModule != "spider_master" && module.DbModule != "spider_slave" {
+			// gcs DbModule包含spider的帐号规则迁移到tendbcluster，否则添加到dbm tendbha的帐号规则中
+			if strings.Contains(module.DbModule, "spider") {
+				uids = append(uids, suid)
+			} else {
 				mysqlUids = append(mysqlUids, suid)
 			}
 		} else {
@@ -164,7 +165,7 @@ func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType strin
 }
 
 // CheckAndGetPassword 检查以及获取密码
-func CheckAndGetPassword(key, appWhere, sap string, exclude *[]AppUser) ([]PrivModule, []string) {
+func CheckAndGetPassword(key, appWhere, sap string, exclude *[]AppUser, dbmodule string) ([]PrivModule, []string) {
 	users := make([]*PrivModule, 0)
 	var errMsg []string
 	var migrateUsers []PrivModule
@@ -173,7 +174,7 @@ func CheckAndGetPassword(key, appWhere, sap string, exclude *[]AppUser) ([]PrivM
 		Psw string `gorm:"column:psw;not_null" json:"psw"`
 	}
 	vsql := fmt.Sprintf("select app,user,AES_DECRYPT(psw,'%s') as psw"+
-		" from tb_app_priv_module where app in (%s) ", key, appWhere)
+		" from tb_app_priv_module where app in (%s) and db_module %s", key, appWhere, dbmodule)
 	if len(*exclude) > 0 {
 		var where string
 		for _, ex := range *exclude {
@@ -283,17 +284,18 @@ func CheckAndGetPassword(key, appWhere, sap string, exclude *[]AppUser) ([]PrivM
 		*exclude = append(*exclude, diffentPassword...)
 	}
 	if len(wrongSapPassword) > 0 {
-		errMsg = append(errMsg, fmt.Sprintf("sap账号密码错误:%v", diffentPassword))
+		errMsg = append(errMsg, fmt.Sprintf("sap账号密码错误:%v", wrongSapPassword))
 		*exclude = append(*exclude, wrongSapPassword...)
 	}
 	return migrateUsers, errMsg
 }
 
 // CheckDifferentPrivileges 同账号有不同的权限范围
-func CheckDifferentPrivileges(appWhere string) []string {
+func CheckDifferentPrivileges(appWhere string, dbmodule string) []string {
 	var errMsg []string
 	vsql := fmt.Sprintf("select app,user,dbname,count(distinct(privileges)) as cnt "+
-		" from tb_app_priv_module where app in (%s) group by app,user,dbname order by 1,2,3", appWhere)
+		" from tb_app_priv_module where app in (%s) and db_module %s group by app,user,dbname order by 1,2,3",
+		appWhere, dbmodule)
 	count := make([]*Count, 0)
 	err := GcsDb.Self.Debug().Raw(vsql).Scan(&count).Error
 	if err != nil {
@@ -320,11 +322,11 @@ func CheckDifferentPrivileges(appWhere string) []string {
 }
 
 // CheckPrivilegesFormat 检查权限格式
-func CheckPrivilegesFormat(appWhere string, exclude *[]AppUser) []string {
+func CheckPrivilegesFormat(appWhere string, exclude *[]AppUser, dbmodule string) []string {
 	var errMsg []string
 	UniqMap := make(map[string]struct{})
 	vsql := fmt.Sprintf("select uid,app,user,dbname,privileges "+
-		" from tb_app_priv_module where app in (%s)", appWhere)
+		" from tb_app_priv_module where app in (%s) and db_module %s ", appWhere, dbmodule)
 	rules := make([]*PrivModule, 0)
 	err := GcsDb.Self.Debug().Raw(vsql).Scan(&rules).Error
 	if err != nil {
