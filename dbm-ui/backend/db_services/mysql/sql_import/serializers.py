@@ -46,7 +46,7 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         for file in attrs.get("sql_files", []):
             if file.size > MAX_UPLOAD_SQL_FILE_SIZE:
                 raise ValidationError(_("请保证单个文件{}不超过1G").fromat(file.name))
-            if file.name.rsplit(".")[-1] != "sql":
+            if file.name.rsplit(".")[-1].lower() != "sql":
                 raise ValidationError(_("请保证sql文件[{}]的后缀为.sql").format(file.name))
 
         return attrs
