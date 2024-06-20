@@ -35,7 +35,6 @@ const withBizActionList = [
   'tendbcluster_partition_create',
   'tendbcluster_partition_delete',
   'tendbcluster_partition_update',
-  'tendbcluster_partition_create',
   'tendb_partition_enable_disable',
   'tendbcluster_partition',
   'redis_cluster_apply',
@@ -62,6 +61,9 @@ const withBizActionList = [
   'admin_pwd_view',
   'riak_cluster_apply',
   'monitor_policy_clone',
+  'mongodb_apply',
+  'mongodb_account_create',
+  'mongodb_account_rules_view',
 ];
 
 export default function (props: Props) {

@@ -195,12 +195,15 @@
         render: ({ data }: { data: MongodbInstanceModel }) => (
           <div style="display: flex; align-items: center;">
             <div class="text-overflow" v-overflow-tips>
-              <bk-button
+              <auth-button
+                action-id="mongodb_view"
+                resource={data.id}
+                permission={data.permission.mongodb_view}
                 text
                 theme="primary"
                 onClick={ () => handleToDetails(data) }>
                   { data.instance_address }
-              </bk-button>
+              </auth-button>
             </div>
             {
               data.isRebooting && (

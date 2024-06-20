@@ -146,12 +146,15 @@
                   data-text="NEW" />
               )
             }
-            <bk-button
+            <auth-button
+              action-id="mongodb_add_account_rule"
+              permission={data.permission.mongodb_add_account_rule}
+              resource={data.account.account_id}
               class="add-rule-button ml-6"
               size="small"
               onClick={ (event: Event) => handleShowCreateRule(data, event) }>
               { t('添加授权规则') }
-            </bk-button>
+            </auth-button>
           </div>
         </div>
       ),
@@ -165,13 +168,16 @@
           return (
             <div class="mongo-permission-cell">
               <span>{ t('暂无规则') }，</span>
-              <bk-button
+              <auth-button
+                action-id="mongodb_add_account_rule"
+                permission={data.permission.mongodb_add_account_rule}
+                resource={data.account.account_id}
                 theme="primary"
                 size="small"
                 text
                 onClick={ (event: Event) => handleShowCreateRule(data, event) }>
                 { t('立即新建') }
-              </bk-button>
+              </auth-button>
             </div>
           );
         }
@@ -216,12 +222,15 @@
         if (data.rules.length === 0) {
           return (
             <div class="mongo-permission-cell">
-              <bk-button
+              <auth-button
                 theme="primary"
                 text
+                action-id="mongodb_account_delete"
+                permission={data.permission.mongodb_account_delete}
+                resource={data.account.account_id}
                 onClick={ () => handleDeleteAccount(data) }>
                 { t('删除账号') }
-              </bk-button>
+              </auth-button>
             </div>
           );
         }

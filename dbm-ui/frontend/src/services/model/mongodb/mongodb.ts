@@ -124,6 +124,9 @@ export default class Mongodb {
   };
   update_at: string;
   updater: string;
+  permission: {
+    mongodb_view: boolean;
+  };
 
   constructor(payload = {} as Mongodb) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -165,6 +168,7 @@ export default class Mongodb {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
+    this.permission = payload.permission;
   }
 
   get isOnline() {
