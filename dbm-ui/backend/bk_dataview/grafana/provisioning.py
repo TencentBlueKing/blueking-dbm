@@ -18,6 +18,8 @@ from typing import Dict, List, Optional
 
 import yaml
 
+from backend import env
+from backend.components import BKLogApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 
@@ -95,6 +97,14 @@ class SimpleProvisioning(BaseProvisioning):
         """固定目录下的json文件, 自动注入"""
 
         bkm_dbm_report = SystemSettings.get_setting_value(key=SystemSettingsEnum.BKM_DBM_REPORT.value)
+        index_set = BKLogApi.search_index_set({"space_uid": f"bkcc__{env.DBA_APP_BK_BIZ_ID}"})
+        mysql_slow_log_index_set_id = 0
+        redis_slow_log_index_set_id = 0
+        for index in index_set:
+            if "mysql_slowlog" in index["index_set_name"]:
+                mysql_slow_log_index_set_id = index["index_set_id"]
+            if "redis_slowlog" in index["index_set_name"]:
+                redis_slow_log_index_set_id = index["index_set_id"]
 
         with os_env(ORG_NAME=org_name, ORG_ID=org_id):
             for suffix in self.file_suffix:
@@ -113,11 +123,27 @@ class SimpleProvisioning(BaseProvisioning):
                                 file_content = file_content.replace(
                                     "{metric_data_id}", str(bkm_dbm_report["metric"]["data_id"])
                                 )
+                                file_content = file_content.replace("{BK_SAAS_HOST}", env.BK_SAAS_HOST)
                                 try:
                                     dashboard = json.loads(file_content)
                                 except JSONDecodeError as err:
                                     logger.error(f"Failed to load {os.path.basename(path)}")
                                     raise err
+
+                                # 慢查询特殊处理，补充索引集ID
+                                if "mysql-slowlog.json" in path:
+                                    for panel_index, panel in enumerate(dashboard["panels"]):
+                                        for target_index, target in enumerate(panel["targets"]):
+                                            dashboard["panels"][panel_index]["targets"][target_index]["data"]["index"][
+                                                "id"
+                                            ].append(mysql_slow_log_index_set_id)
+                                if "postgres-slowlog.json" in path:
+                                    for panel_index, panel in enumerate(dashboard["panels"]):
+                                        for target_index, target in enumerate(panel["targets"]):
+                                            dashboard["panels"][panel_index]["targets"][target_index]["data"]["index"][
+                                                "id"
+                                            ].append(redis_slow_log_index_set_id)
+
                                 title = dashboard.get("title")
                                 if not title:
                                     continue
