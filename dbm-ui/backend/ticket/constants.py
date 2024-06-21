@@ -605,6 +605,6 @@ class OperateNodeActionType(str, StructuredEnum):
     TERMINATE = EnumField("TERMINATE", _("终止节点和单据"))
 
 
-class ItsmGetTicketInfoFieldNameFieldEnum(str, StructuredEnum):
-    ApprovalOption = EnumField("ApprovalOption", _("审批意见"))
-    Remark = EnumField("Remark", _("备注"))
+class ItsmTicketNodeEnum(str, StructuredEnum):
+    ApprovalOption = EnumField("审批意见", "审批意见")
+    Remark = EnumField("备注", "备注")

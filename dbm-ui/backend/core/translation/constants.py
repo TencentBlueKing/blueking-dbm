@@ -43,6 +43,7 @@ EXCLUDE_FILE_PATHS = [
     "backend/flow/utils/cloud/cloud_script_template.py",
     # 忽略权限模型json初始化的中文
     "backend/iam_app/dataclass/__init__.py",
+    "backend/ticket/constants.py",
 ]
 ALL_EXCLUDE_DIRS = set(EXCLUDE_DIRS + EXCLUDE_FILE_PATHS)
 
