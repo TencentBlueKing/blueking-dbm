@@ -9,17 +9,11 @@
  * Unless required by applicable law or agreed to in writing; software distributed under the License is distributed
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  clusterInstStatus,
-  ClusterInstStatusKeys,
-} from '@common/const';
+import { clusterInstStatus, ClusterInstStatusKeys } from '@common/const';
 
-import {
-  isRecentDays,
-  utcDisplayTime,
-} from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 import type { HostDetails } from '../../types';
 
@@ -37,6 +31,9 @@ export default class SqlServerHaInstance {
   instance_address: string;
   ip: string;
   master_domain: string;
+  permission: {
+    sqlserver_view: boolean;
+  };
   port: number;
   related_clusters?: {
     alias: string;
@@ -52,13 +49,13 @@ export default class SqlServerHaInstance {
     phase: string;
     region: string;
     status: string;
-    time_zone: string
+    time_zone: string;
     updater: string;
   }[];
   role: string;
   slave_domain: string;
   spec_config: {
-    id: number
+    id: number;
   };
   status: ClusterInstStatusKeys;
   version: string;
@@ -77,6 +74,7 @@ export default class SqlServerHaInstance {
     this.instance_address = payload.instance_address;
     this.ip = payload.ip;
     this.master_domain = payload.master_domain;
+    this.permission = payload.permission;
     this.port = payload.port;
     this.related_clusters = payload.related_clusters;
     this.role = payload.role;

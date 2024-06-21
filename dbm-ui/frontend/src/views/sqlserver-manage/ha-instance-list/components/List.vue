@@ -168,12 +168,15 @@
           <TextOverflowLayout>
             {{
               default: () => (
-                <bk-button
+                <auth-button
+                  action-id="sqlserver_view"
+                  resource={data.id}
+                  permission={data.permission.sqlserver_view}
                   text
                   theme="primary"
                   onClick={() => handleToDetails(data)}>
                   {data.instance_address}
-                </bk-button>
+                </auth-button>
               ),
               append: () => (
                 <>
@@ -302,12 +305,15 @@
         fixed: 'right',
         width: 140,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
-          <bk-button
+          <auth-button
+            action-id="sqlserver_view"
+            resource={data.id}
+            permission={data.permission.sqlserver_view}
             theme="primary"
             text
             onClick={() => handleToDetails(data)}>
             { t('查看详情') }
-          </bk-button>
+          </auth-button>
         ),
       },
     ];

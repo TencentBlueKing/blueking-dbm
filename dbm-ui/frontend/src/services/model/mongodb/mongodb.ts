@@ -109,6 +109,9 @@ export default class Mongodb {
     ticket_type: string;
     title: string;
   }[];
+  permission: {
+    mongodb_view: boolean;
+  };
   phase: string;
   phase_name: string;
   region: string;
@@ -124,9 +127,6 @@ export default class Mongodb {
   };
   update_at: string;
   updater: string;
-  permission: {
-    mongodb_view: boolean;
-  };
 
   constructor(payload = {} as Mongodb) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -156,6 +156,7 @@ export default class Mongodb {
     this.mongodb = payload.mongodb;
     this.mongos = payload.mongos;
     this.operations = payload.operations;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;
@@ -168,7 +169,6 @@ export default class Mongodb {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-    this.permission = payload.permission;
   }
 
   get isOnline() {

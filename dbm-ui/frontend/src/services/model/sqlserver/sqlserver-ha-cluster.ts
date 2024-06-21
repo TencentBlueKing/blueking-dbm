@@ -77,6 +77,9 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    sqlserver_view: boolean;
+  };
   phase: string;
   phase_name: string;
   region: string;
@@ -106,6 +109,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     this.master_domain = payload.master_domain;
     this.masters = payload.masters;
     this.operations = payload.operations;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;
