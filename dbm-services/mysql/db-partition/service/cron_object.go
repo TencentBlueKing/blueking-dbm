@@ -57,3 +57,9 @@ type SpiderNode struct {
 	Wrapper    string `json:"wrapper"`
 	ServerName string `json:"server_name"`
 }
+
+type CheckSummary struct {
+	BkBizId   int    `json:"bk_biz_id" gorm:"column:bk_biz_id"`
+	DbAppAbbr string `json:"db_app_abbr" gorm:"column:db_app_abbr"`
+	Cnt       int    `json:"cnt" gorm:"column:cnt"`
+}

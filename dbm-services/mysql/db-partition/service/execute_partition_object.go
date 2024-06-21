@@ -82,7 +82,7 @@ type Detail struct {
 
 // Info 用于创建单据
 type Info struct {
-	BkCloudId int64  `json:"bk_cloud_id"`
+	BkCloudId int    `json:"bk_cloud_id"`
 	Ip        string `json:"ip"`
 	FileName  string `json:"file_name"`
 }
