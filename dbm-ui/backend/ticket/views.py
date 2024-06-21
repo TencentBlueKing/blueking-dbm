@@ -25,23 +25,35 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.configuration.models import DBAdministrator
+from backend.components import ItsmApi
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission, ResourceActionPermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
-from backend.iam_app.handlers.drf_perm.ticket import create_ticket_permission
+from backend.iam_app.handlers.drf_perm.ticket import BatchApprovalPermission, create_ticket_permission
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
-from backend.ticket.constants import DONE_STATUS, CountType, TicketStatus, TicketType, TodoStatus
+from backend.ticket.constants import (
+    DONE_STATUS,
+    CountType,
+    ItsmTicketNodeEnum,
+    OperateNodeActionType,
+    TicketInfoActionType,
+    TicketStatus,
+    TicketType,
+    TodoStatus,
+)
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.serializers import (
+    BatchApprovalSerializer,
     ClusterModifyOpSerializer,
     CountTicketSLZ,
     FastCreateCloudComponentSerializer,
@@ -62,6 +74,7 @@ from backend.ticket.serializers import (
     UpdateTicketFlowConfigSerializer,
 )
 from backend.ticket.todos import TodoActorFactory
+from backend.utils.batch_request import request_multi_thread
 
 TICKET_TAG = "ticket"
 
@@ -86,6 +99,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 创建单据，关联单据类型的动作
         if self.action == "create":
             return create_ticket_permission(self.request.data["ticket_type"])
+        if self.action == "batch_approval":
+            return [BatchApprovalPermission()]
         # 创建敏感单据，只允许通过jwt校验的用户访问(warning: 这个网关接口授权需谨慎)
         if self.action == "create_sensitive_ticket":
             permission_class = [] if self.request.is_bk_jwt() else [RejectPermission()]
@@ -590,3 +605,69 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         bk_biz_id = validated_data["bk_biz_id"]
         TicketHandler.fast_create_cloud_component_method(bk_biz_id, bk_cloud_id, ips, request.user.username)
         return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量审批"),
+        request_body=BatchApprovalSerializer(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=BatchApprovalSerializer)
+    def batch_approval(self, request, *args, **kwargs):
+        """
+        sns: 单号集合
+        is_approved: 是否审批通过
+        """
+        validated_data = self.params_validate(self.get_serializer_class())
+        ticket_ids = validated_data["ticket_ids"]
+        sns = Flow.objects.filter(ticket_id__in=ticket_ids, flow_type="BK_ITSM").values_list("flow_obj_id", flat=True)
+        is_approved = validated_data["is_approved"]
+        operator = request.user.username
+
+        # 预先获取审批接口的field的审批意见和备注的key
+        approval_result_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY)
+        remark_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY)
+
+        if not approval_result_key or not remark_key:
+            # 获取任意一个ticket的信息来初始化key
+            sample_sn = sns[0]
+            ticket_info_response = ItsmApi.get_ticket_info(params={"sn": sample_sn})
+            fields = ticket_info_response["fields"]
+            for field in fields:
+                if field["name"] == ItsmTicketNodeEnum.ApprovalOption.value:
+                    approval_result_key = field["key"]
+                    SystemSettings.insert_setting_value(
+                        key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY, value=approval_result_key
+                    )
+                if field["name"] == ItsmTicketNodeEnum.Remark.value:
+                    remark_key = field["key"]
+                    SystemSettings.insert_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY, value=remark_key)
+
+        def process_ticket(sn):
+            ticket_info_response = ItsmApi.get_ticket_info(params={"sn": sn})
+            current_step = ticket_info_response["current_steps"][0]
+
+            if current_step["action_type"] == TicketInfoActionType.TRANSITION:
+                state_id = current_step["state_id"]
+                ItsmApi.operate_node(
+                    params={
+                        "sn": sn,
+                        "state_id": state_id,
+                        "action_type": OperateNodeActionType.TRANSITION.value,
+                        "operator": operator,
+                        "fields": [
+                            {"key": approval_result_key, "value": "true"},
+                            {"key": remark_key, "value": is_approved},
+                        ],
+                    }
+                )
+            else:
+                raise ValueError(_("单号{}的action_type不是审批类型").format(sn))
+
+        def request_func(**params):
+            sn = params["sn"]
+            process_ticket(sn)
+            return {"sn": sn, "result": "success"}
+
+        params_list = [{"sn": sn, "approve_action": is_approved} for sn in sns]
+        results = request_multi_thread(request_func, params_list, get_data=lambda x: x, in_order=True)
+        return Response({"result": results})
