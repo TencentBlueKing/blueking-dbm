@@ -11,11 +11,16 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.constants import DBType
+
 
 class CheckInstancesSLZ(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     instance_addresses = serializers.ListField(
         help_text=_("实例地址列表"), child=serializers.CharField(help_text=_("实例地址(ip:port)"), required=True)
     )
+    # 加速查询
+    db_type = serializers.ChoiceField(help_text=_("实例所属组件类型"), required=False, choices=DBType.get_choices())
     cluster_ids = serializers.ListField(
         help_text=_("实例所在的集群列表"), child=serializers.IntegerField(), required=False, default=[]
     )

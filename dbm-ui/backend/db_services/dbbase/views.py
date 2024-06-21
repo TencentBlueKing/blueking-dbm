@@ -136,14 +136,13 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         responses={status.HTTP_200_OK: CheckInstancesResSLZ()},
     )
     @action(methods=["POST"], detail=False, serializer_class=CheckInstancesSLZ)
-    def check_instances(self, request, bk_biz_id):
-        validated_data = self.params_validate(self.get_serializer_class())
-        db_type = request.stream.path.split("/")[2]
+    def check_instances(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
         return Response(
-            InstanceHandler(bk_biz_id=bk_biz_id).check_instances(
-                query_instances=validated_data["instance_addresses"],
-                cluster_ids=validated_data["cluster_ids"],
-                db_type=db_type,
+            InstanceHandler(bk_biz_id=data["bk_biz_id"]).check_instances(
+                query_instances=data["instance_addresses"],
+                cluster_ids=data.get("cluster_ids"),
+                db_type=data.get("db_type"),
             )
         )
 
