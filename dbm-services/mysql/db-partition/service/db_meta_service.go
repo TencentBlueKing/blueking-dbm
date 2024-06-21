@@ -99,7 +99,7 @@ type Instance struct {
 	DbModuleId   int64     `json:"db_module_id"`
 	BindTo       string    `json:"bind_to"`
 	EntryRole    string    `json:"entry_role"`
-	BkCloudId    int64     `json:"bk_cloud_id"`
+	BkCloudId    int       `json:"bk_cloud_id"`
 	ImmuteDomain string    `json:"immute_domain"`
 }
 
@@ -128,7 +128,7 @@ type Cluster struct {
 	Storages     []Storage `json:"storages"`
 	ClusterType  string    `json:"cluster_type"`
 	ImmuteDomain string    `json:"immute_domain"`
-	BkCloudId    int64     `json:"bk_cloud_id"`
+	BkCloudId    int       `json:"bk_cloud_id"`
 }
 
 // BkBizId 业务 id，QueryAccountRule、GetAllClustersInfo 函数的入参
@@ -148,7 +148,7 @@ type Biz struct {
 type DownloadPara struct {
 	TicketType string   `json:"ticket_type"`
 	BkBizId    int64    `json:"bk_biz_id"`
-	BkCloudId  int64    `json:"bk_cloud_id"`
+	BkCloudId  int      `json:"bk_cloud_id"`
 	DbType     string   `json:"db_type"`
 	Ips        []string `json:"ips"`
 	CreatedBy  string   `json:"created_by"`
@@ -163,7 +163,7 @@ type DownloadPartitionPara struct {
 }
 
 // DownloadDbactor 下载dbactor
-func DownloadDbactor(bkCloudId int64, ips []string) error {
+func DownloadDbactor(bkCloudId int, ips []string) error {
 	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	url := "/apis/v1/flow/scene/download_dbactor"
 	_, err := c.Do(http.MethodPost, url, DownloadPara{TicketType: "download_dbactor",

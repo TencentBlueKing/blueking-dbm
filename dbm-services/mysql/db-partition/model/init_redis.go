@@ -18,7 +18,8 @@ func InitClient() (err error) {
 		Password: viper.GetString("redis.password"),
 		DB:       0,
 	})
-
+	slog.Info("redis info", "host", viper.GetString("redis.host"),
+		"port", viper.GetInt("redis.port"))
 	_, err = rdb.Ping().Result()
 	if err != nil {
 		slog.Error("redis db", "ping err", err)

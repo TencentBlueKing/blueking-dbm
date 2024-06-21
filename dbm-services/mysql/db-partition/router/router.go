@@ -33,4 +33,6 @@ func RegisterRouter(engine *gin.Engine) {
 	p.POST("/init_monitor", handler.InitMonitor)
 	// 迁移分区配置
 	p.POST("/migrate_config", handler.MigrateConfig)
+	// 巡检
+	p.POST("/check_log", handler.CheckLog)
 }
