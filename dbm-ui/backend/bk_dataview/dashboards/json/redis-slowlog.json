@@ -92,7 +92,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 4,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -522,7 +522,7 @@
         "x": 0,
         "y": 7
       },
-      "id": 5,
+      "id": null,
       "options": {
         "footer": {
           "fields": "",

@@ -37,7 +37,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 7,
+      "id": null,
       "panels": [
         {
           "datasource": {
@@ -100,7 +100,7 @@
             "x": 0,
             "y": 1
           },
-          "id": 56,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -243,7 +243,7 @@
             "x": 12,
             "y": 1
           },
-          "id": 58,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -386,7 +386,7 @@
             "x": 0,
             "y": 9
           },
-          "id": 60,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -585,7 +585,7 @@
             "x": 12,
             "y": 9
           },
-          "id": 68,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1193,7 +1193,7 @@
             "x": 0,
             "y": 17
           },
-          "id": 65,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1449,7 +1449,7 @@
             "x": 12,
             "y": 17
           },
-          "id": 63,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1648,7 +1648,7 @@
             "x": 0,
             "y": 25
           },
-          "id": 71,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1848,7 +1848,7 @@
             "x": 12,
             "y": 25
           },
-          "id": 66,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1943,7 +1943,7 @@
         "x": 0,
         "y": 1
       },
-      "id": 9,
+      "id": null,
       "panels": [],
       "title": "Redis",
       "type": "row"
@@ -1988,7 +1988,7 @@
         "x": 0,
         "y": 2
       },
-      "id": 73,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2111,7 +2111,7 @@
         "x": 3,
         "y": 2
       },
-      "id": 26,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2218,7 +2218,7 @@
         "x": 6,
         "y": 2
       },
-      "id": 28,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2337,7 +2337,7 @@
         "x": 9,
         "y": 2
       },
-      "id": 17,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2437,7 +2437,7 @@
         "x": 12,
         "y": 2
       },
-      "id": 86,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2555,7 +2555,7 @@
         "x": 15,
         "y": 2
       },
-      "id": 36,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2667,7 +2667,7 @@
         "x": 18,
         "y": 2
       },
-      "id": 72,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -2784,7 +2784,7 @@
         "x": 21,
         "y": 2
       },
-      "id": 37,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -2903,7 +2903,7 @@
         "x": 0,
         "y": 5
       },
-      "id": 84,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3016,7 +3016,7 @@
         "x": 3,
         "y": 5
       },
-      "id": 82,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3128,7 +3128,7 @@
         "x": 6,
         "y": 5
       },
-      "id": 35,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3251,7 +3251,7 @@
         "x": 9,
         "y": 5
       },
-      "id": 85,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3359,7 +3359,7 @@
         "x": 12,
         "y": 5
       },
-      "id": 74,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3517,7 +3517,7 @@
         "x": 15,
         "y": 5
       },
-      "id": 29,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3629,7 +3629,7 @@
         "x": 18,
         "y": 5
       },
-      "id": 75,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -3770,7 +3770,7 @@
         "x": 0,
         "y": 8
       },
-      "id": 51,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -3926,7 +3926,7 @@
         "x": 12,
         "y": 8
       },
-      "id": 5,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -4125,7 +4125,7 @@
         "x": 0,
         "y": 16
       },
-      "id": 49,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -4332,7 +4332,7 @@
         "x": 12,
         "y": 16
       },
-      "id": 40,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -4638,7 +4638,7 @@
         "x": 0,
         "y": 24
       },
-      "id": 81,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -4834,7 +4834,7 @@
         "x": 12,
         "y": 24
       },
-      "id": 46,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -5046,7 +5046,7 @@
         "x": 0,
         "y": 32
       },
-      "id": 50,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -5236,7 +5236,7 @@
         "x": 12,
         "y": 32
       },
-      "id": 52,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -5386,7 +5386,7 @@
         "x": 0,
         "y": 40
       },
-      "id": 47,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -5602,7 +5602,7 @@
         "x": 12,
         "y": 40
       },
-      "id": 83,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -5736,7 +5736,7 @@
         "x": 0,
         "y": 48
       },
-      "id": 79,
+      "id": null,
       "options": {
         "footer": {
           "fields": "",
@@ -6132,7 +6132,7 @@
         "x": 0,
         "y": 56
       },
-      "id": 80,
+      "id": null,
       "options": {
         "footer": {
           "fields": "",

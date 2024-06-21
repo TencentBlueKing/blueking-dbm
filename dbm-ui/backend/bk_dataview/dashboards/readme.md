@@ -51,6 +51,17 @@ find . -type f -name "*.json" -exec sed -i '' -e 's#bkmonitor:system:#bkmonitor:
 find . -type f -name "*.json" -exec sed -i '' -e 's#"result_table_id": "system.#"result_table_id": "dbm_system.#g' {} \;
 ```
 
+# 批量替换 id 为 null: 「"id": 123,」 -> 「"id": null,」
+```
+find . -type f -name "*.json" -exec sed -i '' -e 's#"id": [0-9]*,#"id": null,#g' {} \;
+```
+
+# 这里按需隐藏变量，不暴露所有变量
+templating.list.hide 设置为 2，这里一般把 需暴露
+
+# 替换 datasource 为 bkmonitor_timeseries 或者 bklog
+
+
 # 导入监控的方法，还原模板后导入
 ```
 find . -type f -name "*.json" -exec sed -i '' -e 's#bkmonitor_timeseries#${DS_蓝鲸监控_-_指标数据}#g' {} \;
