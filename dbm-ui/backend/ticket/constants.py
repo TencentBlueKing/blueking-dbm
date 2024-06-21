@@ -606,5 +606,5 @@ class OperateNodeActionType(str, StructuredEnum):
 
 
 class ItsmTicketNodeEnum(str, StructuredEnum):
-    ApprovalOption = EnumField("ApprovalOption", _("审批意见"))
-    Remark = EnumField("Remark", _("备注"))
+    ApprovalOption = EnumField("审批意见", "审批意见")
+    Remark = EnumField("备注", "备注")

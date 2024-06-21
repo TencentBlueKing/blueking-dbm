@@ -622,7 +622,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         sns = Flow.objects.filter(ticket_id__in=ticket_ids, flow_type="BK_ITSM").values_list("flow_obj_id", flat=True)
         is_approved = validated_data["is_approved"]
         operator = request.user.username
-
         # 预先获取审批接口的field的审批意见和备注的key
         approval_result_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY)
         remark_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY)
