@@ -213,8 +213,6 @@
   import { createAccountRule, getPermissionRules, preCheckAddAccountRule, queryAccountRules } from '@services/permission';
   import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
 
-  import { useStickyFooter  } from '@hooks';
-
   import { AccountTypes } from '@common/const';
 
   import { dbOperations, ddlSensitiveWords } from '../common/const';
@@ -312,9 +310,6 @@
   });
 
   watch(() => state.formdata.access_db, getTextareaHeight);
-
-  /** 设置底部按钮粘性布局 */
-  useStickyFooter(ruleRef);
 
   // const handleSelectAllPrivileges = (checked: boolean) => {
   //   checkAllPrivileges.value = checked;

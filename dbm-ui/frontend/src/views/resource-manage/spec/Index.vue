@@ -283,7 +283,7 @@
       children: [
         {
           label: t('Mongos规格'),
-          name: 'mongos',
+          name: 'mongodb',
         },
       ],
     },
