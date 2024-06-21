@@ -333,3 +333,8 @@ class FastCreateCloudComponentSerializer(serializers.Serializer):
 
 class ListTicketStatusSerializer(serializers.Serializer):
     ticket_ids = serializers.CharField(help_text=_("单据ID(逗号分割)"))
+
+
+class BatchApprovalSerializer(serializers.Serializer):
+    is_approved = serializers.CharField(help_text=_("是否通过"))
+    ticket_ids = serializers.ListField(help_text=_("单据id集合"))

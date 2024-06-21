@@ -98,3 +98,17 @@ class ItsmApiMock(object):
         ]
 
         return response_data["data"]
+
+    @classmethod
+    def get_ticket_info(cls, *args, **kwargs):
+        response_data = copy.deepcopy(cls.base_info)
+        response_data["data"] = {
+            "current_steps": [{"action_type": "TRANSITION", "state_id": 1}],
+            "fields": [{"name": "审批意见", "key": "111"}, {"name": "备注", "key": "222"}],
+        }
+        return response_data["data"]
+
+    @classmethod
+    def operate_node(cls, *args, **kwargs):
+        response_data = copy.deepcopy(cls.base_info)
+        return response_data
