@@ -133,7 +133,7 @@ from backend.flow.views.mysql_single_destroy import (
 )
 from backend.flow.views.mysql_single_rename_database import MySQLSingleRenameDatabaseView
 from backend.flow.views.mysql_single_truncate_data import MySQLSingleTruncateDataView
-from backend.flow.views.mysql_upgrade import UpgradeMySQLSceneApiView
+from backend.flow.views.mysql_upgrade import MigrateUpgradeMySQLSceneApiView, UpgradeMySQLSceneApiView
 from backend.flow.views.name_service import (
     ClbCreateSceneApiView,
     ClbDeleteSceneApiView,
@@ -324,6 +324,7 @@ urlpatterns = [
     # mysql upgrade
     url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),
     url(r"^scene/upgrade_mysql$", UpgradeMySQLSceneApiView.as_view()),
+    url(r"^scene/migrate_upgrade_mysql$", MigrateUpgradeMySQLSceneApiView.as_view()),
     # mysql
     url(r"^scene/dbconsole_dump$", DbConsoleDumpApiView.as_view()),
     url(r"^scene/install_mysql_apply$", InstallMySQLSingleSceneApiView.as_view()),

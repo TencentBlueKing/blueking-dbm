@@ -98,11 +98,13 @@ class MySQLMigrateClusterFlow(object):
             slave = cluster_class.storageinstance_set.filter(
                 instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
             ).first()
+            install_pkg_version = cluster_class.major_version
 
             # 如果是升级用途的话,需要改变module id
             db_module_id = cluster_class.db_module_id
             if use_for_upgrade:
-                db_module_id = self.data["new_db_module_id"]
+                db_module_id = info["new_db_module_id"]
+                install_pkg_version = info["new_mysql_version"]
 
             self.data["master_ip"] = master_model.machine.ip
             self.data["cluster_type"] = cluster_class.cluster_type
@@ -118,14 +120,8 @@ class MySQLMigrateClusterFlow(object):
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["uid"] = self.ticket_data["uid"]
             self.data["package"] = Package.get_latest_package(
-                version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+                version=install_pkg_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
             ).name
-
-            if use_for_upgrade:
-                new_major_version = self.data["new_mysql_version"]
-                self.data["package"] = Package.get_latest_package(
-                    version=new_major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
-                ).name
 
             self.data["ports"] = get_ports(info["cluster_ids"])
             self.data["force"] = info.get("force", False)
