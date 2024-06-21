@@ -40,7 +40,7 @@ from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMi
 from backend.ticket.constants import (
     DONE_STATUS,
     CountType,
-    ItsmGetTicketInfoFieldNameFieldEnum,
+    ItsmTicketNodeEnum,
     OperateNodeActionType,
     TicketInfoActionType,
     TicketStatus,
@@ -622,24 +622,28 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         sns = Flow.objects.filter(ticket_id__in=ticket_ids, flow_type="BK_ITSM").values_list("flow_obj_id", flat=True)
         is_approved = validated_data["is_approved"]
         operator = request.user.username
+        # 预先获取审批接口的field的审批意见和备注的key
+        approval_result_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY)
+        remark_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY)
+
+        if not approval_result_key or not remark_key:
+            # 获取任意一个ticket的信息来初始化key
+            sample_sn = sns[0]
+            ticket_info_response = ItsmApi.get_ticket_info(params={"sn": sample_sn})
+            fields = ticket_info_response["fields"]
+            for field in fields:
+                if field["name"] == ItsmTicketNodeEnum.ApprovalOption.value:
+                    approval_result_key = field["key"]
+                    SystemSettings.insert_setting_value(
+                        key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY, value=approval_result_key
+                    )
+                if field["name"] == ItsmTicketNodeEnum.Remark.value:
+                    remark_key = field["key"]
+                    SystemSettings.insert_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY, value=remark_key)
 
         def process_ticket(sn):
             ticket_info_response = ItsmApi.get_ticket_info(params={"sn": sn})
             current_step = ticket_info_response["current_steps"][0]
-            # 获取审批接口的field的审批意见和备注的key
-            approval_result_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY)
-            if not approval_result_key:
-                fields = ticket_info_response["fields"]
-                for field in fields:
-                    if field["name"] == ItsmGetTicketInfoFieldNameFieldEnum.ApprovalOption.value:
-                        SystemSettings.insert_setting_value(
-                            key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY, value=field["key"]
-                        )
-                    if field["name"] == ItsmGetTicketInfoFieldNameFieldEnum.Remark.value:
-                        # fields中有两个备注，而且只有第二个有用，所以不用break
-                        SystemSettings.insert_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY, value=field["key"])
-            approval_result_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY)
-            remark_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY)
 
             if current_step["action_type"] == TicketInfoActionType.TRANSITION:
                 state_id = current_step["state_id"]
