@@ -8,7 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 import re
+
+from backend.components.db_remote_service.client import DRSApi
+from backend.constants import IP_PORT_DIVIDER
+
+logger = logging.getLogger("flow")
 
 
 def mysql_version_parse(mysql_version: str) -> int:
@@ -55,3 +61,48 @@ def proxy_version_parse(proxy_version: str) -> int:
         total += int(single)
 
     return total
+
+
+def get_online_proxy_version(ip: str, port: int, bk_cloud_id: int):
+    """
+    在线获取proxy的版本
+    """
+    logger.info(f"param: {ip}:{port}")
+    body = {
+        "addresses": ["{}{}{}".format(ip, IP_PORT_DIVIDER, port)],
+        "cmds": ["select version"],
+        "force": False,
+        "bk_cloud_id": bk_cloud_id,
+    }
+
+    resp = DRSApi.proxyrpc(body)
+    logger.info(f"query version resp: {resp}")
+
+    if not resp or len(resp) == 0:
+        return ""
+
+    result = resp[0].get("version")
+    if len(result.split(" ")) >= 2:
+        return result.split(" ")[1]
+    return ""
+
+
+def get_online_mysql_version(ip: str, port: int, bk_cloud_id: int):
+    """
+    在线获取mysql的版本
+    """
+    logger.info(f"param: {ip}:{port}")
+    body = {
+        "addresses": ["{}{}{}".format(ip, IP_PORT_DIVIDER, port)],
+        "cmds": ["select @@version as version"],
+        "force": False,
+        "bk_cloud_id": bk_cloud_id,
+    }
+
+    resp = DRSApi.rpc(body)
+    logger.info(f"query version resp: {resp}")
+
+    if not resp or len(resp) == 0:
+        return ""
+
+    return resp[0].get("version")
