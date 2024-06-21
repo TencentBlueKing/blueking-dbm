@@ -104,7 +104,8 @@
             ref="uplodRef"
             v-bk-tooltips="fileTips"
             :accept="acceptInfo.accept"
-            :auto-upload="false"
+            :before-upload="handleBeforeUpload"
+            :custom-request="handleCustomRequest"
             :disabled="!createFileState.formdata.version"
             :header="[
               {
@@ -123,7 +124,6 @@
             method="put"
             :multiple="false"
             name=""
-            :select-change="handleSelectFileChange"
             :size="10240"
             :tip="acceptInfo.tips"
             :url="createFileState.uploadUrl"
@@ -150,6 +150,7 @@
 </template>
 <script setup lang="tsx">
   import { Form, Message } from 'bkui-vue';
+  import type {  UploadProgressEvent,UploadRequestOptions } from 'bkui-vue/lib/upload/upload.type';
   import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -402,15 +403,11 @@
     }
   }, { immediate: true });
 
-  const handleSelectFileChange = async (e: { target: HTMLInputElement }) => {
-    if (!e.target.files) {
-      return false;
-    }
 
+  const handleBeforeUpload = async (fileObj: File) => {
     const dbType = props.info.name;
     const pkgType = state.active;
     const { version } = createFileState.formdata;
-    const fileObj = e.target.files![0];
     const filename = fileObj.name;
     const limitTypes = ['mysql', 'mysql-proxy'];
     if (limitTypes.includes(state.active)) {
@@ -423,15 +420,87 @@
     const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
     const uploadDomain = import.meta.env.MODE === 'production' ? tokenResult.url : '/bkrepo_upload';
     createFileState.uploadUrl = `${uploadDomain}/generic/temporary/upload/${tokenResult.project}/${tokenResult.repo}${tokenResult.path}?token=${tokenResult.token}`;
+    return true
+  }
 
-    // 等待url更新之后再触发上传
-    nextTick(() => {
-      uplodRef.value.handleRetry({
-        raw: fileObj,
+  const getRes = (xhr: XMLHttpRequest): XMLHttpRequestResponseType => {
+    const res = xhr.responseText || xhr.response;
+    if (!res) {
+      return res;
+    }
+
+    try {
+      return JSON.parse(res);
+    } catch {
+      return res;
+    }
+  }
+
+  const handleCustomRequest = (option: UploadRequestOptions) => {
+    if (typeof XMLHttpRequest === 'undefined') {
+      throw new Error('XMLHttpRequest is undefined');
+    }
+
+    const xhr = new XMLHttpRequest();
+    const { action } = option;
+
+    if (xhr.upload) {
+      xhr.upload.addEventListener('progress', event => {
+        const progressEvent = event as unknown as UploadProgressEvent;
+        progressEvent.percent = event.total > 0 ? (event.loaded / event.total) * 100 : 0;
+        option.onProgress(progressEvent);
       });
+    }
+
+    xhr.addEventListener('error', () => {
+      option.onError(new Error('An error occurred during upload'));
     });
 
-    return true;
+    xhr.addEventListener('load', () => {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        return option.onError(new Error('An error occurred during upload'));
+      }
+      option.onSuccess(getRes(xhr));
+    });
+
+    xhr.addEventListener('loadend', () => {
+      option.onComplete();
+    });
+
+    xhr.open(option.method, action, true);
+
+    if (option.withCredentials && 'withCredentials' in xhr) {
+      xhr.withCredentials = true;
+    }
+
+    if (option.header) {
+      if (Array.isArray(option.header)) {
+        option.header.forEach(head => {
+          const headerKey = head.name;
+          const headerVal = head.value;
+          xhr.setRequestHeader(headerKey, headerVal);
+        });
+      } else {
+        const headerKey = option.header.name;
+        const headerVal = option.header.value;
+        xhr.setRequestHeader(headerKey, headerVal);
+      }
+    }
+
+    const headers = option.headers || {};
+    if (headers instanceof Headers) {
+      headers.forEach((value, key) => xhr.setRequestHeader(key, value));
+    } else {
+      for (const [key, value] of Object.entries(headers)) {
+        if (value === null || typeof value === 'undefined') {
+          continue;
+        };
+        xhr.setRequestHeader(key, String(value));
+      }
+    }
+
+    xhr.send(option.file);
+    return xhr;
   }
 
   const handleSetDefaultVersion = (row: VersionFileModel) => {
