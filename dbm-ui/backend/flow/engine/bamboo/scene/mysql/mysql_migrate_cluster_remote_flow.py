@@ -101,10 +101,20 @@ class MySQLMigrateClusterRemoteFlow(object):
             slave = cluster_class.storageinstance_set.filter(
                 instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
             ).first()
+            install_pkg_version = cluster_class.major_version
+
             # 如果是升级用途的话,需要改变module id
             db_module_id = cluster_class.db_module_id
+
             if use_for_upgrade:
-                db_module_id = self.data["new_db_module_id"]
+                db_module_id = info["new_db_module_id"]
+                install_pkg_version = info["new_mysql_version"]
+
+            charset, db_version = get_version_and_charset(
+                self.data["bk_biz_id"],
+                db_module_id=db_module_id,
+                cluster_type=self.data["cluster_type"],
+            )
 
             self.data["master_ip"] = master_model.machine.ip
             self.data["cluster_type"] = cluster_class.cluster_type
@@ -120,15 +130,12 @@ class MySQLMigrateClusterRemoteFlow(object):
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["uid"] = self.ticket_data["uid"]
             self.data["package"] = Package.get_latest_package(
-                version=cluster_class.major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+                version=install_pkg_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
             ).name
             self.data["ports"] = get_ports(info["cluster_ids"])
             self.data["force"] = info.get("force", False)
-            self.data["charset"], self.data["db_version"] = get_version_and_charset(
-                self.data["bk_biz_id"],
-                db_module_id=self.data["db_module_id"],
-                cluster_type=self.data["cluster_type"],
-            )
+            self.data["charset"] = charset
+            self.data["db_version"] = db_version
             bk_host_ids = []
             if "bk_new_slave" in self.data.keys():
                 bk_host_ids.append(self.data["bk_new_slave"]["bk_host_id"])
