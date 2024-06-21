@@ -203,8 +203,8 @@ func (u *AddUser) execScript() error {
 			return err
 		}
 		if flag == true {
-			u.runtime.Logger.Info("user:%s has been existed", u.ConfParams.Username)
-			return nil
+			u.runtime.Logger.Error("user:%s has been existed", u.ConfParams.Username)
+			return fmt.Errorf("user:%s has been existed", u.ConfParams.Username)
 		}
 		cmd = fmt.Sprintf(
 			"%s -u %s -p '%s' --host %s --port %d --authenticationDatabase=admin --quiet --eval '%s' %s",

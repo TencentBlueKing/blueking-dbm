@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterRole, MongoDBInstanceType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -53,6 +54,9 @@ def cluster_replace(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
     sub_get_kwargs.get_host_replace(mongodb_type=ClusterType.MongoShardedCluster.value, info=info)
     if info["mongo_config"]:
         sub_get_kwargs.get_mongos_host_replace()
+
+    # 安装蓝鲸插件
+    install_plugin(pipeline=sub_pipeline, get_kwargs=sub_get_kwargs, new_cluster=False)
 
     # 介质下发
     kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="all")
