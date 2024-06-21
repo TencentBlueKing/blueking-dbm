@@ -954,3 +954,12 @@ class MySQLDBMeta(object):
                 machines.append({"ip": ip, "system_info": system_info[ip]})
         if machines:
             api.machine.update_system_info(bk_cloud_id=self.cluster["bk_cloud_id"], machines=machines)
+
+    def update_cluster_module(self):
+        """
+        更新主机模块id
+        """
+        new_module_id = self.cluster.get("new_module_id")
+        with atomic():
+            for cluster_id in self.cluster["cluster_ids"]:
+                Cluster.objects.filter(id=cluster_id).update(db_module_id=new_module_id)

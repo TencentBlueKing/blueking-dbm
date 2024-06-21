@@ -23,7 +23,7 @@ SQLSERVER_ADMIN_USER = "dbm_admin"
 # TODO: job超时时间最大为86400，后续考虑让job平台调大限制
 MYSQL_DATA_RESTORE_TIME = 86400
 MYSQL_USUAL_JOB_TIME = 7200
-MYSQL8_VER_PARSE_NUM = 86400
+MYSQL8_VER_PARSE_NUM = 8000000
 
 
 class DBPrivSecurityType(str, StructuredEnum):

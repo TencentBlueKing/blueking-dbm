@@ -49,7 +49,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_destroy_flow import MyS
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_disable_flow import MySQLSingleDisableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQLSingleEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLocalUpgradeFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_upgrade import MySQLStorageLocalUpgradeFlow, MySQMigrateUpgradeFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
 from backend.flow.engine.controller.base import BaseController
 
@@ -598,19 +598,31 @@ class MySQLController(BaseController):
         "created_by": "xxx",
         "bk_biz_id": "152",
         "ticket_type": "MYSQL_UPGRADE",
-        "new_mysql_version": "MySQL-5.7",
         "infos":[
                 {
+                    "new_mysql_version": "MySQL-5.7",
                     "cluster_ids":[1001,1002,1003],
+                    "cluster_type":"tendbha"
                 }
                 {
+                    "new_mysql_version": "MySQL-5.7",
                     "cluster_ids":[2001,2002,2003],
+                    "cluster_type":"tendbha"
                 }
             ]
         }
         """
-        flow = MySQLStorageLocalUpgradeFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLStorageLocalUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.upgrade_mysql_flow()
+
+    def mysql_migrate_upgrade_scene(self):
+        """
+        mysql实例迁移升级场景
+        ticket_data 参数结构体样例
+        必须选择关联主机的所有集群
+        """
+        flow = MySQMigrateUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.upgrade()
 
     def mysql_data_migrate_scene(self):
         """
