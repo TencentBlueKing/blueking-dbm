@@ -129,13 +129,11 @@ class ProxyBaseView(View):
             # 仅当db中配置了监控的token，才进行数据源初始化
             if SystemSettings.objects.filter(key=SystemSettingsEnum.BKM_DBM_TOKEN.value).exists():
                 # 注入数据源
-                ds_list = []
-                logger.info("create datasource monitor for grafana")
                 for ds in provisioning.datasources(request, org_name, org_id):
                     if not isinstance(ds, Datasource):
                         raise ValueError("%s is not instance %s" % (type(ds), Datasource))
-                    ds_list.append(ds)
-                self.handler.handle_datasources(request, org_name, org_id, ds_list)
+                    logger.info(f"create datasource monitor for grafana. {ds}")
+                    self.handler.handle_datasources(request, org_name, org_id, [ds])
             else:
                 logger.error("skip datasource init for grafana, please set BKM_DBM_TOKEN in database")
 
