@@ -349,12 +349,15 @@
         <TextOverflowLayout>
           {{
             default: () => (
-              <bk-button
+              <auth-button
+                action-id="sqlserver_view"
+                resource={data.id}
+                permission={data.permission.sqlserver_view}
                 text
                 theme="primary"
                 onClick={() => handleToDetails(data)}>
                 {data.master_domain}
-              </bk-button>
+              </auth-button>
             ),
             append: () => (
               <>

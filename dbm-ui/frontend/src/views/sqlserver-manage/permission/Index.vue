@@ -159,12 +159,15 @@
                   </bk-tag>
                 )
               }
-              <bk-button
+              <auth-button
+                action-id="sqlserver_add_account_rule"
+                resource={data.account.account_id}
+                permission={data.permission.sqlserver_add_account_rule}
                 class="add-rule ml-8"
                 size="small"
                 onClick={() => handleShowCreateRule(data)}>
                  {t('新建规则')}
-              </bk-button>
+              </auth-button>
             </div>
         </div>
       ),
@@ -177,13 +180,16 @@
           return (
             <div class="permission-rules-cell">
               <span>{ t('暂无规则') }，</span>
-              <bk-button
-                 theme="primary"
-                 size="small"
-                 text
-                 onClick={ () => handleShowCreateRule(data) }>
+              <auth-button
+                action-id="sqlserver_add_account_rule"
+                resource={data.account.account_id}
+                permission={data.permission.sqlserver_add_account_rule}
+                theme="primary"
+                size="small"
+                text
+                onClick={ () => handleShowCreateRule(data) }>
                   { t('立即新建') }
-              </bk-button>
+              </auth-button>
             </div>
           );
         }
@@ -216,12 +222,15 @@
         if (data.rules.length === 0) {
           return (
           <div class="permission-rules-cell">
-            <bk-button
+            <auth-button
+              action-id="sqlserver_account_delete"
+              resource={data.account.account_id}
+              permission={data.permission.sqlserver_account_delete}
               theme="primary"
               text
               onClick={ () => handleDeleteAccount(data) }>
                 {t('删除账号')}
-            </bk-button>
+            </auth-button>
           </div>
           );
         }

@@ -86,6 +86,9 @@ export default class MongodbInstance {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    mongodb_view: boolean;
+  };
   port: number;
   related_clusters: {
     id: number;
@@ -130,9 +133,6 @@ export default class MongodbInstance {
   };
   status: string;
   version: string;
-  permission: {
-    mongodb_view: boolean;
-  };
 
   constructor(payload = {} as MongodbInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -150,6 +150,7 @@ export default class MongodbInstance {
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];
+    this.permission = payload.permission;
     this.port = payload.port;
     this.related_clusters = payload.related_clusters;
     this.role = payload.role;
@@ -158,7 +159,6 @@ export default class MongodbInstance {
     this.spec_config = payload.spec_config;
     this.status = payload.status;
     this.version = payload.version;
-    this.permission = payload.permission;
   }
 
   get isNew() {
