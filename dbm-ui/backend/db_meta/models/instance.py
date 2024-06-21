@@ -183,7 +183,6 @@ class StorageInstance(InstanceMixin, AuditedModel):
             "machine",
             "port",
         )
-        ordering = ("-create_at",)
 
     @property
     def instance_type(self):
@@ -227,7 +226,6 @@ class ProxyInstance(InstanceMixin, AuditedModel):
             "machine",
             "port",
         )
-        ordering = ("-create_at",)
 
     @property
     def instance_role(self):

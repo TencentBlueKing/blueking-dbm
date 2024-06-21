@@ -37,8 +37,7 @@ class DBPeriodicTask(AuditedModel):
     objects = PeriodicTaskManager()
 
     class Meta:
-        verbose_name = _("周期任务 PeriodicTask")
-        verbose_name_plural = _("周期任务 PeriodicTask")
+        verbose_name_plural = verbose_name = _("周期任务(PeriodicTask)")
         ordering = ["-id"]
 
     def __str__(self):

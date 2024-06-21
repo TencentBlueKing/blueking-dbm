@@ -62,7 +62,7 @@ class NoticeGroup(AuditedModel):
     dba_sync = models.BooleanField(help_text=_("自动同步DBA人员配置"), default=True)
 
     class Meta:
-        verbose_name_plural = verbose_name = _("告警通知组")
+        verbose_name_plural = verbose_name = _("告警通知组(NoticeGroup)")
         unique_together = ("bk_biz_id", "name")
 
     @classmethod
@@ -327,7 +327,7 @@ class DutyRule(AuditedModel):
         return list(cls.objects.values_list("priority", flat=True).distinct().order_by("-priority"))
 
     class Meta:
-        verbose_name_plural = verbose_name = _("轮值规则")
+        verbose_name_plural = verbose_name = _("轮值规则(DutyRule)")
 
 
 class RuleTemplate(AuditedModel):
@@ -607,7 +607,7 @@ class MonitorPolicy(AuditedModel):
     )
 
     class Meta:
-        verbose_name = _("告警策略")
+        verbose_name = _("告警策略(MonitorPolicy)")
 
     def calc_from_targets(self):
         """根据目标计算优先级"""

@@ -43,7 +43,7 @@ class Package(AuditedModel):
     update_at = models.DateTimeField(_("更新时间"), default=timezone.now)
 
     class Meta:
-        verbose_name = _("介质包（Package）")
+        verbose_name_plural = verbose_name = _("介质包（Package）")
         ordering = ("-create_at",)
 
     @classmethod

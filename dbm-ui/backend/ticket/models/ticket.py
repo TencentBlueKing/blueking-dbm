@@ -62,8 +62,7 @@ class Flow(models.Model):
     )
 
     class Meta:
-        verbose_name = _("单据流程")
-        verbose_name_plural = _("单据流程")
+        verbose_name_plural = verbose_name = _("单据流程(Flow)")
         indexes = [models.Index(fields=["err_code"])]
 
     def update_details(self, **kwargs):
@@ -105,8 +104,7 @@ class Ticket(AuditedModel):
     is_reviewed = models.BooleanField(_("单据是否审阅过"), default=False)
 
     class Meta:
-        verbose_name = _("单据")
-        verbose_name_plural = _("单据")
+        verbose_name_plural = verbose_name = _("单据(Ticket)")
         ordering = ("-id",)
         indexes = [
             models.Index(fields=["creator"]),
@@ -238,9 +236,8 @@ class TicketFlowsConfig(AuditedModel):
     configs = models.JSONField(_("单据配置 eg: {'need_itsm': false, 'need_manual_confirm': false}"), default=dict)
 
     class Meta:
+        verbose_name_plural = verbose_name = _("单据流程配置(TicketFlowsConfig)")
         indexes = [models.Index(fields=["group"])]
-        verbose_name = _("单据流程配置")
-        verbose_name_plural = _("单据流程配置")
 
     @classmethod
     def get_config(cls, ticket_type, bk_biz_id=PLAT_BIZ_ID):
