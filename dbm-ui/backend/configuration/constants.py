@@ -95,6 +95,8 @@ class SystemSettingsEnum(str, StructuredEnum):
     AFFINITY = EnumField("AFFINITY", _("容灾要求(各个环境可能不同，比如SG为空)"))
     SYSTEM_MSG_TYPE = EnumField("SYSTEM_MSG_TYPE", _("系统消息通知方式"))
     PADDING_PROXY_CLUSTER_LIST = EnumField("PADDING_PROXY_CLUSTER_LIST", _("补全proxy的集群域名列表"))
+    ITSM_APPROVAL_OPTIONS_KEY = EnumField("ITSM_APPROVAL_RESULT_KEY", _("ITSM审批意见key"))
+    ITSM_REMARK_KEY = EnumField("ITSM_REMARK_KEY", _("ITSM备注key"))
 
 
 class BizSettingsEnum(str, StructuredEnum):
@@ -129,7 +131,6 @@ INIT_PASSWORD_POLICY = {
     "max_length": 32,
     "min_length": 8,
 }
-
 
 # 监控数据自定义上报配置
 DBM_REPORT_INITIAL_VALUE = {
@@ -192,6 +193,8 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.AFFINITY, "list", [], _("环境的容灾要求")],
     [SystemSettingsEnum.SYSTEM_MSG_TYPE, "list", ["weixin", "mail"], _("系统消息通知方式")],
     [SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST, "list", [], _("补全proxy的集群域名列表")],
+    [SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY, "str", "", _("ITSM审批意见key")],
+    [SystemSettingsEnum.ITSM_REMARK_KEY, "str", "", _("ITSM备注key")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used
