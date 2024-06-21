@@ -39,10 +39,8 @@ func (task *TwemproxyMonitorTask) RunMonitor() {
 			task.proxyCli.Close()
 		}
 	}()
+	// twemproxy update 失败,也需要尝试重启twemproxy
 	task.UpdateConfFileHashTag()
-	if task.Err != nil {
-		return
-	}
 	task.RestartWhenConnFail()
 	if task.Err != nil {
 		return
@@ -53,20 +51,31 @@ func (task *TwemproxyMonitorTask) RunMonitor() {
 // UpdateConfFileHashTag 更新twemproxy配置文件中的hash_tag: {} 为 hash_tag: '{}'
 func (task *TwemproxyMonitorTask) UpdateConfFileHashTag() {
 	var confFile string
+	var proxyAddr string
+	var msg string
 	for _, proxyPort := range task.ServerConf.ServerPorts {
+		proxyAddr = fmt.Sprintf("%s:%d", task.ServerConf.ServerIP, proxyPort)
+		task.eventSender.SetInstance(proxyAddr)
 		confFile, task.Err = myredis.GetTwemproxyLocalConfFile(proxyPort)
 		if task.Err != nil {
+			task.eventSender.SendWarning(consts.EventTwemproxyLogin, task.Err.Error(), consts.WarnLevelError,
+				task.ServerConf.ServerIP)
 			continue
 		}
 		confFile = strings.TrimSpace(confFile)
 		if confFile == "" {
-			mylog.Logger.Warn(fmt.Sprintf("twemproxy(%s:%d) config file is empty",
-				task.ServerConf.ServerIP, proxyPort))
+			msg = fmt.Sprintf("twemproxy(%s:%d) config file not found", task.ServerConf.ServerIP, proxyPort)
+			mylog.Logger.Warn(msg)
+			task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError,
+				task.ServerConf.ServerIP)
 			continue
 		}
 		if !util.FileExists(confFile) {
-			mylog.Logger.Warn(fmt.Sprintf("twemproxy(%s:%d) config file(%s) not exists",
-				task.ServerConf.ServerIP, proxyPort, confFile))
+			msg = fmt.Sprintf("twemproxy(%s:%d) config file(%s) not exists",
+				task.ServerConf.ServerIP, proxyPort, confFile)
+			mylog.Logger.Warn(msg)
+			task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError,
+				task.ServerConf.ServerIP)
 			continue
 		}
 

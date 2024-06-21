@@ -32,7 +32,8 @@ func GetRedisLoccalConfFile(port int) (confFile string, err error) {
 
 // GetRedisPasswdFromConfFile (从配置文件中)获取本地redis实例密码
 func GetRedisPasswdFromConfFile(port int) (password string, err error) {
-	confFile, err := GetRedisLoccalConfFile(port)
+	var confFile string
+	confFile, err = GetRedisLoccalConfFile(port)
 	if err != nil {
 		err = fmt.Errorf("get redis local config file failed,err:%v,port:%d", err, port)
 		mylog.Logger.Error(err.Error())
