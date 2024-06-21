@@ -584,3 +584,27 @@ class TriggerChecksumType(str, StructuredEnum):
 
     NOW = EnumField("now", _("立刻触发"))
     TIMER = EnumField("timer", _("定时触发"))
+
+
+class TicketInfoActionType(str, StructuredEnum):
+    """Itsm get_ticket_info单据类型"""
+
+    TRANSITION = EnumField("TRANSITION", _("审批"))
+    CLAIM = EnumField("CLAIM", _("认领"))
+    DISTRIBUTE = EnumField("DISTRIBUTE", _("分派"))
+    AUTOMATIC = EnumField("AUTOMATIC", _("自动处理"))
+
+
+class OperateNodeActionType(str, StructuredEnum):
+    """Itsm operate_node单据类型"""
+
+    TRANSITION = EnumField("TRANSITION", _("审批"))
+    CLAIM = EnumField("CLAIM", _("认领"))
+    DISTRIBUTE = EnumField("DISTRIBUTE", _("派单"))
+    DELIVER = EnumField("DELIVER", _("转单"))
+    TERMINATE = EnumField("TERMINATE", _("终止节点和单据"))
+
+
+class ItsmGetTicketInfoFieldNameFieldEnum(str, StructuredEnum):
+    ApprovalOption = EnumField("ApprovalOption", _("审批意见"))
+    Remark = EnumField("Remark", _("备注"))
