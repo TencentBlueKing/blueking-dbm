@@ -47,6 +47,11 @@ class _BKLogApi(BaseApi):
             url="databus_collectors/",
             description=_("获取采集项列表"),
         )
+        self.search_index_set = self.generate_data_api(
+            method="GET",
+            url="search_index_set/",
+            description=_("查询索引集列表"),
+        )
 
 
 BKLogApi = _BKLogApi()
