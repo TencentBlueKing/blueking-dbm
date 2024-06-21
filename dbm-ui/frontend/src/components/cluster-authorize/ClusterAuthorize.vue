@@ -1,6 +1,7 @@
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
+    class="cluster-authorize-slider"
     :is-show="isShow"
     render-directive="if"
     :title="t('添加授权')"
@@ -219,7 +220,7 @@
   import { getWhitelist } from '@services/source/whitelist';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
 
-  import { useCopy, useStickyFooter, useTicketMessage } from '@hooks';
+  import { useCopy, useTicketMessage } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -323,8 +324,6 @@
   } as Record<string, TabConfig>;
 
   const formRef = ref();
-  /** 设置底部按钮粘性布局 */
-  useStickyFooter(formRef);
 
   const accoutRulesShow = ref(false);
   const selectedIpList = ref<ServiceReturnType<typeof checkHost>>([])
@@ -900,6 +899,14 @@
       i {
         color: @primary-color;
       }
+    }
+  }
+</style>
+<style lang="less">
+  .cluster-authorize-slider {
+    .bk-modal-content {
+      max-height: calc(100vh - 125px);
+      overflow-y: auto;
     }
   }
 </style>
