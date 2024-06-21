@@ -26,11 +26,12 @@ from backend.ticket.constants import TicketType
 class MySQLDumpDataDetailSerializer(MySQLBaseOperateDetailSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     charset = serializers.ChoiceField(help_text=_("字符集"), choices=SQLCharset.get_choices())
-    where = serializers.CharField(help_text=_("where条件"), required=False)
+    where = serializers.CharField(help_text=_("where条件"), required=False, allow_null=True, allow_blank=True)
     databases = serializers.ListField(help_text=_("导出库列表"), child=DBTableField(db_field=True))
     tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
     tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField(), required=False, default=[])
-    dump_data = serializers.BooleanField(help_text=_("导出数据"))
+    dump_schema = serializers.BooleanField(help_text=_("是否导出表结构"))
+    dump_data = serializers.BooleanField(help_text=_("是否导出表数据"))
     force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
 
