@@ -193,11 +193,11 @@ class CommonQueryResourceMixin(abc.ABC):
         """集群通用属性导出"""
         headers, data_list = cls.common_query_cluster(bk_biz_id, cls.cluster_types, cluster_ids)
 
-        biz_name = AppCache.get_biz_name(bk_biz_id)
+        biz_abbr = AppCache.get_app_attr(bk_biz_id)
         db_type = ClusterType.cluster_type_to_db_type(cls.cluster_types[0])
         wb = ExcelHandler.serialize(data_list, headers=headers, match_header=True)
 
-        return ExcelHandler.response(wb, f"{biz_name}({bk_biz_id}){db_type}_cluster.xlsx")
+        return ExcelHandler.response(wb, f"{biz_abbr}({bk_biz_id}){db_type}_cluster.xlsx")
 
     @classmethod
     def export_instance(cls, bk_biz_id: int, bk_host_ids: list) -> HttpResponse:

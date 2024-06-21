@@ -75,6 +75,9 @@ class Todo(AuditedModel):
 
     objects = TodoManager()
 
+    class Meta:
+        verbose_name_plural = verbose_name = _("待办(Todo)")
+
     @property
     def url(self):
         return f"{env.BK_SAAS_HOST}/my-todos?id={self.ticket.id}"
@@ -97,10 +100,6 @@ class Todo(AuditedModel):
         self.ticket.set_terminated()
         self.flow.update_status(TicketFlowStatus.TERMINATED)
         TodoHistory.objects.create(creator=username, todo=self, action=action)
-
-    class Meta:
-        verbose_name = _("待办")
-        verbose_name_plural = _("待办")
 
 
 class TodoHistory(AuditedModel):
