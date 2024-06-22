@@ -15,12 +15,14 @@
       <BkInput
         v-model="serachKey"
         class="search-box"
+        clearable
         :placeholder="t('请输入模板关键字')" />
     </div>
     <DbTable
       ref="tableRef"
       :columns="tableColumns"
-      :data-source="getList" />
+      :data-source="getList"
+      @column-sort="columnSortChange" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -84,6 +86,7 @@
     {
       label: t('更新时间'),
       field: 'update_at',
+      sort: true,
       render: ({ data }: {data: OpenareaTemplateModel}) => data.updateAtDisplay || '--',
     },
     {
@@ -140,17 +143,39 @@
     },
   ];
 
+  watch(serachKey, () => {
+    tableRef.value.fetchData({
+      config_name: serachKey.value,
+      cluster_type: 'tendbcluster',
+    });
+  });
+
   const fetchData = () => {
     tableRef.value.fetchData({
       cluster_type: 'tendbcluster',
     });
   };
 
-  watch(serachKey, () => {
+  // 表头排序
+  const columnSortChange = (data: {
+    column: {
+      field: string;
+      label: string;
+    };
+    index: number;
+    type: 'asc' | 'desc' | 'null'
+  }) => {
+    let desc = ''
+    if (data.type === 'asc') {
+      desc = data.column.field;
+    } else if (data.type === 'desc') {
+      desc = `-${data.column.field}`;
+    }
     tableRef.value.fetchData({
-      config_name: serachKey.value,
+      desc,
+      cluster_type: 'tendbcluster',
     });
-  });
+  };
 
   const handleGoCreate = () => {
     router.push({

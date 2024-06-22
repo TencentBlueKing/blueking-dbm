@@ -89,6 +89,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
   import type { HostDetails } from '@services/types/ip';
 
   import { OSTypes } from '@common/const';
@@ -136,9 +137,20 @@
 
   watch(
     () => props.data,
-    () => {
+    async () => {
       if (props.data.length) {
-        localHostList.value = props.data.map((ip) => ({ ip })) as HostDetails[];
+        const hosts = await checkHost({
+          ip_list: props.data,
+          mode: 'all',
+          scope_list: [
+            {
+              scope_id: window.PROJECT_CONFIG.BIZ_ID,
+              scope_type: 'biz',
+            },
+          ],
+        });
+
+        localHostList.value = hosts;
       }
     },
     {

@@ -1,4 +1,9 @@
 <template>
+  <Teleport
+    v-if="isEditMode"
+    to="#dbContentHeaderAppend">
+    <span style="font-size: 16px">【{{ formData.config_name }}】</span>
+  </Teleport>
   <BkLoading :loading="isDetailLoading">
     <SmartAction :offset-target="getSmartActionOffsetTarget">
       <BkForm

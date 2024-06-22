@@ -15,7 +15,7 @@
   <TableTagInput
     ref="tagRef"
     :model-value="localValue"
-    :placeholder="t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
+    :placeholder="placeholder ? placeholder : t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
     :rules="rules"
     :single="single"
     @change="handleChange" />
@@ -30,6 +30,7 @@
   interface Props {
     modelValue?: string[];
     clusterId: number;
+    placeholder?: string;
     required?: boolean;
     single?: boolean;
     rules?: {
@@ -49,6 +50,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
+    placeholder: '',
     required: true,
     single: false,
     rules: undefined,
@@ -96,6 +98,7 @@
         message: t('含通配符的单元格仅支持输入单个对象'),
         trigger: 'change',
       },
+      // TODO: 表不存在
     ];
   });
 
