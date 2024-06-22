@@ -29,9 +29,12 @@
     data: ServiceReturnType<typeof getPreview>,
     sourceClusterId: number
   }
+
   interface Expose{
     submit: () => Promise<any>
   }
+
+  type RowData = UnwrapRef<typeof tableData>[0];
 
   const props = defineProps<Props>();
 
@@ -43,12 +46,16 @@
     target_cluster_domain: string
   } & Props['data']['config_data'][0]['execute_objects'][0]>>([]);
 
-  const columns = [
+  const columns = computed(() => [
     {
       label: t('目标集群'),
       field: 'target_cluster_domain',
       showOverflowTooltip: true,
       width: 280,
+      rowspan: ({ row }: { row: RowData }) => {
+        const rowSpan = tableData.value.filter(item => item.target_cluster_domain === row.target_cluster_domain).length;
+        return rowSpan > 1 ? rowSpan : 1;
+      },
     },
     {
       label: t('新 DB'),
@@ -66,27 +73,28 @@
       label: t('表数据'),
       showOverflowTooltip: true,
       width: 300,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => <RenderTagOverflow data={_.flatMap(data.data_tblist)} />,
+      render: ({ data }: {data: RowData}) => <RenderTagOverflow data={_.flatMap(data.data_tblist)} />,
     },
     {
       label: t('授权 IP'),
       showOverflowTooltip: true,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => data.authorize_ips.join(','),
+      render: ({ data }: {data: RowData}) => data.authorize_ips.join(','),
     },
-  ];
+  ]);
 
   watch(() => props.data, () => {
     if (!props.data) {
       return;
     }
     tableData.value = props.data.config_data.reduce((result, item) => {
-      const [executeObjects] = item.execute_objects;
-      result.push({
-        target_cluster_domain: item.target_cluster_domain,
-        ...executeObjects,
-      });
+      item.execute_objects.forEach(executeObjects => {
+        result.push({
+          target_cluster_domain: item.target_cluster_domain,
+          ...executeObjects,
+        });
+      })
       return result;
-    }, [] as UnwrapRef<typeof tableData>);
+    }, [] as RowData[]);
   }, {
     immediate: true,
   });

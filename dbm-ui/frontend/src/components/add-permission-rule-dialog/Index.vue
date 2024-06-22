@@ -26,7 +26,7 @@
           theme="primary"
           @click="handleGoCreateRules">
           <DbIcon
-            class="mr-10"
+            class="mr-5"
             type="link" />
           {{ t('去创建新的权限') }}
         </BkButton>
@@ -37,7 +37,7 @@
         :cell-class="cellClassCallback"
         :columns="columns"
         :data-source="getPermissionRules"
-        :height="600"
+        :max-height="700"
         :remote-pagination="false"
         :settings="settings"
         @clear-search="handleClearSearch" />
@@ -296,9 +296,10 @@
   }
 
   const handleGoCreateRules = () => {
-    router.push({
+    const route = router.resolve({
       name: 'PermissionRules',
     });
+    window.open(route.href);
   }
 
   const handleSubmit = () => {

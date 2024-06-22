@@ -14,6 +14,7 @@ export const getList = function (params: {
   config_name?: string;
   bk_biz_id?: number;
   cluster_type?: 'tendbha' | 'tendbcluster';
+  desc?: number;
   limit?: number;
   offset?: number;
 }) {

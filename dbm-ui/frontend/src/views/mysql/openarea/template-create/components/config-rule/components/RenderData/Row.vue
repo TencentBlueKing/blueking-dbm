@@ -26,12 +26,14 @@
           check-exist
           :cluster-id="clusterId"
           :model-value="localRowData.data_tblist"
+          :placeholder="t('表名支持通配符“%”，含通配符的仅支持单个，为空则不克隆表数据')"
           :required="false" />
       </td>
       <td style="padding: 0">
         <RenderTargetDbPattern
           ref="targetDbPatternRef"
-          v-model="localRowData.target_db_pattern" />
+          v-model="localRowData.target_db_pattern"
+          :db-name="localRowData.source_db" />
       </td>
       <OperateColumn
         :removeable="removeable"
@@ -43,7 +45,7 @@
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderTableData from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderTableData from '@views/mysql/common/edit-field/TableName.vue';
 
   import { random } from '@utils';
 
@@ -57,6 +59,8 @@
   });
 </script>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderSourceDb from './RenderSourceDb.vue';
   import RenderTargetDbPattern from './RenderTargetDbPattern.vue';
 
@@ -89,6 +93,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const sourceDbRef = ref<InstanceType<typeof RenderSourceDb>>();
   const tableDataRef = ref<InstanceType<typeof RenderTableData>>();

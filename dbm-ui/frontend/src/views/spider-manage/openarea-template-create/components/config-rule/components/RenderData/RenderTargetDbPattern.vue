@@ -26,17 +26,24 @@
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
+  interface Props {
+    dbName?: string;
+  }
+
   interface Exposes {
     getValue: () => Promise<{
       target_db_pattern: string;
     }>;
   }
 
-  const { t } = useI18n();
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<string>({
     default: '',
   });
+
+  const { t } = useI18n();
+
   const editRef = ref();
 
   const rules = [
@@ -44,7 +51,27 @@
       validator: (value: string) => Boolean(value),
       message: t('不能为空'),
     },
+    {
+      validator: (value: string) => {
+        const matches = value.match(/{(.*?)}/g);
+        if (matches) {
+          const extractedStrings = matches.map((match) => match.slice(1, -1));
+          return extractedStrings.every((word) => /^[A-Za-z].*?$/.test(word));
+        }
+        return true;
+      },
+      message: t('变量只能以字母开头'),
+    },
   ];
+
+  watch(
+    () => props.dbName,
+    () => {
+      if (props.dbName) {
+        modelValue.value = `${props.dbName}_{ID}`;
+      }
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {

@@ -26,13 +26,15 @@
           v-model="localRowData.data_tblist"
           check-exist
           :cluster-id="clusterId"
+          :placeholder="t('表名支持通配符“%”，含通配符的仅支持单个，为空则不克隆表数据')"
           :required="false"
           :source-db="localRowData.source_db" />
       </td>
       <td style="padding: 0">
         <RenderTargetDbPattern
           ref="targetDbPatternRef"
-          v-model="localRowData.target_db_pattern" />
+          v-model="localRowData.target_db_pattern"
+          :db-name="localRowData.source_db" />
       </td>
       <OperateColumn
         :removeable="removeable"
@@ -56,7 +58,9 @@
   });
 </script>
 <script setup lang="ts">
-  import RenderTableData from '@views/mysql/common/edit-field/DbName.vue';
+  import { useI18n } from 'vue-i18n';
+
+  import RenderTableData from '@views/mysql/common/edit-field/TableName.vue';
 
   import RenderSourceDb from './RenderSourceDb.vue';
   import RenderTargetDbPattern from './RenderTargetDbPattern.vue';
@@ -90,6 +94,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const sourceDbRef = ref<InstanceType<typeof RenderSourceDb>>();
   const tableDataRef = ref<InstanceType<typeof RenderTableData>>();
