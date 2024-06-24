@@ -1,15 +1,15 @@
 package handler
 
 import (
+	"github.com/gin-gonic/gin"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/model"
-
-	"github.com/gin-gonic/gin"
 )
 
 // OptRuleParam TODO
 type OptRuleParam struct {
-	RuleId int  `json:"rule_id" binding:"required"`
+	RuleID int  `json:"rule_id" binding:"required"`
 	Status bool `json:"status" `
 	// GroupName string `json:"group_name"`
 	// RuleName  string `json:"rule_name"`
@@ -23,7 +23,7 @@ func ManageRule(c *gin.Context) {
 		SendResponse(c, err, "failed to deserialize parameters", "")
 		return
 	}
-	result := model.DB.Model(&model.TbSyntaxRule{}).Where(&model.TbSyntaxRule{ID: param.RuleId}).Update("status",
+	result := model.DB.Model(&model.TbSyntaxRule{}).Where(&model.TbSyntaxRule{ID: param.RuleID}).Update("status",
 		param.Status).Limit(1)
 	if result.Error != nil {
 		logger.Error("update rule status failed %s,affect rows %d", result.Error.Error(), result.RowsAffected)

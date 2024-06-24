@@ -12,13 +12,12 @@ package service
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
 	"strings"
 	"time"
-
-	"errors"
 
 	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -29,35 +28,11 @@ import (
 
 // DelPod 控制运行模拟执行后是否删除拉起的Pod的开关
 // 用于保留现场排查问题
-var DelPod bool = true
+var DelPod = true
 
-// BaseParam 请求模拟执行的基础参数
-type BaseParam struct {
-	Uid           string             `json:"uid"`
-	NodeId        string             `json:"node_id"`
-	RootId        string             `json:"root_id"`
-	VersionId     string             `json:"version_id"`
-	TaskId        string             `json:"task_id"  binding:"required"`
-	MySQLVersion  string             `json:"mysql_version"  binding:"required"`
-	MySQLCharSet  string             `json:"mysql_charset"  binding:"required"`
-	Path          string             `json:"path"  binding:"required"`
-	SchemaSQLFile string             `json:"schema_sql_file"  binding:"required"`
-	ExcuteObjects []ExcuteSQLFileObj `json:"execute_objects"  binding:"gt=0,dive,required"`
-}
-
-// SpiderSimulationExecParam TODO
-type SpiderSimulationExecParam struct {
-	BaseParam
-	SpiderVersion string `json:"spider_version"`
-}
-
-// SimulationTask 模拟执行任务定义
-type SimulationTask struct {
-	RequestId string
-	PodName   string
-	*BaseParam
-	*DbPodSets
-	TaskRuntimCtx
+// parseDbParamRe ConvertDbParamToRegular 解析DbNames参数成正则参数
+func (e *ExcuteSQLFileObj) parseDbParamRe() (s []string) {
+	return changeToMatch(e.DbNames)
 }
 
 // GetSpiderImg 获取spider节点的镜像
@@ -68,19 +43,6 @@ func (in SpiderSimulationExecParam) GetSpiderImg() string {
 // GetTdbctlImg 获取tdbctl的镜像配置
 func (in SpiderSimulationExecParam) GetTdbctlImg() string {
 	return config.GAppConfig.Image.TdbCtlImg
-}
-
-// ExcuteSQLFileObj 单个文件的执行对象
-// 一次可以多个文件操作不同的数据库
-type ExcuteSQLFileObj struct {
-	SQLFile       string   `json:"sql_file"  binding:"required"` // 变更文件名称
-	IgnoreDbNames []string `json:"ignore_dbnames"`               // 忽略的,需要排除变更的dbName,支持模糊匹配
-	DbNames       []string `json:"dbnames"  binding:"gt=0"`      // 需要变更的DBNames,支持模糊匹配
-}
-
-// parseDbParamRe ConvertDbParamToRegular 解析DbNames参数成正则参数
-func (e *ExcuteSQLFileObj) parseDbParamRe() (s []string) {
-	return changeToMatch(e.DbNames)
 }
 
 // parseIgnoreDbParamRe  解析IgnoreDbNames参数成正则参数
@@ -98,8 +60,8 @@ func (e *ExcuteSQLFileObj) parseIgnoreDbParamRe() (s []string) {
 func changeToMatch(input []string) []string {
 	var result []string
 	for _, str := range input {
-		str = strings.Replace(str, "?", ".", -1)
-		str = strings.Replace(str, "%", ".*", -1)
+		str = strings.ReplaceAll(str, "?", ".")
+		str = strings.ReplaceAll(str, "%", ".*")
 		str = `^` + str + `$`
 		result = append(result, str)
 	}
@@ -124,8 +86,17 @@ func GetImgFromMySQLVersion(verion string) (img string, err error) {
 
 // TaskRuntimCtx 模拟执行运行上下文
 type TaskRuntimCtx struct {
-	version         string
 	dbsExcludeSysDb []string
+}
+
+// SimulationTask simulated execution task definition
+type SimulationTask struct {
+	RequestId string
+	PodName   string
+	Version   string
+	*BaseParam
+	*DbPodSets
+	TaskRuntimCtx
 }
 
 // TaskChan 模拟执行任务队列
@@ -167,25 +138,25 @@ func run(task SimulationTask, tkType string) {
 		<-ctrlChan
 		var status string
 		var errMsg string
-		status = model.Task_Success
+		status = model.TaskSuccess
 		if err != nil {
-			status = model.Task_Failed
+			status = model.TaskFailed
 			errMsg = err.Error()
 		}
-		if err := model.CompleteTask(task.TaskId, status, se, so, errMsg); err != nil {
+		if err = model.CompleteTask(task.TaskId, task.Version, status, se, so, errMsg); err != nil {
 			logger.Error("update task status faield %s", err.Error())
 			return
 		}
 	}()
 	xlogger := task.getXlogger()
 	// create Pod
-	model.UpdatePhase(task.TaskId, model.Phase_CreatePod)
+	model.UpdatePhase(task.TaskId, task.MySQLVersion, model.PhaseCreatePod)
 	defer func() {
 		if DelPod {
-			if err := task.DbPodSets.DeletePod(); err != nil {
-				logger.Warn("delete Pod failed %s", err.Error())
+			if errx := task.DbPodSets.DeletePod(); errx != nil {
+				logger.Warn("delete Pod failed %s", errx.Error())
 			}
-			logger.Info("delete pod successfuly~")
+			logger.Info("delete pod successfully~")
 		}
 	}()
 	if err = createPod(task, tkType); err != nil {
@@ -216,13 +187,7 @@ func (t *SimulationTask) getDbsExcludeSysDb() (err error) {
 		logger.Error("failed to get instance db list:%s", err.Error())
 		return err
 	}
-	logger.Info("get all database is %v", alldbs)
-	if err = t.DbWork.Queryxs(&t.version, "select version();"); err != nil {
-		logger.Error("query version failed %s", err.Error())
-		return err
-	}
-	logger.Info("version is %s", t.version)
-	t.dbsExcludeSysDb = util.FilterOutStringSlice(alldbs, util.GetGcsSystemDatabasesIgnoreTest(t.version))
+	t.dbsExcludeSysDb = util.FilterOutStringSlice(alldbs, util.GetGcsSystemDatabasesIgnoreTest(t.MySQLVersion))
 	return nil
 }
 
@@ -245,7 +210,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	}()
 	// 关闭协程
 	defer func() { doneChan <- struct{}{} }()
-	model.UpdatePhase(t.TaskId, model.Phase_LoadSchema)
+	model.UpdatePhase(t.TaskId, t.MySQLVersion, model.PhaseLoadSchema)
 	stdout, stderr, err := t.DbPodSets.executeInPod(t.getLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
 		containerName,
 		t.getExtmap(t.SchemaSQLFile), true)
@@ -261,13 +226,13 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 		logger.Error("getDbsExcludeSysDb faiked %v", err)
 		return sstdout, sstderr, fmt.Errorf("[getDbsExcludeSysDb failed]:%w", err)
 	}
-	model.UpdatePhase(t.TaskId, model.Phase_Running)
+	model.UpdatePhase(t.TaskId, t.MySQLVersion, model.PhaseRunning)
 	errs := []error{}
 	sstderrs := []string{}
 	for _, e := range t.ExcuteObjects {
-		sstdout, sstderr, err = t.executeOneObject(e, containerName, xlogger)
+		sstdout, sstderr, err = t.executeMultFilesObject(e, containerName, xlogger)
 		if err != nil {
-			errs = append(errs, fmt.Errorf("%s:%w\n", e.SQLFile, err))
+			errs = append(errs, fmt.Errorf("%w\n\t", err))
 			sstderrs = append(sstderrs, sstderr)
 		}
 	}
@@ -280,16 +245,19 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 func (t *SimulationTask) executeOneObject(e ExcuteSQLFileObj, containerName string, xlogger *logger.Logger) (sstdout,
 	sstderr string, err error) {
 	defer func() {
-		status := model.Task_Success
+		status := model.TaskSuccess
 		errMsg := ""
 		if err != nil {
-			status = model.Task_Failed
+			status = model.TaskFailed
 			errMsg = err.Error()
 		}
 		errx := model.DB.Create(&model.TbSqlFileSimulationInfo{
 			TaskId:       t.TaskId,
+			BillTaskId:   t.Uid,
+			LineId:       e.LineID,
 			FileNameHash: fmt.Sprintf("%x", sha256.Sum256([]byte(e.SQLFile))),
 			FileName:     e.SQLFile,
+			MySQLVersion: t.MySQLVersion,
 			Status:       status,
 			ErrMsg:       errMsg,
 			CreateTime:   time.Now(),
@@ -310,7 +278,7 @@ func (t *SimulationTask) executeOneObject(e ExcuteSQLFileObj, containerName stri
 		return "", "", err
 	}
 	realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
-	if len(realexcutedbs) <= 0 {
+	if len(realexcutedbs) == 0 {
 		return "", "", fmt.Errorf("the changed db does not exist")
 	}
 	for idx, cmd := range t.getLoadSQLCmd(t.Path, e.SQLFile, realexcutedbs) {
