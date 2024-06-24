@@ -26,6 +26,7 @@ import (
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/common/go-pubpkg/logger"
 
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -38,7 +39,7 @@ type SearchContext struct {
 	IdcCitys        []string
 }
 
-// CycleApply TODO
+// CycleApply 循环匹配
 func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err error) {
 	resourceReqList := param.Details
 	sort.Slice(resourceReqList, func(i, j int) bool {
@@ -55,15 +56,14 @@ func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err erro
 		var idcCitys []string
 		if config.AppConfig.RunMode == "dev" {
 			idcCitys = []string{}
-		} else {
-			if cmutil.ElementNotInArry(v.Affinity, []string{CROSS_RACK, NONE}) {
-				idcCitys, err = meta.GetIdcCityByLogicCity(v.LocationSpec.City)
-				if err != nil {
-					logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
-					return pickers, err
-				}
+		} else if cmutil.ElementNotInArry(v.Affinity, []string{CROSS_RACK, NONE}) || lo.IsNotEmpty(&v.LocationSpec.City) {
+			idcCitys, err = meta.GetIdcCityByLogicCity(v.LocationSpec.City)
+			if err != nil {
+				logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
+				return pickers, err
 			}
 		}
+
 		s := &SearchContext{
 			IntetionBkBizId:   param.ForbizId,
 			RsType:            param.ResourceType,
@@ -81,9 +81,9 @@ func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err erro
 		// Debug Print Log 挑选实例分区的情况
 		picker.DebugDistrubuteLog()
 		// 更新挑选到的资源的状态为Preselected
-		if update_err := picker.PreselectedSatisfiedInstance(); update_err != nil {
+		if updateErr := picker.PreselectedSatisfiedInstance(); updateErr != nil {
 			return pickers, fmt.Errorf("update %s Picker Out Satisfied Instance Status In Selling Failed:%v", v.GroupMark,
-				update_err.Error())
+				updateErr.Error())
 		}
 		// 追加到挑选好的分组
 		pickers = append(pickers, picker)
@@ -130,11 +130,11 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	// os type
 	// Windows
 	// Liunx
-	os_type := o.ApplyObjectDetail.OsType
+	osType := o.ApplyObjectDetail.OsType
 	if cmutil.IsEmpty(o.ApplyObjectDetail.OsType) {
-		os_type = "Linux"
+		osType = "Linux"
 	}
-	db.Where("os_type = ? ", os_type)
+	db.Where("os_type = ? ", osType)
 
 	// match os name  like  Windows Server 2012
 	if len(o.ApplyObjectDetail.OsNames) > 0 {
@@ -233,7 +233,7 @@ func (o *SearchContext) PickInstance() (picker *PickerObject, err error) {
 					ts = append(ts, ins)
 				}
 			}
-			if len(ts) <= 0 {
+			if len(ts) == 0 {
 				if len(matchfuncs) < 2 {
 					return picker, errno.ErrResourceinsufficient.Add(fmt.Sprintf("匹配磁盘%s,的资源为 0", o.GetDiskMatchInfo()))
 				}
@@ -268,7 +268,7 @@ func matchNoMountPointStorage(spec []DiskSpec, sinc map[string]bk.DiskDetail) bo
 		for mp, d := range sinc {
 			if diskDetailMatch(d, s) {
 				delete(sinc, mp)
-				mcount += 1
+				mcount++
 				break
 			}
 		}
@@ -338,12 +338,11 @@ func (o *SearchContext) MatchLocationSpec(db *gorm.DB) {
 	} else {
 		db.Where("sub_zone_id  not in ?", o.LocationSpec.SubZoneIds)
 	}
-	return
 }
 
 // MatchStorage TODO
 func (o *SearchContext) MatchStorage(db *gorm.DB) {
-	if len(o.StorageSpecs) <= 0 {
+	if len(o.StorageSpecs) == 0 {
 		return
 	}
 	for _, d := range o.StorageSpecs {
