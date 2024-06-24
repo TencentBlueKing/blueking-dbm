@@ -13,17 +13,7 @@
 
 <template>
   <div class="resource-spec-list-page">
-    <BkTab
-      v-model:active="curTab"
-      class="top-tabs"
-      type="unborder-card"
-      @change="handleChangeClusterType">
-      <BkTabPanel
-        v-for="tab of renderTabs"
-        :key="tab.name"
-        :label="tab.label"
-        :name="tab.name" />
-    </BkTab>
+    <ClusterTab v-model="curTab" />
     <div
       :key="curTab"
       class="wrapper">
@@ -56,6 +46,8 @@
   import { useFunController } from '@stores';
 
   import { ClusterTypes } from '@common/const';
+
+  import ClusterTab from '@components/cluster-tab/Index.vue';
 
   import SpecList from './components/SpecList.vue';
 
@@ -330,7 +322,7 @@
     },
   ];
 
-  const curTab = ref<string>(ClusterTypes.TENDBSINGLE);
+  const curTab = ref<ClusterTypes>(ClusterTypes.TENDBSINGLE);
   const curChildTab = ref('');
 
   const renderTabs = computed(() =>
@@ -356,12 +348,6 @@
   const machineTypeLabel = computed(
     () => childrenTabs.value.find((item) => item.name === curChildTab.value)?.label ?? '',
   );
-
-  const handleChangeClusterType = (value: string) => {
-    if (curTab.value !== value) {
-      curChildTab.value = '';
-    }
-  };
 
   onMounted(() => {
     const { spec_cluster_type: clusterType } = route.query;

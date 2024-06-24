@@ -19,6 +19,8 @@ import { t } from '@locales/index';
 export enum DBTypes {
   MYSQL = 'mysql',
   REDIS = 'redis',
+  MONGODB = 'mongodb',
+  SQLSERVER = 'sqlserver',
   KAFKA = 'kafka',
   HDFS = 'hdfs',
   ES = 'es',
@@ -26,8 +28,6 @@ export enum DBTypes {
   INFLUXDB = 'influxdb',
   SPIDER = 'spider',
   RIAK = 'riak',
-  MONGODB = 'mongodb',
-  SQLSERVER = 'sqlserver',
 }
 export type DBTypesValues = `${DBTypes}`;
 
@@ -35,32 +35,32 @@ export type DBTypesValues = `${DBTypes}`;
  * 集群类型
  */
 export enum ClusterTypes {
-  TENDBSINGLE = 'tendbsingle',
-  TENDBHA = 'tendbha',
+  TENDBSINGLE = 'tendbsingle', // MySQL 单节点
+  TENDBHA = 'tendbha', // MySQL 主从
   TENDBCLUSTER = 'tendbcluster',
-  TWEMPROXY_REDIS_INSTANCE = 'TwemproxyRedisInstance', // Redis 分片集群 cache
+  TENDIS_PLUS_CLUSTER = 'TendisplusCluster',
+  TENDIS_PLUS_INSTANCE = 'TendisplusInstance',
+  TENDIS_SSD_INSTANCE = 'TendisSSDInstance',
+  REDIS = 'redis',
+  REDIS_CLUSTER = 'RedisCluster',
+  REDIS_INSTANCE = 'RedisInstance', // Redis 主从集群
+  PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster', // Redis 分片集群 原生
   PREDIXY_TENDISPLUS_CLUSTER = 'PredixyTendisplusCluster', // Redis 分片集群 plus
+  TWEMPROXY_REDIS_INSTANCE = 'TwemproxyRedisInstance', // Redis 分片集群 cache
+  TWEMPROXY_TENDISPLUS_INSTANCE = 'TwemproxyTendisplusInstance',
   TWEMPROXY_TENDIS_SSD_INSTANCE = 'TwemproxyTendisSSDInstance', // Redis 分片集群 SSD
+  MONGODB = 'mongodb',
+  MONGOCLUSTER = 'mongocluster',
+  MONGO_REPLICA_SET = 'MongoReplicaSet', // Mongo 副本集
+  MONGO_SHARED_CLUSTER = 'MongoShardedCluster', // Mongo 分片集
+  SQLSERVER_SINGLE = 'sqlserver_single', // SQLServer 单节点
+  SQLSERVER_HA = 'sqlserver_ha', // SQLServer 主从
   ES = 'es',
   KAFKA = 'kafka',
   HDFS = 'hdfs',
   PULSAE = 'pulsar',
   INFLUXDB = 'influxdb',
-  REDIS = 'redis',
-  PREDIXY_REDIS_CLUSTER = 'PredixyRedisCluster', // Redis 分片集群 原生
-  TWEMPROXY_TENDISPLUS_INSTANCE = 'TwemproxyTendisplusInstance',
-  REDIS_INSTANCE = 'RedisInstance', // Redis 主从集群
-  TENDIS_SSD_INSTANCE = 'TendisSSDInstance',
-  TENDIS_PLUS_INSTANCE = 'TendisplusInstance',
-  REDIS_CLUSTER = 'RedisCluster',
-  TENDIS_PLUS_CLUSTER = 'TendisplusCluster',
-  MONGODB = 'mongodb',
-  MONGO_REPLICA_SET = 'MongoReplicaSet',
-  MONGO_SHARED_CLUSTER = 'MongoShardedCluster',
-  MONGOCLUSTER = 'mongocluster',
   RIAK = 'riak',
-  SQLSERVER_HA = 'sqlserver_ha',
-  SQLSERVER_SINGLE = 'sqlserver_single',
 }
 
 // 机器类型
@@ -130,6 +130,9 @@ export const clusterTypeInfos = {
   },
   [ClusterTypes.PULSAE]: {
     dbType: DBTypes.PULSAR,
+  },
+  [ClusterTypes.RIAK]: {
+    dbType: DBTypes.RIAK,
   },
   [ClusterTypes.TENDBCLUSTER]: {
     dbType: DBTypes.MYSQL,
