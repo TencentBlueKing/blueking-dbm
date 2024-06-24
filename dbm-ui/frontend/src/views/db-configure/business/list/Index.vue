@@ -13,33 +13,28 @@
 
 <template>
   <div class="business-db-configure-list-page">
-    <TopTab @change="handleChangeTab" />
+    <ClusterTab v-model="activeTab" />
     <Content
       v-if="activeTab"
       :key="activeTab" />
   </div>
 </template>
 <script setup lang="ts">
-  import TopTab from '../../components/TopTab.vue';
+  import ClusterTab from '@components/cluster-tab/Index.vue';
 
   import Content from './components/Content.vue';
+
+  import { ClusterTypes } from '@/common/const';
 
   const router = useRouter();
   const route = useRoute();
 
-  const activeTab = ref('');
+  const activeTab = ref<ClusterTypes>((route.query.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
 
   /**
    * provide active tab
    */
   provide('activeTab', activeTab);
-
-  /**
-   * 切换 tab
-   */
-  const handleChangeTab = (value: string) => {
-    activeTab.value = value;
-  };
 
   watch(activeTab, (value, old) => {
     router.replace({

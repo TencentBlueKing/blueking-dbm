@@ -124,6 +124,7 @@
   } from '@hooks';
 
   import {
+    clusterTypeInfos,
     ClusterTypes,
     UserPersonalSettings,
   } from '@common/const';
@@ -139,7 +140,7 @@
   type SpecOperationType = 'create' | 'edit' | 'clone'
 
   interface Props {
-    clusterType: string,
+    clusterType: ClusterTypes,
     clusterTypeLabel: string,
     machineType: string,
     machineTypeLabel: string,
@@ -155,22 +156,7 @@
   const disableSelectMethod = (row: ResourceSpecModel) => (row.is_refer ? t('该规格已被使用_无法删除') : false);
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
-  const databaseTypeMap: Record<string, string> = {
-    tendbsingle: 'mysql',
-    tendbha: 'mysql',
-    TwemproxyRedisInstance: 'redis',
-    TwemproxyTendisSSDInstance: 'redis',
-    PredixyTendisplusCluster: 'redis',
-    es: 'es',
-    hdfs: 'hdfs',
-    kafka: 'kafka',
-    influxdb: 'influxdb',
-    pulsar: 'pulsar',
-    tendbcluster: 'tendbcluster',
-    riak: 'riak'
-  };
-
-  const databaseType = databaseTypeMap[props.clusterType];
+  const databaseType = clusterTypeInfos[props.clusterType].dbType;
   const tableRef = ref();
 
   const specOperationState = reactive({

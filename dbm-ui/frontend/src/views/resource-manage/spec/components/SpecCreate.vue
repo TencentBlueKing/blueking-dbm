@@ -169,16 +169,15 @@
     `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
     `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
     `${ClusterTypes.ES}_es_client`,
-    `${ClusterTypes.PULSAE}_pulsar_broker`,
+    `${ClusterTypes.PULSAR}_pulsar_broker`,
     `${ClusterTypes.TENDBCLUSTER}_spider`,
   ];
 
   const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
 
-  const isSqlserver = [
-    ClusterTypes.SQLSERVER_SINGLE,
-    ClusterTypes.SQLSERVER_HA,
-  ].includes(props.clusterType as ClusterTypes);
+  const isSqlserver = [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(
+    props.clusterType as ClusterTypes,
+  );
 
   const initFormdata = () => {
     if (props.data) {
@@ -334,7 +333,7 @@
         const params = Object.assign(_.cloneDeep(formdata.value), {
           spec_id: (formdata.value as ResourceSpecModel).spec_id,
           device_class: formdata.value.device_class === '-1' ? [] : formdata.value.device_class,
-          storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
+          storage_spec: formdata.value.storage_spec.filter((item) => item.mount_point && item.size && item.type),
         });
 
         if (props.mode === 'edit') {
@@ -385,8 +384,8 @@
 
 <style lang="less" scoped>
   .spec-create-form {
-    padding: 28px 40px 21px;
     max-height: calc(100vh - 105px);
+    padding: 28px 40px 21px;
     overflow-y: auto;
 
     :deep(.bk-form-label) {

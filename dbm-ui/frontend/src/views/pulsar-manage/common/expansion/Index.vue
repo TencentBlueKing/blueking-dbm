@@ -129,7 +129,7 @@
       totalDisk: 0,
       targetDisk: 0,
       expansionDisk: 0,
-      specClusterType: ClusterTypes.PULSAE,
+      specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_broker',
       resourceSpec: {
         spec_id: 0,
@@ -146,7 +146,7 @@
       totalDisk: 0,
       targetDisk: 0,
       expansionDisk: 0,
-      specClusterType: ClusterTypes.PULSAE,
+      specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_bookkeeper',
       resourceSpec: {
         spec_id: 0,
