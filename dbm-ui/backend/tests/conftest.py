@@ -17,8 +17,8 @@ from django.contrib.auth import get_user_model
 from django.utils.crypto import get_random_string
 
 from backend.db_meta import models
-from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
-from backend.db_meta.models import AppCache, BKCity, Cluster, DBModule, LogicalCity, Machine
+from backend.db_meta.enums import AccessLayer, ClusterEntryRole, ClusterEntryType, ClusterType, MachineType
+from backend.db_meta.models import AppCache, BKCity, Cluster, ClusterEntry, DBModule, LogicalCity, Machine
 from backend.flow.models import FlowTree
 from backend.tests.constants import TEST_ADMIN_USERNAME
 from backend.tests.mock_data import constant
@@ -118,7 +118,18 @@ def init_cluster():
         immute_domain=constant.CLUSTER_IMMUTE_DOMAIN,
         cluster_type=ClusterType.TenDBHA.value,
     )
+    ClusterEntry.objects.create(
+        cluster=cluster,
+        cluster_entry_type=ClusterEntryType.DNS.value,
+        entry=constant.CLUSTER_IMMUTE_DOMAIN,
+        role=ClusterEntryRole.MASTER_ENTRY,
+    )
     yield cluster
+
+
+@pytest.fixture
+def init_cluster_entry(init_cluster):
+    pass
 
 
 @pytest.fixture

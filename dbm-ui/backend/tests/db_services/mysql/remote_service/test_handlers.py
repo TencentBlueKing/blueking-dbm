@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
+
 import pytest
 from mock.mock import patch
 
@@ -23,8 +25,5 @@ class TestRemoteServiceHandler:
         results = RemoteServiceHandler(bk_biz_id=bk_biz_id).show_databases(
             cluster_ids=[dbsingle_cluster.id, dbha_cluster.id]
         )
-        for result in results:
-            if result["cluster_id"] == dbsingle_cluster.id:
-                assert len(result["databases"]) > 0
-            if result["cluster_id"] == dbha_cluster.id:
-                assert len(result["databases"]) == 0
+        databases = list(itertools.chain(*[result["databases"] for result in results]))
+        assert databases == ["db1", "db2"]
