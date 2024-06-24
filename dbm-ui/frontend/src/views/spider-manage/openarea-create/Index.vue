@@ -1,4 +1,9 @@
 <template>
+  <Teleport
+    v-if="openareaTemplateData"
+    to="#dbContentHeaderAppend">
+    <span style="font-size: 16px">【{{ openareaTemplateData.config_name }}】</span>
+  </Teleport>
   <SmartAction
     class="spider-openarea-page"
     :offset-target="getSmartActionOffsetTarget">
@@ -9,6 +14,7 @@
         <BkForm v-if="openareaTemplateData">
           <BkFormItem :label="t('模板信息：')">
             <BkButton
+              class="template-name"
               text
               theme="primary"
               @click="handleShowTemplateDetail">
@@ -17,10 +23,10 @@
             <span>
               <I18nT
                 keypath="(源集群：c，共克隆 n 个 DB)"
-                style="color: #63656e"
+                style="color: #63656e; font-size: 12px"
                 tag="span">
                 <span>{{ openareaTemplateData.source_cluster.immute_domain }}</span>
-                <span>{{ openareaTemplateData.config_rules.length }}</span>
+                <span style="font-weight: 700">{{ openareaTemplateData.config_rules.length }}</span>
               </I18nT>
             </span>
           </BkFormItem>
@@ -29,6 +35,7 @@
             required>
             <TargetCluster
               ref="targetClusterRef"
+              :show-ip-cloumn="openareaTemplateData.related_authorize.length > 0"
               :variable-list="variableList" />
           </BkFormItem>
         </BkForm>
@@ -54,19 +61,34 @@
       :width="1100">
       <TemplateDetail
         v-if="openareaTemplateData"
-        :cluster-id="openareaTemplateData.source_cluster_id"
         :data="openareaTemplateData" />
     </BkSideslider>
-    <DbSideslider
+    <BkDialog
       v-model:is-show="isShowPreivew"
       :disabled-confirm="isExistedErrorMsg"
+      :height="760"
       :title="t('请确认以下开区内容：')"
-      :width="1100">
+      :width="1536">
       <PreviewData
-        v-if="previewData"
+        v-if="previewData && openareaTemplateData"
+        ref="previewDataRef"
         :data="previewData"
-        :source-cluster-id="(openareaTemplateData as OpenareaTemplateModel).source_cluster_id" />
-    </DbSideslider>
+        :source-cluster-id="openareaTemplateData.source_cluster_id" />
+      <template #footer>
+        <BkButton
+          class="mr-2"
+          :loading="confirmSubmitLoading"
+          theme="primary"
+          @click="handleConfirmSubmit">
+          {{ t('提交') }}
+        </BkButton>
+        <BkButton
+          :disabled="confirmSubmitLoading"
+          @click="handleClosePreview">
+          {{ t('关闭') }}
+        </BkButton>
+      </template>
+    </BkDialog>
   </SmartAction>
 </template>
 <script setup lang="ts">
@@ -94,6 +116,8 @@
   const isShowTemplateDetail = ref(false);
   const isShowPreivew = ref(false);
   const variableList = ref<string[]>([]);
+  const previewDataRef = ref<InstanceType<typeof PreviewData>>();
+  const confirmSubmitLoading = ref(false);
 
   const previewData = shallowRef<ServiceReturnType<typeof getPreview>>();
 
@@ -148,6 +172,14 @@
     });
   };
 
+  const handleConfirmSubmit = () => {
+    previewDataRef.value!.submit().finally(() => (confirmSubmitLoading.value = false));
+  };
+
+  const handleClosePreview = () => {
+    isShowPreivew.value = false;
+  };
+
   defineExpose({
     routerBack() {
       router.push({
@@ -156,3 +188,15 @@
     },
   });
 </script>
+<style lang="less">
+  .spider-openarea-page {
+    .bk-form-label {
+      font-size: 12px;
+    }
+
+    .template-name {
+      font-weight: 700;
+      font-size: 12px;
+    }
+  }
+</style>

@@ -1,20 +1,46 @@
 <template>
   <BkDialog
-    :is-show="isShow"
+    v-model:is-show="isShow"
     :title="t('添加授权规则')"
-    :width="1100">
+    :width="1300">
     <div class="openarea-create-permission-rule">
-      <div class="mb-16">
-        <BkInput style="width: 520px" />
+      <div class="top-operate mb-16">
+        <div class="search-main">
+          <DbSearchSelect
+            v-model="searchSelectValue"
+            class="mr-18"
+            :data="searchSelectData"
+            :placeholder="t('请输入账号或DB名')"
+            style="width: 520px"
+            tyle="width: 520px"
+            unique-select
+            @change="handleSearchChange" />
+          <BkCheckbox
+            v-model="isOnlyShowSelected"
+            @change="handleChangeOnlyShowSelected"
+            >{{ t('仅显示已选择') }}</BkCheckbox
+          >
+        </div>
+        <BkButton
+          text
+          theme="primary"
+          @click="handleGoCreateRules">
+          <DbIcon
+            class="mr-5"
+            type="link" />
+          {{ t('去创建新的权限') }}
+        </BkButton>
       </div>
+
       <DbTable
         ref="tableRef"
         :cell-class="cellClassCallback"
         :columns="columns"
-        :container-height="600"
         :data-source="getPermissionRules"
+        :max-height="700"
         :remote-pagination="false"
-        :settings="settings" />
+        :settings="settings"
+        @clear-search="handleClearSearch" />
     </div>
     <template #footer>
       <div style="display: flex">
@@ -44,9 +70,14 @@
   </BkDialog>
 </template>
 <script setup lang="tsx">
+  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
   import { getPermissionRules } from '@services/permission';
+
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import { getSearchSelectorParams } from '@utils';
 
   type IColumnData = ServiceReturnType<typeof getPermissionRules>['results'][0]
 
@@ -55,7 +86,12 @@
     dbType: 'mysql' | 'tendbcluster',
   }
 
+  interface Emits {
+    (e: 'submit', value: number[]): void
+  }
+
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -66,12 +102,28 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const tableRef = ref();
   const rowFlodMap = ref<Record<string, boolean>>({});
   const ruleCheckedMap = ref<Record<number, boolean>>({});
+  const searchSelectValue = ref<ISearchValue[]>([]);
+  const isOnlyShowSelected = ref(false);
 
   const checkedCount = computed(() => Object.keys(ruleCheckedMap.value).length);
+
+  const searchSelectData = [
+    {
+      name: t('账号名称'),
+      id: 'user',
+      multiple: true,
+    },
+    {
+      name: t('访问DB'),
+      id: 'access_db',
+      multiple: true,
+    },
+  ];
 
   const settings = {
     fields: [
@@ -153,7 +205,7 @@
     {
       label: t('权限'),
       field: 'privilege',
-      showOverflowTooltip: true,
+      showOverflowTooltip: false,
       sort: true,
       render: ({ data }: { data: IColumnData }) => {
         if (data.rules.length === 0) {
@@ -162,7 +214,11 @@
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
         return renderRules.map(item => (
           <div class="inner-row">
-            {item.privilege}
+            <TextOverflowLayout>
+              {{
+                default: () => item.privilege
+              }}
+            </TextOverflowLayout>
           </div>
         ));
       },
@@ -171,6 +227,7 @@
 
   watch(isShow, () => {
     if (!isShow.value) {
+      searchSelectValue.value = [];
       return;
     }
 
@@ -179,15 +236,34 @@
     }), {});
 
     nextTick(() => {
-      tableRef.value.fetchData({
-        cluster_id: props.clusterId,
-      }, {
-        account_type: props.dbType,
-      });
+      fetchTableData();
     });
   });
 
+  const fetchTableData = () => {
+    tableRef.value.fetchData({
+      cluster_id: props.clusterId,
+    }, {
+      account_type: props.dbType,
+    });
+  }
+
   const cellClassCallback = (data: any) => (data.field ? `cell-${data.field}` : '');
+
+  const handleSearchChange = (valueList: ISearchValue[]) => {
+    const params = getSearchSelectorParams(valueList);
+    tableRef.value.fetchData({
+      cluster_id: props.clusterId,
+      ...params,
+    }, {
+      account_type: props.dbType,
+    });
+  }
+
+  const handleClearSearch = () => {
+    searchSelectValue.value = [];
+    fetchTableData();
+  }
 
   const handleToogleExpand = (user: string) => {
     if (rowFlodMap.value[user]) {
@@ -205,8 +281,31 @@
     }
   };
 
+  const handleChangeOnlyShowSelected = (isShow: boolean) => {
+    if (isShow) {
+      const ruleIds = Object.keys(ruleCheckedMap.value).map(item => Number(item));
+      tableRef.value.fetchData({
+        cluster_id: props.clusterId,
+        rule_ids: ruleIds.join(',')
+      }, {
+        account_type: props.dbType,
+      });
+      return;
+    }
+    fetchTableData();
+  }
+
+  const handleGoCreateRules = () => {
+    const route = router.resolve({
+      name: 'PermissionRules',
+    });
+    window.open(route.href);
+  }
+
   const handleSubmit = () => {
-    modleValue.value = Object.keys(ruleCheckedMap.value).map(item => Number(item));
+    const ruleIds = Object.keys(ruleCheckedMap.value).map(item => Number(item));
+    modleValue.value = ruleIds
+    emits('submit', ruleIds);
     isShow.value = false;
   };
 
@@ -216,6 +315,24 @@
 </script>
 <style lang="less">
   .openarea-create-permission-rule {
+    height: 730px;
+
+    .top-operate {
+      width: 100%;
+      display: flex;
+      font-size: 12px;
+
+      .search-main {
+        flex: 1;
+        display: flex;
+        align-items: center;
+
+        .bk-checkbox-label {
+          font-size: 12px;
+        }
+      }
+    }
+
     .account-box {
       .flod-flag {
         display: inline-block;

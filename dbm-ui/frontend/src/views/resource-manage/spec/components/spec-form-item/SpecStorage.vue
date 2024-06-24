@@ -29,7 +29,7 @@
       </BkButton>
       <DbOriginalTable
         v-else
-        :border="['row', 'col', 'outer']"
+        :border="['row', 'outer']"
         class="custom-edit-table"
         :columns="columns"
         :data="tableData" />

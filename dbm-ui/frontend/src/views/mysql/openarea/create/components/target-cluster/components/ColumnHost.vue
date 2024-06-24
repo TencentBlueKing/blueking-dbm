@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div
+  <!-- <div
     class="render-host-box"
     @mouseenter="handleControlShowEdit(true)"
     @mouseleave="handleControlShowEdit(false)">
@@ -67,7 +67,12 @@
         </div>
       </template>
     </BkPopover>
-  </div>
+  </div> -->
+  <RenderHost
+    :data="renderText"
+    :is-disabled="localHostList.length === 0"
+    :placeholder="t('请选择IP')"
+    @click="handleShowIpSelector" />
   <IpSelector
     v-if="clusterData"
     v-model:show-dialog="isShowIpSelector"
@@ -89,14 +94,16 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
   import type { HostDetails } from '@services/types/ip';
 
   import { OSTypes } from '@common/const';
 
   import IpSelector, { type IPSelectorResult } from '@components/ip-selector/IpSelector.vue';
+  import RenderHost from '@components/render-table/columns/select-disable/index.vue';
 
   import type { IDataRow } from './Row.vue';
-  import useValidtor, { type Rules } from './useValidtor';
+  // import useValidtor from './useValidtor';
 
   interface Props {
     data?: IDataRow['authorizeIps'];
@@ -116,29 +123,35 @@
 
   const { t } = useI18n();
 
-  const contentRef = ref();
+  // const contentRef = ref();
   const isShowIpSelector = ref(false);
-  const showEditIcon = ref(false);
-  const isOverflow = ref(false);
+  // const showEditIcon = ref(false);
+  // const isOverflow = ref(false);
 
   const localHostList = shallowRef<HostDetails[]>([]);
 
-  const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
+  // const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
 
-  const rules = [
-    // {
-    //   validator: (value: string[]) => value.length > 0,
-    //   message: t('授权 IP 不能为空'),
-    // },
-  ] as Rules;
+  const renderText = computed(() => localHostList.value.map((item) => item.ip).join(',  '));
 
-  const { message: errorMessage, validator } = useValidtor(rules);
+  // const { validator } = useValidtor([]);
 
   watch(
     () => props.data,
-    () => {
+    async () => {
       if (props.data.length) {
-        localHostList.value = props.data.map((ip) => ({ ip })) as HostDetails[];
+        const hosts = await checkHost({
+          ip_list: props.data,
+          mode: 'all',
+          scope_list: [
+            {
+              scope_id: window.PROJECT_CONFIG.BIZ_ID,
+              scope_type: 'biz',
+            },
+          ],
+        });
+
+        localHostList.value = hosts;
       }
     },
     {
@@ -146,25 +159,23 @@
     },
   );
 
-  watch(
-    localHostList,
-    (list) => {
-      if (list.length > 0) {
-        validator(localHostList.value).finally(() => {
-          setTimeout(() => {
-            isOverflow.value = contentRef.value.clientWidth < contentRef.value.scrollWidth;
-          });
-        });
-      }
-    },
-    {
-      deep: true,
-    },
-  );
+  // watch(
+  //   localHostList,
+  //   (list) => {
+  //     if (list.length > 0) {
+  //       setTimeout(() => {
+  //         isOverflow.value = contentRef.value.clientWidth < contentRef.value.scrollWidth;
+  //       });
+  //     }
+  //   },
+  //   {
+  //     deep: true,
+  //   },
+  // );
 
-  const handleControlShowEdit = (isShow: boolean) => {
-    showEditIcon.value = isShow;
-  };
+  // const handleControlShowEdit = (isShow: boolean) => {
+  //   showEditIcon.value = isShow;
+  // };
 
   const handleShowIpSelector = () => {
     isShowIpSelector.value = true;
@@ -175,18 +186,17 @@
   };
 
   const handleWhitelistChange = (whiteList: IPSelectorResult['dbm_whitelist']) => {
-    localHostList.value = localHostList.value.concat(
-      _.flatMap(whiteList.map((item) => item.ips.map((ip: string) => ({ ip })))),
-    );
+    const localIps = localHostList.value.map((item) => item.ip);
+    const whiteIps = _.flatMap(whiteList.map((item) => item.ips));
+    const finalIps = Array.from(new Set([...localIps, ...whiteIps]));
+    localHostList.value = finalIps.map((ip) => ({ ip }) as HostDetails);
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localHostList.value).then(() =>
-        Promise.resolve({
-          authorize_ips: localHostList.value.map(({ ip }) => ip),
-        }),
-      );
+      return Promise.resolve({
+        authorize_ips: localHostList.value.map(({ ip }) => ip),
+      });
     },
   });
 </script>

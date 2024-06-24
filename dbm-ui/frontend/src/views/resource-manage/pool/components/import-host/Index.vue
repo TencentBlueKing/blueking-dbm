@@ -13,9 +13,9 @@
 
 <template>
   <BkDialog
+    v-model:is-show="modelValue"
     class="import-host-dialog"
     :esc-close="false"
-    :is-show="isShow"
     :quick-close="false"
     :width="width">
     <BkResizeLayout
@@ -26,7 +26,7 @@
       :style="layoutStyle">
       <template #main>
         <SelectHostPanel
-          v-if="isShow"
+          v-if="modelValue"
           v-model="hostSelectList"
           :content-height="contentHeight" />
       </template>
@@ -72,16 +72,15 @@
   import FormPanel from './components/FormPanel.vue';
   import SelectHostPanel from './components/select-host-panel/Index.vue';
 
-  interface Props {
-    isShow: boolean;
-  }
   interface Emits {
-    (e: 'update:isShow', value: boolean): void;
     (e: 'change'): void;
   }
 
-  defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<boolean>('isShow', {
+    default: false,
+  });
 
   const { t } = useI18n();
 
@@ -121,7 +120,7 @@
   };
 
   const handleCancel = () => {
-    emits('update:isShow', false);
+    modelValue.value = false;
   };
 </script>
 <style lang="less">

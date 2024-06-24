@@ -16,8 +16,22 @@
     <TableEditInput
       ref="editRef"
       v-model="modelValue"
-      :placeholder="t('可使用全局变量，如_test', { var: '{test}'})"
+      :placeholder="t('支持使用 { } 占位，如db_{id} , id在执行开区时传入', { x: '{ }', y: '{id}' })"
       :rules="rules" />
+    <!-- <BkSelect
+      ref="selectRef"
+      v-model="selectedValue"
+      filterable
+      @select="handleSelect">
+    <template #trigger>
+      <span></span>
+    </template>
+      <BkOption
+        v-for="(item, index) in dataList"
+        :id="item.value"
+        :key="index"
+        :name="item.label"/>
+    </BkSelect> -->
   </div>
 </template>
 <script setup lang="ts">
@@ -25,29 +39,75 @@
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
+  interface Props {
+    dbName?: string;
+  }
+
   interface Exposes {
     getValue: () => Promise<{
       target_db_pattern: string;
     }>;
   }
 
-  const { t } = useI18n();
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<string>({
     default: '',
   });
-  const editRef = ref();
+
+  const { t } = useI18n();
+
+  const editRef = ref<InstanceType<typeof TableEditInput>>();
+  // const selectRef = ref();
+  // const selectedValue = ref('')
 
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('目标集群不能为空'),
+      message: t('不能为空'),
+    },
+    {
+      validator: (value: string) => {
+        const matches = value.match(/{(.*?)}/g);
+        if (matches) {
+          const extractedStrings = matches.map((match) => match.slice(1, -1));
+          return extractedStrings.every((word) => /^[A-Za-z].*?$/.test(word));
+        }
+        return true;
+      },
+      message: t('变量只能以字母开头'),
     },
   ];
 
+  // const dataList = [
+  //   {
+  //     value: 'APP',
+  //     label: 'APP',
+  //   }
+  // ];
+
+  // watch(modelValue, () => {
+  //   if (/{$/.test(modelValue.value)) {
+  //     selectRef.value.showPopover();
+  //   }
+  // })
+
+  // const handleSelect = (value: string) => {
+  //   modelValue.value = `${modelValue.value}${value}}`;
+  // }
+
+  watch(
+    () => props.dbName,
+    () => {
+      if (props.dbName) {
+        modelValue.value = `${props.dbName}_{ID}`;
+      }
+    },
+  );
+
   defineExpose<Exposes>({
     getValue() {
-      return (editRef.value as InstanceType<typeof TableEditInput>).getValue().then(() => ({
+      return editRef.value!.getValue().then(() => ({
         target_db_pattern: modelValue.value,
       }));
     },
