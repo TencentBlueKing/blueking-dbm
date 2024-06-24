@@ -61,8 +61,8 @@ class Machine(AuditedModel):
 
     @property
     def dbm_meta(self) -> dict:
-        proxies = self.proxyinstance_set.all()
-        storages = self.storageinstance_set.all()
+        proxies = self.proxyinstance_set.order_by("-create_at").all()
+        storages = self.storageinstance_set.order_by("-create_at").all()
 
         host_labels = []
 

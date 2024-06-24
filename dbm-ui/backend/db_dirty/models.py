@@ -28,3 +28,6 @@ class DirtyMachine(AuditedModel):
     ip = models.CharField(max_length=LEN_MIDDLE, help_text=_("主机IP"))
     flow = models.ForeignKey(Flow, on_delete=models.CASCADE, help_text=_("关联任务"))
     ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, help_text=_("关联单据"))
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("污点池机器(DirtyMachine)")

@@ -28,6 +28,7 @@ from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
     ConfigFileEnum,
     ConfigTypeEnum,
+    MediumEnum,
     MongoDBActuatorActionEnum,
     MongoDBDfaultAuthDB,
     MongoDBInstanceType,
@@ -258,7 +259,7 @@ class ActKwargs:
 
     def get_pkg(self):
         self.pkg = Package.get_latest_package(
-            version=self.payload["db_version"], pkg_type=self.db_release, db_type=DBType.MongoDB
+            version=self.db_release_version, pkg_type=MediumEnum.MongoDB, db_type=DBType.MongoDB
         )
 
     @staticmethod
@@ -293,9 +294,7 @@ class ActKwargs:
         if media_type == "actuator":
             file_list = GetFileList(db_type=DBType.MongoDB).mongodb_actuator_pkg()
         elif media_type == "all":
-            file_list = GetFileList(db_type=DBType.MongoDB).mongodb_pkg(
-                db_version=self.payload["db_version"], release_info=self.db_release
-            )
+            file_list = GetFileList(db_type=DBType.MongoDB).mongodb_pkg(db_version=self.db_release_version)
         ip_list = self.payload["hosts"]
         exec_ips = [host["ip"] for host in ip_list]
         return {
@@ -350,6 +349,22 @@ class ActKwargs:
                     "password": password,
                 },
             },
+        }
+
+    def get_install_plugin_kwargs(self, plugin_name: str, new_cluster: bool) -> dict:
+        """
+        安装蓝鲸插件的kwargs
+        new_cluster 是否新集群部署
+        """
+
+        if new_cluster:
+            ips = [host["ip"] for host in self.payload["hosts"]]
+        else:
+            ips = [host["ip"] for host in self.payload["plugin_hosts"]]
+        return {
+            "plugin_name": plugin_name,
+            "ips": ips,
+            "bk_cloud_id": self.payload["hosts"][0]["bk_cloud_id"],
         }
 
     def get_install_mongod_kwargs(self, node: dict, cluster_role: str) -> dict:
@@ -1147,11 +1162,13 @@ class ActKwargs:
         """替换获取host信息"""
 
         hosts = []
+        plugin_hosts = []
         if mongodb_type == ClusterType.MongoReplicaSet.value:
             # 源ip
             hosts.append({"ip": info["ip"], "bk_cloud_id": info["bk_cloud_id"]})
             # 目标ip
             hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
+            plugin_hosts.append({"ip": info["target"]["ip"], "bk_cloud_id": info["target"]["bk_cloud_id"]})
             # db版本
             self.payload["db_version"] = info["instances"][0]["db_version"]
 
@@ -1161,16 +1178,19 @@ class ActKwargs:
                 hosts.append({"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]})
                 # 目标ip
                 hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
+                plugin_hosts.append({"ip": mongos["target"]["ip"], "bk_cloud_id": mongos["target"]["bk_cloud_id"]})
             for config in info["mongo_config"]:
                 # 源ip
                 hosts.append({"ip": config["ip"], "bk_cloud_id": config["bk_cloud_id"]})
                 # 目标ip
                 hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
+                plugin_hosts.append({"ip": config["target"]["ip"], "bk_cloud_id": config["target"]["bk_cloud_id"]})
             for shard in info["mongodb"]:
                 # 源ip
                 hosts.append({"ip": shard["ip"], "bk_cloud_id": shard["bk_cloud_id"]})
                 # 目标ip
                 hosts.append({"ip": shard["target"]["ip"], "bk_cloud_id": shard["target"]["bk_cloud_id"]})
+                plugin_hosts.append({"ip": shard["target"]["ip"], "bk_cloud_id": shard["target"]["bk_cloud_id"]})
             # 获取参数
             if info["mongos"]:
                 self.payload["db_version"] = info["mongos"][0]["instances"][0]["db_version"]
@@ -1180,6 +1200,7 @@ class ActKwargs:
                 self.payload["db_version"] = info["mongodb"][0]["instances"][0]["db_version"]
 
         self.payload["hosts"] = hosts
+        self.payload["plugin_hosts"] = plugin_hosts
 
     def get_mongos_host_replace(self):
         """替换configDB获取mongos主机"""
@@ -1319,6 +1340,7 @@ class ActKwargs:
 
         if increase:
             hosts = [{"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]} for mongos in info["mongos"]]
+            self.payload["plugin_hosts"] = hosts
         else:
             hosts = [{"ip": mongos["ip"], "bk_cloud_id": mongos["bk_cloud_id"]} for mongos in info["reduce_nodes"]]
         self.payload["hosts"] = hosts
@@ -1451,6 +1473,7 @@ class ActKwargs:
         """容量变更获取host信息"""
 
         hosts = []
+        plugin_hosts = []
         if mongodb_type == ClusterType.MongoReplicaSet.value:
             for instance_relationship in self.payload["instance_relationships"]:
                 # 源ip
@@ -1462,22 +1485,33 @@ class ActKwargs:
                         "bk_cloud_id": instance_relationship["target"]["bk_cloud_id"],
                     }
                 )
+                plugin_hosts.append(
+                    {
+                        "ip": instance_relationship["target"]["ip"],
+                        "bk_cloud_id": instance_relationship["target"]["bk_cloud_id"],
+                    }
+                )
                 # db版本
             self.payload["db_version"] = self.payload["instance_relationships"][0]["instances"][0]["db_version"]
             self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
 
         elif mongodb_type == ClusterType.MongoShardedCluster.value:
             hosts_set = set()
+            plugin_hosts_set = set()
             bk_cloud_id = info["mongodb"][0][0]["bk_cloud_id"]
             for shards_instance_relationships in self.payload["shards_instance_relationships"]:
                 for instance_relationship in shards_instance_relationships:
                     hosts_set.add(instance_relationship["ip"])
                     hosts_set.add(instance_relationship["target"]["ip"])
+                    plugin_hosts_set.add(instance_relationship["target"]["ip"])
             for host in hosts_set:
                 hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})
+            for host in plugin_hosts_set:
+                plugin_hosts.append({"ip": host, "bk_cloud_id": bk_cloud_id})
             self.payload["db_version"] = info["db_version"]
             self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
         self.payload["hosts"] = hosts
+        self.payload["plugin_hosts"] = plugin_hosts
 
     def get_scale_change_meta(self, info: dict, instance: dict) -> dict:
         """容量变更修改meta"""
@@ -1511,6 +1545,7 @@ class ActKwargs:
         self.payload["db_version"] = info["db_version"]
         self.db_main_version = self.payload["db_version"].split("-")[1].split(".")[0]
         self.payload["hosts"] = hosts
+        self.payload["plugin_hosts"] = hosts
 
     def calc_increase_node(self, info: dict):
         """增加节点计算cluster对应关系"""

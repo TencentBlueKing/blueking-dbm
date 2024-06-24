@@ -26,7 +26,7 @@ export type RedisFunctions =
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb';
-export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha';
+export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';
 export type FunctionKeys =
   | AddonsFunctions
   | MySQLFunctions
@@ -178,7 +178,6 @@ interface ControllerData {
   'hdfs.clusterManage.changeLog': ControllerItem<string>;
   'pulsar.clusterManage.clusterTopo': ControllerItem<string>;
   'pulsar.clusterManage.changeLog': ControllerItem<string>;
-
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;

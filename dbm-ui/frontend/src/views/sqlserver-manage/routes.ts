@@ -12,14 +12,19 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { t } from '@locales/index';
 
 const routes: RouteRecordRaw[] = [
   {
     name: 'SqlServerManage',
     path: 'sqlserver-manage',
+    meta: {
+      navName: t('SQlServer_工具箱'),
+    },
+    redirect: {
+      name: 'SqlServerSingle',
+    },
+    component: () => import('@views/sqlserver-manage/Index.vue'),
     children: [
       {
         name: 'SqlServerHaClusterList',
@@ -56,21 +61,123 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/sqlserver-manage/permission/Index.vue'),
       },
+    ],
+  },
+];
+
+const toolboxRouters: RouteRecordRaw[] = [
+  {
+    path: 'toolbox',
+    name: 'sqlserverToolbox',
+    meta: {
+      navName: t('SQlServer_工具箱'),
+      fullscreen: true,
+    },
+    redirect: {
+      name: 'sqlServerExecute',
+    },
+    component: () => import('@views/sqlserver-manage/toolbox/Index.vue'),
+    children: [
+      {
+        name: 'sqlServerExecute',
+        path: 'sql-execute/:page?',
+        meta: {
+          navName: t('变更SQL执行'),
+        },
+        component: () => import('@views/sqlserver-manage/sql-execute/index.vue'),
+      },
+      {
+        name: 'sqlServerDBRename',
+        path: 'db-rename/:page?',
+        meta: {
+          navName: t('DB重命名'),
+        },
+        component: () => import('@views/sqlserver-manage/db-rename/Index.vue'),
+      },
+      {
+        name: 'sqlServerSlaveRebuild',
+        path: 'slave-rebuild/:page?',
+        meta: {
+          navName: t('重建从库'),
+        },
+        component: () => import('@views/sqlserver-manage/slave-rebuild/index.vue'),
+      },
+      {
+        name: 'sqlServerSlaveAdd',
+        path: 'slave-add/:page?',
+        meta: {
+          navName: t('添加从库'),
+        },
+        component: () => import('@views/sqlserver-manage/slave-add/index.vue'),
+      },
+      {
+        name: 'sqlServerMasterSlaveClone',
+        path: 'master-slave-clone/:page?',
+        meta: {
+          navName: t('克隆主从'),
+        },
+        component: () => import('@views/sqlserver-manage/master-slave-clone/index.vue'),
+      },
+      {
+        name: 'sqlServerMasterSlaveSwap',
+        path: 'master-slave-swap/:page?',
+        meta: {
+          navName: t('主从互切'),
+        },
+        component: () => import('@views/sqlserver-manage/master-slave-swap/index.vue'),
+      },
+      {
+        name: 'sqlServerMasterFailover',
+        path: 'master-failover/:page?',
+        meta: {
+          navName: t('主库故障切换'),
+        },
+        component: () => import('@views/sqlserver-manage/master-failover/index.vue'),
+      },
+      {
+        name: 'sqlServerDBClear',
+        path: 'db-clear/:page?',
+        meta: {
+          navName: t('清档'),
+        },
+        component: () => import('@views/sqlserver-manage/db-clear/Index.vue'),
+      },
+      {
+        name: 'sqlServerDBRollback',
+        path: 'rollback/:page?',
+        meta: {
+          navName: t('定点回档'),
+        },
+        component: () => import('@views/sqlserver-manage/rollback/Index.vue'),
+      },
       {
         name: 'SqlServerDbBackup',
-        path: 'sqlserver-db-backup/:page?',
+        path: 'db-backup/:page?',
         meta: {
           navName: t('数据库备份'),
         },
         component: () => import('@views/sqlserver-manage/db-backup/Index.vue'),
       },
+      {
+        name: 'sqlServerDataMigrate',
+        path: 'data-migrate/:page?',
+        meta: {
+          navName: t('数据迁移'),
+        },
+        component: () => import('@views/sqlserver-manage/data-migrate/Index.vue'),
+      },
+      {
+        name: 'sqlServerDataMigrateRecord',
+        path: 'data-migrate-record',
+        meta: {
+          navName: t('数据迁移'),
+        },
+        component: () => import('@views/sqlserver-manage/data-migrate-record/Index.vue'),
+      },
     ],
   },
 ];
-
-export default function getRoutes(funControllerData: FunctionControllModel) {
-  if (funControllerData.sqlserver && !funControllerData.sqlserver.is_enabled) {
-    return [];
-  }
+export default function getRoutes() {
+  routes[0].children?.push(...toolboxRouters);
   return routes;
 }

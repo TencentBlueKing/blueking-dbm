@@ -35,7 +35,7 @@ export default class SqlServerHaInstance {
     sqlserver_view: boolean;
   };
   port: number;
-  related_clusters?: {
+  related_clusters: {
     alias: string;
     bk_biz_id: number;
     bk_cloud_id: number;
@@ -76,7 +76,7 @@ export default class SqlServerHaInstance {
     this.master_domain = payload.master_domain;
     this.permission = payload.permission;
     this.port = payload.port;
-    this.related_clusters = payload.related_clusters;
+    this.related_clusters = payload.related_clusters || [];
     this.role = payload.role;
     this.slave_domain = payload.slave_domain;
     this.spec_config = payload.spec_config;
