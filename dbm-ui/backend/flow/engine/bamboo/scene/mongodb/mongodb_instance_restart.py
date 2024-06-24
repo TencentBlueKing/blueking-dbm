@@ -12,7 +12,7 @@ import logging.config
 from typing import Dict, Optional
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mongodb.sub_task import instance_restart
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.instance_restart import instance_restart
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")

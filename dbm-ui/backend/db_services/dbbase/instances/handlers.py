@@ -15,6 +15,7 @@ from django.db.models import F, Q
 from django.db.models.functions import Coalesce
 
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.instance_role import ADMIN_ROLE_CASE
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.cluster.handlers import get_cluster_service_handler
@@ -100,8 +101,11 @@ class InstanceHandler:
         db_instances: List[DBInstance] = []
         host_id_instance_map: Dict[str, Dict] = {}
 
-        # 应该根据db_type来选择handler更合理，如果没传默认为dbbase
-        db_type = db_type or "dbbase"
+        # 应该根据dbtype来选择handler更合理，如果没传dbtype则从实例中查询
+        if not db_type:
+            inst = storages_proxies_instances[0]
+            cluster_type = inst["cluster_type"] if isinstance(inst, Dict) else inst.cluster_type
+            db_type = ClusterType.cluster_type_to_db_type(cluster_type)
         cluster_handler = get_cluster_service_handler(self.bk_biz_id, db_type)
 
         # 查询实例关联的集群信息

@@ -26,8 +26,17 @@ func (m *MigratePara) MigrateAccountRule(jsonPara string, ticket string) ([]Priv
 		Self: openDB(m.GcsDb.User, m.GcsDb.Psw, fmt.Sprintf("%s:%s", m.GcsDb.Host, m.GcsDb.Port), m.GcsDb.Name),
 	}
 	defer GcsDb.Self.Close()
-	// 检查scr、gcs中的账号规则，mysql和spider的一起检查
-	users, errMsg := CheckOldPriv(m.Key, appWhere, m.SapPassword, &exclude)
+	// 检查scr、gcs中的账号规则，mysql和spider分开检查
+	var dbmodule string
+	if m.Range == "mysql" {
+		dbmodule = " not like 'spider%' "
+	} else if m.Range == "spider" {
+		dbmodule = " like 'spider%' "
+	} else {
+		return nil, nil, nil, nil, nil, fmt.Errorf("不支持range值[%s]，支持mysql、spider", m.Range)
+	}
+
+	users, errMsg := CheckOldPriv(m.Key, appWhere, m.SapPassword, &exclude, dbmodule)
 	passTips := "all check pass"
 	// 仅检查，不迁移
 	if m.Mode == "check" {
@@ -60,8 +69,7 @@ func (m *MigratePara) MigrateAccountRule(jsonPara string, ticket string) ([]Priv
 	AddPrivLog(PrivLog{BkBizId: 0, Ticket: ticket, Operator: "migrator", Para: jsonPara, Time: time.Now()})
 
 	// 获取需要迁移的scr、gcs中的账号规则
-	// db_module为spider_master/spider_slave属于spider的权限规则
-	// 其他不明确的，同时迁移到mysql和spider下
+	// db_module包含spider属于spider的权限规则；其他迁移到mysql下
 	mysqlUids, uids, exUids, errOuter := FilterMigratePriv(appWhere, &exclude)
 	if errOuter != nil {
 		slog.Error("get privilege uid to migrate", "err", errOuter)
@@ -89,20 +97,8 @@ func (m *MigratePara) MigrateAccountRule(jsonPara string, ticket string) ([]Priv
 		}
 		slog.Info("migrate account rule success")
 		return nil, nil, success, fail, exUids, nil
-	} else if m.Range == "all" {
-		success, fail, errs := MigrateForMysqlOrSpider(apps, mysqlUids, "mysql", users)
-		successSpider, failSpider, errs1 := MigrateForMysqlOrSpider(apps, mysqlUids, "spider", users)
-		errs = append(errs, errMsg...)
-		errs = append(errs, errs1...)
-		if len(errs) > 0 {
-			slog.Info("migrate account rule fail")
-			return success, fail, successSpider, failSpider, exUids, errno.MigrateFail.Add("\n" +
-				strings.Join(errs, "\n"))
-		}
-		slog.Info("migrate account rule success")
-		return success, fail, successSpider, failSpider, exUids, nil
 	} else {
-		return nil, nil, nil, nil, nil, fmt.Errorf("不支持range值[%s]，支持all、mysql、spider", m.Range)
+		return nil, nil, nil, nil, nil, fmt.Errorf("不支持range值[%s]，支持mysql、spider", m.Range)
 	}
 }
 
@@ -184,28 +180,28 @@ func (m *MigratePara) CheckPara() (map[string]int64, error) {
 		return nil, fmt.Errorf(
 			"mode值为:%s,可选模式\ncheck --- 仅检查不实施\nrun --- 检查并且迁移\nforce-run --- 强制执行", m.Mode)
 	}
-	if !(m.Range == "all" || m.Range == "mysql" || m.Range == "spider") {
-		return nil, fmt.Errorf("不支持range值[%s]，支持all、mysql、spider", m.Range)
+	if !(m.Range == "mysql" || m.Range == "spider") {
+		return nil, fmt.Errorf("不支持range值[%s]，支持mysql、spider", m.Range)
 	}
 	return apps, nil
 }
 
 // CheckOldPriv 检查旧的密码格式
-func CheckOldPriv(key, appWhere, sap string, exclude *[]AppUser) ([]PrivModule, []string) {
+func CheckOldPriv(key, appWhere, sap string, exclude *[]AppUser, dbmodule string) ([]PrivModule, []string) {
 	slog.Info("begin check different privileges")
 	// 检查是否存在多种权限，需要合并
-	err1 := CheckDifferentPrivileges(appWhere)
+	err1 := CheckDifferentPrivileges(appWhere, dbmodule)
 	slog.Info("end check different privileges")
 	slog.Info("CheckDifferentPrivileges", "error", err1)
 	slog.Info("CheckDifferentPrivileges", "exclude", exclude)
 	slog.Info("begin check privileges format")
 	// 检查权限格式是否正确
-	err2 := CheckPrivilegesFormat(appWhere, exclude)
+	err2 := CheckPrivilegesFormat(appWhere, exclude, dbmodule)
 	slog.Info("end check privileges format")
 	slog.Info("CheckPrivilegesFormat", "error", err2)
 	slog.Info("CheckPrivilegesFormat", "exclude", exclude)
 	// 检查密码，并且获取帐号以及密码
-	users, err3 := CheckAndGetPassword(key, appWhere, sap, exclude)
+	users, err3 := CheckAndGetPassword(key, appWhere, sap, exclude, dbmodule)
 	slog.Info("CheckAndGetPassword", "error", err3)
 	slog.Info("CheckAndGetPassword", "exclude", exclude)
 	err := append(err1, err2...)

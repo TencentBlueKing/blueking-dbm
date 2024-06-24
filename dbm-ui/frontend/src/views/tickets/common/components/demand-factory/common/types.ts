@@ -11,7 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { SpecInfo } from '@services/model/ticket/details/common';
-import type { MySQLExportData } from '@services/model/ticket/details/mysql';
 import type { clustersItems } from '@services/types/ticket';
 
 import { ClusterTypes } from '@common/const';
@@ -153,6 +152,114 @@ export interface SqlserverAuthorizeRules {
   excel_url?: string;
 }
 
+// spider 迁移主从
+export interface SpiderMigrateCluster {
+  infos: {
+    cluster_id: number;
+    new_master: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
+    new_slave: {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    };
+  }[];
+  clusters: Record<
+    number,
+    {
+      id: number;
+      tag: string[];
+      name: string;
+      alias: string;
+      phase: string;
+      region: string;
+      status: string;
+      creator: string;
+      updater: string;
+      bk_biz_id: number;
+      time_zone: string;
+      bk_cloud_id: number;
+      cluster_type: string;
+      db_module_id: number;
+      immute_domain: string;
+      major_version: string;
+      cluster_type_name: string;
+      disaster_tolerance_level: string;
+    }
+  >;
+  ip_source: string;
+  backup_source: string;
+}
+
+// spider 迁移主从
+export interface SpiderSlaveRebuid {
+  infos: {
+    cluster_id: number;
+    slave: {
+      ip: string;
+      bk_biz_id: number;
+      bk_host_id: number;
+      bk_cloud_id: number;
+    };
+    old_slave: SpiderSlaveRebuid['infos'][number]['slave'];
+    new_slave: SpiderSlaveRebuid['infos'][number]['slave'];
+    resource_spec: {
+      new_slave: {
+        name: string;
+        cpu: {
+          max: number;
+          min: number;
+        };
+        id: number;
+        mem: {
+          max: number;
+          min: number;
+        };
+        qps: {
+          max: number;
+          min: number;
+        };
+        count: number;
+        storage_spec: {
+          mount_point: string;
+          size: number;
+          type: string;
+        }[];
+      };
+    };
+  }[];
+  clusters: Record<
+    number,
+    {
+      id: number;
+      tag: string[];
+      name: string;
+      alias: string;
+      phase: string;
+      region: string;
+      status: string;
+      creator: string;
+      updater: string;
+      bk_biz_id: number;
+      time_zone: string;
+      bk_cloud_id: number;
+      cluster_type: string;
+      db_module_id: number;
+      immute_domain: string;
+      major_version: string;
+      cluster_type_name: string;
+      disaster_tolerance_level: string;
+    }
+  >;
+  ip_source: string;
+  backup_source: string;
+}
+
 export interface RedisHaApply {
   bk_cloud_id: number;
   cluster_type: string;
@@ -192,5 +299,4 @@ export type TicketDetailTypes =
   | SqlserverDbBackup
   | SqlserverAuthorizeRules
   | SpiderMigrateCluster
-  | RedisHaApply
-  | MySQLExportData;
+  | RedisHaApply;

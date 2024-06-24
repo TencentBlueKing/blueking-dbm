@@ -34,7 +34,7 @@ class ClusterEntry(AuditedModel):
 
     cluster = models.ForeignKey(Cluster, on_delete=models.PROTECT)
     cluster_entry_type = models.CharField(max_length=64, choices=ClusterEntryType.get_choices(), default="")
-    entry = models.CharField(max_length=200, unique=True, default="")
+    entry = models.CharField(max_length=200, default="")
 
     forward_to = models.ForeignKey(
         "self",
