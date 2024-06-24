@@ -198,7 +198,7 @@ func (e ExecuteSqlAtLocal) MyExcuteCommand(command string) (err error) {
 	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
 	defer cancel()
-	//command = fmt.Sprintf("sleep 3 && %s", command)
+	// command = fmt.Sprintf("sleep 3 && %s", command)
 	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", command)
 
 	// 启动指定命令

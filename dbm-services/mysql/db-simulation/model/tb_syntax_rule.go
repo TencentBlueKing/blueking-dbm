@@ -14,9 +14,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"dbm-services/common/go-pubpkg/logger"
-
 	"gorm.io/gorm/clause"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 const (
@@ -183,14 +183,14 @@ func InitRule() (err error) {
 		Status:    true,
 	})
 
-	for _, rule := range initRules {
-		if err := CreateRule(&rule); err != nil {
+	for i := range initRules {
+		if err := CreateRule(&initRules[i]); err != nil {
 			logger.Error("初始化规则失败%s", err.Error())
 			return err
 		}
 	}
 	GetAllRule()
-	return
+	return err
 }
 
 // CreateRule TODO

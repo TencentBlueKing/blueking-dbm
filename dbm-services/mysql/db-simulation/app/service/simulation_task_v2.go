@@ -8,33 +8,25 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package cst 常量
-package cst
+package service
 
-import "time"
-
-const (
-	// TIMELAYOUT TODO
-	TIMELAYOUT = "2006-01-02 15:04:05"
-	// TIMELAYOUTSEQ TODO
-	TIMELAYOUTSEQ = "2006-01-02_15:04:05"
-	// TimeLayoutDir TODO
-	TimeLayoutDir = "20060102150405"
+import (
+	"dbm-services/common/go-pubpkg/logger"
 )
 
-const (
-	// BK_PKG_INSTALL_PATH 默认文件下发路径
-	BK_PKG_INSTALL_PATH = "/data/install"
-	// MYSQL_TOOL_INSTALL_PATH 默认工具安装路径
-	MYSQL_TOOL_INSTALL_PATH = "/home/mysql"
-)
-
-const (
-	// DefaultCharset default charset
-	DefaultCharset = "default"
-)
-
-// GetNowTimeLayoutStr 20060102150405
-func GetNowTimeLayoutStr() string {
-	return time.Now().Format(TimeLayoutDir)
+func (t *SimulationTask) executeMultFilesObject(e ExcuteSQLFileObjV2, containerName string,
+	xlogger *logger.Logger) (sstdout,
+	sstderr string, err error) {
+	for _, file := range e.SQLFiles {
+		sstdout, sstderr, err = t.executeOneObject(ExcuteSQLFileObj{
+			LineID:        e.LineID,
+			SQLFile:       file,
+			IgnoreDbNames: e.IgnoreDbNames,
+			DbNames:       e.DbNames}, containerName, xlogger)
+		if err != nil {
+			logger.Error("simulation %s failed %v", file, err)
+			return sstdout, sstderr, err
+		}
+	}
+	return
 }

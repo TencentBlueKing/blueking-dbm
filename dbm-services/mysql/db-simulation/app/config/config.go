@@ -109,8 +109,7 @@ type ImgConfig struct {
 	Image   string `yaml:"image"`
 }
 
-func init() {
-	viper.AutomaticEnv()
+func initEnv() {
 	// bkrepo
 	viper.BindEnv("bkrepo_project", "BKREPO_PROJECT")
 	viper.BindEnv("bkrepo_public_bucket", "BKREPO_PUBLIC_BUCKET")
@@ -136,7 +135,11 @@ func init() {
 	viper.BindEnv("mysql80", "MYSQL80")
 	viper.BindEnv("spider_img", "SPIDER_IMG")
 	viper.BindEnv("tdbctl_img", "TDBCTL_IMG")
+}
 
+func init() {
+	viper.AutomaticEnv()
+	initEnv()
 	GAppConfig.ListenAddr = "0.0.0.0:80"
 	if viper.GetString("LISTEN_ADDR") != "" {
 		GAppConfig.ListenAddr = viper.GetString("LISTEN_ADDR")

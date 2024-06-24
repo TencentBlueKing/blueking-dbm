@@ -22,13 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"dbm-services/common/go-pubpkg/cmutil"
-	util "dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app"
-	"dbm-services/mysql/db-simulation/app/config"
-	"dbm-services/mysql/db-simulation/model"
-
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	v1 "k8s.io/api/core/v1"
@@ -38,6 +31,13 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/remotecommand"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	util "dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app"
+	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/model"
 )
 
 // Kcs TODO
@@ -119,7 +119,81 @@ func (k *DbPodSets) getCreateClusterSqls() []string {
 	return ss
 }
 
-// CreateClusterPod TODO
+func (k *DbPodSets) getClusterPodContanierSpec() []v1.Container {
+	return []v1.Container{
+		{
+			Name: "backend",
+			Env: []v1.EnvVar{{
+				Name:  "MYSQL_ROOT_PASSWORD",
+				Value: k.BaseInfo.RootPwd,
+			}},
+			Resources:       k.getResourceLimit(),
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Image:           k.DbImage,
+			Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=20000",
+				fmt.Sprintf("--character-set-server=%s",
+					k.BaseInfo.Charset),
+				"--user=mysql"},
+			ReadinessProbe: &v1.Probe{
+				ProbeHandler: v1.ProbeHandler{
+					Exec: &v1.ExecAction{
+						Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
+					},
+				},
+				InitialDelaySeconds: 3,
+				PeriodSeconds:       5,
+			},
+		}, {
+			Name: "spider",
+			Env: []v1.EnvVar{{
+				Name:  "MYSQL_ROOT_PASSWORD",
+				Value: k.BaseInfo.RootPwd,
+			}},
+			Resources:       k.getResourceLimit(),
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Image:           k.SpiderImage,
+			Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=25000",
+				fmt.Sprintf("--character-set-server=%s",
+					k.BaseInfo.Charset),
+				"--user=mysql"},
+			ReadinessProbe: &v1.Probe{
+				ProbeHandler: v1.ProbeHandler{
+					Exec: &v1.ExecAction{
+						Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
+					},
+				},
+				InitialDelaySeconds: 3,
+				PeriodSeconds:       5,
+			},
+		},
+		{
+			Name: "tdbctl",
+			Env: []v1.EnvVar{{
+				Name:  "MYSQL_ROOT_PASSWORD",
+				Value: k.BaseInfo.RootPwd,
+			}},
+			Resources:       k.gettdbctlResourceLimit(),
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Image:           k.TdbCtlImage,
+			Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=26000", "--tc-admin=1",
+				"--dbm-allow-standalone-primary",
+				fmt.Sprintf("--character-set-server=%s",
+					k.BaseInfo.Charset),
+				"--user=mysql"},
+			ReadinessProbe: &v1.Probe{
+				ProbeHandler: v1.ProbeHandler{
+					Exec: &v1.ExecAction{
+						Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
+					},
+				},
+				InitialDelaySeconds: 3,
+				PeriodSeconds:       5,
+			},
+		},
+	}
+}
+
+// CreateClusterPod create tendbcluster simulation pod
 func (k *DbPodSets) CreateClusterPod() (err error) {
 	c := &v1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -137,80 +211,10 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 					item.Value
 			}),
 			Tolerations: k.getToleration(),
-			Containers: []v1.Container{
-				{
-					Name: "backend",
-					Env: []v1.EnvVar{{
-						Name:  "MYSQL_ROOT_PASSWORD",
-						Value: k.BaseInfo.RootPwd,
-					}},
-					Resources:       k.getResourceLimit(),
-					ImagePullPolicy: v1.PullIfNotPresent,
-					Image:           k.DbImage,
-					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=20000",
-						fmt.Sprintf("--character-set-server=%s",
-							k.BaseInfo.Charset),
-						"--user=mysql"},
-					ReadinessProbe: &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							Exec: &v1.ExecAction{
-								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
-							},
-						},
-						InitialDelaySeconds: 3,
-						PeriodSeconds:       5,
-					},
-				}, {
-					Name: "spider",
-					Env: []v1.EnvVar{{
-						Name:  "MYSQL_ROOT_PASSWORD",
-						Value: k.BaseInfo.RootPwd,
-					}},
-					Resources:       k.getResourceLimit(),
-					ImagePullPolicy: v1.PullIfNotPresent,
-					Image:           k.SpiderImage,
-					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=25000",
-						fmt.Sprintf("--character-set-server=%s",
-							k.BaseInfo.Charset),
-						"--user=mysql"},
-					ReadinessProbe: &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							Exec: &v1.ExecAction{
-								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
-							},
-						},
-						InitialDelaySeconds: 3,
-						PeriodSeconds:       5,
-					},
-				},
-				{
-					Name: "tdbctl",
-					Env: []v1.EnvVar{{
-						Name:  "MYSQL_ROOT_PASSWORD",
-						Value: k.BaseInfo.RootPwd,
-					}},
-					Resources:       k.gettdbctlResourceLimit(),
-					ImagePullPolicy: v1.PullIfNotPresent,
-					Image:           k.TdbCtlImage,
-					Args: []string{"mysqld", "--defaults-file=/etc/my.cnf", "--port=26000", "--tc-admin=1",
-						"--dbm-allow-standalone-primary",
-						fmt.Sprintf("--character-set-server=%s",
-							k.BaseInfo.Charset),
-						"--user=mysql"},
-					ReadinessProbe: &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							Exec: &v1.ExecAction{
-								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
-							},
-						},
-						InitialDelaySeconds: 3,
-						PeriodSeconds:       5,
-					},
-				},
-			},
+			Containers:  k.getClusterPodContanierSpec(),
 		},
 	}
-	if err := k.createpod(c, 26000); err != nil {
+	if err = k.createpod(c, 26000); err != nil {
 		logger.Error("create spider cluster failed %s", err.Error())
 		return err
 	}
@@ -240,13 +244,14 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		CreateTime:    time.Now()})
 	podIp := podc.Status.PodIP
 	// 连续多次探测pod的状态
-	fn := func() error {
-		podI, err := k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Get(context.TODO(), k.BaseInfo.PodName, metav1.GetOptions{})
+	fn := func() (err error) {
+		var podI *v1.Pod
+		podI, err = k.K8S.Cli.CoreV1().Pods(k.K8S.Namespace).Get(context.TODO(), k.BaseInfo.PodName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
-		if len(podI.Status.ContainerStatuses) <= 0 {
-			return fmt.Errorf("get pod status is empty,wait ...")
+		if len(podI.Status.ContainerStatuses) == 0 {
+			return fmt.Errorf("get pod status is empty,wait some seconds")
 		}
 		for _, cStatus := range podI.Status.ContainerStatuses {
 			logger.Info("%s: %v", cStatus.Name, cStatus.Ready)
@@ -276,8 +281,13 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	if err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc); err == nil {
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
-	k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;")
-	k.DbWork.Db.Exec("create user ADMIN@localhost;")
+
+	if _, errx := k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;"); errx != nil {
+		logger.Warn("add local admin use failed %v", errx)
+	}
+	if _, errx := k.DbWork.Db.Exec("create user ADMIN@localhost;"); errx != nil {
+		logger.Warn("create local admin user failed %v", errx)
+	}
 	return err
 }
 
@@ -471,7 +481,7 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 			}
 			lineNumber++
 		}
-		if err := sc.Err(); err != nil {
+		if err = sc.Err(); err != nil {
 			logger.Error("something bad happened in the line %v: %v", lineNumber, err)
 			return
 		}
@@ -487,7 +497,7 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 			strings.TrimSpace(stderr.String()))
 		return stdout, stderr, err
 	}
-	xlogger.Info("exec successfuly...")
+	xlogger.Info("exec successfully...")
 	logger.Info("info stdout:%s\nstderr:%s ", strings.TrimSpace(stdout.String()),
 		strings.TrimSpace(stderr.String()))
 	return stdout, stderr, nil
