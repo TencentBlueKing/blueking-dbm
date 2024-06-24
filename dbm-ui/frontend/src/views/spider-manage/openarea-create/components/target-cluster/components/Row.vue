@@ -24,7 +24,9 @@
       ref="variableRefs"
       :data="data.vars[variableName]"
       :name="variableName" />
-    <td style="padding: 0">
+    <td
+      v-if="showIpCloumn"
+      style="padding: 0">
       <ColumnHost
         ref="hostRef"
         :cluster-data="localClusterData"
@@ -76,6 +78,7 @@
     data: IDataRow;
     removeable: boolean;
     variableList: string[];
+    showIpCloumn: boolean;
   }
 
   interface Emits {
@@ -121,14 +124,22 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        (clusterRef.value as InstanceType<typeof ColumnCluster>).getValue(),
+        clusterRef.value!.getValue(),
         Promise.all(variableRefs.value.map((item) => item.getValue())),
-        (hostRef.value as InstanceType<typeof ColumnHost>).getValue(),
-      ]).then(([clusterData, variableData, hostData]) => ({
-        ...clusterData,
-        ...hostData,
-        vars: variableData.reduce((result, item) => Object.assign(result, item), {} as Record<string, string>),
-      }));
+        hostRef.value?.getValue(),
+      ]).then(([clusterData, variableData, hostData]) =>
+        props.showIpCloumn
+          ? {
+              ...clusterData,
+              ...hostData,
+              vars: variableData.reduce((result, item) => Object.assign(result, item), {} as Record<string, string>),
+            }
+          : {
+              ...clusterData,
+              vars: variableData.reduce((result, item) => Object.assign(result, item), {} as Record<string, string>),
+              authorize_ips: [],
+            },
+      );
     },
   });
 </script>

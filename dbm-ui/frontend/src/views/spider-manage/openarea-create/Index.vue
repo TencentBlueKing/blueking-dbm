@@ -35,6 +35,7 @@
             required>
             <TargetCluster
               ref="targetClusterRef"
+              :show-ip-cloumn="openareaTemplateData.related_authorize.length > 0"
               :variable-list="variableList" />
           </BkFormItem>
         </BkForm>

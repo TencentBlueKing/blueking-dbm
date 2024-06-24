@@ -51,6 +51,7 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          v-if="showIpCloumn"
           :min-width="100"
           :required="false"
           :width="190">
@@ -87,6 +88,7 @@
 
   interface Props {
     variableList: string[];
+    showIpCloumn: boolean;
   }
 
   interface Emits {
