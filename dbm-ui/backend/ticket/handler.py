@@ -14,8 +14,6 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.configuration.constants import PLAT_BIZ_ID
-from backend.db_meta.models import Cluster
-from backend.db_meta.models.instance import InstanceMixin
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
@@ -33,22 +31,22 @@ class TicketHandler:
         - ...
         """
         ticket_ids = [ticket["id"] for ticket in ticket_data]
-        # 这批单据所操作的集群列表
-        cluster_ids = []
-        # 这批单据所操作的实例列表
-        instance_ids = []
         # 单据关联对象映射表
         ticket_id_obj_ids_map: Dict[int, Dict[str, List[int]]] = {}
 
         # 查询单据对应的集群列表、实例列表等
+        cluster_id_immute_domain_map, instance_id_ip_port_map = {}, {}
         for ticket in Ticket.objects.filter(id__in=ticket_ids):
-            _cluster_ids = fetch_cluster_ids(ticket.details)
-            _instance_ids = fetch_instance_ids(ticket.details)
-            cluster_ids.extend(_cluster_ids)
-            instance_ids.extend(_instance_ids)
-            ticket_id_obj_ids_map[ticket.id] = {"cluster_ids": _cluster_ids, "instance_ids": _instance_ids}
-        cluster_id_immute_domain_map = Cluster.get_cluster_id_immute_domain_map(cluster_ids)
-        instance_id_ip_port_map = InstanceMixin.get_instance_id_ip_port_map(instance_ids)
+            clusters = ticket.details.get("clusters", {})
+            cluster_id_immute_domain_map.update(
+                {int(cluster_id): info["immute_domain"] for cluster_id, info in clusters.items()}
+            )
+            instances = ticket.details.get("instances", {})
+            instance_id_ip_port_map.update({int(inst_id): info["instance"] for inst_id, info in instances.items()})
+            ticket_id_obj_ids_map[ticket.id] = {
+                "cluster_ids": fetch_cluster_ids(ticket.details),
+                "instance_ids": fetch_instance_ids(ticket.details),
+            }
 
         # 补充关联对象信息
         for item in ticket_data:

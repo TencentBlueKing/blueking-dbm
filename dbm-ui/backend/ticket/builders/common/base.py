@@ -353,6 +353,7 @@ class CommonValidate(object):
 class BaseTicketFlowBuilderPatchMixin(object):
     need_patch_cluster_details: bool = True
     need_patch_spec_details: bool = True
+    need_patch_instance_details: bool = False
 
     def patch_cluster_details(self):
         """补充集群信息"""
@@ -372,11 +373,21 @@ class BaseTicketFlowBuilderPatchMixin(object):
         specs = {spec.spec_id: spec.get_spec_info() for spec in Spec.objects.filter(spec_id__in=spec_ids)}
         self.ticket.details["specs"] = specs
 
+    def patch_instance_details(self):
+        """补充实例信息-目前仅考虑大数据"""
+        instance_ids = fetch_instance_ids(self.ticket.details)
+        if not instance_ids:
+            return
+        instances = {inst.id: inst.simple_desc for inst in StorageInstance.objects.filter(id__in=instance_ids)}
+        self.ticket.details["instances"] = instances
+
     def patch_ticket_detail(self):
         if self.need_patch_cluster_details:
             self.patch_cluster_details()
         if self.need_patch_spec_details:
             self.patch_spec_details()
+        if self.need_patch_instance_details:
+            self.patch_instance_details()
         self.ticket.save(update_fields=["details", "update_at"])
 
 
@@ -385,37 +396,15 @@ class RedisTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
 
 
 class BigDataTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
-    def patch_ticket_detail(self):
-        """补充大数据的集群信息和实例信息"""
-
-        details = self.ticket.details
-        cluster_ids = []
-
-        # 补充集群信息。TODO: 暂时只考虑单个集群，目前大数据还没有对集群批量进行操作的要求
-        if "cluster_id" in details:
-            cluster_ids = [details["cluster_id"]]
-        clusters = {cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)}
-        self.ticket.details["clusters"] = clusters
-
-        # 补充规格信息
-        super().patch_spec_details()
-        self.ticket.save(update_fields=["details", "update_at"])
-
-        # 补充实例信息。TODO: 考虑后续集群可能合并的原因，暂时忽略实例信息补充的情况
+    need_patch_instance_details = True
 
 
 class MySQLTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
     pass
 
 
-class SQLServerTicketFlowBuilderPatchMixin(object):
-    def patch_ticket_detail(self):
-        """补充SQLServer的集群信息和实例信息"""
-        details = self.ticket.details
-        cluster_ids = fetch_cluster_ids(details)
-        self.ticket.update_details(
-            clusters={cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)}
-        )
+class SQLServerTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
+    pass
 
 
 class DumperTicketFlowBuilderPatchMixin(MySQLTicketFlowBuilderPatchMixin):
@@ -430,7 +419,7 @@ class DumperTicketFlowBuilderPatchMixin(MySQLTicketFlowBuilderPatchMixin):
         self.ticket.update_details(dumpers={dumper["id"]: dumper for dumper in dumper_infos})
 
 
-class InfluxdbTicketFlowBuilderPatchMixin(object):
+class InfluxdbTicketFlowBuilderPatchMixin(BigDataTicketFlowBuilderPatchMixin):
     @classmethod
     def get_instances(cls, _ticket_type, _details) -> list:
         if _ticket_type == TicketType.INFLUXDB_REPLACE:
@@ -451,9 +440,7 @@ class InfluxdbTicketFlowBuilderPatchMixin(object):
 
     def patch_ticket_detail(self):
         """补充单据详情，用于重复单据去重判断"""
-        if self.ticket.ticket_type == TicketType.INFLUXDB_APPLY:
-            return
-        self.ticket.update_details(instances=self.get_instances(self.ticket.ticket_type, self.ticket.details))
+        super().patch_ticket_detail()
 
 
 class MongoDBTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
