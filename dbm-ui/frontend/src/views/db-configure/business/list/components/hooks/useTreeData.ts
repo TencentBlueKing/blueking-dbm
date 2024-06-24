@@ -190,7 +190,8 @@ export const useTreeData = (treeState: TreeState) => {
           ClusterTypes.KAFKA,
           ClusterTypes.HDFS,
           ClusterTypes.INFLUXDB,
-          ClusterTypes.PULSAE,
+          ClusterTypes.PULSAR,
+          ClusterTypes.RIAK,
         ].includes(value);
         fetchBusinessTopoTree(isBigdata ? 'bigdata' : dbType);
       }

@@ -250,7 +250,7 @@
     {
       moduleId: 'bigdata',
       label: 'Pulsar',
-      name: ClusterTypes.PULSAE,
+      name: ClusterTypes.PULSAR,
       children: [
         {
           label: t('Bookkeeper节点规格'),

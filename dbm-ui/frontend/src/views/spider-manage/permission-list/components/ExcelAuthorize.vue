@@ -35,7 +35,7 @@
           {
             name: 'X-CSRFToken',
             value: Cookies.get('dbm_csrftoken'),
-          }
+          },
         ]"
         :limit="1"
         :multiple="false"
@@ -118,22 +118,16 @@
 
   import { createTicket } from '@services/ticket';
   import type { BaseResponse } from '@services/types';
-  import type {
-    AuthorizePreCheckData,
-    AuthorizePreCheckResult,
-  } from '@services/types/permission';
+  import type { AuthorizePreCheckData, AuthorizePreCheckResult } from '@services/types/permission';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    type ClusterTypesValues,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import { useTicketMessage } from '@/hooks';
 
   interface Props {
-    clusterType: ClusterTypesValues
+    clusterType: ClusterTypes;
   }
 
   defineProps<Props>();
@@ -157,7 +151,9 @@
   const isLoading = ref(false);
   const importable = ref(false);
   const uploadRef = ref();
-  const uploadLink = computed(() => `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`);
+  const uploadLink = computed(
+    () => `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
+  );
 
   const handleInitExcelData = () => {
     importable.value = false;
@@ -168,7 +164,7 @@
     };
   };
 
-  const handleCloseUpload = () =>  {
+  const handleCloseUpload = () => {
     isShow.value = false;
     handleInitExcelData();
   };
@@ -198,11 +194,7 @@
   /**
    * 自定义文件上传返回结果
    */
-  const handleUploadResponse = (res: {
-    code: number;
-    data: AuthorizePreCheckResult;
-    message: string;
-  }) => {
+  const handleUploadResponse = (res: { code: number; data: AuthorizePreCheckResult; message: string }) => {
     const result = res.code === 0 ? res.data.pre_check : false;
     importable.value = result;
     precheck.uid = res.data?.authorize_uid ?? '';

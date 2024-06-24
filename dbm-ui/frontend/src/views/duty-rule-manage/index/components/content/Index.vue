@@ -85,7 +85,9 @@
 
   const { t } = useI18n();
 
-  const dataSource = (params: ServiceParameters<typeof queryDutyRuleList>) => queryDutyRuleList(params, {
+  const dataSource = (params: ServiceParameters<typeof queryDutyRuleList>) => queryDutyRuleList(Object.assign(params, {
+    db_type: props.activeDbType
+  }), {
     permission: 'catch'
   })
 
