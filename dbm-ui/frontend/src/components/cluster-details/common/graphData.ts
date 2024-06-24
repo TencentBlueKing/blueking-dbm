@@ -9,16 +9,13 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 
 import type { ResourceTopo } from '@services/types';
 
-import {
-  ClusterTypes,
-  DBTypes,
-} from '@common/const';
+import { ClusterTypes, DBTypes } from '@common/const';
 
 const defaultNodeConfig = {
   width: 296,
@@ -34,38 +31,38 @@ export type NodeConfig = Partial<typeof defaultNodeConfig>;
 
 // 节点连线结构
 export interface GraphLine {
-  id: string,
-  isSameY: boolean,
-  label: string,
-  source: { id: string, x: number, y: number },
-  target: { id: string, x: number, y: number },
+  id: string;
+  isSameY: boolean;
+  label: string;
+  source: { id: string; x: number; y: number };
+  target: { id: string; x: number; y: number };
 }
 
 // graph node types
 export enum GroupTypes {
   GROUP = 'group',
-  NODE = 'node'
+  NODE = 'node',
 }
 type GroupTypesStrings = `${GroupTypes}`;
 
 // 节点返回数据结构
 export interface GraphNode {
-  id: string,
-  label: string,
-  data: ResourceTopo['nodes'][number] | ResourceTopo['groups'][number],
-  children: GraphNode[],
-  width: number,
-  height: number,
-  x: number,
-  y: number
-  type: GroupTypesStrings, // 节点类型 group | node
-  belong: string, // 节点所属组 ID
+  id: string;
+  label: string;
+  data: ResourceTopo['nodes'][number] | ResourceTopo['groups'][number];
+  children: GraphNode[];
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+  type: GroupTypesStrings; // 节点类型 group | node
+  belong: string; // 节点所属组 ID
 }
 
 export interface GraphInstance {
   _diagramInstance?: {
-    _canvas?: any
-  }
+    _canvas?: any;
+  };
 }
 
 // 节点类型
@@ -85,9 +82,9 @@ export const nodeTypes = {
   ES_MASTER: 'es_master::es_master',
   ES_DATANODE_HOT: 'es_datanode::es_datanode_hot',
   ES_DATANODE_COLD: 'es_datanode::es_datanode_cold',
-  PULSAE_BROKER: 'pulsar_broker::pulsar_broker',
-  PULSAE_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
-  PULSAE_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
+  PULSAR_BROKER: 'pulsar_broker::pulsar_broker',
+  PULSAR_BOOKKEEPER: 'pulsar_bookkeeper::pulsar_bookkeeper',
+  PULSAR_ZOOKEEPER: 'pulsar_zookeeper::pulsar_zookeeper',
   TENDBCLUSTER_REMOTE_MASTER: 'remote::remote_master',
   TENDBCLUSTER_REMOTE_SLAVE: 'remote::remote_slave',
   TENDBCLUSTER_MASTER: 'spider_master',
@@ -102,7 +99,7 @@ const sameSources = [
   nodeTypes.TENDISCACHE_MASTER,
   nodeTypes.TENDISPLUS_MASTER,
   nodeTypes.TENDISSSD_MASTER,
-  nodeTypes.PULSAE_BROKER,
+  nodeTypes.PULSAR_BROKER,
   nodeTypes.TENDBCLUSTER_REMOTE_MASTER,
   nodeTypes.TENDBCLUSTER_MASTER,
 ];
@@ -111,7 +108,7 @@ const sameTargets = [
   nodeTypes.TENDISCACHE_SLAVE,
   nodeTypes.TENDISPLUS_SLAVE,
   nodeTypes.TENDISSSD_SLAVE,
-  nodeTypes.PULSAE_ZOOKEEPER,
+  nodeTypes.PULSAR_ZOOKEEPER,
   nodeTypes.TENDBCLUSTER_REMOTE_SLAVE,
   nodeTypes.TENDBCLUSTER_SLAVE,
 ];
@@ -120,8 +117,8 @@ export class GraphData {
   nodeConfig: typeof defaultNodeConfig = { ...defaultNodeConfig };
   clusterType: string;
   graphData: {
-    locations: GraphNode[],
-    lines: GraphLine[],
+    locations: GraphNode[];
+    lines: GraphLine[];
   } = { locations: [], lines: [] };
 
   constructor(clusterType: string, nodeConfig: NodeConfig = {}) {
@@ -168,9 +165,10 @@ export class GraphData {
       }
 
       lines = this.getLines(data);
-      locations = [...rootGroups, ...groups].reduce((nodes: GraphNode[], node) => (
-        nodes.concat([node], node.children)
-      ), []);
+      locations = [...rootGroups, ...groups].reduce(
+        (nodes: GraphNode[], node) => nodes.concat([node], node.children),
+        [],
+      );
       this.calcLines(lines, locations);
     }
 
@@ -189,49 +187,63 @@ export class GraphData {
    */
   getRootGroups(data: ResourceTopo): GraphNode[] {
     const { node_id: nodeId, nodes, groups, lines } = data;
-    const rootLines = lines.filter(line => !lines.some((l) => {
-      if (line.source_type === 'node') {
-        // return nodes.find(node => node.node_id === line.source)!.node_type === l.target;
-        return true;
-      }
-      return l.target === line.source;
-    }));
-    const roots = rootLines.map((line) => {
-      const group = groups.find(group => group.node_id === line.source);
-      if (!group) return null;
-      // 子节点列表
-      const children = group.children_id.map((id) => {
-        const node = nodes.find(node => id === node.node_id);
-        if (!node) return null;
+    const rootLines = lines.filter(
+      (line) =>
+        !lines.some((l) => {
+          if (line.source_type === 'node') {
+            // return nodes.find(node => node.node_id === line.source)!.node_type === l.target;
+            return true;
+          }
+          return l.target === line.source;
+        }),
+    );
+    const roots = rootLines
+      .map((line) => {
+        const group = groups.find((group) => group.node_id === line.source);
+
+        if (!group) {
+          return null;
+        }
+        // 子节点列表
+        // 子节点列表
+        const children = group.children_id
+          .map((id) => {
+            const node = nodes.find((node) => id === node.node_id);
+
+            if (!node) {
+              return null;
+            }
+            return {
+              id: node.node_id,
+              data: node,
+              width: this.nodeConfig.width,
+              height: this.nodeConfig.itemHeight,
+              belong: group.node_id,
+              type: GroupTypes.NODE,
+              label: '',
+              x: 0,
+              y: 0,
+              children: [],
+            };
+          })
+          .filter((item) => item !== null);
+
         return {
-          id: node.node_id,
-          data: node,
+          id: group.node_id,
+          label: group.group_name,
+          data: group,
+          children,
           width: this.nodeConfig.width,
-          height: this.nodeConfig.itemHeight,
-          belong: group.node_id,
-          type: GroupTypes.NODE,
-          label: '',
+          height: this.getNodeHeight(children as GraphNode[]),
+          type: GroupTypes.GROUP,
+          belong: '',
           x: 0,
           y: 0,
-          children: [],
         };
-      }).filter(item => item !== null);
-
-      return {
-        id: group.node_id,
-        label: group.group_name,
-        data: group,
-        children,
-        width: this.nodeConfig.width,
-        height: this.getNodeHeight(children as GraphNode[]),
-        type: GroupTypes.GROUP,
-        belong: '',
-        x: 0,
-        y: 0,
-      };
-    }).filter(item => item !== null) as GraphNode[];
+      })
+      .filter((item) => item !== null) as GraphNode[];
     // 排序根节点
-    roots.sort(a => (a.children.find(node => node.id === nodeId) ? -1 : 0));
+    roots.sort((a) => (a.children.find((node) => node.id === nodeId) ? -1 : 0));
     return roots;
   }
 
@@ -242,28 +254,33 @@ export class GraphData {
    */
   getGroups(data: ResourceTopo, roots: GraphNode[]): GraphNode[] {
     const { groups, nodes } = data;
-    const rootIds = roots.map(node => node.id);
+    const rootIds = roots.map((node) => node.id);
     const results = [];
     for (const group of groups) {
       const { node_id: nodeId, children_id: childrenId, group_name: groupName } = group;
       if (!rootIds.includes(nodeId)) {
         // 子节点列表
-        const children = childrenId.map((id) => {
-          const node = nodes.find(node => id === node.node_id);
-          if (!node) return null;
-          return {
-            id: node.node_id,
-            data: node,
-            width: this.nodeConfig.width,
-            height: this.nodeConfig.itemHeight,
-            belong: group.node_id,
-            type: GroupTypes.NODE,
-            label: '',
-            x: 0,
-            y: 0,
-            children: [],
-          };
-        }).filter(item => item !== null) as GraphNode[];
+        const children = childrenId
+          .map((id) => {
+            const node = nodes.find((node) => id === node.node_id);
+
+            if (!node) {
+              return null;
+            }
+            return {
+              id: node.node_id,
+              data: node,
+              width: this.nodeConfig.width,
+              height: this.nodeConfig.itemHeight,
+              belong: group.node_id,
+              type: GroupTypes.NODE,
+              label: '',
+              x: 0,
+              y: 0,
+              children: [],
+            };
+          })
+          .filter((item) => item !== null) as GraphNode[];
 
         results.push({
           id: nodeId,
@@ -292,13 +309,7 @@ export class GraphData {
     const results: GraphLine[] = [];
 
     for (const line of lines) {
-      const {
-        source,
-        source_type: sourceType,
-        target,
-        target_type: targetType,
-        label_name: labelName,
-      } = line;
+      const { source, source_type: sourceType, target, target_type: targetType, label_name: labelName } = line;
       let sourceId = source;
       let targetId = target;
 
@@ -316,11 +327,11 @@ export class GraphData {
         }
       } else if (sourceType === 'node') {
         // 处理 source 为 node 的情况
-        const sourceGroup = groups.find(group => group.children_id.includes(source));
+        const sourceGroup = groups.find((group) => group.children_id.includes(source));
         sourceGroup && (sourceId = sourceGroup.node_id);
       } else if (targetType === 'node') {
         // 处理 target 为 node 的情况
-        const targetGroup = groups.find(group => group.children_id.includes(target));
+        const targetGroup = groups.find((group) => group.children_id.includes(target));
         targetGroup && (targetId = targetGroup.node_id);
       }
       results.push({
@@ -335,7 +346,6 @@ export class GraphData {
     return results;
   }
 
-
   /**
    * 获取实际画图连线
    * @param data 集群拓扑数据
@@ -346,11 +356,7 @@ export class GraphData {
     const results = [];
 
     for (const line of lines) {
-      const {
-        source,
-        target,
-        label_name: labelName,
-      } = line;
+      const { source, target, label_name: labelName } = line;
       const sourceId = source;
       const targetId = target;
 
@@ -375,7 +381,7 @@ export class GraphData {
     const nums = data.length;
     const { minHeight, itemHeight } = this.nodeConfig;
 
-    return minHeight + (itemHeight * nums);
+    return minHeight + itemHeight * nums;
   }
 
   /**
@@ -383,13 +389,7 @@ export class GraphData {
    * @param nodes 根节点
    */
   calcRootLocations(nodes: GraphNode[]) {
-    const {
-      offsetX,
-      startX,
-      startY,
-      groupTitle,
-      itemHeight,
-    } = this.nodeConfig;
+    const { offsetX, startX, startY, groupTitle, itemHeight } = this.nodeConfig;
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       node.x = (node.width + offsetX) * i + startX;
@@ -422,21 +422,16 @@ export class GraphData {
     if (!startNode) {
       return;
     }
-    const startLines = lines.filter(line => line.source.id === startNode.id);
+    const startLines = lines.filter((line) => line.source.id === startNode.id);
     calculatedNodes.set(startNode.id, startNode);
 
     for (const startLine of startLines) {
       const { target, isSameY } = startLine;
-      const targetNode = nodes.find(node => node.id === target.id);
+      const targetNode = nodes.find((node) => node.id === target.id);
 
       if (targetNode && !calculatedNodes.get(targetNode.id)) {
         const { x, y, height, width } = startNode;
-        const {
-          offsetX,
-          offsetY,
-          groupTitle,
-          itemHeight,
-        } = this.nodeConfig;
+        const { offsetX, offsetY, groupTitle, itemHeight } = this.nodeConfig;
         const heightDifference = (targetNode.height - height) / 2; // 渲染节点是以y值为中心，所以需要计算两个节点高度差的一半
         targetNode.x = isSameY ? x + width + offsetX : x;
         targetNode.y = isSameY ? y : y + height + offsetY + heightDifference;
@@ -463,8 +458,8 @@ export class GraphData {
    */
   calcLines(lines: GraphLine[], nodes: GraphNode[]) {
     for (const line of lines) {
-      const source = nodes.find(node => node.id === line.source.id);
-      const target = nodes.find(node => node.id === line.target.id);
+      const source = nodes.find((node) => node.id === line.source.id);
+      const target = nodes.find((node) => node.id === line.target.id);
 
       if (source) {
         Object.assign(line.source, {
@@ -494,7 +489,7 @@ export class GraphData {
       nodeTypes.HDFS_MASTER_HOURNALNODE,
       nodeTypes.HDFS_MASTER_ZOOKEEPER,
     ];
-    const targetNodes = nodes.filter(node => targetNodeIds.includes(node.id));
+    const targetNodes = nodes.filter((node) => targetNodeIds.includes(node.id));
 
     const [referenceNode] = targetNodes;
     const moveNodes = targetNodes.slice(1);
@@ -523,9 +518,7 @@ export class GraphData {
       // eslint-disable-next-line no-param-reassign
       childNode.x = targetNode.x;
       // eslint-disable-next-line no-param-reassign
-      childNode.y = index === 0
-        ? targetNode.y + groupTitle - offet
-        : targetNode.children[index - 1].y + itemHeight;
+      childNode.y = index === 0 ? targetNode.y + groupTitle - offet : targetNode.children[index - 1].y + itemHeight;
     });
   }
 
@@ -550,10 +543,7 @@ export class GraphData {
     const mntNode = nodeMap[nodeTypes.TENDBCLUSTER_MNT];
     const referenceNode = nodeMap[nodeTypes.TENDBCLUSTER_REMOTE_MASTER];
     if (mntNode && referenceNode) {
-      const {
-        height,
-        y,
-      } = referenceNode;
+      const { height, y } = referenceNode;
       const heightDifference = (mntNode.height - height) / 2;
       mntNode.y = y + height + this.nodeConfig.offsetY + heightDifference + 40;
       mntNode.x = referenceNode.x;
