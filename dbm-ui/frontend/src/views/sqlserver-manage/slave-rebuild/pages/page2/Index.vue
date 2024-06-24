@@ -81,7 +81,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'MySQLSlaveRebuild',
+      name: 'sqlServerSlaveRebuild',
     });
   };
 </script>

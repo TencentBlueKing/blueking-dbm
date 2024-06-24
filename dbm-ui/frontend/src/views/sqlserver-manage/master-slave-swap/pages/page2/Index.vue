@@ -81,7 +81,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'MySQLMasterSlaveSwap',
+      name: 'sqlServerMasterSlaveSwap',
     });
   };
 </script>
