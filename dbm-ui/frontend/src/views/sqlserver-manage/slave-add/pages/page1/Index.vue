@@ -86,7 +86,6 @@
     return !firstRow.clusterData && !firstRow.newSlaveHost;
   };
 
-
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -108,7 +107,6 @@
   const handelClusterChange = (selected: {
     [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
   }) => {
-
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
@@ -158,7 +156,6 @@
         }).then((data) => {
           window.changeConfirm = false;
 
-          console.log('success = ', data);
           router.push({
             name: 'sqlServerSlaveAdd',
             params: {
