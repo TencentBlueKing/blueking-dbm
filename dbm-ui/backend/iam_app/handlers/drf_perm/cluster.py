@@ -78,9 +78,13 @@ class PartitionManagePermission(ResourceActionPermission):
         if view.action in ["create", "update"]:
             cluster = Cluster.objects.get(id=request.data["cluster_id"])
             bk_biz_id, db_type = cluster.bk_biz_id, convert(cluster.cluster_type)
-            self.resource_meta = ResourceEnum.BUSINESS
             self.actions = [getattr(ActionEnum, f"{db_type.upper()}_PARTITION_{view.action.upper()}")]
-            return [bk_biz_id]
+            if view.action == "create":
+                self.resource_meta = ResourceEnum.BUSINESS
+                return [bk_biz_id]
+            else:
+                self.resource_meta = getattr(ResourceEnum, f"{db_type.upper()}")
+                return [cluster.id]
 
         elif view.action in ["enable", "disable", "batch_delete"]:
             db_type = convert(request.data["cluster_type"])
