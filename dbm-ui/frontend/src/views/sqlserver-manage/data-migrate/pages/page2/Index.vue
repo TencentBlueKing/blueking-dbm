@@ -81,7 +81,7 @@
 
   const handleStepChange = () => {
     router.push({
-      name: 'sqlServerDBRollback',
+      name: 'sqlServerDataMigrate',
     });
   };
 </script>
