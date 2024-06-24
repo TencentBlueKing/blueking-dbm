@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { ClusterTypes, type ClusterTypesValues, DBTypes } from '@common/const';
+import { ClusterTypes, DBTypes } from '@common/const';
 
 import { t } from '@locales/index';
 
@@ -53,7 +53,7 @@ export const extraParamertesCluster: ExtraParamertesCluster = {
 /**
  * 默认配置 title 映射
  */
-export const defaultConfTitles: Partial<Record<ClusterTypesValues, string>> = {
+export const defaultConfTitles: Partial<Record<ClusterTypes, string>> = {
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: t('Redis_配置'),
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: t('Redis_配置'),
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: t('Redis_配置'),
@@ -62,7 +62,7 @@ export const defaultConfTitles: Partial<Record<ClusterTypesValues, string>> = {
 /**
  * 所有集群的默认配置
  */
-export const getDefaultConf = (type: ClusterTypesValues, name = t('参数配置')) => ({
+export const getDefaultConf = (type: ClusterTypes, name = t('参数配置')) => ({
   confType: 'dbconf',
   name: defaultConfTitles[type] || name,
 });

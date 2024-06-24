@@ -13,7 +13,7 @@
 
 <template>
   <div class="platform-db-configure-page">
-    <TopTab @change="handleChangeTab" />
+    <ClusterTab v-model="state.clusterType" />
     <ApplyPermissionCatch :key="state.clusterType">
       <div class="configure-content">
         <BkTab
@@ -55,13 +55,13 @@
 
   import { useTableMaxHeight } from '@hooks';
 
-  import type { ClusterTypesValues } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
+  import ClusterTab from "@components/cluster-tab/Index.vue";
 
   import { extraClusterConfs, getDefaultConf } from '../common/const';
   import type { ConfType } from '../common/types';
-  import TopTab from '../components//TopTab.vue';
 
   type ConfigListItem = ServiceReturnType<typeof getPlatformConfigList>
 
@@ -131,36 +131,6 @@
   ];
 
   /**
-   * 集群配置
-   */
-  watch(() => state.clusterType, (type) => {
-    const clusterType = type as ClusterTypesValues;
-    const tabs = [getDefaultConf(clusterType)];
-    // 添加额外配置
-    const item = extraClusterConfs[clusterType];
-    if (item) {
-      tabs.push(...item);
-    }
-    state.tabs = tabs;
-  }, {
-    immediate: true,
-  });
-
-  /**
-   * 切换 tab
-   */
-  const handleChangeTab = (value: string) => {
-    state.clusterType = value;
-    state.confType = 'dbconf';
-    router.replace({
-      params: {
-        clusterType: value,
-      },
-    });
-    fetchPlatformConfigList(state.confType);
-  };
-
-  /**
    * 查看详情
    */
   const handleToDetails = (row: ConfigListItem[number]) => {
@@ -220,6 +190,29 @@
         state.loading = false;
       });
   };
+
+  /**
+   * 集群配置
+   */
+  watch(() => state.clusterType, (type) => {
+    const clusterType = type as ClusterTypes;
+    const tabs = [getDefaultConf(clusterType)];
+    // 添加额外配置
+    const item = extraClusterConfs[clusterType];
+    if (item) {
+      tabs.push(...item);
+    }
+    state.tabs = tabs;
+    state.confType = 'dbconf';
+    router.replace({
+      params: {
+        clusterType,
+      },
+    });
+    fetchPlatformConfigList(state.confType);
+  }, {
+    immediate: true,
+  });
 </script>
 
 <style lang="less">

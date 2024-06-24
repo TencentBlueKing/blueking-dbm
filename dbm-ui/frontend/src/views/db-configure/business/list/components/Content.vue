@@ -99,7 +99,7 @@
   </ApplyPermissionCatch>
 </template>
 <script setup lang="ts">
-  import { clusterTypeInfos, ClusterTypes, type ClusterTypesValues, ConfLevels } from '@common/const';
+  import { clusterTypeInfos, ClusterTypes, ConfLevels } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
@@ -173,7 +173,7 @@
   };
 
   const handleRefresh = () => {
-    const { dbType } = clusterTypeInfos[clusterType.value as ClusterTypesValues];
+    const { dbType } = clusterTypeInfos[clusterType.value as ClusterTypes];
     dbType && fetchBusinessTopoTree(dbType);
   };
 </script>
