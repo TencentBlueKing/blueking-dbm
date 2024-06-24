@@ -46,23 +46,28 @@ class AppCache(AuditedModel):
         return app_cache.bk_biz_name
 
     @classmethod
+    def get_app_attr_from_cc(cls, bk_biz_id, attr_name, default=""):
+        """实时从cc查询业务属性"""
+        info = CCApi.search_business(
+            params={
+                "fields": ["bk_biz_id", CC_APP_ABBR_ATTR, attr_name],
+                "biz_property_filter": {
+                    "condition": "AND",
+                    "rules": [{"field": "bk_biz_id", "operator": "equal", "value": int(bk_biz_id)}],
+                },
+            },
+            use_admin=True,
+        )["info"]
+        return info[0].get(attr_name, "") if info else default
+
+    @classmethod
     def get_app_attr(cls, bk_biz_id, attr_name="db_app_abbr", default=""):
+        """查询缓存业务的属性"""
         try:
             app = cls.objects.get(bk_biz_id=bk_biz_id)
         except AppCache.DoesNotExist:
             logger.error("AppCache.get_app_attr: app not exist, bk_biz_id=%s", bk_biz_id)
-            info = CCApi.search_business(
-                params={
-                    "fields": ["bk_biz_id", CC_APP_ABBR_ATTR],
-                    "biz_property_filter": {
-                        "condition": "AND",
-                        "rules": [{"field": "bk_biz_id", "operator": "equal", "value": int(bk_biz_id)}],
-                    },
-                },
-                use_admin=True,
-            )["info"]
-
-            return info[0].get(CC_APP_ABBR_ATTR, "") if info else default
+            return cls.get_app_attr_from_cc(bk_biz_id, attr_name, default)
 
         return getattr(app, attr_name, default)
 

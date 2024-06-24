@@ -14,6 +14,7 @@ import tempfile
 import time
 from typing import Any, Dict, List, Optional, Union
 
+import chardet
 from django.core.files.uploadedfile import InMemoryUploadedFile
 from django.utils.translation import ugettext as _
 
@@ -91,7 +92,10 @@ class SQLHandler(object):
                 if file.size > MAX_PREVIEW_SQL_FILE_SIZE:
                     sql_content = _("当前SQL文件过大，暂不提供内容预览...")
                 else:
-                    sql_content = file.read().decode("utf-8")
+                    content_bytes = file.read()
+                    encoding = chardet.detect(content_bytes)["encoding"]
+                    # chardet.detect预测性非100%，这里非强制UnicodeDecodeError，选择replace模式忽略
+                    sql_content = content_bytes.decode(encoding=encoding, errors="replace")
 
                 sql_file_info.update(sql_path=sql_path, sql_content=sql_content, raw_file_name=file.name)
 
