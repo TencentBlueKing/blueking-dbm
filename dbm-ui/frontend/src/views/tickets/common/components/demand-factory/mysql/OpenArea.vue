@@ -60,60 +60,64 @@
 
   const { t } = useI18n();
 
-  const columns = computed(() => [
-    {
-      label: t('目标集群'),
-      minWidth: 150,
-      width: 200,
-      rowspan: ({ row }: { row: RowData }) => {
-        const { targetCluster } = row;
-        const rowSpan = tableData.value.filter(item => item.targetCluster === targetCluster).length;
-        return rowSpan > 1 ? rowSpan : 1;
+  const columns = computed(() => {
+    const basicColumns = [
+      {
+        label: t('目标集群'),
+        minWidth: 150,
+        width: 200,
+        rowspan: ({ row }: { row: RowData }) => {
+          const { targetCluster } = row;
+          const rowSpan = tableData.value.filter(item => item.targetCluster === targetCluster).length;
+          return rowSpan > 1 ? rowSpan : 1;
+        },
+        field: 'targetCluster',
       },
-      field: 'targetCluster',
-    },
-    {
-      label: t('新 DB'),
-      field: 'newDb',
-      width: 120,
-    },
-    {
-      label: t('表结构'),
-      field: 'tbStruct',
-      minWidth: 120,
-      render: ({ data }: {data: RowData}) => (
-        <span>
-          {data.tbStruct.join(',')}
-        </span>
-      ),
-    },
-    {
-      label: t('表数据'),
-      field: 'tbData',
-      minWidth: 120,
-      render: ({ data }: {data: RowData}) => (
-        <span>
-          {data.tbData.join(',')}
-        </span>
-      ),
-    },
-    {
-      label: t('授权IP'),
-      field: 'ips',
-      render: ({ data }: {data: RowData}) => (
-        <span>
-          {data.ips.join(',')}
-        </span>
-      ),
-    },
-    {
-      label: t('授权规则'),
-      field: 'rules',
-      render: ({ data }: {data: RowData}) => (
-        <span>
-          {data.rules.join(',')}
-        </span>
-      ),
-    },
-  ]);
+      {
+        label: t('新 DB'),
+        field: 'newDb',
+        width: 120,
+      },
+      {
+        label: t('表结构'),
+        field: 'tbStruct',
+        minWidth: 120,
+        render: () => t('所有表'),
+      },
+      {
+        label: t('表数据'),
+        field: 'tbData',
+        minWidth: 120,
+        render: ({ data }: {data: RowData}) => (
+          <span>
+            {data.tbData.length > 0 ? data.tbData.join(',') : '--'}
+          </span>
+        ),
+      },
+      {
+        label: t('授权IP'),
+        field: 'ips',
+        render: ({ data }: {data: RowData}) => (
+          <span>
+            {data.ips.join(',')}
+          </span>
+        ),
+      },
+      {
+        label: t('授权规则'),
+        field: 'rules',
+        render: ({ data }: {data: RowData}) => (
+          <span>
+            {data.rules.join(',')}
+          </span>
+        ),
+      },
+    ];
+
+    if (props.ticketDetails.details.rules_set.length === 0) {
+      basicColumns.splice(4, 2);
+    }
+
+    return basicColumns;
+  });
 </script>
