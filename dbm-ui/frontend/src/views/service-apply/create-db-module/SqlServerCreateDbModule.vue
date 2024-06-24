@@ -209,7 +209,7 @@
       label: t('镜像'),
     },
     {
-      value: 'alwaysOn',
+      value: 'always_on',
       label: 'always on',
     },
   ];
@@ -345,7 +345,7 @@
       })
 
       if (Number(version.slice(-4)) > 2017) {
-        formData.haMode = 'alwaysOn';
+        formData.haMode = 'always_on';
       } else {
         formData.haMode = 'mirroring';
       }
