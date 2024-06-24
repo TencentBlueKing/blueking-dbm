@@ -13,16 +13,7 @@
 
 <template>
   <div class="version-files-view">
-    <BkTab
-      v-model:active="tabActive"
-      class="top-tabs"
-      type="unborder-card">
-      <BkTabPanel
-        v-for="tab of renderTabs"
-        :key="tab.name"
-        :label="tab.label"
-        :name="tab.name" />
-    </BkTab>
+    <DbTab v-model="tabActive" />
     <FileContent
       :key="tabActive"
       :info="activeTabInfo"
@@ -43,6 +34,8 @@
   import { useFunController } from '@stores';
 
   import { DBTypes } from '@common/const';
+
+  import DbTab from '@components/db-tab/Index.vue';
 
   import FileContent from './components/FileContent.vue';
 
