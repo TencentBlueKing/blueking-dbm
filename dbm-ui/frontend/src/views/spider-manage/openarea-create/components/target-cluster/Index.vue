@@ -8,8 +8,10 @@
     </BkButton>
     <RenderTable
       class="mt16"
+      :show-ip-cloumn="showIpCloumn"
       :variable-list="variableList"
       @batch-edit="handleBatchEdit"
+      @batch-ip-selecter="handleShowBatchIpSeletor"
       @batch-select-cluster="handleShowBatchSelector">
       <RenderDataRow
         v-for="(item, index) in tableData"
@@ -17,6 +19,7 @@
         ref="rowRefs"
         :data="item"
         :removeable="tableData.length < 2"
+        :show-ip-cloumn="showIpCloumn"
         :variable-list="variableList"
         @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
         @remove="handleRemove(index)" />
@@ -30,17 +33,31 @@
       :cluster-types="[ClusterTypes.TENDBCLUSTER]"
       :selected="selectedClusters"
       @change="handelClusterChange" />
+    <IpSelector
+      v-model:show-dialog="isShowBatchIpSelector"
+      :biz-id="currentBizId"
+      button-text=""
+      :data="localHostList"
+      :os-types="[OSTypes.Linux]"
+      :panel-list="['staticTopo', 'dbmWhitelist', 'manualInput']"
+      service-mode="all"
+      :show-view="false"
+      @change="handleHostChange"
+      @change-whitelist="handleWhitelistChange" />
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import SpiderModel from '@services/model/spider/spider';
+  import type { HostDetails } from '@services/types/ip';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, OSTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import IpSelector, { type IPSelectorResult } from '@components/ip-selector/IpSelector.vue';
 
   import BatchInput from './components/BatchInput.vue';
   import RenderTable from './components/RenderTable.vue';
@@ -48,6 +65,7 @@
 
   interface Props {
     variableList: string[];
+    showIpCloumn: boolean;
   }
   interface Exposes {
     getValue: () => Promise<Record<string, any>[]>;
@@ -68,16 +86,44 @@
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>([]);
   const isShowBatchSelector = ref(false);
+  const isShowBatchIpSelector = ref(false);
   const isShowBatchInput = ref(false);
+  const tableData = ref<IDataRow[]>([createRowData()]);
 
+  const localHostList = shallowRef<HostDetails[]>([]);
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({
     [ClusterTypes.TENDBCLUSTER]: [],
   });
 
-  const tableData = ref<IDataRow[]>([createRowData()]);
+  const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const handleHostChange = (hostList: HostDetails[]) => {
+    if (checkListEmpty(tableData.value)) {
+      return;
+    }
+
+    localHostList.value = hostList;
+    tableData.value.forEach((item) => (item.authorizeIps = hostList.map((info) => info.ip)));
+  };
+
+  const handleWhitelistChange = (whiteList: IPSelectorResult['dbm_whitelist']) => {
+    if (checkListEmpty(tableData.value)) {
+      return;
+    }
+
+    const localIps = localHostList.value.map((item) => item.ip);
+    const whiteIps = _.flatMap(whiteList.map((item) => item.ips));
+    const finalIps = Array.from(new Set([...localIps, ...whiteIps]));
+    localHostList.value = finalIps.map((ip) => ({ ip }) as HostDetails);
+    tableData.value.forEach((item) => (item.authorizeIps = localHostList.value.map((info) => info.ip)));
+  };
 
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
+  };
+
+  const handleShowBatchIpSeletor = () => {
+    isShowBatchIpSelector.value = true;
   };
 
   // 批量输入

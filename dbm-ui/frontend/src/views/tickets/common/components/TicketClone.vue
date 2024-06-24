@@ -101,6 +101,7 @@
     [TicketTypes.MYSQL_RESTORE_SLAVE]: 'MySQLSlaveRebuild', // Mysql 重建从库
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: 'MySQLDBBackup', // Mysql 全库备份
     [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区
+    [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
   };
 
   const isShowTicketClone = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);

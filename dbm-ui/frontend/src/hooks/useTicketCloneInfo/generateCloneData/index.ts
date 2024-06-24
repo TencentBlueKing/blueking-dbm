@@ -17,6 +17,7 @@ import {
   generateMysqlMasterFailoverCloneData,
   generateMysqlMasterSlaveSwicthCloneData,
   generateMysqlMigrateClusterCloneData,
+  generateMysqlOpenAreaCloneData,
   generateMysqlProxyAddCloneData,
   generateMysqlProxyReplaceCloneData,
   generateMysqlRestoreLocalSlaveCloneData,
@@ -81,6 +82,8 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_PROXY_ADD]: generateMysqlProxyAddCloneData, // MySQL 添加Proxy
   [TicketTypes.MYSQL_MASTER_FAIL_OVER]: generateMysqlMasterFailoverCloneData, // MySQL 主库故障切换
   [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: generateMysqlDbClearCloneData, // MySQL 高可用清档
+  [TicketTypes.MYSQL_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Mysql 开区
+  [TicketTypes.TENDBCLUSTER_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Spider 开区
 };
 
 export type CloneDataHandlerMap = typeof generateCloneDataHandlerMap;
