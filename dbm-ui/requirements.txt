@@ -2,6 +2,7 @@ amqp==2.6.1; python_version >= "2.7" and python_full_version < "3.0.0" or python
 apigw-manager==2.0.0; python_full_version >= "3.6.1" and python_full_version < "4.0.0"
 asgiref==3.8.1; python_version >= "3.8" and python_version < "4" and (python_full_version < "3.0.0" and python_version >= "3.6" or python_full_version >= "3.6.0" and python_version >= "3.6")
 astunparse==1.6.3
+chardet==5.2.0
 atomicwrites==1.4.1; python_version >= "3.6" and python_full_version < "3.0.0" and sys_platform == "win32" and (python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6") and (python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version >= "3.6") or sys_platform == "win32" and python_version >= "3.6" and python_full_version >= "3.4.0" and (python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6") and (python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.5.0" and python_version >= "3.6")
 attrs==21.2.0; (python_version >= "2.7" and python_full_version < "3.0.0") or (python_full_version >= "3.5.0")
 backoff==1.11.1; python_version >= "3.6" and python_full_version < "3.0.0" or python_version >= "3.6" and python_full_version >= "3.5.0"

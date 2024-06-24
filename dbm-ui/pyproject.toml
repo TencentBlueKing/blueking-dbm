@@ -60,6 +60,7 @@ opentelemetry-exporter-jaeger = "1.11.0"
 bk-notice-sdk = "^1.1.1"
 protobuf = "3.19.6"
 promql-parser = "^0.3.3"
+chardet = "^5.2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "6.2.4"

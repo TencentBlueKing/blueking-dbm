@@ -53,10 +53,10 @@ def list_cities() -> List[LCityModel]:
     # 但这里考虑用 city_code 来做传参 (取值是城市拼音或 id)
     # TODO 库存数量和标签待完善
     cities = []
-    for city in LogicalCity.objects.all():
+    for city in LogicalCity.objects.all().order_by("-name"):
         city_code = city.name
         # 如果是default，则前端展示为无地域
-        city_name = _("无地域") if city.name == "default" else city.name
+        city_name = _("无限制") if city.name == "default" else city.name
         cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
     return cities
 
