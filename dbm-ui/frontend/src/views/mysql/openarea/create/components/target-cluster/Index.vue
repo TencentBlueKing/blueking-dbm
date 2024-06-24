@@ -8,6 +8,7 @@
     </BkButton>
     <RenderTable
       class="mt16"
+      :show-ip-cloumn="showIpCloumn"
       :variable-list="variableList"
       @batch-edit="handleBatchEdit"
       @batch-ip-selecter="handleShowBatchIpSeletor"
@@ -18,6 +19,7 @@
         ref="rowRefs"
         :data="item"
         :removeable="tableData.length < 2"
+        :show-ip-cloumn="showIpCloumn"
         :variable-list="variableList"
         @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
         @remove="handleRemove(index)" />
@@ -63,6 +65,7 @@
   interface Props {
     clusterType: ClusterTypes;
     variableList: string[];
+    showIpCloumn: boolean;
   }
   interface Exposes {
     getValue: () => Promise<Record<string, any>[]>;

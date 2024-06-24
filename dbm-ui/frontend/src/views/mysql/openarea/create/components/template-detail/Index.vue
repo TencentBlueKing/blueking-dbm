@@ -117,11 +117,16 @@
       field: 'source_db',
     },
     {
+      label: t('克隆表结构'),
+      field: '',
+      render: () => t('所有表'),
+    },
+    {
       label: t('克隆表数据'),
       render: ({ data }: {data: OpenareaTemplateModel['config_rules'][0]}) => (
         <>
           {
-            data.data_tblist.map(item => <bk-tag>{item}</bk-tag>)
+            data.data_tblist.length > 0 ? data.data_tblist.map(item => <bk-tag>{item}</bk-tag>) : '--'
           }
         </>
       ),
