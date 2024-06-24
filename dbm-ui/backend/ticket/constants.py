@@ -186,7 +186,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_HA_DB_TABLE_BACKUP = TicketEnumField("MYSQL_HA_DB_TABLE_BACKUP", _("MySQL 高可用库表备份"), _("备份"))
     MYSQL_CHECKSUM = TicketEnumField("MYSQL_CHECKSUM", _("MySQL 数据校验修复"), _("数据处理"))
     MYSQL_PARTITION = TicketEnumField("MYSQL_PARTITION", _("MySQL 分区"), _("分区管理"))
-    MYSQL_PARTITION_CRON = TicketEnumField("MYSQL_PARTITION_CRON", _("MySQL 分区定时任务"), _("分区管理定时任务"), register_iam=False)  # noqa
+    MYSQL_PARTITION_CRON = TicketEnumField("MYSQL_PARTITION_CRON", _("MySQL 分区定时任务"), register_iam=False)  # noqa
     MYSQL_DATA_REPAIR = TicketEnumField("MYSQL_DATA_REPAIR", _("MySQL 数据修复"), register_iam=False)
     MYSQL_FLASHBACK = TicketEnumField("MYSQL_FLASHBACK", _("MySQL 闪回"), _("回档"))
     MYSQL_ROLLBACK_CLUSTER = TicketEnumField("MYSQL_ROLLBACK_CLUSTER", _("MySQL 定点构造"), _("回档"))
