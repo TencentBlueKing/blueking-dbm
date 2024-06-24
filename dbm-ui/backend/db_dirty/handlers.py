@@ -136,6 +136,7 @@ class DBDirtyMachineHandler(object):
 
             # 如果主机已经不存在于cc，则仅能删除记录
             if dirty.bk_host_id not in host__topo_info_map:
+                dirty_machine_info.update(is_dirty=False)
                 dirty_machine_list.append(dirty_machine_info)
                 continue
 
@@ -143,17 +144,17 @@ class DBDirtyMachineHandler(object):
             host_in_module = [
                 {
                     "bk_module_id": h["bk_module_id"],
-                    "bk_module_name": biz__module__module_name[dirty.bk_biz_id].get(h["bk_module_id"], ""),
+                    "bk_module_name": biz__module__module_name[h["bk_biz_id"]].get(h["bk_module_id"], ""),
                 }
                 for h in host__topo_info_map[dirty.bk_host_id]
             ]
             dirty_machine_info.update(bk_module_infos=host_in_module)
 
-            # 当前主机业务和转移时的业务不同时，不允许转移
-            if dirty.bk_biz_id != host__topo_info_map[dirty.bk_host_id][0]["bk_biz_id"]:
+            # 如果主机 不处于/不仅仅处于【污点池】中，则不允许移入待回收
+            host = host__topo_info_map[dirty.bk_host_id][0]
+            if len(host__topo_info_map[dirty.bk_host_id]) > 1:
                 dirty_machine_info.update(is_dirty=False)
-            # 当主机并不仅处于污点池中，则主机此时不能移入待回收
-            if len(host_in_module) != 1 or host_in_module[0]["bk_module_id"] != dirty_module:
+            elif host["bk_biz_id"] != env.DBA_APP_BK_BIZ_ID or host["bk_module_id"] != dirty_module:
                 dirty_machine_info.update(is_dirty=False)
 
             dirty_machine_list.append(dirty_machine_info)

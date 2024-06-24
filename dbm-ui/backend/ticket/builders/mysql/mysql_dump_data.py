@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import AppCache
 from backend.db_services.mysql.sql_import.constants import BKREPO_DBCONSOLE_DUMPFILE_PATH, SQLCharset
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -35,6 +36,18 @@ class MySQLDumpDataDetailSerializer(MySQLBaseOperateDetailSerializer):
     force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
 
+class MySQLDumpDataItsmFlowParamsBuilder(builders.ItsmParamBuilder):
+    def get_params(self):
+        params = super().get_params()
+        bk_biz_id = self.ticket.bk_biz_id
+        # 数据导出的审批人是该业务下的产品，如果没有产品则按照原来审批人
+        approve_index = [field["key"] for field in params["fields"]].index("approver")
+        old_approver = params["fields"].pop(approve_index)["value"]
+        biz_productor = AppCache.get_app_attr_from_cc(bk_biz_id, attr_name="bk_biz_productor") or old_approver
+        params["fields"].append({"key": "approver", "value": biz_productor})
+        return params
+
+
 class MySQLDumpDataFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.dbconsole_dump_scene
 
@@ -53,3 +66,4 @@ class MySQLDumpDataFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLDumpDataDetailSerializer
     inner_flow_builder = MySQLDumpDataFlowParamBuilder
     inner_flow_name = _("数据导出执行")
+    itsm_flow_builder = MySQLDumpDataItsmFlowParamsBuilder

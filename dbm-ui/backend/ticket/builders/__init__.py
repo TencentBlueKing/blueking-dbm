@@ -271,6 +271,7 @@ class TicketFlowBuilder:
     inner_flow_name: str = ""
     inner_flow_builder: FlowParamBuilder = None
     pause_node_builder: PauseParamBuilder = PauseParamBuilder
+    itsm_flow_builder: ItsmParamBuilder = ItsmParamBuilder
 
     # resource_apply_builder和resource_batch_apply_builder只能存在其一，表示是资源池单次申请还是批量申请
     resource_apply_builder: ResourceApplyParamBuilder = None
@@ -340,7 +341,7 @@ class TicketFlowBuilder:
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.BK_ITSM.value,
-                    details=ItsmParamBuilder(self.ticket).get_params(),
+                    details=self.itsm_flow_builder(self.ticket).get_params(),
                     flow_alias=_("单据审批"),
                 )
             )

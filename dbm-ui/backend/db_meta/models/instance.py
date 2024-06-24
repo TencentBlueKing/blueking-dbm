@@ -134,26 +134,6 @@ class InstanceMixin(object):
 
         return instances
 
-    @classmethod
-    def get_instance_id_ip_port_map(cls, instance_ids: List[Union[int, str]]) -> Dict[int, str]:
-        if not instance_ids:
-            return {}
-
-        # 兼容大数据：如果instance_id是int，则只查Storage；如果是str(bk_host_id:port)，则合并查询Storage和Proxy
-        storage_ids = [id for id in instance_ids if isinstance(id, int)]
-        instance_ids = [id for id in instance_ids if isinstance(id, str)]
-        instance_id__ip_port_map = {}
-
-        if storage_ids:
-            instances = StorageInstance.objects.select_related("machine").filter(id__in=storage_ids)
-            instance_id__ip_port_map.update({instance.id: instance.ip_port for instance in instances})
-        if instance_ids:
-            filters = reduce(operator.or_, [Q(machine=id.split(":")[0], port=id.split(":")[1]) for id in instance_ids])
-            insts = [*StorageInstance.objects.filter(filters), *ProxyInstance.objects.filter(filters)]
-            instance_id__ip_port_map.update({inst.instance_id: inst.ip_port for inst in insts})
-
-        return instance_id__ip_port_map
-
 
 class StorageInstance(InstanceMixin, AuditedModel):
     version = models.CharField(max_length=64, default="", help_text=_("版本号"), blank=True, null=True)
