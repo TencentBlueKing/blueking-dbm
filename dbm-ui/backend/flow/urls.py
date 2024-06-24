@@ -30,6 +30,7 @@ from backend.flow.views.doris_replace import ReplaceDorisSceneApiView
 from backend.flow.views.doris_scale_up import ScaleUpDorisSceneApiView
 from backend.flow.views.doris_shrink import ShrinkDorisSceneApiView
 from backend.flow.views.download_dbactor import DownloadDbactorApiView
+from backend.flow.views.download_file import DownloadFileApiView
 from backend.flow.views.es_apply import InstallEsSceneApiView
 from backend.flow.views.es_destroy import DestroyEsSceneApiView
 from backend.flow.views.es_disable import DisableEsSceneApiView
@@ -114,6 +115,7 @@ from backend.flow.views.mysql_migrate_cluster import MigrateMysqlClusterSceneApi
 from backend.flow.views.mysql_migrate_cluster_remote import MysqlMigrateRemoteSceneApiView
 from backend.flow.views.mysql_open_area import MysqlOpenAreaSceneApiView
 from backend.flow.views.mysql_partition import MysqlPartitionSceneApiView
+from backend.flow.views.mysql_partition_cron import MysqlPartitionCronSceneApiView
 from backend.flow.views.mysql_proxy_add import AddMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_switch import SwitchMySQLProxySceneApiView
 from backend.flow.views.mysql_proxy_upgrade import UpgradeMySQLProxySceneApiView
@@ -203,6 +205,7 @@ from backend.flow.views.spider_cluster_full_backup import TenDBClusterFullBackup
 from backend.flow.views.spider_cluster_rename_database import TenDBClusterRenameDatabaseView
 from backend.flow.views.spider_cluster_truncate_database import TenDBClusterTruncateDatabaseView
 from backend.flow.views.spider_partition import SpiderPartitionSceneApiView
+from backend.flow.views.spider_partition_cron import SpiderPartitionCronSceneApiView
 from backend.flow.views.spider_reduce_mnt import ReduceSpiderMNTSceneApiView
 from backend.flow.views.spider_reduce_nodes import ReduceSpiderNodesSceneApiView
 from backend.flow.views.spider_semantic_check import SpiderSemanticCheckSceneApiView
@@ -339,7 +342,9 @@ urlpatterns = [
     url(r"^scene/enable_mysql_single$", EnableMySQLSingleSceneApiView.as_view()),
     url(r"^scene/mysql_checksum$", MysqlChecksumSceneApiView.as_view()),
     url(r"^scene/mysql_partition$", MysqlPartitionSceneApiView.as_view()),
+    url(r"^scene/mysql_partition_cron$", MysqlPartitionCronSceneApiView.as_view()),
     url(r"^scene/spider_partition$", SpiderPartitionSceneApiView.as_view()),
+    url(r"^scene/spider_partition_cron$", SpiderPartitionCronSceneApiView.as_view()),
     url(r"^scene/tendbha_truncate_data$", MySQLHATruncateDataView.as_view()),
     url(r"^scene/import_sqlfile$", ImportSQLFileSceneApiView.as_view()),
     url(r"^scene/switch_mysql_proxy$", SwitchMySQLProxySceneApiView.as_view()),
@@ -512,6 +517,7 @@ urlpatterns = [
     url(r"^scene/replace_doris$", ReplaceDorisSceneApiView.as_view()),
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     url("^scene/download_dbactor$", DownloadDbactorApiView.as_view()),
+    url("^scene/download_file$", DownloadFileApiView.as_view()),
     # vm
     url(r"^scene/install_vm$", InstallVmSceneApiView.as_view()),
     url(r"^scene/scale_up_vm$", ScaleUpVmSceneApiView.as_view()),
