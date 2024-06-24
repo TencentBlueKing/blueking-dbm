@@ -17,14 +17,6 @@
       <BkAlert
         theme="info"
         :title="t('数据库备份：指定DB备份，支持模糊匹配')" />
-      <!-- <BkButton
-        class="mt16"
-        @click="handleShowBatchEntry">
-        <DbIcon
-          class="mr8"
-          type="add" />
-        {{ t('批量录入') }}
-      </BkButton> -->
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">

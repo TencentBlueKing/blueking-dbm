@@ -156,7 +156,6 @@
         }).then((data) => {
           window.changeConfirm = false;
 
-          console.log('success = ', data);
           router.push({
             name: 'sqlServerSlaveAdd',
             params: {
