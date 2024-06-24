@@ -13,7 +13,7 @@
 
 import { getLevelConfig } from '@services/source/configs';
 
-import type { ClusterTypesValues } from '@common/const';
+import { ClusterTypes } from '@common/const';
 
 /**
  * 对应集群参数配置版本信息
@@ -29,7 +29,7 @@ export type ExtraConfListItem = {
 /**
  * 集群多份参数配置信息
  */
-export type ExtraParamertesCluster = Partial<Record<ClusterTypesValues, ExtraConfListItem[]>>;
+export type ExtraParamertesCluster = Partial<Record<ClusterTypes, ExtraConfListItem[]>>;
 
 /**
  * 获取对应集群版本列表项信息
@@ -42,4 +42,4 @@ export type ConfType = {
 /**
  * 集群版本配置列表 tabs 信息
  */
-export type ExtraClusterConf = Partial<Record<ClusterTypesValues, ConfType[]>>;
+export type ExtraClusterConf = Partial<Record<ClusterTypes, ConfType[]>>;

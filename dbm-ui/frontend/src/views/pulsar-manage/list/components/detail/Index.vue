@@ -134,7 +134,7 @@
         });
         runGetMonitorUrls({
           bk_biz_id: currentBizId,
-          cluster_type: ClusterTypes.PULSAE,
+          cluster_type: ClusterTypes.PULSAR,
           cluster_id: props.clusterId,
         });
       }
