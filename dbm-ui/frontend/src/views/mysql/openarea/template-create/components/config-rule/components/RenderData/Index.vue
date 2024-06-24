@@ -21,6 +21,11 @@
           {{ t('克隆 DB') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :required="false"
+          :width="100">
+          {{ t('克隆表结构') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
           :min-width="170"
           :required="false"
           :width="180">

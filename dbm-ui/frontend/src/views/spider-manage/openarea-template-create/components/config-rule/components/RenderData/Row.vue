@@ -20,6 +20,9 @@
           v-model="localRowData.source_db"
           :cluster-id="clusterId" />
       </td>
+      <td>
+        {{ t('所有表') }}
+      </td>
       <td style="padding: 0">
         <RenderTableData
           ref="tableDataRef"
