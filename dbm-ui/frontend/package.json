@@ -64,6 +64,7 @@
     "@vue/eslint-config-typescript": "13.0.0",
     "@vue/tsconfig": "0.5.1",
     "commitlint": "^19.3.0",
+    "cross-env": "7.0.3",
     "eslint": "8.57.0",
     "eslint-config-prettier": "9.1.0",
     "eslint-config-tencent": "1.0.4",
