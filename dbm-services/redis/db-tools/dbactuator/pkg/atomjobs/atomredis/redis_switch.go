@@ -219,6 +219,14 @@ func (job *RedisSwitch) Run() (err error) {
 				job.runtime.Logger.Error("redisswitch switch failed when do %d:[%+v];with err:%+v", idx, storagePair, err)
 				return err
 			}
+		} else if consts.TendisTypeRedisInstance == job.params.ClusterMeta.ClusterType {
+			if err := job.doSlaveOfNoOne4NewMaster(storagePair.SlaveInfo.IP,
+				storagePair.SlaveInfo.Port, job.params.ClusterMeta.StoragePassword); err != nil {
+				job.runtime.Logger.Error("redisswitch slaveof no one failed when do %d:[%+v];with err:%+v", idx, storagePair, err)
+				return err
+			}
+			job.tryShutdownMasterInstance(storagePair.MasterInfo.IP,
+				storagePair.MasterInfo.Port, job.params.ClusterMeta.StoragePassword)
 		} else {
 			job.runtime.Logger.Error("unsupported cluster type :%+v", job.params.ClusterMeta)
 		}
@@ -274,6 +282,22 @@ func (job *RedisSwitch) doSlaveOfNoOne4NewMaster(ip string, port int, pass strin
 	}
 	job.runtime.Logger.Info("[%s] exec slaveof No oNE for result:%s", newMasterAddr, rst)
 	return nil
+}
+
+// tryShutdownMasterInstance 尝试去关掉master实例，使得长链接断开，重连到新的master实例上去
+func (job *RedisSwitch) tryShutdownMasterInstance(ip string, port int, pass string) {
+	oldMasterAddr := fmt.Sprintf("%s:%d", ip, port)
+	oldMasterConn, err := myredis.NewRedisClientWithTimeout(oldMasterAddr,
+		pass, 1, job.params.ClusterMeta.ClusterType, time.Second*10)
+	if err != nil {
+		job.runtime.Logger.Warn("[%s] conn old master failed:%+v", oldMasterAddr, err)
+		return
+	}
+	defer oldMasterConn.Close()
+	if _, err := oldMasterConn.DoCommand([]string{"ShutDown"}, 0); err != nil {
+		job.runtime.Logger.Warn("[%s] shutdown old master failed:%+v", oldMasterAddr, err)
+	}
+	return
 }
 
 // doTendisStorageSwitch4Cluster rediscluster 类型架构切换姿势 http://redis.cn/commands/cluster-failover.html
@@ -391,14 +415,15 @@ func (job *RedisSwitch) precheckForSwitch() error {
 		}
 	}
 
-	// 3. 检查 proxy 可登陆 & proxy 状态一致
-	job.runtime.Logger.Info("precheck for all proxies; domain:%s, proxies:%+v",
-		job.params.ClusterMeta.ImmuteDomain, job.params.ClusterMeta.ProxySet)
-	if err := job.precheckForProxy(); err != nil {
-		return err
+	if consts.TendisTypeRedisInstance != job.params.ClusterMeta.ClusterType {
+		// 3. 检查 proxy 可登陆 & proxy 状态一致
+		job.runtime.Logger.Info("precheck for all proxies; domain:%s, proxies:%+v",
+			job.params.ClusterMeta.ImmuteDomain, job.params.ClusterMeta.ProxySet)
+		if err := job.precheckForProxy(); err != nil {
+			return err
+		}
+		job.runtime.Logger.Info("precheck for all proxies succ !")
 	}
-	job.runtime.Logger.Info("precheck for all proxies succ !")
-
 	// 4. 检查redis 可登陆
 	job.runtime.Logger.Info("precheck for [switchlink storages sync] storages:%+v", job.params.SwitchRelation)
 	if err := job.precheckStorageLogin(); err != nil {
@@ -499,8 +524,9 @@ func (job *RedisSwitch) precheckStorageSync() error {
 				job.errChan <- fmt.Errorf("[%s]new master node, bad role or link status", newMasterAddr)
 			}
 
-			if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
-				// 3. 检查监控写入心跳 master:PORT:time 时间差。 【重要！！！】 Twemproxy 架构才有，其他架构没有这个
+			if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) ||
+				consts.TendisTypeRedisInstance == job.params.ClusterMeta.ClusterType {
+				// 3. 检查监控写入心跳 master:PORT:time 时间差。 【重要！！！】 Twemproxy/单实例 架构才有，其他架构没有这个
 				job.errChan <- job.checkReplicationSync(newMasterConn, storagePair, replic)
 			}
 
@@ -708,7 +734,7 @@ func (job *RedisSwitch) precheckLogin(addr, pass, clusterType string) error {
 	}
 	defer rconn.Close()
 
-	if _, err := rconn.DoCommand([]string{"TYPe", "key|for|dba|login|test"}, 0); err != nil {
+	if _, err := rconn.DoCommand([]string{"PING"}, 0); err != nil {
 		if strings.Contains(fmt.Sprintf("%s", err), "MOVED") {
 			job.runtime.Logger.Warn("precheck for [redis login] got moved :%+v", err)
 			return nil
