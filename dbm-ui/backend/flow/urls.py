@@ -250,6 +250,14 @@ from backend.flow.views.tendb_cluster_remote_slave_recover import RemoteSlaveRec
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
 from backend.flow.views.tendb_ha_standardize import TenDBHAStandardizeView
+from backend.flow.views.vm_apply import InstallVmSceneApiView
+from backend.flow.views.vm_destroy import DestroyVmSceneApiView
+from backend.flow.views.vm_disable import DisableVmSceneApiView
+from backend.flow.views.vm_enable import EnableVmSceneApiView
+from backend.flow.views.vm_reboot import RebootVmSceneApiView
+from backend.flow.views.vm_replace import ReplaceVmSceneApiView
+from backend.flow.views.vm_scale_up import ScaleUpVmSceneApiView
+from backend.flow.views.vm_shrink import ShrinkVmSceneApiView
 
 urlpatterns = [
     #  redis api url begin
@@ -510,4 +518,13 @@ urlpatterns = [
     url("^scene/mysql_data_migrate$", MysqlDataMigrateSceneApiView.as_view()),
     url("^scene/download_dbactor$", DownloadDbactorApiView.as_view()),
     url("^scene/download_file$", DownloadFileApiView.as_view()),
+    # vm
+    url(r"^scene/install_vm$", InstallVmSceneApiView.as_view()),
+    url(r"^scene/scale_up_vm$", ScaleUpVmSceneApiView.as_view()),
+    url(r"^scene/enable_vm$", EnableVmSceneApiView.as_view()),
+    url(r"^scene/disable_vm$", DisableVmSceneApiView.as_view()),
+    url(r"^scene/destroy_vm$", DestroyVmSceneApiView.as_view()),
+    url(r"^scene/reboot_vm$", RebootVmSceneApiView.as_view()),
+    url(r"^scene/shrink_vm$", ShrinkVmSceneApiView.as_view()),
+    url(r"^scene/replace_vm$", ReplaceVmSceneApiView.as_view()),
 ]

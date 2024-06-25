@@ -638,3 +638,19 @@ class GetFileList(object):
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
         ]
+
+    def vm_apply(self, db_version: str) -> list:
+        """
+        vm的介质包跟dbactuator
+        """
+        vm_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.Vm, db_type=DBType.Vm)
+        return [
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{vm_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
+        ]
+
+    def vm_actuator(self) -> list:
+        """
+        vm的dbactuator包
+        """
+        return self.get_db_actuator_package()
