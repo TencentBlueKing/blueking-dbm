@@ -29,6 +29,8 @@ func VMCommand() *cobra.Command {
 				InstallVMInsertCommand(),
 				// 安装vmselect的命令
 				InstallVMSelectCommand(),
+				// 安装vmauth的命令
+				InstallVMAuthCommand(),
 				// 安装supervisor的命令
 				InstallSupervisorCommand(),
 				// 初始化命令
@@ -43,6 +45,8 @@ func VMCommand() *cobra.Command {
 				RestartProcessCommand(),
 				// 清理目录命令
 				CleanDataCommand(),
+				ReloadVMSelectCommand(),
+				ReloadVMInsertCommand(),
 			},
 		},
 	}

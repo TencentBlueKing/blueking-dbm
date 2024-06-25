@@ -44,6 +44,7 @@ class ClusterType(str, StructuredEnum):
     Influxdb = EnumField("influxdb", _("Influxdb实例"))
     Pulsar = EnumField("pulsar", _("Pulsar集群"))
     Doris = EnumField("doris", _("Doris集群"))
+    Vm = EnumField("vm", _("vm集群"))
 
     Dbmon = EnumField("dbmon", _("redis监控"))
 
@@ -88,6 +89,7 @@ class ClusterType(str, StructuredEnum):
             DBType.Riak.value: [cls.Riak],
             DBType.Sqlserver.value: [cls.SqlserverHA, cls.SqlserverSingle],
             DBType.Doris.value: [cls.Doris],
+            DBType.Vm.value: [cls.Vm],
         }
 
     @classmethod
