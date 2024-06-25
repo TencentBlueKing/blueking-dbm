@@ -108,15 +108,17 @@
           render: () => (
             <TextOverflowLayout class="detail-item">
               {{
-                default: () => tableIgnore.join(','),
+                default: () => tableIgnore.join(',') || '--',
                 append: () => (
-                  <bk-button
-                    class="ml-4"
-                    theme="primary"
-                    text
-                    onClick={() => handleCopy(tableIgnore.join('\n'))}>
-                    <db-icon type="copy" />
-                  </bk-button>
+                  tableIgnore.length > 0 && (
+                    <bk-button
+                      class="ml-4"
+                      theme="primary"
+                      text
+                      onClick={() => handleCopy(tableIgnore.join('\n'))}>
+                      <db-icon type="copy" />
+                    </bk-button>
+                  )
                 ),
               }}
             </TextOverflowLayout>
@@ -126,16 +128,18 @@
           label: t('where 条件'),
           iswhole: true,
           render: () => (
-            <div class="detail-item">
-              <div class="where-box">{where}</div>
-              <bk-button
-                class="ml-4"
-                theme="primary"
-                text
-                onClick={() => handleCopy(where)}>
-                <db-icon type="copy" />
-              </bk-button>
-            </div>
+            where ? (
+              <div class="detail-item">
+                <div class="where-box">{where}</div>
+                <bk-button
+                  class="ml-4"
+                  theme="primary"
+                  text
+                  onClick={() => handleCopy(where)}>
+                  <db-icon type="copy" />
+                </bk-button>
+              </div>
+              ) : '--'
           )
         },
         {
@@ -170,6 +174,7 @@
     :deep(.target-dbs) {
       display: flex;
       flex-wrap: wrap;
+      margin-top: 6px;
     }
 
     :deep(.where-box) {

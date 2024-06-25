@@ -16,8 +16,7 @@
     <DbForm
       ref="formRef"
       form-type="vertical"
-      :model="formData"
-      :rules="rules">
+      :model="formData">
       <BkFormItem
         :label="t('目标集群')"
         property="domain"
@@ -36,39 +35,35 @@
           <span class="required-mark">*</span>
           <span class="label-text">({{ t('最多支持 5 个') }})</span>
         </template>
-        <BkTagInput
-          v-model="formData.databases"
-          allow-auto-match
-          allow-create
-          :clearable="false"
-          collapse-tags
-          has-delete-icon
-          :max-data="5" />
+        <BkLoading :loading="isLoading">
+          <BkSelect
+            v-model="formData.databases"
+            class="bk-select"
+            filterable
+            multiple
+            multiple-mode="tag">
+            <BkOption
+              v-for="(item, index) in databaseSelectList"
+              :id="item.value"
+              :key="index"
+              :disabled="item.disabled"
+              :name="item.label" />
+          </BkSelect>
+        </BkLoading>
       </BkFormItem>
-      <BkFormItem
+      <TableNameFromItem
+        v-model="formData.tables"
         :label="t('目标表名')"
         property="tables"
-        required>
-        <BkInput
-          v-model="formData.tables"
-          :placeholder="t('请输入目标表，如： table_chart%，tab2%，多个英文逗号或换行分割')"
-          :rows="4"
-          type="textarea" />
-      </BkFormItem>
-      <BkFormItem
+        required />
+      <TableNameFromItem
+        v-model="formData.tablesIgnore"
         :label="t('忽略表名')"
-        property="tablesIgnore">
-        <BkInput
-          v-model="formData.tablesIgnore"
-          :placeholder="t('请输入目标表，如： table_chart%，tab2%，多个英文逗号或换行分割')"
-          :rows="4"
-          type="textarea" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('where 条件')"
-        required>
+        property="tablesIgnore" />
+      <BkFormItem :label="t('where 条件')">
         <BkInput
           v-model="formData.where"
+          :placeholder="t('请输入 where 条件，如：userId > 10000，不要带where关键字')"
           :rows="4"
           type="textarea" />
       </BkFormItem>
@@ -101,10 +96,12 @@
 
 <script setup lang="tsx" generic="T extends TendbsingleModel | TendbhaModel | TendbClusterModel">
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import TendbClusterModel from '@services/model/spider/tendbCluster';
+  import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
@@ -112,6 +109,8 @@
   import { TicketTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
+
+  import TableNameFromItem from './TableNameFromItem.vue';
 
   interface Props {
     data: T;
@@ -126,8 +125,8 @@
   const initFormData = () => ({
     domain: '',
     databases: [],
-    tables: '',
-    tablesIgnore: '',
+    tables: [],
+    tablesIgnore: [],
     where: '',
     exportType: 'DATA_TABLE',
     remark: '',
@@ -139,43 +138,6 @@
   const formRef = ref<InstanceType<typeof DbForm>>();
 
   const formData = reactive(initFormData());
-
-  const splitString = (value: string) => value.split(/[\s,]+/);
-
-  const genarateTableRules = () => [
-    {
-      validator: (value: string) => {
-        const hasAllMatch = splitString(value).some((item) => /[%*?]/.test(item));
-        return !(value.length > 1 && hasAllMatch);
-      },
-      message: t('包含通配符 * % ? 时，只允许单一对象'),
-    },
-    {
-      validator: (value: string) => {
-        if (value) {
-          return splitString(value).some((item) => !/^\*$/.test(item));
-        }
-        return true;
-      },
-      message: t('* 只允许单独使用'),
-      trigger: 'change',
-    },
-    {
-      validator: (value: string) => {
-        if (value) {
-          return splitString(value).every((item) => !/^%$/.test(item));
-        }
-        return true;
-      },
-      message: t('% 不允许单独使用'),
-      trigger: 'change',
-    },
-  ];
-
-  const rules = {
-    tables: genarateTableRules(),
-    tablesIgnore: genarateTableRules(),
-  };
 
   const exportTypeList = [
     {
@@ -192,10 +154,33 @@
     },
   ];
 
+  const databaseSelectList = computed(() => {
+    const databaseList = clusterDatabaseNameList.value;
+    const { length } = formData.databases;
+    if (databaseList && databaseList.length > 0) {
+      const [{ databases }] = databaseList;
+      return databases.map((item) => ({
+        value: item,
+        label: item,
+        disabled: length >= 5,
+      }));
+    }
+    return [];
+  });
+
+  const {
+    data: clusterDatabaseNameList,
+    loading: isLoading,
+    run: getClusterDatabaseNameListRun,
+  } = useRequest(getClusterDatabaseNameList, {
+    manual: true,
+  });
+
   watch(
     () => props.data,
     () => {
       formData.domain = props.data.master_domain;
+      getClusterDatabaseNameListRun({ cluster_ids: [props.data.id] });
     },
     {
       immediate: true,
@@ -209,9 +194,9 @@
           cluster_id: props.data.id,
           // charset: 'utf8',
           charset: 'default',
-          databases: formData.databases.filter((item) => item !== ''),
-          tables: splitString(formData.tables).filter((item) => item !== ''),
-          tables_ignore: splitString(formData.tablesIgnore).filter((item) => item !== ''),
+          databases: formData.databases,
+          tables: formData.tables,
+          tables_ignore: formData.tablesIgnore,
           where: formData.where,
         };
 
