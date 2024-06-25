@@ -8,6 +8,11 @@
     "target_object_type": "SERVICE",
     "target_node_type": "TOPO",
     "target_nodes": [],
+    "metric_relabel_configs": [{
+      "source_labels": ["__name__"],
+      "action": "drop",
+      "regex": "kafka_cluster_partition_laststableoffsetlag|kafka_log_log_logendoffset|kafka_log_log_numlogsegments|kafka_log_log_logstartoffset|kafka_cluster_partition_atminisr|kafka_server_fetcherlagmetrics_consumerlag|kafka_topic_partition_oldest_offset|kafka_topic_partition_under_replicated_partition|kafka_topic_partition_leader|kafka_topic_partition_current_offset|kafka_topic_partition_leader_is_preferred|kafka_topic_partition_replicas|kafka_topic_partition_in_sync_replica|kafka_network_requestmetrics_localtimems|kafka_network_requestmetrics_requestqueuetimems|kafka_network_requestmetrics_responsequeuetimems|kafka_network_requestmetrics_responsesendtimems|kafka_network_requestmetrics_throttletimems|kafka_network_requestmetrics_requestbytes|kafka_consumergroup_current_offset|kafka_server_fetcherstats_requests_total|kafka_server_fetcherstats_bytes_total"
+    }],
     "params": {
       "plugin": {
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
@@ -34,7 +39,7 @@
     "plugin_id": "dbm_kafka_bkpull"
   },
   "db_type": "kafka",
-  "version": 15,
+  "version": 18,
   "machine_types": [],
   "plugin_id": "dbm_kafka_bkpull"
 }
