@@ -168,7 +168,7 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.PULSAE, [
+  } = useLinkQueryColumnSerach(ClusterTypes.PULSAR, [
     'bk_cloud_id',
     'major_version',
     'region',

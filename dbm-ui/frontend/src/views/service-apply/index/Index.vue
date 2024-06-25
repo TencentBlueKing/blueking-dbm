@@ -476,11 +476,11 @@
       .apply-item-wrapper {
         display: flex;
         height: 40px;
-        flex: 0 0 auto;
-        align-items: center;
-        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 0 0 auto;
+        align-items: center;
       }
 
       .apply-item-icon {

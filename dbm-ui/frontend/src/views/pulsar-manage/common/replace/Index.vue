@@ -153,7 +153,7 @@
       role: 'pulsar_bookkeeper',
       nodeList: [],
       hostList: [],
-      specClusterType: ClusterTypes.PULSAE,
+      specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_bookkeeper',
       resourceSpec: {
         spec_id: 0,
@@ -165,7 +165,7 @@
       role: 'pulsar_broker',
       nodeList: [],
       hostList: [],
-      specClusterType: ClusterTypes.PULSAE,
+      specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_broker',
       resourceSpec: {
         spec_id: 0,
@@ -177,7 +177,7 @@
       role: 'pulsar_zookeeper',
       nodeList: [],
       hostList: [],
-      specClusterType: ClusterTypes.PULSAE,
+      specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_zookeeper',
       resourceSpec: {
         spec_id: 0,

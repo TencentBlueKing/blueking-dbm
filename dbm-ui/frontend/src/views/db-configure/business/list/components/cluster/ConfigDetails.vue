@@ -38,44 +38,39 @@
 
   import { getLevelConfig } from '@services/source/configs';
 
-  import {
-    type ClusterTypesValues,
-    ConfLevels,
-  } from '@common/const';
+  import { ClusterTypes, ConfLevels } from '@common/const';
 
-  import {
-    defaultConfTitles,
-    extraParamertesCluster,
-  } from '@views/db-configure/common/const';
+  import { defaultConfTitles, extraParamertesCluster } from '@views/db-configure/common/const';
   import type { ExtraConfListItem } from '@views/db-configure/common/types';
   import DetailsBase from '@views/db-configure/components/DetailsBase.vue';
 
   import { useBaseDetails } from '../hooks/useBaseDetails';
 
-  type GetLevelConfigParams = ServiceParameters<typeof getLevelConfig>
+  type GetLevelConfigParams = ServiceParameters<typeof getLevelConfig>;
 
   interface Props {
-    data?: ServiceReturnType<typeof getLevelConfig>,
-    loading?: boolean,
-    fetchParams?: GetLevelConfigParams
+    data?: ServiceReturnType<typeof getLevelConfig>;
+    loading?: boolean;
+    fetchParams?: GetLevelConfigParams;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    data: () => ({
-      conf_items: [] as NonNullable<Props['data']>['conf_items'],
-    } as NonNullable<Props['data']>),
+    data: () =>
+      ({
+        conf_items: [] as NonNullable<Props['data']>['conf_items'],
+      }) as NonNullable<Props['data']>,
     loading: false,
-    fetchParams: () => ({} as GetLevelConfigParams),
+    fetchParams: () => ({}) as GetLevelConfigParams,
   });
 
   const { t } = useI18n();
   const route = useRoute();
   const state = reactive<{
-    extraParametersCards: ExtraConfListItem[]
+    extraParametersCards: ExtraConfListItem[];
   }>({
     extraParametersCards: [],
   });
-  const title = computed(() => defaultConfTitles[props.fetchParams.meta_cluster_type as ClusterTypesValues] || t('参数配置'));
+  const title = computed(() => defaultConfTitles[props.fetchParams.meta_cluster_type as ClusterTypes] || t('参数配置'));
   const { getFetchParams } = useBaseDetails(false);
 
   // 编辑路由参数
@@ -90,15 +85,19 @@
   /**
    * 设置多份集群配置
    */
-  watch(() => props.fetchParams.meta_cluster_type, (type) => {
-    const extraParamertes = type && extraParamertesCluster[type as ClusterTypesValues];
-    if (extraParamertes) {
-      state.extraParametersCards = [...extraParamertes];
-      for (let i = 0; i < state.extraParametersCards.length; i++) {
-        getExtraConfig(i);
+  watch(
+    () => props.fetchParams.meta_cluster_type,
+    (type) => {
+      const extraParamertes = type && extraParamertesCluster[type as ClusterTypes];
+      if (extraParamertes) {
+        state.extraParametersCards = [...extraParamertes];
+        for (let i = 0; i < state.extraParametersCards.length; i++) {
+          getExtraConfig(i);
+        }
       }
-    }
-  }, { immediate: true });
+    },
+    { immediate: true },
+  );
 
   /**
    * 获取部分集群额外配置
@@ -118,7 +117,7 @@
   }
 
   // 更新基础信息
-  function handleUpdateInfo({ key, value }: { key: string, value: string }) {
+  function handleUpdateInfo({ key, value }: { key: string; value: string }) {
     Object.assign(props.data, { [key]: value });
   }
 </script>

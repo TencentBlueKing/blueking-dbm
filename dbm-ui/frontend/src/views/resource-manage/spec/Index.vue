@@ -226,7 +226,7 @@
     {
       moduleId: 'bigdata',
       label: 'Pulsar',
-      name: ClusterTypes.PULSAE,
+      name: ClusterTypes.PULSAR,
       children: [
         {
           label: t('Bookkeeper节点规格'),
@@ -371,7 +371,7 @@
   onMounted(() => {
     const { spec_cluster_type: clusterType } = route.query;
     if (clusterType) {
-      curTab.value = clusterType as string;
+      curTab.value = clusterType as ClusterTypes;
     }
   });
 </script>

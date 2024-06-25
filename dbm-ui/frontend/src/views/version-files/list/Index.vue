@@ -120,6 +120,19 @@
     },
     {
       controller: {
+        moduleId: 'mysql',
+      },
+      label: 'TenDBCluster',
+      name: DBTypes.TENDBCLUSTER,
+      children: [
+        {
+          label: 'TenDBCluster',
+          name: DBTypes.TENDBCLUSTER,
+        },
+      ],
+    },
+    {
+      controller: {
         moduleId: 'redis',
       },
       label: 'Redis',
@@ -349,7 +362,7 @@
     return true;
   });
 
-  const tabActive = ref(renderTabs[0].name);
+  const tabActive = ref<DBTypes>(DBTypes.MYSQL);
   const packageTypeMap = ref<Record<string, string[]>>({});
   const activeTabInfo = computed(() => {
     const tabList = renderTabs.find((item) => item.name === tabActive.value);

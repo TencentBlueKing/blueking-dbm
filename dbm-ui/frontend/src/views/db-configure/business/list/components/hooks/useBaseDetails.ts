@@ -9,18 +9,13 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { ComputedRef } from 'vue';
 
 import { getLevelConfig } from '@services/source/configs';
 
-import {
-  clusterTypeInfos,
-  type ClusterTypesValues,
-  ConfLevels,
-  DBTypes,
-} from '@common/const';
+import { clusterTypeInfos, ClusterTypes, ConfLevels, DBTypes } from '@common/const';
 
 import { notModuleClusters } from '@views/db-configure/common/const';
 
@@ -31,7 +26,7 @@ interface State {
   loadingDetails: boolean;
   isEmpty: boolean;
   version: string;
-  data: ServiceReturnType<typeof getLevelConfig> & { charset?: string},
+  data: ServiceReturnType<typeof getLevelConfig> & { charset?: string };
 }
 /**
  * 获取参数管理基本信息
@@ -68,7 +63,7 @@ export const useBaseDetails = (immediateFetch = true) => {
 
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
   const route = useRoute();
-  const clusterType = computed(() => route.params.clusterType as ClusterTypesValues);
+  const clusterType = computed(() => route.params.clusterType as ClusterTypes);
   const dbType = computed(() => clusterTypeInfos[clusterType.value].dbType);
   const state = reactive<State>({
     loading: false,
@@ -137,21 +132,24 @@ export const useBaseDetails = (immediateFetch = true) => {
       });
   };
 
-  watch(() => treeNode, (node, old) => {
-    if (immediateFetch && node && node.value.treeId !== old?.value?.treeId) {
-      let { id } = node.value;
-      if (node.value.levelType === ConfLevels.CLUSTER && node.value.parentId) {
-        const parentInfo = (node.value.parentId as string).split('-');
-        id = Number(parentInfo[1]);
+  watch(
+    () => treeNode,
+    (node, old) => {
+      if (immediateFetch && node && node.value.treeId !== old?.value?.treeId) {
+        let { id } = node.value;
+        if (node.value.levelType === ConfLevels.CLUSTER && node.value.parentId) {
+          const parentInfo = (node.value.parentId as string).split('-');
+          id = Number(parentInfo[1]);
+        }
+        if ([DBTypes.MYSQL, DBTypes.SQLSERVER].includes(dbType.value)) {
+          fetchModuleConfig(id);
+        } else if (notModuleClusters.includes(dbType.value)) {
+          fetchLevelConfig();
+        }
       }
-      if ([DBTypes.MYSQL, DBTypes.SQLSERVER].includes(dbType.value)) {
-        fetchModuleConfig(id);
-      } else if (notModuleClusters.includes(dbType.value)) {
-        fetchLevelConfig();
-      }
-    }
-  }, { deep: true, immediate: true });
-
+    },
+    { deep: true, immediate: true },
+  );
 
   return {
     state,
