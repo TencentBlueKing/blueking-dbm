@@ -8,26 +8,23 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 
-from . import (
-    doris,
-    es,
-    hdfs,
-    influxdb,
-    kafka,
-    mongocluster,
-    mongorepset,
-    nosqlcomm,
-    pulsar,
-    riak,
-    sqlserverha,
-    sqlserversingle,
-    tendbha,
-    tendbsingle,
-    tendiscache,
-    tendispluscluster,
-    tendissingle,
-    tendisssd,
-    vm,
-)
-from .apis import domain_exists, query_instances
+from django.db import transaction
+
+from backend.db_meta.enums import ClusterPhase, ClusterStatus
+from backend.db_meta.models import Cluster
+
+logger = logging.getLogger("root")
+
+
+@transaction.atomic
+def disable(cluster_id: int):
+    """
+    禁用集群
+    """
+
+    cluster = Cluster.objects.get(id=cluster_id)
+    cluster.status = ClusterStatus.ABNORMAL.value
+    cluster.phase = ClusterPhase.OFFLINE.value
+    cluster.save()

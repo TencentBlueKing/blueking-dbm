@@ -68,6 +68,7 @@ class DBType(str, StructuredEnum):
     Riak = EnumField("riak", _("Riak"))
     Sqlserver = EnumField("sqlserver", _("SQLServer"))
     Doris = EnumField("doris", _("Doris"))
+    Vm = EnumField("vm", _("vm"))
 
     # 不属于DB类型，仅用于云区域组件的单据部署的分组
     Cloud = EnumField("cloud", _("Cloud"))
