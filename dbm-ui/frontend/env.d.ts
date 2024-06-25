@@ -58,6 +58,7 @@ declare module '@blueking/notice-component';
 declare module '@blueking/login-modal' {
   export function showLoginModal(params: { loginUrl: string }): void;
 }
+declare module '@blueking/sub-saas';
 
 declare module '@blueking/sub-saas' {
   export function connectToMain(router: Router): any;
