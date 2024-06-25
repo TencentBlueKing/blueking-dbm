@@ -51,6 +51,7 @@ class SQLServerAuthorizeHandler(AuthorizeHandler):
             "source_ips": [],
             "target_instances": authorize.target_instances,
             "cluster_type": authorize.cluster_type,
+            "cluster_ids": authorize.cluster_ids,
         }
 
         # 检查授权规则是否存在
