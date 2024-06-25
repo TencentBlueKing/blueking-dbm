@@ -91,11 +91,11 @@
               v-model="formdata.details.spider_port"
               clearable
               :max="65535"
-              :min="25000"
+              :min="3306"
               style="width: 185px"
               type="number" />
             <span class="input-desc">
-              {{ t('范围min_max', { min: 25000, max: 65535 }) }}
+              {{ t('范围n_min_max', { n: 3306, min: 25000, max: 65535 }) }}
             </span>
           </BkFormItem>
           <BkFormItem :label="t('备注')">
@@ -265,6 +265,13 @@
       {
         message: t('数量不能为空'),
         validator: (value: number) => value > 0,
+      },
+    ],
+    'details.spider_port': [
+      {
+        message: t('范围n_min_max', { n: 3306, min: 25000, max: 65535 }),
+        trigger: 'change',
+        validator: (value: number) => value === 3306 || (value >= 25000 && value <= 65535),
       },
     ],
   };

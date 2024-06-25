@@ -87,24 +87,32 @@
       </BkFormItem>
       <BkFormItem
         :label="t('数量')"
-        :min="1"
         property="count"
-        required>
+        required
+        :rules="countRules">
         <BkInput
           v-model="customSpecInfo.count"
           clearable
-          :disabled="!!clusterShardNum"
-          :min="0"
+          :min="1"
           show-clear-only-hover
           style="width: 314px"
           type="number" />
-        <span class="input-desc">{{ t('台') }}</span>
+        <span class="input-desc">{{ t('组') }}</span>
       </BkFormItem>
       <BkFormItem
         :label="t('单机分片数')"
         required>
         <BkInput
           v-model="localRemoteShardNum"
+          disabled
+          style="width: 314px"
+          type="number" />
+      </BkFormItem>
+      <BkFormItem
+        :label="t('集群分片数')"
+        required>
+        <BkInput
+          v-model="localClusterShardNum"
           disabled
           style="width: 314px"
           type="number" />
@@ -166,7 +174,6 @@
     machineType: string,
     cloudId: number,
     clusterShardNum: number,
-    remoteShardNum: number,
     planFormItemProps?: Partial<FormItemProps>,
   }
 
@@ -200,7 +207,7 @@
   const specSelectorRef = ref<InstanceType<typeof SpecSelector>>()
   const localCapacity = ref();
   const localFutureCapacity = ref();
-  const localRemoteShardNum = ref()
+  const localClusterShardNum = ref();
   const queryTimer = ref();
   const applyType = ref('auto')
 
@@ -208,6 +215,14 @@
 
   const specCountMap = shallowRef<Record<number, number>>({});
   const planList = shallowRef<ServiceReturnType<typeof getFilterClusterSpec>>([]);
+
+  const countRules = [
+    {
+      message: t('必须要能除尽总分片数'),
+      trigger: 'change',
+      validator: () => props.clusterShardNum % customSpecInfo.value.count === 0
+    },
+  ]
 
   const tableColumns = [
     {
@@ -274,6 +289,8 @@
       qps: count * (data.qps.min ?? 0)
     }
   })
+
+  const localRemoteShardNum = computed(() => props.clusterShardNum / customSpecInfo.value.count)
 
   const getSpecCapacity = (storageSpec: ResourceSpecModel['storage_spec']) => {
     let specCapacity = 0
@@ -389,9 +406,8 @@
     }, 1000);
   });
 
-  watch([() => props.clusterShardNum, () => props.remoteShardNum], () => {
-    localRemoteShardNum.value = props.remoteShardNum
-    customSpecInfo.value.count = props.clusterShardNum / props.remoteShardNum
+  watch(() => props.clusterShardNum, () => {
+    localClusterShardNum.value = props.clusterShardNum
   }, {
     immediate: true
   })
@@ -408,6 +424,8 @@
         })
       }
     })
+  }, {
+    immediate: true
   })
 
   const handleDpsRangChange = (data: [number, number]) => {

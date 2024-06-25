@@ -31,7 +31,6 @@
         property: 'specId',
         required: true,
       }"
-      :remote-shard-num="data.remote_shard_num"
       @change="handlePlanChange" />
     <BkFormItem
       :label="t('备份源')"
@@ -173,11 +172,12 @@
                         cluster_id: props.data.id,
                         db_module_id: props.data.db_module_id,
                         cluster_shard_num: props.data.cluster_shard_num,
-                        remote_shard_num: props.data.remote_shard_num,
+                        remote_shard_num: props.data.cluster_shard_num / currentSpec.value!.machine_pair,
+                        // remote_shard_num: props.data.remote_shard_num,
                         resource_spec: {
                           backend_group: {
-                            spec_id: currentSpec.value?.spec_id,
-                            count: currentSpec.value?.machine_pair,
+                            spec_id: currentSpec.value!.spec_id,
+                            count: currentSpec.value!.machine_pair,
                             affinity: '',
                           },
                         },

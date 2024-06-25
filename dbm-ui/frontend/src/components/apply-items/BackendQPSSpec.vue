@@ -122,7 +122,7 @@
           show-clear-only-hover
           style="width: 314px"
           type="number" />
-        <span class="input-desc">{{ t('台') }}</span>
+        <span class="input-desc">{{ t('组') }}</span>
       </BkFormItem>
       <BkFormItem
         :label="t('单机分片数')"
@@ -130,6 +130,16 @@
         <BkInput
           v-model="shardNum"
           :min="1"
+          style="width: 314px"
+          type="number" />
+      </BkFormItem>
+      <BkFormItem
+        :label="t('集群分片数')"
+        :required="false">
+        <BkInput
+          v-model="clusterShardNum"
+          disabled
+          :placeholder="t('自动生成')"
           style="width: 314px"
           type="number" />
       </BkFormItem>
@@ -252,6 +262,8 @@
       label: t('可用主机数'),
     },
   ];
+
+  const clusterShardNum = computed(() => modelValue.value.count * shardNum.value)
 
   const specInfo = computed(() => {
     const data = specSelectorRef.value?.getData()
@@ -465,7 +477,7 @@
       return {
         spec_name: item.spec_name,
         machine_pair: count,
-        cluster_shard_num: count * shardNum.value,
+        cluster_shard_num: clusterShardNum.value,
         cluster_capacity: count * getSpecCapacity(item.storage_spec!),
         qps: item.qps
       };
