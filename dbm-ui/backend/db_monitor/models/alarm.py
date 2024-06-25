@@ -168,8 +168,7 @@ class NoticeGroup(AuditedModel):
             )
             for group in bk_monitor_groups:
                 if group["name"] == bk_monitor_group_name:
-                    save_monitor_group_params["id"] = group[0]["id"]
-                    break
+                    save_monitor_group_params["id"] = group["id"]
             resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
             self.sync_at = datetime.datetime.now(timezone.utc)
             return resp["id"]
