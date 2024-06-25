@@ -88,8 +88,11 @@ func (job *RedisShutdown) Run() (err error) {
 		wg.Add(1)
 		go func(port int) {
 			defer wg.Done()
-			job.Shutdown(port)
-			job.BackupDir(port)
+			shutdownFlag := job.Shutdown(port)
+			// 只有进程没了，才去mv目录
+			if shutdownFlag {
+				job.BackupDir(port)
+			}
 		}(port)
 	}
 	wg.Wait()
@@ -127,21 +130,21 @@ func (job *RedisShutdown) InitRealDataDir() {
 }
 
 // Shutdown 停止进程
-func (job *RedisShutdown) Shutdown(port int) {
+func (job *RedisShutdown) Shutdown(port int) bool {
 	shutDownSucc := false
 	status := true
 	var err error
 	status, err = job.IsRedisRunning(port)
 	if err == nil && !status {
 		job.runtime.Logger.Info("redis port[%d] is not running", port)
-		return
+		return true
 	}
 	stopScript := filepath.Join(job.RedisBinDir, "stop-redis.sh")
 	job.runtime.Logger.Info("get port[%d] pwd begin.", port)
 	pwd, err := myredis.GetRedisPasswdFromConfFile(port)
 	if err != nil {
 		job.errChan <- fmt.Errorf("get redis port[%d] password failed err[%s]", port, err.Error())
-		return
+		return false
 	}
 	job.runtime.Logger.Info("get port[%d] pwd success.", port)
 
@@ -180,10 +183,11 @@ func (job *RedisShutdown) Shutdown(port int) {
 	}
 	if !shutDownSucc {
 		job.errChan <- fmt.Errorf("shutdown redis port[%d] failed err[%s]", port, err.Error())
-		return
+		return false
 	}
 
 	job.runtime.Logger.Info("shuwdown redis port[%d] succ....", port)
+	return true
 }
 
 // ShutdownByClient 使用客户端shutdown的方式去停止实例
