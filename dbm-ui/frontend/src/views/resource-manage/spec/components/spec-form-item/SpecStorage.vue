@@ -279,39 +279,43 @@
 <style lang="less" scoped>
   @import './specFormItem.less';
 
-  :deep(.bk-table-body) {
-    .cell {
-      padding: 0 !important;
+  .custom-edit-table {
+    min-height: auto !important;
 
-      .large-size {
-        height: 42px;
+    :deep(.bk-table-body) {
+      .cell {
+        padding: 0 !important;
 
-        .bk-input {
+        .large-size {
           height: 42px;
-        }
-      }
 
-      .bk-form-error-tips {
-        top: 12px;
-      }
-    }
-
-    .opertaions {
-      .bk-button {
-        margin-left: 18px;
-        font-size: @font-size-normal;
-
-        &:not(.is-disabled) i {
-          color: @light-gray;
-
-          &:hover {
-            color: @gray-color;
+          .bk-input {
+            height: 42px;
           }
         }
 
-        &.is-disabled {
-          i {
-            color: @disable-color;
+        .bk-form-error-tips {
+          top: 12px;
+        }
+      }
+
+      .opertaions {
+        .bk-button {
+          margin-left: 18px;
+          font-size: @font-size-normal;
+
+          &:not(.is-disabled) i {
+            color: @light-gray;
+
+            &:hover {
+              color: @gray-color;
+            }
+          }
+
+          &.is-disabled {
+            i {
+              color: @disable-color;
+            }
           }
         }
       }
