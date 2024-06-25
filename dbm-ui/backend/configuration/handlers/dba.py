@@ -35,7 +35,7 @@ class DBAdministratorHandler(object):
         # 更新或创建业务管理员
         for dba in db_admins:
             db_type = dba["db_type"]
-            new_dba = dba["users"]
+            new_dba = [user for user in dba["users"] if user]
             platform_dba = db_type_platform_dba.get(db_type, [])
             biz_dba = db_type_biz_dba.get(db_type, [])
             if new_dba == platform_dba and not biz_dba:
@@ -50,12 +50,12 @@ class DBAdministratorHandler(object):
             # 更新告警组
             update_dba_notice_group.apply_async(kwargs={"dba_id": dba_obj.id})
 
-            if not biz_dba:
+            if not new_dba:
                 continue
 
             # 更新主机主备负责人
-            operator = biz_dba[0]
-            bk_bak_operator = biz_dba[1] if len(biz_dba) > 1 else operator
+            operator = new_dba[0]
+            bk_bak_operator = new_dba[1] if len(new_dba) > 1 else operator
             cluster_types = ClusterType.db_type_to_cluster_types(db_type)
             for cluster_type in cluster_types:
                 bk_host_ids = [

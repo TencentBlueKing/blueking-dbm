@@ -48,7 +48,7 @@ def update_dba_notice_group(dba_id: int):
     receiver_users = dba.users or DEFAULT_DB_ADMINISTRATORS
     try:
         group_name = f"{dba.get_db_type_display()}_DBA"
-        group_receivers = [{"id": user, "type": "user"} for user in receiver_users]
+        group_receivers = [{"id": user, "type": "user"} for user in receiver_users if user]
         logger.info("[local_notice_group] update_or_create notice group: %s", group_name)
         try:
             group = NoticeGroup.objects.get(bk_biz_id=dba.bk_biz_id, db_type=dba.db_type, is_built_in=True)
