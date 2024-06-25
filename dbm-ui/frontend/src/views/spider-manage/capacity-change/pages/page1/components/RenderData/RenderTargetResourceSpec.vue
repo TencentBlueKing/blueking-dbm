@@ -63,7 +63,6 @@
           :cluster-shard-num="clusterData.clusterShardNum"
           cluster-type="tendbcluster"
           machine-type="remote"
-          :remote-shard-num="clusterData.remoteShardNum"
           @change="handlePlanChange" />
       </BkForm>
     </div>
@@ -123,7 +122,7 @@
 
   const customSpecInfo = reactive({
     specId: '',
-    count: 0,
+    count: 1,
   });
 
   const showText = computed(() => `${localSpec.value ? `${localSpec.value.cluster_capacity} G` : ''}`);
