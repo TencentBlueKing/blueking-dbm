@@ -42,6 +42,10 @@ MachineTypeAccessLayerMap = {
     MachineType.DORIS_FOLLOWER: AccessLayer.STORAGE,
     MachineType.DORIS_OBSERVER: AccessLayer.STORAGE,
     MachineType.DORIS_BACKEND: AccessLayer.STORAGE,
+    MachineType.VM_STORAGE: AccessLayer.STORAGE,
+    MachineType.VM_INSERT: AccessLayer.STORAGE,
+    MachineType.VM_SELECT: AccessLayer.STORAGE,
+    MachineType.VM_AUTH: AccessLayer.STORAGE,
 }
 
 ClusterTypeMachineTypeDefine = {
@@ -70,6 +74,7 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.SqlserverHA: [MachineType.SQLSERVER_HA],
     ClusterType.Doris: [MachineType.DORIS_BACKEND, MachineType.DORIS_FOLLOWER, MachineType.DORIS_OBSERVER],
     "tbinlogdumper": ["tbinlogdumper"],  # 兼容tbinlogdumper注册服务实例，自定义处理
+    ClusterType.Vm: [MachineType.VM_STORAGE, MachineType.VM_SELECT, MachineType.VM_INSERT, MachineType.VM_AUTH],
 }
 
 ClusterMachineAccessTypeDefine = {
@@ -212,6 +217,10 @@ MachineTypeInstanceRoleMap = {
     MachineType.DORIS_BACKEND: [InstanceRole.DORIS_BACKEND_HOT, InstanceRole.DORIS_BACKEND_COLD],
     MachineType.DORIS_FOLLOWER: [InstanceRole.DORIS_FOLLOWER],
     MachineType.DORIS_OBSERVER: [InstanceRole.DORIS_OBSERVER],
+    MachineType.VM_STORAGE: [InstanceRole.VM_STORAGE],
+    MachineType.VM_INSERT: [InstanceRole.VM_INSERT],
+    MachineType.VM_SELECT: [InstanceRole.VM_SELECT],
+    MachineType.VM_AUTH: [InstanceRole.VM_AUTH],
 }
 
 InstanceRoleInstanceInnerRoleMap = {
@@ -254,6 +263,10 @@ InstanceRoleInstanceInnerRoleMap = {
     InstanceRole.DORIS_OBSERVER: InstanceInnerRole.ORPHAN,
     InstanceRole.DORIS_BACKEND_COLD: InstanceInnerRole.ORPHAN,
     InstanceRole.DORIS_BACKEND_HOT: InstanceInnerRole.ORPHAN,
+    InstanceRole.VM_STORAGE: InstanceInnerRole.ORPHAN,
+    InstanceRole.VM_INSERT: InstanceInnerRole.ORPHAN,
+    InstanceRole.VM_SELECT: InstanceInnerRole.ORPHAN,
+    InstanceRole.VM_AUTH: InstanceInnerRole.ORPHAN,
 }
 
 

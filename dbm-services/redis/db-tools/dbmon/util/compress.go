@@ -136,7 +136,7 @@ func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err e
 	tarFile = filepath.Join(tarSaveDir, basename+".tar")
 
 	if rmOrigin {
-		tarCmd = fmt.Sprintf(`cd %s && tar --remove-files  -cf %s  %s && rm -rf %s`,
+		tarCmd = fmt.Sprintf(`cd %s && tar -cf %s  %s && rm -rf %s`,
 			baseDir, filepath.Base(tarFile), basename, basename)
 		rmCmd = fmt.Sprintf("rm -f %s", tarFile)
 	} else {
@@ -149,12 +149,13 @@ func TarADir(originDir, tarSaveDir string, rmOrigin bool) (tarFile string, err e
 		maxRetryTimes--
 		err = nil
 		_, err = RunBashCmd(tarCmd, "", nil, 6*time.Hour)
-		if err != nil {
+		if err != nil && !strings.Contains(err.Error(), "file changed as we read it") {
 			// 如果报错则删除tar文件然后重试
 			mylog.Logger.Info(rmCmd)
 			RunBashCmd(rmCmd, "", nil, 10*time.Minute)
 			continue
 		}
+		err = nil
 		// tar命令成功了,则退出
 		break
 	}

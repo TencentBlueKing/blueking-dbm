@@ -77,6 +77,10 @@ func (u *ClusterRoleSwitchAct) Run() (err error) {
 			FunName: "集群切换",
 			Func:    u.BaseService.ExecSwitch,
 		},
+		{
+			FunName: "操作数据库快照",
+			Func:    u.BaseService.ExecSnapShot,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

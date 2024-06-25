@@ -29,6 +29,7 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
+from backend.flow.plugins.components.collections.sqlserver.check_no_sync_db import CheckNoSyncDBComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_sqlserver_backup_job import (
     ExecSqlserverBackupJobComponent,
@@ -193,6 +194,7 @@ def switch_domain_sub_flow_for_cluster(
 def pre_check_sub_flow(
     uid: str,
     root_id: str,
+    cluster_id: int,
     check_host: Host,
     check_port: int,
     is_check_abnormal_db: bool = True,
@@ -202,14 +204,12 @@ def pre_check_sub_flow(
     实例切换前的预检查
     @param uid: 单据id
     @param root_id: 主流程的id
+    @param cluster_id: 集群id
     @param check_host: 需要检查的实例对象
     @param check_port: 需要检查的port
     @param is_check_abnormal_db: 是否检查异常数据库
     @param is_check_inst_process: 是否检查业务连接存在
     """
-    if not is_check_inst_process and not is_check_abnormal_db:
-        # 如果传入检测都为空，异常
-        raise Exception("is_check_abnormal_db and is_check_abnormal_db is False, check")
     # 构造只读上下文
     global_data = {"uid": uid, "port": check_port}
 
@@ -217,11 +217,18 @@ def pre_check_sub_flow(
     sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
 
     # 并发检测异常状态DB
-    acts_list = []
+    acts_list = [
+        {
+            "act_name": _("检查实例{}:{}是否存在没有同步的数据库".format(check_host.ip, check_port)),
+            "act_component_code": CheckNoSyncDBComponent.code,
+            "kwargs": {"cluster_id": cluster_id},
+        }
+    ]
+
     if is_check_abnormal_db:
         acts_list.append(
             {
-                "act_name": _("检查实例{}是否有异常状态DB".format(check_host.ip)),
+                "act_name": _("检查实例{}:{}是否有异常状态DB".format(check_host.ip, check_port)),
                 "act_component_code": SqlserverActuatorScriptComponent.code,
                 "kwargs": asdict(
                     ExecActuatorKwargs(
@@ -235,7 +242,7 @@ def pre_check_sub_flow(
     if is_check_inst_process:
         acts_list.append(
             {
-                "act_name": _("检查实例{}是否有业务链接".format(check_host.ip)),
+                "act_name": _("检查实例{}:{}是否有业务链接".format(check_host.ip, check_port)),
                 "act_component_code": SqlserverActuatorScriptComponent.code,
                 "kwargs": asdict(
                     ExecActuatorKwargs(

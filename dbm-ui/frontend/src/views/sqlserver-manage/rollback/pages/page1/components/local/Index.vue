@@ -42,16 +42,7 @@
       return false;
     }
     const [firstRow] = list;
-    return (
-      !firstRow.clusterData &&
-      !firstRow.rollbackIp &&
-      !firstRow.backupid &&
-      !firstRow.rollbackTime &&
-      !firstRow.databases &&
-      !firstRow.databasesIgnore &&
-      !firstRow.tables &&
-      !firstRow.tablesIgnore
-    );
+    return !firstRow.clusterData;
   };
 
   const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
