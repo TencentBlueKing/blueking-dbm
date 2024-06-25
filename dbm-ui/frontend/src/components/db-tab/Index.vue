@@ -14,7 +14,7 @@
 <template>
   <BkTab
     v-model:active="moduleValue"
-    class="top-tabs"
+    class="db-tab"
     type="unborder-card">
     <BkTabPanel
       v-for="tab of renderTabs"
@@ -25,82 +25,16 @@
 </template>
 
 <script setup lang="ts">
-  import type {
-    ControllerBaseInfo,
-    ExtractedControllerDataKeys,
-  } from '@services/model/function-controller/functionController';
+  import type { ControllerBaseInfo } from '@services/model/function-controller/functionController';
 
   import { useFunController } from '@stores';
 
-  import { DBTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes } from '@common/const';
 
   interface TabItem {
-    moduleId: ExtractedControllerDataKeys;
     label: string;
     name: DBTypes;
   }
-  const tabs: TabItem[] = [
-    {
-      moduleId: 'mysql',
-      label: 'MySQL',
-      name: DBTypes.MYSQL,
-    },
-    {
-      moduleId: 'redis',
-      label: 'Redis',
-      name: DBTypes.REDIS,
-    },
-    {
-      moduleId: 'mongodb',
-      label: 'MongoDB',
-      name: DBTypes.MONGODB,
-    },
-    {
-      moduleId: 'sqlserver',
-      label: 'SQLServer',
-      name: DBTypes.SQLSERVER,
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'Kafka',
-      name: DBTypes.KAFKA,
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'HDFS',
-      name: DBTypes.HDFS,
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'ES',
-      name: DBTypes.ES,
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'Pulsar',
-      name: DBTypes.PULSAR,
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'InfluxDB',
-      name: DBTypes.INFLUXDB,
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'Spider',
-      name: DBTypes.SPIDER,
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'Riak',
-      name: DBTypes.RIAK,
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'Doris',
-      name: DBTypes.DORIS,
-    },
-  ];
 
   const funControllerStore = useFunController();
 
@@ -108,23 +42,29 @@
     default: DBTypes.MYSQL,
   });
 
-  const renderTabs = tabs.filter((item) => {
-    const { moduleId, name: dbType } = item;
+  const renderTabs = Object.values(DBTypeInfos).reduce((result, item) => {
+    const { id: dbType, name, moduleId } = item;
     const data = funControllerStore.funControllerData[moduleId];
-    // 整个模块没有开启
-    if (!data || data.is_enabled !== true) {
-      return false;
+    if (dbType === moduleId && data?.is_enabled) {
+      result.push({
+        label: name,
+        name: dbType,
+      });
+    } else {
+      const children = data?.children as Record<DBTypes, ControllerBaseInfo>;
+      if (children[dbType]?.is_enabled) {
+        result.push({
+          label: name,
+          name: dbType,
+        });
+      }
     }
-    if (dbType === item.moduleId && data.is_enabled) {
-      return true;
-    }
-    const children = data.children as Record<DBTypes, ControllerBaseInfo>;
-    return children[dbType] && children[dbType]?.is_enabled;
-  });
+    return result;
+  }, [] as TabItem[]);
 </script>
 
 <style lang="less">
-  .top-tabs {
+  .db-tab {
     padding: 0 24px;
     background: #fff;
     box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);

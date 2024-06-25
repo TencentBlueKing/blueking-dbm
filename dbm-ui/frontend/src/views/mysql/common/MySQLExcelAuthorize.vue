@@ -34,7 +34,7 @@
           {
             name: 'X-CSRFToken',
             value: Cookies.get('dbm_csrftoken'),
-          }
+          },
         ]"
         :limit="1"
         :multiple="false"
@@ -117,29 +117,22 @@
 
   import { createTicket } from '@services/source/ticket';
   import type { BaseResponse } from '@services/types';
-  import type {
-    AuthorizePreCheckData,
-    AuthorizePreCheckResult,
-  } from '@services/types/permission';
+  import type { AuthorizePreCheckData, AuthorizePreCheckResult } from '@services/types/permission';
 
   import { useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    type ClusterTypesValues,
-    TicketTypes,
-    type TicketTypesStrings,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes, type TicketTypesStrings } from '@common/const';
 
   interface Props {
-    isShow: boolean,
-    clusterType: ClusterTypesValues,
-    ticketType?: TicketTypesStrings
+    isShow: boolean;
+    clusterType: ClusterTypes;
+    ticketType?: TicketTypesStrings;
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void
+    (e: 'update:isShow', value: boolean): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -163,7 +156,9 @@
     downloadTemplate: `${basePath}cluster-authorize.xlsx`,
   });
   const uploadRef = ref();
-  const uploadLink = computed(() => `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`);
+  const uploadLink = computed(
+    () => `/apis/mysql/bizs/${globalBizsStore.currentBizId}/permission/authorize/pre_check_excel_rules/`,
+  );
 
   function handleInitExcelData() {
     excelState.importable = false;

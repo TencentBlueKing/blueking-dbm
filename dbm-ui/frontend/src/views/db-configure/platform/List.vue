@@ -55,7 +55,7 @@
 
   import { useTableMaxHeight } from '@hooks';
 
-  import type { ClusterTypesValues } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import ClusterTab from "@components/cluster-tab/Index.vue";
@@ -195,7 +195,7 @@
    * 集群配置
    */
   watch(() => state.clusterType, (type) => {
-    const clusterType = type as ClusterTypesValues;
+    const clusterType = type as ClusterTypes;
     const tabs = [getDefaultConf(clusterType)];
     // 添加额外配置
     const item = extraClusterConfs[clusterType];

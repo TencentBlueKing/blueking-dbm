@@ -112,30 +112,22 @@
 
   import { createTicket } from '@services/source/ticket';
   import type { BaseResponse } from '@services/types';
-  import type {
-    AuthorizePreCheckData,
-    AuthorizePreCheckResult,
-  } from '@services/types/permission';
+  import type { AuthorizePreCheckData, AuthorizePreCheckResult } from '@services/types/permission';
 
   import { useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    type ClusterTypesValues,
-    TicketTypes,
-    type TicketTypesStrings,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes, type TicketTypesStrings } from '@common/const';
 
   interface Props {
-    isShow: boolean,
-    clusterType: ClusterTypesValues,
-    ticketType?: TicketTypesStrings
+    isShow: boolean;
+    clusterType: ClusterTypes;
+    ticketType?: TicketTypesStrings;
   }
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void
+    (e: 'update:isShow', value: boolean): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -200,10 +192,7 @@
         excel_url: excelState.precheck.excelUrl,
         authorize_data_list: excelState.precheck.authorizeDataList.map((authorizeItem) => {
           const authorizeItemCopy = { ...authorizeItem };
-          if ([
-            ClusterTypes.MONGO_REPLICA_SET,
-            ClusterTypes.MONGO_SHARED_CLUSTER,
-          ].includes(props.clusterType)) {
+          if ([ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER].includes(props.clusterType)) {
             delete authorizeItemCopy.source_ips;
           }
           return authorizeItemCopy;
