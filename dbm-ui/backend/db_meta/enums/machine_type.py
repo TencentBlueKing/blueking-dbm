@@ -55,3 +55,8 @@ class MachineType(str, StructuredEnum):
 
     SQLSERVER_SINGLE = EnumField("sqlserver_single", _("sqlserver_single"))
     SQLSERVER_HA = EnumField("sqlserver_ha", _("sqlserver_ha"))
+
+    VM_STORAGE = EnumField("vmstorage", _("vmstorage"))
+    VM_INSERT = EnumField("vminsert", _("vminsert"))
+    VM_SELECT = EnumField("vmselect", _("vmselect"))
+    VM_AUTH = EnumField("vmauth", _("vmauth"))

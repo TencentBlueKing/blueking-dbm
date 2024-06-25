@@ -195,7 +195,7 @@ var (
 	EXEC_SWITCH_SP_TMEP_SQL = `
 		declare @msg varchar(1000)
 		declare @exitcode int
-		exec @exitcode = MONITOR.DBO.%s @msg output
+		exec @exitcode = MONITOR.DBO.%s %s @msg output
 		select @msg as msg, @exitcode as exitcode
 		`
 )

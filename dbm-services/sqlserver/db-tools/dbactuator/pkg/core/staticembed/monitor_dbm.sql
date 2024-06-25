@@ -203,6 +203,7 @@ CREATE TABLE [dbo].[APP_SETTING](
 	[MASTER_IP] [varchar](100) NULL,
 	[MASTER_PORT] [varchar](100) NULL,
 	[SYNCHRONOUS_MODE] [varchar](100) NULL,
+	[COMMIT_MODEL] [varchar](100) NULL,
 	[BK_BIZ_ID] [varchar](100) NULL,
 	[BK_CLOUD_ID] [varchar](100) NULL,
 	[VERSION] [varchar](100) NULL,
@@ -684,34 +685,6 @@ GO
 
 IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[TOOL_BACKUP_DATABASE]') AND type in (N'P', N'PC'))
 DROP PROCEDURE [dbo].[TOOL_BACKUP_DATABASE]
-GO
-
-IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_Suspend]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[Sys_AutoSwitch_Suspend]
-GO
-
-IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_SafetyOff]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[Sys_AutoSwitch_SafetyOff]
-GO
-
-IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_Resume]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[Sys_AutoSwitch_Resume]
-GO
-
-IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_Remove]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[Sys_AutoSwitch_Remove]
-GO
-
-IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_LossOver]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[Sys_AutoSwitch_LossOver]
-GO
-
-IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_FailOver]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[Sys_AutoSwitch_FailOver]
-GO
-
-IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_DrToDb]') AND type in (N'P', N'PC'))
-DROP PROCEDURE [dbo].[Sys_AutoSwitch_DrToDb]
 GO
 
 IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[mssql_exporter]') AND type in (N'P', N'PC'))
@@ -1258,6 +1231,7 @@ CREATE PROCEDURE [dbo].[mssql_exporter]
 AS
 BEGIN
 
+
 --type 0 Performance indicators do not require calculation of differences
 --type 1 Performance indicators require calculation of differences
 --type 2 Performance indicators are calculated in a special way
@@ -1267,20 +1241,20 @@ IF OBJECT_ID('TEMPDB.DBO.#tmp_mssql_exporter','U') IS NOT NULL
 	DROP TABLE #tmp_mssql_exporter
 create table #tmp_mssql_exporter(metrics_name varchar(200),counter_value varchar(100),counter_name varchar(100),type tinyint)
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 select i.COUNTER_SHORT_NAME,p.cntr_value,i.COUNTER_NAME,i.COMPUTE_INTERVAL 
 from Monitor.DBO.MONITOR_INSANCE_COUNTER(nolock) i 
 left join master.sys.DM_OS_PERFORMANCE_COUNTERS(nolock) p 
 on i.[OBJECT_NAME]=p.[object_name] and i.COUNTER_NAME=p.counter_name and i.INSTANCE_NAME=p.instance_name
 
 /*
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 select 'mssql_version',substring(@@version,0,charindex('(',@@version)),'version',2
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 select 'mssql_collation',convert(varchar(100),serverproperty(N'Collation')),'collation',2
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 select 'mssql_sqlserver_start_time',convert(varchar(20),sqlserver_start_time,120),'sqlserver_start_time',2 from master.sys.dm_os_sys_info
 */
 
@@ -1292,19 +1266,19 @@ FROM sys.dm_os_schedulers
 WHERE is_online = 1
   AND status = 'VISIBLE ONLINE' 
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 select 'mssql_virtual_total_cpu',@total_cpu_count,'virtual_total_cpu',2
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_virtual_free_cpu',@total_cpu_count-@use_cpu_count,'virtual_free_cpu',2
   
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 select 'mssql_virtual_total_memory',convert(bigint,round(total_physical_memory_kb*1.00/1024/1024,0)),'virtual_total_memory',2 from sys.dm_os_sys_memory
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 select 'mssql_virtual_free_memory',convert(bigint,round(available_physical_memory_kb*1.00/1024/1024,0)),'virtual_free_memory',2 from sys.dm_os_sys_memory
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_cpu_use_precent',(100 - record.value('(./Record/SchedulerMonitorEvent/SystemHealth/SystemIdle)[1]','int')) as cpu_use_precent,'cpu_use_precent',2
 FROM ( SELECT top 1 timestamp ,CONVERT(XML, record) AS record
 FROM master.sys.dm_os_ring_buffers
@@ -1313,16 +1287,16 @@ AND record LIKE '%<SystemHealth>%'
 ORDER BY timestamp desc
 ) AS x
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_slow_queries',COUNT(1) as mssql_slow_query,'slow_queries',2
 FROM MONITOR.DBO.TRACE_TSQL
 WHERE STARTTIME >= DATEADD(MI,-1,GETDATE()) and STARTTIME<= getdate()
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_disk_iops',CAST(ISNULL(SUM(ISNULL(CAST(NUM_OF_READS AS BIGINT),0)+ISNULL(NUM_OF_WRITES ,0)),0) AS NUMERIC(18,1)),'iops',2
 FROM SYS.DM_IO_VIRTUAL_FILE_STATS(NULL,NULL)
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_num_of_writes',ISNULL(SUM(CAST(NUM_OF_WRITES AS BIGINT)),0),'num_of_writes',2
 FROM SYS.DM_IO_VIRTUAL_FILE_STATS(NULL,NULL)
 UNION ALL
@@ -1343,7 +1317,7 @@ FROM SYS.DM_IO_VIRTUAL_FILE_STATS(NULL,NULL)
 	AND STATUS NOT IN ('PRECONNECT','DORMANT')
 	AND LOGIN_NAME NOT IN('sa','monitor') AND LOGIN_NAME NOT LIKE '%\%'
 )
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_in_flow',CAST(ISNULL(SUM(ISNULL(CAST(A.NET_PACKET_SIZE AS BIGINT),0)*ISNULL(A.NUM_READS,0))/1024.0,0) AS NUMERIC(18,1)),'in_flow',2
 FROM SYS.DM_EXEC_CONNECTIONS(NOLOCK) A,T_SESSION B
 WHERE A.SESSION_ID = B.SESSION_ID
@@ -1352,7 +1326,7 @@ SELECT 'mssql_out_flow',CAST(ISNULL(SUM(ISNULL(CAST(A.NET_PACKET_SIZE AS BIGINT)
 FROM SYS.DM_EXEC_CONNECTIONS(NOLOCK) A,T_SESSION B
 WHERE A.SESSION_ID = B.SESSION_ID
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_database_mdfsize',CAST(ISNULL((case when SUM(CAST(SIZE AS BIGINT)*8.0)=0 then 0 when SUM(CAST(SIZE AS BIGINT)*8.0)<1048576 then 1048576 else SUM(CAST(SIZE AS BIGINT)*8.0) end)/1024/1024,0) AS NUMERIC(18,1)),'database_mdfsize',2
 FROM SYS.DATABASES A(NOLOCK),SYS.MASTER_FILES B(NOLOCK) 
 WHERE A.DATABASE_ID = B.DATABASE_ID AND B.type=0
@@ -1391,7 +1365,7 @@ BEGIN
 	ON df.file_id = r.file_id 
 	;';  
 
-	insert into #tmp_mssql_exporter
+	INSERT INTO #tmp_mssql_exporter
 	select 'mssql_database_usesize',max(convert(int,convert(decimal(10,2),unused_space*1.00/size)*100)),'database_usesize',2 from #DatabaseFile where name not in('master','Monitor','MSDBData')
 END
 */
@@ -1403,7 +1377,7 @@ INSERT INTO #DISKFREE EXEC MASTER.DBO.XP_FIXEDDRIVES
 
 IF NOT EXISTS(SELECT 1 FROM #DISKFREE)
 BEGIN
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_systemdisk_free',70,'system_free',2
 union all
 SELECT 'mssql_backupdisk_free',999,'backup_free',2
@@ -1412,15 +1386,15 @@ SELECT 'mssql_datadisk_free',999,'Minimum disk remaining capacity',2
 END
 ELSE
 BEGIN
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_systemdisk_free',isnull(SUM(freemb)/1024,0),'system_free',2 FROM #DISKFREE WHERE LABEL='C'
 union all
-SELECT 'mssql_backupdisk_free',isnull(SUM(freemb)/1024,999),'backup_free',2 FROM #DISKFREE WHERE LABEL='E'
+SELECT 'mssql_backupdisk_free',isnull(SUM(freemb)/1024,999),'backup_free',2 FROM #DISKFREE WHERE LABEL='E' and freemb/1024>100
 union all
 SELECT 'mssql_datadisk_free',isnull(SUM(freemb)/1024,0),'Minimum disk remaining capacity',2 FROM #DISKFREE WHERE LABEL not in('C','E')
 END
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_full_backup_fail',count(1),'full_backup_fail',3
 FROM MONITOR.DBO.BACKUP_TRACE(NOLOCK)
 WHERE TYPE = 1
@@ -1433,7 +1407,7 @@ WHERE TYPE = 2
 AND SUCCESS = 0
 AND WRITETIME >= DATEADD(MI,-1,GETDATE()) and WRITETIME<getdate()
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_job_fail',count(1),'job_fail',3
 FROM MSDB.DBO.SYSJOBHISTORY A,MSDB.DBO.SYSJOBS B
 WHERE A.JOB_ID = B.JOB_ID
@@ -1441,7 +1415,7 @@ AND A.RUN_DATE = CONVERT(CHAR(8),GETDATE(),112)
 AND RIGHT('000000'+LTRIM(A.RUN_TIME),6) >= LEFT(REPLACE(CONVERT(CHAR(30),DATEADD(MI,-1,GETDATE()),114),':',''),LEN(REPLACE(CONVERT(CHAR(30),DATEADD(MI,-1,GETDATE()),114),':',''))-3)
 AND A.RUN_STATUS = 0 AND EXISTS(select 1 from master.sys.database_mirroring where mirroring_guid is not null and mirroring_role=1)
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_snapshot_deploy',count(1),'snapshot_deploy',3
 FROM SYS.DATABASE_MIRRORING A LEFT JOIN SYS.DATABASES B
 ON DB_NAME(A.DATABASE_ID)+'_DR' = B.NAME
@@ -1464,86 +1438,109 @@ CREATE TABLE #tmp111 (
 cnt int  
 )
 
+INSERT INTO #tmp_mssql_exporter
+select 'mssql_alwayson_delay',0,'alwayson_delay',2
+UNION ALL
+select 'mssql_alwayson_deploy',0,'alwayson_deploy',3
+UNION ALL 
+select 'mssql_alwayson_status',0,'mssql_alwayson_status',3
+
 set @version=convert(bigint,DATABASEPROPERTYEX('master','version'))
 IF @version>=869
 BEGIN
 	delete from #tmp111
-	
-	SET @SQL= '
-	IF EXISTS(SELECT 1 FROM sys.availability_groups)
-		insert into #tmp_is_alwayson values(1)
-	'
-	EXEC(@SQL)
 
-	IF EXISTS(SELECT 1 FROM #tmp_is_alwayson)
+	IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
 	BEGIN
+		delete from #tmp_mssql_exporter where metrics_name in('mssql_alwayson_delay','mssql_alwayson_deploy','mssql_alwayson_status')
+
+		SET @SQL= '
+		IF EXISTS(SELECT 1 FROM sys.availability_groups)
+			INSERT INTO #tmp_is_alwayson values(1)
+		'
+		EXEC(@SQL)
+
 		SET @SQL= '
 		if exists(select 1 from master.sys.databases where database_id>4 and name not in(''monitor''))
 		begin
 			if exists(select 1 from sys.dm_hadr_availability_replica_states where is_local=0 and connected_state=0)
 			begin
-				insert into #tmp111
+				INSERT INTO #tmp111
 				values(99999)
 			end
 			else if exists(select 1 from sys.dm_hadr_database_replica_states where is_local=0 and synchronization_state=0)
 			begin
-				insert into #tmp111
+				INSERT INTO #tmp111
 				values(99999)
 			end
 			else
 			begin
-				insert into #tmp111
+				INSERT INTO #tmp111
 				select sum(isnull(secondary_lag_seconds,99999)) from sys.dm_hadr_database_replica_states where is_local=0
 			end
 		end
 		else
 		begin
-			insert into #tmp111
+			INSERT INTO #tmp111
 			values(0)
 		end
 		;';
 		EXEC(@SQL)
 
-		insert into #tmp_mssql_exporter
+		INSERT INTO #tmp_mssql_exporter
 		select 'mssql_alwayson_delay',isnull(sum(cnt),0),'alwayson_delay',2 from #tmp111
 
 		delete from #tmp111
 
 		SET @SQL= '
-		insert into #tmp111
+		INSERT INTO #tmp111
 		SELECT count(1)
 		FROM master.sys.databases 
 		where database_id>4 and name not in(''monitor'') and replica_id is null and state=0 and is_read_only=0 and recovery_model=1 and name NOT IN(SELECT NAME FROM MONITOR.DBO.MIRRORING_FILTER(NOLOCK))
 		'
 		EXEC(@SQL)
 
-		insert into #tmp_mssql_exporter
+		INSERT INTO #tmp_mssql_exporter
 		select 'mssql_alwayson_deploy',isnull(sum(cnt),0),'alwayson_deploy',3 from #tmp111
 
 		delete from #tmp111
 
 		SET @SQL= '
-		insert into #tmp111
-		SELECT count(1)
+		IF EXISTS(SELECT 1
 		FROM sys.dm_hadr_database_replica_states 
-		WHERE synchronization_state not in(2)
+		WHERE is_local=1 and is_primary_replica=1 and synchronization_state not in(2)) OR EXISTS(SELECT 1
+		FROM sys.dm_hadr_database_replica_states 
+		WHERE is_local=0 and is_primary_replica=0 and synchronization_state not in(1,2))
+		BEGIN
+		INSERT INTO #tmp111 VALUES(1)
+		END
 		'
 		EXEC(@SQL)
 
-		insert into #tmp_mssql_exporter
+		INSERT INTO #tmp_mssql_exporter
 		select 'mssql_alwayson_status',isnull(sum(cnt),0),'mssql_alwayson_status',3 from #tmp111
 
 	END
 END
 
-IF EXISTS(SELECT 1 FROM SYS.DATABASE_MIRRORING WHERE mirroring_role=1)
+
+INSERT INTO #tmp_mssql_exporter
+SELECT 'mssql_mirroring_delay',0,'mirroring_delay',2
+UNION ALL
+SELECT 'mssql_mirroring_deploy',0,'mirroring_deploy',3
+UNION ALL 
+SELECT 'mssql_mirroring_status',0,'mirroring_status',3
+
+IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
 BEGIN
-	insert into #tmp_mssql_exporter
+	delete from #tmp_mssql_exporter where metrics_name in('mssql_mirroring_delay','mssql_mirroring_deploy','mssql_mirroring_status')
+
+	INSERT INTO #tmp_mssql_exporter
 	SELECT 'mssql_mirroring_delay',isnull(sum(cntr_value),0),'mirroring_delay',2 FROM master.sys.dm_os_performance_counters 
 	WHERE object_name LIKE '%Database Mirroring%' 
 	AND counter_name='Log Send Queue KB' 
 
-	insert into #tmp_mssql_exporter
+	INSERT INTO #tmp_mssql_exporter
 	SELECT 'mssql_mirroring_deploy',count(1),'mirroring_deploy',3
 	FROM master.sys.DATABASES A LEFT JOIN SYS.DATABASE_MIRRORING B
 	ON A.DATABASE_ID = B.DATABASE_ID
@@ -1556,13 +1553,13 @@ BEGIN
 	AND A.name not in('monitor')
 	AND A.name not in(select name from monitor.dbo.MIRRORING_FILTER)
 
-	insert into #tmp_mssql_exporter
+	INSERT INTO #tmp_mssql_exporter
 	SELECT 'mssql_mirroring_status',count(1),'mirroring_status',3
 	FROM SYS.DATABASE_MIRRORING
 	WHERE mirroring_role=1 and ISNULL(MIRRORING_STATE,4) NOT IN (2,4)
 END
 
-insert into #tmp_mssql_exporter
+INSERT INTO #tmp_mssql_exporter
 select 'mssql_serveice_available',0,'mssql_serveice_available',3
 
 select * from #tmp_mssql_exporter order by type
@@ -1570,14 +1567,937 @@ select * from #tmp_mssql_exporter order by type
 END
 
 
+GO
+
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_Check]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_Check]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_Check]
+(@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max),@i int,@flag varchar(100)
+SET @i=1
+
+IF OBJECT_ID('TEMPDB.DBO.#tmp_alwayson_info','U') IS NOT NULL
+	DROP TABLE #tmp_alwayson_info
+create table #tmp_alwayson_info(info1 varchar(1000),info2 varchar(1000))
+
+IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
+BEGIN
+	SET @flag='alwayson'
+END
+ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+BEGIN
+	SET @flag='mirroring'
+END
+ELSE
+BEGIN
+	SET @msg='It must be synchronized by Alwayson/mirroring to be able to'
+	RETURN -1
+END
+
+IF NOT EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE ROLE='master')
+BEGIN
+	SET @msg='Must be executed on the master'
+	RETURN -1
+END
+
+WHILE @i<=10
+BEGIN
+	IF @flag='alwayson'
+	BEGIN
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='
+		IF EXISTS(select 1 from master.sys.dm_hadr_availability_replica_states where connected_state<>1 or synchronization_health<>2)
+		OR EXISTS(select 1 from master.sys.databases where database_id>4 and name not in(''Monitor'') and state=0 and database_id not in(select database_id from master.sys.dm_hadr_database_replica_states where is_local=1))
+			INSERT INTO #tmp_alwayson_info VALUES(''1'',''1'')
+		'
+		EXEC(@SQL)
+		
+		IF EXISTS(select 1 from #tmp_alwayson_info)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+	ELSE IF @flag='mirroring'
+	BEGIN
+		IF EXISTS(select 1 from master.sys.database_mirroring where mirroring_state<>4) 
+		OR EXISTS(select 1 from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and database_id not in(select database_id from master.sys.database_mirroring where mirroring_guid is not null))
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+END
+
+IF @i=11
+BEGIN
+	SET @msg='Check failed'
+	RETURN -1
+END
+
+RETURN 1
 
 GO
 
-/****** Object:  StoredProcedure [dbo].[Sys_AutoSwitch_DrToDb]    Script Date: 2024/4/7 16:18:15 ******/
-SET ANSI_NULLS ON
+----------------------------------------------
+
+USE [Monitor]
 GO
 
-SET QUOTED_IDENTIFIER ON
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_SafetyOn]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_SafetyOn]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_SafetyOn]
+(@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max),@i int,@flag varchar(100)
+SET @i=1
+
+IF OBJECT_ID('TEMPDB.DBO.#tmp_alwayson_info','U') IS NOT NULL
+	DROP TABLE #tmp_alwayson_info
+create table #tmp_alwayson_info(info1 varchar(1000),info2 varchar(1000))
+
+IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
+BEGIN
+	SET @flag='alwayson'
+END
+ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+BEGIN
+	SET @flag='mirroring'
+END
+ELSE
+BEGIN
+	SET @msg='It must be synchronized by Alwayson/mirroring to be able to'
+	RETURN -1
+END
+
+--IF NOT EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE ROLE='master')
+--BEGIN
+--	SET @msg='Must be executed on the gamedb'
+--	RETURN -1
+--END
+
+WHILE @i<=10
+BEGIN
+	IF @flag='alwayson'
+	BEGIN
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT c.group_name,a.replica_server_name from master.sys.availability_replicas a left join master.sys.dm_hadr_availability_replica_cluster_nodes c on a.replica_server_name=c.replica_server_name where a.availability_mode=0'
+		EXEC(@SQL)
+
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER AVAILABILITY GROUP ['+info1+'] MODIFY REPLICA ON N'''+info2+''' WITH (AVAILABILITY_MODE = SYNCHRONOUS_COMMIT);'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+		
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT name,'''' from master.sys.availability_groups where required_synchronized_secondaries_to_commit=0'
+		EXEC(@SQL)
+
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER AVAILABILITY GROUP ['+info1+'] SET(REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT = 1);'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+		
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='
+		IF EXISTS(select 1 from master.sys.availability_replicas where availability_mode=0) OR EXISTS(select 1 from master.sys.availability_groups where required_synchronized_secondaries_to_commit=0)
+			INSERT INTO #tmp_alwayson_info VALUES(''1'',''1'')
+		'
+		EXEC(@SQL)
+
+		IF EXISTS(select 1 from #tmp_alwayson_info)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+	ELSE IF @flag='mirroring'
+	BEGIN
+		SET @SQL = NULL
+		SELECT @SQL=ISNULL(@SQL+'','')+'use master ALTER DATABASE ['+d.name+'] SET partner safety full;'
+		FROM master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where (m.mirroring_guid is not null and m.mirroring_role=1 and m.mirroring_state=4 and m.mirroring_safety_level=1) 
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+		
+		IF EXISTS(select 1 from master.sys.database_mirroring where mirroring_role=1 and mirroring_safety_level=1)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+END
+
+IF @i=11
+BEGIN
+	SET @msg='Execution failed'
+	RETURN -1
+END
+
+RETURN 1
+
+GO
+
+----------------------------------------------
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_FailOver]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_FailOver]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_FailOver]
+(@master_ip varchar(100),@master_port varchar(10),@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max),@i int,@flag varchar(100)
+SET @i=1
+
+IF OBJECT_ID('TEMPDB.DBO.#tmp_alwayson_info','U') IS NOT NULL
+	DROP TABLE #tmp_alwayson_info
+create table #tmp_alwayson_info(info1 varchar(1000),info2 varchar(1000))
+
+IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
+BEGIN
+	--IF NOT EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE ROLE='slave')
+	--BEGIN
+	--	SET @msg='Must be executed on the slave'
+	--	RETURN -1
+	--END
+	SET @flag='alwayson'
+END
+ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+BEGIN
+	--IF NOT EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE ROLE='master')
+	--BEGIN
+	--	SET @msg='Must be executed on the master'
+	--	RETURN -1
+	--END
+	SET @flag='mirroring'
+END
+ELSE
+BEGIN
+	SET @msg='It must be synchronized by Alwayson/mirroring to be able to'
+	RETURN -1
+END
+
+WHILE @i<=10
+BEGIN
+	IF @flag='alwayson'
+	BEGIN
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT g.name,'''' from master.sys.dm_hadr_availability_replica_states s left join master.sys.availability_groups g on g.group_id=s.group_id where s.is_local=1 and s.role=2'
+		EXEC(@SQL)
+	
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER AVAILABILITY GROUP ['+info1+'] FORCE_FAILOVER_ALLOW_DATA_LOSS;'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+		
+		waitfor delay '00:00:03'
+		
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT g.name,'''' from master.sys.dm_hadr_availability_replica_states s left join master.sys.availability_groups g on g.group_id=s.group_id where s.is_local=1 and s.role=2'
+		EXEC(@SQL)
+		
+		IF EXISTS(select 1 from #tmp_alwayson_info)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			update [Monitor].[dbo].[APP_SETTING] set ROLE='master',[MASTER_IP]='',[MASTER_PORT]=''
+			SET @i=99
+		END
+	END
+	ELSE IF @flag='mirroring'
+	BEGIN
+		SET @SQL = NULL
+		SELECT @SQL=ISNULL(@SQL+'','')+'use master ALTER DATABASE ['+d.name+'] SET PARTNER failover;'
+		FROM master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where m.mirroring_guid is not null and m.mirroring_role=1 and m.mirroring_state=4
+		BEGIN TRY
+			PRINT(@SQL)
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+			
+		IF EXISTS(select 1 from master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where m.mirroring_guid is not null and m.mirroring_role=1)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			update [Monitor].[dbo].[APP_SETTING] set ROLE='slave',[MASTER_IP]=@master_ip,[MASTER_PORT]=@master_port
+			SET @i=99
+		END
+	END
+END
+
+IF @i=11
+BEGIN
+	SET @msg='Execution failed'
+	RETURN -1
+END
+
+RETURN 1
+
+GO
+
+----------------------------------------------
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_Kill]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_Kill]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_Kill]
+(@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max)
+
+SELECT @SQL = ISNULL(@SQL+CHAR(13),'')+'KILL '+convert(varchar,spid)+';'
+FROM master.sys.sysprocesses
+where loginame not in('sa','mssql_exporter') and loginame not like 'J_%' and loginame not like '%\%'
+BEGIN TRY
+	EXEC(@SQL)
+END TRY
+BEGIN CATCH
+	SET @msg='Execution failed'
+	RETURN -1
+END CATCH
+
+SET @msg=''
+RETURN 1
+
+GO
+
+----------------------------------------------
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_SafetyOff]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_SafetyOff]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_SafetyOff]
+(@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max),@i int,@flag varchar(100)
+SET @i=1
+
+IF OBJECT_ID('TEMPDB.DBO.#tmp_alwayson_info','U') IS NOT NULL
+	DROP TABLE #tmp_alwayson_info
+create table #tmp_alwayson_info(info1 varchar(1000),info2 varchar(1000))
+
+IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
+BEGIN
+	SET @flag='alwayson'
+END
+ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+BEGIN
+	SET @flag='mirroring'
+END
+ELSE
+BEGIN
+	SET @msg='It must be synchronized by Alwayson/mirroring to be able to'
+	RETURN -1
+END
+
+WHILE @i<=10
+BEGIN
+	IF @flag='alwayson'
+	BEGIN
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT c.group_name,a.replica_server_name from master.sys.availability_replicas a left join master.sys.dm_hadr_availability_replica_cluster_nodes c on a.replica_server_name=c.replica_server_name where a.replica_metadata_id is not null and a.secondary_role_allow_connections=2'
+		EXEC(@SQL)
+		
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER AVAILABILITY GROUP ['+info1+'] MODIFY REPLICA ON N'''+info2+''' WITH (SECONDARY_ROLE(ALLOW_CONNECTIONS = NO));'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+		
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT c.group_name,a.replica_server_name from master.sys.availability_replicas a left join master.sys.dm_hadr_availability_replica_cluster_nodes c on a.replica_server_name=c.replica_server_name where a.replica_metadata_id is null and a.secondary_role_allow_connections=0'
+		EXEC(@SQL)
+
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER AVAILABILITY GROUP ['+info1+'] MODIFY REPLICA ON N'''+info2+''' WITH (SECONDARY_ROLE(ALLOW_CONNECTIONS = ALL));'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT name,'''' from master.sys.availability_groups where required_synchronized_secondaries_to_commit=1'
+		EXEC(@SQL)
+
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER AVAILABILITY GROUP ['+info1+'] SET(REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT = 0);'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+
+		IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE COMMIT_MODEL='ASYN')
+		BEGIN
+			DELETE FROM #tmp_alwayson_info
+			SET @SQL='INSERT INTO #tmp_alwayson_info SELECT c.group_name,a.replica_server_name from master.sys.availability_replicas a left join master.sys.dm_hadr_availability_replica_cluster_nodes c on a.replica_server_name=c.replica_server_name where a.availability_mode=1'
+			EXEC(@SQL)
+		
+			SET @SQL = ''
+			SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER AVAILABILITY GROUP ['+info1+'] MODIFY REPLICA ON N'''+info2+''' WITH (AVAILABILITY_MODE = ASYNCHRONOUS_COMMIT);'
+			from #tmp_alwayson_info
+			BEGIN TRY
+				EXEC(@SQL)
+			END TRY
+			BEGIN CATCH
+				PRINT('skip')
+			END CATCH
+		END
+
+		SET @SQL='
+		IF (EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE COMMIT_MODEL=''ASYN'') AND EXISTS(select 1 from master.sys.availability_replicas where availability_mode=1)) 
+		OR EXISTS(select 1 from master.sys.availability_groups where required_synchronized_secondaries_to_commit=1)
+		OR EXISTS(select 1 from master.sys.availability_replicas where (replica_metadata_id is not null and secondary_role_allow_connections=2) or (replica_metadata_id is null and secondary_role_allow_connections=0))
+			INSERT INTO #tmp_alwayson_info VALUES(''1'',''1'')
+		'
+		EXEC(@SQL)
+		
+		IF EXISTS(select 1 from #tmp_alwayson_info)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+	ELSE IF @flag='mirroring'
+	BEGIN
+		update [Monitor].[dbo].[APP_SETTING] set ROLE='master',[MASTER_IP]='',[MASTER_PORT]=''
+		
+		SET @SQL = NULL
+		SELECT @SQL=ISNULL(@SQL+'','')+'use master ALTER DATABASE ['+d.name+'] SET partner safety off;'
+		FROM master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where m.mirroring_guid is not null and m.mirroring_role=1 and m.mirroring_state=4 and m.mirroring_safety_level=2
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+
+		IF EXISTS(select 1 from master.sys.database_mirroring where mirroring_safety_level=2)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+END
+
+IF @i=11
+BEGIN
+	SET @msg='Execution failed'
+	RETURN -1
+END
+
+RETURN 1
+
+GO
+
+----------------------------------------------
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_Resume]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_Resume]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_Resume]
+(@master_ip varchar(100),@master_port varchar(10),@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max),@i int,@flag varchar(100)
+SET @i=1
+
+IF OBJECT_ID('TEMPDB.DBO.#tmp_alwayson_info','U') IS NOT NULL
+	DROP TABLE #tmp_alwayson_info
+create table #tmp_alwayson_info(info1 varchar(1000),info2 varchar(1000))
+
+IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
+BEGIN
+	SET @flag='alwayson'
+END
+ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+BEGIN
+	SET @flag='mirroring'
+END
+ELSE
+BEGIN
+	SET @msg='It must be synchronized by Alwayson/mirroring to be able to'
+	RETURN -1
+END
+
+WHILE @i<=10
+BEGIN
+	IF @flag='alwayson'
+	BEGIN
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT name,'''' from master.sys.availability_groups'
+		EXEC(@SQL)
+		
+		IF @master_ip<>''
+		BEGIN
+			SET @SQL = ''
+			SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER ALTER AVAILABILITY GROUP ['+info1+'] OFFLINE;USE MASTER ALTER AVAILABILITY GROUP ['+info1+'] SET (ROLE = SECONDARY);'
+			from #tmp_alwayson_info
+			BEGIN TRY
+				EXEC(@SQL)
+			END TRY
+			BEGIN CATCH
+				PRINT('skip')
+			END CATCH
+			
+			waitfor delay '00:00:10'
+		END
+		
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT d.name,'''' from master.sys.dm_hadr_database_replica_states s left join master.sys.databases d on s.database_id=d.database_id where s.is_suspended=1'
+		EXEC(@SQL)
+
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER DATABASE ['+info1+'] SET HADR RESUME;'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+		
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='
+		IF EXISTS(select 1 from master.sys.dm_hadr_database_replica_states where is_suspended=1)
+			INSERT INTO #tmp_alwayson_info VALUES(''1'',''1'')
+		'
+		EXEC(@SQL)
+		
+		IF EXISTS(select 1 from #tmp_alwayson_info)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			IF @master_ip<>''
+			BEGIN
+				update [Monitor].[dbo].[APP_SETTING] set ROLE='slave',[MASTER_IP]=@master_ip,[MASTER_PORT]=@master_port
+			END
+			SET @i=99
+		END
+	END
+	ELSE IF @flag='mirroring'
+	BEGIN
+		SET @SQL = NULL
+		SELECT @SQL=ISNULL(@SQL+'','')+'use master ALTER DATABASE ['+d.name+'] SET partner resume;'
+		FROM master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where m.mirroring_guid is not null and m.mirroring_role=1 and m.mirroring_state=0
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+
+		IF EXISTS(select 1 from master.sys.database_mirroring where mirroring_state=0)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+END
+
+IF @i=11
+BEGIN
+	SET @msg='Execution failed'
+	RETURN -1
+END
+
+RETURN 1
+
+GO
+
+----------------------------------------------
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_SnapShot]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_SnapShot]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_SnapShot]
+(@flag tinyint,@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max),@i int
+SET @i=1
+
+IF @flag=0
+BEGIN
+	exec monitor.dbo.JOB_SNAPSHOT
+END
+ELSE
+BEGIN
+	SET @SQL = NULL
+	SELECT @SQL=ISNULL(@SQL+'','')+'kill '+convert(varchar,spid)+';'
+	FROM master.sys.sysprocesses where dbid in(select database_id from master.sys.databases where database_id>4 and name not in('monitor') and name like '%_dr' and is_read_only=1)
+	BEGIN TRY
+		EXEC(@SQL)
+	END TRY
+	BEGIN CATCH
+		PRINT('skip')
+	END CATCH
+
+	SET @SQL = NULL
+	SELECT @SQL=ISNULL(@SQL+'','')+'DROP DATABASE ['+name+'];'
+	FROM master.sys.databases where database_id>4 and name not in('monitor') and name like '%_dr' and is_read_only=1 
+	BEGIN TRY
+		EXEC(@SQL)
+	END TRY
+	BEGIN CATCH
+		PRINT('skip')
+	END CATCH
+END
+
+SET @msg=''
+RETURN 1
+
+GO
+
+----------------------------------------------
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_Suspend]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_Suspend]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_Suspend]
+(@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max),@i int,@flag varchar(100)
+SET @i=1
+
+IF OBJECT_ID('TEMPDB.DBO.#tmp_alwayson_info','U') IS NOT NULL
+	DROP TABLE #tmp_alwayson_info
+create table #tmp_alwayson_info(info1 varchar(1000),info2 varchar(1000))
+
+IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
+BEGIN
+	SET @flag='alwayson'
+END
+ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+BEGIN
+	SET @flag='mirroring'
+END
+ELSE
+BEGIN
+	SET @msg='It must be synchronized by Alwayson/mirroring to be able to'
+	RETURN -1
+END
+
+WHILE @i<=10
+BEGIN
+	IF @flag='alwayson'
+	BEGIN
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT d.name,'''' from master.sys.dm_hadr_database_replica_states s left join master.sys.databases d on s.database_id=d.database_id where s.is_suspended=0'
+		EXEC(@SQL)
+	
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER DATABASE ['+info1+'] SET HADR Suspend;'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+		
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='
+		IF EXISTS(select 1 from master.sys.dm_hadr_database_replica_states where is_suspended=0)
+			INSERT INTO #tmp_alwayson_info VALUES(''1'',''1'')
+		'
+		EXEC(@SQL)
+		
+		IF EXISTS(select 1 from #tmp_alwayson_info)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+	ELSE IF @flag='mirroring'
+	BEGIN
+		SET @SQL = NULL
+		SELECT @SQL=ISNULL(@SQL+'','')+'use master ALTER DATABASE ['+d.name+'] SET partner Suspend;'
+		FROM master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where m.mirroring_guid is not null and m.mirroring_role=1 and mirroring_state<>0
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+
+		IF EXISTS(select 1 from master.sys.database_mirroring where mirroring_guid is not null and mirroring_role=1 and mirroring_state<>0)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+END
+
+IF @i=11
+BEGIN
+	SET @msg='Execution failed'
+	RETURN -1
+END
+
+RETURN 1
+
+GO
+
+----------------------------------------------
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_Remove]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_Remove]
+GO
+
+USE [Monitor]
+GO
+
+CREATE Proc [dbo].[Sys_AutoSwitch_Remove]
+(@msg varchar(1000) output)
+AS
+
+DECLARE @SQL varchar(max),@i int,@flag varchar(100)
+SET @i=1
+
+IF OBJECT_ID('TEMPDB.DBO.#tmp_alwayson_info','U') IS NOT NULL
+	DROP TABLE #tmp_alwayson_info
+create table #tmp_alwayson_info(info1 varchar(1000),info2 varchar(1000))
+
+IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='always_on')
+BEGIN
+	SET @flag='alwayson'
+END
+ELSE IF EXISTS(SELECT 1  FROM [Monitor].[dbo].[APP_SETTING] WHERE SYNCHRONOUS_MODE='mirroring')
+BEGIN
+	SET @flag='mirroring'
+END
+ELSE
+BEGIN
+	SET @msg='It must be synchronized by Alwayson/mirroring to be able to'
+	RETURN -1
+END
+
+WHILE @i<=10
+BEGIN
+	IF @flag='alwayson'
+	BEGIN
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='INSERT INTO #tmp_alwayson_info SELECT d.name,'''' from master.sys.dm_hadr_database_replica_states s left join master.sys.databases d on s.database_id=d.database_id where s.is_local=1'
+		EXEC(@SQL)
+	
+		SET @SQL = ''
+		SELECT @SQL = ISNULL(@SQL+'','')+'USE MASTER;ALTER DATABASE ['+info1+'] SET HADR off;'
+		from #tmp_alwayson_info
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+		
+		DELETE FROM #tmp_alwayson_info
+		SET @SQL='
+		IF EXISTS(select 1 from master.sys.dm_hadr_database_replica_states where is_local=1)
+			INSERT INTO #tmp_alwayson_info VALUES(''1'',''1'')
+		'
+		EXEC(@SQL)
+		
+		IF EXISTS(select 1 from #tmp_alwayson_info)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+	ELSE IF @flag='mirroring'
+	BEGIN
+		SET @SQL = NULL
+		SELECT @SQL=ISNULL(@SQL+'','')+'use master ALTER DATABASE ['+d.name+'] SET partner off;'
+		FROM master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where m.mirroring_guid is not null and m.mirroring_role=1
+		BEGIN TRY
+			EXEC(@SQL)
+		END TRY
+		BEGIN CATCH
+			PRINT('skip')
+		END CATCH
+
+		IF EXISTS(select 1 from master.sys.database_mirroring where mirroring_guid is not null and mirroring_role=1)
+		BEGIN
+			waitfor delay '00:00:03'
+			SET @i=@i+1
+		END
+		ELSE
+		BEGIN
+			SET @msg=''
+			SET @i=99
+		END
+	END
+END
+
+IF @i=11
+BEGIN
+	SET @msg='Execution failed'
+	RETURN -1
+END
+
+RETURN 1
+
+GO
+
+----------------------------------------------
+
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_DrToDb]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_DrToDb]
+GO
+
+USE [Monitor]
 GO
 
 
@@ -1600,6 +2520,221 @@ exec monitor.dbo.Sys_AutoSwitch_DrToDb
 **/
 
 declare @msg varchar(1000)
+
+declare @r int,@strsql varchar(max) ,@dbname varchar(100)  
+DECLARE @ERR_FAILURE INT = 1                               
+set @dbname=''    
+
+BEGIN TRY
+	declare @version bigint,@is_alwayson_flag tinyint
+	set @version=convert(bigint,DATABASEPROPERTYEX('master','version'))
+	set @is_alwayson_flag=0
+	
+	IF OBJECT_ID('TEMPDB.DBO.#tmp_dblist','U') IS NOT NULL
+		DROP TABLE #tmp_dblist
+	create table #tmp_dblist(name varchar(200))
+	
+	IF @version>=869
+		exec('insert into #tmp_dblist select name from sys.availability_groups')
+	
+	IF exists(select 1 from #tmp_dblist)
+		set @is_alwayson_flag=1
+
+	IF not exists(select database_id from master.sys.database_mirroring where mirroring_guid is not null) and not exists(select 1 from #tmp_dblist)
+	BEGIN
+		set @msg='alwayson/mirroring is not exists'
+		select -1 as status,@msg as msg
+		return -1
+	END		
+	
+	DECLARE @SQL VARCHAR(MAX)
+	DECLARE @i INT
+	IF @is_alwayson_flag=1
+	BEGIN
+		IF OBJECT_ID('TEMPDB.DBO.#repl_state','U') IS NOT NULL
+			DROP TABLE #repl_state
+		CREATE TABLE #repl_state(is_local bit,role tinyint,connected_state tinyint,synchronization_health tinyint,operational_state tinyint,recovery_health tinyint,last_connect_error_number int,last_connect_error_timestamp datetime)
+		
+		SET @i=1
+		WHILE @i<=60
+		BEGIN
+			if @i<>1
+				waitfor delay '00:00:01'
+
+			SET @SQL='delete from #repl_state;insert into #repl_state select is_local,role,connected_state,synchronization_health,operational_state,recovery_health,last_connect_error_number,last_connect_error_timestamp from master.sys.dm_hadr_availability_replica_states where is_local=1 and role=2'
+			EXEC(@SQL)
+
+			IF EXISTS(SELECT 1 FROM #repl_state WHERE connected_state=0)
+				SET @i=60
+			
+			SET @i=@i+1
+		END
+		
+		IF NOT EXISTS(SELECT 1 FROM #repl_state WHERE connected_state=0)
+		BEGIN
+			set @msg='GameDB state has been disconnected'
+			select -1 as status,@msg as msg
+			return -1
+		END
+		ELSE
+		BEGIN
+			SET @SQL='
+			DECLARE @SQL varchar(max),@group_name varchar(1000),@msg VARCHAR(100)
+			IF EXISTS(SELECT 1 FROM sys.availability_groups)
+			BEGIN
+				BEGIN TRY
+					select @group_name=name from sys.availability_groups
+					SET @SQL=''USE MASTER ALTER AVAILABILITY GROUP [''+@group_name+''] FORCE_FAILOVER_ALLOW_DATA_LOSS''
+					EXEC(@SQL)
+				END TRY
+				BEGIN CATCH
+					SET @msg=''GameDr switch err''
+				END CATCH
+			END
+			'
+			--PRINT(@SQL)
+			BEGIN TRY
+				EXEC(@SQL)
+			END TRY
+			BEGIN CATCH	
+				SET @msg='GameDr switch failed'
+			END CATCH
+
+			SET @i=1
+			WHILE @i<=60
+			BEGIN
+				if @i<>1
+					waitfor delay '00:00:01'
+
+				SET @SQL='delete from #repl_state;insert into #repl_state select is_local,role,connected_state,synchronization_health,operational_state,recovery_health,last_connect_error_number,last_connect_error_timestamp from master.sys.dm_hadr_availability_replica_states where is_local=1 and role=1'
+				EXEC(@SQL)
+
+				IF EXISTS(SELECT 1 FROM #repl_state)
+					SET @i=60
+			
+				SET @i=@i+1
+			END
+
+			IF exists(select 1 from #repl_state where is_local=1 and role=1)
+			BEGIN
+				update APP_SETTING set ROLE='master',MASTER_IP='',MASTER_PORT='',DATA_SCHEMA_GRANT='all'
+				
+				set @msg='GameDR switch Success'
+				select 1 as status,@msg as msg
+				return 1
+			END
+			ELSE
+			BEGIN
+				set @msg='GameDr switch Failed'
+				select -1 as status,@msg as msg
+				return -1
+			END
+		END
+	END
+	ELSE
+	BEGIN
+		--判断DR镜像状态，状态为断开可进行切换
+		if not exists(select 1 from master.sys.database_mirroring
+		where mirroring_state=1)
+		begin
+			set @msg='GameDB state has been disconnected'
+			select -1 as status,@msg as msg
+			return -1
+		end
+
+		--判断DB待未发送日志量大于10M，不允许切换
+		IF exists(SELECT 1 FROM master.sys.dm_os_performance_counters 
+		WHERE object_name LIKE '%Database Mirroring%' 
+		AND counter_name='Log Send Queue KB' and cntr_value>102400) --100M
+		begin
+			set @msg='GameDB to send log exceeds 100M'
+			select -1 as status,@msg as msg
+			return -1
+		end
+
+		--判断DR待还原日志量大于100M，不允许切换
+		IF exists(SELECT 1 FROM master.sys.dm_os_performance_counters 
+		WHERE object_name LIKE '%Database Mirroring%' 
+		AND counter_name='Redo Queue KB' and cntr_value>102400) --100M
+		begin
+			set @msg='GameDB to redo log exceeds 1M'
+			select -1 as status,@msg as msg
+			return -1
+		end
+
+		--获取待切换镜像DB列表
+		DECLARE dblist_cur cursor static forward_only Read_only for 
+		select name from master.sys.sysdatabases  a left join master.sys.database_mirroring b
+		on a.dbid=b.database_id 
+		where dbid>4 and name not in('Monitor') and b.mirroring_guid is not null and b.mirroring_role=2 and b.mirroring_state=1
+		OPEN dblist_cur;
+
+		FETCH NEXT FROM dblist_cur INTO @dbname
+		WHILE @@FETCH_STATUS = 0
+		BEGIN
+				--强制故障切换
+				set @strsql='Use master  alter database '+@dbname+' set partner FORCE_SERVICE_ALLOW_DATA_LOSS;'
+				exec(@strsql)
+				if @@error>0
+				begin
+					set @msg='GameDR switch abnormal failure'
+					select -1 as status,@msg as msg
+					return -1
+				end
+
+				FETCH NEXT FROM dblist_cur INTO @dbname;
+		END
+		CLOSE dblist_cur;
+		DEALLOCATE dblist_cur;
+
+		--检测镜像是否都切换为主
+		if exists(select 1 from master.sys.database_mirroring
+		where mirroring_role=2)
+		begin
+			set @msg='GameDr has no DB switching'
+			select -1 as status,@msg as msg
+			return -1
+		end
+
+		update APP_SETTING set ROLE='master',MASTER_IP='',MASTER_PORT='',DATA_SCHEMA_GRANT='all'
+		
+		set @msg='GameDR switch Success'
+		select 1 as status,@msg as msg
+
+		RETURN 1
+	END
+
+END TRY
+BEGIN CATCH
+	--扑捉异常错误
+	set @msg='GameDr execution exception'
+	select -1 as status,@msg as msg
+	
+	RETURN	-1
+	
+END CATCH
+
+
+
+GO
+
+
+----------------------------------------------
+
+USE [Monitor]
+GO
+
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Sys_AutoSwitch_LossOver]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [dbo].[Sys_AutoSwitch_LossOver]
+GO
+
+USE [Monitor]
+GO
+
+
+CREATE Proc [dbo].[Sys_AutoSwitch_LossOver]
+(@msg varchar(1000) output)
+AS
 
 declare @r int,@strsql varchar(max) ,@dbname varchar(100)  
 DECLARE @ERR_FAILURE INT = 1                               
@@ -1795,468 +2930,9 @@ BEGIN CATCH
 END CATCH
 
 
-GO
-
-/****** Object:  StoredProcedure [dbo].[Sys_AutoSwitch_FailOver]    Script Date: 2024/4/7 16:18:15 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-
-CREATE Proc [dbo].[Sys_AutoSwitch_FailOver]
-(@msg varchar(1000) output)
-AS
-
-
-declare @strsql varchar(max) ,@dbname varchar(100)                              
-set @dbname=''
-
-BEGIN TRY
-
-	--判断DR镜像状态，状态为断开可进行切换
-	if not exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1 and mirroring_state=4)
-	begin
-		set @msg='GameDB state has been Synchronized'
-		return -1
-	end
-
-	--获取待切换镜像DB列表
-	DECLARE dblist_cur cursor static forward_only Read_only for 
-	select name from master.sys.sysdatabases  a left join master.sys.database_mirroring b
-	on a.dbid=b.database_id 
-	where dbid>4 and name not in('monitor') and b.mirroring_guid is not null and b.mirroring_role=1 and b.mirroring_state=4
-	OPEN dblist_cur;
-
-	FETCH NEXT FROM dblist_cur INTO @dbname
-	WHILE @@FETCH_STATUS = 0
-	BEGIN
-			--强制故障切换
-			set @strsql='Use master  alter database '+@dbname+' set partner safety full;'
-			set @strsql=@strsql+'WAITFOR DELAY ''00:00:10'';'
-			set @strsql=@strsql+'alter database '+@dbname+' set partner failover;'
-			
-			exec(@strsql)
-			if @@error>0
-			begin
-				set @msg='GameDR switch abnormal failure'
-				return -1
-			end
-
-			FETCH NEXT FROM dblist_cur INTO @dbname;
-	END
-	CLOSE dblist_cur;
-	DEALLOCATE dblist_cur;
-
-	--检测镜像是否都切换为主
-	if exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1)
-	begin
-		set @msg='GameDr has no DB switching'
-		return -1
-	end
-
-	set @msg='GameDR switch Success'
-
-	RETURN 1
-
-END TRY
-BEGIN CATCH
-	--扑捉异常错误
-	--set @msg='GameDb execution exception'
-	set @msg=ERROR_MESSAGE()
-	RETURN	-1
-	
-END CATCH
-
 
 GO
 
-/****** Object:  StoredProcedure [dbo].[Sys_AutoSwitch_LossOver]    Script Date: 2024/4/7 16:18:15 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-
-CREATE Proc [dbo].[Sys_AutoSwitch_LossOver]
-(@msg varchar(1000) output)
-AS
-
-declare @strsql varchar(max) ,@dbname varchar(100)                              
-set @dbname=''
-
-BEGIN TRY
-
-	--判断DR镜像状态，状态为断开可进行切换
-	if not exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=2 and mirroring_state=1)
-	begin
-		set @msg='GameDB state has been Suspended'
-		return -1
-	end
-
-	--判断DR落后DB时间,[待发送日志]小于10秒(10M)为可进行切换
-	IF exists(SELECT 1 FROM master.sys.dm_os_performance_counters 
-	WHERE object_name LIKE '%Database Mirroring%' 
-	AND counter_name='Log Send Queue KB' and cntr_value>10240) --10M
-	begin
-		set @msg='GameDB to send log exceeds 10M'
-		return -1
-	end
-
-	--判断DR跟进DB情况,[待重做日志]小于1M为可进行切换
-	IF exists(SELECT 1 FROM master.sys.dm_os_performance_counters 
-	WHERE object_name LIKE '%Database Mirroring%' 
-	AND counter_name='Redo Queue KB' and cntr_value>1024) --1M
-	begin
-		set @msg='GameDB to redo log exceeds 1M'
-		return -1
-	end
-
-	--获取待切换镜像DB列表
-	DECLARE dblist_cur cursor static forward_only Read_only for 
-	select name from master.sys.sysdatabases  a left join master.sys.database_mirroring b
-	on a.dbid=b.database_id 
-	where dbid>4 and name not in('monitor') and b.mirroring_guid is not null and b.mirroring_role=2 and b.mirroring_state=1
-	OPEN dblist_cur;
-
-	FETCH NEXT FROM dblist_cur INTO @dbname
-	WHILE @@FETCH_STATUS = 0
-	BEGIN
-			--强制故障切换
-			set @strsql='Use master  alter database '+@dbname+' set partner FORCE_SERVICE_ALLOW_DATA_LOSS;'
-			
-			exec(@strsql)
-			if @@error>0
-			begin
-				set @msg='GameDR switch abnormal failure'
-				return -1
-			end
-
-			FETCH NEXT FROM dblist_cur INTO @dbname;
-	END
-	CLOSE dblist_cur;
-	DEALLOCATE dblist_cur;
-
-	--检测镜像是否都切换为主
-	if exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1)
-	begin
-		set @msg='GameDr has no DB switching'
-		return -1
-	end
-
-	set @msg='GameDR switch Success'
-
-	RETURN 1
-
-END TRY
-BEGIN CATCH
-	--扑捉异常错误
-	set @msg='GameDr execution exception'
-	
-	RETURN	-1
-	
-END CATCH
-
-
-GO
-
-/****** Object:  StoredProcedure [dbo].[Sys_AutoSwitch_Remove]    Script Date: 2024/4/7 16:18:15 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-
-CREATE Proc [dbo].[Sys_AutoSwitch_Remove]
-(@msg varchar(1000) output)
-AS
-
-declare @strsql varchar(max) ,@dbname varchar(100)                              
-set @dbname=''    
-
-BEGIN TRY
-
-	--判断DB镜像状态，状态为Suspended可进行Resume
-	if not exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1)
-	begin
-		set @msg='GameDB Is Not Principal'
-		return -1
-	end
-
-	--获取待Resume镜像DB列表
-	DECLARE dblist_cur cursor static forward_only Read_only for 
-	select name from master.sys.sysdatabases  a left join master.sys.database_mirroring b
-	on a.dbid=b.database_id 
-	where dbid>4 and name not in('monitor') and b.mirroring_guid is not null and b.mirroring_role=1 
-	OPEN dblist_cur;
-
-	FETCH NEXT FROM dblist_cur INTO @dbname
-	WHILE @@FETCH_STATUS = 0
-	BEGIN
-			--resume
-			set @strsql='Use master  alter database '+@dbname+' set partner off;'
-			exec(@strsql)
-			if @@error>0
-			begin
-				set @msg='GameDb Remove abnormal failure'
-				return -1
-			end
-
-			FETCH NEXT FROM dblist_cur INTO @dbname;
-	END
-	CLOSE dblist_cur;
-	DEALLOCATE dblist_cur;
-
-	--检测镜像是否Resume
-	if exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1)
-	begin
-		set @msg='GameDb has no Remove'
-		return -1
-	end
-
-	set @msg='GameDb Remove Success'
-
-	RETURN 1
-
-END TRY
-BEGIN CATCH
-	--扑捉异常错误
-	set @msg='GameDb execution exception'
-	
-	RETURN	-1
-	
-END CATCH
-
-
-GO
-
-/****** Object:  StoredProcedure [dbo].[Sys_AutoSwitch_Resume]    Script Date: 2024/4/7 16:18:15 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-
-CREATE Proc [dbo].[Sys_AutoSwitch_Resume]
-(@msg varchar(1000) output)
-AS
-
-declare @strsql varchar(max) ,@dbname varchar(100)                              
-set @dbname=''    
-
-BEGIN TRY
-
-	--判断DB镜像状态，状态为Suspended可进行Resume
-	if not exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1 and mirroring_state=0)
-	begin
-		set @msg='GameDB state has been Suspended'
-		return -1
-	end
-
-	--获取待Resume镜像DB列表
-	DECLARE dblist_cur cursor static forward_only Read_only for 
-	select name from master.sys.sysdatabases  a left join master.sys.database_mirroring b
-	on a.dbid=b.database_id 
-	where dbid>4 and name not in('monitor') and b.mirroring_guid is not null and b.mirroring_role=1 and b.mirroring_state=0
-	OPEN dblist_cur;
-
-	FETCH NEXT FROM dblist_cur INTO @dbname
-	WHILE @@FETCH_STATUS = 0
-	BEGIN
-			--resume
-			set @strsql='Use master  alter database '+@dbname+' set partner resume;'
-			exec(@strsql)
-			if @@error>0
-			begin
-				set @msg='GameDb Resume abnormal failure'
-				return -1
-			end
-
-			FETCH NEXT FROM dblist_cur INTO @dbname;
-	END
-	CLOSE dblist_cur;
-	DEALLOCATE dblist_cur;
-
-	--检测镜像是否Resume
-	if exists(select 1 from master.sys.database_mirroring
-	where mirroring_state=0)
-	begin
-		set @msg='GameDb has no Synchronized'
-		return -1
-	end
-
-	set @msg='GameDb Resume Success'
-
-	RETURN 1
-
-END TRY
-BEGIN CATCH
-	--扑捉异常错误
-	set @msg='GameDb execution exception'
-	
-	RETURN	-1
-	
-END CATCH
-
-
-GO
-
-/****** Object:  StoredProcedure [dbo].[Sys_AutoSwitch_SafetyOff]    Script Date: 2024/4/7 16:18:15 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-
-CREATE Proc [dbo].[Sys_AutoSwitch_SafetyOff]
-(@msg varchar(1000) output)
-AS
-
-declare @strsql varchar(max) ,@dbname varchar(100)                              
-set @dbname=''    
-
-BEGIN TRY
-
-	--判断DB镜像状态，状态为Principal可进行SafetyOff
-	if not exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1)
-	begin
-		set @msg='GameDB Is not Principal'
-		return -1
-	end
-
-	--获取待Resume镜像DB列表
-	DECLARE dblist_cur cursor static forward_only Read_only for 
-	select name from master.sys.sysdatabases  a left join master.sys.database_mirroring b
-	on a.dbid=b.database_id 
-	where dbid>4 and name not in('monitor') and b.mirroring_guid is not null and b.mirroring_role=1 
-	OPEN dblist_cur;
-
-	FETCH NEXT FROM dblist_cur INTO @dbname
-	WHILE @@FETCH_STATUS = 0
-	BEGIN
-			--resume
-			set @strsql='Use master  alter database '+@dbname+' set partner safety off;'
-			exec(@strsql)
-			if @@error>0
-			begin
-				set @msg='GameDb SafetyOff abnormal failure'
-				return -1
-			end
-
-			FETCH NEXT FROM dblist_cur INTO @dbname;
-	END
-	CLOSE dblist_cur;
-	DEALLOCATE dblist_cur;
-
-	--检测镜像是否Resume
-	if exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1 and mirroring_safety_level=2)
-	begin
-		set @msg='GameDb has no SafetyOff'
-		return -1
-	end
-
-	set @msg='GameDb SafetyOff Success'
-
-	RETURN 1
-
-END TRY
-BEGIN CATCH
-	--扑捉异常错误
-	set @msg='GameDb execution exception'
-	
-	RETURN	-1
-	
-END CATCH
-
-
-GO
-
-/****** Object:  StoredProcedure [dbo].[Sys_AutoSwitch_Suspend]    Script Date: 2024/4/7 16:18:15 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-
-CREATE Proc [dbo].[Sys_AutoSwitch_Suspend]
-(@msg varchar(1000) output)
-AS
-
-declare @strsql varchar(max) ,@dbname varchar(100)                              
-set @dbname=''    
-
-BEGIN TRY
-
-	--判断DB镜像状态，状态为Suspended可进行Suspend
-	if not exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1 and mirroring_state=4)
-	begin
-		set @msg='GameDB Is not Synchronized'
-		return -1
-	end
-
-	--获取待Resume镜像DB列表
-	DECLARE dblist_cur cursor static forward_only Read_only for 
-	select name from master.sys.sysdatabases  a left join master.sys.database_mirroring b
-	on a.dbid=b.database_id 
-	where dbid>4 and name not in('monitor') and b.mirroring_guid is not null and b.mirroring_role=1 
-	OPEN dblist_cur;
-
-	FETCH NEXT FROM dblist_cur INTO @dbname
-	WHILE @@FETCH_STATUS = 0
-	BEGIN
-			--resume
-			set @strsql='Use master  alter database '+@dbname+' set partner Suspend;'
-			exec(@strsql)
-			if @@error>0
-			begin
-				set @msg='GameDb Suspend abnormal failure'
-				return -1
-			end
-
-			FETCH NEXT FROM dblist_cur INTO @dbname;
-	END
-	CLOSE dblist_cur;
-	DEALLOCATE dblist_cur;
-
-	--检测镜像是否Resume
-	if exists(select 1 from master.sys.database_mirroring
-	where mirroring_role=1 and mirroring_state=4)
-	begin
-		set @msg='GameDb has no Suspend'
-		return -1
-	end
-
-	set @msg='GameDb Suspend Success'
-
-	RETURN 1
-
-END TRY
-BEGIN CATCH
-	--扑捉异常错误
-	--set @msg='GameDb execution exception'
-	set @msg=ERROR_MESSAGE()
-	RETURN	-1
-	
-END CATCH
-
-
-GO
 
 USE [Monitor]
 GO
