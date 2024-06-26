@@ -181,6 +181,7 @@
     return querySqlserverAccountRules({
       user: userInfo.user,
       access_dbs: dbs,
+      account_type: AccountTypes.SQLSERVER,
     }).then((res) => {
       const rules = res.results[0]?.rules || [];
       existDBs.value = rules.map((item) => item.access_db);
