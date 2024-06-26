@@ -26,20 +26,25 @@ export function generateMysqlMasterSlaveSwicthCloneData(ticketData: TicketModel<
     is_check_process: isCheckProcess,
     is_verify_checksum: isVerifyChecksum,
   } = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    rowKey: random(),
-    clusterData: {
-      id: clusterId,
-      domain: clusters[clusterId].immute_domain,
-    },
-    masterData: item.master_ip,
-    slaveData: item.slave_ip,
-  }))));
-  
+  const tableDataList = _.flatMap(
+    infos.map((item) =>
+      item.cluster_ids.map((clusterId) => ({
+        rowKey: random(),
+        clusterData: {
+          id: clusterId,
+          domain: clusters[clusterId].immute_domain,
+        },
+        masterData: item.master_ip,
+        slaveData: item.slave_ip,
+      })),
+    ),
+  );
+
   return Promise.resolve({
     isCheckDelay,
     isCheckProcess,
     isVerifyChecksum,
     tableDataList,
+    remark: ticketData.remark,
   });
 }

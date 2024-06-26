@@ -103,6 +103,7 @@
                 :height="245"
                 placement="bottom"
                 theme="light"
+                trigger="click"
                 :width="300">
                 <template #content>
                   <div class="fail-title">{{ t('失败节点（n）', { n: failNodesCount }) }}</div>
@@ -269,6 +270,7 @@
               :height="245"
               placement="bottom"
               theme="light"
+              trigger="click"
               :width="300">
               <template #content>
                 <div class="fail-title">{{ t('失败节点（n）', { n: failNodesCount }) }}</div>
@@ -645,9 +647,11 @@
     }
 
     setTimeout(() => {
-      const x = ((flowRef.value!.clientWidth / 2) - graphNode.x) * scale;
-      const y = ((flowRef.value!.clientHeight / 2) - graphNode.y - 128) * scale;
-      flowState.instance?.translate(x, y);
+      if (!node.children) {
+        const x = ((flowRef.value!.clientWidth / 2) - graphNode.x) * scale;
+        const y = ((flowRef.value!.clientHeight / 2) - graphNode.y - 128) * scale;
+        flowState.instance?.translate(x, y);
+      }
     })
   };
 
@@ -1482,6 +1486,7 @@
     border-radius: 11px;
     font-size: 12px;
     color: #ea3536;
+    cursor: pointer;
 
     .number-display {
       height: 16px;

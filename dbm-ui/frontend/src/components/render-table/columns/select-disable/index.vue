@@ -26,6 +26,7 @@
       </span>
       <span
         v-else
+        v-overflow-tips
         class="content">
         {{ data }}
       </span>

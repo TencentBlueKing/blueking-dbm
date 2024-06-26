@@ -54,6 +54,7 @@ class Command(BaseCommand):
                             "size": media["size"],
                             "md5": media["md5"],
                             "create_at": create_at,
+                            "update_at": media["lastModifiedDate"],
                         },
                         db_type=db_type,
                         pkg_type=pkg_type["name"],

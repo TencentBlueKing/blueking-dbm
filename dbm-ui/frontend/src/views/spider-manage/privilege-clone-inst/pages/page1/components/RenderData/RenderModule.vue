@@ -49,9 +49,16 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => ({
-        module: props.source!.dbModuleId,
-      }));
+      return inputRef.value
+        .getValue()
+        .then(() => ({
+          module: props.source!.dbModuleId,
+        }))
+        .catch(() =>
+          Promise.reject({
+            module: props.source!.dbModuleId,
+          }),
+        );
     },
   });
 </script>

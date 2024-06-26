@@ -170,8 +170,8 @@ func (d *DelUser) execScript() error {
 		return err
 	}
 	if flag == false {
-		d.runtime.Logger.Info(fmt.Sprintf("user:%s is not existed", d.ConfParams.Username))
-		return nil
+		d.runtime.Logger.Error(fmt.Sprintf("user:%s is not existed", d.ConfParams.Username))
+		return fmt.Errorf("user:%s is not existed", d.ConfParams.Username)
 	}
 
 	// 执行脚本

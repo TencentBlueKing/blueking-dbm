@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <div
-    ref="formWrapperRef"
-    class="spec-create-form">
+  <div class="spec-create-form">
     <DbForm
       ref="formRef"
       form-type="vertical"
@@ -99,9 +97,7 @@
       </BkFormItem>
     </DbForm>
   </div>
-  <div
-    ref="formFooterRef"
-    class="spec-create-footer">
+  <div class="spec-create-footer">
     <span
       v-bk-tooltips="{
         content: t('请编辑配置'),
@@ -132,8 +128,6 @@
 
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { createResourceSpec, updateResourceSpec, verifyDuplicatedSpecName } from '@services/source/dbresourceSpec';
-
-  import { useStickyFooter } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -175,16 +169,15 @@
     `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
     `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
     `${ClusterTypes.ES}_es_client`,
-    `${ClusterTypes.PULSAE}_pulsar_broker`,
+    `${ClusterTypes.PULSAR}_pulsar_broker`,
     `${ClusterTypes.TENDBCLUSTER}_spider`,
   ];
 
   const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
 
-  const isSqlserver = [
-    ClusterTypes.SQLSERVER_SINGLE,
-    ClusterTypes.SQLSERVER_HA,
-  ].includes(props.clusterType as ClusterTypes);
+  const isSqlserver = [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(
+    props.clusterType as ClusterTypes,
+  );
 
   const initFormdata = () => {
     if (props.data) {
@@ -248,8 +241,6 @@
 
   const formRef = ref();
   const nameInputRef = ref();
-  const formWrapperRef = ref<HTMLDivElement>();
-  const formFooterRef = ref<HTMLDivElement>();
   const formdata = ref(initFormdata());
   const isLoading = ref(false);
   const isCustomInput = ref(false);
@@ -278,8 +269,6 @@
       trigger: 'blur',
     },
   ]);
-
-  useStickyFooter(formWrapperRef, formFooterRef);
 
   watch(
     [() => formdata.value.cpu, () => formdata.value.mem, () => formdata.value.storage_spec, () => formdata.value.qps],
@@ -344,7 +333,7 @@
         const params = Object.assign(_.cloneDeep(formdata.value), {
           spec_id: (formdata.value as ResourceSpecModel).spec_id,
           device_class: formdata.value.device_class === '-1' ? [] : formdata.value.device_class,
-          storage_spec: formdata.value.storage_spec.filter(item => item.mount_point && item.size && item.type),
+          storage_spec: formdata.value.storage_spec.filter((item) => item.mount_point && item.size && item.type),
         });
 
         if (props.mode === 'edit') {
@@ -395,7 +384,9 @@
 
 <style lang="less" scoped>
   .spec-create-form {
+    max-height: calc(100vh - 105px);
     padding: 28px 40px 21px;
+    overflow-y: auto;
 
     :deep(.bk-form-label) {
       font-weight: bold;

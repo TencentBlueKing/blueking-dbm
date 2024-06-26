@@ -86,6 +86,7 @@
         <OperateColumn
           :removeable="removeable"
           :show-add="false"
+          :show-clone="false"
           @remove="handleRemove" />
       </tr>
     </template>
@@ -112,6 +113,10 @@
       ignoreTables?: string[];
     }[];
   }
+
+  type BackupInfoKeys = keyof Omit<IDataRow['backupInfos'][number], 'slave' | 'master'>;
+  type RowKeys = keyof Pick<IDataRow, 'scope'>;
+  export type IDataRowBatchKey = RowKeys | BackupInfoKeys;
 
   const createBackupInfo = (data = {} as Partial<IDataRow['backupInfos'][0]>) => ({
     master: data.master || '',
@@ -153,6 +158,7 @@
   }
 
   interface Exposes {
+    setLocalBackupInfos: (value: string[], field: BackupInfoKeys) => void;
     getValue: () => Promise<any>;
   }
 
@@ -179,11 +185,21 @@
       if (props.data.clusterData) {
         localClusterId.value = props.data.clusterData.id;
       }
-      if (props.data.scope) {
-        localScope.value = props.data.scope;
-      }
       if (props.data.backupInfos) {
         localBackupInfos.value = props.data.backupInfos;
+      }
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.data.scope,
+    () => {
+      if (props.data.scope) {
+        localScope.value = props.data.scope;
       }
     },
     {
@@ -238,6 +254,13 @@
   };
 
   defineExpose<Exposes>({
+    setLocalBackupInfos(value, field) {
+      localBackupInfos.value.forEach((backInfo) => {
+        Object.assign(backInfo, {
+          [field]: value,
+        });
+      });
+    },
     getValue() {
       return Promise.all([
         Promise.all(clusterRefs.value.map((item: any) => item.getValue())),

@@ -222,7 +222,6 @@
         }
       }
     }
-
     .filter-wrapper {
       padding: 10px 12px;
       border-left: 1px solid #dcdee5;

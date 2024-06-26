@@ -40,22 +40,22 @@
     choosed?: string[];
     isLoading?: boolean;
     counts?: {
-      master: number,
-      slave: number,
-    }
+      master: number;
+      slave: number;
+    };
   }
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    choosed: () => ([]),
+    choosed: () => [],
     counts: () => ({
       master: 0,
       slave: 0,
@@ -78,7 +78,7 @@
       label: 'Slave',
     },
   ];
-  const selectList = ref<{ value: NodeType, label: string }[]>([]);
+  const selectList = ref<{ value: NodeType; label: string }[]>([]);
 
   const rules = [
     {
@@ -87,51 +87,59 @@
     },
   ];
 
-  watch(() => props.counts, (counts) => {
-    const list = [];
-    if (counts.master > 0) {
-      list.push(selectListRaw[0]);
-    }
-    if (counts.slave > 0) {
-      list.push(selectListRaw[1]);
-    }
-    selectListRaw = list;
-    selectList.value = list;
-    if (list.length > 0) {
-      localValue.value = list[0].value;
-      emits('change', list[0].value);
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.counts,
+    (counts) => {
+      const list = [];
+      if (counts.master > 0) {
+        list.push(selectListRaw[0]);
+      }
+      if (counts.slave > 0) {
+        list.push(selectListRaw[1]);
+      }
+      selectListRaw = list;
+      selectList.value = list;
+      if (list.length > 0) {
+        localValue.value = list[0].value;
+        emits('change', list[0].value);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => props.choosed, (choosedTypes) => {
-    if (choosedTypes.length === 0) {
-      selectList.value = selectListRaw;
-      return;
-    }
-    if (choosedTypes.length === 1) {
-      if (!choosedTypes.includes(localValue.value)) {
-        selectList.value = selectListRaw.filter(item => !choosedTypes.includes(item.value));
-      } else {
+  watch(
+    () => props.choosed,
+    (choosedTypes) => {
+      if (choosedTypes.length === 0) {
         selectList.value = selectListRaw;
-      }
-      return;
-    }
-    if (choosedTypes.length === 2) {
-      if (localValue.value !== '') {
-        selectList.value = selectListRaw.filter(item => item.value === localValue.value);
         return;
       }
-      if (localValue.value === '') {
-        selectList.value = selectListRaw.filter(item => !choosedTypes.includes(item.value));
+      if (choosedTypes.length === 1) {
+        if (!choosedTypes.includes(localValue.value)) {
+          selectList.value = selectListRaw.filter((item) => !choosedTypes.includes(item.value));
+        } else {
+          selectList.value = selectListRaw;
+        }
         return;
       }
-    }
-  }, {
-    immediate: true,
-    deep: true,
-  });
+      if (choosedTypes.length === 2) {
+        if (localValue.value !== '') {
+          selectList.value = selectListRaw.filter((item) => item.value === localValue.value);
+          return;
+        }
+        if (localValue.value === '') {
+          selectList.value = selectListRaw.filter((item) => !choosedTypes.includes(item.value));
+          return;
+        }
+      }
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
   const handleChange = (value: string) => {
     localValue.value = value as NodeType;
@@ -142,7 +150,8 @@
     getValue() {
       return selectRef.value
         .getValue()
-        .then(() => ({ reduce_spider_role: localValue.value }));
+        .then(() => ({ reduce_spider_role: localValue.value }))
+        .catch(() => Promise.reject({ reduce_spider_role: localValue.value }));
     },
   });
 </script>

@@ -14,6 +14,7 @@
 <template>
   <BkSideslider
     :is-show="isShow"
+    render-directive="if"
     :title="t('临时密码生效的实例')"
     :width="1200"
     @closed="isShow = false">

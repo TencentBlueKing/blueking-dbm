@@ -49,15 +49,15 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
-  const props =  withDefaults(defineProps<Props>(), {
-    data: ''
+  const props = withDefaults(defineProps<Props>(), {
+    data: '',
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.data);
+  const localValue = ref();
 
   const rules = [
     {
@@ -76,12 +76,14 @@
       validator: async (value: string) => {
         const r = await testRedisConnection({
           data_copy_type: 'user_built_to_dbm',
-          infos: [{
-            src_cluster: props.srcCluster,
-            src_cluster_password: value,
-            dst_cluster: props.dstCluster,
-            dst_cluster_password: '',
-          }],
+          infos: [
+            {
+              src_cluster: props.srcCluster,
+              src_cluster_password: value,
+              dst_cluster: props.dstCluster,
+              dst_cluster_password: '',
+            },
+          ],
         });
         return r;
       },
@@ -89,10 +91,17 @@
     },
   ];
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(rules);
+  const { message: errorMessage, validator } = useValidtor(rules);
+
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data ? props.data : '';
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 响应输入
   const handleInput = (value: string) => {
@@ -104,22 +113,20 @@
   const handleBlur = (event: FocusEvent) => {
     event.preventDefault();
 
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+    });
   };
 
   // enter键提交
   const handleKeydown = (value: string, event: KeyboardEvent) => {
     if (event.which === 13 || event.key === 'Enter') {
       event.preventDefault();
-      validator(localValue.value)
-        .then((result) => {
-          if (result) {
-            window.changeConfirm = true;
-          }
-        });
+      validator(localValue.value).then((result) => {
+        if (result) {
+          window.changeConfirm = true;
+        }
+      });
     }
   };
 
@@ -134,7 +141,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localValue.value).then(() => localValue.value);
+      return validator(localValue.value)
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>

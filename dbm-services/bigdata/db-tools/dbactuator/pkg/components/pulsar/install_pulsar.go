@@ -348,8 +348,9 @@ func (i *InstallPulsarComp) InstallBookkeeper() error {
 		return err
 	}
 	extraCmd := fmt.Sprintf(
-		"sed -i \"s/-Xms2g -Xmx2g -XX:MaxDirectMemorySize=2g/-Xms%s -Xmx%s -XX:MaxDirectMemorySize=%s/g\" "+
-			"%s/conf/bkenv.sh", heapSize, heapSize, directMemSize, cst.DefaultPulsarBkDir)
+		"sed -i \"s/BOOKIE_MEM=.*/BOOKIE_MEM=\\${PULSAR_MEM:-\\\"-Xms%s -Xmx%s "+
+			"-XX:MaxDirectMemorySize=%s\\\"}/g\" %s/conf/bkenv.sh",
+		heapSize, heapSize, directMemSize, cst.DefaultPulsarBkDir)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("替换Heap Size和DirectMemSize失败:%s, command: %s", err.Error(), extraCmd)
 		return err
@@ -423,9 +424,8 @@ func (i *InstallPulsarComp) InstallBroker() (err error) {
 		logger.Error("获取Heap Size和DirectMemSize失败: %s", err.Error())
 		return err
 	}
-	extraCmd := fmt.Sprintf(
-		"sed -i "+
-			"\"s/-Xms2g -Xmx2g -XX:MaxDirectMemorySize=2g/-Xms%s -Xmx%s -XX:MaxDirectMemorySize=%s/g\" %s/conf/pulsar_env.sh",
+	extraCmd := fmt.Sprintf("sed -i \"s/PULSAR_MEM=.*/PULSAR_MEM=\\${PULSAR_MEM:-\\\"-Xms%s -Xmx%s "+
+		"-XX:MaxDirectMemorySize=%s\\\"}/g\" %s/conf/pulsar_env.sh",
 		heapSize, heapSize, directMemSize, cst.DefaultPulsarBrokerDir)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("替换Heap Size和DirectMemSize失败:%s, command: %s", err.Error(), extraCmd)

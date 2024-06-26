@@ -83,6 +83,7 @@
   } from '@common/const';
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
 
@@ -195,21 +196,22 @@
         render: ({ data }: { data: MongodbInstanceModel }) => (
           <div style="display: flex; align-items: center;">
             <div class="text-overflow" v-overflow-tips>
-              <bk-button
+              <auth-button
+                action-id="mongodb_view"
+                resource={data.id}
+                permission={data.permission.mongodb_view}
                 text
                 theme="primary"
                 onClick={ () => handleToDetails(data) }>
                   { data.instance_address }
-              </bk-button>
+              </auth-button>
             </div>
             {
-              data.isRebooting && (
-                <db-icon
-                    svg
-                    type="zhongqizhong"
-                    class="cluster-tag ml-8"
-                    style="width: 38px; height: 16px;" />
-              )
+              data.operationTagTips.map(item => (
+                <RenderOperationTag
+                  class="cluster-tag ml-4"
+                  data={item} />
+              ))
             }
           </div>
       ),

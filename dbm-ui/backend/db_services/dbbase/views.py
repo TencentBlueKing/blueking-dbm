@@ -54,11 +54,11 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     action_permission_map = {
+        ("verify_duplicated_cluster_name",): [],
         (
-            "verify_duplicated_cluster_name",
             "simple_query_cluster",
             "common_query_cluster",
-        ): []
+        ): [DBManagePermission()],
     }
     default_permission_class = [DBManagePermission()]
 
@@ -76,7 +76,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(is_duplicated)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询全集群简略信息"),
+        operation_summary=_("查询业务集群简略信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=QueryAllTypeClusterSerializer(),
         responses={status.HTTP_200_OK: QueryAllTypeClusterResponseSerializer()},
@@ -91,7 +91,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询集群通用信息"),
+        operation_summary=_("查询业务集群通用信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=CommonQueryClusterSerializer(),
         responses={status.HTTP_200_OK: CommonQueryClusterResponseSerializer()},
@@ -104,7 +104,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         return Response(cluster_infos)
 
     @common_swagger_auto_schema(
-        operation_summary=_("根据过滤条件查询集群详细信息"),
+        operation_summary=_("根据过滤条件查询业务集群详细信息"),
         auto_schema=ResponseSwaggerAutoSchema,
         query_serializer=ClusterFilterSerializer(),
         tags=[SWAGGER_TAG],
@@ -136,14 +136,13 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         responses={status.HTTP_200_OK: CheckInstancesResSLZ()},
     )
     @action(methods=["POST"], detail=False, serializer_class=CheckInstancesSLZ)
-    def check_instances(self, request, bk_biz_id):
-        validated_data = self.params_validate(self.get_serializer_class())
-        db_type = request.stream.path.split("/")[2]
+    def check_instances(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
         return Response(
-            InstanceHandler(bk_biz_id=bk_biz_id).check_instances(
-                query_instances=validated_data["instance_addresses"],
-                cluster_ids=validated_data["cluster_ids"],
-                db_type=db_type,
+            InstanceHandler(bk_biz_id=data["bk_biz_id"]).check_instances(
+                query_instances=data["instance_addresses"],
+                cluster_ids=data.get("cluster_ids"),
+                db_type=data.get("db_type"),
             )
         )
 

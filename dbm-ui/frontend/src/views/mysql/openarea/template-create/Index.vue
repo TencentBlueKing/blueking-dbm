@@ -1,11 +1,14 @@
 <template>
+  <Teleport
+    v-if="isEditMode"
+    to="#dbContentHeaderAppend">
+    <span style="font-size: 16px">【{{ formData.config_name }}】</span>
+  </Teleport>
   <BkLoading :loading="isDetailLoading">
-    <SmartAction
-      class="mysql-openarea-page"
-      :offset-target="getSmartActionOffsetTarget">
+    <SmartAction :offset-target="getSmartActionOffsetTarget">
       <BkForm
         ref="formRef"
-        class="mb-32"
+        class="mysql-template-create-page mb-32"
         :model="formData">
         <DbCard :title="t('基本信息')">
           <BkFormItem
@@ -27,15 +30,21 @@
           <BkFormItem
             :label="t('源集群')"
             required>
-            <span :class="{ 'mr-8': currentCluster.name !== '' }">
-              {{ currentCluster.name }}
-            </span>
             <BkButton @click="handleShowClusterSelector">
               <DbIcon
                 style="margin-right: 3px"
-                type="add" />
-              <span>{{ t('选择源集群') }}</span>
+                :type="currentCluster.domain ? 'edit' : 'add'" />
+              <span>{{ currentCluster.domain ? t('修改集群') : t('添加源集群') }}</span>
             </BkButton>
+            <div
+              v-if="currentCluster.domain"
+              class="current-cluster-operate">
+              {{ currentCluster.domain }}（{{ currentCluster.type === 'tendbha' ? t('主从') : t('单节点') }}）
+              <DbIcon
+                class="delete-icon"
+                type="delete"
+                @click="handleDeleteCurrentCluster" />
+            </div>
           </BkFormItem>
           <BkFormItem
             :label="t('克隆的规则')"
@@ -44,6 +53,25 @@
               ref="configRuleRef"
               :cluster-id="formData.source_cluster_id"
               :data="formData.config_rules" />
+          </BkFormItem>
+          <BkFormItem :label="t('初始化权限规则')">
+            <BkButton
+              class="mb-12"
+              :disabled="formData.source_cluster_id === 0"
+              @click="handleShowPermissionRule">
+              <DbIcon
+                style="margin-right: 3px"
+                type="add" />
+              <span>{{ t('添加权限') }}</span>
+            </BkButton>
+            <BKLoading :loading="permissionTableloading">
+              <BkTable
+                v-if="permissionTableData.length > 0"
+                :cell-class="getCellClass"
+                class="add-permission-table"
+                :columns="permissionTableColumns"
+                :data="permissionTableData" />
+            </BKLoading>
           </BkFormItem>
         </DbCard>
       </BkForm>
@@ -54,9 +82,16 @@
         :selected="clusterSelectorValue"
         :tab-list-config="tabListConfig"
         @change="handelClusterChange" />
+      <PermissionRule
+        v-model="permissionRules"
+        v-model:is-show="isShowPermissionRule"
+        :cluster-id="formData.source_cluster_id"
+        db-type="mysql"
+        @submit="handleSelectedPermissionRule" />
       <template #action>
         <BkButton
           class="w-88"
+          :disabled="!formDataChanged"
           :loading="isSubmiting"
           theme="primary"
           @click="handleSubmit">
@@ -64,14 +99,20 @@
         </BkButton>
         <BkButton
           class="ml-8 w-88"
+          :disabled="!formDataChanged"
           @click="handleReset">
           {{ t('重置') }}
+        </BkButton>
+        <BkButton
+          class="ml-8 w-88"
+          @click="handleCancel">
+          {{ t('取消') }}
         </BkButton>
       </template>
     </SmartAction>
   </BkLoading>
 </template>
-<script setup lang="ts">
+<script setup lang="tsx">
   import { Form } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -79,12 +120,19 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/openarea';
+  import { getPermissionRules } from '@services/permission';
+  import { getTendbhaList } from '@services/source/tendbha';
+  import { getTendbsingleList } from '@services/source/tendbsingle';
+
+  import { useBeforeClose } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
+  import PermissionRule from '@components/add-permission-rule-dialog/Index.vue';
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageSuccess } from '@utils';
 
@@ -92,10 +140,13 @@
 
   type CreateOpenareaParams = ServiceParameters<typeof createOpenarea>;
 
+  type IColumnData = ServiceReturnType<typeof getPermissionRules>['results'][0]
+
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
+  const handleBeforeClose = useBeforeClose();
 
   const isEditMode = route.name === 'MySQLOpenareaTemplateEdit';
 
@@ -111,15 +162,22 @@
   const formRef = ref<InstanceType<typeof Form>>();
   const isSubmiting = ref(false);
   const isShowClusterSelector = ref(false);
+  const isShowPermissionRule = ref(false);
+  const permissionTableloading = ref(false);
+  const permissionRules = ref<number[]>([]);
+  const rowFlodMap = ref<Record<string, boolean>>({});
+  const permissionTableData = ref<IColumnData[]>([]);
+  const formDataChanged = ref(false);
   const currentCluster = ref({
-    name: '',
     type: 'tendbha',
+    domain: '',
   });
 
   const clusterSelectorValue = shallowRef<Record<string, TendbhaModel[]>>({
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
   });
+  const targetClusterList = shallowRef<TendbhaModel[]>([]);
 
   const formData = reactive(genDefaultValue());
 
@@ -134,20 +192,163 @@
     },
   } as Record<string, TabConfig>;
 
+  const permissionTableColumns = computed(() => [
+    {
+      label: t('账号名称'),
+      field: 'user',
+      width: 220,
+      showOverflowTooltip: false,
+      render: ({ data }: { data: IColumnData }) => (
+        <div class="account-box">
+          {
+            data.rules.length > 1
+              && <db-icon
+                  type="down-shape"
+                  class={{
+                    'flod-flag': true,
+                    'is-flod': rowFlodMap.value[data.account.user],
+                  }}
+                  onClick={() => handleToogleExpand(data.account.user)} />
+          }
+          { data.account.user }
+        </div>
+      ),
+    },
+    {
+      label: t('访问DB'),
+      width: 300,
+      field: 'access_db',
+      showOverflowTooltip: true,
+      render: ({ data }: { data: IColumnData }) => {
+        const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
+        return renderRules.map(item => (
+          <div class="inner-row">
+            <bk-tag>
+              {item.access_db}
+            </bk-tag>
+          </div>
+        ));
+      },
+    },
+    {
+      label: t('权限'),
+      field: 'privilege',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: IColumnData }) => {
+        if (data.rules.length === 0) {
+          return <div class="inner-row">--</div>;
+        }
+        const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
+        return renderRules.map(item => (
+          <div class="inner-row cell-privilege">
+            <TextOverflowLayout>
+              {{
+                default: () => item.privilege
+              }}
+            </TextOverflowLayout>
+          </div>
+        ));
+      },
+    },
+    {
+      label: t('操作'),
+      field: 'operate',
+      width: 145,
+      render: ({ data }: { data: IColumnData }) => {
+        const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
+        return renderRules.map(item => (
+          <div class="inner-row">
+            <bk-button
+              text
+              theme="primary"
+              onClick={() => handleRemoveSelectedPermissionRules(item)}>
+              {t('移除')}
+            </bk-button>
+          </div>
+        ));
+      }
+    },
+  ]);
+
   // 编辑态获取模版详情
   const { loading: isDetailLoading, run: fetchTemplateDetail } = useRequest(getDetail, {
     manual: true,
-    onSuccess(data) {
+    async onSuccess(data) {
       formData.config_name = data.config_name;
       formData.source_cluster_id = data.source_cluster_id;
       formData.config_rules = data.config_rules;
+
+      currentCluster.value = {
+        type: data.cluster_type,
+        domain: data.source_cluster.immute_domain,
+      };
+
+      if (data.source_cluster.cluster_type === 'tendbha') {
+        const listResult = await getTendbhaList({ cluster_ids: [data.source_cluster_id]});
+        targetClusterList.value = listResult.results
+      } else {
+        const listResult = await getTendbsingleList({ cluster_ids: [data.source_cluster_id]});
+        targetClusterList.value = listResult.results as TendbhaModel[]
+      }
+
+      permissionRules.value = data.related_authorize;
+      await handleSelectedPermissionRule(data.related_authorize)
     },
   });
+
+  watch(formData, () => {
+    window.changeConfirm = true;
+    formDataChanged.value = true;
+  }, {
+    deep: true,
+  })
 
   if (isEditMode) {
     fetchTemplateDetail({
       id: Number(route.params.id),
     });
+  }
+
+  const getCellClass = (data: { field: string }) => ['privilege', 'operate'].includes(data.field) ? 'cell-privilege' : '';
+
+  const handleRemoveSelectedPermissionRules = (data: IColumnData['rules'][number]) => {
+    const permissionIndex = permissionTableData.value.findIndex(item => item.account.account_id === data.account_id)!;
+    const permission = permissionTableData.value[permissionIndex];
+    const ruleIndex = permission.rules.findIndex(item => item.rule_id === data.rule_id)!;
+    if (permission.rules.length === 1) {
+      permissionTableData.value.splice(permissionIndex, 1);
+    } else {
+      permission.rules.splice(ruleIndex, 1);
+    }
+    const selectedRuleIndex = permissionRules.value.findIndex(id => id === data.rule_id);
+    permissionRules.value.splice(selectedRuleIndex, 1);
+  }
+
+  const handleSelectedPermissionRule = async (ruleIds: number[]) => {
+    if (ruleIds.length === 0) {
+      return
+    }
+    permissionTableloading.value = true;
+    const rulesResult = await getPermissionRules({
+      rule_ids: ruleIds.join(','),
+      account_type: 'mysql',
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    }).finally(() => {
+      permissionTableloading.value = false;
+    });
+    permissionTableData.value = rulesResult.results;
+  }
+
+  const handleToogleExpand = (user: string) => {
+    if (rowFlodMap.value[user]) {
+      delete rowFlodMap.value[user];
+    } else {
+      rowFlodMap.value[user] = true;
+    }
+  };
+
+  const handleShowPermissionRule = () => {
+    isShowPermissionRule.value = true;
   }
 
   const handleShowClusterSelector = () => {
@@ -161,10 +362,18 @@
     const { id, master_domain: domain, cluster_type: clusterType } = selectList[0];
     formData.source_cluster_id = id;
     currentCluster.value = {
-      name: `${domain} (${id})`,
       type: clusterType,
+      domain,
     };
   };
+
+  const handleDeleteCurrentCluster = () => {
+    formData.source_cluster_id = 0;
+    currentCluster.value = {
+      type: '',
+      domain: '',
+    };
+  }
 
   const handleSubmit = () => {
     isSubmiting.value = true;
@@ -179,10 +388,12 @@
           ...formData,
           config_rules: configRule,
           cluster_type: currentCluster.value.type,
+          related_authorize: permissionRules.value,
         };
         if (isEditMode) {
           params.id = Number(route.params.id);
         }
+
         const handler = isEditMode ? updateOpenarea : createOpenarea;
         return handler(params).then(() => {
           messageSuccess(isEditMode ? t('编辑成功') : t('新建成功'));
@@ -198,8 +409,24 @@
   };
 
   const handleReset = () => {
+    handleDeleteCurrentCluster();
     Object.assign(formData, genDefaultValue());
+    permissionTableData.value = [];
+    permissionRules.value = [];
+    nextTick(() => {
+      window.changeConfirm = false;
+      formDataChanged.value = false;
+    });
   };
+
+  const handleCancel = async () => {
+    const result = await handleBeforeClose();
+    if (!result) return;
+    window.changeConfirm = false;
+    router.push({
+      name: 'MySQLOpenareaTemplate',
+    });
+  }
 
   defineExpose({
     routerBack() {
@@ -209,3 +436,61 @@
     },
   });
 </script>
+<style lang="less">
+  .mysql-template-create-page {
+    .bk-form-label {
+      font-size: 12px;
+    }
+
+    .current-cluster-operate {
+      margin-top: 12px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+
+      .delete-icon {
+        font-size: 13px;
+        color: #3a84ff;
+        cursor: pointer;
+      }
+    }
+
+    .add-permission-table {
+      .account-box {
+        font-weight: 700;
+
+        .flod-flag {
+          display: inline-block;
+          margin-right: 4px;
+          cursor: pointer;
+          transition: all 0.1s;
+
+          &.is-flod {
+            transform: rotateZ(-90deg);
+          }
+        }
+      }
+
+      .cell-privilege {
+        .cell {
+          padding: 0 !important;
+          margin-left: -16px;
+
+          .inner-row {
+            padding-left: 32px !important;
+          }
+        }
+      }
+
+      .inner-row {
+        display: flex;
+        height: 40px;
+        align-items: center;
+
+        & ~ .inner-row {
+          border-top: 1px solid #dcdee5;
+        }
+      }
+    }
+  }
+</style>

@@ -62,7 +62,7 @@
 
   import { useSQLTaskNotify } from '@hooks';
 
-  import { useUserProfile } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
   import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';
@@ -79,6 +79,7 @@
   const userProfileStore = useUserProfile();
   userProfileStore.fetchProfile();
   const { t, locale } = useI18n();
+  const { funControllerData } = useFunController();
 
   const documentTitles: Record<string, string> = {
     en: 'DBM | Tencent BlueKing',
@@ -115,7 +116,9 @@
   };
 
   onMounted(() => {
-    useSQLTaskNotify();
+    if (funControllerData.getFlatData('mysql').toolbox) {
+      useSQLTaskNotify();
+    }
   });
 </script>
 <style lang="less">

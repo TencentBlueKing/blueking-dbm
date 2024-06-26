@@ -16,6 +16,7 @@
     :before-close="handleClose"
     class="rotate-setting-edit-rule"
     :is-show="isShow"
+    render-directive="if"
     :width="960"
     @closed="handleClose">
     <template #header>
@@ -147,10 +148,7 @@
   import { useRequest } from 'vue-request';
 
   import DutyRuleModel from '@services/model/monitor/duty-rule';
-  import {
-    createDutyRule,
-    updateDutyRule,
-  } from '@services/monitor';
+  import { createDutyRule, updateDutyRule } from '@services/monitor';
 
   import { useBeforeClose } from '@hooks';
 
@@ -167,13 +165,13 @@
   }
 
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     pageType: 'create',
     data: undefined,
-    existedNames: () => ([]),
+    existedNames: () => [],
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
@@ -241,7 +239,7 @@
       {
         validator: async (value: string) => {
           if (['clone', 'create'].includes(props.pageType)) {
-            return props.existedNames.every(item => item !== value);
+            return props.existedNames.every((item) => item !== value);
           }
           return true;
         },
@@ -274,9 +272,12 @@
 
   // const bizList = ref<SelectItem[]>([]);
 
-  watch(() => [props.pageType, props.data], () => {
-    checkPageTypeAndData();
-  });
+  watch(
+    () => [props.pageType, props.data],
+    () => {
+      checkPageTypeAndData();
+    },
+  );
 
   const checkPageTypeAndData = () => {
     if (props.pageType !== 'create' && props.data) {
@@ -352,7 +353,10 @@
 
   async function handleClose() {
     const result = await handleBeforeClose();
-    if (!result) return;
+
+    if (!result) {
+      return;
+    }
     checkPageTypeAndData();
     window.changeConfirm = false;
     isShow.value = false;

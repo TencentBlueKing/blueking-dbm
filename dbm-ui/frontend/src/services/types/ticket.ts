@@ -259,7 +259,6 @@ export interface MysqlQueryAccountParams {
   access_dbs: string[];
 }
 
-
 /**
  * es - 单据详情
  */
@@ -340,12 +339,6 @@ export interface ClusterOperationDetails {
   cluster_id: number;
 }
 
-
-
-
-
-
-
 /**
  * 大数据实例重启
  */
@@ -362,267 +355,268 @@ export interface BigDataRebootDetails {
   }[];
 }
 
-
-
 /**
  * clusters参数
  */
 export interface clustersItems {
   [key: number]: {
-    alias: string,
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    cluster_type: string,
-    cluster_type_name: string,
-    creator: string,
-    db_module_id: number,
-    id: number,
-    immute_domain: string,
-    major_version: string,
-    name: string,
-    phase: string,
-    region: string,
-    status: string,
-    time_zone: string,
-    updater: string,
-  },
+    alias: string;
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    cluster_type: string;
+    cluster_type_name: string;
+    creator: string;
+    db_module_id: number;
+    id: number;
+    immute_domain: string;
+    major_version: string;
+    name: string;
+    phase: string;
+    region: string;
+    status: string;
+    time_zone: string;
+    updater: string;
+  };
 }
 
 /**
  * MySQL 库表备份
  */
 export interface MySQLTableBackupDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    backup_on: string,
-    cluster_id: number,
-    db_patterns: [],
-    ignore_dbs: [],
-    ignore_tables: [],
-    table_patterns: [],
-    force: boolean,
-  }[],
+    backup_on: string;
+    cluster_id: number;
+    db_patterns: [];
+    ignore_dbs: [];
+    ignore_tables: [];
+    table_patterns: [];
+    force: boolean;
+  }[];
 }
 
 /**
  * MySQL 主从清档
  */
 export interface MySQLHATruncateDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    cluster_id: number,
-    db_patterns: [],
-    ignore_dbs: [],
-    ignore_tables: [],
-    table_patterns: [],
-    force: boolean,
-    truncate_data_type: string,
-  }[],
+    cluster_id: number;
+    db_patterns: [];
+    ignore_dbs: [];
+    ignore_tables: [];
+    table_patterns: [];
+    force: boolean;
+    truncate_data_type: string;
+  }[];
 }
 
 export interface MysqlIpItem {
-  bk_biz_id: number,
-  bk_cloud_id: number,
-  bk_host_id: number,
-  ip: string,
-  port?: number,
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
+  ip: string;
+  port?: number;
 }
 
 /**
  * MySQL 克隆主从
  */
 export interface MySQLMigrateDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    cluster_ids: number[],
-    new_master: MysqlIpItem,
-    new_slave: MysqlIpItem,
-  }[],
+    cluster_ids: number[];
+    new_master: MysqlIpItem;
+    new_slave: MysqlIpItem;
+  }[];
 }
 
 /**
  * MySQL 主从互换
  */
 export interface MySQLMasterSlaveDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    cluster_ids: number[],
-    master_ip: MysqlIpItem,
-    slave_ip: MysqlIpItem,
-  }[],
+    cluster_ids: number[];
+    master_ip: MysqlIpItem;
+    slave_ip: MysqlIpItem;
+  }[];
 }
 
 /**
  * MySQL 新增 Proxy
  */
 export interface MySQLProxyAddDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    cluster_ids: number[],
-    new_proxy: MysqlIpItem,
-  }[],
+    cluster_ids: number[];
+    new_proxy: MysqlIpItem;
+  }[];
 }
 
 /**
  * MySQL 主故障切换
  */
 export interface MySQLMasterFailDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    cluster_ids: number[],
-    master_ip: MysqlIpItem,
-    slave_ip: MysqlIpItem,
-  }[],
+    cluster_ids: number[];
+    master_ip: MysqlIpItem;
+    slave_ip: MysqlIpItem;
+  }[];
 }
 
 /**
  * MySQL SQL变更执行
  */
 export interface MySQLImportSQLFileDetails {
-  uid: string,
-  path: string,
+  uid: string;
+  path: string;
   backup: {
-    backup_on: string,
-    db_patterns: string[],
-    table_patterns: string[],
-  }[],
-  charset: string,
-  root_id: string,
-  bk_biz_id: number,
-  created_by: string,
-  cluster_ids: number[],
-  clusters: clustersItems,
+    backup_on: string;
+    db_patterns: string[];
+    table_patterns: string[];
+  }[];
+  charset: string;
+  root_id: string;
+  bk_biz_id: number;
+  created_by: string;
+  cluster_ids: number[];
+  clusters: clustersItems;
   ticket_mode: {
-    mode: string,
-    trigger_time: string,
-  },
-  ticket_type: string,
+    mode: string;
+    trigger_time: string;
+  };
+  ticket_type: string;
   execute_objects: {
-    dbnames: string[],
-    sql_file: string,
-    ignore_dbnames: string[]
-  }[],
+    dbnames: string[];
+    sql_file: string;
+    ignore_dbnames: string[];
+  }[];
   execute_db_infos: {
-    dbnames: string[],
-    ignore_dbnames: string[]
-  }[],
-  execute_sql_files: string[],
-  grammar_check_info: Record<string, {
-    highrisk_warnings: {
-      command_type: string,
-      line: number,
-      sqltext: string,
-      warn_info: string,
-    }[]
-  }>
-  import_mode: string,
-  semantic_node_id: string,
+    dbnames: string[];
+    ignore_dbnames: string[];
+  }[];
+  execute_sql_files: string[];
+  grammar_check_info: Record<
+    string,
+    {
+      highrisk_warnings: {
+        command_type: string;
+        line: number;
+        sqltext: string;
+        warn_info: string;
+      }[];
+    }
+  >;
+  import_mode: string;
+  semantic_node_id: string;
 }
 
 /**
  * MySQL 闪回
  */
 export interface MySQLFlashback {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    cluster_id: number,
-    databases: [],
-    databases_ignore: [],
-    end_time: string,
-    mysqlbinlog_rollback: string,
-    recored_file: string,
-    start_time: string,
-    tables: [],
-    tables_ignore: []
-  }[],
+    cluster_id: number;
+    databases: [];
+    databases_ignore: [];
+    end_time: string;
+    mysqlbinlog_rollback: string;
+    recored_file: string;
+    start_time: string;
+    tables: [];
+    tables_ignore: [];
+  }[];
 }
 
 /**
  * MySql 定点回档
  */
 export interface MySQLRollbackDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    backup_source: string,
-    backupid: string,
-    cluster_id: number,
-    databases: string[],
-    databases_ignore: string[],
-    rollback_ip: string,
-    rollback_time: string,
-    tables: string[],
-    tables_ignore: string[],
+    backup_source: string;
+    backupid: string;
+    cluster_id: number;
+    databases: string[];
+    databases_ignore: string[];
+    rollback_ip: string;
+    rollback_time: string;
+    tables: string[];
+    tables_ignore: string[];
     backupinfo: {
-      backup_id: string,
-      mysql_host: string,
-      mysql_port: number,
-      mysql_role: string,
-      backup_time: string,
-      backup_type: string,
-      master_host: string,
-      master_port: number
-    },
-  }[],
+      backup_id: string;
+      mysql_host: string;
+      mysql_port: number;
+      mysql_role: string;
+      backup_time: string;
+      backup_type: string;
+      master_host: string;
+      master_port: number;
+    };
+  }[];
 }
 
 /**
  * MySQL SLAVE重建
  */
 export interface MySQLRestoreSlaveDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    backup_source: string,
-    cluster_ids: number[],
-    new_slave: MysqlIpItem,
-    old_slave: MysqlIpItem,
-  }[],
+    backup_source: string;
+    cluster_ids: number[];
+    new_slave: MysqlIpItem;
+    old_slave: MysqlIpItem;
+  }[];
 }
 
 /**
  * MySQL 全库备份
  */
 export interface MySQLFullBackupDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   infos: {
-    backup_type: string,
+    backup_type: string;
     clusters: {
-      backup_local: string,
-      cluster_id: number,
-    }[],
-    file_tag: string,
-    online: boolean,
-  }
+      backup_local: string;
+      cluster_id: number;
+    }[];
+    file_tag: string;
+    online: boolean;
+  };
 }
 
 /**
  * MySQL 校验
  */
 export interface MySQLChecksumDetails {
-  clusters: clustersItems,
+  clusters: clustersItems;
   data_repair: {
-    is_repair: boolean,
-    mode: string,
-  }
+    is_repair: boolean;
+    mode: string;
+  };
   infos: {
-    cluster_id: number,
-    db_patterns: string[],
-    ignore_dbs: string[],
-    ignore_tables: string[],
+    cluster_id: number;
+    db_patterns: string[];
+    ignore_dbs: string[];
+    ignore_tables: string[];
     master: {
-      id: number,
-      ip: string,
-      port: number,
-    },
+      id: number;
+      ip: string;
+      port: number;
+    };
     slaves: {
-      id: number,
-      ip: string,
-      port: number,
-    }[],
-    table_patterns: string[],
-  }[],
-  is_sync_non_innodb: boolean,
-  runtime_hour: number,
-  timing: string,
+      id: number;
+      ip: string;
+      port: number;
+    }[];
+    table_patterns: string[];
+  }[];
+  is_sync_non_innodb: boolean;
+  runtime_hour: number;
+  timing: string;
 }
 
 /**
@@ -680,6 +674,7 @@ export interface BigDataCapacityDetails {
 export interface SubmitTicket<T extends TicketTypes, U extends Array<unknown>> {
   bk_biz_id: number;
   ticket_type: T;
+  remark: string;
   details: {
     ip_source?: 'resource_pool';
     infos: U;
@@ -705,257 +700,16 @@ export interface SpecInfo {
   }[];
 }
 
-
-
 /**
  * redis 版本升级
  */
 export interface RedisVersionUpgrade {
-  clusters: clustersItems,
-  infos: {
-    cluster_id: number,
-    current_versions: string[],
-    node_type: string,
-    target_version: string
-  }[],
-}
-
-// Spider Checksum
-export interface SpiderCheckSumDetails {
-  data_repair: {
-    is_repair: boolean;
-    mode: 'timer' | 'manual';
-  };
-  is_sync_non_innodb: true;
-  timing: string;
-  runtime_hour: number;
+  clusters: clustersItems;
   infos: {
     cluster_id: number;
-    checksum_scope: 'partial' | 'all';
-    backup_infos: {
-      master: string;
-      slave: string;
-      db_patterns: string[];
-      ignore_dbs: string[];
-      table_patterns: string[];
-      ignore_tables: string[];
-    }[];
-  }[];
-}
-
-// Spider slave集群添加
-export interface SpiderSlaveApplyDetails {
-  ip_source: 'manual_input';
-  infos: {
-    cluster_id: number;
-    resource_spec: {
-      spider_slave_ip_list: {
-        spec_id: number;
-        count: number;
-      };
-    };
-  }[];
-}
-
-// Spider 临时节点添加
-export interface SpiderMNTApplyDetails {
-  infos: {
-    cluster_id: number;
-    bk_cloud_id: number;
-    spider_ip_list: {
-      ip: string;
-      bk_cloud_id: number;
-      bk_host_id: number;
-    }[];
-    immutable_domain: string;
-  }[];
-}
-
-// Spider 集群下架
-export interface SpiderDestroyDetails {
-  force: boolean; // 实例强制下架，默认先给false
-  cluster_ids: number[]; // 待下架的id 列表
-}
-
-// Spider 集群启动
-export interface SpiderEnableDetails {
-  is_only_add_slave_domain: boolean; // 只启用只读集群的话, 这个参数为true
-  cluster_ids: number[]; // 待下架的id 列表
-}
-
-// Spider 集群禁用
-export interface SpiderDisableDetails {
-  cluster_ids: number[]; // 待禁用的id 列表
-}
-
-// Spider Tendbcluster 重命名
-export interface SpiderRenameDatabaseDetails {
-  infos: {
-    cluster_id: number;
-    from_database: string;
-    to_database: string;
-    force: boolean;
-  }[];
-}
-
-// Spider remote 主从互切
-export interface SpiderMasterSlaveSwitchDetails {
-  force: boolean; // 互切单据就传False，表示安全切换
-  is_check_process: boolean;
-  is_verify_checksum: boolean;
-  is_check_delay: boolean; // 目前互切单据延时属于强制检测，故必须传True， 用户没有选择
-  infos: {
-    cluster_id: 1;
-    switch_tuples: {
-      master: {
-        ip: string;
-        bk_cloud_id: number;
-      };
-      slave: {
-        ip: string;
-        bk_cloud_id: number;
-      };
-    }[];
-  }[];
-}
-
-// Spider remote主故障切换
-export type SpiderMasterFailoverDetails = SpiderMasterSlaveSwitchDetails;
-
-// spider扩容接入层
-export interface SpiderAddNodesDeatils {
-  ip_source: 'resource_pool';
-  infos: {
-    cluster_id: number;
-    add_spider_role: string;
-    resource_spec: {
-      spider_ip_list: {
-        count: number;
-        spec_id: number;
-      };
-    };
-  }[];
-}
-
-// Spider TenDBCluster 库表备份
-export interface SpiderTableBackupDetails {
-  infos: {
-    cluster_id: number;
-    db_patterns: string[];
-    ignore_dbs: string[];
-    table_patterns: string[];
-    ignore_tables: string[];
-    backup_local: string;
-  }[];
-}
-
-// Spider TenDBCluster 全备单据
-export interface SpiderFullBackupDetails {
-  infos: {
-    backup_type: 'logical' | 'physical';
-    file_tag: 'MYSQL_FULL_BACKUP' | 'LONGDAY_DBFILE_3Y';
-    clusters: {
-      cluster_id: number;
-      backup_local: string; // spider_mnt:: 127.0.0.1: 8000
-    }[];
-  };
-}
-
-// spider 缩容接入层
-export interface SpiderReduceNodesDetails {
-  is_safe: boolean; // 是否做安全检测
-  infos: {
-    cluster_id: number;
-    spider_reduced_to_count: number;
-    reduce_spider_role: string;
-  }[];
-}
-
-// Spider 集群remote节点扩缩容
-export interface SpiderNodeRebalanceDetails {
-  need_checksum: true;
-  trigger_checksum_type: 'now' | 'timer';
-  trigger_checksum_time: string;
-  infos: {
-    bk_cloud_id: number;
-    cluster_id: number;
-    db_module_id: number;
-    cluster_shard_num: number; // 集群分片数
-    remote_shard_num: number; // 单机分片数
-    resource_spec: {
-      backend_group: {
-        spec_id: number;
-        count: number;
-        affinity: string; // 亲和性要求
-      };
-    };
-  }[];
-}
-
-// spider 定点回档
-export interface SpiderRollbackDetails {
-  cluster_id: number,
-  clusters: clustersItems,
-  rollback_type: 'REMOTE_AND_BACKUPID' | 'REMOTE_AND_TIME',
-  rollback_time: string,
-  backupinfo: {
-    backup_begin_time: string;
-    backup_end_time: string;
-    backup_id: string;
-    backup_time: string;
-    bill_id: string;
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    cluster_address: string;
-    cluster_id: number;
-  },
-  databases: string[],
-  tables: string[],
-  databases_ignore: string[],
-  tables_ignore: string[],
-}
-
-// Spider flashback
-export interface SpiderFlashbackDetails {
-  infos: {
-    cluster_id: number;
-    start_time: string;
-    end_time: string;
-    databases: string[];
-    databases_ignore: string[];
-    tables: string[];
-    tables_ignore: string[];
-  }[];
-}
-
-// Spider tendbcluster 清档
-export interface SpiderTruncateDatabaseDetails {
-  infos: {
-    cluster_id: number;
-    db_patterns: string[];
-    ignore_dbs: string[];
-    table_patterns: string[];
-    ignore_tables: string[];
-    truncate_data_type: 'truncate_table' | 'drop_table' | 'drop_database';
-    force: boolean;
-  }[];
-}
-
-// Spider 只读集群下架
-export interface SpiderSlaveDestroyDetails {
-  is_safe: boolean;
-  cluster_ids: number[];
-}
-
-// Spider 运维节点下架
-export interface SpiderMNTDestroyDetails {
-  is_safe: boolean;
-  infos: {
-    cluster_id: number;
-    spider_ip_list: {
-      ip: string;
-      bk_cloud_id: number;
-    }[];
+    current_versions: string[];
+    node_type: string;
+    target_version: string;
   }[];
 }
 
@@ -1007,8 +761,6 @@ export interface SpiderPartitionManageDetails {
     };
   };
 }
-
-
 
 export interface MysqlOpenAreaDetails {
   cluster_id: number;
@@ -1062,5 +814,5 @@ export interface MysqlDataMigrateDetails {
     db_list: string;
     source_cluster: number;
     target_clusters: number[];
-  }[]
+  }[];
 }

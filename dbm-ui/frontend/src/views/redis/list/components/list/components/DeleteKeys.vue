@@ -14,16 +14,18 @@
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
+    class="redis-list-delete-keys-slider"
     :is-show="isShow"
+    render-directive="if"
     :width="960"
     @closed="handleClose">
     <template #header>
       <div class="delete-keys-header">
         <template v-if="isBatch">
-          <span class="delete-keys-header__title">{{ t('批量删除Key') }}</span>
+          <span>{{ t('批量删除Key') }}</span>
           （
           <I18nT
-            class="purge-header__desc"
+            class="purge-header-desc"
             keypath="已选n个集群"
             tag="span">
             <strong>{{ state.formdata.length }}</strong>
@@ -31,12 +33,12 @@
           ）
         </template>
         <template v-else>
-          <span class="delete-keys-header__title">{{ t('删除Key') }}</span>
+          <span>{{ t('删除Key') }}</span>
           <template v-if="firstData">
-            <span class="delete-keys-header__title"> - {{ firstData.master_domain }}</span>
+            <span> - {{ firstData.master_domain }}</span>
             <span
               v-if="firstData.cluster_alias"
-              class="delete-keys-header__desc">
+              class="delete-keys-header-desc">
               （{{ firstData.cluster_alias }}）
             </span>
           </template>
@@ -45,29 +47,29 @@
     </template>
     <div class="delete-keys">
       <BkAlert closable>
-        <div class="delete-keys__tips">
-          <div class="delete-keys__tips-item">
-            <span class="delete-keys__tips-label">{{ t('可使用通配符进行删除_如_Key或Key') }}</span>
-            <span class="delete-keys__tips-value">{{ t('删除以Key开头的key_包括Key') }}</span>
+        <div class="delete-keys-tips">
+          <div class="delete-keys-tips-item">
+            <span class="delete-keys-tips-label">{{ t('可使用通配符进行删除_如_Key或Key') }}</span>
+            <span class="delete-keys-tips-value">{{ t('删除以Key开头的key_包括Key') }}</span>
           </div>
-          <div class="delete-keys__tips-item">
-            <span class="delete-keys__tips-label">*Key$ :</span>
-            <span class="delete-keys__tips-value">{{ t('删除以Key结尾的key_包括Key') }}</span>
+          <div class="delete-keys-tips-item">
+            <span class="delete-keys-tips-label">*Key$ :</span>
+            <span class="delete-keys-tips-value">{{ t('删除以Key结尾的key_包括Key') }}</span>
           </div>
-          <div class="delete-keys__tips-item">
-            <span class="delete-keys__tips-label">^Key$ :</span>
-            <span class="delete-keys__tips-value">{{ t('删除精确匹配的Key') }}</span>
+          <div class="delete-keys-tips-item">
+            <span class="delete-keys-tips-label">^Key$ :</span>
+            <span class="delete-keys-tips-value">{{ t('删除精确匹配的Key') }}</span>
           </div>
-          <div class="delete-keys__tips-item">
-            <span class="delete-keys__tips-label">* :</span>
-            <span class="delete-keys__tips-value">{{ t('删除所有key') }}</span>
+          <div class="delete-keys-tips-item">
+            <span class="delete-keys-tips-label">* :</span>
+            <span class="delete-keys-tips-value">{{ t('删除所有key') }}</span>
           </div>
         </div>
       </BkAlert>
       <DbForm
         :key="state.renderKey"
         ref="formRef"
-        class="delete-keys__content"
+        class="delete-keys-content"
         :model="state.formdata">
         <DbOriginalTable
           class="custom-edit-table"
@@ -99,7 +101,7 @@
   import RedisModel from '@services/model/redis/redis';
   import { createTicket } from '@services/source/ticket';
 
-  import { useBeforeClose, useStickyFooter, useTicketMessage } from '@hooks';
+  import { useBeforeClose, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -134,8 +136,6 @@
   const ticketMessage = useTicketMessage();
 
   const formRef = ref();
-  /** 设置底部按钮粘性布局 */
-  useStickyFooter(formRef);
 
   const globalBizsStore = useGlobalBizs();
   const handleBeforeClose = useBeforeClose();
@@ -163,7 +163,7 @@
           allowHTML: true,
       }}>
         <span>{data.master_domain}</span><br />
-        <span class="cluster-name__alias">{data.cluster_alias}</span>
+        <span class="cluster-name-alias">{data.cluster_alias}</span>
       </div>
     ),
   }, {
@@ -337,28 +337,28 @@
             isBatch.value
               ? (
                 state.formdata.map((item, index) => (
-                  <p class="delete-confirm__item">
+                  <p class="delete-confirm-item">
                     {index + 1}.{item.master_domain}
                     {
                       item.cluster_alias
-                        ? <span class="delete-confirm__desc">（{item.cluster_alias}）</span>
+                        ? <span class="delete-confirm-desc">（{item.cluster_alias}）</span>
                         : null
                     }
                   </p>
                 ))
               )
               : (
-                  <p class="delete-confirm__item">
+                  <p class="delete-confirm-item">
                     {t('集群')}：{firstData.value.master_domain}
                     {
                       firstData.value.cluster_alias
-                        ? <span class="delete-confirm__desc">（{firstData.value.cluster_alias}）</span>
+                        ? <span class="delete-confirm-desc">（{firstData.value.cluster_alias}）</span>
                         : null
                     }
                   </p>
                 )
           }
-          <p class="delete-confirm__item">{t('删除Key_会将Key提取的对应内容进行删除_请谨慎操作')}</p>
+          <p class="delete-confirm-item">{t('删除Key_会将Key提取的对应内容进行删除_请谨慎操作')}</p>
         </div>
       ),
       onConfirm: async () => {
@@ -421,8 +421,8 @@
       }
     }
 
-    &__tips {
-      &-item {
+    .delete-keys-tips {
+      .delete-keys-tips-item {
         display: flex;
         padding-bottom: 4px;
         font-size: @font-size-mini;
@@ -432,26 +432,26 @@
         }
       }
 
-      &-label {
+      .delete-keys-tips-label {
         width: 236px;
         padding-right: 8px;
         text-align: right;
         flex-shrink: 0;
       }
 
-      &-value {
+      .delete-keys-tips-value {
         word-break: break-all;
       }
     }
 
-    &__content {
+    .delete-keys-content {
       padding-top: 12px;
 
       :deep(.cluster-name) {
         padding: 8px 0;
         line-height: 16px;
 
-        &__alias {
+        .cluster-name-alias {
           color: @light-gray;
         }
       }
@@ -477,7 +477,7 @@
   }
 
   .delete-keys-header {
-    &__desc {
+    .delete-keys-header-desc {
       font-size: @font-size-mini;
       color: @gray-color;
 
@@ -496,14 +496,21 @@
       padding: 0 36px;
       text-align: left;
 
-      &__item {
+      .delete-confirm-item {
         padding-bottom: 4px;
         word-break: break-all;
       }
 
-      &__desc {
+      .delete-confirm-desc {
         color: @light-gray;
       }
+    }
+  }
+
+  .redis-list-delete-keys-slider {
+    .bk-modal-content {
+      max-height: calc(100vh - 125px);
+      overflow-y: auto;
     }
   }
 </style>

@@ -33,6 +33,7 @@
           @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
     </div>
     <template #action>
       <BkButton
@@ -78,6 +79,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
@@ -92,7 +94,8 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_SCALE_UPDOWN,
     onSuccess(cloneData) {
-      tableData.value = cloneData;
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -102,6 +105,8 @@
   const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
   const versionsMap = ref<Record<string, string[]>>({});
+  const remark = ref('');
+
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
   const inputedClusters = computed(() => tableData.value.map((item) => item.targetCluster));
@@ -200,6 +205,7 @@
     const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_SCALE_UPDOWN,
+      remark: remark.value,
       details: {
         ip_source: 'resource_pool',
         infos,
@@ -236,6 +242,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;

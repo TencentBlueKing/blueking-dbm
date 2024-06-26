@@ -17,14 +17,6 @@
       <BkAlert
         theme="info"
         :title="t('数据库备份：指定DB备份，支持模糊匹配')" />
-      <!-- <BkButton
-        class="mt16"
-        @click="handleShowBatchEntry">
-        <DbIcon
-          class="mr8"
-          type="add" />
-        {{ t('批量录入') }}
-      </BkButton> -->
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -271,7 +263,7 @@
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
         domainMemo[domain] = true;
-        return [...result, generateRowDateFromRequest({...item, exact_domain: item.master_domain})];
+        return [...result, generateRowDateFromRequest({ ...item, exact_domain: item.master_domain })];
       }
       return result;
     }, [] as IDataRow[]);
@@ -294,7 +286,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const result = await filterClusters({
+    const result = await filterClusters<SqlServerHaClusterModel>({
       bk_biz_id: currentBizId,
       exact_domain: domain,
     }).finally(() => {
@@ -348,10 +340,16 @@
   };
 
   const handleSubmit = async () => {
-    const infos = await Promise.all(rowRefs.value!.map((item: { getValue: () => Promise<{
-      cluster_id: number;
-      backup_dbs: string[]
-    }> }) => item.getValue()));
+    const infos = await Promise.all(
+      rowRefs.value!.map(
+        (item: {
+          getValue: () => Promise<{
+            cluster_id: number;
+            backup_dbs: string[];
+          }>;
+        }) => item.getValue(),
+      ),
+    );
 
     InfoBox({
       title: t('确认提交n个数据库备份任务', { n: totalNum.value }),

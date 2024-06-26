@@ -12,87 +12,25 @@
 -->
 
 <template>
-  <div class="monitor-alarm-plat-page">
-    <BkTab
-      v-model:active="activeTab"
-      class="top-tabs"
-      type="unborder-card">
-      <BkTabPanel
-        v-for="tab of tabs"
-        :key="tab.label"
-        :label="tab.label"
-        :name="tab.value" />
-    </BkTab>
-    <div class="content">
-      <RenderContent
-        :key="activeTab"
-        :active-db-type="activeTab" />
-    </div>
+  <DbTab v-model:active="activeTab" />
+  <div class="duty-rule-manage-content">
+    <RenderContent
+      :key="activeTab"
+      :active-db-type="activeTab" />
   </div>
 </template>
 <script setup lang="ts">
+  import DbTab from '@components/db-tab/Index.vue';
+
   import RenderContent from './components/content/Index.vue';
 
-  const tabs = [
-    {
-      value: 'mysql',
-      label: 'MySQL',
-    },
-    {
-      value: 'tendbcluster',
-      label: 'TendbCluster',
-    },
-    {
-      value: 'redis',
-      label: 'Redis',
-    },
-    {
-      value: 'mongodb',
-      label: 'MongoDB',
-    },
-    {
-      value: 'kafka',
-      label: 'Kafka',
-    },
-    {
-      value: 'hdfs',
-      label: 'HDFS',
-    },
-    {
-      value: 'es',
-      label: 'ES',
-    },
-    {
-      value: 'pulsar',
-      label: 'Pulsar',
-    },
-    {
-      value: 'influxdb',
-      label: 'InfluxDB',
-    },
-    {
-      value: 'riak',
-      label: 'Riak',
-    },
-  ];
+  const route = useRoute();
 
-  const activeTab = ref(tabs[0].value);
+  const activeTab = ref<string>(route.query.db_type as string);
 </script>
 <style lang="less">
-  .monitor-alarm-plat-page {
-    .top-tabs {
-      padding: 0 24px;
-      background: #fff;
-      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
-
-      .bk-tab-content {
-        display: none;
-      }
-    }
-
-    .content {
-      height: calc(100vh - 150px);
-      padding: 24px;
-    }
+  .duty-rule-manage-content {
+    height: calc(100vh - 150px);
+    padding: 24px;
   }
 </style>

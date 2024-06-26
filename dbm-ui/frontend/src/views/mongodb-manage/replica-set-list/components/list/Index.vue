@@ -115,13 +115,13 @@
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
-  import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import {
     getMenuListSearch,
@@ -307,29 +307,40 @@
               ))
             }
             {
-              data.isDisabled && (
-                <db-icon
-                  svg
-                  type="yijinyong"
-                  class="disabled-tag" />
+              data.isOffline && (
+                <bk-tag
+                  class="ml-4"
+                  size="small">
+                  {t('已禁用')}
+                </bk-tag>
               )
             }
           </>
         );
 
         return (
-          <div>
-            <RenderTextEllipsisOneLine
-              text={data.cluster_name}
-              textStyle={{
-                fontWeight: '700',
-                minWidth: '50px',
+          <>
+            <TextOverflowLayout>
+              {{
+                default: () => (
+                  <auth-button
+                    style={{
+                      fontWeight: '700',
+                    }}
+                    action-id="mongodb_view"
+                    resource={data.id}
+                    permission={data.permission.mongodb_view}
+                    text
+                    theme="primary"
+                    onClick={() => handleToDetails(data.id)}>
+                      {data.cluster_name}
+                  </auth-button>
+                ),
+                append: () => content
               }}
-              onClick={() => handleToDetails(data.id)}>
-              {content}
-            </RenderTextEllipsisOneLine>
+            </TextOverflowLayout>
             <span class="cluster-alias">{ data.cluster_alias }</span>
-          </div>
+          </>
         );
       },
     },
@@ -780,6 +791,12 @@
           color: #3a84ff;
           vertical-align: middle;
           cursor: pointer;
+        }
+      }
+
+      .text-overflow-layout {
+        .layout-content {
+          min-width: 50px;
         }
       }
     }

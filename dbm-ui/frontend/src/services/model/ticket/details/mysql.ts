@@ -70,6 +70,7 @@ export interface MySQLImportSQLFileDetails {
   execute_sql_files: [];
   import_mode: string;
   semantic_node_id: string;
+  dump_file_path?: string;
 }
 
 /**
@@ -129,6 +130,7 @@ export interface MySQLInstanceCloneDetails {
     target: string;
     module: string;
     cluster_domain: string;
+    cluster_id: number;
   }[];
 }
 
@@ -341,6 +343,7 @@ export interface MySQLMigrateDetails {
 export interface MysqlOpenAreaDetails {
   cluster_id: number;
   clusters: DetailClusters;
+  config_id: number;
   config_data: {
     cluster_id: number;
     execute_objects: {
@@ -489,4 +492,19 @@ export interface MySQLTableBackupDetails {
     table_patterns: string[];
     force: boolean;
   }[];
+}
+
+/**
+ * MySQL 数据导出
+ */
+export interface MySQLExportData {
+  clusters: DetailClusters;
+  cluster_id: number;
+  charset: string;
+  databases: string[];
+  tables: string[];
+  tables_ignore: string[];
+  where: string;
+  dump_data: boolean; // 是否导出表数据
+  dump_schema: boolean; // 是否导出表结构
 }

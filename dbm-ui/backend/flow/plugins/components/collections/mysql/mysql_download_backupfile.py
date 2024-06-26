@@ -51,9 +51,13 @@ class MySQLDownloadBackupfile(BkJobService):
 
     def _schedule(self, data, parent_data, callback_data=None):
         # 定义异步扫描
+        kwargs = data.get_one_of_inputs("kwargs")
+        self.log_debug(kwargs)
         backup_bill_id = data.get_one_of_outputs("backup_bill_id")
         self.log_info(_("下载单据ID {}").format(backup_bill_id))
-        result_response = MysqlBackupApi.download_result({"bill_id": backup_bill_id})
+        result_response = MysqlBackupApi.download_result(
+            {"bill_id": backup_bill_id, "bk_cloud_id": kwargs["bk_cloud_id"]}
+        )
         # 如何判断
         if result_response is not None and "total" in result_response:
             if (

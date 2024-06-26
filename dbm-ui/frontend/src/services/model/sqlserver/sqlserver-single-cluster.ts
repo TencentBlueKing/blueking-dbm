@@ -22,9 +22,9 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
   static operationIconMap = {
-    [SqlServerSingleCluster.SQLSERVER_ENABLE]: 'qiyongzhong',
-    [SqlServerSingleCluster.SQLSERVER_DISABLE]: 'jinyongzhong',
-    [SqlServerSingleCluster.SQLSERVER_DESTROY]: 'shanchuzhong',
+    [SqlServerSingleCluster.SQLSERVER_ENABLE]: t('启用中'),
+    [SqlServerSingleCluster.SQLSERVER_DISABLE]: t('禁用中'),
+    [SqlServerSingleCluster.SQLSERVER_DESTROY]: t('删除中'),
   };
   static operationTextMap = {
     [SqlServerSingleCluster.SQLSERVER_DESTROY]: t('删除任务执行中'),
@@ -50,6 +50,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
   cluster_type_name: string;
+  create_at: string;
   creator: string;
   db_module_id: number;
   db_module_name: string;
@@ -65,6 +66,9 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    sqlserver_view: boolean;
+  };
   phase: string;
   phase_name: string;
   region: string;
@@ -116,6 +120,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
+    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
@@ -123,6 +128,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
     this.operations = payload.operations;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;

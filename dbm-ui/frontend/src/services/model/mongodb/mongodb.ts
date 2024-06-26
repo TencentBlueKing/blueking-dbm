@@ -63,9 +63,9 @@ export default class Mongodb {
   static MongoReplicaSet = 'MongoReplicaSet'; // 副本集集群
 
   static operationIconMap: Record<string, string> = {
-    [TicketTypes.MONGODB_ENABLE]: 'qiyongzhong',
-    [TicketTypes.MONGODB_DISABLE]: 'jinyongzhong',
-    [TicketTypes.MONGODB_DESTROY]: 'shanchuzhong',
+    [TicketTypes.MONGODB_ENABLE]: t('启用中'),
+    [TicketTypes.MONGODB_DISABLE]: t('禁用中'),
+    [TicketTypes.MONGODB_DESTROY]: t('删除中'),
   };
 
   static operationTextMap: Record<string, string> = {
@@ -109,6 +109,9 @@ export default class Mongodb {
     ticket_type: string;
     title: string;
   }[];
+  permission: {
+    mongodb_view: boolean;
+  };
   phase: string;
   phase_name: string;
   region: string;
@@ -153,6 +156,7 @@ export default class Mongodb {
     this.mongodb = payload.mongodb;
     this.mongos = payload.mongos;
     this.operations = payload.operations;
+    this.permission = payload.permission;
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;

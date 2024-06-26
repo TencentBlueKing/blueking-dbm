@@ -64,11 +64,13 @@ func (ins *RedisSwitch) CheckSwitch() (bool, error) {
 		return false, err
 	}
 
-	ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("redis switch precheck: twemproxy infos:%v", ins.Proxy))
-	if _, err := ins.CheckTwemproxyPing(); err != nil {
-		ins.DoUnLockByFile()
-		ins.ReportLogs(constvar.FailResult, fmt.Sprintf("redis switch precheck: twemproxy failed,err:%s", err.Error()))
-		return false, err
+	if ins.ClusterType != constvar.RedisInstance {
+		ins.ReportLogs(constvar.InfoResult, fmt.Sprintf("redis switch precheck: twemproxy infos:%v", ins.Proxy))
+		if _, err := ins.CheckTwemproxyPing(); err != nil {
+			ins.DoUnLockByFile()
+			ins.ReportLogs(constvar.FailResult, fmt.Sprintf("redis switch precheck: twemproxy failed,err:%s", err.Error()))
+			return false, err
+		}
 	}
 
 	// here , do slave sync check.
@@ -117,11 +119,12 @@ func (ins *RedisSwitch) DoSwitch() error {
 		return redisErr
 	}
 
-	if err := ins.TwemproxySwitchM2S(ins.Ip, ins.Port, slave.Ip, slave.Port); err != nil {
-		ins.DoUnLockByFile()
-		return err
+	if ins.ClusterType != constvar.RedisInstance {
+		if err := ins.TwemproxySwitchM2S(ins.Ip, ins.Port, slave.Ip, slave.Port); err != nil {
+			ins.DoUnLockByFile()
+			return err
+		}
 	}
-
 	return nil
 }
 

@@ -90,10 +90,10 @@ class TenDBRemoteRebalanceFlow(object):
         # 阶段1 获取集群所有信息。计算端口,构建数据。
         tendb_migrate_pipeline_all_list = []
         for info in self.ticket_data["infos"]:
-            cluster_info = get_cluster_info(info["cluster_id"])
-            cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
             self.data = {}
             self.data = copy.deepcopy(info)
+            cluster_info = get_cluster_info(info["cluster_id"])
+            cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
             self.data["bk_cloud_id"] = cluster_info["bk_cloud_id"]
             self.data["root_id"] = self.root_id
             self.data["start_port"] = 20000

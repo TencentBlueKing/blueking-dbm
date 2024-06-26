@@ -180,14 +180,11 @@
     // getLevelConfig,
     saveModulesDeployInfo,
   } from '@services/source/configs';
-  import { listSqlserverSystemVersion } from '@services/source/version'
+  import { listSqlserverSystemVersion } from '@services/source/version';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    sqlServerType,
-    type SqlServerTypeString,
-  } from '@common/const';
+  import { sqlServerType, type SqlServerTypeString } from '@common/const';
 
   import DeployVersion from '@components/apply-items/DeployVersion.vue';
 
@@ -198,24 +195,21 @@
   const router = useRouter();
   const route = useRoute();
 
-  const {
-    bizs,
-    currentBizId,
-  } = useGlobalBizs();
+  const { bizs, currentBizId } = useGlobalBizs();
 
   const haModeList = [
     {
-      value: 'image',
+      value: 'mirroring',
       label: t('镜像'),
     },
     {
-      value: 'alwaysOn',
+      value: 'always_on',
       label: 'always on',
     },
   ];
 
   const characterSets = ['Chinese_PRC_CI_AS', 'Latin1_General_100_CI_AS'];
-  const bizInfo = bizs.find(info => info.bk_biz_id === currentBizId) || { name: '' };
+  const bizInfo = bizs.find((info) => info.bk_biz_id === currentBizId) || { name: '' };
   const paramBizId = Number(route.params.bk_biz_id);
 
   const rules = {
@@ -254,10 +248,7 @@
 
   const ticketInfo = computed(() => sqlServerType[route.params.type as SqlServerTypeString]);
 
-  const {
-    loading: isLoading,
-    run: runCreateModules,
-  } = useRequest(createModules, {
+  const { loading: isLoading, run: runCreateModules } = useRequest(createModules, {
     manual: true,
     onSuccess(res) {
       if (res.db_module_id) {
@@ -271,42 +262,44 @@
           meta_cluster_type: String(route.query.cluster_type),
           conf_items: [
             {
-              conf_name: "charset",
+              conf_name: 'charset',
               conf_value: formData.character_set,
-              op_type: "update",
-              description: t("字符集")
+              op_type: 'update',
+              description: t('字符集'),
             },
             {
-              conf_name: "db_version",
+              conf_name: 'db_version',
               conf_value: formData.version,
-              op_type: "update",
-              description: t("数据库版本")
+              op_type: 'update',
+              description: t('数据库版本'),
             },
             {
-              conf_name: "buffer_percent",
+              conf_name: 'buffer_percent',
               conf_value: formData.memoryAllocationRatio,
-              op_type: "update",
-              description: t("实际内存分配比率")
+              op_type: 'update',
+              description: t('实际内存分配比率'),
             },
             {
-              conf_name: "max_remain_mem_gb",
+              conf_name: 'max_remain_mem_gb',
               conf_value: String(formData.maxSystemReservedMemory),
-              op_type: "update",
-              description: t("最大系统保留内存")
+              op_type: 'update',
+              description: t('最大系统保留内存'),
             },
             {
-              conf_name: "sync_type",
+              conf_name: 'sync_type',
               conf_value: formData.haMode,
-              op_type: "update",
-              description: t("主从方式")
+              op_type: 'update',
+              description: t('主从方式'),
             },
             {
-              conf_name: "system_version",
-              conf_value: formData.operatingSystemVersion.map(versionItem => versionItem.replace(/\s*/g, '')).join(','),
-              op_type: "update",
-              description: t("操作系统版本")
-            }
-          ]
+              conf_name: 'system_version',
+              conf_value: formData.operatingSystemVersion
+                .map((versionItem) => versionItem.replace(/\s*/g, ''))
+                .join(','),
+              op_type: 'update',
+              description: t('操作系统版本'),
+            },
+          ],
         });
       }
     },
@@ -325,32 +318,36 @@
     onSuccess() {
       messageSuccess(t('创建DB模块并绑定数据库配置成功'));
       window.changeConfirm = false;
-    }
+    },
   });
 
-  const {
-    data: operatingSystemVersionList,
-    run: listSqlserverSystemVersionRun
-  } = useRequest(listSqlserverSystemVersion, {
-    manual:true
-  });
+  const { data: operatingSystemVersionList, run: listSqlserverSystemVersionRun } = useRequest(
+    listSqlserverSystemVersion,
+    {
+      manual: true,
+    },
+  );
 
-  watch(() => formData.version, (version) => {
-    if (version) {
-      // fetchLevelConfig();
+  watch(
+    () => formData.version,
+    (version) => {
+      if (version) {
+        // fetchLevelConfig();
 
-      formData.operatingSystemVersion = [] as string[]
-      listSqlserverSystemVersionRun({
-        sqlserver_version: version
-      })
+        formData.operatingSystemVersion = [] as string[];
+        listSqlserverSystemVersionRun({
+          sqlserver_version: version,
+        });
 
-      if (Number(version.slice(-4)) > 2017) {
-        formData.haMode = 'alwaysOn';
-      } else {
-        formData.haMode = 'image';
+        if (Number(version.slice(-4)) > 2017) {
+          formData.haMode = 'always_on';
+        } else {
+          formData.haMode = 'mirroring';
+        }
       }
-    }
-  }, { immediate: true });
+    },
+    { immediate: true },
+  );
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 

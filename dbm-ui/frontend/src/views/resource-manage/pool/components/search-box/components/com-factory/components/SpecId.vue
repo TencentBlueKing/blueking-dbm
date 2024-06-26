@@ -250,7 +250,7 @@
     {
       moduleId: 'bigdata',
       label: 'Pulsar',
-      name: ClusterTypes.PULSAE,
+      name: ClusterTypes.PULSAR,
       children: [
         {
           label: t('Bookkeeper节点规格'),
@@ -335,6 +335,7 @@
         fetchResourceSpecList({
           spec_cluster_type: currentCluster.value,
           spec_machine_type: currentMachine.value,
+          limit: -1,
         });
       }
     },

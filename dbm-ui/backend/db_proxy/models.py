@@ -32,7 +32,7 @@ class DBCloudProxy(AuditedModel):
     external_address = models.CharField(verbose_name=_("代理外部地址"), max_length=LEN_LONG)
 
     class Meta:
-        verbose_name = _("云区域代理")
+        verbose_name_plural = verbose_name = _("云区域代理（DBCloudProxy）")
 
 
 class DBExtension(AuditedModel):
@@ -55,6 +55,9 @@ class DBExtension(AuditedModel):
         verbose_name=_("服务状态"), max_length=LEN_NORMAL, choices=ExtensionServiceStatus.get_choices()
     )
     details = models.JSONField(verbose_name=_("详情"))
+
+    class Meta:
+        verbose_name_plural = verbose_name = _("云区域组件扩展（DBExtension）")
 
     @classmethod
     def get_extension_in_cloud(cls, bk_cloud_id: int, extension_type: ExtensionType):
@@ -157,6 +160,7 @@ class ClusterExtension(AuditedModel):
 
     class Meta:
         index_together = [("bk_biz_id", "db_type", "cluster_name", "service_type")]
+        verbose_name_plural = verbose_name = _("集群扩展服务（ClusterExtension）")
 
     @classmethod
     def get_extension_by_flush(cls, is_flush: bool = False, is_deleted: bool = False):

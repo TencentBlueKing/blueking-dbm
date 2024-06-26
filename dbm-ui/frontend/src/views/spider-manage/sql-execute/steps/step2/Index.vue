@@ -126,7 +126,7 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const { rootId, nodeId } = route.query as { rootId: string; nodeId: string };
+  const { rootId, nodeId, remark } = route.query as { rootId: string; nodeId: string; remark: string };
 
   const selectFileName = ref('');
   const fileImportMode = ref('');
@@ -154,13 +154,15 @@
     return statusComMap[flowStatus.value as keyof typeof statusComMap];
   });
 
-  const fileDataList = computed<IFileItem[]>(() => fileNameList.value.map(name => ({
-    name,
-    isPending: fileLogMap.value[name]?.status === 'RUNNING',
-    isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
-    isFailed: fileLogMap.value[name]?.status === 'FAILED',
-    isWaiting: fileLogMap.value[name]?.status === 'PENDING',
-  })));
+  const fileDataList = computed<IFileItem[]>(() =>
+    fileNameList.value.map((name) => ({
+      name,
+      isPending: fileLogMap.value[name]?.status === 'RUNNING',
+      isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
+      isFailed: fileLogMap.value[name]?.status === 'FAILED',
+      isWaiting: fileLogMap.value[name]?.status === 'PENDING',
+    })),
+  );
 
   const currentSelectFileData = computed(() =>
     _.find(fileDataList.value, (item) => item.name === selectFileName.value),
@@ -231,7 +233,7 @@
       details: {
         root_id: rootId,
       },
-      remark: '',
+      remark,
       ticket_type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
     })
       .then((data) => {

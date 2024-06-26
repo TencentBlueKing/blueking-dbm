@@ -171,7 +171,7 @@
 
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -509,7 +509,11 @@
             }
             {
               !data.isOnline && !data.isStarting && (
-                <bk-tag size="small">{t('已禁用')}</bk-tag>
+                <bk-tag
+                  class="ml-4"
+                  size="small">
+                  {t('已禁用')}
+                </bk-tag>
               )
             }
             {

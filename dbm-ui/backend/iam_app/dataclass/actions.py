@@ -17,9 +17,9 @@ from iam import Action
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.iam_app.constans import CommonActionLabel
+from backend.iam_app.constans import MAX_ACTION_NAME_LEN, CommonActionLabel
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
-from backend.iam_app.exceptions import ActionNotExistError
+from backend.iam_app.exceptions import ActionNotExistError, BaseIAMError
 from backend.ticket.constants import TicketEnumField, TicketType
 
 
@@ -43,6 +43,9 @@ class ActionMeta(Action):
 
     def __post_init__(self):
         super(ActionMeta, self).__init__(id=self.id)
+        # 如果单据长度大于32，则报错
+        if len(self.id) > MAX_ACTION_NAME_LEN:
+            raise BaseIAMError(_("动作ID{}长度超过{}，无法注册iam，请重新命名").format(self.id, MAX_ACTION_NAME_LEN))
         self.related_actions = self.related_actions or []
         self.related_resource_types = self.related_resource_types or []
         self.common_labels = self.common_labels or []
@@ -555,7 +558,7 @@ class ActionEnum:
 
     TENDBCLUSTER_VIEW = ActionMeta(
         id="tendbcluster_view",
-        name=_("TenDB Cluster 集群查看"),
+        name=_("TenDB Cluster 集群详情查看"),
         name_en="tendbcluster_view",
         type="view",
         related_actions=[DB_MANAGE.id],
@@ -1856,10 +1859,9 @@ def register_ticket_iam_actions():
         # 如果单据类型要求不注册iam，则忽略
         if not isinstance(ticket_enum, TicketEnumField) or not ticket_enum.register_iam:
             continue
-
-        ticket_action = ActionMeta(id=ticket_type.lower(), subgroup=ticket_enum.subgroup, is_ticket_action=True)
         # 优先以定义为准，否则自动注册
         if not getattr(ActionEnum, ticket_type.upper(), None):
+            ticket_action = ActionMeta(id=ticket_type.lower(), subgroup=ticket_enum.subgroup, is_ticket_action=True)
             setattr(ActionEnum, ticket_type.upper(), ticket_action)
 
 

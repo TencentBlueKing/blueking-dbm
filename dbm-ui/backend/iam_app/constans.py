@@ -13,6 +13,8 @@ from django.utils.translation import gettext as _
 
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
+MAX_ACTION_NAME_LEN = 32
+
 
 class CommonActionLabel(str, StructuredEnum):
     BIZ_READ_ONLY = EnumField("biz_read_only", _("业务只读"))

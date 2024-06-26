@@ -17,6 +17,7 @@
       <TaskTips />
       <DbForm
         ref="formRef"
+        class="toolbox-form"
         form-type="vertical"
         :model="formData">
         <TargetCluster v-model="formData.cluster_ids" />
@@ -47,6 +48,7 @@
         <Backup v-model="formData.backup" />
         <ExecuteMode v-model="formData.ticket_mode" />
       </DbForm>
+      <TicketRemark v-model="formData.remark" />
     </div>
     <template #action>
       <span
@@ -92,6 +94,8 @@
 
   import { TicketTypes } from '@common/const';
 
+  import TicketRemark from '@components/ticket-remark/Index.vue';
+
   import Backup from './components/backup/Index.vue';
   import type { IDataRow as BackupRow } from './components/backup/RenderData/Row.vue';
   import ExecuteMode from './components/ExecuteMode.vue';
@@ -119,6 +123,7 @@
       trigger_time: '',
     },
     ticket_type: 'MYSQL_SEMANTIC_CHECK',
+    remark: '',
   });
 
   const { t } = useI18n();
@@ -140,6 +145,7 @@
       formData.execute_db_infos = executeDbInfos;
       formData.cluster_ids = clusterIds;
       formData.ticket_mode = ticketMode;
+      formData.remark = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -216,6 +222,7 @@
             query: {
               rootId: data.root_id,
               nodeId: data.node_id,
+              remark: formData.remark,
             },
           });
         });

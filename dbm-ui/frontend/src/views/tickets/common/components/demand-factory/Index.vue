@@ -24,6 +24,7 @@
   import { TicketTypes } from '@common/const';
 
   import DetailsClusterOperation from './bigdata/DetailsClusterOperation.vue';
+  import DetailDoris from './bigdata/DetailsDoris.vue';
   import DetailsES from './bigdata/DetailsES.vue';
   import DetailsHDFS from './bigdata/DetailsHDFS.vue';
   import DetailsInfluxDB from './bigdata/DetailsInfluxDB.vue';
@@ -35,6 +36,7 @@
   import BigDataReplace from './bigdata/Replace.vue';
   import RiakExpansionCapacity from './bigdata/RiakExpansionCapacity.vue';
   import RiakReboot from './bigdata/RiakReboot.vue';
+  import DefaultDetails from './Default.vue';
   import InfluxdbOperations from './influxdb/Operations.vue';
   import InfluxdbReplace from './influxdb/Replace.vue';
   import MongoAuthrizeRules from './mongodb/AuthorizeRules.vue';
@@ -62,6 +64,7 @@
   import DumperInstall from './mysql/DumperInstall.vue';
   import DumperNodeStatusUpdate from './mysql/DumperNodeStatusUpdate.vue';
   import DumperSwitchNode from './mysql/DumperSwitchNode.vue';
+  import MysqlExportData from './mysql/ExportData.vue';
   import MySQLFlashback from './mysql/Flashback.vue';
   import MySQLFullBackup from './mysql/FullBackup.vue';
   import MySQLHATruncate from './mysql/HATruncate.vue';
@@ -138,6 +141,8 @@
 
   const mysqlRenameTypes = [TicketTypes.MYSQL_HA_RENAME_DATABASE, TicketTypes.MYSQL_SINGLE_RENAME_DATABASE];
 
+  const mysqlApplyTypes = [TicketTypes.MYSQL_SINGLE_APPLY, TicketTypes.MYSQL_HA_APPLY];
+
   const mysqlClusterTicketType = [
     TicketTypes.MYSQL_HA_DISABLE,
     TicketTypes.MYSQL_SINGLE_DISABLE,
@@ -175,6 +180,9 @@
     TicketTypes.RIAK_CLUSTER_DISABLE,
     TicketTypes.RIAK_CLUSTER_ENABLE,
     TicketTypes.RIAK_CLUSTER_DESTROY,
+    TicketTypes.DORIS_DISABLE,
+    TicketTypes.DORIS_ENABLE,
+    TicketTypes.DORIS_DESTROY,
   ];
 
   const sqlserverApplyTiketType = [TicketTypes.SQLSERVER_SINGLE_APPLY, TicketTypes.SQLSERVER_HA_APPLY];
@@ -193,6 +201,7 @@
     TicketTypes.HDFS_REPLACE,
     TicketTypes.KAFKA_REPLACE,
     TicketTypes.PULSAR_REPLACE,
+    TicketTypes.DORIS_REPLACE,
   ];
 
   const spiderSlaveType = [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, TicketTypes.TENDBCLUSTER_RESTORE_SLAVE];
@@ -202,6 +211,7 @@
     TicketTypes.ES_REBOOT,
     TicketTypes.KAFKA_REBOOT,
     TicketTypes.PULSAR_REBOOT,
+    TicketTypes.DORIS_REBOOT,
   ];
 
   const bigDataCapacityType = [
@@ -213,6 +223,8 @@
     TicketTypes.KAFKA_SHRINK,
     TicketTypes.PULSAR_SHRINK,
     TicketTypes.PULSAR_SCALE_UP,
+    TicketTypes.DORIS_SHRINK,
+    TicketTypes.DORIS_SCALE_UP,
   ];
 
   const riakCapacityType = [TicketTypes.RIAK_CLUSTER_SCALE_IN, TicketTypes.RIAK_CLUSTER_SCALE_OUT];
@@ -269,6 +281,10 @@
     TicketTypes.REDIS_INSTANCE_DESTROY,
   ];
 
+  const openareaTypes = [TicketTypes.MYSQL_OPEN_AREA, TicketTypes.TENDBCLUSTER_OPEN_AREA];
+
+  const dataExportTypes = [TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA];
+
   // 单一情况映射表
   const SingleDemandMap = {
     [TicketTypes.ES_APPLY]: DetailsES,
@@ -288,7 +304,6 @@
     [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: MySQLRestoreLocalSlave,
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: MySQLFullBackup,
     [TicketTypes.MYSQL_CHECKSUM]: MySQLChecksum,
-    [TicketTypes.MYSQL_OPEN_AREA]: MysqlOpenArea,
     [TicketTypes.MYSQL_ADD_SLAVE]: MySQLAddSlave,
     [TicketTypes.MYSQL_DATA_MIGRATE]: MySQLDataMigrate,
     [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
@@ -308,7 +323,7 @@
     [TicketTypes.REDIS_CLUSTER_TYPE_UPDATE]: RedisClusterTypeUpdate,
     [TicketTypes.REDIS_DATACOPY_CHECK_REPAIR]: RedisDataCheckAndRepair,
     [TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY]: RedisRollbackDataCopy,
-    [TicketTypes.REDIS_CLUSTER_VERSION_UPDATE_ONLINE]: RedisVersionUpgrade,
+    [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: RedisVersionUpgrade,
     [TicketTypes.TENDBCLUSTER_APPLY]: DetailsSpider,
     [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: SpiderAddNodes,
     [TicketTypes.TENDBCLUSTER_CHECKSUM]: SpiderCheckSum,
@@ -347,6 +362,7 @@
     [TicketTypes.SQLSERVER_BACKUP_DBS]: SqlserverDbBackup,
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: SpiderMigrateCluster,
     [TicketTypes.REDIS_INS_APPLY]: DetailsRedisHa,
+    [TicketTypes.DORIS_APPLY]: DetailDoris,
   };
 
   // 不同集群详情组件
@@ -446,13 +462,25 @@
     if (redisHaOperationTypes.includes(ticketType)) {
       return RedisHaClusterOperation;
     }
+    // 开区
+    if (openareaTypes.includes(ticketType)) {
+      return MysqlOpenArea;
+    }
+    // mysql 部署
+    if (mysqlApplyTypes.includes(ticketType)) {
+      return DetailsMySQL;
+    }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];
     }
     if ([TicketTypes.MYSQL_PARTITION, TicketTypes.TENDBCLUSTER_PARTITION].includes(ticketType)) {
       return MysqlParition;
     }
-    return DetailsMySQL;
+    if (dataExportTypes.includes(ticketType)) {
+      return MysqlExportData;
+    }
+
+    return DefaultDetails;
   });
 </script>
 

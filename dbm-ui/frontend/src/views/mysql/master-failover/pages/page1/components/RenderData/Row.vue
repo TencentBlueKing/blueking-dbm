@@ -31,27 +31,17 @@
         :master-data="localMasterData"
         @change="handleClusterChange" />
     </td>
-    <td>
-      <div class="action-box">
-        <div
-          class="action-btn"
-          @click="handleAppend">
-          <DbIcon type="plus-fill" />
-        </div>
-        <div
-          class="action-btn"
-          :class="{
-            disabled: removeable,
-          }"
-          @click="handleRemove">
-          <DbIcon type="minus-fill" />
-        </div>
-      </div>
-    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @clone="handleClone"
+      @remove="handleRemove" />
   </tr>
 </template>
 <script lang="ts">
   import { ref, shallowRef, watch } from 'vue';
+
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';
 
@@ -91,6 +81,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -138,13 +129,28 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    masterHostRef.value.getValue('master_ip'),
+    slaveHostRef.value.getValue(),
+    clusterRef.value.getValue(),
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          masterData: props.data.masterData,
+          slaveData: rowInfo[1].slave_ip,
+        }),
+      );
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        masterHostRef.value.getValue('master_ip'),
-        slaveHostRef.value.getValue(),
-        clusterRef.value.getValue(),
-      ]).then(([masterHostData, slaveHostData, clusterData]) => ({
+      return Promise.all(getRowData()).then(([masterHostData, slaveHostData, clusterData]) => ({
         ...masterHostData,
         ...slaveHostData,
         ...clusterData,

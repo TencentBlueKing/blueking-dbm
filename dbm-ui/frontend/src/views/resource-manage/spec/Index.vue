@@ -13,17 +13,7 @@
 
 <template>
   <div class="resource-spec-list-page">
-    <BkTab
-      v-model:active="curTab"
-      class="top-tabs"
-      type="unborder-card"
-      @change="handleChangeClusterType">
-      <BkTabPanel
-        v-for="tab of renderTabs"
-        :key="tab.name"
-        :label="tab.label"
-        :name="tab.name" />
-    </BkTab>
+    <ClusterTab v-model="curTab" />
     <div
       :key="curTab"
       class="wrapper">
@@ -56,6 +46,8 @@
   import { useFunController } from '@stores';
 
   import { ClusterTypes } from '@common/const';
+
+  import ClusterTab from '@components/cluster-tab/Index.vue';
 
   import SpecList from './components/SpecList.vue';
 
@@ -234,7 +226,7 @@
     {
       moduleId: 'bigdata',
       label: 'Pulsar',
-      name: ClusterTypes.PULSAE,
+      name: ClusterTypes.PULSAR,
       children: [
         {
           label: t('Bookkeeper节点规格'),
@@ -283,7 +275,7 @@
       children: [
         {
           label: t('Mongos规格'),
-          name: 'mongos',
+          name: 'mongodb',
         },
       ],
     },
@@ -328,9 +320,28 @@
         },
       ],
     },
+    {
+      moduleId: 'bigdata',
+      label: 'Doris',
+      name: ClusterTypes.DORIS,
+      children: [
+        {
+          label: t('Follower节点规格'),
+          name: 'doris_follower',
+        },
+        {
+          label: t('Observer节点规格'),
+          name: 'doris_observer',
+        },
+        {
+          label: t('冷_热节点规格'),
+          name: 'doris_backend',
+        },
+      ],
+    },
   ];
 
-  const curTab = ref<string>(ClusterTypes.TENDBSINGLE);
+  const curTab = ref<ClusterTypes>(ClusterTypes.TENDBSINGLE);
   const curChildTab = ref('');
 
   const renderTabs = computed(() =>
@@ -357,16 +368,10 @@
     () => childrenTabs.value.find((item) => item.name === curChildTab.value)?.label ?? '',
   );
 
-  const handleChangeClusterType = (value: string) => {
-    if (curTab.value !== value) {
-      curChildTab.value = '';
-    }
-  };
-
   onMounted(() => {
     const { spec_cluster_type: clusterType } = route.query;
     if (clusterType) {
-      curTab.value = clusterType as string;
+      curTab.value = clusterType as ClusterTypes;
     }
   });
 </script>

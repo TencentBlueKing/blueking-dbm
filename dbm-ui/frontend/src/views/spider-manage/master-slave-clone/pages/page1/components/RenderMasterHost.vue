@@ -93,10 +93,13 @@
         const otherClusterMemoMap = { ...hostsMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -111,21 +114,29 @@
   ];
 
   // 同步外部值
-  watch(() => props.ip, (newIp) => {
-    if (newIp) {
-      localValue.value = newIp
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.ip,
+    (newIp) => {
+      if (newIp) {
+        localValue.value = newIp;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(localValue, () => {
-    if (localValue.value) {
-      hostsMemo[instanceKey][localValue.value] = true;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    localValue,
+    () => {
+      if (localValue.value) {
+        hostsMemo[instanceKey][localValue.value] = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: string) => {
     hostsMemo[instanceKey][localValue.value] = true;
@@ -134,11 +145,14 @@
 
   onBeforeUnmount(() => {
     delete hostsMemo[instanceKey];
-  })
+  });
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => localValue.value);
+      return editRef.value
+        .getValue()
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>

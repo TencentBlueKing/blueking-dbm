@@ -31,7 +31,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { ClusterTypesValues } from '@common/const';
+  import type { ClusterTypes } from '@common/const';
 
   import { extraClusterConfs, getDefaultConf } from '@views/db-configure/common/const';
   import type { ConfType } from '@views/db-configure/common/types';
@@ -51,7 +51,7 @@
   watch(
     () => route.params.clusterType,
     (type) => {
-      const clusterType = type as ClusterTypesValues;
+      const clusterType = type as ClusterTypes;
       const tabs = [getDefaultConf(clusterType, t('配置列表'))];
       // 添加额外配置
       const extraTabs = extraClusterConfs[clusterType];

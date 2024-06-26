@@ -29,35 +29,38 @@
   <SmartAction
     v-else
     class="db-rename">
-    <BkAlert
-      closable
-      :title="t('DB重命名_database重命名')" />
-    <div class="db-rename-operations">
-      <BkButton
-        class="db-rename-batch"
-        @click="() => (isShowBatchInput = true)">
-        <DbIcon type="add" />
-        {{ t('批量录入') }}
-      </BkButton>
+    <div class="pb-20">
+      <BkAlert
+        closable
+        :title="t('DB重命名_database重命名')" />
+      <div class="db-rename-operations">
+        <BkButton
+          class="db-rename-batch"
+          @click="() => (isShowBatchInput = true)">
+          <DbIcon type="add" />
+          {{ t('批量录入') }}
+        </BkButton>
+      </div>
+      <ToolboxTable
+        ref="toolboxTableRef"
+        class="mb-20"
+        :columns="columns"
+        :data="tableData"
+        :max-height="tableMaxHeight"
+        @add="handleAddItem"
+        @clone="handleCloneItem"
+        @remove="handleRemoveItem" />
+      <BkCheckbox
+        v-model="isForce"
+        v-bk-tooltips="t('如忽略_有连接的情况下也会执行')">
+        <span
+          class="inline-block"
+          style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
+          {{ t('忽略业务连接') }}
+        </span>
+      </BkCheckbox>
+      <TicketRemark v-model="remark" />
     </div>
-    <ToolboxTable
-      ref="toolboxTableRef"
-      class="mb-20"
-      :columns="columns"
-      :data="tableData"
-      :max-height="tableMaxHeight"
-      @add="handleAddItem"
-      @remove="handleRemoveItem" />
-    <BkCheckbox
-      v-model="isForce"
-      v-bk-tooltips="t('如忽略_有连接的情况下也会执行')"
-      class="mb-20">
-      <span
-        class="inline-block"
-        style="margin-top: -2px; border-bottom: 1px dashed #979ba5">
-        {{ t('忽略业务连接') }}
-      </span>
-    </BkCheckbox>
     <template #action>
       <BkButton
         class="mr-8 w-88"
@@ -99,9 +102,11 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue'
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { generateId, messageError } from '@utils';
 
@@ -126,6 +131,8 @@
     systemDatabases: Array<string>,
   }
 
+  type IDataRowBatchKey = keyof Pick<TableItem, 'from_database' | 'to_database'>;
+
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const tableMaxHeight = useTableMaxHeight(334);
@@ -140,10 +147,10 @@
       } = cloneData;
       tableData.value = tableDataList;
       isForce.value = force;
+      remark.value = cloneData.remark
       window.changeConfirm = true;
     },
   });
-
 
   const ticketId = ref(0);
   const toolboxTableRef = ref();
@@ -154,10 +161,16 @@
   const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
   const isForce = ref(false);
   const tableData = ref<Array<TableItem>>([getTableItem()]);
+  const remark = ref('')
 
   const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
+  });
+
+  const batchEditShow = reactive({
+    from_database: false,
+    to_database: false
   });
 
   const clusterRules = [
@@ -196,7 +209,24 @@
       ),
     },
     {
-      label: t('源DB名'),
+      label: () => (
+        <span>
+          { t('源DB名') }
+          <BatchEditColumn
+            model-value={batchEditShow.from_database}
+            title={t('备份源')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'from_database')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('from_database')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </span>
+      ),
       field: 'from_database',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -209,7 +239,24 @@
       ),
     },
     {
-      label: t('新DB名'),
+      label: () => (
+        <span>
+          { t('新DB名') }
+          <BatchEditColumn
+            model-value={batchEditShow.to_database}
+            title={t('备份源')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'to_database')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('to_database')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </span>
+      ),
       field: 'to_database',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -484,6 +531,21 @@
     }
   }
 
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
+  };
+
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
+
   /**
    * 批量录入
    */
@@ -528,6 +590,13 @@
     tableData.value.splice(index, 1);
   }
 
+  const handleCloneItem = (index: number) => {
+    tableData.value.splice(index + 1, 0, _.cloneDeep(tableData.value[index]));
+    setTimeout(() => {
+      toolboxTableRef.value.validate();
+    })
+  }
+
   /**
    * 集群选择器批量选择
    */
@@ -569,6 +638,7 @@
       cancelText: t('取消'),
       onConfirm: () => {
         tableData.value = [getTableItem()];
+        remark.value = ''
         selectedClusters.value[ClusterTypes.TENDBHA] = [];
         selectedClusters.value[ClusterTypes.TENDBSINGLE] = [];
         clusterInfoMap.clear();
@@ -596,6 +666,7 @@
           ticket_type: clusterTypes[0] === ClusterTypes.TENDBHA
             ? TicketTypes.MYSQL_HA_RENAME_DATABASE : TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
           bk_biz_id: globalBizsStore.currentBizId,
+          remark: remark.value,
           details: {
             infos: tableData.value.map(item => ({
               cluster_id: item.cluster_id,

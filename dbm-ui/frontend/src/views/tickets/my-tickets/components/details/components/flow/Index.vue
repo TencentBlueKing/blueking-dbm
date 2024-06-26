@@ -32,6 +32,7 @@
   import { useTimeoutPoll } from '@vueuse/core';
 
   import CommonFlows from './components/Common.vue';
+  import MySqlDumpDataFlows from './components/MySqlDumpDataFlows.vue';
   import MySqlFlows from './components/MySqlFlows.vue';
   import RedisFlows from './components/RedisFlows.vue';
 
@@ -59,6 +60,9 @@
     }
     if ([TicketTypes.MYSQL_IMPORT_SQLFILE, TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE].includes(props.data.ticket_type)) {
       return MySqlFlows;
+    }
+    if ([TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA].includes(props.data.ticket_type)) {
+      return MySqlDumpDataFlows;
     }
     return CommonFlows;
   });

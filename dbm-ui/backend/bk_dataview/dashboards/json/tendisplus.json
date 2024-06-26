@@ -25,7 +25,7 @@
   "editable": false,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 12,
+  "id": null,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -37,7 +37,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 56,
+      "id": null,
       "panels": [
         {
           "datasource": {
@@ -100,7 +100,7 @@
             "x": 0,
             "y": 1
           },
-          "id": 58,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -235,7 +235,7 @@
             "x": 12,
             "y": 1
           },
-          "id": 72,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -370,7 +370,7 @@
             "x": 0,
             "y": 9
           },
-          "id": 91,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -464,7 +464,7 @@
         "x": 0,
         "y": 1
       },
-      "id": 7,
+      "id": null,
       "panels": [
         {
           "datasource": {
@@ -513,7 +513,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -527,7 +528,7 @@
             "x": 0,
             "y": 2
           },
-          "id": 55,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -656,7 +657,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -670,7 +672,7 @@
             "x": 12,
             "y": 2
           },
-          "id": 56,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -799,7 +801,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -813,7 +816,7 @@
             "x": 0,
             "y": 10
           },
-          "id": 57,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -942,7 +945,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -956,7 +960,7 @@
             "x": 12,
             "y": 10
           },
-          "id": 58,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1085,7 +1089,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1099,7 +1104,7 @@
             "x": 0,
             "y": 18
           },
-          "id": 67,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -1693,7 +1698,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1707,7 +1713,7 @@
             "x": 12,
             "y": 18
           },
-          "id": 68,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -2301,7 +2307,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -2315,7 +2322,7 @@
             "x": 0,
             "y": 26
           },
-          "id": 59,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -2500,7 +2507,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -2514,7 +2522,7 @@
             "x": 12,
             "y": 26
           },
-          "id": 60,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -2713,7 +2721,7 @@
             "x": 0,
             "y": 34
           },
-          "id": 61,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -2912,7 +2920,7 @@
             "x": 12,
             "y": 34
           },
-          "id": 63,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -3111,7 +3119,7 @@
             "x": 0,
             "y": 42
           },
-          "id": 62,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -3367,7 +3375,7 @@
             "x": 12,
             "y": 42
           },
-          "id": 65,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -3623,7 +3631,7 @@
             "x": 0,
             "y": 50
           },
-          "id": 64,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -3767,7 +3775,7 @@
             "x": 12,
             "y": 50
           },
-          "id": 66,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -3911,7 +3919,7 @@
             "x": 0,
             "y": 58
           },
-          "id": 70,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -4111,7 +4119,7 @@
             "x": 12,
             "y": 58
           },
-          "id": 71,
+          "id": null,
           "interval": "2m",
           "options": {
             "legend": {
@@ -4262,7 +4270,7 @@
         "x": 0,
         "y": 2
       },
-      "id": 9,
+      "id": null,
       "panels": [],
       "title": "Redis",
       "type": "row"
@@ -4307,7 +4315,7 @@
         "x": 0,
         "y": 3
       },
-      "id": 75,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4414,7 +4422,7 @@
         "x": 3,
         "y": 3
       },
-      "id": 26,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4515,7 +4523,7 @@
         "x": 6,
         "y": 3
       },
-      "id": 14,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4615,7 +4623,7 @@
         "y": 3
       },
       "hideTimeOverride": true,
-      "id": 27,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4729,7 +4737,7 @@
         "x": 12,
         "y": 3
       },
-      "id": 83,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4771,7 +4779,7 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_rocksdb_level_size_sum",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -4843,7 +4851,7 @@
         "x": 15,
         "y": 3
       },
-      "id": 36,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -4883,7 +4891,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_memory_used_rss_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -4955,7 +4963,7 @@
         "x": 18,
         "y": 3
       },
-      "id": 77,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5030,7 +5038,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(avg by (bk_target_ip) (avg_over_time(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])))",
+          "source": "sum(avg by (bk_target_ip) (bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) )",
           "step": "",
           "type": "instant"
         }
@@ -5068,7 +5076,7 @@
         "x": 21,
         "y": 3
       },
-      "id": 38,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -5179,7 +5187,7 @@
         "x": 0,
         "y": 6
       },
-      "id": 85,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5303,7 +5311,7 @@
         "x": 3,
         "y": 6
       },
-      "id": 35,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5343,7 +5351,7 @@
               "group_by": [],
               "interval": 60,
               "interval_unit": "s",
-              "method": "SUM",
+              "method": "sum_without_time",
               "metric_field": "redis_rocksdb_estimate_num_keys",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -5412,7 +5420,7 @@
         "x": 6,
         "y": 6
       },
-      "id": 17,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5518,7 +5526,7 @@
         "x": 9,
         "y": 6
       },
-      "id": 28,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5644,7 +5652,7 @@
         "x": 12,
         "y": 6
       },
-      "id": 84,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5712,7 +5720,7 @@
             }
           ],
           "refId": "A",
-          "source": "max by (bk_target_cloud_id) (max_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
+          "source": "max by (bk_target_cloud_id) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
           "step": "",
           "type": "instant"
         }
@@ -5754,7 +5762,7 @@
         "x": 15,
         "y": 6
       },
-      "id": 81,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5822,7 +5830,7 @@
             }
           ],
           "refId": "A",
-          "source": "sum(avg by (bk_target_ip) (max_over_time(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_used_mb{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])))",
+          "source": "sum(avg by (bk_target_ip) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_datadir_df_used_mb{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))",
           "step": "",
           "type": "instant"
         }
@@ -5868,7 +5876,7 @@
         "x": 18,
         "y": 6
       },
-      "id": 79,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
@@ -5919,7 +5927,7 @@
               ],
               "interval": 60,
               "interval_unit": "s",
-              "method": "AVG",
+              "method": "avg_without_time",
               "metric_field": "redis_datadir_df_total_mb",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
@@ -5983,7 +5991,7 @@
         "x": 21,
         "y": 6
       },
-      "id": 37,
+      "id": null,
       "options": {
         "colorMode": "value",
         "graphMode": "none",
@@ -6123,7 +6131,7 @@
         "x": 0,
         "y": 9
       },
-      "id": 87,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -6330,7 +6338,7 @@
         "x": 12,
         "y": 9
       },
-      "id": 51,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -6482,7 +6490,7 @@
         "x": 0,
         "y": 17
       },
-      "id": 89,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -6672,7 +6680,7 @@
         "x": 12,
         "y": 17
       },
-      "id": 50,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -6849,7 +6857,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -6863,7 +6872,7 @@
         "x": 0,
         "y": 25
       },
-      "id": 92,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -7300,7 +7309,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -7318,7 +7328,7 @@
         "x": 12,
         "y": 25
       },
-      "id": 5,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -7451,7 +7461,7 @@
           "type": "range"
         }
       ],
-      "title": "已使用容量",
+      "title": "内存",
       "type": "timeseries"
     },
     {
@@ -7459,7 +7469,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "proxy 访问延迟分布 predixy_server_latency_bucket",
+      "description": "proxy 访问延迟分布 predixy_cmdstat_response_latency_bucket",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -7502,7 +7512,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -7516,7 +7527,7 @@
         "x": 0,
         "y": 33
       },
-      "id": 31,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -7954,7 +7965,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -7968,7 +7980,7 @@
         "x": 12,
         "y": 33
       },
-      "id": 54,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -8143,7 +8155,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -8157,7 +8170,7 @@
         "x": 0,
         "y": 41
       },
-      "id": 22,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -8332,7 +8345,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -8346,7 +8360,7 @@
         "x": 12,
         "y": 41
       },
-      "id": 39,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -8485,7 +8499,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               },
               {
                 "color": "red",
@@ -8503,7 +8518,7 @@
         "x": 0,
         "y": 49
       },
-      "id": 33,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -8631,7 +8646,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -8645,7 +8661,7 @@
         "x": 12,
         "y": 49
       },
-      "id": 90,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -8997,7 +9013,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9011,7 +9028,7 @@
         "x": 0,
         "y": 57
       },
-      "id": 34,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -9138,7 +9155,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9152,7 +9170,7 @@
         "x": 12,
         "y": 57
       },
-      "id": 46,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -9350,7 +9368,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9364,7 +9383,7 @@
         "x": 0,
         "y": 65
       },
-      "id": 20,
+      "id": null,
       "interval": "2m",
       "options": {
         "legend": {
@@ -9463,295 +9482,10 @@
         "x": 0,
         "y": 73
       },
-      "id": 43,
+      "id": null,
       "panels": [],
       "title": "Host ",
       "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "description": "Redis MemUsed",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 1,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 74
-      },
-      "id": 44,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "width": 300
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "$tag_instance",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_memory_used_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Redis MemUsed",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "bkmonitor-timeseries-datasource",
-        "uid": "bkmonitor_timeseries"
-      },
-      "description": "Redis MemUsedRss",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "axisSoftMin": 0,
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 1,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green"
-              }
-            ]
-          },
-          "unit": "bytes"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 74
-      },
-      "id": 45,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true,
-          "width": 300
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "9.1.0",
-      "targets": [
-        {
-          "cluster": [],
-          "datasource": {
-            "type": "bkmonitor-timeseries-datasource",
-            "uid": "bkmonitor_timeseries"
-          },
-          "expressionList": [],
-          "format": "time_series",
-          "hide": false,
-          "host": [],
-          "mode": "ui",
-          "module": [],
-          "promqlAlias": "",
-          "query_configs": [
-            {
-              "alias": "$tag_instance",
-              "data_source_label": "bk_monitor",
-              "data_type_label": "time_series",
-              "display": true,
-              "filter_dict": {},
-              "functions": [],
-              "group_by": [
-                "instance"
-              ],
-              "interval": "auto",
-              "interval_unit": "s",
-              "method": "sum_without_time",
-              "metric_field": "redis_memory_used_rss_bytes",
-              "refId": "a",
-              "result_table_id": "exporter_dbm_redis_exporter.__default__",
-              "result_table_label": "component",
-              "time_field": "",
-              "where": [
-                {
-                  "key": "cluster_domain",
-                  "method": "eq",
-                  "value": [
-                    "$cluster_domain"
-                  ]
-                },
-                {
-                  "condition": "and",
-                  "key": "instance_role",
-                  "method": "eq",
-                  "value": [
-                    "redis_master"
-                  ]
-                }
-              ]
-            }
-          ],
-          "refId": "B",
-          "source": "",
-          "step": "",
-          "type": "range"
-        }
-      ],
-      "title": "Redis MemUsedRss",
-      "type": "timeseries"
     },
     {
       "datasource": {
@@ -9800,7 +9534,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -9812,9 +9547,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 82
+        "y": 74
       },
-      "id": 47,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -9974,7 +9709,7 @@
         "type": "bkmonitor-timeseries-datasource",
         "uid": "bkmonitor_timeseries"
       },
-      "description": "master写入slave的数据量.  建议告警阀值: 10MiB ",
+      "description": "Redis MemUsedRss",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -9985,6 +9720,7 @@
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
+            "axisSoftMin": 0,
             "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 0,
@@ -10004,7 +9740,7 @@
             "spanNulls": false,
             "stacking": {
               "group": "A",
-              "mode": "normal"
+              "mode": "none"
             },
             "thresholdsStyle": {
               "mode": "off"
@@ -10016,7 +9752,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -10028,9 +9765,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 82
+        "y": 74
       },
-      "id": 52,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -10040,6 +9777,8 @@
           "displayMode": "table",
           "placement": "right",
           "showLegend": true,
+          "sortBy": "Max",
+          "sortDesc": true,
           "width": 300
         },
         "tooltip": {
@@ -10069,24 +9808,14 @@
               "data_type_label": "time_series",
               "display": true,
               "filter_dict": {},
-              "functions": [
-                {
-                  "id": "irate",
-                  "params": [
-                    {
-                      "id": "window",
-                      "value": "2m"
-                    }
-                  ]
-                }
-              ],
+              "functions": [],
               "group_by": [
                 "instance"
               ],
               "interval": "auto",
               "interval_unit": "s",
               "method": "sum_without_time",
-              "metric_field": "redis_master_repl_offset",
+              "metric_field": "redis_memory_used_rss_bytes",
               "refId": "a",
               "result_table_id": "exporter_dbm_redis_exporter.__default__",
               "result_table_label": "component",
@@ -10116,7 +9845,7 @@
           "type": "range"
         }
       ],
-      "title": "Redis MasterReplOffset",
+      "title": "Redis MemUsedRss",
       "type": "timeseries"
     },
     {
@@ -10166,7 +9895,8 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green"
+                "color": "green",
+                "value": null
               }
             ]
           },
@@ -10177,10 +9907,10 @@
       "gridPos": {
         "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 90
+        "x": 0,
+        "y": 82
       },
-      "id": 49,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [
@@ -10321,6 +10051,157 @@
       ],
       "title": "Redis Cpu",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "bkmonitor-timeseries-datasource",
+        "uid": "bkmonitor_timeseries"
+      },
+      "description": "master写入slave的数据量.  建议告警阀值: 10MiB ",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "bytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 82
+      },
+      "id": null,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "width": 300
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "9.1.0",
+      "targets": [
+        {
+          "cluster": [],
+          "datasource": {
+            "type": "bkmonitor-timeseries-datasource",
+            "uid": "bkmonitor_timeseries"
+          },
+          "expressionList": [],
+          "format": "time_series",
+          "hide": false,
+          "host": [],
+          "mode": "ui",
+          "module": [],
+          "promqlAlias": "",
+          "query_configs": [
+            {
+              "alias": "$tag_instance",
+              "data_source_label": "bk_monitor",
+              "data_type_label": "time_series",
+              "display": true,
+              "filter_dict": {},
+              "functions": [
+                {
+                  "id": "irate",
+                  "params": [
+                    {
+                      "id": "window",
+                      "value": "2m"
+                    }
+                  ]
+                }
+              ],
+              "group_by": [
+                "instance"
+              ],
+              "interval": "auto",
+              "interval_unit": "s",
+              "method": "sum_without_time",
+              "metric_field": "redis_master_repl_offset",
+              "refId": "a",
+              "result_table_id": "exporter_dbm_redis_exporter.__default__",
+              "result_table_label": "component",
+              "time_field": "",
+              "where": [
+                {
+                  "key": "cluster_domain",
+                  "method": "eq",
+                  "value": [
+                    "$cluster_domain"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "instance_role",
+                  "method": "eq",
+                  "value": [
+                    "redis_master"
+                  ]
+                }
+              ]
+            }
+          ],
+          "refId": "B",
+          "source": "",
+          "step": "",
+          "type": "range"
+        }
+      ],
+      "title": "Redis MasterReplOffset",
+      "type": "timeseries"
     }
   ],
   "refresh": false,
@@ -10398,7 +10279,7 @@
   "timezone": "",
   "title": "tendisplus-cluster",
   "uid": "BBo1yt0Vk",
-  "version": 73,
+  "version": 87,
   "weekStart": "",
   "__inputs": [
     {

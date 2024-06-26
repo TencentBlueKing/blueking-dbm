@@ -16,6 +16,8 @@ import type { RouteRecordRaw } from 'vue-router';
 import type { MySQLFunctions } from '@services/model/function-controller/functionController';
 import FunctionControllModel from '@services/model/function-controller/functionController';
 
+import { checkDbConsole } from '@utils';
+
 import { t } from '@locales/index';
 
 export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
@@ -233,6 +235,16 @@ const mysqlToolboxRouters: RouteRecordRaw[] = [
   },
 ];
 
+const dumperDataSubscription = {
+  name: 'DumperDataSubscription',
+  path: 'dumper-data-subscribe/:dumperId(\\d+)?',
+  meta: {
+    navName: t('数据订阅'),
+    fullscreen: true,
+  },
+  component: () => import('@views/mysql/dumper/Index.vue'),
+};
+
 const commonRouters: RouteRecordRaw[] = [
   {
     name: 'MysqlManage',
@@ -268,15 +280,6 @@ const commonRouters: RouteRecordRaw[] = [
           navName: t('Mysql 分区管理'),
         },
         component: () => import('@views/mysql/partition-manage/Index.vue'),
-      },
-      {
-        name: 'DumperDataSubscription',
-        path: 'dumper-data-subscribe/:dumperId(\\d+)?',
-        meta: {
-          navName: t('数据订阅'),
-          fullscreen: true,
-        },
-        component: () => import('@views/mysql/dumper/Index.vue'),
       },
       {
         path: 'openarea-template-create',
@@ -317,6 +320,10 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
 
   if (!renderRoutes) {
     return commonRouters;
+  }
+
+  if (checkDbConsole('mysql.dataSubscription')) {
+    commonRouters[0].children!.push(dumperDataSubscription);
   }
 
   if (controller.tendbsingle) {

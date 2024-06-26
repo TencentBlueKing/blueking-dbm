@@ -1,12 +1,11 @@
 <template>
-  <div style="padding: 16px 24px">
-    <BkTable
-      class="openarea-create-table"
-      :columns="columns"
-      :data="tableData" />
-  </div>
+  <BkTable
+    :columns="columns"
+    :data="tableData"
+    :max-height="600" />
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -14,9 +13,13 @@
   import { getPreview } from '@services/openarea';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketMessage } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { messageSuccess } from '@utils';
+  import RenderTagOverflow from '@components/render-tag-overflow/Index.vue'
+
+  import { messageError } from '@utils';
 
   interface Props {
     data: ServiceReturnType<typeof getPreview>,
@@ -27,95 +30,68 @@
     submit: () => Promise<any>
   }
 
+  type RowData = UnwrapRef<typeof tableData>[0];
+
   const props = defineProps<Props>();
 
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const ticketMessage = useTicketMessage();
 
   const tableData = shallowRef<Array<{
     target_cluster_domain: string
   } & Props['data']['config_data'][0]['execute_objects'][0]>>([]);
 
-  const columns = [
+  const columns = computed(() => [
     {
       label: t('目标集群'),
       field: 'target_cluster_domain',
       showOverflowTooltip: true,
-      width: 220,
+      width: 280,
+      rowspan: ({ row }: { row: RowData }) => {
+        const rowSpan = tableData.value.filter(item => item.target_cluster_domain === row.target_cluster_domain).length;
+        return rowSpan > 1 ? rowSpan : 1;
+      },
     },
     {
       label: t('新 DB'),
       field: 'target_db',
       showOverflowTooltip: true,
-    },
-    {
-      label: t('源 DB'),
-      field: 'source_db',
-      showOverflowTooltip: true,
+      width: 230,
     },
     {
       label: t('表结构'),
       showOverflowTooltip: true,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <>
-          {data.schema_tblist.map(item => <bk-tag>{item}</bk-tag>)}
-        </>
-      ),
+      width: 80,
+      render: () => t('所有表'),
     },
     {
       label: t('表数据'),
-      showOverflowTooltip: true,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <>
-          {data.data_tblist.map(item => <bk-tag>{item}</bk-tag>)}
-        </>
-      ),
+      width: 300,
+      render: ({ data }: {data: RowData}) => <RenderTagOverflow data={_.flatMap(data.data_tblist)} />,
     },
     {
       label: t('授权 IP'),
       showOverflowTooltip: true,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <>
-          {data.authorize_ips.map(item => (
-            <bk-tag>{item}</bk-tag>
-          ))}
-        </>
-      ),
+      render: ({ data }: {data: RowData}) => data.authorize_ips.join(','),
     },
-    {
-      label: t('授权规则'),
-      showOverflowTooltip: false,
-      render: ({ data }: {data: UnwrapRef<typeof tableData>[0]}) => (
-        <div class="rules-main">
-          <bk-button
-            text
-            theme="primary">
-            {t('n 条全新规则', { n: data.priv_data.length })}
-          </bk-button>
-          {data.error_msg && (
-            <db-icon
-              v-bk-tooltips={data.error_msg}
-              class="error-icon"
-              type="exclamation-fill" />
-          )}
-        </div>
-      ),
-    },
-  ];
+  ]);
 
   watch(() => props.data, () => {
     if (!props.data) {
       return;
     }
     tableData.value = props.data.config_data.reduce((result, item) => {
-      const [executeObjects] = item.execute_objects;
-      result.push({
-        target_cluster_domain: item.target_cluster_domain,
-        ...executeObjects,
-      });
+      item.execute_objects.forEach(executeObjects => {
+        result.push({
+          target_cluster_domain: item.target_cluster_domain,
+          ...executeObjects,
+        });
+      })
+
       return result;
-    }, [] as UnwrapRef<typeof tableData>);
+    }, [] as RowData[]);
   }, {
     immediate: true,
   });
@@ -123,9 +99,12 @@
 
   defineExpose<Expose>({
     submit() {
-      if (tableData.value.some(item => item.error_msg)) {
+      const errorRow = tableData.value.find(item => item.error_msg);
+      if (errorRow) {
+        messageError(errorRow.error_msg);
         return Promise.resolve(false);
       }
+
       return createTicket({
         ticket_type: 'MYSQL_OPEN_AREA',
         remark: '',
@@ -135,8 +114,8 @@
           ...props.data,
         },
         bk_biz_id: currentBizId,
-      }).then(() => {
-        messageSuccess(t('新建开区成功'));
+      }).then((data) => {
+        ticketMessage(data.id);
         window.changeConfirm = false;
         router.push({
           name: 'MySQLOpenareaTemplate',

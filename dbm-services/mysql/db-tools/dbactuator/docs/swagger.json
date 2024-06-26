@@ -974,6 +974,12 @@
                     "description": "mysql monitor 账户，环境变量 GENERAL_ACCOUNT_monitor_user",
                     "type": "string"
                 },
+                "partition_yw_pwd": {
+                    "type": "string"
+                },
+                "partition_yw_user": {
+                    "type": "string"
+                },
                 "proxy_admin_pwd": {
                     "description": "proxy admin pwd",
                     "type": "string"
@@ -1795,6 +1801,9 @@
                     "description": "字符集参数",
                     "type": "string"
                 },
+                "com": {
+                    "type": "string"
+                },
                 "db_cloud_token": {
                     "description": "云区域token",
                     "type": "string"
@@ -2120,11 +2129,10 @@
                 },
                 "options": {
                     "description": "选项参数配置",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions"
-                        }
-                    ]
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.BackupOptions"
+                    }
                 },
                 "pkg": {
                     "description": "安装包名",
@@ -2699,7 +2707,7 @@
             "type": "object",
             "properties": {
                 "databases": {
-                    "description": "row event 解析指定 databases",
+                    "description": "row event 解析指定 databases。必须是精确，不能是通配",
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -2770,7 +2778,7 @@
                     "type": "string"
                 },
                 "tables": {
-                    "description": "row event 解析指定 tables",
+                    "description": "row event 解析指定 tables。必须是精确，不能是通配",
                     "type": "array",
                     "items": {
                         "type": "string"

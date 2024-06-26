@@ -102,6 +102,25 @@ def version_equal(version1, version2):
     return base_version1 == base_version2 and sub_version1 == sub_version2, None
 
 
+def version_ge(version1, version2):
+    """
+    判断版本1是否大于等于版本2
+    """
+    if version1 is None or version2 is None:
+        return False
+    base_version1, sub_version1, err = version_parse(version1)
+    if err:
+        return False
+    base_version2, sub_version2, err = version_parse(version2)
+    if err:
+        return False
+    if base_version1 > base_version2:
+        return True
+    if base_version1 == base_version2 and sub_version1 >= sub_version2:
+        return True
+    return False
+
+
 # 根据db_version 获取 redis 最新 Package
 def get_latest_redis_package_by_version(db_version):
     pkg_type = MediumEnum.Redis

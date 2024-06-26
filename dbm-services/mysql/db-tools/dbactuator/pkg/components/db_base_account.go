@@ -31,6 +31,12 @@ type TdbctlAccoutParam struct {
 	TdbctlPwd  string `json:"tdbctl_pwd,omitempty"`
 }
 
+// PartitionAccoutParam TODO
+type PartitionAccoutParam struct {
+	PartitionYwUser string `json:"partition_yw_user,omitempty"`
+	PartitionYwPwd  string `json:"partition_yw_pwd,omitempty"`
+}
+
 var allPriv = []string{"ALL PRIVILEGES"}
 var ywUserPriv = []string{"SELECT", "CREATE", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT"}
 var backupUserPriv = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",

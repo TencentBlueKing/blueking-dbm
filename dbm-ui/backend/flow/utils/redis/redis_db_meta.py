@@ -1188,7 +1188,7 @@ class RedisDBMeta(object):
                     exists_insts.append("{}#{}".format(row["ip"], row["port"]))
                 # 先删除
                 if exists_insts:
-                    dns_manage.recycle_domain_record(del_instance_list=exists_insts)
+                    dns_manage.remove_domain_ip(domain=cluster_entry.entry, del_instance_list=exists_insts)
                 # 再添加
                 inst_ips = set()
                 for row in cluster.storageinstance_set.all():
@@ -1202,7 +1202,7 @@ class RedisDBMeta(object):
                 for row in dns_manage.get_domain(domain_name=nodes_domain):
                     exists_insts.append("{}#{}".format(row["ip"], row["port"]))
                 if exists_insts:
-                    dns_manage.recycle_domain_record(del_instance_list=exists_insts)
+                    dns_manage.remove_domain_ip(domain=nodes_domain, del_instance_list=exists_insts)
 
     @transaction.atomic
     def redis_cluster_rename_domain(self):
@@ -1213,11 +1213,17 @@ class RedisDBMeta(object):
         new_domain = self.cluster["new_domain"]
         new_name = new_domain.split(".")[-3]
         cluster = Cluster.objects.get(id=cluster_id)
-        cluster_entry = ClusterEntry.objects.get(
+        master_cluster_entry = ClusterEntry.objects.get(
             Q(cluster__id=cluster.id)
             & Q(cluster_entry_type=ClusterEntryType.DNS)
             & (Q(role=ClusterEntryRole.PROXY_ENTRY) | Q(role=ClusterEntryRole.MASTER_ENTRY)),
         )
+
+        node_cluster_entry = ClusterEntry.objects.filter(
+            Q(cluster__id=cluster.id)
+            & Q(cluster_entry_type=ClusterEntryType.DNS)
+            & Q(role=ClusterEntryRole.NODE_ENTRY),
+        ).first()
         host_ids = set()
         for inst in cluster.proxyinstance_set.all():
             host_ids.add(inst.machine.bk_host_id)
@@ -1233,8 +1239,12 @@ class RedisDBMeta(object):
         cluster.name = new_name
         cluster.save(update_fields=["immute_domain", "name"])
 
-        cluster_entry.entry = new_domain
-        cluster_entry.save(update_fields=["entry"])
+        master_cluster_entry.entry = new_domain
+        master_cluster_entry.save(update_fields=["entry"])
+
+        if node_cluster_entry:
+            node_cluster_entry.entry = "nodes." + new_domain
+            node_cluster_entry.save(update_fields=["entry"])
 
         storageinstances = cluster.storageinstance_set.all()
         proxyinstances = cluster.proxyinstance_set.all()
@@ -1347,4 +1357,44 @@ class RedisDBMeta(object):
                 machines=machines, creator=self.cluster["created_by"], bk_cloud_id=self.cluster["bk_cloud_id"]
             )
             api.proxy_instance.create(proxies=proxies, creator=self.cluster["created_by"], status=ins_status)
+        return True
+
+    def update_cluster_entry(self) -> bool:
+        """
+        更新nodes cluster_entry记录
+        cluster_id
+        bk_biz_id
+        nodes_domain
+        """
+        nodes_domain = self.cluster["nodes_domain"]
+        cluster = Cluster.objects.get(id=self.cluster["cluster_id"], bk_biz_id=self.cluster["bk_biz_id"])
+        cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+        storageinstances = cluster.storageinstance_set.all()
+
+        if is_redis_cluster_protocal(cluster.cluster_type):
+            if not cluster_entry:
+                cluster_entry = ClusterEntry.objects.create(
+                    cluster=cluster,
+                    cluster_entry_type=ClusterEntryType.DNS,
+                    entry=nodes_domain,
+                    creator=cluster.creator,
+                    role=ClusterEntryRole.NODE_ENTRY,
+                )
+                cluster_entry.storageinstance_set.add(*storageinstances)
+                cluster_entry.save()
+                logger.info(
+                    _("redis集群:%s cluster_type:%s 新增 %s cluster_entry").format(
+                        cluster.immute_domain, cluster.cluster_type, nodes_domain
+                    )
+                )
+            else:
+                # 应该存在的,确实存在,则更新
+                cluster_entry.storageinstance_set.clear()
+                cluster_entry.storageinstance_set.add(*storageinstances)
+                cluster_entry.save()
+                logger.info(
+                    _("redis集群:%s cluster_type:%s 更新 cluster_entry:%s").format(
+                        cluster.immute_domain, cluster.cluster_type, cluster_entry.entry
+                    )
+                )
         return True

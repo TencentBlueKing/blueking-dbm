@@ -12,7 +12,8 @@ import logging.config
 from typing import Dict, Optional
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mongodb.sub_task import increase_mongos, reduce_mongos
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.increase_mongos import increase_mongos
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.reduce_mongos import reduce_mongos
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")

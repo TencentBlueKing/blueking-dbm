@@ -26,7 +26,7 @@
         v-else
         keypath="已添加n个规则"
         tag="span">
-        {{ modelValue.length }}
+        <span style="font-weight: 700; padding: 0 5px">{{ modelValue.length }}</span>
       </I18nT>
     </BkButton>
     <div

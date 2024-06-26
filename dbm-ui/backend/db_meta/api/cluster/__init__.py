@@ -28,5 +28,6 @@ from . import (
     tendispluscluster,
     tendissingle,
     tendisssd,
+    vm,
 )
 from .apis import domain_exists, query_instances

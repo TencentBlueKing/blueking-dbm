@@ -23,10 +23,10 @@ export type RedisFunctions =
   | 'PredixyRedisCluster'
   | 'RedisInstance'
   | 'toolbox';
-export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak';
+export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak' | 'doris';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
 export type MongoFunctions = 'mongodb';
-export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha';
+export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';
 export type FunctionKeys =
   | AddonsFunctions
   | MySQLFunctions
@@ -144,6 +144,7 @@ interface ControllerData {
   'redis.clusterManage.enable': ControllerItem<string>;
   'redis.clusterManage.delete': ControllerItem<string>;
   'redis.instanceManage': ControllerItem<string>;
+  'redis.haClusterManage': ControllerItem<string>;
   'redis.haInstanceManage': ControllerItem<string>;
   'redis.toolbox.capacityChange': ControllerItem<string>;
   'redis.toolbox.proxyScaleUp': ControllerItem<string>;
@@ -159,7 +160,24 @@ interface ControllerData {
   'redis.toolbox.recoverFromInstance': ControllerItem<string>;
   'redis.toolbox.dataCopy': ControllerItem<string>;
   'redis.toolbox.dataCopyRecord': ControllerItem<string>;
-
+  'mysql.haClusterList.clusterTopo': ControllerItem<string>;
+  'mysql.haClusterList.changeLog': ControllerItem<string>;
+  'mysql.singleClusterList.clusterTopo': ControllerItem<string>;
+  'mysql.singleClusterList.changeLog': ControllerItem<string>;
+  'tendbCluster.clusterManage.clusterTopo': ControllerItem<string>;
+  'tendbCluster.clusterManage.changeLog': ControllerItem<string>;
+  'redis.clusterManage.clusterTopo': ControllerItem<string>;
+  'redis.clusterManage.changeLog': ControllerItem<string>;
+  'redis.haClusterManage.clusterTopo': ControllerItem<string>;
+  'redis.haClusterManage.changeLog': ControllerItem<string>;
+  'es.clusterManage.clusterTopo': ControllerItem<string>;
+  'es.clusterManage.changeLog': ControllerItem<string>;
+  'kafka.clusterManage.clusterTopo': ControllerItem<string>;
+  'kafka.clusterManage.changeLog': ControllerItem<string>;
+  'hdfs.clusterManage.clusterTopo': ControllerItem<string>;
+  'hdfs.clusterManage.changeLog': ControllerItem<string>;
+  'pulsar.clusterManage.clusterTopo': ControllerItem<string>;
+  'pulsar.clusterManage.changeLog': ControllerItem<string>;
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
@@ -265,6 +283,7 @@ export default class FunctionController {
   'redis.clusterManage.enable': ControllerItem<string>;
   'redis.clusterManage.delete': ControllerItem<string>;
   'redis.instanceManage': ControllerItem<string>;
+  'redis.haClusterManage': ControllerItem<string>;
   'redis.haInstanceManage': ControllerItem<string>;
   'redis.toolbox.capacityChange': ControllerItem<string>;
   'redis.toolbox.proxyScaleUp': ControllerItem<string>;
@@ -280,6 +299,24 @@ export default class FunctionController {
   'redis.toolbox.recoverFromInstance': ControllerItem<string>;
   'redis.toolbox.dataCopy': ControllerItem<string>;
   'redis.toolbox.dataCopyRecord': ControllerItem<string>;
+  'mysql.haClusterList.clusterTopo': ControllerItem<string>;
+  'mysql.haClusterList.changeLog': ControllerItem<string>;
+  'mysql.singleClusterList.clusterTopo': ControllerItem<string>;
+  'mysql.singleClusterList.changeLog': ControllerItem<string>;
+  'tendbCluster.clusterManage.clusterTopo': ControllerItem<string>;
+  'tendbCluster.clusterManage.changeLog': ControllerItem<string>;
+  'redis.clusterManage.clusterTopo': ControllerItem<string>;
+  'redis.clusterManage.changeLog': ControllerItem<string>;
+  'redis.haClusterManage.clusterTopo': ControllerItem<string>;
+  'redis.haClusterManage.changeLog': ControllerItem<string>;
+  'es.clusterManage.clusterTopo': ControllerItem<string>;
+  'es.clusterManage.changeLog': ControllerItem<string>;
+  'kafka.clusterManage.clusterTopo': ControllerItem<string>;
+  'kafka.clusterManage.changeLog': ControllerItem<string>;
+  'hdfs.clusterManage.clusterTopo': ControllerItem<string>;
+  'hdfs.clusterManage.changeLog': ControllerItem<string>;
+  'pulsar.clusterManage.clusterTopo': ControllerItem<string>;
+  'pulsar.clusterManage.changeLog': ControllerItem<string>;
 
   constructor(payload = {} as ControllerData) {
     this.addons = payload.addons;

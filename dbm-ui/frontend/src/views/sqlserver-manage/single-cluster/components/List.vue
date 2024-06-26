@@ -178,7 +178,7 @@
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -349,12 +349,15 @@
         <TextOverflowLayout>
           {{
             default: () => (
-              <bk-button
+              <auth-button
+                action-id="sqlserver_view"
+                resource={data.id}
+                permission={data.permission.sqlserver_view}
                 text
                 theme="primary"
                 onClick={() => handleToDetails(data)}>
                 {data.master_domain}
-              </bk-button>
+              </auth-button>
             ),
             append: () => (
               <>
@@ -362,7 +365,7 @@
                   {
                     data.operationTagTips.map(item => (
                       <RenderOperationTag
-                        class="cluster-tag"
+                        class="cluster-tag ml-4"
                         data={item} />
                     ))
                   }
@@ -447,7 +450,7 @@
           role="storages"
           clusterId={data.id}
         />
-    ),
+      )
     },
     {
       label: t('所属DB模块'),

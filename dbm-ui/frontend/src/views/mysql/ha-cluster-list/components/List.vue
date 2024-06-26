@@ -105,6 +105,11 @@
     v-model="showCreateSubscribeRuleSlider"
     :selected-clusters="selectedClusterList"
     show-tab-panel />
+  <ClusterExportData
+    v-if="currentData"
+    v-model:is-show="showDataExportSlider"
+    :data="currentData"
+    :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
 </template>
 
 <script setup lang="tsx">
@@ -146,8 +151,9 @@
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -226,7 +232,9 @@
   const isInit = ref(false);
   const showEditEntryConfig = ref(false);
   const showCreateSubscribeRuleSlider = ref(false);
+  const showDataExportSlider = ref(false)
   const selectedClusterList = ref<ColumnData['data'][]>([]);
+  const currentData = ref<ColumnData['data']>()
 
   const state = reactive<State>({
     selected: [],
@@ -314,7 +322,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 200 : 280;
+      return isCN.value ? 270 : 280;
     }
     return 60;
   });
@@ -392,11 +400,11 @@
                 }
                 {
                   data.isOffline && !data.isStarting && (
-                    <db-icon
-                      svg
-                      type="yijinyong"
-                      class="cluster-tag ml-4"
-                      style="width: 38px; height: 16px;" />
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
                   )
                 }
                 {
@@ -622,6 +630,18 @@
               { t('数据订阅') }
             </auth-button>
           )}
+          <OperationBtnStatusTips
+            data={data}
+            v-db-console="mysql.haClusterList.exportData">
+            <bk-button
+              disabled={data.operationDisabled}
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleShowDataExportSlider(data)}>
+              { t('导出数据') }
+            </bk-button>
+          </OperationBtnStatusTips>
           {
             data.isOnline ? (
               <OperationBtnStatusTips
@@ -751,6 +771,11 @@
       selectedClusterList.value = [data];
     }
     showCreateSubscribeRuleSlider.value = true;
+  };
+
+  const handleShowDataExportSlider = (data: ColumnData['data']) => {
+    currentData.value = data
+    showDataExportSlider.value = true;
   };
 
   const handleClearSelected = () => {

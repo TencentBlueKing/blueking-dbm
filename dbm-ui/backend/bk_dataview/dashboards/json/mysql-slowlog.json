@@ -91,7 +91,7 @@
         "x": 0,
         "y": 0
       },
-      "id": 2,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [],
@@ -254,8 +254,7 @@
             ],
             "index": {
               "id": [
-                "host_process",
-                5913
+                "host_process"
               ],
               "labels": [
                 "进程",
@@ -353,7 +352,7 @@
         "x": 8,
         "y": 0
       },
-      "id": 10,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [],
@@ -512,8 +511,7 @@
             "dimensions": [],
             "index": {
               "id": [
-                "host_process",
-                5913
+                "host_process"
               ],
               "labels": [
                 "进程",
@@ -611,7 +609,7 @@
         "x": 16,
         "y": 0
       },
-      "id": 11,
+      "id": null,
       "options": {
         "legend": {
           "calcs": [],
@@ -770,8 +768,7 @@
             "dimensions": [],
             "index": {
               "id": [
-                "host_process",
-                5913
+                "host_process"
               ],
               "labels": [
                 "进程",
@@ -833,7 +830,7 @@
         "x": 0,
         "y": 11
       },
-      "id": 6,
+      "id": null,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -1002,8 +999,7 @@
             ],
             "index": {
               "id": [
-                "host_process",
-                5913
+                "host_process"
               ],
               "labels": [
                 "进程",
@@ -1065,7 +1061,7 @@
         "x": 12,
         "y": 11
       },
-      "id": 8,
+      "id": null,
       "options": {
         "legend": {
           "displayMode": "list",
@@ -1234,8 +1230,7 @@
             ],
             "index": {
               "id": [
-                "host_process",
-                5913
+                "host_process"
               ],
               "labels": [
                 "进程",
@@ -1310,7 +1305,7 @@
         "x": 0,
         "y": 24
       },
-      "id": 4,
+      "id": null,
       "options": {
         "footer": {
           "enablePagination": false,
@@ -1470,8 +1465,7 @@
             "dimensions": [],
             "index": {
               "id": [
-                "host_process",
-                5913
+                "host_process"
               ],
               "labels": [
                 "进程",

@@ -92,13 +92,17 @@ class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder):
                 details=TenDBClusterSqlImportFlowParamBuilder(self.ticket).get_params(),
                 flow_alias=_("模拟执行"),
             ),
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.BK_ITSM.value,
-                details=TenDBClusterSqlImportItsmParamBuilder(self.ticket).get_params(),
-                flow_alias=_("单据审批"),
-            ),
         ]
+
+        if self.need_itsm:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.BK_ITSM.value,
+                    details=TenDBClusterSqlImportItsmParamBuilder(self.ticket).get_params(),
+                    flow_alias=_("单据审批"),
+                )
+            )
 
         mode = self.ticket.details["ticket_mode"]["mode"]
         if mode == SQLExecuteTicketMode.MANUAL.value:

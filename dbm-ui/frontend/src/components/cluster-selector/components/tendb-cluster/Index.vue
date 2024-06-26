@@ -36,7 +36,8 @@
       @column-filter="columnFilterChange"
       @page-limit-change="handleTableLimitChange"
       @page-value-change="handleTablePageChange"
-      @refresh="fetchResources" />
+      @refresh="fetchResources"
+      @row-click.stop.prevent="handleRowClick" />
   </BkLoading>
 </template>
 <script setup lang="tsx">
@@ -61,6 +62,8 @@
   interface Props {
     activeTab: ClusterTypes,
     selected: Record<string, any[]>,
+    // 多选模式
+    multiple: TabItem['multiple'],
     // eslint-disable-next-line vue/no-unused-properties
     getResourceList: TabItem['getResourceList'],
     disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>,
@@ -115,7 +118,7 @@
   const columns = computed(() => [
     {
       width: 60,
-      label: () => (
+      label: () => props.multiple && (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
           model-value={isSelectedAll.value}
@@ -134,19 +137,26 @@
               placement="top"
               popoverDelay={0}>
               {{
-                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
+                default: () => props.multiple ? <bk-checkbox style="vertical-align: middle;" disabled /> : <bk-radio disabled label={false}/>,
                 content: () => <span>{disabledRowConfig.tip}</span>,
               }}
             </bk-popover>
           );
         }
-        return (
+        return props.multiple ? (
           <bk-checkbox
             style="vertical-align: middle;"
             model-value={Boolean(selectedDomainMap.value[data.id])}
             label={true}
             onChange={(value: boolean) => handleSelecteRow(data, value)}
           />
+          ) : (
+          <bk-radio-group
+            model-value={Boolean(selectedDomainMap.value[data.id])}
+            onChange={(value: boolean) => handleSelecteRow(data, value)}
+          >
+            <bk-radio label={true}/>
+          </bk-radio-group>
         );
       },
     },
@@ -173,11 +183,11 @@
               }
               {
                 data.isOffline && (
-                  <db-icon
-                    svg
-                    type="yijinyong"
-                    class="cluster-tag ml-4"
-                    style="width: 38px; height: 16px;" />
+                  <bk-tag
+                    class="ml-8"
+                    size="small">
+                    {t('已禁用')}
+                  </bk-tag>
                 )
               }
             </>,
@@ -310,7 +320,7 @@
    * 选择当行数据
    */
   const handleSelecteRow = (data: ResourceItem, value: boolean) => {
-    const selectedMapMemo = { ...selectedMap.value };
+    const selectedMapMemo = props.multiple ? { ...selectedMap.value } : {};
     if (!selectedMapMemo[activeTab.value]) {
       selectedMapMemo[activeTab.value] = {};
     }
@@ -322,6 +332,15 @@
     selectedMap.value = selectedMapMemo;
     emits('change', selectedMap.value);
     checkSelectedAll();
+  };
+
+  const handleRowClick = (row:any, data: ResourceItem) => {
+    if (props.disabledRowConfig.find(item => item.handler(data))) {
+      return;
+    }
+    const currentSelected = selectedMap.value[activeTab.value];
+    const isChecked = !!(currentSelected && currentSelected[data.id]);
+    handleSelecteRow(data, !isChecked);
   };
 
   const handleTablePageChange = (value: number) => {

@@ -13,10 +13,20 @@ start_nginx_template = """
 path=/usr/local/bkdb
 mkdir -p $path
 
-# 卸载旧版nginx，重新安装nginx
+# 备份大数据的conf
+mkdir -p $path/old_nginx_conf/;
+cp $path/nginx-portable/conf/cluster_service/* $path/old_nginx_conf/ || :;
+
+# 卸载旧版nginx，重新解压nginx安装包
 $path/nginx-portable/nginx-portable stop || :;
 rm -rf $path/nginx-portable/;
 tar xvf /data/install/nginx-portable.tgz -C $path;
+
+# 将大数据的配置文件移动制定位置
+mkdir -p $path/nginx-portable/conf/cluster_service/;
+cp $path/old_nginx_conf/* $path/nginx-portable/conf/cluster_service/ || :;
+rm -rf $path/old_nginx_conf/;
+
 chmod -R 755 $path/nginx-portable/;
 user=root;
 group=root;
@@ -78,6 +88,7 @@ http {
         ssl_session_timeout  10m;
         ssl_ciphers HIGH:!aNULL:!MD5;
         ssl_prefer_server_ciphers on;
+        client_max_body_size 500M;
 
         proxy_connect;
         proxy_connect_allow 443 563;
@@ -98,6 +109,7 @@ http {
         listen {{manage_port}};
         server_name {{nginx_external_domain}};
         resolver ${DNS_LIST[@]};
+        client_max_body_size 500M;
         proxy_connect;
         proxy_connect_allow 443 563;
 

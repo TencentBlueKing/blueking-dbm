@@ -31,6 +31,7 @@ from backend.flow.engine.bamboo.scene.spider.spider_cluster_rollback_flow import
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_standardize_flow import SpiderClusterStandardizeFlow
 from backend.flow.engine.bamboo.scene.spider.spider_cluster_truncate_database import SpiderTruncateDatabaseFlow
 from backend.flow.engine.bamboo.scene.spider.spider_partition import SpiderPartitionFlow
+from backend.flow.engine.bamboo.scene.spider.spider_partition_cron import SpiderPartitionCronFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_mnt import TenDBClusterReduceMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_reduce_nodes import TenDBClusterReduceNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_remotedb_rebalance_flow import TenDBRemoteRebalanceFlow
@@ -72,10 +73,17 @@ class SpiderController(BaseController):
 
     def spider_partition(self):
         """
-        mysql 表分区
+        spider 表分区
         """
         flow = SpiderPartitionFlow(root_id=self.root_id, data=self.ticket_data)
         flow.spider_partition_flow()
+
+    def spider_partition_cron(self):
+        """
+        spider 表分区定时任务
+        """
+        flow = SpiderPartitionCronFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.spider_partition_cron_flow()
 
     def spider_cluster_disable_scene(self):
         """

@@ -297,6 +297,21 @@
                   :cluster-type="typeInfos.cluster_type"
                   :machine-type="typeInfos.backend_machine_type" />
               </BkFormItem>
+              <BkFormItem
+                :label="t('访问端口')"
+                property="details.proxy_port"
+                required>
+                <BkInput
+                  v-model="state.formdata.details.proxy_port"
+                  clearable
+                  :max="60000"
+                  :min="50000"
+                  style="width: 185px"
+                  type="number" />
+                <span class="input-desc">
+                  {{ t('范围min_max', { min: 50000, max: 60000 }) }}
+                </span>
+              </BkFormItem>
             </div>
           </Transition>
           <BkFormItem :label="t('备注')">

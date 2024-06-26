@@ -24,6 +24,10 @@ export default class SqlserverPermissionAccount {
     password: string;
     user: string;
   };
+  permission: {
+    sqlserver_account_delete: boolean;
+    sqlserver_add_account_rule: boolean;
+  };
   rules: {
     access_db: string;
     account_id: number;
@@ -36,6 +40,7 @@ export default class SqlserverPermissionAccount {
 
   constructor(payload: SqlserverPermissionAccount) {
     this.account = payload.account;
+    this.permission = payload.permission;
     this.rules = payload.rules;
   }
 

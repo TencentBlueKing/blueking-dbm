@@ -28,6 +28,7 @@ from backend.flow.plugins.components.collections.mysql.trans_flies import TransF
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs
+from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_rollback_clusters_info
 from backend.utils.time import str2datetime
@@ -55,9 +56,11 @@ class TenDBRollBackDataFlow(object):
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = [self.data["source_cluster_id"], self.data["target_cluster_id"]]
-        tendb_rollback_pipeline = Builder(
+        tendb_rollback_pipeline_all = Builder(
             root_id=self.root_id, data=copy.deepcopy(self.data), need_random_pass_cluster_ids=list(set(cluster_ids))
         )
+        tendb_rollback_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+
         source_cluster = Cluster.objects.get(id=self.data["source_cluster_id"])
         target_cluster = Cluster.objects.get(id=self.data["target_cluster_id"])
         clusters_info = get_rollback_clusters_info(
@@ -140,7 +143,6 @@ class TenDBRollBackDataFlow(object):
                 )
             )
 
-            spd_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             cluster = {"proxy_status": InstanceStatus.RUNNING.value, "proxy_ids": [target_spider.id]}
             spd_sub_pipeline.add_act(
                 act_name=_("写入初始化实例的db_meta元信息"),
@@ -215,7 +217,6 @@ class TenDBRollBackDataFlow(object):
                     root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster=shd_cluster
                 )
             )
-            ins_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             cluster = {
                 "storage_status": InstanceStatus.RUNNING.value,
                 "storage_ids": [target_slave.id, target_master.id],
@@ -233,4 +234,7 @@ class TenDBRollBackDataFlow(object):
             )
             ins_sub_pipeline_list.append(ins_sub_pipeline.build_sub_process(sub_name=_("恢复remote节点数据")))
         tendb_rollback_pipeline.add_parallel_sub_pipeline(sub_flow_list=ins_sub_pipeline_list)
-        tendb_rollback_pipeline.run_pipeline(is_drop_random_user=True)
+        tendb_rollback_pipeline_all.add_sub_pipeline(
+            sub_flow=tendb_rollback_pipeline.build_sub_process(sub_name=_("tendb_cluster定点回档"))
+        )
+        tendb_rollback_pipeline_all.run_pipeline(init_trans_data_class=ClusterInfoContext(), is_drop_random_user=True)

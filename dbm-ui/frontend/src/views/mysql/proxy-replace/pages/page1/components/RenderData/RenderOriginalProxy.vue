@@ -37,16 +37,16 @@
   import type { IProxyData } from './Row.vue';
 
   interface Props {
-    modelValue?: IProxyData,
+    modelValue?: IProxyData;
   }
 
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void,
-    (e: 'inputFinish', value: IProxyData): void
+    (e: 'inputCreate', value: Array<string>): void;
+    (e: 'inputFinish', value: IProxyData): void;
   }
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Array<number>;
   }
 
   const props = defineProps<Props>();
@@ -76,21 +76,22 @@
       message: t('目标Proxy不能为空'),
     },
     {
-      validator: () => checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [localInstanceAddress.value],
-      }).then((data) => {
-        if (data.length < 1) {
-          return false;
-        }
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+      validator: () =>
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [localInstanceAddress.value],
+        }).then((data) => {
+          if (data.length < 1) {
+            return false;
+          }
+          instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
 
-        const [currentInstanceData] = data;
-        proxyInstanceMemo = currentInstanceData;
-        emits('inputFinish', proxyInstanceMemo);
-        localClusterId.value = currentInstanceData.cluster_id;
-        return true;
-      }),
+          const [currentInstanceData] = data;
+          proxyInstanceMemo = currentInstanceData;
+          emits('inputFinish', proxyInstanceMemo);
+          localClusterId.value = currentInstanceData.cluster_id;
+          return true;
+        }),
       message: t('目标Proxy不存在'),
     },
     {
@@ -99,10 +100,13 @@
         const otherClusterMemoMap = { ...instanceAddreddMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -117,30 +121,38 @@
   ];
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      proxyInstanceMemo = props.modelValue;
-      localClusterId.value = props.modelValue.cluster_id;
-      localInstanceAddress.value = props.modelValue.instance_address;
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        proxyInstanceMemo = props.modelValue;
+        localClusterId.value = props.modelValue.cluster_id;
+        localInstanceAddress.value = props.modelValue.instance_address;
 
-      if (localInstanceAddress.value) {
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+        if (localInstanceAddress.value) {
+          instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+        }
+
+        isShowEdit.value = !props.modelValue.instance_address;
       }
-
-      isShowEdit.value = !props.modelValue.instance_address;
-    }
-  }, {
-    immediate: true,
-  });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 获取关联集群
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    localClusterId,
+    () => {
+      if (!localClusterId.value) {
+        return;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleMultiInput = (list: Array<string>) => {
     nextTick(() => {
@@ -149,17 +161,12 @@
   };
 
   onBeforeUnmount(() => {
-    delete instanceAddreddMemo[instanceKey]
-  })
+    delete instanceAddreddMemo[instanceKey];
+  });
 
   defineExpose<Exposes>({
     getValue() {
-      const {
-        bk_host_id,
-        bk_cloud_id,
-        ip,
-        port,
-      } = proxyInstanceMemo;
+      const { bk_host_id, bk_cloud_id, ip, port } = proxyInstanceMemo;
 
       const result = {
         cluster_ids: [localClusterId.value],
@@ -172,7 +179,10 @@
         },
       };
 
-      return editRef.value.getValue().then(() => result);
+      return editRef.value
+        .getValue()
+        .then(() => result)
+        .catch(() => Promise.reject(result));
     },
   });
 </script>

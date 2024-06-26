@@ -133,7 +133,7 @@ func (c *BackupTruncateDatabaseComp) DumpSchema() error {
 				DumpCmdFile:  c.dumpCmd,
 				Charset:      c.charset,
 				MySQLDumpOption: mysqlutil.MySQLDumpOption{
-					NoData:       true,
+					DumpSchema:   true,
 					NoCreateDb:   true,
 					NoCreateTb:   false,
 					DumpTrigger:  true,

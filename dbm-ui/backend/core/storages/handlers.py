@@ -106,7 +106,7 @@ class StorageHandler(object):
         data = self.storage.client.create_bkrepo_access_token(paths=[path], expire_time=expire_time, permits=permits)
         return {
             "token": data[0]["token"],
-            "url": env.BKREPO_ENDPOINT_URL,
+            "url": env.BKREPO_FRONTEND_URL,
             "project": env.BKREPO_PROJECT,
             "repo": env.BKREPO_BUCKET,
             "path": path,

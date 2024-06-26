@@ -19,15 +19,22 @@ import { random } from '@utils';
 
 // MySQL 添加从库
 export function generateMysqlSlaveAddCloneData(ticketData: TicketModel<MySQLSlaveDetails>) {
-  const { clusters, infos} = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    cluster_domain: clusters[clusterId].immute_domain,
-    cluster_id: clusterId,
-    cluster_related: [],
-    checked_related: [],
-    new_slave_ip: item.new_slave.ip,
-    uniqueId: random(),
-  }))));
-  
-  return Promise.resolve({ tableDataList });
+  const { clusters, infos } = ticketData.details;
+  const tableDataList = _.flatMap(
+    infos.map((item) =>
+      item.cluster_ids.map((clusterId) => ({
+        cluster_domain: clusters[clusterId].immute_domain,
+        cluster_id: clusterId,
+        cluster_related: [],
+        checked_related: [],
+        new_slave_ip: item.new_slave.ip,
+        uniqueId: random(),
+      })),
+    ),
+  );
+
+  return Promise.resolve({
+    tableDataList,
+    remark: ticketData.remark,
+  });
 }

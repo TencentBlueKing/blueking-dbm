@@ -38,69 +38,25 @@ if env.SERVICE_ONLY:
             views.nosql.create_nosql_cluster,
             name="create-nosql-cluster",
         ),
-        # 提供给 DBPRIV 使用, 老版本 api, 等待废弃
         path(
-            "priv_manager/cluster_instances",
-            views.priv_manager.cluster_instances,
-            name="priv_manager-cluster_instances",
+            "priv_manager/mysql/tendbsingle/cluster_instances",
+            views.priv_manager.mysql.tendbsingle_cluster_instances,
+            name="priv_manager-mysql-tendbsingle-cluster_instances",
         ),
         path(
-            "priv_manager/instance_detail",
-            views.priv_manager.instance_detail,
-            name="priv_manager-instance_detail",
+            "priv_manager/mysql/tendbha/cluster_instances",
+            views.priv_manager.mysql.tendbha_cluster_instances,
+            name="priv_manager-mysql-tendbha-cluster_instances",
+        ),
+        path(
+            "priv_manager/mysql/tendbcluster/cluster_instances",
+            views.priv_manager.mysql.tendbcluster_cluster_instances,
+            name="priv_manager-mysql-tendbcluster-cluster_instances",
         ),
         path(
             "priv_manager/biz_clusters",
             views.priv_manager.biz_clusters,
             name="priv_manager-biz_clusters",
-        ),
-        # priv manager tendbcluster
-        path(
-            "priv_manager/tendbcluster/cluster_instances",
-            views.priv_manager.tendbcluster_cluster_instances,
-            name="priv-manager-tendbcluster-cluster_instances",
-        ),
-        path(
-            "priv_manager/tendbcluster/instance_detail",
-            views.priv_manager.tendbcluster_instance_detail,
-            name="priv_manager-tendbcluster-instance_detail",
-        ),
-        path(
-            "priv_manager/tendbcluster/biz_clusters",
-            views.priv_manager.tendbcluster_biz_clusters,
-            name="priv_manager-tendbcluster-biz_clusters",
-        ),
-        # priv manager tendbha
-        path(
-            "priv_manager/tendbha/cluster_instances",
-            views.priv_manager.tendbha_cluster_instances,
-            name="priv-manager-tendbha-cluster_instances",
-        ),
-        path(
-            "priv_manager/tendbha/instance_detail",
-            views.priv_manager.tendbha_instance_detail,
-            name="priv_manager-tendbha-instance_detail",
-        ),
-        path(
-            "priv_manager/tendbha/biz_clusters",
-            views.priv_manager.tendbha_biz_clusters,
-            name="priv_manager-tendbha-biz_clusters",
-        ),
-        # priv manager tendbsingle
-        path(
-            "priv_manager/tendbsingle/cluster_instances",
-            views.priv_manager.tendbsingle_cluster_instances,
-            name="priv-manager-tendbsingle-cluster_instances",
-        ),
-        path(
-            "priv_manager/tendbsingle/instance_detail",
-            views.priv_manager.tendbsingle_instance_detail,
-            name="priv_manager-tendbsingle-instance_detail",
-        ),
-        path(
-            "priv_manager/tendbsingle/biz_clusters",
-            views.priv_manager.tendbsingle_biz_clusters,
-            name="priv_manager-tendbsingle-biz_clusters",
         ),
         # priv manager sqlserver_single
         path(

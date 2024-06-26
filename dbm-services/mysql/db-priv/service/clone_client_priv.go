@@ -138,13 +138,12 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) er
 					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId, machineTypeBackend, m.User)
 					if err != nil {
 						AddError(&errMsg, address, err)
-						return
+						continue
 					}
 					userGrants = ReplaceHostInMysqlGrants(userGrants, m.SourceIp, m.TargetIp)
 					err = ImportMysqlPrivileges(userGrants, address, item.BkCloudId)
 					if err != nil {
 						AddError(&errMsg, address, err)
-						return
 					}
 				}
 			} else {
@@ -153,13 +152,12 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) er
 					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId, machineTypeSpider, m.User)
 					if err != nil {
 						AddError(&errMsg, address, err)
-						return
+						continue
 					}
 					userGrants = ReplaceHostInMysqlGrants(userGrants, m.SourceIp, m.TargetIp)
 					err = ImportMysqlPrivileges(userGrants, address, item.BkCloudId)
 					if err != nil {
 						AddError(&errMsg, address, err)
-						return
 					}
 				}
 			}

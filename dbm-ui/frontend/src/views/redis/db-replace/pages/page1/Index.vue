@@ -29,9 +29,11 @@
           :inputed-ips="inputedIps"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
     </div>
     <template #action>
       <BkButton
@@ -69,10 +71,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import {
-    queryInfoByIp,
-    queryMasterSlavePairs,
-  } from '@services/source/redisToolbox';
+  import { queryInfoByIp, queryMasterSlavePairs } from '@services/source/redisToolbox';
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -82,20 +81,17 @@
 
   import { TicketTypes } from '@common/const';
 
+  import TicketRemark from '@components/ticket-remark/Index.vue';
+
   import { switchToNormalRole } from '@utils';
 
   import RenderData from './components/Index.vue';
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-  } from './components/instance-selector/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/Row.vue';
+  import InstanceSelector, { type InstanceSelectorValues } from './components/instance-selector/Index.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
   interface SpecItem {
     ip: string;
-    spec_id: number
+    spec_id: number;
   }
   interface InfoItem {
     cluster_id: number;
@@ -114,23 +110,25 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_CUTOFF,
     onSuccess(cloneData) {
-      tableData.value = cloneData;
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
       sortTableByCluster();
       updateSlaveMasterMap();
       window.changeConfirm = true;
-    }
+    },
   });
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
-
+  const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
+  const remark = ref('');
+
   const selected = shallowRef({
     idleHosts: [],
   } as InstanceSelectorValues);
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
-  const inputedIps = computed(() => tableData.value.map(item => item.ip));
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.ip)).length);
+  const inputedIps = computed(() => tableData.value.map((item) => item.ip));
 
   // slave <-> master
   const slaveMasterMap: Record<string, string> = {};
@@ -149,10 +147,14 @@
 
   // 更新slave -> master 映射表
   const updateSlaveMasterMap = async () => {
-    const clusterIds = [...new Set(tableData.value.map(item => item.clusterId))];
-    const retArr = await Promise.all(clusterIds.map(id => queryMasterSlavePairs({
-      cluster_id: id,
-    }).catch(() => null)));
+    const clusterIds = [...new Set(tableData.value.map((item) => item.clusterId))];
+    const retArr = await Promise.all(
+      clusterIds.map((id) =>
+        queryMasterSlavePairs({
+          cluster_id: id,
+        }).catch(() => null),
+      ),
+    );
     retArr.forEach((pairs) => {
       if (pairs !== null) {
         pairs.forEach((item) => {
@@ -236,13 +238,15 @@
       spec: data.spec_config,
     };
     tableData.value[index] = obj;
-    ipMemo[ip]  = true;
+    ipMemo[ip] = true;
     sortTableByCluster();
     updateSlaveMasterMap();
-    selected.value.idleHosts.push(Object.assign(data, {
-      cluster_id: obj.clusterId,
-      cluster_domain: data.cluster?.immute_domain,
-    }));
+    selected.value.idleHosts.push(
+      Object.assign(data, {
+        cluster_id: obj.clusterId,
+        cluster_domain: data.cluster?.immute_domain,
+      }),
+    );
   };
 
   // 追加一个集群
@@ -279,11 +283,21 @@
     }
     sortTableByCluster();
     const ipsArr = selected.value.idleHosts;
-    selected.value.idleHosts = ipsArr.filter(item => ![removeIp, masterIp].includes(item.ip));
+    selected.value.idleHosts = ipsArr.filter((item) => ![removeIp, masterIp].includes(item.ip));
     if (tableData.value.length === 0) {
       tableData.value = [createRowData()];
       return;
     }
+  };
+
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -323,13 +337,16 @@
         } else if (item.role === 'master') {
           infoItem.redis_master.push(specObj);
           const deleteSlaveIp = slaveMasterMap[item.ip];
-          if (deleteSlaveIp) needDeleteSlaves.push(deleteSlaveIp);
+
+          if (deleteSlaveIp) {
+            needDeleteSlaves.push(deleteSlaveIp);
+          }
         } else {
           infoItem.proxy.push(specObj);
         }
       });
       // 当选择了master的时候，对应的slave不要传给后端
-      infoItem.redis_slave = infoItem.redis_slave.filter(item => !needDeleteSlaves.includes(item.ip));
+      infoItem.redis_slave = infoItem.redis_slave.filter((item) => !needDeleteSlaves.includes(item.ip));
       return infoItem;
     });
     return infos;
@@ -337,13 +354,12 @@
 
   // 提交
   const handleSubmit = async () => {
-    await Promise.all(rowRefs.value.map((item: {
-      getValue: () => void
-    }) => item.getValue()));
+    await Promise.all(rowRefs.value.map((item: { getValue: () => void }) => item.getValue()));
     const infos = generateRequestParam();
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_CUTOFF,
+      remark: remark.value,
       details: {
         ip_source: 'resource_pool',
         infos,
@@ -355,27 +371,30 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisDBReplace',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisDBReplace',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selected.value.idleHosts = [];
     ipMemo = {};
     window.changeConfirm = false;
@@ -400,7 +419,7 @@
       let isFirst = true;
       let isGeneral = true;
       if (sameArr.length > 1) {
-        isGeneral  = false;
+        isGeneral = false;
       }
       for (const item of sameArr) {
         if (isFirst) {

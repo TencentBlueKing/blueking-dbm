@@ -12,13 +12,13 @@ import (
 
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/model"
-	"dbm-services/mysql/db-partition/monitor"
 
 	"github.com/spf13/viper"
 )
 
 // GetPartitionDbLikeTbLike TODO
-func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt int, fromCron bool) ([]InitSql, []string, []string,
+func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt int, fromCron bool, host Host) (
+	[]InitSql, []string, []string,
 	error) {
 	var addSqls, dropSqls, errs Messages
 	var initSqls InitMessages
@@ -28,7 +28,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 	dropSqls.list = []string{}
 	errs.list = []string{}
 
-	tbs, errOuter := config.GetDbTableInfo(fromCron)
+	tbs, errOuter := config.GetDbTableInfo(fromCron, host)
 	if errOuter != nil {
 		slog.Error("GetDbTableInfo error", errOuter)
 		return nil, nil, nil, fmt.Errorf("get database and table info failed：%s", errOuter.Error())
@@ -49,7 +49,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 				wg.Done()
 			}()
 			if tb.Partitioned {
-				sql, err = tb.GetAddPartitionSql()
+				sql, err = tb.GetAddPartitionSql(host)
 				if err != nil {
 					slog.Error("msg", "GetAddPartitionSql error", err)
 					AddString(&errs, err.Error())
@@ -59,7 +59,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 				if tb.Phase == online {
 					// 启用的分区规则，会执行删除历史分区
 					// 禁用的分区规则，会新增分区，但是不会删除历史分区
-					sql, err = tb.GetDropPartitionSql()
+					sql, err = tb.GetDropPartitionSql(host)
 					if err != nil {
 						slog.Error("msg", "GetDropPartitionSql error", err)
 						AddString(&errs, err.Error())
@@ -68,7 +68,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 					AddString(&dropSqls, sql)
 				}
 			} else {
-				sql, needSize, err = tb.GetInitPartitionSql(dbtype, splitCnt)
+				sql, needSize, err = tb.GetInitPartitionSql(dbtype, splitCnt, host)
 				if err != nil {
 					slog.Error("msg", "GetInitPartitionSql error", err)
 					AddString(&errs, err.Error())
@@ -91,8 +91,8 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 }
 
 // GetDbTableInfo TODO
-func (config *PartitionConfig) GetDbTableInfo(fromCron bool) (ptlist []ConfigDetail, err error) {
-	address := fmt.Sprintf("%s:%d", config.ImmuteDomain, config.Port)
+func (config *PartitionConfig) GetDbTableInfo(fromCron bool, host Host) (ptlist []ConfigDetail, err error) {
+	address := fmt.Sprintf("%s:%d", host.Ip, host.Port)
 	slog.Info(fmt.Sprintf("get real partition info from (%s/%s,%s)", address, config.DbLike, config.TbLike))
 
 	var output oneAddressResult
@@ -100,7 +100,8 @@ func (config *PartitionConfig) GetDbTableInfo(fromCron bool) (ptlist []ConfigDet
 		`select TABLE_SCHEMA as TABLE_SCHEMA,TABLE_NAME as TABLE_NAME,CREATE_OPTIONS as CREATE_OPTIONS `+
 			` from information_schema.tables where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s';`,
 		config.DbLike, config.TbLike)
-	var queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30, config.BkCloudId}
+	var queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30,
+		int(host.BkCloudId)}
 	output, err = OneAddressExecuteSql(queryRequest)
 	if err != nil {
 		slog.Error("GetDbTableInfo", sql, err.Error())
@@ -118,7 +119,7 @@ func (config *PartitionConfig) GetDbTableInfo(fromCron bool) (ptlist []ConfigDet
 			` CONSTRAINT_TYPE in ('UNIQUE','PRIMARY KEY');`,
 		config.DbLike, config.TbLike)
 	queryRequest = QueryRequest{[]string{address}, []string{uniqueKeySql}, true,
-		30, config.BkCloudId}
+		30, int(host.BkCloudId)}
 	hasUniqueKey, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
 		slog.Error("get", sql, err.Error())
@@ -138,7 +139,8 @@ func (config *PartitionConfig) GetDbTableInfo(fromCron bool) (ptlist []ConfigDet
 				" information_schema.PARTITIONS where TABLE_SCHEMA like '%s' and TABLE_NAME like '%s' "+
 				" order by PARTITION_DESCRIPTION asc limit 2;",
 				db, tb)
-			queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30, config.BkCloudId}
+			queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30,
+				int(host.BkCloudId)}
 			output, err = OneAddressExecuteSql(queryRequest)
 			if err != nil {
 				slog.Error("GetDbTableInfo", sql, err.Error())
@@ -282,10 +284,11 @@ func CalculateInterval(firstName, secondName string, interval int) (bool, error)
 }
 
 // GetDropPartitionSql 生成删除分区的sql
-func (m *ConfigDetail) GetDropPartitionSql() (string, error) {
+func (m *ConfigDetail) GetDropPartitionSql(host Host) (string, error) {
 	var sql, dropSql, fx string
-	reserve := m.ReservedPartition * m.PartitionTimeInterval
-	address := fmt.Sprintf("%s:%d", m.ImmuteDomain, m.Port)
+	// 保留时间+1天，考虑时区差异引起的时间计算不稳定
+	reserve := m.ReservedPartition*m.PartitionTimeInterval + 1
+	address := fmt.Sprintf("%s:%d", host.Ip, host.Port)
 	base0 := fmt.Sprintf(`select PARTITION_NAME as PARTITION_NAME from INFORMATION_SCHEMA.PARTITIONS `+
 		`where TABLE_SCHEMA='%s' and TABLE_NAME='%s' and PARTITION_DESCRIPTION<`, m.DbName, m.TbName)
 	base1 := "order by PARTITION_DESCRIPTION asc;"
@@ -308,7 +311,7 @@ func (m *ConfigDetail) GetDropPartitionSql() (string, error) {
 	}
 	sql = fmt.Sprintf("%s %s %s", base0, fx, base1)
 	var queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{sql}, Force: true, QueryTimeout: 30,
-		BkCloudId: m.BkCloudId}
+		BkCloudId: int(host.BkCloudId)}
 	output, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
 		return dropSql, err
@@ -332,7 +335,7 @@ func (m *ConfigDetail) GetDropPartitionSql() (string, error) {
 }
 
 // GetInitPartitionSql 首次分区,自动分区
-func (m *ConfigDetail) GetInitPartitionSql(dbtype string, splitCnt int) (string, int, error) {
+func (m *ConfigDetail) GetInitPartitionSql(dbtype string, splitCnt int, host Host) (string, int, error) {
 	var sqlPartitionDesc []string
 	var pkey, descKey, descFormat, initSql string
 	var needSize, diff int
@@ -397,7 +400,7 @@ func (m *ConfigDetail) GetInitPartitionSql(dbtype string, splitCnt int) (string,
 		initSql = fmt.Sprintf("alter table `%s`.`%s` partition by %s (%s)", m.DbName, m.TbName, pkey,
 			strings.Join(sqlPartitionDesc, ","))
 	} else {
-		needSize, err = m.CheckTableSize(splitCnt)
+		needSize, err = m.CheckTableSize(splitCnt, host)
 		if err != nil {
 			return initSql, needSize, err
 		}
@@ -418,9 +421,9 @@ func (m *ConfigDetail) GetInitPartitionSql(dbtype string, splitCnt int) (string,
 }
 
 // CheckTableSize TODO
-func (m *ConfigDetail) CheckTableSize(splitCnt int) (int, error) {
+func (m *ConfigDetail) CheckTableSize(splitCnt int, host Host) (int, error) {
 	var needSize int
-	address := fmt.Sprintf("%s:%d", m.ImmuteDomain, m.Port)
+	address := fmt.Sprintf("%s:%d", host.Ip, host.Port)
 	sql := fmt.Sprintf(
 		"select TABLE_ROWS,(DATA_LENGTH+INDEX_LENGTH) as BYTES from information_schema.tables where TABLE_SCHEMA='%s' and TABLE_NAME='%s'", m.DbName, m.TbName)
 	var queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{sql}, Force: true, QueryTimeout: 30,
@@ -437,17 +440,18 @@ func (m *ConfigDetail) CheckTableSize(splitCnt int) (int, error) {
 	} else {
 		return needSize, fmt.Errorf(
 			"table %s.%s is not a partition table,and can not do auto alter partition, "+
-				"because large than 100MB size or large than 1000000 rows", m.DbName, m.TbName)
+				"because large than %d size or large than %d rows", m.DbName, m.TbName,
+			viper.GetInt("pt.max_size"), viper.GetInt("pt.max_rows"))
 	}
 }
 
 // GetAddPartitionSql 生成增加分区的sql
-func (m *ConfigDetail) GetAddPartitionSql() (string, error) {
+func (m *ConfigDetail) GetAddPartitionSql(host Host) (string, error) {
 	var vsql, addSql, descKey, name, fx string
 	var wantedDesc, wantedName, wantedDescIfOld, wantedNameIfOld string
 	var diff, desc int
 	var begin int
-	address := fmt.Sprintf("%s:%d", m.ImmuteDomain, m.Port)
+	address := fmt.Sprintf("%s:%d", host.Ip, host.Port)
 	switch m.PartitionType {
 	case 0:
 		diff = DiffOneDay
@@ -501,7 +505,7 @@ func (m *ConfigDetail) GetAddPartitionSql() (string, error) {
 		"select count(*) as COUNT from INFORMATION_SCHEMA.PARTITIONS where TABLE_SCHEMA='%s' and TABLE_NAME='%s' "+
 			"and partition_description>= %s", m.DbName, m.TbName, fx)
 	var queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
-		BkCloudId: m.BkCloudId}
+		BkCloudId: int(host.BkCloudId)}
 	output, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
 		return addSql, err
@@ -513,7 +517,8 @@ func (m *ConfigDetail) GetAddPartitionSql() (string, error) {
 	}
 	need := m.ExtraPartition - cnt
 	// 先获取当前最大的分区PARTITION_DESCRIPTION和PARTITION_NAME
-	vsql = fmt.Sprintf(`select %s %s from INFORMATION_SCHEMA.PARTITIONS where TABLE_SCHEMA ='%s' and TABLE_NAME='%s' `+
+	vsql = fmt.Sprintf(`select %s %s ,PARTITION_NAME as PARTITION_NAME from INFORMATION_SCHEMA.PARTITIONS `+
+		`where TABLE_SCHEMA ='%s' and TABLE_NAME='%s' `+
 		`and partition_description >= %s `+
 		`order by PARTITION_DESCRIPTION desc limit 1;`, wantedDesc, wantedName, m.DbName, m.TbName, fx)
 	queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
@@ -527,7 +532,7 @@ func (m *ConfigDetail) GetAddPartitionSql() (string, error) {
 		begin = -1
 		vsql = fmt.Sprintf(`select %s %s from INFORMATION_SCHEMA.PARTITIONS limit 1;`, wantedDescIfOld, wantedNameIfOld)
 		queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{vsql}, Force: true, QueryTimeout: 30,
-			BkCloudId: m.BkCloudId}
+			BkCloudId: int(host.BkCloudId)}
 		output, err = OneAddressExecuteSql(queryRequest)
 		if err != nil {
 			return addSql, err
@@ -537,6 +542,17 @@ func (m *ConfigDetail) GetAddPartitionSql() (string, error) {
 			m.TbName))
 	}
 	name = output.CmdResults[0].TableData[0]["WANTED_NAME"].(string)
+	if len(output.CmdResults[0].TableData) != 0 {
+		current := strings.TrimPrefix(output.CmdResults[0].TableData[0]["PARTITION_NAME"].(string), "p")
+		formatDate, err := time.Parse("20060102", name)
+		if err != nil {
+			return addSql, err
+		}
+		// drs访问db无法保证时区与db时区一致，如果计算出希望创建的分区名比当前分区的名称还要小1天，如果分区间隔又只有1天，分区名会重复
+		if formatDate.AddDate(0, 0, 1).Format("20060102") == current {
+			name = current
+		}
+	}
 	switch m.PartitionType {
 	case 0, 1, 5:
 		desc, _ = strconv.Atoi(output.CmdResults[0].TableData[0]["WANTED_DESC"].(string))
@@ -608,100 +624,33 @@ func (m *ConfigDetail) NewPartitionNameDescType4(begin int, need int, name strin
 	return sql, nil
 }
 
-// GetSpiderBackends TODO
-func GetSpiderBackends(address string, bkCloudId int) (tableDataType, int, error) {
-	var splitCnt int
-	var tdbctlPrimary string
-	// 查询tdbctl
-	dbctlSql := "select HOST,PORT,server_name as SPLIT_NUM, SERVER_NAME, WRAPPER from mysql.servers " +
-		"where wrapper='TDBCTL' and server_name like 'TDBCTL%' ;"
-	getTdbctlPrimary := "tdbctl get primary;"
-	queryRequest := QueryRequest{Addresses: []string{address}, Cmds: []string{dbctlSql}, Force: true, QueryTimeout: 30,
-		BkCloudId: bkCloudId}
-	output, err := OneAddressExecuteSql(queryRequest)
-	if err != nil {
-		return nil, splitCnt, fmt.Errorf("execute [%s] get spider info error: %s", dbctlSql, err.Error())
-	} else if len(output.CmdResults[0].TableData) == 0 {
-		return nil, splitCnt, fmt.Errorf("no spider tdbctl found")
+// CreatePartitionTicket 创建分区定时任务的单据
+func CreatePartitionTicket(flows []Info, ClusterType string, domain string, vdate string) error {
+	var ticketType string
+	var ticket Ticket
+	if ClusterType == Tendbha {
+		ticketType = "MYSQL_PARTITION_CRON"
+	} else if ClusterType == Tendbcluster {
+		ticketType = "TENDBCLUSTER_PARTITION_CRON"
+	} else {
+		return errno.NotSupportedClusterType
 	}
-
-	// 查询tdbctl主节点
-	for _, item := range output.CmdResults[0].TableData {
-		tdbctl := fmt.Sprintf("%s:%s", item["HOST"].(string), item["PORT"].(string))
-		queryRequest = QueryRequest{Addresses: []string{tdbctl}, Cmds: []string{getTdbctlPrimary}, Force: true,
-			QueryTimeout: 30, BkCloudId: bkCloudId}
-		primary, err := OneAddressExecuteSql(queryRequest)
-		if err != nil {
-			slog.Warn(fmt.Sprintf("execute [%s] error: %s", getTdbctlPrimary, err.Error()))
-			continue
-		}
-		if len(primary.CmdResults[0].TableData) == 0 {
-			slog.Error(fmt.Sprintf("execute [%s] nothing return", getTdbctlPrimary))
-			return nil, splitCnt, fmt.Errorf("execute [%s] nothing return", getTdbctlPrimary)
-		}
-		slog.Info("data:", primary.CmdResults[0].TableData)
-		tdbctlPrimary = primary.CmdResults[0].TableData[0]["SERVER_NAME"].(string)
-		break
-	}
-	if tdbctlPrimary == "" {
-		slog.Error(fmt.Sprintf("execute [%s] SERVER_NAME is null", getTdbctlPrimary))
-		return nil, splitCnt, fmt.Errorf("execute [%s] SERVER_NAME is null", getTdbctlPrimary)
-	}
-	// 查询remote master各分片实例和tdbctl主节点
-	splitSql := fmt.Sprintf("select HOST,PORT,replace(server_name,'SPT','') as SPLIT_NUM, SERVER_NAME, WRAPPER "+
-		"from mysql.servers where wrapper in ('mysql','TDBCTL') and "+
-		"(server_name like 'SPT%%' or server_name like '%s')", tdbctlPrimary)
-	queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{splitSql}, Force: true, QueryTimeout: 30,
-		BkCloudId: bkCloudId}
-	output, err = OneAddressExecuteSql(queryRequest)
-	if err != nil {
-		return nil, splitCnt, fmt.Errorf("execute [%s] get spider remote and tdbctl master error: %s", splitSql, err.Error())
-	}
-	// 查询一台remote机器上有多少个实例，用于评估存储空间
-	cntSql := "select count(*) as COUNT from mysql.servers where WRAPPER='mysql' and " +
-		"SERVER_NAME like 'SPT%' group by host order by 1 desc limit 1;"
-	queryRequest = QueryRequest{Addresses: []string{address}, Cmds: []string{cntSql}, Force: true, QueryTimeout: 30,
-		BkCloudId: bkCloudId}
-	output1, err := OneAddressExecuteSql(queryRequest)
-	if err != nil {
-		return nil, splitCnt, fmt.Errorf("execute [%s] get spider split count error: %s", cntSql, err.Error())
-	}
-	splitCnt, _ = strconv.Atoi(output1.CmdResults[0].TableData[0]["COUNT"].(string))
-	return output.CmdResults[0].TableData, splitCnt, nil
-}
-
-// CreatePartitionTicket TODO
-func CreatePartitionTicket(check Checker, objects []PartitionObject, zoneOffset int, date string, scheduler string) {
-	zone := fmt.Sprintf("%+03d:00", zoneOffset)
-	ticketType := "MYSQL_PARTITION"
-	if check.ClusterType == Tendbcluster {
-		ticketType = "TENDBCLUSTER_PARTITION"
-	}
-	ticket := Ticket{BkBizId: check.BkBizId, DbAppAbbr: check.DbAppAbbr, BkBizName: check.BkBizName,
+	ticket = Ticket{BkBizId: viper.GetInt("dba.bk_biz_id"),
 		TicketType: ticketType, Remark: "auto partition", IgnoreDuplication: true,
-		Details: Detail{Infos: []Info{{check.ConfigId, check.ClusterId, check.ImmuteDomain,
-			*check.BkCloudId, objects}}}}
+		Details: Detail{Infos: flows}, CronDate: vdate, ImmuteDomain: domain}
 	slog.Info("msg", "ticket info", fmt.Sprintf("%v", ticket))
-	id, err := CreateDbmTicket(ticket)
+	_, err := CreateDbmTicket(ticket)
 	if err != nil {
-		dimension := monitor.NewPartitionEventDimension(check.BkBizId, check.DbAppAbbr, check.BkBizName,
-			*check.BkCloudId, check.ImmuteDomain)
-		content := fmt.Sprintf("partition error. create ticket fail: %s", err.Error())
-		monitor.SendEvent(monitor.PartitionEvent, dimension, content, "127.0.0.1")
-		slog.Error("msg", fmt.Sprintf("create ticket fail: %v", ticket), err)
-		_ = AddLog(check.ConfigId, check.BkBizId, check.ClusterId, *check.BkCloudId,
-			0, check.ImmuteDomain, zone, date, scheduler,
-			content, CheckFailed, check.ClusterType)
-		return
+		return err
 	}
-	_ = AddLog(check.ConfigId, check.BkBizId, check.ClusterId, *check.BkCloudId, id, check.ImmuteDomain,
-		zone, date, scheduler, "", ExecuteAsynchronous, check.ClusterType)
+	return nil
 }
 
 // NeedPartition 获取需要实施的分区规则
-func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate string) ([]*Checker, error) {
+func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate string) ([]*PartitionConfig, error) {
 	var configTb, logTb string
-	var all, doNothing []*Checker
+	var doNothing []*Checker
+
 	switch clusterType {
 	case Tendbha, Tendbsingle:
 		configTb = MysqlPartitionConfig
@@ -710,41 +659,36 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 		configTb = SpiderPartitionConfig
 		logTb = SpiderPartitionCronLogTable
 	default:
-		return nil, errors.New("不支持的db类型")
+		return nil, errno.NotSupportedClusterType
 	}
 	vzone := fmt.Sprintf("%+03d:00", zoneOffset)
 	// 集群被offline时，其分区规则也被禁用，规则不会被定时任务执行
-	vsql := fmt.Sprintf(
-		"select id as config_id, bk_biz_id, db_app_abbr, bk_biz_name, "+
-			"cluster_id, immute_domain, port, bk_cloud_id,"+
-			" '%s' as cluster_type from `%s`.`%s` where time_zone='%s' and phase in ('%s','%s') order by 2,3;",
-		clusterType, viper.GetString("db.name"), configTb, vzone, online, offline)
-	slog.Info(vsql)
-	err := model.DB.Self.Raw(vsql).Scan(&all).Error
+	var all, need []*PartitionConfig
+	err := model.DB.Self.Table(configTb).Where("time_zone = ? and phase in (?,?)", vzone, online, offline).Scan(&all).
+		Error
 	if err != nil {
-		slog.Error(vsql, "execute err", err)
+		slog.Error("msg", fmt.Sprintf("query %s err", configTb), err)
 		return nil, err
 	}
-	slog.Info("all", all)
 	if cronType == "daily" {
 		return all, nil
 	}
-	vsql = fmt.Sprintf("select conf.id as config_id from `%s`.`%s` as conf,"+
+
+	vsql := fmt.Sprintf("select conf.id as config_id from `%s`.`%s` as conf,"+
 		"`%s`.`%s` as log where conf.id=log.config_id "+
 		"and conf.time_zone='%s' and log.cron_date='%s' and log.status like '%s'",
 		viper.GetString("db.name"), configTb, viper.GetString("db.name"),
-		logTb, vzone, cronDate, CheckSucceeded)
+		logTb, vzone, cronDate, Success)
 	slog.Info(vsql)
 	err = model.DB.Self.Raw(vsql).Scan(&doNothing).Error
 	if err != nil {
 		slog.Error(vsql, "execute err", err)
 		return nil, err
 	}
-	var need []*Checker
 	for _, item := range all {
 		retryFlag := true
 		for _, ok := range doNothing {
-			if (*item).ConfigId == (*ok).ConfigId {
+			if (*item).ID == (*ok).ConfigId {
 				retryFlag = false
 				break
 			}
@@ -756,49 +700,37 @@ func NeedPartition(cronType string, clusterType string, zoneOffset int, cronDate
 	return need, nil
 }
 
-// GetMaster TODO
-func GetMaster(configs []*PartitionConfig, immuteDomain, clusterType string) ([]*PartitionConfig, error) {
-	newconfigs := make([]*PartitionConfig, len(configs))
-	clusterInfo, err := GetCluster(Domain{immuteDomain}, clusterType)
+// GetMaster 获取主库
+func GetMaster(immuteDomain, clusterType string) (Host, error) {
+	var host Host
+	cluster, err := GetCluster(Domain{immuteDomain}, clusterType)
 	if err != nil {
 		slog.Error("msg", "GetCluster err", err)
-		return nil, fmt.Errorf("GetCluster err: %s", err.Error())
+		return host, fmt.Errorf("GetCluster err: %s", err.Error())
 	}
-	var masterIp string
-	var masterPort int
-	for _, storage := range clusterInfo.Storages {
+	for _, storage := range cluster.Storages {
 		if storage.InstanceRole == Orphan || storage.InstanceRole == BackendMaster {
-			masterIp = storage.IP
-			masterPort = storage.Port
-			break
+			return Host{Ip: storage.IP, Port: storage.Port, BkCloudId: cluster.BkCloudId}, nil
 		}
 	}
-
-	for k, v := range configs {
-		newconfig := *v
-		newconfig.ImmuteDomain = masterIp
-		newconfig.Port = masterPort
-		newconfigs[k] = &newconfig
-	}
-	return newconfigs, nil
+	return host, fmt.Errorf("not found master")
 }
 
-// AddLog TODO
-func AddLog(configId, bkBizId, clusterId, bkCloudId, ticketId int, immuteDomain, zone, date, scheduler,
-	info, checkStatus, clusterType string) error {
+// AddLogBatch 批量添加日志
+func AddLogBatch(configs []PartitionConfig, date, scheduler, info, status, clusterType string) error {
 	tx := model.DB.Self.Begin()
 	tb := MysqlPartitionCronLogTable
 	if clusterType == Tendbcluster {
 		tb = SpiderPartitionCronLogTable
 	}
-	log := &PartitionCronLog{ConfigId: configId, BkBizId: bkBizId, ClusterId: clusterId, TicketId: ticketId,
-		ImmuteDomain: immuteDomain, BkCloudId: bkCloudId, TimeZone: zone, CronDate: date, Scheduler: scheduler,
-		CheckInfo: info, Status: checkStatus}
-	err := tx.Debug().Table(tb).Create(log).Error
-	if err != nil {
-		tx.Rollback()
-		slog.Error("msg", "add cron log failed", err)
-		return err
+	for _, config := range configs {
+		log := &PartitionCronLog{ConfigId: config.ID, CronDate: date, Scheduler: scheduler, CheckInfo: info, Status: status}
+		err := tx.Debug().Table(tb).Create(log).Error
+		if err != nil {
+			tx.Rollback()
+			slog.Error("msg", "add cron log failed", err)
+			return err
+		}
 	}
 	tx.Commit()
 	return nil

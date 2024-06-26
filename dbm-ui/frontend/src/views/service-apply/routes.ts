@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -142,6 +140,14 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@views/mongodb-manage/replica-set-apply/Index.vue'),
       },
       {
+        name: 'DorisApply',
+        path: 'doris',
+        meta: {
+          navName: t('申请Doris集群部署'),
+        },
+        component: () => import('@views/doris-manage/apply/Index.vue'),
+      },
+      {
         name: 'SelfServiceCreateDbModule',
         path: 'create-db-module/:type/:bk_biz_id/',
         meta: {
@@ -183,8 +189,8 @@ const routes: RouteRecordRaw[] = [
       },
     ],
   },
-]
+];
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
-  return checkDbConsole(funControllerData, 'personalWorkbench.serviceApply') ? routes : [];
+export default function getRoutes() {
+  return checkDbConsole('personalWorkbench.serviceApply') ? routes : [];
 }

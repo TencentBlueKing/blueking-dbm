@@ -49,7 +49,6 @@ from backend.flow.utils.mysql.mysql_bk_config import get_backup_ini_config, get_
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 from backend.ticket.constants import TicketType
-from backend.ticket.models import Ticket
 
 logger = logging.getLogger("flow")
 
@@ -936,27 +935,30 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         表分区
         """
-        ticket = Ticket.objects.get(id=self.ticket_data["uid"])
-        if self.ticket_data["ticket_type"] == TicketType.MYSQL_PARTITION:
-            shard_name = ""
-        else:
-            shard_name = self.cluster["shard_name"]
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.Partition.value,
             "payload": {
                 "general": {"runtime_account": self.account},
                 "extend": {
-                    "bk_biz_id": self.ticket_data["bk_biz_id"],
-                    "db_app_abbr": self.ticket_data["db_app_abbr"],
-                    "bk_biz_name": self.ticket_data["bk_biz_name"],
-                    "cluster_id": self.ticket_data["cluster_id"],
-                    "immute_domain": self.ticket_data["immute_domain"],
-                    "master_ip": self.cluster["ip"],
-                    "master_port": self.cluster["port"],
-                    "shard_name": shard_name,
-                    "ticket": ticket.url,
-                    "file_path": self.cluster["file_path"],
+                    "ip": self.cluster["ip"],
+                    "file_path": os.path.join(BK_PKG_INSTALL_PATH, "partition", self.cluster["file_path"]),
+                },
+            },
+        }
+
+    def get_partition_cron_payload(self, **kwargs) -> dict:
+        """
+        表分区
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.Partition.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "ip": self.ticket_data["ip"],
+                    "file_path": os.path.join(BK_PKG_INSTALL_PATH, "partition", self.ticket_data["file_name"]),
                 },
             },
         }
@@ -2150,6 +2152,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "tables_ignore": self.ticket_data.get("tables_ignore"),
                         "where": self.ticket_data.get("where"),
                         "dump_data": self.ticket_data["dump_data"],
+                        "dump_schema": self.ticket_data["dump_schema"],
                     },
                     "zip_file_name": f"{self.cluster['dbconsole_dump_file_name']}.zip",
                     "one_db_one_file": False,

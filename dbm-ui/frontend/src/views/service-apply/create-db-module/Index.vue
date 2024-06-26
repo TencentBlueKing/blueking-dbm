@@ -417,6 +417,18 @@
         confirm: 0,
         ...fetchParams.value,
       });
+
+      // 跳转到数据库配置并选中当前模块
+      router.push({
+        name: 'DbConfigureList',
+        params: {
+          clusterType: ticketInfo.type,
+        },
+        query: {
+          treeId: moduleId.value ? `module-${moduleId.value}` : '',
+          parentId: `app-${bizId}`,
+        },
+      });
     } catch (e) {
       console.log(e);
     }

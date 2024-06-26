@@ -8,14 +8,29 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import datetime
+import json
 import logging
+import re
 
+import wrapt
+from apigw_manager.apigw.authentication import UserModelBackend
 from blueapps.account.middlewares import LoginRequiredMiddleware
 from blueapps.account.models import User
 from django.contrib.auth.models import AnonymousUser
+from django.http import JsonResponse
+from django.urls import resolve
+from django.utils.deprecation import MiddlewareMixin
+from django.utils.translation import ugettext as _
 
 from backend import env
+from backend.bk_web.constants import IP_RE, NON_EXTERNAL_PROXY_ROUTING, ROUTING_WHITELIST_PATTERNS
+from backend.bk_web.exceptions import ExternalProxyBaseException, ExternalRouteInvalidException
+from backend.bk_web.handlers import _error
+from backend.ticket.constants import TicketType
+from backend.ticket.views import TicketViewSet
 from backend.utils.local import local
+from backend.utils.string import str2bool
 
 logger = logging.getLogger("root")
 
@@ -87,3 +102,144 @@ class DBMLoginRequiredMiddleware(LoginRequiredMiddleware):
         # TODO: 考虑特殊平台开发admin账号，比如通过X-Bkapi-JWT查看app_code是否为特殊加白(eg: 作业平台，bcs等)
 
         return super().process_view(request, view, args, kwargs)
+
+
+class ExternalProxyMiddleware(MiddlewareMixin):
+    """
+    外部代理的中间件，主要功能：
+    - 路由前缀添加external，使其转发到external_proxy接口
+    - 外部用户和内部用户的映射
+    - 相关header的转换
+    """
+
+    routing_patterns: list = ROUTING_WHITELIST_PATTERNS
+    non_proxy_routing: list = NON_EXTERNAL_PROXY_ROUTING
+
+    def __init__(self, get_response=None):
+        self.get_response = get_response
+        # 获取所有视图
+        # 预编译正则匹配，复用匹配模式
+        self.complied_routing_patterns = [re.compile(pattern) for pattern in self.routing_patterns]
+        super().__init__(get_response)
+
+    @staticmethod
+    def error_handler(return_response=True):
+        @wrapt.decorator
+        def wrapper(wrapped, instance=None, args=None, kwargs=None):
+            try:
+                return wrapped(*args, **kwargs)
+            except ExternalProxyBaseException as exc:
+                if return_response:
+                    error_msg = _("外部请求失败，错误原因:{}").format(exc.message)
+                    return JsonResponse(_error(exc.code, error_msg, exc.data, exc.errors))
+                raise exc
+
+        return wrapper
+
+    def __check_action_permission_is_none(self, request):
+        """校验当前动作的权限类是否为空，默认为空允许转发"""
+        func = resolve(request.path).func
+        action = func.actions.get(request.method.lower())
+
+        if hasattr(func.cls(), "get_permission_class_with_action") and func.cls().get_permission_class_with_action(
+            action
+        ):
+            return False
+        # 缓存到路由白名单中，不用下次校验。TODO: 缓存的数量级会过大吗？
+        self.routing_patterns.append(request.path)
+        return True
+
+    def __check_specific_request_params(self, request):
+        """校验特殊接口的参数是否满足要求"""
+
+        # 单据创建校验函数
+        def check_create_ticket():
+            data = json.loads(request.body.decode("utf-8"))
+            # 目前只放开数据导出
+            access_ticket_types = [TicketType.MYSQL_DUMP_DATA, TicketType.TENDBCLUSTER_DUMP_DATA]
+            if data["ticket_type"] not in access_ticket_types:
+                raise ExternalRouteInvalidException(_("单据类型[{}]非法，未开通白名单").format(data["ticket_type"]))
+
+        check_action_func_map = {f"{TicketViewSet.__name__}.{TicketViewSet.create.__name__}": check_create_ticket}
+        # 根据请求的视图 + 动作判断是否特殊接口，以及接口参数是否合法
+        try:
+            func = resolve(request.path).func
+            action = func.actions.get(request.method.lower())
+            check_action_func_map.get(f"{func.cls.__name__}.{action}", lambda: None)()
+        except AttributeError:
+            # 对无法解析func或者func action的接口忽略，不在特殊接口参数校验范围
+            return
+
+    def __verify_request_url(self, request):
+        """校验外部请求路由是否允许被转发"""
+        # 外部请求路由属于转发白名单，则校验通过
+        if request.path in self.routing_patterns:
+            return
+        for url_pattern in self.complied_routing_patterns:
+            if url_pattern.match(request.path):
+                return
+        # 外部请求路由无需鉴权，则校验通过
+        if self.__check_action_permission_is_none(request):
+            return
+        # 非白名单路由，禁止转发
+        raise ExternalRouteInvalidException(_("路由{}非法，未开通白名单").format(request.path))
+
+    def __check_non_proxy_routing(self, request):
+        """校验本地路由，请求这些接口不用做用户转发和路由映射"""
+        # 静态非转发路由白名单
+        if request.path in self.non_proxy_routing:
+            return True
+        func_path_splits = resolve(request.path)._func_path.split(".")
+        # home请求和版本请求非转发
+        if func_path_splits[1] in ["homepage", "version_log", "contrib"]:
+            return True
+        return False
+
+    def __parser_request_url(self, request):
+        """外部转发接口进行路由映射"""
+        if self.__check_non_proxy_routing(request):
+            return
+        self.__verify_request_url(request)
+        self.__check_specific_request_params(request)
+        request.path = f"/external/{request.path.lstrip('/')}"
+        request.path_info = request.path
+        setattr(request, "_dont_enforce_csrf_checks", True)
+
+    @error_handler(return_response=True)
+    def __call__(self, request):
+        # 外部路由转发仅提供给外部环境使用
+        if env.ENABLE_EXTERNAL_PROXY:
+            self.__parser_request_url(request)
+        else:
+            # 解析来自外部转发的header
+            request.is_external = str2bool(request.headers.get("IS-EXTERNAL", ""), strict=False)
+        response = self.get_response(request)
+
+        return response
+
+    @staticmethod
+    def replace_ip(text):
+        return re.sub(IP_RE, "*.*.*.*", text)
+
+
+class ExternalUserModelBackend(UserModelBackend):
+    """
+    外部代理用户认证后端，基于网关用户认证。
+    如果用户不存在dbm，则创建此新用户
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def authenticate(self, request, api_name, bk_username, verified, **credentials):
+        if not verified:
+            return self.make_anonymous_user(bk_username=bk_username)
+
+        if not request.is_external:
+            raise TypeError
+
+        user = User.objects.get_or_create(
+            defaults={"nickname": bk_username, "last_login": datetime.datetime.now()},
+            username=bk_username,
+        )
+        return user

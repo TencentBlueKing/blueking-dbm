@@ -42,5 +42,6 @@ export function generateRedisDataCopyCheckRepairCloneData(ticketData: TicketMode
     isKeepCheck: details.keep_check_and_repair,
     isRepairEnable: details.data_repair_enabled,
     repairType: details.repair_mode,
+    remark: ticketData.remark,
   });
 }

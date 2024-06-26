@@ -133,6 +133,7 @@
       'RiakManage',
       'MongoDBManage',
       'SqlServerManage',
+      'DorisManage',
       'taskHistory',
       'DatabaseWhitelist',
       'ticketManage',
@@ -310,6 +311,7 @@
       flex: 1;
       display: flex;
       align-items: center;
+      color: #313238;
     }
   }
 

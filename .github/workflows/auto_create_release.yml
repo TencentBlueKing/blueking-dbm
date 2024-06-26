@@ -97,6 +97,10 @@ jobs:
         git config --global user.email 826035498@qq.com
         git config --global user.name zhangzhw8
         git remote add upstream https://$WORKFLOW_ACTION_TOKEN@github.com/TencentBlueKing/blueking-dbm
-        git add .
+        git remote -v
+        git status
+        git add ${filename}
         git commit -m "chore: release version ${{ steps.yaml-data.outputs.data }} #1"
+        git status
         git push --set-upstream upstream ${{ steps.get-current-branch.outputs.current_branch }}
+        git push

@@ -13,7 +13,8 @@ from typing import Dict, Optional
 
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mongodb.sub_task import cluster_scale, replicaset_scale
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.cluster_scale import cluster_scale
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.replicaset_scale import replicaset_scale
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")

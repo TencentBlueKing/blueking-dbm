@@ -13,6 +13,7 @@ require (
 	github.com/spf13/viper v1.16.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.46.1
 	golang.org/x/exp v0.0.0-20230315142452-642cacee5cc0
+	golang.org/x/time v0.1.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/mysql v1.5.1
 	gorm.io/gorm v1.25.4

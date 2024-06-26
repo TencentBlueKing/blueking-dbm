@@ -125,6 +125,11 @@
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
     :get-detail-info="getSpiderDetail" />
+  <ClusterExportData
+    v-if="currentData"
+    v-model:is-show="showDataExportSlider"
+    :data="currentData"
+    :ticket-type="TicketTypes.TENDBCLUSTER_DUMP_DATA" />
 </template>
 
 <script setup lang="tsx">
@@ -169,8 +174,9 @@
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -237,6 +243,8 @@
   const excelAuthorizeShow = ref(false);
   const showEditEntryConfig = ref(false);
   const clusterAuthorizeShow = ref(false);
+  const showDataExportSlider = ref(false)
+  const currentData = ref<IColumn['data']>()
 
   const selected = shallowRef<ResourceItem[]>([]);
   const operationData = shallowRef({} as TendbClusterModel);
@@ -317,7 +325,7 @@
   });
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 200 : 300;
+      return isCN.value ? 270 : 300;
     }
     return 60;
   });
@@ -429,12 +437,12 @@
                 }
                 {
                   data.isOffline && !data.isStarting && (
-                    <db-icon
-                    svg
-                    type="yijinyong"
-                    class="cluster-tag"
-                    style="width: 38px; height: 16px;" />
-                  )
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                 )
                 }
                 {
                   data.isNew && (
@@ -718,6 +726,18 @@
                 { t('集群容量变更') }
               </auth-button>
             </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="tendbCluster.clusterManage.exportData">
+              <bk-button
+                disabled={data.operationDisabled}
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={() => handleShowDataExportSlider(data)}>
+                { t('导出数据') }
+              </bk-button>
+            </OperationBtnStatusTips>
           ];
           if (data.isOffline) {
             operations.push(...[
@@ -1151,6 +1171,10 @@
     selected.value = [];
   };
 
+  const handleShowDataExportSlider = (data: IColumn['data']) => {
+    currentData.value = data
+    showDataExportSlider.value = true;
+  };
 
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;

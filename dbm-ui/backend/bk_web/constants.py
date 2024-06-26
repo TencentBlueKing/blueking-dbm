@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
 
 # 常规字段长度定义
 from blue_krill.data_types.enum import EnumField, StructuredEnum
@@ -18,6 +19,8 @@ LEN_MIDDLE = 128
 LEN_LONG = 255
 LEN_X_LONG = 1000
 LEN_XX_LONG = 10000
+
+IP_RE = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
 
 # 字段默认值
 EMPTY_INT = 0
@@ -36,6 +39,32 @@ CACHE_5MIN = 5 * 60
 CACHE_30MIN = 30 * 60
 CACHE_1H = 1 * 60 * 60
 CACHE_1D = 24 * 60 * 60
+
+# 外部请求路由白名单
+ROUTING_WHITELIST_PATTERNS = [
+    # 大数据集群视图接口匹配模式
+    r"/apis/bigdata\/bizs/[0-9]+\/([a-z_]+)?/\1_resources/[0-9a-z_\/]*",
+    # 其他集群视图接口匹配模式
+    r"/apis/[a-z_]+/bizs/[0-9]+/[a-z_]+?_resources/[0-9a-z_/]*",
+    # 单据接口匹配模式 TODO: 如果没有提单需求，可以去掉
+    r"/apis/tickets/[0-9a-z_/]*",
+    # 集群相关接口
+    r"/apis/dbbase/query_biz_cluster_attrs/",
+    r"/apis/cmdb/[0-9]+/list_modules/",
+    # 平台设置相关接口
+    "/apis/conf/biz_settings/simple/",
+    # grafana和监控相关接口
+    r"/grafana/*",
+    r"/apis/monitor/grafana/get_dashboard/",
+]
+
+# 外部请求非转发路由(需要请求本地的视图)
+NON_EXTERNAL_PROXY_ROUTING = [
+    # 功能控制器
+    "/apis/conf/function_controller/",
+    # 环境变量
+    "/apis/conf/system_settings/environ/",
+]
 
 
 # LOG

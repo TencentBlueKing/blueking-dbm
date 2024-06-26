@@ -18,6 +18,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import type { MysqlOpenAreaDetails } from '@services/model/ticket/details/mysql';
@@ -45,69 +46,78 @@
     return results;
   }, {} as Record<string, MysqlOpenAreaDetails['rules_set'][number]>);
 
-  const tableData = props.ticketDetails.details.config_data.map((item) => {
+  const tableData = computed(() => _.flatMap(props.ticketDetails.details.config_data.map((item) => {
     const clusterName = clustersMap[item.cluster_id].immute_domain;
-    return ({
+    return item.execute_objects.map(executeObject => ({
       targetCluster: clusterName,
-      newDb: item.execute_objects[0].target_db,
-      tbStruct: item.execute_objects[0].schema_tblist,
-      tbData: item.execute_objects[0].data_tblist,
-      ips: rulesSetMap[clusterName].source_ips,
-      rules: rulesSetMap[clusterName].account_rules.map(item => item.dbname),
-    });
-  });
+      newDb: executeObject.target_db,
+      tbStruct: executeObject.schema_tblist,
+      tbData: executeObject.data_tblist,
+      ips: rulesSetMap[clusterName]?.source_ips ?? [],
+      rules: rulesSetMap[clusterName]?.account_rules.map(item => item.dbname) ?? [],
+    }))
+  })));
 
   const { t } = useI18n();
 
-  const columns = [
-    {
-      label: t('目标集群'),
-      minWidth: 150,
-      width: 200,
-      field: 'targetCluster',
-    },
-    {
-      label: t('新 DB'),
-      field: 'newDb',
-      width: 120,
-    },
-    {
-      label: t('表结构'),
-      field: 'tbStruct',
-      minWidth: 120,
-      render: ({ data }: {data: RowData}) => (
-        <span>
-          {data.tbStruct.join(',')}
-        </span>
-      ),
-    },
-    {
-      label: t('表数据'),
-      field: 'tbData',
-      minWidth: 120,
-      render: ({ data }: {data: RowData}) => (
-        <span>
-          {data.tbData.join(',')}
-        </span>
-      ),
-    },
-    {
-      label: t('授权IP'),
-      field: 'ips',
-      render: ({ data }: {data: RowData}) => (
-        <span>
-          {data.ips.join(',')}
-        </span>
-      ),
-    },
-    {
-      label: t('授权规则'),
-      field: 'rules',
-      render: ({ data }: {data: RowData}) => (
-        <span>
-          {data.rules.join(',')}
-        </span>
-      ),
-    },
-  ];
+  const columns = computed(() => {
+    const basicColumns = [
+      {
+        label: t('目标集群'),
+        minWidth: 150,
+        width: 200,
+        rowspan: ({ row }: { row: RowData }) => {
+          const { targetCluster } = row;
+          const rowSpan = tableData.value.filter(item => item.targetCluster === targetCluster).length;
+          return rowSpan > 1 ? rowSpan : 1;
+        },
+        field: 'targetCluster',
+      },
+      {
+        label: t('新 DB'),
+        field: 'newDb',
+        width: 120,
+      },
+      {
+        label: t('表结构'),
+        field: 'tbStruct',
+        minWidth: 120,
+        render: () => t('所有表'),
+      },
+      {
+        label: t('表数据'),
+        field: 'tbData',
+        minWidth: 120,
+        render: ({ data }: {data: RowData}) => (
+          <span>
+            {data.tbData.length > 0 ? data.tbData.join(',') : '--'}
+          </span>
+        ),
+      },
+      {
+        label: t('授权IP'),
+        field: 'ips',
+        render: ({ data }: {data: RowData}) => (
+          <span>
+            {data.ips.join(',')}
+          </span>
+        ),
+      },
+      {
+        label: t('授权规则'),
+        field: 'rules',
+        render: ({ data }: {data: RowData}) => (
+          <span>
+            {data.rules.join(',')}
+          </span>
+        ),
+      },
+    ];
+
+    if (props.ticketDetails.details.rules_set.length === 0) {
+      basicColumns.splice(4, 2);
+    }
+
+    return basicColumns;
+  });
 </script>

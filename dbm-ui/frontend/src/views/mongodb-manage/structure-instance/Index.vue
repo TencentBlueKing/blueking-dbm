@@ -331,13 +331,15 @@
       render: ({ data }: {data: MongodbRollbackRecordModel}) => (
         <>
           <OperationBtnStatusTips data={data}>
-            <bk-button
+            <auth-button
+              action-id="mongodb_temporary_destroy"
+              resource="mongodb"
               text
               theme="primary"
               disabled={data.operationDisabled}
               onClick={() => handleDestroyCluster(data)}>
               {t('销毁')}
-            </bk-button>
+            </auth-button>
           </OperationBtnStatusTips>
           <bk-button
             text

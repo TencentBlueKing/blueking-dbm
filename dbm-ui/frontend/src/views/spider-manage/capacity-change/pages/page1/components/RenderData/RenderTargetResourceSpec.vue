@@ -44,7 +44,11 @@
         <table>
           <tr>
             <td>{{ t('当前规格') }}： {{ clusterData.clusterSpec.spec_name }}</td>
-            <td>{{ t('变更后规格') }}： {{ futureSpec.name }}</td>
+            <td>{{ t('变更后规格') }}： {{ futureSpec.name || '--' }}</td>
+          </tr>
+          <tr>
+            <td>{{ t('当前机器组数') }}： {{ clusterData.machinePairCnt }}</td>
+            <td>{{ t('变更机器组数') }}： {{ localSpec?.machine_pair || '--' }}</td>
           </tr>
           <tr>
             <td>
@@ -56,12 +60,13 @@
           </tr>
         </table>
       </div>
-      <BkForm form-type="vertical">
+      <BkForm label-width="135">
         <ClusterSpecPlanSelector
+          v-model:custom-spec-info="customSpecInfo"
           :cloud-id="clusterData.bkCloudId"
+          :cluster-shard-num="clusterData.clusterShardNum"
           cluster-type="tendbcluster"
           machine-type="remote"
-          :shard-num="clusterData.clusterShardNum"
           @change="handlePlanChange" />
       </BkForm>
     </div>
@@ -82,21 +87,26 @@
   import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { getResourceSpec } from '@services/source/dbresourceSpec';
+
   import { useBeforeClose } from '@hooks';
 
-  import ClusterSpecPlanSelector, { type IRowData } from '@components/cluster-spec-plan-selector/Index.vue';
+  import ClusterSpecPlanSelector, { type TicketSpecInfo } from '@components/cluster-spec-plan-selector/Index.vue';
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
   interface Props {
     clusterData?: IDataRow['clusterData'];
+    rowData: IDataRow;
   }
+
   interface Exposes {
     getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
+
   defineOptions({
     inheritAttrs: false,
   });
@@ -111,8 +121,15 @@
     futureCapacity: 0,
   });
   const choosedSpecId = ref(-1);
-  const localSpec = shallowRef<IRowData>();
-  const showText = computed(() => `${localSpec.value ? `${localSpec.value.capacity} G` : ''}`);
+
+  const localSpec = shallowRef<TicketSpecInfo>();
+
+  const customSpecInfo = reactive({
+    specId: '',
+    count: 1,
+  });
+
+  const showText = computed(() => `${localSpec.value ? `${localSpec.value.cluster_capacity} G` : ''}`);
 
   const rules = [
     {
@@ -139,6 +156,28 @@
     },
   );
 
+  watch(
+    () => props.rowData.resource_spec?.backend_group.spec_id,
+    (newSpecId) => {
+      if (newSpecId) {
+        getResourceSpec({
+          spec_id: newSpecId,
+        }).then((specData) => {
+          const backend = props.rowData.resource_spec?.backend_group;
+          handlePlanChange(newSpecId, {
+            spec_id: newSpecId,
+            spec_name: specData.spec_name,
+            machine_pair: backend?.count ?? 0,
+            cluster_capacity: backend?.futureCapacity ?? 0,
+          });
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleShowSelector = () => {
     if (!props.clusterData) {
       return;
@@ -147,12 +186,12 @@
     choosedSpecId.value = -1;
   };
 
-  const handlePlanChange = (specId: number, specData: IRowData) => {
+  const handlePlanChange = (specId: number, specData: TicketSpecInfo) => {
     choosedSpecId.value = specId;
     localSpec.value = specData;
     futureSpec.value = {
       name: specData.spec_name,
-      futureCapacity: specData.capacity,
+      futureCapacity: specData.cluster_capacity,
     };
   };
 
@@ -170,21 +209,40 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => {
-        if (!props.clusterData || !localSpec.value) {
-          return Promise.reject();
-        }
-        return {
-          remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
-          resource_spec: {
-            backend_group: {
-              spec_id: localSpec.value.spec_id,
-              count: localSpec.value.machine_pair,
-              affinity: '',
+      return inputRef.value
+        .getValue()
+        .then(() => {
+          if (!props.clusterData || !localSpec.value) {
+            return Promise.reject();
+          }
+          return {
+            remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
+            resource_spec: {
+              backend_group: {
+                spec_id: localSpec.value.spec_id,
+                count: localSpec.value.machine_pair,
+                affinity: '',
+              },
             },
-          },
-        };
-      });
+          };
+        })
+        .catch(() => {
+          if (!props.clusterData || !localSpec.value) {
+            return Promise.reject({ resource_spec: undefined });
+          }
+          return Promise.reject({
+            remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
+            resource_spec: {
+              backend_group: {
+                spec_id: localSpec.value.spec_id,
+                count: localSpec.value.machine_pair,
+                affinity: '',
+                futureCapacity: localSpec.value.cluster_capacity,
+                specName: localSpec.value.spec_name,
+              },
+            },
+          });
+        });
     },
   });
 </script>
@@ -192,9 +250,9 @@
   .cluster-spec-plan-selector-box {
     padding: 20px 40px;
 
-    .bk-form-label {
-      font-weight: bold;
-    }
+    // .bk-form-label {
+    //   font-weight: bold;
+    // }
 
     .spec-box {
       width: 100%;

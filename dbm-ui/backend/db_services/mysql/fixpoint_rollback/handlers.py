@@ -220,8 +220,10 @@ class FixPointRollbackHandler:
                     # 能覆盖的条件：
                     # 1. 如果是remote角色，则master能覆盖slave记录。同种角色可以时间接近rollback_time可以覆盖
                     # 2. 如果是spider角色，则时间接近rollback_time可以覆盖
+                    # todo 备份角色改造完毕后去除_log["backup_port"]判断条件
                     (
                         _log["mysql_role"] in ["spider_master", "spider_slave"]
+                        and int(_log["backup_port"]) < 26000
                         and _log["consistent_backup_time"] > _backup_node["backup_time"]
                     )
                     or (

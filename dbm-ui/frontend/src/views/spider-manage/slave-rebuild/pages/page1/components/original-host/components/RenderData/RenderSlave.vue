@@ -38,7 +38,7 @@
   import { random } from '@utils';
 
   interface Props {
-    instance: string
+    instance: string;
   }
 
   interface Emits {
@@ -49,7 +49,7 @@
     getValue: () => Promise<string>;
   }
 
-  const props = defineProps<Props>()
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -88,10 +88,13 @@
         const otherClusterMemoMap = { ...hostsMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -106,21 +109,29 @@
   ];
 
   // 同步外部值
-  watch(() => props.instance, (newInstance) => {
-    if (newInstance) {
-      localValue.value = newInstance
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.instance,
+    (newInstance) => {
+      if (newInstance) {
+        localValue.value = newInstance;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(localValue, () => {
-    if (localValue.value) {
-      hostsMemo[instanceKey][localValue.value] = true;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    localValue,
+    () => {
+      if (localValue.value) {
+        hostsMemo[instanceKey][localValue.value] = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: string) => {
     hostsMemo[instanceKey][localValue.value] = true;
@@ -129,11 +140,14 @@
 
   onBeforeUnmount(() => {
     delete hostsMemo[instanceKey];
-  })
+  });
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value!.getValue();
+      return editRef
+        .value!.getValue()
+        .then(() => Promise.resolve(localValue.value))
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>

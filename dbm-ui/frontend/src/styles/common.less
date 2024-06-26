@@ -265,7 +265,8 @@
       thead {
         th,
         th.column_fixed {
-          background-color: @bg-dark-gray;
+          background-color: @bg-dark-gray !important;
+          border-right: 1px solid @bg-dark-gray !important;
 
           &:hover {
             background-color: #eaebf0;
@@ -291,6 +292,8 @@
   }
 
   .bk-table-body {
+    border-bottom: 1px solid #fff !important;
+
     table {
       td {
         .cell {
@@ -311,6 +314,12 @@
       }
 
       tr {
+        &:hover {
+          td {
+            border-right: 1px solid #f5f7fa !important;
+          }
+        }
+
         &.is-new-row {
           td {
             background-color: #f3fcf5 !important;
@@ -578,7 +587,7 @@
   height: 20px;
   font-size: 12px;
   font-weight: 700;
-  color: @default-color;
+  color: #313238;
 
   .required {
     position: relative;
@@ -629,6 +638,14 @@
   }
 }
 
+.toolbox-form {
+  .bk-form-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #313238;
+  }
+}
+
 .bk-tab-header-nav::-webkit-scrollbar {
   display: unset !important;
   width: 4px !important;
@@ -638,7 +655,6 @@
 .bk-tag {
   margin-right: 4px;
 }
-
 
 .bk-popover {
   .bk-checkbox-label {

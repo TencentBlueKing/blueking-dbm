@@ -16,7 +16,7 @@ from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
-from backend.components.gcs.client import GcsApi
+from backend.components.gcs.client import GcsApi, GcsDirectApi
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.components.scr.client import ScrApi
 from backend.configuration.constants import DBType
@@ -157,15 +157,16 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             if not app_detail:
                 raise DBPermissionBaseException(_("无法查询app: {}相关信息，请检查app输入是否合法。").format(app))
             app_detail = app_detail[0]
-            bk_biz_id = app_detail["ccId"]
+            # bk_biz_id = app_detail["ccId"]
 
         # 域名存在，则走dbm的授权方式，否则走gcs的授权方式
         domain, __ = parse_domain(target_instance)
         cluster = Cluster.objects.filter(
             clusterentry__entry=domain, clusterentry__cluster_entry_type=ClusterEntryType.DNS.value
         )
-        bk_biz_id = int(bk_biz_id)
         if cluster.exists():
+            # 为了兼容迁移过后会一个业务拆分成多个业务，造成app与集群业务不一致的情况，这里暂时优先以集群业务为准
+            bk_biz_id = cluster.first().bk_biz_id
             if not bk_biz_id:
                 raise DBPermissionBaseException(_("授权集群: [{}]。业务信息bk_biz_id为空请检查。").format(target_instance))
             if cluster.count() > 1:
@@ -203,7 +204,7 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             return {"task_id": task_id, "platform": "dbm", "job_id": task_id}
         elif privileges:
             # 调用老接口进行授权
-            data = GcsApi.blueking_grant(
+            data = GcsDirectApi.blueking_grant(
                 {
                     "client_hosts": source_ips,
                     "client_version": client_version,
@@ -212,11 +213,16 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
                     "user_name": user,
                     "password": password,
                     "privileges": privileges,
-                }
+                },
+                raw=True,
             )
-            task_id = data["job_id"]
-            return {"task_id": task_id, "platform": "gcs", "job_id": task_id}
+            return data
         else:
+            if not app:
+                raise DBPermissionBaseException(_("gcs授权请保证app不为空"))
+
+            # 填充headers和参数。
+            headers = {"bk_username": user}
             params = {
                 "app": app,
                 "app_id": app_detail["appid"],
@@ -239,7 +245,7 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
             if module_name_list:
                 params["module_name_list"] = module_name_list
 
-            data = GcsApi.cloud_privileges_asyn_bydbname(params)
+            data = GcsApi.cloud_privileges_asyn_bydbname(params, headers=headers)
             task_id = str(data["job_id"])
             return {"task_id": task_id, "platform": "gcs", "job_id": task_id}
 

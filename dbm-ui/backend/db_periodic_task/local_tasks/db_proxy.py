@@ -45,6 +45,7 @@ def fill_cluster_service_nginx_conf():
             {
                 "bk_cloud_id": _cloud_id,
                 "bk_agent_id": _nginx["bk_agent_id"],
+                "bk_host_id": _nginx["bk_host_id"],
                 "ip": _nginx["ip"],
                 "bk_host_innerip": _nginx["ip"],
             }

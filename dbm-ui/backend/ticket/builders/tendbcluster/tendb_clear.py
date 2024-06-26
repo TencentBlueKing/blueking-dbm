@@ -33,7 +33,7 @@ class TendbClearFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_TRUNCATE_DATABASE)
-class MySQLHaClearFlowBuilder(BaseTendbTicketFlowBuilder):
+class TendbClearFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClearDetailSerializer
     inner_flow_builder = TendbClearFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 清档执行")

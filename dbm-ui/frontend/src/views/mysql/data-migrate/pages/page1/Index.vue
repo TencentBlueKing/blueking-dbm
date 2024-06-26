@@ -28,9 +28,11 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="() => handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
     </div>
     <template #action>
       <BkButton
@@ -70,19 +72,13 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector, { type TabConfig }  from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
@@ -90,8 +86,9 @@
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData()]);
+  const remark = ref('');
 
   const selectedClusters = shallowRef<Record<string, TendbhaModel[]>>({
     [ClusterTypes.TENDBHA]: [],
@@ -127,10 +124,7 @@
   // 批量选择
   const handelClusterChange = (selected: Record<string, TendbhaModel[]>) => {
     selectedClusters.value = selected;
-    const list =  Object.keys(selected).reduce(
-      (list, key) => list.concat(...selected[key]),
-      [] as TendbhaModel[],
-    );
+    const list = Object.keys(selected).reduce((list, key) => list.concat(...selected[key]), [] as TendbhaModel[]);
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
@@ -164,9 +158,11 @@
       return;
     }
     const resultList = await queryClusters({
-      cluster_filters: [{
-        immute_domain: domain,
-      }],
+      cluster_filters: [
+        {
+          immute_domain: domain,
+        },
+      ],
       bk_biz_id: currentBizId,
     });
     if (resultList.length < 1) {
@@ -193,27 +189,35 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const {
-      domain,
-      type,
-    } = dataList[index].clusterData;
+    const { domain, type } = dataList[index].clusterData;
     dataList.splice(index, 1);
     tableData.value = dataList;
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[type];
-      selectedClusters.value[type] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[type] = clustersArr.filter((item) => item.master_domain !== domain);
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
-    const infos = await Promise.all(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
 
     const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.MYSQL_DATA_MIGRATE,
+      remark: remark.value,
       details: {
         infos,
       },
@@ -224,22 +228,24 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MySQLDataMigrate',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'MySQLDataMigrate',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   const handleReset = () => {
@@ -252,7 +258,7 @@
 </script>
 
 <style lang="less">
-.mysql-data-migrate-page {
-  padding-bottom: 20px;
-}
+  .mysql-data-migrate-page {
+    padding-bottom: 20px;
+  }
 </style>

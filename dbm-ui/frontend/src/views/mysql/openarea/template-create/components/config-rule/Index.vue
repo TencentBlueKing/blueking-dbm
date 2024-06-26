@@ -1,6 +1,6 @@
 <template>
   <div class="openarea-create-config-rule">
-    <div class="variable-box">
+    <!-- <div class="variable-box">
       <BkButton
         style="margin-bottom: 12px; margin-left: auto; font-size: 12px"
         text
@@ -8,8 +8,8 @@
         @click="handleShowVariable">
         {{ t('变量') }}
       </BkButton>
-    </div>
-    <RenderData class="mt16">
+    </div> -->
+    <RenderData @batch-edit="handleBatchEdit">
       <RenderDataRow
         v-for="(item, index) in tableData"
         :key="item.rowKey"
@@ -21,12 +21,12 @@
         @remove="handleRemove(index)" />
     </RenderData>
   </div>
-  <VariableBox v-model="isShowVariable" />
+  <!-- <VariableBox v-model="isShowVariable" /> -->
 </template>
 <script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
+  // import { useI18n } from 'vue-i18n';
 
-  import VariableBox from '../variable-box/Index.vue';
+  // import VariableBox from '../variable-box/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IData, type IDataRow } from './components/RenderData/Row.vue';
@@ -42,12 +42,19 @@
 
   const props = defineProps<Props>();
 
-  const { t } = useI18n();
+  // const { t } = useI18n();
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>([]);
-  const tableData = shallowRef<Array<IDataRow>>([]);
+  const tableData = ref<IDataRow[]>([]);
 
-  const isShowVariable = ref(false);
+  // const isShowVariable = ref(false);
+
+  watch(
+    () => props.clusterId,
+    () => {
+      tableData.value = [createRowData({})];
+    },
+  );
 
   watch(
     () => props.data,
@@ -63,8 +70,20 @@
     },
   );
 
-  const handleShowVariable = () => {
-    isShowVariable.value = true;
+  // const handleShowVariable = () => {
+  //   isShowVariable.value = true;
+  // };
+
+  const handleBatchEdit = (list: string[]) => {
+    list.forEach((value, index) => {
+      if (tableData.value[index]) {
+        tableData.value[index].target_db_pattern = value;
+        return;
+      }
+      tableData.value[index] = createRowData({
+        target_db_pattern: value,
+      });
+    });
   };
 
   // 追加一个集群
@@ -93,7 +112,7 @@
 
     .variable-box {
       display: flex;
-      margin-top: -24px;
+      margin-top: -20px;
     }
 
     .action-btn {

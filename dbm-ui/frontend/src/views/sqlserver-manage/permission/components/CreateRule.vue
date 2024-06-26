@@ -2,6 +2,7 @@
   <BkSideslider
     :before-close="handleBeforeClose"
     :is-show="isShow"
+    render-directive="if"
     :title="t('添加授权规则')"
     :width="640"
     @closed="handleClose">
@@ -117,8 +118,6 @@
   import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
   import { addSqlserverAccountRule, querySqlserverAccountRules } from '@services/source/sqlserverPermissionAccount';
 
-  import { useStickyFooter } from '@hooks';
-
   import DbForm from '@components/db-form/index.vue';
 
   import { messageSuccess } from '@utils';
@@ -151,9 +150,6 @@
   const existDBs = ref<string[]>([]);
   const textareaRef = ref();
   const textareaHeight = ref(0);
-
-  /** 设置底部按钮粘性布局 */
-  useStickyFooter(formRef);
 
   const { t } = useI18n();
 

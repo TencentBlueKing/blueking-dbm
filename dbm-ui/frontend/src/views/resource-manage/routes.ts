@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -25,7 +23,7 @@ const resourcePoolRoute = {
     navName: t('DB 资源池'),
   },
   component: () => import('@views/resource-manage/pool/Index.vue'),
-}
+};
 
 const resourcePoolOperationRecordRoute = {
   name: 'resourcePoolOperationRecord',
@@ -34,7 +32,7 @@ const resourcePoolOperationRecordRoute = {
     navName: t('资源操作记录'),
   },
   component: () => import('@views/resource-manage/record/Index.vue'),
-}
+};
 
 const resourcePoolDirtyMachinesRoute = {
   name: 'resourcePoolDirtyMachines',
@@ -43,7 +41,7 @@ const resourcePoolDirtyMachinesRoute = {
     navName: t('污点主机处理'),
   },
   component: () => import('@views/resource-manage/dirty-machine/Index.vue'),
-}
+};
 
 const resourceSpecRoute = {
   name: 'resourceSpec',
@@ -53,7 +51,7 @@ const resourceSpecRoute = {
     fullscreen: true,
   },
   component: () => import('@views/resource-manage/spec/Index.vue'),
-}
+};
 
 const mainRoute = [
   {
@@ -67,24 +65,23 @@ const mainRoute = [
   },
 ];
 
-
-export default function getRoutes(funControllerData: FunctionControllModel) {
+export default function getRoutes() {
   let existResourcePool = false;
 
-  if (checkDbConsole(funControllerData, 'resourceManage.resourceSpec')) {
+  if (checkDbConsole('resourceManage.resourceSpec')) {
     mainRoute[0].children.push(resourceSpecRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'resourceManage.resourcePool')) {
+  if (checkDbConsole('resourceManage.resourcePool')) {
     mainRoute[0].children.push(resourcePoolRoute);
     existResourcePool = true;
   }
 
-  if (checkDbConsole(funControllerData, 'resourceManage.dirtyHostManage')) {
+  if (checkDbConsole('resourceManage.dirtyHostManage')) {
     mainRoute[0].children.push(resourcePoolDirtyMachinesRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'resourceManage.resourceOperationRecord')) {
+  if (checkDbConsole('resourceManage.resourceOperationRecord')) {
     mainRoute[0].children.push(resourcePoolOperationRecordRoute);
   }
 

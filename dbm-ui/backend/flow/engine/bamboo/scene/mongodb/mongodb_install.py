@@ -14,10 +14,14 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.flow.consts import MongoDBClusterRole
+from backend.flow.consts import DEPENDENCIES_PLUGINS, MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import add_install_dbmon
-from backend.flow.engine.bamboo.scene.mongodb.sub_task import mongos_install, replicaset_install
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.mongos_install import mongos_install
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.replicaset_install import replicaset_install
+from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
+    InstallNodemanPluginServiceComponent,
+)
 from backend.flow.plugins.components.collections.mongodb.add_domain_to_dns import ExecAddDomainToDnsOperationComponent
 from backend.flow.plugins.components.collections.mongodb.add_relationship_to_meta import (
     ExecAddRelationshipOperationComponent,
@@ -31,6 +35,21 @@ from backend.flow.utils.mongodb.calculate_cluster import calculate_cluster
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
+
+
+def install_plugin(pipeline: Builder, get_kwargs: ActKwargs, new_cluster: bool):
+    """安装蓝鲸插件"""
+
+    acts_list = []
+    for plugin_name in DEPENDENCIES_PLUGINS:
+        acts_list.append(
+            {
+                "act_name": _("安装[{}]插件".format(plugin_name)),
+                "act_component_code": InstallNodemanPluginServiceComponent.code,
+                "kwargs": get_kwargs.get_install_plugin_kwargs(plugin_name=plugin_name, new_cluster=new_cluster),
+            }
+        )
+    pipeline.add_parallel_acts(acts_list=acts_list)
 
 
 class MongoDBInstallFlow(object):
@@ -56,6 +75,9 @@ class MongoDBInstallFlow(object):
         """
         准备工作
         """
+
+        # 安装蓝鲸插件
+        install_plugin(pipeline=pipeline, get_kwargs=self.get_kwargs, new_cluster=True)
 
         # 介质下发——job的api可以多个IP并行执行
         kwargs = self.get_kwargs.get_send_media_kwargs(media_type="all")
@@ -119,7 +141,7 @@ class MongoDBInstallFlow(object):
                 kwargs=kwargs,
             )
 
-        # dbmon
+        # # 安装dbmon
         # self.install_dbmon(data=self.data, pipeline=pipeline)
         # 运行流程
         pipeline.run_pipeline()
@@ -209,6 +231,9 @@ class MongoDBInstallFlow(object):
             act_component_code=ExecAddDomainToDnsOperationComponent.code,
             kwargs=kwargs,
         )
+
+        # 安装dbmon
+        # self.install_dbmon(data=self.data, pipeline=pipeline)
 
         # 运行流程
         pipeline.run_pipeline()

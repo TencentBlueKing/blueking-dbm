@@ -12,7 +12,7 @@ import logging.config
 from typing import Dict, Optional
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
-from backend.flow.engine.bamboo.scene.mongodb.sub_task import exec_script
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.exec_script import exec_script
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 
 logger = logging.getLogger("flow")
@@ -32,6 +32,7 @@ class MongoExecScriptFlow(object):
         self.data = data
         self.get_kwargs = ActKwargs()
         self.get_kwargs.payload = data
+        self.get_kwargs.root_id = root_id
 
     def multi_cluster_exec_script_flow(self):
         """

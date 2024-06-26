@@ -14,7 +14,9 @@
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
+    class="redis-list-extract-keys-slider"
     :is-show="isShow"
+    render-directive="if"
     :width="960"
     @closed="handleClose">
     <template #header>
@@ -98,7 +100,7 @@
   import RedisModel from '@services/model/redis/redis';
   import { createTicket } from '@services/source/ticket';
 
-  import { useBeforeClose, useStickyFooter, useTicketMessage } from '@hooks';
+  import { useBeforeClose, useTicketMessage } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -132,8 +134,6 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
   const formRef = ref();
-  /** 设置底部按钮粘性布局 */
-  useStickyFooter(formRef);
 
   const globalBizsStore = useGlobalBizs();
   const handleBeforeClose = useBeforeClose();
@@ -431,6 +431,15 @@
       strong {
         color: @success-color;
       }
+    }
+  }
+</style>
+
+<style lang="less">
+  .redis-list-extract-keys-slider {
+    .bk-modal-content {
+      max-height: calc(100vh - 125px);
+      overflow-y: auto;
     }
   }
 </style>

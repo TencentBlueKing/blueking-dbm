@@ -123,6 +123,7 @@
             </div>
           </div>
         </BkRadio>
+        <TicketRemark v-model="remark" />
       </div>
     </BkRadioGroup>
     <div class="btns">
@@ -163,6 +164,8 @@
 
   import { LocalStorageKeys, TicketTypes } from '@common/const';
 
+  import TicketRemark from '@components/ticket-remark/Index.vue';
+
   import { formatDatetime } from '@views/redis/common/utils';
 
   import BasicInfoTable from './basic-info-table/Index.vue';
@@ -187,15 +190,7 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
     onSuccess(cloneData) {
-      const {
-        tableList,
-        executeType,
-        executeTime,
-        stopTime,
-        isKeepCheck,
-        isRepairEnable,
-        repairType,
-      } = cloneData;
+      const { tableList, executeType, executeTime, stopTime, isKeepCheck, isRepairEnable, repairType } = cloneData;
 
       tableData.value = tableList;
       executeMode.value = executeType;
@@ -204,6 +199,7 @@
       isKeepCheckAndRepair.value = isKeepCheck;
       isRepairData.value = isRepairEnable;
       repairMode.value = repairType;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -220,6 +216,7 @@
   const isSubmitting = ref(false);
   const tableRef = ref();
   const isKeepCheckAndRepair = ref(true);
+  const remark = ref('');
 
   const tableData = shallowRef<IDataRow[]>([]);
 
@@ -252,6 +249,7 @@
     const params: SubmitType = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
+      remark: remark.value,
       details: {
         execute_mode: executeMode.value,
         specified_execution_time:
@@ -299,6 +297,7 @@
     repairMode.value = RepairModes.AUTO_REPAIR;
     overtime.value = 0;
     tableData.value = [];
+    remark.value = '';
     setTimeout(() => {
       recoverDataListFromLocalStorage();
     });

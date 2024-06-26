@@ -24,11 +24,7 @@
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
-  import {
-    onBeforeUnmount,
-    ref,
-    watch,
-  } from 'vue';
+  import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { queryClusters } from '@services/source/mysqlCluster';
@@ -42,16 +38,16 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['clusterData'],
+    modelValue?: IDataRow['clusterData'];
   }
 
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void,
-    (e: 'idChange', value: number): void,
+    (e: 'inputCreate', value: Array<string>): void;
+    (e: 'idChange', value: number): void;
   }
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Array<number>;
   }
 
   const props = defineProps<Props>();
@@ -82,20 +78,21 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => queryClusters({
-        cluster_filters: [
-          {
-            immute_domain: value,
-          },
-        ],
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        if (data.length > 0) {
-          localClusterId.value = data[0].id;
-          return true;
-        }
-        return false;
-      }),
+      validator: (value: string) =>
+        queryClusters({
+          cluster_filters: [
+            {
+              immute_domain: value,
+            },
+          ],
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          if (data.length > 0) {
+            localClusterId.value = data[0].id;
+            return true;
+          }
+          return false;
+        }),
       message: t('目标集群不存在'),
     },
     {
@@ -104,10 +101,13 @@
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -123,27 +123,35 @@
   ];
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localClusterId.value = props.modelValue.id;
-      localDomain.value = props.modelValue.domain;
-      isShowEdit.value = false;
-    } else {
-      isShowEdit.value = true;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localClusterId.value = props.modelValue.id;
+        localDomain.value = props.modelValue.domain;
+        isShowEdit.value = false;
+      } else {
+        isShowEdit.value = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 获取关联集群
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-    clusterIdMemo[instanceKey][localClusterId.value] = true;
-  }, {
-    immediate: true,
-  });
+  watch(
+    localClusterId,
+    () => {
+      if (!localClusterId.value) {
+        return;
+      }
+      clusterIdMemo[instanceKey][localClusterId.value] = true;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
@@ -155,7 +163,12 @@
         .getValue()
         .then(() => ({
           cluster_id: localClusterId.value,
-        }));
+        }))
+        .catch(() =>
+          Promise.reject({
+            cluster_id: localClusterId.value,
+          }),
+        );
     },
   });
 </script>

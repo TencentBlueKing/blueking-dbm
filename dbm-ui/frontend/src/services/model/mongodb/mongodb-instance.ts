@@ -11,10 +11,10 @@ export default class MongodbInstance {
   static MONGODB_DESTROY = 'MONGODB_DESTROY';
 
   static operationIconMap = {
-    [MongodbInstance.MONGODB_DISABLE]: 'jinyongzhong',
-    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: 'zhongqizhong',
-    [MongodbInstance.MONGODB_ENABLE]: 'qiyongzhong',
-    [MongodbInstance.MONGODB_DESTROY]: 'shanchuzhong',
+    [MongodbInstance.MONGODB_DISABLE]: t('禁用中'),
+    [MongodbInstance.MONGODB_INSTANCE_RELOAD]: t('重启中'),
+    [MongodbInstance.MONGODB_ENABLE]: t('启用中'),
+    [MongodbInstance.MONGODB_DESTROY]: t('删除中'),
   };
 
   static operationTextMap = {
@@ -86,6 +86,9 @@ export default class MongodbInstance {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    mongodb_view: boolean;
+  };
   port: number;
   related_clusters: {
     id: number;
@@ -147,6 +150,7 @@ export default class MongodbInstance {
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
     this.operations = payload.operations || [];
+    this.permission = payload.permission;
     this.port = payload.port;
     this.related_clusters = payload.related_clusters;
     this.role = payload.role;
@@ -220,6 +224,14 @@ export default class MongodbInstance {
       return true;
     }
     return false;
+  }
+
+  get operationTagTips() {
+    return this.operations.map((item) => ({
+      icon: MongodbInstance.operationIconMap[item.ticket_type],
+      tip: MongodbInstance.operationTextMap[item.ticket_type],
+      ticketId: item.ticket_id,
+    }));
   }
 
   get createAtDisplay() {

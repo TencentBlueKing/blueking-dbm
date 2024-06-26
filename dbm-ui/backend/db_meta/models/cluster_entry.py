@@ -34,7 +34,7 @@ class ClusterEntry(AuditedModel):
 
     cluster = models.ForeignKey(Cluster, on_delete=models.PROTECT)
     cluster_entry_type = models.CharField(max_length=64, choices=ClusterEntryType.get_choices(), default="")
-    entry = models.CharField(max_length=200, unique=True, default="")
+    entry = models.CharField(max_length=200, default="")
 
     forward_to = models.ForeignKey(
         "self",
@@ -75,10 +75,10 @@ class ClusterEntry(AuditedModel):
                 continue
 
             # DNS 需额外区分主域名和从域名， entry 中 cluster.immute_domain 为主域名
-            # 那么不等于 cluster.immute_domain 的则理解为是从域名
+            # 如果entry.role为slave_entry，则为从域名
             if access_entry == entry.cluster.immute_domain:
                 cluster_entry_map[entry.cluster_id]["master_domain"] = access_entry
-            else:
+            elif entry.role == ClusterEntryRole.SLAVE_ENTRY:
                 cluster_entry_map[entry.cluster_id]["slave_domain"] = access_entry
         return cluster_entry_map
 

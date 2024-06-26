@@ -80,7 +80,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value.getValue().then(() => localValue.value);
+      return selectRef.value
+        .getValue()
+        .then(() => localValue.value)
+        .catch(() => localValue.value);
     },
   });
 </script>

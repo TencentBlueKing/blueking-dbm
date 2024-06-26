@@ -255,7 +255,7 @@ class RedisActPayload(object):
         bk_biz_id: str,
         cluster_domain: str,
         cluster_version: str,
-        cluste_type: str,
+        cluster_type: str,
         conf_type: str,
         data_type: str,
     ) -> dict:
@@ -277,7 +277,7 @@ class RedisActPayload(object):
                 "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
                 "conf_file": cluster_version,
                 "conf_type": conf_type,
-                "namespace": cluste_type,
+                "namespace": cluster_type,
                 "format": FormatType.MAP,
             }
         )
@@ -641,8 +641,6 @@ class RedisActPayload(object):
                 _("删除目标集群:{} proxy配置,dst_remove_param:{}").format(cluster_map["dst_cluster_domain"], dst_remove_param)
             )
             DBConfigApi.upsert_conf_item(dst_remove_param)
-
-            time.sleep(2)
 
         # 更新源集群的proxy版本、集群类型等信息
         src_upsert_param = copy.deepcopy(upsert_param)
@@ -1503,8 +1501,8 @@ class RedisActPayload(object):
             "payload": {"instances": instances, "cluster_type": params["cluster_type"]},
         }
 
-    # twemproxy 架构-实例切换
-    def redis_twemproxy_arch_switch_4_scene(self, **kwargs) -> dict:
+    # Tendis 单实例/集群 架构-实例切换;
+    def redis__switch_4_scene(self, **kwargs) -> dict:
         """{
             "cluster_id":0,
             "immute_domain":"",
@@ -2214,3 +2212,97 @@ class RedisActPayload(object):
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CLIENT_CONNS_KILL.value,
             "payload": {"ip": params["ip"], "ports": ports, "excluded_ips": list(proxy_ips), "is_force": False},
         }
+
+    def redis_custer_rename_domain_update_dbconfig(self, cluster_map: dict) -> Any:
+        """
+        redis 集群重命名domain更新dbconfig
+        """
+        bill_id = cluster_map["bill_id"]
+        cluster_id = cluster_map["cluster_id"]
+        old_domain = cluster_map["old_domain"]
+        new_domain = cluster_map["new_domain"]
+        cluster = Cluster.objects.get(id=cluster_id)
+        conf_type = ConfigTypeEnum.DBConf
+        data_type = "redis_cluster_rename_domain_dbconf"
+        logger.info(f"redis cluster {cluster_id} rename domain {old_domain} to {new_domain} update dbconfig")
+        # 获取原集群的storage dbconfig配置
+        old_dbconfig_data = self.get_dbconfig_for_swap(
+            bill_id=bill_id,
+            src_cluster_addr=old_domain,
+            dst_cluster_addr="",
+            bk_biz_id=str(cluster.bk_biz_id),
+            cluster_domain=old_domain,
+            cluster_version=cluster.major_version,
+            cluster_type=cluster.cluster_type,
+            conf_type=conf_type,
+            data_type=data_type,
+        )
+        conf_names = self.redis_conf_names_by_cluster_type(cluster.cluster_type, cluster.major_version)
+        update_conf_items = []
+        for conf_name in conf_names:
+            if conf_name in old_dbconfig_data["content"]:
+                update_conf_items.append(
+                    {
+                        "conf_name": conf_name,
+                        "conf_value": old_dbconfig_data["content"][conf_name],
+                        "op_type": OpType.UPDATE,
+                    }
+                )
+        # 更新新域名storage dbconfig配置中
+        upsert_param = {
+            "conf_file_info": {
+                "conf_file": cluster.major_version,
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": cluster.cluster_type,
+            },
+            "conf_items": update_conf_items,
+            "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+            "confirm": DEFAULT_CONFIG_CONFIRM,
+            "req_type": ReqType.SAVE_AND_PUBLISH,
+            "bk_biz_id": str(cluster.bk_biz_id),
+            "level_name": LevelName.CLUSTER,
+            "level_value": new_domain,
+        }
+        DBConfigApi.upsert_conf_item(upsert_param)
+
+        conf_type = ConfigTypeEnum.ProxyConf
+        data_type = "redis_cluster_rename_domain_proxyconf"
+        # 获取原集群的proxy  dbconfig配置
+        old_proxyconfig_data = self.get_dbconfig_for_swap(
+            bill_id=bill_id,
+            src_cluster_addr=old_domain,
+            dst_cluster_addr="",
+            bk_biz_id=cluster.bk_biz_id,
+            cluster_domain=old_domain,
+            cluster_version=cluster.proxy_version,
+            cluster_type=cluster.cluster_type,
+            conf_type=conf_type,
+            data_type=data_type,
+        )
+        conf_names = ["port"]
+        update_conf_items = []
+        for conf_name in conf_names:
+            if conf_name in old_proxyconfig_data["content"]:
+                update_conf_items.append(
+                    {
+                        "conf_name": conf_name,
+                        "conf_value": old_proxyconfig_data["content"][conf_name],
+                        "op_type": OpType.UPDATE,
+                    }
+                )
+        # 更新新域名proxy dbconfig配置中
+        upsert_param = {
+            "conf_file_info": {
+                "conf_file": cluster.proxy_version,
+                "conf_type": ConfigTypeEnum.ProxyConf,
+                "namespace": cluster.cluster_type,
+            },
+            "conf_items": update_conf_items,
+            "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+            "confirm": DEFAULT_CONFIG_CONFIRM,
+            "req_type": ReqType.SAVE_AND_PUBLISH,
+            "bk_biz_id": str(cluster.bk_biz_id),
+            "level_name": LevelName.CLUSTER,
+            "level_value": new_domain,
+        }
+        DBConfigApi.upsert_conf_item(upsert_param)

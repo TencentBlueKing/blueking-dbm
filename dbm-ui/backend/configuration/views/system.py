@@ -84,24 +84,30 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["get"])
     def environ(self, request):
         """按需提供非敏感环境变量"""
-        return Response(
-            {
-                "BK_DOMAIN": env.BK_DOMAIN,
-                "BK_COMPONENT_API_URL": env.BK_COMPONENT_API_URL,
-                "BK_CMDB_URL": env.BK_CMDB_URL,
-                "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
-                "BK_SCR_URL": env.BK_SCR_URL,
-                "BK_HELPER_URL": env.BK_HELPER_URL,
-                "BK_DBM_URL": env.BK_SAAS_HOST,
-                "DBA_APP_BK_BIZ_ID": env.DBA_APP_BK_BIZ_ID,
-                "DBA_APP_BK_BIZ_NAME": AppCache.get_biz_name(env.DBA_APP_BK_BIZ_ID),
-                "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID, "").get_biz_internal_module(
-                    env.DBA_APP_BK_BIZ_ID
-                )[IDLE_HOST_MODULE]["bk_module_id"],
-                "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
-                "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
-            }
-        )
+        envs = {
+            "BK_DOMAIN": env.BK_DOMAIN,
+            "BK_HELPER_URL": env.BK_HELPER_URL,
+            "BK_DBM_URL": env.BK_SAAS_HOST,
+            "DBA_APP_BK_BIZ_ID": env.DBA_APP_BK_BIZ_ID,
+            "DBA_APP_BK_BIZ_NAME": AppCache.get_biz_name(env.DBA_APP_BK_BIZ_ID),
+            "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
+            "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
+            "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,
+        }
+        # 非外部环境，补充额外环境变量
+        if not env.ENABLE_EXTERNAL_PROXY:
+            envs.update(
+                {
+                    "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID, "").get_biz_internal_module(
+                        env.DBA_APP_BK_BIZ_ID
+                    )[IDLE_HOST_MODULE]["bk_module_id"],
+                    "BK_COMPONENT_API_URL": env.BK_COMPONENT_API_URL,
+                    "BK_CMDB_URL": env.BK_CMDB_URL,
+                    "BK_NODEMAN_URL": env.BK_NODEMAN_URL,
+                    "BK_SCR_URL": env.BK_SCR_URL,
+                }
+            )
+        return Response(envs)
 
     @common_swagger_auto_schema(operation_summary=_("查询敏感环境变量"), tags=tags)
     @action(detail=False, methods=["get"])

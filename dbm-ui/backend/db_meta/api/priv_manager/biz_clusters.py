@@ -10,8 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 from typing import List, Optional
 
-from django.db.models import F
-
+from backend.configuration.constants import SystemSettingsEnum
+from backend.configuration.models.system import SystemSettings
+from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
 
 
@@ -20,28 +21,71 @@ def biz_clusters(bk_biz_id: int, immute_domains: Optional[List[str]]):
 
     qs = Cluster.objects.prefetch_related(
         "storageinstance_set", "proxyinstance_set", "storageinstance_set__machine", "proxyinstance_set__machine"
-    )
-    if len(immute_domains) > 0:
-        qs = qs.filter(bk_biz_id=bk_biz_id, immute_domain__in=immute_domains)
-    else:
-        qs = qs.filter(bk_biz_id=bk_biz_id)
+    ).filter(bk_biz_id=bk_biz_id)
+
+    if immute_domains:
+        qs = qs.filter(immute_domain__in=immute_domains)
+
+    padding_clusters = SystemSettings.get_setting_value(SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST.value) or []
 
     for cluster in qs:
-        cluster_info = {
-            "id": cluster.id,
-            "immute_domain": cluster.immute_domain,
-            "storages": list(
-                cluster.storageinstance_set.annotate(ip=F("machine__ip")).values("ip", "port", "instance_role")
-            ),
-            "proxies": list(
-                cluster.proxyinstance_set.annotate(ip=F("machine__ip")).values("ip", "port", "admin_port")
-            ),
-            "cluster_type": cluster.cluster_type,
-            "bk_biz_id": bk_biz_id,
-            "db_module_id": cluster.db_module_id,
-            "bk_cloud_id": cluster.bk_cloud_id,
-        }
-
-        res.append(cluster_info)
+        res.append(
+            {
+                "id": cluster.id,
+                "immute_domain": cluster.immute_domain,
+                "cluster_type": cluster.cluster_type,
+                "bk_biz_id": bk_biz_id,
+                "db_module_id": cluster.db_module_id,
+                "bk_cloud_id": cluster.bk_cloud_id,
+                "padding_proxy": cluster.immute_domain in padding_clusters,
+                "proxies": [
+                    {
+                        "ip": ele.machine.ip,
+                        "port": ele.port,
+                        "admin_port": ele.admin_port,
+                        "bk_cloud_id": ele.machine.bk_cloud_id,
+                        "status": ele.status,
+                        "bk_instance_id": ele.bk_instance_id,
+                    }
+                    for ele in cluster.proxyinstance_set.all()
+                ],
+                "master_storage_instances": [
+                    {
+                        "ip": ele.machine.ip,
+                        "port": ele.port,
+                        "instance_inner_role": ele.instance_inner_role,
+                        "instance_role": ele.instance_role,
+                        "bk_cloud_id": ele.machine.bk_cloud_id,
+                        "status": ele.status,
+                        "bk_instance_id": ele.bk_instance_id,
+                    }
+                    for ele in cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+                ],
+                "slave_storage_instances": [
+                    {
+                        "ip": ele.machine.ip,
+                        "port": ele.port,
+                        "instance_inner_role": ele.instance_inner_role,
+                        "instance_role": ele.instance_role,
+                        "bk_cloud_id": ele.machine.bk_cloud_id,
+                        "status": ele.status,
+                        "bk_instance_id": ele.bk_instance_id,
+                    }
+                    for ele in cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE.value)
+                ],
+                "storages": [
+                    {
+                        "ip": ele.machine.ip,
+                        "port": ele.port,
+                        "instance_inner_role": ele.instance_inner_role,
+                        "instance_role": ele.instance_role,
+                        "bk_cloud_id": ele.machine.bk_cloud_id,
+                        "status": ele.status,
+                        "bk_instance_id": ele.bk_instance_id,
+                    }
+                    for ele in cluster.storageinstance_set.all()
+                ],
+            }
+        )
 
     return res

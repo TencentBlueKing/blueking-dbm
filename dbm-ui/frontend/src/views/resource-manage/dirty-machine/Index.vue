@@ -143,7 +143,7 @@
     },
     {
       name: t('业务'),
-      id: 'bk_cloud_id',
+      id: 'bk_biz_id',
       multiple: true,
       children: searchAttrs.value.bk_biz_ids,
     },
@@ -506,20 +506,20 @@
 
 <style lang="less">
   .dirty-machine-operation-infobox {
-    width: 100%;
     display: flex;
+    width: 100%;
     flex-direction: column;
     justify-content: center;
 
     .tip-title {
-      font-size: 14px;
       margin-bottom: 12px;
+      font-size: 14px;
     }
 
     .ip-list {
+      display: flex;
       padding: 12px 16px;
       background: #f5f7fa;
-      display: flex;
       flex-wrap: wrap;
 
       p {
@@ -531,9 +531,9 @@
 
   .mark-tip-icon {
     display: inline-block;
+    margin-left: 6px;
     font-size: 14px;
     color: #ff9c01;
-    margin-left: 6px;
     cursor: pointer;
   }
 </style>

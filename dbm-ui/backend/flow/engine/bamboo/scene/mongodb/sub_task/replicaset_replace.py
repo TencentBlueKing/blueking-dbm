@@ -17,6 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.flow.consts import MongoDBClusterRole
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import install_plugin
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -42,6 +43,9 @@ def replicaset_replace(
     if not cluster_role:
         # 获取信息
         sub_get_kwargs.get_host_replace(mongodb_type=ClusterType.MongoReplicaSet.value, info=info)
+
+        # 安装蓝鲸插件
+        install_plugin(pipeline=sub_pipeline, get_kwargs=sub_get_kwargs, new_cluster=False)
 
         # 介质下发
         kwargs = sub_get_kwargs.get_send_media_kwargs(media_type="all")

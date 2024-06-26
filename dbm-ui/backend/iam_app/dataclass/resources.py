@@ -535,6 +535,14 @@ class TendbClusterAccountResourceMeta(AccountResourceMeta):
 
 
 @dataclass
+class VmResourceMeta(ClusterResourceMeta):
+    """vm集群resource 属性定义"""
+
+    id: str = "vm"
+    name: str = _("VM集群")
+
+
+@dataclass
 class MonitorPolicyResourceMeta(ResourceMeta):
     """监控策略实例resource 属性定义"""
 
@@ -737,6 +745,7 @@ class ResourceEnum:
     SQLSERVER_ACCOUNT = SQLServerAccountResourceMeta()
     MONGODB_ACCOUNT = MongoDBAccountResourceMeta()
     TENDBCLUSTER_ACCOUNT = TendbClusterAccountResourceMeta()
+    VM = VmResourceMeta()
 
     @classmethod
     def get_resource_by_id(cls, resource_id: Union[ResourceMeta, str]):

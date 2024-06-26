@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -26,7 +24,7 @@ const staffManageRoute = {
     fullScreen: true,
   },
   component: () => import('@views/staff-manage/Index.vue'),
-}
+};
 
 const platformStaffManageRoute = {
   name: 'PlatformStaffManage',
@@ -35,16 +33,16 @@ const platformStaffManageRoute = {
     navName: t('DBA人员管理'),
   },
   component: () => import('@views/staff-manage/Index.vue'),
-}
+};
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
+export default function getRoutes() {
   const routes: RouteRecordRaw[] = [];
 
-  if (checkDbConsole(funControllerData, 'globalConfigManage.staffManage')) {
+  if (checkDbConsole('globalConfigManage.staffManage')) {
     routes.push(platformStaffManageRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'bizConfigManage.StaffManage')) {
+  if (checkDbConsole('bizConfigManage.StaffManage')) {
     routes.push(staffManageRoute);
   }
 

@@ -37,7 +37,7 @@
               :title="t('备份位置')"
               @change="handleBatchEdit">
               <span
-                v-bk-tooltips="t('批量编辑')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleShowBatchEdit">
                 <DbIcon type="bulk-edit" />
@@ -67,9 +67,9 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'batchSelectCluster'): void,
-    (e: 'batchEditBackupLocal', value: string): void
+  interface Emits {
+    (e: 'batchSelectCluster'): void;
+    (e: 'batchEditBackupLocal', value: string): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -97,8 +97,8 @@
     isShowBatchEdit.value = !isShowBatchEdit.value;
   };
 
-  const handleBatchEdit = (value: string) => {
-    emits('batchEditBackupLocal', value);
+  const handleBatchEdit = (value: string | string[]) => {
+    emits('batchEditBackupLocal', value as string);
   };
 </script>
 <style lang="less">

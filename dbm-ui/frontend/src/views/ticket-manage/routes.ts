@@ -12,14 +12,12 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
-  const bizTicketManageComponent = checkDbConsole(funControllerData, 'databaseManage.missionManage')
+export default function getRoutes() {
+  const bizTicketManageComponent = checkDbConsole('databaseManage.missionManage')
     ? () => import('@views/tickets/my-tickets/Index.vue')
     : Promise.resolve(null);
 

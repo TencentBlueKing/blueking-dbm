@@ -129,12 +129,13 @@
       totalDisk: 0,
       targetDisk: 0,
       expansionDisk: 0,
-      specClusterType: ClusterTypes.PULSAE,
+      specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_broker',
       resourceSpec: {
         spec_id: 0,
         count: 1,
       },
+      tagText: t('接入层')
     },
     bookkeeper: {
       label: 'Bookkeeper',
@@ -146,12 +147,13 @@
       totalDisk: 0,
       targetDisk: 0,
       expansionDisk: 0,
-      specClusterType: ClusterTypes.PULSAE,
+      specClusterType: ClusterTypes.PULSAR,
       specMachineType: 'pulsar_bookkeeper',
       resourceSpec: {
         spec_id: 0,
         count: 1,
       },
+      tagText: t('存储层')
     },
   });
 

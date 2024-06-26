@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -32,7 +30,7 @@ const dbMonitorStrategyRoute = {
     fullscreen: true,
   },
   component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),
-}
+};
 
 const dbMonitorAlarmGroupRoute = {
   name: 'DBMonitorAlarmGroup',
@@ -41,16 +39,16 @@ const dbMonitorAlarmGroupRoute = {
     navName: t('告警组'),
   },
   component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
-}
+};
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
+export default function getRoutes() {
   const routes: RouteRecordRaw[] = [];
 
-  if (checkDbConsole(funControllerData, 'bizConfigManage.monitorStrategy')) {
+  if (checkDbConsole('bizConfigManage.monitorStrategy')) {
     routes.push(dbMonitorStrategyRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'bizConfigManage.alarmGroup')) {
+  if (checkDbConsole('bizConfigManage.alarmGroup')) {
     routes.push(dbMonitorAlarmGroupRoute);
   }
 

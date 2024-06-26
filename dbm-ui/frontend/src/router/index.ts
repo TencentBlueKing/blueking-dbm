@@ -9,30 +9,20 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import _ from 'lodash';
-import {
-  createRouter,
-  createWebHistory,
-  type Router,
-  type RouteRecordRaw,
-} from 'vue-router';
+import { createRouter, createWebHistory, type Router, type RouteRecordRaw } from 'vue-router';
 
-import type {
-  BigdataFunctions,
-  MongoFunctions,
-} from '@services/model/function-controller/functionController';
+import type { BigdataFunctions, MongoFunctions } from '@services/model/function-controller/functionController';
 
-import {
-  useFunController,
-  useGlobalBizs,
-} from '@stores';
+import { useFunController, useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
 import getDbConfRoutes from '@views/db-configure/routes';
 // import getDbManageRoutes from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
-import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes'
+import getDorisRoutes from '@views/doris-manage/routes';
+import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes';
 import getESRoutes from '@views/es-manage/routes';
 import getHDFSRoutes from '@views/hdfs-manage/routes';
 import getInfluxDBRoutes from '@views/influxdb-manage/routes';
@@ -80,15 +70,12 @@ const renderPageWithComponent = (route: RouteRecordRaw, component: typeof BizPer
   }
 };
 
-
 export default () => {
   // 解析业务id
   // 1,url中包含业务id
   // 2,本地缓存中包含业务id
   // 3,业务列表中的第一个业务
-  const {
-    bizs: bizList,
-  } = useGlobalBizs();
+  const { bizs: bizList } = useGlobalBizs();
   const pathBiz = window.location.pathname.match(/^\/(\d+)\/?/);
   let currentBiz = '';
   if (pathBiz) {
@@ -109,7 +96,7 @@ export default () => {
   localStorage.setItem('lastBizId', currentBiz);
 
   let bizPermission = false;
-  const bizInfo = _.find(bizList, item => item.bk_biz_id === Number(currentBiz));
+  const bizInfo = _.find(bizList, (item) => item.bk_biz_id === Number(currentBiz));
   if (bizInfo && bizInfo.permission.db_manage) {
     bizPermission = true;
   }
@@ -125,45 +112,46 @@ export default () => {
       path: rootPath,
       name: 'index',
       redirect: {
-        name: checkDbConsole(funControllerData, 'personalWorkbench.serviceApply') ? 'serviceApply' : 'DatabaseTendbha',
+        name: checkDbConsole('personalWorkbench.serviceApply') ? 'serviceApply' : 'DatabaseTendbha',
       },
       children: [
-        ...getResourceManageRoutes(funControllerData),
-        ...getVersionFilesRoutes(funControllerData),
-        ...getPlatformDbConfigureRoutes(funControllerData),
-        ...getPasswordManageRoutes(funControllerData),
-        ...getServiceApplyRoutes(funControllerData),
+        ...getResourceManageRoutes(),
+        ...getVersionFilesRoutes(),
+        ...getPlatformDbConfigureRoutes(),
+        ...getPasswordManageRoutes(),
+        ...getServiceApplyRoutes(),
         ...getQuickSearchRoutes(),
-        ...getTicketsRoutes(funControllerData),
-        ...getDutyRuleManageRoutes(funControllerData)
+        ...getTicketsRoutes(),
+        ...getDutyRuleManageRoutes(),
       ],
     },
     {
       path: `${rootPath}${currentBiz}`,
       children: [
-        ...getDbConfRoutes(funControllerData),
+        ...getDbConfRoutes(),
         ...getESRoutes(bigdataController),
-        ...getDbhaSwitchEventsRouters(funControllerData),
+        ...getDbhaSwitchEventsRouters(),
         ...getHDFSRoutes(bigdataController),
         ...getInfluxDBRoutes(bigdataController),
-        ...getInspectionRoutes(funControllerData),
+        ...getInspectionRoutes(),
         ...getKafkaRoutes(bigdataController),
-        ...getDBMonitorAlarmRoutes(funControllerData),
-        ...getPlatMonitorAlarmRoutes(funControllerData),
+        ...getDBMonitorAlarmRoutes(),
+        ...getPlatMonitorAlarmRoutes(),
         ...getMysqlRoutes(funControllerData),
-        ...getNotificationSettingRoutes(funControllerData),
+        ...getNotificationSettingRoutes(),
         ...getPulsarRoutes(bigdataController),
         ...getRedisRoutes(funControllerData),
         ...getSpiderManageRoutes(funControllerData),
-        ...getStaffManageRoutes(funControllerData),
-        ...getTaskHistoryRoutes(funControllerData),
-        ...getWhitelistRoutes(funControllerData),
-        ...getTicketManageRoutes(funControllerData),
-        ...getTemporaryPasswordModify(funControllerData),
+        ...getStaffManageRoutes(),
+        ...getTaskHistoryRoutes(),
+        ...getWhitelistRoutes(),
+        ...getTicketManageRoutes(),
+        ...getTemporaryPasswordModify(),
         ...getRiakManage(bigdataController),
-        ...getTicketFlowSettingRoutes(funControllerData),
+        ...getTicketFlowSettingRoutes(),
         ...getMongoRoutes(mongdbController),
         ...getSqlServerRouters(funControllerData),
+        ...getDorisRoutes(bigdataController),
       ],
     },
     {
@@ -181,7 +169,7 @@ export default () => {
     history: createWebHistory(),
     routes,
   });
-  connectToMain(appRouter)
+  connectToMain(appRouter);
 
   let lastRouterHrefCache = '/';
   const routerPush = appRouter.push;

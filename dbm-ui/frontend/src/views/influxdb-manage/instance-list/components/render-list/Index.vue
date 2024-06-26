@@ -167,7 +167,7 @@
 
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -323,12 +323,15 @@
                   {
                     data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
                   }
-                  <db-icon
-                    v-show={!data.isOnline && !data.isStarting}
-                    class="cluster-tag"
-                    svg
-                    type="yijinyong"
-                    style="width: 38px; height: 16px;" />
+                  {
+                    !data.isOnline && !data.isStarting && (
+                      <bk-tag
+                        class="ml-4"
+                        size="small">
+                        {t('已禁用')}
+                      </bk-tag>
+                    )
+                  }
                   {
                     data.isNew && (
                       <span class="glob-new-tag cluster-tag" data-text="NEW" />

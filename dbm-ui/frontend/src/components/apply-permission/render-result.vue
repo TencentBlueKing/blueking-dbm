@@ -19,6 +19,9 @@
         src="/images/no-permission.svg" />
       <p class="tips-text">
         {{ t('该操作需要以下权限') }}
+        <span v-if="urls.ENABLE_EXTERNAL_PROXY">
+          {{ t('，请联系运维人员开通权限') }}
+        </span>
       </p>
     </div>
     <div class="permission-list">
@@ -62,11 +65,15 @@
 
   import type ApplyDataModel from '@services/model/iam/apply-data';
 
+  import { useSystemEnviron } from '@stores';
+
   interface Props {
     data: ApplyDataModel;
   }
   defineProps<Props>();
+
   const { t } = useI18n();
+  const { urls } = useSystemEnviron();
 </script>
 <style lang="less" scoped>
   .no-permission-tips {

@@ -29,9 +29,11 @@
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.REDIS]"
@@ -77,13 +79,10 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -93,22 +92,25 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_PROXY_SCALE_UP,
     onSuccess(cloneData) {
-      tableData.value = cloneData;
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
+
       window.changeConfirm = true;
-    }
+    },
   });
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
+  const remark = ref('');
 
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length);
-  const inputedClusters = computed(() => tableData.value.map(item => item.cluster));
-  const selectedClusters = shallowRef<{[key: string]: Array<RedisModel>}>({ [ClusterTypes.REDIS]: [] });
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
+  const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
+  const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
   // 集群域名是否已存在表格的映射表
-  let domainMemo:Record<string, boolean> = {};
+  let domainMemo: Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -125,7 +127,7 @@
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
-  const generateRowDateFromRequest = (item: RedisModel) =>({
+  const generateRowDateFromRequest = (item: RedisModel) => ({
     rowKey: item.master_domain,
     isLoading: false,
     cluster: item.master_domain,
@@ -141,11 +143,9 @@
     },
     targetNum: `${item.proxy.length}`,
     rowModelData: item,
-  })
-  ;
-
+  });
   // 批量选择
-  const handelClusterChange = async (selected: {[key: string]: Array<RedisModel>}) => {
+  const handelClusterChange = async (selected: { [key: string]: Array<RedisModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
     const newList: IDataRow[] = [];
@@ -202,18 +202,29 @@
     tableData.value.splice(index, 1);
     delete domainMemo[cluster];
     const clustersArr = selectedClusters.value[ClusterTypes.REDIS];
-    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter(item => item.master_domain !== cluster);
+    selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== cluster);
+  };
+
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all<InfoItem[]>(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
 
     const params: SubmitTicket<TicketTypes, InfoItem[]> = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_PROXY_SCALE_UP,
+      remark: remark.value,
       details: {
         ip_source: 'resource_pool',
         infos,
@@ -225,29 +236,32 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisProxyScaleUp',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisProxyScaleUp',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .catch((e) => {
             console.error('proxy scale up submit ticket error：', e);
           })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;

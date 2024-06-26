@@ -229,6 +229,8 @@ dbpartition:
     DB_REMOTE_SERVICE: "http://bk-dbm/apis/proxypass/drs/"
     CRON_RETRY_HOUR: "9,15"
     CRON_TIMING_HOUR: "3"
+    ALARM_TIMEZONE: "UTC+8"
+    ALARM_HOUR: "11"
     DBM_TICKET_SERVICE: "http://bk-dbm/apis/"
     LISTEN_ADDRESS: "0.0.0.0:80"
     DB_META_SERVICE: "http://bk-dbm"
@@ -301,8 +303,6 @@ db-simulation:
     TRACE_DATA_ID: ""
     # 模拟执行使用专用Node
     # 需要迁移给专用节点打标签和污点
-  simulationNodeLables: { bkdbm/simulation: "high-performance" }
-  simulationtaintLables: { bkdbm/simulation: "high-performance" }
   # 配置模拟执行 pod 的资源限额
 #  tdbctlPodResource:
 #    limits:

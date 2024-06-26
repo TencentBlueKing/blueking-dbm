@@ -9,14 +9,21 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import json
+import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from blueapps.account.decorators import login_exempt
+from django.http import HttpResponse
 from django.utils.decorators import classonlymethod
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
+from backend import env
+from backend.bk_web.constants import IP_RE
+from backend.components.dbconsole.client import DBConsoleApi
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
 
 
@@ -40,6 +47,12 @@ class GenericMixin:
 
     def get_default_permission_class(self) -> list:
         return self.default_permission_class
+
+    def get_permission_class_with_action(self, action):
+        for actions, custom_perms in self.get_action_permission_map().items():
+            if action == actions or action in actions:
+                return custom_perms
+        return self.get_default_permission_class()
 
     @property
     def validated_data(self):
@@ -107,11 +120,7 @@ class GenericMixin:
 
     def _get_custom_permissions(self):
         """用户自定义的permission类,由子类继承覆写"""
-        # ⚠️为了避免权限泄露，希望默认权限是永假来兜底，所以请写每一个视图的时候都覆写该方法
-        for actions, custom_perms in self.get_action_permission_map().items():
-            if actions == self.action or self.action in actions:
-                return custom_perms
-        return self.get_default_permission_class()
+        return self.get_permission_class_with_action(self.action)
 
     @classmethod
     def _get_login_exempt_view_func(cls):
@@ -160,3 +169,57 @@ class AuditedModelViewSet(GenericMixin, ModelViewSet):
 
 class ReadOnlyAuditedModelViewSet(GenericMixin, ReadOnlyModelViewSet):
     pass
+
+
+class ExternalProxyViewSet(viewsets.ViewSet):
+    """外部代理路由视图"""
+
+    def fill_request_headers(self, request, *args, **kwargs):
+        # 如果是grafana的请求，则要带上X-Grafana-Org-Id
+        if request.path.split("/")[2] == "grafana":
+            return {"X-Grafana-Org-Id": request.headers.get("X-Grafana-Org-Id")}
+        return None
+
+    def after_response(self, request, response, *args, **kwargs):
+        # 请求内部的dashboard url，但是host要替换为当前dbm的host
+        if "/grafana/get_dashboard/" in request.path:
+            data = response.json()["data"]
+            data["url"] = f"{env.BK_SAAS_HOST}/grafana/{data['url'].split('grafana/')[1]}"
+            for url_info in data["urls"]:
+                url_info["url"] = f"{env.BK_SAAS_HOST}/grafana/{url_info['url'].split('grafana/')[1]}"
+            return Response(data)
+        if ".css" in request.path:
+            return HttpResponse(response, headers={"Content-Type": "text/css"})
+        # 屏蔽iam申请的内部路由
+        if "/iam/get_apply_data/" in request.path or "/iam/simple_get_apply_data/" in request.path:
+            data = response.json()["data"]
+            data["apply_url"] = env.IAM_APP_URL
+            return Response(data)
+        # 业务列表只展示有权限的业务
+        if "/cmdb/list_bizs/" in request.path:
+            data = [d for d in response.json()["data"] if d["permission"][ActionEnum.DB_MANAGE.id]]
+            return Response(data)
+
+        if request.path.startswith("/external/apis/"):
+            # 外部 API 转发请求，把 IP 替换为 *.*.*.*
+            data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
+            return Response(json.loads(data))
+        # for path in [
+        #     "/timeseries/time_series/unify_query/",
+        #     "/timeseries/graph_promql_query/",
+        #     "/timeseries/grafana/query/",
+        #     "/timeseries/grafana/query_log/",
+        # ]:
+        #     if request.path.endswith(path):
+        #         # 外部 API 转发请求，把 IP 替换为 *.*.*.*
+        #         data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
+        #         return Response(json.loads(data))
+
+        return HttpResponse(response)
+
+    def external_proxy(self, request, *args, **kwargs):
+        params = dict(request.data or request.query_params)
+        params.update(_url_path=kwargs["path"])
+        headers = self.fill_request_headers(request, *args, **kwargs)
+        resp = getattr(DBConsoleApi, request.method.lower())(params=params, headers=headers)
+        return self.after_response(request, resp, *args, **kwargs)

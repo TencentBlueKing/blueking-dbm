@@ -49,7 +49,6 @@
       @edit-success="handleOperationEditSuccess" />
     <DbSideslider
       v-model:is-show="isShowExecuteLog"
-      render-directive="if"
       :show-footer="false"
       :title="t(`查看执行记录`)"
       :width="1000">
@@ -137,11 +136,11 @@
           }
           {
             data.isOffline && (
-              <db-icon
-                svg
-                type="yijinyong"
-                class="cluster-tag ml-4"
-                style="width: 38px; height: 16px;" />
+              <bk-tag
+                class="ml-4"
+                size="small">
+                {t('已禁用')}
+              </bk-tag>
             )
           }
         </div>
@@ -380,8 +379,8 @@
     fetchData();
   };
 
-  const handleTableSelection = (payload: number[]) => {
-    selectionList.value = payload;
+  const handleTableSelection = (payload: string[]) => {
+    selectionList.value = payload.map(item => Number(item));
   };
 
   // 清空搜索

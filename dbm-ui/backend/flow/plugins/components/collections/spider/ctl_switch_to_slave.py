@@ -59,7 +59,6 @@ class CtlSwitchToSlaveService(BaseService):
     def _prepare_check(self, cluster: Cluster, reduce_ctl_primary: str):
         """
         检测当前是否可以执行切换
-        todo 是否需要检验checksum结果？
         """
         cmds = ["set tc_admin=1"]
         rpc_params = {
@@ -126,12 +125,12 @@ class CtlSwitchToSlaveService(BaseService):
 
         return True
 
-    def _new_master_enable_primary(self, cluster: Cluster, new_master, reduce_ctl_primary):
+    def _new_master_enable_primary(self, cluster: Cluster, new_master: str, reduce_ctl_primary: str):
         """
         提升新节点作为主节点的逻辑
         """
         rpc_params = {
-            "addresses": [f"{new_master.machine.ip}{IP_PORT_DIVIDER}{new_master.admin_port}"],
+            "addresses": [new_master],
             "cmds": [],
             "force": False,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -142,7 +141,7 @@ class CtlSwitchToSlaveService(BaseService):
         reduce_port = reduce_ctl_primary.split(":")[1]
         server_name = "test_name"
         select_sql = [
-            "set tc_admin = 1",
+            "set tc_admin = 0",
             f"select Server_name from mysql.servers where host = '{reduce_ip}' and port = {reduce_port}",
         ]
         rpc_params["cmds"] = select_sql
@@ -155,6 +154,14 @@ class CtlSwitchToSlaveService(BaseService):
             self.log_warning(f"Node [{reduce_ctl_primary}] no longer has routing information")
         else:
             server_name = res[0]["cmd_results"][1]["table_data"][0]["Server_name"]
+
+        # 新primary需要执行reset slave, 避免提升主报错
+        rpc_params["cmds"] = ["set tc_admin=0", "reset slave all;"]
+        res = DRSApi.rpc(rpc_params)
+        if res[0]["error_msg"]:
+            raise CtlSwitchToSlaveFailedException(
+                message=_("exec reset-slave-all failed: {}".format(res[0]["error_msg"]))
+            )
 
         # 提升新主节点
         exec_sql = ["set tc_admin=1", f"TDBCTL DROP NODE IF EXISTS {server_name}", "TDBCTL ENABLE PRIMARY"]
@@ -204,7 +211,7 @@ class CtlSwitchToSlaveService(BaseService):
         # 基于GTID建立同步
         for secondary in other_secondary:
             repl_sql = (
-                f"CHANGE MASTER TO"
+                f"CHANGE MASTER TO "
                 f"MASTER_HOST ='{new_primary.split(':')[0]}',"
                 f"MASTER_PORT={new_primary.split(':')[1]},"
                 f"MASTER_USER ='{data['repl_user']}',"
@@ -215,7 +222,7 @@ class CtlSwitchToSlaveService(BaseService):
             res = DRSApi.rpc(
                 {
                     "addresses": [f"{secondary.machine.ip}{IP_PORT_DIVIDER}{secondary.admin_port}"],
-                    "cmds": ["set tc_admin = 0", repl_sql],
+                    "cmds": ["set tc_admin = 0", repl_sql, "start slave;"],
                     "force": False,
                     "bk_cloud_id": cluster.bk_cloud_id,
                 }
@@ -240,6 +247,7 @@ class CtlSwitchToSlaveService(BaseService):
 
         # 阶段1 先检测是否当前可以提升主切换
         result = self._prepare_check(cluster=cluster, reduce_ctl_primary=reduce_ctl_primary)
+        self.log_info(_("预检测成功"))
 
         # 阶段2 尝试连接原来ctl_primary,执行TDBCTL DISABLE PRIMARY
         if result:
@@ -247,15 +255,18 @@ class CtlSwitchToSlaveService(BaseService):
 
         # 阶段3 关闭所有从节点的主从同步
         self._stop_slave(cluster, ctl_set)
+        self.log_info(_("关闭所有从节点的主从同步成功"))
 
         # 阶段3 根据传入新的primary节点,计算出其余的从节点
         other_secondary = ctl_set.exclude(machine__ip=new_ctl_primary.split(":")[0])
 
         # 阶段4 其余节点同步新的primary节点
         self._sync_to_new_master(cluster, new_ctl_primary, other_secondary)
+        self.log_info(_("在其余节点同步新的primary节点[{}]成功").format(new_ctl_primary))
 
         # 阶段5 连接新的primary节点，执行剔除原primary节点的命令, 并提升自己为primary TDBCTL ENABLE PRIMARY
         self._new_master_enable_primary(cluster, new_ctl_primary, reduce_ctl_primary)
+        self.log_info(_("节点[{}]提升自己为primary成功").format(new_ctl_primary))
 
 
 class CtlSwitchToSlaveComponent(Component):

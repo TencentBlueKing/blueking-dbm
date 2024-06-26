@@ -12,8 +12,6 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import FunctionControllModel from '@services/model/function-controller/functionController';
-
 import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
@@ -26,7 +24,7 @@ const selfServiceMyTicketsRoute = {
     fullscreen: true,
   },
   component: () => import('@views/tickets/my-tickets/Index.vue'),
-}
+};
 
 const myTodosRoute = {
   name: 'MyTodos',
@@ -36,16 +34,16 @@ const myTodosRoute = {
     fullscreen: true,
   },
   component: () => import('@views/tickets/my-todos/Index.vue'),
-}
+};
 
-export default function getRoutes(funControllerData: FunctionControllModel) {
+export default function getRoutes() {
   const routes: RouteRecordRaw[] = [];
 
-  if (checkDbConsole(funControllerData, 'personalWorkbench.myTickets')) {
+  if (checkDbConsole('personalWorkbench.myTickets')) {
     routes.push(selfServiceMyTicketsRoute);
   }
 
-  if (checkDbConsole(funControllerData, 'personalWorkbench.myTodos')) {
+  if (checkDbConsole('personalWorkbench.myTodos')) {
     routes.push(myTodosRoute);
   }
 

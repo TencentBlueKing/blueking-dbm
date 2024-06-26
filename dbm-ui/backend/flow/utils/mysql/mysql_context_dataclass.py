@@ -193,7 +193,7 @@ class MysqlPartitionContext:
     定义checksum的上下文dataclass
     """
 
-    execute_objects: dict = None
+    partition_report: dict = None
 
 
 @dataclass()
@@ -332,3 +332,12 @@ class TenDBClusterImportMetadataContext:
 @dataclass()
 class TenDBSingleImportMetadataContext:
     cluster_ids: List = None
+
+
+@dataclass()
+class SystemInfoContext:
+    """
+    获取操作系统参数的通用结构体
+    """
+
+    system_info: dict = field(default_factory=dict)

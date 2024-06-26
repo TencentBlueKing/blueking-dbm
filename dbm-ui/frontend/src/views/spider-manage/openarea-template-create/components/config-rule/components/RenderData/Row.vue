@@ -20,30 +20,24 @@
           v-model="localRowData.source_db"
           :cluster-id="clusterId" />
       </td>
-      <td style="padding: 0">
-        <RenderSchmalTable
-          ref="schmalTableRef"
-          v-model="localRowData.schema_tblist"
-          :cluster-id="clusterId"
-          :source-db="localRowData.source_db" />
+      <td>
+        {{ t('所有表') }}
       </td>
       <td style="padding: 0">
         <RenderTableData
           ref="tableDataRef"
           v-model="localRowData.data_tblist"
+          check-exist
           :cluster-id="clusterId"
+          :placeholder="t('表名支持通配符“%”，含通配符的仅支持单个，为空则不克隆表数据')"
+          :required="false"
           :source-db="localRowData.source_db" />
       </td>
       <td style="padding: 0">
         <RenderTargetDbPattern
           ref="targetDbPatternRef"
-          v-model="localRowData.target_db_pattern" />
-      </td>
-      <td style="padding: 0">
-        <RenderPrivData
-          ref="privDataRef"
-          v-model="localRowData.priv_data"
-          :cluster-id="clusterId" />
+          v-model="localRowData.target_db_pattern"
+          :db-name="localRowData.source_db" />
       </td>
       <OperateColumn
         :removeable="removeable"
@@ -64,16 +58,14 @@
     schema_tblist: data.schema_tblist || [],
     data_tblist: data.data_tblist || [],
     target_db_pattern: data.target_db_pattern || '',
-    priv_data: data.priv_data || [],
   });
 </script>
 <script setup lang="ts">
-  import { reactive, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
-  import RenderPrivData from './RenderPrivData.vue';
-  import RenderSchmalTable from './RenderSchmalTable.vue';
+  import RenderTableData from '@views/mysql/common/edit-field/TableName.vue';
+
   import RenderSourceDb from './RenderSourceDb.vue';
-  import RenderTableData from './RenderTableData.vue';
   import RenderTargetDbPattern from './RenderTargetDbPattern.vue';
 
   export interface IData {
@@ -81,7 +73,6 @@
     schema_tblist: string[];
     data_tblist: string[];
     target_db_pattern: string;
-    priv_data: number[];
   }
 
   export interface IDataRow extends IData {
@@ -107,11 +98,11 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const sourceDbRef = ref<InstanceType<typeof RenderSourceDb>>();
-  const schmalTableRef = ref<InstanceType<typeof RenderSchmalTable>>();
   const tableDataRef = ref<InstanceType<typeof RenderTableData>>();
   const targetDbPatternRef = ref<InstanceType<typeof RenderTargetDbPattern>>();
-  const privDataRef = ref<InstanceType<typeof RenderPrivData>>();
 
   const localRowData = reactive(createRowData());
 
@@ -122,6 +113,7 @@
     },
     {
       immediate: true,
+      deep: true,
     },
   );
 
@@ -139,17 +131,14 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        (sourceDbRef.value as InstanceType<typeof RenderSourceDb>).getValue(),
-        (schmalTableRef.value as InstanceType<typeof RenderSchmalTable>).getValue(),
-        (tableDataRef.value as InstanceType<typeof RenderTableData>).getValue(),
-        (targetDbPatternRef.value as InstanceType<typeof RenderTargetDbPattern>).getValue(),
-        (privDataRef.value as InstanceType<typeof RenderPrivData>).getValue(),
-      ]).then(([sourceDbData, schmalTableData, tableDataData, targetDbPatternData, privDataData]) => ({
+        sourceDbRef.value!.getValue(),
+        tableDataRef.value!.getValue('data_tblist'),
+        targetDbPatternRef.value!.getValue(),
+      ]).then(([sourceDbData, tableDataData, targetDbPatternData]) => ({
         ...sourceDbData,
-        ...schmalTableData,
         ...tableDataData,
         ...targetDbPatternData,
-        ...privDataData,
+        schema_tblist: ['*'],
       }));
     },
   });

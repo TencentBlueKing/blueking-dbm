@@ -13,6 +13,7 @@ from backend.utils.env import get_type_env
 CC_APIGW_DOMAIN = get_type_env(key="CC_APIGW_DOMAIN", _type=str)
 GSE_APIGW_DOMAIN = get_type_env(key="GSE_APIGW_DOMAIN", _type=str)
 GCS_APIGW_DOMAIN = get_type_env(key="GCS_APIGW_DOMAIN", _type=str)
+GCS_DIRECT_APIGW_DOMAIN = get_type_env(key="GCS_DIRECT_APIGW_DOMAIN", _type=str)
 SCR_APIGW_DOMAIN = get_type_env(key="SCR_APIGW_DOMAIN", _type=str)
 JOB_APIGW_DOMAIN = get_type_env(key="JOB_APIGW_DOMAIN", _type=str)
 SOPS_APIGW_DOMAIN = get_type_env(key="SOPS_APIGW_DOMAIN", _type=str)
@@ -46,3 +47,6 @@ BACKUP_DOWNLOAD_USER = get_type_env(key="BACKUP_DOWNLOAD_USER", _type=str, defau
 BACKUP_DOWNLOAD_USER_PWD = get_type_env(key="BACKUP_DOWNLOAD_USER", _type=str, default="")
 
 CELERY_SERVICE_APIGW_DOMAIN = get_type_env(key="CELERY_SERVICE_APIGW_DOMAIN", _type=str)
+
+# 外部访问代理地址
+EXTERNAL_PROXY_DOMAIN = get_type_env(key="EXTERNAL_PROXY_DOMAIN", _type=str, default="http://bk-dbm")

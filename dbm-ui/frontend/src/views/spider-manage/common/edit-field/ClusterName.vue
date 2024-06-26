@@ -46,11 +46,11 @@
   }
 
   interface Emits {
-    (e: 'onInputFinish', value: string): void
+    (e: 'onInputFinish', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>
+    getValue: () => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -73,37 +73,43 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) =>  domainRegex.test(_.trim(value)),
+      validator: (value: string) => domainRegex.test(_.trim(value)),
       message: t('目标集群输入格式有误'),
     },
     {
-      validator: (value: string) => queryClusters({
-        cluster_filters: [
-          {
-            immute_domain: value,
-          },
-        ],
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        if (data.length > 0) {
-          localClusterId.value = data[0].id;
-          return true;
-        }
-        return false;
-      }),
+      validator: (value: string) =>
+        queryClusters({
+          cluster_filters: [
+            {
+              immute_domain: value,
+            },
+          ],
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          if (data.length > 0) {
+            localClusterId.value = data[0].id;
+            return true;
+          }
+          return false;
+        }),
       message: t('目标集群不存在'),
     },
     {
       validator: () => {
-        if (!props.checkDuplicate) return true;
+        if (!props.checkDuplicate) {
+          return true;
+        }
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -118,14 +124,18 @@
   ];
 
   // 获取关联集群
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-    clusterIdMemo[instanceKey][localClusterId.value] = true;
-  }, {
-    immediate: true,
-  });
+  watch(
+    localClusterId,
+    () => {
+      if (!localClusterId.value) {
+        return;
+      }
+      clusterIdMemo[instanceKey][localClusterId.value] = true;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: string) => {
     const realValue = _.trim(value);
@@ -137,7 +147,8 @@
     getValue() {
       return editRef.value
         .getValue()
-        .then(() => (localValue.value));
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue));
     },
   });
 </script>

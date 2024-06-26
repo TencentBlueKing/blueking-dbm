@@ -14,9 +14,11 @@ from django.contrib import admin
 from django.urls import include, path, re_path
 from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
-from rest_framework import permissions
+from rest_framework import permissions, views
 
+from backend import env
 from backend.bk_web.swagger import BothHttpAndHttpsSchemaGenerator
+from backend.bk_web.viewsets import ExternalProxyViewSet
 from backend.homepage.views import HomeView, LoginSuccessView, LogOutView, VersionView, ping
 
 schema_view = get_schema_view(
@@ -81,6 +83,16 @@ urlpatterns = [
 if getattr(settings, "ENVIRONMENT", "") not in []:
     urlpatterns.append(path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"))
     urlpatterns.append(path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"))
+
+# 外部路由转发仅提供给外部环境使用
+if env.ENABLE_EXTERNAL_PROXY:
+    methods_map = {method: "external_proxy" for method in views.APIView.http_method_names}
+    urlpatterns.append(
+        re_path(
+            "^external/(?P<path>.*)$",
+            ExternalProxyViewSet.as_view(methods_map),
+        )
+    )
 
 vue_patterns = [
     path("login_success.html", LoginSuccessView.as_view()),

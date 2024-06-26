@@ -53,7 +53,8 @@ def add_install_dbmon(flow, flow_data, pipeline, iplist, bk_cloud_id, allow_empt
     """
     allow_empty_instance 上架流程中，允许ip没有实例. allow_empty_instance = True
     """
-    actuator_workdir = ActKwargs().get_mongodb_os_conf()["file_path"]
+
+    actuator_workdir = flow.get_kwargs.file_path
     pkg_info = get_pkg_info()
     file_list = [
         "{}/{}/{}".format(env.BKREPO_PROJECT, env.BKREPO_BUCKET, pkg_info.get("actuator_pkg").path),

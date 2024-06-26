@@ -19,8 +19,9 @@ BKREPO_PASSWORD = get_type_env(key="BKREPO_PASSWORD", _type=str)
 BKREPO_PROJECT = get_type_env(key="BKREPO_PROJECT", _type=str)
 # 默认文件存放仓库
 BKREPO_BUCKET = get_type_env(key="BKREPO_PUBLIC_BUCKET", _type=str)
-# 对象存储平台域名
+# 对象存储平台后端地址
 BKREPO_ENDPOINT_URL = get_type_env(key="BKREPO_ENDPOINT_URL", _type=str)
+BKREPO_FRONTEND_URL = get_type_env(key="BKREPO_FRONTEND_URL", _type=str, default=BKREPO_ENDPOINT_URL)
 # 备份系统相关系统变量
 IBS_INFO_URL = get_type_env(key="IBS_INFO_URL", _type=str)
 IBS_INFO_KEY = get_type_env(key="IBS_INFO_KEY", _type=str)

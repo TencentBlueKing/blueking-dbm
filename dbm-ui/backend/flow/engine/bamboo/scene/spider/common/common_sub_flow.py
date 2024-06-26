@@ -691,7 +691,7 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
         )
 
         # 因为ctl集群是采用GTID+半同步数据同步，所以理论上选择任意一个从节点作为主，数据不会丢失
-        new_ctl_primary = all_ctl.exclude(machine__ip__in=[ip_info["ip"] for ip_info in reduce_ctls]).first()
+        new_ctl_primary = all_ctl.exclude(machine__ip__in=[ip_info.machine.ip for ip_info in reduce_ctls]).first()
 
         sub_pipeline.add_act(
             act_name=_("切换ctl中控集群"),

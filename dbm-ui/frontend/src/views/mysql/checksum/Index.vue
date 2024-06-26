@@ -37,10 +37,11 @@
         :data="tableData"
         :max-height="tableMaxHeight"
         @add="handleAddItem"
+        @clone="handleCloneItem"
         @remove="handleRemoveItem" />
       <DbForm
         ref="checksumFormRef"
-        class="checksum-form"
+        class="checksum-form toolbox-form"
         form-type="vertical"
         :model="formdata">
         <BkFormItem
@@ -112,6 +113,7 @@
           </BkRadioGroup>
         </BkFormItem>
       </DbForm>
+      <TicketRemark v-model="formdata.remark" />
     </div>
     <template #action>
       <BkButton
@@ -174,9 +176,11 @@
   import { ipPort } from '@common/regex';
   import { dbTippy } from '@common/tippy';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue'
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import SuccessView from '@components/mysql-toolbox/Success.vue';
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import { generateId, messageError } from '@utils';
@@ -207,6 +211,8 @@
     index: number,
     data: TableItem
   }
+
+  type IDataRowBatchKey = keyof Pick<TableItem, 'db_patterns' | 'ignore_dbs'|'table_patterns' | 'ignore_tables'>;
 
   const disabledDate = (date: Date | number) => {
     const day = new Date();
@@ -244,6 +250,7 @@
       formdata.timing = cloneData.timing;
       formdata.runtime_hour = cloneData.runtime_hour;
       formdata.data_repair = cloneData.data_repair;
+      formdata.remark = cloneData.remark
       window.changeConfirm = true;
     },
   });
@@ -260,6 +267,12 @@
 
   const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
 
+  const batchEditShow = reactive({
+    db_patterns: false,
+    ignore_dbs: false,
+    table_patterns: false,
+    ignore_tables: false,
+  });
   const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
   const clusterDBNameMap: Map<number, Array<string>> = reactive(new Map());
   const instanceMap: Map<string, InstanceInfos> = reactive(new Map());
@@ -270,6 +283,7 @@
       is_repair: true,
       mode: 'manual',
     },
+    remark: ''
   });
   const successTipSteps = computed(() => {
     const steps = [{
@@ -389,8 +403,21 @@
     },
     {
       label: () => (
-        <span class="column-required">
-          {t('校验DB')}
+        <span>
+          { t('校验DB') }
+          <BatchEditColumn
+            model-value={batchEditShow.db_patterns}
+            title={t('校验DB')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'db_patterns')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('db_patterns')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
         </span>
       ),
       field: 'db_patterns',
@@ -416,8 +443,21 @@
     },
     {
       label: () => (
-        <span class="column-required">
-          {t('校验表名')}
+        <span>
+          { t('校验表名') }
+          <BatchEditColumn
+            model-value={batchEditShow.table_patterns}
+            title={t('校验表名')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'table_patterns')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('table_patterns')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
         </span>
       ),
       field: 'table_patterns',
@@ -443,7 +483,24 @@
       ),
     },
     {
-      label: t('忽略DB名'),
+      label: () => (
+        <span>
+          { t('忽略DB名') }
+          <BatchEditColumn
+            model-value={batchEditShow.ignore_dbs}
+            title={t('忽略DB名')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'ignore_dbs')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('ignore_dbs')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </span>
+      ),
       field: 'ignore_dbs',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -466,7 +523,24 @@
       ),
     },
     {
-      label: t('忽略表名'),
+      label: () => (
+        <span>
+          { t('忽略表名') }
+          <BatchEditColumn
+            model-value={batchEditShow.ignore_tables}
+            title={t('忽略表名')}
+            type='taginput'
+            onChange={(value) => handleBatchEditChange(value, 'ignore_tables')}>
+            <span
+              v-bk-tooltips={t('统一设置：将该列统一设置为相同的值')}
+              class="ml-4"
+              style="color: #3A84FF"
+              onClick={() => handleBatchEditShow('ignore_tables')}>
+              <db-icon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </span>
+      ),
       field: 'ignore_tables',
       render: ({ data, index }: TableColumnData) => (
         <bk-form-item
@@ -940,6 +1014,21 @@
     }
   }
 
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
+  };
+
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
+
   /**
    * 批量录入
    */
@@ -986,6 +1075,13 @@
     tableData.value.splice(index, 1);
   }
 
+  const handleCloneItem = (index: number) => {
+    tableData.value.splice(index + 1, 0, _.cloneDeep(tableData.value[index]));
+    setTimeout(() => {
+      toolboxTableRef.value.validate();
+    })
+  }
+
   function handleReset() {
     InfoBox({
       title: t('确认重置表单内容'),
@@ -1019,6 +1115,7 @@
         const params = {
           ticket_type: TicketTypes.MYSQL_CHECKSUM,
           bk_biz_id: globalBizsStore.currentBizId,
+          remark: formdata.remark,
           details: {
             ...formdata,
             timing: formatDateToUTC(format(new Date(formdata.timing), 'yyyy-MM-dd HH:mm:ss')),
@@ -1065,6 +1162,7 @@
 
 <style lang="less" scoped>
   .checksum {
+    margin-bottom: 20px;
     .checksum-batch {
       margin: 16px 0;
 
@@ -1080,8 +1178,8 @@
       margin-bottom: 32px;
 
       :deep(.bk-form-label) {
-        font-weight: bold;
-        color: @title-color;
+        // font-weight: bold;
+        // color: @title-color;
 
         &::after {
           line-height: unset;

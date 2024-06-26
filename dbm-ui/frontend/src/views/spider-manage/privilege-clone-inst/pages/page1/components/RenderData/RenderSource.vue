@@ -22,11 +22,7 @@
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
-  import {
-    onBeforeUnmount,
-    ref,
-    watch
-  } from 'vue';
+  import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
@@ -40,7 +36,7 @@
   import type { IDataRow } from './Row.vue';
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Array<number>;
   }
 
   const instanceKey = `render_source_${random()}`;
@@ -60,27 +56,28 @@
       message: t('源实例不能为空'),
     },
     {
-      validator: () => checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [localInstanceAddress.value],
-      }).then((data) => {
-        if (data.length < 1) {
-          return false;
-        }
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+      validator: () =>
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [localInstanceAddress.value],
+        }).then((data) => {
+          if (data.length < 1) {
+            return false;
+          }
+          instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
 
-        const [currentInstanceData] = data;
+          const [currentInstanceData] = data;
 
-        modelValue.value = {
-          bkCloudId: currentInstanceData.bk_cloud_id,
-          clusterId: currentInstanceData.cluster_id,
-          dbModuleId: currentInstanceData.db_module_id,
-          dbModuleName: currentInstanceData.db_module_name,
-          instanceAddress: currentInstanceData.instance_address,
-          masterDomain: currentInstanceData.master_domain
-        };
-        return true;
-      }),
+          modelValue.value = {
+            bkCloudId: currentInstanceData.bk_cloud_id,
+            clusterId: currentInstanceData.cluster_id,
+            dbModuleId: currentInstanceData.db_module_id,
+            dbModuleName: currentInstanceData.db_module_name,
+            instanceAddress: currentInstanceData.instance_address,
+            masterDomain: currentInstanceData.master_domain,
+          };
+          return true;
+        }),
       message: t('源实例不存在'),
     },
     {
@@ -89,10 +86,13 @@
         const otherClusterMemoMap = { ...instanceAddreddMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -107,15 +107,19 @@
   ];
 
   // 同步外部值
-  watch(modelValue, () => {
-    if (modelValue.value) {
-      localInstanceAddress.value = modelValue.value.instanceAddress;
+  watch(
+    modelValue,
+    () => {
+      if (modelValue.value) {
+        localInstanceAddress.value = modelValue.value.instanceAddress;
 
-      instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
-    }
-  }, {
-    immediate: true,
-  });
+        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onBeforeUnmount(() => {
     delete instanceAddreddMemo[instanceKey];
@@ -130,10 +134,15 @@
           if (!localInstanceAddress.value) {
             return Promise.reject();
           }
-          return ({
+          return {
             source: localInstanceAddress.value,
-          });
-        });
+          };
+        })
+        .catch(() =>
+          Promise.reject({
+            target: localInstanceAddress.value,
+          }),
+        );
     },
   });
 </script>
