@@ -19,11 +19,13 @@
   import { getPreview } from '@services/openarea';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketMessage } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import RenderTagOverflow from '@components/render-tag-overflow/Index.vue'
 
-  import { messageError,messageSuccess } from '@utils';
+  import { messageError } from '@utils';
 
   interface Props {
     data: ServiceReturnType<typeof getPreview>,
@@ -41,6 +43,7 @@
   const router = useRouter();
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const ticketMessage = useTicketMessage();
 
   const tableData = shallowRef<Array<{
     target_cluster_domain: string
@@ -116,8 +119,8 @@
           ...props.data,
         },
         bk_biz_id: currentBizId,
-      }).then(() => {
-        messageSuccess(t('新建开区成功'));
+      }).then((data) => {
+        ticketMessage(data.id);
         window.changeConfirm = false;
         router.push({
           name: 'spiderOpenareaTemplate',
