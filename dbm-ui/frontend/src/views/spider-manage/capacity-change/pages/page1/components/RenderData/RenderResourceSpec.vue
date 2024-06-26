@@ -14,7 +14,7 @@
 <template>
   <TableEditInput
     ref="inputRef"
-    :model-value="`${clusterData ? clusterData.clusterShardNum : ''}`"
+    :model-value="`${clusterData ? clusterData.clusterSpec.spec_name : ''}`"
     :placeholder="t('输入集群后自动生成')"
     readonly
     textarea />

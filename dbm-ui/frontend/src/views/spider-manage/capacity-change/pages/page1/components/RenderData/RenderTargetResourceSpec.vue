@@ -44,7 +44,11 @@
         <table>
           <tr>
             <td>{{ t('当前规格') }}： {{ clusterData.clusterSpec.spec_name }}</td>
-            <td>{{ t('变更后规格') }}： {{ futureSpec.name }}</td>
+            <td>{{ t('变更后规格') }}： {{ futureSpec.name || '--' }}</td>
+          </tr>
+          <tr>
+            <td>{{ t('当前机器组数') }}： {{ clusterData.machinePairCnt }}</td>
+            <td>{{ t('变更机器组数') }}： {{ localSpec?.machine_pair || '--' }}</td>
           </tr>
           <tr>
             <td>

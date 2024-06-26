@@ -233,6 +233,8 @@ export interface SpiderNodeRebalanceDetails {
         specName: string;
       };
     };
+    prev_machine_pair: number;
+    prev_cluster_spec_name: string;
   }[];
   clusters: DetailClusters;
 }

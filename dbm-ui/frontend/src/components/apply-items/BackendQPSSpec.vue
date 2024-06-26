@@ -263,7 +263,7 @@
     },
   ];
 
-  const clusterShardNum = computed(() => modelValue.value.count * shardNum.value)
+  const clusterShardNum = computed(() => modelValue.value.count * shardNum.value || '')
 
   const specInfo = computed(() => {
     const data = specSelectorRef.value?.getData()

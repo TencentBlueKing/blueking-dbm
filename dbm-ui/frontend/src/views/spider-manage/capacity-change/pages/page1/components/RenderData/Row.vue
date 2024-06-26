@@ -184,6 +184,8 @@
       return Promise.all(getRowData()).then(([clusterData, resourceSpecData, targetResourceSpecData]) => ({
         ...clusterData,
         ...targetResourceSpecData,
+        prev_machine_pair: props.data.clusterData!.machinePairCnt,
+        prev_cluster_spec_name: props.data.clusterData!.clusterSpec.spec_name,
       }));
     },
   });

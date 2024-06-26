@@ -13,6 +13,12 @@
           <td>{{ currentSpec?.spec_name ?? '--' }}</td>
         </tr>
         <tr>
+          <td>{{ t('当前机器组数') }}:</td>
+          <td>{{ data.machine_pair_cnt }}</td>
+          <td>{{ t('变更后机器组数') }}:</td>
+          <td>{{ currentSpec?.machine_pair ?? '--' }}</td>
+        </tr>
+        <tr>
           <td>{{ t('当前容量') }}:</td>
           <td>{{ data.cluster_capacity }} G</td>
           <td>{{ t('变更后容量') }}:</td>
@@ -181,6 +187,8 @@
                             affinity: '',
                           },
                         },
+                        prev_machine_pair: props.data.machine_pair_cnt,
+                        prev_cluster_spec_name: props.data.cluster_spec.spec_name
                       },
                     ],
                   },
