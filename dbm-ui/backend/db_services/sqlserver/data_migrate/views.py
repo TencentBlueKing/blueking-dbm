@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 import itertools
 from typing import Dict, List
 
-from django.forms.models import model_to_dict
 from django.utils.translation import ugettext as _
 from rest_framework import status
 from rest_framework.decorators import action
@@ -70,7 +69,7 @@ class SQLServerDataMigrateViewSet(viewsets.SystemViewSet):
     def query_migrate_records(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
         # (不分页)获取全量的迁移记录
-        migrate_records = [model_to_dict(dts) for dts in SqlserverDtsInfo.objects.filter(bk_biz_id=bk_biz_id)]
+        migrate_records = [dts.to_dict() for dts in SqlserverDtsInfo.objects.filter(bk_biz_id=bk_biz_id)]
         cluster_tuple_ids = [[record["source_cluster_id"], record["target_cluster_id"]] for record in migrate_records]
         clusters = Cluster.objects.filter(id__in=list(set(itertools.chain(*cluster_tuple_ids))))
         cluster_id__cluster_domain = {cluster.id: cluster.immute_domain for cluster in clusters}
