@@ -121,7 +121,12 @@
     useTreeData(treeState);
   // 可创建模块
   const clusterType = computed(() => route.params.clusterType as string);
-  const hasModuleClusters: string[] = [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA];
+  const hasModuleClusters: string[] = [
+    ClusterTypes.TENDBSINGLE,
+    ClusterTypes.TENDBHA,
+    ClusterTypes.SQLSERVER_SINGLE,
+    ClusterTypes.SQLSERVER_HA,
+  ];
   const hasModules = computed(() => hasModuleClusters.includes(clusterType.value));
 
   /**
@@ -204,9 +209,18 @@
       }
 
       :deep(.bk-node-row) {
+        --indent: 16px;
+        --offset-left: 32px;
+
         &:hover {
           background-color: #e1ecff;
         }
+      }
+
+      :deep(.bk-node-action) {
+        position: absolute;
+        left: -14px;
+        margin-right: 0;
       }
     }
 
