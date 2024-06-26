@@ -93,6 +93,7 @@
         <BkInput
           v-model="customSpecInfo.count"
           clearable
+          :max="clusterShardNum"
           :min="1"
           show-clear-only-hover
           style="width: 314px"
