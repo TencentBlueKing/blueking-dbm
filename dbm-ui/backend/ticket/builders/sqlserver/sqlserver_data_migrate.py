@@ -157,6 +157,8 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
                 ticket_id=self.ticket.id,
                 status=DtsStatus.ToDo,
                 dts_config=dts_config,
+                db_list=info["db_list"],
+                ignore_db_list=info["ignore_db_list"],
             )
             dts_infos.append(dts_info)
 
