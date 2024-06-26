@@ -299,6 +299,9 @@
 
   import { useApplyBase } from '@hooks';
 
+  import { useGlobalBizs } from '@stores';
+
+  import { sqlServerType, type SqlServerTypeString, TicketTypes } from '@common/const';
   import { sqlServerType, type SqlServerTypeString, TicketTypes } from '@common/const';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
