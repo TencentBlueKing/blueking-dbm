@@ -71,7 +71,7 @@
     getValue: () => Promise<Record<string, any>[]>;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -99,7 +99,7 @@
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
   // 集群域名是否已存在表格的映射表
-  const domainMemo: Record<string, boolean> = {};
+  // const domainMemo: Record<string, boolean> = {};
 
   const handleHostChange = (hostList: HostDetails[]) => {
     if (checkListEmpty(tableData.value)) {
@@ -157,20 +157,20 @@
     selectedClusters.value = selected;
     const list = Object.keys(selected).reduce((list: TendbhaModel[], key) => list.concat(...selected[key]), []);
     const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          clusterData: {
-            id: item.id,
-            master_domain: item.master_domain,
-            bk_biz_id: item.bk_biz_id,
-            bk_cloud_id: item.bk_cloud_id,
-            bk_cloud_name: item.bk_cloud_name,
-          },
-        });
-        result.push(row);
-        domainMemo[domain] = true;
-      }
+      // const domain = item.master_domain;
+      // if (!domainMemo[domain]) {
+      const row = createRowData({
+        clusterData: {
+          id: item.id,
+          master_domain: item.master_domain,
+          bk_biz_id: item.bk_biz_id,
+          bk_cloud_id: item.bk_cloud_id,
+          bk_cloud_name: item.bk_cloud_name,
+        },
+      });
+      result.push(row);
+      // domainMemo[domain] = true;
+      // }
       return result;
     }, [] as IDataRow[]);
 
@@ -194,9 +194,9 @@
     const dataList = [...tableData.value];
     const domain = dataList[index].clusterData?.master_domain;
     if (domain) {
-      delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
+      // delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[props.clusterType];
+      selectedClusters.value[props.clusterType] = clustersArr.filter((item) => item.master_domain !== domain);
     }
     dataList.splice(index, 1);
     tableData.value = dataList;
