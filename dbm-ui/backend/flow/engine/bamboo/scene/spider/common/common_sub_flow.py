@@ -719,7 +719,8 @@ def reduce_ctls_routing(root_id: str, parent_global_data: dict, cluster: Cluster
                 ),
             }
         )
-    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+    if len(acts_list) > 0:
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("删除中控的路由节点"))
 
