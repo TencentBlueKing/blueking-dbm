@@ -48,11 +48,14 @@ class DBPasswordHandler(object):
         return random_password
 
     @classmethod
-    def verify_password_strength(cls, password: str, echo: bool = False):
+    def verify_password_strength(
+        cls, password: str, echo: bool = False, security_type: str = DBM_PASSWORD_SECURITY_NAME
+    ):
         """
         校验密码强度
         @param password: 密码(这里是不加盐的)
         @param echo: 是否回显解密密码
+        @param security_type: 密码类型
         """
         try:
             plain_password = AsymmetricHandler.decrypt(
@@ -64,7 +67,7 @@ class DBPasswordHandler(object):
         # 密码需要用base64加密后传输
         b64_plain_password = base64_encode(plain_password)
         check_result = DBPrivManagerApi.check_password(
-            {"password": b64_plain_password, "security_rule_name": DBM_PASSWORD_SECURITY_NAME}
+            {"password": b64_plain_password, "security_rule_name": security_type}
         )
         if echo:
             check_result.update(password=plain_password)

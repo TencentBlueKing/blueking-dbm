@@ -33,6 +33,9 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
         cluster_shard_num = serializers.IntegerField(help_text=_("集群分片数"))
         remote_shard_num = serializers.IntegerField(help_text=_("单机分片数"))
         resource_spec = serializers.JSONField(help_text=_("规格要求"))
+        # 前端额外需要参数，用于详情展示
+        prev_cluster_spec_name = serializers.CharField(help_text=_("变更前的规格名"))
+        prev_machine_pair = serializers.CharField(help_text=_("变更前机器组数"))
 
     infos = serializers.ListSerializer(help_text=_("集群扩缩容信息"), child=NodeRebalanceItemSerializer())
     backup_source = serializers.ChoiceField(
