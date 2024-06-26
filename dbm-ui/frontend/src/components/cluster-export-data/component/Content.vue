@@ -114,6 +114,7 @@
 
   interface Props {
     data: T;
+    ticketType: TicketTypes.MYSQL_DUMP_DATA | TicketTypes.TENDBCLUSTER_DUMP_DATA;
   }
 
   interface Expose {
@@ -219,7 +220,7 @@
 
         createTicket({
           ignore_duplication: true,
-          ticket_type: TicketTypes.MYSQL_DUMP_DATA,
+          ticket_type: props.ticketType,
           bk_biz_id: props.data.bk_biz_id,
           remark: formData.remark,
           details,

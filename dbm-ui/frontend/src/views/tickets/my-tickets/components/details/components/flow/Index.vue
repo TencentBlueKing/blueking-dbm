@@ -61,7 +61,7 @@
     if ([TicketTypes.MYSQL_IMPORT_SQLFILE, TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE].includes(props.data.ticket_type)) {
       return MySqlFlows;
     }
-    if (props.data.ticket_type === TicketTypes.MYSQL_DUMP_DATA) {
+    if ([TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA].includes(props.data.ticket_type)) {
       return MySqlDumpDataFlows;
     }
     return CommonFlows;

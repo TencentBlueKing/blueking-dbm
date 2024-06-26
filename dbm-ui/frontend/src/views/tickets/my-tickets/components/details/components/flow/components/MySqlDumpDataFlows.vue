@@ -44,12 +44,13 @@
 
   import type { MySQLExportData } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket'
-  import { temporaryDownload } from '@services/source/generic';
   import { createBkrepoAccessToken } from '@services/source/storage';
   import type { FlowItem } from '@services/types/ticket';
 
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
+
+  import { downloadUrl } from '@/utils';
 
   interface Props {
     ticketData: TicketModel<MySQLExportData>,
@@ -77,7 +78,8 @@
 
   const handleDownload = async (filePath: string) => {
     const tokenResult = await createBkrepoAccessToken({ file_path: filePath });
-    temporaryDownload(tokenResult);
+    const url = `${tokenResult.url}/generic/temporary/download/${tokenResult.project}/${tokenResult.repo}/${tokenResult.path}?token=${tokenResult.token}&download=true`
+    downloadUrl(url)
   };
 
   const handleFetchData = () => {

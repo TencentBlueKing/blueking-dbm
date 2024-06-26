@@ -20,7 +20,9 @@
       <span>{{ t('导出数据') }}</span>
       <div class="cluster-domain">{{ data.master_domain }}</div>
     </template>
-    <Content :data="data" />
+    <Content
+      :data="data"
+      :ticket-type="ticketType" />
   </DbSideslider>
 </template>
 
@@ -31,10 +33,13 @@
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import TendbClusterModel from '@services/model/spider/tendbCluster';
 
+  import { TicketTypes } from '@common/const';
+
   import Content from './component/Content.vue';
 
   interface Props {
     data: TendbsingleModel | TendbhaModel | TendbClusterModel;
+    ticketType: TicketTypes.MYSQL_DUMP_DATA | TicketTypes.TENDBCLUSTER_DUMP_DATA;
   }
 
   defineProps<Props>();
