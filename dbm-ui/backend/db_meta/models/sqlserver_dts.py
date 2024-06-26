@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
+from datetime import datetime
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
@@ -47,6 +48,8 @@ class SqlserverDtsInfo(AuditedModel):
     bk_biz_id = models.IntegerField(default=0, help_text=_("关联的业务id，对应cmdb"))
     source_cluster_id = models.IntegerField(default=0, help_text=_("源集群ID"))
     target_cluster_id = models.IntegerField(default=0, help_text=_("目标集群ID"))
+    db_list = models.JSONField(default=list, blank=True, null=True, help_text=_("库正则"))
+    ignore_db_list = models.JSONField(default=list, blank=True, null=True, help_text=_("忽略库正则"))
     dts_mode = models.CharField(max_length=64, choices=SqlserverDtsMode.get_choices(), help_text=_("迁移类型"))
     ticket_id = models.PositiveIntegerField(default=0, help_text=_("关联的单据id"))
     root_id = models.CharField(max_length=64, default="", help_text=_("关联root_id"))
@@ -63,3 +66,17 @@ class SqlserverDtsInfo(AuditedModel):
             "source_cluster_id",
             "target_cluster_id",
         )
+
+    def to_dict(self):
+        """重写model_to_dict()方法转字典"""
+
+        opts = self._meta
+        data = {}
+        for f in opts.concrete_fields:
+            value = f.value_from_object(self)
+            if isinstance(value, datetime):
+                value = value.strftime("%Y-%m-%d %H:%M:%S")
+            elif isinstance(f, models.FileField):
+                value = value.url if value else None
+            data[f.name] = value
+        return data
