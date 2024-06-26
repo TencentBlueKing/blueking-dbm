@@ -20,11 +20,12 @@
       </template>
     </BkAlert>
     <div class="permission-rules-operations">
-      <BkButton
+      <AuthButton
+        action-id="sqlserver_account_create"
         theme="primary"
         @click="accountDialogIsShow = true">
         {{ t('新建账号') }}
-      </BkButton>
+      </AuthButton>
       <DbSearchSelect
         v-model="searchData"
         :data="filters"
@@ -89,10 +90,9 @@
   <!-- 集群授权 -->
   <ClusterAuthorize
     v-model="authorizeShow"
-    :access-dbs="authorizeDbs"
     :account-type="AccountTypes.SQLSERVER"
     :cluster-types="[ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA]"
-    :user="authorizeUser" />
+    :permisson-rule-list="selectedList" />
 </template>
 
 <script setup lang="tsx">
@@ -288,6 +288,7 @@
   const authorizeUser = ref();
   const authorizeDbs = ref();
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
+  const selectedList = shallowRef<SqlserverPermissionAccountModel[]>([]);
 
   /**
    * search select 过滤参数
@@ -392,11 +393,12 @@
 
   const handleShowAuthorize = (
     data: SqlserverPermissionAccountModel,
-    item: SqlserverPermissionAccountModel['rules'][number],
+    rule: SqlserverPermissionAccountModel['rules'][number],
   ) => {
     authorizeShow.value = true;
-    authorizeUser.value = data.account.user;
-    authorizeDbs.value = [item.access_db];
+    selectedList.value = [
+      Object.assign({}, data, { rules: [rule] }),
+    ];
   };
 </script>
 
