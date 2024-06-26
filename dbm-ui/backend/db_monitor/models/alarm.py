@@ -123,7 +123,7 @@ class NoticeGroup(AuditedModel):
             else:
                 rules = BKMonitorV3Api.search_duty_rules({"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID], "name": rule_name})
                 for rule in rules:
-                    if rule["name"] == rule_name:
+                    if rule["name"].lower() == rule_name.lower():
                         save_duty_rule_params["id"] = rule["id"]
                         self.monitor_duty_rule_id = rule["id"]
 
@@ -167,7 +167,7 @@ class NoticeGroup(AuditedModel):
                 {"bk_biz_ids": [env.DBA_APP_BK_BIZ_ID], "name": bk_monitor_group_name}
             )
             for group in bk_monitor_groups:
-                if group["name"] == bk_monitor_group_name:
+                if group["name"].lower() == bk_monitor_group_name.lower():
                     save_monitor_group_params["id"] = group["id"]
             resp = BKMonitorV3Api.save_user_group(save_monitor_group_params)
             self.sync_at = datetime.datetime.now(timezone.utc)
@@ -656,18 +656,17 @@ class MonitorPolicy(AuditedModel):
         # 事件类告警，无需设置告警目标，否则要求上报的数据必须携带服务实例id（告警目标匹配依据）
         for item in items:
             # 更新监控目标为db_type对应的cmdb拓扑
-            item["target"] = [
-                [
-                    {
-                        "field": "host_topo_node",
-                        "method": "eq",
-                        "value": [
-                            {"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"}
-                            for obj in AppMonitorTopo.get_set_by_dbtype(db_type=db_type)
-                        ],
-                    }
+            objs = AppMonitorTopo.get_set_by_dbtype(db_type=db_type)
+            if objs:
+                item["target"] = [
+                    [
+                        {
+                            "field": "host_topo_node",
+                            "method": "eq",
+                            "value": [{"bk_inst_id": obj["bk_set_id"], "bk_obj_id": "set"} for obj in objs],
+                        }
+                    ]
                 ]
-            ]
 
             for query_config in item["query_configs"]:
                 # data_type_label: time_series | event(自定义上报，需要填充data_id)
