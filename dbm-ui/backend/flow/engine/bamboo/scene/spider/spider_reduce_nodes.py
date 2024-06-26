@@ -87,7 +87,7 @@ class TenDBClusterReduceNodesFlow(object):
         # 选择上尽量避开ctl_primary的选择, 避免做一次切换逻辑
         reduce_spiders = cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=reduce_spider_role
-        ).exclude(machine__ip=ctl_primary.split(":"[0]))[: spiders_count - spider_reduced_to_count]
+        ).exclude(machine__ip=ctl_primary.split(":")[0])[: spiders_count - spider_reduced_to_count]
 
         return [{"ip": s.machine.ip} for s in reduce_spiders]
 
