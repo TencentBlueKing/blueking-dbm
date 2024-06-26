@@ -90,7 +90,8 @@
   <ClusterExportData
     v-if="currentData"
     v-model:is-show="showDataExportSlider"
-    :data="currentData" />
+    :data="currentData"
+    :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
 </template>
 
 <script setup lang="tsx">
