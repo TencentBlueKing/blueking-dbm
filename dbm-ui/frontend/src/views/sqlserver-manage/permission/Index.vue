@@ -89,10 +89,9 @@
   <!-- 集群授权 -->
   <ClusterAuthorize
     v-model="authorizeShow"
-    :access-dbs="authorizeDbs"
     :account-type="AccountTypes.SQLSERVER"
     :cluster-types="[ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA]"
-    :user="authorizeUser" />
+    :permisson-rule-list="selectedList" />
 </template>
 
 <script setup lang="tsx">
@@ -276,9 +275,8 @@
   const searchData = ref([]);
   const accountDialogIsShow = ref(false);
   const authorizeShow = ref(false);
-  const authorizeUser = ref();
-  const authorizeDbs = ref();
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
+  const selectedList = shallowRef<SqlserverPermissionAccountModel[]>([]);
 
   /**
    * search select 过滤参数
@@ -383,11 +381,12 @@
 
   const handleShowAuthorize = (
     data: SqlserverPermissionAccountModel,
-    item: SqlserverPermissionAccountModel['rules'][number],
+    rule: SqlserverPermissionAccountModel['rules'][number],
   ) => {
     authorizeShow.value = true;
-    authorizeUser.value = data.account.user;
-    authorizeDbs.value = [item.access_db];
+    selectedList.value = [
+      Object.assign({}, data, { rules: [rule] }),
+    ];
   };
 </script>
 
