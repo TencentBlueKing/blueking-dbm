@@ -171,6 +171,14 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
     },
     component: () => import('@views/mysql/data-migrate/Index.vue'),
   },
+  {
+    name: 'MySQLWebconsole',
+    path: 'webconsole',
+    meta: {
+      navName: 'Webconsole',
+    },
+    component: () => import('@views/mysql/webconsole/Index.vue'),
+  },
 ];
 
 const singleRoutes: RouteRecordRaw[] = [
