@@ -274,7 +274,7 @@
       name: ClusterTypes.MONGO_REPLICA_SET,
       children: [
         {
-          label: t('Mongos规格'),
+          label: t('Mongodb规格'),
           name: 'mongodb',
         },
       ],
