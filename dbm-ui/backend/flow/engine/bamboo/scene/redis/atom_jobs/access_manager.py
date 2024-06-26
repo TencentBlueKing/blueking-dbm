@@ -253,10 +253,16 @@ def AccessManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Dic
     # op_type in [DnsOpType.CREATE、DnsOpType.RECYCLE_RECORD、DnsOpType.CLUSTER_DELETE]
 
     # 如果指定了角色，那么就需要操作指定node域名。 否则默认只对proxy操作
+    # 一般只有两种场景需要指定role: 1、 nodes域名的操作。 2、 操作对应的全部域名
     if "role" in param:
         role = param["role"]
+    # 这个地方，历史残留原因。 有些enter的默认值是master_entry
     else:
-        role = [ClusterEntryRole.PROXY_ENTRY.value]
+        role = [
+            ClusterEntryRole.PROXY_ENTRY.value,
+            ClusterEntryRole.MASTER_ENTRY.value,
+            ClusterEntryRole.SLAVE_ENTRY.value,
+        ]
 
     cluster_id = param["cluster_id"]
     cluster_enterys = ClusterEntry.objects.filter(cluster__id=cluster_id, role__in=role).values()
