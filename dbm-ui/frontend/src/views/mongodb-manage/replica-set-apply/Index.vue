@@ -34,7 +34,9 @@
           ref="regionItemRef"
           v-model="formData.details.city_code" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem v-model="formData.details.disaster_tolerance_level" />
+          <AffinityItem
+            v-model="formData.details.disaster_tolerance_level"
+            :city-code="formData.details.city_code" />
           <BkFormItem
             :label="t('MongoDB版本')"
             property="details.db_version"
@@ -125,7 +127,7 @@
               :biz-id="formData.bk_biz_id"
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
-              :machine-type="MachineTypes.MONGOS"
+              :machine-type="MachineTypes.MONGODB"
               style="width: 314px" />
             <span class="input-desc ml-32">
               {{ t('共需n台', [hostNumber]) }} ,
@@ -204,16 +206,9 @@
   import { getVersions } from '@services/source/version';
   import type { BizItem } from '@services/types';
 
-  import {
-    useApplyBase,
-  } from '@hooks';
+  import { useApplyBase } from '@hooks';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-    MachineTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
@@ -234,9 +229,9 @@
       cluster_type: ClusterTypes.MONGO_REPLICA_SET,
       db_version: '',
       replica_sets: [] as Array<{
-        set_id: string,
-        domain: string,
-        name: string,
+        set_id: string;
+        domain: string;
+        name: string;
       }>,
       start_port: 27001,
       node_count: 3,
@@ -256,13 +251,7 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const {
-    baseState,
-    bizState,
-    handleCancel,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-  } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const formRef = ref<InstanceType<typeof DbForm>>();
   const regionItemRef = ref<InstanceType<typeof RegionItem>>();
@@ -292,7 +281,7 @@
       node_replica_count: setNumberPerHost,
     } = formData.details;
 
-    return setNumber / setNumberPerHost * nodesNumber;
+    return (setNumber / setNumberPerHost) * nodesNumber;
   });
 
   const estimatedCapacity = computed(() => {
@@ -302,44 +291,42 @@
     return Math.round(clusterCapacity * (capacityPercentage / 100));
   });
 
-  const {
-    data: versionList,
-    loading: getVersionsLoading,
-  } = useRequest(getVersions, {
+  const { data: versionList, loading: getVersionsLoading } = useRequest(getVersions, {
     defaultParams: [{ query_key: DBTypes.MONGODB }],
   });
 
   // 设置 domain 数量
-  watch(() => formData.details.replica_count, (count: number) => {
-    if (count > 0 && count <= 200) {
-      const len = formData.details.replica_sets.length;
-      if (count > len) {
-        const appends = Array.from({ length: count - len }, () => ({
-          set_id: '',
-          domain: '',
-          name: '',
-        }));
-        formData.details.replica_sets.push(...appends);
-        return;
+  watch(
+    () => formData.details.replica_count,
+    (count: number) => {
+      if (count > 0 && count <= 200) {
+        const len = formData.details.replica_sets.length;
+        if (count > len) {
+          const appends = Array.from({ length: count - len }, () => ({
+            set_id: '',
+            domain: '',
+            name: '',
+          }));
+          formData.details.replica_sets.push(...appends);
+          return;
+        }
+        if (count < len) {
+          formData.details.replica_sets.splice(count, len - count);
+          return;
+        }
       }
-      if (count < len) {
-        formData.details.replica_sets.splice(count, len - count);
-        return;
-      }
-    }
-  }, {
-    immediate: true,
-  });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChangeBiz = (info: BizItem) => {
     bizState.info = info;
     bizState.hasEnglishName = !!info.english_name;
   };
 
-  const handleChangeCloud = (info: {
-    id: number | string,
-    name: string
-  }) => {
+  const handleChangeCloud = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
   };
 
