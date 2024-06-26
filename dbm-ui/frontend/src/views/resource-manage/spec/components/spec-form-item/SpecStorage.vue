@@ -239,7 +239,7 @@
             }}>
             <bk-button
               text
-              disabled={tableData.value.length === 1 || props.isEdit || data.isSystemDrive}
+              disabled={props.isEdit || data.isSystemDrive}
               onClick={() => handleRemove(index)}>
               <db-icon type="minus-fill" />
             </bk-button>
@@ -267,7 +267,7 @@
   searchDeviceClass()
     .then((res) => {
       deviceClass.value = res.map(item => ({
-        label: item,
+        label: item === 'ALL' ? t('无限制') : item,
         value: item,
       }));
     })
