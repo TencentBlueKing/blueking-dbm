@@ -26,6 +26,7 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.constants import CountType, FlowType, TicketStatus, TicketType, TodoStatus
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
+from backend.ticket.todos import ActionType
 from backend.ticket.yasg_slz import todo_operate_example
 from backend.utils.time import calculate_cost_time, strptime
 
@@ -338,3 +339,36 @@ class ListTicketStatusSerializer(serializers.Serializer):
 class BatchApprovalSerializer(serializers.Serializer):
     is_approved = serializers.CharField(help_text=_("是否通过"))
     ticket_ids = serializers.ListField(help_text=_("单据id集合"))
+
+
+class BatchTodoOperation(serializers.Serializer):
+    """
+    批量待办操作
+    """
+
+    todo_id = serializers.CharField(help_text=_("待办ID"))
+    params = serializers.JSONField(help_text=_("动作参数"))
+
+
+class BatchTodoOperateSerializer(serializers.Serializer):
+    """
+    批量待办处理
+    """
+
+    action = serializers.ChoiceField(
+        choices=[ActionType.APPROVE.value, ActionType.TERMINATE.value], help_text=_("统一动作")
+    )
+    operations = serializers.ListField(child=BatchTodoOperation(), help_text=_("待办操作列表"))
+
+    def validate(self, attrs):
+        operations = attrs.get("operations", [])
+        todo_ids = [operation.get("todo_id") for operation in operations]
+
+        # 获取所有需要的Todo对象
+        todos = Todo.objects.filter(id__in=todo_ids)
+        existing_todo_ids = set(str(todo.id) for todo in todos)
+        # 检查每个todo_id是否存在
+        for todo_id in todo_ids:
+            if todo_id not in existing_todo_ids:
+                raise serializers.ValidationError(_("待办id{}不存在".format(attrs["todo_id"])))
+        return attrs

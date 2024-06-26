@@ -54,6 +54,7 @@ from backend.ticket.handler import TicketHandler
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.serializers import (
     BatchApprovalSerializer,
+    BatchTodoOperateSerializer,
     ClusterModifyOpSerializer,
     CountTicketSLZ,
     FastCreateCloudComponentSerializer,
@@ -667,3 +668,30 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         params_list = [{"sn": sn, "approve_action": is_approved} for sn in sns]
         results = request_multi_thread(request_func, params_list, get_data=lambda x: x, in_order=True)
         return Response({"result": results})
+
+    @swagger_auto_schema(
+        operation_summary=_("批量待办处理"),
+        request_body=BatchTodoOperateSerializer(),
+        responses={status.HTTP_200_OK: TodoSerializer(many=True)},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=BatchTodoOperateSerializer)
+    def batch_process_todo(self, request, *args, **kwargs):
+        """
+        批量处理待办: 返回处理后的待办列表
+        """
+        # 使用 BatchTodoOperateSerializer 验证请求数据
+        validated_data = self.params_validate(self.get_serializer_class())
+        act = validated_data["action"]
+
+        # 批量处理待办操作
+        results = []
+        for operation in validated_data["operations"]:
+            todo_id = operation["todo_id"]
+            params = operation["params"]
+            todo = Todo.objects.get(id=todo_id)
+            TodoActorFactory.actor(todo).process(request.user.username, act, params)
+            results.append(todo)
+
+        # 使用 TodoSerializer 序列化响应数据
+        return Response(TodoSerializer(results, many=True).data)
