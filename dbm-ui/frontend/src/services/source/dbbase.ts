@@ -92,3 +92,13 @@ export function checkInstance<
 >(params: { instance_addresses: string[]; bk_biz_id: number }) {
   return http.post<T[]>(`${path}/check_instances/`, params);
 }
+
+/**
+ * webconsole查询
+ */
+export function queryWebconsole(params: { cluster_id: number; cmd: string }) {
+  return http.post<{
+    query: Array<Record<string, string>>;
+    error_msg?: string;
+  }>(`${path}/webconsole/`, params);
+}

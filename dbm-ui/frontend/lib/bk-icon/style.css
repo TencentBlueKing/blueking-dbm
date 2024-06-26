@@ -32,11 +32,17 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-help:before {
 	content: "\e1f5";
 }
+.db-icon-help-document:before {
+	content: "\e1fa";
+}
 .db-icon-auth:before {
 	content: "\e152";
 }
 .db-icon-apply:before {
 	content: "\e144";
+}
+.db-icon-increase:before {
+	content: "\e1fb";
 }
 .db-icon-close-circle-shape:before {
 	content: "\e1be";
@@ -112,6 +118,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-download-line:before {
 	content: "\e1f2";
+}
+.db-icon-variable-manage:before {
+	content: "\e1f7";
 }
 .db-icon-visible1:before {
 	content: "\e1c5";
@@ -625,4 +634,10 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-daoru:before {
 	content: "\e1ef";
+}
+.db-icon-piliangluru:before {
+	content: "\e1f1";
+}
+.db-icon-cluster-standardize:before {
+	content: "\e1f9";
 }
