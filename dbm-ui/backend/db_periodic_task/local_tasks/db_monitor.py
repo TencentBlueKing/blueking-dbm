@@ -86,6 +86,7 @@ def sync_plat_monitor_policy():
 
         for alarm_tpl in files:
             with open(os.path.join(root, alarm_tpl), "r", encoding="utf-8") as f:
+                logger.info("[sync_plat_monitor_policy] start sync bkm alarm tpl: %s " % alarm_tpl)
                 try:
                     template_dict = json.loads(f.read())
                     # 监控API不支持传入额外的字段
@@ -96,6 +97,10 @@ def sync_plat_monitor_policy():
                     continue
 
                 deleted = template_dict.pop("deleted", False)
+
+                if not template_dict.get("details"):
+                    logger.error(("[sync_plat_monitor_policy] template %s has no details" % alarm_tpl))
+                    continue
 
                 # patch template
                 template_dict["details"]["labels"] = list(set(template_dict["details"]["labels"]))
