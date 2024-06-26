@@ -296,6 +296,22 @@
           label: 'MongoDB',
           name: DBTypes.MONGODB,
         },
+        {
+          label: t('任务执行器'),
+          name: 'actuator',
+        },
+        {
+          label: t('DB监控工具'),
+          name: 'dbmon',
+        },
+        {
+          label: t('工具包'),
+          name: 'dbtools',
+        },
+        {
+          label: t('工具集'),
+          name: 'mongo-toolkit',
+        },
       ],
     },
     {

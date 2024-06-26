@@ -102,7 +102,9 @@
         <DbCard
           v-if="!isSingleType"
           :title="t('数据库部署信息')">
-          <AffinityItem v-model="formData.details.disaster_tolerance_level" />
+          <AffinityItem
+            v-model="formData.details.disaster_tolerance_level"
+            :city-code="formData.details.city_code" />
           <BkFormItem
             :label="t('SQLServer起始端口')"
             property="details.start_mssql_port"
@@ -301,11 +303,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    sqlServerType,
-    type SqlServerTypeString,
-    TicketTypes,
-  } from '@common/const';
+  import { sqlServerType, type SqlServerTypeString, TicketTypes } from '@common/const';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
@@ -371,21 +369,23 @@
   const charset = ref();
   const maxInstNum = ref();
   const systemVersionList = ref<string[]>([]);
-  const regionItemRef = ref<InstanceType<typeof RegionItem>>()
+  const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const specBackendRef = ref<InstanceType<typeof SpecSelector>>();
 
   const cloudInfo = ref<{
-    id: string | number,
-    name: string
+    id: string | number;
+    name: string;
   }>({
     id: '',
     name: '',
   });
 
-  const levelConfigList = shallowRef<{
-    label: string,
-    value?: string
-  }[]>([])
+  const levelConfigList = shallowRef<
+    {
+      label: string;
+      value?: string;
+    }[]
+  >([]);
 
   const formData = reactive(getDefaultformData());
 
@@ -394,7 +394,6 @@
       {
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
-
       },
     ],
     'details.db_module_id': [
@@ -404,11 +403,13 @@
         validator: (val: number) => !!val,
       },
     ],
-    'details.nodes.backend': [{
-      message: t('请添加服务器'),
-      trigger: 'change',
-      validator: () => formData.details.nodes.backend.length !== 0,
-    }],
+    'details.nodes.backend': [
+      {
+        message: t('请添加服务器'),
+        trigger: 'change',
+        validator: () => formData.details.nodes.backend.length !== 0,
+      },
+    ],
   }));
 
   const hostNums = computed(() => {
@@ -419,44 +420,50 @@
   /**
    * 预览功能
    */
-  const previewNodes = computed(() => formData.details.nodes.backend.map(host => ({
-    ip: host.ip,
-    bk_host_id: host.host_id,
-    bk_cloud_id: host.cloud_id,
-    bk_biz_id: host.biz.id,
-  })),
+  const previewNodes = computed(() =>
+    formData.details.nodes.backend.map((host) => ({
+      ip: host.ip,
+      bk_host_id: host.host_id,
+      bk_cloud_id: host.cloud_id,
+      bk_biz_id: host.biz.id,
+    })),
   );
 
   const tableData = computed(() => {
-    if (moduleName.value && (formData.details.db_app_abbr)) {
+    if (moduleName.value && formData.details.db_app_abbr) {
       return formData.details.domains;
     }
     return [];
   });
 
-  const previewData = computed(() => tableData.value.reduce((accumulator, { key }) => [...accumulator, {
-    domain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-    slaveDomain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
-    disasterDefence: t('同城跨园区'),
-    deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
-    version: dbVersion.value,
-    charset: charset.value,
-  }], [] as {
-    domain:string,
-    slaveDomain:string,
-    disasterDefence:string,
-    deployStructure:string,
-    version:string,
-    charset:string,
-  }[]));
+  const previewData = computed(() =>
+    tableData.value.reduce(
+      (accumulator, { key }) => [
+        ...accumulator,
+        {
+          domain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
+          slaveDomain: `${moduleName.value}db.${key}.${formData.details.db_app_abbr}.db`,
+          disasterDefence: t('同城跨园区'),
+          deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
+          version: dbVersion.value,
+          charset: charset.value,
+        },
+      ],
+      [] as {
+        domain: string;
+        slaveDomain: string;
+        disasterDefence: string;
+        deployStructure: string;
+        version: string;
+        charset: string;
+      }[],
+    ),
+  );
 
   /**
    * 获取模块详情
    */
-  const {
-    data: levelConfigData,
-    run: fetchModulesDetails,
-  } = useRequest(getLevelConfig, {
+  const { data: levelConfigData, run: fetchModulesDetails } = useRequest(getLevelConfig, {
     manual: true,
     onSuccess(result) {
       const labelMap: Record<string, string> = {
@@ -465,35 +472,35 @@
         db_version: t('数据库版本'),
         max_remain_mem_gb: t('最大系统保留内存'),
         sync_type: t('主从方式'),
-        system_version: t('操作系统版本')
-      }
+        system_version: t('操作系统版本'),
+      };
 
       if (result.conf_items) {
-        const configMap: Record<string, string | undefined> = {}
+        const configMap: Record<string, string | undefined> = {};
         result.conf_items.forEach((configItem) => {
-          const { conf_name: configName, conf_value: confValue } = configItem
-          switch(configName) {
-          case 'buffer_percent':
-            configMap[configName] = `${confValue}%`
-            break
-          case 'charset':
-            charset.value = confValue
-            configMap[configName] = confValue
-            break
-          case 'db_version':
-            dbVersion.value = confValue
-            configMap[configName] = confValue
-            break
-          case 'max_remain_mem_gb':
-            configMap[configName] = `${confValue}GB`
-            break
-          case 'sync_type':
-            configMap[configName] = confValue === 'mirroring' ? t('镜像') : 'always on'
-            break
-          case 'system_version':
-            systemVersionList.value = (confValue || '').split(',')
-            configMap[configName] = confValue
-            break
+          const { conf_name: configName, conf_value: confValue } = configItem;
+          switch (configName) {
+            case 'buffer_percent':
+              configMap[configName] = `${confValue}%`;
+              break;
+            case 'charset':
+              charset.value = confValue;
+              configMap[configName] = confValue;
+              break;
+            case 'db_version':
+              dbVersion.value = confValue;
+              configMap[configName] = confValue;
+              break;
+            case 'max_remain_mem_gb':
+              configMap[configName] = `${confValue}GB`;
+              break;
+            case 'sync_type':
+              configMap[configName] = confValue === 'mirroring' ? t('镜像') : 'always on';
+              break;
+            case 'system_version':
+              systemVersionList.value = (confValue || '').split(',');
+              configMap[configName] = confValue;
+              break;
           }
         });
 
@@ -503,11 +510,11 @@
           'system_version',
           'buffer_percent',
           'max_remain_mem_gb',
-          'sync_type'
-        ].map(key => ({
+          'sync_type',
+        ].map((key) => ({
           label: labelMap[key],
-          value: configMap[key]
-        }))
+          value: configMap[key],
+        }));
       }
     },
   });
@@ -525,13 +532,16 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const backendHost = (hostList: Array<HostDetails>) => (hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false);
+  const backendHost = (hostList: Array<HostDetails>) =>
+    hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false;
 
   // 只能选择 module 配置中对应操作系统版本的机器
   const disableHostMethod = (data: HostDetails) => {
-    const osName = data.os_name.replace(/\s+/g, '')
-    return systemVersionList.value.every(versionItem => !osName.includes(versionItem)) ? t('操作系统版本不符合模块配置') : false
-  }
+    const osName = data.os_name.replace(/\s+/g, '');
+    return systemVersionList.value.every((versionItem) => !osName.includes(versionItem))
+      ? t('操作系统版本不符合模块配置')
+      : false;
+  };
 
   const handleChangeClusterCount = (value: number) => {
     if (formData.details.inst_num > value) {
@@ -575,10 +585,7 @@
   /**
    * 变更所属管控区域
    */
-  const handleChangeCloud = (info: {
-    id: number | string,
-    name: string
-  }) => {
+  const handleChangeCloud = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
     formData.details.nodes.backend = [];
   };
@@ -593,12 +600,13 @@
     }
   };
 
-  const formatNodes = (hosts: HostDetails[]) => hosts.map((host) => ({
-    ip: host.ip,
-    bk_host_id: host.host_id,
-    bk_cloud_id: host.cloud_id,
-    bk_biz_id: host.biz.id,
-  }))
+  const formatNodes = (hosts: HostDetails[]) =>
+    hosts.map((host) => ({
+      ip: host.ip,
+      bk_host_id: host.host_id,
+      bk_cloud_id: host.cloud_id,
+      bk_biz_id: host.biz.id,
+    }));
 
   /**
    * 提交申请
@@ -610,7 +618,7 @@
       const { details } = formData;
       const { cityCode } = regionItemRef.value!.getValue();
       if (details.ip_source === 'resource_pool') {
-        delete details.nodes
+        delete details.nodes;
         return {
           ...details,
           resource_spec: {
@@ -630,13 +638,13 @@
         };
       }
 
-      delete details.resource_spec
+      delete details.resource_spec;
       return {
         ...details,
         nodes: {
           [clusterType]: formatNodes(details.nodes.backend),
-        }
-      }
+        },
+      };
     };
     const params = {
       ...formData,
@@ -691,13 +699,13 @@
     formData.details.db_module_id = null;
     formData.details.nodes.backend = [];
     moduleRef.value.clearValidate();
-    levelConfigList.value = []
-    systemVersionList.value = []
+    levelConfigList.value = [];
+    systemVersionList.value = [];
 
     if (info.bk_biz_id) {
-      getModulesConfig()
+      getModulesConfig();
     } else {
-      moduleList.value = []
+      moduleList.value = [];
     }
   };
 
@@ -707,40 +715,46 @@
   // });
 
   // 根据DM模块 获取配置下拉展示详情
-  watch(() => formData.details.db_module_id, (newDbModuleId) => {
-    if (newDbModuleId) {
-      const module = (moduleList.value || []).find(item => item.db_module_id === formData.details.db_module_id);
-      moduleName.value = module ? module.name : '';
+  watch(
+    () => formData.details.db_module_id,
+    (newDbModuleId) => {
+      if (newDbModuleId) {
+        const module = (moduleList.value || []).find((item) => item.db_module_id === formData.details.db_module_id);
+        moduleName.value = module ? module.name : '';
 
-      fetchModulesDetails({
-        bk_biz_id: Number(formData.bk_biz_id),
-        meta_cluster_type: sqlServerType[formData.ticket_type as SqlServerTypeString].type,
-        conf_type: 'deploy',
-        level_value: newDbModuleId,
-        level_name: 'module',
-        version: 'deploy_info',
-      });
-    }
-  });
+        fetchModulesDetails({
+          bk_biz_id: Number(formData.bk_biz_id),
+          meta_cluster_type: sqlServerType[formData.ticket_type as SqlServerTypeString].type,
+          conf_type: 'deploy',
+          level_value: newDbModuleId,
+          level_name: 'module',
+          version: 'deploy_info',
+        });
+      }
+    },
+  );
 
   /**
    * 设置 domain 数量
    */
-  watch(() => formData.details.cluster_count, (count: number) => {
-    const len = formData.details.domains.length;
-    if (count === len) {
-      return;
-    }
-    if (count > 0 && count <= 200) {
-      if (count > len) {
-        const appends = Array.from({ length: count - len }, () => ({ key: '' }));
-        formData.details.domains.push(...appends);
+  watch(
+    () => formData.details.cluster_count,
+    (count: number) => {
+      const len = formData.details.domains.length;
+      if (count === len) {
+        return;
       }
-      if (count < len) {
-        formData.details.domains.splice(count - 1, len - count);
+      if (count > 0 && count <= 200) {
+        if (count > len) {
+          const appends = Array.from({ length: count - len }, () => ({ key: '' }));
+          formData.details.domains.push(...appends);
+        }
+        if (count < len) {
+          formData.details.domains.splice(count - 1, len - count);
+        }
       }
-    }
-  });
+    },
+  );
 
   defineExpose({
     routerBack() {
