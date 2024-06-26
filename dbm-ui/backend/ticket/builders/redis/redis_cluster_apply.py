@@ -77,7 +77,9 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
 
         # proxy密码校验，如果是用户输入，则必须满足密码强度
         if attrs.get("proxy_pwd"):
-            verify_result = DBPasswordHandler.verify_password_strength(attrs["proxy_pwd"], echo=True)
+            verify_result = DBPasswordHandler.verify_password_strength(
+                attrs["proxy_pwd"], echo=True, security_type=DBPrivSecurityType.REDIS_PASSWORD
+            )
             attrs["proxy_pwd"] = verify_result["password"]
             if not verify_result["is_strength"]:
                 raise serializers.ValidationError(_("密码强度不符合要求，请重新输入密码。"))
