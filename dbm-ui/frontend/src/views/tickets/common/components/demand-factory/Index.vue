@@ -35,6 +35,7 @@
   import BigDataReplace from './bigdata/Replace.vue';
   import RiakExpansionCapacity from './bigdata/RiakExpansionCapacity.vue';
   import RiakReboot from './bigdata/RiakReboot.vue';
+  import DefaultDetails from './Default.vue';
   import InfluxdbOperations from './influxdb/Operations.vue';
   import InfluxdbReplace from './influxdb/Replace.vue';
   import MongoAuthrizeRules from './mongodb/AuthorizeRules.vue';
@@ -137,6 +138,8 @@
   const mysqlTruncateDataTypes = [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA];
 
   const mysqlRenameTypes = [TicketTypes.MYSQL_HA_RENAME_DATABASE, TicketTypes.MYSQL_SINGLE_RENAME_DATABASE];
+
+  const mysqlApplyTypes = [TicketTypes.MYSQL_SINGLE_APPLY, TicketTypes.MYSQL_HA_APPLY];
 
   const mysqlClusterTicketType = [
     TicketTypes.MYSQL_HA_DISABLE,
@@ -451,13 +454,18 @@
     if (openareaTypes.includes(ticketType)) {
       return MysqlOpenArea;
     }
+    // mysql 部署
+    if (mysqlApplyTypes.includes(ticketType)) {
+      return DetailsMySQL;
+    }
     if (ticketType in SingleDemandMap) {
       return SingleDemandMap[ticketType as keyof typeof SingleDemandMap];
     }
     if ([TicketTypes.MYSQL_PARTITION, TicketTypes.TENDBCLUSTER_PARTITION].includes(ticketType)) {
       return MysqlParition;
     }
-    return DetailsMySQL;
+
+    return DefaultDetails;
   });
 </script>
 

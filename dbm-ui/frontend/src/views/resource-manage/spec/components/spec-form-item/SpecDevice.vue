@@ -23,13 +23,14 @@
         :rules="rules"
         style="width: 100%">
         <BkSelect
-          v-model="modelValue"
           :allow-empty-values="['']"
           :clearable="false"
           filterable
           :input-search="false"
           :loading="isLoading"
-          multiple>
+          :model-value="modelValue"
+          multiple
+          @change="handleSelectChange">
           <BkOption
             key="all"
             :label="t('无限制')"
@@ -54,7 +55,7 @@
   const { t } = useI18n();
 
   const modelValue = defineModel<string[] | string>({
-    default: () => ([]),
+    default: () => [],
   });
 
   const rules = [
@@ -67,6 +68,21 @@
 
   const { loading: isLoading, data: deviceClassList } = useRequest(getDeviceClassList);
 
+  const handleSelectChange = (list: string[]) => {
+    if (list[0] === '-1') {
+      // 先选的无限制，后续加选要去除无限制
+      modelValue.value = list.slice(1);
+      return;
+    }
+
+    if (list[list.length - 1] === '-1') {
+      // 最后选的无限制，前面选过的都要去除
+      modelValue.value = ['-1'];
+      return;
+    }
+
+    modelValue.value = list;
+  };
 </script>
 
 <style lang="less" scoped>
