@@ -2,11 +2,13 @@
   <div class="sqlserver-ha-cluster-list">
     <div class="header-action">
       <div class="mb-16">
-        <BkButton
+        <AuthButton
+          v-db-console="'sqlserver.haClusterList.instanceApply'"
+          action-id="sqlserver_apply"
           theme="primary"
           @click="handleApply">
           {{ t('申请实例') }}
-        </BkButton>
+        </AuthButton>
         <BkDropdown
           class="ml-8"
           @hide="() => (isCopyDropdown = false)"

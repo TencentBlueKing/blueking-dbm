@@ -37,64 +37,29 @@ const mysql: InfoType = {
 };
 
 const redis: InfoType = {
-  [ClusterTypes.REDIS]: {
-    id: ClusterTypes.REDIS,
-    name: 'Redis',
-    dbType: DBTypes.REDIS,
-  },
-  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
-    id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-    name: t('Redis集群'),
-    dbType: DBTypes.REDIS,
-  },
-  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
-    id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-    name: t('Tendisplus存储版集群'),
-    dbType: DBTypes.REDIS,
-  },
   [ClusterTypes.TWEMPROXY_REDIS_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-    name: t('TendisCache集群'),
+    name: 'TendisCache',
     dbType: DBTypes.REDIS,
   },
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-    name: t('TendisSSD集群'),
+    name: 'TendisSSD',
     dbType: DBTypes.REDIS,
   },
-  [ClusterTypes.TWEMPROXY_TENDISPLUS_INSTANCE]: {
-    id: ClusterTypes.TWEMPROXY_TENDISPLUS_INSTANCE,
-    name: t('Tendis存储版集群'),
+  [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
+    id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+    name: 'Tendisplus',
+    dbType: DBTypes.REDIS,
+  },
+  [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
+    id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
+    name: 'RedisCluster',
     dbType: DBTypes.REDIS,
   },
   [ClusterTypes.REDIS_INSTANCE]: {
     id: ClusterTypes.REDIS_INSTANCE,
-    name: t('RedisCache主从版'),
-    dbType: DBTypes.REDIS,
-  },
-  [ClusterTypes.TENDIS_SSD_INSTANCE]: {
-    id: ClusterTypes.TENDIS_SSD_INSTANCE,
-    name: t('TendisSSD主从版'),
-    dbType: DBTypes.REDIS,
-  },
-  [ClusterTypes.TENDIS_PLUS_INSTANCE]: {
-    id: ClusterTypes.TENDIS_PLUS_INSTANCE,
-    name: t('Tendisplus主从版'),
-    dbType: DBTypes.REDIS,
-  },
-  [ClusterTypes.REDIS_CLUSTER]: {
-    id: ClusterTypes.REDIS_CLUSTER,
-    name: t('RedisCluster集群'),
-    dbType: DBTypes.REDIS,
-  },
-  [ClusterTypes.TENDIS_PLUS_CLUSTER]: {
-    id: ClusterTypes.TENDIS_PLUS_CLUSTER,
-    name: t('TendisplusCluster集群'),
-    dbType: DBTypes.REDIS,
-  },
-  [ClusterTypes.DBMON]: {
-    id: ClusterTypes.DBMON,
-    name: t('Redis监控'),
+    name: t('Redis主从'),
     dbType: DBTypes.REDIS,
   },
 };
@@ -147,12 +112,12 @@ const bigdata: InfoType = {
 const mongo: InfoType = {
   [ClusterTypes.MONGO_REPLICA_SET]: {
     id: ClusterTypes.MONGO_REPLICA_SET,
-    name: t('Mongo副本集群'),
+    name: t('Mongo副本集'),
     dbType: DBTypes.MONGODB,
   },
   [ClusterTypes.MONGO_SHARED_CLUSTER]: {
     id: ClusterTypes.MONGO_SHARED_CLUSTER,
-    name: t('Mongo分片集群'),
+    name: t('Mongo分片集'),
     dbType: DBTypes.MONGODB,
   },
 };
@@ -160,12 +125,12 @@ const mongo: InfoType = {
 const sqlserver: InfoType = {
   [ClusterTypes.SQLSERVER_SINGLE]: {
     id: ClusterTypes.SQLSERVER_SINGLE,
-    name: t('SQLServer单节点版'),
+    name: t('SQLServer单节点'),
     dbType: DBTypes.SQLSERVER,
   },
   [ClusterTypes.SQLSERVER_HA]: {
     id: ClusterTypes.SQLSERVER_HA,
-    name: t('SQLServer主从版'),
+    name: t('SQLServer主从'),
     dbType: DBTypes.SQLSERVER,
   },
 };

@@ -192,7 +192,6 @@
     v-else
     v-model:is-show="clusterState.isShow"
     :cluster-types="clusterTypes"
-    only-one-type
     :selected="newClusterSelectorSelected"
     :tab-list-config="tabListConfig"
     @change="handleNewClusterChange" />

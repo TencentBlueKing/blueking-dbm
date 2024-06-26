@@ -64,6 +64,9 @@ const withBizActionList = [
   'mongodb_apply',
   'mongodb_account_create',
   'mongodb_account_rules_view',
+  'sqlserver_apply',
+  'sqlserver_account_create',
+  'sqlserver_account_rules_view',
 ];
 
 export default function (props: Props) {

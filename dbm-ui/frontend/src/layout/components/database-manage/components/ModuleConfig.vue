@@ -120,9 +120,9 @@
         icon: 'mysql',
       },
       {
-        name: 'SqlServer',
+        name: 'SQLServer',
         value: 'sqlserver',
-        icon: 'mysql',
+        icon: 'sqlserver',
       },
     ],
     [t('NoSQL 数据库')]: [
@@ -139,7 +139,7 @@
       {
         name: 'MongoDB',
         value: 'mongodb',
-        icon: 'mysql',
+        icon: 'mongo-db',
       },
     ],
     [t('时序数据库')]: [
