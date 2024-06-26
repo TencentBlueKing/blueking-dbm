@@ -582,7 +582,7 @@
       const [clusterType] = props.clusterTypes;
       clusterState.clusterType = clusterType;
       state.formdata.target_instances = props.selected.map(item => item.master_domain);
-      if (props.accountType === AccountTypes.MONGODB) {
+      if ([AccountTypes.MONGODB, AccountTypes.SQLSERVER].includes(props.accountType)) {
         selectedList.value = props.permissonRuleList
           .map(permissonItem => Object.assign({}, permissonItem, { isExpand: true }));
       }
