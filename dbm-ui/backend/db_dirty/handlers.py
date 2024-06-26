@@ -254,6 +254,10 @@ class DBDirtyMachineHandler(object):
         bk_host_ids = get_target_items_from_details(
             obj=ticket.details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
         )
+
+        if not bk_host_ids:
+            return
+
         if origin_tree_status in FAILED_STATES:
             logger.info(_("【污点池】主机列表:{} 将从污点池挪出").format(bk_host_ids))
             DBDirtyMachineHandler.remove_dirty_machines(bk_host_ids)
