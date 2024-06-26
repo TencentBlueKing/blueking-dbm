@@ -331,7 +331,7 @@
   const handleShowAuthorize = (row: MongodbPermissonAccountModel, rule: PermissionRuleInfo) => {
     authorizeShow.value = true;
     selectedList.value = [
-      Object.assign(row, { rules: [rule] }),
+      Object.assign({}, row, { rules: [rule] }),
     ];
   };
 </script>

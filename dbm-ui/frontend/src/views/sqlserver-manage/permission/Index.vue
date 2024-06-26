@@ -285,8 +285,6 @@
   const searchData = ref([]);
   const accountDialogIsShow = ref(false);
   const authorizeShow = ref(false);
-  const authorizeUser = ref();
-  const authorizeDbs = ref();
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
   const selectedList = shallowRef<SqlserverPermissionAccountModel[]>([]);
 
