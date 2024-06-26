@@ -27,7 +27,7 @@ class SpiderSlaveDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.destroy_tendb_slave_cluster
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SLAVE_DESTROY, is_apply=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_SLAVE_DESTROY)
 class SpiderSlaveApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderSlaveDestroyDetailSerializer
     inner_flow_builder = SpiderSlaveDestroyFlowParamBuilder
