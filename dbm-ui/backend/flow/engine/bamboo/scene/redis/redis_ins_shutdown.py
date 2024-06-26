@@ -183,7 +183,12 @@ class RedisInsShutdownFlow(object):
             params = {
                 "cluster_id": cluster_id,
                 "op_type": DnsOpType.CLUSTER_DELETE,
-                "role": [ClusterEntryRole.NODE_ENTRY.value, ClusterEntryRole.PROXY_ENTRY.value],
+                "role": [
+                    ClusterEntryRole.NODE_ENTRY.value,
+                    ClusterEntryRole.PROXY_ENTRY.value,
+                    ClusterEntryRole.MASTER_ENTRY.value,
+                    ClusterEntryRole.SLAVE_ENTRY.value,
+                ],
             }
             access_sub_builder = AccessManagerAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipeline_list.append(access_sub_builder)
