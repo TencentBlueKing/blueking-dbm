@@ -20,6 +20,8 @@ from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_report.enums import MetaCheckSubType
 from backend.db_report.models import MetaCheckReport
+from backend.ticket.constants import TicketType
+from backend.ticket.models.ticket import ClusterOperateRecord
 
 logger = logging.getLogger("root")
 
@@ -35,9 +37,13 @@ def _check_redis_instance():
      ALONE_MASTER
      ALONE_SLAVE
 
-    实例状态异常检查， （不属于RUNNING状态）
+    实例状态异常检查，需要排除掉(禁用、删除中 状态集群) （不属于RUNNING状态）
      STATUS_ABNORMAL
-
+     REDIS_INSTANCE_CLOSE = TicketEnumField("REDIS_INSTANCE_CLOSE", _("Redis 主从禁用"), register_iam=False)
+     REDIS_PROXY_CLOSE = TicketEnumField("REDIS_PROXY_CLOSE", _("Redis 集群禁用"), register_iam=False)
+     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"))
+     REDIS_INSTANCE_PROXY_CLOSE = TicketEnumField("REDIS_INSTANCE_PROXY_CLOSE", _("Redis 主从集群禁用"), register_iam=False)
+     REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"))
     """
 
     # 构建查询条件:tendisplus,ssd,cache 三种类型一起检查,巡检0点发起
@@ -45,14 +51,16 @@ def _check_redis_instance():
         Q(cluster_type=ClusterType.TendisPredixyTendisplusCluster)
         | Q(cluster_type=ClusterType.TwemproxyTendisSSDInstance)
         | Q(cluster_type=ClusterType.TendisTwemproxyRedisInstance)
+        | Q(cluster_type=ClusterType.TendisRedisCluster)
     )
     # 遍历集群
     for c in Cluster.objects.filter(query):
-        logger.info("+===+++++===  start check {} db meta  +++++===++++ ".format(c.immute_domain))
-        logger.info("+===+++++===  cluster type is: {} +++++===++++ ".format(c.cluster_type))
+        logger.info("meta_check: start by {}".format(c))
+        if check_ignore(c):
+            continue
         # proxy节点数不能小于2
         if c.proxyinstance_set.count() < 2:
-            msg = _("集群 {} proxy numbers 小于2, only  {}").format(c.immute_domain, c.proxyinstance_set.count())
+            msg = _("cluster:{} now had proxies[{}] < 2").format(c.immute_domain, c.proxyinstance_set.count())
             MetaCheckReport.objects.create(
                 bk_biz_id=c.bk_biz_id,
                 bk_cloud_id=c.bk_cloud_id,
@@ -120,6 +128,20 @@ def _check_redis_instance():
         # proxy状态异常
         for instance_obj in c.proxyinstance_set.filter():
             create_meta_statue_report(c, instance_obj)
+
+
+def check_ignore(cluster) -> bool:
+    ignore_tickets = [
+        TicketType.REDIS_INSTANCE_CLOSE.value,
+        TicketType.REDIS_PROXY_CLOSE.value,
+        TicketType.REDIS_DESTROY.value,
+        TicketType.REDIS_INSTANCE_CLOSE.value,
+        TicketType.REDIS_INSTANCE_DESTROY.value,
+    ]
+    if ClusterOperateRecord.objects.filter(ticket__ticket_type__in=ignore_tickets, cluster_id=cluster.id).exists():
+        logger.info("meta_check: will ignore cluster {} , 4 it has destory label".format(cluster))
+        return True
+    return False
 
 
 def create_meta_statue_report(c, instance_obj):
