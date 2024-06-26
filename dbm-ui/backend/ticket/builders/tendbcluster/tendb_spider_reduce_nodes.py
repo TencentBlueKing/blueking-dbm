@@ -43,7 +43,7 @@ class TendbSpiderReduceNodesFlowParamBuilder(builders.FlowParamBuilder):
         pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_REDUCE_NODES, is_apply=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_REDUCE_NODES)
 class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbSpiderReduceNodesDetailSerializer
     inner_flow_builder = TendbSpiderReduceNodesFlowParamBuilder

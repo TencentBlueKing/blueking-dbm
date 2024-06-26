@@ -35,7 +35,7 @@ class TendbMNTDestroyParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.reduce_spider_mnt_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_MNT_DESTROY, is_apply=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_MNT_DESTROY)
 class TendbMNTDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMNTDestroyDetailSerializer
     inner_flow_builder = TendbMNTDestroyParamBuilder
