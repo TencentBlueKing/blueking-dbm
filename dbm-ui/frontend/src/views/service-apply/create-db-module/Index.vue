@@ -133,7 +133,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { mysqlType, type MysqlTypeString } from '@common/const';
+  import { mysqlType, type MysqlTypeString, sqlServerType, type SqlServerTypeString } from '@common/const';
 
   import DeployVersion from '@components/apply-items/DeployVersion.vue';
 
@@ -150,8 +150,8 @@
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const ticketType = route.params.type as MysqlTypeString;
-  const ticketInfo = mysqlType[ticketType];
+  const ticketType = route.params.type as MysqlTypeString | SqlServerTypeString;
+  const ticketInfo = mysqlType[ticketType as MysqlTypeString] || sqlServerType[ticketType as SqlServerTypeString];
   const bizId = Number(route.params.bk_biz_id);
   const isNewModule = !route.params.db_module_id;
 

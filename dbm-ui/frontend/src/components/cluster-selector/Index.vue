@@ -159,8 +159,8 @@
   import type { SearchSelectList } from './components/common/SearchBar.vue';
   import MongoTable from './components/mongo/Index.vue';
   import RedisTable from './components/redis/Index.vue';
-  import SqlserverHaTable from './components/sqlserver-ha/Index.vue'
-  import SqlserverSingleTable from './components/sqlserver-single/Index.vue'
+  import SqlserverHaTable from './components/sqlserver-ha/Index.vue';
+  import SqlserverSingleTable from './components/sqlserver-single/Index.vue';
   import SpiderTable from './components/tendb-cluster/Index.vue';
   import TendbSingleTable from './components/tendb-single/Index.vue';
   import TendbhaTable from './components/tendbha/Index.vue';
@@ -293,11 +293,13 @@
     },
     [ClusterTypes.SQLSERVER_SINGLE]: {
       id: ClusterTypes.SQLSERVER_SINGLE,
-      name: t('集群选择'),
-      disabledRowConfig: [{
-        handler: (data: T) => data.isOffline,
-        tip: t('集群已禁用'),
-      }],
+      name: t('单节点集群'),
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
       multiple: true,
       getResourceList: getSingleClusterList,
       tableContent: SqlserverSingleTable,
@@ -305,11 +307,13 @@
     },
     [ClusterTypes.SQLSERVER_HA]: {
       id: ClusterTypes.SQLSERVER_HA,
-      name: t('集群选择'),
-      disabledRowConfig: [{
-        handler: (data: T) => data.isOffline,
-        tip: t('集群已禁用'),
-      }],
+      name: t('主从集群'),
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
       multiple: true,
       getResourceList: getHaClusterList,
       tableContent: SqlserverHaTable,
@@ -429,12 +433,15 @@
       activePanelObj.value = currentTab;
     }
     if (props.onlyOneType) {
-      selectedMap.value = Object.keys(selectedMap.value).reduce((results, id) => {
-        Object.assign(results, {
-          [id]: {},
-        });
-        return results;
-      }, {} as Record<string, Record<string, any>>);
+      selectedMap.value = Object.keys(selectedMap.value).reduce(
+        (results, id) => {
+          Object.assign(results, {
+            [id]: {},
+          });
+          return results;
+        },
+        {} as Record<string, Record<string, any>>,
+      );
     }
   };
 
@@ -535,6 +542,7 @@
     .bk-modal-header {
       display: none;
     }
+
     .bk-dialog-content {
       padding: 0;
       margin: 0;
@@ -558,6 +566,7 @@
         border-left: 0;
         border-bottom-color: transparent;
       }
+
       .tabs-item-active {
         background-color: @bg-white;
         border-bottom-color: @border-white;
