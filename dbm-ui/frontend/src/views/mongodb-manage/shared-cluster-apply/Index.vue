@@ -353,7 +353,7 @@
       details: {
         ...details,
         shard_machine_group: mongoConfigSpecData.machine_pair,
-        shard_num: mongoConfigSpecData.shard_node_num * mongoConfigSpecData.shard_num,
+        shard_num: mongoConfigSpecData.shard_num,
         resource_spec: {
           mongo_config: {
             spec_id: mongoConfig.spec_id,
@@ -365,6 +365,15 @@
             },
             ...mongoCofigSpecRef.value!.getData(),
           },
+          mongos: {
+            ...mongos,
+            affinity: disasterTolerenceLevel,
+            location_spec: {
+              city: cityCode,
+              sub_zone_ids: [],
+            },
+            ...mongosSpecRef.value!.getData(),
+          },
           mongodb: {
             ...mongodb,
             affinity: disasterTolerenceLevel,
@@ -373,15 +382,6 @@
               sub_zone_ids: [],
             },
             count: mongoConfigSpecData.machine_pair * 3, // shard_machine_group * 3(固定值)
-            ...mongosSpecRef.value!.getData(),
-          },
-          mongos: {
-            ...mongos,
-            affinity: disasterTolerenceLevel,
-            location_spec: {
-              city: cityCode,
-              sub_zone_ids: [],
-            },
             spec_name: mongoConfigSpecData.spec_name,
             cpu: mongoConfigSpecData.cpu,
             mem: mongoConfigSpecData.mem,

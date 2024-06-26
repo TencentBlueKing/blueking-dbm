@@ -325,6 +325,7 @@
     Object.assign(specItem, { [fieldName]: value });
 
     specList.value = specListCopy;
+    emits('currentChange', specItem);
   };
 
   const fetchFilterClusterSpec = () => {
