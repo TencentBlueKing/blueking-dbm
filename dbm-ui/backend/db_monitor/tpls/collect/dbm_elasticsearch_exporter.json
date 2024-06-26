@@ -10,10 +10,10 @@
     "target_nodes": [],
     "params": {
       "plugin": {
-        "--es.all": "",
+        "--es.all": "--es.all",
         "--es.uri": "http://{{ target.host.bk_host_innerip }}:{{ target.service.labels[\"instance_port\"] }}",
-        "--es.shards": "",
-        "--es.indices": "",
+        "--es.shards": "--es.shards",
+        "--es.indices": "--es.indices",
         "--es.timeout": "30s",
         "--web.listen-address": "${host}:${port}",
         "\u670d\u52a1\u5b9e\u4f8b\u7ef4\u5ea6\u6ce8\u5165": {
