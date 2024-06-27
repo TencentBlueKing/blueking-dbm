@@ -97,6 +97,9 @@
 
   const currentBizId = window.PROJECT_CONFIG.BIZ_ID;
 
+  // 集群域名是否已存在表格的映射表
+  const domainMemo: Record<string, boolean> = {};
+
   const handleHostChange = (hostList: HostDetails[]) => {
     if (checkListEmpty(tableData.value)) {
       return;
@@ -150,16 +153,20 @@
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
-      const row = createRowData({
-        clusterData: {
-          id: item.id,
-          master_domain: item.master_domain,
-          bk_biz_id: item.bk_biz_id,
-          bk_cloud_id: item.bk_cloud_id,
-          bk_cloud_name: item.bk_cloud_name,
-        },
-      });
-      result.push(row);
+      const domain = item.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: item.id,
+            master_domain: domain,
+            bk_biz_id: item.bk_biz_id,
+            bk_cloud_id: item.bk_cloud_id,
+            bk_cloud_name: item.bk_cloud_name,
+          },
+        });
+        result.push(row);
+        domainMemo[domain] = true;
+      }
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
