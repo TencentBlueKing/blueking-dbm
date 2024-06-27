@@ -17,6 +17,12 @@ EXEC SP_ADDSRVROLEMEMBER ['+@SQLSERVERACCOUNT+'],''sysadmin'''
 EXEC(@SQL)
 GO
 
+USE [master]
+GO
+IF EXISTS(select 1 from master.sys.syslogins where name='BUILTIN\Administrators')
+        DROP LOGIN [BUILTIN\Administrators]
+GO
+
 EXEC SP_CONFIGURE 'SHOW ADVANCED OPTIONS',1
 GO
 RECONFIGURE;
@@ -83,6 +89,9 @@ GO
 
 --modfiy agent log setting
 EXEC MSDB.DBO.SP_SET_SQLAGENT_PROPERTIES @JOBHISTORY_MAX_ROWS = 43200,@JOBHISTORY_MAX_ROWS_PER_JOB = 4320;
+GO
+
+EXEC xp_instance_regwrite N'HKEY_LOCAL_MACHINE', N'Software\Microsoft\MSSQLServer\MSSQLServer', N'NumErrorLogs', REG_DWORD, 30
 GO
 
 USE MASTER
@@ -178,6 +187,10 @@ IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[APP_S
 DROP TABLE [dbo].[APP_SETTING]
 GO
 
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[CHECK_HEARTBEAT]') AND type in (N'U'))
+DROP TABLE [dbo].[CHECK_HEARTBEAT]
+GO
+
 /****** Object:  Table [dbo].[APP_SETTING]    Script Date: 2024/4/7 16:15:50 ******/
 SET ANSI_NULLS ON
 GO
@@ -224,6 +237,20 @@ CREATE TABLE [dbo].[APP_SETTING](
 	[SLOW_DURATION] [int] NULL,
 	[SLOW_SAVEDAY] [int] NULL,
 	[UPDATESTATS] [tinyint] NULL
+) ON [PRIMARY]
+
+GO
+
+
+/****** Object:  Table [dbo].[AUTO_GRANT]    Script Date: 2024/4/7 16:15:50 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE TABLE [dbo].[CHECK_HEARTBEAT](
+	[CHECK_TIME] [datetime] NOT NULL
 ) ON [PRIMARY]
 
 GO
@@ -734,7 +761,7 @@ BEGIN
 		DROP TABLE #dblist
 	CREATE TABLE #dblist(name varchar(200))
 
-	insert into #dblist select name from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and name not like 'distribution%' and name not like '%_dr' and create_date>dateadd(MI,-5,GETDATE())
+	insert into #dblist select name from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and is_distributor = 0 and name not like 'distribution%' and create_date>dateadd(MI,-5,GETDATE())
 
 	IF NOT EXISTS(SELECT 1 FROM #dblist)
 		RETURN 1
@@ -749,7 +776,7 @@ BEGIN
 	BEGIN
 		SET @SQL = ''
 		SELECT @SQL = ISNULL(@SQL+'','')+'USE ['+name+'] IF EXISTS (SELECT * FROM sys.database_principals WHERE name = N'''+@ACCOUNT+''') BEGIN EXEC ['+name+'].dbo.sp_change_users_login ''AUTO_FIX'','''+@ACCOUNT+''' END ELSE BEGIN CREATE USER ['+@ACCOUNT+'] FOR LOGIN ['+@ACCOUNT+'] END;EXEC sp_addrolemember N'''+@GRANT_TYPE+''', N'''+@ACCOUNT+''';'
-		from master.sys.databases where name like @GRANT_DB and name in(select name from #dblist)
+		from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and is_distributor = 0 and name like @GRANT_DB and name in(select name from #dblist)
 		PRINT(@SQL)
 		EXEC(@SQL)
 
@@ -845,6 +872,9 @@ BEGIN
 		'
 		FROM MASTER.SYS.DATABASES A,MASTER.SYS.MASTER_FILES B
 		WHERE A.DATABASE_ID > 4
+		AND A.IS_READ_ONLY = 0
+        AND A.IS_DISTRIBUTOR = 0
+        AND A.STATE = 0 
 		AND A.NAME in (
 		SELECT a.instance_name
 		FROM MASTER.SYS.DM_OS_PERFORMANCE_COUNTERS A,monitor.DBO.APP_SETTING B
@@ -1865,7 +1895,7 @@ BEGIN
 		ELSE
 		BEGIN
 			SET @msg=''
-			update [Monitor].[dbo].[APP_SETTING] set ROLE='master',[MASTER_IP]='',[MASTER_PORT]=''
+			update [Monitor].[dbo].[APP_SETTING] set ROLE='master',[MASTER_IP]=[IP],[MASTER_PORT]=[PORT],DATA_SCHEMA_GRANT='all'
 			SET @i=99
 		END
 	END
@@ -1890,7 +1920,7 @@ BEGIN
 		ELSE
 		BEGIN
 			SET @msg=''
-			update [Monitor].[dbo].[APP_SETTING] set ROLE='slave',[MASTER_IP]=@master_ip,[MASTER_PORT]=@master_port
+			update [Monitor].[dbo].[APP_SETTING] set ROLE='slave',[MASTER_IP]=@master_ip,[MASTER_PORT]=@master_port,DATA_SCHEMA_GRANT='grant'
 			SET @i=99
 		END
 	END
@@ -2059,22 +2089,30 @@ BEGIN
 	END
 	ELSE IF @flag='mirroring'
 	BEGIN
-		update [Monitor].[dbo].[APP_SETTING] set ROLE='master',[MASTER_IP]='',[MASTER_PORT]=''
+		update [Monitor].[dbo].[APP_SETTING] set ROLE='master',[MASTER_IP]=[IP],[MASTER_PORT]=[PORT],DATA_SCHEMA_GRANT='all'
 		
-		SET @SQL = NULL
-		SELECT @SQL=ISNULL(@SQL+'','')+'use master ALTER DATABASE ['+d.name+'] SET partner safety off;'
-		FROM master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where m.mirroring_guid is not null and m.mirroring_role=1 and m.mirroring_state=4 and m.mirroring_safety_level=2
-		BEGIN TRY
-			EXEC(@SQL)
-		END TRY
-		BEGIN CATCH
-			PRINT('skip')
-		END CATCH
-
-		IF EXISTS(select 1 from master.sys.database_mirroring where mirroring_safety_level=2)
+		IF EXISTS(SELECT 1 FROM [Monitor].[dbo].[APP_SETTING] WHERE COMMIT_MODEL='ASYN')
 		BEGIN
-			waitfor delay '00:00:03'
-			SET @i=@i+1
+			SET @SQL = NULL
+			SELECT @SQL=ISNULL(@SQL+'','')+'use master ALTER DATABASE ['+d.name+'] SET partner safety off;'
+			FROM master.sys.database_mirroring m left join master.sys.databases d on m.database_id=d.database_id where m.mirroring_guid is not null and m.mirroring_role=1 and m.mirroring_state=4 and m.mirroring_safety_level=2
+			BEGIN TRY
+				EXEC(@SQL)
+			END TRY
+			BEGIN CATCH
+				PRINT('skip')
+			END CATCH
+
+			IF EXISTS(select 1 from master.sys.database_mirroring where mirroring_safety_level=2)
+			BEGIN
+				waitfor delay '00:00:03'
+				SET @i=@i+1
+			END
+			ELSE
+			BEGIN
+				SET @msg=''
+				SET @i=99
+			END
 		END
 		ELSE
 		BEGIN
@@ -2184,7 +2222,7 @@ BEGIN
 			SET @msg=''
 			IF @master_ip<>''
 			BEGIN
-				update [Monitor].[dbo].[APP_SETTING] set ROLE='slave',[MASTER_IP]=@master_ip,[MASTER_PORT]=@master_port
+				update [Monitor].[dbo].[APP_SETTING] set ROLE='slave',[MASTER_IP]=@master_ip,[MASTER_PORT]=@master_port,DATA_SCHEMA_GRANT='grant'
 			END
 			SET @i=99
 		END
@@ -2617,7 +2655,7 @@ BEGIN TRY
 
 			IF exists(select 1 from #repl_state where is_local=1 and role=1)
 			BEGIN
-				update APP_SETTING set ROLE='master',MASTER_IP='',MASTER_PORT='',DATA_SCHEMA_GRANT='all'
+				update APP_SETTING set ROLE='master',MASTER_IP=IP,MASTER_PORT=PORT,DATA_SCHEMA_GRANT='all'
 				
 				set @msg='GameDR switch Success'
 				select 1 as status,@msg as msg
@@ -2696,7 +2734,7 @@ BEGIN TRY
 			return -1
 		end
 
-		update APP_SETTING set ROLE='master',MASTER_IP='',MASTER_PORT='',DATA_SCHEMA_GRANT='all'
+		update APP_SETTING set ROLE='master',MASTER_IP=IP,MASTER_PORT=PORT,DATA_SCHEMA_GRANT='all'
 		
 		set @msg='GameDR switch Success'
 		select 1 as status,@msg as msg
@@ -2758,7 +2796,6 @@ BEGIN TRY
 	IF not exists(select database_id from master.sys.database_mirroring where mirroring_guid is not null) and not exists(select 1 from #tmp_dblist)
 	BEGIN
 		set @msg='alwayson/mirroring is not exists'
-		select -1 as status,@msg as msg
 		return -1
 	END		
 	
@@ -2788,7 +2825,6 @@ BEGIN TRY
 		IF NOT EXISTS(SELECT 1 FROM #repl_state WHERE connected_state=0)
 		BEGIN
 			set @msg='GameDB state has been disconnected'
-			select -1 as status,@msg as msg
 			return -1
 		END
 		ELSE
@@ -2832,16 +2868,14 @@ BEGIN TRY
 
 			IF exists(select 1 from #repl_state where is_local=1 and role=1)
 			BEGIN
-				update APP_SETTING set ROLE='master',MASTER_IP='',MASTER_PORT='',DATA_SCHEMA_GRANT='all'
+				update APP_SETTING set ROLE='master',MASTER_IP=IP,MASTER_PORT=PORT,DATA_SCHEMA_GRANT='all'
 				
 				set @msg='GameDR switch Success'
-				select 1 as status,@msg as msg
 				return 1
 			END
 			ELSE
 			BEGIN
 				set @msg='GameDr switch Failed'
-				select -1 as status,@msg as msg
 				return -1
 			END
 		END
@@ -2853,7 +2887,6 @@ BEGIN TRY
 		where mirroring_state=1)
 		begin
 			set @msg='GameDB state has been disconnected'
-			select -1 as status,@msg as msg
 			return -1
 		end
 
@@ -2863,7 +2896,6 @@ BEGIN TRY
 		AND counter_name='Log Send Queue KB' and cntr_value>102400) --100M
 		begin
 			set @msg='GameDB to send log exceeds 100M'
-			select -1 as status,@msg as msg
 			return -1
 		end
 
@@ -2873,7 +2905,6 @@ BEGIN TRY
 		AND counter_name='Redo Queue KB' and cntr_value>102400) --100M
 		begin
 			set @msg='GameDB to redo log exceeds 1M'
-			select -1 as status,@msg as msg
 			return -1
 		end
 
@@ -2893,7 +2924,6 @@ BEGIN TRY
 				if @@error>0
 				begin
 					set @msg='GameDR switch abnormal failure'
-					select -1 as status,@msg as msg
 					return -1
 				end
 
@@ -2907,14 +2937,12 @@ BEGIN TRY
 		where mirroring_role=2)
 		begin
 			set @msg='GameDr has no DB switching'
-			select -1 as status,@msg as msg
 			return -1
 		end
 
-		update APP_SETTING set ROLE='master',MASTER_IP='',MASTER_PORT='',DATA_SCHEMA_GRANT='all'
+		update APP_SETTING set ROLE='master',MASTER_IP=IP,MASTER_PORT=PORT,DATA_SCHEMA_GRANT='all'
 		
 		set @msg='GameDR switch Success'
-		select 1 as status,@msg as msg
 
 		RETURN 1
 	END
@@ -2923,13 +2951,10 @@ END TRY
 BEGIN CATCH
 	--扑捉异常错误
 	set @msg='GameDr execution exception'
-	select -1 as status,@msg as msg
 	
 	RETURN	-1
 	
 END CATCH
-
-
 
 GO
 
@@ -3090,37 +3115,31 @@ BEGIN
 		SELECT @BACKUP_PATH = (CASE WHEN @BACKUP_PATH<>'' THEN @BACKUP_PATH ELSE @LOG_BACKUP_PATH END),@KEEP_BACKUP_DAYS = @KEEP_LOG_BACKUP_DAYS,@DISK_MIN_SIZE_MB = @LOG_BACKUP_MIN_SIZE_MB,@SUFFIX = '.trn'
 	ELSE IF @TYPE = 3
 		SELECT @SUFFIX = '.diff'
-	
-	select @BACKUP_PATH
 
-	--删除旧文件
-	SET @CMD ='FORFILES /P '+@BACKUP_PATH+' /M *'+@SUFFIX+' /S /D '+LTRIM(-1*@KEEP_BACKUP_DAYS)+' /C "CMD /C DEL @file"'
-	EXEC XP_CMDSHELL @CMD
-	
+	DECLARE @DEL_FILE VARCHAR(1000)
+	DECLARE list_cur cursor static forward_only Read_only for 
+	SELECT PATH+FILENAME FROM [Monitor].[dbo].[BACKUP_TRACE] WHERE STARTTIME< dateadd(dd,-@KEEP_BACKUP_DAYS,getdate())
+	OPEN list_cur;
+
+	FETCH NEXT FROM list_cur INTO @DEL_FILE
+	WHILE @@FETCH_STATUS = 0
+	BEGIN
+		SET @CMD='del /q '+ @DEL_FILE
+		EXEC MASTER.DBO.xp_cmdshell @CMD
+
+		FETCH NEXT FROM list_cur INTO @DEL_FILE;
+	END
+	CLOSE list_cur;
+	DEALLOCATE list_cur;
+
 	EXEC @CHECKER = DBO.TOOL_CHECK_DISK_FREE_SIZE @BACKUP_PATH,@DISK_MIN_SIZE_MB
 	IF @CHECKER = 0
 	BEGIN
-		--删除1天前的文件
-		SET @CMD ='FORFILES /P '+@BACKUP_PATH+' /M *'+@SUFFIX+' /S /D -1 /C "CMD /C DEL @file"'
-		EXEC XP_CMDSHELL @CMD
-		
-		EXEC @CHECKER = DBO.TOOL_CHECK_DISK_FREE_SIZE @BACKUP_PATH,@DISK_MIN_SIZE_MB
-		IF @CHECKER = 0
-		BEGIN
-			SET @SQL = NULL
-			SELECT @SQL = ISNULL(@SQL+'','')+'EXEC MSDB.DBO.SP_UPDATE_JOB @JOB_NAME= N'''+A.NAME+''',@ENABLED = 1;'
-			FROM MSDB.DBO.SYSJOBS A
-			WHERE A.NAME IN('TC_BACKUP_LOG')
-			--PRINT(@SQL)
-			EXEC(@SQL)
-			
-			SET @ERROR_MESSAGE = 'DISK_FREE_SIZE_MB LESS THAN '+LTRIM(@DISK_MIN_SIZE_MB)+' MB,BACKUP FAIL.'
-			RAISERROR(@ERROR_MESSAGE,11,1);
-		END
+		SET @ERROR_MESSAGE = 'DISK_FREE_SIZE_MB LESS THAN '+LTRIM(@DISK_MIN_SIZE_MB)+' MB,BACKUP FAIL.'
+		RAISERROR(@ERROR_MESSAGE,11,1);
 	END
 
 	DECLARE @DBLIST VARCHAR(8000)
-	
 
 	IF @TARGETDBNAME='%'
 		SELECT @DBLIST=STUFF((SELECT ',' + name FROM master.sys.databases where database_id>4 and name not in('Monitor') and name not in(select name from Monitor.dbo.BACKUP_FILTER) FOR XML PATH('')), 1, 1, '');
@@ -3144,7 +3163,7 @@ BEGIN
 		EXEC @CHECKER_'+NAME+' = DBO.TOOL_CHECK_DISK_FREE_SIZE '''+@BACKUP_PATH+''','+LTRIM(@DISK_MIN_SIZE_MB)+'
 		IF @CHECKER_'+NAME+' = 1
 		BEGIN
-			IF '+LTRIM(@TYPE)+' <> 1 AND EXISTS(select 1 from msdb.dbo.backupset a, msdb.dbo.backupmediafamily b where a.media_set_id = b.media_set_id and a.database_name = '''+NAME+''' and backup_finish_date between getdate()-2 and getdate())
+			IF '+LTRIM(@TYPE)+' <> 1 AND NOT EXISTS(select 1 from msdb.dbo.backupset a, msdb.dbo.backupmediafamily b where a.media_set_id = b.media_set_id and a.database_name = '''+NAME+''' and backup_finish_date between getdate()-2 and getdate())
 			BEGIN
 				DECLARE @NEWFULLFILENAME_'+NAME+' VARCHAR(4000) = REPLACE(REPLACE(@FULLFILENAME_'+NAME+','''+@SUFFIX+''',''.bak''),'''+@BACKUP_PATH+''','''+@FULL_BACKUP_PATH+''')
 				EXEC @SUCCESS_'+NAME+' = DBO.TOOL_BACKUP_DATABASE_OPERATOR 1,'''+NAME+''',@NEWFULLFILENAME_'+NAME+'
@@ -3505,7 +3524,7 @@ BEGIN
 DECLARE @SQL VARCHAR(8000)
 
 SELECT @SQL = ISNULL(@SQL+'','')+'EXEC ['+name+'].dbo.sp_changedbowner @loginame = N''sa'', @map = false;'
-from master.sys.databases where database_id>4 and name not in('Monitor') and owner_sid<>0x01
+from master.sys.databases where database_id>4 and name not in('Monitor') and state=0 and is_read_only=0 and is_distributor = 0  and owner_sid<>0x01
 --PRINT(@SQL)
 EXEC(@SQL)
 

@@ -42,8 +42,9 @@ BEGIN
 		SECONDARY_ROLE(ALLOW_CONNECTIONS = NO)
 		);
 END
-
-
+`
+var CREATE_ALWAYS_ON_IN_DB_FOR_DR = `
+USE [master]
 IF NOT EXISTS(SELECT 1 FROM sys.availability_replicas where replica_server_name='%s')
 BEGIN
 	ALTER AVAILABILITY GROUP [%s] ADD REPLICA ON '%s'   

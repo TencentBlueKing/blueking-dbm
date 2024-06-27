@@ -207,6 +207,18 @@ class UpdateDnsRecordKwargs:
 
 
 @dataclass()
+class IpDnsRecordRecycleKwargs:
+    """
+    定义dns活动节点 根据实例_DNS记录的专属参数
+    """
+
+    bk_cloud_id: int  # 操作的云区域id
+    instance_list: list  # 对应的实例列表信息，格式 ip#port
+    domain_name: str  # 域名信息
+    dns_op_type: Optional[DnsOpType] = DnsOpType.IP_DNS_RECORD_RECYCLE.value
+
+
+@dataclass()
 class PtTableSyncKwargs:
     """
     定义数据修复的活动节点专属参数
@@ -418,6 +430,7 @@ class InitCheckKwargs:
 
     bk_cloud_id: int
     ips: list
+    account_name: str = "root"
 
 
 @dataclass

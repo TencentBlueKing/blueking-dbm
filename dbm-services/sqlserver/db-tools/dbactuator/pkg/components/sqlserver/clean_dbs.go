@@ -37,7 +37,7 @@ type CleanDBSParam struct {
 	Slaves            []cst.Instnace `json:"slaves" `                                 // 集群的从实例
 	CleanTables       []string       `json:"clean_tables" validate:"required"`        // 清理表信息
 	IgnoreCleanTables []string       `json:"ignore_clean_tables" validate:"required"` // 忽略清理表信息
-
+	IsForce           bool           `json:"is_force" `                               //隐藏参数，是否强制清理
 }
 
 // runTimeCtx 上下文
@@ -90,7 +90,7 @@ func (c *CleanDBSComp) PerCheck() error {
 	var isErr bool
 	for _, dbName := range c.Params.CleanDBS {
 		// 判断DB是否有相关请求
-		if !c.DB.CheckDBProcessExist(dbName) {
+		if !c.DB.CheckDBProcessExist(dbName) && !c.Params.IsForce {
 			logger.Error("[%s] db-process exist,check", dbName)
 			isErr = true
 		}
@@ -112,10 +112,6 @@ func (c *CleanDBSComp) PerCheck() error {
 	}
 	if isErr {
 		return fmt.Errorf("precheck error")
-	}
-	if len(c.RealDBS) == 0 {
-		logger.Warn("no need to clean the databases , check")
-		return nil
 	}
 	return nil
 }
@@ -283,10 +279,6 @@ func (c *CleanDBSComp) DropdbwithMirroring(dbName string) error {
 			err,
 		)
 	}
-	// 从实例删除从库
-	if err := DropOldDatabaseOnslave(dbName, c.DRS); err != nil {
-		return err
-	}
 	return nil
 }
 
@@ -307,14 +299,32 @@ func (c *CleanDBSComp) DropdbwithAlwayson(dbName string) error {
 	// 表示有建立同步关系，所以drop之前需要解除
 	if cnt != 0 {
 		var groupName string
+		var role int
 		var err error
 		if groupName, err = c.DB.GetGroupName(); err != nil {
 			return fmt.Errorf("get groupname failed:%v", err)
 		}
-		execDBSQLs = append(
-			execDBSQLs,
-			fmt.Sprintf("ALTER AVAILABILITY GROUP %s REMOVE DATABASE %s;", groupName, dbName),
-		)
+		// 获取实例角色, 不同的角色用不一样的sql解决同步关系
+		if role, err = c.DB.GetRoleInAlwaysOn(); err != nil {
+			return fmt.Errorf("get role failed:%v", err)
+		}
+		switch role {
+		case 0:
+			return fmt.Errorf("the state for the instance[%s:%d] is Resolving, check ", c.Params.Host, c.Params.Port)
+		case 1:
+			execDBSQLs = append(
+				execDBSQLs,
+				fmt.Sprintf("ALTER AVAILABILITY GROUP [%s] REMOVE DATABASE %s;", groupName, dbName),
+			)
+		case 2:
+			execDBSQLs = append(
+				execDBSQLs,
+				fmt.Sprintf("ALTER DATABASE [%s] SET HADR OFF;", dbName),
+			)
+		default:
+			return fmt.Errorf("not suppurt the role[%d], check ", role)
+		}
+
 	}
 	// 查询数据库是否有关联的快照库
 	getSnapshots := fmt.Sprintf(
@@ -343,11 +353,6 @@ func (c *CleanDBSComp) DropdbwithAlwayson(dbName string) error {
 			c.Params.Port,
 			err,
 		)
-	}
-
-	// 从实例删除从库
-	if err := DropOldDatabaseOnslave(dbName, c.DRS); err != nil {
-		return err
 	}
 
 	return nil

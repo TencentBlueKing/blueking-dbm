@@ -114,6 +114,35 @@ func (i *InstallSqlServerComp) Example() interface{} {
 	return comp
 }
 
+// InitParamForInitSqlserver 初始化initsqlserver专属
+func (i *InstallSqlServerComp) InitParamForInitSqlserver() error {
+	i.InstallDir = cst.INSTALL_SQL_DATA_DIR
+	i.DataRootPath = filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME)
+	i.InsPorts = i.Params.Ports
+
+	return nil
+}
+
+// PreCheckForInitSqlserver 初始化initsqlserver专属
+func (i *InstallSqlServerComp) PreCheckForInitSqlserver() error {
+	// 测试端口的连通性
+	for _, port := range i.InsPorts {
+		var err error
+		if _, err = sqlserver.NewDbWorker(
+			i.GeneralParam.RuntimeAccountParam.SAUser,
+			i.GeneralParam.RuntimeAccountParam.SAPwd,
+			i.Params.Host,
+			port,
+		); err != nil {
+			logger.Error("connenct by [%s:%d] failed,err:%s",
+				i.Params.Host, port, err.Error())
+			return err
+		}
+	}
+
+	return nil
+}
+
 // InitDefaultParam 初始化一些安装时需要的变量
 func (i *InstallSqlServerComp) InitDefaultParam() error {
 	i.InstallDir = cst.INSTALL_SQL_DATA_DIR
@@ -325,6 +354,7 @@ func (i *InstallSqlServerComp) SqlServerStartup() error {
 		)
 		if err != nil {
 			i.DeleteConfs()
+			i.DeleteFiles()
 			logger.Error("setup failed: %s", result)
 			return err
 		}
@@ -426,6 +456,7 @@ func (i *InstallSqlServerComp) InitDB() error {
 
 // InitInstanceBuffer TODO
 // 计算每个实例的内存分配
+// 分配之前给system账号个sysadmin的权限，避免后续执行失败
 func (i *InstallSqlServerComp) InitInstanceBuffer() error {
 
 	// 获取系统物理内存
@@ -443,6 +474,7 @@ func (i *InstallSqlServerComp) InitInstanceBuffer() error {
 	logger.Info("%d", int(instMemMB))
 
 	cmds := []string{
+		"EXEC master..sp_addsrvrolemember @loginame = N'NT AUTHORITY\\SYSTEM', @rolename = N'sysadmin'",
 		"EXEC SP_CONFIGURE 'SHOW ADVANCED OPTIONS',1;",
 		"RECONFIGURE;",
 		fmt.Sprintf("EXEC SP_CONFIGURE N'MIN SERVER MEMORY (MB)', N'%d';", int(instMemMB)),
@@ -509,6 +541,25 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 			logger.Error("init drs login failed %v", err)
 			return err
 		}
+		// 初始化dbha账号
+		if err := dbWork.CreateLoginUser(
+			i.GeneralParam.RuntimeAccountParam.DBHAUser,
+			i.GeneralParam.RuntimeAccountParam.DBHAPwd,
+			"public",
+		); err != nil {
+			logger.Error("init dbha login failed %v", err)
+			return err
+		}
+		// dbha账号, 授权
+		dbhaCmd := fmt.Sprintf(
+			cst.GRANT_DBHA_SQL,
+			i.GeneralParam.RuntimeAccountParam.DBHAUser,
+		)
+		if _, err := dbWork.Exec(dbhaCmd); err != nil {
+			logger.Error("init dbha-grant failed %v", err)
+			return err
+		}
+
 		// 初始化mssql_exporter账号
 		if err := dbWork.CreateLoginUser(
 			i.GeneralParam.RuntimeAccountParam.MssqlExporterUser,
@@ -519,12 +570,12 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 			return err
 		}
 		// mssql_exporter账号, 授权
-		cmd := fmt.Sprintf(
+		exporterCmd := fmt.Sprintf(
 			cst.GRANT_MSSQL_EXPORTER_SQL,
 			i.GeneralParam.RuntimeAccountParam.MssqlExporterUser,
 		)
-		if _, err := dbWork.Exec(cmd); err != nil {
-			logger.Error("init mssql_exporter failed %v", err)
+		if _, err := dbWork.Exec(exporterCmd); err != nil {
+			logger.Error("init mssql_exporter-grant failed %v", err)
 			return err
 		}
 
@@ -544,6 +595,19 @@ func (i *InstallSqlServerComp) CreateExporterConf() error {
 		); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// DeleteFiles 删除一些目录和文件
+func (i *InstallSqlServerComp) DeleteFiles() error {
+	cmds := []string{
+		fmt.Sprintf("REMOVE-ITEM '%s' -Force", i.Params.GetAbsolutePath()),
+		fmt.Sprintf("REMOVE-ITEM -Path '%s' -Recurse -Force",
+			filepath.Join(cst.BASE_DATA_PATH, osutil.GetInstallPackageName(i.Params.Medium.Pkg))),
+	}
+	if _, err := osutil.StandardPowerShellCommands(cmds); err != nil {
+		return err
 	}
 	return nil
 }

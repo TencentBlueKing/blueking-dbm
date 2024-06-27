@@ -48,4 +48,8 @@ type RuntimeAccountParam struct {
 	DRSUser string `json:"drs_user,omitempty"`
 	// drs 密码
 	DRSPwd string `json:"drs_pwd,omitempty"`
+	// drs 账号
+	DBHAUser string `json:"DBHA_user,omitempty"`
+	// drs 密码
+	DBHAPwd string `json:"DBHA_pwd,omitempty"`
 }

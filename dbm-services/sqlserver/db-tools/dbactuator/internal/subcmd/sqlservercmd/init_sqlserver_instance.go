@@ -70,6 +70,10 @@ func (i *InitSqlserverInstanceAct) Init() (err error) {
 func (i *InitSqlserverInstanceAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
+			FunName: "生成系统目录",
+			Func:    i.BaseService.CreateSysDir,
+		},
+		{
 			FunName: "生成exporter配置",
 			Func:    i.BaseService.CreateExporterConf,
 		},

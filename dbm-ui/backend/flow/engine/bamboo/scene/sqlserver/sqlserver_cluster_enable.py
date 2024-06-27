@@ -53,16 +53,23 @@ class SqlserverEnableFlow(BaseFlow):
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
-            sub_pipeline.add_act(
-                act_name=_("启动业务账号"),
-                act_component_code=ExecSqlserverLoginComponent.code,
-                kwargs=asdict(
-                    ExecLoginKwargs(
-                        cluster_id=cluster_id,
-                        exec_mode=SqlserverLoginExecMode.ENABLE.value,
-                    ),
-                ),
-            )
+            # 并行启动业务账号
+            acts_list = []
+            for instance in cluster.storageinstance_set.all():
+                acts_list.append(
+                    {
+                        "act_name": _("[{}]启动业务账号".format(instance.ip_port)),
+                        "act_component_code": ExecSqlserverLoginComponent.code,
+                        "kwargs": asdict(
+                            ExecLoginKwargs(
+                                cluster_id=cluster.id,
+                                exec_mode=SqlserverLoginExecMode.ENABLE.value,
+                                exec_ip=instance.machine.ip,
+                            ),
+                        ),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # 变更集群元数据
             sub_pipeline.add_act(

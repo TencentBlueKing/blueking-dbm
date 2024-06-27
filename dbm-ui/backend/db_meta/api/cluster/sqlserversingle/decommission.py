@@ -11,7 +11,7 @@ import logging
 
 from django.db import transaction
 
-from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models import Cluster, ClusterDBHAExt, ClusterEntry, StorageInstanceTuple
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.utils.cc_manage import CcManage
 
@@ -22,7 +22,8 @@ logger = logging.getLogger("root")
 def decommission(cluster: Cluster):
     cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
     for storage in cluster.storageinstance_set.all():
-
+        StorageInstanceTuple.objects.filter(ejector=storage).delete()
+        StorageInstanceTuple.objects.filter(receiver=storage).delete()
         storage.delete(keep_parents=True)
         # sqlserver 可能存在单机多集群/多实例的场景，因此下架时，需判断主机的所有实例是否都被下架了
         if not storage.machine.storageinstance_set.exists():
@@ -37,4 +38,5 @@ def decommission(cluster: Cluster):
         ce.delete(keep_parents=True)
 
     SqlserverClusterSyncMode.objects.filter(cluster=cluster).delete()
+    ClusterDBHAExt.objects.filter(cluster=cluster).delete()
     cluster.delete(keep_parents=True)

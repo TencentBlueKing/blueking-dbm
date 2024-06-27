@@ -16,11 +16,13 @@ class Host:
     机器信息基类
     @attributes ip 机器ip，ipv4格式
     @attributes bk_cloud_id 机器所在云区域
+    @attributes bk_host_id 机器所在cmdb的host_id
     """
 
     __dataclass_fields__ = None
     ip: str
     bk_cloud_id: int
+    bk_host_id: int
 
     def __init__(self, **kwargs):
         for field in Host.__dataclass_fields__:

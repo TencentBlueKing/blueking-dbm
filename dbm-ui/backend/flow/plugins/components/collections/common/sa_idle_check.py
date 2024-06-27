@@ -62,7 +62,7 @@ class CheckMachineIdleCheck(BkSopsService):
                 "${biz_cc_id}": bk_biz_id,
                 "${bk_biz_id}": bk_biz_id,
                 "${job_ip_list}": "\n".join(ips),
-                "${job_account}": "root",
+                "${job_account}": kwargs.get("account_name", "root"),
             },
         }
         rpdata = BkSopsApi.create_task(param)

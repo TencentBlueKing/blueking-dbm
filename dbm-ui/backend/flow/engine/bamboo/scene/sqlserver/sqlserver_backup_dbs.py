@@ -20,11 +20,13 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
+from backend.flow.plugins.components.collections.sqlserver.check_db_exist import CheckDBExistComponent
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    CheckDBExistKwargs,
     CreateRandomJobUserKwargs,
     DownloadMediaKwargs,
     DropRandomJobUserKwargs,
@@ -66,7 +68,7 @@ class SqlserverBackupDBSFlow(BaseFlow):
             sub_flow_context = copy.deepcopy(self.data)
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
-            sub_flow_context["job_id"] = f"{self.data['backup_type']}_{self.root_id}"
+            sub_flow_context["job_id"] = f"{self.data['backup_type']}_{self.root_id}_{master_instance.port}"
 
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
@@ -79,6 +81,17 @@ class SqlserverBackupDBSFlow(BaseFlow):
                     CreateRandomJobUserKwargs(
                         cluster_ids=[cluster.id],
                         sid=create_sqlserver_login_sid(),
+                    ),
+                ),
+            )
+
+            sub_pipeline.add_act(
+                act_name=_("检查需要清理的库是否存在"),
+                act_component_code=CheckDBExistComponent.code,
+                kwargs=asdict(
+                    CheckDBExistKwargs(
+                        cluster_id=cluster.id,
+                        check_dbs=sub_flow_context["backup_dbs"],
                     ),
                 ),
             )

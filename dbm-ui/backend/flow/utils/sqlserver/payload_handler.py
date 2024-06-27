@@ -47,6 +47,21 @@ class PayloadHandler(object):
             "drs_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
         }
 
+    @staticmethod
+    def get_sqlserver_dbha_account(bk_cloud_id: int):
+        """
+        获取sqlserver在dbha账号密码
+        """
+        if env.DBHA_USERNAME:
+            return {"dbha_user": env.DBHA_USERNAME, "dbha_pwd": env.DBHA_PASSWORD}
+
+        bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
+        drs = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DBHA)
+        return {
+            "dbha_user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["user"]),
+            "dbha_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
+        }
+
     def get_sqlserver_account(self):
         """
         获取sqlserver实例sa内置帐户密码，用单据的临时sa账号随机化
@@ -130,6 +145,9 @@ class PayloadHandler(object):
 
         # 添加drs账号和密码
         user_map.update(cls.get_sqlserver_drs_account(bk_cloud_id))
+
+        # 添加dbha账号和密码
+        user_map.update(cls.get_sqlserver_dbha_account(bk_cloud_id))
 
         return user_map
 

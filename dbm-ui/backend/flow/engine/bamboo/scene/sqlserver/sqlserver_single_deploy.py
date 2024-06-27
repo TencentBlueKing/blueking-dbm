@@ -61,7 +61,9 @@ class SqlserverSingleApplyFlow(BaseFlow):
             sub_flow_context.update({"master_ip": info["mssql_host"]["ip"]})
 
             # 计算机器需要部署的sqlserver的端口列表，集群的依据：映射的cluster集群数量
-            sub_flow_context["install_ports"] = calc_install_ports(len(info["clusters"]))
+            sub_flow_context["install_ports"] = calc_install_ports(
+                inst_sum=len(info["clusters"]), start_port=int(self.data["start_mssql_port"])
+            )
 
             clusters = []
             for number, cluster in enumerate(info["clusters"]):

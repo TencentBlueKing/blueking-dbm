@@ -73,6 +73,7 @@ def create(
     bk_cloud_id: int,
     region: str,
     sync_type: str,
+    disaster_tolerance_level: str,
     slave_domain: Optional[str] = None,
     storages: Optional[List] = None,
     creator: str = "",
@@ -111,6 +112,7 @@ def create(
         time_zone=get_instance_time_zone(master_storage_obj),
         major_version=major_version,
         region=region,
+        disaster_tolerance_level=disaster_tolerance_level,
     )
     cluster.storageinstance_set.add(*storage_objs)
 

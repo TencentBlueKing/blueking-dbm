@@ -22,11 +22,13 @@ from backend.flow.consts import NoSync, SqlserverSyncModeMaps
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
+from backend.flow.plugins.components.collections.sqlserver.check_db_exist import CheckDBExistComponent
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
+    CheckDBExistKwargs,
     CreateRandomJobUserKwargs,
     DownloadMediaKwargs,
     DropRandomJobUserKwargs,
@@ -99,6 +101,17 @@ class SqlserverRenameDBSFlow(BaseFlow):
             )
 
             sub_pipeline.add_act(
+                act_name=_("检查需要清理的库是否存在"),
+                act_component_code=CheckDBExistComponent.code,
+                kwargs=asdict(
+                    CheckDBExistKwargs(
+                        cluster_id=cluster.id,
+                        check_dbs=[i["db_name"] for i in sub_flow_context["rename_infos"]],
+                    ),
+                ),
+            )
+
+            sub_pipeline.add_act(
                 act_name=_("下发执行器"),
                 act_component_code=TransFileInWindowsComponent.code,
                 kwargs=asdict(
@@ -128,7 +141,7 @@ class SqlserverRenameDBSFlow(BaseFlow):
                 kwargs=asdict(DropRandomJobUserKwargs(cluster_ids=[cluster.id])),
             )
 
-            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群执行备份".format(cluster.name))))
+            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("{}集群执行重命名".format(cluster.name))))
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         main_pipeline.run_pipeline()

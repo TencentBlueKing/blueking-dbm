@@ -106,7 +106,7 @@ SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_email='+ CAST(@i_notify
 SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_netsend='+ CAST(@i_notify_level_netsend AS VARCHAR) +',' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_page='+ CAST(@i_notify_level_page AS VARCHAR) +',' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + '        @delete_level='+ CAST(@i_delete_level AS VARCHAR) +',' 
-SET @sql=@sql+CHAR(13)+CHAR(10) + '        @description=N'''+ @i_description +''',' 
+SET @sql=@sql+CHAR(13)+CHAR(10) + '        @description=N'''+ ISNULL(@i_description, 'No description available.') +''',' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + '        @category_name=N'''+ @i_category_name +''',' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + '        @owner_login_name=N'''+ @i_owner_login_name +''', @job_id = @jobId OUTPUT' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback' 

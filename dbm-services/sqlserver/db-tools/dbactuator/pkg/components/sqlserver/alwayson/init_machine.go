@@ -96,21 +96,25 @@ func (i *InitMachineForAlwaysOnComp) Init() error {
 
 // AddItemKey 添加对应的域名解析
 func (i *InitMachineForAlwaysOnComp) AddHosts() error {
+	var addHostsExecCmds []string
+	var err error
 	for _, inst := range i.Members {
-		addHostsExecCmds := []string{
-			fmt.Sprintf(
-				"Add-Content -Path '%s' -Value '%s %s' ",
-				cst.WINDOW_ETC_HOSTS,
-				inst.Host,
-				inst.Hostname,
-			),
-		}
-		if _, err := osutil.StandardPowerShellCommands(addHostsExecCmds); err != nil {
-			return err
-		}
+		addHostsExecCmds = append(addHostsExecCmds, fmt.Sprintf(
+			"Add-Content -Path '%s' -Value '%s %s' ",
+			cst.WINDOW_ETC_HOSTS,
+			inst.Host,
+			inst.Hostname,
+		))
 	}
-
-	return nil
+	// execute
+	for i := 0; i < 2; i++ {
+		_, err = osutil.StandardPowerShellCommandsForSleep(addHostsExecCmds)
+		if err == nil {
+			break
+		}
+		logger.Warn("add hosts failed, retrying...")
+	}
+	return err
 }
 
 // AddItemKey 添加对应的注册表

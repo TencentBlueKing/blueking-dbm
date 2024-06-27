@@ -434,4 +434,5 @@ def sqlserver_cluster_swap(payloads: List, bk_cloud_id: int):
             cluster_ids=[cluster_id],
             old_master=Host(ip=old_master["ip"], bk_cloud_id=bk_cloud_id),
             new_master=Host(ip=new_master["ip"], bk_cloud_id=bk_cloud_id),
+            is_force=True,
         )

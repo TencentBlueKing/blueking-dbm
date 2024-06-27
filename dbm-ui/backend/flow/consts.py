@@ -64,6 +64,9 @@ DEFAULT_SQLSERVER_PORT = 48322
 # 默认Sqlserver下发路径
 DEFAULT_SQLSERVER_PATH = "d:\\install"
 
+# window操作系统超级账号,标准运维调用
+WINDOW_ADMIN_USER_FOR_CHECK = "Administrator"
+
 # tendisplus默认kvstorecount
 DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 
@@ -604,6 +607,9 @@ class SqlserverActuatorActionEnum(str, StructuredEnum):
     Uninstall = EnumField("Uninstall", _("卸载sqlserver实例"))
     MoveBackupFile = EnumField("MoveBackupFile", _("判断备份文件是否存在，存在则移动"))
     InitSqlserverInstance = EnumField("InitSqlserverInstance", _("实例接入dbm系统初始化"))
+    ClearConfig = EnumField("ClearConfig", _("清理实例周边配置。目前支持清理job、linkserver"))
+    RemoteDr = EnumField("RemoteDr", _("将一些dr移除可用组"))
+    Init = EnumField("init", _("部署后需要初始化实例的步骤"))
 
 
 class DorisActuatorActionEnum(str, StructuredEnum):
@@ -675,6 +681,7 @@ class DnsOpType(str, StructuredEnum):
     UPDATE = EnumField("update", _("update"))
     SELECT = EnumField("select", _("select"))
     ADD_AND_DELETE = EnumField("add_and_delete", _("add_and_delete"))
+    IP_DNS_RECORD_RECYCLE = EnumField("ip_dns_recycle_record", _("ip_dns对应记录回收"))
 
 
 class ManagerOpType(str, StructuredEnum):

@@ -71,24 +71,6 @@ func (r *RenameDBSComp) Init() error {
 	}
 	r.DB = LWork
 	// 从实例初始化连接
-	for _, s := range r.Params.Slaves {
-		var SWork *sqlserver.DbWorker
-		if SWork, err = sqlserver.NewDbWorker(
-			r.GeneralParam.RuntimeAccountParam.SAUser,
-			r.GeneralParam.RuntimeAccountParam.SAPwd,
-			s.Host,
-			s.Port,
-		); err != nil {
-			logger.Error("connenct by [%s:%d] failed,err:%s",
-				r.Params.Host, r.Params.Port, err.Error())
-			return err
-		}
-		r.DRS = append(r.DRS, slaves{
-			Host:   s.Host,
-			Port:   s.Port,
-			Connet: SWork,
-		})
-	}
 	return nil
 }
 
@@ -189,11 +171,6 @@ func (r *RenameDBSComp) DoRenameDBWithMirroring() error {
 			)
 			isErr = true
 		}
-		// 从实例删除从库
-		if err := DropOldDatabaseOnslave(i.DBName, r.DRS); err != nil {
-			logger.Error(err.Error())
-			isErr = true
-		}
 	}
 	if isErr {
 		return fmt.Errorf("rename databases error")
@@ -245,11 +222,7 @@ func (r *RenameDBSComp) DoRenameDBWithAlwayson() error {
 			)
 			isErr = true
 		}
-		// 从实例删除从库
-		if err := DropOldDatabaseOnslave(i.DBName, r.DRS); err != nil {
-			logger.Error(err.Error())
-			isErr = true
-		}
+
 	}
 	if isErr {
 		return fmt.Errorf("rename databases error")
@@ -307,6 +280,7 @@ func DropOldDatabaseOnslave(dbname string, DRS []slaves) error {
 				slave.Port,
 				err,
 			)
+			isErr = true
 		} else {
 			logger.Info(
 				"exec drop database [%s] is slave [%s:%s] successfully",

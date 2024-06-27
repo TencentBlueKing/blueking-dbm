@@ -12,9 +12,9 @@ import logging
 from backend.db_meta.api.cluster.sqlserverha.handler import SqlserverHAClusterHandler
 from backend.db_meta.api.cluster.sqlserversingle.handler import SqlserverSingleClusterHandler
 from backend.db_meta.enums import ClusterPhase, ClusterType
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
-from backend.flow.consts import SqlserverDtsMode
+from backend.flow.consts import InstanceStatus, SqlserverDtsMode
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("flow")
@@ -71,6 +71,7 @@ class SqlserverDBMeta(object):
             resource_spec=self.global_data.get("resource_spec", def_resource_spec),
             region=self.global_data["region"],
             sync_type=self.global_data["sync_type"],
+            disaster_tolerance_level=self.global_data["disaster_tolerance_level"],
         )
         return True
 
@@ -82,6 +83,7 @@ class SqlserverDBMeta(object):
             cluster_ids=self.global_data["cluster_ids"],
             old_master=Host(**self.global_data["master"]),
             new_master=Host(**self.global_data["slave"]),
+            is_force=self.global_data.get("force", False),
         )
         return True
 
@@ -124,6 +126,16 @@ class SqlserverDBMeta(object):
 
         return True
 
+    def rebuild_local_slave_state(self):
+        """
+        原地重建后，实例状态保持running状态
+        """
+        StorageInstance.objects.filter(
+            machine__ip=self.global_data["slave_host"]["ip"],
+            machine__bk_cloud_id=self.global_data["slave_host"]["bk_cloud_id"],
+            port=self.global_data["port"],
+        ).update(status=InstanceStatus.RUNNING)
+
     def rebuild_in_new_slave(self):
         """
         定义机器维度，新机重建，变更集群元数据
@@ -151,6 +163,14 @@ class SqlserverDBMeta(object):
             creator=self.global_data["created_by"],
             resource_spec=self.global_data.get("resource_spec", def_resource_spec),
             is_stand_by=False,
+        )
+
+    def reduce_slave(self):
+        """
+        清理slave实例
+        """
+        SqlserverHAClusterHandler.reduce_slave(
+            cluster_ids=self.global_data["cluster_ids"], old_slave_host=Host(**self.global_data["old_slave_host"])
         )
 
     def update_dts_status(self):

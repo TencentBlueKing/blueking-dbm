@@ -15,33 +15,33 @@ import (
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components/sqlserver"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components/clear"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
 )
 
-// CloneLoginUsersAct sqlserver 实例之前克隆login users
-type CloneLoginUsersAct struct {
+// ClearConfigAct sqlserver 实例备份数据库
+type ClearConfigAct struct {
 	*subcmd.BaseOptions
-	BaseService sqlserver.CloneLoginUsersComp
+	BaseService clear.ClearConfigComp
 }
 
-// CloneLoginUsersCommand godoc
+// ClearConfigCommand godoc
 //
-// @Summary      sqlserver 实例之前克隆login users
+// @Summary      sqlserver 清理实例周边配置， 目前支持清理job、linkserver
 // @Description  -
 // @Tags         sqlserver
 // @Accept       json
-// @Param        body body      CloneLoginUsersCommand  true  "short description"
-func CloneLoginUsersCommand() *cobra.Command {
-	act := CloneLoginUsersAct{
+// @Param        body body      ClearConfigCommand  true  "short description"
+func ClearConfigCommand() *cobra.Command {
+	act := ClearConfigAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:     "CloneLoginUsers",
-		Short:   "实例间克隆用户",
-		Example: fmt.Sprintf(`dbactuator sqlserver CloneLoginUsers %s `, subcmd.CmdBaseExampleStr),
+		Use:     "ClearConfig",
+		Short:   "清理实例周边配置",
+		Example: fmt.Sprintf(`dbactuator sqlserver ClearConfig %s `, subcmd.CmdBaseExampleStr),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			if act.RollBack {
@@ -55,8 +55,8 @@ func CloneLoginUsersCommand() *cobra.Command {
 }
 
 // Init 初始化
-func (c *CloneLoginUsersAct) Init() (err error) {
-	logger.Info("CloneLoginUsersAct Init")
+func (c *ClearConfigAct) Init() (err error) {
+	logger.Info("ClearConfigAct Init")
 	if err = c.Deserialize(&c.BaseService.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
@@ -67,21 +67,17 @@ func (c *CloneLoginUsersAct) Init() (err error) {
 }
 
 // Run 执行
-func (c *CloneLoginUsersAct) Run() (err error) {
+func (c *ClearConfigAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "实例间克隆用户",
-			Func:    c.BaseService.CloneGrant,
-		},
-		{
-			FunName: "实例间克隆auto_grants表",
-			Func:    c.BaseService.CopyAutoGrantTable,
+			FunName: "清理配置",
+			Func:    c.BaseService.ClearConfig,
 		},
 	}
 
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("clone-login-users successfully")
+	logger.Info("clear config successfully")
 	return nil
 }

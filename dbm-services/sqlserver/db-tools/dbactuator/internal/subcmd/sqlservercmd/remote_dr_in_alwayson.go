@@ -15,33 +15,33 @@ import (
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components/sqlserver"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components/sqlserver/alwayson"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
 )
 
-// CloneLoginUsersAct sqlserver 实例之前克隆login users
-type CloneLoginUsersAct struct {
+// RemoteSlavesAct 移除dr在可用组
+type RemoteSlavesAct struct {
 	*subcmd.BaseOptions
-	BaseService sqlserver.CloneLoginUsersComp
+	BaseService alwayson.RemoteSlavesComp
 }
 
-// CloneLoginUsersCommand godoc
+// NewRemoteSlavesCommand godoc
 //
-// @Summary      sqlserver 实例之前克隆login users
-// @Description  -
+// @Summary      移除dr在可用组
+// @Description
 // @Tags         sqlserver
 // @Accept       json
-// @Param        body body      CloneLoginUsersCommand  true  "short description"
-func CloneLoginUsersCommand() *cobra.Command {
-	act := CloneLoginUsersAct{
+// @Param        body body      mysql.RemoteSlavesComp  true  "short description"
+func NewRemoteSlavesCommand() *cobra.Command {
+	act := RemoteSlavesAct{
 		BaseOptions: subcmd.GBaseOptions,
 	}
 	cmd := &cobra.Command{
-		Use:     "CloneLoginUsers",
-		Short:   "实例间克隆用户",
-		Example: fmt.Sprintf(`dbactuator sqlserver CloneLoginUsers %s `, subcmd.CmdBaseExampleStr),
+		Use:     "RemoteDr",
+		Short:   "移除dr在可用组",
+		Example: fmt.Sprintf(`dbactuator sqlserver RemoteDr %s `, subcmd.CmdBaseExampleStr),
 		Run: func(cmd *cobra.Command, args []string) {
 			util.CheckErr(act.Validate())
 			if act.RollBack {
@@ -55,33 +55,29 @@ func CloneLoginUsersCommand() *cobra.Command {
 }
 
 // Init 初始化
-func (c *CloneLoginUsersAct) Init() (err error) {
-	logger.Info("CloneLoginUsersAct Init")
-	if err = c.Deserialize(&c.BaseService.Params); err != nil {
+func (u *RemoteSlavesAct) Init() (err error) {
+	logger.Info("RemoteSlavesAct Init")
+	if err = u.Deserialize(&u.BaseService.Params); err != nil {
 		logger.Error("DeserializeAndValidate failed, %v", err)
 		return err
 	}
-	c.BaseService.GeneralParam = subcmd.GeneralRuntimeParam
+	u.BaseService.GeneralParam = subcmd.GeneralRuntimeParam
 
-	return c.BaseService.Init()
+	return u.BaseService.Init()
 }
 
 // Run 执行
-func (c *CloneLoginUsersAct) Run() (err error) {
+func (u *RemoteSlavesAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "实例间克隆用户",
-			Func:    c.BaseService.CloneGrant,
-		},
-		{
-			FunName: "实例间克隆auto_grants表",
-			Func:    c.BaseService.CopyAutoGrantTable,
+			FunName: "移除可用组",
+			Func:    u.BaseService.DoRemote,
 		},
 	}
 
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("clone-login-users successfully")
+	logger.Info("remote dr in alwayson successfully")
 	return nil
 }

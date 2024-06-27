@@ -63,7 +63,7 @@ class SqlserverAddSlaveFlow(BaseFlow):
             cluster = Cluster.objects.get(id=cluster_id)
             port = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER).port
             # 分配部署port、cluster的关系
-            clusters.append({"port": port, "immutable_domain": cluster.immute_domain})
+            clusters.append({"cluster_id": cluster_id, "port": port, "immutable_domain": cluster.immute_domain})
         return clusters
 
     def run_flow(self):

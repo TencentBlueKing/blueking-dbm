@@ -86,6 +86,12 @@ class MySQLDnsManageService(BaseService):
                 new_instance=kwargs["new_instance"],
                 update_domain_name=kwargs["update_domain_name"],
             )
+
+        elif dns_op_type == DnsOpType.IP_DNS_RECORD_RECYCLE:
+            # 删除ip_dns域名映射
+            result = dns_manage.remove_domain_ip(
+                domain=kwargs["domain_name"], del_instance_list=kwargs["instance_list"]
+            )
         else:
             self.log_error(_("无法适配到传入的域名处理类型,请联系系统管理员:{}").format(dns_op_type))
             return False

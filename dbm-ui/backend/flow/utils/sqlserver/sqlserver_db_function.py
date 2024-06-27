@@ -255,37 +255,34 @@ order by backup_finish_date desc"""
     return ret[0]["cmd_results"][0]["table_data"]
 
 
-def exec_instance_app_login(cluster_id, exec_type: SqlserverLoginExecMode) -> bool:
+def exec_instance_app_login(cluster: Cluster, exec_type: SqlserverLoginExecMode, instance: StorageInstance) -> bool:
     """
-    操作实例的用户启动/禁用
+    操作实例的用户启动/禁用/删除
     """
     exec_sqls = []
-    cluster = Cluster.objects.get(id=cluster_id)
-    # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
-    master_instance = cluster.storageinstance_set.get(
-        instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
-    )
 
     # 获取系统账号
     sys_users = SQLSERVER_CUSTOM_SYS_USER
     sys_users.append(PayloadHandler.get_sqlserver_drs_account(cluster.bk_cloud_id)["drs_user"])
+    sys_users.append(PayloadHandler.get_sqlserver_dbha_account(cluster.bk_cloud_id)["dbha_user"])
     sys_users_str = ",".join([f"'{i}'" for i in sys_users])
 
-    # 查询所有的业务账号名称
+    # 查询所有的业务账号名称，这里会隐藏过滤掉job的临时账号
     get_login_name_sql = f"""select a.name as login_name
 from master.sys.sql_logins a left join master.sys.syslogins b
 on a.name=b.name where principal_id>4 and a.name not in({sys_users_str}) and a.name not like '#%'
+and a.name not like 'J_%'
 """
     ret = DRSApi.sqlserver_rpc(
         {
             "bk_cloud_id": cluster.bk_cloud_id,
-            "addresses": [master_instance.ip_port],
+            "addresses": [instance.ip_port],
             "cmds": [get_login_name_sql],
             "force": False,
         }
     )
     if ret[0]["error_msg"]:
-        raise Exception(f"[{master_instance.ip_port}] get login name failed: {ret[0]['error_msg']}")
+        raise Exception(f"[{instance.ip_port}] get login name failed: {ret[0]['error_msg']}")
 
     if exec_type == "drop":
         for info in ret[0]["cmd_results"][0]["table_data"]:
@@ -298,13 +295,13 @@ on a.name=b.name where principal_id>4 and a.name not in({sys_users_str}) and a.n
     ret = DRSApi.sqlserver_rpc(
         {
             "bk_cloud_id": cluster.bk_cloud_id,
-            "addresses": [master_instance.ip_port],
+            "addresses": [instance.ip_port],
             "cmds": exec_sqls,
             "force": False,
         }
     )
     if ret[0]["error_msg"]:
-        raise Exception(f"[{master_instance.ip_port}] exec login-{exec_type} failed: {ret[0]['error_msg']}")
+        raise Exception(f"[{instance.ip_port}] exec login-{exec_type} failed: {ret[0]['error_msg']}")
 
     return True
 
@@ -536,6 +533,21 @@ def insert_sqlserver_config(
             if len(ret[0]["cmd_results"][0]["table_data"]) != 0:
                 old_backup_config = copy.deepcopy(ret[0]["cmd_results"][0]["table_data"][0])
 
+        # 判断storage角色和备份位置，传入正确的DATA_SCHEMA_GRANT值
+        if (
+            storage.instance_role in [InstanceRole.BACKEND_MASTER, InstanceRole.ORPHAN]
+            and backup_config["backup_space"] == "master"
+        ):
+            data_schema_grant = "all"
+        elif (
+            storage.instance_role == InstanceRole.BACKEND_SLAVE
+            and storage.is_stand_by
+            and backup_config["backup_space"] == "standby"
+        ):
+            data_schema_grant = "all"
+        else:
+            data_schema_grant = "grant"
+
         insert_app_setting_sql = f"""INSERT INTO [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[APP_SETTING](
 [APP],
 [FULL_BACKUP_PATH],
@@ -573,7 +585,8 @@ def insert_sqlserver_config(
 [TRACEON],
 [SLOW_DURATION],
 [SLOW_SAVEDAY],
-[UPDATESTATS])
+[UPDATESTATS],
+[COMMIT_MODEL])
 VALUES(
 '{str(cluster.bk_biz_id)}',
 '{old_backup_config.get('FULL_BACKUP_PATH',backup_config['full_backup_path'])}',
@@ -596,7 +609,7 @@ VALUES(
 {cluster.bk_cloud_id},
 '{cluster.major_version}',
 '{backup_config['backup_type']}',
-'{backup_config['data_schema_grant']}',
+'{data_schema_grant}',
 '{cluster.time_zone}',
 '{charset}',
 '{backup_config['backup_client_path']}',
@@ -611,7 +624,8 @@ VALUES(
 {int(alarm_config['traceon'])},
 {int(alarm_config['slow_duration'])},
 {int(alarm_config['slow_saveday'])},
-{int(alarm_config['updatestats'])}
+{int(alarm_config['updatestats'])},
+'{alarm_config['commit_model']}'
 )
 """
         ret = DRSApi.sqlserver_rpc(
