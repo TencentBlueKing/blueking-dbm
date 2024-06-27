@@ -134,6 +134,8 @@
       TwemproxyRedisInstance: 'twemproxy',
       TwemproxyTendisSSDInstance: 'twemproxy',
       PredixyTendisplusCluster: 'predixy',
+      PredixyRedisCluster: 'predixy',
+      RedisInstance: '',
     };
     const type = item.cluster_spec.spec_cluster_type;
     const machineType = proxyMachineMap[type];
