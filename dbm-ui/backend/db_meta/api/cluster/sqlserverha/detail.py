@@ -39,9 +39,9 @@ def scan_cluster(cluster: Cluster) -> Graphic:
         cluster=cluster, roles=InstanceRole.BACKEND_SLAVE, group_name=_("Slave 节点")
     )
     # 获得从访问入口
-    slave_entry = masters.first().bind_entry.first()
+    slave_entry = slaves.first().bind_entry.first()
     slave_entry_group = Group(node_id="slave_bind_entry_group", group_name=_("访问入口（从）"))
-    graph.add_node(slave_entry, to_group=slave_group)
+    graph.add_node(slave_entry, to_group=slave_entry_group)
     # 从访问入口 --> slave
     graph.add_line(source=slave_entry_group, target=slave_group, label=LineLabel.Access)
 
