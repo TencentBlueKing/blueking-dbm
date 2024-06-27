@@ -139,7 +139,6 @@
   watch(
     () => [props.clusterData, dbName.value, dbIgnoreName.value],
     () => {
-      console.log('from render renae = ', props.clusterData, props, dbName.value, dbIgnoreName.value);
       if (!props.clusterData || dbName.value.length < 1 || (!props.restoreTime && !props.backupLogList)) {
         return;
       }

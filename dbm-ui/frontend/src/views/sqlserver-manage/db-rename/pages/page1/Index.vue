@@ -112,7 +112,6 @@
   const handelClusterChange = (selected: {
     [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
   }) => {
-
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
@@ -161,7 +160,7 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'MSSQL_RENAME_DBS',
+          ticket_type: 'SQLSERVER_DBRENAME',
           remark: '',
           details: {
             infos: data,

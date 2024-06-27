@@ -33,7 +33,7 @@
         <template #append>
           <span
             class="batch-edit-btn"
-            @click="handleShowBatchSelector">
+            @click="handleShowBatchTargetSelector">
             <DbIcon type="batch-host-select" />
           </span>
         </template>
@@ -69,6 +69,7 @@
 
   interface Emits {
     (e: 'batchSelectCluster'): void;
+    (e: 'batchSelectTargetCluster'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -77,6 +78,10 @@
 
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
+  };
+
+  const handleShowBatchTargetSelector = () => {
+    emits('batchSelectTargetCluster');
   };
 </script>
 <style lang="less">
