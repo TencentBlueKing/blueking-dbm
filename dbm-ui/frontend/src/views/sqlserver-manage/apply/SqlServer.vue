@@ -299,8 +299,6 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { sqlServerType, type SqlServerTypeString, TicketTypes } from '@common/const';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
@@ -316,7 +314,6 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const isSingleType = route.name === 'SqlServiceSingleApply';
@@ -354,7 +351,7 @@
       start_mssql_port: 48322, // SQLServer起始端口
       disaster_tolerance_level: '', // 容灾
     },
-    bk_biz_id: currentBizId,
+    bk_biz_id: '' as '' | number,
   });
 
   const formRef = ref();
