@@ -26,6 +26,8 @@ class InstancesSerializer(BaseProxyPassSerializer):
         help_text=_("状态列表"), child=serializers.CharField(), allow_null=True, allow_empty=True, required=False
     )
     bk_cloud_id = serializers.IntegerField()
+    hash_cnt = serializers.IntegerField(help_text=_("哈希数量"), required=False)
+    hash_value = serializers.IntegerField(help_text=_("哈希值"), required=False)
 
 
 class InstancesResponseSerializer(serializers.Serializer):
