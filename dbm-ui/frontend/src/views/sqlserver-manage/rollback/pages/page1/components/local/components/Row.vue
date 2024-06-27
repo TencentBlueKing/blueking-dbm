@@ -29,7 +29,7 @@
       <td style="padding: 0">
         <RenderDbName
           ref="dbNameRef"
-          check-exist
+          check-not-exist
           :cluster-id="localClusterData?.id"
           :model-value="localDbName"
           @change="handleDbNameChange" />
@@ -37,6 +37,7 @@
       <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbNameRef"
+          check-not-exist
           :cluster-id="localClusterData?.id"
           :model-value="localDbIgnoreName"
           :required="false"

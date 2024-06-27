@@ -42,16 +42,7 @@
       return false;
     }
     const [firstRow] = list;
-    return (
-      !firstRow.clusterData &&
-      !firstRow.rollbackIp &&
-      !firstRow.backupid &&
-      !firstRow.rollbackTime &&
-      !firstRow.databases &&
-      !firstRow.databasesIgnore &&
-      !firstRow.tables &&
-      !firstRow.tablesIgnore
-    );
+    return !firstRow.clusterData;
   };
 
   const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
@@ -72,7 +63,7 @@
   const handelClusterChange = (selected: {
     [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
   }) => {
-
+    console.log('handelClusterChange = ', selected);
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
