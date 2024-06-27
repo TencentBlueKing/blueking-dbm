@@ -76,11 +76,11 @@ export default [
         id: 'sqlServerSlaveAdd',
         parentId: 'migrate',
       },
-      {
-        name: t('克隆主从'),
-        id: 'sqlServerMasterSlaveClone',
-        parentId: 'migrate',
-      },
+      // {
+      //   name: t('克隆主从'),
+      //   id: 'sqlServerMasterSlaveClone',
+      //   parentId: 'migrate',
+      // },
       {
         name: t('主从互切'),
         id: 'sqlServerMasterSlaveSwap',
