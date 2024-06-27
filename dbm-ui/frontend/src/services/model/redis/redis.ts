@@ -18,6 +18,8 @@ import { t } from '@locales/index';
 
 export const enum RedisClusterTypes {
   PredixyTendisplusCluster = 'PredixyTendisplusCluster', // Tendisplus
+  PredixyRedisCluster = 'PredixyRedisCluster',
+  RedisInstance = 'RedisInstance',
   TwemproxyRedisInstance = 'TwemproxyRedisInstance', // TendisCache
   TwemproxyTendisSSDInstance = 'TwemproxyTendisSSDInstance', // TendisSSD
 }
