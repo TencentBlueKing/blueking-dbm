@@ -368,6 +368,12 @@
     () => childrenTabs.value.find((item) => item.name === curChildTab.value)?.label ?? '',
   );
 
+  watch(curTab, (newVal, oldVal) => {
+    if (oldVal !== newVal) {
+      curChildTab.value = '';
+    }
+  });
+
   onMounted(() => {
     const { spec_cluster_type: clusterType } = route.query;
     if (clusterType) {
