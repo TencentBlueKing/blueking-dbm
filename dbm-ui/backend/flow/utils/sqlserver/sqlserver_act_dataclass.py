@@ -139,6 +139,7 @@ class ExecLoginKwargs:
 
     cluster_id: int
     exec_mode: SqlserverLoginExecMode
+    exec_ip: str
 
 
 @dataclass()
@@ -237,3 +238,16 @@ class SqlserverDBConstructContext:
     @staticmethod
     def log_backup_infos_var_name() -> str:
         return "log_backup_infos"
+
+
+@dataclass()
+class CheckDBExistKwargs:
+    """
+    定义执行sqlserver_check_db_exist活动节点的私有变量结构体
+    @attributes cluster_domain 集群主域名
+    @attributes ips 待处理的ip列表
+    @attributes is_get_old_backup_config 是否要获取旧的备份配置信息，内部导入标准化使用
+    """
+
+    cluster_id: str
+    check_dbs: list = field(default_factory=list)

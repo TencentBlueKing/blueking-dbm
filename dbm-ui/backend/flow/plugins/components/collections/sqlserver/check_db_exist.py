@@ -10,36 +10,33 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
-from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.sqlserver.sqlserver_db_function import exec_instance_app_login
+from backend.flow.utils.sqlserver.sqlserver_db_function import check_sqlserver_db_exist
 
 logger = logging.getLogger("flow")
 
 
-class ExecSqlserverLoginService(BaseService):
+class CheckDBExistService(BaseService):
     """
-    操作Sqlserver的业务账号，只有禁用和启动操作
+    判断数据库是否存在
     """
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        cluster = Cluster.objects.get(id=kwargs["cluster_id"])
-        instance = cluster.storageinstance_set.get(machine__ip=kwargs["exec_ip"])
-        if not instance:
-            raise Exception(_("集群[{}]没有对应填入的ip[{}]的实例，请联系系统管理员".format(cluster.immute_domain, kwargs["exec_ip"])))
 
-        if exec_instance_app_login(cluster, kwargs["exec_mode"], instance):
-            self.log_info(f"exec app-logins-[{kwargs['exec_mode']}] in [{instance.ip_port}] successfully")
-            return True
+        is_no_err = True
+        res = check_sqlserver_db_exist(cluster_id=kwargs["cluster_id"], check_dbs=kwargs["check_dbs"])
+        for info in res:
+            if not info["is_exists"]:
+                is_no_err = False
+                logger.error(f"[{info['name']}] db not exist, check")
 
-        return False
+        return is_no_err
 
 
-class ExecSqlserverLoginComponent(Component):
+class CheckDBExistComponent(Component):
     name = __name__
-    code = "exec_sqlserver_login"
-    bound_service = ExecSqlserverLoginService
+    code = "sqlserver_check_db_exist"
+    bound_service = CheckDBExistService

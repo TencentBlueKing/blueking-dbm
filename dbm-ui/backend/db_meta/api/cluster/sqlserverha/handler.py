@@ -19,9 +19,10 @@ from backend.db_meta.enums import (
     ClusterType,
     InstanceInnerRole,
     InstanceRole,
+    InstanceStatus,
     MachineType,
 )
-from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ClusterEntry, ClusterMonitorTopo, StorageInstance, StorageInstanceTuple
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.sqlserver_module_operate import SqlserverCCTopoOperator
@@ -47,6 +48,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
         resource_spec: dict,
         region: str,
         sync_type: str,
+        disaster_tolerance_level: str,
     ):
         """
         1: 录入机器信息
@@ -114,6 +116,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
                     major_version=major_version,
                     region=region,
                     sync_type=sync_type,
+                    disaster_tolerance_level=disaster_tolerance_level,
                 )
             )
 
@@ -131,12 +134,13 @@ class SqlserverHAClusterHandler(ClusterHandler):
 
     @classmethod
     @transaction.atomic
-    def switch_role(cls, cluster_ids: list, old_master: Host, new_master: Host):
+    def switch_role(cls, cluster_ids: list, old_master: Host, new_master: Host, is_force: bool = False):
         """
         切换元信息，已机器维度去变更，关联的cluster都要处理
         @param cluster_ids: 关联的cluster_id 列表
         @param old_master: 旧的master机器
         @param new_master: 新的master机器
+        @param is_force: 是否是强制切换
         """
         for cluster_id in cluster_ids:
             cluster = Cluster.objects.get(id=cluster_id)
@@ -155,6 +159,9 @@ class SqlserverHAClusterHandler(ClusterHandler):
 
             old_master_storage_objs.instance_role = InstanceRole.BACKEND_SLAVE
             old_master_storage_objs.instance_inner_role = InstanceInnerRole.SLAVE
+            if is_force:
+                # 如果是强制切换，旧master状态改成异常
+                old_master_storage_objs.status = InstanceStatus.UNAVAILABLE
             old_master_storage_objs.save(update_fields=["instance_role", "instance_inner_role"])
 
             # 修改db-meta主从的映射关系
@@ -211,9 +218,8 @@ class SqlserverHAClusterHandler(ClusterHandler):
         """
         # 获取集群相关信息
         cluster = Cluster.objects.get(id=cluster_id)
-        master = cluster.storageinstance_set.get(is_stand_by=True, instance_role=InstanceRole.BACKEND_MASTER)
-        standby_slave = cluster.storageinstance_set.get(is_stand_by=True, instance_role=InstanceRole.BACKEND_SLAVE)
-        slaves = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_SLAVE)
+        objs = cluster.storageinstance_set.all()
+        master = objs.get(is_stand_by=True, instance_role__in=[InstanceRole.BACKEND_MASTER, InstanceRole.ORPHAN])
 
         # 更新集群状态
         cluster.phase = ClusterPhase.ONLINE
@@ -229,6 +235,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
         cluster_entry.storageinstance_set.add(master)
 
         if new_slave_domain:
+            standby_slave = objs.get(is_stand_by=True, instance_role=InstanceRole.BACKEND_SLAVE)
             cluster_slave_entry = ClusterEntry.objects.create(
                 cluster=cluster,
                 cluster_entry_type=ClusterEntryType.DNS,
@@ -239,18 +246,14 @@ class SqlserverHAClusterHandler(ClusterHandler):
             cluster_slave_entry.storageinstance_set.add(standby_slave)
 
         cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
-        # 更新master服务实例标签
-        cc_manage.add_label_for_service_instance(
-            bk_instance_ids=[master.bk_instance_id],
-            labels_dict={"cluster_domain": new_immutable_domain, "cluster_name": new_cluster_name},
-        )
 
-        # 更新所有slave服务实例标签
-        for slave in slaves:
-            cc_manage.add_label_for_service_instance(
-                bk_instance_ids=[slave.bk_instance_id],
-                labels_dict={"cluster_domain": new_immutable_domain, "cluster_name": new_cluster_name},
-            )
+        # 删除旧的服务实例
+        cc_manage.delete_service_instance(bk_instance_ids=[i.bk_instance_id for i in objs])
+        # 删除cluster模块
+        ClusterMonitorTopo.objects.filter(bk_biz_id=cluster.bk_biz_id, cluster_id=cluster.id).delete()
+
+        # 创建模块
+        SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module(instances=objs, is_increment=True)
 
     @classmethod
     @transaction.atomic
@@ -291,7 +294,6 @@ class SqlserverHAClusterHandler(ClusterHandler):
         for cluster_id in cluster_ids:
             # 每个集群维度遍历变更信息
             cluster = Cluster.objects.get(id=cluster_id)
-            cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
             old_slave_obj = cluster.storageinstance_set.get(machine__ip=old_slave_host.ip)
 
             storages = [
@@ -318,22 +320,6 @@ class SqlserverHAClusterHandler(ClusterHandler):
 
             # 替换关联的主从关系信息
             StorageInstanceTuple.objects.filter(receiver=old_slave_obj).update(receiver=new_slave_obj)
-
-            # 替换域名关联信息
-            entry_list = old_slave_obj.bind_entry.all()
-            for entry in entry_list:
-                entry.storageinstance_set.remove(old_slave_obj)
-                entry.storageinstance_set.add(new_slave_obj)
-
-            # 删除旧实例信息
-            cc_manage.delete_service_instance(bk_instance_ids=[old_slave_obj.bk_instance_id])
-            old_slave_obj.delete(keep_parents=True)
-
-            if not old_slave_obj.machine.storageinstance_set.exists():
-                # 转移主机到待回收
-                cc_manage.recycle_host([old_slave_obj.machine.bk_host_id])
-                # 删除主机信息
-                old_slave_obj.machine.delete(keep_parents=True)
 
     @classmethod
     @transaction.atomic
@@ -402,3 +388,31 @@ class SqlserverHAClusterHandler(ClusterHandler):
 
             # 添加对应cmdb服务实例信息
             SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])
+
+    @classmethod
+    @transaction.atomic
+    def reduce_slave(
+        cls,
+        cluster_ids: list,
+        old_slave_host: Host,
+    ):
+        for cluster_id in cluster_ids:
+            # 每个集群维度遍历变更信息
+            cluster = Cluster.objects.get(id=cluster_id)
+            cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
+            old_slave_obj = cluster.storageinstance_set.get(machine__ip=old_slave_host.ip)
+
+            # 替换域名关联信息
+            entry_list = old_slave_obj.bind_entry.all()
+            for entry in entry_list:
+                entry.storageinstance_set.remove(old_slave_obj)
+
+            # 删除旧实例信息
+            cc_manage.delete_service_instance(bk_instance_ids=[old_slave_obj.bk_instance_id])
+            old_slave_obj.delete(keep_parents=True)
+
+            if not old_slave_obj.machine.storageinstance_set.exists():
+                # 转移主机到待回收
+                cc_manage.recycle_host([old_slave_obj.machine.bk_host_id])
+                # 删除主机信息
+                old_slave_obj.machine.delete(keep_parents=True)

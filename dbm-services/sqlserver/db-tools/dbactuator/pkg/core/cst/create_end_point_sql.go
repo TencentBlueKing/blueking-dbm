@@ -17,9 +17,8 @@ IF EXISTS(select 1 from [master].[sys].[database_mirroring_endpoints] where name
 
 var GET_CREATE_END_POINT_SQL = `
 CREATE ENDPOINT [endpoint_mirroring] 
-STATE=STARTED AS TCP (LISTENER_PORT = %d, LISTENER_IP = ALL) 
-FOR DATA_MIRRORING (ROLE = PARTNER, AUTHENTICATION = WINDOWS NEGOTIATE, ENCRYPTION = REQUIRED ALGORITHM AES);
-DECLARE @Login sysname;
-SELECT @Login=name FROM sys.syslogins WHERE isntuser=1 and name like '%sqlserver'           
-EXEC sp_addsrvrolemember @Login, 'sysadmin'
+AUTHORIZATION [sa]
+STATE=STARTED
+AS TCP (LISTENER_PORT = %d, LISTENER_IP = ALL)
+FOR DATA_MIRRORING (ROLE = PARTNER, AUTHENTICATION = WINDOWS NEGOTIATE, ENCRYPTION = REQUIRED ALGORITHM AES)
 `

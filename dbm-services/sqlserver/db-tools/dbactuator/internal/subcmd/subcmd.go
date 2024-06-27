@@ -15,17 +15,18 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util"
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/templates"
-	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/validate"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/templates"
+	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/validate"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/pkg/errors"
@@ -252,9 +253,10 @@ func SetLogger(cmd *cobra.Command, opt *BaseOptions) {
 	var err error
 	var format = true
 
-	executable, _ := os.Executable()
+	// executable, _ := os.Executable()
 	// executeName := filepath.Base(executable)
-	executeDir := filepath.Dir(executable)
+	// executeDir := filepath.Dir(executable)
+	executeDir, _ := os.Getwd()
 	if err = os.Chdir(executeDir); err != nil {
 		os.Stderr.WriteString(err.Error())
 		os.Exit(1)

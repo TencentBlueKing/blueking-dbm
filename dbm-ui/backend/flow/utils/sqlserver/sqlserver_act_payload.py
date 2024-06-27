@@ -90,6 +90,41 @@ class SqlserverActPayload(PayloadHandler):
             },
         }
 
+    def get_init_sqlserver_payload(self, **kwargs) -> dict:
+        """
+        拼接初始化sqlserver的payload参数
+        """
+        # 获取对应DB模块的信息
+        db_module = get_module_infos(
+            bk_biz_id=int(self.global_data["bk_biz_id"]),
+            db_module_id=int(self.global_data["db_module_id"]),
+            cluster_type=self.global_data["cluster_type"],
+        )
+        if not isinstance(self.global_data["install_ports"], list):
+            raise Exception(
+                _("传入的安装sqlserver端口列表为空或者非法值，请联系系统管理员: install_ports {}".format(self.global_data["install_ports"]))
+            )
+
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.Init.value,
+            "payload": {
+                "general": {"runtime_account": self.get_create_sqlserver_account(self.global_data["bk_cloud_id"])},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "pkg": "test",
+                    "pkg_md5": "00000000000000000000000000000000",
+                    "charset": db_module["charset"],
+                    "sqlserver_version": db_module["db_version"],
+                    "install_key": "test",
+                    "max_remain_mem_gb": int(db_module["max_remain_mem_gb"]),
+                    "buffer_percent": int(db_module["buffer_percent"]),
+                    "ports": self.global_data["install_ports"],
+                    "sqlserver_configs": {},
+                },
+            },
+        }
+
     def get_execute_sql_payload(self, **kwargs) -> dict:
         """
         执行SQL文件的payload
@@ -168,6 +203,7 @@ class SqlserverActPayload(PayloadHandler):
                     "slaves": self.global_data["slaves"],
                     "clean_tables": self.global_data["clean_tables"],
                     "ignore_clean_tables": self.global_data["ignore_clean_tables"],
+                    "is_force": kwargs["custom_params"].get("is_force", False),
                 },
             },
         }
@@ -221,6 +257,7 @@ class SqlserverActPayload(PayloadHandler):
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": self.global_data["port"],
+                    "is_force_kill": kwargs["custom_params"].get("is_force_kill", False),
                 },
             },
         }
@@ -232,6 +269,7 @@ class SqlserverActPayload(PayloadHandler):
         # 获取系统账号
         sys_users = SQLSERVER_CUSTOM_SYS_USER
         sys_users.append(self.get_sqlserver_drs_account(kwargs["ips"][0]["bk_cloud_id"])["drs_user"])
+        sys_users.append(self.get_sqlserver_dbha_account(kwargs["ips"][0]["bk_cloud_id"])["dbha_user"])
 
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
@@ -409,15 +447,19 @@ class SqlserverActPayload(PayloadHandler):
         """
         卸载sqlserver的payload
         """
+        if kwargs["custom_params"].get("is_use_sa"):
+            runtime_account = self.get_sa_account()
+        else:
+            runtime_account = self.get_sqlserver_account()
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
             "action": SqlserverActuatorActionEnum.Uninstall.value,
             "payload": {
-                "general": {"runtime_account": self.get_sqlserver_account()},
+                "general": {"runtime_account": runtime_account},
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "ports": kwargs["custom_params"]["ports"],
-                    "force": self.global_data.get("force", False),
+                    "force": kwargs["custom_params"].get("force", False),
                 },
             },
         }
@@ -450,6 +492,41 @@ class SqlserverActPayload(PayloadHandler):
                 "extend": {
                     "host": kwargs["ips"][0]["ip"],
                     "port": kwargs["custom_params"]["port"],
+                },
+            },
+        }
+
+    def get_clear_config_payload(self, **kwargs) -> dict:
+        """
+        执行清理实例配置的payload，例如清理Job、LinkServer
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.ClearConfig.value,
+            "payload": {
+                "general": {"runtime_account": self.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": kwargs["custom_params"]["port"],
+                    "is_clear_job": kwargs["custom_params"]["is_clear_job"],
+                    "is_clear_linkserver": kwargs["custom_params"]["is_clear_linkserver"],
+                },
+            },
+        }
+
+    def get_remote_dr_payload(self, **kwargs) -> dict:
+        """
+        移除AlwaysOn可用组
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.Sqlserver.value,
+            "action": SqlserverActuatorActionEnum.RemoteDr.value,
+            "payload": {
+                "general": {"runtime_account": self.get_sqlserver_account()},
+                "extend": {
+                    "host": kwargs["ips"][0]["ip"],
+                    "port": kwargs["custom_params"]["port"],
+                    "remotes_slaves": kwargs["custom_params"]["remotes_slaves"],
                 },
             },
         }

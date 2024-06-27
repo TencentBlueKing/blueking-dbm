@@ -22,14 +22,15 @@ import (
 // CheckInstProcessComp 检查db连接情况
 type CheckInstProcessComp struct {
 	GeneralParam *components.GeneralParam
-	Params       *CheckAbnormalDBParam
+	Params       *CheckInstProcessParam
 	DB           *sqlserver.DbWorker
 }
 
 // CheckInstProcessParam 参数
 type CheckInstProcessParam struct {
-	Host string `json:"host" validate:"required,ip" `   // 本地hostip
-	Port int    `json:"port"  validate:"required,gt=0"` // 需要操作的实例端口
+	Host        string `json:"host" validate:"required,ip" `   // 本地hostip
+	Port        int    `json:"port"  validate:"required,gt=0"` // 需要操作的实例端口
+	IsFroceKill bool   `json:"is_force_kill"`                  // 隐藏参数，是否强制回收业务进程
 }
 
 // Init 初始化
@@ -57,21 +58,34 @@ func (c *CheckInstProcessComp) Init() error {
 func (c *CheckInstProcessComp) CheckInstProcess() error {
 	var procinfos []sqlserver.ProcessInfo
 	if err := c.DB.Queryx(&procinfos, cst.CHECK_INST_SQL); err != nil {
-		return fmt.Errorf("check-abnormal-db failed %v", err)
+		return fmt.Errorf("check-inst-process failed %v", err)
 	}
 	if len(procinfos) == 0 {
 		// 没有返回异常db列表则正常退出
 		return nil
 	}
-	// 异常退出
-	for _, info := range procinfos {
-		logger.Error("process:[%+v]", info)
+	if c.Params.IsFroceKill {
+		// 如果为true，则主动kill掉进程
+		var killCmd []string
+		for _, info := range procinfos {
+			killCmd = append(killCmd, fmt.Sprintf("kill %d", info.Spid))
+		}
+		if _, err := c.DB.ExecMore(killCmd); err != nil {
+			return fmt.Errorf("kill process failed %v", err)
+		}
+		logger.Info("killing inst-process successfully")
+		return nil
+	} else {
+		// 如果IsFroceKill为false，异常退出输出；
+		for _, info := range procinfos {
+			logger.Error("process:[%+v]", info)
+		}
+		return fmt.Errorf(
+			"[%s:%d] there is a business connections [%d], please check",
+			c.Params.Host,
+			c.Params.Port,
+			len(procinfos),
+		)
 	}
-	return fmt.Errorf(
-		"[%s:%d] there is a business connections [%d], please check",
-		c.Params.Host,
-		c.Params.Port,
-		len(procinfos),
-	)
 
 }

@@ -15,25 +15,22 @@ from dataclasses import asdict
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
+from backend.flow.plugins.components.collections.common.delete_cc_service_instance import DelCCServiceInstComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
-from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
 from backend.flow.plugins.components.collections.sqlserver.sqlserver_db_meta import SqlserverDBMetaComponent
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DeleteClusterDnsKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DeleteClusterDnsKwargs, DelServiceInstKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
-    CreateRandomJobUserKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
-from backend.flow.utils.sqlserver.sqlserver_db_function import create_sqlserver_login_sid
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
@@ -60,17 +57,8 @@ class SqlserverDestroyFlow(BaseFlow):
 
         for cluster_id in self.data["cluster_ids"]:
             cluster = Cluster.objects.get(id=cluster_id)
-            # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
-            master_instance = cluster.storageinstance_set.get(
-                instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
-            )
-
-            # 获取集群的slave节点信息
-            slave_infos = cluster.storageinstance_set.filter(instance_role=InstanceRole.BACKEND_SLAVE)
-            slaves = [{"host": s.machine.ip, "port": s.port} for s in slave_infos]
-
             # 拼接所有实例list
-            instances = [{"host": master_instance.machine.ip, "port": master_instance.port}] + slaves
+            instances = [{"host": i.machine.ip, "port": i.port} for i in cluster.storageinstance_set.all()]
 
             # 拼接子流程全局上下文
             sub_flow_context = copy.deepcopy(self.data)
@@ -80,15 +68,15 @@ class SqlserverDestroyFlow(BaseFlow):
             # 声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
-            # 创建随机账号
+            # 删除服务实例
             sub_pipeline.add_act(
-                act_name=_("create job user"),
-                act_component_code=SqlserverAddJobUserComponent.code,
+                act_name=_("删除注册CC系统的服务实例"),
+                act_component_code=DelCCServiceInstComponent.code,
                 kwargs=asdict(
-                    CreateRandomJobUserKwargs(
-                        cluster_ids=[cluster.id],
-                        sid=create_sqlserver_login_sid(),
-                    ),
+                    DelServiceInstKwargs(
+                        cluster_id=cluster.id,
+                        del_instance_list=[{"ip": i["host"], "port": i["port"]} for i in instances],
+                    )
                 ),
             )
 
@@ -115,7 +103,7 @@ class SqlserverDestroyFlow(BaseFlow):
                             ExecActuatorKwargs(
                                 exec_ips=[Host(ip=instance["host"], bk_cloud_id=cluster.bk_cloud_id)],
                                 get_payload_func=SqlserverActPayload.uninstall_sqlserver.__name__,
-                                custom_params={"ports": [instance["port"]]},
+                                custom_params={"ports": [instance["port"]], "force": True, "is_use_sa": True},
                             )
                         ),
                     }

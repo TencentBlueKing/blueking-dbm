@@ -125,7 +125,7 @@ func (b *BuildAlwaysOnComp) Init() error {
 func (b *BuildAlwaysOnComp) CreateEndPoint() error {
 	sqlStr := []string{
 		cst.GET_DROP_END_POINT_SQL,
-		fmt.Sprintf(cst.GET_CREATE_END_POINT_SQL, b.ListenPort, "%s"),
+		fmt.Sprintf(cst.GET_CREATE_END_POINT_SQL, b.ListenPort),
 	}
 
 	if b.Params.IsFirst {
@@ -159,6 +159,9 @@ func (b *BuildAlwaysOnComp) BuildAlwayOn() error {
 			b.DBInstanceName,
 			b.DBHostName,
 			b.ListenPort,
+		)
+		DBbuildForDRSQL := fmt.Sprintf(
+			cst.CREATE_ALWAYS_ON_IN_DB_FOR_DR,
 			s.InstanceName,
 			b.AlwaysOnGroupName,
 			s.InstanceName,
@@ -167,6 +170,10 @@ func (b *BuildAlwaysOnComp) BuildAlwayOn() error {
 		)
 		if _, err := b.DB.Exec(DBbuildSQL); err != nil {
 			logger.Error("exec always-on in DB [%s:%d] failed", b.Params.Host, b.Params.Port)
+			return err
+		}
+		if _, err := b.DB.Exec(DBbuildForDRSQL); err != nil {
+			logger.Error("exec add dr-always-on in DB [%s:%d] failed", b.Params.Host, b.Params.Port)
 			return err
 		}
 		// 再在从实例配置Alwayson的信息

@@ -13,11 +13,14 @@ from typing import List
 
 from django.utils.translation import ugettext as _
 
+from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.flow.consts import (
+    DEPENDENCIES_PLUGINS,
+    WINDOW_ADMIN_USER_FOR_CHECK,
     SqlserverBackupFileTagEnum,
     SqlserverBackupJobExecMode,
     SqlserverBackupMode,
@@ -28,6 +31,10 @@ from backend.flow.consts import (
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
+from backend.flow.plugins.components.collections.common.install_nodeman_plugin import (
+    InstallNodemanPluginServiceComponent,
+)
+from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.sqlserver.check_no_sync_db import CheckNoSyncDBComponent
 from backend.flow.plugins.components.collections.sqlserver.exec_actuator_script import SqlserverActuatorScriptComponent
@@ -40,8 +47,8 @@ from backend.flow.plugins.components.collections.sqlserver.sqlserver_download_ba
     SqlserverDownloadBackupFileComponent,
 )
 from backend.flow.plugins.components.collections.sqlserver.trans_files import TransFileInWindowsComponent
-from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
-from backend.flow.utils.mysql.mysql_act_dataclass import UpdateDnsRecordKwargs
+from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs, InstallNodemanPluginKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckKwargs, UpdateDnsRecordKwargs
 from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
     DownloadBackupFileKwargs,
     DownloadMediaKwargs,
@@ -81,6 +88,16 @@ def install_sqlserver_sub_flow(
     @param target_hosts: 部署新机器列表
     @param db_version: 部署版本
     """
+    # 预防性检测
+    is_err = False
+    err_messages = ""
+    for host in target_hosts:
+        if not host.bk_host_id:
+            is_err = True
+            err_messages += _("流程中安装机器【{}】没有存入bk_host_id,请联系系统管理员\n".format(host.ip))
+    if is_err:
+        raise Exception(err_messages)
+
     # 构造只读上下文
     global_data = {
         "uid": uid,
@@ -93,6 +110,39 @@ def install_sqlserver_sub_flow(
     }
     # 声明子流程
     sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
+
+    # 空闲检查
+    if env.SA_CHECK_TEMPLATE_ID:
+        acts_list = []
+        for host in target_hosts:
+            acts_list.append(
+                {
+                    "act_name": _("空闲检查[{}]".format(host.ip)),
+                    "act_component_code": CheckMachineIdleComponent.code,
+                    "kwargs": asdict(
+                        InitCheckKwargs(
+                            ips=[host.ip], bk_cloud_id=bk_cloud_id, account_name=WINDOW_ADMIN_USER_FOR_CHECK
+                        )
+                    ),
+                }
+            )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+    # 安装蓝鲸插件
+    acts_list = []
+    for plugin_name in DEPENDENCIES_PLUGINS:
+        acts_list.append(
+            {
+                "act_name": _("安装[{}]插件".format(plugin_name)),
+                "act_component_code": InstallNodemanPluginServiceComponent.code,
+                "kwargs": asdict(
+                    InstallNodemanPluginKwargs(
+                        bk_host_ids=[t.bk_host_id for t in target_hosts], plugin_name=plugin_name
+                    )
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 下发安装包
     sub_pipeline.add_act(
@@ -131,6 +181,22 @@ def install_sqlserver_sub_flow(
         )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+    # 安装机器维度初始化实例
+    acts_list = []
+    for hosts in target_hosts:
+        acts_list.append(
+            {
+                "act_name": _("初始化Sqlserver实例:{}".format(hosts.ip)),
+                "act_component_code": SqlserverActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ips=[hosts], get_payload_func=SqlserverActPayload.get_init_sqlserver_payload.__name__
+                    ),
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
     return sub_pipeline.build_sub_process(sub_name=_("安装sqlserver实例"))
 
 
@@ -156,25 +222,29 @@ def switch_domain_sub_flow_for_cluster(
     sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
 
     # 替换主域名映射
-    sub_pipeline.add_act(
-        act_name=_("替换主域名映射"),
-        act_component_code=MySQLDnsManageComponent.code,
-        kwargs=asdict(
-            UpdateDnsRecordKwargs(
-                bk_cloud_id=cluster.bk_cloud_id,
-                new_instance=f"{new_master.machine.ip}#{new_master.port}",
-                old_instance=f"{old_master.machine.ip}#{old_master.port}",
-                update_domain_name=cluster.immute_domain,
-            ),
-        ),
-    )
+    acts_list = []
+    old_master_dns_list = old_master.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+    for old_master_dns in old_master_dns_list:
+        acts_list.append(
+            {
+                "act_name": _("[{}]替换主域名映射".format(old_master_dns.entry)),
+                "act_component_code": MySQLDnsManageComponent.code,
+                "kwargs": asdict(
+                    UpdateDnsRecordKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        old_instance=f"{new_master.machine.ip}#{new_master.port}",
+                        new_instance=f"{old_master.machine.ip}#{old_master.port}",
+                        update_domain_name=old_master_dns.entry,
+                    ),
+                ),
+            }
+        )
     # 并发替换从域名映射
     slave_dns_list = new_master.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
-    acts_list = []
     for slave_dns in slave_dns_list:
         acts_list.append(
             {
-                "act_name": _("替换从域名映射"),
+                "act_name": _("[{}]替换从域名映射".format(slave_dns.entry)),
                 "act_component_code": MySQLDnsManageComponent.code,
                 "kwargs": asdict(
                     UpdateDnsRecordKwargs(
@@ -199,6 +269,7 @@ def pre_check_sub_flow(
     check_port: int,
     is_check_abnormal_db: bool = True,
     is_check_inst_process: bool = True,
+    is_check_sync_db: bool = True,
 ):
     """
     实例切换前的预检查
@@ -209,6 +280,7 @@ def pre_check_sub_flow(
     @param check_port: 需要检查的port
     @param is_check_abnormal_db: 是否检查异常数据库
     @param is_check_inst_process: 是否检查业务连接存在
+    @param is_check_sync_db: 是否检查未同步的数据库
     """
     # 构造只读上下文
     global_data = {"uid": uid, "port": check_port}
@@ -217,13 +289,15 @@ def pre_check_sub_flow(
     sub_pipeline = SubBuilder(root_id=root_id, data=global_data)
 
     # 并发检测异常状态DB
-    acts_list = [
-        {
-            "act_name": _("检查实例{}:{}是否存在没有同步的数据库".format(check_host.ip, check_port)),
-            "act_component_code": CheckNoSyncDBComponent.code,
-            "kwargs": {"cluster_id": cluster_id},
-        }
-    ]
+    acts_list = []
+    if is_check_sync_db:
+        acts_list.append(
+            {
+                "act_name": _("检查实例{}:{}是否存在没有同步的数据库".format(check_host.ip, check_port)),
+                "act_component_code": CheckNoSyncDBComponent.code,
+                "kwargs": {"cluster_id": cluster_id},
+            }
+        )
 
     if is_check_abnormal_db:
         acts_list.append(
@@ -359,8 +433,8 @@ def sync_dbs_for_cluster_sub_flow(
     @param sub_flow_name: 子流程名称
     """
     # 获取当前master实例信息
-    backup_path = f"d:\\dbbak\\restore_dr_{root_id}\\"
     master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+    backup_path = f"d:\\dbbak\\restore_dr_{root_id}_{master_instance.port}\\"
     cluster_sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
     # 生成切换payload的字典
     sync_payload_func_map = {
@@ -381,7 +455,7 @@ def sync_dbs_for_cluster_sub_flow(
         "backup_dbs": sync_dbs,
         "target_backup_dir": backup_path,
         "is_set_full_model": True,
-        "job_id": f"restore_dr_{root_id}",
+        "job_id": f"restore_dr_{root_id}_{master_instance.port}",
     }
 
     # 声明子流程

@@ -60,6 +60,12 @@ func NewSQLserverCommand() *cobra.Command {
 				MoveBackupFileCommand(),
 				// init sqlserver initstance
 				InitSqlserverInstanceCommand(),
+				// clear config
+				ClearConfigCommand(),
+				// remote dr in alwayson
+				NewRemoteSlavesCommand(),
+				// init instance
+				NewInitSqlServerCommand(),
 			},
 		},
 	}

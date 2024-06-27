@@ -275,3 +275,59 @@ func (r *InitSqlserverInstanceComp) PrintBackupConfig() error {
 
 	return nil
 }
+
+// CreateSysDir TODO
+func (r *InitSqlserverInstanceComp) CreateSysDir() error {
+	logger.Info("start exec createSysDir ...")
+	createDir := []string{
+		filepath.Join(cst.BASE_DATA_PATH, cst.BK_PKG_INSTALL_NAME),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME),
+		filepath.Join(cst.BASE_DATA_PATH, cst.IEOD_FILE_BACKUP),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_EXPOTER_NAME),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_DBHA_NAME),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, "full"),
+		filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_BACKUP_NAME, "log"),
+	}
+	// 判断机器是否存在E盘，如果有在创建必要目录
+	e := osutil.WINSFile{FileName: cst.BASE_BACKUP_PATH}
+	err, check := e.FileExists()
+	if err != nil {
+		logger.Warn(err.Error())
+	}
+	if check {
+		// 添加E盘必须创建的目录
+		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH))
+		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH, "full"))
+		createDir = append(createDir, filepath.Join(cst.BASE_DATA_PATH, cst.BASE_BACKUP_PATH, "log"))
+	}
+
+	// 循环创建目录
+	for _, dirName := range createDir {
+		dir := osutil.WINSFile{FileName: dirName}
+		err, check := dir.FileExists()
+		if check && err == nil {
+			// 表示目录在系统存在，先跳过
+			continue
+		}
+		if err != nil {
+			// 表示检查目录是否存在出现异常，报错
+			return err
+		}
+		// 创建目录
+		if !dir.Create(0777) {
+			return fmt.Errorf("create dir [%s] failed", dirName)
+		}
+		logger.Info("create system-dir [%s] successfully", dirName)
+	}
+	// 增加一个cygwin目录，目的让备份系统可以顺利下载文件
+	cygwinHomeDir := osutil.WINSFile{FileName: cst.CYGWIN_MSSQL_PATH}
+	_, cygwinHomecheck := cygwinHomeDir.FileExists()
+	if cygwinHomecheck {
+		// 表示目录在系统存在，跳过
+		return nil
+	}
+	// 创建mssql目录，不捕捉日志
+	cygwinHomeDir.Create(0777)
+	return nil
+}

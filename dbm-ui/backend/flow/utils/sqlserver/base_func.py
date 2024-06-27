@@ -10,13 +10,14 @@ specific language governing permissions and limitations under the License.
 from backend.flow.consts import DEFAULT_SQLSERVER_PORT
 
 
-def calc_install_ports(inst_sum: int) -> list:
+def calc_install_ports(inst_sum: int, start_port: int = DEFAULT_SQLSERVER_PORT) -> list:
     """
     计算单据流程需要安装的端口，然后传入到流程的单据信息
     @param inst_sum: 代表机器部署实例数量
+    @param start_port: 安装的起始端口，默认48322
     """
     install_ports = []
     for i in range(0, inst_sum):
-        install_ports.append(DEFAULT_SQLSERVER_PORT + i * 10)
+        install_ports.append(start_port + i * 10)
 
     return install_ports

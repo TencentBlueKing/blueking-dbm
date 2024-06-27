@@ -21,6 +21,8 @@ import (
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/sqlserver"
 )
 
+const AUTO_GRANT_TABLE = "[Monitor].[dbo].[AUTO_GRANT]"
+
 // CloneLoginUsersComp 克隆用户权限
 type CloneLoginUsersComp struct {
 	GeneralParam *components.GeneralParam
@@ -41,6 +43,13 @@ type CloneLoginUsersParam struct {
 type cloneRunTimeCtx struct {
 	LocalDB  *sqlserver.DbWorker
 	SourceDB *sqlserver.DbWorker
+}
+
+type AutoGrantInfo struct {
+	Account    string `db:"ACCOUNT"`
+	GrantDB    string `db:"GRANT_DB"`
+	GrantType  string `db:"GRANT_TYPE"`
+	UpdateTime string `db:"UPDATE_TIME"`
 }
 
 // 定义用户信息的结构
@@ -96,7 +105,7 @@ func (c *CloneLoginUsersComp) CloneGrant() error {
 
 	if err := c.SourceDB.Queryx(
 		&logininfos,
-		fmt.Sprintf(cst.GET_LOGIN_INFO, strings.Join(c.Params.SystemLogins, "','")),
+		fmt.Sprintf(cst.GET_LOGIN_INFO, strings.Join(c.Params.SystemLogins, "','"), cst.TempJobUserPrefix),
 	); err != nil {
 		return fmt.Errorf("get-login-info failed %v", err)
 	}
@@ -195,4 +204,44 @@ func GetLoginCheckRoleName(cmds []string, info LoginInfo) []string {
 	}
 	return cmds
 
+}
+
+// CopyAutoGrantTable 克隆auto_grant表数据
+// 步骤：
+// 1: 删除目标实例的auto_grant表
+// 2:拉取原实例的auto_grant表， 同时插入到目标实例
+func (c *CloneLoginUsersComp) CopyAutoGrantTable() error {
+	var grants []AutoGrantInfo
+	var insertSqls []string
+	truncateSql := fmt.Sprintf("truncate table %s", AUTO_GRANT_TABLE)
+	getGrantSql := fmt.Sprintf("select * from %s", AUTO_GRANT_TABLE)
+
+	// 1: 删除目标实例的auto_grant表
+	if _, err := c.LocalDB.Exec(truncateSql); err != nil {
+		logger.Error("truncate table %s failed %v", AUTO_GRANT_TABLE, err)
+		return err
+	}
+
+	// 2:拉取原实例的auto_grant表
+	if err := c.SourceDB.Queryx(&grants, getGrantSql); err != nil {
+		return fmt.Errorf("select %s failed %v", AUTO_GRANT_TABLE, err)
+	}
+
+	// 同时插入到目标实例
+	for _, info := range grants {
+		insertSqls = append(
+			insertSqls,
+			fmt.Sprintf("insert into %s values('%s','%s','%s','%s')",
+				AUTO_GRANT_TABLE, info.Account, info.GrantDB, info.GrantType, info.UpdateTime),
+		)
+	}
+	if len(insertSqls) == 0 {
+		logger.Warn("copy-auto-grant-record is null")
+		return nil
+	}
+	if _, err := c.LocalDB.ExecMore(insertSqls); err != nil {
+		logger.Error("insert table %s failed %v", AUTO_GRANT_TABLE, err)
+		return err
+	}
+	return nil
 }

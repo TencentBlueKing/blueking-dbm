@@ -41,13 +41,13 @@ type InstanceInfo struct {
 
 // 定义连接状态的结构
 type ProcessInfo struct {
-	Spid        int    `db:"spid"`
-	DbName      string `db:"dbname"`
-	Cmd         string `db:"cmd"`
-	Status      string `db:"status"`
-	ProgramName string `db:"program_name"`
-	Hostname    string `db:"hostname"`
-	LoginTime   string `db:"login_time"`
+	Spid        int            `db:"spid"`
+	DbName      sql.NullString `db:"dbname"`
+	Cmd         sql.NullString `db:"cmd"`
+	Status      sql.NullString `db:"status"`
+	ProgramName sql.NullString `db:"program_name"`
+	Hostname    sql.NullString `db:"hostname"`
+	LoginTime   sql.NullString `db:"login_time"`
 }
 
 // NewDbWorker 初始化SQLserver实例对象
@@ -113,6 +113,32 @@ func (h *DbWorker) ExecMore(sqls []string) (rowsAffectedCount int64, err error) 
 	return
 }
 
+// ExecMoreNoSA 执行一堆sql，没有sa权限下
+func (h *DbWorker) ExecMoreNoSA(sqls []string) (rowsAffectedCount int64, err error) {
+	var c int64
+	var db *sqlx.DB
+	// 插入execute命令
+	db, err = sqlx.Connect("mssql", h.Dsn)
+	if err != nil {
+		return 0, fmt.Errorf("connect db failed, err:%w", err)
+	}
+	defer db.Close()
+	for _, sqlStr := range sqls {
+		if strings.TrimSpace(sqlStr) == "" {
+			continue
+		}
+		ret, err := db.Exec(sqlStr)
+		if err != nil {
+			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
+		}
+		if c, err = ret.RowsAffected(); err != nil {
+			return rowsAffectedCount, fmt.Errorf("exec %s failed,err:%w", sqlStr, err)
+		}
+		rowsAffectedCount += c
+	}
+	return
+}
+
 // Queryx execute query use sqlx
 func (h *DbWorker) Queryx(data interface{}, query string, args ...interface{}) error {
 	db, err := sqlx.Connect("mssql", h.Dsn)
@@ -160,14 +186,24 @@ func (h *DbWorker) GetVersion() (version string, err error) {
 
 // GetGroupName 获取Alwayson的group name
 func (h *DbWorker) GetGroupName() (name string, err error) {
-	cmd := "SELECT name from sys.availability_groups;"
+	cmd := "SELECT name from master.sys.availability_groups;"
 	err = h.Queryxs(&name, cmd)
 	return
 }
 
+// GetGroupName 获取实例在Alwayson的角色
+func (h *DbWorker) GetRoleInAlwaysOn() (role int, err error) {
+	cmd := "select role from master.sys.dm_hadr_availability_replica_states where is_local = 1;"
+	err = h.Queryxs(&role, cmd)
+	return
+}
+
 // CheckDBProcessExist 判断db是否存在相关请求
+// 这里会顺便kill掉ssms的连接
 func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
 	var procinfos []ProcessInfo
+	var killCmd []string
+	isNoErr := true
 	checkCmd := fmt.Sprintf("select spid, DB_NAME(dbid) as dbname ,cmd, status, program_name,hostname, login_time"+
 		" from master.sys.sysprocesses where dbid >4  and dbid = DB_ID('%s') and lastwaittype != 'PARALLEL_REDO_WORKER_WAIT_WORK' "+
 		" order by login_time desc;", dbName)
@@ -181,9 +217,19 @@ func (h *DbWorker) CheckDBProcessExist(dbName string) bool {
 	}
 	// 异常退出
 	for _, info := range procinfos {
-		logger.Error("process:[%+v]", info)
+		if strings.Contains(info.ProgramName.String, "Microsoft SQL Server Management Studio") {
+			logger.Warn("process:[%+v], kill this", info)
+			killCmd = append(killCmd, fmt.Sprintf("kill %d", info.Spid))
+		} else {
+			isNoErr = true
+			logger.Error("process:[%+v]", info)
+		}
 	}
-	return false
+	if _, err := h.ExecMore(killCmd); err != nil {
+		logger.Error(fmt.Sprintf("kill process failed %v", err))
+		return false
+	}
+	return isNoErr
 }
 
 // GetServerNameAndInstanceName 获取实例的相关信息
@@ -235,9 +281,6 @@ func (h *DbWorker) EnableEndPoint(end_port int) (err error) {
 			DROP ENDPOINT [endpoint_mirroring]
 		CREATE ENDPOINT [endpoint_mirroring] STATE=STARTED AS TCP (LISTENER_PORT = %d, LISTENER_IP = ALL) 
 		FOR DATA_MIRRORING (ROLE = PARTNER, AUTHENTICATION = WINDOWS NEGOTIATE, ENCRYPTION = REQUIRED ALGORITHM AES);
-		DECLARE @Login sysname;
-		SELECT @Login=name FROM sys.syslogins WHERE isntuser=1 and name like '%%sqlserver'
-		EXEC sp_addsrvrolemember @Login, 'sysadmin'
 		`, end_port)
 
 	if _, err := h.Exec(cmd); err != nil {
@@ -269,12 +312,12 @@ func (h *DbWorker) DBRestoreForFullBackup(dbname string, fullBakFile string, mov
 	var restoreSQL string
 	if move == "" {
 		restoreSQL = fmt.Sprintf(
-			"restore database %s from disk='%s' with file = 1, %s",
+			"restore database %s from disk='%s' with file = 1, %s , NOUNLOAD,  REPLACE,  STATS = 5",
 			dbname, fullBakFile, restoreMode,
 		)
 	} else {
 		restoreSQL = fmt.Sprintf(
-			"restore database %s from disk='%s' with file = 1, %s, %s",
+			"restore database %s from disk='%s' with file = 1, %s, %s, NOUNLOAD,  REPLACE,  STATS = 5",
 			dbname, fullBakFile, move, restoreMode,
 		)
 

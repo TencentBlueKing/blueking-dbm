@@ -90,28 +90,9 @@ if (-not (Test-Path $logDir)) {
     New-Item -ItemType Directory -Path $logDir | Out-Null
 }
 
-if (-not (Test-Path (Join-Path $targetDir "dbactuator.exe"))) {
-    if ((Get-Process | Where-Object { $_.Path -eq $sourceFile })) {
-        Write-Host "wait 5s"
-        Start-Sleep -Seconds 5
-    }
-    Copy-Item $sourceFile $targetDir
-}
-else {
-    $md5_1 = (certutil -hashfile $sourceFile MD5)[1] -replace "\\s"
-    $md5_2 = (certutil -hashfile (Join-Path $targetDir "dbactuator.exe"))[1] -replace "\\s"
-    if ($md5_1 -ne $md5_2) {
-        if ((Get-Process | Where-Object { $_.Path -eq $sourceFile })) {
-            Write-Host "wait 5s"
-            Start-Sleep -Seconds 5
-        }
-        Copy-Item $sourceFile $targetDir -Force
-    }
-}
-
 Set-Location $targetDir
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted -Force
-.\\dbactuator.exe  {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id \
+..\\dbactuator.exe  {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id \
  {{version_id}}  --payload $payload
 
 if ($LASTEXITCODE -ne 0 ) {

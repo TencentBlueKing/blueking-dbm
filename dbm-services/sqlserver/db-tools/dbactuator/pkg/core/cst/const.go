@@ -17,6 +17,8 @@ const (
 	Test = "test"
 	// 自定义系统库名称
 	SysDB = "Monitor"
+	// 临时账号前缀
+	TempJobUserPrefix = "J_%"
 )
 
 const (
@@ -41,6 +43,8 @@ const (
 	MSSQL_DATA_NAME = "gamedb"
 	// MSSQL_BACKUP_NAME 默认存储日志的目录名称
 	MSSQL_BACKUP_NAME = "dbbak"
+	// MSSQL_DBHA_NAME 默认dbha日志保存目录名称
+	MSSQL_DBHA_NAME = "dbha"
 	// CONFIGURATION_FILE_NAME 实例安装文件名称
 	CONFIGURATION_FILE_NAME = "configuationfile"
 	// mssql_exporter目录名称
@@ -159,7 +163,8 @@ const (
 		"password_hash,default_database_name,dbcreator,sysadmin, " +
 		"securityadmin,serveradmin,setupadmin,processadmin,diskadmin,bulkadmin " +
 		"from master.sys.sql_logins a left join sys.syslogins b " +
-		"on a.name=b.name where principal_id>4 and a.name not in('%s') and a.is_disabled = 0"
+		"on a.name=b.name where principal_id>4 and a.name not in('%s') " +
+		"and a.name not like '%s' and a.is_disabled = 0"
 )
 
 // 判断实例是否有业务进程
@@ -193,6 +198,7 @@ type Instnace struct {
 // 执行切换sp的模板SQL
 var (
 	EXEC_SWITCH_SP_TMEP_SQL = `
+		EXECUTE AS login='sa';
 		declare @msg varchar(1000)
 		declare @exitcode int
 		exec @exitcode = MONITOR.DBO.%s %s @msg output
@@ -235,6 +241,15 @@ var (
 	`
 )
 
+// dbha账号权限sql
+var (
+	GRANT_DBHA_SQL = `
+	use [master]
+	GRANT CONTROL SERVER TO [%s] AS [sa]
+	`
+)
+
+// mssql_exporter账号权限
 var (
 	GRANT_MSSQL_EXPORTER_SQL = `
 	USE [master]
@@ -271,4 +286,24 @@ var (
 	,[KEEP_FULL_BACKUP_DAYS]
 	,[KEEP_LOG_BACKUP_DAYS]
 	FROM [%s].[dbo].[BACKUP_SETTING]`
+)
+
+// 在DB移除DR可用组信息
+var (
+	REMOTE_ALWAYS_ON_GROUP = `
+USE [master]
+IF EXISTS(SELECT 1 FROM master.sys.availability_replicas where replica_server_name = '%s')
+BEGIN
+	ALTER AVAILABILITY GROUP [%s] REMOVE REPLICA ON N'%s';
+END`
+)
+
+// 在DR移除可用组信息
+var (
+	DELETE_ALWAYS_ON_IN_DR = `
+USE [master]
+IF EXISTS(SELECT 1 FROM sys.availability_groups where name = '%s')
+BEGIN
+	DROP AVAILABILITY GROUP [%s];
+END`
 )

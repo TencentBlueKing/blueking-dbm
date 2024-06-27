@@ -38,21 +38,38 @@ func GetDBSForSqlserver(address string, bkCloudId int64, dbInclude string) ([]st
 }
 
 // 判断login是否存在，sqlserver专属
-func IsExistLogin(address string, bkCloudId int64, login string) (bool, error) {
+func IsExistLogin(address string, bkCloudId int64, login string, sid string) (bool, error) {
 	var err error
 
-	queryPwdSQL := fmt.Sprintf("select SUSER_SID('%s') as sid", login)
+	queryPwdSQL := fmt.Sprintf(
+		`SELECT CONVERT(NVARCHAR(MAX), sid, 1) as sid_hex, 
+		name FROM master.sys.sql_logins where name = '%s';`,
+		login,
+	)
 	var queryRequest = QueryRequest{[]string{address}, []string{queryPwdSQL}, false, 60, bkCloudId}
 
 	result, err := OneAddressExecuteSqlserverSql(queryRequest)
 	if err != nil {
 		return false, err
 	}
-	if result.CmdResults[0].TableData[0]["sid"] == nil {
-		// 表示login不存在
+	if len(result.CmdResults[0].TableData) == 0 {
+		// 表示账号不存在
 		return false, nil
 	}
+	sidHex, ok := result.CmdResults[0].TableData[0]["sid_hex"].(string)
+	if !ok {
+		// handle the error
+		return false, fmt.Errorf("sid_hex is not a string")
+	}
+	if !strings.EqualFold(sidHex, sid) {
+		// 表示login存在, 但是sid对不上
+		return false, fmt.Errorf(
+			"the login [%s] exists but the sid is not enough:[%s]:[%s]",
+			login, sid, sidHex,
+		)
+	}
 	// 表示存在
+	slog.Info(fmt.Sprintf("the login [%s] exist in instance [%s] ", login, address))
 	return true, nil
 }
 
@@ -71,46 +88,44 @@ func GenerateSqlserverSQL(account TbAccounts, rules []TbAccountRules, address st
 	var realPsw []byte
 	pswMap := make(map[string]string)
 	// 查询login账号是否存在
-	check, err := IsExistLogin(address, bkCloudId, account.User)
+	check, err := IsExistLogin(address, bkCloudId, account.User, account.Sid)
 	if err != nil {
 		slog.Error("msg", "IsExistLogin error", err)
 		return nil, fmt.Errorf("IsExistLogin error: %s", err.Error())
 	}
-	if check {
-		// 如果存在则先删除
-		sqls = append(sqls, fmt.Sprintf("DROP LOGIN %s", account.User))
+	if !check {
+		// 如果存在不用拼接create login
+		// 密码解密
+		err = json.Unmarshal([]byte(account.Psw), &pswMap)
+		if err != nil {
+			return nil, fmt.Errorf("trans json error: [%s]", err)
+		}
+
+		bytes, err := hex.DecodeString(pswMap["sm4"])
+		if err != nil {
+			slog.Error("msg", "get hex decode error", err)
+			return nil, fmt.Errorf("get hex decode error: %s", err.Error())
+		}
+		psw, err = SM4Decrypt(string(bytes))
+		if err != nil {
+			slog.Error("SM4Decrypt", "error", err)
+			return nil, fmt.Errorf("SM4Decrypt error: %s", err.Error())
+		}
+		// 解密后再用base64解开明文
+		realPsw, err = base64.StdEncoding.DecodeString(psw)
+		if err != nil {
+			slog.Error("msg", "get base64 decode error", err)
+			return nil, fmt.Errorf("get base64 decode error: %s", err.Error())
+		}
+		sqls = append(sqls,
+			fmt.Sprintf("CREATE LOGIN %s WITH PASSWORD=N'%s', DEFAULT_DATABASE=[MASTER],SID=%s,CHECK_POLICY=OFF;",
+				account.User,
+				string(realPsw),
+				account.Sid,
+			),
+		)
 	}
 
-	// 密码解密
-	err = json.Unmarshal([]byte(account.Psw), &pswMap)
-	if err != nil {
-		return nil, fmt.Errorf("trans json error: [%s]", err)
-	}
-
-	bytes, err := hex.DecodeString(pswMap["sm4"])
-	if err != nil {
-		slog.Error("msg", "get hex decode error", err)
-		return nil, fmt.Errorf("get hex decode error: %s", err.Error())
-	}
-	psw, err = SM4Decrypt(string(bytes))
-	if err != nil {
-		slog.Error("SM4Decrypt", "error", err)
-		return nil, fmt.Errorf("SM4Decrypt error: %s", err.Error())
-	}
-	// 解密后再用base64解开明文
-	realPsw, err = base64.StdEncoding.DecodeString(psw)
-	if err != nil {
-		slog.Error("msg", "get base64 decode error", err)
-		return nil, fmt.Errorf("get base64 decode error: %s", err.Error())
-	}
-
-	sqls = append(sqls,
-		fmt.Sprintf("CREATE LOGIN %s WITH PASSWORD=N'%s', DEFAULT_DATABASE=[MASTER],SID=%s,CHECK_POLICY=OFF;",
-			account.User,
-			string(realPsw),
-			account.Sid,
-		),
-	)
 	if role == backendMaster || role == orphan {
 		// master/orphan角色生成create user 语句
 		for _, rule := range rules {
@@ -122,9 +137,16 @@ func GenerateSqlserverSQL(account TbAccounts, rules []TbAccountRules, address st
 			for _, dbName := range realDBS {
 				sqls = append(sqls, fmt.Sprintf(`USE %s
 	ALTER AUTHORIZATION ON SCHEMA::db_owner TO dbo;
-	IF DATABASE_PRINCIPAL_ID('%s') IS NULL
-	CREATE USER [%s] FOR LOGIN [%s];`,
-					dbName, account.User, account.User, account.User,
+	IF EXISTS (SELECT 1 FROM [%s].sys.database_principals WHERE name = N'%s') 
+	BEGIN 
+		EXEC [%s].dbo.sp_change_users_login 'AUTO_FIX','%s'
+	END
+   	ELSE
+   	BEGIN
+   		CREATE USER [%s] FOR LOGIN [%s];
+   	END
+	`,
+					dbName, dbName, account.User, dbName, account.User, account.User, account.User,
 				))
 				sqls = append(sqls, fmt.Sprintf("USE %s", dbName))
 				for _, p := range strings.Split(rule.Priv, ",") {
@@ -146,6 +168,13 @@ func ImportSqlserverPrivilege(account TbAccounts, rules []TbAccountRules, bkClou
 		var address string = fmt.Sprintf("%s:%d", s.IP, s.Port)
 		if backendSQL, err = GenerateSqlserverSQL(account, rules, address, bkCloudId, s.InstanceRole); err != nil {
 			return err
+		}
+		if len(backendSQL) == 0 && s.InstanceRole == backendSlave {
+			// slave节点有可能不需要执行授权SQL，所以返回正常
+			slog.Info(
+				fmt.Sprintf("[%s] no grant sql execute in slave instance [%s]", account.User, address),
+			)
+			return nil
 		}
 		var queryRequest = QueryRequest{[]string{address}, backendSQL, false, 60, bkCloudId}
 		_, err = OneAddressExecuteSqlserverSql(queryRequest)

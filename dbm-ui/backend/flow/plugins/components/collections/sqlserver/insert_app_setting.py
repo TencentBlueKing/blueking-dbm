@@ -49,7 +49,7 @@ class InsertAppSettingService(BaseService):
             cluster_domain=cluster.immute_domain,
         )
 
-        # 获取集群的告警配置
+        # 获取集群的个性化配置
         alarm_config = get_sqlserver_alarm_config(
             bk_biz_id=cluster.bk_biz_id,
             db_module_id=cluster.db_module_id,

@@ -12,9 +12,11 @@ package osutil
 
 import (
 	"bytes"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -138,6 +140,21 @@ func StandardPowerShellCommand(param string) (stdoutStr string, err error) {
 
 // StandardPowerShellCommands TODO
 func StandardPowerShellCommands(params []string) (stdoutStr string, err error) {
+	for _, param := range params {
+		ret, err := StandardPowerShellCommand(param)
+		if err != nil {
+			return ret, err
+		}
+	}
+	return "", nil
+}
+
+// StandardPowerShellCommandsForSleep TODO
+func StandardPowerShellCommandsForSleep(params []string) (stdoutStr string, err error) {
+	randomNum := float64(rand.Intn(10)+1) / 10.0
+	// 将随机数乘以10，然后转换为time.Duration类型
+	sleepTime := time.Duration(randomNum * 10 * float64(time.Second))
+	time.Sleep(sleepTime)
 	for _, param := range params {
 		ret, err := StandardPowerShellCommand(param)
 		if err != nil {

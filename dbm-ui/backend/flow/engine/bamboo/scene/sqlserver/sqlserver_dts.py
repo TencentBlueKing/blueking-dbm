@@ -97,8 +97,8 @@ class SqlserverDTSFlow(BaseFlow):
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
             sub_flow_context["dts_infos"] = sub_flow_context.pop("rename_infos")
-            sub_flow_context["target_backup_dir"] = f"d:\\dbbak\\dts_full_{self.root_id}\\"
-            sub_flow_context["job_id"] = f"dts_full_{self.root_id}"
+            sub_flow_context["target_backup_dir"] = f"d:\\dbbak\\dts_full_{self.root_id}_{master_instance.port}\\"
+            sub_flow_context["job_id"] = f"dts_full_{self.root_id}_{master_instance.port}"
             sub_flow_context["backup_dbs"] = [i["db_name"] for i in info["rename_infos"]]
             sub_flow_context["is_set_full_model"] = False
 
@@ -310,8 +310,8 @@ class SqlserverDTSFlow(BaseFlow):
             sub_flow_context.pop("infos")
             sub_flow_context.update(info)
             sub_flow_context["dts_infos"] = sub_flow_context.pop("rename_infos")
-            sub_flow_context["target_backup_dir"] = f"d:\\dbbak\\dts_full_{self.root_id}\\"
-            sub_flow_context["job_id"] = f"dts_full_{self.root_id}"
+            sub_flow_context["target_backup_dir"] = f"d:\\dbbak\\dts_incr_{self.root_id}_{master_instance.port}\\"
+            sub_flow_context["job_id"] = f"dts_incr_{self.root_id}_{master_instance.port}"
             sub_flow_context["backup_dbs"] = [i["db_name"] for i in info["rename_infos"]]
 
             # 声明子流程

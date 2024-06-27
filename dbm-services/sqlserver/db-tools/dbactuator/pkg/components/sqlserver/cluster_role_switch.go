@@ -393,7 +393,7 @@ func (c *ClusterRoleSwitchComp) ExecSnapShot() (err error) {
 		if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SnapShot", "1,"); err != nil {
 			logger.Error(fmt.Sprintf("exec Sys_AutoSwitch_SnapShot failed: %s", err.Error()))
 		}
-		// 删除新master的历史快照
+		// 创建新master的历史快照
 		if err := execSwitchSP(c.MasterDB, "Sys_AutoSwitch_SnapShot", "0,"); err != nil {
 			logger.Error(fmt.Sprintf("exec Sys_AutoSwitch_SnapShot failed: %s", err.Error()))
 		}

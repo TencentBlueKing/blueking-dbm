@@ -22,6 +22,7 @@ from backend.flow.consts import NoSync, SqlserverCleanMode, SqlserverLoginExecMo
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
+from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import install_surrounding_apps_sub_flow
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.sqlserver.create_random_job_user import SqlserverAddJobUserComponent
 from backend.flow.plugins.components.collections.sqlserver.drop_random_job_user import SqlserverDropJobUserComponent
@@ -123,23 +124,54 @@ class SqlserverResetFlow(BaseFlow):
                 act_component_code=TransFileInWindowsComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        target_hosts=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                        target_hosts=[
+                            Host(ip=i.machine.ip, bk_cloud_id=cluster.bk_cloud_id)
+                            for i in cluster.storageinstance_set.all()
+                        ],
                         file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
                     ),
                 ),
             )
 
+            # 清理周边实例配置
+            acts_list = []
+            for instance in cluster.storageinstance_set.all():
+                acts_list.append(
+                    {
+                        "act_name": _("[{}]清理Job/LinkServer".format(instance.ip_port)),
+                        "act_component_code": SqlserverActuatorScriptComponent.code,
+                        "kwargs": asdict(
+                            ExecActuatorKwargs(
+                                exec_ips=[Host(ip=instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                                get_payload_func=SqlserverActPayload.get_clear_config_payload.__name__,
+                                custom_params={
+                                    "port": instance.port,
+                                    "is_clear_job": True,
+                                    "is_clear_linkserver": True,
+                                },
+                            )
+                        ),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
             # 清理业务账号
-            sub_pipeline.add_act(
-                act_name=_("清理业务账号"),
-                act_component_code=ExecSqlserverLoginComponent.code,
-                kwargs=asdict(
-                    ExecLoginKwargs(
-                        cluster_id=cluster.id,
-                        exec_mode=SqlserverLoginExecMode.DROP.value,
-                    ),
-                ),
-            )
+            acts_list = []
+            for instance in cluster.storageinstance_set.all():
+                acts_list.append(
+                    {
+                        "act_name": _("[{}]清理业务账号".format(instance.ip_port)),
+                        "act_component_code": ExecSqlserverLoginComponent.code,
+                        "kwargs": asdict(
+                            ExecLoginKwargs(
+                                cluster_id=cluster.id,
+                                exec_mode=SqlserverLoginExecMode.DROP.value,
+                                exec_ip=instance.machine.ip,
+                            ),
+                        ),
+                    }
+                )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
             # 清理业务数据库
             if len(sub_flow_context["clean_dbs"]) != 0:
@@ -207,6 +239,20 @@ class SqlserverResetFlow(BaseFlow):
                         db_meta_class_func=SqlserverDBMeta.cluster_reset.__name__,
                     )
                 ),
+            )
+
+            # 重装周边程序
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=install_surrounding_apps_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    bk_biz_id=cluster.bk_biz_id,
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    master_host=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                    slave_host=[Host(ip=i.machine.ip, bk_cloud_id=cluster.bk_cloud_id) for i in slave_infos],
+                    cluster_domain_list=[info["new_immutable_domain"]],
+                    is_install_backup_client=False,
+                )
             )
 
             # 删除随机账号

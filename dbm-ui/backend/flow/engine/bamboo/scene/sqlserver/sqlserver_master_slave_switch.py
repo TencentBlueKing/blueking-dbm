@@ -24,6 +24,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     clone_configs_sub_flow,
+    install_surrounding_apps_sub_flow,
     pre_check_sub_flow,
     switch_domain_sub_flow_for_cluster,
 )
@@ -211,6 +212,20 @@ class SqlserverSwitchFlow(BaseFlow):
                         db_meta_class_func=SqlserverDBMeta.sqlserver_ha_switch.__name__,
                     )
                 ),
+            )
+
+            # 重新配置源数据, 不需要安装备份client
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=install_surrounding_apps_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    bk_biz_id=int(self.data["bk_biz_id"]),
+                    bk_cloud_id=0,
+                    master_host=[Host(**info["master"])],
+                    slave_host=[Host(**info["slave"])],
+                    cluster_domain_list=[i.immute_domain for i in Cluster.objects.filter(id__in=info["cluster_ids"])],
+                    is_install_backup_client=False,
+                )
             )
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("切换子流程")))
