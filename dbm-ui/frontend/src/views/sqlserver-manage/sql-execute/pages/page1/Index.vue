@@ -35,7 +35,7 @@
           <BkSelect
             v-model="formData.charset"
             style="width: 360px">
-            <BkOption value="GBK"> Chinese_PRC_CI_AS </BkOption>
+            <BkOption value="GBK"> GBK </BkOption>
           </BkSelect>
         </BkFormItem>
         <Backup
