@@ -12,12 +12,17 @@
 -->
 
 <template>
-  <TableEditInput
-    ref="editRef"
-    v-model="localDomain"
-    multi-input
-    :placeholder="t('请输入集群')"
-    :rules="rules" />
+  <div class="render-cluster-box">
+    <TableEditInput
+      ref="editRef"
+      v-model="localDomain"
+      multi-input
+      :placeholder="t('请输入集群')"
+      :rules="rules" />
+    <DbIcon
+      class="cluster-btn"
+      type="host-select" />
+  </div>
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -144,3 +149,21 @@
     },
   });
 </script>
+<style lang="less" scoped>
+  .render-cluster-box {
+    position: relative;
+
+    .cluster-btn {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      display: none;
+      padding: 0 10px;
+      cursor: pointer;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+</style>

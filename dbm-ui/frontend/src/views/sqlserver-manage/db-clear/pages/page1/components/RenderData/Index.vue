@@ -45,6 +45,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
+          :required="false"
           :width="190">
           {{ t('指定表名') }}
         </RenderTableHeadColumn>

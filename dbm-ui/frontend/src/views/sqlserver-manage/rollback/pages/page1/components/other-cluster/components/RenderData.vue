@@ -30,13 +30,6 @@
         :min-width="180"
         :width="180">
         {{ t('目标集群') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowBatchSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :min-width="240">
         {{ t('回档类型') }}

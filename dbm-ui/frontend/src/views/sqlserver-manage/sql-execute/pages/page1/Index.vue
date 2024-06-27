@@ -35,8 +35,7 @@
           <BkSelect
             v-model="formData.charset"
             style="width: 360px">
-            <BkOption value="Chinese_PRC_CI_AS"> Chinese_PRC_CI_AS </BkOption>
-            <BkOption value="Latin1_General_100_CI_AS"> Latin1_General_100_CI_AS </BkOption>
+            <BkOption value="GBK"> GBK </BkOption>
           </BkSelect>
         </BkFormItem>
         <Backup
@@ -93,7 +92,7 @@
   const router = useRouter();
 
   const createDefaultData = () => ({
-    charset: 'Chinese_PRC_CI_AS',
+    charset: 'GBK',
     cluster_ids: [],
     import_mode: 'manual',
     execute_sql_files: [],

@@ -160,7 +160,7 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'MSSQL_RENAME_DBS',
+          ticket_type: 'SQLSERVER_DBRENAME',
           remark: '',
           details: {
             infos: data,

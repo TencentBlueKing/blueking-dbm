@@ -17,32 +17,33 @@
       <td style="padding: 0">
         <RenderCluster
           ref="srcClusterRef"
-          v-model="localClusterData" />
+          v-model="localSrcClusterData" />
       </td>
       <td style="padding: 0">
         <RenderCluster
           ref="dstClusterRef"
-          v-model="localClusterData" />
+          v-model="localDstClusterData" />
       </td>
       <td style="padding: 0">
         <RenderMode
           ref="modeRef"
-          :cluster-id="localClusterData?.id"
+          :cluster-id="localSrcClusterData?.id"
           :restore-backup-file="data.restoreBackupFile"
           :restore-time="data.restoreTime" />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="dbNameRef"
-          check-exist
-          :cluster-id="localClusterData?.id"
+          check-not-exist
+          :cluster-id="localSrcClusterData?.id"
           :model-value="localDbName"
           @change="handleDbNameChange" />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbNameRef"
-          :cluster-id="localClusterData?.id"
+          check-not-exist
+          :cluster-id="localSrcClusterData?.id"
           :model-value="localDbIgnoreName"
           :required="false"
           @change="handleTargerNameChange" />
@@ -52,7 +53,7 @@
           ref="renameDbNameRef"
           v-model:db-ignore-name="localDbIgnoreName"
           v-model:db-name="localDbName"
-          :cluster-data="localClusterData" />
+          :cluster-data="localSrcClusterData" />
       </td>
       <td>
         <div class="action-box">
@@ -86,6 +87,11 @@
       domain: string;
       cloudId: number | null;
     };
+    dstClusterData?: {
+      id: number;
+      domain: string;
+      cloudId: number | null;
+    };
     restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
     restoreTime?: string;
     dbName?: string;
@@ -97,6 +103,7 @@
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
     clusterData: data.clusterData,
+    dstClusterData: data.dstClusterData,
     restoreBackupFile: data.restoreBackupFile,
     restoreTime: data.restoreTime || '',
     dbName: data.dbName,
@@ -138,7 +145,8 @@
   const ignoreDbNameRef = ref<InstanceType<typeof RenderDbName>>();
   const renameDbNameRef = ref<InstanceType<typeof RenderRename>>();
 
-  const localClusterData = ref<IDataRow['clusterData']>();
+  const localSrcClusterData = ref<IDataRow['clusterData']>();
+  const localDstClusterData = ref<IDataRow['dstClusterData']>();
   const localDbName = ref<string[]>([]);
   const localDbIgnoreName = ref<string[]>([]);
 
@@ -146,8 +154,12 @@
     () => props.data,
     () => {
       if (props.data.clusterData) {
-        localClusterData.value = props.data.clusterData;
+        localSrcClusterData.value = props.data.clusterData;
       }
+      if (props.data.dstClusterData) {
+        localDstClusterData.value = props.data.dstClusterData;
+      }
+      console.log('props.data.dstClusterData = ', props.data.dstClusterData);
     },
     {
       immediate: true,

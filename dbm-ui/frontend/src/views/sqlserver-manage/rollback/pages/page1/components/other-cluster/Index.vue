@@ -2,7 +2,8 @@
   <div>
     <RenderData
       class="mt16"
-      @batch-select-cluster="handleShowBatchSelector">
+      @batch-select-cluster="handleShowBatchSelector"
+      @batch-select-target-cluster="handleShowBatchTargetSelector">
       <RenderDataRow
         v-for="(item, index) in tableData"
         :key="item.rowKey"
@@ -13,9 +14,9 @@
         @remove="handleRemove(index)" />
     </RenderData>
     <ClusterSelector
-      v-model:is-show="isShowBatchSelector"
+      v-model:is-show="isShowBatchSrcSelector"
       :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
-      :selected="selectedClusters"
+      :selected="selectedSrcClusters"
       @change="handelClusterChange" />
   </div>
 </template>
@@ -25,7 +26,7 @@
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const/index';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
@@ -42,8 +43,12 @@
   };
 
   const rowRefs = ref();
-  const isShowBatchSelector = ref(false);
-  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
+  const isShowBatchSrcSelector = ref(false);
+  const isShowBatchTargetSelector = ref(false);
+
+  const selectedSrcClusters = shallowRef<{
+    [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[];
+  }>({
     [ClusterTypes.SQLSERVER_HA]: [],
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
@@ -52,12 +57,17 @@
 
   // 批量选择
   const handleShowBatchSelector = () => {
-    isShowBatchSelector.value = true;
+    isShowBatchSrcSelector.value = true;
   };
+
+  const handleShowBatchTargetSelector = () => {
+    isShowBatchTargetSelector.value = true;
+  };
+
   const handelClusterChange = (selected: {
     [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
   }) => {
-    selectedClusters.value = selected;
+    selectedSrcClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
       const row = createRowData({
@@ -78,6 +88,7 @@
     }
     window.changeConfirm = true;
   };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
