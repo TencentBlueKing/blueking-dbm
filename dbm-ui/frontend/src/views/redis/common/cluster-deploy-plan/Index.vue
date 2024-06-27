@@ -320,6 +320,8 @@
 
   const cluserMachineMap = {
     [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
+    [RedisClusterTypes.PredixyRedisCluster]: 'tendiscache',
+    [RedisClusterTypes.RedisInstance]: 'tendiscache',
     [RedisClusterTypes.TwemproxyRedisInstance]: 'tendiscache',
     [RedisClusterTypes.TwemproxyTendisSSDInstance]: 'tendisssd',
   };
