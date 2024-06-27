@@ -200,15 +200,15 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
             ),
             Flow(
                 ticket=self.ticket,
-                flow_type=FlowType.RESOURCE_DELIVERY,
-                flow_alias=_("资源确认"),
-            ),
-            Flow(
-                ticket=self.ticket,
                 flow_type=FlowType.INNER_FLOW.value,
                 details=TendbFixPointRollbackFlowParamBuilder(self.ticket).get_params(),
                 flow_alias=_("TenDBCluster 回档执行"),
                 retry_type=FlowRetryType.MANUAL_RETRY.value,
+            ),
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.RESOURCE_DELIVERY,
+                flow_alias=_("资源确认"),
             ),
         ]
         return flows
@@ -216,5 +216,5 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("资源确认"), _("TenDBCluster 回档执行")])
+        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("TenDBCluster 回档执行"), _("资源确认")])
         return flow_desc
