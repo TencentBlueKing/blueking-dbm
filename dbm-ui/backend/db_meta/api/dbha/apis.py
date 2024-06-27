@@ -117,7 +117,7 @@ def instances(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     cluster_types: Optional[List[str]] = None,
     hash_cnt: Optional[int] = None,
-    hash_value: Optional[List[str]] = None,
+    hash_value: Optional[int] = None,
 ):
 
     logical_city_ids = request_validator.validated_integer_list(logical_city_ids)
