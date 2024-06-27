@@ -12,8 +12,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { ClusterTypes } from '@common/const';
-
 export type AddonsFunctions = 'redis_nameservice';
 export type MySQLFunctions = 'toolbox' | 'tendbsingle' | 'tendbha' | 'tendbcluster' | 'tendbcluster_toolbox';
 export type RedisFunctions =
@@ -25,7 +23,7 @@ export type RedisFunctions =
   | 'toolbox';
 export type BigdataFunctions = 'es' | 'kafka' | 'hdfs' | 'influxdb' | 'pulsar' | 'riak' | 'doris';
 export type MonitorFunctions = 'duty_rule' | 'monitor_policy' | 'notice_group';
-export type MongoFunctions = 'mongodb';
+export type MongoFunctions = 'mongodb' | 'MongoReplicaSet' | 'MongoShardedCluster';
 export type SqlServerFunctions = 'sqlserverCluster' | 'sqlserver_single' | 'sqlserver_ha' | 'sqlserver_tool';
 export type FunctionKeys =
   | AddonsFunctions
@@ -35,7 +33,6 @@ export type FunctionKeys =
   | MonitorFunctions
   | SqlServerFunctions
   | MongoFunctions;
-export type FunctionTabId = FunctionKeys | ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER;
 
 export interface ControllerBaseInfo {
   is_enabled: boolean;
@@ -53,7 +50,7 @@ interface ControllerData {
   monitor: ControllerItem<MonitorFunctions>;
   mongodb: ControllerItem<MongoFunctions>;
   sqlserver: ControllerItem<SqlServerFunctions>;
-  riak: ControllerItem<SqlServerFunctions>;
+
   personalWorkbench: ControllerItem<string>;
   'personalWorkbench.serviceApply': ControllerItem<string>;
   'personalWorkbench.myTickets': ControllerItem<string>;
@@ -190,7 +187,6 @@ export default class FunctionController {
   monitor: ControllerItem<MonitorFunctions>;
   mongodb: ControllerItem<MongoFunctions>;
   sqlserver: ControllerItem<SqlServerFunctions>;
-  riak: ControllerItem<SqlServerFunctions>;
 
   // dbconsole 路由有关的开关
   personalWorkbench: ControllerItem<string>;
@@ -326,7 +322,6 @@ export default class FunctionController {
     this.bigdata = payload.bigdata;
     this.monitor = payload.monitor;
     this.sqlserver = payload.sqlserver;
-    this.riak = payload.riak;
 
     this.personalWorkbench = payload.personalWorkbench;
     this.observableManage = payload.observableManage;
