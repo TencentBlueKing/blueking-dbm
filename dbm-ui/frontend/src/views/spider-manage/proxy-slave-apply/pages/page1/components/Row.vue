@@ -128,6 +128,7 @@
   const querySpecList = async (type: string) => {
     const ret = await getResourceSpecList({
       spec_cluster_type: type,
+      spec_machine_type: 'spider',
       limit: -1,
       offset: 0,
     });
