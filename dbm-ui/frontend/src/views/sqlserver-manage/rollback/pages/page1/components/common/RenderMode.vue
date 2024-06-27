@@ -120,7 +120,7 @@
     logRecordList.value = [];
     logRecordListMemo = [];
     queryBackupLogs({
-      cluster_id: 58 || (props.clusterId as number),
+      cluster_id: props.clusterId as number,
       days: 30,
     }).then((dataList) => {
       logRecordList.value = dataList.map((item) => ({

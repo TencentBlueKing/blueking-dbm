@@ -36,10 +36,10 @@
       </div>
     </DbFormItem>
     <ClusterSelector
-        v-model:is-show="isShowClusterSelector"
-        :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
-        :selected="selectedClusters"
-        @change="handelClusterChange" />
+      v-model:is-show="isShowClusterSelector"
+      :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
+      :selected="selectedClusters"
+      @change="handelClusterChange" />
   </div>
 </template>
 <script lang="tsx">
@@ -92,7 +92,7 @@
     {
       label: t('类型'),
       field: 'cluster_type',
-      render: ({ data }: {data: IClusterData}) => (data.cluster_type === 'tendbha' ? t('主从') : t('单节点')),
+      render: ({ data }: {data: IClusterData}) => (data.cluster_type === 'sqlserver_ha' ? t('主从') : t('单节点')),
     },
     {
       label: t('状态'),
@@ -199,8 +199,6 @@
     };
     triggerChange();
   };
-
-
 </script>
 <style lang="less">
   .sql-execute-target-cluster {
