@@ -20,7 +20,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole, TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -85,15 +85,15 @@ class DbConsoleDumpSqlFlow(object):
 
     def __get_read_instance(self, cluster: Cluster) -> dict:
         if cluster.cluster_type == ClusterType.TenDBCluster:
-            backend_info = StorageInstance.objects.filter(
+            backend_info = ProxyInstance.objects.filter(
                 cluster=cluster,
-                instance_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE,
             ).first()
             # 如果不存在slave spider,则使用master spider
             if backend_info is None:
-                backend_info = StorageInstance.objects.filter(
+                backend_info = ProxyInstance.objects.filter(
                     cluster=cluster,
-                    instance_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
                 ).first()
         else:
             backend_info = StorageInstance.objects.filter(
@@ -101,7 +101,6 @@ class DbConsoleDumpSqlFlow(object):
                 instance_role__in=[
                     InstanceRole.ORPHAN,
                     InstanceRole.BACKEND_SLAVE,
-                    TenDBClusterSpiderRole.SPIDER_SLAVE,
                 ],
             ).first()
         if backend_info is None:
