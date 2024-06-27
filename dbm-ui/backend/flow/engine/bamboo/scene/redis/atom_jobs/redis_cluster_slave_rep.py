@@ -16,16 +16,18 @@ from typing import Dict
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import InstanceRole
-from backend.db_services.redis.util import is_predixy_proxy_type
-from backend.flow.consts import DEFAULT_REDIS_START_PORT, SyncType
+from backend.db_meta.enums import ClusterEntryRole, InstanceRole
+from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal
+from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
-from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
 
+from .access_manager import AccessManagerAtomJob
 from .redis_install import RedisBatchInstallAtomJob
 from .redis_makesync import RedisMakeSyncAtomJob
 from .redis_shutdown import RedisBatchShutdownAtomJob
@@ -52,11 +54,13 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     """
     act_kwargs = deepcopy(sub_kwargs)
     redis_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-    sub_pipelines, newslave_to_master, replace_link_info = [], {}, {}
+    sub_pipelines, newslave_to_master, replace_link_info, old_slaves, new_slaves = [], {}, {}, [], []
     slave_replace_detail = slave_replace_info["redis_slave"]
 
     for replace_link in slave_replace_detail:
         old_slave, new_slave = replace_link["ip"], replace_link["target"]["ip"]
+        old_slaves.append(old_slave)
+        new_slaves.append(new_slave)
         new_ins_port = DEFAULT_REDIS_START_PORT
         old_ports = act_kwargs.cluster["slave_ports"][old_slave]
         old_ports.sort()  # 升序
@@ -166,6 +170,68 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         act_name=_("Redis-新节点加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
     # #### 新节点加入集群 ################################################################# 完毕 ###
+
+    # rediscluster集群类型需要更新Nodes域名 ########################################################
+    if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
+        # nodes写入元数据。这个必须在添加nodes域名之前
+        # 这个地方的node需要先保证都是这种格式
+        act_kwargs.cluster["nodes_domain"] = "nodes." + act_kwargs.cluster["immute_domain"]
+        act_kwargs.cluster["meta_func_name"] = RedisDBMeta.update_cluster_entry.__name__
+        redis_pipeline.add_act(
+            act_name=_("Redis-更新sbind_entry元数据"),
+            act_component_code=RedisDBMetaComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
+
+        # 增加nodes域名
+        access_sub_builder = AccessManagerAtomJob(
+            root_id,
+            ticket_data,
+            act_kwargs,
+            {
+                "cluster_id": act_kwargs.cluster["cluster_id"],
+                "port": DEFAULT_REDIS_START_PORT,
+                "add_ips": new_slaves,
+                "op_type": DnsOpType.CREATE,
+                "role": [ClusterEntryRole.NODE_ENTRY.value],
+            },
+        )
+        if access_sub_builder:
+            redis_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
+        # 如果这里为空，说明之前并不存在nodes接入层记录，此时，需要用另一种方式初始化nodes域名
+        else:
+            act_kwargs.exec_ip = new_slaves
+            redis_pipeline.add_act(
+                act_name=_("Redis-初始化nodes域名"),
+                act_component_code=RedisDnsManageComponent.code,
+                kwargs={
+                    **asdict(act_kwargs),
+                    **asdict(
+                        DnsKwargs(
+                            dns_op_type=DnsOpType.CREATE,
+                            add_domain_name="nodes." + act_kwargs.cluster["immute_domain"],
+                            dns_op_exec_port=DEFAULT_REDIS_START_PORT,
+                        )
+                    ),
+                },
+            )
+
+        # 删除老实例的nodes域名
+        access_sub_builder = AccessManagerAtomJob(
+            root_id,
+            ticket_data,
+            act_kwargs,
+            {
+                "cluster_id": act_kwargs.cluster["cluster_id"],
+                "port": DEFAULT_REDIS_START_PORT,
+                "del_ips": old_slaves,
+                "op_type": DnsOpType.RECYCLE_RECORD,
+                "role": [ClusterEntryRole.NODE_ENTRY.value],
+            },
+        )
+        if access_sub_builder:
+            redis_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
+    # #### rediscluster集群类型需要更新Nodes域名 ############################################### 完毕 ###
 
     # predixy类型的集群需要刷新配置文件 #################################################################
     if is_predixy_proxy_type(act_kwargs.cluster["cluster_type"]):
