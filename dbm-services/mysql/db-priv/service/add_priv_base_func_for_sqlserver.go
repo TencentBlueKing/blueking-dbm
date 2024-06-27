@@ -146,11 +146,39 @@ func ImportSqlserverPrivilege(account TbAccounts, rules []TbAccountRules, bkClou
 		var queryRequest = QueryRequest{[]string{address}, backendSQL, false, 60, bkCloudId}
 		_, err = OneAddressExecuteSqlserverSql(queryRequest)
 		if err != nil {
-			slog.Error("OneAddressExecuteSqlserverSql", err)
+			slog.Error("ImportSqlserverPrivilege failed", err)
 			return err
 		}
 	}
 
+	return nil
+}
+
+// SaveAutoGRant 保存授权配置到实例
+func SaveAutoGRant(account TbAccounts, rules []TbAccountRules, bkCloudId int64, storage []Storage) error {
+	tableName := "[Monitor].[dbo].[AUTO_GRANT]"
+	var sqls []string
+	var addresses []string
+	for _, rule := range rules {
+		for _, p := range strings.Split(rule.Priv, ",") {
+			sqls = append(
+				sqls,
+				fmt.Sprintf("delete from %s where [ACCOUNT] = '%s' and [GRANT_DB] = '%s' and [GRANT_TYPE] = '%s';",
+					tableName, account.User, rule.Dbname, p),
+				fmt.Sprintf("insert into %s values('%s','%s','%s','getdate()');",
+					tableName, account.User, rule.Dbname, p),
+			)
+		}
+	}
+	for _, s := range storage {
+		addresses = append(addresses, fmt.Sprintf("%s:%d", s.IP, s.Port))
+	}
+	var queryRequest = QueryRequest{addresses, sqls, false, 60, bkCloudId}
+	_, err := OneAddressExecuteSqlserverSql(queryRequest)
+	if err != nil {
+		slog.Error("SaveAutoGRant failed", err)
+		return err
+	}
 	return nil
 }
 
