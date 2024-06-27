@@ -18,22 +18,20 @@
     type="unborder-card">
     <BkTabPanel
       v-for="tab of renderTabs"
-      :key="tab.name"
-      :label="tab.label"
-      :name="tab.name" />
+      :key="tab.id"
+      :label="tab.name"
+      :name="tab.id" />
   </BkTab>
 </template>
 
 <script setup lang="ts">
-  import type { ControllerBaseInfo } from '@services/model/function-controller/functionController';
-
   import { useFunController } from '@stores';
 
   import { DBTypeInfos, DBTypes } from '@common/const';
 
   interface TabItem {
-    label: string;
-    name: DBTypes;
+    id: DBTypes;
+    name: string;
   }
 
   const funControllerStore = useFunController();
@@ -43,21 +41,10 @@
   });
 
   const renderTabs = Object.values(DBTypeInfos).reduce((result, item) => {
-    const { id: dbType, name, moduleId } = item;
-    const data = funControllerStore.funControllerData[moduleId];
-    if (dbType === moduleId && data?.is_enabled) {
-      result.push({
-        label: name,
-        name: dbType,
-      });
-    } else {
-      const children = data?.children as Record<DBTypes, ControllerBaseInfo>;
-      if (children[dbType]?.is_enabled) {
-        result.push({
-          label: name,
-          name: dbType,
-        });
-      }
+    const { id, name, moduleId } = item;
+    const data = funControllerStore.funControllerData.getFlatData(moduleId);
+    if (data[id]) {
+      result.push({ id, name });
     }
     return result;
   }, [] as TabItem[]);

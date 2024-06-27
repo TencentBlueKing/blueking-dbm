@@ -18,25 +18,20 @@
     type="unborder-card">
     <BkTabPanel
       v-for="tab of renderTabs"
-      :key="tab.name"
-      :label="tab.label"
-      :name="tab.name" />
+      :key="tab.id"
+      :label="tab.name"
+      :name="tab.id" />
   </BkTab>
 </template>
 
 <script setup lang="ts">
-  import type {
-    ControllerBaseInfo,
-    ExtractedControllerDataKeys,
-  } from '@services/model/function-controller/functionController';
-
   import { useFunController } from '@stores';
 
   import { clusterTypeInfos, ClusterTypes } from '@common/const';
 
   interface TabItem {
-    label: string;
-    name: ClusterTypes;
+    id: ClusterTypes;
+    name: string;
   }
 
   const funControllerStore = useFunController();
@@ -46,22 +41,10 @@
   });
 
   const renderTabs = Object.values(clusterTypeInfos).reduce((result, item) => {
-    const { id: clusterType, name, dbType, moduleId } = item;
-    const realModuleId = moduleId ?? (dbType as ExtractedControllerDataKeys);
-    const data = funControllerStore.funControllerData[realModuleId];
-    if (dbType === moduleId && data?.is_enabled) {
-      result.push({
-        label: name,
-        name: clusterType,
-      });
-    } else {
-      const children = data?.children as Record<ClusterTypes, ControllerBaseInfo>;
-      if (children[clusterType]?.is_enabled) {
-        result.push({
-          label: name,
-          name: clusterType,
-        });
-      }
+    const { id, name, dbType, moduleId } = item;
+    const data = funControllerStore.funControllerData.getFlatData(moduleId);
+    if (data[dbType]) {
+      result.push({ id, name });
     }
     return result;
   }, [] as TabItem[]);

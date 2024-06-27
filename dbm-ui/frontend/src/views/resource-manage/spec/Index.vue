@@ -40,7 +40,7 @@
   import type {
     ControllerBaseInfo,
     ExtractedControllerDataKeys,
-    FunctionTabId,
+    FunctionKeys,
   } from '@services/model/function-controller/functionController';
 
   import { useFunController } from '@stores';
@@ -54,7 +54,7 @@
   interface TabItem {
     moduleId: ExtractedControllerDataKeys;
     label: string;
-    name: FunctionTabId;
+    name: FunctionKeys;
     children: {
       label: string;
       name: string;

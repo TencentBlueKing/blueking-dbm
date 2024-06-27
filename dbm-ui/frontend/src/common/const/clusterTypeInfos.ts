@@ -9,7 +9,7 @@ interface InfoItem {
   id: ClusterTypes;
   name: string;
   dbType: DBTypes;
-  moduleId?: ExtractedControllerDataKeys;
+  moduleId: ExtractedControllerDataKeys;
 }
 type InfoType = {
   [x in ClusterTypes]?: InfoItem;
@@ -23,16 +23,19 @@ const mysql: InfoType = {
     id: ClusterTypes.TENDBSINGLE,
     name: t('MySQL单节点'),
     dbType: DBTypes.MYSQL,
+    moduleId: 'mysql',
   },
   [ClusterTypes.TENDBHA]: {
     id: ClusterTypes.TENDBHA,
     name: t('MySQL主从'),
     dbType: DBTypes.MYSQL,
+    moduleId: 'mysql',
   },
   [ClusterTypes.TENDBCLUSTER]: {
     id: ClusterTypes.TENDBCLUSTER,
     name: 'TenDBCluster',
     dbType: DBTypes.MYSQL,
+    moduleId: 'mysql',
   },
 };
 
@@ -41,26 +44,31 @@ const redis: InfoType = {
     id: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
     name: 'TendisCache',
     dbType: DBTypes.REDIS,
+    moduleId: 'redis',
   },
   [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE]: {
     id: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
     name: 'TendisSSD',
     dbType: DBTypes.REDIS,
+    moduleId: 'redis',
   },
   [ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
     name: 'Tendisplus',
     dbType: DBTypes.REDIS,
+    moduleId: 'redis',
   },
   [ClusterTypes.PREDIXY_REDIS_CLUSTER]: {
     id: ClusterTypes.PREDIXY_REDIS_CLUSTER,
     name: 'RedisCluster',
     dbType: DBTypes.REDIS,
+    moduleId: 'redis',
   },
   [ClusterTypes.REDIS_INSTANCE]: {
     id: ClusterTypes.REDIS_INSTANCE,
     name: t('Redis主从'),
     dbType: DBTypes.REDIS,
+    moduleId: 'redis',
   },
 };
 
@@ -114,11 +122,13 @@ const mongo: InfoType = {
     id: ClusterTypes.MONGO_REPLICA_SET,
     name: t('Mongo副本集'),
     dbType: DBTypes.MONGODB,
+    moduleId: 'mongodb',
   },
   [ClusterTypes.MONGO_SHARED_CLUSTER]: {
     id: ClusterTypes.MONGO_SHARED_CLUSTER,
     name: t('Mongo分片集'),
     dbType: DBTypes.MONGODB,
+    moduleId: 'mongodb',
   },
 };
 
@@ -127,11 +137,13 @@ const sqlserver: InfoType = {
     id: ClusterTypes.SQLSERVER_SINGLE,
     name: t('SQLServer单节点'),
     dbType: DBTypes.SQLSERVER,
+    moduleId: 'sqlserver',
   },
   [ClusterTypes.SQLSERVER_HA]: {
     id: ClusterTypes.SQLSERVER_HA,
     name: t('SQLServer主从'),
     dbType: DBTypes.SQLSERVER,
+    moduleId: 'sqlserver',
   },
 };
 
