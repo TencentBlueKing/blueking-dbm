@@ -18,17 +18,10 @@
       :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
       :selected="selectedSrcClusters"
       @change="handelClusterChange" />
-    <ClusterSelector
-      v-model:is-show="isShowBatchTargetSelector"
-      :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
-      :selected="selectedTargetClusters"
-      :tab-list-config="dstClusterSelectorTabListConfig"
-      @change="handelTargetClusterChange" />
   </div>
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
 
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
@@ -39,8 +32,6 @@
 
   import RenderData from './components/RenderData.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
-
-  const { t } = useI18n();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -62,35 +53,7 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
 
-  const selectedTargetClusters = shallowRef<{
-    [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[];
-  }>({
-    [ClusterTypes.SQLSERVER_HA]: [],
-    [ClusterTypes.SQLSERVER_SINGLE]: [],
-  });
-
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-
-  const dstClusterSelectorTabListConfig = {
-    [ClusterTypes.SQLSERVER_HA]: {
-      disabledRowConfig: [
-        {
-          handler: (data: SqlServerSingleClusterModel) =>
-            _.flatten(Object.values(selectedSrcClusters.value)).some((item) => item.id === data.id),
-          tip: t('待回档集群'),
-        },
-      ],
-    },
-    [ClusterTypes.SQLSERVER_SINGLE]: {
-      disabledRowConfig: [
-        {
-          handler: (data: SqlServerSingleClusterModel) =>
-            _.flatten(Object.values(selectedSrcClusters.value)).some((item) => item.id === data.id),
-          tip: t('待回档集群'),
-        },
-      ],
-    },
-  };
 
   // 批量选择
   const handleShowBatchSelector = () => {
@@ -124,33 +87,6 @@
       tableData.value = [...tableData.value, ...newList];
     }
     window.changeConfirm = true;
-  };
-
-  const handelTargetClusterChange = (value: {
-    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
-  }) => {
-    selectedTargetClusters.value = value;
-    const lastestTableData = [...tableData.value];
-    _.flatten(Object.values(value)).forEach((clusterData, index) => {
-      const dstClusterData = {
-        id: clusterData.id,
-        domain: clusterData.master_domain,
-        cloudId: clusterData.bk_cloud_id,
-      };
-      if (lastestTableData[index]) {
-        lastestTableData[index] = {
-          ...lastestTableData[index],
-          dstClusterData,
-        };
-      } else {
-        lastestTableData.push(
-          createRowData({
-            dstClusterData,
-          }),
-        );
-      }
-    });
-    tableData.value = lastestTableData;
   };
 
   // 追加一个集群

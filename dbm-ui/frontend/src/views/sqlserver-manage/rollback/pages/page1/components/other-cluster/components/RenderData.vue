@@ -30,13 +30,6 @@
         :min-width="180"
         :width="180">
         {{ t('目标集群') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowBatchTargetSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :min-width="240">
         {{ t('回档类型') }}
@@ -69,7 +62,6 @@
 
   interface Emits {
     (e: 'batchSelectCluster'): void;
-    (e: 'batchSelectTargetCluster'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -78,10 +70,6 @@
 
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
-  };
-
-  const handleShowBatchTargetSelector = () => {
-    emits('batchSelectTargetCluster');
   };
 </script>
 <style lang="less">
