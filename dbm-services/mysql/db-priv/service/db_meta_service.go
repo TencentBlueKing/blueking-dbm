@@ -96,7 +96,14 @@ func GetAllClustersInfo(c *util.Client, id BkBizIdPara) ([]Cluster, error) {
 // GetCluster 根据域名获取集群信息
 func GetCluster(c *util.Client, ClusterType string, dns Domain) (Instance, error) {
 	var resp Instance
-	url := fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/mysql/%s/cluster_instances/", ClusterType)
+	var url string
+	if ClusterType == sqlserverHA || ClusterType == sqlserverSingle || ClusterType == sqlserver {
+		// 走sqlserver授权逻辑
+		url = fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/sqlserver/%s/cluster_instances/", ClusterType)
+	} else {
+		url = fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/mysql/%s/cluster_instances/", ClusterType)
+	}
+
 	result, err := c.Do(http.MethodPost, url, dns)
 	if err != nil {
 		slog.Error("msg", url, err)
