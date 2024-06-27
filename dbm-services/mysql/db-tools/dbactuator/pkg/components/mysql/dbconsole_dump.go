@@ -210,7 +210,7 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 	c.backupDir = path.Join(rootDir, "dbm_console_dump")
 	if !osutil.FileExist(c.backupDir) {
 		logger.Warn("backupdir: %s不存在", c.backupDir)
-		stdOut, err := osutil.StandardShellCommand(false, fmt.Sprintf("mkdir - p %s && chown mysql:mysql %s",
+		stdOut, err := osutil.StandardShellCommand(false, fmt.Sprintf("mkdir -p %s && chown mysql:mysql %s",
 			c.backupDir, c.backupDir))
 		if err != nil {
 			return fmt.Errorf("mkdir %s failed,stdout:%s,err:%w", c.backupDir, stdOut, err)
@@ -238,48 +238,23 @@ func (c *DbConsoleDumpComp) Run() (err error) {
 		dumpOption.GtidPurgedOff = true
 	}
 
-	if c.Params.OneDbOnefile {
-		d1 := mysqlutil.MySQLDumper{
-			DumpDir:         c.backupDir,
-			Ip:              c.Params.Host,
-			Port:            c.Params.Port,
-			DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
-			DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
-			DbNames:         c.dbs,
-			Tables:          c.realTables,
-			IgnoreTables:    c.realIgnoreTables,
-			Where:           c.Params.DumpDetail.Where,
-			DumpCmdFile:     c.dumpCmd,
-			Charset:         c.charset,
-			MySQLDumpOption: dumpOption,
-		}
-		for _, db := range c.dbs {
-			backupfiles = append(backupfiles, fmt.Sprintf("%s.sql", db))
-		}
-		dumper = d1
+	dumper = mysqlutil.MySQLDumper{
+		DumpDir:         c.backupDir,
+		Ip:              c.Params.Host,
+		Port:            c.Params.Port,
+		DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
+		DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
+		DbNames:         c.dbs,
+		Tables:          c.realTables,
+		IgnoreTables:    c.realIgnoreTables,
+		Where:           c.Params.DumpDetail.Where,
+		DumpCmdFile:     c.dumpCmd,
+		Charset:         c.charset,
+		MySQLDumpOption: dumpOption,
+	}
 
-	} else {
-
-		d2 := &mysqlutil.MySQLDumperTogether{
-			MySQLDumper: mysqlutil.MySQLDumper{
-				DumpDir:         c.backupDir,
-				Ip:              c.Params.Host,
-				Port:            c.Params.Port,
-				DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
-				DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
-				DbNames:         c.dbs,
-				Tables:          c.realTables,
-				IgnoreTables:    c.realIgnoreTables,
-				Where:           c.Params.DumpDetail.Where,
-				DumpCmdFile:     c.dumpCmd,
-				Charset:         c.charset,
-				MySQLDumpOption: dumpOption,
-			},
-			OutputfileName: c.Params.UploadDetail.BackupFileName,
-		}
-		backupfiles = []string{c.Params.UploadDetail.BackupFileName}
-		dumper = d2
-
+	for _, db := range c.dbs {
+		backupfiles = append(backupfiles, fmt.Sprintf("%s.sql", db))
 	}
 
 	if err := dumper.Dump(); err != nil {
