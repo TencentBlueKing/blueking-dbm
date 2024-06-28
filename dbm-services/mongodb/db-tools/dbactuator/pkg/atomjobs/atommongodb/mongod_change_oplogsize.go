@@ -179,7 +179,7 @@ func (c *MongoDChangeOplogSize) checkOplogSizeAndFreeSpace() error {
 	oplogSize, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		c.runtime.Logger.Error("get current oplogSize fail, error:%s", err)
 		return fmt.Errorf("get current oplogSize fail, error:%s", err)
@@ -202,7 +202,7 @@ func (c *MongoDChangeOplogSize) checkOplogSizeAndFreeSpace() error {
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		c.runtime.Logger.Error("check free space about mountPoint, error:%s", err)
 		return fmt.Errorf("check free space about mountPoint, error:%s", err)
@@ -239,14 +239,14 @@ func (c *MongoDChangeOplogSize) changeConfigFile() error {
 	if _, err := util.RunBashCmd(
 		authCmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		c.runtime.Logger.Error("change auth config file fail, error:%s", err)
 		return fmt.Errorf("change auth config file fail, error:%s", err)
 	}
 	if _, err := util.RunBashCmd(
 		noAuthCmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		c.runtime.Logger.Error("change noAuth config file fail, error:%s", err)
 		return fmt.Errorf("change noAuth config file fail, error:%s", err)
 	}
@@ -261,7 +261,7 @@ func (c *MongoDChangeOplogSize) changeConfigFile() error {
 	result, err := util.RunBashCmd(
 		checkAuthCmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		c.runtime.Logger.Error("check oplogSize parameter of auth config file fail, error:%s", err)
 		return fmt.Errorf("check oplogSize parameter of auth config file fail, error:%s", err)
@@ -272,7 +272,7 @@ func (c *MongoDChangeOplogSize) changeConfigFile() error {
 	result1, err := util.RunBashCmd(
 		checkNoAuthcmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		c.runtime.Logger.Error("check oplogSize parameter of noAuth config file fail, error:%s", err)
 		return fmt.Errorf("check oplogSize parameter of noAuth config file fail, error:%s", err)
@@ -320,7 +320,7 @@ db.temp.drop();`
 	if _, err = util.RunBashCmd(
 		fmt.Sprintf("chown -R %s.%s %s", c.OsUser, c.OsGroup, c.ScriptDir),
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		c.runtime.Logger.Error("chown script file fail, error:%s", err)
 		return fmt.Errorf("chown script file fail, error:%s", err)
 	}
@@ -349,7 +349,7 @@ func (c *MongoDChangeOplogSize) standaloneStart() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		c.runtime.Logger.Error("startup mongod by port:%d fail, error:%s", c.NewPort, err)
 		return fmt.Errorf("startup mongod by port:%d fail, error:%s", c.NewPort, err)
 	}
@@ -412,7 +412,7 @@ func (c *MongoDChangeOplogSize) dbMon(status string) error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		c.runtime.Logger.Error("%s dbmon fail, error:%s", status, err)
 		return fmt.Errorf("%s dbmon fail, error:%s", status, err)
 	}
@@ -445,7 +445,7 @@ func (c *MongoDChangeOplogSize) setOplog() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		c.runtime.Logger.Error("execute script fail, error:%s", err)
 		return fmt.Errorf("execute script fail, error:%s", err)
 	}
@@ -456,7 +456,7 @@ func (c *MongoDChangeOplogSize) setOplog() error {
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		c.runtime.Logger.Error("check the number of new oplog document fail, error:%s", err)
 		return fmt.Errorf("check the number of new oplog document fail, error:%s", err)
@@ -487,7 +487,7 @@ func (c *MongoDChangeOplogSize) setOplog3() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		c.runtime.Logger.Error("change oplogSize fail, error:%s", err)
 		return fmt.Errorf("change oplogSize fail, error:%s", err)
 	}

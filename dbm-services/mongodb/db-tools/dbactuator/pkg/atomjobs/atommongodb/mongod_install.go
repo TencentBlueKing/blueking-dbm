@@ -271,7 +271,7 @@ func (m *MongoDBInstall) checkPortUsed() (bool, error) {
 	if flag {
 		// 校验端口是否是mongod进程
 		cmd := fmt.Sprintf("netstat -ntpl |grep %d | awk '{print $7}' |head -1", m.ConfParams.Port)
-		result, _ := util.RunBashCmd(cmd, "", nil, 10*time.Second)
+		result, _ := util.RunBashCmd(cmd, "", nil, 60*time.Second)
 		if strings.Contains(result, "mongod") {
 			// 检查配置文件是否一致，读取已有配置文件与新生成的配置文件内容对比
 			content, _ := os.ReadFile(m.AuthConfFilePath)
@@ -454,21 +454,21 @@ func (m *MongoDBInstall) mkdir() error {
 	if _, err := util.RunBashCmd(
 		fmt.Sprintf("chown -R %s.%s %s", m.OsUser, m.OsGroup, filepath.Join(logPathDir, "../")),
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		m.runtime.Logger.Error(fmt.Sprintf("chown log directory fail, error:%s", err))
 		return fmt.Errorf("chown log directory fail, error:%s", err)
 	}
 	if _, err := util.RunBashCmd(
 		fmt.Sprintf("chown -R %s.%s %s", m.OsUser, m.OsGroup, filepath.Join(m.DbpathDir, "../../")),
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		m.runtime.Logger.Error(fmt.Sprintf("chown data directory fail, error:%s", err))
 		return fmt.Errorf("chown data directory fail, error:%s", err)
 	}
 	if _, err := util.RunBashCmd(
 		fmt.Sprintf("chown -R %s.%s %s", m.OsUser, m.OsGroup, m.BackupDir),
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		m.runtime.Logger.Error(fmt.Sprintf("chown backup directory fail, error:%s", err))
 		return fmt.Errorf("chown backup directory fail, error:%s", err)
 	}

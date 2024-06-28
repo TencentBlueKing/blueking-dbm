@@ -184,7 +184,7 @@ func (v *MongoSetFCV) setParam() error {
 	_, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		v.runtime.Logger.Error("set fcv parameter fail, error:%s", err)
 		return fmt.Errorf("set fcv parameter fail, error:%s", err)
