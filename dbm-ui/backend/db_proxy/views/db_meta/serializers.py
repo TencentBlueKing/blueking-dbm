@@ -11,7 +11,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import ClusterType, InstanceStatus
 from backend.db_proxy.views import mock_data
 from backend.db_proxy.views.serialiers import BaseProxyPassSerializer
 
@@ -25,7 +24,7 @@ class InstancesSerializer(BaseProxyPassSerializer):
     )
     statuses = serializers.ListField(
         help_text=_("状态列表"),
-        child=serializers.ChoiceField(choices=InstanceStatus.get_choices()),
+        child=serializers.CharField(),
         allow_null=True,
         allow_empty=True,
         required=False,
@@ -33,7 +32,7 @@ class InstancesSerializer(BaseProxyPassSerializer):
     bk_cloud_id = serializers.IntegerField()
     cluster_types = serializers.ListField(
         help_text=_("集群类型"),
-        child=serializers.ChoiceField(choices=ClusterType.get_choices()),
+        child=serializers.CharField(),
         allow_null=True,
         allow_empty=True,
         required=False,
