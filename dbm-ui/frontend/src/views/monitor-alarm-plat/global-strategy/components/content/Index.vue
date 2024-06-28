@@ -70,7 +70,9 @@
 
   const { t } = useI18n();
 
-  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) => queryMonitorPolicyList(params, {
+  const dataSource = (params: ServiceParameters<typeof queryMonitorPolicyList>) => queryMonitorPolicyList(Object.assign(params, {
+    db_type: props.activeDbType
+  }), {
     permission: 'catch'
   })
 
@@ -271,18 +273,7 @@
       fetchHostNodes();
     });
   }, {
-    immediate: true,
     deep: true,
-  });
-
-  watch(() => props.activeDbType, (type) => {
-    if (type) {
-      setTimeout(() => {
-        fetchHostNodes();
-      });
-    }
-  }, {
-    immediate: true,
   });
 
   const updateRowClass = (row: MonitorPolicyModel) => (row.isNewCreated ? 'is-new' : '');
