@@ -109,7 +109,8 @@
 
   const columns = [
     {
-      width: 60,
+      width: 54,
+      minWidth: 54,
       label: () => props.multiple && (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
@@ -167,6 +168,7 @@
     {
       label: t('集群'),
       field: 'cluster_name',
+      minWidth: 300,
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
         <div class="cluster-name-box">
@@ -216,6 +218,7 @@
     {
       label: t('集群别名'),
       field: 'cluster_name',
+      width: 200,
       showOverflowTooltip: true,
     },
     // {
@@ -226,6 +229,7 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_id',
+      width: 150,
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,

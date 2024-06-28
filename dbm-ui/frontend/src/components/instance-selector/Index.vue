@@ -259,7 +259,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbClusterHost')[];
+    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
   }

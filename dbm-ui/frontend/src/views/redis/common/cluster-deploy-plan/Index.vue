@@ -175,10 +175,9 @@
         </BkLoading>
       </div>
     </div>
-
     <template #footer>
       <BkButton
-        class="mr-8"
+        class="w-88 ml-16"
         :disabled="!isAbleSubmit"
         :loading="isConfirmLoading"
         theme="primary"
@@ -186,6 +185,7 @@
         {{ t('确定') }}
       </BkButton>
       <BkButton
+        class="w-88 ml-8"
         :disabled="isConfirmLoading"
         @click="handleClose">
         {{ t('取消') }}

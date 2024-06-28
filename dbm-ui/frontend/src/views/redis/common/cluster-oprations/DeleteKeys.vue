@@ -495,6 +495,7 @@
     .delete-confirm {
       padding: 0 36px;
       text-align: left;
+      font-size: 14px;
 
       .delete-confirm-item {
         padding-bottom: 4px;

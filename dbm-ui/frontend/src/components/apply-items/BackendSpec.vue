@@ -69,7 +69,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   interface ModelValue {
-    spec_id: number,
+    spec_id: number | '',
     capacity: number | string,
     future_capacity: number | string,
   }
