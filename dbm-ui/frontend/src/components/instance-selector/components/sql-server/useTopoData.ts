@@ -68,7 +68,7 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
         const formatData = data.map((item: T) => ({ ...item, count: countFn ? countFn(item) : item.remote_db.length }));
         const children = formatData.map((item: T) => ({
           id: item.id,
-          name: item.master_domain,
+          name: item.master_domain || '--',
           obj: 'cluster',
           count: item.count,
           children: [],
@@ -88,6 +88,7 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
 
         setTimeout(() => {
           if (data.length > 0) {
+            console.log('treeData.value = ', treeData.value);
             const [firstNode] = treeData.value;
             selectClusterId.value = firstNode.id;
             const [firstRawNode] = treeRef.value.getData().data;

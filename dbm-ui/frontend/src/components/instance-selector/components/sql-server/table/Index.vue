@@ -123,7 +123,7 @@
     validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach(
-    ClusterTypes.TENDBCLUSTER,
+    ClusterTypes.SQLSERVER_HA,
     ['bk_cloud_id'],
     () => fetchResources(),
   );

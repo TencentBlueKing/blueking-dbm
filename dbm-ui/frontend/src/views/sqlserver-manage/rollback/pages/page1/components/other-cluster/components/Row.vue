@@ -115,8 +115,8 @@
   import { ref, watch } from 'vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
 
-  import RenderCluster from '../../common/RenderCluster.vue';
   import RenderMode from '../../common/RenderMode.vue';
 
   import RenderRename from './RenderRename.vue';

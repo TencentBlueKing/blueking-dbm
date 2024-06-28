@@ -61,7 +61,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
-  import { grammarCheck } from '@services/source/sqlImport';
+  import { uploadSql } from '@services/source/sqlServerImport';
   import { getFileContent } from '@services/source/storage';
 
   import { updateFilePath } from '../../../Index.vue';
@@ -168,7 +168,7 @@
     isCheckError.value = false;
     const params = new FormData();
     params.append('sql_content', content.value);
-    grammarCheck(params)
+    uploadSql(params)
       .then((data) => {
         grammarCheckData = data;
         triggerChange();
