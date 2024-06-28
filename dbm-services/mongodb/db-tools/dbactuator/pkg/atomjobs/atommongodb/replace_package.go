@@ -126,7 +126,7 @@ func (r *ReplacePackage) unTarAndRecreateSoftLink() error {
 	if util.FileExists(r.InstallPath) {
 		r.runtime.Logger.Info("start to delete soft link")
 		softLink := fmt.Sprintf("rm -rf %s", r.InstallPath)
-		if _, err := util.RunBashCmd(softLink, "", nil, 10*time.Second); err != nil {
+		if _, err := util.RunBashCmd(softLink, "", nil, 60*time.Second); err != nil {
 			r.runtime.Logger.Error(
 				fmt.Sprintf("delete soft link fail, error:%s", err))
 			return fmt.Errorf("delete soft link, error:%s", err)

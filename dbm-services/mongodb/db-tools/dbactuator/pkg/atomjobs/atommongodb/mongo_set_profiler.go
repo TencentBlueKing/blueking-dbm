@@ -151,7 +151,7 @@ func (s *SetProfiler) setProfileSize() error {
 	if _, err = util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		s.runtime.Logger.Error("delete system.profile fail, error:%s", err)
 		return fmt.Errorf("set system.profile fail, error:%s", err)
 	}
@@ -166,7 +166,7 @@ func (s *SetProfiler) setProfileSize() error {
 	if _, err = util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		s.runtime.Logger.Error("set system.profile size fail, error:%s", err)
 		return fmt.Errorf("set system.profile size fail, error:%s", err)
 	}

@@ -183,7 +183,7 @@ func (d *DelUser) execScript() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		d.runtime.Logger.Error(fmt.Sprintf("execute addUser script fail, error:%s", err))
 		return fmt.Errorf("execute addUser script fail, error:%s", err)
 	}

@@ -161,7 +161,7 @@ func (d *DeInstall) checkConnection() error {
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		d.runtime.Logger.Error("check connection fail, error:%s", err)
 		return fmt.Errorf("check connection fail, error:%s", err)
@@ -212,7 +212,7 @@ func (d *DeInstall) DirRename() error {
 		if _, err := util.RunBashCmd(
 			cmd,
 			"", nil,
-			10*time.Second); err != nil {
+			60*time.Second); err != nil {
 			d.runtime.Logger.Error("rename db directory fail, error:%s", err)
 			return fmt.Errorf("rename db directory fail, error:%s", err)
 		}
@@ -228,7 +228,7 @@ func (d *DeInstall) DirRename() error {
 		if _, err := util.RunBashCmd(
 			cmd,
 			"", nil,
-			10*time.Second); err != nil {
+			60*time.Second); err != nil {
 			d.runtime.Logger.Error("rename log directory fail, error:%s", err)
 			return fmt.Errorf("rename log directory fail, error:%s", err)
 		}
