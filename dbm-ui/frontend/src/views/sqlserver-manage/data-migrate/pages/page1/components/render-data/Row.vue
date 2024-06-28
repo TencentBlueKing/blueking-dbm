@@ -17,25 +17,25 @@
       <td style="padding: 0">
         <RenderCluster
           ref="srcClusterRef"
-          v-model="localClusterData" />
+          v-model="localSrcClusterData" />
       </td>
       <td style="padding: 0">
         <RenderCluster
           ref="dstClusterRef"
-          v-model="localClusterData" />
+          v-model="localDstClusterData" />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="dbNameRef"
           check-exist
-          :cluster-id="localClusterData?.id"
+          :cluster-id="localSrcClusterData?.id"
           :model-value="localDbName"
           @change="handleDbNameChange" />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbNameRef"
-          :cluster-id="localClusterData?.id"
+          :cluster-id="localSrcClusterData?.id"
           :model-value="localDbIgnoreName"
           :required="false"
           @change="handleTargerNameChange" />
@@ -45,7 +45,7 @@
           ref="renameDbNameRef"
           v-model:db-ignore-name="localDbIgnoreName"
           v-model:db-name="localDbName"
-          :cluster-data="localClusterData" />
+          :cluster-data="localSrcClusterData" />
       </td>
       <td>
         <div class="action-box">
@@ -101,8 +101,8 @@
   import { ref, watch } from 'vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
 
-  import RenderCluster from './RenderCluster.vue';
   import RenderRename from './RenderRename.vue';
 
   interface Props {
@@ -128,7 +128,8 @@
   const ignoreDbNameRef = ref<InstanceType<typeof RenderDbName>>();
   const renameDbNameRef = ref<InstanceType<typeof RenderRename>>();
 
-  const localClusterData = ref<IDataRow['srcClusterData']>();
+  const localSrcClusterData = ref<IDataRow['srcClusterData']>();
+  const localDstClusterData = ref<IDataRow['dstClusterData']>();
   const localDbName = ref<string[]>([]);
   const localDbIgnoreName = ref<string[]>([]);
 
@@ -136,7 +137,10 @@
     () => props.data,
     () => {
       if (props.data.srcClusterData) {
-        localClusterData.value = props.data.srcClusterData;
+        localSrcClusterData.value = props.data.srcClusterData;
+      }
+      if (props.data.dstClusterData) {
+        localDstClusterData.value = props.data.dstClusterData;
       }
     },
     {

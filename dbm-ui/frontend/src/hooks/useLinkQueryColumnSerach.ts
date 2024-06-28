@@ -19,20 +19,17 @@ import { queryBizClusterAttrs, queryResourceAdministrationAttrs } from '@service
 import { useGlobalBizs } from '@stores';
 
 import { ClusterTypes } from '@common/const';
-import {
-  batchSplitRegex,
-  domainPort,
-  domainRegex,
-  ipPort,
-  ipv4,
-} from '@common/regex';
+import { batchSplitRegex, domainPort, domainRegex, ipPort, ipv4 } from '@common/regex';
 
 type QueryBizClusterAttrsReturnType = ServiceReturnType<typeof queryBizClusterAttrs>;
 
-export type SearchAttrs = Record<string, {
-  id: string,
-  name: string,
-}[]>;
+export type SearchAttrs = Record<
+  string,
+  {
+    id: string;
+    name: string;
+  }[]
+>;
 
 type ColumnCheckedMap = Record<string, string[]>;
 
@@ -53,9 +50,9 @@ export const useLinkQueryColumnSerach = (
   const columnCheckedMap = ref<ColumnCheckedMap>({});
 
   const batchSearchIpInatanceList = computed(() => {
-    const batchObjList = searchValue.value.filter(item => ['ip', 'instance'].includes(item.id));
+    const batchObjList = searchValue.value.filter((item) => ['ip', 'instance'].includes(item.id));
     if (batchObjList.length > 0) {
-      return _.flatMap(batchObjList.map(item => item.values!.map(value => value.id)));
+      return _.flatMap(batchObjList.map((item) => item.values!.map((value) => value.id)));
     }
     return [];
   });
@@ -63,7 +60,7 @@ export const useLinkQueryColumnSerach = (
   const resourceTypes = ['spotty_host', 'resource_record'];
 
   const sortValue: {
-    ordering?: string,
+    ordering?: string;
   } = {};
 
   if (isQueryAttrs) {
@@ -73,11 +70,13 @@ export const useLinkQueryColumnSerach = (
         resource_type: searchType,
       });
     } else {
-      const attrsObj = isCluster ? {
-        cluster_attrs: attrs.join(','),
-      } : {
-        instances_attrs: attrs.join(','),
-      };
+      const attrsObj = isCluster
+        ? {
+            cluster_attrs: attrs.join(','),
+          }
+        : {
+            instances_attrs: attrs.join(','),
+          };
 
       // 查询表头筛选列表
       requestHandler = queryBizClusterAttrs({
@@ -91,7 +90,7 @@ export const useLinkQueryColumnSerach = (
       columnAttrs.value = resultObj;
       searchAttrs.value = Object.entries(resultObj).reduce((results, item) => {
         Object.assign(results, {
-          [item[0]]: item[1].map(item => ({
+          [item[0]]: item[1].map((item) => ({
             id: item.value,
             name: item.text,
           })),
@@ -112,12 +111,12 @@ export const useLinkQueryColumnSerach = (
       field: string;
       label: string;
       filter: {
-        checked: string[],
+        checked: string[];
         list: {
-          value: string,
-          text: string,
-        }[]
-      }
+          value: string;
+          text: string;
+        }[];
+      };
     };
     index: number;
   }) => {
@@ -126,7 +125,7 @@ export const useLinkQueryColumnSerach = (
       return;
     }
     if (data.checked.length === 0) {
-      searchValue.value = searchValue.value.filter(item => item.id !== data.column.field);
+      searchValue.value = searchValue.value.filter((item) => item.id !== data.column.field);
       fetchDataFn();
       return;
     }
@@ -134,13 +133,13 @@ export const useLinkQueryColumnSerach = (
     const columnSearchObj = {
       id: data.column.field,
       name: data.column.label,
-      values: data.checked.map(item => ({
+      values: data.checked.map((item) => ({
         id: item,
-        name: data.column.filter.list.find(row => row.value === item)?.text ?? '',
+        name: data.column.filter.list.find((row) => row.value === item)?.text ?? '',
       })),
     };
 
-    const index = searchValue.value.findIndex(item => item.id === data.column.field);
+    const index = searchValue.value.findIndex((item) => item.id === data.column.field);
     if (index > -1) {
       // 已存在，替换旧值
       searchValue.value.splice(index, 1, columnSearchObj);
@@ -157,7 +156,7 @@ export const useLinkQueryColumnSerach = (
       label: string;
     };
     index: number;
-    type: 'asc' | 'desc' | 'null'
+    type: 'asc' | 'desc' | 'null';
   }) => {
     if (data.type === 'asc') {
       sortValue.ordering = data.column.field;
@@ -170,18 +169,18 @@ export const useLinkQueryColumnSerach = (
   };
 
   // 搜索框输入校验
-  const validateSearchValues = (item: {id: string}, values: ISearchValue['values']): Promise<true | string> => {
+  const validateSearchValues = (item: { id: string }, values: ISearchValue['values']): Promise<true | string> => {
     // console.log('valid values>>', values);
     if (values) {
       if (['instance', 'ip'].includes(item.id)) {
         const list = values[0].id.split(batchSplitRegex);
-        if (list.some(ip => !ipPort.test(ip) && !ipv4.test(ip))) {
+        if (list.some((ip) => !ipPort.test(ip) && !ipv4.test(ip))) {
           return Promise.resolve(t('格式错误'));
         }
       }
       if (item.id === 'domain') {
         const list = values[0].id.split(batchSplitRegex);
-        if (list.some(ip => !domainRegex.test(ip) && !domainPort.test(ip))) {
+        if (list.some((ip) => !domainRegex.test(ip) && !domainPort.test(ip))) {
           return Promise.resolve(t('格式错误'));
         }
       }
@@ -194,7 +193,7 @@ export const useLinkQueryColumnSerach = (
     // console.log('search>>>', valueList);
     columnCheckedMap.value = valueList.reduce((results, item) => {
       Object.assign(results, {
-        [item.id]: item.values?.map(value => value.id) ?? [],
+        [item.id]: item.values?.map((value) => value.id) ?? [],
       });
       return results;
     }, {} as ColumnCheckedMap);
@@ -212,18 +211,25 @@ export const useLinkQueryColumnSerach = (
         handledValueList.push(item);
         return;
       }
-      const values = item.values ? item.values.reduce((results, value) => {
-        const idList = _.uniq(`${value.id.trim()}`.split(batchSplitRegex));
-        const nameList = _.uniq(`${value.name.trim()}`.split(batchSplitRegex));
-        results.push(...idList.map((id, index) => ({
-          id,
-          name: nameList[index],
-        })));
-        return results;
-      }, [] as {
-        id: string;
-        name: string;
-      }[]) : [];
+      const values = item.values
+        ? item.values.reduce(
+            (results, value) => {
+              const idList = _.uniq(`${value.id.trim()}`.split(batchSplitRegex));
+              const nameList = _.uniq(`${value.name.trim()}`.split(batchSplitRegex));
+              results.push(
+                ...idList.map((id, index) => ({
+                  id,
+                  name: nameList[index],
+                })),
+              );
+              return results;
+            },
+            [] as {
+              id: string;
+              name: string;
+            }[],
+          )
+        : [];
 
       const searchObj = {
         ...item,
@@ -232,7 +238,7 @@ export const useLinkQueryColumnSerach = (
 
       if (item.id === 'domain') {
         // 搜索访问入口，前端去除端口
-        searchObj.values = searchObj.values?.map(value => ({
+        searchObj.values = searchObj.values?.map((value) => ({
           id: value.id.split(':')[0],
           name: value.name,
         }));

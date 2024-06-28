@@ -457,7 +457,6 @@
         },
         tableConfig: {
           getTableList: getMongoInstancesList,
-          multiple: true,
           firsrColumn: {
             label: 'IP',
             field: 'ip',
