@@ -79,7 +79,7 @@
   import { computed, onActivated, onDeactivated, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { grammarCheck } from '@services/source/sqlImport';
+  import { uploadSql } from '@services/source/sqlServerImport';
   import { getFileContent } from '@services/source/storage';
 
   import { getSQLFilename } from '@utils';
@@ -277,7 +277,7 @@
       selectFileName.value = firstFileName;
     }
 
-    grammarCheck(params)
+    uploadSql(params)
       .then((data) => {
         const lastUploadFileDataMap = { ...uploadFileDataMap.value };
         Object.keys(data).forEach((realFilePath) => {

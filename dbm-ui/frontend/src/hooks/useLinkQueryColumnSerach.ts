@@ -183,14 +183,8 @@ export const useLinkQueryColumnSerach = (config: {
   };
 
   // 搜索框输入校验
-  const validateSearchValues = (
-    item: { id: string } | null,
-    values: ISearchValue['values'],
-  ): Promise<true | string> => {
-    if (!item) {
-      return Promise.resolve(true);
-    }
-    // console.log('valid values>>', item, values);
+  const validateSearchValues = (item: { id: string }, values: ISearchValue['values']): Promise<true | string> => {
+    // console.log('valid values>>', values);
     if (values) {
       if (['instance', 'ip'].includes(item.id)) {
         const list = values[0].id.split(batchSplitRegex);
