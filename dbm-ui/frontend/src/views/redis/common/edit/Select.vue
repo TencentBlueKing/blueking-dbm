@@ -43,8 +43,14 @@
         v-for="(item, index) in list"
         :key="index"
         :disabled="item.disabled"
-        :label="item.label"
-        :value="item.value" />
+        :value="item.value">
+        <span>{{ item.label }}</span>
+        <slot
+          v-if="slots.suffix"
+          :index="index"
+          :item="item"
+          name="suffix" />
+      </BkOption>
     </BkSelect>
   </div>
 </template>
@@ -52,9 +58,9 @@
   type IKey = string | number | string[];
 
   export interface IListItem {
-    value: IKey,
-    label: string,
-    disabled?: boolean,
+    value: IKey;
+    label: string;
+    disabled?: boolean;
   }
 </script>
 <script setup lang="ts">
@@ -88,26 +94,31 @@
 
   const modelValue = defineModel<IKey>();
 
+  const slots = useSlots();
   const { message: errorMessage, validator } = useValidtor(props.rules);
 
   const localValue = ref<IKey>('');
 
-  watch(modelValue, (value) => {
-    if (value === undefined) {
-      return;
-    }
-    localValue.value = value;
-    if (typeof value !== 'object' && value) {
-      validator(value);
-      return;
-    }
-    if (Array.isArray(value) && value.length > 0) {
-      validator(value);
-      return;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    modelValue,
+    (value) => {
+      if (value === undefined) {
+        return;
+      }
+      localValue.value = value;
+      if (typeof value !== 'object' && value) {
+        validator(value);
+        return;
+      }
+      if (Array.isArray(value) && value.length > 0) {
+        validator(value);
+        return;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 选择
   const handleSelect = (value: IKey) => {

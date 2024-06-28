@@ -20,8 +20,8 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import type { RedisVersionUpgrade } from '@services/model/ticket/details/redis';
   import TicketModel from '@services/model/ticket/ticket';
-  import type { RedisVersionUpgrade } from '@services/types/ticket';
 
   interface Props {
     ticketDetails: TicketModel<RedisVersionUpgrade>

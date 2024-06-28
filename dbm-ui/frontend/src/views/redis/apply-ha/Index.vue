@@ -18,7 +18,8 @@
         ref="formRef"
         auto-label-width
         class="apply-form mb-16"
-        :model="formData">
+        :model="formData"
+        :rules="rules">
         <DbCard :title="t('业务信息')">
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
@@ -33,10 +34,6 @@
           ref="regionItemRef"
           v-model="formData.details.city_code" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-if="!isAppend"
-            v-model="formData.details.disaster_tolerance_level"
-            :city-code="formData.details.city_code" />
           <BkFormItem
             :label="t('部署方式')"
             property="details.appendApply"
@@ -54,6 +51,10 @@
               </BkRadio>
             </BkRadioGroup>
           </BkFormItem>
+          <AffinityItem
+            v-if="!isAppend"
+            v-model="formData.details.disaster_tolerance_level"
+            :city-code="formData.details.city_code" />
         </DbCard>
         <DbCard :title="t('部署需求')">
           <BkFormItem
@@ -67,6 +68,7 @@
               query-key="redis" />
           </BkFormItem>
           <BkFormItem
+            ref="clusterCountRef"
             :label="t('集群数量')"
             property="details.cluster_count"
             required>
@@ -80,12 +82,14 @@
           </BkFormItem>
           <BkFormItem
             v-if="!isAppend"
+            ref="groupCountRef"
             :label="t('每组主机部署集群')"
             property="details.group_count"
             required>
             <BkInput
               v-model="formData.details.group_count"
               clearable
+              :max="formData.details.cluster_count"
               :min="1"
               show-clear-only-hover
               style="width: 185px"
@@ -196,6 +200,7 @@
 </template>
 
 <script setup lang="ts">
+  import { Form } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
@@ -254,14 +259,42 @@
   const formRef = ref<InstanceType<typeof DbForm>>();
   const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const specRef = ref<InstanceType<typeof SpecSelector>>();
+  const clusterCountRef = ref<InstanceType<typeof Form.FormItem>>();
+  const groupCountRef = ref<InstanceType<typeof Form.FormItem>>();
   const cloudInfo = ref({
     id: '' as number | string,
     name: '',
   });
-  const maxMemory = ref(0);
+  const maxMemory = ref('0G');
   const cityName = ref('');
 
   const formData = reactive(initData());
+
+  const rules = {
+    'details.cluster_count': [
+      {
+        message: t('集群数量 / 每组主机部署集群需为整数'),
+        trigger: 'change',
+        validator: (value: number) => {
+          if (isAppend.value) {
+            return true;
+          }
+          groupCountRef.value!.clearValidate();
+          return value % formData.details.group_count === 0;
+        },
+      },
+    ],
+    'details.group_count': [
+      {
+        message: t('集群数量 / 每组主机部署集群需为整数'),
+        trigger: 'change',
+        validator: (value: number) => {
+          clusterCountRef.value!.clearValidate();
+          return formData.details.cluster_count % value === 0;
+        },
+      },
+    ],
+  };
 
   const isAppend = computed(() => formData.details.appendApply === 'append');
   const machineCount = computed(() => formData.details.cluster_count / formData.details.group_count);
@@ -278,11 +311,11 @@
     ([newSpecId]) => {
       nextTick(() => {
         if (newSpecId) {
-          const { storage_spec: storageSpec } = specRef.value!.getData();
-          const specCapacity = (storageSpec || []).reduce((sizePrev, storageItem) => sizePrev + storageItem.size, 0);
-          maxMemory.value = ((specCapacity * 0.9 * machineCount.value) / formData.details.cluster_count) * 1024;
+          const { mem } = specRef.value!.getData();
+          const capicity = ((mem?.min ?? 0) * 0.9 * machineCount.value) / formData.details.cluster_count;
+          maxMemory.value = `${capicity.toFixed(2)}G`;
         } else {
-          maxMemory.value = 0;
+          maxMemory.value = '0G';
         }
       });
     },
@@ -343,7 +376,7 @@
       ip: value,
       instance_role: 'redis_master',
       bk_cloud_id: formData.details.bk_cloud_id,
-      bk_city_name: cityName.value,
+      region: cityName.value,
     }).then((data) => {
       const redisMachineList = data.results;
       if (redisMachineList.length) {

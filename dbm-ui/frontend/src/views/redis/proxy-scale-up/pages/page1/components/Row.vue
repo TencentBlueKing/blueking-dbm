@@ -52,6 +52,7 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+  import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
@@ -179,6 +180,16 @@
         return;
       }
       specList.value = await querySpecList(rowData);
+      getSpecResourceCount({
+        bk_biz_id: rowData.bk_biz_id,
+        bk_cloud_id: rowData.bk_cloud_id,
+        spec_ids: specList.value.map((item) => item.specData.id),
+      }).then((data) => {
+        specList.value = specList.value.map((item) => ({
+          ...item,
+          count: data[item.specData.id],
+        }));
+      });
     },
     {
       immediate: true,

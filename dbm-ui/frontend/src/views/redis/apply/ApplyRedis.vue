@@ -349,6 +349,7 @@
   </SmartAction>
   <DbSideslider
     v-model:is-show="isShowRecommendArchitectrue"
+    class="recommend-architecture-sideslider"
     :show-footer="false"
     :title="t('如何选择架构？')"
     width="1110">
@@ -446,12 +447,12 @@
       },
       resource_spec: {
         proxy: {
-          spec_id: 0,
+          spec_id: '' as number | '',
           count: 2,
         },
         backend_group: {
           count: 0,
-          spec_id: 0,
+          spec_id: '' as number | '',
           capacity: '' as number | string,
           future_capacity: '' as number | string,
           affinity: 'NONE',
@@ -609,11 +610,11 @@
 
   const handleChangeClusterType = () => {
     state.formdata.details.db_version = '';
-    state.formdata.details.resource_spec.proxy.spec_id = 0;
+    state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       ...state.formdata.details.resource_spec.backend_group,
       count: 0,
-      spec_id: 0,
+      spec_id: '',
       capacity: '',
       future_capacity: '',
     };
@@ -908,6 +909,15 @@
     p {
       padding-bottom: 12px;
       color: @default-color;
+    }
+  }
+</style>
+
+<style lang="less">
+  .recommend-architecture-sideslider {
+    .bk-modal-content {
+      overflow-y: auto;
+      max-height: calc(100vh - 51px);
     }
   }
 </style>

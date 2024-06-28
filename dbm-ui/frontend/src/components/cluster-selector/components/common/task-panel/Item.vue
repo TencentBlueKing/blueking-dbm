@@ -15,20 +15,23 @@
   <div class="task-item">
     <DbIcon
       :class="{ 'loading-flag': isRunning }"
+      style="flex-shrink: 0"
       svg
       :type="isRunning ? 'sync-pending' : isFailed ? 'sync-failed' : 'sync-default'" />
-    <span>【{{ data.title }}】{{ t('单据ID') }}：</span>
-    <span
-      class="ticket-id"
-      @click="() => handleClickRelatedTicket(data.ticket_id)">
-      #{{ data.ticket_id }}
-    </span>
-    <div
-      v-if="isFailed"
-      class="fail-tip">
-      &nbsp;,&nbsp;
-      <span style="color: #ea3636">{{ $t('执行失败') }}</span>
-      &nbsp;,&nbsp;{{ $t('待确认') }}
+    <div class="ml-4">
+      <span>【{{ data.title }}】{{ t('单据ID') }}：</span>
+      <span
+        class="ticket-id"
+        @click="() => handleClickRelatedTicket(data.ticket_id)">
+        #{{ data.ticket_id }}
+      </span>
+      <span
+        v-if="isFailed"
+        class="fail-tip">
+        &nbsp;,&nbsp;
+        <span style="color: #ea3636">{{ $t('执行失败') }}</span>
+        &nbsp;,&nbsp;{{ $t('待确认') }}
+      </span>
     </div>
   </div>
 </template>
@@ -71,7 +74,8 @@
   .task-item {
     display: flex;
     width: 100%;
-    height: 20px;
+    // height: 20px;
+    padding: 4px 0;
     align-items: center;
     font-size: 12px;
     color: #63656e;

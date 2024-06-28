@@ -166,6 +166,7 @@ export default class Redis {
   redis_master: Node[];
   redis_slave: Node[];
   region: string;
+  slave_domain: string;
   status: string;
   update_at: string;
   updater: string;
@@ -196,6 +197,7 @@ export default class Redis {
     this.deploy_plan_id = payload.deploy_plan_id;
     this.phase = payload.phase;
     this.region = payload.region;
+    this.slave_domain = payload.slave_domain;
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
@@ -279,6 +281,12 @@ export default class Redis {
     const port = this.proxy[0]?.port;
     const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
     return displayName;
+  }
+
+  get slaveDomainDisplayName() {
+    const port = this.redis_slave[0]?.port;
+    const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
+    return this.slave_domain ? displayName : '--';
   }
 
   get isOnlineCLB() {

@@ -18,7 +18,26 @@
       v-model="localValue"
       :list="targetVersionList"
       :placeholder="t('请选择')"
-      :rules="rules" />
+      :rules="rules">
+      <template #suffix="{ item, index }">
+        <div>
+          <BkTag
+            v-if="index === 0"
+            class="ml-4"
+            size="small"
+            theme="warning">
+            {{ t('推荐') }}
+          </BkTag>
+          <BkTag
+            v-if="isCurrentVersion(item.label as string)"
+            class="ml-4"
+            size="small"
+            theme="info">
+            {{ t('当前版本') }}
+          </BkTag>
+        </div>
+      </template>
+    </TableEditSelect>
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -47,7 +66,7 @@
   const { t } = useI18n();
 
   const selectRef = ref<InstanceType<typeof TableEditSelect>>();
-  const localValue = ref(props.data?.targetVersion ? props.data?.targetVersion : '');
+  const localValue = ref('');
   const targetVersionList = ref<IListItem[]>([]);
 
   const currentVersionsMap = computed(() =>
@@ -121,6 +140,18 @@
       immediate: true,
     },
   );
+
+  watch(
+    () => props.data.targetVersion,
+    () => {
+      localValue.value = props.data?.targetVersion ? props.data?.targetVersion : '';
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const isCurrentVersion = (value: string) => props.currentList.includes(value);
 
   defineExpose<Exposes>({
     getValue() {

@@ -121,7 +121,8 @@
 
   const columns = computed(() => [
     {
-      width: 60,
+      width: 54,
+      minWidth: 54,
       label: () => props.multiple && (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
@@ -168,6 +169,7 @@
     {
       label: t('访问入口'),
       field: 'cluster_name',
+      minWidth: 300,
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
         <TextOverflowLayout class="cluster-name-box">

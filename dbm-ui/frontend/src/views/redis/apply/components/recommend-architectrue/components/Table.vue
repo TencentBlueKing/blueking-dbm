@@ -19,6 +19,7 @@
     </div>
     <BkTable
       :cell-class="setCellClass"
+      class="table-content"
       :columns="columns"
       :data="tableData"
       height="100%"
@@ -51,12 +52,11 @@
       resizable: false,
     },
     {
-      label: t('TendisCache 集群'),
       field: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
       className: (row: RowData) => !row && props.recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE ? 'recommend-head' : '',
-      renderHead: (column: { field: string, label: string }) => (
+      renderHead: () => (
         <>
-          <span>{column.label}</span>
+          <span>{t('TendisCache 集群')}</span>
           {
             props.recommendArchitectrue === ClusterTypes.TWEMPROXY_REDIS_INSTANCE && (
               <div class="recommend-head-tip">
@@ -70,12 +70,11 @@
       render: ({ data }: { data: RowData }) => data.value[ClusterTypes.TWEMPROXY_REDIS_INSTANCE].text,
     },
     {
-      label: t('TendisSSD 集群'),
       field: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
       className: (row: RowData) => !row && props.recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE ? 'recommend-head' : '',
-      renderHead: (column: { field: string, label: string }) => (
+      renderHead: () => (
         <>
-          <span>{column.label}</span>
+          <span>{t('TendisSSD 集群')}</span>
           {
             props.recommendArchitectrue === ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE && (
               <div class="recommend-head-tip">
@@ -88,12 +87,11 @@
       render: ({ data }: { data: RowData }) => data.value[ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE].text,
     },
     {
-      label: t('Tendisplus 集群'),
       field: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
       className: (row: RowData) => !row && props.recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER ? 'recommend-head' : '',
-      renderHead: (column: { field: string, label: string }) => (
+      renderHead: () => (
         <>
-          <span>{column.label}</span>
+          <span>{t('Tendisplus 集群')}</span>
           {
             props.recommendArchitectrue === ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER && (
               <div class="recommend-head-tip">
@@ -106,12 +104,11 @@
       render: ({ data }: { data: RowData }) => data.value[ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER].text,
     },
     {
-      label: t('原生 Redis Cluster'),
       field: ClusterTypes.PREDIXY_REDIS_CLUSTER,
       className: (row: RowData) => !row && props.recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER ? 'recommend-head' : '',
-      renderHead: (column: { field: string, label: string }) => (
+      renderHead: () => (
         <>
-          <span>{column.label}</span>
+          <span>{t('原生 Redis Cluster')}</span>
           {
             props.recommendArchitectrue === ClusterTypes.PREDIXY_REDIS_CLUSTER && (
               <div class="recommend-head-tip">
@@ -151,6 +148,11 @@
 
 <style lang="less" scoped>
   .recommend-architecture-table {
+    .table-content {
+      :deep(.bk-table-body) {
+        max-height: 100% !important;
+      }
+    }
     .table-head {
       display: flex;
       align-items: center;
