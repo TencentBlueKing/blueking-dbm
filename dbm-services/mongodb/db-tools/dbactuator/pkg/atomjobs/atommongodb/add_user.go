@@ -226,7 +226,7 @@ func (u *AddUser) execScript() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		u.runtime.Logger.Error("execute addUser script fail, error:%s", err)
 		return fmt.Errorf("execute addUser script fail, error:%s", err)
 	}

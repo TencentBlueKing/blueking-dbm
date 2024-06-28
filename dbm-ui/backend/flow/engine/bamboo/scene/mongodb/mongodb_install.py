@@ -157,17 +157,8 @@ class MongoDBInstallFlow(object):
         # 下发介质和os初始化
         self.prepare_job(pipeline=pipeline)
 
-        # 保存keyfile到dbconfig
-        namespace = ClusterType.MongoShardedCluster.value
-        cluster_name = self.data["cluster_id"]
-        self.get_kwargs.save_key_file(namespace=namespace, cluster_name=cluster_name, key_file=self.data["key_file"])
-        # cachesize和oplogsize到dbconfig
-        self.get_kwargs.save_cache_size(
-            namespace=namespace, cluster_name=cluster_name, cache_size=str(self.data["shards"][0]["cacheSizeGB"])
-        )
-        self.get_kwargs.save_oplog_size(
-            namespace=namespace, cluster_name=cluster_name, oplog_size=str(self.data["shards"][0]["oplogSizeMB"])
-        )
+        # 保存配置到dbconfig
+        self.get_kwargs.save_conf(namespace=ClusterType.MongoShardedCluster.value)
         # 密码服务获取管理用户密码 shard，config的密码保持一致
         kwargs = self.get_kwargs.get_get_manager_password_kwargs()
         pipeline.add_act(

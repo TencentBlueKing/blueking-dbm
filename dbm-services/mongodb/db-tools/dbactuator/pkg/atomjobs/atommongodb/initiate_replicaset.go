@@ -237,7 +237,7 @@ func (i *InitiateReplicaset) execScript() error {
 	if _, err = util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		i.runtime.Logger.Error("execute initiateReplicaset script fail, error:%s", err)
 		return fmt.Errorf("execute initiateReplicaset script fail, error:%s", err)
 	}
