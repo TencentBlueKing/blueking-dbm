@@ -33,13 +33,27 @@ export type SearchAttrs = Record<
 
 type ColumnCheckedMap = Record<string, string[]>;
 
-export const useLinkQueryColumnSerach = (
-  searchType: string,
-  attrs: string[],
-  fetchDataFn = () => {},
-  isCluster = true,
-  isQueryAttrs = true,
-) => {
+export const useLinkQueryColumnSerach = (config: {
+  searchType: string;
+  attrs: string[];
+  fetchDataFn?: () => void;
+  isCluster?: boolean;
+  isQueryAttrs?: boolean;
+  defaultSearchItem?: {
+    id: string;
+    name: string;
+  };
+  isDiscardNondefault?: boolean;
+}) => {
+  const {
+    searchType,
+    attrs,
+    fetchDataFn = () => {},
+    isCluster = true,
+    isQueryAttrs = true,
+    defaultSearchItem,
+    isDiscardNondefault = false,
+  } = config;
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
@@ -191,6 +205,56 @@ export const useLinkQueryColumnSerach = (
 
   const handleSearchValueChange = (valueList: ISearchValue[]) => {
     // console.log('search>>>', valueList);
+    if (valueList.length === 1) {
+      // 检查是否默认搜索
+      const [item] = valueList;
+      if (!item.values) {
+        // 默认搜索，使用默认id
+        const value = item.id;
+        const values = value.split(' | ');
+        // 要么命中IP，否则都默认按域名处理
+        const instanceList: string[] = [];
+        const defaultList: string[] = [];
+        values.forEach((value) => {
+          if (ipPort.test(value) || ipv4.test(value)) {
+            instanceList.push(value);
+            return;
+          }
+          defaultList.push(value);
+        });
+        valueList.length = 0;
+        if (isDiscardNondefault) {
+          // 丢弃非默认
+          if (defaultSearchItem?.id === 'instance') {
+            defaultList.length = 0;
+          } else if (defaultSearchItem?.id === 'domain') {
+            instanceList.length = 0;
+          }
+        }
+        if (defaultList.length > 0) {
+          const defaultItem = {
+            id: defaultSearchItem?.id || item.id,
+            name: defaultSearchItem?.name || item.name,
+            values: defaultList.map((item) => ({
+              id: item,
+              name: item,
+            })),
+          };
+          valueList.push(defaultItem);
+        }
+        if (instanceList.length > 0) {
+          const instanceSearchItem = {
+            id: defaultSearchItem?.id === 'ip' ? 'ip' : 'instance',
+            name: defaultSearchItem?.id === 'ip' ? 'IP' : 'instance',
+            values: instanceList.map((item) => ({
+              id: item,
+              name: item,
+            })),
+          };
+          valueList.push(instanceSearchItem);
+        }
+      }
+    }
     columnCheckedMap.value = valueList.reduce((results, item) => {
       Object.assign(results, {
         [item.id]: item.values?.map((value) => value.id) ?? [],
@@ -204,7 +268,6 @@ export const useLinkQueryColumnSerach = (
 
     // 批量参数统一用,分隔符，展示的分隔符统一成 |
     const handledValueList: ISearchValue[] = [];
-    // console.log('valueList>>>', valueList);
     valueList.forEach((item) => {
       if (!['domain', 'instance', 'ip'].includes(item.id)) {
         // 非域名/ip类，原样返回

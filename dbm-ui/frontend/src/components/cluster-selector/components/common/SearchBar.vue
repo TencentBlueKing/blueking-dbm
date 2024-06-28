@@ -62,6 +62,11 @@
         multiple: true,
       },
       {
+        name: t('IP 或 IP:Port'),
+        id: 'instance',
+        multiple: true,
+      },
+      {
         name: t('状态'),
         id: 'status',
         multiple: true,

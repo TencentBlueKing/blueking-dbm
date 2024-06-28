@@ -1,11 +1,12 @@
 package service
 
 import (
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/priv-service/util"
 
 	"github.com/spf13/viper"
 )
@@ -42,6 +43,15 @@ func (m *PrivTaskPara) AddPrivForSqlserver(jsonPara string) error {
 		}
 		// 执行授权sql
 		if err := ImportSqlserverPrivilege(
+			account,
+			rules,
+			cluster.BkCloudId,
+			cluster.Storages,
+		); err != nil {
+			return err
+		}
+		// 导入授权配置到实例
+		if err := SaveAutoGRant(
 			account,
 			rules,
 			cluster.BkCloudId,

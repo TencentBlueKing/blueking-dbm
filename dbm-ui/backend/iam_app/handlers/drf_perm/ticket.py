@@ -128,6 +128,8 @@ class CreateTicketMoreResourcePermission(MoreResourceActionPermission):
             authorize_data_list = [request.data["details"]["authorize_data"]]
         else:
             authorize_data_list = request.data["details"]["authorize_data_list"]
+        if request.data["ticket_type"] == TicketType.SQLSERVER_AUTHORIZE_RULES:
+            authorize_data_list = authorize_data_list[0]
         for data in authorize_data_list:
             authorize_resource_tuples.extend(list(itertools.product([data["account_id"]], data["cluster_ids"])))
         return authorize_resource_tuples

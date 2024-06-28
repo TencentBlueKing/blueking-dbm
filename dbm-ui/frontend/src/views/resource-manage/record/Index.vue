@@ -61,7 +61,11 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach('resource_record', [], () => fetchData());
+  } = useLinkQueryColumnSerach({
+    searchType: 'resource_record',
+    attrs: [],
+    fetchDataFn: () => fetchData(),
+  });
 
   const dataSource = fetchOperationList;
 

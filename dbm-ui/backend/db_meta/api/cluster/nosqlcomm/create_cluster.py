@@ -88,13 +88,16 @@ def create_twemproxy_cluster(
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
         )
+        logger.info("cluster created {}".format(cluster))
         cluster.proxyinstance_set.add(*proxy_objs)
+        logger.info("cluster add proxyinstance done. {}".format(cluster.immute_domain))
         cluster.storageinstance_set.add(*storage_objs)
         cluster.save()
 
         for storage_obj in storage_objs:
             slave_obj = storage_obj.as_ejector.get().receiver
             cluster.storageinstance_set.add(slave_obj)
+        logger.info("cluster add storageinstance done. {}".format(cluster.immute_domain))
 
         update_cluster_type(storage_objs, cluster_type)
         update_cluster_type(proxy_objs, cluster_type)
@@ -115,6 +118,7 @@ def create_twemproxy_cluster(
 
             # 设置接入层后端,兼容DBHA接口
             storage_obj.proxyinstance_set.add(*proxy_objs)
+        logger.info("cluster add nosqlsetdtl done. {}".format(cluster.immute_domain))
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
         raise e
@@ -126,6 +130,7 @@ def create_twemproxy_cluster(
         )
         cluster_entry.proxyinstance_set.add(*proxy_objs)
         cluster_entry.save()
+        logger.info("cluster add cluster_entry done. {}".format(cluster.immute_domain))
     except IntegrityError:
         raise ClusterEntryExistException(entry=immute_domain)
 
@@ -134,10 +139,12 @@ def create_twemproxy_cluster(
         slave_obj = storage_obj.as_ejector.get().receiver
         receivers.append(slave_obj)
 
+    logger.info("cluster begin modify bkcc. {}".format(cluster.immute_domain))
     cc_topo_operator = RedisCCTopoOperator(cluster)
     cc_topo_operator.transfer_instances_to_cluster_module(proxy_objs)
     cc_topo_operator.transfer_instances_to_cluster_module(storage_objs)
     cc_topo_operator.transfer_instances_to_cluster_module(receivers)
+    logger.info("cluster done modify bkcc. {}".format(cluster.immute_domain))
 
 
 @transaction.atomic
@@ -257,11 +264,13 @@ def update_cluster_type(objs: QuerySet, cluster_type: str):
             proxy_machine = ins_obj.machine
             proxy_machine.cluster_type = cluster_type
             proxy_machine.save(update_fields=["cluster_type"])
+    logger.info("cluster update instance cluster_type done. {}".format(cluster_type))
 
 
 def create_precheck(bk_biz_id: int, name: str, immute_domain: str, cluster_type: str, proxies: list, storages: list):
     """校验逻辑：集群名、域名、proxy和storage可用性"""
 
+    logger.info("start precheck 4 cluster {}:{}:{}:{}".format(bk_biz_id, name, immute_domain, cluster_type))
     if Cluster.objects.filter(bk_biz_id=bk_biz_id, name=name, cluster_type=cluster_type).exists():
         raise CreateTendisPreCheckException(msg=_("集群名 {} 在 bk_biz_id:{} 已存在").format(name, bk_biz_id))
 
@@ -279,16 +288,19 @@ def create_precheck(bk_biz_id: int, name: str, immute_domain: str, cluster_type:
     in_obj = common.in_another_cluster(proxy_objs)
     if in_obj:
         raise CreateTendisPreCheckException(msg=_("proxy {} 已属于其他集群").format(in_obj))
+    logger.info("cluster proxies check done {}:proxies:{}".format(immute_domain, len(proxy_objs)))
 
     # storage 不能属于任何集群
     storage_objs = common.filter_out_instance_obj(storages, StorageInstance.objects.all())
     in_obj = common.in_another_cluster(storage_objs)
     if in_obj:
         raise CreateTendisPreCheckException(msg=_("storage {} 已属于其他集群").format(in_obj))
+    logger.info("cluster storages check done {}:storages:{}".format(immute_domain, len(storage_objs)))
 
     # proxy已经绑定了存储节点
     for proxy_obj in proxy_objs:
         if proxy_obj.storageinstance.exists():
             raise ProxyBackendNotEmptyException(proxy="{}:{}".format(proxy_obj.machine.ip, proxy_obj.port))
 
+    logger.info("done precheck 4 cluster {}:{}:{}:{}".format(bk_biz_id, name, immute_domain, cluster_type))
     return proxy_objs, storage_objs

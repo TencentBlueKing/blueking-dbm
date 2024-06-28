@@ -232,9 +232,15 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.ES, [
-    'bk_cloud_id',
-  ], () => fetchNodeList());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.ES,
+    attrs: ['bk_cloud_id'],
+    fetchDataFn: () => fetchNodeList(),
+    defaultSearchItem: {
+      id: 'ip',
+      name: 'IP',
+    }
+  });
 
   const searchSelectData = [
     {

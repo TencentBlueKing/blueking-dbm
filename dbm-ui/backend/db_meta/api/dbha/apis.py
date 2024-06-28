@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 import validators
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils.translation import ugettext_lazy as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
@@ -116,6 +116,8 @@ def instances(
     statuses: Optional[List[str]] = None,
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     cluster_types: Optional[List[str]] = None,
+    hash_cnt: Optional[int] = None,
+    hash_value: Optional[int] = None,
 ):
 
     logical_city_ids = request_validator.validated_integer_list(logical_city_ids)
@@ -153,9 +155,18 @@ def instances(
     if cluster_types:
         queries &= Q(**{"cluster__cluster_type__in": cluster_types})
 
-    flat_instances = flatten.storage_instance(StorageInstance.objects.filter(queries)) + flatten.proxy_instance(
-        ProxyInstance.objects.filter(queries)
-    )
+    storage_qs = StorageInstance.objects.filter(queries)
+    proxy_qs = ProxyInstance.objects.filter(queries)
+
+    if hash_cnt is not None and hash_value is not None:
+        storage_qs = storage_qs.annotate(bk_host_id_mod=F("machine__bk_host_id") % hash_cnt).filter(
+            bk_host_id_mod=hash_value
+        )
+        proxy_qs = proxy_qs.annotate(bk_host_id_mod=F("machine__bk_host_id") % hash_cnt).filter(
+            bk_host_id_mod=hash_value
+        )
+
+    flat_instances = flatten.storage_instance(storage_qs) + flatten.proxy_instance(proxy_qs)
     disabled_dbha_cluster_ids = list(
         ClusterDBHAExt.objects.filter(end_time__gte=datetime.now()).values_list("cluster_id", flat=True)
     )

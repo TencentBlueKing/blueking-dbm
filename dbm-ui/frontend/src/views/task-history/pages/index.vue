@@ -84,7 +84,13 @@
     columnFilterChange,
     clearSearchValue,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [], () => fetchTableData(), false, false);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBHA,
+    attrs: [],
+    fetchDataFn: () => fetchTableData(),
+    isCluster: false,
+    isQueryAttrs: false,
+  });
 
   /**
    * 近 7 天
