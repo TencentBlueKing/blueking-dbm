@@ -91,11 +91,11 @@
               v-model="formdata.details.spider_port"
               clearable
               :max="65535"
-              :min="25000"
+              :min="3306"
               style="width: 185px"
               type="number" />
             <span class="input-desc">
-              {{ t('范围min_max', { min: 25000, max: 65535 }) }}
+              {{ t('范围n_min_max', { n: 3306, min: 25000, max: 65535 }) }}
             </span>
           </BkFormItem>
           <BkFormItem :label="t('备注')">
@@ -172,17 +172,17 @@
       cluster_name: '',
       cluster_alias: '',
       city_code: '',
-      db_module_id: 0,
+      db_module_id: null as null | number,
       cluster_shard_num: 0,
       remote_shard_num: 0,
       disaster_tolerance_level: 'NONE',
       resource_spec: {
         spider: {
-          spec_id: 0,
+          spec_id: '' as number | '',
           count: 2,
         },
         backend_group: {
-          spec_id: 0,
+          spec_id: '' as number | '',
           count: 0,
           capacity: '',
           future_capacity: '',
@@ -202,7 +202,7 @@
 
   const formRef = ref();
   const specProxyRef = ref();
-  const specBackendRef = ref();
+  const specBackendRef = ref<InstanceType<typeof BackendQPSSpec>>();
   const formdata = ref(initData());
   const regionItemRef = ref();
 
@@ -213,7 +213,20 @@
       {
         message: t('以小写英文字母开头_且只能包含英文字母_数字_连字符'),
         trigger: 'blur',
-        validator: (val: string) => nameRegx.test(val),
+        validator: (value: string) => nameRegx.test(value),
+      },
+    ],
+    'details.resource_spec.backend_group.count': [
+      {
+        message: t('数量不能为空'),
+        validator: (value: number) => value > 0,
+      },
+    ],
+    'details.spider_port': [
+      {
+        message: t('范围n_min_max', { n: 3306, min: 25000, max: 65535 }),
+        trigger: 'change',
+        validator: (value: number) => value === 3306 || (value >= 25000 && value <= 65535),
       },
     ],
   };
@@ -262,7 +275,7 @@
         },
       };
 
-      const specInfo = specBackendRef.value.getData();
+      const specInfo = specBackendRef.value!.getData();
       return {
         ...details,
         cluster_shard_num: Number(specInfo.cluster_shard_num),

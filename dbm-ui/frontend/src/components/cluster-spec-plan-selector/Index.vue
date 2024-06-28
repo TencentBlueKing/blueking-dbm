@@ -1,50 +1,146 @@
 <template>
   <div class="cluster-spec-plan-selector">
-    <div class="capacity-box">
+    <DbFormItem
+      :label="t('部署方案选择')"
+      required>
+      <BkRadioGroup
+        v-model="applyType"
+        style="width: 314px">
+        <BkRadioButton
+          label="auto"
+          style="flex: 1">
+          {{ t('自动推荐方案') }}
+          <BkTag
+            size="small"
+            theme="success">
+            {{ t('实验') }}
+          </BkTag>
+        </BkRadioButton>
+        <BkRadioButton
+          label="custom"
+          style="flex: 1">
+          {{ t('自定义方案') }}
+        </BkRadioButton>
+      </BkRadioGroup>
+    </DbFormItem>
+    <template v-if="applyType === 'auto'">
       <DbFormItem
         :label="t('目标集群容量需求')"
         required>
         <BkInput
           v-model="localCapacity"
-          suffix="G"
+          style="width: 314px"
           type="number" />
+        <span class="input-desc">G</span>
       </DbFormItem>
       <DbFormItem
         :label="t('未来集群容量需求')"
         required>
         <BkInput
           v-model="localFutureCapacity"
-          suffix="G"
+          style="width: 314px"
           type="number" />
+        <span class="input-desc">G</span>
       </DbFormItem>
-    </div>
-    <DbFormItem
-      :label="t('QPS 预估范围')"
-      required>
-      <BkLoading :loading="isDpsRangLoading">
-        <BkSlider
-          v-model="sliderProps.value"
-          :disable="sliderProps.disabled"
-          :formatter-label="formatterLabel"
-          :max-value="sliderProps.max"
-          :min-value="sliderProps.min"
-          range
-          show-between-label
-          show-input
-          show-tip
-          style="padding-left: 6px" />
-      </BkLoading>
-    </DbFormItem>
-    <DbFormItem
-      v-bind="planFormItemProps"
-      :label="t('集群部署方案')">
-      <BkLoading :loading="isPlanLoading">
-        <BkTable
-          :columns="tableColumns"
-          :data="planList"
-          @row-click="handleRowClick" />
-      </BkLoading>
-    </DbFormItem>
+      <DbFormItem
+        :label="t('QPS 预估范围')"
+        required>
+        <BkLoading :loading="isDpsRangLoading">
+          <BkSlider
+            v-model="sliderProps.value"
+            :disable="sliderProps.disabled"
+            :formatter-label="formatterLabel"
+            :max-value="sliderProps.max"
+            :min-value="sliderProps.min"
+            range
+            show-between-label
+            show-input
+            show-tip
+            style="padding-left: 6px" />
+        </BkLoading>
+      </DbFormItem>
+      <DbFormItem
+        v-bind="planFormItemProps"
+        :label="t('集群部署方案')">
+        <BkLoading :loading="isPlanLoading">
+          <BkTable
+            :columns="tableColumns"
+            :data="planList"
+            @row-click="(event: MouseEvent, data: TicketSpecInfo) => handleRowClick(data)" />
+        </BkLoading>
+      </DbFormItem>
+    </template>
+    <template v-else>
+      <BkFormItem
+        :label="t('规格')"
+        property="specId"
+        required>
+        <SpecSelector
+          ref="specSelectorRef"
+          v-model="customSpecInfo.specId"
+          :biz-id="currentBizId"
+          :clearable="false"
+          :cloud-id="cloudId"
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
+          machine-type="remote"
+          style="width: 314px" />
+      </BkFormItem>
+      <BkFormItem
+        :label="t('数量')"
+        property="count"
+        required
+        :rules="countRules">
+        <BkInput
+          v-model="customSpecInfo.count"
+          clearable
+          :max="clusterShardNum"
+          :min="1"
+          show-clear-only-hover
+          style="width: 314px"
+          type="number" />
+        <span class="input-desc">{{ t('组') }}</span>
+      </BkFormItem>
+      <BkFormItem
+        :label="t('单机分片数')"
+        required>
+        <BkInput
+          v-model="localRemoteShardNum"
+          disabled
+          style="width: 314px"
+          type="number" />
+      </BkFormItem>
+      <BkFormItem
+        :label="t('集群分片数')"
+        required>
+        <BkInput
+          v-model="localClusterShardNum"
+          disabled
+          style="width: 314px"
+          type="number" />
+      </BkFormItem>
+      <BkFormItem
+        :label="t('总容量')"
+        :required="false">
+        <BkInput
+          v-model="specInfo.totalCapcity"
+          disabled
+          :placeholder="t('自动生成')"
+          style="width: 314px"
+          type="number" />
+        <span class="input-desc">G</span>
+      </BkFormItem>
+      <BkFormItem
+        :label="t('QPS')"
+        :required="false">
+        <BkInput
+          v-model="specInfo.qps"
+          disabled
+          :placeholder="t('自动生成')"
+          style="width: 314px"
+          type="number" />
+        <span class="input-desc">/s</span>
+      </BkFormItem>
+    </template>
   </div>
 </template>
 <script setup lang="tsx">
@@ -59,6 +155,7 @@
   import { useRequest } from 'vue-request';
 
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
+  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import {
     getFilterClusterSpec,
@@ -67,28 +164,38 @@
 
   import { useGlobalBizs } from '@stores';
 
-  export type IRowData = ClusterSpecModel
+  import { ClusterTypes } from '@common/const';
+
+  import SpecSelector from '@components/apply-items/SpecSelector.vue';
+
+  export type TicketSpecInfo = Pick<ClusterSpecModel, 'spec_id' | 'spec_name' | 'cluster_capacity' | 'machine_pair'>
 
   interface Props {
     clusterType: string,
     machineType: string,
     cloudId: number,
-    shardNum: number,
+    clusterShardNum: number,
     planFormItemProps?: Partial<FormItemProps>,
   }
+
   interface Emits{
-    (e: 'change', modelValue: number, data: ClusterSpecModel): void
+    (e: 'change', modelValue: number, data: TicketSpecInfo): void
   }
+
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const modelValue = defineModel<number>('modelValue', {
-    local: true,
-  });
+  const modelValue = defineModel<number>('modelValue');
   const specData = defineModel<{name: string, futureCapacity: number}>('specData');
+  const customSpecInfo = defineModel<{
+    specId: string | number,
+    count: number
+  }>('customSpecInfo', {
+    required: true
+  });
 
   const genSliderData = () => ({
     value: [0, 1],
@@ -98,13 +205,25 @@
   });
   const formatterLabel = (value: string) => `${value}/s`;
 
-  const sliderProps = reactive(genSliderData());
+  const specSelectorRef = ref<InstanceType<typeof SpecSelector>>()
   const localCapacity = ref();
   const localFutureCapacity = ref();
+  const localClusterShardNum = ref();
   const queryTimer = ref();
-  const specCountMap = shallowRef<Record<number, number>>({});
+  const applyType = ref('auto')
 
+  const sliderProps = reactive(genSliderData());
+
+  const specCountMap = shallowRef<Record<number, number>>({});
   const planList = shallowRef<ServiceReturnType<typeof getFilterClusterSpec>>([]);
+
+  const countRules = [
+    {
+      message: t('必须要能除尽总分片数'),
+      trigger: 'change',
+      validator: () => props.clusterShardNum % customSpecInfo.value.count === 0
+    },
+  ]
 
   const tableColumns = [
     {
@@ -155,6 +274,39 @@
     },
   ];
 
+  const specInfo = computed(() => {
+    const data = specSelectorRef.value?.getData()
+    const {count} = customSpecInfo.value
+
+    if (_.isEmpty(data)) {
+      return {
+        totalCapcity: '',
+        qps: ''
+      }
+    }
+
+    return {
+      totalCapcity: count * getSpecCapacity(data.storage_spec),
+      qps: count * (data.qps.min ?? 0)
+    }
+  })
+
+  const localRemoteShardNum = computed(() => props.clusterShardNum / customSpecInfo.value.count)
+
+  const getSpecCapacity = (storageSpec: ResourceSpecModel['storage_spec']) => {
+    let specCapacity = 0
+    for (let i = 0; i < storageSpec.length; i++) {
+      const storageSpecItem = storageSpec[i]
+      if (storageSpecItem.mount_point === '/data1') {
+        return storageSpecItem.size
+      }
+      if (storageSpecItem.mount_point === '/data') {
+        specCapacity = storageSpecItem.size / 2
+      }
+    }
+    return specCapacity
+  }
+
   // QPS 范围
   const {
     loading: isDpsRangLoading,
@@ -191,8 +343,8 @@
     },
     manual: true,
     onSuccess(data) {
-      if (props.shardNum && props.shardNum > 0) {
-        planList.value = _.filter(data, item => item.cluster_shard_num === props.shardNum);
+      if (props.clusterShardNum && props.clusterShardNum > 0) {
+        planList.value = _.filter(data, item => item.cluster_shard_num === props.clusterShardNum);
       } else {
         planList.value = data;
       }
@@ -255,6 +407,28 @@
     }, 1000);
   });
 
+  watch(() => props.clusterShardNum, () => {
+    localClusterShardNum.value = props.clusterShardNum
+  }, {
+    immediate: true
+  })
+
+  watch([() => customSpecInfo.value.count, () => customSpecInfo.value.specId], ([count, specId]) => {
+    nextTick(() => {
+      const data = specSelectorRef.value?.getData()
+      if(!_.isEmpty(data)) {
+        handleRowClick({
+          spec_id: Number(specId),
+          spec_name: data.spec_name,
+          cluster_capacity: count * getSpecCapacity(data.storage_spec),
+          machine_pair: customSpecInfo.value.count
+        })
+      }
+    })
+  }, {
+    immediate: true
+  })
+
   const handleDpsRangChange = (data: [number, number]) => {
     const [min, max] = data;
     fetchPlanList({
@@ -263,34 +437,49 @@
       capacity: localCapacity.value,
       future_capacity: localFutureCapacity.value,
       qps: { min, max },
-      shard_num: props.shardNum,
+      shard_num: props.clusterShardNum,
     });
   };
 
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: ClusterSpecModel):any => {
-    modelValue.value = data.spec_id;
-    specData.value = {
-      name: data.spec_name,
-      futureCapacity: data.cluster_capacity,
-    };
-    emits('change', data.spec_id, data);
+  const handleRowClick = (data?: TicketSpecInfo) => {
+    if (data) {
+      modelValue.value = data.spec_id;
+      specData.value = {
+        name: data.spec_name,
+        futureCapacity: data.cluster_capacity,
+      };
+      emits('change', data.spec_id, {
+        spec_id: data.spec_id,
+        spec_name: data.spec_name,
+        cluster_capacity: data.cluster_capacity,
+        machine_pair: data.machine_pair
+      });
+    }
+
   };
 </script>
 <style lang="less">
   .cluster-spec-plan-selector {
     display: block;
 
-    .capacity-box {
-      display: flex;
+    // .capacity-box {
+    //   display: flex;
 
-      .bk-form-item {
-        flex: 1;
+    //   .bk-form-item {
+    //     flex: 1;
 
-        & ~ .bk-form-item {
-          margin-left: 40px;
-        }
-      }
+    //     & ~ .bk-form-item {
+    //       margin-left: 40px;
+    //     }
+    //   }
+    // }
+
+    .input-desc {
+      padding-left: 12px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #63656e;
     }
   }
 </style>
