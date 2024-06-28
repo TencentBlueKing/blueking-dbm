@@ -33,4 +33,5 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=SQLUploadSerializer)
     def upload_sql(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
+        data.pop("bkrepo_path")
         return Response(SQLHandler.upload_sql_file(**data))
