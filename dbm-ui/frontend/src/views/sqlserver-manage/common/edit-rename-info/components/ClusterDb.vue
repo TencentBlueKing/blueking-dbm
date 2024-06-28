@@ -11,6 +11,7 @@
     <BkTableColumn :label="t('忽略 DB')">
       <RenderDbName
         :model-value="localDbIgnoreName"
+        :required="false"
         @change="handleDnIgnoreNameChange" />
     </BkTableColumn>
   </BkTable>
