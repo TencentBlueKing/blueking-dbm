@@ -94,7 +94,6 @@
     :get-detail-info="getKafkaDetail" />
 </template>
 <script setup lang="tsx">
-  import type { Table } from 'bkui-vue';
   import { InfoBox } from 'bkui-vue';
   import {
     onMounted,
@@ -175,13 +174,20 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.KAFKA, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ], () => fetchTableData());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.KAFKA,
+    attrs: [
+      'bk_cloud_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    fetchDataFn: () => fetchTableData(),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const dataSource = getKafkaList;
   const getRowClass = (data: KafkaModel) => {
@@ -224,13 +230,13 @@
 
   const serachData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
+      name: t('访问入口'),
+      id: 'domain',
       multiple: true,
     },
     {
-      name: t('访问入口'),
-      id: 'domain',
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
       multiple: true,
     },
     {
@@ -292,7 +298,7 @@
     }
     return 100;
   });
-  const columns = computed<InstanceType<typeof Table>['$props']['columns']>(() => [
+  const columns = computed(() => [
     {
       label: 'ID',
       field: 'id',

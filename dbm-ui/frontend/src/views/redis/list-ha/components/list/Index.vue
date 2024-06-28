@@ -139,24 +139,34 @@
     columnSortChange,
     clearSearchValue,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.REDIS, [
-    'bk_cloud_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ], () => fetchData(isInit));
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.REDIS,
+    attrs: [
+      'bk_cloud_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    fetchDataFn: () => fetchData(isInit),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const showEditEntryConfig = ref(false);
   const selected = ref<RedisModel[]>([])
 
   const searchSelectData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
-    },
-    {
       name: t('访问入口'),
       id: 'domain',
+      multiple: true,
+    },
+    {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+      multiple: true,
     },
     {
       name: 'ID',
@@ -165,6 +175,7 @@
     {
       name: t('集群名称'),
       id: 'name',
+      multiple: true,
     },
     {
       name: t('管控区域'),
