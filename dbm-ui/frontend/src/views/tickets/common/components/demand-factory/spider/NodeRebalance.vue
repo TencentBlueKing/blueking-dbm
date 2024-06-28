@@ -74,7 +74,9 @@
       name: string,
     },
     shardNum: number,
-    groupNum: number
+    groupNum: number,
+    prev_machine_pair: number
+    prev_cluster_spec_name: string
   }
 
   const props = defineProps<Props>();
@@ -97,7 +99,15 @@
       field: 'shardNum',
     },
     {
-      label: t('部署机器组数'),
+      label: t('当前机器组数'),
+      field: 'prev_machine_pair',
+    },
+    {
+      label: t('当前资源规格'),
+      field: 'prev_cluster_spec_name',
+    },
+    {
+      label: t('目标机器组数'),
       field: 'groupNum',
     },
     {
@@ -150,6 +160,8 @@
             id: item.resource_spec.backend_group.spec_id,
             name: specInfo ? specInfo.spec_name : '',
           },
+          prev_machine_pair: item.prev_machine_pair,
+          prev_cluster_spec_name: item.prev_cluster_spec_name
         };
       });
     },

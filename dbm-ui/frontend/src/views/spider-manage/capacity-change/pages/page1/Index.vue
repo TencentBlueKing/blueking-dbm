@@ -163,6 +163,7 @@
             id: item.id,
             machinePairCnt: item.machine_pair_cnt,
             masterDomain: item.master_domain,
+            remoteShardNum: item.remote_shard_num,
           },
         });
         result.push(row);
