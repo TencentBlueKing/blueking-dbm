@@ -225,13 +225,17 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.DORIS, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ], () => fetchTableData());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.DORIS,
+    attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    fetchDataFn: () => fetchTableData(),
+  });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   // const isCopyDropdown = ref(false);

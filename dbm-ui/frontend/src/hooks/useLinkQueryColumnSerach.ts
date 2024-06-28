@@ -250,8 +250,8 @@ export const useLinkQueryColumnSerach = (config: {
         }
         if (instanceList.length > 0) {
           const instanceSearchItem = {
-            id: 'instance',
-            name: 'instance',
+            id: defaultSearchItem?.id === 'ip' ? 'ip' : 'instance',
+            name: defaultSearchItem?.id === 'ip' ? 'IP' : 'instance',
             values: instanceList.map((item) => ({
               id: item,
               name: item,

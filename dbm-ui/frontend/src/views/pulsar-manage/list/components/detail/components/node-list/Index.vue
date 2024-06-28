@@ -168,7 +168,7 @@
       <BigdataInstanceDetail
         v-if="operationNodeData"
         :cluster-id="clusterId"
-        :cluster-type="ClusterTypes.PULSAE"
+        :cluster-type="ClusterTypes.PULSAR"
         :data="operationNodeData"
         @close="handleClose" />
     </DbSideslider>
@@ -268,9 +268,15 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.PULSAR, [
-    'bk_cloud_id',
-  ], () => fetchNodeList());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.PULSAR,
+    attrs: ['bk_cloud_id'],
+    fetchDataFn: () => fetchNodeList(),
+    defaultSearchItem: {
+      id: 'ip',
+      name: 'IP',
+    }
+  });
 
   const isAnomalies = ref(false);
   const isShowReplace = ref(false);
