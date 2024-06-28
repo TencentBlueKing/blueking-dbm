@@ -94,13 +94,20 @@
     clearSearchValue,
     columnFilterChange,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBSINGLE, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ]);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBSINGLE,
+    attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const {
     isLoading,
@@ -220,6 +227,14 @@
       label: t('集群名称'),
       field: 'cluster_name',
       showOverflowTooltip: true,
+    },
+    {
+      label: t('实例'),
+      field: 'masters',
+      width: 180,
+      minWidth: 180,
+      showOverflowTooltip: true,
+      render: ({ data }: ResourceItem) => <span>{data.masters.map((item: { ip: string; port: string; }) => `${item.ip}:${item.port}`).join(',')}</span>,
     },
     {
       label: t('所属模块'),

@@ -222,13 +222,21 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBCLUSTER, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ], () => fetchTableData());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBCLUSTER,
+    attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    fetchDataFn: () => fetchTableData(),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -255,13 +263,13 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const searchSelectData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
+      name: t('访问入口'),
+      id: 'domain',
       multiple: true,
     },
     {
-      name: t('访问入口'),
-      id: 'domain',
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
       multiple: true,
     },
     {

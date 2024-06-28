@@ -9,28 +9,22 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
-import {
-  type ComponentInternalInstance,
-  getCurrentInstance,
-  reactive,
-  ref,
-  shallowRef,
-} from 'vue';
+import { type ComponentInternalInstance, getCurrentInstance, reactive, ref, shallowRef } from 'vue';
 
 import { getSearchSelectorParams } from '@utils';
 
 /**
  * 处理集群列表数据
  */
-export function useClusterData<T>() {
+export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
-      activeTab: string,
-      getResourceList: (params: any) => Promise<any>
-    }
+      activeTab: string;
+      getResourceList: (params: any) => Promise<any>;
+    };
   };
 
   const isLoading = ref(false);
@@ -42,28 +36,32 @@ export function useClusterData<T>() {
     limit: 10,
     small: true,
   });
-  const searchSelectValue = ref<ISearchValue[]>([]);
 
-  watch(searchSelectValue, () => {
-    setTimeout(() => {
-      handleChangePage(1);
-    });
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    searchSelectValue,
+    () => {
+      setTimeout(() => {
+        handleChangePage(1);
+      });
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
   /**
    * 获取列表
    */
   const fetchResources = async () => {
     isLoading.value = true;
-    return currentInstance.proxy.getResourceList({
-      cluster_type: currentInstance.proxy.activeTab,
-      limit: pagination.limit,
-      offset: pagination.limit * (pagination.current - 1),
-      ...getSearchSelectorParams(searchSelectValue.value),
-    })
+    return currentInstance.proxy
+      .getResourceList({
+        cluster_type: currentInstance.proxy.activeTab,
+        limit: pagination.limit,
+        offset: pagination.limit * (pagination.current - 1),
+        ...getSearchSelectorParams(searchSelectValue.value),
+      })
       .then((res) => {
         pagination.count = res.count;
         tableData.value = res.results;

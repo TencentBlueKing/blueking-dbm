@@ -110,7 +110,16 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBCLUSTER, ['role'], () => fetchTableData(), false);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBCLUSTER,
+    attrs: ['role'],
+    isCluster: false,
+    fetchDataFn: () => fetchTableData(),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const tableRef = ref();
 
@@ -300,6 +309,7 @@
     {
       name: t('集群名称'),
       id: 'name',
+      multiple: true,
     },
     {
       name: t('状态'),

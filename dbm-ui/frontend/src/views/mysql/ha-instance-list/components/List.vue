@@ -111,7 +111,16 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, ['role'], () => fetchData(isInit), false);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBHA,
+    attrs: ['role'],
+    isCluster: false,
+    fetchDataFn: () => fetchData(isInit),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const searchSelectData = computed(() => [
     {
