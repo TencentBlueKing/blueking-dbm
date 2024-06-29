@@ -27,7 +27,7 @@
       <td style="padding: 0">
         <RenderDbName
           ref="dbNameRef"
-          check-exist
+          check-not-exist
           :cluster-id="localSrcClusterData?.id"
           :model-value="localDbName"
           @change="handleDbNameChange" />
