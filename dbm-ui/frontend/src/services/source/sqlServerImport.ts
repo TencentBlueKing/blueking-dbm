@@ -16,5 +16,11 @@ import http from '../http';
 const getPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}`;
 
 export function uploadSql(params: FormData) {
-  return http.post(`${getPath()}/sql_import/upload_sql/`, params);
+  return http.post<
+    {
+      raw_file_name: string;
+      sql_content: string;
+      sql_path: string;
+    }[]
+  >(`${getPath()}/sql_import/upload_sql/`, params);
 }

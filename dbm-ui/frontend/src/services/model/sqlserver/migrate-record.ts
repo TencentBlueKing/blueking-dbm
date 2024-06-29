@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { utcDisplayTime } from '@utils';
+
 import { t } from '@locales/index';
 
 const enum STATUS {
@@ -65,6 +67,7 @@ export default class MigrateRecord {
   };
 
   bk_biz_id: number;
+  create_at: string;
   creator: string;
   dts_config: {
     db_name: string;
@@ -72,6 +75,7 @@ export default class MigrateRecord {
   }[];
   dts_mode: string;
   id: number;
+  ignore_db_list: string[];
   root_id: string;
   source_cluster_domain: string;
   source_cluster_id: number;
@@ -79,14 +83,17 @@ export default class MigrateRecord {
   target_cluster_domain: string;
   target_cluster_id: number;
   ticket_id: number;
+  update_at: string;
   updater: string;
 
   constructor(payload = {} as MigrateRecord) {
     this.bk_biz_id = payload.bk_biz_id;
+    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.dts_config = payload.dts_config || [];
     this.dts_mode = payload.dts_mode;
     this.id = payload.id;
+    this.ignore_db_list = payload.ignore_db_list || [];
     this.root_id = payload.root_id;
     this.source_cluster_domain = payload.source_cluster_domain;
     this.source_cluster_id = payload.source_cluster_id;
@@ -94,6 +101,7 @@ export default class MigrateRecord {
     this.target_cluster_domain = payload.target_cluster_domain;
     this.target_cluster_id = payload.target_cluster_id;
     this.ticket_id = payload.ticket_id;
+    this.update_at = payload.update_at;
     this.updater = payload.updater;
   }
 
@@ -107,5 +115,9 @@ export default class MigrateRecord {
 
   get tagetDb() {
     return this.dts_config.map((item) => item.target_db_name);
+  }
+
+  get createAtDisplay() {
+    return utcDisplayTime(this.create_at);
   }
 }
