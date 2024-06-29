@@ -280,16 +280,16 @@
     uploadSql(params)
       .then((data) => {
         const lastUploadFileDataMap = { ...uploadFileDataMap.value };
-        Object.keys(data).forEach((realFilePath) => {
-          const grammarCheckResult = data[realFilePath];
+        data.forEach((uploadFileData) => {
+          const grammarCheckResult = uploadFileData;
           lastUploadFileDataMap[grammarCheckResult.raw_file_name] = {
             ...lastUploadFileDataMap[grammarCheckResult.raw_file_name],
-            realFilePath,
+            realFilePath: uploadFileData.sql_path,
             isSuccess: true,
-            content: grammarCheckResult.content,
-            messageList: grammarCheckResult.messageList,
-            isCheckFailded: grammarCheckResult.isError,
-            grammarCheck: grammarCheckResult,
+            content: uploadFileData.sql_content,
+            messageList: [],
+            isCheckFailded: false,
+            grammarCheck: undefined,
           };
         });
         uploadFileDataMap.value = lastUploadFileDataMap;
