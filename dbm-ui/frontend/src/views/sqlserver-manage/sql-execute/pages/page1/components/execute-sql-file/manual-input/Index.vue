@@ -26,7 +26,7 @@
       <BkLoading :loading="isLoading">
         <Editor
           v-model="content"
-          :message-list="inputContentCheckResult.messageList"
+          :message-list="[]"
           :title="$t('SQL编辑器')"
           @change="handleEditorChange" />
         <div
@@ -49,7 +49,7 @@
             v-else-if="isCheckError"
             class="syntax-error" />
           <SyntaxSuccess
-            v-else-if="inputContentCheckResult.messageList.length < 1"
+            v-else
             class="syntax-success" />
         </template>
       </BkLoading>
@@ -57,10 +57,9 @@
   </BkFormItem>
 </template>
 <script setup lang="ts">
-  import { onActivated, onDeactivated, ref, shallowRef, watch } from 'vue';
+  import { onActivated, onDeactivated, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
   import { uploadSql } from '@services/source/sqlServerImport';
   import { getFileContent } from '@services/source/storage';
 
@@ -92,9 +91,7 @@
   const isChecking = ref(false);
   const isCheckError = ref(false);
 
-  const inputContentCheckResult = shallowRef({} as GrammarCheckModel);
-
-  let grammarCheckData: Record<string, GrammarCheckModel>;
+  let uploadFileData: ServiceReturnType<typeof uploadSql>[number];
 
   const rules = [
     {
@@ -102,8 +99,7 @@
         if (!isKeepAliveActive) {
           return true;
         }
-        const { content, isError } = inputContentCheckResult.value;
-        return content && !isError;
+        return isCheckError;
       },
       message: t('SQL内容无效'),
       trigger: 'change',
@@ -128,7 +124,7 @@
   };
 
   watch(content, () => {
-    inputContentCheckResult.value = {} as GrammarCheckModel;
+    isCheckError.value = false;
   });
 
   let isInnerChange = false;
@@ -151,15 +147,9 @@
   );
 
   const triggerChange = () => {
-    if (!grammarCheckData) {
-      return;
-    }
     isInnerChange = true;
-    const [fileName] = Object.keys(grammarCheckData);
-    const [checkResult] = Object.values(grammarCheckData);
-    inputContentCheckResult.value = checkResult;
-    emits('change', [fileName]);
-    emits('grammar-check', true, !checkResult.isError);
+    emits('change', uploadFileData ? [uploadFileData.sql_path] : []);
+    emits('grammar-check', true, true);
   };
 
   const handleGrammarCheck = () => {
@@ -170,11 +160,10 @@
     params.append('sql_content', content.value);
     uploadSql(params)
       .then((data) => {
-        grammarCheckData = data;
+        [uploadFileData] = data;
         triggerChange();
       })
-      .catch((error) => {
-        console.log(error);
+      .catch(() => {
         isCheckError.value = true;
         emits('grammar-check', true, false);
       })
@@ -185,7 +174,6 @@
 
   const handleEditorChange = () => {
     isSubmited.value = false;
-    inputContentCheckResult.value = {} as GrammarCheckModel;
     emits('grammar-check', false, false);
   };
 

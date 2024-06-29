@@ -47,11 +47,10 @@
     {
       label: t('迁移类型'),
       width: 180,
-      field: 'dtsModeText',
     },
     {
       label: t('迁移 DB'),
-      field: 'dtsModeText',
+      width: 180,
       render: ({data}: {data: MigrateRecordModel}) => (
         <>
           {data.tagetDb.map(item => <bk-tag>{item}</bk-tag>)}
@@ -60,14 +59,16 @@
     },
     {
       label: t('忽略 DB'),
+      width: 180,
       render: ({data}: {data: MigrateRecordModel}) => (
         <>
-          {data.tagetDb.map(item => <bk-tag>{item}</bk-tag>)}
+          {data.ignore_db_list.length < 1 ? '--':data.ignore_db_list.map(item => <bk-tag>{item}</bk-tag>)}
         </>
       )
     },
     {
       label: t('关联单据'),
+      minWidth: 120,
       render: ({data}: {data: MigrateRecordModel}) => {
         if (!data.ticket_id) {
           return '--'
@@ -89,6 +90,7 @@
     },
     {
       label: t('状态'),
+      minWidth: 120,
       render: ({data}: {data: MigrateRecordModel}) => (
         <>
           <span
@@ -106,11 +108,13 @@
     },
     {
       label: t('创建时间'),
-      render: ({data}: {data: MigrateRecordModel}) => data.updater
+      width: 250,
+      render: ({data}: {data: MigrateRecordModel}) => data.createAtDisplay
     },
     {
       label: t('操作'),
       width: 150,
+      fixed: 'right',
       render: ({data}: {data: MigrateRecordModel}) => (
         <>
           <bk-button
