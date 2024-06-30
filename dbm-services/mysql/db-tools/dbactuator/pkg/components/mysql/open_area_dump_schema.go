@@ -45,6 +45,7 @@ type OpenAreaDumpSchemaParam struct {
 	RootId        string              `json:"root_id"`
 	BkCloudId     int                 `json:"bk_cloud_id"`
 	DBCloudToken  string              `json:"db_cloud_token"`
+	WorkDir       string              `json:"work_dir"`
 	DumpDirName   string              `json:"dump_dir_name"` // dump目录名称 {}_schema {}_data
 	FileServer    FileServer          `json:"fileserver"`
 	OpenAreaParam []OneOpenAreaSchema `json:"open_area_param"`
@@ -64,7 +65,7 @@ type OpenAreaDumpSchemaRunTimeCtx struct {
 	isTdbctl      bool   // 是否spider中控
 	dumpDirPath   string // dump目录绝对路径
 	tarName       string // 压缩文件名称 {}.tar.gz
-	workDir       string // schema目录所在的位置 即位于/data/install/mysql_open_area
+	workDir       string // schema目录所在的位置 即位于/data/install/mysql_open_area mysql_data_migration
 	uploadFile    []UploadFile
 	GtidPurgedOff bool // 对于开启了gtid模式的实例，在导出时设置 --set-gtid-purged=OFF
 }
@@ -140,7 +141,13 @@ func (c *OpenAreaDumpSchemaComp) Init() (err error) {
 			return err
 		}
 	}
-	c.workDir = path.Join(cst.BK_PKG_INSTALL_PATH, "mysql_open_area")
+
+	if len(c.Params.WorkDir) > 0 {
+		c.workDir = path.Join(cst.BK_PKG_INSTALL_PATH, c.Params.WorkDir)
+	} else {
+		c.workDir = path.Join(cst.BK_PKG_INSTALL_PATH, "mysql_open_area")
+	}
+
 	c.dumpDirPath = path.Join(c.workDir, c.Params.DumpDirName)
 	c.tarName = fmt.Sprintf("%s.tar.gz", c.Params.DumpDirName)
 	err = os.MkdirAll(c.dumpDirPath, 0755)
