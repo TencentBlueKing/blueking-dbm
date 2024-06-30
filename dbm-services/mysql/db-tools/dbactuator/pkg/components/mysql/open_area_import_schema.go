@@ -41,6 +41,7 @@ type OpenAreaImportSchemaParam struct {
 	CharSet       string                    `json:"charSet" validate:"required,checkCharset"`
 	RootId        string                    `json:"root_id"`
 	BkCloudId     int                       `json:"bk_cloud_id"`
+	WorkDir       string                    `json:"work_dir"`
 	DumpDirName   string                    `json:"dump_dir_name"` // dump目录名称 {}_schema {}_data
 	DBCloudToken  string                    `json:"db_cloud_token"`
 	OpenAreaParam []OneOpenAreaImportSchema `json:"open_area_param"`
@@ -112,7 +113,12 @@ func (c *OpenAreaImportSchemaComp) Init() (err error) {
 		logger.Error("get socket failed!error:", err.Error())
 		return err
 	}
-	c.workDir = path.Join(cst.BK_PKG_INSTALL_PATH, "mysql_open_area")
+
+	if len(c.Params.WorkDir) > 0 {
+		c.workDir = path.Join(cst.BK_PKG_INSTALL_PATH, c.Params.WorkDir)
+	} else {
+		c.workDir = path.Join(cst.BK_PKG_INSTALL_PATH, "mysql_open_area")
+	}
 	// 绝对路径
 	tarFileName := fmt.Sprintf("%s.tar.gz", c.Params.DumpDirName)
 	c.tarFilePath = path.Join(c.workDir, tarFileName)
@@ -242,7 +248,7 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportSchema() (err error) {
 			WorkDir:          c.dumpDir,
 			User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 			Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
-		}.ExcuteSqlByMySQLClientOne(schemaName, oneShemaInfo.NewDB)
+		}.MyExcuteSqlByMySQLClientOne(schemaName, oneShemaInfo.NewDB)
 		if err != nil {
 			logger.Error("执行%s文件失败！", schemaName)
 			return err
@@ -265,7 +271,7 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportData() (err error) {
 			WorkDir:          c.dumpDir,
 			User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 			Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
-		}.ExcuteSqlByMySQLClientOne(dataFileName, oneShemaInfo.NewDB)
+		}.MyExcuteSqlByMySQLClientOne(dataFileName, oneShemaInfo.NewDB)
 		if err != nil {
 			logger.Error("执行%s文件失败！", dataFileName)
 			return err
@@ -289,7 +295,7 @@ func (c *OpenAreaImportSchemaComp) MysqlDataMigrateImport() (err error) {
 				WorkDir:          c.dumpDir,
 				User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 				Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
-			}.ExcuteSqlByMySQLClientOne(dataFileName, db)
+			}.MyExcuteSqlByMySQLClientOne(dataFileName, db)
 			if err != nil {
 				logger.Error("执行%s文件失败！", dataFileName)
 				return err

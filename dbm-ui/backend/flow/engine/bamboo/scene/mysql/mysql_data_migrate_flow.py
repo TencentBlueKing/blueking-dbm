@@ -19,6 +19,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
+from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -40,10 +41,7 @@ class MysqlDataMigrateFlow(object):
         self.data = data
         self.data["uid"] = self.data.get("uid") or self.root_id
         self.uid = self.data["uid"]
-
-        self.work_dir = f"{BK_PKG_INSTALL_PATH}/mysql_open_area"
-        self.migrate_tar_file_name = f"{self.root_id}_migrate.tar.gz"
-        self.migrate_md5sum_file_name = f"{self.root_id}_migrate.md5sum"
+        self.work_dir = "mysql_data_migration"
 
     def __get_cluster_info(self, cluster_id: int, bk_biz_id: int) -> dict:
         """
@@ -59,6 +57,8 @@ class MysqlDataMigrateFlow(object):
 
         if cluster.cluster_type == ClusterType.TenDBHA.value:
             ip_port = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER).ip_port
+        elif cluster.cluster_type == ClusterType.TenDBSingle.value:
+            ip_port = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN).ip_port
         else:
             raise DBMetaException(message=_("集群实例类型不适用于开区"))
 
@@ -81,6 +81,7 @@ class MysqlDataMigrateFlow(object):
             target_cluster = self.__get_cluster_info(cluster_id=tc_id, bk_biz_id=self.data["bk_biz_id"])
             target_cluster["open_area_param"] = [{"db_list": info["db_list"], "schema": "migrate_database"}]
             target_clusters.append(target_cluster)
+            target_cluster["work_dir"] = self.work_dir
 
         return target_clusters
 
@@ -93,6 +94,7 @@ class MysqlDataMigrateFlow(object):
         source_cluster = self.__get_cluster_info(cluster_id=info["source_cluster"], bk_biz_id=self.data["bk_biz_id"])
         # 字典增加键值
         source_cluster["open_area_param"] = [{"db_list": info["db_list"]}]
+        source_cluster["work_dir"] = self.work_dir
         return source_cluster
 
     def __get_exec_ip_list(self, source_cluster: dict, target_clusters: list) -> list:
@@ -126,12 +128,15 @@ class MysqlDataMigrateFlow(object):
     def mysql_data_migrate_flow(self):
         cluster_ids = self.__get_all_cluster_id()
         pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
-
         sub_pipelines = []
+        n = 0
         for info in self.data["infos"]:
+            n += 1
             source_cluster = self.__get_source_cluster(info)
             target_clusters = self.__get_target_cluster(info)
             exec_ip_list = self.__get_exec_ip_list(source_cluster, target_clusters)
+
+            dump_dir_name = "{}_{}_migrate".format(self.root_id, n)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             sub_pipeline.add_act(
@@ -146,6 +151,7 @@ class MysqlDataMigrateFlow(object):
                 ),
             )
 
+            source_cluster["dump_dir_name"] = dump_dir_name
             sub_pipeline.add_act(
                 act_name=_("从源实例获取库"),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
@@ -155,6 +161,7 @@ class MysqlDataMigrateFlow(object):
                         cluster_type=source_cluster["cluster_type"],
                         cluster=source_cluster,
                         exec_ip=source_cluster["ip"],
+                        job_timeout=LONG_JOB_TIMEOUT,
                         get_mysql_payload_func=MysqlActPayload.get_mysql_data_migrate_dump_payload.__name__,
                     )
                 ),
@@ -162,23 +169,29 @@ class MysqlDataMigrateFlow(object):
 
             # 源集群不需要下发，移除其ip
             exec_ip_list.remove(source_cluster["ip"])
-            sub_pipeline.add_act(
-                act_name=_("下发库表文件到目标实例"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=source_cluster["bk_cloud_id"],
-                        exec_ip=exec_ip_list,
-                        file_target_path=self.work_dir,
-                        file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                            path=BKREPO_SQLFILE_PATH,
-                            filelist=[self.migrate_tar_file_name, self.migrate_md5sum_file_name],
-                        ),
-                    )
-                ),
-            )
+            # 源实例与目标实例在同一个机器上，下发ip列表为空，会报错
+            if len(exec_ip_list) > 0:
+                migrate_tar_file_name = "{}.tar.gz".format(dump_dir_name)
+                migrate_md5sum_file_name = "{}.md5sum".format(dump_dir_name)
+                sub_pipeline.add_act(
+                    act_name=_("下发库表文件到目标实例"),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=source_cluster["bk_cloud_id"],
+                            exec_ip=exec_ip_list,
+                            file_target_path="{}/{}".format(BK_PKG_INSTALL_PATH, self.work_dir),
+                            file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
+                                path=BKREPO_SQLFILE_PATH,
+                                filelist=[migrate_tar_file_name, migrate_md5sum_file_name],
+                            ),
+                        )
+                    ),
+                )
+
             acts_list = []
             for target_cluster in target_clusters:
+                target_cluster["dump_dir_name"] = dump_dir_name
                 acts_list.append(
                     {
                         "act_name": _("向目标实例导入库"),
@@ -189,6 +202,7 @@ class MysqlDataMigrateFlow(object):
                                 cluster_type=target_cluster["cluster_type"],
                                 cluster=target_cluster,
                                 exec_ip=target_cluster["ip"],
+                                job_timeout=LONG_JOB_TIMEOUT,
                                 get_mysql_payload_func=MysqlActPayload.get_mysql_data_migrate_import_payload.__name__,
                             )
                         ),
