@@ -1408,28 +1408,37 @@ func (db *RedisClient) Shutdown() (err error) {
 		mylog.Logger.Error(err.Error())
 		return
 	}
-	_, err = db.InstanceClient.Shutdown(context.TODO()).Result()
-	if err != nil {
-		redisCliBin := filepath.Join(consts.UsrLocal, "redis/bin/redis-cli")
-		if util.FileExists(redisCliBin) {
-			// 如果redis-cli存在,则优先使用redis-cli 执行shutdown
-			// db.InstanceClient.Shutdown() 会返回一些其他错误
-			var opt string
-			if util.IsCliSupportedNoAuthWarning(redisCliBin) {
-				opt = "--no-auth-warning"
-			}
-			l01 := strings.Split(db.Addr, ":")
-			cmd := fmt.Sprintf("%s -h %s -p %s -a %s %s shutdown",
-				redisCliBin, l01[0], l01[1], db.Password, opt)
-			logcmd := fmt.Sprintf("%s -h %s -p %s -a xxxx %s shutdown",
-				redisCliBin, l01[0], l01[1], opt)
-			mylog.Logger.Info(logcmd)
-			_, err = util.RunBashCmd(cmd, "", nil, 1*time.Minute)
-			if err != nil {
-				return
-			}
-			return
+	l01 := strings.Split(db.Addr, ":")
+	ip := l01[0]
+	port := l01[1]
+	// 先shutdown,再检查端口是否关闭
+	db.InstanceClient.Shutdown(context.TODO()).Result()
+	time.Sleep(5 * time.Second)
+	isUsing, _ := util.CheckPortIsInUse(ip, port)
+	if !isUsing {
+		return
+	}
+	redisCliBin := filepath.Join(consts.UsrLocal, "redis/bin/redis-cli")
+	if util.FileExists(redisCliBin) {
+		// 如果redis-cli存在,则优先使用redis-cli 执行shutdown
+		// db.InstanceClient.Shutdown() 会返回一些其他错误
+		var opt string
+		if util.IsCliSupportedNoAuthWarning(redisCliBin) {
+			opt = "--no-auth-warning"
 		}
+		cmd := fmt.Sprintf("%s -h %s -p %s -a %s %s shutdown",
+			redisCliBin, ip, port, db.Password, opt)
+		logcmd := fmt.Sprintf("%s -h %s -p %s -a xxxx %s shutdown",
+			redisCliBin, ip, port, opt)
+		mylog.Logger.Info(logcmd)
+		util.RunBashCmd(cmd, "", nil, 1*time.Minute)
+	}
+	// 再次检查端口是否关闭,如果关闭了,则认为shutdown成功;如果没有关闭,则认为shutdown失败
+	isUsing, _ = util.CheckPortIsInUse(ip, port)
+	if isUsing {
+		err = fmt.Errorf("redis:%s shutdown fail,port still in use", db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
 	}
 
 	return nil
