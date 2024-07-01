@@ -43,14 +43,16 @@ class QueryDbsByBackupLogSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     db_pattern = serializers.ListSerializer(help_text=_("库匹配模式"), child=serializers.CharField())
     ignore_db = serializers.ListSerializer(help_text=_("忽略库匹配模式"), child=serializers.CharField())
-    backup_logs = serializers.ListSerializer(help_text=_("备份记录"), child=serializers.JSONField(), required=False)
-    restore_time = DBTimezoneField(help_text=_("回档时间"), required=False)
+    backup_logs = serializers.DictField(help_text=_("备份记录"), required=False)
+    restore_time = DBTimezoneField(help_text=_("回档时间"), allow_blank=True, required=False)
 
     def validate(self, attrs):
         if not attrs.get("backup_logs") and not attrs.get("rollback_time"):
             raise serializers.ValidationError(_("请输入备份记录或者备份时间来查询操作库表"))
         if attrs.get("restore_time"):
             attrs["restore_time"] = str2datetime(attrs["restore_time"])
+        else:
+            attrs.pop("restore_time")
         return attrs
 
 
