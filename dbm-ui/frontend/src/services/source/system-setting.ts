@@ -1,4 +1,4 @@
-import http from './http';
+import http from '../http';
 
 // 查询机型类型
 export const getDeviceClassList = function () {

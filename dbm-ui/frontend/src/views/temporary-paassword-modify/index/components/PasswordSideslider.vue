@@ -64,7 +64,7 @@
   import { useI18n } from 'vue-i18n';
 
   import MysqlAdminPasswordModel from '@services/model/admin-password/mysql-admin-password';
-  import { queryMysqlAdminPassword } from '@services/permission';
+  import { queryMysqlAdminPassword } from '@services/source/permission';
 
   import {
     useCopy,

@@ -64,7 +64,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { modifyMysqlAdminPassword } from '@services/permission';
+  import { modifyMysqlAdminPassword } from '@services/source/permission';
 
   import { useCopy } from '@hooks';
 

@@ -37,7 +37,7 @@
   import {
     getList,
     remove,
-  } from '@services/openarea';
+  } from '@services/source/openarea';
 
   import { useDebouncedRef,useTicketCloneInfo  } from '@hooks';
 

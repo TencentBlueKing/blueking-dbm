@@ -118,7 +118,7 @@
   import {
     deleteAccount,
     getPermissionRules,
-  } from '@services/permission';
+  } from '@services/source/permission';
   import type { PermissionRuleInfo } from '@services/types/permission';
 
   import {
@@ -550,6 +550,7 @@
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
       & ~ .cell-row {
         border-top: 1px solid #dcdee5;
       }

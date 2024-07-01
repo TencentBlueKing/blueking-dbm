@@ -13,7 +13,7 @@
 
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
-import { getPermissionRules } from '@services/permission';
+import { getPermissionRules } from '@services/source/permission';
 import type { PermissionRuleAccount } from '@services/types/permission';
 
 type IPermissioRule = ServiceReturnType<typeof getPermissionRules>['results'][number];

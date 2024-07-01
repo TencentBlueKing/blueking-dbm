@@ -14,7 +14,7 @@
     getMetaCheckInsganceBelong,
     getRedisMetaCheckAloneInstance,
     getRedisMetaCheckStatusAbnormal,
-  } from '@services/report';
+  } from '@services/source/report';
 
   import RenderDynamicTable from '../render-dynamic-table/Index.vue';
 

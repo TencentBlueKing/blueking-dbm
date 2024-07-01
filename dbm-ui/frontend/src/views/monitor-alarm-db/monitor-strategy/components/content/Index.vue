@@ -59,7 +59,7 @@
     getClusterList,
     getDbModuleList,
     queryMonitorPolicyList,
-  } from '@services/monitor';
+  } from '@services/source/monitor';
   import { getSimpleList } from '@services/source/monitorNoticeGroup'
 
   import { useGlobalBizs } from '@stores';

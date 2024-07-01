@@ -102,3 +102,23 @@ export function queryWebconsole(params: { cluster_id: number; cmd: string }) {
     error_msg?: string;
   }>(`${path}/webconsole/`, params);
 }
+
+// 查询全集群信息
+export function queryAllTypeCluster(params: {
+  bk_biz_id: number;
+  cluster_types?: string;
+  immute_domain?: string;
+  phase?: string;
+}) {
+  return http.get<
+    {
+      bk_cloud_id: number;
+      cluster_type: string;
+      id: number;
+      immute_domain: string;
+      major_version: string;
+      name: string;
+      region: string;
+    }[]
+  >(`${path}/simple_query_cluster/`, params);
+}

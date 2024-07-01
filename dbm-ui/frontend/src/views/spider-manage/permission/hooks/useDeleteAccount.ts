@@ -15,7 +15,7 @@ import { InfoBox } from 'bkui-vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
-import { deleteAccount } from '@services/permission';
+import { deleteAccount } from '@services/source/permission';
 
 import { AccountTypes } from '@common/const';
 

@@ -152,7 +152,7 @@
   import { useRequest } from 'vue-request';
 
   import { getTicketHostNodes } from '@services/source/ticket';
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities } from '@services/source/ticket';
   import type { TicketDetails, TicketDetailsKafka } from '@services/types/ticket';
 
   import { useSystemEnviron } from '@stores';

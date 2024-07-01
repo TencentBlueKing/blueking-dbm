@@ -51,7 +51,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getPermissionRules } from '@services/permission';
+  import { getPermissionRules } from '@services/source/permission';
 
   type IColumnData = ServiceReturnType<typeof getPermissionRules>['results'][0]
 

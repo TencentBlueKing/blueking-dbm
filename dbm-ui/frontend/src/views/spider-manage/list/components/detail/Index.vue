@@ -62,7 +62,7 @@
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
-  import { getSpiderDetails } from '@services/spider';
+  import { getSpiderDetails } from '@services/source/spider';
 
   import { useGlobalBizs } from '@stores';
 

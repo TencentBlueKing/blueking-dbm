@@ -73,7 +73,7 @@
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
-  import { getPermissionRules } from '@services/permission';
+  import { getPermissionRules } from '@services/source/permission';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -318,8 +318,8 @@
     height: 730px;
 
     .top-operate {
-      width: 100%;
       display: flex;
+      width: 100%;
       font-size: 12px;
 
       .search-main {

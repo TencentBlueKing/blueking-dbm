@@ -33,7 +33,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getUseList } from '@services/common';
+  import { getUseList } from '@services/source/common';
   import type { DutyCustomItem } from '@services/model/monitor/duty-rule';
   import DutyRuleModel from '@services/model/monitor/duty-rule';
 

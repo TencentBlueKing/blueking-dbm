@@ -156,7 +156,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getDutyNoticeConfig, updateDutyNoticeConfig } from '@services/monitor';
+  import { getDutyNoticeConfig, updateDutyNoticeConfig } from '@services/source/monitor';
 
   import { messageError, messageSuccess } from '@utils';
 

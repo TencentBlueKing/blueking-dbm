@@ -114,11 +114,7 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    Form,
-    Input,
-    Message,
-  } from 'bkui-vue';
+  import { Form, Input, Message } from 'bkui-vue';
   import JSEncrypt from 'jsencrypt';
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
@@ -130,7 +126,7 @@
     getRandomPassword,
     getRSAPublicKeys,
     verifyPasswordStrength,
-  } from '@services/permission';
+  } from '@services/source/permission';
   import { createMongodbAccount } from '@services/source/mongodbPermissionAccount';
 
   import { useGlobalBizs } from '@stores';
@@ -138,21 +134,18 @@
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
-  import {
-    PASSWORD_POLICY,
-    type PasswordPolicyKeys,
-  } from '../common/consts';
+  import { PASSWORD_POLICY, type PasswordPolicyKeys } from '../common/consts';
 
   type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
   type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
 
   interface StrengthItem {
-    keys: string[],
-    text: string
+    keys: string[];
+    text: string;
   }
 
   interface Emits {
-    (e: 'success'): void,
+    (e: 'success'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -187,10 +180,10 @@
     user: '',
   });
 
-  const verifyPassword = () => verifyPasswordStrength({
-    password: getEncyptPassword(),
-  })
-    .then((res) => {
+  const verifyPassword = () =>
+    verifyPasswordStrength({
+      password: getEncyptPassword(),
+    }).then((res) => {
       validate.value = res;
       return res.is_strength;
     });
@@ -218,9 +211,7 @@
     ],
   };
 
-  const {
-    run: getRandomPasswordRun,
-  } = useRequest(getRandomPassword, {
+  const { run: getRandomPasswordRun } = useRequest(getRandomPassword, {
     manual: true,
     onSuccess(randomPasswordRes) {
       formData.password = randomPasswordRes.password;
@@ -237,10 +228,12 @@
         exclude_continuous_rule: excludeContinuousRule,
       } = res.rule;
 
-      strength.value = [{
-        keys: ['min_length_valid', 'max_length_valid'],
-        text: t('密码长度为_min_max', [minLength, maxLength]),
-      }];
+      strength.value = [
+        {
+          keys: ['min_length_valid', 'max_length_valid'],
+          text: t('密码长度为_min_max', [minLength, maxLength]),
+        },
+      ];
 
       // 常规提示
       for (const key of keys) {
@@ -308,10 +301,7 @@
     },
   });
 
-  const {
-    run: createAccountRun,
-    loading: isLoading,
-  } = useRequest(createMongodbAccount, {
+  const { run: createAccountRun, loading: isLoading } = useRequest(createMongodbAccount, {
     manual: true,
     onSuccess() {
       Message({
@@ -332,24 +322,26 @@
     }
   });
 
-  watch(() => formData.password, (newPassword) => {
-    if (newPassword) {
-      debounceVerifyPassword();
-    }
-  });
+  watch(
+    () => formData.password,
+    (newPassword) => {
+      if (newPassword) {
+        debounceVerifyPassword();
+      }
+    },
+  );
 
   const randomlyGenerate = () => {
     getRandomPasswordRun();
   };
 
-  const fetchRSAPublicKeys = () =>  {
-    getRSAPublicKeys({ names: ['password'] })
-      .then((res) => {
-        publicKey = res[0]?.content || '';
-      });
+  const fetchRSAPublicKeys = () => {
+    getRSAPublicKeys({ names: ['password'] }).then((res) => {
+      publicKey = res[0]?.content || '';
+    });
   };
 
-  const getEncyptPassword = () =>  {
+  const getEncyptPassword = () => {
     const encypt = new JSEncrypt();
     encypt.setPublicKey(publicKey);
     const encyptPassword = encypt.encrypt(formData.password);
@@ -377,7 +369,7 @@
     return `status-${isPass ? 'success' : 'failed'}`;
   };
 
-  const handleSubmit = async () =>  {
+  const handleSubmit = async () => {
     await accountRef.value!.validate();
 
     const params = {

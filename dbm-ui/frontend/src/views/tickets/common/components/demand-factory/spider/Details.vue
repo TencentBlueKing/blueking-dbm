@@ -112,7 +112,7 @@
 
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import type { SpiderApplyDetails } from '@services/model/ticket/details/spider';
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities } from '@services/source/ticket';
   import type { TicketDetails } from '@services/types/ticket';
 
   import { useSystemEnviron } from '@stores';

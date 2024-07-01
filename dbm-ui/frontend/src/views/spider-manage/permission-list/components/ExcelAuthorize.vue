@@ -116,7 +116,7 @@
   import Cookies from 'js-cookie';
   import { useI18n } from 'vue-i18n';
 
-  import { createTicket } from '@services/ticket';
+  import { createTicket } from '@services/source/ticket';
   import type { BaseResponse } from '@services/types';
   import type { AuthorizePreCheckData, AuthorizePreCheckResult } from '@services/types/permission';
 

@@ -64,10 +64,10 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { getUseList } from '@services/common';
+  import { getUseList } from '@services/source/common';
 
   interface Props {
-    list?: string[],
+    list?: string[];
   }
 
   interface Exposes {
@@ -75,7 +75,7 @@
   }
 
   interface Emits {
-    (e: 'change', value: string[]): void
+    (e: 'change', value: string[]): void;
   }
 
   const props = defineProps<Props>();
@@ -91,39 +91,50 @@
   let sourceValue = '';
   let targetValue = '';
 
-  watch(() => props.list, (list) => {
-    if (list) {
-      tagsList.value = list;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.list,
+    (list) => {
+      if (list) {
+        tagsList.value = list;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(tagsList, (list, oldList) => {
-    emits('change', list);
-    if (oldList && list.length > 0) {
-      window.changeConfirm = true;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    tagsList,
+    (list, oldList) => {
+      emits('change', list);
+      if (oldList && list.length > 0) {
+        window.changeConfirm = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const { run: fetchUseList } = useRequest(getUseList, {
     manual: true,
     onSuccess: (res) => {
-      contactList.value = res.results.reduce((results, item) => {
-        if (!tagsList.value?.includes(item.username)) {
-          const obj = {
-            label: item.username,
-            value: item.username,
-          };
-          results.push(obj);
-        }
-        return results;
-      }, [] as {
-        label: string,
-        value: string,
-      }[]);
+      contactList.value = res.results.reduce(
+        (results, item) => {
+          if (!tagsList.value?.includes(item.username)) {
+            const obj = {
+              label: item.username,
+              value: item.username,
+            };
+            results.push(obj);
+          }
+          return results;
+        },
+        [] as {
+          label: string;
+          value: string;
+        }[],
+      );
     },
   });
 
@@ -157,7 +168,10 @@
   const handleClickEnter = () => {
     const inputValue = localValue.value;
     if (inputValue) {
-      if (!tagsList.value.includes(inputValue) && contactList.value.findIndex(item => item.value === inputValue) > -1) {
+      if (
+        !tagsList.value.includes(inputValue) &&
+        contactList.value.findIndex((item) => item.value === inputValue) > -1
+      ) {
         tagsList.value.push(inputValue);
       }
       localValue.value = '';
@@ -178,7 +192,7 @@
   const handleDragEnterItem = (e: DragEvent) => {
     if (e.relatedTarget !== null) {
       const targetText = e.relatedTarget.innerText;
-      const index = tagsList.value.findIndex(item => item === targetText);
+      const index = tagsList.value.findIndex((item) => item === targetText);
       targetIndex.value = index === -1 ? -1 : index + 1;
       targetValue = targetText;
     }

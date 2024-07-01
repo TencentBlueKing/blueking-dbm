@@ -85,7 +85,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { precheckPermissionClone } from '@services/permission';
+  import { precheckPermissionClone } from '@services/source/permission';
   import {
     checkHost,
     getHostTopoInfos,

@@ -210,7 +210,7 @@
   import type { JSX } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
 
-  import { createAccountRule, getPermissionRules, preCheckAddAccountRule, queryAccountRules } from '@services/permission';
+  import { createAccountRule, getPermissionRules, preCheckAddAccountRule, queryAccountRules } from '@services/source/permission';
   import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
 
   import { AccountTypes } from '@common/const';
@@ -520,14 +520,14 @@
           margin-left: 0;
 
           .sensitive-tip {
+            height: 16px;
+            padding: 0 4px;
+            font-size: 10px;
+            line-height: 16px;
+            color: #fe9c00;
+            text-align: center;
             background: #fff3e1;
             border-radius: 2px;
-            font-size: 10px;
-            color: #fe9c00;
-            height: 16px;
-            line-height: 16px;
-            text-align: center;
-            padding: 0 4px;
           }
         }
       }

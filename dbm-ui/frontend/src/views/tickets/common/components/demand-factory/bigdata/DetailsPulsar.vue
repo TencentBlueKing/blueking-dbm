@@ -190,7 +190,7 @@
   import { useRequest } from 'vue-request';
 
   import { getTicketHostNodes } from '@services/source/ticket';
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities } from '@services/source/ticket';
 
   import { useSystemEnviron } from '@stores';
 

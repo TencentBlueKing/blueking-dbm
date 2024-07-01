@@ -15,8 +15,8 @@ import MysqlAdminPasswordModel from '@services/model/admin-password/mysql-admin-
 
 import type { AccountTypesValues, ClusterTypes } from '@common/const';
 
-import http, { type IRequestPayload } from './http';
-import type { ListBase } from './types';
+import http, { type IRequestPayload } from '../http';
+import type { ListBase } from '../types';
 import type {
   AccountRule,
   AuthorizePreCheckData,
@@ -27,7 +27,7 @@ import type {
   PermissionCloneRes,
   PermissionRule,
   PermissionRulesParams,
-} from './types/permission';
+} from '../types/permission';
 
 // 密码随机化周期
 interface RamdomCycle {

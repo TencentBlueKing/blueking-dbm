@@ -159,7 +159,7 @@
 
   import type { MySQLDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities } from '@services/source/ticket';
 
   import { useSystemEnviron } from '@stores';
 
