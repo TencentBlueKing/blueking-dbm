@@ -51,7 +51,7 @@ dependencies:
   - condition: db-dns-api.enabled
     name: db-dns-api
     repository: file://charts/db-dns-api
-    version: 0.1.6
+    version: 0.1.7
   - condition: hadb-api.enabled
     name: hadb-api
     repository: file://charts/hadb-api
@@ -79,5 +79,5 @@ dependencies:
 description: A Helm chart for bk-dbm
 name: bk-dbm
 type: application
-version: 1.4.0-alpha.59
-appVersion: 1.4.0-alpha.59
+version: 1.4.0-alpha.60
+appVersion: 1.4.0-alpha.60

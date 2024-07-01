@@ -89,6 +89,7 @@ jobs:
       env:
         WORKFLOW_ACTION_TOKEN: ${{ secrets.WORKFLOW_ACTION_TOKEN }}
       run: |
+        git checkout ${{ steps.get-current-branch.outputs.current_branch }}
         filename="dbm-ui/release/V${{ steps.yaml-data.outputs.data }}_$(date +%Y%m%d).md"
         echo -e "## ${{ steps.yaml-data.outputs.data }} - $(date +%Y-%m-%d)\n\n" > ${filename}
         echo -e "${{ steps.build-release-log.outputs.changelog }}" >> ${filename}
