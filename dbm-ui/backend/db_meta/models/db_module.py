@@ -28,6 +28,7 @@ class DBModule(AuditedModel):
 
     bk_biz_id = models.IntegerField(default=0)
     db_module_name = models.CharField(default="", max_length=200)
+    alias_name = models.CharField(default="", max_length=200, help_text=_("dbmodule 别名,用于生成域名"))
     db_module_id = models.BigAutoField(primary_key=True)
     cluster_type = models.CharField(max_length=64, choices=ClusterEntryType.get_choices(), default="")
 
@@ -36,6 +37,10 @@ class DBModule(AuditedModel):
         unique_together = [
             ("db_module_id", "bk_biz_id", "cluster_type"),
             ("db_module_name", "bk_biz_id", "cluster_type"),
+        ]
+        indexes = [
+            models.Index(fields=["bk_biz_id", "alias_name"]),
+            models.Index(fields=["alias_name"]),
         ]
 
     @classmethod
@@ -78,10 +83,6 @@ class DBModule(AuditedModel):
                 except AppCache.DoesNotExist:
                     continue
 
-            # db_module_choices = [
-            #     (module.db_module_id, f"[{module.db_module_id}]{module.cluster_type}-{module.db_module_name}")
-            #     for module in cls.objects.filter(q)
-            # ]
         except Exception:  # pylint: disable=broad-except
             # 忽略出现的异常，此时可能因为表未初始化
             db_module_choices = []
