@@ -228,13 +228,21 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.SQLSERVER_SINGLE, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ], () => fetchData(isInit));
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.SQLSERVER_SINGLE,
+    attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    fetchDataFn: () => fetchData(isInit),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isCopyDropdown = ref(false);
@@ -260,12 +268,14 @@
 
   const searchSelectData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
-    },
-    {
       name: t('访问入口'),
       id: 'domain',
+      multiple: true,
+    },
+    {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+      multiple: true,
     },
     {
       name: 'ID',
@@ -274,6 +284,7 @@
     {
       name: t('集群名称'),
       id: 'name',
+      multiple: true,
     },
     {
       name: t('管控区域'),
@@ -792,7 +803,7 @@
 
       .header-select {
         flex: 1;
-        max-width: 320px;
+        max-width: 500px;
         min-width: 320px;
         margin-left: auto;
       }

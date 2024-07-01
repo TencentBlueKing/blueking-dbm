@@ -252,9 +252,15 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.HDFS, [
-    'bk_cloud_id',
-  ], () => fetchNodeList());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.HDFS,
+    attrs: ['bk_cloud_id'],
+    fetchDataFn: () => fetchNodeList(),
+    defaultSearchItem: {
+      id: 'ip',
+      name: 'IP',
+    }
+  });
 
   const isLoading = ref(false);
   const isAnomalies = ref(false);

@@ -122,11 +122,18 @@
     columnFilterChange,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(
-    ClusterTypes.TENDBCLUSTER,
-    ['bk_cloud_id'],
-    () => fetchResources(),
-  );
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBCLUSTER,
+    attrs: [
+      'bk_cloud_id'
+    ],
+    fetchDataFn: () => fetchResources(),
+    defaultSearchItem: {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+    },
+    isDiscardNondefault: true,
+  });
 
   const activePanel = inject(activePanelInjectionKey);
 

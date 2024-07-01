@@ -212,13 +212,21 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ], () => fetchData());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBHA,
+    attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    fetchDataFn: () => fetchData(),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
 
   const tableRef = ref();
@@ -244,13 +252,13 @@
 
   const searchSelectData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
+      name: t('访问入口'),
+      id: 'domain',
       multiple: true,
     },
     {
-      name: t('访问入口'),
-      id: 'domain',
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
       multiple: true,
     },
     {

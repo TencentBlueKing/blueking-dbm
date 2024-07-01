@@ -203,7 +203,12 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.INFLUXDB, ['bk_cloud_id'], () => fetchTableData(), false);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.INFLUXDB,
+    attrs: ['bk_cloud_id'],
+    fetchDataFn: () => fetchTableData(),
+    isCluster: false,
+  });
 
   const eventBus = inject('eventBus') as Emitter<any>;
 

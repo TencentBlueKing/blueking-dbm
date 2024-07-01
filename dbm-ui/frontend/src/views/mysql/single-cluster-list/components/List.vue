@@ -182,13 +182,21 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBSINGLE, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ], () => fetchData());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBSINGLE,
+    attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    fetchDataFn: () => fetchData(),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const tableRef = ref();
   const isShowExcelAuthorize = ref(false);
@@ -208,13 +216,13 @@
   const selectedIds = computed(() => state.selected.map(item => item.id));
   const searchSelectData = computed(() => [
     {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
+      name: t('访问入口'),
+      id: 'domain',
       multiple: true,
     },
     {
-      name: t('访问入口'),
-      id: 'domain',
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
       multiple: true,
     },
     {
@@ -418,15 +426,15 @@
       minWidth: 180,
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
-      <RenderInstances
-        highlightIps={batchSearchIpInatanceList.value}
-        data={data.masters}
-        title={t('【inst】实例预览', { inst: data.master_domain })}
-        role="orphan"
-        clusterId={data.id}
-        dataSource={getTendbsingleInstanceList}
-      />
-    ),
+        <RenderInstances
+          highlightIps={batchSearchIpInatanceList.value}
+          data={data.masters}
+          title={t('【inst】实例预览', { inst: data.master_domain })}
+          role="orphan"
+          clusterId={data.id}
+          dataSource={getTendbsingleInstanceList}
+        />
+      ),
     },
     {
       label: t('所属DB模块'),
