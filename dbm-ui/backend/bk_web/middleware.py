@@ -8,13 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import datetime
 import json
 import logging
 import re
 
 import wrapt
-from apigw_manager.apigw.authentication import UserModelBackend
 from blueapps.account.middlewares import LoginRequiredMiddleware
 from blueapps.account.models import User
 from django.contrib.auth.models import AnonymousUser
@@ -24,10 +22,14 @@ from django.utils.deprecation import MiddlewareMixin
 from django.utils.translation import ugettext as _
 
 from backend import env
-from backend.bk_web.constants import IP_RE, NON_EXTERNAL_PROXY_ROUTING, ROUTING_WHITELIST_PATTERNS
+from backend.bk_web.constants import (
+    EXTERNAL_TICKET_TYPE_WHITELIST,
+    IP_RE,
+    NON_EXTERNAL_PROXY_ROUTING,
+    ROUTING_WHITELIST_PATTERNS,
+)
 from backend.bk_web.exceptions import ExternalProxyBaseException, ExternalRouteInvalidException
 from backend.bk_web.handlers import _error
-from backend.ticket.constants import TicketType
 from backend.ticket.views import TicketViewSet
 from backend.utils.local import local
 from backend.utils.string import str2bool
@@ -155,16 +157,24 @@ class ExternalProxyMiddleware(MiddlewareMixin):
 
     def __check_specific_request_params(self, request):
         """校验特殊接口的参数是否满足要求"""
-
         # 单据创建校验函数
         def check_create_ticket():
             data = json.loads(request.body.decode("utf-8"))
             # 目前只放开数据导出
-            access_ticket_types = [TicketType.MYSQL_DUMP_DATA, TicketType.TENDBCLUSTER_DUMP_DATA]
-            if data["ticket_type"] not in access_ticket_types:
+            if data["ticket_type"] not in EXTERNAL_TICKET_TYPE_WHITELIST:
                 raise ExternalRouteInvalidException(_("单据类型[{}]非法，未开通白名单").format(data["ticket_type"]))
 
-        check_action_func_map = {f"{TicketViewSet.__name__}.{TicketViewSet.create.__name__}": check_create_ticket}
+        # 单据过滤校验函数
+        def check_list_ticket():
+            data = request.GET.copy()
+            # 强制加上单据白名单类型
+            data["ticket_type__in"] = ",".join(EXTERNAL_TICKET_TYPE_WHITELIST)
+            request.GET = data
+
+        check_action_func_map = {
+            f"{TicketViewSet.__name__}.{TicketViewSet.create.__name__}": check_create_ticket,
+            f"{TicketViewSet.__name__}.{TicketViewSet.list.__name__}": check_list_ticket,
+        }
         # 根据请求的视图 + 动作判断是否特殊接口，以及接口参数是否合法
         try:
             func = resolve(request.path).func
@@ -172,7 +182,7 @@ class ExternalProxyMiddleware(MiddlewareMixin):
             check_action_func_map.get(f"{func.cls.__name__}.{action}", lambda: None)()
         except AttributeError:
             # 对无法解析func或者func action的接口忽略，不在特殊接口参数校验范围
-            return
+            pass
 
     def __verify_request_url(self, request):
         """校验外部请求路由是否允许被转发"""
@@ -224,26 +234,3 @@ class ExternalProxyMiddleware(MiddlewareMixin):
     @staticmethod
     def replace_ip(text):
         return re.sub(IP_RE, "*.*.*.*", text)
-
-
-class ExternalUserModelBackend(UserModelBackend):
-    """
-    外部代理用户认证后端，基于网关用户认证。
-    如果用户不存在dbm，则创建此新用户
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def authenticate(self, request, api_name, bk_username, verified, **credentials):
-        if not verified:
-            return self.make_anonymous_user(bk_username=bk_username)
-
-        if not request.is_external:
-            raise TypeError
-
-        user = User.objects.get_or_create(
-            defaults={"nickname": bk_username, "last_login": datetime.datetime.now()},
-            username=bk_username,
-        )
-        return user
