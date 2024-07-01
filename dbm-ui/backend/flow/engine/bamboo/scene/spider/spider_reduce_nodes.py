@@ -50,13 +50,18 @@ class TenDBClusterReduceNodesFlow(object):
         self.mix_spider_slave_count = MIN_SPIDER_SLAVE_COUNT
 
     def __calc_reduce_spiders(
-        self, cluster: Cluster, reduce_spider_role: TenDBClusterSpiderRole, spider_reduced_to_count: int
+        self,
+        cluster: Cluster,
+        reduce_spider_role: TenDBClusterSpiderRole,
+        spider_reduced_to_count: int,
+        spider_reduced_hosts: list = None,
     ):
         """
         根据每个子单据的操作spider角色和缩容剩余数量，来计算出合理的待回收spider节点列表
         @param cluster: 集群对象
         @param reduce_spider_role: 待回收角色
         @param spider_reduced_to_count: 缩容至数量
+        @param spider_reduced_hosts: 缩容指定的主机
         """
         # 检测
         spiders_count = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=reduce_spider_role).count()
@@ -80,8 +85,11 @@ class TenDBClusterReduceNodesFlow(object):
                 )
             )
 
-        # 计算合理的待下架的spider节点列表
+        # 如果是指定缩容IP，则直接返回
+        if spider_reduced_hosts:
+            return [{"ip": host["ip"]} for host in spider_reduced_hosts]
 
+        # 计算合理的待下架的spider节点列表
         ctl_primary = cluster.tendbcluster_ctl_primary_address()
 
         # 选择上尽量避开ctl_primary的选择, 避免做一次切换逻辑
@@ -124,6 +132,7 @@ class TenDBClusterReduceNodesFlow(object):
                 cluster=cluster,
                 reduce_spider_role=info["reduce_spider_role"],
                 spider_reduced_to_count=int(info["spider_reduced_to_count"]),
+                spider_reduced_hosts=info.get("spider_reduced_hosts"),
             )
             sub_flow_context["reduce_spiders"] = reduce_spiders
 

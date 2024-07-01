@@ -51,6 +51,7 @@ ROUTING_WHITELIST_PATTERNS = [
     # 集群相关接口
     r"/apis/dbbase/query_biz_cluster_attrs/",
     r"/apis/cmdb/[0-9]+/list_modules/",
+    r"/apis/mysql/bizs/[0-9]+/remote_service/show_cluster_databases/",
     # 平台设置相关接口
     "/apis/conf/biz_settings/simple/",
     # grafana和监控相关接口

@@ -138,13 +138,17 @@ class ExternalProxyMiddleware(MiddlewareMixin):
 
     def __check_action_permission_is_none(self, request):
         """校验当前动作的权限类是否为空，默认为空允许转发"""
-        func = resolve(request.path).func
-        action = func.actions.get(request.method.lower())
-
-        if hasattr(func.cls(), "get_permission_class_with_action") and func.cls().get_permission_class_with_action(
-            action
-        ):
+        try:
+            func = resolve(request.path).func
+            action = func.actions.get(request.method.lower())
+        except Exception as e:
+            logger.error("resolve request error: %s", e)
             return False
+
+        permission_class_with_action = getattr(func.cls(), "get_permission_class_with_action", None)
+        if permission_class_with_action and permission_class_with_action(action):
+            return False
+
         # 缓存到路由白名单中，不用下次校验。TODO: 缓存的数量级会过大吗？
         self.routing_patterns.append(request.path)
         return True

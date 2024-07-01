@@ -214,13 +214,7 @@ class RedisProxyScaleFlow(object):
         redis_pipeline.run_pipeline()
 
     @staticmethod
-    def __scale_down_cluster_info(bk_biz_id: int, cluster_id: int, target_proxy_count: int) -> dict:
-        cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
-        cluster_name = cluster_info["name"]
-        cluster_type = cluster_info["cluster_type"]
-        proxy_port = cluster_info["twemproxy_ports"][0]
-        proxy_ips = cluster_info["twemproxy_ips_set"]
-
+    def __calc_scale_down_ips(bk_biz_id, proxy_ips, target_proxy_count):
         # 统计proxy的idc情况
         idc_ips = defaultdict(list)
         max_count = 0
@@ -245,6 +239,25 @@ class RedisProxyScaleFlow(object):
                 if proxy_now_count <= target_proxy_count:
                     break
             max_count -= 1
+
+        return scale_down_ips
+
+    @classmethod
+    def __scale_down_cluster_info(
+        cls, bk_biz_id: int, cluster_id: int, target_proxy_count: int, proxy_reduced_hosts: list = None
+    ) -> dict:
+        cluster_info = api.cluster.nosqlcomm.other.get_cluster_detail(cluster_id)[0]
+        cluster_name = cluster_info["name"]
+        cluster_type = cluster_info["cluster_type"]
+        proxy_port = cluster_info["twemproxy_ports"][0]
+        proxy_ips = cluster_info["twemproxy_ips_set"]
+
+        if proxy_reduced_hosts:
+            # 指定ip缩容
+            scale_down_ips = [host["ip"] for host in proxy_reduced_hosts]
+        else:
+            # 根据数量缩容
+            scale_down_ips = cls.__calc_scale_down_ips(bk_biz_id, proxy_ips, target_proxy_count)
 
         return {
             "proxy_port": proxy_port,
