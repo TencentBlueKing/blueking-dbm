@@ -152,23 +152,32 @@
     columnSortChange,
     clearSearchValue,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.RIAK, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ], () => fetchData());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.RIAK,
+    attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    fetchDataFn: () => fetchData(),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const serachData = computed(() => [
+    {
+      name: t('集群名称'),
+      id: 'name',
+      multiple: true,
+    },
     {
       name: t('IP 或 IP:Port'),
       id: 'instance',
       multiple: true,
-    },
-    {
-      name: t('集群名称'),
-      id: 'name',
     },
     {
       name: 'ID',

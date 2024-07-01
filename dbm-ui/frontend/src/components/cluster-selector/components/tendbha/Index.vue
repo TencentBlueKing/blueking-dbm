@@ -94,13 +94,20 @@
     clearSearchValue,
     columnFilterChange,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBHA, [
-    'bk_cloud_id',
-    'db_module_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ]);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBHA,
+    attrs: [
+      'bk_cloud_id',
+      'db_module_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const {
     isLoading,

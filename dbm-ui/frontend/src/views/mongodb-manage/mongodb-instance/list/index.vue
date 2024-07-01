@@ -109,10 +109,19 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach([
-    ClusterTypes.MONGO_SHARED_CLUSTER,
-    ClusterTypes.MONGO_REPLICA_SET
-  ].join(',') as ClusterTypes, ['role'], () => fetchData(isInit), false);
+  } = useLinkQueryColumnSerach({
+    searchType: [
+      ClusterTypes.MONGO_SHARED_CLUSTER,
+      ClusterTypes.MONGO_REPLICA_SET
+    ].join(',') as ClusterTypes,
+    attrs: ['role'],
+    isCluster: false,
+    fetchDataFn: () => fetchData(isInit),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const {
     isOpen: isStretchLayoutOpen,
@@ -464,7 +473,7 @@
 
       .header-select {
         flex: 1;
-        max-width: 320px;
+        max-width: 500px;
         min-width: 320px;
         margin-left: auto;
       }

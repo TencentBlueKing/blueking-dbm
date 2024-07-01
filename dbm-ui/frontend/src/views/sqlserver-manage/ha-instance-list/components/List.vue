@@ -107,7 +107,16 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.SQLSERVER_HA, ['role'], () => fetchData(isInit), false);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.SQLSERVER_HA,
+    attrs: ['role'],
+    isCluster: false,
+    fetchDataFn: () => fetchData(isInit),
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const searchSelectData = computed(() => [
     {
@@ -416,7 +425,7 @@
 
       .bk-search-select {
         flex: 1;
-        max-width: 320px;
+        max-width: 500px;
         min-width: 320px;
         margin-left: auto;
       }

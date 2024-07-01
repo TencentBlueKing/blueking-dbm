@@ -33,7 +33,7 @@
         :pagination="pagination.count < 10 ? false : pagination"
         remote-pagination
         :settings="tableSettings"
-        style="margin-top: 12px;"
+        style="margin-top: 12px"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @page-limit-change="handlePageLimitChange"
@@ -124,7 +124,18 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.REDIS, ['bk_cloud_id'], () => fetchData());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.REDIS,
+    attrs: [
+      'bk_cloud_id'
+    ],
+    fetchDataFn: () => fetchData(),
+    defaultSearchItem: {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+    },
+    isDiscardNondefault: true,
+  });
 
   const activePanel = inject(activePanelInjectionKey);
 
@@ -448,7 +459,6 @@
     pagination.current = pageValue;
     fetchData();
   };
-
 </script>
 
 <style lang="less">

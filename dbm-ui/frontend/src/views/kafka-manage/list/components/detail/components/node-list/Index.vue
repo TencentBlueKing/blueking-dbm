@@ -261,9 +261,15 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.KAFKA, [
-    'bk_cloud_id',
-  ], () => fetchNodeList());
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.KAFKA,
+    attrs: ['bk_cloud_id'],
+    fetchDataFn: () => fetchNodeList(),
+    defaultSearchItem: {
+      id: 'ip',
+      name: 'IP',
+    }
+  });
 
   const isAnomalies = ref(false);
   const isShowReplace = ref(false);

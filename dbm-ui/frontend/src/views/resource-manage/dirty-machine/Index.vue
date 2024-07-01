@@ -54,15 +54,26 @@
         :validate-values="validateSearchValues"
         @change="handleSearchValueChange" />
     </div>
-    <DbTable
+    <!-- <DbTable
       ref="tableRef"
       :columns="tableColumn"
       :data-source="dataSource"
+      selectable
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"
       @select="handleSelect"
-      @select-all="handleSelectAll" />
+      @select-all="handleSelectAll" /> -->
+    <DbTable
+      ref="tableRef"
+      :columns="tableColumn"
+      :data-source="dataSource"
+      primary-key="bk_host_id"
+      selectable
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
+      @column-sort="columnSortChange"
+      @selection="handleSelection" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -115,7 +126,16 @@
     clearSearchValue,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach('spotty_host', [], () => fetchData());
+  } = useLinkQueryColumnSerach({
+    searchType: 'spotty_host',
+    attrs: [],
+    fetchDataFn: () => fetchData(),
+    defaultSearchItem: {
+      id: 'ip',
+      name: 'IP'
+    },
+    isDiscardNondefault: true,
+  });
 
   const dataSource = getDirtyMachines;
 
@@ -170,12 +190,6 @@
   const bizName = useGlobalBizsStore.currentBizInfo?.name;
 
   const tableColumn = computed(() => [
-    {
-      type: 'selection',
-      width: 48,
-      label: '',
-      fixed: 'left',
-    },
     {
       label: 'IP',
       field: 'ip',
@@ -365,31 +379,39 @@
     }));
   });
 
-  // 选择单台
-  const handleSelect = (data: { checked: boolean, row: DirtyMachinesModel }) => {
-    const selectedMap = { ...selectedTransferHostMap.value };
-    if (data.checked) {
-      selectedMap[data.row.bk_host_id] = data.row;
-    } else {
-      delete selectedMap[data.row.bk_host_id];
-    }
-
-    selectedTransferHostMap.value = selectedMap;
+  const handleSelection = (data: DirtyMachinesModel, list: DirtyMachinesModel[]) => {
+    selectedTransferHostMap.value = list.reduce((result, item) => ({
+      ...result,
+      [item.bk_host_id]: item,
+    }), {});
   };
+
+  // 选择单台
+  // const handleSelect = (data: { checked: boolean, row: DirtyMachinesModel }) => {
+  //   const selectedMap = { ...selectedTransferHostMap.value };
+  //   if (data.checked) {
+  //     selectedMap[data.row.bk_host_id] = data.row;
+  //   } else {
+  //     delete selectedMap[data.row.bk_host_id];
+  //   }
+
+  //   selectedTransferHostMap.value = selectedMap;
+  // };
 
   // 选择所有
-  const handleSelectAll = (data:{checked: boolean}) => {
-    let selectedMap = { ...selectedTransferHostMap.value };
-    if (data.checked) {
-      selectedMap = (tableRef.value.getData() as DirtyMachinesModel[]).reduce((result, item) => ({
-        ...result,
-        [item.bk_host_id]: item,
-      }), {});
-    } else {
-      selectedMap = {};
-    }
-    selectedTransferHostMap.value = selectedMap;
-  };
+  // const handleSelectAll = (data:{checked: boolean}) => {
+  //   let selectedMap = { ...selectedTransferHostMap.value };
+  //   if (data.checked) {
+  //     selectedMap = (tableRef.value.getData() as DirtyMachinesModel[]).reduce((result, item) => ({
+  //       ...result,
+  //       [item.bk_host_id]: item,
+  //     }), {});
+  //   } else {
+  //     selectedMap = {};
+  //   }
+
+  //   selectedTransferHostMap.value = selectedMap;
+  // };
 
   const handleCopySelected = () => {
     copy(selectedHosts.value.map(item => item.ip).join(','));

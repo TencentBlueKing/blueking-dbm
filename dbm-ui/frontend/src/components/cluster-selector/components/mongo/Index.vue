@@ -13,10 +13,11 @@
 
 <template>
   <SerachBar
-    v-model="searchSelectValue"
+    v-model="searchValue"
     :cluster-type="activeTab"
-    :placeholder="searchPlaceholder"
-    :search-select-list="searchSelectList" />
+    :search-attrs="searchAttrs"
+    :search-select-list="searchSelectList"
+    @search-value-change="handleSearchValueChange" />
   <BkLoading
     :loading="isLoading"
     :z-index="2">
@@ -30,6 +31,8 @@
       :pagination="pagination.count < 10 ? false : pagination"
       remote-pagination
       row-style="cursor: pointer;"
+      @clear-search="clearSearchValue"
+      @column-filter="columnFilterChange"
       @page-limit-change="handleTableLimitChange"
       @page-value-change="handleTablePageChange"
       @refresh="fetchResources"
@@ -39,6 +42,10 @@
 <script setup lang="tsx">
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { useLinkQueryColumnSerach } from '@hooks';
+
+  import { ClusterTypes } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -51,7 +58,7 @@
   import { useClusterData } from './useClusterData';
 
   interface Props {
-    activeTab: string,
+    activeTab: ClusterTypes,
     selected: Record<string, any[]>,
     // 多选模式
     multiple: TabItem['multiple'],
@@ -61,7 +68,6 @@
     columnStatusFilter?: TabItem['columnStatusFilter'],
     customColums?: TabItem['customColums'],
     searchSelectList?: TabItem['searchSelectList'],
-    searchPlaceholder?: TabItem['searchPlaceholder'],
     checkboxHoverTip?: TabItem['checkboxHoverTip'],
   }
 
@@ -78,6 +84,28 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    columnCheckedMap,
+    clearSearchValue,
+    columnFilterChange,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach({
+    searchType: props.activeTab,
+    attrs: [
+      'bk_cloud_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const columns = [
     {
@@ -166,6 +194,19 @@
       label: t('状态'),
       field: 'status',
       width: 100,
+      filter: {
+        list: [
+          {
+            value: 'normal',
+            text: t('正常'),
+          },
+          {
+            value: 'abnormal',
+            text: t('异常'),
+          },
+        ],
+        checked: columnCheckedMap.value.status,
+      },
       render: ({ data }: { data: ResourceItem }) => {
         const isNormal = props.columnStatusFilter ? props.columnStatusFilter(data) : data.status === 'normal';
         const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -184,8 +225,13 @@
     // },
     {
       label: t('管控区域'),
-      field: 'bk_cloud_name',
+      field: 'bk_cloud_id',
       showOverflowTooltip: true,
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
     },
   ];
 
@@ -204,7 +250,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useClusterData<ResourceItem>();
+  } = useClusterData<ResourceItem>(searchValue);
 
   // 选中域名列表
   const selectedDomainMap = computed(() => Object.values(selectedMap.value)
@@ -226,18 +272,18 @@
     return columns;
   });
 
-  watch(() => [props.activeTab, props.selected] as [string, Record<string, any[]>], ([tabKey, selected]) => {
-    if (tabKey) {
-      activeTab.value = tabKey;
-      if (!selected[tabKey] || !props.selected) {
+  watch(() => [props.activeTab, props.selected], () => {
+    if (props.activeTab) {
+      activeTab.value = props.activeTab;
+      if (!props.selected[props.activeTab] || !props.selected) {
         return;
       }
-      const tabSelectMap = selected[tabKey].reduce((selectResult, selectItem) => ({
+      const tabSelectMap = props.selected[props.activeTab].reduce((selectResult, selectItem) => ({
         ...selectResult,
         [selectItem.id]: selectItem,
       }), {} as Record<string, ResourceItem>);
       selectedMap.value = {
-        [tabKey]: tabSelectMap,
+        [props.activeTab]: tabSelectMap,
       };
     }
   }, {

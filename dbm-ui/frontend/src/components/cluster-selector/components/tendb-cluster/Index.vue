@@ -94,12 +94,19 @@
     clearSearchValue,
     columnFilterChange,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.TENDBCLUSTER, [
-    'bk_cloud_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ]);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.TENDBCLUSTER,
+    attrs: [
+      'bk_cloud_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const {
     isLoading,

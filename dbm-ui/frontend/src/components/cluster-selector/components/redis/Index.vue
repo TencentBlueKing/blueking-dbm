@@ -92,12 +92,19 @@
     clearSearchValue,
     columnFilterChange,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(ClusterTypes.REDIS, [
-    'bk_cloud_id',
-    'major_version',
-    'region',
-    'time_zone',
-  ]);
+  } = useLinkQueryColumnSerach({
+    searchType: ClusterTypes.REDIS,
+    attrs: [
+      'bk_cloud_id',
+      'major_version',
+      'region',
+      'time_zone',
+    ],
+    defaultSearchItem: {
+      name: t('访问入口'),
+      id: 'domain',
+    }
+  });
 
   const {
     isLoading,
