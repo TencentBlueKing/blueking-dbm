@@ -21,7 +21,9 @@
       @fetch-data="handleFecthData" />
   </BkLoading>
 </template>
-
+<script lang="ts">
+  let initOnce = false;
+</script>
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketFlows } from '@services/source/ticket';
@@ -76,13 +78,13 @@
 
   watch(
     () => props.data.id,
-    (id: number) => {
+    (id) => {
       if (id) {
         state.flows = [];
         fetchTicketFlows(id);
       }
     },
-    { immediate: true },
+    // { immediate: true },
   );
 
   /**
@@ -106,6 +108,11 @@
       .finally(() => {
         state.isLoading = false;
       });
+  }
+
+  if (!initOnce) {
+    fetchTicketFlows(props.data.id);
+    initOnce = true;
   }
 
   const handleFecthData = () => {
