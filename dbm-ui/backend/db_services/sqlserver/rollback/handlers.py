@@ -142,17 +142,17 @@ class SQLServerRollbackHandler(object):
         db_pattern: List[str],
         ignore_db: List[str],
         backup_logs: List[Dict] = None,
-        rollback_time: datetime = None,
+        restore_time: datetime = None,
     ):
         """
         根据回档记录/回档时间，和库正则，过滤真正操作的DB库
         @param db_pattern: 库正则
         @param ignore_db: 忽略库正则
         @param backup_logs: 备份记录列表(这里只关注记录中的备份库字段)
-        @param rollback_time: 回档时间
+        @param restore_time: 回档时间
         """
-        if rollback_time:
-            backup_logs = self.query_latest_backup_log(rollback_time)
+        if restore_time:
+            backup_logs = self.query_latest_backup_log(restore_time)
 
         db_names = [log["dbname"] for log in backup_logs["logs"]]
         real_db_names = sqlserver_match_dbs(db_names, db_pattern, ignore_db)
