@@ -203,7 +203,7 @@ func ShutdownMongoProcess(user string, instanceType string, binDir string, dbpat
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		60*time.Second); err != nil {
+		120*time.Second); err != nil {
 		return err
 	}
 	return nil
