@@ -43,25 +43,57 @@
           </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem
-                v-db-console="'redis.clusterManage.extractKey'"
-                @click="handleShowExtract(state.selected)">
-                {{ t('提取Key') }}
+              <BkDropdownItem v-db-console="'redis.clusterManage.extractKey'">
+                <BkButton
+                  v-bk-tooltips="{
+                    disabled: !hasDisabledRow,
+                    content: t('禁用的集群不支持提取 Key'),
+                    placement: 'right',
+                  }"
+                  :disabled="hasDisabledRow"
+                  text
+                  @click="handleShowExtract(selected)">
+                  {{ t('提取Key') }}
+                </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.clusterManage.deleteKey'"
-                @click="handlShowDeleteKeys(state.selected)">
-                {{ t('删除Key') }}
+              <BkDropdownItem v-db-console="'redis.clusterManage.deleteKey'">
+                <BkButton
+                  v-bk-tooltips="{
+                    disabled: !hasDisabledRow,
+                    content: t('禁用的集群不支持删除 Key'),
+                    placement: 'right',
+                  }"
+                  :disabled="hasDisabledRow"
+                  text
+                  @click="handlShowDeleteKeys(selected)">
+                  {{ t('删除Key') }}
+                </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.clusterManage.backup'"
-                @click="handleShowBackup(state.selected)">
-                {{ t('备份') }}
+              <BkDropdownItem v-db-console="'redis.clusterManage.backup'">
+                <BkButton
+                  v-bk-tooltips="{
+                    disabled: !hasDisabledRow,
+                    content: t('禁用的集群不支持备份'),
+                    placement: 'right',
+                  }"
+                  :disabled="hasDisabledRow"
+                  text
+                  @click="handleShowBackup(selected)">
+                  {{ t('备份') }}
+                </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem
-                v-db-console="'redis.clusterManage.dbClear'"
-                @click="handleShowPurge(state.selected)">
-                {{ t('清档') }}
+              <BkDropdownItem v-db-console="'redis.clusterManage.dbClear'">
+                <BkButton
+                  v-bk-tooltips="{
+                    disabled: !hasDisabledRow,
+                    content: t('禁用的集群不支持清档'),
+                    placement: 'right',
+                  }"
+                  :disabled="hasDisabledRow"
+                  text
+                  @click="handleShowPurge(selected)">
+                  {{ t('清档') }}
+                </BkButton>
               </BkDropdownItem>
             </BkDropdownMenu>
           </template>
@@ -89,7 +121,6 @@
           ref="tableRef"
           :columns="columns"
           :data-source="getRedisList"
-          :disable-select-method="disableSelectMethod"
           :pagination-extra="paginationExtra"
           releate-url-query
           :row-class="getRowClass"
@@ -198,10 +229,6 @@
     TableColumnRender,
   } from '@/types/bkui-vue';
 
-  interface RedisState {
-    selected: RedisModel[]
-  }
-
   type ColumnRenderData = { data: RedisModel }
 
   const clusterId = defineModel<number>('clusterId');
@@ -295,9 +322,7 @@
   const isShowDropdown = ref(false);
   const showEditEntryConfig = ref(false);
 
-  const state = reactive<RedisState>({
-    selected: [],
-  });
+  const selected = ref<RedisModel[]>([]);
 
   /** 查看密码 */
   const passwordState = reactive({
@@ -409,8 +434,8 @@
       layout: ['total', 'limit', 'list'],
     };
   });
-  const hasSelected = computed(() => state.selected.length > 0);
-  const selectedIds = computed(() => state.selected.map(item => item.id));
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -418,6 +443,7 @@
     }
     return 60;
   });
+  const hasDisabledRow = computed(() => selected.value.some((data) => disableSelectMethod(data)));
 
   const columns = computed(() => [
     {
@@ -1062,7 +1088,7 @@
   };
 
   const handleSelection = (data: RedisModel, list: RedisModel[]) => {
-    state.selected = list;
+    selected.value = list;
   };
 
   /**
