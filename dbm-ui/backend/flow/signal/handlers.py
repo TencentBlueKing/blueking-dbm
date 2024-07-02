@@ -19,7 +19,7 @@ from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
-from backend.ticket.constants import FlowCallbackType, FlowType, TicketFlowStatus
+from backend.ticket.constants import FlowCallbackType, FlowMsgType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket
@@ -95,7 +95,16 @@ def callback_ticket(ticket_id, root_id):
 
     # 在认为inner flow执行结束情况下，执行inner flow的后继动作
     if inner_flow_obj.status not in [TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING]:
-        send_msg_for_flow.apply_async(args=[current_flow.id])
+        send_msg_for_flow.apply_async(
+            args=[
+                current_flow.id,
+                ticket.creator,
+                ticket.creator,
+                FlowMsgType.DONE.value,
+                current_flow.update_at,
+                current_flow.status,
+            ]
+        )
         inner_flow_obj.callback(callback_type=FlowCallbackType.POST_CALLBACK.value)
 
     # 如果flow type的类型为快速任务，则跳过callback
