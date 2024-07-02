@@ -83,6 +83,7 @@
         isInnerChange = false;
         return;
       }
+      console.log('from edit = ', props);
       localDbName.value = props.dbName;
       localDbIgnoreName.value = props.dbIgnoreName;
       // 使用上一次编辑的值
