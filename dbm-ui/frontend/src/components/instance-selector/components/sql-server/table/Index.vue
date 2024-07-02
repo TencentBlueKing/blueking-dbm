@@ -123,11 +123,8 @@
     columnFilterChange,
     validateSearchValues,
     handleSearchValueChange,
-  } = useLinkQueryColumnSerach(
-    ClusterTypes.SQLSERVER_HA,
-    ['bk_cloud_id'],
-    () => fetchResources(),
-  );
+  } = useLinkQueryColumnSerach(ClusterTypes.SQLSERVER_HA, ['bk_cloud_id'], () => fetchResources());
+  console.log('debug sqlserver instance')
 
   const activePanel = inject(activePanelInjectionKey);
 
