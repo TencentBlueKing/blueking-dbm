@@ -32,6 +32,7 @@
   </BkLoading>
   <BkSideslider
     v-model:is-show="isShowEditName"
+    render-directive="if"
     :width="900">
     <template #header>
       <span>{{ t('手动修改回档的 DB 名 ') }}</span>
@@ -75,8 +76,8 @@
       id: number;
       domain: string;
     };
-    backupLogList?: ServiceReturnType<typeof queryBackupLogs>[number];
     restoreTime?: string;
+    restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
   }
 
   interface Expose {
@@ -137,17 +138,17 @@
   });
 
   watch(
-    () => [props.clusterData, dbName.value, dbIgnoreName.value],
+    () => [props.clusterData, props.restoreTime, props.restoreBackupFile, dbName.value, dbIgnoreName.value],
     () => {
-      if (!props.clusterData || dbName.value.length < 1 || (!props.restoreTime && !props.backupLogList)) {
+      if (!props.clusterData || dbName.value.length < 1 || (!props.restoreTime && !props.restoreBackupFile)) {
         return;
       }
       fetchSqlserverDbs({
         cluster_id: props.clusterData.id,
         db_pattern: dbName.value,
         ignore_db: dbIgnoreName.value,
-        backup_logs: props.backupLogList?.logs,
-        rollback_time: props.restoreTime,
+        backup_logs: props.restoreBackupFile ? { logs: props.restoreBackupFile.logs } : undefined,
+        restore_time: props.restoreTime,
       });
     },
     {
