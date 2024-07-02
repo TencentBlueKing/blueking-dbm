@@ -162,7 +162,7 @@ func (a *AddShardToCluster) checkShard() (bool, error) {
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		a.runtime.Logger.Error(fmt.Sprintf("get shard info fail, error:%s", err))
 		return false, fmt.Errorf("get shard info fail, error:%s", err)
@@ -210,7 +210,7 @@ func (a *AddShardToCluster) execScript() error {
 	if _, err = util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		a.runtime.Logger.Error(fmt.Sprintf("execute addShardToCluster script fail, error:%s", err))
 		return fmt.Errorf("execute addShardToCluster script fail, error:%s", err)
 	}

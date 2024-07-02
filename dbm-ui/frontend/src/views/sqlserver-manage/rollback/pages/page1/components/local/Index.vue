@@ -25,7 +25,7 @@
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
-  import { ClusterTypes } from '@common/const/index';
+  import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
@@ -63,6 +63,7 @@
   const handelClusterChange = (selected: {
     [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
   }) => {
+    console.log('handelClusterChange = ', selected);
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {

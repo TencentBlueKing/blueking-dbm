@@ -31,7 +31,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 		// 解压到/usr/local目录下
 		runtime.Logger.Info("start to unTar install package")
 		tarCmd := fmt.Sprintf("tar -zxf %s -C %s", installPackagePath, binDir)
-		if _, err := util.RunBashCmd(tarCmd, "", nil, 10*time.Second); err != nil {
+		if _, err := util.RunBashCmd(tarCmd, "", nil, 60*time.Second); err != nil {
 			runtime.Logger.Error(fmt.Sprintf("untar install file  fail, error:%s", err))
 			return fmt.Errorf("untar install file  fail, error:%s", err)
 		}
@@ -41,7 +41,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 		if _, err := util.RunBashCmd(
 			fmt.Sprintf("chown -R %s.%s %s", user, group, unTarPath),
 			"", nil,
-			10*time.Second); err != nil {
+			60*time.Second); err != nil {
 			runtime.Logger.Error(fmt.Sprintf("chown untar directory fail, error:%s", err))
 			return fmt.Errorf("chown untar directory fail, error:%s", err)
 		}
@@ -53,7 +53,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 		// 创建软链接
 		runtime.Logger.Info("start to create soft link")
 		softLink := fmt.Sprintf("ln -s %s %s", unTarPath, installPath)
-		if _, err := util.RunBashCmd(softLink, "", nil, 10*time.Second); err != nil {
+		if _, err := util.RunBashCmd(softLink, "", nil, 60*time.Second); err != nil {
 			runtime.Logger.Error(
 				fmt.Sprintf("install directory create softLink fail, error:%s", err))
 			return fmt.Errorf("install directory create softLink fail, error:%s", err)
@@ -65,7 +65,7 @@ func UnTarAndCreateSoftLinkAndChown(runtime *jobruntime.JobGenericRuntime, binDi
 		if _, err := util.RunBashCmd(
 			fmt.Sprintf("chown -R %s.%s %s", user, group, installPath),
 			"", nil,
-			10*time.Second); err != nil {
+			60*time.Second); err != nil {
 			runtime.Logger.Error(fmt.Sprintf("chown softlink directory fail, error:%s", err))
 			return fmt.Errorf("chown softlink directory fail, error:%s", err)
 		}
@@ -87,7 +87,7 @@ func GetMd5(str string) string {
 func CheckMongoVersion(binDir string, mongoName string) (string, error) {
 	cmd := fmt.Sprintf("%s -version |grep -E 'db version|mongos version'| awk -F \" \" '{print $3}' |sed 's/v//g'",
 		filepath.Join(binDir, "mongodb", "bin", mongoName))
-	getVersion, err := util.RunBashCmd(cmd, "", nil, 10*time.Second)
+	getVersion, err := util.RunBashCmd(cmd, "", nil, 60*time.Second)
 	getVersion = strings.Replace(getVersion, "\n", "", -1)
 	if strings.Contains(getVersion, "-") {
 		getVersion = strings.Split(getVersion, "-")[0]
@@ -101,7 +101,7 @@ func CheckMongoVersion(binDir string, mongoName string) (string, error) {
 // CheckMongoService 检查mongo服务是否存在
 func CheckMongoService(port int) (bool, string, error) {
 	cmd := fmt.Sprintf("netstat -ntpl |grep %d | awk '{print $7}' |head -1", port)
-	result, err := util.RunBashCmd(cmd, "", nil, 10*time.Second)
+	result, err := util.RunBashCmd(cmd, "", nil, 60*time.Second)
 	if err != nil {
 		return false, "", err
 	}
@@ -135,7 +135,7 @@ func CreateFileAndChown(runtime *jobruntime.JobGenericRuntime, filePath string,
 	if _, err = util.RunBashCmd(
 		fmt.Sprintf("chown -R %s.%s %s", user, group, filePath),
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		runtime.Logger.Error("chown %s file fail, error:%s", filePath, err)
 		return fmt.Errorf("chown %s file fail, error:%s", filePath, err)
 	}
@@ -186,7 +186,7 @@ func StartMongoProcess(binDir string, port int, user string, auth bool) error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -203,7 +203,7 @@ func ShutdownMongoProcess(user string, instanceType string, binDir string, dbpat
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -219,7 +219,7 @@ then
 echo "export PATH=%s:\$PATH" >> %s 
 fi`, filepath.Join(binDir, "mongodb", "bin"), etcProfilePath, filepath.Join(binDir, "mongodb", "bin"), etcProfilePath)
 	runtime.Logger.Info(addEtcProfile)
-	if _, err := util.RunBashCmd(addEtcProfile, "", nil, 10*time.Second); err != nil {
+	if _, err := util.RunBashCmd(addEtcProfile, "", nil, 60*time.Second); err != nil {
 		runtime.Logger.Error(fmt.Sprintf("binary path add in /etc/profile, error:%s", err))
 		return fmt.Errorf("binary path add in /etc/profile, error:%s", err)
 	}
@@ -243,7 +243,7 @@ func AuthGetPrimaryInfo(mongoBin string, username string, password string, ip st
 			result, err := util.RunBashCmd(
 				cmd,
 				"", nil,
-				10*time.Second)
+				60*time.Second)
 			if err != nil {
 				return "", err
 			}
@@ -272,7 +272,7 @@ func NoAuthGetPrimaryInfo(mongoBin string, ip string, port int) (string, error) 
 			result, err := util.RunBashCmd(
 				cmd,
 				"", nil,
-				10*time.Second)
+				60*time.Second)
 			if err != nil {
 				return "", err
 			}
@@ -295,7 +295,7 @@ func InitiateReplicasetGetPrimaryInfo(mongoBin string, ip string, port int) (str
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		return "", err
 	}
@@ -309,7 +309,7 @@ func RemoveFile(filePath string) error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		return err
 	}
 	return nil
@@ -334,7 +334,7 @@ func AuthCheckUser(mongoBin string, username string, password string, ip string,
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		return false, fmt.Errorf("get user info fail, error:%s", err)
 	}
@@ -363,7 +363,7 @@ func GetNodeInfo24(mongoBin string, ip string, port int, username string, passwo
 	result1, err := util.RunBashCmd(
 		cmdStatus,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		return statusSlice, confSlice, fmt.Errorf("get members status info fail, error:%s", err)
 	}
@@ -375,7 +375,7 @@ func GetNodeInfo24(mongoBin string, ip string, port int, username string, passwo
 	result2, err := util.RunBashCmd(
 		cmdConf,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		return statusSlice, confSlice, fmt.Errorf("get members conf info fail, error:%s", err)
 	}
@@ -551,7 +551,7 @@ func AuthRsStepDown(mongoBin string, ip string, port int, username string, passw
 	_, _ = util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	time.Sleep(time.Second * 3)
 	primaryInfo, err := AuthGetPrimaryInfo(mongoBin, username, password, ip, port)
 	if err != nil {
@@ -572,7 +572,7 @@ func NoAuthRsStepDown(mongoBin string, ip string, port int) (bool, error) {
 	_, _ = util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	time.Sleep(time.Second * 3)
 	primaryInfo, err := NoAuthGetPrimaryInfo(mongoBin, ip, port)
 	if err != nil {
@@ -593,7 +593,7 @@ func CheckBalancer(mongoBin string, ip string, port int, username string, passwo
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		return "", err
 	}
@@ -610,7 +610,7 @@ func GetProfilingLevel(mongoBin string, ip string, port int, username string, pa
 	result, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		return -1, err
 	}
@@ -627,7 +627,7 @@ func SetProfilingLevel(mongoBin string, ip string, port int, username string, pa
 	_, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		return err
 	}
@@ -642,7 +642,7 @@ func GetFCV(mongoBin string, ip string, port int, username string, password stri
 	fcvInfo, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		return "", err
 	}

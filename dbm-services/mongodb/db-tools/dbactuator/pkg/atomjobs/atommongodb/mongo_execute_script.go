@@ -239,7 +239,7 @@ func (e *ExecScript) creatScriptFile() error {
 	if _, err = util.RunBashCmd(
 		fmt.Sprintf("chown -R %s.%s %s", e.OsUser, e.OsGroup, e.ScriptDir),
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		e.runtime.Logger.Error(fmt.Sprintf("chown script file fail, error:%s", err))
 		return fmt.Errorf("chown script file fail, error:%s", err)
 	}
@@ -261,7 +261,7 @@ func (e *ExecScript) execScript() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		e.runtime.Logger.Error("execute script:%s fail, error:%s", cmdX, err)
 		return fmt.Errorf("execute script:%s fail, error:%s", cmdX, err)
 	}

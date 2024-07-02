@@ -14,6 +14,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from blueapps.account.decorators import login_exempt
+from django.conf import settings
 from django.http import HttpResponse
 from django.utils.decorators import classonlymethod
 from rest_framework import permissions, serializers, status, viewsets
@@ -21,10 +22,11 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from backend import env
-from backend.bk_web.constants import IP_RE
+from backend.bk_web.constants import EXTERNAL_TICKET_TYPE_WHITELIST, IP_RE
 from backend.components.dbconsole.client import DBConsoleApi
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
+from backend.utils.basic import get_target_items_from_details
 
 
 class GenericMixin:
@@ -190,18 +192,33 @@ class ExternalProxyViewSet(viewsets.ViewSet):
             return Response(data)
         if ".css" in request.path:
             return HttpResponse(response, headers={"Content-Type": "text/css"})
+
         # 屏蔽iam申请的内部路由
         if "/iam/get_apply_data/" in request.path or "/iam/simple_get_apply_data/" in request.path:
             data = response.json()["data"]
             data["apply_url"] = env.IAM_APP_URL
             return Response(data)
+
         # 业务列表只展示有权限的业务
         if "/cmdb/list_bizs/" in request.path:
             data = [d for d in response.json()["data"] if d["permission"][ActionEnum.DB_MANAGE.id]]
             return Response(data)
 
+        # 单据的相关操作只能展示白名单的单据类型，否则展示空
+        if "/apis/tickets/" in request.path:
+            data = response.json()["data"]
+            ticket_type = get_target_items_from_details(data, match_keys=["ticket_type"])
+            if not set(ticket_type).issubset(set(EXTERNAL_TICKET_TYPE_WHITELIST)):
+                return Response()
+
+        # 制品库地址得用外网链接
+        if "/storage/create_bkrepo_access_token/" in request.path:
+            data = response.json()["data"]
+            data["url"] = settings.BKREPO_ENDPOINT_URL
+            return Response(data)
+
+        # 外部 API 转发请求，把 IP 替换为 *.*.*.*
         if request.path.startswith("/external/apis/"):
-            # 外部 API 转发请求，把 IP 替换为 *.*.*.*
             data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
             return Response(json.loads(data))
         # for path in [

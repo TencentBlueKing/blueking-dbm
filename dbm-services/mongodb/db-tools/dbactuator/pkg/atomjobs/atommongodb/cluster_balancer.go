@@ -135,7 +135,7 @@ func (b *Balancer) execScript() error {
 	_, err = util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second)
+		60*time.Second)
 	if err != nil {
 		b.runtime.Logger.Error("set cluster balancer status fail, error:%s", err)
 		return fmt.Errorf("set cluster balancer status fail, error:%s", err)

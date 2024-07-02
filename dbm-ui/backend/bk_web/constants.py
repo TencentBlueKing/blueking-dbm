@@ -10,9 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 import re
 
-# 常规字段长度定义
+from backend.ticket.constants import TicketType
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
+# 常规字段长度定义
 LEN_SHORT = 32
 LEN_NORMAL = 64
 LEN_MIDDLE = 128
@@ -46,16 +47,20 @@ ROUTING_WHITELIST_PATTERNS = [
     r"/apis/bigdata\/bizs/[0-9]+\/([a-z_]+)?/\1_resources/[0-9a-z_\/]*",
     # 其他集群视图接口匹配模式
     r"/apis/[a-z_]+/bizs/[0-9]+/[a-z_]+?_resources/[0-9a-z_/]*",
-    # 单据接口匹配模式 TODO: 如果没有提单需求，可以去掉
-    r"/apis/tickets/[0-9a-z_/]*",
+    # 单据接口匹配模式
+    r"/apis/tickets/",
+    r"/apis/tickets/[0-9]+/[a-z_/]*/",
     # 集群相关接口
     r"/apis/dbbase/query_biz_cluster_attrs/",
     r"/apis/cmdb/[0-9]+/list_modules/",
+    r"/apis/mysql/bizs/[0-9]+/remote_service/show_cluster_databases/",
     # 平台设置相关接口
     "/apis/conf/biz_settings/simple/",
     # grafana和监控相关接口
     r"/grafana/*",
     r"/apis/monitor/grafana/get_dashboard/",
+    # 制品库
+    r"/apis/core/storage/create_bkrepo_access_token/",
 ]
 
 # 外部请求非转发路由(需要请求本地的视图)
@@ -65,6 +70,9 @@ NON_EXTERNAL_PROXY_ROUTING = [
     # 环境变量
     "/apis/conf/system_settings/environ/",
 ]
+
+# 外部请求允许的白名单单据类型
+EXTERNAL_TICKET_TYPE_WHITELIST = [TicketType.MYSQL_DUMP_DATA, TicketType.TENDBCLUSTER_DUMP_DATA]
 
 
 # LOG

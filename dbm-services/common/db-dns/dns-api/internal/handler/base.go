@@ -2,6 +2,8 @@ package handler
 
 import (
 	"bk-dnsapi/pkg/errno"
+	"bk-dnsapi/pkg/logger"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -43,7 +45,7 @@ type Data struct {
 // SendResponse 发送响应
 func SendResponse(c *gin.Context, err error, data Data) {
 	code, message := errno.DecodeErr(err)
-
+	logger.Info(fmt.Sprintf("send response: {code:%d, message:%s, rowsnum:%d}", code, message, data.RowsNum))
 	c.JSON(http.StatusOK, Response{
 		Code:    code,
 		Message: message,

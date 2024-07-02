@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-mesh/openlogging"
+	"bk-dnsapi/pkg/logger"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -37,7 +38,7 @@ func (dci *DnsConfigImpl) Get(query map[string]interface{}) (
 	}
 
 	q := fmt.Sprintf("select * from %s where %s", new(entity.TbDnsConfig).TableName(), where)
-	openlogging.Info(fmt.Sprintf("query sql is [%+v]", q))
+	logger.Info(fmt.Sprintf("query sql is [%+v]", q))
 	var l []entity.TbDnsConfig
 	if err := dao.DnsDB.Raw(q).Scan(&l).Error; err == nil || entity.IsNoRowFoundError(err) {
 		for _, v := range l {

@@ -12,10 +12,11 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.common.base import HostInfoSerializer, SkipToRepresentationMixin, fetch_cluster_ids
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
@@ -25,12 +26,29 @@ class ProxyScaleDownDetailSerializer(SkipToRepresentationMixin, ClusterValidateM
 
     class InfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"), min_value=2)
+        target_proxy_count = serializers.IntegerField(help_text=_("目标proxy数量"), min_value=2, required=False)
+        proxy_reduced_hosts = serializers.ListSerializer(
+            help_text=_("缩容指定主机"), child=HostInfoSerializer(), required=False
+        )
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
+
+    def validate(self, attrs):
+        clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(attrs)).prefetch_related("proxyinstance_set")
+        cluster_id__cluster_map = {cluster.id: cluster for cluster in clusters}
+
+        # 验证缩容后数量至少为2
+        for info in attrs["infos"]:
+            cluster = cluster_id__cluster_map[info["cluster_id"]]
+            if info.get("proxy_reduced_hosts"):
+                info["target_proxy_count"] = cluster.proxyinstance_set.count() - len(info["proxy_reduced_hosts"])
+            if info["target_proxy_count"] < 2:
+                raise serializers.ValidationError(_("请保证集群{}缩容后proxy数量不小于2").format(cluster.immute_domain))
+
+        return attrs
 
 
 class ProxyScaleDownParamBuilder(builders.FlowParamBuilder):

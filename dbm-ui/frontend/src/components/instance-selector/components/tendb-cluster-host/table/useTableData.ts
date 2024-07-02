@@ -60,7 +60,7 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     }
     if (clusterId?.value && clusterId.value !== currentBizId) {
       Object.assign(params, {
-        cluster_id: clusterId.value,
+        cluster_ids: clusterId.value,
       });
     }
     return currentInstance.proxy

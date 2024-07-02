@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bk-dnsapi/pkg/config"
+	"bk-dnsapi/pkg/logger"
+	"bk-dnsapi/pkg/logger/zap"
 	"log"
 	"strings"
 
@@ -27,6 +30,9 @@ func main() {
 
 	RouterGroup(engine)
 	InitConfig("config")
+
+	zapLogger := zap.New()
+	logger.InitLogger(zapLogger)
 
 	if err := dao.Init(); err != nil {
 		log.Fatal(err)
@@ -68,4 +74,5 @@ func InitConfig(fileName string) {
 	if err := viper.MergeInConfig(); err != nil {
 		log.Fatal(err)
 	}
+	config.InitLogger()
 }

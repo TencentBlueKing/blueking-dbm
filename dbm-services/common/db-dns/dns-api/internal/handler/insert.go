@@ -3,6 +3,7 @@ package handler
 import (
 	"bk-dnsapi/internal/domain/entity"
 	"bk-dnsapi/internal/domain/repo/domain"
+	"bk-dnsapi/pkg/logger"
 	"bk-dnsapi/pkg/tools"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-mesh/openlogging"
 )
 
 // DnsBasePutReqParam 插入结构体
@@ -32,7 +32,7 @@ type DnsBasePutReqParam struct {
 func (h *Handler) AddDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
 			SendResponse(c,
 				fmt.Errorf("panic error:%v", r),
 				Data{})
@@ -46,7 +46,7 @@ func (h *Handler) AddDns(c *gin.Context) {
 		return
 	}
 
-	openlogging.Info(fmt.Sprintf("add dns begin, param [%+v]", addParam))
+	logger.Info(fmt.Sprintf("add dns begin, param [%+v]", addParam))
 
 	// TODO check
 	// check app exists
@@ -97,7 +97,7 @@ func (h *Handler) AddDns(c *gin.Context) {
 		return
 	}
 	info, _ := json.Marshal(dnsBaseList)
-	openlogging.Info(fmt.Sprintf("add insert begin exec, param [%+v]", string(info)))
+	logger.Info(fmt.Sprintf("add insert begin exec, param [%+v]", string(info)))
 
 	rowsAffected, err := domain.DnsDomainResource().Insert(dnsBaseList)
 	_, _ = domain.DnsConfigResource().UpdateLaseUpdateTime()

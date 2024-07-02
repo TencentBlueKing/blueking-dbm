@@ -224,7 +224,7 @@ func (r *MongoDReplace) execAddTargetScript() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		r.runtime.Logger.Error("execute addTarget script fail, error:%s", err)
 		return fmt.Errorf("execute addTarget script fail, error:%s", err)
 	}
@@ -329,7 +329,7 @@ func (r *MongoDReplace) removeSource() error {
 	if _, err := util.RunBashCmd(
 		cmd,
 		"", nil,
-		10*time.Second); err != nil {
+		60*time.Second); err != nil {
 		r.runtime.Logger.Error(fmt.Sprintf("execute remove source script fail, error:%s", err))
 		return fmt.Errorf("execute remove source script fail, error:%s", err)
 	}

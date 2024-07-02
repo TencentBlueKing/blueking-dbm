@@ -10,11 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 
 from django.utils.translation import ugettext as _
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.mysql.sql_import.serializers import (
+    SQLGrammarCheckResponseSerializer,
+    SQLGrammarCheckSerializer,
+)
 from backend.db_services.sqlserver.sql_import.handlers import SQLHandler
 from backend.db_services.sqlserver.sql_import.serializers import SQLUploadSerializer
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -33,4 +38,18 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=SQLUploadSerializer)
     def upload_sql(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
+        data.pop("bkrepo_path")
         return Response(SQLHandler.upload_sql_file(**data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("sqlserver语法检查"),
+        request_body=SQLGrammarCheckSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: SQLGrammarCheckResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SQLGrammarCheckSerializer)
+    def grammar_check(self, request, bk_biz_id):
+        # sqlserver 语法检查占位接口
+        validated_data = self.params_validate(self.get_serializer_class())
+        validated_data.pop("cluster_type")
+        return Response(SQLHandler.grammar_check(**validated_data))

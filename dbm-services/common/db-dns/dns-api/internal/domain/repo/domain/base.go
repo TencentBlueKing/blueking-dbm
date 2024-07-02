@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-mesh/openlogging"
+	"bk-dnsapi/pkg/logger"
 )
 
 // DnsDomainBaseRepo dns_base方法接口
@@ -78,7 +78,7 @@ func (base *DnsDomainBaseImpl) Get(query map[string]interface{}, fields []string
 	}
 
 	q := fmt.Sprintf("select * from %s where %s", new(entity.TbDnsBase).TableName(), where)
-	openlogging.Info(fmt.Sprintf("query sql is [%+v]", q))
+	logger.Info(fmt.Sprintf("query sql is [%+v]", q))
 	var l []entity.TbDnsBase
 	if err := dao.DnsDB.Raw(q).Scan(&l).Error; err == nil || entity.IsNoRowFoundError(err) {
 		// rs = append(rs, l)
@@ -112,6 +112,7 @@ func (base *DnsDomainBaseImpl) Get(query map[string]interface{}, fields []string
 func (base *DnsDomainBaseImpl) Insert(dnsList []*entity.TbDnsBase) (num int64, err error) {
 	tx := dao.DnsDB.Begin()
 	for _, l := range dnsList {
+		logger.Info(fmt.Sprintf("insert op:[%+v]", l))
 		r := tx.Create(&l)
 		if r.Error != nil {
 			tx.Rollback()
@@ -153,6 +154,7 @@ func (base *DnsDomainBaseImpl) Delete(tableName, app, domainName string, bkCloud
 		execSql = fmt.Sprintf("delete from %s where  domain_name = '%s' and app = '%s' and bk_cloud_id ='%d'",
 			tableName, domainName, app, bkCloudId)
 	}
+	logger.Info(fmt.Sprintf("delete sql:[%+v]", execSql))
 	r := dao.DnsDB.Exec(execSql)
 
 	if r.Error != nil {
@@ -163,6 +165,7 @@ func (base *DnsDomainBaseImpl) Delete(tableName, app, domainName string, bkCloud
 
 // Update 更新单个域名
 func (base *DnsDomainBaseImpl) Update(d *entity.TbDnsBase, newIP string, newPort int) (rowsAffected int64, err error) {
+	logger.Info(fmt.Sprintf("update op:{[%+v], newIp:%+v, nowPort:%+v}", d, newIP, newPort))
 	r := dao.DnsDB.Model(d).Update(map[string]interface{}{"ip": newIP, "port": newPort})
 	return r.RowsAffected, r.Error
 }
@@ -173,6 +176,7 @@ func (base *DnsDomainBaseImpl) UpdateDomainBatch(bs []UpdateBatchDnsBase) (rowsA
 	tx := dao.DnsDB.Begin()
 
 	for _, b := range bs {
+		logger.Info(fmt.Sprintf("update op:{[%+v]}", b))
 		r := tx.Model(&entity.TbDnsBase{}).Where("app = ? and bk_cloud_id = ?", b.App, b.BkCloudId).
 			Where("domain_name = ? and ip = ? and port = ?", b.DomainName, b.OIp, b.OPort).
 			Update(map[string]interface{}{"ip": b.NIp, "port": b.NPort})
