@@ -100,6 +100,9 @@ func (ins *RedisSwitch) DoSwitch() error {
 
 	slave := ins.Slave[0]
 	addr := fmt.Sprintf("%s:%d", slave.Ip, slave.Port)
+	if ins.Pass == "" {
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), ins.GetMetaType())
+	}
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 
 	ret, err := r.SlaveOf("No", "One")
@@ -528,6 +531,9 @@ func (ins *RedisSwitch) GetTwemproxyBackends(ip string, adminPort int) (segs map
 func (ins *RedisSwitch) CheckSlaveSyncStatus(masterIp string, masterPort int, slaveIp string, slavePort int) error {
 	slaveAddr, slaveConn := fmt.Sprintf("%s:%d", slaveIp, slavePort), &client.RedisClient{}
 	masterAddr := fmt.Sprintf("%s:%d", masterIp, masterPort)
+	if ins.Pass == "" {
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), ins.GetMetaType())
+	}
 	slaveConn.Init(slaveAddr, ins.Pass, ins.Timeout, 1)
 	defer slaveConn.Close()
 

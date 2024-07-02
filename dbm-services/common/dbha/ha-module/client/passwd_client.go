@@ -34,7 +34,7 @@ type PasswdItem struct {
 	Ip         string `json:"ip"`
 	Port       int    `json:"port"`
 	Cloud      int    `json:"bk_cloud_id"`
-	User       string `json:username`
+	User       string `json:"username"`
 	Passwd     string `json:"password"`
 	Component  string `json:"component"`
 	LockUtil   string `json:"lock_util"`
@@ -65,9 +65,7 @@ func NewPasswdClient(conf *config.APIConfig, cloudId int) *PasswdClient {
 }
 
 // GetBatchPasswd the batch api for password
-func (c *PasswdClient) GetBatchPasswd(
-	pins []PasswdInstance, pusers []PasswdUser, limit int,
-) ([]PasswdItem, error) {
+func (c *PasswdClient) GetBatchPasswd(pins []PasswdInstance, pusers []PasswdUser, limit int) ([]PasswdItem, error) {
 	rsp := GetPasswdResponse{}
 	req := GetPasswdRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,

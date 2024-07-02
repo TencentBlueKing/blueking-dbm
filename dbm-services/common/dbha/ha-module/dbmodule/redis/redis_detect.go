@@ -22,13 +22,12 @@ type RedisDetectInstance struct {
 func (ins *RedisDetectInstance) Detection() error {
 	err := ins.DoRedisDetection()
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
-		log.Logger.Debugf("Redis check ok and return")
+		log.Logger.Debugf("redis check ok and return ok . %s#%d", ins.Ip, ins.Port)
 		return nil
 	}
 
 	if err != nil && ins.Status == constvar.AUTHCheckFailed {
-		log.Logger.Errorf("Redis auth failed,pass:%s,status:%s",
-			ins.Pass, ins.Status)
+		log.Logger.Debugf("redis check auth failed . %s#%d:%s", ins.Ip, ins.Port, ins.Pass)
 		return err
 	}
 
@@ -56,6 +55,9 @@ func (ins *RedisDetectInstance) Detection() error {
 func (ins *RedisDetectInstance) DoRedisDetection() error {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+	if ins.Pass == "" {
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetType()))
+	}
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
@@ -64,17 +66,14 @@ func (ins *RedisDetectInstance) DoRedisDetection() error {
 		redisErr := fmt.Errorf("redis do cmd err,err: %s", err.Error())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.AUTHCheckFailed
-			log.Logger.Errorf("redis detect auth failed %s,err:%s,status:%s", addr, redisErr.Error(), ins.Status)
 		} else {
 			ins.Status = constvar.DBCheckFailed
-			log.Logger.Errorf("redis detect failed %s,err:%s,status:%s", addr, redisErr.Error(), ins.Status)
 		}
 		return redisErr
 	}
 
 	if _, ok := rsp["role"]; !ok {
 		redisErr := fmt.Errorf("response un-find role, rsp %s:%+v", addr, rsp)
-		log.Logger.Errorf(redisErr.Error())
 		ins.Status = constvar.DBCheckFailed
 		return redisErr
 	}
@@ -129,10 +128,15 @@ func (ins *RedisDetectInstance) DoSetCheck(r *client.RedisClient) error {
 	checkKey := fmt.Sprintf(keyFormat, ins.Ip)
 	checkTime := time.Now().Format("2006-01-02 15:04:05")
 
-	selectCmd := []string{"select", "1"}
+	selectCmd := []string{"select", "0"}
+	if ins.GetDetectType() == constvar.RedisCluster ||
+		ins.GetDetectType() == constvar.TendisSSDCluster ||
+		ins.GetDetectType() == constvar.RedisInstance {
+		selectCmd = []string{"select", "1"}
+	}
 	selRsp, serr := r.DoCommand(selectCmd)
 	if serr != nil {
-		log.Logger.Errorf("redis detect select 1 db failed")
+		log.Logger.Warnf("do select failed %+v ,%s:%s#%d", serr, ins.Cluster, ins.Ip, ins.Port)
 		return serr
 	}
 

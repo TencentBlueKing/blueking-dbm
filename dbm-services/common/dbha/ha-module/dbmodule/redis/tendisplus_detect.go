@@ -22,13 +22,12 @@ type TendisplusDetectInstance struct {
 func (ins *TendisplusDetectInstance) Detection() error {
 	err := ins.DoTendisDetection()
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
-		log.Logger.Debugf("Tendis check ok and return")
+		log.Logger.Debugf("tendisplus check ok and return ok . %s#%d", ins.Ip, ins.Port)
 		return nil
 	}
 
 	if err != nil && ins.Status == constvar.AUTHCheckFailed {
-		log.Logger.Errorf("Tendis auth failed,pass:%s,status:%s",
-			ins.Pass, ins.Status)
+		log.Logger.Debugf("tendisplus check auth failed . %s#%d:%s", ins.Ip, ins.Port, ins.Pass)
 		return err
 	}
 
@@ -56,6 +55,9 @@ func (ins *TendisplusDetectInstance) Detection() error {
 func (ins *TendisplusDetectInstance) DoTendisDetection() error {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+	if ins.Pass == "" {
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetType()))
+	}
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
@@ -65,12 +67,8 @@ func (ins *TendisplusDetectInstance) DoTendisDetection() error {
 			ins.ShowDetectionInfo(), err.Error())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.AUTHCheckFailed
-			log.Logger.Errorf("tendisplus detect auth failed,err:%s,status:%s",
-				redisErr.Error(), ins.Status)
 		} else {
 			ins.Status = constvar.DBCheckFailed
-			log.Logger.Errorf("tendisplus detect failed,err:%s,status:%s",
-				redisErr.Error(), ins.Status)
 		}
 		return redisErr
 	}
@@ -145,6 +143,9 @@ func (ins *TendisplusDetectInstance) GetRole(info string) (string, error) {
 func (ins *TendisplusDetectInstance) DoSetCheck() error {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+	if ins.Pass == "" {
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetType()))
+	}
 	r.InitCluster(addr, ins.Pass, ins.Timeout)
 	defer r.Close()
 

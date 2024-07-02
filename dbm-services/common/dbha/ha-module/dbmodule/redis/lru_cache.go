@@ -2,6 +2,7 @@ package redis
 
 import (
 	"container/list"
+	"dbm-services/common/dbha/ha-module/log"
 	"sync"
 	"time"
 )
@@ -88,6 +89,7 @@ func (c *cache) Get(key interface{}) (interface{}, bool) {
 		}
 
 		// ttl expired
+		log.Logger.Debugf("cache expired, remove item %+v:%+v:%+v", key, v.expiresAt, v.value)
 		c.removeElement(ent)
 	}
 	return nil, false

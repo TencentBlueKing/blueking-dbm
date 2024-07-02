@@ -84,6 +84,9 @@ func (ins *TendisplusSwitch) CheckConfig() bool {
 func (ins *TendisplusSwitch) CheckSlaveMaster(slave *dbutil.SlaveInfo) (bool, error) {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", slave.Ip, slave.Port)
+	if ins.Pass == "" {
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), ins.GetMetaType())
+	}
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
