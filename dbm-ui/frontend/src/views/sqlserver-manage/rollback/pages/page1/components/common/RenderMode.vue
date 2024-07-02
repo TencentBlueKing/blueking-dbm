@@ -23,7 +23,7 @@
       <TableEditDateTime
         v-if="localBackupType === 'time'"
         ref="localRollbackTimeRef"
-        v-model="localResotreTime"
+        v-model="resotreTime"
         :disabled="editDisabled"
         :disabled-date="disableDate"
         ext-popover-cls="not-seconds-date-picker"
@@ -41,7 +41,8 @@
           :disabled="editDisabled"
           :list="logRecordList"
           :rules="rules"
-          style="flex: 1" />
+          style="flex: 1"
+          @change="handleBackupidChange" />
       </div>
     </div>
   </div>
@@ -60,8 +61,6 @@
 
   interface Props {
     clusterId?: number;
-    restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
-    restoreTime?: string;
   }
 
   interface Exposes {
@@ -103,24 +102,30 @@
     },
   ];
 
+  const restoreBackupFile = defineModel<ServiceReturnType<typeof queryBackupLogs>[number]>('restoreBackupFile');
+  const resotreTime = defineModel<string>('restoreTime', {
+    default: '',
+  });
+
   const localRollbackTimeRef = ref<InstanceType<typeof TableEditDateTime>>();
   const localBackupidRef = ref<InstanceType<typeof TableEditSelect>>();
   const localBackupType = ref('record');
   const localBackupid = ref(0);
-  const localResotreTime = ref('');
-  const localRestoreBackupFile = ref<Props['restoreBackupFile']>();
 
   const logRecordList = shallowRef<Array<{ id: string; name: string }>>([]);
 
   const editDisabled = computed(() => !props.clusterId);
 
-  let logRecordListMemo = [] as any[];
+  let logRecordListMemo = [] as ServiceReturnType<typeof queryBackupLogs>;
 
   const fetchLogData = () => {
+    if (!props.clusterId) {
+      return;
+    }
     logRecordList.value = [];
     logRecordListMemo = [];
     queryBackupLogs({
-      cluster_id: props.clusterId as number,
+      cluster_id: props.clusterId,
       days: 30,
     }).then((dataList) => {
       logRecordList.value = dataList.map((item) => ({
@@ -132,13 +137,10 @@
   };
 
   watch(
-    () => [props.restoreBackupFile, props.clusterId],
+    () => props.clusterId,
     () => {
-      localRestoreBackupFile.value = undefined;
-      localResotreTime.value = '';
-      if (!props.clusterId) {
-        return;
-      }
+      restoreBackupFile.value = undefined;
+      resotreTime.value = '';
       fetchLogData();
     },
     {
@@ -147,34 +149,28 @@
   );
 
   watch(
-    () => props.restoreBackupFile,
+    [resotreTime, restoreBackupFile],
     () => {
-      if (props.restoreBackupFile) {
-        localRestoreBackupFile.value = props.restoreBackupFile;
-      }
-      if (props.restoreTime) {
-        localResotreTime.value = props.restoreTime;
-      }
-
-      localBackupType.value = props.restoreTime ? 'time' : 'record';
+      localBackupType.value = resotreTime.value ? 'time' : 'record';
     },
     {
       immediate: true,
     },
   );
 
+  const handleBackupidChange = (id: string) => {
+    restoreBackupFile.value = _.find(logRecordListMemo, (item) => item.backup_id === id);
+  };
+
   defineExpose<Exposes>({
     getValue() {
       if (localBackupType.value === 'record') {
-        return localBackupidRef.value!.getValue().then(() => {
-          const backupInfo = _.find(logRecordListMemo, (item) => item.backup_id === localBackupid.value);
-          return {
-            restore_backup_file: backupInfo,
-          };
-        });
+        return localBackupidRef.value!.getValue().then(() => ({
+          restore_backup_file: restoreBackupFile.value,
+        }));
       }
       return localRollbackTimeRef.value!.getValue().then(() => ({
-        restore_time: formatDateToUTC(localResotreTime.value),
+        restore_time: formatDateToUTC(resotreTime.value),
       }));
     },
   });

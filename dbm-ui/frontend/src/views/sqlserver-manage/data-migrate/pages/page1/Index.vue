@@ -30,11 +30,30 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
-      <ClusterSelector
-        v-model:is-show="isShowBatchSelector"
-        :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
-        :selected="selectedClusters"
-        @change="handelClusterChange" />
+      <BkForm
+        class="mt-24"
+        form-type="vertical">
+        <BkFormItem :label="t('迁移方式')">
+          <BkRadioGroup v-model="formData.dts_mode">
+            <BkRadio label="full">
+              {{ t('完整备份迁移') }}
+            </BkRadio>
+            <BkRadio label="incr">
+              {{ t('增量备份迁移') }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+        <BkFormItem :label="t('迁移方式')">
+          <BkRadioGroup v-model="formData.need_auto_rename">
+            <BkRadio label>
+              {{ t('迁移后，源DB不再使用： 系统会对源 DB 自动重命名处理') }}
+            </BkRadio>
+            <BkRadio :label="false">
+              {{ t('增量备份迁移') }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
+      </BkForm>
     </div>
     <template #action>
       <BkButton
@@ -56,10 +75,15 @@
       </DbPopconfirm>
     </template>
   </SmartAction>
+  <ClusterSelector
+    v-model:is-show="isShowBatchSelector"
+    :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
+    :selected="selectedClusters"
+    @change="handelClusterChange" />
 </template>
-
 <script setup lang="tsx">
   import _ from 'lodash';
+  import { reactive } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -83,6 +107,11 @@
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>();
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
+
+  const formData = reactive({
+    dts_mode: 'full',
+    need_auto_rename: true,
+  });
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
@@ -164,6 +193,7 @@
           ticket_type: 'SQLSERVER_DATA_MIGRATE',
           remark: '',
           details: {
+            ...formData,
             infos: data,
           },
           bk_biz_id: currentBizId,
@@ -198,16 +228,9 @@
   .sqlserver-manage-data-migrate-page {
     padding-bottom: 20px;
 
-    .bottom-opeartion {
-      display: flex;
-      width: 100%;
-      height: 30px;
-      align-items: flex-end;
-
-      .force-switch {
-        font-size: 12px;
-        border-bottom: 1px dashed #63656e;
-      }
+    .bk-form-label {
+      font-size: 12px;
+      font-weight: bold;
     }
   }
 </style>

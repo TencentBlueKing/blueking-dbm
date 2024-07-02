@@ -113,6 +113,7 @@
 
   const { t } = useI18n();
 
+  console.log('instance selector sqlserver table')
   const {
     columnAttrs,
     searchAttrs,
