@@ -14,5 +14,5 @@ func (c *WebConsoleRPC) User() string {
 }
 
 func (c *WebConsoleRPC) Password() string {
-	return config.RuntimeConfig.WebConsolePass
+	return config.RuntimeConfig.WebConsolePassword
 }
