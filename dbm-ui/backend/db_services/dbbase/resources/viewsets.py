@@ -106,7 +106,7 @@ class ResourceViewSet(SystemViewSet):
     @action(methods=["GET"], detail=False, url_path="list_machines")
     def list_machines(self, request, bk_biz_id: int):
         """查询机器列表"""
-        query_params = self.params_validate(self.retrieve_instances_slz)
+        query_params = self.params_validate(self.list_machine_slz)
         data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_machines, query_params)
         return self.get_paginated_response(data)
 

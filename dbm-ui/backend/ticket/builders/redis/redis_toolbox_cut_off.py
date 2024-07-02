@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
@@ -30,7 +31,7 @@ class RedisClusterCutOffDetailSerializer(SkipToRepresentationMixin, ClusterValid
             ip = serializers.IPAddressField()
             spec_id = serializers.IntegerField()
 
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
         redis_master = serializers.ListField(help_text=_("master列表"), child=HostInfoSerializer(), required=False)
@@ -100,10 +101,11 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
         super().patch_ticket_detail()
 
         resource_spec = {}
-        cluster_ids = [infos["cluster_id"] for infos in self.ticket.details["infos"]]
+        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket.details["infos"]:
-            cluster = id__cluster[info["cluster_id"]]
+            # 取第一个cluster即可，即使是多集群，也是单机多实例的情况
+            cluster = id__cluster[info["cluster_ids"][0]]
             for role in [
                 InstanceRole.REDIS_MASTER.value,
                 InstanceRole.REDIS_PROXY.value,

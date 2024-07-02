@@ -37,7 +37,11 @@ from backend.db_meta.enums import (
     MachineType,
     TenDBClusterSpiderRole,
 )
-from backend.db_meta.enums.cluster_status import ClusterDBSingleStatusFlags, ClusterStatusFlags
+from backend.db_meta.enums.cluster_status import (
+    ClusterCommonStatusFlags,
+    ClusterDBSingleStatusFlags,
+    ClusterRedisStatusFlags,
+)
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.flow.consts import DEFAULT_RIAK_PORT
@@ -101,7 +105,7 @@ class Cluster(AuditedModel):
 
         simple_desc = self.simple_desc
 
-        # 填充额外统计信息
+        # 追加角色部署数量信息
         simple_desc["proxy_count"] = self.proxyinstance_set.all().count()
         for storage in (
             self.storageinstance_set.values("instance_role")
@@ -176,6 +180,7 @@ class Cluster(AuditedModel):
 
     @property
     def __status_flag(self):
+        # tendb ha
         if self.cluster_type == ClusterType.TenDBHA.value:
             flag_obj = ClusterDBHAStatusFlags(0)
             if self.proxyinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
@@ -188,6 +193,7 @@ class Cluster(AuditedModel):
                 status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
             ).exists():
                 flag_obj |= ClusterDBHAStatusFlags.BackendSlaveUnavailable
+        # tendbcluster
         elif self.cluster_type == ClusterType.TenDBCluster.value:
             flag_obj = ClusterTenDBClusterStatusFlag(0)
             if self.proxyinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
@@ -200,13 +206,20 @@ class Cluster(AuditedModel):
                 status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
             ).exists():
                 flag_obj |= ClusterTenDBClusterStatusFlag.RemoteSlaveUnavailable
+        # tendb single
         elif self.cluster_type == ClusterType.TenDBSingle.value:
             flag_obj = ClusterDBSingleStatusFlags(0)
             if self.storageinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
                 flag_obj |= ClusterDBSingleStatusFlags.SingleUnavailable
+        # redis
+        elif self.cluster_type in ClusterType.redis_cluster_types():
+            flag_obj = ClusterRedisStatusFlags(0)
+            if self.storageinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
+                flag_obj |= ClusterRedisStatusFlags.RedisUnavailable
+        # 默认
         else:
-            logger.debug(_("{} 未实现 status flag,".format(self.cluster_type)))
-            flag_obj = ClusterStatusFlags(0)
+            logger.debug(_("{} 未实现 status flag, 认为实例异常会导致集群异常".format(self.cluster_type)))
+            flag_obj = ClusterCommonStatusFlags(0)
 
         return flag_obj
 

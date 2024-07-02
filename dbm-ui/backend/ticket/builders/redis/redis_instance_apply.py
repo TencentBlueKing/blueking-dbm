@@ -147,8 +147,8 @@ class RedisInstanceApplyResourceParamBuilder(builders.ResourceApplyParamBuilder)
                 port=ticket_data["port"] + (index // machine_group),
                 db_version=ticket_data["db_version"],
                 resource_spec=ticket_data["resource_spec"]["master"],
-                # maxmemory = 机器内存 *0.9 / 实例数
-                maxmemory=int(backend_group["master"]["bk_mem"] * 0.9 / (cluster_num / machine_group)),
+                # maxmemory = 机器内存 * 0.9 / 单机实例数 * 1024 * 1024 (MB --> 字节)
+                maxmemory=int(1024 * 1024 * backend_group["master"]["bk_mem"] * 0.9 / (cluster_num / machine_group)),
             )
 
     def post_callback(self):
