@@ -491,3 +491,27 @@ export interface MySQLTableBackupDetails {
     force: boolean;
   }[];
 }
+
+/**
+ * MySQL 数据导出
+ */
+export interface MySQLExportData {
+  clusters: DetailClusters;
+  cluster_id: number;
+  charset: string;
+  databases: string[];
+  tables: string[];
+  tables_ignore: string[];
+  where: string;
+  dump_data: boolean; // 是否导出表数据
+  dump_schema: boolean; // 是否导出表结构
+}
+
+export interface MysqlDataMigrateDetails {
+  clusters: DetailClusters;
+  infos: {
+    db_list: string;
+    source_cluster: number;
+    target_clusters: number[];
+  }[];
+}
