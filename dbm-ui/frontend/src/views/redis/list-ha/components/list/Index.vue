@@ -105,6 +105,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
@@ -295,10 +296,18 @@
             append: () => (
               <>
                 {data.master_domain && (
-                  <db-icon
-                    type="copy"
-                    v-bk-tooltips={t('复制访问入口')}
-                    onClick={() => copy(data.masterDomainDisplayName)} />
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.domainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
                 )}
                 <auth-button
                   v-db-console="redis.haClusterManage.modifyEntryConfiguration"
@@ -740,7 +749,7 @@
     const allData = await tableRef.value!.getAllData<RedisModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;
@@ -915,8 +924,10 @@
         :deep(td .cell) {
           line-height: unset !important;
 
-          .db-icon-copy {
+          .db-icon-copy,
+          .db-icon-edit {
             display: none;
+            margin-top: 1px;
             margin-left: 4px;
             color: @primary-color;
             cursor: pointer;
@@ -957,15 +968,6 @@
             display: inline-block;
             margin-top: 2px;
           }
-
-          td .cell .db-icon-copy {
-            display: none;
-            margin-top: 1px;
-            margin-left: 8px;
-            color: @primary-color;
-            vertical-align: text-top;
-            cursor: pointer;
-          }
         }
 
         :deep(.operation-box) {
@@ -987,8 +989,10 @@
           }
         }
 
+        :deep(th:hover),
         :deep(td:hover) {
-          .db-icon-copy {
+          .db-icon-copy,
+          .db-icon-edit {
             display: inline-block;
           }
         }

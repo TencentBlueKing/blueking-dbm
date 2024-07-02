@@ -126,6 +126,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import ClusterReset from '@views/sqlserver-manage/components/cluster-reset/Index.vue'
 
@@ -343,10 +344,18 @@
                   }
                 </div>
                 <div style="display: flex; align-items: center;">
-                  <db-icon
-                    type="copy"
-                    v-bk-tooltips={ t('复制主访问入口') }
-                    onClick={ () => copy(data.master_domain) } />
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.master_domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.masterDomainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
                   {/* <db-icon
                     type="link"
                     v-bk-tooltips={ t('新开tab打开') }
@@ -792,7 +801,7 @@
     const allData = await tableRef.value!.getAllData<SqlServerSingleClusterModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;

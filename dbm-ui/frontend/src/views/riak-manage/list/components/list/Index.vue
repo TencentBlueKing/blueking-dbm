@@ -724,7 +724,7 @@
     const allData = await tableRef.value!.getAllData<RiakModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;

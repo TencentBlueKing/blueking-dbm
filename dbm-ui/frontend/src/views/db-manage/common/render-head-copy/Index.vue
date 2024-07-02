@@ -15,44 +15,40 @@
   <span class="render-head-copy">
     <slot />
     <DbIcon
-      ref="rootRef"
-      :class="{ 'is-active': isCopyDropdown }"
+      ref="copyRootRef"
+      :class="{ 'is-active': isCopyIconClicked }"
       type="copy" />
   </span>
-  <BkDropdown
-    ref="popRef"
-    class="render-head-copy"
-    :is-show="isCopyDropdown"
-    trigger="manual">
-    <template #content>
-      <BkDropdownMenu>
-        <div
-          v-for="item in config"
-          :key="item.field">
-          <BkDropdownItem>
-            <BkButton
-              v-bk-tooltips="{
-                disabled: hasSelected,
-                content: t('请先勾选'),
-                placement: 'right',
-              }"
-              :disabled="!hasSelected"
-              text
-              @click="handleCopySelected(item.field)">
-              {{ `${t('复制已选')}${item?.label ?? ''}` }}
-            </BkButton>
-          </BkDropdownItem>
-          <BkDropdownItem>
-            <BkButton
-              text
-              @click="handleCopyAll(item.field)">
-              {{ `${t('复制所有')}${item?.label ?? ''}` }}
-            </BkButton>
-          </BkDropdownItem>
-        </div>
-      </BkDropdownMenu>
-    </template>
-  </BkDropdown>
+  <div style="display: none">
+    <div
+      ref="popRef"
+      class="dropdownmenu">
+      <ul
+        v-for="item in config"
+        :key="item.field">
+        <li class="dropdownmenu-item">
+          <BkButton
+            v-bk-tooltips="{
+              disabled: hasSelected,
+              content: t('请先勾选'),
+              placement: 'right',
+            }"
+            :disabled="!hasSelected"
+            text
+            @click="handleCopySelected(item.field)">
+            {{ `${t('复制已选')}${item?.label ?? ''}` }}
+          </BkButton>
+        </li>
+        <li class="dropdownmenu-item">
+          <BkButton
+            text
+            @click="handleCopyAll(item.field)">
+            {{ `${t('复制所有')}${item?.label ?? ''}` }}
+          </BkButton>
+        </li>
+      </ul>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts" generic="T">
@@ -81,8 +77,8 @@
   const { t } = useI18n();
 
   let tippyIns: Instance;
-  const isCopyDropdown = ref(false);
-  const rootRef = ref();
+  const isCopyIconClicked = ref(false);
+  const copyRootRef = ref();
   const popRef = ref();
 
   const handleCopySelected = (field: keyof T) => {
@@ -94,24 +90,23 @@
 
   onMounted(() => {
     nextTick(() => {
-      tippyIns = tippy(rootRef.value.$el as SingleTarget, {
-        content: popRef.value.$el,
+      tippyIns = tippy(copyRootRef.value.$el as SingleTarget, {
+        content: popRef.value,
         placement: 'bottom',
         appendTo: () => document.body,
-        theme: 'light',
-        maxWidth: 0,
+        theme: 'light db-dropdownmenu-theme',
+        maxWidth: 'none',
         trigger: 'mouseenter click',
         interactive: true,
         arrow: false,
         allowHTML: true,
-        offset: [0, -20],
-        zIndex: -99,
+        zIndex: 999999,
         hideOnClick: true,
         onShow() {
-          isCopyDropdown.value = true;
+          isCopyIconClicked.value = true;
         },
         onHide() {
-          isCopyDropdown.value = false;
+          isCopyIconClicked.value = false;
         },
       });
     });
@@ -126,7 +121,7 @@
   });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .render-head-copy {
     .db-icon-copy {
       display: none;
@@ -138,19 +133,33 @@
     .is-active {
       display: inline-block;
     }
+  }
 
-    &:hover {
-      .db-icon-copy {
-        display: inline-block;
-      }
+  .tippy-box[data-theme~='db-dropdownmenu-theme'] {
+    background-color: #fff;
+    border: 1px solid #dcdee5 !important;
+    border-radius: 2px !important;
+    box-shadow: 0 2px 6px 0 #0000001a !important;
+
+    .tippy-content {
+      padding: 4px 0;
+      background-color: #fff;
     }
+  }
 
-    .bk-dropdown-item {
-      padding: 0;
+  .dropdownmenu {
+    .dropdownmenu-item {
+      height: 32px;
+      padding: 0 16px;
+      font-size: 12px;
+      line-height: 33px;
+      color: #63656e;
+      white-space: nowrap;
+      list-style: none;
+      cursor: pointer;
 
-      .bk-button {
-        height: 100%;
-        padding: 0 16px;
+      &:hover {
+        background: #f5f7fa;
       }
     }
   }

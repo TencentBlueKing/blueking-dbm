@@ -335,7 +335,6 @@
     .db-icon-copy {
       display: none;
       margin-top: 1px;
-      margin-left: 4px;
       color: @primary-color;
       vertical-align: text-top;
       cursor: pointer;

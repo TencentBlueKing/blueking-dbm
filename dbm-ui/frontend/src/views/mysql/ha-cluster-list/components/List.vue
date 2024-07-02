@@ -162,6 +162,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import CreateSubscribeRuleSlider from '@views/mysql/dumper/components/create-rule/Index.vue';
 
@@ -386,10 +387,18 @@
             ),
             append: () => (
               <>
-                <db-icon
-                  type="copy"
-                  v-bk-tooltips={t('复制主访问入口')}
-                  onClick={() => copy(data.masterDomainDisplayName)} />
+                <RenderCellCopy copyItems={
+                  [
+                    {
+                      value: data.master_domain,
+                      label: t('域名')
+                    },
+                    {
+                      value: data.masterDomainDisplayName,
+                      label: t('域名:端口')
+                    }
+                  ]
+                } />
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
                   v-db-console="mysql.haClusterList.modifyEntryConfiguration"
@@ -536,10 +545,18 @@
             default: () => data.slaveDomainDisplayName || '--',
             append: () => (
               <>
-                <db-icon
-                  v-bk-tooltips={t('复制从访问入口')}
-                  type="copy"
-                  onClick={() => copy(data.slaveDomainDisplayName)} />
+                <RenderCellCopy copyItems={
+                  [
+                    {
+                      value: data.slave_domain,
+                      label: t('域名')
+                    },
+                    {
+                      value: data.slaveDomainDisplayName,
+                      label: t('域名:端口')
+                    }
+                  ]
+                } />
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
                   v-db-console="mysql.haClusterList.modifyEntryConfiguration"
@@ -926,7 +943,7 @@
     const allData = await tableRef.value!.getAllData<TendbhaModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;
@@ -1153,6 +1170,7 @@
       .db-icon-copy,
       .db-icon-edit {
         display: none;
+        margin-top: 1px;
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
@@ -1201,6 +1219,12 @@
           margin: 2px 0;
           flex-shrink: 0;
         }
+      }
+    }
+
+    :deep(th:hover) {
+      .db-icon-copy {
+        display: inline-block !important;
       }
     }
 

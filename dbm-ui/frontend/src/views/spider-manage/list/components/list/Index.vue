@@ -184,6 +184,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
@@ -400,10 +401,18 @@
             append: () => (
               <>
                 {data.master_domain && (
-                  <db-icon
-                    type="copy"
-                    v-bk-tooltips={t('复制主访问入口')}
-                    onClick={() => copy(data.masterDomainDisplayName)} />
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.master_domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.masterDomainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
@@ -1186,7 +1195,7 @@
     const allData = await tableRef.value!.getAllData<TendbClusterModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;
@@ -1443,6 +1452,7 @@
       .db-icon-copy,
       .db-icon-edit {
         display: none;
+        margin-top: 2px;
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
@@ -1463,6 +1473,7 @@
       }
     }
 
+    :deep(th:hover),
     :deep(td:hover) {
       .db-icon-copy,
       .db-icon-edit {
@@ -1509,6 +1520,7 @@
         .db-icon-copy,
         .db-icon-edit {
           display: none;
+          margin-top: 2px;
           margin-left: 4px;
           color: @primary-color;
           cursor: pointer;
@@ -1529,6 +1541,7 @@
         }
       }
 
+      :deep(th:hover),
       :deep(td:hover) {
         .db-icon-copy,
         .db-icon-edit {

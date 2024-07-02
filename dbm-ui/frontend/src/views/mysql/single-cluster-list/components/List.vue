@@ -146,6 +146,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
@@ -346,10 +347,18 @@
             ),
             append: () => (
               <>
-                <db-icon
-                  v-bk-tooltips={t('复制访问入口')}
-                  type="copy"
-                  onClick={() => copy(data.masterDomainDisplayName)} />
+                <RenderCellCopy copyItems={
+                  [
+                    {
+                      value: data.master_domain,
+                      label: t('域名')
+                    },
+                    {
+                      value: data.masterDomainDisplayName,
+                      label: t('域名:端口')
+                    }
+                  ]
+                } />
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
                   v-db-console="mysql.singleClusterList.modifyEntryConfiguration"
@@ -721,7 +730,7 @@
     const allData = await tableRef.value!.getAllData<TendbsingleModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;
@@ -952,6 +961,7 @@
         .db-icon-copy,
         .db-icon-edit {
           display: none;
+          margin-top: 1px;
           margin-left: 4px;
           color: @primary-color;
           cursor: pointer;
@@ -970,6 +980,12 @@
               border-radius: 2px;
             }
           }
+        }
+      }
+
+      :deep(th:hover) {
+        .db-icon-copy {
+          display: inline-block !important;
         }
       }
 
