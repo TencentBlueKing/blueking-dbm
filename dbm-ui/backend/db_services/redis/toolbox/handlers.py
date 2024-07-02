@@ -28,10 +28,10 @@ from backend.db_services.redis.resources.constants import (
     SQL_QUERY_MASTER_SLAVE_STATUS,
 )
 from backend.flow.utils.redis.redis_proxy_util import (
+    get_cluster_proxy_version,
     get_cluster_proxy_version_for_upgrade,
+    get_cluster_redis_version,
     get_cluster_storage_versions_for_upgrade,
-    get_proxy_version_names_by_cluster_type,
-    get_storage_version_names_by_cluster_type,
 )
 from backend.ticket.constants import InstanceType
 from backend.ticket.models import ClusterOperateRecord
@@ -278,17 +278,17 @@ class ToolboxHandler:
         return response
 
     @classmethod
-    def get_cluster_versions_with_cluster_id(cls, cluster_id: int, node_type: str):
+    def get_online_cluster_versions(cls, cluster_id: int, node_type: str):
         """根据cluster id获取集群现存版本"""
         if node_type == RedisVerUpdateNodeType.Backend.value:
-            return [get_cluster_storage_versions_for_upgrade(cluster_id)]
+            return [get_cluster_redis_version(cluster_id)]
         else:
-            return get_cluster_proxy_version_for_upgrade(cluster_id)
+            return get_cluster_proxy_version(cluster_id)
 
     @classmethod
-    def get_cluster_versions_with_cluster_type(cls, cluster_type: str, node_type: str):
+    def get_update_cluster_versions(cls, cluster_id: int, node_type: str):
         """根据cluster类型获取版本信息"""
         if node_type == RedisVerUpdateNodeType.Backend.value:
-            return get_storage_version_names_by_cluster_type(cluster_type, trimSuffix=True)
+            return get_cluster_storage_versions_for_upgrade(cluster_id)
         else:
-            return get_proxy_version_names_by_cluster_type(cluster_type, trimSuffix=True)
+            return get_cluster_proxy_version_for_upgrade(cluster_id)

@@ -81,14 +81,15 @@ class SpiderViewSet(viewsets.ResourceViewSet):
     db_type = DBType.TenDBCluster
 
     list_perm_actions = [
+        ActionEnum.TENDBCLUSTER_VIEW,
+        ActionEnum.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
+        ActionEnum.TENDBCLUSTER_ENABLE_DISABLE,
+        ActionEnum.TENDBCLUSTER_DESTROY,
         ActionEnum.TENDBCLUSTER_SPIDER_ADD_NODES,
         ActionEnum.TENDBCLUSTER_SPIDER_REDUCE_NODES,
         ActionEnum.TENDBCLUSTER_SPIDER_MNT_DESTROY,
-        ActionEnum.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
         ActionEnum.TENDBCLUSTER_NODE_REBALANCE,
-        ActionEnum.TENDBCLUSTER_VIEW,
-        ActionEnum.TENDBCLUSTER_ENABLE_DISABLE,
-        ActionEnum.TENDBCLUSTER_DESTROY,
+        ActionEnum.TENDBCLUSTER_DUMP_DATA,
     ]
     list_instance_perm_actions = [ActionEnum.TENDBCLUSTER_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
