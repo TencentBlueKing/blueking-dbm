@@ -286,7 +286,7 @@
               default: () => <span>{data.slave_domain}</span>,
               append: () => (
                 <db-icon
-                  v-bk-tooltips={t('复制主访问入口')}
+                  v-bk-tooltips={t('复制从访问入口')}
                   type="copy"
                   onClick={() => copy(data.slave_domain)} />
               ),

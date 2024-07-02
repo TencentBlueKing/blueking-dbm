@@ -125,6 +125,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
@@ -385,14 +386,22 @@
         <TextOverflowLayout>
           {{
             default: () => (
-              <span>{data.master_domain || '--'}</span>
+              <span>{data.masterDomainDisplayName || '--'}</span>
             ),
             append: () => (
               <>
-                <db-icon
-                  type="copy"
-                  v-bk-tooltips={t('复制域名')}
-                  onClick={() => copy(data.master_domain)} />
+                <RenderCellCopy copyItems={
+                  [
+                    {
+                      value: data.master_domain,
+                      label: t('域名')
+                    },
+                    {
+                      value: data.masterDomainDisplayName,
+                      label: t('域名:端口')
+                    }
+                  ]
+                } />
               </>
             ),
           }}
@@ -812,7 +821,7 @@
     const allData = await tableRef.value!.getAllData<MongodbModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;
@@ -889,11 +898,14 @@
 
       td div.cell .db-icon-copy {
         display: none;
+        margin-top: 2px;
         margin-left: 4px;
+        color: #3a84ff;
         color: @primary-color;
         cursor: pointer;
       }
 
+      th:hover,
       td:hover {
         .db-icon-copy {
           display: inline-block !important;

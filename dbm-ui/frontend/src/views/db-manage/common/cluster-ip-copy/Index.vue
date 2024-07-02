@@ -45,6 +45,7 @@
 </template>
 
 <script setup lang="ts" generic="T extends { allIPList: string[]; allUnavailableIPList: string[] }">
+  import { Message } from 'bkui-vue';
   import { uniq } from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -78,8 +79,14 @@
     const copyList = uniq(
       props.selected.reduce((prevList, tableItem) => [...prevList, ...tableItem.allUnavailableIPList], [] as string[]),
     );
-    // 若无异常IP \n清空复制内容
-    copy(copyList.join('\n') || '\n');
+    if (copyList.length === 0) {
+      Message({
+        theme: 'primary',
+        message: t('无异常IP可复制'),
+      });
+      return;
+    }
+    copy(copyList.join('\n'));
   };
 </script>
 

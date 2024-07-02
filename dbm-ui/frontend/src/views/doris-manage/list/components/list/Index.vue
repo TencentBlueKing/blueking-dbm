@@ -126,6 +126,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import ClusterExpansion from '@views/doris-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/doris-manage/common/shrink/Index.vue';
@@ -330,10 +331,18 @@
               <>
                 {
                   data.domain && (
-                    <db-icon
-                      type="copy"
-                      v-bk-tooltips={t('复制访问入口')}
-                      onClick={() => copy(data.domainDisplayName)} />
+                    <RenderCellCopy copyItems={
+                      [
+                        {
+                          value: data.domain,
+                          label: t('域名')
+                        },
+                        {
+                          value: data.domainDisplayName,
+                          label: t('域名:端口')
+                        }
+                      ]
+                    } />
                   )
                 }
               </>
@@ -824,7 +833,7 @@
     const allData = await tableRef.value!.getAllData<DorisModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;
@@ -1106,16 +1115,15 @@
 
     td .cell .db-icon-copy {
       display: none;
+      margin-left: 4px;
+      color: #3a84ff;
+      vertical-align: middle;
+      cursor: pointer;
     }
 
-    td:hover {
-      .db-icon-copy {
-        display: inline-block !important;
-        margin-left: 4px;
-        color: #3a84ff;
-        vertical-align: middle;
-        cursor: pointer;
-      }
+    th:hover .db-icon-copy,
+    td:hover .db-icon-copy {
+      display: inline-block !important;
     }
   }
 </style>

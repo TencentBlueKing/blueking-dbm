@@ -131,6 +131,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import ClusterExpansion from '@views/pulsar-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/pulsar-manage/common/shrink/Index.vue';
@@ -287,10 +288,18 @@
             append: () => (
               <>
                 {data.domain && (
-                  <db-icon
-                    type="copy"
-                    v-bk-tooltips={t('复制访问入口')}
-                    onClick={() => copy(data.domainDisplayName)} />
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.domainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
@@ -832,7 +841,7 @@
     const allData = await tableRef.value!.getAllData<PulsarModel>();
     if(allData.length === 0) {
       Message({
-        theme: 'error',
+        theme: 'primary',
         message: '暂无数据可复制',
       });
       return;
@@ -1069,6 +1078,11 @@
 
     td div.cell .db-icon-copy {
       display: none;
+      margin-top: 2px;
+      margin-left: 4px;
+      color: #3a84ff;
+      vertical-align: middle;
+      cursor: pointer;
     }
 
     .db-icon-more {
@@ -1084,14 +1098,9 @@
       }
     }
 
-    td:hover {
-      .db-icon-copy {
-        display: inline-block !important;
-        margin-left: 4px;
-        color: #3a84ff;
-        vertical-align: middle;
-        cursor: pointer;
-      }
+    th:hover .db-icon-copy,
+    td:hover .db-icon-copy {
+      display: inline-block !important;
     }
   }
 </style>
@@ -1107,6 +1116,7 @@
 
       .db-icon-edit {
         display: none;
+        margin-top: 2px;
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
