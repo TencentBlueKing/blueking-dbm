@@ -284,7 +284,7 @@
           const grammarCheckResult = uploadFileData;
           lastUploadFileDataMap[grammarCheckResult.raw_file_name] = {
             ...lastUploadFileDataMap[grammarCheckResult.raw_file_name],
-            realFilePath: uploadFileData.sql_path,
+            realFilePath: uploadFileData.raw_file_name,
             isSuccess: true,
             content: uploadFileData.sql_content,
             messageList: [],
