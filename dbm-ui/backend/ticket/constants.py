@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from enum import Enum
 from typing import Any, Optional
 
 from django.utils.translation import ugettext_lazy as _
@@ -608,3 +609,15 @@ class OperateNodeActionType(str, StructuredEnum):
 class ItsmTicketNodeEnum(str, StructuredEnum):
     ApprovalOption = EnumField("审批意见", "审批意见")
     Remark = EnumField("备注", "备注")
+
+
+class FlowMsgType(Enum):
+    DONE = "完成"
+    AGENT = "代办"
+    PENDING = "待审批"
+
+
+class FlowMsgStatus(Enum):
+    DONE = "完成"
+    UNCONFIRMED = "待确认"
+    PENDING = "待审批"
