@@ -26,6 +26,12 @@ def dict_to_choices(dic, is_reversed=False):
     return [(k, v) for k, v in list(dic.items())]
 
 
+def remove_duplicated_dict(map_list, key):
+    s = set()
+    map_list = [item for item in map_list if item[key] not in s and not s.add(item[key])]
+    return map_list
+
+
 def reverse_dict(dic):
     return {v: k for k, v in list(dic.items())}
 

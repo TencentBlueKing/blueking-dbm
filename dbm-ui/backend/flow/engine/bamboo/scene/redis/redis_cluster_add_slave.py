@@ -308,7 +308,7 @@ class RedisClusterAddSlaveFlow(object):
         """
         bk_biz_id = self.data["bk_biz_id"]
         for input_item in self.data["infos"]:
-            one_cluster_id = input_item["cluster_ids"]
+            one_cluster_id = input_item["cluster_ids"][0]
             try:
                 cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=one_cluster_id)
             except Cluster.DoesNotExist:

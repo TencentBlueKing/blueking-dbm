@@ -1530,8 +1530,10 @@ class RedisActPayload(object):
         self.namespace = params["cluster_type"]
         cluster_meta = nosqlcomm.other.get_cluster_detail(cluster_id=params["cluster_id"])[0]
         if self.namespace == ClusterType.RedisInstance.value:
-            cluster_config = self.__get_cluster_config(params["immute_domain"], "no_proxy_def", ConfigTypeEnum.DBConf)
-            cluster_meta["storage_pass"] = cluster_config["redis_password"]
+            cluster_config = self.__get_cluster_config(
+                params["immute_domain"], params.get("db_version", ""), ConfigTypeEnum.DBConf
+            )
+            cluster_meta["storage_pass"] = cluster_config["requirepass"]
         else:
             if is_twemproxy_proxy_type(self.namespace):
                 proxy_version = ConfigFileEnum.Twemproxy

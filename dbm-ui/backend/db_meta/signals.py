@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 import logging
 from typing import Union
 
+from django.db.models.signals import pre_delete
+
 from backend.db_meta.enums import ClusterStatus
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 
@@ -24,6 +26,14 @@ def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance
     logger.info("[signals] receive update_cluster_status signal, sender: %s, instance: %s", sender, instance)
     if kwargs.get("created"):
         return
+    if kwargs.get("signal") == pre_delete and not isinstance(instance, Cluster):
+        # 提前删除实例与cluster的关联关系
+        cluster = instance.cluster.first()
+        if sender == StorageInstance:
+            cluster.storageinstance_set.remove(instance)
+        else:
+            cluster.proxyinstance_set.remove(instance)
+
     # 仅在实例状态变更时，同步更新集群状态
     if isinstance(instance, Cluster):
         clusters = [instance]
