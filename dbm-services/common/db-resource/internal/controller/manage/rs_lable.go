@@ -36,7 +36,7 @@ func (c *LableHandler) Edit(r *rf.Context) {
 		c.SendResponse(r, err, nil, requestId)
 		return
 	}
-	if len(input.BkHostIds) <= 0 {
+	if len(input.BkHostIds) == 0 {
 		c.SendResponse(r, nil, nil, requestId)
 		return
 	}

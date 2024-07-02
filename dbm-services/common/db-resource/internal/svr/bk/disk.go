@@ -151,13 +151,13 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (re
 		} else {
 			logger.Warn("没有获取到%s的操作系统类型", host.IP)
 			// 默认当做Liunx处理
-			ipListOsMap[OsLinux] = append(ipListOsMap[os_type], host)
+			ipListOsMap[OsLinux] = append(ipListOsMap[OsLinux], host)
 		}
 	}
 	ipLogContentMap := make(map[string]*ShellResCollection)
 	ipFailedLogMap := make(map[string]string)
 	for os_type, ipList := range ipListOsMap {
-		if len(ipList) <= 0 {
+		if len(ipList) == 0 {
 			continue
 		}
 		switch os_type {

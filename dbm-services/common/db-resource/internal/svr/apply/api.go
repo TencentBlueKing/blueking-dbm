@@ -26,7 +26,7 @@ import (
 )
 
 // ParamCheck TODO
-func (param *ApplyRequestInputParam) ParamCheck() (err error) {
+func (param *RequestInputParam) ParamCheck() (err error) {
 	for _, a := range param.Details {
 		for _, d := range a.StorageSpecs {
 			if d.MaxSize > 0 && d.MinSize > d.MaxSize {
@@ -70,22 +70,22 @@ type ActionInfo struct {
 	Operator string `json:"operator"`
 }
 
-// ApplyRequestInputParam 请求接口参数
-type ApplyRequestInputParam struct {
-	ResourceType string              `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
-	DryRun       bool                `json:"dry_run"`
-	ForbizId     int                 `json:"for_biz_id"`
-	Details      []ApplyObjectDetail `json:"details" binding:"required,gt=0,dive"`
+// RequestInputParam 请求接口参数
+type RequestInputParam struct {
+	ResourceType string         `json:"resource_type"` // 申请的资源用作的用途 Redis|MySQL|Proxy
+	DryRun       bool           `json:"dry_run"`
+	ForbizId     int            `json:"for_biz_id"`
+	Details      []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
 	ActionInfo
 }
 
 // GetOperationInfo TODO
-func (c ApplyRequestInputParam) GetOperationInfo(requestId, mode string,
+func (param RequestInputParam) GetOperationInfo(requestId, mode string,
 	data []model.BatchGetTbDetailResult) model.TbRpOperationInfo {
 	var count int
 	var bkHostIds []int
 	var ipList []string
-	for _, v := range c.Details {
+	for _, v := range param.Details {
 		count += v.Count
 	}
 	for _, group := range data {
@@ -113,10 +113,10 @@ func (c ApplyRequestInputParam) GetOperationInfo(requestId, mode string,
 		OperationType: model.Consumed,
 		BkHostIds:     bkHostIdsBytes,
 		IpList:        ipListBytes,
-		BillId:        c.BillId,
-		BillType:      c.BillType,
-		TaskId:        c.TaskId,
-		Operator:      c.Operator,
+		BillId:        param.BillId,
+		BillType:      param.BillType,
+		TaskId:        param.TaskId,
+		Operator:      param.Operator,
 		Status:        mode,
 		CreateTime:    time.Now(),
 		UpdateTime:    time.Now(),
@@ -124,12 +124,12 @@ func (c ApplyRequestInputParam) GetOperationInfo(requestId, mode string,
 	}
 }
 
-// LockKey TODO
-func (c ApplyRequestInputParam) LockKey() string {
-	if cmutil.IsEmpty(c.ResourceType) {
-		return fmt.Sprintf("dbrms:lock:bizid.%d", c.ForbizId)
+// LockKey get lock key
+func (param RequestInputParam) LockKey() string {
+	if cmutil.IsEmpty(param.ResourceType) {
+		return fmt.Sprintf("dbrms:lock:bizid.%d", param.ForbizId)
 	}
-	return fmt.Sprintf("dbrms:lock:%s:bizid.%d", c.ResourceType, c.ForbizId)
+	return fmt.Sprintf("dbrms:lock:%s:bizid.%d", param.ResourceType, param.ForbizId)
 }
 
 const (
@@ -147,8 +147,8 @@ const (
 	NONE = "NONE"
 )
 
-// ApplyObjectDetail TODO
-type ApplyObjectDetail struct {
+// ObjectDetail TODO
+type ObjectDetail struct {
 	BkCloudId int               `json:"bk_cloud_id"`
 	GroupMark string            `json:"group_mark" binding:"required" ` // 资源组标记
 	Labels    map[string]string `json:"labels"`                         // 标签
@@ -171,7 +171,7 @@ type ApplyObjectDetail struct {
 }
 
 // GetDiskMatchInfo get request disk message
-func (a *ApplyObjectDetail) GetDiskMatchInfo() (message string) {
+func (a *ObjectDetail) GetDiskMatchInfo() (message string) {
 	if len(a.StorageSpecs) > 0 {
 		for _, d := range a.StorageSpecs {
 			if cmutil.IsNotEmpty(d.MountPoint) {
@@ -195,7 +195,7 @@ func (a *ApplyObjectDetail) GetDiskMatchInfo() (message string) {
 }
 
 // GetMessage return apply failed message
-func (a *ApplyObjectDetail) GetMessage() (message string) {
+func (a *ObjectDetail) GetMessage() (message string) {
 	message += fmt.Sprintf("group: %s\n\r", a.GroupMark)
 	if len(a.DeviceClass) > 0 {
 		message += fmt.Sprintf("device_class: %v\n\r", a.DeviceClass)
@@ -286,18 +286,18 @@ func (m MeasureRange) Iegal() bool {
 }
 
 // MatchTotalStorageSize match total disk capacity
-func (disk *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
-	disk.MatchRange(db, "total_storage_cap")
+func (m *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
+	m.MatchRange(db, "total_storage_cap")
 }
 
 // MatchMem match memory size range
-func (mem *MeasureRange) MatchMem(db *gorm.DB) {
-	mem.MatchRange(db, "dram_cap")
+func (m *MeasureRange) MatchMem(db *gorm.DB) {
+	m.MatchRange(db, "dram_cap")
 }
 
 // MatchCpu match cpu core number range
-func (cpu *MeasureRange) MatchCpu(db *gorm.DB) {
-	cpu.MatchRange(db, "cpu_num")
+func (m *MeasureRange) MatchCpu(db *gorm.DB) {
+	m.MatchRange(db, "cpu_num")
 }
 
 // MatchRange universal range matching
@@ -329,6 +329,7 @@ type MeasureRangeBuilder struct {
 }
 
 // Build build orm query sql
+// nolint
 func (m *MeasureRangeBuilder) Build(builder clause.Builder) {
 	switch {
 	case m.Min > 0 && m.Max > 0:

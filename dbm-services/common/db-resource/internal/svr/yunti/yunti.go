@@ -67,6 +67,7 @@ type CvmDataDisk struct {
 }
 
 // YuntiConfig yunti params
+// nolint
 type YuntiConfig struct {
 	Addr          string `yaml:"addr"`
 	ApiKeyName    string `yaml:"api_key_name" mapstructure:"api_key_name"`

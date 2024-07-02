@@ -29,13 +29,13 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 )
 
-// Database TODO
+// Database database object
 type Database struct {
 	Self      *gorm.DB
 	SelfSqlDB *sql.DB
 }
 
-// DB TODO
+// DB db object
 var DB *Database
 
 // TbRpOperationInfoColumns tb_rp_operation_info all columns
@@ -43,14 +43,14 @@ var TbRpOperationInfoColumns []string
 
 func init() {
 	createSysDb()
-	orm_db := initSelfDB()
-	sqlDB, err := orm_db.DB()
+	ormDB := initSelfDB()
+	sqlDB, err := ormDB.DB()
 	if err != nil {
 		logger.Fatal("init db connect failed %s", err.Error())
 		return
 	}
 	DB = &Database{
-		Self:      orm_db,
+		Self:      ormDB,
 		SelfSqlDB: sqlDB,
 	}
 	migration()
@@ -126,7 +126,7 @@ func openDB(username, password, addr, name string) *gorm.DB {
 	return db
 }
 
-// initSelfDB TODO
+// initSelfDB init db
 // used for cli
 func initSelfDB() *gorm.DB {
 	return openDB(
@@ -137,9 +137,13 @@ func initSelfDB() *gorm.DB {
 	)
 }
 
-// migration TODO
+// migration migration
 func migration() {
-	DB.Self.AutoMigrate(&TbRpDetail{}, &TbRequestLog{}, &TbRpDetailArchive{}, &TbRpApplyDetailLog{}, &TbRpOperationInfo{})
+	err := DB.Self.AutoMigrate(&TbRpDetail{}, &TbRequestLog{}, &TbRpDetailArchive{}, &TbRpApplyDetailLog{},
+		&TbRpOperationInfo{})
+	if err != nil {
+		logger.Error("auto migrate failed %v", err)
+	}
 }
 
 // JSONQueryExpression json query expression, implements clause.Expression interface to use as querier
@@ -167,7 +171,7 @@ type JSONQueryExpression struct {
 	jointOrContainVals []string
 }
 
-// NumRange TODO
+// NumRange num range
 type NumRange struct {
 	Min int
 	Max int
@@ -178,7 +182,7 @@ func JSONQuery(column string) *JSONQueryExpression {
 	return &JSONQueryExpression{column: column}
 }
 
-// SubValContains TODO
+// SubValContains  sub value contains
 func (jsonQuery *JSONQueryExpression) SubValContains(val string, key string) *JSONQueryExpression {
 	jsonQuery.subcontains = true
 	jsonQuery.subcontainVal = val
@@ -186,14 +190,14 @@ func (jsonQuery *JSONQueryExpression) SubValContains(val string, key string) *JS
 	return jsonQuery
 }
 
-// KeysContains TODO
+// KeysContains key contains
 func (jsonQuery *JSONQueryExpression) KeysContains(val []string) *JSONQueryExpression {
 	jsonQuery.mapcontains = true
 	jsonQuery.mapcontainVals = val
 	return jsonQuery
 }
 
-// Contains TODO
+// Contains contains
 // Extract extract json with path
 func (jsonQuery *JSONQueryExpression) Contains(val []string) *JSONQueryExpression {
 	jsonQuery.contains = true
@@ -201,7 +205,7 @@ func (jsonQuery *JSONQueryExpression) Contains(val []string) *JSONQueryExpressio
 	return jsonQuery
 }
 
-// JointOrContains TODO
+// JointOrContains jointOrContains
 func (jsonQuery *JSONQueryExpression) JointOrContains(val []string) *JSONQueryExpression {
 	jsonQuery.jointOrContains = true
 	jsonQuery.jointOrContainVals = val
@@ -216,7 +220,7 @@ func (jsonQuery *JSONQueryExpression) Extract(path string) *JSONQueryExpression 
 	return jsonQuery
 }
 
-// NumRange TODO
+// NumRange num range
 // HasKey returns clause.Expression
 func (jsonQuery *JSONQueryExpression) NumRange(min int, max int, keys ...string) *JSONQueryExpression {
 	jsonQuery.keys = keys
@@ -228,7 +232,7 @@ func (jsonQuery *JSONQueryExpression) NumRange(min int, max int, keys ...string)
 	return jsonQuery
 }
 
-// Gte TODO
+// Gte gte
 func (jsonQuery *JSONQueryExpression) Gte(val int, keys ...string) *JSONQueryExpression {
 	jsonQuery.keys = keys
 	jsonQuery.Gtv = val
@@ -236,7 +240,7 @@ func (jsonQuery *JSONQueryExpression) Gte(val int, keys ...string) *JSONQueryExp
 	return jsonQuery
 }
 
-// Lte TODO
+// Lte lte
 func (jsonQuery *JSONQueryExpression) Lte(val int, keys ...string) *JSONQueryExpression {
 	jsonQuery.keys = keys
 	jsonQuery.Ltv = val
@@ -251,7 +255,7 @@ func (jsonQuery *JSONQueryExpression) HasKey(keys ...string) *JSONQueryExpressio
 	return jsonQuery
 }
 
-// Equals TODO
+// Equals equals
 // Keys returns clause.Expression
 func (jsonQuery *JSONQueryExpression) Equals(value interface{}, keys ...string) *JSONQueryExpression {
 	jsonQuery.keys = keys
@@ -260,6 +264,8 @@ func (jsonQuery *JSONQueryExpression) Equals(value interface{}, keys ...string) 
 	return jsonQuery
 }
 
+// jointOrContainsBuild jointOrContainsBuild
+// nolint
 func (jsonQuery *JSONQueryExpression) jointOrContainsBuild(builder clause.Builder) {
 	for idx, v := range jsonQuery.jointOrContainVals {
 		if idx != 0 {
@@ -274,6 +280,8 @@ func (jsonQuery *JSONQueryExpression) jointOrContainsBuild(builder clause.Builde
 	}
 }
 
+// extractBuild extractBuild
+// nolint
 func (jsonQuery *JSONQueryExpression) extractBuild(stmt *gorm.Statement, builder clause.Builder) {
 	builder.WriteString("JSON_EXTRACT(")
 	builder.WriteQuoted(jsonQuery.column)
@@ -282,6 +290,8 @@ func (jsonQuery *JSONQueryExpression) extractBuild(stmt *gorm.Statement, builder
 	builder.WriteString(")")
 }
 
+// hasKeysBuild build has  key query
+// nolint
 func (jsonQuery *JSONQueryExpression) hasKeysBuild(stmt *gorm.Statement, builder clause.Builder) {
 	if len(jsonQuery.keys) > 0 {
 		builder.WriteString("JSON_EXTRACT(")
@@ -292,6 +302,8 @@ func (jsonQuery *JSONQueryExpression) hasKeysBuild(stmt *gorm.Statement, builder
 	}
 }
 
+// gteBuild build gte query
+// nolint
 func (jsonQuery *JSONQueryExpression) gteBuild(stmt *gorm.Statement, builder clause.Builder) {
 	builder.WriteString("JSON_EXTRACT(")
 	builder.WriteQuoted(jsonQuery.column)
@@ -301,6 +313,8 @@ func (jsonQuery *JSONQueryExpression) gteBuild(stmt *gorm.Statement, builder cla
 	builder.WriteString(strconv.Itoa(jsonQuery.Gtv))
 }
 
+// lteBuild  build lte query
+// nolint
 func (jsonQuery *JSONQueryExpression) lteBuild(stmt *gorm.Statement, builder clause.Builder) {
 	builder.WriteString("JSON_EXTRACT(")
 	builder.WriteQuoted(jsonQuery.column)
@@ -310,6 +324,8 @@ func (jsonQuery *JSONQueryExpression) lteBuild(stmt *gorm.Statement, builder cla
 	builder.WriteString(strconv.Itoa(jsonQuery.Ltv))
 }
 
+// numrangesBuild build num range query
+// nolint
 func (jsonQuery *JSONQueryExpression) numrangesBuild(stmt *gorm.Statement, builder clause.Builder) {
 	builder.WriteString("JSON_EXTRACT(")
 	builder.WriteQuoted(jsonQuery.column)
@@ -322,7 +338,9 @@ func (jsonQuery *JSONQueryExpression) numrangesBuild(stmt *gorm.Statement, build
 	builder.WriteString(strconv.Itoa(jsonQuery.numRange.Max))
 }
 
-func (jsonQuery *JSONQueryExpression) mapcontainsBuild(stmt *gorm.Statement, builder clause.Builder) {
+// mapcontainsBuild build map contains query
+// nolint
+func (jsonQuery *JSONQueryExpression) mapcontainsBuild(builder clause.Builder) {
 	builder.WriteString("JSON_CONTAINS(JSON_KEYS(")
 	builder.WriteQuoted(jsonQuery.column)
 	builder.WriteString("),'[")
@@ -330,7 +348,9 @@ func (jsonQuery *JSONQueryExpression) mapcontainsBuild(stmt *gorm.Statement, bui
 	builder.WriteString("]') ")
 }
 
-func (jsonQuery *JSONQueryExpression) containsBuild(stmt *gorm.Statement, builder clause.Builder) {
+// containsBuild build contains query
+// nolint
+func (jsonQuery *JSONQueryExpression) containsBuild(builder clause.Builder) {
 	builder.WriteString("JSON_CONTAINS(")
 	builder.WriteQuoted(jsonQuery.column)
 	builder.WriteString(",'")
@@ -339,7 +359,9 @@ func (jsonQuery *JSONQueryExpression) containsBuild(stmt *gorm.Statement, builde
 	builder.WriteString("]') ")
 }
 
-func (jsonQuery *JSONQueryExpression) subcontainsBuild(stmt *gorm.Statement, builder clause.Builder) {
+// subcontainsBuild build subcontains query
+// nolint
+func (jsonQuery *JSONQueryExpression) subcontainsBuild(builder clause.Builder) {
 	builder.WriteString("JSON_CONTAINS(JSON_EXTRACT(")
 	builder.WriteQuoted(jsonQuery.column)
 	builder.WriteString(",'$.*.\"")
@@ -349,6 +371,8 @@ func (jsonQuery *JSONQueryExpression) subcontainsBuild(stmt *gorm.Statement, bui
 	builder.WriteString("\"]') ")
 }
 
+// equalsBuild build equal query
+// nolint
 func (jsonQuery *JSONQueryExpression) equalsBuild(stmt *gorm.Statement, builder clause.Builder) {
 	if len(jsonQuery.keys) > 0 {
 		builder.WriteString("JSON_EXTRACT(")
@@ -367,8 +391,7 @@ func (jsonQuery *JSONQueryExpression) equalsBuild(stmt *gorm.Statement, builder 
 // Build implements clause.Expression
 func (jsonQuery *JSONQueryExpression) Build(builder clause.Builder) {
 	if stmt, ok := builder.(*gorm.Statement); ok {
-		switch stmt.Dialector.Name() {
-		case "mysql":
+		if stmt.Dialector.Name() == "mysql" {
 			switch {
 			case jsonQuery.extract:
 				jsonQuery.extractBuild(stmt, builder)
@@ -381,13 +404,13 @@ func (jsonQuery *JSONQueryExpression) Build(builder clause.Builder) {
 			case jsonQuery.numranges:
 				jsonQuery.numrangesBuild(stmt, builder)
 			case jsonQuery.mapcontains:
-				jsonQuery.mapcontainsBuild(stmt, builder)
+				jsonQuery.mapcontainsBuild(builder)
 			case jsonQuery.contains:
-				jsonQuery.containsBuild(stmt, builder)
+				jsonQuery.containsBuild(builder)
 			case jsonQuery.jointOrContains:
 				jsonQuery.jointOrContainsBuild(builder)
 			case jsonQuery.subcontains:
-				jsonQuery.subcontainsBuild(stmt, builder)
+				jsonQuery.subcontainsBuild(builder)
 			case jsonQuery.equals:
 				jsonQuery.equalsBuild(stmt, builder)
 			}

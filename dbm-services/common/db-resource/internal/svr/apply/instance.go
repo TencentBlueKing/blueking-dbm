@@ -12,7 +12,7 @@ package apply
 
 import "dbm-services/common/db-resource/internal/model"
 
-// InstanceObject TODO
+// InstanceObject instance object
 type InstanceObject struct {
 	BkHostId        int
 	Equipment       string
@@ -21,7 +21,7 @@ type InstanceObject struct {
 	InsDetail       *model.TbRpDetail
 }
 
-// GetLinkNetDeviceIdsInterface TODO
+// GetLinkNetDeviceIdsInterface getLinkNetDeviceIdsInterface
 func (c *InstanceObject) GetLinkNetDeviceIdsInterface() []interface{} {
 	var k []interface{}
 	for _, v := range c.LinkNetdeviceId {
@@ -30,13 +30,13 @@ func (c *InstanceObject) GetLinkNetDeviceIdsInterface() []interface{} {
 	return k
 }
 
-// Wrapper TODO
+// Wrapper Wrapper
 type Wrapper struct {
 	Instances []InstanceObject
 	by        func(p, q *InstanceObject) bool
 }
 
-// SortBy TODO
+// SortBy sortby
 type SortBy func(p, q *InstanceObject) bool
 
 // Len 用于排序

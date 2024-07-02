@@ -53,7 +53,7 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 		s := &apply.SearchContext{
 			IntetionBkBizId: input.ForbizId,
 			RsType:          input.ResourceType,
-			ApplyObjectDetail: &apply.ApplyObjectDetail{
+			ObjectDetail: &apply.ObjectDetail{
 				GroupMark:    item.GroupMark,
 				DeviceClass:  item.DeviceClass,
 				Spec:         item.Spec,

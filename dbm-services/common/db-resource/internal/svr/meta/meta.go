@@ -19,7 +19,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"slices"
 	"time"
 
 	"dbm-services/common/db-resource/internal/config"
@@ -39,7 +38,7 @@ type GetIdcCityByLogicCityParam struct {
 	LogicCityName string `json:"logic_city_name"`
 }
 
-// IdcCitysResp TODO
+// IdcCitysResp idc citys respone
 type IdcCitysResp struct {
 	Code      int      `json:"code"`
 	Message   string   `json:"message"`
@@ -47,7 +46,7 @@ type IdcCitysResp struct {
 	RequestId string   `json:"request_id"`
 }
 
-// DbmEnvResp TODO
+// DbmEnvResp dbm env respone
 type DbmEnvResp struct {
 	Data      DbmEnvData `json:"data"`
 	Code      int        `json:"code"`
@@ -66,7 +65,7 @@ type DbmEnvData struct {
 	} `json:"CC_MANAGE_TOPO"`
 }
 
-// GetDbmEnv TODO
+// GetDbmEnv get dbm env
 func GetDbmEnv() (data DbmEnvData, err error) {
 	u, err := getRequestUrl(DBMEnviron)
 	if err != nil {
@@ -120,7 +119,6 @@ func getRequestUrl(apiaddr string) (string, error) {
 // GetIdcCityByLogicCity 根据逻辑城市获取实际对应城市列表
 func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
 	var content []byte
-	var resp *http.Response
 	u, err := getRequestUrl(DBMCityUrl)
 	if err != nil {
 		return nil, err
@@ -140,27 +138,31 @@ func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
 	}
 	request.Header.Add("content-type", "application/json;charset=utf-8")
 	addCookie(request)
-	for i := 0; i <= 5; i++ {
-		resp, err = client.Do(request)
+
+	f := func() (content []byte, err error) {
+		resp, err := client.Do(request)
 		if err != nil {
-			if resp != nil {
-				if slices.Contains([]int{http.StatusInternalServerError, http.StatusTooManyRequests, http.StatusGatewayTimeout},
-					resp.StatusCode) {
-					time.Sleep(200 * time.Millisecond)
-					continue
-				}
-			}
-			logger.Error("request %s failed %s", request.RequestURI, err.Error())
 			return nil, err
 		}
+		defer resp.Body.Close()
 		content, err = io.ReadAll(resp.Body)
 		if err != nil {
 			logger.Error("read respone body failed %s", err.Error())
 			return nil, err
 		}
-		break
+		return
 	}
-	defer resp.Body.Close()
+
+	for i := 0; i <= 3; i++ {
+		content, err = f()
+		if err == nil {
+			break
+		}
+		logger.Error("read respone body failed %s", err.Error())
+		time.Sleep(1 * time.Second)
+
+	}
+
 	logger.Info("respone %v", string(content))
 	var d IdcCitysResp
 	if err = json.Unmarshal(content, &d); err != nil {

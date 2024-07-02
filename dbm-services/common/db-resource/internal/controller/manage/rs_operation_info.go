@@ -155,5 +155,4 @@ func (o MachineResourceHandler) RecordImportResource(r *gin.Context) {
 		o.SendResponse(r, fmt.Errorf("记录导入任务日志失败,%w", err), err.Error(), "")
 	}
 	o.SendResponse(r, nil, "记录日志成功", "")
-	return
 }

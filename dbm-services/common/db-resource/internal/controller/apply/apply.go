@@ -35,6 +35,7 @@ func init() {
 }
 
 // ApplyHandler TODO
+// nolint
 type ApplyHandler struct {
 	controller.BaseHandler
 }
@@ -52,13 +53,13 @@ func (c *ApplyHandler) RegisterRouter(engine *gin.Engine) {
 	}
 }
 
-// ConfirmApplyParam TODO
+// ConfirmApplyParam 配合预申请资源接口，确认占用资源
 type ConfirmApplyParam struct {
 	RequestId string `json:"request_id" binding:"required"`
 	HostIds   []int  `json:"host_ids" binding:"gt=0,dive,required" `
 }
 
-// ConfirmApply TODO
+// ConfirmApply 确认占用资源
 func (c *ApplyHandler) ConfirmApply(r *gin.Context) {
 	var param ConfirmApplyParam
 	if c.Prepare(r, &param) != nil {
@@ -127,12 +128,12 @@ func archive(bkHostIds []int) {
 	}
 }
 
-// ApplyResource TODO
+// ApplyResource apply resource
 func (c *ApplyHandler) ApplyResource(r *gin.Context) {
 	c.ApplyBase(r, model.Used)
 }
 
-// PreApplyResource TODO
+// PreApplyResource pre apply resource
 func (c *ApplyHandler) PreApplyResource(r *gin.Context) {
 	c.ApplyBase(r, model.Prepoccupied)
 }
@@ -142,12 +143,12 @@ func newLocker(key string, requestId string) *lock.SpinLock {
 		350*time.Millisecond)
 }
 
-// ApplyBase TODO
+// ApplyBase apply resource base func
 func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	task.RuningTask <- struct{}{}
 	defer func() { <-task.RuningTask }()
 	logger.Info("start apply resource ... ")
-	var param apply.ApplyRequestInputParam
+	var param apply.RequestInputParam
 	var pickers []*apply.PickerObject
 	var err error
 	var requestId string
@@ -155,19 +156,19 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 		return
 	}
 	requestId = r.GetString("request_id")
-	if err := param.ParamCheck(); err != nil {
+	if err = param.ParamCheck(); err != nil {
 		c.SendResponse(r, errno.ErrApplyResourceParamCheck.AddErr(err), err.Error(), requestId)
 		return
 	}
 	// get the resource lock if it is dry run you do not need to acquire it
 	if !param.DryRun {
 		lock := newLocker(param.LockKey(), requestId)
-		if err := lock.Lock(); err != nil {
+		if err = lock.Lock(); err != nil {
 			c.SendResponse(r, errno.ErrResourceLock.AddErr(err), err.Error(), requestId)
 			return
 		}
 		defer func() {
-			if err := lock.Unlock(); err != nil {
+			if err = lock.Unlock(); err != nil {
 				logger.Error(fmt.Sprintf("unlock failed %s", err.Error()))
 				return
 			}
@@ -197,5 +198,4 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	}
 	task.RecordRsOperatorInfoChan <- param.GetOperationInfo(requestId, mode, data)
 	c.SendResponse(r, nil, data, requestId)
-	return
 }
