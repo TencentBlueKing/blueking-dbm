@@ -36,7 +36,7 @@
             :disabled="selected.length === 0"
             text
             @click="handleCopyUnavailableIp">
-            {{ t('已选集群异常 IP') }}
+            {{ t('已选集群的异常 IP') }}
           </BkButton>
         </BkDropdownItem>
       </BkDropdownMenu>
