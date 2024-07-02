@@ -22,6 +22,7 @@
     <td style="padding: 0">
       <RenderClusterNameWithSelector
         ref="targetClustersRef"
+        :data="data.targetClusters"
         :source-cluster-id="data.clusterData.id"
         @change="handleTargetClusterChange" />
     </td>
@@ -67,6 +68,7 @@
     };
     dbPatterns?: string[];
     ignoreDbs?: string[];
+    targetClusters?: string;
   }
 
   export interface InfoItem {
@@ -81,10 +83,10 @@
     clusterData: clusterData
       ? clusterData
       : {
-        id: 0,
-        domain: '',
-        type: '',
-      },
+          id: 0,
+          domain: '',
+          type: '',
+        },
   });
 </script>
 <script setup lang="ts">
@@ -140,7 +142,7 @@
   );
 
   const handleTargetClusterChange = (list: { id: number }[]) => {
-    rowInfo.targetClusters = list.map(item => item.id);
+    rowInfo.targetClusters = list.map((item) => item.id);
   };
 
   const handleInputFinish = (value: string) => {
@@ -179,7 +181,7 @@
         dbPatternsRef.value!.getValue('db_patterns'),
         ignoreDbsRef.value!.getValue('ignore_dbs'),
       ]);
-      return targetDbsRef.value!.getValue().then(dbList => ({
+      return targetDbsRef.value!.getValue().then((dbList) => ({
         source_cluster: rowInfo.sourceClusterId,
         target_clusters: rowInfo.targetClusters,
         db_list: dbList,

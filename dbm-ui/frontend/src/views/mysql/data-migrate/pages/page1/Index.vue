@@ -68,6 +68,8 @@
   import { queryClusters } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import {
@@ -87,6 +89,17 @@
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.MYSQL_DATA_MIGRATE,
+    onSuccess(cloneData) {
+      const {  tableDataList } = cloneData
+      tableData.value = tableDataList;
+
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -252,7 +265,7 @@
 </script>
 
 <style lang="less">
-.mysql-data-migrate-page {
-  padding-bottom: 20px;
-}
+  .mysql-data-migrate-page {
+    padding-bottom: 20px;
+  }
 </style>
