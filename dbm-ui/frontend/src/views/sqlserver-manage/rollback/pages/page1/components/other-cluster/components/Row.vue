@@ -27,9 +27,9 @@
       <td style="padding: 0">
         <RenderMode
           ref="modeRef"
-          :cluster-id="localSrcClusterData?.id"
-          :restore-backup-file="data.restoreBackupFile"
-          :restore-time="data.restoreTime" />
+          v-model:restore-backup-file="localRestoreBackupFile"
+          v-model:restore-time="localRestoreTime"
+          :cluster-id="localSrcClusterData?.id" />
       </td>
       <td style="padding: 0">
         <RenderDbName
@@ -53,7 +53,9 @@
           ref="renameDbNameRef"
           v-model:db-ignore-name="localDbIgnoreName"
           v-model:db-name="localDbName"
-          :cluster-data="localSrcClusterData" />
+          :cluster-data="localSrcClusterData"
+          :restore-backup-file="localRestoreBackupFile"
+          :restore-time="localRestoreTime" />
       </td>
       <td>
         <div class="action-box">
@@ -147,6 +149,8 @@
 
   const localSrcClusterData = ref<IDataRow['clusterData']>();
   const localDstClusterData = ref<IDataRow['dstClusterData']>();
+  const localRestoreBackupFile = ref<IDataRow['restoreBackupFile']>();
+  const localRestoreTime = ref<IDataRow['restoreTime']>('');
   const localDbName = ref<string[]>([]);
   const localDbIgnoreName = ref<string[]>([]);
 
@@ -159,7 +163,12 @@
       if (props.data.dstClusterData) {
         localDstClusterData.value = props.data.dstClusterData;
       }
-      console.log('props.data.dstClusterData = ', props.data.dstClusterData);
+      if (props.data.restoreBackupFile) {
+        localRestoreBackupFile.value = props.data.restoreBackupFile;
+      }
+      if (props.data.restoreTime) {
+        localRestoreTime.value = props.data.restoreTime;
+      }
     },
     {
       immediate: true,

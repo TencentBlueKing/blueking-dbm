@@ -69,8 +69,10 @@ export function queryDbsByBackupLog(params: {
   cluster_id: number;
   db_pattern: string[];
   ignore_db: string[];
-  backup_logs?: unknown[];
-  rollback_time?: string;
+  backup_logs?: {
+    logs: any[];
+  };
+  restore_time?: string;
 }) {
   return http.post<string[]>(`${path}/rollback/query_dbs_by_backup_log/`, params);
 }

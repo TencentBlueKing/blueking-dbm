@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="db-backup-page">
+    <div class="sqlserver-db-backup-page">
       <BkAlert
         theme="info"
         :title="t('数据库备份：指定DB备份，支持模糊匹配')" />
@@ -393,13 +393,12 @@
 </script>
 
 <style lang="less">
-  .db-backup-page {
+  .sqlserver-db-backup-page {
     padding-bottom: 20px;
 
-    .db-backup-form {
-      .bk-form-label {
-        font-size: 12px;
-      }
+    .bk-form-label {
+      font-size: 12px;
+      font-weight: bold;
     }
   }
 </style>

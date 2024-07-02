@@ -35,13 +35,13 @@
     {
       label: t('源集群'),
       width: 180,
-      fixed: 'right',
+      fixed: 'left',
       field: 'source_cluster_domain',
     },
     {
       label: t('目标集群'),
       width: 180,
-      fixed: 'right',
+      fixed: 'left',
       field: 'target_cluster_domain',
     },
     {
