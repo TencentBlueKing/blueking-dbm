@@ -79,11 +79,13 @@ export function createTicket(formData: Record<string, any>) {
     .post<TicketItem>(`${path}/`, formData, { catchError: true })
     .then((res) => res)
     .catch((e) => {
+      console.log('ticker erro = ', e);
       const { code, data } = e;
       const duplicateCode = 8704005;
       if (code === duplicateCode) {
         const id = data.duplicate_ticket_id;
         const router = getRouter();
+        console.log('router = ', router);
         const route = router.resolve({
           name: 'bizTicketManage',
           query: {
@@ -144,7 +146,7 @@ export function createTicket(formData: Record<string, any>) {
         });
       }
 
-      messageError(data.message);
+      messageError(e.message);
 
       return Promise.reject(e);
     });

@@ -614,7 +614,7 @@
           checkInstances: checkMysqlInstances,
           checkType: 'instance',
           checkKey: 'instance_address',
-          activePanelId: 'sqlserver_ha',
+          activePanelId: ClusterTypes.SQLSERVER_HA,
         },
         content: ManualInputContent,
       },

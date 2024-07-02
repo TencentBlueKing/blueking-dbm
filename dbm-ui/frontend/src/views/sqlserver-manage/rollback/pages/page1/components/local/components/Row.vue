@@ -22,24 +22,24 @@
       <td style="padding: 0">
         <RenderMode
           ref="modeRef"
-          :cluster-id="localClusterData?.id"
-          :restore-backup-file="data.restoreBackupFile"
-          :restore-time="data.restoreTime" />
+          v-model:restore-backup-file="localRestoreBackupFile"
+          v-model:restore-time="localRestoreTime"
+          :cluster-id="localClusterData?.id" />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="dbNameRef"
+          v-model="localDbName"
           check-not-exist
           :cluster-id="localClusterData?.id"
-          :model-value="localDbName"
           @change="handleDbNameChange" />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbNameRef"
+          v-model="localDbIgnoreName"
           check-not-exist
           :cluster-id="localClusterData?.id"
-          :model-value="localDbIgnoreName"
           :required="false"
           @change="handleTargerNameChange" />
       </td>
@@ -48,7 +48,9 @@
           ref="renameDbNameRef"
           v-model:db-ignore-name="localDbIgnoreName"
           v-model:db-name="localDbName"
-          :cluster-data="localClusterData" />
+          :cluster-data="localClusterData"
+          :restore-backup-file="localRestoreBackupFile"
+          :restore-time="localRestoreTime" />
       </td>
       <td>
         <div class="action-box">
@@ -134,6 +136,8 @@
   const renameDbNameRef = ref<InstanceType<typeof RenderRename>>();
 
   const localClusterData = ref<IDataRow['clusterData']>();
+  const localRestoreBackupFile = ref<IDataRow['restoreBackupFile']>();
+  const localRestoreTime = ref<IDataRow['restoreTime']>('');
   const localDbName = ref<string[]>([]);
   const localDbIgnoreName = ref<string[]>([]);
 
@@ -143,11 +147,21 @@
       if (props.data.clusterData) {
         localClusterData.value = props.data.clusterData;
       }
+      if (props.data.restoreBackupFile) {
+        localRestoreBackupFile.value = props.data.restoreBackupFile;
+      }
+      if (props.data.restoreTime) {
+        localRestoreTime.value = props.data.restoreTime;
+      }
     },
     {
       immediate: true,
     },
   );
+
+  watch([localRestoreBackupFile, localRestoreTime, localDbName], () => {
+    console.log('watch from row = ', localRestoreBackupFile.value, localRestoreTime.value, localDbName.value);
+  });
 
   const handleDbNameChange = (value: string[]) => {
     localDbName.value = value;

@@ -37,10 +37,10 @@
       <RenderTableHeadColumn>
         {{ t('构造 DB ') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn :required="false">
         {{ t('忽略 DB ') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn>
         {{ t('构造后 DB 名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
