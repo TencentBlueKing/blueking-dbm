@@ -153,9 +153,6 @@ func (c *Client) doNewInner(method, url string, params interface{},
 	// TODO set auth...
 	c.setHeader(req, headers)
 
-	dump, _ := httputil.DumpRequest(req, true)
-	log.Logger.Debugf("begin http request: %s", dump)
-
 	resp, err := c.client.Do(req)
 	if err != nil {
 		log.Logger.Errorf("invoking http request failed, url: %s, error:%s", req.URL.String(), err.Error())
@@ -180,10 +177,8 @@ func (c *Client) doNewInner(method, url string, params interface{},
 			break
 		}
 
-		wait := i*i*1000 + rand.Intn(1000)
-		time.Sleep(time.Duration(wait) * time.Millisecond)
-		log.Logger.Warnf("client.Do result with %s, wait %d milliSeconds and retry, url: %s",
-			resp.Status, wait, req.URL.String())
+		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+		log.Logger.Warnf("client.Do result with %s, wait no more than 10s and retry, url: %s", resp.Status, req.URL.String())
 		resp, err = c.client.Do(req)
 		if err != nil {
 			log.Logger.Errorf("an error occur while invoking client.Do, url: %s, error:%s",

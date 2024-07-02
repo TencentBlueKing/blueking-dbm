@@ -314,9 +314,13 @@ const (
 
 const (
 	// RedisPasswordLack TODO
-	RedisPasswordLack = "NOAUTH Authentication required"
+	RedisPasswordLack = "NOAUTH Authentication"
 	// RedisPasswordInvalid TODO
 	RedisPasswordInvalid = "invalid password"
+
+	// RedisPasswordInvalid2 TODO
+	RedisPasswordInvalid2 = "WRONGPASS invalid"
+
 	// PredixyPasswordLack TODO
 	PredixyPasswordLack = "auth permission deny"
 

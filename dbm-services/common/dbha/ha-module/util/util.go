@@ -86,21 +86,13 @@ func CRC32(str string) uint32 {
 // status: api lack password and the password is invalid
 func CheckRedisErrIsAuthFail(err error) bool {
 	errInfo := err.Error()
-	if strings.Contains(errInfo, constvar.RedisPasswordInvalid) {
-		// this case is the status of the password is invalid,
-		//  rediscache tendisplus twemproxy and predixy match this case
+	if strings.Contains(errInfo, constvar.RedisPasswordInvalid) ||
+		strings.Contains(errInfo, constvar.RedisPasswordInvalid2) ||
+		strings.Contains(errInfo, constvar.RedisPasswordLack) ||
+		strings.Contains(errInfo, constvar.PredixyPasswordLack) {
 		return true
-	} else if strings.Contains(errInfo, constvar.RedisPasswordLack) {
-		// this case is the status of lack password,
-		//	rediscache tendisplus twemproxy match this case, predixy un-match
-		return true
-	} else if strings.Contains(errInfo, constvar.PredixyPasswordLack) {
-		// this case is the status of lack password
-		//  predixy match this case
-		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 // CheckSSHErrIsAuthFail check if the the return error of ssh api

@@ -124,9 +124,7 @@ func NewInstanceSwitch(instance interface{}, conf *config.Config) (dbutil.DataBa
 	}
 
 	// get the password of redis switch instance
-	passwd, err := GetInstancePassByClusterId(
-		swIns.MetaType, pw.ClusterId, conf,
-	)
+	passwd, err := GetInstancePassByClusterId(swIns.MetaType, pw.ClusterId, conf)
 	if err != nil {
 		log.Logger.Errorf("get redis switch passwd failed,err:%s,info:%s",
 			err.Error(), pw.ShowSwitchInstanceInfo())
