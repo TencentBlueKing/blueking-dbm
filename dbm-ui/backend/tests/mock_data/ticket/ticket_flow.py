@@ -228,6 +228,7 @@ DB_MODULE_DATA = {
     "db_module_name": "blueking-module",
     "db_module_id": 1,
     "cluster_type": ClusterType.TenDBSingle,
+    "alias_name": "",
 }
 
 FLOW_TREE_DATA = {

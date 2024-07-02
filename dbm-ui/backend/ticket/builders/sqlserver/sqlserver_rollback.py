@@ -27,7 +27,9 @@ class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
         class RenameInfoSerializer(serializers.Serializer):
             db_name = serializers.CharField(help_text=_("源集群库名"))
             target_db_name = serializers.CharField(help_text=_("目标集群库名"))
-            rename_db_name = serializers.CharField(help_text=_("集群重命名库名"), default="", required=False)
+            rename_db_name = serializers.CharField(
+                help_text=_("集群重命名库名"), allow_blank=True, default="", required=False
+            )
 
             def validate(self, attrs):
                 # 补充源集群DB重命名的格式
@@ -44,7 +46,7 @@ class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
         ignore_db_list = serializers.ListField(help_text=_("忽略库正则"), child=serializers.CharField(), required=False)
         rename_infos = serializers.ListSerializer(help_text=_("迁移DB信息"), child=RenameInfoSerializer())
         restore_backup_file = BackupFileSerializer(help_text=_("备份记录"), required=False)
-        restore_time = DBTimezoneField(help_text=_("回档时间"), required=False)
+        restore_time = DBTimezoneField(help_text=_("回档时间"), allow_blank=True, required=False)
 
     infos = serializers.ListSerializer(help_text=_("迁移信息列表"), child=RollbackInfoSerializer())
     is_local = serializers.BooleanField(help_text=_("是否原地构造"))
@@ -57,6 +59,7 @@ class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
         # 如果是指定回档时间，则查出最近的备份记录
         for info in attrs["infos"]:
             if not info.get("restore_time"):
+                info.pop("restore_time", None)
                 continue
             rollback_time = str2datetime(info["restore_time"])
             restore_backup_file = SQLServerRollbackHandler(info["src_cluster"]).query_latest_backup_log(rollback_time)
