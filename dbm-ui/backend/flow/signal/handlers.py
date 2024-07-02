@@ -10,18 +10,19 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 
+from celery import current_app
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
+from backend.components.cmsi.handler import CmsiHandler
 from backend.db_dirty.handlers import DBDirtyMachineHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
-from backend.ticket.constants import FlowCallbackType, FlowMsgType, FlowType, TicketFlowStatus
+from backend.ticket.constants import FlowCallbackType, FlowType, TicketFlowStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.manager import TicketFlowManager
-from backend.ticket.models import Ticket
-from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
+from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("flow")
 
@@ -94,16 +95,7 @@ def callback_ticket(ticket_id, root_id):
 
     # 在认为inner flow执行结束情况下，执行inner flow的后继动作
     if inner_flow_obj.status not in [TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING]:
-        send_msg_for_flow.apply_async(
-            args=[
-                ticket,
-                ticket.creator,
-                ticket.creator,
-                FlowMsgType.DONE.value,
-                current_flow.update_at,
-                current_flow.status,
-            ]
-        )
+        send_msg_for_flow.apply_async(args=[current_flow.id])
         inner_flow_obj.callback(callback_type=FlowCallbackType.POST_CALLBACK.value)
 
     # 如果flow type的类型为快速任务，则跳过callback
@@ -113,3 +105,32 @@ def callback_ticket(ticket_id, root_id):
     if current_flow and current_flow.flow_obj_id == root_id:
         manager = TicketFlowManager(ticket=ticket)
         manager.run_next_flow()
+
+
+@current_app.task(ignore_result=True)
+def send_msg_for_flow(flow_id: int):
+    """
+    发送消息
+    """
+    flow = Flow.objects.get(id=flow_id)
+    inner_flow_obj = InnerFlow(flow_obj=flow)
+    ticket = flow.ticket
+    ticket_type = ticket.get_ticket_type_display()
+
+    msg = ticket.send_msg_config or {}
+    msg.update(
+        {
+            "receiver__username": msg.get("receiver__username") or ticket.creator,
+            "title": _("DBM数据库管理  {ticket_type} 执行结果").format(ticket_type=ticket_type),
+            "content": _(
+                "{ticket_type} {flow_alias} 执行{flow_status}。\n" "单据详情：{ticket_url}\n" "任务详情：{flow_url}\n"
+            ).format(
+                ticket_type=ticket_type,
+                flow_alias=flow.flow_alias,
+                flow_status=flow.get_status_display(),
+                ticket_url=ticket.url,
+                flow_url=inner_flow_obj.url,
+            ),
+        }
+    )
+    CmsiHandler.send_msg(msg)
