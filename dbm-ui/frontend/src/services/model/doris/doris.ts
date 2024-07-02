@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { uniq } from 'lodash';
+
 import { TicketTypes } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
@@ -162,6 +164,24 @@ export default class Doris {
 
   get isNew() {
     return isRecentDays(this.create_at, 24);
+  }
+
+  get allInstanceList() {
+    return [...this.doris_follower, ...this.doris_observer, ...this.doris_backend_hot, ...this.doris_backend_cold];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {

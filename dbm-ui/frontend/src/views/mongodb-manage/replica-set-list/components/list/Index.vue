@@ -15,13 +15,13 @@
   <div class="replica-set-list">
     <div class="header-action">
       <BkButton
-        class="mr-8 mb-8"
+        class="mb-8"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
       </BkButton>
       <BkButton
-        class="mr-8 mb-8"
+        class="ml-8 mb-8"
         :disabled="!hasSelected"
         @click="handleShowClusterAuthorize">
         {{ t('批量授权') }}
@@ -33,17 +33,18 @@
         }"
         class="inline-block">
         <BkButton
-          class="mr-8 mb-8"
+          class="ml-8 mb-8"
           :disabled="!hasData"
           @click="handleShowExcelAuthorize">
           {{ t('导入授权') }}
         </BkButton>
       </span>
       <DropdownExportExcel
-        class="mr-8 mb-8 export-excel-button"
+        class="ml-8 mb-8"
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="mongodb" />
+      <ClusterIpCopy :selected="selected" />
       <DbSearchSelect
         class="header-action-search-select"
         :data="searchSelectData"
@@ -83,7 +84,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
@@ -122,6 +123,9 @@
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
     getMenuListSearch,
@@ -243,9 +247,10 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
-  const selected = shallowRef<MongodbModel[]>([]);
+  const selected = ref<MongodbModel[]>([])
 
-  const hasData = computed(() => (tableRef.value?.getData() || []).length > 0);
+  const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || [])
+  const hasData = computed(() => tableDataList.value.length > 0);
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const columns = computed(() => [
@@ -359,7 +364,40 @@
       label: t('域名'),
       field: 'master_domain',
       minWidth: 300,
-      render: ({ data }: { data: MongodbModel }) => <span>{data.master_domain || '--'}</span>,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'master_domain',
+                label: t('域名')
+              },
+            ]
+          }
+        >
+          {t('域名')}
+        </RenderHeadCopy>
+      ),
+      render: ({ data }: { data: MongodbModel }) => (
+        <TextOverflowLayout>
+          {{
+            default: () => (
+              <span>{data.master_domain || '--'}</span>
+            ),
+            append: () => (
+              <>
+                <db-icon
+                  type="copy"
+                  v-bk-tooltips={t('复制域名')}
+                  onClick={() => copy(data.master_domain)} />
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('管控区域'),
@@ -421,6 +459,27 @@
       field: 'mongodb',
       width: 180,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'mongodb')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'mongodb')}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('节点')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: MongodbModel }) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
@@ -723,6 +782,47 @@
     }, {...sortValue}, loading);
     isInit = false;
   };
+
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: MongodbModel[], field: keyof MongodbModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as MongodbModel['mongodb']);
+    return result;
+  }, [] as MongodbModel['mongodb']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof MongodbModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof MongodbModel) => {
+    const allData = await tableRef.value!.getAllData<MongodbModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'error',
+        message: '暂无数据可复制',
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
 </script>
 
 <style>
@@ -748,10 +848,6 @@
       display: flex;
       flex-wrap: wrap;
       margin-bottom: 8px;
-
-      .export-excel-button {
-        margin-left: 0 !important;
-      }
 
       .header-action-search-select {
         width: 500px;
@@ -791,11 +887,14 @@
         color: #979ba5 !important;
       }
 
-      .db-icon-copy {
+      td div.cell .db-icon-copy {
         display: none;
+        margin-left: 4px;
+        color: @primary-color;
+        cursor: pointer;
       }
 
-      tr:hover {
+      td:hover {
         .db-icon-copy {
           display: inline-block !important;
           margin-left: 4px;

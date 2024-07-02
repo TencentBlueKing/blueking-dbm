@@ -26,6 +26,7 @@
         v-db-console="'hdfs.clusterManage.export'"
         :ids="selectedIds"
         type="hdfs" />
+      <ClusterIpCopy :selected="selected" />
       <DbSearchSelect
         class="mb16"
         :data="serachData"
@@ -107,7 +108,7 @@
     :get-detail-info="getHdfsDetail" />
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -145,8 +146,12 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DbTable from '@components/db-table/index.vue';
+  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import ClusterExpansion from '@views/hdfs-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/hdfs-manage/common/shrink/Index.vue';
 
@@ -207,7 +212,7 @@
 
   const dataSource = getHdfsList;
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
 
   const isShowExpandsion = ref(false);
@@ -218,10 +223,10 @@
   const showEditEntryConfig = ref(false);
 
   const operationData = shallowRef<HdfsModel>();
-  const selected = shallowRef<HdfsModel[]>([]);
-
+  const selected = ref<HdfsModel[]>([])
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
+  const hasSelected = computed(() => selected.value.length > 0);
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {
       return { small: false };
@@ -325,9 +330,30 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 220,
+      width: 200,
       minWidth: 200,
       fixed: 'left',
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'domain',
+                label: t('域名')
+              },
+              {
+                field: 'domainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: HdfsModel}) => (
           <TextOverflowLayout>
             {{
@@ -370,10 +396,26 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      width: 200,
-      minWidth: 200,
+      width: 150,
+      minWidth: 150,
       fixed: 'left',
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: HdfsModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
@@ -466,6 +508,27 @@
       field: 'hdfs_namenode',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'hdfs_namenode')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'hdfs_namenode')}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'NameNode'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: HdfsModel}) => (
         <RenderNodeInstance
           highlightIps={batchSearchIpInatanceList.value}
@@ -481,6 +544,27 @@
       field: 'hdfs_zookeeper',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'hdfs_zookeeper')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'hdfs_zookeeper')}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Zookeeper'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: HdfsModel}) => (
         <RenderNodeInstance
           highlightIps={batchSearchIpInatanceList.value}
@@ -496,6 +580,27 @@
       field: 'hdfs_journalnode',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'hdfs_journalnode')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'hdfs_journalnode')}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Journalnode'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: HdfsModel}) => (
         <RenderNodeInstance
           highlightIps={batchSearchIpInatanceList.value}
@@ -511,6 +616,27 @@
       field: 'hdfs_datanode',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'hdfs_datanode')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'hdfs_datanode')}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'DataNode'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: HdfsModel}) => (
         <RenderNodeInstance
           highlightIps={batchSearchIpInatanceList.value}
@@ -733,6 +859,47 @@
     tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
     isInit.value = false;
   };
+
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: HdfsModel[], field: keyof HdfsModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as HdfsModel['hdfs_namenode']);
+    return result;
+  }, [] as HdfsModel['hdfs_namenode']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof HdfsModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof HdfsModel) => {
+    const allData = await tableRef.value!.getAllData<HdfsModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'error',
+        message: '暂无数据可复制',
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
 
   const handleSelection = (data: HdfsModel, list: HdfsModel[]) => {
     selected.value = list;
@@ -973,7 +1140,7 @@
       }
     }
 
-    .db-icon-copy {
+    td div.cell .db-icon-copy {
       display: none;
     }
 
@@ -990,7 +1157,7 @@
       }
     }
 
-    tr:hover {
+    td:hover {
       .db-icon-copy {
         display: inline-block !important;
         margin-left: 4px;

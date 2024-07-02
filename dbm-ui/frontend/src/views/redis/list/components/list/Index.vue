@@ -18,7 +18,7 @@
         <AuthButton
           v-db-console="'redis.clusterManage.instanceApply'"
           action-id="redis_cluster_apply"
-          class="mr-8 mb-16"
+          class="mb-16"
           theme="primary"
           @click="handleApply">
           {{ t('申请实例') }}
@@ -34,7 +34,9 @@
           @click.stop
           @hide="() => (isShowDropdown = false)"
           @show="() => (isShowDropdown = true)">
-          <BkButton :disabled="!hasSelected">
+          <BkButton
+            class="ml-8"
+            :disabled="!hasSelected">
             <span class="pr-4">{{ t('批量操作') }}</span>
             <DbIcon
               class="cluster-dropdown-icon"
@@ -45,22 +47,22 @@
             <BkDropdownMenu>
               <BkDropdownItem
                 v-db-console="'redis.clusterManage.extractKey'"
-                @click="handleShowExtract(state.selected)">
+                @click="handleShowExtract(selected)">
                 {{ t('提取Key') }}
               </BkDropdownItem>
               <BkDropdownItem
                 v-db-console="'redis.clusterManage.deleteKey'"
-                @click="handlShowDeleteKeys(state.selected)">
+                @click="handlShowDeleteKeys(selected)">
                 {{ t('删除Key') }}
               </BkDropdownItem>
               <BkDropdownItem
                 v-db-console="'redis.clusterManage.backup'"
-                @click="handleShowBackup(state.selected)">
+                @click="handleShowBackup(selected)">
                 {{ t('备份') }}
               </BkDropdownItem>
               <BkDropdownItem
                 v-db-console="'redis.clusterManage.dbClear'"
-                @click="handleShowPurge(state.selected)">
+                @click="handleShowPurge(selected)">
                 {{ t('清档') }}
               </BkDropdownItem>
             </BkDropdownMenu>
@@ -70,6 +72,7 @@
           v-db-console="'redis.clusterManage.export'"
           :ids="selectedIds"
           type="redis" />
+        <ClusterIpCopy :selected="selected" />
       </div>
       <DbSearchSelect
         class="operations-right mb-16"
@@ -129,7 +132,7 @@
     :get-detail-info="getRedisDetail" />
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import {
@@ -174,10 +177,14 @@
   import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
     getMenuListSearch,
@@ -198,10 +205,6 @@
     TableColumnRender,
   } from '@/types/bkui-vue';
 
-  interface RedisState {
-    selected: RedisModel[]
-  }
-
   type ColumnRenderData = { data: RedisModel }
 
   const clusterId = defineModel<number>('clusterId');
@@ -220,8 +223,6 @@
   } = useStretchLayout();
 
   const { funControllerData } = useFunController();
-
-  const tableRef = ref();
 
   const {
     columnAttrs,
@@ -292,12 +293,10 @@
 
   const disabledOperations: string[] = [TicketTypes.REDIS_DESTROY, TicketTypes.REDIS_PROXY_CLOSE];
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowDropdown = ref(false);
   const showEditEntryConfig = ref(false);
-
-  const state = reactive<RedisState>({
-    selected: [],
-  });
+  const selected = ref<RedisModel[]>([])
 
   /** 查看密码 */
   const passwordState = reactive({
@@ -409,8 +408,8 @@
       layout: ['total', 'limit', 'list'],
     };
   });
-  const hasSelected = computed(() => state.selected.length > 0);
-  const selectedIds = computed(() => state.selected.map(item => item.id));
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -432,6 +431,27 @@
       width: 300,
       minWidth: 300,
       fixed: 'left',
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'master_domain',
+                label: t('域名')
+              },
+              {
+                field: 'masterDomainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: ColumnRenderData) => (
         <TextOverflowLayout>
           {{
@@ -492,10 +512,26 @@
     },
     {
       label: t('集群名称'),
-      field: 'name',
+      field: 'cluster_name',
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: ColumnRenderData) => (
         <div class="cluster-name-container">
           <div
@@ -591,6 +627,27 @@
       width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, ClusterNodeKeys.PROXY)}
+          onHandleCopyAll={(field) => handleCopyAll(field, ClusterNodeKeys.PROXY)}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Proxy'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: ColumnRenderData) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
@@ -608,6 +665,27 @@
       width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, ClusterNodeKeys.REDIS_MASTER)}
+          onHandleCopyAll={(field) => handleCopyAll(field, ClusterNodeKeys.REDIS_MASTER)}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Master'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: ColumnRenderData) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
@@ -625,6 +703,27 @@
       width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, ClusterNodeKeys.REDIS_SLAVE)}
+          onHandleCopyAll={(field) => handleCopyAll(field, ClusterNodeKeys.REDIS_SLAVE)}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Slave'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: ColumnRenderData) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
@@ -1046,11 +1145,52 @@
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
       ].join(',')
     }
-    tableRef.value.fetchData(params, {
+    tableRef.value!.fetchData(params, {
       ...sortValue,
     }, loading);
     isInit = false;
   };
+
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: RedisModel[], field: keyof RedisModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as RedisModel['redis_master']);
+    return result;
+  }, [] as RedisModel['redis_master']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof RedisModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof RedisModel) => {
+    const allData = await tableRef.value!.getAllData<RedisModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'error',
+        message: '暂无数据可复制',
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
 
   /**
    * 申请实例
@@ -1066,7 +1206,7 @@
   };
 
   const handleSelection = (data: RedisModel, list: RedisModel[]) => {
-    state.selected = list;
+    selected.value = list;
   };
 
   /**
@@ -1378,7 +1518,7 @@
           height: 100% !important;
         }
 
-        :deep(.cell) {
+        :deep(td .cell) {
           line-height: unset !important;
 
           .db-icon-copy {
@@ -1424,7 +1564,7 @@
             margin-top: 2px;
           }
 
-          .db-icon-copy {
+          td .cell .db-icon-copy {
             display: none;
             margin-top: 1px;
             margin-left: 8px;
@@ -1453,7 +1593,7 @@
           }
         }
 
-        :deep(tr:hover) {
+        :deep(td:hover) {
           .db-icon-copy {
             display: inline-block;
           }

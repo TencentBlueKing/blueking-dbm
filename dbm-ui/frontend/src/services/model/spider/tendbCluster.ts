@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { uniq } from 'lodash';
+
 import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
@@ -176,6 +178,24 @@ export default class TendbCluster {
     this.temporary_info = payload.temporary_info;
 
     this.operations = this.initOperations(payload.operations);
+  }
+
+  get allInstanceList() {
+    return [...this.spider_master, ...this.spider_slave, ...this.spider_mnt, ...this.remote_db, ...this.remote_dr];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {
