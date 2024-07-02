@@ -26,7 +26,7 @@ import (
 // BaseHandler TODO
 type BaseHandler struct{}
 
-// Response TODO
+// Response http respone
 type Response struct {
 	Code      int         `json:"code"`
 	Message   string      `json:"message"`
@@ -78,12 +78,18 @@ func (c *BackStageHandler) RegisterRouter(engine *gin.Engine) {
 
 // RunModuleCheck 运行模块检查
 func (c BackStageHandler) RunModuleCheck(r *gin.Context) {
-	task.InspectCheckResource()
+	err := task.InspectCheckResource()
+	if err != nil {
+		logger.Error("inspectCheckResource failed %v", err)
+	}
 	c.SendResponse(r, nil, "Check Success", "")
 }
 
-// RunAsyncCmdb TODO
+// RunAsyncCmdb async from cmdb
 func (c BackStageHandler) RunAsyncCmdb(r *gin.Context) {
-	task.AsyncResourceHardInfo()
+	err := task.AsyncResourceHardInfo()
+	if err != nil {
+		logger.Error("asyncResourceHardInfo failed %v", err)
+	}
 	c.SendResponse(r, nil, "async success", "")
 }

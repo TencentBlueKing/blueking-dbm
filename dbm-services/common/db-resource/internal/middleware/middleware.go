@@ -32,6 +32,8 @@ var RequestLoggerFilter *ApiLoggerFilter
 
 func init() {
 	RequestLoggerFilter = &ApiLoggerFilter{}
+	RequestLoggerFilter.Add("/ping")
+	RequestLoggerFilter.Add("/metrics")
 }
 
 // ApiLoggerFilter TODO
@@ -61,7 +63,7 @@ func (w bodyLogWriter) Write(b []byte) (int, error) {
 
 // BodyLogMiddleware TODO
 func BodyLogMiddleware(c *gin.Context) {
-	if c.Request.URL.Path == "/metrics" || c.Request.URL.Path == "/ping" {
+	if RequestLoggerFilter.filter(c.Request.URL.Path) {
 		c.Next()
 		return
 	}
@@ -107,7 +109,7 @@ func ApiLogger(c *gin.Context) {
 		if err != nil {
 			return
 		}
-		if len(bodyBytes) <= 0 {
+		if len(bodyBytes) == 0 {
 			bodyBytes = []byte("{}")
 		}
 		// create a new buffer and replace the original request body

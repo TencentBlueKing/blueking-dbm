@@ -23,8 +23,10 @@ const (
 )
 
 // TbRpOperationInfo 资源池操作记录表
+// nolint
 type TbRpOperationInfo struct {
-	ID            int             `gorm:"primaryKey;auto_increment;not null" json:"-"`
+	ID int `gorm:"primaryKey;auto_increment;not null" json:"-"`
+	//nolint
 	RequestID     string          `gorm:"index:idx_request_id;column:request_id;type:varchar(64);not null" json:"request_id"`
 	TotalCount    int             `gorm:"column:total_count;type:int(11);comment:task Id" json:"total_count"`
 	BkHostIds     json.RawMessage `gorm:"column:bk_host_ids;type:json;comment:主机Id" json:"bk_host_ids"`

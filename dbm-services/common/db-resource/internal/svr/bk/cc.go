@@ -101,7 +101,7 @@ func NewClient() (*cc.Client, error) {
 func BatchQueryHostsInfo(bizId int, allhosts []string) (ccHosts []*cc.Host, nofoundHosts []string, err error) {
 	for _, hosts := range cmutil.SplitGroup(allhosts, 200) {
 		err = cmutil.Retry(cmutil.RetryConfig{Times: 3, DelayTime: 1 * time.Second}, func() error {
-			data, resp, err := cc.NewListBizHosts(EsbClient).QueryListBizHosts(&cc.ListBizHostsParam{
+			data, resp, errx := cc.NewListBizHosts(EsbClient).QueryListBizHosts(&cc.ListBizHostsParam{
 				BkBizId: bizId,
 				Fileds:  CCModuleFields,
 				Page: cc.BKPage{
@@ -122,9 +122,9 @@ func BatchQueryHostsInfo(bizId int, allhosts []string) (ccHosts []*cc.Host, nofo
 			if resp != nil {
 				logger.Info("respone request id is %s,message:%s,code:%d", resp.RequestId, resp.Message, resp.Code)
 			}
-			if err != nil {
-				logger.Error("QueryListBizHosts failed %s", err.Error())
-				return err
+			if errx != nil {
+				logger.Error("QueryListBizHosts failed %s", errx.Error())
+				return errx
 			}
 			ccHosts = append(ccHosts, data.Info...)
 			return nil

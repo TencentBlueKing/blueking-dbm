@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package lock TODO
+// Package lock resource
 package lock
 
 import (
@@ -24,7 +24,7 @@ import (
 
 var rdb *redis.Client
 
-// init TODO
+// init init redis lock
 func init() {
 	logger.Info("redis addr %s", config.AppConfig.Redis.Addr)
 	rdb = redis.NewClient(&redis.Options{
@@ -34,14 +34,14 @@ func init() {
 	})
 }
 
-// RedisLock TODO
+// RedisLock redis lock
 type RedisLock struct {
 	Name    string
 	RandKey string
 	Expiry  time.Duration
 }
 
-// TryLock TODO
+// TryLock try to lock
 func (r *RedisLock) TryLock() (err error) {
 	ok, err := rdb.SetNX(context.TODO(), r.Name, r.RandKey, r.Expiry).Result()
 	if err != nil {
@@ -53,7 +53,7 @@ func (r *RedisLock) TryLock() (err error) {
 	return nil
 }
 
-// Unlock TODO
+// Unlock unlock
 func (r *RedisLock) Unlock() (err error) {
 	luaStript := `if redis.call('get',KEYS[1]) == ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end`
 	v, err := rdb.Eval(context.TODO(), luaStript, []string{r.Name}, []interface{}{r.RandKey}).Int()

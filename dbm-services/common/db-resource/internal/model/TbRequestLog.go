@@ -4,6 +4,7 @@ import "time"
 
 // TbRequestLog TODO
 // TbRpOpsAPILog [...]
+// nolint
 type TbRequestLog struct {
 	ID              int       `gorm:"primary_key;auto_increment;not_null" json:"-"`
 	RequestID       string    `gorm:"unique;column:request_id;type:varchar(64);not null" json:"request_id"`             // 响应的request_id
