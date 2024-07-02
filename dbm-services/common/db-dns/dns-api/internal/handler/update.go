@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	"bk-dnsapi/pkg/logger"
+
 	"github.com/gin-gonic/gin"
-	"github.com/go-mesh/openlogging"
 )
 
 // DnsBasePostReqParam 更新结构体
@@ -36,7 +37,7 @@ type DnsBaseBatchPostReqParam struct {
 func (h *Handler) UpdateDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
 			SendResponse(c,
 				fmt.Errorf("panic error:%v", r),
 				Data{})
@@ -101,7 +102,7 @@ func (h *Handler) UpdateDns(c *gin.Context) {
 func (h *Handler) UpdateBatchDns(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
 			SendResponse(c,
 				fmt.Errorf("panic error:%v", r),
 				Data{})
@@ -167,7 +168,7 @@ type DnsConfigPostReqParam struct {
 func (h *Handler) UpdateConfig(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			openlogging.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
 			SendResponse(c,
 				fmt.Errorf("panic error:%v", r),
 				Data{})

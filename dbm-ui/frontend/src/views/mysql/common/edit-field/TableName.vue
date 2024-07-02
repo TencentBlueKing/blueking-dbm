@@ -29,9 +29,9 @@
 
   interface Props {
     modelValue?: string[];
-    clusterId: number;
-    placeholder?: string;
+    clusterId?: number;
     required?: boolean;
+    placeholder?: string;
     single?: boolean;
     rules?: {
       validator: (value: string[]) => boolean;

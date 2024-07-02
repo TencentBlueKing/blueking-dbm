@@ -8,20 +8,29 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import Union
 
 from backend.db_meta.enums import ClusterStatus
-from backend.db_meta.models import ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+
+logger = logging.getLogger("root")
 
 
-def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance], **kwargs):
+def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance, Cluster], **kwargs):
     """
     更新存储实例状态的同时更新集群状态
     """
+    logger.info("[signals] receive update_cluster_status signal, sender: %s, instance: %s", sender, instance)
     if kwargs.get("created"):
         return
     # 仅在实例状态变更时，同步更新集群状态
-    for cluster in instance.cluster.all():
+    if isinstance(instance, Cluster):
+        clusters = [instance]
+    else:
+        clusters = instance.cluster.all()
+
+    for cluster in clusters:
         # 忽略临时集群
         if cluster.status == ClusterStatus.TEMPORARY.value:
             return
@@ -32,4 +41,5 @@ def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance
             target_status = ClusterStatus.NORMAL.value
         if origin_status != target_status:
             cluster.status = target_status
+            logger.info("[signals] update cluster status, origin: %s, target: %s", origin_status, target_status)
             cluster.save(update_fields=["status"])

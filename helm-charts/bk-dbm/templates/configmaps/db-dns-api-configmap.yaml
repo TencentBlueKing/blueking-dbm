@@ -16,3 +16,11 @@ data:
     http:
       listenAddress: 0.0.0.0:80
     debug: true
+    log:
+      output: logs/dns_api.log
+      formater: json
+      level: info
+      timeformat: 2006-01-02T15:04:05.000Z07:00
+      maxsize: 100
+      maxbackups: 3
+      maxage: 30

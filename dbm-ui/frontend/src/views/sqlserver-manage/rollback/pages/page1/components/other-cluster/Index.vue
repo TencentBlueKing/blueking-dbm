@@ -26,7 +26,7 @@
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
-  import { ClusterTypes } from '@common/const/index';
+  import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 

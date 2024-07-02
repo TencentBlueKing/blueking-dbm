@@ -120,21 +120,20 @@ class TendbBaseOperateDetailSerializer(MySQLBaseOperateDetailSerializer):
             spider_node_count = cluster.proxyinstance_set.filter(
                 tendbclusterspiderext__spider_role=info["reduce_spider_role"]
             ).count()
-            if info["spider_reduced_to_count"] >= spider_node_count:
+
+            if not info.get("spider_reduced_to_count"):
+                info["spider_reduced_to_count"] = spider_node_count - len(info["spider_reduced_hosts"])
+
+            spider_reduced_to_count = info["spider_reduced_to_count"]
+            if spider_reduced_to_count >= spider_node_count:
                 raise serializers.ValidationError(_("【{}】请保证缩容后的接入层数量小于当前节点数量").format(cluster.name))
 
             role = info["reduce_spider_role"]
-            if (
-                role == TenDBClusterSpiderRole.SPIDER_MASTER
-                and info["spider_reduced_to_count"] < MIN_SPIDER_MASTER_COUNT
-            ):
-                raise serializers.ValidationError(_("【{}】请保证缩容后的接入层spider master数量>1").format(cluster.name))
+            if role == TenDBClusterSpiderRole.SPIDER_MASTER and spider_reduced_to_count < MIN_SPIDER_MASTER_COUNT:
+                raise serializers.ValidationError(_("【{}】请保证缩容后的接入层spider master数量>=2").format(cluster.name))
 
-            if (
-                role == TenDBClusterSpiderRole.SPIDER_SLAVE
-                and info["spider_reduced_to_count"] < MIN_SPIDER_SLAVE_COUNT
-            ):
-                raise serializers.ValidationError(_("【{}】请保证缩容后的接入层spider master数量>0").format(cluster.name))
+            if role == TenDBClusterSpiderRole.SPIDER_SLAVE and spider_reduced_to_count < MIN_SPIDER_SLAVE_COUNT:
+                raise serializers.ValidationError(_("【{}】请保证缩容后的接入层spider slave数量>=1").format(cluster.name))
 
     def validate_checksum_database_selector(self, attrs):
         """校验tendbcluster的checksum库表选择器"""

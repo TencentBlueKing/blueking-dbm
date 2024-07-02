@@ -198,7 +198,7 @@ func (e ExecuteSqlAtLocal) MyExcuteCommand(command string) (err error) {
 	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
 	defer cancel()
-	//command = fmt.Sprintf("sleep 3 && %s", command)
+	// command = fmt.Sprintf("sleep 3 && %s", command)
 	cmd := exec.CommandContext(ctx, "/bin/bash", "-c", command)
 
 	// 启动指定命令
@@ -216,6 +216,68 @@ func (e ExecuteSqlAtLocal) MyExcuteCommand(command string) (err error) {
 	// 会阻塞 直到命令执行完
 	err = cmd.Wait()
 	if err != nil {
+		errStr := string(stderrBuf.Bytes())
+		logger.Error("exec failed:%s,stderr: %s", err.Error(), errStr)
+		return
+	}
+
+	return nil
+}
+
+// MyExcuteSqlByMySQLClientOne 只输出错误到控制台，
+func (e ExecuteSqlAtLocal) MyExcuteSqlByMySQLClientOne(sqlfile string, db string) (err error) {
+	command := e.CreateLoadSQLCommand()
+	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
+	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.%s.err", sqlfile, db, time.Now().Format(cst.TimeLayoutDir)))
+	err = e.ExcuteCommandIgnoreStdo(command)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ExcuteCommandIgnoreStdo 用于mysql数据迁移的的命令执行 只打印错误
+func (e ExecuteSqlAtLocal) ExcuteCommandIgnoreStdo(command string) (err error) {
+	var stderrBuf bytes.Buffer
+	var errStdout, errStderr error
+	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
+	cmd := exec.Command("/bin/bash", "-c", command)
+	// stdoutIn, _ := cmd.StdoutPipe()
+	stderrIn, _ := cmd.StderrPipe()
+
+	// 写入error 文件
+	ef, errO := os.OpenFile(e.ErrFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if errO != nil {
+		logger.Warn("打开日志时失败! %s", errO.Error())
+		return
+	}
+	defer ef.Close()
+	defer ef.Sync()
+	// stdout := io.MultiWriter(os.Stdout)
+	stderr := io.MultiWriter(os.Stderr, &stderrBuf, ef)
+
+	if err = cmd.Start(); err != nil {
+		logger.Error("start command failed:%s", err.Error())
+		return
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		// _, errStdout = io.Copy(stdout, stdoutIn)
+		wg.Done()
+	}()
+
+	_, errStderr = io.Copy(stderr, stderrIn)
+	wg.Wait()
+
+	if errStdout != nil || errStderr != nil {
+		logger.Error("failed to capture stdout or stderr\n")
+		return
+	}
+
+	if err = cmd.Wait(); err != nil {
 		errStr := string(stderrBuf.Bytes())
 		logger.Error("exec failed:%s,stderr: %s", err.Error(), errStr)
 		return

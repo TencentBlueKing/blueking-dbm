@@ -29,12 +29,16 @@ class SQLServerDataMigrateDetailSerializer(SQLServerBaseOperateDetailSerializer)
         class RenameInfoSerializer(serializers.Serializer):
             db_name = serializers.CharField(help_text=_("源集群库名"))
             target_db_name = serializers.CharField(help_text=_("目标集群库名"))
-            rename_db_name = serializers.CharField(help_text=_("集群重命名库名"), default="", required=False)
+            rename_db_name = serializers.CharField(
+                help_text=_("集群重命名库名"), default="", allow_blank=True, required=False
+            )
 
             def validate(self, attrs):
                 # 补充源集群DB重命名的格式
                 date = str(datetime.date.today()).replace("-", "")
                 attrs["old_db_name"] = f"{attrs['db_name']}_old_{date}"
+                if not attrs.get("rename_db_name"):
+                    attrs.pop("rename_db_name")
                 return attrs
 
         src_cluster = serializers.IntegerField(help_text=_("源集群ID"))

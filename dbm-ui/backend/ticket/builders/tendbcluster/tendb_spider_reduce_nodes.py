@@ -15,6 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import TenDBClusterSpiderRole
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -22,7 +23,10 @@ from backend.ticket.constants import TicketType
 class TendbSpiderReduceNodesDetailSerializer(TendbBaseOperateDetailSerializer):
     class SpiderNodesItemSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        spider_reduced_to_count = serializers.IntegerField(help_text=_("剩余spider数量"))
+        spider_reduced_to_count = serializers.IntegerField(help_text=_("剩余spider数量"), required=False)
+        spider_reduced_hosts = serializers.ListSerializer(
+            help_text=_("缩容指定主机"), child=HostInfoSerializer(), required=False
+        )
         reduce_spider_role = serializers.ChoiceField(
             help_text=_("缩容的角色"), choices=TenDBClusterSpiderRole.get_choices()
         )

@@ -115,11 +115,30 @@ class ActKwargs:
         )
         return data["content"]
 
-    def save_conf(
-        self, conf_name: str, namespace: str, conf_type: str, conf_file: str, conf_value: str, cluster_name: str
-    ):
+    def save_conf(self, namespace: str):
         """保存配置到dbconfig"""
 
+        conf_type = ConfigTypeEnum.DBConf.value
+        conf_file = "{}-{}".format("Mongodb", self.db_main_version)
+        cluster_name = ""
+        key_file = ""
+        cache_size = ""
+        oplog_size = ""
+        if namespace == ClusterType.MongoReplicaSet.value:
+            cluster_name = self.replicaset_info["set_id"]
+            key_file = self.replicaset_info["key_file"]
+            cache_size = str(self.replicaset_info["cacheSizeGB"])
+            oplog_size = str(self.replicaset_info["oplogSizeMB"])
+        elif namespace == ClusterType.MongoShardedCluster.value:
+            cluster_name = self.payload["cluster_id"]
+            key_file = self.payload["key_file"]
+            cache_size = str(self.payload["shards"][0]["cacheSizeGB"])
+            oplog_size = str(self.payload["shards"][0]["oplogSizeMB"])
+        conf_items = [
+            {"conf_name": "key_file", "conf_value": key_file, "op_type": OpType.UPDATE},
+            {"conf_name": "cacheSizeGB", "conf_value": cache_size, "op_type": OpType.UPDATE},
+            {"conf_name": "oplogSizeMB", "conf_value": oplog_size, "op_type": OpType.UPDATE},
+        ]
         DBConfigApi.upsert_conf_item(
             {
                 "conf_file_info": {
@@ -127,7 +146,7 @@ class ActKwargs:
                     "conf_type": conf_type,
                     "namespace": namespace,
                 },
-                "conf_items": [{"conf_name": conf_name, "conf_value": conf_value, "op_type": OpType.UPDATE}],
+                "conf_items": conf_items,
                 "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
                 "confirm": DEFAULT_CONFIG_CONFIRM,
                 "req_type": ReqType.SAVE_AND_PUBLISH,
@@ -135,42 +154,6 @@ class ActKwargs:
                 "level_name": LevelName.CLUSTER,
                 "level_value": cluster_name,
             }
-        )
-
-    def save_key_file(self, namespace: str, cluster_name: str, key_file: str):
-        """保存keyfile"""
-
-        self.save_conf(
-            conf_name="key_file",
-            namespace=namespace,
-            conf_type=ConfigTypeEnum.DBConf.value,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
-            conf_value=key_file,
-            cluster_name=cluster_name,
-        )
-
-    def save_cache_size(self, namespace: str, cluster_name: str, cache_size: str):
-        """保存cachesize"""
-
-        self.save_conf(
-            conf_name="cacheSizeGB",
-            namespace=namespace,
-            conf_type=ConfigTypeEnum.DBConf.value,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
-            conf_value=cache_size,
-            cluster_name=cluster_name,
-        )
-
-    def save_oplog_size(self, namespace: str, cluster_name: str, oplog_size: str):
-        """保存oplogsize"""
-
-        self.save_conf(
-            conf_name="oplogSizeMB",
-            namespace=namespace,
-            conf_type=ConfigTypeEnum.DBConf.value,
-            conf_file="{}-{}".format("Mongodb", self.db_main_version),
-            conf_value=oplog_size,
-            cluster_name=cluster_name,
         )
 
     def get_conf(self, cluster_name: str) -> dict:
