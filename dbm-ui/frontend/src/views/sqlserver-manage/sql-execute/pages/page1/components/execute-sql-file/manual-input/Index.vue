@@ -148,7 +148,7 @@
 
   const triggerChange = () => {
     isInnerChange = true;
-    emits('change', uploadFileData ? [uploadFileData.sql_path] : []);
+    emits('change', uploadFileData ? [uploadFileData.raw_file_name] : []);
     emits('grammar-check', true, true);
   };
 
