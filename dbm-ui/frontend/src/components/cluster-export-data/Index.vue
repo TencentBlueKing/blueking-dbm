@@ -56,8 +56,8 @@
     .cluster-domain {
       padding-left: 8px;
       margin-left: 8px;
-      color: #979ba5;
       font-size: 14px;
+      color: #979ba5;
       border-left: 1px solid #dcdee5;
     }
   }

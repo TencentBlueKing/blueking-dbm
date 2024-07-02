@@ -10,9 +10,25 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { uniq } from 'lodash';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
+
+interface TendbhaInstance {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
+  bk_instance_id: number;
+  instance: string;
+  ip: string;
+  name: string;
+  phase: string;
+  port: number;
+  spec_config: Record<'id', number>;
+  status: string;
+}
 
 export default class Tendbha {
   static MYSQL_HA_DESTROY = 'MYSQL_HA_DESTROY';
@@ -55,19 +71,7 @@ export default class Tendbha {
   id: number;
   master_domain: string;
   major_version: string;
-  masters: {
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    bk_instance_id: number;
-    instance: string;
-    ip: string;
-    name: string;
-    phase: string;
-    port: number;
-    spec_config: Record<'id', number>;
-    status: string;
-  }[];
+  masters: TendbhaInstance[];
   operations: Array<{
     cluster_id: number;
     flow_id: number;
@@ -86,10 +90,10 @@ export default class Tendbha {
   };
   phase: string;
   phase_name: string;
-  proxies: Tendbha['masters'];
+  proxies: TendbhaInstance[];
   region: string;
   slave_domain: string;
-  slaves: Tendbha['masters'];
+  slaves: TendbhaInstance[];
   status: string;
 
   constructor(payload = {} as Tendbha) {
@@ -135,6 +139,24 @@ export default class Tendbha {
   get runningOperation() {
     const operateTicketTypes = Object.keys(Tendbha.operationTextMap);
     return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+  }
+
+  get allInstanceList() {
+    return [...this.masters, ...this.proxies, ...this.slaves];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   // 操作中的状态

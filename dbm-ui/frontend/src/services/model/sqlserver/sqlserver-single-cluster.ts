@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { uniq } from 'lodash';
+
 import { PipelineStatus } from '@common/const';
 
 import { t } from '@locales/index';
@@ -146,6 +148,30 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
       text,
       theme,
     };
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.storages[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get allInstanceList() {
+    return [...this.storages];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {

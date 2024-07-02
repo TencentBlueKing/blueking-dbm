@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { uniq } from 'lodash';
+
 import { PipelineStatus } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
@@ -301,6 +303,24 @@ export default class Redis {
 
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Redis.REDIS_PROXY_OPEN));
+  }
+
+  get allInstanceList() {
+    return [...this.proxy, ...this.redis_master, ...this.redis_slave];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {

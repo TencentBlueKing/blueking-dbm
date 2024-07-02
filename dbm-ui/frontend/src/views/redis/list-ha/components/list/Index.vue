@@ -14,18 +14,19 @@
 <template>
   <div class="redis-cluster-list-page">
     <div class="operation-box">
-      <AuthButton
-        v-db-console="'redis.haClusterManage.instanceApply'"
-        action-id="redis_cluster_apply"
-        class="mb-16"
-        theme="primary"
-        @click="handleApply">
-        {{ t('申请实例') }}
-      </AuthButton>
-      <DropdownExportExcel
-        v-db-console="'redis.haClusterManage.export'"
-        :ids="selectedIds"
-        type="redis" />
+      <div>
+        <AuthButton
+          action-id="redis_cluster_apply"
+          class="mb-16"
+          theme="primary"
+          @click="handleApply">
+          {{ t('申请实例') }}
+        </AuthButton>
+        <DropdownExportExcel
+          :ids="selectedIds"
+          type="redis" />
+        <ClusterIpCopy :selected="selected" />
+      </div>
       <DbSearchSelect
         class="operations-right mb-16"
         :data="searchSelectData"
@@ -60,6 +61,7 @@
 </template>
 
 <script setup lang="tsx">
+  import { Message } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
 
@@ -97,9 +99,13 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
     getMenuListSearch,
@@ -126,8 +132,6 @@
 
   let isInit = true;
 
-  const tableRef = ref();
-
   const {
     columnAttrs,
     searchAttrs,
@@ -147,13 +151,10 @@
       'region',
       'time_zone',
     ],
-    fetchDataFn: () => fetchData(isInit),
-    defaultSearchItem: {
-      name: t('访问入口'),
-      id: 'domain',
-    }
+    fetchDataFn: () => fetchData(isInit)
   });
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const showEditEntryConfig = ref(false);
   const selected = ref<RedisModel[]>([])
 
@@ -233,6 +234,7 @@
       layout: ['total', 'limit', 'list'],
     };
   });
+  const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
@@ -255,6 +257,27 @@
       width: 300,
       minWidth: 300,
       fixed: 'left',
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'master_domain',
+                label: t('域名')
+              },
+              {
+                field: 'masterDomainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: RedisModel }) => (
         <TextOverflowLayout>
           {{
@@ -300,6 +323,22 @@
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: RedisModel }) => (
         <div class="cluster-name-container">
           <div
@@ -395,6 +434,27 @@
       width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, ClusterNodeKeys.REDIS_MASTER)}
+          onHandleCopyAll={(field) => handleCopyAll(field, ClusterNodeKeys.REDIS_MASTER)}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Master'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: RedisModel }) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
@@ -412,6 +472,27 @@
       width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, ClusterNodeKeys.REDIS_SLAVE)}
+          onHandleCopyAll={(field) => handleCopyAll(field, ClusterNodeKeys.REDIS_SLAVE)}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Slave'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: RedisModel }) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
@@ -624,11 +705,52 @@
       ...getSearchSelectorParams(searchValue.value),
       cluster_type: ClusterTypes.REDIS_INSTANCE,
     }
-    tableRef.value.fetchData(params, {
+    tableRef.value!.fetchData(params, {
       ...sortValue,
     }, loading);
     isInit = false;
   };
+
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: RedisModel[], field: keyof RedisModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as RedisModel['redis_master']);
+    return result;
+  }, [] as RedisModel['redis_master']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof RedisModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof RedisModel) => {
+    const allData = await tableRef.value!.getAllData<RedisModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'error',
+        message: '暂无数据可复制',
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
 
   /**
    * 申请实例
@@ -790,7 +912,7 @@
           height: 100% !important;
         }
 
-        :deep(.cell) {
+        :deep(td .cell) {
           line-height: unset !important;
 
           .db-icon-copy {
@@ -836,7 +958,7 @@
             margin-top: 2px;
           }
 
-          .db-icon-copy {
+          td .cell .db-icon-copy {
             display: none;
             margin-top: 1px;
             margin-left: 8px;
@@ -865,7 +987,7 @@
           }
         }
 
-        :deep(tr:hover) {
+        :deep(td:hover) {
           .db-icon-copy {
             display: inline-block;
           }

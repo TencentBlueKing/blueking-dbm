@@ -11,11 +11,27 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { uniq } from 'lodash';
+
 import { PipelineStatus } from '@common/const';
 
 import { t } from '@locales/index';
 
 import TimeBaseClassModel from '../utils/time-base-class';
+
+interface SqlServerHaInstance {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
+  bk_instance_id: number;
+  instance: string;
+  ip: string;
+  name: string;
+  phase: string;
+  port: number;
+  spec_config: Record<'id', number>;
+  status: string;
+}
 
 export default class SqlServerHaCluster extends TimeBaseClassModel {
   static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
@@ -58,19 +74,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   id: number;
   major_version: string;
   master_domain: string;
-  masters: Array<{
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    bk_instance_id: number;
-    instance: string;
-    ip: string;
-    name: string;
-    phase: string;
-    port: number;
-    spec_config: Record<'id', number>;
-    status: string;
-  }>;
+  masters: SqlServerHaInstance[];
   operations: Array<{
     cluster_id: number;
     flow_id: number;
@@ -87,7 +91,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   phase_name: string;
   region: string;
   slave_domain: string;
-  slaves: SqlServerHaCluster['masters'];
+  slaves: SqlServerHaInstance[];
   spec_config: {
     id: number;
     cpu: {
@@ -157,6 +161,36 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
       text,
       theme,
     };
+  }
+
+  get masterDomainDisplayName() {
+    const port = this.masters[0]?.port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get slaveDomainDisplayName() {
+    const port = this.slaves[0]?.port;
+    const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
+    return this.slave_domain ? displayName : '--';
+  }
+
+  get allInstanceList() {
+    return [...this.masters, ...this.slaves];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {

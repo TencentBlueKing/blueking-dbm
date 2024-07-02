@@ -10,6 +10,8 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { uniq } from 'lodash';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -156,6 +158,24 @@ export default class Es {
     this.access_url = payload.access_url;
 
     this.operations = this.initOperations(payload.operations);
+  }
+
+  get allInstanceList() {
+    return [...this.es_master, ...this.es_client, ...this.es_datanode_hot, ...this.es_datanode_cold];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {
