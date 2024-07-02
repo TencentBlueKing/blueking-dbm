@@ -38,21 +38,25 @@
             @mouseenter="handleHoverAddIcon" />
         </div>
       </div>
-      <TopOperation
-        ref="topOperationRef"
-        v-model:isFullScreen="isFullScreen"
-        v-model:showUseageHelp="showUseageHelp"
-        @clear-current-screen="handleClickClearScreen"
-        @export="handleClickExport"
-        @font-size-change="handleChangeFontSize"
-        @toggle-full-screen="handleClickFullScreen"
-        @toggle-show-help="handleToggleHelp" />
+      <div class="top-operate-main">
+        <ClearScreen @clear-current-screen="handleClickClearScreen" />
+        <ExportData @export="handleClickExport" />
+        <UseHelp
+          v-model:showUseageHelp="showUseageHelp"
+          @toggle-show-help="handleToggleHelp" />
+        <div class="operate-item-last">
+          <FontChange @font-size-change="handleChangeFontSize" />
+          <FullScreen
+            v-model:isFullScreen="isFullScreen"
+            @toggle-full-screen="handleClickFullScreen" />
+        </div>
+      </div>
     </div>
     <div class="content-main">
       <div
         v-show="showUseageHelp"
         class="using-help-wrap">
-        <UseingHelp @hide="handleHideUseingHelp" />
+        <UseingHelpPanel @hide="handleHideUseingHelp" />
       </div>
       <ConsolePanel
         v-if="activeClusterId > 0"
@@ -98,9 +102,13 @@
 
   import { messageWarn } from '@utils';
 
+  import ClearScreen from './components/ClearScreen.vue';
   import ConsolePanel from './components/console-panel/Index.vue';
-  import TopOperation from './components/TopOperation.vue';
-  import UseingHelp from './components/useingHelp.vue';
+  import ExportData from './components/ExportData.vue';
+  import FontChange from './components/FontChange.vue';
+  import FullScreen from './components/FullScreen.vue';
+  import UseHelp from './components/UseHelp.vue';
+  import UseingHelpPanel from './components/UseingHelpPanel.vue';
 
   export interface Props {
     clusterType?: 'mysql' | 'tendbcluster' | 'redis';
@@ -129,7 +137,6 @@
   });
   const isFullScreen = ref(false);
   const clustersMap = ref<Record<number, ClusterItem>>({});
-  const topOperationRef = ref();
 
   const clustersPanelHeight = computed(() => {
     if (!clusterList.value) {
@@ -202,6 +209,10 @@
   };
 
   const handleClusterSelectChange = (ids: number[]) => {
+    if (ids.length === 0) {
+      return;
+    }
+
     if (selectedClusters.value.length === 8) {
       messageWarn(t('页签数量已达上限，请先关闭部分标'));
       currentCluster.value = [];
@@ -441,6 +452,86 @@
               box-shadow: none;
             }
           }
+        }
+      }
+
+      .top-operate-main {
+        display: flex;
+        min-width: 300px;
+        color: #c4c6cc;
+
+        .operate-item {
+          position: relative;
+          display: flex;
+          height: 40px;
+          padding: 0 7px;
+          align-items: center;
+
+          &::after {
+            position: absolute;
+            top: 12px;
+            right: 0;
+            width: 1px;
+            height: 16px;
+            background: #45464d;
+            content: '';
+          }
+
+          .operate-item-inner {
+            display: flex;
+            height: 28px;
+            padding: 0 6px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+
+            &:hover {
+              background: #424242;
+              border-radius: 2px;
+            }
+
+            .operate-icon {
+              font-size: 16px;
+            }
+
+            .operate-title {
+              margin-left: 5px;
+            }
+          }
+        }
+
+        .operate-item-last {
+          display: flex;
+          height: 40px;
+          padding: 0 6px;
+          cursor: pointer;
+          align-items: center;
+          // gap: 15px;
+
+          .operate-icon {
+            display: flex;
+            height: 40px;
+            font-size: 16px;
+            align-items: center;
+
+            .operate-icon-inner {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 28px;
+              height: 28px;
+
+              &:hover {
+                background: #424242;
+                border-radius: 2px;
+              }
+            }
+          }
+        }
+
+        .use-help-selected {
+          color: #699df4;
+          background: #242424;
         }
       }
     }

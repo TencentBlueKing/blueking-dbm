@@ -12,7 +12,6 @@
       <div
         v-if="item.type !== 'normal'"
         class="input-line">
-        <span v-if="item.type === 'command'"> {{ clusterInfo.immute_domain }} > </span>
         <span :class="{ 'error-text': item.type === 'error' }">{{ item.message }}</span>
       </div>
       <template v-else>
@@ -23,19 +22,23 @@
     </template>
     <div v-show="loading">Waiting...</div>
     <div class="input-line">
-      <span> {{ clusterInfo.immute_domain }} > </span>
-      <input
+      <textarea
         ref="inputRef"
-        v-model="command"
-        class="input-main ml-5"
+        class="input-main"
         :disabled="loading"
+        :style="{ height: realHeight }"
+        :value="command"
+        @input="handleInputChange"
         @keyup.down="handleClickDownBtn"
         @keyup.enter="handleClickSendCommand"
+        @keyup.left="handleClickLeftBtn"
         @keyup.up="handleClickUpBtn" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
+
   import { queryWebconsole } from '@services/source/dbbase';
 
   import { downloadText } from '@utils';
@@ -70,18 +73,21 @@
   const consolePanelRef = ref();
   const loading = ref(false);
   const inputRef = ref();
+  const realHeight = ref('52px');
 
   const clusterId = computed(() => props.clusterInfo.id);
 
   const commandsInput: Record<number, string[]> = {};
   const panelsInput: Record<number, PanelLine[]> = {};
   let currentCommandIndex = 0;
+  let inputPlaceholder = '';
 
   watch(
     clusterId,
     () => {
       if (clusterId.value) {
-        command.value = '';
+        inputPlaceholder = `${props.clusterInfo.immute_domain} > `;
+        command.value = inputPlaceholder;
 
         if (!commandsInput[clusterId.value]) {
           commandsInput[clusterId.value] = [];
@@ -94,7 +100,7 @@
           panelsInput[clusterId.value] = [];
           panelRecords.value = [];
         } else {
-          panelRecords.value = panelsInput[clusterId.value];
+          panelRecords.value = _.cloneDeep(panelsInput[clusterId.value]);
         }
 
         setTimeout(() => {
@@ -107,9 +113,15 @@
     },
   );
 
+  // 回车输入指令
   const handleClickSendCommand = async (e: any) => {
+    const cmd = e.target.value.trim() as string;
+    if (cmd.length <= inputPlaceholder.length + 1) {
+      command.value = inputPlaceholder;
+      return;
+    }
+
     loading.value = true;
-    const cmd = e.target.value as string;
     commandsInput[clusterId.value].push(cmd);
     currentCommandIndex = commandsInput[clusterId.value].length;
     const commandLine = {
@@ -118,13 +130,15 @@
     };
     panelsInput[clusterId.value].push(commandLine);
     panelRecords.value.push(commandLine);
-    command.value = '';
-
+    command.value = inputPlaceholder;
     const executeResult = await queryWebconsole({
       cluster_id: props.clusterInfo.id,
-      cmd,
+      cmd: cmd.substring(inputPlaceholder.length),
     }).finally(() => {
       loading.value = false;
+      setTimeout(() => {
+        inputRef.value.focus();
+      });
     });
 
     if (executeResult.error_msg) {
@@ -150,14 +164,36 @@
     });
   };
 
+  // 输入
+  const handleInputChange = (e: any) => {
+    const { value } = e.target;
+    if (value.length <= inputPlaceholder.length) {
+      command.value = '';
+      nextTick(() => {
+        command.value = inputPlaceholder;
+      });
+
+      return;
+    }
+    command.value = value;
+
+    setTimeout(() => {
+      const { scrollHeight } = inputRef.value;
+      realHeight.value = `${scrollHeight}px`;
+    });
+  };
+
   // 键盘 ↑ 键
   const handleClickUpBtn = () => {
     if (commandsInput[clusterId.value].length === 0 || currentCommandIndex === 0) {
+      checkCursorPosition(true);
       return;
     }
 
     currentCommandIndex = currentCommandIndex - 1;
     command.value = commandsInput[clusterId.value][currentCommandIndex];
+    const cursorIndex = command.value.length;
+    inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
   };
 
   // 键盘 ↓ 键
@@ -167,7 +203,20 @@
     }
 
     currentCommandIndex = currentCommandIndex + 1;
-    command.value = commandsInput[clusterId.value][currentCommandIndex];
+    command.value = commandsInput[clusterId.value][currentCommandIndex] ?? inputPlaceholder;
+  };
+
+  // 键盘 ← 键
+  const handleClickLeftBtn = () => {
+    checkCursorPosition();
+  };
+
+  // 校正光标位置
+  const checkCursorPosition = (isStartToTextEnd = false) => {
+    if (inputRef.value.selectionStart <= inputPlaceholder.length) {
+      const cursorIndex = isStartToTextEnd ? command.value.length : inputPlaceholder.length;
+      inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
+    }
   };
 
   defineExpose<Expose>({
@@ -178,7 +227,7 @@
         panelsInput[clusterId.value] = [];
       }
       panelRecords.value = [];
-      command.value = '';
+      command.value = inputPlaceholder;
     },
     export() {
       const lines = panelsInput[clusterId.value].map((item) => item.message);
@@ -223,11 +272,15 @@
       font-weight: 400;
       line-height: 24px;
       color: #94f5a4;
+      word-break: break-all;
 
       .input-main {
+        height: auto;
+        overflow-y: hidden;
         background: #1a1a1a;
         border: none;
         outline: none;
+        resize: none;
         flex: 1;
       }
 
