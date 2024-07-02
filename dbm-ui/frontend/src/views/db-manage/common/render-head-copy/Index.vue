@@ -12,18 +12,18 @@
 -->
 
 <template>
-  <span
-    @mouseout="() => (isCopyDropdown = false)"
-    @mouseover="() => (isCopyDropdown = true)">
+  <span class="render-head-copy">
     <slot />
+    <DbIcon
+      ref="rootRef"
+      :class="{ 'is-active': isCopyDropdown }"
+      type="copy" />
   </span>
   <BkDropdown
-    class="ml-4 render-head-copy"
-    @hide="() => (isCopyDropdown = false)"
-    @show="() => (isCopyDropdown = true)">
-    <DbIcon
-      :class="{ active: isCopyDropdown }"
-      type="copy" />
+    ref="popRef"
+    class="render-head-copy"
+    :is-show="isCopyDropdown"
+    trigger="manual">
     <template #content>
       <BkDropdownMenu>
         <div
@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts" generic="T">
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
   interface CopyItem {
@@ -79,7 +80,10 @@
 
   const { t } = useI18n();
 
+  let tippyIns: Instance;
   const isCopyDropdown = ref(false);
+  const rootRef = ref();
+  const popRef = ref();
 
   const handleCopySelected = (field: keyof T) => {
     emits('handleCopySelected', field);
@@ -87,23 +91,57 @@
   const handleCopyAll = (field: keyof T) => {
     emits('handleCopyAll', field);
   };
+
+  onMounted(() => {
+    nextTick(() => {
+      tippyIns = tippy(rootRef.value.$el as SingleTarget, {
+        content: popRef.value.$el,
+        placement: 'bottom',
+        appendTo: () => document.body,
+        theme: 'light',
+        maxWidth: 0,
+        trigger: 'mouseenter click',
+        interactive: true,
+        arrow: false,
+        allowHTML: true,
+        offset: [0, -20],
+        zIndex: -99,
+        hideOnClick: true,
+        onShow() {
+          isCopyDropdown.value = true;
+        },
+        onHide() {
+          isCopyDropdown.value = false;
+        },
+      });
+    });
+  });
+
+  onBeforeUnmount(() => {
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+    }
+  });
 </script>
 
 <style lang="less" scoped>
   .render-head-copy {
     .db-icon-copy {
+      display: none;
+      margin-left: 4px;
       color: @primary-color;
       cursor: pointer;
-      visibility: hidden;
     }
 
-    .active {
-      visibility: visible;
+    .is-active {
+      display: inline-block;
     }
 
     &:hover {
       .db-icon-copy {
-        visibility: visible;
+        display: inline-block;
       }
     }
 

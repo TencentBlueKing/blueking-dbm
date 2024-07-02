@@ -29,14 +29,14 @@
         <BkDropdownItem>
           <BkButton
             v-bk-tooltips="{
-              disabled: hasUnavailableIp,
+              disabled: selected.length,
               content: t('请先勾选'),
               placement: 'right',
             }"
-            :disabled="!hasUnavailableIp"
+            :disabled="selected.length === 0"
             text
             @click="handleCopyUnavailableIp">
-            {{ t('已选集群异常 IP') }}
+            {{ t('已选集群的异常 IP') }}
           </BkButton>
         </BkDropdownItem>
       </BkDropdownMenu>
@@ -61,8 +61,6 @@
 
   const isCopyDropdown = ref(false);
 
-  const hasUnavailableIp = computed(() => props.selected.some((dataItem) => dataItem.allUnavailableIPList.length > 0));
-
   /**
    * 复制已选集群 IP
    */
@@ -80,7 +78,8 @@
     const copyList = uniq(
       props.selected.reduce((prevList, tableItem) => [...prevList, ...tableItem.allUnavailableIPList], [] as string[]),
     );
-    copy(copyList.join('\n'));
+    // 若无异常IP \n清空复制内容
+    copy(copyList.join('\n') || '\n');
   };
 </script>
 

@@ -262,7 +262,8 @@
 
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
-  const hasData = computed(() => tableRef.value!.getData().length > 0);
+  const tableDataList = computed(() => tableRef.value?.getData<TendbClusterModel>() || [])
+  const hasData = computed(() => tableDataList.value.length > 0);
   const isCN = computed(() => locale.value === 'zh-cn');
   const searchSelectData = computed(() => [
     {
