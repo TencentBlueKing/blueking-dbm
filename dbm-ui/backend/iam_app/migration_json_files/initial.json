@@ -444,6 +444,25 @@
             }
         },
         {
+            "operation": "upsert_resource_type",
+            "data": {
+                "id": "vm",
+                "name": "VM集群",
+                "name_en": "vm",
+                "description": "VM集群",
+                "provider_config": {
+                    "path": "/apis/iam/resource/"
+                },
+                "version": 1,
+                "parents": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    }
+                ]
+            }
+        },
+        {
             "operation": "upsert_instance_selection",
             "data": {
                 "id": "flow_list",
@@ -857,6 +876,24 @@
                     {
                         "system_id": "bk_dbm",
                         "id": "tendbcluster_account"
+                    }
+                ]
+            }
+        },
+        {
+            "operation": "upsert_instance_selection",
+            "data": {
+                "id": "vm_list",
+                "name": "VM集群 列表",
+                "name_en": "vm list",
+                "resource_type_chain": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz"
+                    },
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "vm"
                     }
                 ]
             }
@@ -2082,7 +2119,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_view",
-                "name": "TenDB Cluster 集群查看",
+                "name": "TenDB Cluster 集群详情查看",
                 "name_en": "tendbcluster_view",
                 "type": "view",
                 "related_resource_types": [
@@ -2105,7 +2142,7 @@
                 "hidden": false,
                 "group": "TenDBCluster",
                 "subgroup": "集群管理",
-                "description": "TenDB Cluster 集群查看",
+                "description": "TenDB Cluster 集群详情查看",
                 "description_en": "tendbcluster_view"
             }
         },
@@ -5615,7 +5652,7 @@
                 "version": 1,
                 "hidden": false,
                 "group": "MySQL",
-                "subgroup": "工具箱",
+                "subgroup": "集群维护",
                 "description": "MySQL 高可用DB重命名",
                 "description_en": "MYSQL_HA_RENAME_DATABASE"
             }
@@ -5847,7 +5884,7 @@
                 "version": 1,
                 "hidden": false,
                 "group": "MySQL",
-                "subgroup": "工具箱",
+                "subgroup": "数据处理",
                 "description": "MySQL 单节点清档",
                 "description_en": "MYSQL_SINGLE_TRUNCATE_DATA"
             }
@@ -5876,7 +5913,7 @@
                 "version": 1,
                 "hidden": false,
                 "group": "MySQL",
-                "subgroup": "工具箱",
+                "subgroup": "集群维护",
                 "description": "MySQL 单节点DB重命名",
                 "description_en": "MYSQL_SINGLE_RENAME_DATABASE"
             }
@@ -5908,6 +5945,35 @@
                 "subgroup": "数据处理",
                 "description": "MySQL DB克隆",
                 "description_en": "MYSQL_DATA_MIGRATE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_dump_data",
+                "name": "MySQL 数据导出",
+                "name_en": "MYSQL_DUMP_DATA",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "数据处理",
+                "description": "MySQL 数据导出",
+                "description_en": "MYSQL_DUMP_DATA"
             }
         },
         {
@@ -6575,6 +6641,35 @@
                 "subgroup": "数据处理",
                 "description": "TenDB Cluster 数据迁移",
                 "description_en": "TENDBCLUSTER_DATA_MIGRATE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_dump_data",
+                "name": "TenDB Cluster 数据导出",
+                "name_en": "TENDBCLUSTER_DUMP_DATA",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "数据处理",
+                "description": "TenDB Cluster 数据导出",
+                "description_en": "TENDBCLUSTER_DUMP_DATA"
             }
         },
         {
@@ -7735,6 +7830,180 @@
                 "subgroup": "集群维护",
                 "description": "Redis 新增slave节点",
                 "description_en": "REDIS_CLUSTER_ADD_SLAVE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_dts_online_switch",
+                "name": "Redis DTS在线切换",
+                "name_en": "REDIS_DTS_ONLINE_SWITCH",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis DTS在线切换",
+                "description_en": "REDIS_DTS_ONLINE_SWITCH"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_version_update_online",
+                "name": "Redis 集群版本升级",
+                "name_en": "REDIS_VERSION_UPDATE_ONLINE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis 集群版本升级",
+                "description_en": "REDIS_VERSION_UPDATE_ONLINE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_cluster_reinstall_dbmon",
+                "name": "Redis 集群重装DBMON",
+                "name_en": "REDIS_CLUSTER_REINSTALL_DBMON",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis 集群重装DBMON",
+                "description_en": "REDIS_CLUSTER_REINSTALL_DBMON"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_cluster_proxys_upgrade",
+                "name": "Redis 集群proxys版本升级",
+                "name_en": "REDIS_CLUSTER_PROXYS_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis 集群proxys版本升级",
+                "description_en": "REDIS_CLUSTER_PROXYS_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_cluster_rename_domain",
+                "name": "Redis集群域名重命名",
+                "name_en": "REDIS_CLUSTER_RENAME_DOMAIN",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis集群域名重命名",
+                "description_en": "REDIS_CLUSTER_RENAME_DOMAIN"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_cluster_maxmemory_set",
+                "name": "Redis 集群设置maxmemory",
+                "name_en": "REDIS_CLUSTER_MAXMEMORY_SET",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis 集群设置maxmemory",
+                "description_en": "REDIS_CLUSTER_MAXMEMORY_SET"
             }
         },
         {
@@ -9043,6 +9312,151 @@
             }
         },
         {
+            "operation": "upsert_action",
+            "data": {
+                "id": "vm_scale_up",
+                "name": "VM 集群扩容",
+                "name_en": "VM_SCALE_UP",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "vm",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "vm_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Vm",
+                "subgroup": "集群管理",
+                "description": "VM 集群扩容",
+                "description_en": "VM_SCALE_UP"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "vm_shrink",
+                "name": "VM 集群缩容",
+                "name_en": "VM_SHRINK",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "vm",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "vm_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Vm",
+                "subgroup": "集群管理",
+                "description": "VM 集群缩容",
+                "description_en": "VM_SHRINK"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "vm_reboot",
+                "name": "VM 实例重启",
+                "name_en": "VM_REBOOT",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "vm",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "vm_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Vm",
+                "subgroup": "集群管理",
+                "description": "VM 实例重启",
+                "description_en": "VM_REBOOT"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "vm_replace",
+                "name": "VM 集群替换",
+                "name_en": "VM_REPLACE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "vm",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "vm_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Vm",
+                "subgroup": "集群管理",
+                "description": "VM 集群替换",
+                "description_en": "VM_REPLACE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "vm_destroy",
+                "name": "VM 集群删除",
+                "name_en": "VM_DESTROY",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "vm",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "vm_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Vm",
+                "subgroup": "集群管理",
+                "description": "VM 集群删除",
+                "description_en": "VM_DESTROY"
+            }
+        },
+        {
             "operation": "upsert_action_groups",
             "data": [
                 {
@@ -9433,6 +9847,12 @@
                                 },
                                 {
                                     "id": "mysql_proxy_switch"
+                                },
+                                {
+                                    "id": "mysql_ha_rename_database"
+                                },
+                                {
+                                    "id": "mysql_single_rename_database"
                                 }
                             ]
                         },
@@ -9442,21 +9862,6 @@
                             "actions": [
                                 {
                                     "id": "mysql_import_sqlfile"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "工具箱",
-                            "name_en": "工具箱",
-                            "actions": [
-                                {
-                                    "id": "mysql_ha_rename_database"
-                                },
-                                {
-                                    "id": "mysql_single_truncate_data"
-                                },
-                                {
-                                    "id": "mysql_single_rename_database"
                                 }
                             ]
                         },
@@ -9471,7 +9876,13 @@
                                     "id": "mysql_checksum"
                                 },
                                 {
+                                    "id": "mysql_single_truncate_data"
+                                },
+                                {
                                     "id": "mysql_data_migrate"
+                                },
+                                {
+                                    "id": "mysql_dump_data"
                                 }
                             ]
                         },
@@ -9629,6 +10040,9 @@
                                 },
                                 {
                                     "id": "tendbcluster_data_migrate"
+                                },
+                                {
+                                    "id": "tendbcluster_dump_data"
                                 }
                             ]
                         },
@@ -9837,6 +10251,24 @@
                             "actions": [
                                 {
                                     "id": "redis_datacopy_check_repair"
+                                },
+                                {
+                                    "id": "redis_dts_online_switch"
+                                },
+                                {
+                                    "id": "redis_version_update_online"
+                                },
+                                {
+                                    "id": "redis_cluster_reinstall_dbmon"
+                                },
+                                {
+                                    "id": "redis_cluster_proxys_upgrade"
+                                },
+                                {
+                                    "id": "redis_cluster_rename_domain"
+                                },
+                                {
+                                    "id": "redis_cluster_maxmemory_set"
                                 }
                             ]
                         }
@@ -10334,6 +10766,34 @@
                             ]
                         }
                     ]
+                },
+                {
+                    "name": "Vm",
+                    "name_en": "Vm",
+                    "actions": [],
+                    "sub_groups": [
+                        {
+                            "name": "集群管理",
+                            "name_en": "集群管理",
+                            "actions": [
+                                {
+                                    "id": "vm_scale_up"
+                                },
+                                {
+                                    "id": "vm_shrink"
+                                },
+                                {
+                                    "id": "vm_reboot"
+                                },
+                                {
+                                    "id": "vm_replace"
+                                },
+                                {
+                                    "id": "vm_destroy"
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         },
@@ -10768,6 +11228,9 @@
                             "id": "mysql_data_migrate"
                         },
                         {
+                            "id": "mysql_dump_data"
+                        },
+                        {
                             "id": "tendbcluster_checksum"
                         },
                         {
@@ -10835,6 +11298,9 @@
                         },
                         {
                             "id": "tendbcluster_data_migrate"
+                        },
+                        {
+                            "id": "tendbcluster_dump_data"
                         },
                         {
                             "id": "sqlserver_import_sqlfile"
@@ -10955,6 +11421,24 @@
                         },
                         {
                             "id": "redis_cluster_add_slave"
+                        },
+                        {
+                            "id": "redis_dts_online_switch"
+                        },
+                        {
+                            "id": "redis_version_update_online"
+                        },
+                        {
+                            "id": "redis_cluster_reinstall_dbmon"
+                        },
+                        {
+                            "id": "redis_cluster_proxys_upgrade"
+                        },
+                        {
+                            "id": "redis_cluster_rename_domain"
+                        },
+                        {
+                            "id": "redis_cluster_maxmemory_set"
                         },
                         {
                             "id": "kafka_scale_up"
@@ -11090,6 +11574,21 @@
                         },
                         {
                             "id": "mongodb_install_dbmon"
+                        },
+                        {
+                            "id": "vm_scale_up"
+                        },
+                        {
+                            "id": "vm_shrink"
+                        },
+                        {
+                            "id": "vm_reboot"
+                        },
+                        {
+                            "id": "vm_replace"
+                        },
+                        {
+                            "id": "vm_destroy"
                         }
                     ]
                 }
@@ -11246,6 +11745,10 @@
                             },
                             {
                                 "id": "mysql_data_migrate",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_dump_data",
                                 "required": true
                             }
                         ]
@@ -11427,6 +11930,10 @@
                             {
                                 "id": "tendbcluster_data_migrate",
                                 "required": true
+                            },
+                            {
+                                "id": "tendbcluster_dump_data",
+                                "required": true
                             }
                         ]
                     },
@@ -11564,6 +12071,30 @@
                             },
                             {
                                 "id": "redis_cluster_add_slave",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_dts_online_switch",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_version_update_online",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_cluster_reinstall_dbmon",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_cluster_proxys_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_cluster_rename_domain",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_cluster_maxmemory_set",
                                 "required": true
                             }
                         ]
@@ -11996,6 +12527,31 @@
                             },
                             {
                                 "id": "global_monitor_policy_start_stop",
+                                "required": true
+                            }
+                        ]
+                    },
+                    {
+                        "id": "vm",
+                        "actions": [
+                            {
+                                "id": "vm_scale_up",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_shrink",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_reboot",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_replace",
+                                "required": true
+                            },
+                            {
+                                "id": "vm_destroy",
                                 "required": true
                             }
                         ]
