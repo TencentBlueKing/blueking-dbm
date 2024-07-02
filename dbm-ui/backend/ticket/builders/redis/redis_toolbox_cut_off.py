@@ -30,7 +30,7 @@ class RedisClusterCutOffDetailSerializer(SkipToRepresentationMixin, ClusterValid
             ip = serializers.IPAddressField()
             spec_id = serializers.IntegerField()
 
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
         redis_master = serializers.ListField(help_text=_("master列表"), child=HostInfoSerializer(), required=False)

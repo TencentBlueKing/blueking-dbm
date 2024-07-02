@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List
 
+from django.db import connection
+from django.db.models import Q
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
@@ -23,7 +25,10 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.db_services.redis.resources.constants import SQL_QUERY_MASTER_SLAVE_STATUS
+from backend.utils.basic import dictfetchall
 
 
 class RedisListRetrieveResource(query.ListRetrieveResource):
@@ -86,6 +91,29 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         return ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
 
     @classmethod
+    def _list_machines(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        **kwargs,
+    ) -> ResourceList:
+        # 获取机器的基础信息
+        data = super()._list_machines(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
+        count, machines = data.count, data.data
+
+        # redis额外补充主从状态
+        if query_params.get("add_role_count"):
+            master_ips = [m["ip"] for m in machines if m["instance_role"] == InstanceRole.REDIS_MASTER]
+            master_slave_map = cls.query_master_slave_map(master_ips)
+            for item in machines:
+                item.update(master_slave_map.get(item["ip"], {}))
+
+        return ResourceList(count=count, data=machines)
+
+    @classmethod
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
@@ -142,3 +170,18 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         )
         cluster_info.update(cluster_extra_info)
         return cluster_info
+
+    @classmethod
+    def query_master_slave_map(cls, master_ips):
+        """根据master的ip查询主从状态对"""
+
+        # 取消查询，否则sql报错
+        if not master_ips:
+            return {}
+
+        where_sql = "where mim.ip in ({})".format(",".join(["%s"] * len(master_ips)))
+        with connection.cursor() as cursor:
+            cursor.execute(SQL_QUERY_MASTER_SLAVE_STATUS.format(where=where_sql), master_ips)
+            master_slave_map = {ms["ip"]: ms for ms in dictfetchall(cursor)}
+
+        return master_slave_map

@@ -29,7 +29,7 @@ class RedisMasterSlaveSwitchDetailSerializer(SkipToRepresentationMixin, serializ
             redis_master = serializers.IPAddressField(help_text=_("master主机"))
             redis_slave = serializers.IPAddressField(help_text=_("slave主机"))
 
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         pairs = serializers.ListField(help_text=_("主从切换对"), child=PairSerializer(), allow_empty=False)
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM

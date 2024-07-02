@@ -1125,13 +1125,7 @@
                     "min": 3
                 },
                 "device_class": [],
-                "storage_spec": [
-                    {
-                        "size": 50,
-                        "type": "ALL",
-                        "mount_point": "/data"
-                    }
-                ],
+                "storage_spec": [],
                 "desc": "",
                 "instance_num": 0,
                 "qps": {}
@@ -1147,13 +1141,7 @@
                     "min": 7
                 },
                 "device_class": [],
-                "storage_spec": [
-                    {
-                        "size": 100,
-                        "type": "ALL",
-                        "mount_point": "/data"
-                    }
-                ],
+                "storage_spec": [],
                 "desc": "",
                 "instance_num": 0,
                 "qps": {}
@@ -1813,13 +1801,7 @@
                     "S5t.MEDIUM4",
                     "SA2.MEDIUM4"
                 ],
-                "storage_spec": [
-                    {
-                        "size": 50,
-                        "type": "ALL",
-                        "mount_point": "/data"
-                    }
-                ],
+                "storage_spec": [],
                 "desc": "",
                 "instance_num": 0,
                 "qps": {
@@ -1845,13 +1827,7 @@
                     "SA2.LARGE8",
                     "SN3ne.LARGE8"
                 ],
-                "storage_spec": [
-                    {
-                        "size": 100,
-                        "type": "ALL",
-                        "mount_point": "/data"
-                    }
-                ],
+                "storage_spec": [],
                 "desc": "",
                 "instance_num": 0,
                 "qps": {
@@ -1997,13 +1973,7 @@
                     "S5t.MEDIUM4",
                     "SA2.MEDIUM4"
                 ],
-                "storage_spec": [
-                    {
-                        "size": 50,
-                        "type": "ALL",
-                        "mount_point": "/data"
-                    }
-                ],
+                "storage_spec": [],
                 "desc": "",
                 "instance_num": 0,
                 "qps": {
@@ -2029,13 +1999,7 @@
                     "SA2.LARGE8",
                     "SN3ne.LARGE8"
                 ],
-                "storage_spec": [
-                    {
-                        "size": 100,
-                        "type": "ALL",
-                        "mount_point": "/data"
-                    }
-                ],
+                "storage_spec": [],
                 "desc": "",
                 "instance_num": 0,
                 "qps": {

@@ -26,7 +26,7 @@ class RedisAddSlaveDetailSerializer(SkipToRepresentationMixin, serializers.Seria
     """新建从库"""
 
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         pairs = serializers.ListField(help_text=_("主从切换对"), child=serializers.DictField())
 

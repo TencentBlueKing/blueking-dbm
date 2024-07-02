@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.enums import ClusterStatus, InstanceStatus
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_services.redis.constants import RedisVersionQueryType
 
@@ -184,10 +184,11 @@ class QueryByOneClusterSerializer(serializers.Serializer):
 class QueryClusterIpsSerializer(serializers.Serializer):
     cluster_id = serializers.CharField(help_text=_("集群id"), required=False)
     ip = serializers.CharField(max_length=32, help_text=_("ip"), required=False)
-    limit = serializers.IntegerField(help_text=_("limit"), required=False, min_value=1)
-    offset = serializers.IntegerField(help_text=_("offset"), required=False)
+    limit = serializers.IntegerField(help_text=_("limit"), required=False, default=10)
+    offset = serializers.IntegerField(help_text=_("offset"), required=False, default=0)
     role = serializers.CharField(help_text=_("角色"), required=False)
     status = serializers.ChoiceField(help_text=_("状态"), required=False, choices=InstanceStatus.get_choices())
+    cluster_status = serializers.ChoiceField(help_text=_("集群状态"), required=False, choices=ClusterStatus.get_choices())
 
     def to_internal_value(self, data):
         # 将接收到的数据处理为内部Python格式

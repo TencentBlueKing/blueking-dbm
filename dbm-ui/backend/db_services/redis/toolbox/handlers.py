@@ -10,63 +10,35 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 import json
-from collections import defaultdict
 
 from django.db import connection
-from django.db.models import Count, F, Q
-from django.forms import model_to_dict
 
 from backend import env
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
-from backend.db_services.redis.resources.constants import (
-    SQL_QUERY_COUNT_INSTANCES,
-    SQL_QUERY_INSTANCES,
-    SQL_QUERY_MASTER_SLAVE_STATUS,
-)
+from backend.db_services.redis.resources.constants import SQL_QUERY_COUNT_INSTANCES, SQL_QUERY_INSTANCES
+from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.flow.utils.redis.redis_proxy_util import (
     get_cluster_proxy_version,
     get_cluster_proxy_version_for_upgrade,
     get_cluster_redis_version,
     get_cluster_storage_versions_for_upgrade,
 )
-from backend.ticket.constants import InstanceType
-from backend.ticket.models import ClusterOperateRecord
 from backend.utils.basic import dictfetchall
 
 
-class ToolboxHandler:
+class ToolboxHandler(ClusterServiceHandler):
     """redis工具箱查询接口封装"""
 
     def __init__(self, bk_biz_id: int):
-        self.bk_biz_id = bk_biz_id
-
-    def query_by_ip(self, ips) -> list:
-        """根据ip查询实例、集群和规格相关信息"""
-
-        ips = list(
-            itertools.chain(
-                StorageInstance.filter_by_ips(self.bk_biz_id, ips),
-                ProxyInstance.filter_by_ips(self.bk_biz_id, ips),
-            )
-        )
-
-        # 查询主从状态对
-        master_slave_map = self.query_master_slave_map(
-            [i["ip"] for i in ips if i["role"] == InstanceRole.REDIS_MASTER]
-        )
-
-        # 主从关系补充
-        for item in ips:
-            item.update(master_slave_map.get(item["ip"], {}))
-
-        return ips
+        super().__init__(bk_biz_id)
 
     def query_master_slave_by_ip(self, master_ips) -> list:
-        """根据master主机查询集群、实例和对应的slave主机"""
+        """根据master主机查询集群、实例和对应的slave主机 TODO: Deprecated"""
 
         results = []
         for master_ip in master_ips:
@@ -89,122 +61,37 @@ class ToolboxHandler:
 
         return results
 
-    def query_instance_by_cluster(self, keywords) -> list:
-        """根据角色和关键字查询集群规格、方案和角色信息 - deprecated"""
+    def query_by_ip(self, ips) -> list:
+        """
+        适合于redis的根据ip查询实例、集群和规格相关信息
+        TODO: 待删除
+        """
 
-        fields = ["id", "machine__ip", "port", "name", "status", "version", "machine__spec_config"]
-        number_keywords = filter(lambda x: x.isnumeric(), keywords)
-        clusters = Cluster.objects.filter(
-            Q(id__in=number_keywords) | Q(name__in=keywords) | Q(immute_domain__in=keywords), bk_biz_id=self.bk_biz_id
+        ips = list(
+            itertools.chain(
+                StorageInstance.filter_by_ips(self.bk_biz_id, ips),
+                ProxyInstance.filter_by_ips(self.bk_biz_id, ips),
+            )
         )
 
-        results = []
-        for cluster in clusters:
-            results.append(
-                {
-                    "cluster": cluster.extra_desc,
-                    InstanceType.PROXY.value: cluster.proxyinstance_set.all().values(*fields),
-                    InstanceType.STORAGE.value: cluster.storageinstance_set.all().values(*fields, "instance_role"),
-                }
-            )
-
-        return results
-
-    def query_master_slave_pairs(self, cluster_id: int) -> list:
-        """查询主从架构集群的关系对"""
-
-        try:
-            cluster = Cluster.objects.get(pk=cluster_id, bk_biz_id=self.bk_biz_id)
-        except Cluster.DoesNotExist:
-            return []
-
-        pairs = StorageInstanceTuple.objects.filter(receiver__cluster=cluster, ejector__cluster=cluster).values(
-            master_id=F("ejector__id"),
-            master_ip=F("ejector__machine__ip"),
-            master_port=F("ejector__port"),
-            slave_id=F("receiver__id"),
-            slave_ip=F("receiver__machine__ip"),
-            slave_port=F("receiver__port"),
+        # 查询主从状态对
+        master_slave_map = RedisListRetrieveResource.query_master_slave_map(
+            [i["ip"] for i in ips if i["role"] == InstanceRole.REDIS_MASTER]
         )
 
-        # 按照ip合并
-        grouped = defaultdict(list)
-        for pair in pairs:
-            grouped[(pair["master_ip"], pair["slave_ip"])].append(pair["master_port"])
+        # 主从关系补充
+        for item in ips:
+            item.update(master_slave_map.get(item["ip"], {}))
 
-        result = []
-        for mkey, ports in grouped.items():
-            result.append(
-                {
-                    "master_ip": mkey[0],
-                    "slave_ip": mkey[1],
-                    "ports": ports,
-                }
-            )
+        return ips
 
-        return result
-
-    def query_cluster_list(self):
-        """ "TODO: 切换为集群列表接口，deprecated"""
-
-        clusters = Cluster.objects.filter(
-            bk_biz_id=self.bk_biz_id,
-            cluster_type__in=[
-                ClusterType.TendisPredixyRedisCluster,
-                ClusterType.TendisPredixyTendisplusCluster,
-                ClusterType.TendisTwemproxyRedisInstance,
-                ClusterType.TwemproxyTendisSSDInstance,
-                ClusterType.TendisTwemproxyTendisplusIns,
-                ClusterType.TendisRedisInstance,
-                ClusterType.TendisTendisSSDInstance,
-                ClusterType.TendisTendisplusInsance,
-                ClusterType.TendisRedisCluster,
-                ClusterType.TendisTendisplusCluster,
-            ],
-        ).order_by("-create_at", "name")
-
-        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True, fields=["bk_cloud_id", "bk_cloud_name"])
-
-        results = []
-        for cluster in clusters:
-            result = {
-                **model_to_dict(cluster),
-                "operations": ClusterOperateRecord.objects.get_cluster_operations(cluster.id),
-                "cloud_info": cloud_info[str(cluster.bk_cloud_id)],
-                "proxy_count": cluster.proxyinstance_set.count(),
-                "storage_count": len(set(cluster.storageinstance_set.all().values_list("machine__ip"))),
-            }
-            for storage in (
-                cluster.storageinstance_set.values("instance_role")
-                .annotate(cnt=Count("machine__ip", distinct=True))
-                .order_by()
-            ):
-                result["{}_count".format(storage["instance_role"])] = storage["cnt"]
-
-            results.append(result)
-
-        return results
-
-    @classmethod
-    def query_master_slave_map(cls, master_ips):
-        """根据master的ip查询主从状态对"""
-
-        # 取消查询，否则sql报错
-        if not master_ips:
-            return {}
-
-        where_sql = "where mim.ip in ({})".format(",".join(["%s"] * len(master_ips)))
-        with connection.cursor() as cursor:
-            cursor.execute(SQL_QUERY_MASTER_SLAVE_STATUS.format(where=where_sql), master_ips)
-            master_slave_map = {ms["ip"]: ms for ms in dictfetchall(cursor)}
-
-        return master_slave_map
-
-    def query_cluster_ips(self, limit=None, offset=None, cluster_id=None, ip=None, role=None, status=None):
+    def query_cluster_ips(
+        self, limit=None, offset=None, cluster_id=None, ip=None, role=None, status=None, cluster_status=None
+    ):
         """聚合查询集群下的主机"""
 
         limit_sql = ""
-        if limit:
+        if limit and limit > 0:
             # 强制格式化为int，避免sql注入
             limit_sql = " LIMIT {}".format(int(limit))
 
@@ -233,11 +120,14 @@ class ToolboxHandler:
             # where_sql += "AND i.status IN (" + placeholders + ") "
             # where_values.extend(status)
 
+        if cluster_status:
+            where_sql += "AND cluster.status = %s "
+            where_values.append(cluster_status)
+
         if role:
             placeholder = ", ".join(["%s"] * len(role))
             having_sql = f"HAVING role IN ({placeholder}) "
             where_values.extend(role)
-
         else:
             having_sql = ""
 
@@ -254,6 +144,9 @@ class ToolboxHandler:
         ips = dictfetchall(cursor)
         bk_host_ids = [ip["bk_host_id"] for ip in ips]
 
+        if not bk_host_ids:
+            return {"count": 0, "results": ips}
+
         # 查询主机信息
         host_id_info_map = {
             host_info["host_id"]: host_info
@@ -263,7 +156,7 @@ class ToolboxHandler:
         }
 
         # 查询主从状态对
-        master_slave_map = self.query_master_slave_map(
+        master_slave_map = RedisListRetrieveResource.query_master_slave_map(
             [i["ip"] for i in ips if i["role"] == InstanceRole.REDIS_MASTER]
         )
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
