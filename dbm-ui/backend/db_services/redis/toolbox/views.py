@@ -15,6 +15,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.redis.constants import RedisVersionQueryType
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.db_services.redis.toolbox.serializers import (
     GetClusterVersionSerializer,
@@ -106,9 +107,8 @@ class ToolboxViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False, serializer_class=GetClusterVersionSerializer, pagination_class=None)
     def get_cluster_versions(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        if "cluster_id" in data:
-            cluster_id, node_type = data["cluster_id"], data["node_type"]
-            return Response(ToolboxHandler.get_cluster_versions_with_cluster_id(cluster_id, node_type))
+        cluster_id, node_type = data["cluster_id"], data["node_type"]
+        if data["type"] == RedisVersionQueryType.ONLINE.value:
+            return Response(ToolboxHandler.get_online_cluster_versions(cluster_id, node_type))
         else:
-            cluster_type, node_type = data["cluster_type"], data["node_type"]
-            return Response(ToolboxHandler.get_cluster_versions_with_cluster_type(cluster_type, node_type))
+            return Response(ToolboxHandler.get_update_cluster_versions(cluster_id, node_type))
