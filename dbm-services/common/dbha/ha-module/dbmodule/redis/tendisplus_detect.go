@@ -27,7 +27,8 @@ func (ins *TendisplusDetectInstance) Detection() error {
 	}
 
 	if err != nil && ins.Status == constvar.AUTHCheckFailed {
-		log.Logger.Debugf("tendisplus check auth failed . %s#%d:%s", ins.Ip, ins.Port, ins.Pass)
+		log.Logger.Debugf("tendisplus check auth failed. %s#%d|%s:%s %+v",
+			ins.Ip, ins.Port, ins.GetType(), ins.Pass, err)
 		return err
 	}
 
