@@ -80,9 +80,9 @@
   ];
 
   watch(
-    () => [props.data.clusterType, props.data.nodeType],
+    () => [props.data.clusterId, props.data.nodeType],
     () => {
-      if (props.data.clusterType) {
+      if (props.data.clusterId) {
         fetchTargetClusterVersions({
           node_type: props.data.nodeType,
           type: 'update',
