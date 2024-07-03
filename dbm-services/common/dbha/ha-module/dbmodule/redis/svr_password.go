@@ -394,9 +394,7 @@ func GetInstancePass(insArr []dbutil.DataBaseDetect, conf *config.Config) (int, 
 		}
 		clusterDuplicate[ins.GetClusterId()] = struct{}{}
 
-		if _, ok := passwdCache.Get(fmt.Sprintf("%d-0", ins.GetClusterId())); !ok {
-			log.Logger.Infof("need batchGet cluster redis password App:%s;ClusterID:%d;DBType:%s",
-				ins.GetApp(), ins.GetClusterId(), ins.GetType())
+		if _, ok := passwdCache.Get(fmt.Sprintf("%d-%s", ins.GetClusterId(), constvar.ComponentRedis)); !ok {
 			pswdInsts = append(pswdInsts, client.PasswdInstance{
 				Ip:    strconv.Itoa(ins.GetClusterId()),
 				Port:  0,
@@ -416,17 +414,15 @@ func GetInstancePass(insArr []dbutil.DataBaseDetect, conf *config.Config) (int, 
 	return 0, nil
 }
 
-// batchGetPassword batch get password
-func batchGetPassword(pins []client.PasswdInstance, conf *config.Config) map[string]RedisPasswd {
-	users, clusterPswd := GetRedisUserAndComponent(false), map[string]RedisPasswd{}
+// batchGetPassword batch get password and Set Password.
+func batchGetPassword(pins []client.PasswdInstance, conf *config.Config) {
 	if len(pins) == 0 {
-		return map[string]RedisPasswd{}
+		return
 	}
-
 	// need call password service api to fetch the password
-	if newPasswds, err := getPasswordClient(conf).GetBatchPasswd(pins, users, len(pins)*2+1); err != nil {
+	if newPasswds, err := getPasswordClient(conf).GetBatchPasswd(
+		pins, GetRedisUserAndComponent(false), len(pins)*2+1); err != nil {
 		log.Logger.Errorf("redis batch get password from remote failed:%s", err.Error())
-		return map[string]RedisPasswd{}
 	} else {
 		for _, pwd := range newPasswds {
 			pwByte, err := base64.StdEncoding.DecodeString(pwd.Passwd)
@@ -434,41 +430,36 @@ func batchGetPassword(pins []client.PasswdInstance, conf *config.Config) map[str
 				log.Logger.Errorf("decode redis passwd failed clusterID:%s,dbType:%s:%+v", pwd.Ip, pwd.Component, pwd.Passwd)
 				continue
 			}
-
-			pswd := RedisPasswd{}
-			if tmp, ok := clusterPswd[pwd.Ip]; ok {
-				pswd = tmp
-			}
-
-			if pwd.Component == constvar.ComponentRedisProxy {
-				pswd.Proxy = string(pwByte)
-			} else if pwd.Component == constvar.ComponentRedis {
-				pswd.Redis = string(pwByte)
-			}
-			clusterPswd[pwd.Ip] = pswd
-			passwdCache.Add(fmt.Sprintf("%s-0", pwd.Ip), pswd, GetPassExpireTime())
+			exp := GetPassExpireTime()
+			expireAfter := time.Now().Add(exp).Format("2006-01-02 15:04:05")
+			log.Logger.Debugf("add_2_cache k:%s-%s, v:%s e:%s", pwd.Ip, pwd.Component, string(pwByte), expireAfter)
+			passwdCache.Add(fmt.Sprintf("%s-%s", pwd.Ip, pwd.Component), string(pwByte), exp)
 		}
 	}
-	return clusterPswd
+}
+
+func getComponentName(dbType string) string {
+	var component string
+	if dbType == constvar.TwemproxyMetaType || dbType == constvar.PredixyMetaType {
+		component = constvar.ComponentRedisProxy
+	} else if dbType == constvar.RedisMetaType ||
+		dbType == constvar.TendisplusMetaType || dbType == constvar.TendisSSDMetaType {
+		component = constvar.ComponentRedis
+	} else {
+		component = constvar.ComponentRedisProxyAdmin
+	}
+	return component
 }
 
 func GetPassByClusterID(clusterID int, dbType string) string {
-	var instPswd string
-	if passwdVal, ok := passwdCache.Get(fmt.Sprintf("%d-0", clusterID)); ok {
-		passwdCluster := passwdVal.(RedisPasswd)
-		if dbType == constvar.TwemproxyMetaType ||
-			dbType == constvar.PredixyMetaType {
-			instPswd = passwdCluster.Proxy
-		} else if dbType == constvar.RedisMetaType ||
-			dbType == constvar.TendisplusMetaType ||
-			dbType == constvar.TendisSSDMetaType {
-			instPswd = passwdCluster.Redis
-		}
-		if instPswd == "" {
+	instPswd, passComp := "t-v-t", getComponentName(dbType)
+	if instPswd, ok := passwdCache.Get(fmt.Sprintf("%d-%s", clusterID, passComp)); ok {
+		instPassword := instPswd.(string)
+		if instPassword == "" {
 			log.Logger.Warnf("cached password for clusterID:%d:%s, mayNULL,delete it.", clusterID, dbType)
-			passwdCache.Remove(fmt.Sprintf("%d-0", clusterID))
+			passwdCache.Remove(fmt.Sprintf("%d-%s", clusterID, passComp))
 		}
-		return instPswd
+		return instPassword
 	}
 
 	if passClient != nil {
@@ -480,7 +471,6 @@ func GetPassByClusterID(clusterID int, dbType string) string {
 				Cloud: passClient.CloudId,
 			},
 		}, GetRedisUserAndComponent(false), 2); err == nil {
-			cachedPswd := RedisPasswd{}
 			for _, pw := range newPasswds {
 				pwByte, pwErr := base64.StdEncoding.DecodeString(pw.Passwd)
 				if pwErr != nil {
@@ -488,30 +478,30 @@ func GetPassByClusterID(clusterID int, dbType string) string {
 					continue
 				}
 				pwVal := string(pwByte)
-				if pw.Component == constvar.ComponentRedisProxy {
+				if passComp == pw.Component {
 					instPswd = pwVal
-					cachedPswd.Proxy = pwVal
-				} else if pw.Component == constvar.ComponentRedis {
-					instPswd = pwVal
-					cachedPswd.Redis = pwVal
 				}
+				exp := GetPassExpireTime()
+				expireAfter := time.Now().Add(exp).Format("2006-01-02 15:04:05")
+				log.Logger.Debugf("add_2_cache k:%s-%s, v:%s e:%s", pw.Ip, pw.Component, pwVal, expireAfter)
+				passwdCache.Add(fmt.Sprintf("%s-%s", pw.Ip, pw.Component), pwVal, exp)
 			}
-			passwdCache.Add(fmt.Sprintf("%d-0", clusterID), cachedPswd, GetPassExpireTime())
+			log.Logger.Debugf("get pass by remote ID:%d,type:%s,pass:%s,ddd:%s", clusterID, dbType, instPswd, passComp)
 		}
 	}
 	return instPswd
 }
 
 // GetInstancePassByClusterId get password by cluster id
-func GetInstancePassByClusterId(dbType string, clusterId int,
+func GetInstancePassByClusterId(dbType string, clusterID int,
 	conf *config.Config) (string, error) {
-	var passwdCluster RedisPasswd
-	if passwdVal, ok := passwdCache.Get(fmt.Sprintf("%d-0", clusterId)); ok {
-		passwdCluster = passwdVal.(RedisPasswd)
+	var instPassword string
+	if instPswd, ok := passwdCache.Get(fmt.Sprintf("%d-%s", clusterID, getComponentName(dbType))); ok {
+		instPassword = instPswd.(string)
 	} else {
 		pins := []client.PasswdInstance{
 			{
-				Ip:    strconv.Itoa(clusterId),
+				Ip:    strconv.Itoa(clusterID),
 				Port:  0,
 				Cloud: conf.GetCloudId(),
 			},
@@ -529,32 +519,14 @@ func GetInstancePassByClusterId(dbType string, clusterId int,
 			}
 
 			pwVal := string(pwByte)
-			if pw.Component == constvar.ComponentRedisProxy {
-				passwdCluster.Proxy = pwVal
-			} else if pw.Component == constvar.ComponentRedis {
-				passwdCluster.Redis = pwVal
+			if getComponentName(dbType) == pw.Component {
+				instPassword = pwVal
 			}
-		}
-
-		// set password to cache
-		if len(passwdCluster.Proxy) > 0 && len(passwdCluster.Redis) > 0 {
-			log.Logger.Infof("reset password 2 cache ClusterID:%d,DbType:%s", clusterId, dbType)
-			passwdCache.Add(fmt.Sprintf("%d-0", clusterId), passwdCluster, GetPassExpireTime())
+			passwdCache.Add(fmt.Sprintf("%d-%s", clusterID, getComponentName(dbType)), pwVal, GetPassExpireTime())
+			log.Logger.Infof("reset password 2 cache ClusterID:%d-%s,DbType:%s", clusterID, getComponentName(dbType), dbType)
 		}
 	}
-
-	if dbType == constvar.TwemproxyMetaType ||
-		dbType == constvar.PredixyMetaType {
-		return passwdCluster.Proxy, nil
-	} else if dbType == constvar.RedisMetaType ||
-		dbType == constvar.TendisplusMetaType ||
-		dbType == constvar.TendisSSDMetaType {
-		return passwdCluster.Redis, nil
-	} else {
-		typeErr := fmt.Errorf("GetInstancePassByClusterId dbtype[%s] not support",
-			string(dbType))
-		return "", typeErr
-	}
+	return instPassword, nil
 }
 
 // GetRedisMachinePasswd get redis machine password

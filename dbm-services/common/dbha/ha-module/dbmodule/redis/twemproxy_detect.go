@@ -26,7 +26,8 @@ func (ins *TwemproxyDetectInstance) Detection() error {
 	}
 
 	if err != nil && ins.Status == constvar.AUTHCheckFailed {
-		log.Logger.Errorf("Twemproxy auth failed:%+v:%s#%d|%s", err, ins.Ip, ins.Port, ins.Pass)
+		log.Logger.Errorf("Twemproxy auth failed. %s#%d|%s:%s %+v",
+			ins.Ip, ins.Port, ins.GetType(), ins.Pass, err)
 		return err
 	}
 
