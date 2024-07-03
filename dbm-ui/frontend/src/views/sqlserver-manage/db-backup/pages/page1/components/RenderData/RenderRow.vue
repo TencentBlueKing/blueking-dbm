@@ -22,6 +22,7 @@
     <td style="padding: 0">
       <RenderDbName
         ref="backupDbsRef"
+        check-not-exist
         :cluster-id="data.clusterId"
         :model-value="data.backupDbs"
         required
@@ -30,8 +31,8 @@
     <td style="padding: 0">
       <RenderDbName
         ref="ignoreDbsRef"
-        :cluster-id="data.clusterId"
         :model-value="data.ignoreDbs"
+        :required="false"
         @change="handleIgnoreDbsChange" />
     </td>
     <td style="padding: 0">
@@ -61,13 +62,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getSqlserverDbs } from '@services/source/sqlserver'
+  import { getSqlserverDbs } from '@services/source/sqlserver';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+
   import { random } from '@utils';
 
-  import RenderDbName from './RenderDbName.vue';
   import RenderDomain from './RenderDomain.vue';
 
   export interface IDataRow {
@@ -119,7 +121,7 @@
   interface Exposes {
     getValue: () => Promise<{
       cluster_id: number;
-      backup_dbs: string[]
+      backup_dbs: string[];
     }>;
   }
 
@@ -134,20 +136,17 @@
   const backupDbs = ref(props.data.backupDbs);
   const ignoreDbs = ref(props.data.ignoreDbs);
 
-  const {
-    data: finalDbs,
-    run: getSqlserverDbsRun
-  } = useRequest(getSqlserverDbs, {
+  const { data: finalDbs, run: getSqlserverDbsRun } = useRequest(getSqlserverDbs, {
     manual: true,
-  })
+  });
 
   const getFinalDbsNew = (backupDbs: string[], ignoreDbs: string[]) => {
     getSqlserverDbsRun({
       cluster_id: props.data.clusterId,
       db_list: backupDbs,
-      ignore_db_list: ignoreDbs
-    })
-  }
+      ignore_db_list: ignoreDbs,
+    });
+  };
 
   const handleInputFinish = (domain: string) => {
     emits('inputClusterFinish', domain);
@@ -155,13 +154,13 @@
 
   const handleBackupDbsChange = (value: string[]) => {
     backupDbs.value = value;
-    getFinalDbsNew(value, ignoreDbs.value)
+    getFinalDbsNew(value, ignoreDbs.value);
     emits('inputBackupDbsFinish', value);
   };
 
   const handleIgnoreDbsChange = (value: string[]) => {
     ignoreDbs.value = value;
-    getFinalDbsNew(backupDbs.value, value)
+    getFinalDbsNew(backupDbs.value, value);
     emits('inputIgnoreDbsFinish', value);
   };
 
@@ -184,11 +183,13 @@
     getValue() {
       return Promise.all([
         domainRef.value!.getValue(),
-        backupDbsRef.value!.getValue(),
-        ignoreDbsRef.value!.getValue(),
-      ]).then(([clusterId]) => ({
+        backupDbsRef.value!.getValue('db_list'),
+        ignoreDbsRef.value!.getValue('ignore_db_list'),
+      ]).then(([clusterId, databasesData, ignoreDatabasesData]) => ({
         cluster_id: clusterId,
-        backup_dbs: finalDbs?.value || []
+        backup_dbs: finalDbs?.value || [],
+        ...databasesData,
+        ...ignoreDatabasesData,
       }));
     },
   });

@@ -48,6 +48,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import _ from 'lodash';
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -55,6 +56,8 @@
   import { queryBackupLogs } from '@services/source/sqlserver';
 
   import { useTimeZoneFormat } from '@hooks';
+
+  import { useTimeZone } from '@stores';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
@@ -76,6 +79,7 @@
 
   const { t } = useI18n();
   const formatDateToUTC = useTimeZoneFormat();
+  const timeZoneStore = useTimeZone();
 
   const timerRules = [
     {
@@ -130,7 +134,7 @@
     }).then((dataList) => {
       logRecordList.value = dataList.map((item) => ({
         id: item.backup_id,
-        name: item.backup_id,
+        name: `${item.role} ${dayjs(item.start_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
       }));
       logRecordListMemo = dataList;
     });
