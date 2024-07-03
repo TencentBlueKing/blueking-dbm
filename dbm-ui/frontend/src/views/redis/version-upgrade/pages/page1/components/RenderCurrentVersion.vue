@@ -75,6 +75,7 @@
       if (props.data.clusterId) {
         fetchCurrentClusterVersions({
           node_type: props.data.nodeType,
+          type: 'online',
           cluster_id: props.data.clusterId,
         });
       }

@@ -17,11 +17,13 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
-      <div class="title-spot mt-12 mb-10">
-        {{ t('时区') }}<span class="required" />
-      </div>
-      <TimeZonePicker style="width: 450px;" />
+        :title="
+          t(
+            '定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态',
+          )
+        " />
+      <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
+      <TimeZonePicker style="width: 450px" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -35,6 +37,7 @@
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
+        :tab-list-config="tabListConfig"
         @change="handelClusterChange" />
       <BatchEntry
         v-model:is-show="isShowBatchEntry"
@@ -92,8 +95,14 @@
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      multiple: false,
+    },
+  };
+
   // 集群域名是否已存在表格的映射表
-  let domainMemo: Record<string, boolean> = {};
+  // let domainMemo: Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -132,25 +141,26 @@
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          clusterData: {
-            id: item.id,
-            domain: item.master_domain,
-            cloudId: item.bk_cloud_id,
-          },
-        });
-        result.push(row);
-        domainMemo[domain] = true;
-      }
+      // const domain = item.master_domain;
+      // if (!domainMemo[domain]) {
+      const row = createRowData({
+        clusterData: {
+          id: item.id,
+          domain: item.master_domain,
+          cloudId: item.bk_cloud_id,
+        },
+      });
+      result.push(row);
+      // domainMemo[domain] = true;
+      // }
       return result;
     }, [] as IDataRow[]);
-    if (checkListEmpty(tableData.value)) {
-      tableData.value = newList;
-    } else {
-      tableData.value = [...tableData.value, ...newList];
-    }
+    tableData.value = newList;
+    // if (checkListEmpty(tableData.value)) {
+    //   tableData.value = newList;
+    // } else {
+    //   tableData.value = [...tableData.value, ...newList];
+    // }
     window.changeConfirm = true;
   };
 
@@ -184,7 +194,7 @@
   const handleReset = () => {
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
-    domainMemo = {};
+    // domainMemo = {};
     window.changeConfirm = false;
   };
 </script>

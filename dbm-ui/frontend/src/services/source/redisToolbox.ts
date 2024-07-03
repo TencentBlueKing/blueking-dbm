@@ -199,9 +199,10 @@ export const listClusterHostsCreateSlaveProxy = async (obj: {
  * 查询集群版本信息
  */
 export function getClusterVersions(params: {
-  node_type: string,
-  cluster_id?: number,
-  cluster_type?: string,
+  node_type: string;
+  type: string;
+  cluster_id?: number;
+  cluster_type?: string;
 }) {
   return http.get<string[]>(`${getRootPath()}/get_cluster_versions/`, params);
 }
