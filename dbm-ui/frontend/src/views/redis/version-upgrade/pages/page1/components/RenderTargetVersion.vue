@@ -85,7 +85,9 @@
       if (props.data.clusterType) {
         fetchTargetClusterVersions({
           node_type: props.data.nodeType,
-          cluster_type: props.data.clusterType,
+          type: 'update',
+          // cluster_type: props.data.clusterType,
+          cluster_id: props.data.clusterId,
         });
       }
     },

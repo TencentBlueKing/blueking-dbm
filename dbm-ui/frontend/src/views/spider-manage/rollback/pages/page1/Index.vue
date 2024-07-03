@@ -39,6 +39,7 @@
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
         :selected="selectedClusters"
+        :tab-list-config="tabListConfig"
         @change="handelClusterChange" />
       <BatchEntry
         v-model:is-show="isShowBatchEntry"
@@ -111,8 +112,14 @@
 
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: {
+      multiple: false,
+    },
+  };
+
   // 集群域名是否已存在表格的映射表
-  let domainMemo: Record<string, boolean> = {};
+  // let domainMemo: Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -151,25 +158,26 @@
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          clusterData: {
-            id: item.id,
-            domain: item.master_domain,
-            cloudId: item.bk_cloud_id,
-          },
-        });
-        result.push(row);
-        domainMemo[domain] = true;
-      }
+      // const domain = item.master_domain;
+      // if (!domainMemo[domain]) {
+      const row = createRowData({
+        clusterData: {
+          id: item.id,
+          domain: item.master_domain,
+          cloudId: item.bk_cloud_id,
+        },
+      });
+      result.push(row);
+      // domainMemo[domain] = true;
+      // }
       return result;
     }, [] as IDataRow[]);
-    if (checkListEmpty(tableData.value)) {
-      tableData.value = newList;
-    } else {
-      tableData.value = [...tableData.value, ...newList];
-    }
+    tableData.value = newList;
+    // if (checkListEmpty(tableData.value)) {
+    //   tableData.value = newList;
+    // } else {
+    //   tableData.value = [...tableData.value, ...newList];
+    // }
     window.changeConfirm = true;
   };
 
@@ -215,7 +223,7 @@
     remark.value = '';
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
-    domainMemo = {};
+    // domainMemo = {};
     window.changeConfirm = false;
   };
 </script>
