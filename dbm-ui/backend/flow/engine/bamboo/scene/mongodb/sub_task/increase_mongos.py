@@ -76,8 +76,7 @@ def increase_mongos(root_id: str, ticket_data: Optional[Dict], sub_kwargs: ActKw
     sub_get_kwargs.payload["config"]["port"] = sub_get_kwargs.payload["config_nodes"][0]["port"]
     sub_get_kwargs.payload["app"] = sub_get_kwargs.payload["db_app_abbr"]
     cluster_name = info["cluster_name"]
-    sub_get_kwargs.mongos_info["set_id"] = cluster_name
-    sub_get_kwargs.db_main_version = str(info["db_version"].split(".")[0])
+    sub_get_kwargs.mongos_info["conf_set_id"] = "{}-conf".format(cluster_name)
     sub_get_kwargs.payload["key_file"] = sub_get_kwargs.get_conf(cluster_name=cluster_name)["key_file"]
     sub_get_kwargs.payload["nodes"] = []
     sub_get_kwargs.payload["nodes"].append(sub_get_kwargs.payload["mongos_nodes"][0])

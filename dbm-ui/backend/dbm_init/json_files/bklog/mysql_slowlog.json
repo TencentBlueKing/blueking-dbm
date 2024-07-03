@@ -13,7 +13,7 @@
     "target_nodes": [],
     "etl_params": {
         "retain_original_text": true,
-        "separator_regexp": "(?s)#\\s+User@Host:\\s+(?P<user>\\w+)\\[\\w+\\]\\s+@\\s+\\[(?P<host>[^\\]]+)\\].*?(Schema:\\s+(?P<db_name>\\w+).*?)?Query_time:\\s+(?P<query_time>\\d+\\.\\d+)\\s+Lock_time:\\s+(?P<lock_time>\\d+\\.\\d+)\\s+Rows_sent:\\s+(?P<rows_sent>\\d+)\\s+Rows_examined:\\s+(?P<rows_examined>\\d+).*?SET timestamp=(?P<sql_timestamp>\\d+);.*?(?P<sql_text>.*;)"
+        "separator_regexp": "(?s)#\\s+User@Host:\\s+(?P<user>\\w+)\\[\\w+\\]\\s+@\\s+\\[(?P<client_host>[^\\]]+)\\].*?(Schema:\\s+(?P<db_name>\\w+).*?)?Query_time:\\s+(?P<query_time>\\d+\\.\\d+)\\s+Lock_time:\\s+(?P<lock_time>\\d+\\.\\d+)\\s+Rows_sent:\\s+(?P<rows_sent>\\d+)\\s+Rows_examined:\\s+(?P<rows_examined>\\d+).*?SET timestamp=(?P<sql_timestamp>\\d+);.*?(?P<sql_text>.*;)"
     },
     "fields": [
         {
@@ -58,7 +58,7 @@
             "verdict": true,
             "is_delete": false,
             "alias_name": "",
-            "field_name": "access_source_host",
+            "field_name": "client_host",
             "field_type": "string",
             "description": "",
             "field_index": 2,

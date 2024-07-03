@@ -18,3 +18,10 @@ class KeyDeleteType(str, StructuredEnum):
 
     BY_REGEX = EnumField("regex", _("基于正则"))
     BY_FILES = EnumField("files", _("基于文件"))
+
+
+class RedisVersionQueryType(str, StructuredEnum):
+    """redis版本查询类型"""
+
+    ONLINE = EnumField("online", _("查询当前版本"))
+    UPDATE = EnumField("update", _("查询更新版本"))

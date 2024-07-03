@@ -21,7 +21,7 @@ type runtimeConfig struct {
 	ProxyAdminUser         string
 	ProxyAdminPassword     string
 	WebConsoleUser         string
-	WebConsolePass         string
+	WebConsolePassword     string
 	Timezone               string
 	SqlserverAdminUser     string
 	SqlserverAdminPassword string
@@ -50,7 +50,7 @@ func InitConfig() {
 		ProxyAdminUser:         viper.GetString("proxy_admin_user"),
 		ProxyAdminPassword:     viper.GetString("proxy_admin_password"),
 		WebConsoleUser:         viper.GetString("webconsole_user"),
-		WebConsolePass:         viper.GetString("webconsole_pass"),
+		WebConsolePassword:     viper.GetString("webconsole_password"),
 		Timezone:               viper.GetString("time_zone"),
 		SqlserverAdminUser:     viper.GetString("sqlserver_admin_user"),
 		SqlserverAdminPassword: viper.GetString("sqlserver_admin_password"),
