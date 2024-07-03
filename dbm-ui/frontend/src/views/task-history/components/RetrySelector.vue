@@ -161,7 +161,7 @@
         state.loading = false;
       });
   };
-  fetchData();
+
 
   /**
    * 设置行选中样式
@@ -183,6 +183,14 @@
       emit('change', state.active);
     }
   }, { immediate: true, deep: true });
+
+  watch(() => props.nodeId, () => {
+    if (props.nodeId) {
+      fetchData();
+    }
+  }, {
+    immediate: true,
+  })
 </script>
 
 <style lang="less" scoped>
