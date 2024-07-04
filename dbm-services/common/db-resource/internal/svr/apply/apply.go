@@ -14,7 +14,6 @@ package apply
 import (
 	"fmt"
 	"path"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -41,11 +40,11 @@ type SearchContext struct {
 
 // CycleApply 循环匹配
 func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
-	resourceReqList := param.Details
-	sort.Slice(resourceReqList, func(i, j int) bool {
-		return len(resourceReqList[i].StorageSpecs) > len(
-			resourceReqList[j].StorageSpecs)
-	})
+	resourceReqList, err := param.SortDetails()
+	if err != nil {
+		logger.Error("对请求参数排序失败%v", err)
+		return nil, err
+	}
 	for _, v := range resourceReqList {
 		var picker *PickerObject
 		logger.Debug(fmt.Sprintf("input.Detail %v", v))
@@ -100,26 +99,6 @@ func RollBackAllInstanceUnused(ms []*PickerObject) {
 	}
 }
 
-// Matcher TODO
-func (o *SearchContext) Matcher() (fns []func(db *gorm.DB)) {
-	switch {
-	//  机型参数不存在、资源规格参数存在,匹配资源规格参数
-	case len(o.DeviceClass) == 0 && o.Spec.NotEmpty():
-		fns = append(fns, o.MatchSpec)
-	// 机型参数存在、资源规格参数不存在,匹配机型
-	case len(o.DeviceClass) > 0 && o.Spec.IsEmpty():
-		fns = append(fns, o.MatchDeviceClass)
-	// 机型参数存在、资源规格参数存在,先匹配机型,在匹配资源规格
-	case len(o.DeviceClass) > 0 && o.Spec.NotEmpty():
-		fns = append(fns, o.MatchDeviceClass)
-		fns = append(fns, o.MatchSpecExcludeDeviceClass)
-	default:
-		fns = append(fns, func(db *gorm.DB) {})
-	}
-
-	return
-}
-
 func (o *SearchContext) pickBase(db *gorm.DB) {
 	db.Where("gse_agent_status_code = ? ", bk.GSE_AGENT_OK)
 	if o.BkCloudId <= 0 {
@@ -166,6 +145,7 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	o.MatchLables(db)
 	o.MatchLocationSpec(db)
 	o.MatchStorage(db)
+	o.MatchSpec(db)
 	switch o.Affinity {
 	// 如果需要存在跨园区检查则需要判断是否存在网卡id,机架id等
 	case SAME_SUBZONE_CROSS_SWTICH:
@@ -175,21 +155,18 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 	}
 }
 
-// PickCheck TODO
+// PickCheck precheck
 func (o *SearchContext) PickCheck() (err error) {
 	var count int64
-	for idx, fn := range o.Matcher() {
-		logger.Info("前置检查： 第%d轮资源匹配", idx+1)
-		db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
-		o.pickBase(db)
-		fn(db)
-		var cnt int64
-		if err := db.Scan(&cnt).Error; err != nil {
-			logger.Error("query pre check count failed %s", err.Error())
-			return errno.ErrDBQuery.AddErr(err)
-		}
-		count += cnt
+
+	logger.Info("前置检查轮资源匹配")
+	db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
+	o.pickBase(db)
+	if err := db.Scan(&count).Error; err != nil {
+		logger.Error("query pre check count failed %s", err.Error())
+		return errno.ErrDBQuery.AddErr(err)
 	}
+
 	if int(count) < o.Count {
 		return errno.ErrResourceinsufficient.AddErr(fmt.Errorf("申请需求:%s\n\r资源池符合条件的资源总数:%d 小于申请的数量", o.GetMessage(),
 			count))
@@ -197,61 +174,56 @@ func (o *SearchContext) PickCheck() (err error) {
 	return nil
 }
 
-// PickInstance TODO
+// PickInstance match resource
 func (o *SearchContext) PickInstance() (picker *PickerObject, err error) {
 	picker = NewPicker(o.Count, o.GroupMark)
-	matchfuncs := o.Matcher()
-	for _, fn := range matchfuncs {
-		var items []model.TbRpDetail
-		db := model.DB.Self.Table(model.TbRpDetailName())
-		o.pickBase(db)
-		fn(db)
-		if err = db.Scan(&items).Error; err != nil {
-			logger.Error("query failed %s", err.Error())
-			return nil, errno.ErrDBQuery.AddErr(err)
-		}
-		// 过滤没有挂载点的磁盘匹配需求
-		logger.Info("storage spec %v", o.StorageSpecs)
-		diskSpecs := GetEmptyDiskSpec(o.StorageSpecs)
-		if len(diskSpecs) > 0 {
-			ts := []model.TbRpDetail{}
-			for _, ins := range items {
-				if err := ins.UnmarshalDiskInfo(); err != nil {
-					logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
-					return picker, err
-				}
-				logger.Info("%v", ins.Storages)
-				noUseStorages := make(map[string]bk.DiskDetail)
-				smp := GetDiskSpecMountPoints(o.StorageSpecs)
-				for mp, v := range ins.Storages {
-					if cmutil.ElementNotInArry(mp, smp) {
-						noUseStorages[mp] = v
-					}
-				}
-				logger.Info("nouse: %v", noUseStorages)
-				if matchNoMountPointStorage(diskSpecs, noUseStorages) {
-					ts = append(ts, ins)
-				}
-			}
-			if len(ts) == 0 {
-				if len(matchfuncs) < 2 {
-					return picker, errno.ErrResourceinsufficient.Add(fmt.Sprintf("匹配磁盘%s,的资源为 0", o.GetDiskMatchInfo()))
-				}
-				logger.Info("匹配%s的资源为空", o.GetDiskMatchInfo())
-				continue
-			}
-			items = ts
-		}
-		o.PickInstanceBase(picker, items)
-		if picker.PickerDone() {
-			return picker, nil
-		}
+	var items []model.TbRpDetail
+	db := model.DB.Self.Table(model.TbRpDetailName())
+	o.pickBase(db)
+	if err = db.Scan(&items).Error; err != nil {
+		logger.Error("query failed %s", err.Error())
+		return nil, errno.ErrDBQuery.AddErr(err)
 	}
+	// 过滤没有挂载点的磁盘匹配需求
+	logger.Info("storage spec %v", o.StorageSpecs)
+	diskSpecs := GetEmptyDiskSpec(o.StorageSpecs)
+	if len(diskSpecs) > 0 {
+		ts := []model.TbRpDetail{}
+		for _, ins := range items {
+			if err = ins.UnmarshalDiskInfo(); err != nil {
+				logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
+				return picker, err
+			}
+			logger.Info("%v", ins.Storages)
+			noUseStorages := make(map[string]bk.DiskDetail)
+			smp := GetDiskSpecMountPoints(o.StorageSpecs)
+			for mp, v := range ins.Storages {
+				if cmutil.ElementNotInArry(mp, smp) {
+					noUseStorages[mp] = v
+				}
+			}
+			logger.Info("nouse: %v", noUseStorages)
+			if matchNoMountPointStorage(diskSpecs, noUseStorages) {
+				ts = append(ts, ins)
+			}
+		}
+		if len(ts) == 0 {
+			return picker, errno.ErrResourceinsufficient.Add(fmt.Sprintf("匹配磁盘%s,的资源为 0", o.GetDiskMatchInfo()))
+		}
+		items = ts
+	}
+	if err = o.PickInstanceBase(picker, items); err != nil {
+		return nil, err
+	}
+	if picker.PickerDone() {
+		return picker, nil
+	}
+
 	return nil, errno.ErrResourceinsufficient.Add(fmt.Sprintf("Picker for %s, 所有资源无法满足 %s的参数需求", o.GroupMark,
 		o.GetMessage()))
 }
 
-// MatchLables TODO
+// MatchLables match lables
 func (o *SearchContext) MatchLables(db *gorm.DB) {
 	if len(o.Labels) > 0 {
 		for key, v := range o.Labels {
@@ -295,31 +267,32 @@ func diskDetailMatch(d bk.DiskDetail, s DiskSpec) bool {
 }
 
 // PickInstanceBase TODO
-func (o *ObjectDetail) PickInstanceBase(picker *PickerObject, items []model.TbRpDetail) {
+func (o *SearchContext) PickInstanceBase(picker *PickerObject, items []model.TbRpDetail) (err error) {
 	logger.Info("the anti-affinity is %s", o.Affinity)
 	switch o.Affinity {
 	case NONE:
-		picker.PickeElements = AnalysisResource(items, true)
+		picker.PriorityElements, err = o.AnalysisResourcePriority(items, true)
 		picker.PickerRandom()
 	case CROS_SUBZONE:
-		picker.PickeElements = AnalysisResource(items, false)
-		picker.Picker(true)
+		picker.PriorityElements, err = o.AnalysisResourcePriority(items, false)
+		picker.PickerCrossSubzone(true)
 	case MAX_EACH_ZONE_EQUAL:
-		picker.PickeElements = AnalysisResource(items, false)
-		picker.Picker(false)
+		picker.PriorityElements, err = o.AnalysisResourcePriority(items, false)
+		picker.PickerCrossSubzone(false)
 	case SAME_SUBZONE:
-		picker.PickeElements = AnalysisResource(items, false)
+		picker.PriorityElements, err = o.AnalysisResourcePriority(items, false)
 		picker.PickerSameSubZone(false)
 	case SAME_SUBZONE_CROSS_SWTICH:
-		picker.PickeElements = AnalysisResource(items, false)
+		picker.PriorityElements, err = o.AnalysisResourcePriority(items, false)
 		picker.PickerSameSubZone(true)
 	case CROSS_RACK:
-		picker.PickeElements = AnalysisResource(items, true)
+		picker.PriorityElements, err = o.AnalysisResourcePriority(items, true)
 		picker.PickerSameSubZone(true)
 	}
+	return
 }
 
-// MatchLocationSpec TODO
+// MatchLocationSpec 匹配location参数
 func (o *SearchContext) MatchLocationSpec(db *gorm.DB) {
 	if o.LocationSpec.IsEmpty() {
 		return
@@ -340,7 +313,7 @@ func (o *SearchContext) MatchLocationSpec(db *gorm.DB) {
 	}
 }
 
-// MatchStorage TODO
+// MatchStorage  匹配存储参数
 func (o *SearchContext) MatchStorage(db *gorm.DB) {
 	if len(o.StorageSpecs) == 0 {
 		return
@@ -372,27 +345,30 @@ func isWindowsPath(path string) bool {
 
 // MatchSpec TODO
 func (o *SearchContext) MatchSpec(db *gorm.DB) {
+	if len(o.DeviceClass) > 0 {
+		switch {
+		case o.Spec.Cpu.IsEmpty() && o.Spec.Mem.IsEmpty():
+			db.Where(" device_class in (?) ", o.DeviceClass)
+		case o.Spec.Cpu.IsEmpty() && o.Spec.Mem.IsNotEmpty():
+			db.Where("? or device_class in (?)", o.Spec.Mem.MatchMemBuilder(), o.DeviceClass)
+		case o.Spec.Cpu.IsNotEmpty() && o.Spec.Mem.IsEmpty():
+			db.Where("? or device_class in (?)", o.Spec.Cpu.MatchCpuBuilder(), o.DeviceClass)
+		case o.Spec.Cpu.IsNotEmpty() && o.Spec.Mem.IsNotEmpty():
+			db.Where("( ? and  ? ) or device_class in (?)", o.Spec.Cpu.MatchCpuBuilder(), o.Spec.Mem.MatchMemBuilder(),
+				o.DeviceClass)
+		}
+		return
+	}
 	o.Spec.Cpu.MatchCpu(db)
 	o.Spec.Mem.MatchMem(db)
 }
 
-// MatchSpecExcludeDeviceClass 只匹配cpu 排除机型
-func (o *SearchContext) MatchSpecExcludeDeviceClass(db *gorm.DB) {
-	o.MatchSpec(db)
-	db.Where(" device_class not in (?) ", o.DeviceClass)
-}
-
-// MatchDeviceClass TODO
-func (o *SearchContext) MatchDeviceClass(db *gorm.DB) {
-	db.Where(" device_class in (?) ", o.DeviceClass)
-}
-
-// UseNetDeviceIsNotEmpty TODO
+// UseNetDeviceIsNotEmpty filster net device id not empty
 func (o *SearchContext) UseNetDeviceIsNotEmpty(db *gorm.DB) {
 	db.Where("(net_device_id  is not null and net_device_id != '') and (rack_id is not null and rack_id != '')")
 }
 
-// RackIdIsNotEmpty TODO
+// RackIdIsNotEmpty filter rackid is not empty
 func (o *SearchContext) RackIdIsNotEmpty(db *gorm.DB) {
 	db.Where("rack_id is not null and rack_id != ''")
 }
