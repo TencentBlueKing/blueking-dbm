@@ -60,30 +60,27 @@ func (m MachineResourceHandler) SpecSum(r *gin.Context) {
 				StorageSpecs: item.StorageSpecs,
 			},
 		}
-		for _, fn := range s.Matcher() {
-			db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
-			db.Where("gse_agent_status_code = ? ", bk.GSE_AGENT_OK)
-			db.Where(" bk_cloud_id = ? and status = ?  ", input.BkCloudId, model.Unused)
-			// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
-			// 没有资源类型标签的资源可以被所有其他类型使用
-			if input.ForbizId > 0 {
-				db.Where("( ? or JSON_LENGTH(dedicated_bizs)<=0 )", model.JSONQuery("dedicated_bizs").Contains([]string{
-					strconv.Itoa(input.ForbizId)}))
-			}
-			if cmutil.IsEmpty(input.ResourceType) {
-				db.Where("JSON_LENGTH(rs_types) <= 0")
-			} else {
-				db.Where("( ? or JSON_LENGTH(rs_types) <= 0 )", model.JSONQuery("rs_types").Contains([]string{input.ResourceType}))
-			}
-			s.MatchStorage(db)
-			fn(db)
-			var cnt int64
-			if err := db.Scan(&cnt).Error; err != nil {
-				logger.Error("query pre check count failed %s", err.Error())
-				m.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error(), requestId)
-				return
-			}
-			count += cnt
+
+		db := model.DB.Self.Table(model.TbRpDetailName()).Select("count(*)")
+		db.Where("gse_agent_status_code = ? ", bk.GSE_AGENT_OK)
+		db.Where(" bk_cloud_id = ? and status = ?  ", input.BkCloudId, model.Unused)
+		// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
+		// 没有资源类型标签的资源可以被所有其他类型使用
+		if input.ForbizId > 0 {
+			db.Where("( ? or JSON_LENGTH(dedicated_bizs)<=0 )", model.JSONQuery("dedicated_bizs").Contains([]string{
+				strconv.Itoa(input.ForbizId)}))
+		}
+		if cmutil.IsEmpty(input.ResourceType) {
+			db.Where("JSON_LENGTH(rs_types) <= 0")
+		} else {
+			db.Where("( ? or JSON_LENGTH(rs_types) <= 0 )", model.JSONQuery("rs_types").Contains([]string{input.ResourceType}))
+		}
+		s.MatchStorage(db)
+		s.MatchSpec(db)
+		if err := db.Scan(&count).Error; err != nil {
+			logger.Error("query pre check count failed %s", err.Error())
+			m.SendResponse(r, errno.ErrDBQuery.AddErr(err), err.Error(), requestId)
+			return
 		}
 		rpdata[item.GroupMark] = count
 	}

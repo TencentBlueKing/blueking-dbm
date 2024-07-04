@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/samber/lo"
@@ -77,6 +78,46 @@ type RequestInputParam struct {
 	ForbizId     int            `json:"for_biz_id"`
 	Details      []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
 	ActionInfo
+}
+
+// SortDetails 优先去匹配有明确需求的参数
+func (param RequestInputParam) SortDetails() ([]ObjectDetail, error) {
+	if len(param.Details) == 1 {
+		return param.Details, nil
+	}
+	var dlts []ObjectDetail
+	pq := NewPriorityQueue()
+	for idx, dtlp := range param.Details {
+		item := Item{
+			Key:      strconv.Itoa(idx),
+			Value:    dtlp,
+			Priority: 0,
+		}
+		if len(dtlp.StorageSpecs) > 0 {
+			// 多磁盘需求前置
+			item.Priority += int64(len(dtlp.StorageSpecs))
+		}
+		if !dtlp.LocationSpec.IsEmpty() {
+			item.Priority++
+			if !dtlp.LocationSpec.SubZoneIsEmpty() {
+				item.Priority++
+			}
+		}
+		if len(dtlp.DeviceClass) > 0 {
+			item.Priority++
+		}
+		if err := pq.Push(&item); err != nil {
+			return nil, err
+		}
+	}
+	for pq.Len() > 0 {
+		item, err := pq.Pop()
+		if err != nil {
+			return nil, err
+		}
+		dlts = append(dlts, item.Value.(ObjectDetail))
+	}
+	return dlts, nil
 }
 
 // GetOperationInfo TODO
