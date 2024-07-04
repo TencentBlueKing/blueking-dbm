@@ -22,6 +22,7 @@
     <td style="padding: 0">
       <RenderClusterNameWithSelector
         ref="targetClustersRef"
+        :data="data.targetClusters"
         :source-cluster-id="data.clusterData.id"
         @change="handleTargetClusterChange" />
     </td>
@@ -68,6 +69,7 @@
     };
     dbPatterns?: string[];
     ignoreDbs?: string[];
+    targetClusters?: string;
   }
 
   export interface InfoItem {
