@@ -51,7 +51,6 @@ type GetAdminUserPasswordPara struct {
 	Instances []IpPortFilter `json:"instances"`
 	BkBizId   *int64         `json:"bk_biz_id"`
 	UserName  string         `json:"username"`
-	Component string         `json:"component"`
 	Limit     *int           `json:"limit"`
 	Offset    *int           `json:"offset"`
 	BeginTime string         `json:"begin_time"`
