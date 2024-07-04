@@ -244,7 +244,7 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 			syncTable.TableName, Charset, c.Params.Host, c.Params.Port, c.Params.SyncUser, c.Params.SyncPass,
 		)
 
-		// logger.Info("executing %s", syncCmd)
+		logger.Info("executing %s", syncCmd)
 		output, err := osutil.ExecShellCommand(false, syncCmd)
 
 		if err != nil && !strings.Contains(err.Error(), SyncExitStatus2) {
@@ -252,6 +252,9 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 			logger.Error("exec cmd get an error:%s,%s", output, err.Error())
 			errTableCount++
 			continue
+		} else {
+			// 打印输出日志
+			logger.Info(output)
 		}
 		// 更新历史记录
 		if err := c.UpdateOldRecords(syncTable.DbName, syncTable.TableName); err != nil {
@@ -376,8 +379,8 @@ func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName strin
 		return false
 	}
 
-	// 在本地创建临时checksum临时表
-	if _, err := c.dbConn.Exec(
+	// 在master创建临时checksum临时表
+	if _, err := c.masterDbConn.Exec(
 		fmt.Sprintf(
 			"create table if not exists %s.%s like %s.%s ;",
 			checkSumDB, tempCheckSumTableName, checkSumDB, c.Params.CheckSumTable,
@@ -406,7 +409,7 @@ func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName strin
 	)
 	copySQLs = append(copySQLs, "set binlog_format = 'ROW' ;")
 
-	if _, err := c.dbConn.ExecMore(copySQLs); err != nil {
+	if _, err := c.masterDbConn.ExecMore(copySQLs); err != nil {
 		logger.Error("create table %s failed:[%s]", tempCheckSumTableName, err.Error())
 		return false
 	}
@@ -424,7 +427,7 @@ func (c *PtTableSyncComp) DropTempTable() (err error) {
 	}
 
 	logger.Info(fmt.Sprintf("droping Temp table :%s ....", c.PtTableSyncCtx.tempCheckSumTableName))
-	if _, err := c.dbConn.Exec(
+	if _, err := c.masterDbConn.Exec(
 		fmt.Sprintf(
 			"drop table if exists %s.%s;",
 			checkSumDB,

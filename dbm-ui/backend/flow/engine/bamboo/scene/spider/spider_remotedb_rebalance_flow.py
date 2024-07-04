@@ -125,6 +125,7 @@ class TenDBRemoteRebalanceFlow(object):
             )
             cluster_info["charset"] = charset
             cluster_info["db_version"] = db_version
+            self.data["db_version"] = db_version
 
             shards = len(cluster_info["shards"])
             if self.data["remote_shard_num"] * len(self.data["remote_group"]) != shards:
