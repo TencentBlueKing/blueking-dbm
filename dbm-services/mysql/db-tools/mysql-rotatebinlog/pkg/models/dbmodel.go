@@ -83,6 +83,7 @@ type BinlogFileModel struct {
 	FileMtime        string `json:"file_mtime" db:"file_mtime"`
 	StartTime        string `json:"start_time" db:"start_time"`
 	StopTime         string `json:"stop_time" db:"stop_time"`
+	BackupEnable     bool   `json:"backup_enable" db:"backup_enable"`
 	BackupStatus     int    `json:"backup_status,omitempty" db:"backup_status"`
 	BackupStatusInfo string `json:"backup_status_info" db:"backup_status_info"`
 	BackupTaskid     string `json:"task_id,omitempty" db:"task_id"`
@@ -145,12 +146,12 @@ func (m *BinlogFileModel) Save(db *sqlx.DB, replace bool) error {
 	sqlBuilder = sqlBuilder.Into(m.TableName()).
 		Columns(
 			"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-			"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
+			"filesize", "start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id",
 			"created_at", "updated_at",
 		).
 		Values(
 			m.BkBizId, m.ClusterId, m.ClusterDomain, m.DBRole, m.Host, m.Port, m.Filename,
-			m.Filesize, m.StartTime, m.StopTime, m.FileMtime, m.BackupStatus, m.BackupTaskid,
+			m.Filesize, m.StartTime, m.StopTime, m.FileMtime, m.BackupEnable, m.BackupStatus, m.BackupTaskid,
 			m.CreatedAt, m.UpdatedAt,
 		)
 	sqlStr, args, err := sqlBuilder.ToSql()
@@ -178,17 +179,15 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 		sqlBuilder := sq.Replace("").Into(m.TableName()).
 			Columns(
 				"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-				"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
+				"filesize", "start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id",
 				"created_at", "updated_at",
 			)
-		//for _, o := range models {
 		o.autoTime()
 		sqlBuilder = sqlBuilder.Values(
 			o.BkBizId, o.ClusterId, o.ClusterDomain, o.DBRole, o.Host, o.Port, o.Filename,
-			o.Filesize, o.StartTime, o.StopTime, o.FileMtime, o.BackupStatus, o.BackupTaskid,
+			o.Filesize, o.StartTime, o.StopTime, o.FileMtime, o.BackupEnable, o.BackupStatus, o.BackupTaskid,
 			o.CreatedAt, o.UpdatedAt,
 		)
-		//}
 		sqlStr, args, err := sqlBuilder.ToSql()
 		if err != nil {
 			return err
@@ -201,18 +200,13 @@ func (m *BinlogFileModel) BatchSave(models []*BinlogFileModel, db *sqlx.DB) erro
 }
 
 // HandleSwitchRole 如果该实例发生切换，从slave变成master, 补录binlog
-func (m *BinlogFileModel) HandleSwitchRole(db *sqlx.DB) error {
+func (m *BinlogFileModel) HandleSwitchRole(backupEnable bool, db *sqlx.DB) error {
 	m.autoTime()
 	if m.BackupStatusInfo == "" {
 		m.BackupStatusInfo = fmt.Sprintf(IBStatusMap[m.BackupStatus])
 	}
-	_ = map[string]interface{}{
-		"backup_status":      IBStatusNew,
-		"db_role":            cst.RoleMaster,
-		"backup_status_info": "switch to master",
-		"updated_at":         m.UpdatedAt,
-	}
 	sqlBuilder := sq.Update("").Table(m.TableName()).
+		Set("backup_enable", backupEnable).
 		Set("backup_status", IBStatusNew).
 		Set("backup_status_info", "switch to master").
 		Set("updated_at", m.UpdatedAt).Set("db_role", cst.RoleMaster)
@@ -311,6 +305,8 @@ const (
 	RoleSlave = "slave"
 	// RoleRepeater TODO
 	RoleRepeater = "repeater"
+	// RoleOrphan 单节点
+	RoleOrphan = "orphan"
 )
 
 // IBStatusMap TODO
@@ -329,9 +325,6 @@ var IBStatusMap = map[int]string{
 	FileStatusAbnormal:     "file abnormal",
 	FileStatusNoNeedUpload: "no need to backup",
 }
-
-// IBStatusUnfinish TODO
-var IBStatusUnfinish = []int{IBStatusNew, IBStatusClientFail, 0, IBStatusWaiting, 2, IBStatusUploading}
 
 // DeleteExpired godoc
 // 删除过期记录
@@ -360,8 +353,8 @@ func mapStructureDecodeJson(input interface{}, output interface{}) error {
 func (m *BinlogFileModel) QueryUnfinished(db *sqlx.DB) ([]*BinlogFileModel, error) {
 	// 在发生切换场景，slave 变成 master，在变之前的 binlog 是不需要上传的
 	return m.Query(
-		db, "backup_status < ? and db_role=?",
-		IBStatusSuccess, RoleMaster,
+		db, "backup_status < ? and (db_role=? or backup_enable=?)",
+		IBStatusSuccess, RoleMaster, true,
 	)
 }
 
@@ -369,12 +362,11 @@ func (m *BinlogFileModel) QueryUnfinished(db *sqlx.DB) ([]*BinlogFileModel, erro
 func (m *BinlogFileModel) QuerySuccess(db *sqlx.DB) ([]*BinlogFileModel, error) {
 	inWhere := sq.Eq{"backup_status": []int{IBStatusSuccess, FileStatusNoNeedUpload}}
 	return m.Query(db, inWhere)
-	// return m.Query(db, "backup_status IN ?", []int{IBStatusSuccess, FileStatusNoNeedUpload})
 }
 
 // QueryFailed 查询上传失败、过期的文件
 func (m *BinlogFileModel) QueryFailed(db *sqlx.DB) ([]*BinlogFileModel, error) {
-	inWhere := sq.NotEq{"backup_status": []int{IBStatusSuccess, FileStatusRemoved}}
+	inWhere := sq.NotEq{"backup_status": []int{IBStatusSuccess, FileStatusRemoved, IBStatusFileNotFound}}
 	return m.Query(db, inWhere)
 }
 
@@ -383,7 +375,7 @@ func (m *BinlogFileModel) Query(db *sqlx.DB, pred interface{}, params ...interfa
 	var files []*BinlogFileModel
 	sqlBuilder := sq.Select(
 		"bk_biz_id", "cluster_id", "cluster_domain", "db_role", "host", "port", "filename",
-		"filesize", "start_time", "stop_time", "file_mtime", "backup_status", "task_id",
+		"filesize", "start_time", "stop_time", "file_mtime", "backup_enable", "backup_status", "task_id",
 	).
 		From(m.TableName()).Where(m.instanceWhere())
 	sqlBuilder = sqlBuilder.Where(pred, params...).OrderBy("filename asc")
@@ -415,7 +407,7 @@ func (m *BinlogFileModel) QueryWithBuildWhere(db *sqlx.DB, builder *sq.SelectBui
 
 // QueryLastFileReport 获取上一轮最后被处理的文件
 func (m *BinlogFileModel) QueryLastFileReport(db *sqlx.DB) (*BinlogFileModel, error) {
-	sqlBuilder := sq.Select("filename", "backup_status", "db_role", "start_time", "file_mtime").
+	sqlBuilder := sq.Select("filename", "backup_enable", "backup_status", "db_role", "start_time", "file_mtime").
 		From(m.TableName()).
 		Where(m.instanceWhere()).OrderBy("filename desc").Limit(1)
 	sqlStr, args, err := sqlBuilder.ToSql()

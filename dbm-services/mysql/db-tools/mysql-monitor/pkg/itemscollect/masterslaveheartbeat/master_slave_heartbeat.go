@@ -98,6 +98,7 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 
 	res, err := conn.ExecContext(ctx, insertSQL)
 	if err != nil {
+		return err
 		var merr *mysql.MySQLError
 		if errors.As(err, &merr) {
 			if merr.Number == 1146 || merr.Number == 1054 {

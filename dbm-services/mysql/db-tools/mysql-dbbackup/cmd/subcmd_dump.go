@@ -185,7 +185,7 @@ func backupData(cnf *config.BackupConfig) (err error) {
 		return nil
 	}
 
-	if err := precheck.BeforeDump(&cnfPublic); err != nil {
+	if err := precheck.BeforeDump(cnf); err != nil {
 		return err
 	}
 

@@ -24,6 +24,12 @@ type LogicalLoader struct {
 
 // CreateConfigFile 要确保 buildFilter 在这之前运行
 func (l *LogicalLoader) CreateConfigFile() error {
+	cpuCores := 8
+	if cpus, err := cmutil.GetCPUInfo(); err == nil {
+		cpuCores = cpus.CoresLogical
+	} else {
+		logger.Warn("fail loader get cpu cores: ", err.Error())
+	}
 	p := l.LoaderUtil
 	if l.myloaderRegex == "" {
 		return errors.New("myloader config need filter regex")
@@ -36,7 +42,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		MysqlCharset:  l.IndexObj.BackupCharset,
 		MysqlLoadDir:  p.LoaderDir,
 		IndexFilePath: p.IndexFilePath,
-		Threads:       4,
+		Threads:       cpuCores,
 		EnableBinlog:  p.EnableBinlog,
 		Regex:         l.myloaderRegex,
 	}

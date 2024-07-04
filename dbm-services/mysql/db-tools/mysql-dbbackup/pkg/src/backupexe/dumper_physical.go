@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -21,14 +23,15 @@ import (
 
 // PhysicalDumper TODO
 type PhysicalDumper struct {
-	cnf             *config.BackupConfig
-	dbbackupHome    string
-	mysqlVersion    string // parsed
-	isOfficial      bool
-	innodbCmd       InnodbCommand
-	storageEngine   string
-	backupStartTime time.Time
-	backupEndTime   time.Time
+	cnf                         *config.BackupConfig
+	dbbackupHome                string
+	mysqlVersion                string // parsed
+	isOfficial                  bool
+	innodbCmd                   InnodbCommand
+	storageEngine               string
+	backupStartTime             time.Time
+	backupEndTime               time.Time
+	tmpDisableSlaveMultiThreads bool
 }
 
 func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
@@ -54,6 +57,21 @@ func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
 	}
 	p.storageEngine = strings.ToLower(p.storageEngine)
 
+	varSlaveParallelWorkers, err := mysqlconn.GetSingleGlobalVar("slave_parallel_workers", db)
+	if err != nil && cmutil.NewMySQLError(err).Code == 1193 { // Unknown system variable
+		logger.Log.Infof("fail to query slave_parallel_workers, err:%s", err.Error())
+	} else if cast.ToInt(varSlaveParallelWorkers) > 0 &&
+		p.cnf.PhysicalBackup.DisableSlaveMultiThread &&
+		p.cnf.Public.MysqlRole == cst.RoleSlave {
+		varGtidMode, err := mysqlconn.GetSingleGlobalVar("gtid_mode", db)
+		if err != nil && cmutil.NewMySQLError(err).Code == 1193 { // Unknown system variable
+			logger.Log.Warnf("fail to query gtid_mode, err:%s", err.Error())
+		} else if !cast.ToBool(varGtidMode) {
+			logger.Log.Infof("will set slave_parallel_workers=0 temporary for slave backup")
+			p.tmpDisableSlaveMultiThreads = true
+		}
+	}
+
 	if err := p.innodbCmd.ChooseXtrabackupTool(p.mysqlVersion, p.isOfficial); err != nil {
 		return err
 	}
@@ -61,19 +79,8 @@ func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
 	return nil
 }
 
-// Execute excute dumping backup with physical backup tool
-func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
-	p.backupStartTime = time.Now()
-	defer func() {
-		p.backupEndTime = time.Now()
-	}()
-	if p.storageEngine != "innodb" {
-		err := fmt.Errorf("%s engine not support", p.storageEngine)
-		logger.Log.Error(err.Error())
-		return err
-	}
-
-	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
+// buildArgs 生成 xtrabackup 的命令行参数
+func (p *PhysicalDumper) buildArgs() []string {
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", p.cnf.PhysicalBackup.DefaultsFile),
 		fmt.Sprintf("--host=%s", p.cnf.Public.MysqlHost),
@@ -123,6 +130,45 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 	}
 
 	// ToDo extropt
+	return args
+}
+
+// Execute excute dumping backup with physical backup tool
+func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
+	p.backupStartTime = time.Now()
+	defer func() {
+		p.backupEndTime = time.Now()
+	}()
+	if p.storageEngine != "innodb" {
+		err := fmt.Errorf("%s engine not support", p.storageEngine)
+		logger.Log.Error(err.Error())
+		return err
+	}
+
+	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
+	args := p.buildArgs()
+
+	// DisableSlaveMultiThreads 这个选项要在主函数里设置，备份结束(成功/失败)后 defer 关闭
+	if p.tmpDisableSlaveMultiThreads {
+		db, err := mysqlconn.InitConn(&p.cnf.Public)
+		if err != nil {
+			return err
+		}
+		defer func() {
+			_ = db.Close()
+		}()
+		if originVal, err := mysqlconn.SetGlobalVarAndReturnOrigin("slave_parallel_workers", "0", db); err != nil {
+			logger.Log.Error("set global slave_parallel_workers=0 failed, err: %s", err.Error())
+			return err
+		} else {
+			logger.Log.Infof("will set global slave_parallel_workers=%s after backup finished", originVal)
+			defer func() {
+				if err = mysqlconn.SetSingleGlobalVar("slave_parallel_workers", originVal, db); err != nil {
+					logger.Log.Errorf("set global slave_parallel_workers=%s failed, err: %s", originVal, err.Error())
+				}
+			}()
+		}
+	}
 
 	var cmd *exec.Cmd
 	if enableTimeOut {
@@ -145,7 +191,7 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 		filepath.Join(
 			p.dbbackupHome,
 			"logs",
-			fmt.Sprintf("xtrabackup_%d.log", int(time.Now().Weekday()))))
+			fmt.Sprintf("xtrabackup_%d_%d.log", p.cnf.Public.MysqlPort, int(time.Now().Weekday()))))
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
 		return err
@@ -156,7 +202,6 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 
 	cmd.Stdout = outFile
 	cmd.Stderr = outFile
-
 	logger.Log.Info("xtrabackup command: ", cmd.String())
 
 	err = cmd.Run()
@@ -164,7 +209,6 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 		logger.Log.Error("run physical backup failed: ", err)
 		return err
 	}
-
 	return nil
 }
 
