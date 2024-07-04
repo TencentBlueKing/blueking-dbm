@@ -8,4 +8,7 @@ npm install . && npm run build
 mkdir -p ../static/
 cp -rf dist/* ../static/
 cd ..
+# 单独处理 monacoeditorwork
+rm -rf ./static/monacoeditorwork
+mv ./static/static/monacoeditorwork ./static/monacoeditorwork
 ./bin/manage.sh collectstatic --noinput
