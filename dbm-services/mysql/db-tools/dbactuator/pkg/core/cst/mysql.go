@@ -111,6 +111,7 @@ const (
 	BackupRoleSpiderMaster = "SPIDER_MASTER"
 	BackupRoleSpiderSlave  = "SPIDER_SLAVE"
 	BackupRoleSpiderMnt    = "SPIDER_MNT"
+	BackupRoleTdbctl       = "TDBCTL"
 )
 
 // 规范的 备份类型名

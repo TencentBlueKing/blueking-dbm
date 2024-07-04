@@ -87,7 +87,7 @@ get_config_files() {
 
 get_config_files
 
-echo "begin mutli dbbackup" >>$logfile
+echo "begin mutli dbbackup `date '+%Y-%m-%d %H:%M:%S'`" >>$logfile
 errPorts=""
 okPorts=""
 for conf_file in $configFiles

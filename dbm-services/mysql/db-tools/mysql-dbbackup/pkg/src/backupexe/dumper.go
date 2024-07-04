@@ -10,6 +10,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
 )
 
 // Dumper TODO
@@ -21,6 +22,10 @@ type Dumper interface {
 
 // BuildDumper return logical or physical dumper
 func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
+	if err = precheck.CheckBackupType(cnf); err != nil {
+		return nil, err
+	}
+
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
 		if !cnf.Public.UseMysqldump {
 			if err := validate.GoValidateStruct(cnf.LogicalBackup, false, false); err != nil {

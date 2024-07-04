@@ -113,7 +113,7 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 		filepath.Join(
 			l.dbbackupHome,
 			"logs",
-			fmt.Sprintf("mydumper_%d.log", int(time.Now().Weekday()))))
+			fmt.Sprintf("mydumper_%d_%d.log", l.cnf.Public.MysqlPort, int(time.Now().Weekday()))))
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
 		return err

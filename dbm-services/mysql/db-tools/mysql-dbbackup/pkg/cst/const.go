@@ -16,6 +16,7 @@ const (
 	BackupNone = "none"
 )
 
+// backup role: dbm-services/mysql/db-tools/dbactuator/pkg/core/cst/mysql.go
 const (
 	// RoleMaster lower case
 	RoleMaster = "master"
@@ -28,6 +29,11 @@ const (
 const (
 	BackupPhysical = "physical"
 	BackupLogical  = "logical"
+	// BackupTypeAuto 自动选择备份方式
+	// 磁盘空间数据量大于 BackupTypeAutoDataSizeGB ，物理备份
+	// glibc 版本小于 2.14，物理备份
+	BackupTypeAuto           = "auto"
+	BackupTypeAutoDataSizeGB = 400
 )
 
 const (

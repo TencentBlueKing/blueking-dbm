@@ -10,11 +10,13 @@ package config
 
 // PhysicalBackup the config of physical backup
 type PhysicalBackup struct {
-	Threads int `ini:"Threads"` // parallel to copy files
-	//SplitSpeed   int64  `ini:"SplitSpeed"` // tar split limit in MB/s, default 300
+	Threads      int    `ini:"Threads"`  // parallel to copy files
 	Throttle     int    `ini:"Throttle"` // limits the number of chunks copied per second. The chunk size is 10 MB, 0 means no limit
 	DefaultsFile string `ini:"DefaultsFile" validate:"required,file"`
 	ExtraOpt     string `ini:"ExtraOpt"` // other xtrabackup options string to be appended
+	// DisableSlaveMultiThread 在 slave并行多线程复制，且未开启 gtid 时，是否可临时关闭并行复制。默认值 false
+	// 解决 The --slave-info option requires GTID enabled for a multi-threaded slave
+	DisableSlaveMultiThread bool `ini:"DisableSlaveMultiThread"`
 }
 
 // PhysicalLoad the config of physical loading

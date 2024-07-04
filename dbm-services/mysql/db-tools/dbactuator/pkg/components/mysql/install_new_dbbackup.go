@@ -320,6 +320,7 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 		if i.Params.Role == cst.BackupRoleSpiderMaster {
 			tdbctlPort := mysqlcomm.GetTdbctlPortBySpider(port)
 			cfg.Public.MysqlPort = tdbctlPort
+			cfg.Public.MysqlRole = cst.BackupRoleTdbctl
 			cfg.PhysicalBackup.DefaultsFile = util.GetMyCnfFileName(tdbctlPort)
 			i.renderCnf[tdbctlPort] = cfg
 		}

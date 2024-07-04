@@ -2,7 +2,6 @@ package util
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -14,6 +13,9 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/pkg/errors"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/common"
@@ -100,7 +102,7 @@ func CheckIntegrity(publicConfig *config.Public) error {
 	return nil
 }
 
-// CalServerDataSize Calculate the data size of Mysql server
+// CalServerDataSize Calculate the data size bytes of Mysql server
 func CalServerDataSize(port int) (uint64, error) {
 	datadir, err := common.GetDatadir(port)
 	if err != nil {
@@ -149,15 +151,12 @@ func DiskUsage(path string) (disk DiskStatus, err error) {
 // CheckDiskSpace Check whether disk free space is enough
 // 如果返回的值 <0，则表示空间不足，且还需要对应的空间大小
 // 如果返回值 >0，则表示空间足够，且还剩余的空间大小
-func CheckDiskSpace(backupDir string, mysqlPort int) (sizeLeft int64, err error) {
+func CheckDiskSpace(backupDir string, mysqlPort int, backupSize uint64) (sizeLeft int64, err error) {
 	diskSpaceInfo, err := DiskUsage(backupDir)
 	if err != nil {
 		return 0, err
 	}
-	backupSize, err := CalServerDataSize(mysqlPort)
-	if err != nil {
-		return 0, err
-	}
+
 	expectSize := backupSize * 1 // 预计备份需要多少实际空间
 	expectSizeLeft := float64(diskSpaceInfo.Free) - float64(expectSize)
 	if expectSizeLeft < 0 {
@@ -170,6 +169,21 @@ func CheckDiskSpace(backupDir string, mysqlPort int) (sizeLeft int64, err error)
 		return sizeLeft, err
 	}
 	return sizeLeft, nil
+}
+
+func GetGlibcVersion() (string, error) {
+	//ExeCommand("ldd --version |grep libc")
+	outStr, errStr, err := cmutil.ExecCommand(false, "",
+		"/usr/bin/ldd", "--version", "|", "grep", "libc")
+	if err != nil {
+		return "", errors.WithMessage(err, errStr)
+	}
+	verMatch := regexp.MustCompile(`ldd \(.*\) (\d+\.\d+)`)
+	ms := verMatch.FindStringSubmatch(outStr)
+	if len(ms) == 2 {
+		return ms[1], nil
+	}
+	return "", errors.New("ldd --version | grep libc fail to get glibc version")
 }
 
 // ExeCommand execute shell command

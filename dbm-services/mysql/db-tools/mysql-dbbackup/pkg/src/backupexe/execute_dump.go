@@ -33,9 +33,6 @@ func ExecuteBackup(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	if err != nil {
 		return nil, err
 	}
-	if envErr := SetEnv(cnf.Public.BackupType, versionStr); envErr != nil {
-		return nil, envErr
-	}
 	mysqlVersion, isOfficial := util.VersionParser(versionStr)
 	XbcryptBin = GetXbcryptBin(mysqlVersion, isOfficial)
 
@@ -45,6 +42,10 @@ func ExecuteBackup(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	}
 	if err := dumper.initConfig(versionStr); err != nil {
 		return nil, err
+	}
+	// initConfig 里面会修正备份方式，所以 SetEnv 要放在后面执行
+	if envErr := SetEnv(cnf.Public.BackupType, versionStr); envErr != nil {
+		return nil, envErr
 	}
 
 	// needn't set timeout for slave

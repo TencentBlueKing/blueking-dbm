@@ -1,6 +1,7 @@
 package backupexe
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -75,10 +76,16 @@ func (l *LogicalLoader) preExecute() error {
 			}
 		}
 
+		ctx := context.Background()
+		dbConn, _ := l.dbConn.Conn(ctx)
+		defer dbConn.Close()
+		if !l.cnf.LogicalLoad.EnableBinlog {
+			dbConn.ExecContext(ctx, "set session sql_log_bin=off")
+		}
 		for _, dbName := range dblistNew {
 			dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName)
 			logger.Log.Warn("DBListDropIfExists sql:", dropDbSql)
-			if _, err := l.dbConn.Exec(dropDbSql); err != nil {
+			if _, err := dbConn.ExecContext(ctx, dropDbSql); err != nil {
 				return errors.Wrap(err, "DBListDropIfExists err")
 			}
 		}
