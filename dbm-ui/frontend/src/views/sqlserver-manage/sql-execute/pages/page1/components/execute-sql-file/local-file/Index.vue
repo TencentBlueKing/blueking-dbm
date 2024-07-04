@@ -282,7 +282,7 @@
         const lastUploadFileDataMap = { ...uploadFileDataMap.value };
         data.forEach((uploadFileData) => {
           const grammarCheckResult = uploadFileData;
-          lastUploadFileDataMap[grammarCheckResult.raw_file_name] = {
+          lastUploadFileDataMap[getSQLFilename(grammarCheckResult.raw_file_name)] = {
             ...lastUploadFileDataMap[grammarCheckResult.raw_file_name],
             realFilePath: uploadFileData.raw_file_name,
             isSuccess: true,

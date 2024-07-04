@@ -1,5 +1,14 @@
 <template>
   <div>
+    <BkForm
+      form-type="vertical"
+      style="margin-top: 20px">
+      <BkFormItem
+        :label="t('时区')"
+        required>
+        <TimeZonePicker style="width: 450px" />
+      </BkFormItem>
+    </BkForm>
     <RenderData
       class="mt16"
       @batch-select-cluster="handleShowBatchSelector"
@@ -22,6 +31,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
 
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
@@ -29,6 +39,7 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import RenderData from './components/RenderData.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
@@ -41,6 +52,8 @@
     const [firstRow] = list;
     return !firstRow.clusterData;
   };
+
+  const { t } = useI18n();
 
   const rowRefs = ref();
   const isShowBatchSrcSelector = ref(false);
