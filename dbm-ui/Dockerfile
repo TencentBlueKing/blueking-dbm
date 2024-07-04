@@ -48,13 +48,15 @@ WORKDIR /
 RUN set -ex &&  \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    gcc gettext mariadb-client default-libmysqlclient-dev g++ pkg-config && \
+    gcc gettext mariadb-client default-libmysqlclient-dev g++ pkg-config curl && \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && \
     rm -rf /var/lib/apt/lists/*
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 COPY ./pyproject.toml ./poetry.lock /
 
+ENV PATH="/root/.cargo/bin:${PATH}"
 # 创建 Python 虚拟环境并安装依赖
 RUN set -ex && python -m venv /venv && . /venv/bin/activate && pip install --upgrade pip && pip install poetry && poetry install
 
@@ -79,6 +81,11 @@ USER root
 COPY --from=copy-backend-file /app /app
 COPY --from=backend-builder /venv /venv
 COPY --from=frontend-builder /frontend/dist /app/static/
+
+# 额外处理monacoeditorwork目录问题
+RUN set -ex &&  \
+    rm -rf ./static/monacoeditorwork && \
+    mv ./static/static/monacoeditorwork ./static/monacoeditorwork
 
 # 收集静态文件
 ENV APP_ID=bk-dbm APP_TOKEN=xxxx
