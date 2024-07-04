@@ -119,6 +119,7 @@ func DoMigratePlatformPassword() error {
 		"dba_bak_all_sel", "MONITOR", "MONITOR_ALL", "mysql", "repl", "yw", "partition_yw"}})
 	users = append(users, ComponentPlatformUser{Component: "proxy", Usernames: []string{"proxy"}})
 	users = append(users, ComponentPlatformUser{Component: "tbinlogdumper", Usernames: []string{"ADMIN"}})
+	users = append(users, ComponentPlatformUser{Component: "redis", Usernames: []string{"mysql"}})
 
 	for _, component := range users {
 		for _, user := range component.Usernames {
@@ -134,6 +135,11 @@ func DoMigratePlatformPassword() error {
 				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
 					Instances:    []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}},
 					InitPlatform: true, SecurityRuleName: "password"}
+				if component.Component == "redis" {
+					insertPara = &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
+						Instances:    []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}},
+						InitPlatform: true, SecurityRuleName: "redis_password"}
+				}
 				b, _ = json.Marshal(*insertPara)
 				err = insertPara.ModifyPassword(string(b), "modify_password")
 				if err != nil {
