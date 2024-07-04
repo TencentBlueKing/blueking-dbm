@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package apply
 
 import (
@@ -133,15 +143,15 @@ func NewPicker(count int, item string) *PickerObject {
 	}
 }
 
-// PickerSameSubZone TODO
+// PickerSameSubZone 挑选同subzone的资源
 func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
 	sortSubZones := c.sortSubZone(false)
-	if len(sortSubZones) <= 0 {
+	if len(sortSubZones) == 0 {
 		return
 	}
 	for _, subzone := range sortSubZones {
 		logger.Info("PickerSameSubZone:PickeElements: %v", c.PickeElements[subzone])
-		if len(c.PickeElements[subzone]) < c.Count || len(c.PickeElements[subzone]) <= 0 {
+		if len(c.PickeElements[subzone]) < c.Count || len(c.PickeElements[subzone]) == 0 {
 			c.ProcessLogs = append(c.ProcessLogs, fmt.Sprintf("%s 符合条件的资源有%d,实际需要申请%d,不满足！！！",
 				subzone, len(c.PickeElements[subzone]), c.Count))
 			continue
@@ -183,45 +193,46 @@ func (c *PickerObject) PickerRandom() {
 //	@param cross_campus 是否跨园区
 func (c *PickerObject) Picker(cross_subzone bool) {
 	campKeys := c.sortSubZone(cross_subzone)
-	if len(campKeys) <= 0 {
+	if len(campKeys) == 0 {
 		return
 	}
 	subzoneChan := make(chan subzone, len(campKeys))
 	for _, v := range campKeys {
 		subzoneChan <- v
 	}
-	for {
-		select {
-		case subzone := <-subzoneChan:
-			if len(c.PickeElements[subzone]) == 0 {
+	for subzone := range subzoneChan {
+		if len(c.PickeElements[subzone]) == 0 {
+			delete(c.PickeElements, subzone)
+		}
+		if len(c.sortSubZone(cross_subzone)) == 0 {
+			logger.Info("go out here")
+			close(subzoneChan)
+			return
+		}
+		logger.Info(fmt.Sprintf("surplus %s,%d", subzone, len(c.PickeElements[subzone])))
+		logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
+		if c.pickerOne(subzone, false) {
+			if cross_subzone {
 				delete(c.PickeElements, subzone)
 			}
-			if len(c.sortSubZone(cross_subzone)) == 0 {
-				logger.Info("go out here")
-				return
-			}
-			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, len(c.PickeElements[subzone])))
-			logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
-			if c.pickerOne(subzone, false) {
-				if cross_subzone {
-					delete(c.PickeElements, subzone)
-				}
-			}
-			// 匹配资源完成
-			if c.PickerDone() {
-				return
-			}
-			// 非跨园区循环读取
-			if !cross_subzone {
-				subzoneChan <- subzone
-				continue
-			}
-			// 跨园区
-			if len(subzoneChan) <= 0 {
-				return
-			}
+		}
+		// 匹配资源完成
+		if c.PickerDone() {
+			close(subzoneChan)
+			return
+		}
+		// 非跨园区循环读取
+		if !cross_subzone {
+			subzoneChan <- subzone
+			continue
+		}
+		// 跨园区
+		if len(subzoneChan) == 0 {
+			close(subzoneChan)
+			return
 		}
 	}
+
 }
 
 func (c *PickerObject) pickerOne(key string, cross_switch bool) bool {
@@ -242,12 +253,12 @@ func (c *PickerObject) pickerOne(key string, cross_switch bool) bool {
 		c.deleteElement(key, v.BkHostId)
 		return true
 	}
-	return len(c.PickeElements) <= 0
+	return len(c.PickeElements) == 0
 }
 
 // CrossSwitchCheck 跨交换机检查
 func (c *PickerObject) CrossSwitchCheck(v InstanceObject) bool {
-	if len(v.LinkNetdeviceId) <= 0 {
+	if len(v.LinkNetdeviceId) == 0 {
 		return false
 	}
 	return c.InterSectForLinkNetDevice(v.LinkNetdeviceId) == 0
@@ -262,8 +273,8 @@ func (c *PickerObject) CrossRackCheck(v InstanceObject) bool {
 }
 
 // DebugDistrubuteLog TODO
-func (o *PickerObject) DebugDistrubuteLog() {
-	for key, v := range o.PickDistrbute {
+func (c *PickerObject) DebugDistrubuteLog() {
+	for key, v := range c.PickDistrbute {
 		logger.Debug(fmt.Sprintf("Zone:%s,PickCount:%d", key, v))
 	}
 }

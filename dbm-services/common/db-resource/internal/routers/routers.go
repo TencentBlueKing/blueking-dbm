@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package routers TODO
+// Package routers routers
 package routers
 
 import (
@@ -21,12 +21,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// RegisterRoutes TODO
+// RegisterRoutes register route
 func RegisterRoutes(engine *gin.Engine) {
-	// 注册路由
 	apply := apply.ApplyHandler{}
 	apply.RegisterRouter(engine)
-	// 机器资源管理
+	// machine resource management
 	manage := manage.MachineResourceHandler{}
 	manage.RegisterRouter(engine)
 	// background router

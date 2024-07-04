@@ -1,8 +1,8 @@
 <template>
   <div>
     <BkForm
-      form-type="vertical"
-      style="margin-top: 20px">
+      class="mt-20"
+      form-type="vertical">
       <BkFormItem
         :label="t('时区')"
         required>

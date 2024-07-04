@@ -998,6 +998,15 @@ class RedisClusterState(str, StructuredEnum):
     FAIL = EnumField("fail", _("redis cluster state fail,not all slots are covered.通过 cluster info 命令获取"))
 
 
+class RedisCapacityUpdateType(str, StructuredEnum):
+    """
+    redis容量变更类型
+    """
+
+    KEEP_CURRENT_MACHINES = EnumField("keep_current_machines", _("原地变更"))
+    ALL_MACHINES_REPLACE = EnumField("all_machines_replace", _("全部机器替换"))
+
+
 class KafkaRoleEnum(str, StructuredEnum):
     ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
     BROKER = EnumField("broker", _("broker"))

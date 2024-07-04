@@ -73,7 +73,7 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 		objects = append(objects, PartitionObject{Ip: ins.Ip, Port: ins.Port, ShardName: "null",
 			ExecuteObjects: sqls})
 	case Tendbcluster:
-		cluster := fmt.Sprintf("%s|%d|%d", m.ImmuteDomain, m.Port, m.BkCloudId)
+		cluster := fmt.Sprintf("%s|%d|%d", m.ImmuteDomain, m.Port, *m.BkCloudId)
 		hostNodes, splitCnt, err := GetTendbclusterInstances(cluster)
 		if err != nil {
 			slog.Error("msg", "GetTendbclusterInstances", err)
@@ -90,7 +90,7 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 					newconfigs[k] = &newconfig
 				}
 				sqls, _, _, errInner := CheckPartitionConfigs(newconfigs, ins.Wrapper,
-					splitCnt, false, Host{Ip: ins.Ip, Port: ins.Port, BkCloudId: int64(ins.Cloud)})
+					splitCnt, false, Host{Ip: ins.Ip, Port: ins.Port, BkCloudId: ins.Cloud})
 				if errInner != nil {
 					slog.Error("msg", "CheckPartitionConfigs", err)
 					return objects, errno.GetPartitionSqlFail.Add(fmt.Sprintf("%s:%d\n%s", ins.Ip,
@@ -113,13 +113,13 @@ func (m *Checker) DryRun() ([]PartitionObject, error) {
 	return objects, nil
 }
 
-// CheckPartitionConfigs TODO
+// CheckPartitionConfigs 检查一批分区规则是否需要执行，生成分区语句
 func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt int, fromCron bool, host Host) ([]PartitionSql,
-	[]PartitionConfig, []PartitionConfig, error) {
+	[]IdLog, []IdLog, error) {
 	fmt.Printf("do CheckPartitionConfigs")
-	var errMsg Messages
 	sqlSet := PartitionSqlSet{}
-	nothingToDoSet := ConfigSet{}
+	nothingToDoSet := ConfigIdLogSet{}
+	checkFailSet := ConfigIdLogSet{}
 	wg := sync.WaitGroup{}
 	limit := rate.Every(time.Millisecond * 200) // QPS：5
 	burst := 10                                 // 桶容量 10
@@ -130,32 +130,31 @@ func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt i
 		go func(config *PartitionConfig) {
 			err := limiter.Wait(context.Background())
 			if err != nil {
-				errMsg.mu.Lock()
-				errMsg.list = append(errMsg.list, err.Error())
-				errMsg.mu.Unlock()
+				checkFailSet.Mu.Lock()
+				checkFailSet.IdLogs = append(checkFailSet.IdLogs, IdLog{(*config).ID, err.Error()})
+				checkFailSet.Mu.Unlock()
 				return
 			}
-			slog.Info(fmt.Sprintf("%s:%v", "CheckOnePartitionConfig", config))
-			err = CheckOnePartitionConfig(ctx, cancel, *config, &wg, &sqlSet, &nothingToDoSet, dbtype, splitCnt,
+			CheckOnePartitionConfig(ctx, cancel, *config, &wg, &sqlSet, &nothingToDoSet, &checkFailSet, dbtype, splitCnt,
 				fromCron, host)
-			if err != nil {
-				errMsg.mu.Lock()
-				errMsg.list = append(errMsg.list, err.Error())
-				errMsg.mu.Unlock()
-			}
 		}(config)
 	}
 	wg.Wait()
-	if len(errMsg.list) > 0 {
-		return sqlSet.PartitionSqls, sqlSet.Configs, nothingToDoSet.Configs, fmt.Errorf(strings.Join(errMsg.list, "\n"))
+	if len(checkFailSet.IdLogs) > 0 {
+		var msg string
+		for _, log := range checkFailSet.IdLogs {
+			msg = fmt.Sprintf("%s\n%s", msg, log.Log)
+		}
+		msg = strings.TrimPrefix(msg, "\n")
+		return sqlSet.PartitionSqls, nothingToDoSet.IdLogs, checkFailSet.IdLogs, fmt.Errorf(msg)
 	}
-	return sqlSet.PartitionSqls, sqlSet.Configs, nothingToDoSet.Configs, nil
+	return sqlSet.PartitionSqls, nothingToDoSet.IdLogs, checkFailSet.IdLogs, nil
 }
 
-// CheckOnePartitionConfig TODO
+// CheckOnePartitionConfig 检查一个分区规则是否需要执行，生成分区语句
 func CheckOnePartitionConfig(ctx context.Context, cancel context.CancelFunc, config PartitionConfig,
-	wg *sync.WaitGroup, sqlSet *PartitionSqlSet, nothingToDoSet *ConfigSet,
-	dbtype string, splitCnt int, fromCron bool, host Host) error {
+	wg *sync.WaitGroup, sqlSet *PartitionSqlSet, nothingToDoSet *ConfigIdLogSet, checkFailSet *ConfigIdLogSet,
+	dbtype string, splitCnt int, fromCron bool, host Host) {
 	fmt.Printf("do CheckOnePartitionConfig")
 	var addSql, dropSql []string
 	var err error
@@ -166,27 +165,26 @@ func CheckOnePartitionConfig(ctx context.Context, cancel context.CancelFunc, con
 	}()
 
 	finish := make(chan int, 1)
-	errorChan := make(chan error, 1)
 	go func() {
 		defer func() {
 			finish <- 1
 		}()
 		initSql, addSql, dropSql, err = config.GetPartitionDbLikeTbLike(dbtype, splitCnt, fromCron, host)
 		if err != nil {
-			errorChan <- err
+			checkFailSet.Mu.Lock()
+			checkFailSet.IdLogs = append(checkFailSet.IdLogs, IdLog{ConfigId: config.ID, Log: err.Error()})
+			checkFailSet.Mu.Unlock()
 			return
 		}
-
 		if len(addSql) != 0 || len(dropSql) != 0 || len(initSql) != 0 {
 			sqlSet.Mu.Lock()
 			sqlSet.PartitionSqls = append(sqlSet.PartitionSqls, PartitionSql{config.ID, config.DbLike, config.TbLike, initSql,
 				addSql, dropSql})
-			sqlSet.Configs = append(sqlSet.Configs, config)
 			sqlSet.Mu.Unlock()
 		} else {
 			// 集群没有需要执行的分区语句并且在获取分区语句时没有错误
 			nothingToDoSet.Mu.Lock()
-			nothingToDoSet.Configs = append(nothingToDoSet.Configs, config)
+			nothingToDoSet.IdLogs = append(nothingToDoSet.IdLogs, IdLog{ConfigId: config.ID})
 			nothingToDoSet.Mu.Unlock()
 		}
 		return
@@ -194,12 +192,13 @@ func CheckOnePartitionConfig(ctx context.Context, cancel context.CancelFunc, con
 
 	select {
 	case <-finish:
-		return nil
-	case errOuter := <-errorChan:
-		return errOuter
+		return
 	case <-ctx.Done():
-		errOuter := fmt.Errorf("partition rule: [dblike:`%s` tblike:`%s`] get partition sql timeout",
-			config.DbLike, config.TbLike)
-		return errOuter
+		checkFailSet.Mu.Lock()
+		checkFailSet.IdLogs = append(checkFailSet.IdLogs, IdLog{ConfigId: config.ID,
+			Log: fmt.Sprintf("partition rule: [dblike:`%s` tblike:`%s`] get partition sql timeout",
+				config.DbLike, config.TbLike)})
+		checkFailSet.Mu.Unlock()
+		return
 	}
 }

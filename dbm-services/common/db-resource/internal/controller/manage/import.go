@@ -50,22 +50,6 @@ type HostBase struct {
 	BkCloudId int    `json:"bk_cloud_id"`
 }
 
-func (p ImportMachParam) getOperationInfo(requestId string, hostIds json.RawMessage,
-	iplist json.RawMessage) model.TbRpOperationInfo {
-	return model.TbRpOperationInfo{
-		RequestID:     requestId,
-		OperationType: model.Imported,
-		TotalCount:    len(p.getIps()),
-		TaskId:        p.TaskId,
-		BillId:        p.BillId,
-		Operator:      p.Operator,
-		CreateTime:    time.Now(),
-		BkHostIds:     hostIds,
-		IpList:        iplist,
-		UpdateTime:    time.Now(),
-	}
-}
-
 // getIps 从参数中获取ipList
 func (p ImportMachParam) getIps() []string {
 	return lo.FilterMap(p.Hosts, func(item HostBase, _ int) (string, bool) {
@@ -81,12 +65,6 @@ func (p ImportMachParam) getIpsByCloudId() (ipMap map[int][]string) {
 		}
 	}
 	return
-}
-
-func (p ImportMachParam) getHostIds() []int {
-	return lo.FilterMap(p.Hosts, func(item HostBase, _ int) (int, bool) {
-		return item.HostId, item.HostId > 0
-	})
 }
 
 // existCheck 导入前存在性检查
@@ -240,7 +218,7 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 		}
 		elems = append(elems, el)
 	}
-	if err := model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
+	if err = model.DB.Self.Table(model.TbRpDetailName()).Create(elems).Error; err != nil {
 		logger.Error("failed to save resource: %s", err.Error())
 		return resp, err
 	}
@@ -251,7 +229,7 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 // getCvmMachDetailInfo 获取cvm的相关的信息
 func getCvmMachDetailInfo(ipList []string) (cvmInfoMap map[string]yunti.InstanceDetail, err error) {
 	cvmInfoMap = make(map[string]yunti.InstanceDetail)
-	if len(ipList) <= 0 {
+	if len(ipList) == 0 {
 		return cvmInfoMap, nil
 	}
 	resp, err := config.AppConfig.Yunti.QueryCVMInstances(ipList)

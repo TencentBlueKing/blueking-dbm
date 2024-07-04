@@ -54,6 +54,8 @@ type MachineResourceGetterInputParam struct {
 // List TODO
 func (c *MachineResourceHandler) List(r *rf.Context) {
 	var input MachineResourceGetterInputParam
+	var count int64
+
 	if c.Prepare(r, &input) != nil {
 		return
 	}
@@ -63,8 +65,10 @@ func (c *MachineResourceHandler) List(r *rf.Context) {
 		return
 	}
 	db := model.DB.Self.Table(model.TbRpDetailName())
-	input.queryBs(db)
-	var count int64
+	if err := input.queryBs(db); err != nil {
+		c.SendResponse(r, err, requestId, err.Error())
+		return
+	}
 	if err := db.Count(&count).Error; err != nil {
 		c.SendResponse(r, err, requestId, err.Error())
 		return
@@ -90,7 +94,7 @@ func (c *MachineResourceGetterInputParam) paramCheck() (err error) {
 	return nil
 }
 
-// matchStorageSpecs TODO
+// matchStorageSpecs 匹配磁盘
 func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 	if len(c.StorageSpecs) > 0 {
 		for _, d := range c.StorageSpecs {
@@ -117,10 +121,8 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 			} else {
 				db.Where(model.JSONQuery("storage_device").KeysContains([]string{mp}))
 			}
-		} else {
-			if cmutil.IsNotEmpty(c.DiskType) {
-				db.Where(model.JSONQuery("storage_device").SubValContains(c.DiskType, "disk_type"))
-			}
+		} else if cmutil.IsNotEmpty(c.DiskType) {
+			db.Where(model.JSONQuery("storage_device").SubValContains(c.DiskType, "disk_type"))
 		}
 	}
 }

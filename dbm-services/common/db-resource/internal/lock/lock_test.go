@@ -16,6 +16,7 @@ import (
 
 	"dbm-services/common/db-resource/internal/lock"
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 func TestRedisLock(t *testing.T) {
@@ -34,7 +35,9 @@ func TestRedisLock(t *testing.T) {
 			}
 			t.Log(j, "lock success")
 			time.Sleep(100 * time.Millisecond)
-			l.Unlock()
+			if err := l.Unlock(); err != nil {
+				logger.Error("unlock failed %v", err)
+			}
 		}(i)
 	}
 

@@ -288,6 +288,14 @@ func (job *BkDbmonInstall) UntarMedia() (err error) {
 	if err != nil {
 		return
 	}
+	// 备份 /home/mysql/bk-dbmon/db
+	err = job.backupDbmonSqliteDB()
+	if err != nil {
+		return
+	}
+	// 最后恢复 /home/mysql/bk-dbmon/db
+	defer job.restoreDbmonSqliteDB()
+
 	err = job.RemoveBkDbmon()
 	if err != nil {
 		return
@@ -344,6 +352,50 @@ func (job *BkDbmonInstall) StopBkDbmon() (err error) {
 // StartBkDbmon start local bk-dbmon
 func (job *BkDbmonInstall) StartBkDbmon() (err error) {
 	return util.StartBkDbmon()
+}
+
+func (job *BkDbmonInstall) getDBbmonBackupDir() (dir string) {
+	backupDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak") // 如 /data/dbbak
+	dir = filepath.Join(backupDir, "bak_dbmon_db")                  // 如 /data/dbbak/bak_dbmon_db
+	return
+}
+func (job *BkDbmonInstall) backupDbmonSqliteDB() (err error) {
+	backupDir := job.getDBbmonBackupDir()
+	if util.FileExists(backupDir) {
+		// 如果存在,则删除
+		rmCmd := fmt.Sprintf("rm -rf %s", backupDir)
+		job.runtime.Logger.Info(rmCmd)
+		util.RunBashCmd(rmCmd, "", nil, 1*time.Minute)
+	}
+	sqliteDBDir := filepath.Join(consts.BkDbmonPath, "db") // /home/mysql/bk-dbmon/db
+	if !util.FileExists(sqliteDBDir) {
+		job.runtime.Logger.Info("bk-dbmon sqlite db dir %s not exists,skip backup ....", sqliteDBDir)
+		return
+	}
+	backupCmd := fmt.Sprintf("cp -r %s %s", sqliteDBDir, backupDir)
+	job.runtime.Logger.Info(backupCmd)
+	util.RunBashCmd(backupCmd, "", nil, 10*time.Minute)
+	job.runtime.Logger.Info("bk-dbmon sqlite db backup success")
+	return nil
+}
+
+func (job *BkDbmonInstall) restoreDbmonSqliteDB() (err error) {
+	backupDir := job.getDBbmonBackupDir()
+	if !util.FileExists(backupDir) {
+		job.runtime.Logger.Info("bk-dbmon sqlite db backup dir %s not exists,skip restore ....", backupDir)
+		return
+	}
+	sqliteDBDir := filepath.Join(consts.BkDbmonPath, "db") // /home/mysql/bk-dbmon/db
+	if util.FileExists(sqliteDBDir) {
+		rmCmd := fmt.Sprintf("rm -rf %s", sqliteDBDir)
+		job.runtime.Logger.Info(rmCmd)
+		util.RunBashCmd(rmCmd, "", nil, 1*time.Minute)
+	}
+	restoreCmd := fmt.Sprintf("cp -r %s %s", backupDir, sqliteDBDir)
+	job.runtime.Logger.Info(restoreCmd)
+	util.RunBashCmd(restoreCmd, "", nil, 10*time.Minute)
+	job.runtime.Logger.Info("bk-dbmon sqlite db restore success")
+	return nil
 }
 
 // RemoveBkDbmon remove local bk-dbmon

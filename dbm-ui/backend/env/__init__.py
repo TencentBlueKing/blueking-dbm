@@ -169,3 +169,7 @@ GCS_SCR_OPERATOR = get_type_env(key="GCS_SCR_OPERATOR", _type=str, default="scr-
 
 # 是否启动mysql-dbbackup程序的版本逻辑选择，不启动默认统一安装社区版本
 MYSQL_BACKUP_PKG_MAP_ENABLE = get_type_env(key="MYSQL_BACKUP_PKG_MAP_ENABLE", _type=bool, default=False)
+
+# bkdbm 通知机器人的key
+WECOM_ROBOT = get_type_env(key="WECOM_ROBOT", _type=str, default="")
+MYSQL_CHATID = get_type_env(key="MYSQL_CHATID", _type=str, default="")

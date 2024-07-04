@@ -82,7 +82,7 @@ func (config *PartitionConfig) GetPartitionDbLikeTbLike(dbtype string, splitCnt 
 	wg.Wait()
 	close(tokenBucket)
 	if len(errs.list) > 0 {
-		err := fmt.Errorf("partition rule: [dblike:`%s` tblike:`%s`] get partition sql error\n%s",
+		err = fmt.Errorf("partition rule: [dblike:`%s` tblike:`%s`] get partition sql error\n%s",
 			config.DbLike, config.TbLike, strings.Join(errs.list, "\n"))
 		slog.Error("msg", "GetPartitionDbLikeTbLike", err)
 		return nil, nil, nil, err
@@ -717,19 +717,33 @@ func GetMaster(immuteDomain, clusterType string) (Host, error) {
 }
 
 // AddLogBatch 批量添加日志
-func AddLogBatch(configs []PartitionConfig, date, scheduler, info, status, clusterType string) error {
+func AddLogBatch(configs []IdLog, date, scheduler, status, clusterType string, sameLog string) error {
 	tx := model.DB.Self.Begin()
 	tb := MysqlPartitionCronLogTable
 	if clusterType == Tendbcluster {
 		tb = SpiderPartitionCronLogTable
 	}
-	for _, config := range configs {
-		log := &PartitionCronLog{ConfigId: config.ID, CronDate: date, Scheduler: scheduler, CheckInfo: info, Status: status}
-		err := tx.Debug().Table(tb).Create(log).Error
-		if err != nil {
-			tx.Rollback()
-			slog.Error("msg", "add cron log failed", err)
-			return err
+	if sameLog != "" {
+		for _, config := range configs {
+			log := &PartitionCronLog{ConfigId: config.ConfigId, CronDate: date, Scheduler: scheduler,
+				CheckInfo: sameLog, Status: status}
+			err := tx.Debug().Table(tb).Create(log).Error
+			if err != nil {
+				tx.Rollback()
+				slog.Error("msg", "add cron log failed", err)
+				return err
+			}
+		}
+	} else {
+		for _, config := range configs {
+			log := &PartitionCronLog{ConfigId: config.ConfigId, CronDate: date, Scheduler: scheduler,
+				CheckInfo: config.Log, Status: status}
+			err := tx.Debug().Table(tb).Create(log).Error
+			if err != nil {
+				tx.Rollback()
+				slog.Error("msg", "add cron log failed", err)
+				return err
+			}
 		}
 	}
 	tx.Commit()

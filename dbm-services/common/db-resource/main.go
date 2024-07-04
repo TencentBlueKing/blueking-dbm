@@ -1,3 +1,24 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+// Package main TODO
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+// Package main main
 package main
 
 import (
@@ -50,13 +71,15 @@ func main() {
 			"version": version})
 	})
 	lcron := cron.New()
-	initCron(lcron)
+	registerCrontab(lcron)
 	lcron.Start()
 	defer lcron.Stop()
-	engine.Run(config.AppConfig.ListenAddress)
+	if err := engine.Run(config.AppConfig.ListenAddress); err != nil {
+		logger.Error("start  run failed %v", err)
+	}
 }
 
-// init TODO
+// init init logger
 func init() {
 	if err := initLogger(); err != nil {
 		logger.Fatal("Init Logger Failed %s", err.Error())
@@ -64,22 +87,48 @@ func init() {
 	}
 }
 
-func initCron(localcron *cron.Cron) {
-	localcron.AddFunc("1 */5 * * *", func() {
-		if err := task.UpdateResourceGseAgentStatus(); err != nil {
-			logger.Error("update gse status %s", err.Error())
+// LocalCron define local crontab
+type LocalCron struct {
+	Name string
+	Spec string
+	Func func()
+}
+
+func registerCrontab(localcron *cron.Cron) {
+	localCrontabs := []LocalCron{
+		{
+			Name: "定时更新gse状态",
+			Spec: "@every 1h",
+			Func: func() {
+				if err := task.UpdateResourceGseAgentStatus(); err != nil {
+					logger.Error("update gse status %s", err.Error())
+				}
+			},
+		},
+		{
+			Name: "扫描检查主机是否被手动拿去用了",
+			Spec: "@every 1h",
+			Func: func() {
+				if err := task.InspectCheckResource(); err != nil {
+					logger.Error("inspect check resource %s", err.Error())
+				}
+			},
+		},
+		{
+			Name: "同步主机硬件信息",
+			Spec: "@every 12h",
+			Func: func() {
+				if err := task.AsyncResourceHardInfo(); err != nil {
+					logger.Error("async machine hardinfo failed:%s", err.Error())
+				}
+			},
+		},
+	}
+	for _, cron := range localCrontabs {
+		if _, err := localcron.AddFunc(cron.Spec, cron.Func); err != nil {
+			logger.Error("add %s crontab failed %v", cron.Name, err)
 		}
-	})
-	localcron.AddFunc("1 */12 * * *", func() {
-		if err := task.InspectCheckResource(); err != nil {
-			logger.Error("inspect check resource %s", err.Error())
-		}
-	})
-	localcron.AddFunc("1 */30 * * *", func() {
-		if err := task.AsyncResourceHardInfo(); err != nil {
-			logger.Error("async machine hardinfo failed:%s", err.Error())
-		}
-	})
+	}
 }
 
 // initLogger initialization log
@@ -90,6 +139,10 @@ func initLogger() (err error) {
 	writer = os.Stdout
 	l := logger.New(writer, formatJson, level, map[string]string{})
 	logger.ResetDefault(l)
-	defer logger.Sync()
+	defer func() {
+		if errx := l.Sync(); errx != nil {
+			logger.Warn("sync log failed %v", errx)
+		}
+	}()
 	return
 }

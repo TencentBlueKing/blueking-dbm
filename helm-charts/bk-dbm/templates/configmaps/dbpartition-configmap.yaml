@@ -22,8 +22,6 @@ data:
   DB_REMOTE_SERVICE: "{{ .Values.dbpartition.envs.DB_REMOTE_SERVICE }}"
   CRON_RETRY_HOUR: "{{ .Values.dbpartition.envs.CRON_RETRY_HOUR }}"
   CRON_TIMING_HOUR: "{{ .Values.dbpartition.envs.CRON_TIMING_HOUR }}"
-  ALARM_TIMEZONE: "{{ .Values.dbpartition.envs.ALARM_TIMEZONE }}"
-  ALARM_HOUR: "{{ .Values.dbpartition.envs.ALARM_HOUR }}"
   DBM_TICKET_SERVICE: "{{ .Values.dbpartition.envs.DBM_TICKET_SERVICE }}"
   LISTEN_ADDRESS: "{{ .Values.dbpartition.envs.LISTEN_ADDRESS }}"
   DB_META_SERVICE: "{{ .Values.dbpartition.envs.DB_META_SERVICE }}"
