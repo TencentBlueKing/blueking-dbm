@@ -100,9 +100,10 @@
               <BkPopover
                 v-if="flowState.details.flow_info?.status === 'FAILED'"
                 ext-cls="task-history-fail-nodes"
+                :is-show="isShowFailNodePanel"
                 placement="bottom"
                 theme="light"
-                trigger="click"
+                trigger="manual"
                 :width="300"
                 @after-show="() => handleFailNodeTreeAfterShow()">
                 <template #content>
@@ -110,14 +111,13 @@
                     <span>
                       {{ t('失败节点（n）', { n: failNodesCount }) }}
                     </span>
-                    <!-- <div class="quick-operate">
+                    <div
+                      class="quick-operate"
+                      @click="() => (isShowFailNodePanel = false)">
                       <div class="operate-item">
-                        <DbIcon type="up-big" />
+                        <DbIcon type="close" />
                       </div>
-                      <div class="operate-item ml-4">
-                        <DbIcon type="down-big" />
-                      </div>
-                    </div> -->
+                    </div>
                   </div>
                   <BkTree
                     ref="failNodeTreeRef"
@@ -146,7 +146,8 @@
                 </template>
                 <span
                   v-bk-tooltips="t('失败节点列表')"
-                  class="task-history-fail-num-tip">
+                  class="task-history-fail-num-tip"
+                  @click="() => handleShowFailNodePanel()">
                   <I18nT
                     keypath="失败n"
                     tag="span">
@@ -284,13 +285,23 @@
             <BkPopover
               v-if="flowState.details.flow_info?.status === 'FAILED'"
               ext-cls="task-history-fail-nodes"
+              :is-show="isShowTopFailNodePanel"
               placement="bottom"
               theme="light"
-              trigger="click"
+              trigger="manual"
               :width="300"
               @after-show="() => handleFailNodeTreeAfterShow(false)">
               <template #content>
-                <div class="fail-top-main">{{ t('失败节点（n）', { n: failNodesCount }) }}</div>
+                <div class="fail-top-main">
+                  <span>{{ t('失败节点（n）', { n: failNodesCount }) }}</span>
+                  <div class="quick-operate">
+                    <div
+                      class="operate-item"
+                      @click="() => (isShowTopFailNodePanel = false)">
+                      <DbIcon type="close" />
+                    </div>
+                  </div>
+                </div>
                 <BkTree
                   ref="topFailNodeTreeRef"
                   children="children"
@@ -315,7 +326,9 @@
                   </template>
                 </BkTree>
               </template>
-              <span class="task-history-fail-num-tip">
+              <span
+                class="task-history-fail-num-tip"
+                @click="() => handleShowFailNodePanel(true)">
                 <I18nT
                   keypath="执行失败n"
                   tag="span">
@@ -446,6 +459,8 @@
   const failNodesCount = ref(0);
   const failNodeTreeRef = ref();
   const topFailNodeTreeRef = ref();
+  const isShowFailNodePanel = ref(false);
+  const isShowTopFailNodePanel = ref(false);
 
   const failLeafNodes = shallowRef<GraphNode[]>([]);
 
@@ -667,6 +682,11 @@
   }, {
     immediate: true,
   });
+
+  const handleShowFailNodePanel = (isTop = false) => {
+    isShowFailNodePanel.value = !isTop;
+    isShowTopFailNodePanel.value = isTop;
+  };
 
   const handleFailNodeTreeAfterShow = (isMain = true) => {
     setTimeout(() => {
@@ -1543,36 +1563,36 @@
   .task-history-fail-num-tip {
     display: inline-block;
     height: 22px;
-    line-height: 22px;
     padding: 0 8px;
-    background: #ffeeee;
-    border-radius: 11px;
     font-size: 12px;
+    line-height: 22px;
     color: #ea3536;
     cursor: pointer;
+    background: #fee;
+    border-radius: 11px;
 
     .number-display {
       height: 16px;
+      padding: 0 5px;
+      margin-left: 5px;
+      line-height: 20px;
+      color: #fff;
       background: #ea3636;
       border-radius: 8px;
-      color: #ffffff;
-      line-height: 20px;
-      margin-left: 5px;
-      padding: 0 5px;
     }
   }
 
   .task-history-fail-nodes {
+    z-index: 999 !important;
     max-height: 500px;
     padding: 12px 0 !important;
-    z-index: 999 !important;
 
     .fail-top-main {
-      font-weight: 700;
-      font-size: 12px;
-      color: #313238;
-      padding: 0 12px 10px 12px;
       display: flex;
+      padding: 0 12px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #313238;
       justify-content: space-between;
       align-items: center;
 
@@ -1580,19 +1600,20 @@
         display: flex;
 
         .operate-item {
+          display: flex;
           width: 20px;
           height: 20px;
-          display: flex;
-          background: #f0f1f5;
-          border-radius: 2px;
+          font-size: 16px;
           color: #979ba5;
           cursor: pointer;
+          background: #f0f1f5;
+          border-radius: 2px;
           justify-content: center;
           align-items: center;
 
           &:hover {
-            background: #eaebf0;
             color: #63656e;
+            background: #eaebf0;
           }
         }
       }
@@ -1612,18 +1633,18 @@
       }
 
       .custom-tree-node {
-        width: 100%;
         display: flex;
+        width: 100%;
         align-items: center;
 
         .file-icon {
-          height: 16px;
-          width: 16px;
-          background: #ffdddd;
-          border-radius: 2px;
-          color: #ea3636;
-          margin-right: 8px;
           display: flex;
+          width: 16px;
+          height: 16px;
+          margin-right: 8px;
+          color: #ea3636;
+          background: #fdd;
+          border-radius: 2px;
           align-items: center;
           justify-content: center;
 
