@@ -103,8 +103,11 @@ class MongoScaleReplsMetaService(BaseService):
 
             # 去掉 cluster 关联
             cluster.storageinstance_set.remove(del_obj)
-            # 去掉 storageinstance_bind_entry
-            del_obj.bind_entry.clear()
+
+            # 删掉 shard ClusterEntry & storageinstance_bind_entry
+            for bind_entry in del_obj.bind_entry.all():
+                bind_entry.delete()
+
             # 去掉主从关系
             StorageInstanceTuple.objects.get(receiver=del_obj).delete()
             # 删掉实例信息
