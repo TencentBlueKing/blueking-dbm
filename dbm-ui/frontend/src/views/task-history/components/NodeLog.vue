@@ -50,7 +50,7 @@
         </div>
         <div
           v-if="STATUS_FAILED && nodeData.retryable"
-          class="log-header-btn">
+          class="log-header-btn mr-8">
           <BkPopover
             v-model:is-show="refreshShow"
             theme="light"
@@ -83,6 +83,22 @@
             </template>
           </BkPopover>
         </div>
+        <template v-if="failedNodes.length > 0">
+          <BkButton
+            v-bk-tooltips="t('上一个失败节点')"
+            class="quick-btn"
+            :disabled="currentFailNodeLogIndex === 0"
+            @click="() => handleClickQuickGoto(false)">
+            <DbIcon type="up-big" />
+          </BkButton>
+          <BkButton
+            v-bk-tooltips="t('下一个失败节点')"
+            class="quick-btn ml-8 mr-16"
+            :disabled="currentFailNodeLogIndex === failedNodes.length - 1"
+            @click="() => handleClickQuickGoto(true)">
+            <DbIcon type="down-big" />
+          </BkButton>
+        </template>
       </div>
     </template>
     <template #default>
@@ -143,28 +159,49 @@
   interface Props {
     isShow?: boolean;
     node?: GraphNode;
+    failedNodes?: GraphNode[];
   }
 
   interface Emits {
     (e: 'close'): void;
     (e: 'refresh'): void;
+    (e: 'quickGoto', index: number, isNext: boolean): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     isShow: false,
-    node: () => ({}) as GraphNode,
+    node: () => ({}) as NonNullable<Props['node']>,
+    failedNodes: () => [] as NonNullable<Props['failedNodes']>,
   });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const copy = useCopy();
-
   const route = useRoute();
+
   const rootId = route.params.root_id as string;
+
+  const refreshShow = ref(false);
+  const logRef = ref();
+  const logContentRef = ref<HTMLDivElement>();
+
+  const logState = reactive({
+    data: [] as NodeLog[],
+    loading: false,
+  });
 
   const state = reactive({
     isShow: false,
   });
+
+  const currentFailNodeLogIndex = computed(() =>
+    props.failedNodes.findIndex((item) => item.data.id === props.node.data.id),
+  );
+
+  const screenIcon = computed(() => ({
+    icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
+    text: isFullscreen.value ? t('取消全屏') : t('全屏'),
+  }));
 
   const nodeData = computed(() => props.node.data || {});
   const status = computed(() => {
@@ -226,7 +263,7 @@
       return;
     }
 
-    const params: any = {
+    const params = {
       root_id: rootId,
       node_id: nodeData.value.id,
       version_id: currentData.value.version,
@@ -244,6 +281,7 @@
   };
 
   const { isActive, pause, resume } = useTimeoutPoll(getNodeLogRequest, 5000);
+  const { isFullscreen, toggle } = useFullscreen(logContentRef);
 
   watch(
     () => STATUS_RUNNING.value,
@@ -260,22 +298,6 @@
     },
     { immediate: true },
   );
-
-  /**
-   * 日志全屏切换
-   */
-  const logContentRef = ref<HTMLDivElement>();
-  const { isFullscreen, toggle } = useFullscreen(logContentRef);
-  const screenIcon = computed(() => ({
-    icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
-    text: isFullscreen.value ? t('取消全屏') : t('全屏'),
-  }));
-
-  const logRef = ref();
-  const logState = reactive({
-    data: [] as NodeLog[],
-    loading: false,
-  });
 
   /**
    * 清空日志
@@ -335,7 +357,10 @@
     });
   };
 
-  const refreshShow = ref(false);
+  const handleClickQuickGoto = (isNext = false) => {
+    emits('quickGoto', currentFailNodeLogIndex.value, isNext);
+  };
+
   /**
    * close slider
    */
@@ -383,7 +408,7 @@
       }
 
       .log-header-btn {
-        padding-right: 13px;
+        // padding-right: 13px;
         text-align: right;
         flex-shrink: 0;
 
@@ -396,6 +421,11 @@
             margin-right: 5px;
           }
         }
+      }
+
+      .quick-btn {
+        width: 32px;
+        height: 32px;
       }
     }
 

@@ -100,21 +100,36 @@
               <BkPopover
                 v-if="flowState.details.flow_info?.status === 'FAILED'"
                 ext-cls="task-history-fail-nodes"
-                :height="245"
+                :is-show="isShowFailNodePanel"
                 placement="bottom"
                 theme="light"
-                trigger="click"
-                :width="300">
+                trigger="manual"
+                :width="300"
+                @after-show="() => handleFailNodeTreeAfterShow()">
                 <template #content>
-                  <div class="fail-title">{{ t('失败节点（n）', { n: failNodesCount }) }}</div>
+                  <div class="fail-top-main">
+                    <span>
+                      {{ t('失败节点（n）', { n: failNodesCount }) }}
+                    </span>
+                    <div
+                      class="quick-operate"
+                      @click="() => (isShowFailNodePanel = false)">
+                      <div class="operate-item">
+                        <DbIcon type="close" />
+                      </div>
+                    </div>
+                  </div>
                   <BkTree
+                    ref="failNodeTreeRef"
                     children="children"
                     class="fail-node-tree-main"
                     :data="failNodesTreeData"
                     label="name"
+                    node-key="id"
                     selectable
                     :show-node-type-icon="false"
-                    @node-click="handleFailNodeClick">
+                    @node-click="handleFailNodeClick"
+                    @node-expand="handleFailNodeClick">
                     <template #node="item">
                       <div class="custom-tree-node">
                         <div class="file-icon">
@@ -131,7 +146,8 @@
                 </template>
                 <span
                   v-bk-tooltips="t('失败节点列表')"
-                  class="task-history-fail-num-tip">
+                  class="task-history-fail-num-tip"
+                  @click="() => handleShowFailNodePanel()">
                   <I18nT
                     keypath="失败n"
                     tag="span">
@@ -238,9 +254,11 @@
       </BkLoading>
     </div>
     <NodeLog
+      :failed-nodes="failLeafNodes"
       :is-show="logState.isShow"
       :node="logState.node"
       @close="() => (logState.isShow = false)"
+      @quickGoto="handleQuickGotoFailNodeLog"
       @refresh="handleRefresh" />
     <!-- 结果文件功能 -->
     <RedisResultFiles
@@ -267,21 +285,33 @@
             <BkPopover
               v-if="flowState.details.flow_info?.status === 'FAILED'"
               ext-cls="task-history-fail-nodes"
-              :height="245"
+              :is-show="isShowTopFailNodePanel"
               placement="bottom"
               theme="light"
-              trigger="click"
-              :width="300">
+              trigger="manual"
+              :width="300"
+              @after-show="() => handleFailNodeTreeAfterShow(false)">
               <template #content>
-                <div class="fail-title">{{ t('失败节点（n）', { n: failNodesCount }) }}</div>
+                <div class="fail-top-main">
+                  <span>{{ t('失败节点（n）', { n: failNodesCount }) }}</span>
+                  <div class="quick-operate">
+                    <div
+                      class="operate-item"
+                      @click="() => (isShowTopFailNodePanel = false)">
+                      <DbIcon type="close" />
+                    </div>
+                  </div>
+                </div>
                 <BkTree
+                  ref="topFailNodeTreeRef"
                   children="children"
                   class="fail-node-tree-main"
                   :data="failNodesTreeData"
                   label="name"
                   selectable
                   :show-node-type-icon="false"
-                  @node-click="handleFailNodeClick">
+                  @node-click="handleFailNodeClick"
+                  @node-expand="handleFailNodeClick">
                   <template #node="item">
                     <div class="custom-tree-node">
                       <div class="file-icon">
@@ -296,7 +326,9 @@
                   </template>
                 </BkTree>
               </template>
-              <span class="task-history-fail-num-tip">
+              <span
+                class="task-history-fail-num-tip"
+                @click="() => handleShowFailNodePanel(true)">
                 <I18nT
                   keypath="执行失败n"
                   tag="span">
@@ -353,6 +385,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import _ from 'lodash';
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -424,6 +457,12 @@
   const forceFailInstances = ref<Instance[]>([]);
   const failNodesTreeData = ref<FailTaskflowList>([]);
   const failNodesCount = ref(0);
+  const failNodeTreeRef = ref();
+  const topFailNodeTreeRef = ref();
+  const isShowFailNodePanel = ref(false);
+  const isShowTopFailNodePanel = ref(false);
+
+  const failLeafNodes = shallowRef<GraphNode[]>([]);
 
   const flowState = reactive({
     flowSelectorId: generateId('mission_flow_'),
@@ -483,29 +522,7 @@
     node: {} as GraphNode,
   });
 
-  const generateFailNodesTree = (activities: TaskflowDetails['activities'] ) => {
-    const flowList: FailTaskflowList = []
-    Object.values(activities).forEach(item  => {
-      if (item.status === 'FAILED') {
-        flowList.push(item);
-        if (item.pipeline) {
-          Object.assign(item, {
-            children: generateFailNodesTree(item.pipeline.activities),
-          });
-        } else {
-          failNodesCount.value = failNodesCount.value + 1;
-        }
-      }
-    })
-    return flowList;
-  }
-
-  watch(() => flowState.details, () => {
-    failNodesCount.value = 0;
-    if (flowState.details.activities) {
-      failNodesTreeData.value = generateFailNodesTree(flowState.details.activities);
-    }
-  })
+  let isFindFirstLeafFailNode = false;
 
   const rootId = computed(() => route.params.root_id as string);
 
@@ -613,8 +630,43 @@
    */
   const { isFullscreen, toggle } = useFullscreen(flowTopoRef);
 
-  const expandNodes: string[] = [];
+  const expandNodes:string[] = [];
+  const expandNodeObjects: FailTaskflowList = [];
   const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
+
+  const generateFailNodesTree = (activities: TaskflowDetails['activities'] ) => {
+    const flowList: FailTaskflowList = []
+    Object.values(activities).forEach(item  => {
+      if (item.status === 'FAILED') {
+        flowList.push(item);
+        if (!isFindFirstLeafFailNode) {
+          expandNodes.push(item.id);
+          expandNodeObjects.push(item);
+        }
+        if (item.pipeline) {
+          Object.assign(item, {
+            children: generateFailNodesTree(item.pipeline.activities),
+          });
+        } else {
+          isFindFirstLeafFailNode = true;
+          failNodesCount.value = failNodesCount.value + 1;
+          failLeafNodes.value.push({ data: _.cloneDeep(item) } as GraphNode)
+        }
+      }
+    })
+    return flowList;
+  }
+
+  watch(() => flowState.details, () => {
+    if (failNodesTreeData.value.length > 0) {
+      return
+    };
+
+    failNodesCount.value = 0;
+    if (flowState.details.activities) {
+      failNodesTreeData.value = generateFailNodesTree(flowState.details.activities);
+    }
+  })
 
   watch(() => baseInfo.value.status, (status) => {
     if (status && flowState.instance === null) {
@@ -630,6 +682,37 @@
   }, {
     immediate: true,
   });
+
+  const handleShowFailNodePanel = (isTop = false) => {
+    isShowFailNodePanel.value = !isTop;
+    isShowTopFailNodePanel.value = isTop;
+  };
+
+  const handleFailNodeTreeAfterShow = (isMain = true) => {
+    setTimeout(() => {
+      expandNodeObjects.forEach(node => {
+        if (isMain) {
+          failNodeTreeRef.value.setOpen(node);
+          return
+        }
+        topFailNodeTreeRef.value.setOpen(node);
+      });
+
+      const leafNode = expandNodeObjects[expandNodeObjects.length - 1];
+      if (isMain) {
+        failNodeTreeRef.value.setSelect(leafNode);
+        return
+      }
+      topFailNodeTreeRef.value.setSelect(leafNode);
+    })
+  }
+
+  const handleQuickGotoFailNodeLog = (index: number, isNext: boolean) => {
+    fetchTaskflowDetails();
+    const targetIndex = isNext ? index + 1 : index - 1;
+    const targetNode = failLeafNodes.value[targetIndex];
+    handleShowLog(targetNode);
+  }
 
   // 定位失败节点
   const handleFailNodeClick = (node: GraphNode) => {
@@ -1500,18 +1583,44 @@
   }
 
   .task-history-fail-nodes {
+    max-height: 500px;
     padding: 12px 0 !important;
     z-index: 999 !important;
 
-    .fail-title {
+    .fail-top-main {
       font-weight: 700;
       font-size: 12px;
       color: #313238;
-      margin: 0 0 12px 12px;
+      padding: 0 12px 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .quick-operate {
+        display: flex;
+
+        .operate-item {
+          width: 20px;
+          height: 20px;
+          display: flex;
+          background: #f0f1f5;
+          border-radius: 2px;
+          color: #979ba5;
+          cursor: pointer;
+          justify-content: center;
+          align-items: center;
+          font-size: 16px;
+
+          &:hover {
+            background: #eaebf0;
+            color: #63656e;
+          }
+        }
+      }
     }
 
     .fail-node-tree-main {
-      height: calc(100% - 25px) !important;
+      max-height: 450px !important;
 
       .bk-node-row {
         padding: 0 12px;
