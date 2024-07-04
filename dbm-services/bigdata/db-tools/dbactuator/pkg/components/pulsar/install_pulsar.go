@@ -331,8 +331,19 @@ func (i *InstallPulsarComp) InstallBookkeeper() error {
 	for _, dir := range dataDir {
 		pulsarDataDir = append(pulsarDataDir, dir+"/pulsardata")
 	}
-
 	bkCfg = strings.ReplaceAll(bkCfg, "{{pulsar_data_dir}}", strings.Join(pulsarDataDir, ","))
+
+	var pulsarDataJournalDir []string
+	for _, dir := range pulsarDataDir {
+		pulsarDataJournalDir = append(pulsarDataJournalDir, dir+"/journal")
+	}
+	bkCfg = strings.ReplaceAll(bkCfg, "{{pulsar_data_journal_dir}}", strings.Join(pulsarDataJournalDir, ","))
+
+	var pulsarDataLedgersDir []string
+	for _, dir := range pulsarDataDir {
+		pulsarDataLedgersDir = append(pulsarDataLedgersDir, dir+"/ledgers")
+	}
+	bkCfg = strings.ReplaceAll(bkCfg, "{{pulsar_data_ledgers_dir}}", strings.Join(pulsarDataLedgersDir, ","))
 
 	logger.Info("bookkeerper.conf:\n%s", bkCfg)
 
