@@ -47,7 +47,7 @@ class QueryDbsByBackupLogSerializer(serializers.Serializer):
     restore_time = DBTimezoneField(help_text=_("回档时间"), allow_blank=True, required=False)
 
     def validate(self, attrs):
-        if not attrs.get("backup_logs") and not attrs.get("rollback_time"):
+        if not attrs.get("backup_logs") and not attrs.get("restore_time"):
             raise serializers.ValidationError(_("请输入备份记录或者备份时间来查询操作库表"))
         if attrs.get("restore_time"):
             attrs["restore_time"] = str2datetime(attrs["restore_time"])
