@@ -28,6 +28,7 @@ DB_MODULE_DATA = [
         "db_module_name": "sqlserver-single-module",
         "db_module_id": DB_MODULE_ID,
         "cluster_type": ClusterType.SqlserverSingle.value,
+        "alias_name": "",
     },
     {
         "creator": "admin",
@@ -38,6 +39,7 @@ DB_MODULE_DATA = [
         "db_module_name": "sqlserver-ha-module",
         "db_module_id": DB_MODULE_ID + 1,
         "cluster_type": ClusterType.SqlserverHA.value,
+        "alias_name": "",
     },
 ]
 # sqlserver 禁用单据

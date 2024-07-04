@@ -85,6 +85,7 @@ class DBSingleViewSet(viewsets.ResourceViewSet):
         ActionEnum.MYSQL_ENABLE_DISABLE,
         ActionEnum.MYSQL_DESTROY,
         ActionEnum.MYSQL_VIEW,
+        ActionEnum.MYSQL_DUMP_DATA,
     ]
     list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]

@@ -20,8 +20,6 @@
         :title="t('版本升级：将集群的接入层或存储层，更新到指定版本')" />
       <RenderData
         class="mt16"
-        :version-list-params="patchEditVersionListParams"
-        @batch-edit="handleBatchEditColumn"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -85,7 +83,7 @@
   import RenderDataRow, {
     createRowData,
     type IDataRow,
-    type IDataRowBatchKey,
+    // type IDataRowBatchKey,
     type InfoItem,
   } from './components/Row.vue';
 
@@ -133,36 +131,6 @@
   //   }
   //   return params
   // })
-
-  const patchEditVersionListParams = computed(() => {
-    const tableDataList = tableData.value;
-    const params = {
-      nodeType: '',
-      clusterType: '',
-    };
-    if (tableDataList.length > 0) {
-      const clusterTypeList = [];
-      for (let i = 0; i < tableDataList.length; i++) {
-        const dataItem = tableDataList[i];
-        if (!dataItem.clusterType) {
-          continue;
-        }
-        clusterTypeList.push(dataItem.clusterType);
-        if (clusterTypeList.length > 1) {
-          return params;
-        }
-      }
-      if (clusterTypeList.length === 1) {
-        const { clusterType, nodeType } = tableDataList[0];
-        return {
-          nodeType,
-          clusterType,
-        };
-      }
-      return params;
-    }
-    return params;
-  });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -256,16 +224,16 @@
     });
   };
 
-  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
-    if (!value || checkListEmpty(tableData.value)) {
-      return;
-    }
-    tableData.value.forEach((row) => {
-      Object.assign(row, {
-        [filed]: value,
-      });
-    });
-  };
+  // const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
+  //   if (!value || checkListEmpty(tableData.value)) {
+  //     return;
+  //   }
+  //   tableData.value.forEach((row) => {
+  //     Object.assign(row, {
+  //       [filed]: value,
+  //     });
+  //   });
+  // };
 
   // 点击提交按钮
   const handleSubmit = async () => {

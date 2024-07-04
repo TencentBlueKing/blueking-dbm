@@ -52,7 +52,7 @@ class QueryDbsByBackupLogSerializer(serializers.Serializer):
         if attrs.get("restore_time"):
             attrs["restore_time"] = str2datetime(attrs["restore_time"])
         else:
-            attrs.pop("restore_time")
+            attrs.pop("restore_time", None)
         return attrs
 
 
