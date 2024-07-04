@@ -207,7 +207,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { processTicketTodo, retryTicketFlow  } from '@services/source/ticket';
+  import { processTicketTodo, retryTicketFlow } from '@services/source/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import { useUserProfile } from '@stores';
@@ -221,16 +221,15 @@
   // import FlowContentInnerFlow from './components/ContentInnerFlow.vue';
   import FlowContentTodo from './components/ContentTodo.vue';
 
-
   interface Emits {
     (e: 'fetch-data'): void;
   }
 
   interface Props {
-    ticketData: TicketModel<unknown>,
-    content: FlowItem,
-    flows?: FlowItem[],
-    isTodos?: boolean
+    ticketData: TicketModel<unknown>;
+    content: FlowItem;
+    flows?: FlowItem[];
+    isTodos?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -251,7 +250,7 @@
 
   const manualNexFlowDisaply = computed(() => {
     if (props.flows.length > 0) {
-      const manualIndex = props.flows.findIndex(item => item.flow_type === 'PAUSE');
+      const manualIndex = props.flows.findIndex((item) => item.flow_type === 'PAUSE');
       if (manualIndex > -1) {
         return props.flows[manualIndex + 1].flow_type_display;
       }
@@ -266,21 +265,21 @@
 
   const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
 
-  const handleConfirm = (item: FlowItem) => retryTicketFlow({
-    ticketId: item.ticket,
-    flow_id: item.id,
-  })
-    .then(() => {
+  const handleConfirm = (item: FlowItem) =>
+    retryTicketFlow({
+      ticketId: item.ticket,
+      flow_id: item.id,
+    }).then(() => {
       emits('fetch-data');
     });
 
-  const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE', todoItem: FlowItem['todos'][number]) => processTicketTodo({
-    action,
-    todo_id: todoItem.id,
-    ticket_id: props.content.ticket,
-    params: {},
-  })
-    .then(() => {
+  const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE', todoItem: FlowItem['todos'][number]) =>
+    processTicketTodo({
+      action,
+      todo_id: todoItem.id,
+      ticket_id: props.content.ticket,
+      params: {},
+    }).then(() => {
       emits('fetch-data');
     });
 

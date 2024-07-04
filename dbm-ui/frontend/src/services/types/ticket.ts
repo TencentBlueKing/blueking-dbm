@@ -807,12 +807,3 @@ export interface MysqlOpenAreaDetails {
     user: string;
   }[];
 }
-
-export interface MysqlDataMigrateDetails {
-  clusters: clustersItems;
-  infos: {
-    db_list: string;
-    source_cluster: number;
-    target_clusters: number[];
-  }[];
-}
