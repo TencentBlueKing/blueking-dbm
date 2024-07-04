@@ -20,6 +20,7 @@ import (
 )
 
 // TbRpDetailArchive 资源池资源归档表
+// nolint
 type TbRpDetailArchive struct {
 	ID              int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
 	BkCloudID       int                      `gorm:"column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`

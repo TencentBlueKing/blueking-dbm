@@ -22,8 +22,6 @@ func InitEnv() {
 	viper.BindEnv("listen_address", "LISTEN_ADDRESS")
 	viper.BindEnv("cron.timing_hour", "CRON_TIMING_HOUR")
 	viper.BindEnv("cron.retry_hour", "CRON_RETRY_HOUR")
-	viper.BindEnv("alarm.timezone", "ALARM_TIMEZONE")
-	viper.BindEnv("alarm.hour", "ALARM_HOUR")
 
 	viper.BindEnv("db_remote_service", "DB_REMOTE_SERVICE")
 	viper.BindEnv("db_meta_service", "DB_META_SERVICE")

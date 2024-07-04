@@ -461,13 +461,13 @@ func (task *MakeCacheSyncTask) createShakeConfigFile() {
 		if task.RowData.SrcSegStart < 0 || task.RowData.SrcSegEnd < 0 {
 			task.Err = fmt.Errorf("srcTendis:%s#%d segStart:%d<0 or segEnd:%d<0",
 				task.RowData.SrcIP, task.RowData.SrcPort, task.RowData.SrcSegStart, task.RowData.SrcSegEnd)
-			task.Logger.Error(err.Error())
+			task.Logger.Error(task.Err.Error())
 			return
 		}
 		if task.RowData.SrcSegStart >= task.RowData.SrcSegEnd {
 			task.Err = fmt.Errorf("srcTendis:%s#%d segStart:%d >= segEnd:%d",
 				task.RowData.SrcIP, task.RowData.SrcPort, task.RowData.SrcSegStart, task.RowData.SrcSegEnd)
-			task.Logger.Error(err.Error())
+			task.Logger.Error(task.Err.Error())
 			return
 		}
 		startSeg = task.RowData.SrcSegStart

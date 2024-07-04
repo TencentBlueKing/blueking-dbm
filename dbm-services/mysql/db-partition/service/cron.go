@@ -57,19 +57,6 @@ func RegisterCron() ([]*cron.Cron, error) {
 		"UTC+9": 9, "UTC+10": 10, "UTC+11": 11, "UTC+12": 12, "UTC-11": -11, "UTC-10": -10, "UTC-9": -9,
 		"UTC-8": -8, "UTC-7": -7, "UTC-6": -6, "UTC-5": -5, "UTC-4": -4, "UTC-3": -3, "UTC-2": -2, "UTC-1": -1,
 	}
-
-	// 设置告警的时区以及时间
-	var alarmTimezone string
-	if _, isExists := timezone[viper.GetString("alarm.timezone")]; isExists == false {
-		alarmTimezone = "UTC+8"
-	} else {
-		alarmTimezone = viper.GetString("alarm.timezone")
-	}
-	alarmHour := viper.GetString("alarm.hour")
-	if alarmHour == "" {
-		alarmHour = multiHours[0]
-	}
-	alarmCron := fmt.Sprintf("02 %s * * * ", alarmHour)
 	// 为每个时区的分区规则创建对应的定时任务
 	for name, offset := range timezone {
 		offetSeconds := offset * 60 * 60
@@ -94,14 +81,6 @@ func RegisterCron() ([]*cron.Cron, error) {
 		if err != nil {
 			slog.Error("msg", "cron add retry job error", err)
 			return CronList, err
-		}
-		// 添加分区平台类告警，避免分区定时任务运行异常
-		if alarmTimezone == name {
-			_, err = c.AddJob(alarmCron, PartitionJob{CronType: Alarm, ZoneOffset: offset, ZoneName: name, Hour: alarmHour})
-			if err != nil {
-				slog.Error("msg", "cron add daily job error", err)
-				return CronList, err
-			}
 		}
 		// 启动分区定时任务
 		c.Start()

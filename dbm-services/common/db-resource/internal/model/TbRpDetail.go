@@ -37,6 +37,7 @@ const (
 )
 
 // TbRpDetail  机器资源明细表
+// nolint
 type TbRpDetail struct {
 	ID              int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
 	BkCloudID       int                      `gorm:"uniqueIndex:ip;column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
@@ -45,9 +46,9 @@ type TbRpDetail struct {
 	RsTypes         json.RawMessage          `gorm:"column:rs_types;type:json;comment:'资源类型标签'" json:"resource_types"`
 	Bizs            map[string]string        `gorm:"-" json:"-"`
 	BkHostID        int                      `gorm:"index:idx_host_id;column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
-	IP              string                   `gorm:"uniqueIndex:ip;column:ip;type:varchar(20);not null" json:"ip"` //  svr ip
+	IP              string                   `gorm:"uniqueIndex:ip;column:ip;type:varchar(20);not null" json:"ip"`
 	AssetID         string                   `gorm:"column:asset_id;type:varchar(64);not null;comment:'固定资产编号'" json:"asset_id"`
-	DeviceClass     string                   `gorm:"column:device_class;type:varchar(64);not null" json:"device_class"` //  对应机型 A30,D3
+	DeviceClass     string                   `gorm:"column:device_class;type:varchar(64);not null" json:"device_class"`
 	SvrTypeName     string                   `gorm:"column:svr_type_name;type:varchar(64);not null;comment:'服务器型号,判断是否是云机器'" json:"svr_type_name"`
 	CPUNum          int                      `gorm:"column:cpu_num;type:int(11);not null;comment:'cpu核数'" json:"cpu_num"`
 	DramCap         int                      `gorm:"column:dram_cap;type:int(11);not null;comment:'内存大小'" json:"dram_cap"`
@@ -207,8 +208,9 @@ func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (resu
 			db.Rollback()
 		}
 	}()
+	var d []TbRpDetail
 	for _, v := range elements {
-		d, err := SetSatisfiedStatus(db, v.BkHostIds, mode)
+		d, err = SetSatisfiedStatus(db, v.BkHostIds, mode)
 		if err != nil {
 			logger.Error(fmt.Sprintf("Item:%s,failed to obtain resource details!,Error is %s", v.Item, err.Error()))
 			return nil, err
@@ -239,7 +241,7 @@ func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []T
 	}
 	rdb := tx.Exec("update tb_rp_detail set status=?,consume_time=now() where bk_host_id in ?", status, bkhostIds)
 	if rdb.Error != nil {
-		logger.Error(fmt.Sprintf("update status Failed,Error %s", err.Error()))
+		logger.Error(fmt.Sprintf("update status Failed,Error %v", rdb.Error))
 		return nil, err
 	}
 	if int(rdb.RowsAffected) != len(bkhostIds) {

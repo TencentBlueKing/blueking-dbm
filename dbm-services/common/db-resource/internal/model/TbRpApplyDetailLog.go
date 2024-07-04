@@ -2,7 +2,8 @@ package model
 
 import "time"
 
-// TbRpApplyDetailLog TODO
+// TbRpApplyDetailLog 资源请求明细表
+// nolint
 type TbRpApplyDetailLog struct {
 	ID         int       `gorm:"primaryKey;auto_increment;not null" json:"-"`
 	RequestID  string    `gorm:"index:idx_request_id;column:request_id;type:varchar(64);not null" json:"request_id"` // 响应的request_id

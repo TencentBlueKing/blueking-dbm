@@ -377,6 +377,42 @@ func InitMonitor(r *gin.Context) {
 	return
 }
 
+// CheckLog 巡检
+func CheckLog(r *gin.Context) {
+	type CheckPara struct {
+		Days int `json:"days"`
+	}
+	var input CheckPara
+	err := r.ShouldBind(&input)
+	if err != nil {
+		err = errno.ErrReadEntity.Add(err.Error())
+		slog.Error(err.Error())
+		SendResponse(r, err, nil)
+		return
+	}
+	mysqlNotRun, mysqlFail, err := service.CheckLog(service.Tendbha, input.Days)
+	if err != nil {
+		slog.Error("msg", "CheckLog error", err)
+		SendResponse(r, err, nil)
+		return
+	}
+	spiderNotRun, spiderFail, err := service.CheckLog(service.Tendbcluster, input.Days)
+	if err != nil {
+		slog.Error("msg", "CheckLog error", err)
+		SendResponse(r, err, nil)
+		return
+	}
+	data := struct {
+		MysqlNotRun  []*service.CheckSummary `json:"mysql_not_run"`
+		MysqlFail    []*service.CheckSummary `json:"mysql_fail"`
+		SpiderNotRun []*service.CheckSummary `json:"spider_not_run"`
+		SpiderFail   []*service.CheckSummary `json:"spider_fail"`
+	}{mysqlNotRun, mysqlFail, spiderNotRun,
+		spiderFail}
+	SendResponse(r, err, data)
+	return
+}
+
 // Response TODO
 type Response struct {
 	Code    int         `json:"code"`

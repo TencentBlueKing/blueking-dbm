@@ -106,7 +106,7 @@
   const hasEditDbName = ref(false);
 
   const disabledTips = computed(() => {
-    if (props.clusterData && dbName.value.length < 1) {
+    if (props.clusterData && dbName.value.length > 0) {
       return '';
     }
     return t('请先设置集群、构造 DB');

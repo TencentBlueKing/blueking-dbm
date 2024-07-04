@@ -93,6 +93,11 @@ type BatchUpdateMachineInput struct {
 	StorageDevice  map[string]bk.DiskDetail `json:"storage_device"`
 }
 
+const (
+	// EmptyArryJson empty arry json
+	EmptyArryJson = "[]"
+)
+
 // BatchUpdate 批量编辑主机信息
 func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 	var input BatchUpdateMachineInput
@@ -115,7 +120,7 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 		updateMap["dedicated_bizs"] = bizJson
 	}
 	if input.SetBizEmpty {
-		updateMap["dedicated_bizs"] = "[]"
+		updateMap["dedicated_bizs"] = EmptyArryJson
 	}
 
 	// update resource type
@@ -129,7 +134,7 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 		updateMap["rs_types"] = rstypes
 	}
 	if input.SetRsTypeEmpty {
-		updateMap["rs_types"] = "[]"
+		updateMap["rs_types"] = EmptyArryJson
 	}
 
 	// update disk

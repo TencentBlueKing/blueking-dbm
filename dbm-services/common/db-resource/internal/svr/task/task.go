@@ -84,7 +84,7 @@ func init() {
 					archIds = []int{}
 				}
 			case <-ticker.C:
-				if len(RuningTask) <= 0 && len(archIds) > 0 {
+				if len(RuningTask) == 0 && len(archIds) > 0 {
 					if err := archiverResource(archIds); err != nil {
 						logger.Warn("archiver resouce failed %s", err.Error())
 					}
@@ -188,7 +188,7 @@ func AsyncResourceHardInfo() (err error) {
 		logger.Error("query total_storage_cap less than 0,err %w ", err)
 		return err
 	}
-	if len(rsList) <= 0 {
+	if len(rsList) == 0 {
 		return nil
 	}
 	bizHostMap := make(map[int][]string)

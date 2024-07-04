@@ -79,6 +79,11 @@ class _PartitionApi(BaseApi):
             url="partition/create_log",
             description=_("创建分区操作日志"),
         )
+        self.check_log = self.generate_data_api(
+            method="POST",
+            url="partition/check_log",
+            description=_("获取巡检日志"),
+        )
 
 
 DBPartitionApi = _PartitionApi()

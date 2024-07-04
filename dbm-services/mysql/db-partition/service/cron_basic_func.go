@@ -12,6 +12,7 @@ package service
 
 import (
 	"context"
+	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/db-partition/util"
 	"encoding/json"
 	"fmt"
@@ -44,11 +45,6 @@ func (m PartitionJob) Run() {
 	} else if flag {
 		m.ExecuteTendbhaPartition()
 		m.ExecuteTendbclusterPartition()
-		if m.CronType == Alarm {
-			// 巡检最近3天执行失败的或者未执行的
-			CheckLogSendMonitor(Tendbha, m.CronDate)
-			CheckLogSendMonitor(Tendbcluster, m.CronDate)
-		}
 	} else {
 		slog.Warn("set redis mutual exclusion fail, do nothing", "key", key)
 	}
@@ -65,9 +61,8 @@ func (m PartitionJob) ExecuteTendbhaPartition() {
 		slog.Error("msg", msg, errOuter)
 		return
 	}
-	// 找到distinct业务distinct业务、distinct集群、集群和业务的所属关系、规则和集群的所属关系
+	// 找到distinct业务、distinct集群、集群和业务的所属关系、规则和集群的所属关系
 	var uniqBiz = make(map[int64]struct{})
-	fromCron := true
 	for _, need := range needMysql {
 		if _, isExists := uniqBiz[need.BkBizId]; isExists == false {
 			uniqBiz[need.BkBizId] = struct{}{}
@@ -88,33 +83,36 @@ func (m PartitionJob) ExecuteTendbhaPartition() {
 	}
 	slog.Info("msg", "master", master, "host", uniqHost)
 	// 需要下载dbactor的机器
-	var cloudMachineList = make(map[int64][]string)
+	var cloudMachineList = make(map[int][]string)
 	var machineFileName = make(map[string]string)
 	for host, clusters := range uniqHost {
 		tmp := strings.Split(host, "|")
 		ip := tmp[0]
-		cloud, _ := strconv.ParseInt(tmp[1], 10, 64)
+		cloud, _ := strconv.Atoi(tmp[1])
 		var objects []PartitionObject
 		for _, cluster := range clusters {
 			port := master[cluster].Port
 			// 获取需要执行的分区语句，哪些分区规则不需要执行
-			sqls, _, nothingToDo, err := CheckPartitionConfigs(clusterConfigs[int(cluster)], "mysql",
-				1, fromCron, Host{Ip: ip, Port: port, BkCloudId: cloud})
-			if err != nil {
-				msg := "get partition sql fail"
-				SendMonitor(msg, err)
-				slog.Error("msg", msg, err)
-				break
-			}
+			sqls, nothingToDo, checkFail, _ := CheckPartitionConfigs(clusterConfigs[int(cluster)], "mysql",
+				1, true, Host{Ip: ip, Port: port, BkCloudId: cloud})
 			if len(sqls) > 0 {
 				slog.Info("msg", "sql", sqls)
 				objects = append(objects, PartitionObject{Ip: ip, Port: port, ShardName: "null",
 					ExecuteObjects: sqls})
 			}
+			// 检查失败，记录的分区日志中
+			if len(checkFail) > 0 {
+				err := AddLogBatch(checkFail, m.CronDate, Scheduler, Fail, Tendbha, "")
+				if err != nil {
+					msg := "add log fail"
+					SendMonitor(msg, err)
+					slog.Error("msg", msg, err)
+					break
+				}
+			}
 			// 检查不需要执行语句，记录的分区日志中
 			if len(nothingToDo) > 0 {
-				err = AddLogBatch(nothingToDo, m.CronDate, Scheduler,
-					"nothing to do", Success, Tendbha)
+				err := AddLogBatch(nothingToDo, m.CronDate, Scheduler, Success, Tendbha, "nothing to do")
 				if err != nil {
 					msg := "add log fail"
 					SendMonitor(msg, err)
@@ -143,7 +141,6 @@ func (m PartitionJob) ExecuteTendbhaPartition() {
 // ExecuteTendbclusterPartition 执行tendbcluster的分区
 func (m PartitionJob) ExecuteTendbclusterPartition() {
 	slog.Info("do ExecuteTendbclusterPartition")
-	fromCron := true
 	timeStr := time.Now().Format(time.RFC3339)
 	needMysql, errOuter := NeedPartition(m.CronType, Tendbcluster, m.ZoneOffset, m.CronDate)
 	if errOuter != nil {
@@ -161,6 +158,7 @@ func (m PartitionJob) ExecuteTendbclusterPartition() {
 	// 需要下载dbactor的机器
 	var machineFileName = make(map[string]string)
 	var clusterIps = make(map[string][]string)
+	// 每个集群的规则一起执行
 	for cluster := range clusterConfigs {
 		// 获取集群结构
 		hostNodes, splitCnt, err := GetTendbclusterInstances(cluster)
@@ -171,13 +169,12 @@ func (m PartitionJob) ExecuteTendbclusterPartition() {
 			continue
 		}
 		slog.Info("spider struct", "hostNodes", hostNodes, "splitCnt", splitCnt)
-		var nothing []PartitionConfig
-		var doSomething []PartitionConfig
-		var objects []PartitionObject
+		var nothing, checkFail []IdLog
+		doSomething := make(map[string][]PartitionObject)
 		configs := clusterConfigs[cluster]
+		// 获取每个机器上需要执行的分区语句
 		for host, instances := range hostNodes {
-			tmp := strings.Split(host, "|")
-			ip := tmp[0]
+			// 获取每个实例需要执行的分区语句
 			for _, ins := range instances {
 				newconfigs := make([]*PartitionConfig, len(configs))
 				for k, v := range configs {
@@ -187,27 +184,25 @@ func (m PartitionJob) ExecuteTendbclusterPartition() {
 					}
 					newconfigs[k] = &newconfig
 				}
-				// 获取一个集群中的一个实例需要执行的所有分区语句
-				sqls, do, nothingToDo, errInner := CheckPartitionConfigs(newconfigs, ins.Wrapper,
-					splitCnt, fromCron, Host{Ip: ins.Ip, Port: ins.Port, BkCloudId: int64(ins.Cloud)})
-				if errInner != nil {
-					msg := "get partition sql fail"
-					SendMonitor(msg, errInner)
-					slog.Error("msg", msg, errInner)
-					break
-				}
-				if len(sqls) > 0 {
-					objects = append(objects, PartitionObject{Ip: ins.Ip, Port: ins.Port, ShardName: ins.ServerName,
-						ExecuteObjects: sqls})
-				}
+				// 在这个实例上，不需要执行的、需要执行的、检查失败的分区规则
+				sqls, nothingToDo, fail, _ := CheckPartitionConfigs(newconfigs, ins.Wrapper,
+					splitCnt, true, Host{Ip: ins.Ip, Port: ins.Port, BkCloudId: ins.Cloud})
 				nothing = append(nothing, nothingToDo...)
-				doSomething = append(doSomething, do...)
+				if len(sqls) > 0 {
+					doSomething[host] = append(doSomething[host],
+						PartitionObject{Ip: ins.Ip, Port: ins.Port, ShardName: ins.ServerName, ExecuteObjects: sqls})
+				}
+				checkFail = append(checkFail, fail...)
 			}
-			// 需要执行的规则与不需要执行的均记录到日志中，即使记录日志失败，仍然继续执行分区
-			NeedExecuteList(doSomething, nothing, m.CronDate, Tendbcluster)
-			if len(objects) == 0 {
-				continue
-			}
+		}
+		// 检查失败的、不需要执行的记录到日志中，即使记录日志失败，仍然继续执行分区
+		doList := NeedExecuteList(doSomething, nothing, checkFail, m.CronDate, Tendbcluster)
+		if len(doList) == 0 {
+			continue
+		}
+		for host, objects := range doList {
+			tmp := strings.Split(host, "|")
+			ip := tmp[0]
 			filename := fmt.Sprintf("partition_%s_%s_%s_%s.json", ip, m.CronDate, m.CronType, timeStr)
 			err = UploadObejct(objects, filename)
 			if err != nil {
@@ -224,34 +219,74 @@ func (m PartitionJob) ExecuteTendbclusterPartition() {
 }
 
 // NeedExecuteList spider集群需要多个节点在执行分区规则，只有所有节点均不需要执行sql，才不不需要下发分区任务
-func NeedExecuteList(doSomething []PartitionConfig, nothing []PartitionConfig, vdate, clusterType string) {
-	var uniq = make(map[int]struct{})
-	var doList []PartitionConfig
-	var doIds []int
+func NeedExecuteList(doSomething map[string][]PartitionObject, nothing,
+	checkFail []IdLog, vdate, clusterType string) map[string][]PartitionObject {
+	var uniqDo = make(map[int]struct{})
 	var uniqNothing = make(map[int]struct{})
-	var nothingList []PartitionConfig
+	var uniqCheckFail = make(map[int][]string)
+	var doList = make(map[string][]PartitionObject)
+	var nothingList, checkFailList []IdLog
+	var failIds, doIds []int
 
-	for _, item := range doSomething {
-		if _, isExists := uniq[item.ID]; isExists == false {
-			uniq[item.ID] = struct{}{}
-			doList = append(doList, item)
-			doIds = append(doIds, item.ID)
+	// 获取检查失败的分区列表以及其日志
+	for _, item := range checkFail {
+		uniqCheckFail[item.ConfigId] = append(uniqCheckFail[item.ConfigId], item.Log)
+	}
+	for k, v := range uniqCheckFail {
+		failIds = append(failIds, k)
+		checkFailList = append(checkFailList, IdLog{k, strings.Join(v, "\n")})
+	}
+
+	// 获取需要执行的分区列表（排查了检查失败的分区规则）
+	for ip, objects := range doSomething {
+		var newobjects []PartitionObject
+		for _, object := range objects {
+			var newsqls []PartitionSql
+			for _, sql := range object.ExecuteObjects {
+				if !util.HasElem(sql.ConfigId, failIds) {
+					newsqls = append(newsqls, sql)
+					if _, isExists := uniqDo[sql.ConfigId]; isExists == false {
+						uniqDo[sql.ConfigId] = struct{}{}
+					}
+				}
+			}
+			if len(newsqls) > 0 {
+				newobjects = append(newobjects, PartitionObject{object.Ip,
+					object.Port, object.ShardName, newsqls})
+			}
+		}
+		if len(newobjects) > 0 {
+			doList[ip] = newobjects
 		}
 	}
+	for k := range uniqDo {
+		doIds = append(doIds, k)
+	}
+
+	// 获取不需要执行的分区列表（排除检查失败的分区、排查需要执行的分区）
 	for _, item := range nothing {
-		if _, isExists := uniqNothing[item.ID]; isExists == false {
-			uniqNothing[item.ID] = struct{}{}
-			if !util.HasElem(item.ID, doIds) {
-				nothingList = append(nothingList, item)
+		if !util.HasElem(item.ConfigId, doIds) && !util.HasElem(item.ConfigId, failIds) {
+			if _, isExists := uniqNothing[item.ConfigId]; isExists == false {
+				uniqNothing[item.ConfigId] = struct{}{}
+				nothingList = append(nothingList, IdLog{ConfigId: item.ConfigId})
 			}
 		}
 	}
-	err := AddLogBatch(nothingList, vdate, Scheduler, "nothing to do", Success, clusterType)
+
+	err := AddLogBatch(checkFailList, vdate, Scheduler, Fail, clusterType, "")
 	if err != nil {
 		msg := "add log fail"
 		SendMonitor(msg, err)
 		slog.Error("msg", msg, err)
 	}
+
+	err = AddLogBatch(nothingList, vdate, Scheduler, Success, clusterType, "nothing to do")
+	if err != nil {
+		msg := "add log fail"
+		SendMonitor(msg, err)
+		slog.Error("msg", msg, err)
+	}
+	return doList
 }
 
 // UploadObejct 分区结构转换为文件上传到介质中心
@@ -317,9 +352,10 @@ func GetHostAndMaster(uniqBiz map[int64]struct{}) (map[int64]Host, map[string][]
 
 // GetTendbclusterInstances 获取tendbcluster中的节点
 func GetTendbclusterInstances(cluster string) (map[string][]SpiderNode, int, error) {
+	slog.Info("GetTendbclusterInstances", "cluster", cluster)
 	tmp := strings.Split(cluster, "|")
 	domain := tmp[0]
-	port, _ := strconv.ParseInt(tmp[1], 10, 64)
+	port, _ := strconv.Atoi(tmp[1])
 	cloud, _ := strconv.Atoi(tmp[2])
 	address := fmt.Sprintf("%s:%d", domain, port)
 	var splitCnt int
@@ -394,7 +430,7 @@ func GetTendbclusterInstances(cluster string) (map[string][]SpiderNode, int, err
 }
 
 // DownLoadFilesCreateTicketByMachine tendbha按照机器粒度下载文件、创建分区单据
-func DownLoadFilesCreateTicketByMachine(cloudMachineList map[int64][]string, machineFileName map[string]string,
+func DownLoadFilesCreateTicketByMachine(cloudMachineList map[int][]string, machineFileName map[string]string,
 	clusterType string, vdate string) {
 	var wg sync.WaitGroup
 	limit := rate.Every(time.Second * 20)
@@ -405,7 +441,7 @@ func DownLoadFilesCreateTicketByMachine(cloudMachineList map[int64][]string, mac
 		tmp := util.SplitArray(machines, 20)
 		for _, ips := range tmp {
 			wg.Add(1)
-			go func(cloud int64, ips []string) {
+			go func(cloud int, ips []string) {
 				defer func() {
 					wg.Done()
 				}()
@@ -482,7 +518,7 @@ func DownLoadFilesCreateTicketByCluster(clusterIps map[string][]string, machineF
 			tmp := util.SplitArray(machines, 20)
 			for _, ips := range tmp {
 				// 按照机器下载好dbactor
-				err = DownloadDbactor(int64(cloud), ips)
+				err = DownloadDbactor(cloud, ips)
 				// dbactor下载失败，可以继续执行分区的单据，机器上可能已经存在dbactor
 				if err != nil {
 					dimension := monitor.NewDeveloperEventDimension(Scheduler, monitor.PartitionCron)
@@ -493,7 +529,7 @@ func DownLoadFilesCreateTicketByCluster(clusterIps map[string][]string, machineF
 				}
 				var files []Info
 				for _, ip := range ips {
-					files = append(files, Info{BkCloudId: int64(cloud), Ip: ip,
+					files = append(files, Info{BkCloudId: cloud, Ip: ip,
 						FileName: machineFileName[fmt.Sprintf("%s|%d", ip, cloud)]})
 				}
 				// 下载分区文件
@@ -555,10 +591,10 @@ func ObjectToFile(objects []PartitionObject, filename string) error {
 	return nil
 }
 
-// CheckLogSendMonitor 检查分区日志，连续多少天失败或者没有执行，告知平台负责人
-func CheckLogSendMonitor(clusterType string, cronDate string) {
-	// 判断是mysql集群还是spider集群
+// CheckLogForDays 查到所有的规则，找到最近几天执行失败的、没有执行的分区规则
+func CheckLogForDays(clusterType string, days int) ([]int, []int, error) {
 	var tb, log string
+	var failIds, notRunIds []int
 	switch clusterType {
 	case Tendbha, Tendbsingle:
 		tb = MysqlPartitionConfig
@@ -567,66 +603,116 @@ func CheckLogSendMonitor(clusterType string, cronDate string) {
 		tb = SpiderPartitionConfig
 		log = SpiderPartitionCronLogTable
 	default:
-		return
-	}
-
-	// 查到所有的规则，去除近xxx天曾经成功执行过的分区规则，其余告警
-	var all []*PartitionConfig
-	var faildays []PartitionConfig
-	continueDays := 7
-	err := model.DB.Self.Table(tb).Where(fmt.Sprintf(
-		"phase in (?,?) and create_time> date_sub(now(), interval %d day)", continueDays),
-		online, offline).Scan(&all).Error
-	if err != nil {
-		msg := "send monitor error. get partition configs error"
-		SendMonitor(msg, err)
-		slog.Error("msg", msg, err)
-		return
+		slog.Error("not supported db type")
+		return failIds, notRunIds, errno.NotSupportedClusterType
 	}
 	type Ids struct {
 		ID int `json:"id" gorm:"column:id;primary_key;auto_increment"`
 	}
-	var succeeded []*Ids
-	vsql := fmt.Sprintf("select distinct(id) as id from %s where status like '%s' "+
-		"and cron_date > date_sub(now(), interval %d day)", log, Success, continueDays)
-	err = model.DB.Self.Raw(vsql).Scan(&succeeded).Error
+	var all, success, fail []*Ids
+	err := model.DB.Self.Table(tb).Select("id").Where(fmt.Sprintf(
+		"phase in (?,?) and create_time < date_sub(now(), interval %d day)", days),
+		online, offline).Scan(&all).Error
 	if err != nil {
-		msg := "send monitor error. get partition logs error"
-		SendMonitor(msg, err)
-		slog.Error("msg", msg, err)
-		return
+		slog.Error("msg", "get partition configs error", err)
+		return failIds, notRunIds, fmt.Errorf("get partition configs error: %s", err.Error())
 	}
-	var clusterTable = make(map[string]string)
-	var uniqCluster = make(map[string]struct{})
 
-	for _, item := range all {
+	vsql := fmt.Sprintf("select distinct(config_id) as id from %s where status = '%s' "+
+		"and cron_date > date_sub(now(), interval %d day)", log, Success, days)
+	err = model.DB.Self.Raw(vsql).Scan(&success).Error
+	if err != nil {
+		slog.Error("msg", "get partition logs error", err)
+		return failIds, notRunIds, fmt.Errorf("get partition logs error: %s", err.Error())
+	}
+
+	vsql = fmt.Sprintf("select distinct(config_id) as id from %s where status = '%s' "+
+		"and cron_date > date_sub(now(), interval %d day)", log, Fail, days)
+	err = model.DB.Self.Raw(vsql).Scan(&fail).Error
+	if err != nil {
+		slog.Error("msg", "get partition logs error", err)
+		return failIds, notRunIds, fmt.Errorf("get partition logs error: %s", err.Error())
+	}
+
+	// 失败
+	for _, item := range fail {
 		failFlag := true
-		for _, ok := range succeeded {
+		for _, ok := range success {
 			if (*item).ID == (*ok).ID {
 				failFlag = false
 				break
 			}
 		}
 		if failFlag == true {
-			clusterTable[item.ImmuteDomain] = fmt.Sprintf("%s[%s.%s]", clusterTable[item.ImmuteDomain],
-				item.DbLike, item.TbLike)
-			if _, isExists := uniqCluster[item.ImmuteDomain]; isExists == false {
-				uniqCluster[item.ImmuteDomain] = struct{}{}
-			}
-			faildays = append(faildays, *item)
+			failIds = append(failIds, (*item).ID)
 		}
 	}
-	err = AddLogBatch(faildays, cronDate, Scheduler,
-		fmt.Sprintf("partition failed or not be run for %d days", continueDays), Fail, clusterType)
+
+	// 未执行
+	for _, item := range all {
+		notRunningFlag := true
+		for _, ok := range success {
+			if (*item).ID == (*ok).ID {
+				notRunningFlag = false
+				break
+			}
+		}
+		for _, notok := range fail {
+			if (*item).ID == (*notok).ID {
+				notRunningFlag = false
+				break
+			}
+		}
+		if notRunningFlag == true {
+			notRunIds = append(notRunIds, (*item).ID)
+		}
+	}
+	return failIds, notRunIds, nil
+}
+
+// CheckLog 每日巡检
+func CheckLog(clusterType string, days int) ([]*CheckSummary, []*CheckSummary, error) {
+	var tb string
+	var notRun, fail []*CheckSummary
+	var notRunFilter, failFilter string
+	switch clusterType {
+	case Tendbha, Tendbsingle:
+		tb = MysqlPartitionConfig
+	case Tendbcluster:
+		tb = SpiderPartitionConfig
+	default:
+		return notRun, fail, errno.NotSupportedClusterType
+	}
+	failIds, notRunIds, err := CheckLogForDays(clusterType, days)
 	if err != nil {
-		msg := "add log fail"
-		SendMonitor(msg, err)
-		slog.Error("msg", msg, err)
+		return notRun, fail, err
 	}
-	for domain := range uniqCluster {
-		content := fmt.Sprintf("partition failed for %d days: %s", continueDays, clusterTable[domain])
-		dimension := monitor.NewDeveloperEventDimension(Scheduler, domain)
-		slog.Info("monitor", "content", content, "dimension", dimension)
-		monitor.SendEvent(dimension, content, Scheduler)
+	for _, item := range notRunIds {
+		notRunFilter = fmt.Sprintf("%s,%d", notRunFilter, item)
 	}
+	notRunFilter = strings.TrimPrefix(notRunFilter, ",")
+	for _, item := range failIds {
+		failFilter = fmt.Sprintf("%s,%d", failFilter, item)
+	}
+	failFilter = strings.TrimPrefix(failFilter, ",")
+
+	if len(notRunFilter) > 0 {
+		vsql := fmt.Sprintf(`select bk_biz_id as bk_biz_id, db_app_abbr as db_app_abbr, `+
+			`count(*) as cnt from %s where id in (%s) group by 1,2 order by 3 desc;`, tb, notRunFilter)
+		err = model.DB.Self.Raw(vsql).Scan(&notRun).Error
+		if err != nil {
+			slog.Error("msg", "get partition configs error", err)
+			return notRun, fail, fmt.Errorf("get partition configs error: %s", err.Error())
+		}
+	}
+	if len(failFilter) > 0 {
+		vsql := fmt.Sprintf(`select bk_biz_id as bk_biz_id, db_app_abbr as db_app_abbr, `+
+			`count(*) as cnt from %s where id in (%s) group by 1,2 order by 3 desc;`, tb, failFilter)
+		err = model.DB.Self.Raw(vsql).Scan(&fail).Error
+		if err != nil {
+			slog.Error("msg", "get partition configs error", err)
+			return notRun, fail, fmt.Errorf("get partition configs error: %s", err.Error())
+		}
+	}
+	return notRun, fail, nil
 }

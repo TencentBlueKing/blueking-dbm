@@ -33,14 +33,14 @@ import (
 
 // SearchContext TODO
 type SearchContext struct {
-	*ApplyObjectDetail
+	*ObjectDetail
 	RsType          string
 	IntetionBkBizId int
 	IdcCitys        []string
 }
 
 // CycleApply 循环匹配
-func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err error) {
+func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 	resourceReqList := param.Details
 	sort.Slice(resourceReqList, func(i, j int) bool {
 		return len(resourceReqList[i].StorageSpecs) > len(
@@ -65,10 +65,10 @@ func CycleApply(param ApplyRequestInputParam) (pickers []*PickerObject, err erro
 		}
 
 		s := &SearchContext{
-			IntetionBkBizId:   param.ForbizId,
-			RsType:            param.ResourceType,
-			ApplyObjectDetail: &v,
-			IdcCitys:          idcCitys,
+			IntetionBkBizId: param.ForbizId,
+			RsType:          param.ResourceType,
+			ObjectDetail:    &v,
+			IdcCitys:        idcCitys,
 		}
 		if err = s.PickCheck(); err != nil {
 			return pickers, err
@@ -123,23 +123,23 @@ func (o *SearchContext) Matcher() (fns []func(db *gorm.DB)) {
 func (o *SearchContext) pickBase(db *gorm.DB) {
 	db.Where("gse_agent_status_code = ? ", bk.GSE_AGENT_OK)
 	if o.BkCloudId <= 0 {
-		db.Where(" bk_cloud_id = ? and status = ?  ", o.ApplyObjectDetail.BkCloudId, model.Unused)
+		db.Where(" bk_cloud_id = ? and status = ?  ", o.ObjectDetail.BkCloudId, model.Unused)
 	} else {
 		db.Where(" bk_cloud_id = ? and status = ?  ", o.BkCloudId, model.Unused)
 	}
 	// os type
 	// Windows
 	// Liunx
-	osType := o.ApplyObjectDetail.OsType
-	if cmutil.IsEmpty(o.ApplyObjectDetail.OsType) {
+	osType := o.ObjectDetail.OsType
+	if cmutil.IsEmpty(o.ObjectDetail.OsType) {
 		osType = "Linux"
 	}
 	db.Where("os_type = ? ", osType)
 
 	// match os name  like  Windows Server 2012
-	if len(o.ApplyObjectDetail.OsNames) > 0 {
+	if len(o.ObjectDetail.OsNames) > 0 {
 		conditions := []clause.Expression{}
-		for _, osname := range o.ApplyObjectDetail.OsNames {
+		for _, osname := range o.ObjectDetail.OsNames {
 			conditions = append(conditions, clause.Like{
 				Column: "os_name",
 				Value:  "%" + strings.TrimSpace(strings.ToLower(osname)) + "%",
@@ -295,7 +295,7 @@ func diskDetailMatch(d bk.DiskDetail, s DiskSpec) bool {
 }
 
 // PickInstanceBase TODO
-func (o *ApplyObjectDetail) PickInstanceBase(picker *PickerObject, items []model.TbRpDetail) {
+func (o *ObjectDetail) PickInstanceBase(picker *PickerObject, items []model.TbRpDetail) {
 	logger.Info("the anti-affinity is %s", o.Affinity)
 	switch o.Affinity {
 	case NONE:
@@ -346,20 +346,28 @@ func (o *SearchContext) MatchStorage(db *gorm.DB) {
 		return
 	}
 	for _, d := range o.StorageSpecs {
-		if cmutil.IsNotEmpty(d.MountPoint) {
-			mp := path.Clean(d.MountPoint)
-			if cmutil.IsNotEmpty(d.DiskType) {
-				db.Where(model.JSONQuery("storage_device").Equals(d.DiskType, mp, "disk_type"))
-			}
-			logger.Info("storage spec is %v", d)
-			switch {
-			case d.MaxSize > 0:
-				db.Where(model.JSONQuery("storage_device").NumRange(d.MinSize, d.MaxSize, mp, "size"))
-			case d.MaxSize <= 0 && d.MinSize > 0:
-				db.Where(model.JSONQuery("storage_device").Gte(d.MinSize, mp, "size"))
-			}
+		if lo.IsEmpty(d.MountPoint) {
+			continue
+		}
+		mp := path.Clean(d.MountPoint)
+		if isWindowsPath(mp) {
+			mp = strings.ReplaceAll(mp, `\`, ``)
+		}
+		if cmutil.IsNotEmpty(d.DiskType) {
+			db.Where(model.JSONQuery("storage_device").Equals(d.DiskType, mp, "disk_type"))
+		}
+		logger.Info("storage spec is %v", d)
+		switch {
+		case d.MaxSize > 0:
+			db.Where(model.JSONQuery("storage_device").NumRange(d.MinSize, d.MaxSize, mp, "size"))
+		case d.MaxSize <= 0 && d.MinSize > 0:
+			db.Where(model.JSONQuery("storage_device").Gte(d.MinSize, mp, "size"))
 		}
 	}
+}
+
+func isWindowsPath(path string) bool {
+	return strings.Contains(path, "\\")
 }
 
 // MatchSpec TODO

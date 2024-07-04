@@ -25,14 +25,25 @@ type Checker struct {
 // PartitionSqlSet 分区语句集合
 type PartitionSqlSet struct {
 	Mu            sync.RWMutex
-	PartitionSqls []PartitionSql    `json:"partition_sqls"`
-	Configs       []PartitionConfig `json:"configs"`
+	PartitionSqls []PartitionSql `json:"partition_sqls"`
 }
 
 // ConfigSet 配置集合
 type ConfigSet struct {
 	Mu      sync.RWMutex
 	Configs []PartitionConfig `json:"configs"`
+}
+
+// ConfigIdLogSet 分区配置ID以及其日志集合
+type ConfigIdLogSet struct {
+	Mu     sync.RWMutex
+	IdLogs []IdLog `json:"logs"`
+}
+
+// IdLog 分区配置ID以及其日志
+type IdLog struct {
+	ConfigId int    `json:"config_id"`
+	Log      string `json:"log"`
 }
 
 // PartitionSql 实例ip:port上的分区语句
@@ -94,5 +105,5 @@ type Messages struct {
 type Host struct {
 	Ip        string `json:"ip"`
 	Port      int    `json:"port"`
-	BkCloudId int64  `json:"bk_cloud_id"`
+	BkCloudId int    `json:"bk_cloud_id"`
 }
