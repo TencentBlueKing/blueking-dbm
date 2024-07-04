@@ -65,12 +65,10 @@
 
   interface Emits {
     (e: 'submit', value: string): void,
-    (e: 'error', result: boolean): void,
   }
 
   interface Exposes {
     getValue: () => Promise<string>,
-    validator: () => Promise<boolean>,
     focus: () => void,
   }
 
@@ -106,8 +104,6 @@
     if (value) {
       window.changeConfirm = true;
     }
-  }, {
-    immediate: true,
   });
 
   // 响应输入
@@ -132,10 +128,8 @@
       validator(modelValue.value)
         .then(() => {
           window.changeConfirm = true;
-          emits('error', false)
           emits('submit', modelValue.value);
-        })
-        .catch(() => emits('error', true));
+        });
       return;
     }
     emits('submit', modelValue.value);
@@ -161,11 +155,9 @@
         .then((result) => {
           if (result) {
             window.changeConfirm = true;
-            emits('error', false)
             emits('submit', modelValue.value);
           }
-        })
-        .catch(() => emits('error', true));
+        });
     }
   };
 
@@ -181,9 +173,6 @@
   defineExpose<Exposes>({
     getValue() {
       return validator(modelValue.value).then(() => modelValue.value);
-    },
-    validator(){
-      return validator(modelValue.value).then(() => true, () => false)
     },
     focus() {
       (rootRef.value as HTMLElement).querySelector('input')?.focus();

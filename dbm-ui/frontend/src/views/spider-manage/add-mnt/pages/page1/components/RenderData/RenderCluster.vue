@@ -22,11 +22,14 @@
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
-  import { onBeforeUnmount, ref, watch } from 'vue';
+  import {
+    onBeforeUnmount,
+    ref,
+    watch,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
-  import { filterClusters } from '@services/source/dbbase';
+  import {filterClusters} from '@services/source/dbbase'
 
   import { useGlobalBizs } from '@stores';
 
@@ -37,10 +40,10 @@
   import type { IDataRow } from './Row.vue';
 
   interface Exposes {
-    getValue: () => Array<number>;
+    getValue: () => Array<number>
   }
 
-  const modelValue = defineModel<IDataRow['clusterData']>();
+  const modelValue = defineModel<IDataRow['clusterData']>()
 
   const instanceKey = `render_cluster_${random()}`;
   clusterIdMemo[instanceKey] = {};
@@ -56,29 +59,28 @@
         if (value) {
           return true;
         }
-        modelValue.value = undefined;
+        modelValue.value = undefined
         return false;
       },
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) =>
-        filterClusters<TendbClusterModel>({
-          exact_domain: value,
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          if (data.length > 0) {
-            const [clusterData] = data;
-            modelValue.value = {
-              id: clusterData.id,
-              domain: clusterData.master_domain,
-              bkCloudId: clusterData.bk_cloud_id,
-              bkCloudName: clusterData.bk_cloud_name,
-            };
-            return true;
+      validator: (value: string) => filterClusters({
+        exact_domain: value,
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        if (data.length > 0) {
+          const [clusterData] = data;
+          modelValue.value = {
+            id: clusterData.id,
+            domain: clusterData.master_domain,
+            bkCloudId: clusterData.bk_cloud_id,
+            bkCloudName: clusterData.bk_cloud_name,
           }
-          return false;
-        }),
+          return true;
+        }
+        return false;
+      }),
       message: t('目标集群不存在'),
     },
     {
@@ -87,13 +89,10 @@
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
+          ...result,
+          ...item,
+        }), {} as Record<string, boolean>);
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -108,17 +107,14 @@
   ];
 
   // 同步外部值
-  watch(
-    modelValue,
-    () => {
-      if (modelValue.value) {
-        clusterIdMemo[instanceKey][modelValue.value.id] = true;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  watch(modelValue, () => {
+    if (modelValue.value) {
+      clusterIdMemo[instanceKey][modelValue.value.id] = true;
+    }
+  }, {
+    immediate: true,
+  });
+
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
@@ -126,9 +122,11 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => ({
-        cluster_id: modelValue.value!.id,
-      }));
+      return editRef.value
+        .getValue()
+        .then(() => ({
+          cluster_id: modelValue.value!.id,
+        }));
     },
   });
 </script>

@@ -17,9 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="
-          t('新建一个单节点实例_通过全备_binlog的方式_将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')
-        " />
+        :title="t('新建一个单节点实例_通过全备_binlog的方式_将数据库恢复到过去的某一时间点或者某个指定备份文件的状态')" />
       <div
         class="mt16"
         style="display: flex">
@@ -28,8 +26,10 @@
           {{ t('批量录入') }}
         </BkButton>
       </div>
-      <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
-      <TimeZonePicker style="width: 450px" />
+      <div class="title-spot mt-12 mb-10">
+        {{ t('时区') }}<span class="required" />
+      </div>
+      <TimeZonePicker style="width: 450px;" />
       <RenderData
         class="mt16"
         @batch-edit-backup-source="handleBatchEditBackupSource"
@@ -131,7 +131,7 @@
   const isSubmitting = ref(false);
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -210,7 +210,7 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
     }
     dataList.splice(index, 1);
     tableData.value = dataList;

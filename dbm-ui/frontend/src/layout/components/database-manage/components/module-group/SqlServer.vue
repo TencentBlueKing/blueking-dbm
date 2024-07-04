@@ -46,63 +46,21 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
-      <ToolboxMenu
-        v-for="toolboxGroupId in toolboxMenuSortList"
-        :id="toolboxGroupId"
-        :key="toolboxGroupId"
-        :favor-map="favorMeunMap"
-        :toolbox-menu-config="toolboxMenuConfig" />
-      <FunController
-        controller-id="sqlserver_tool"
-        module-id="sqlserver">
-        <BkMenuItem key="sqlserverToolbox">
-          <template #icon>
-            <DbIcon type="tools" />
-          </template>
-          <span
-            v-overflow-tips.right
-            class="text-overflow">
-            {{ t('工具箱') }}
-          </span>
-        </BkMenuItem>
-      </FunController>
+      <BkMenuItem key="SqlServerDbBackup">
+        <template #icon>
+          <DbIcon type="node" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('数据库备份') }}
+        </span>
+      </BkMenuItem>
     </BkMenuGroup>
   </FunController>
 </template>
 <script setup lang="ts">
-  import { onBeforeUnmount, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { useEventBus } from '@hooks';
-
-  import { useUserProfile } from '@stores';
-
-  import { UserPersonalSettings } from '@common/const';
-
-  import toolboxMenuConfig from '@views/sqlserver-manage/toolbox-menu';
-
-  import { makeMap } from '@utils';
-
-  import ToolboxMenu from './components/ToolboxMenu.vue';
-
-  const userProfile = useUserProfile();
   const { t } = useI18n();
-  const eventBus = useEventBus();
-
-  const toolboxMenuSortList = shallowRef<string[]>([]);
-  const favorMeunMap = shallowRef<Record<string, boolean>>({});
-
-  const renderToolboxMenu = () => {
-    toolboxMenuSortList.value =
-      userProfile.profile[UserPersonalSettings.SQLSERVER_TOOLBOX_MENUS] || toolboxMenuConfig.map((item) => item.id);
-    favorMeunMap.value = makeMap(userProfile.profile[UserPersonalSettings.SQLSERVER_TOOLBOX_FAVOR]);
-  };
-
-  renderToolboxMenu();
-
-  eventBus.on('SQLSERVER_TOOLBOX_CHANGE', renderToolboxMenu);
-
-  onBeforeUnmount(() => {
-    eventBus.off('SQLSERVER_TOOLBOX_CHANGE', renderToolboxMenu);
-  });
 </script>

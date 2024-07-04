@@ -1,11 +1,37 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.node.json"
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": ["env.d.ts", "components.d.ts", "src/**/*", "src/**/*.vue"],
+  "compilerOptions": {
+    "ignoreDeprecations": "5.0",
+    "resolvePackageJsonExports": false,
+    "resolveJsonModule": true,
+    "lib": [ "es2016", "dom", "es2018", "es2018.promise"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@services/*": ["src/services/*"],
+      "@hooks": ["src/hooks"],
+      "@router/*": ["src/router/*"],
+      "@stores": ["src/stores"],
+      "@common/*": ["src/common/*"],
+      "@components/*": ["src/components/*"],
+      "@views/*": ["src/views/*"],
+      "@utils": ["src/utils"],
+      "@helper/*": ["src/helper/*"],
+      "@types": ["src/types/*"],
+      "@styles/*": ["src/styles/*"],
+      "@locales/*": ["src/locales/*"],
+      "@images/*": ["src/images/*"],
+      "@lib/*": ["lib/*"],
     },
-    {
-      "path": "./tsconfig.app.json"
-    }
-  ]
+    "typeRoots": [
+      "node_modules",
+      "./src/types"
+    ],
+    "types": [
+      "bkui-vue/lib/volar.components",
+    ],
+    "jsx": "preserve",
+    "noEmit": false,
+  },
 }

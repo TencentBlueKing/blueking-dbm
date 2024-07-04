@@ -6,6 +6,8 @@ import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task
 
 import http from '../http';
 
+// const path = `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import`;
+
 /**
  * 删除用户语义检查任务列表
  */
@@ -80,16 +82,18 @@ export function semanticCheck(params: { bk_biz_id: number; cluster_type: string 
 /**
  * 获取语义执行的结果日志
  */
-export function semanticCheckResultLogs(params: { cluster_type: string; root_id: string; node_id: string }) {
-  return http.post<
-    {
-      filename: string;
-      match_logs: {
-        timestamp: string;
-        levelname: string;
-        message: string;
-      }[];
-      status: string;
-    }[]
-  >(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_semantic_check_result_logs/`, params);
+export function semanticCheckResultLogs(params: {
+  cluster_type: string,
+  root_id: string,
+  node_id: string,
+}) {
+  return http.post<{
+    filename: string;
+    match_logs: {
+      timestamp: string;
+      levelname: string;
+      message: string;
+    }[];
+    status: string;
+}[]>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_semantic_check_result_logs/`, params);
 }

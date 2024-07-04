@@ -111,9 +111,9 @@ class MySQLMigrateClusterRemoteFlow(object):
                 install_pkg_version = info["new_mysql_version"]
 
             charset, db_version = get_version_and_charset(
-                bk_biz_id=cluster_class.bk_biz_id,
+                self.data["bk_biz_id"],
                 db_module_id=db_module_id,
-                cluster_type=cluster_class.cluster_type,
+                cluster_type=self.data["cluster_type"],
             )
 
             self.data["master_ip"] = master_model.machine.ip

@@ -188,7 +188,7 @@
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
       content: popRef.value,
-      placement: 'bottom-start',
+      placement: 'bottom',
       appendTo: () => document.body,
       theme: 'table-edit-select light',
       maxWidth: 'none',
@@ -199,7 +199,7 @@
       onShow: () => {
         const { width } = rootRef.value.getBoundingClientRect();
         Object.assign(popRef.value.style, {
-          minWidth: `${width}px`,
+          width: `${width}px`,
         });
         isShowPop.value = true;
         isError.value = false;

@@ -26,8 +26,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
-  import { filterClusters } from '@services/source/dbbase';
+  import { filterClusters } from '@services/source/dbbase'
 
   import { useGlobalBizs } from '@stores';
 
@@ -42,11 +41,11 @@
   }
 
   interface Emits {
-    (e: 'inputFinish', value: string): void;
+    (e: 'inputFinish', value: string): void
   }
 
   interface Exposes {
-    getValue: () => Promise<number>;
+    getValue: () => Promise<number>
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -56,7 +55,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
+  const { currentBizId } = useGlobalBizs()
 
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
 
@@ -73,21 +72,20 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => domainRegex.test(value),
+      validator: (value: string) =>  domainRegex.test(value),
       message: t('目标集群输入格式有误'),
     },
     {
-      validator: (value: string) =>
-        filterClusters<SqlServerClusterDetailModel>({
-          bk_biz_id: currentBizId,
-          exact_domain: value,
-        }).then((data) => {
-          if (data.length > 0) {
-            localClusterId.value = data[0].id;
-            return true;
-          }
-          return false;
-        }),
+      validator: (value: string) => filterClusters({
+        bk_biz_id: currentBizId,
+        exact_domain: value,
+      }).then((data) => {
+        if (data.length > 0) {
+          localClusterId.value = data[0].id;
+          return true;
+        }
+        return false;
+      }),
       message: t('目标集群不存在'),
     },
     {
@@ -96,13 +94,10 @@
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
+          ...result,
+          ...item,
+        }), {} as Record<string, boolean>);
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
@@ -116,18 +111,14 @@
   ];
 
   // 获取关联集群
-  watch(
-    localClusterId,
-    () => {
-      if (!localClusterId.value) {
-        return;
-      }
-      clusterIdMemo[instanceKey][localClusterId.value] = true;
-    },
-    {
-      immediate: true,
-    },
-  );
+  watch(localClusterId, () => {
+    if (!localClusterId.value) {
+      return;
+    }
+    clusterIdMemo[instanceKey][localClusterId.value] = true;
+  }, {
+    immediate: true,
+  });
 
   const handleInputFinish = (value: string) => {
     const realValue = _.trim(value);
@@ -137,11 +128,13 @@
 
   onBeforeUnmount(() => {
     clusterIdMemo[instanceKey] = {};
-  });
+  })
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => localClusterId.value);
+      return editRef.value
+        .getValue()
+        .then(() => (localClusterId.value));
     },
   });
 </script>

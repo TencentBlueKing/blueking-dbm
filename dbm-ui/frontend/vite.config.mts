@@ -31,6 +31,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: env.VITE_PUBLIC_PATH,
+    define: {
+      __RESOURCE_UNIQUE_KEY__: JSON.stringify(uniqueKey),
+    },
     resolve: {
       alias: {
         '@': resolve(__dirname, 'src'),
@@ -99,6 +102,12 @@ export default defineConfig(({ mode }) => {
         envPrefixes: ['VITE_'],
       }),
     ].concat(isHttps ? [basicSsl()] : []),
+    build: {
+      sourcemap: true,
+      commonjsOptions: {
+        ignoreTryCatch: false,
+      },
+    },
     optimizeDeps: {
       exclude: ['@blueking/ip-selector/dist/vue3.x.js', 'lib/'],
     },

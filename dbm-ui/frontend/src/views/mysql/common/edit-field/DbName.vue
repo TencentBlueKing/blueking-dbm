@@ -25,17 +25,16 @@
   import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkClusterDatabase } from '@services/source/dbbase';
+  import { checkClusterDatabase } from '@services/source/remoteService';
 
   import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
     modelValue?: string[];
-    clusterId?: number;
+    clusterId: number;
     required?: boolean;
     single?: boolean;
     checkExist?: boolean;
-    checkNotExist?: boolean;
     rules?: {
       validator: (value: string[]) => boolean;
       message: string;
@@ -53,11 +52,10 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
-    clusterId: undefined,
     required: true,
     single: false,
+    remoteExist: false,
     checkExist: false,
-    checkNotExist: false,
     rules: undefined,
   });
 
@@ -108,38 +106,23 @@
           if (!props.checkExist) {
             return true;
           }
-          if (!props.clusterId) {
-            return false;
-          }
           const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
           if (clearDbList.length < 1) {
             return true;
           }
           return checkClusterDatabase({
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            cluster_id: props.clusterId,
-            db_list: value,
-          }).then((data) => !data[value[0]]);
-        },
-        message: t('DB 不存在'),
-      },
-      {
-        validator: (value: string[]) => {
-          if (!props.checkNotExist) {
-            return true;
-          }
-          if (!props.clusterId) {
-            return false;
-          }
-          const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
-          if (clearDbList.length < 1) {
-            return true;
-          }
-          return checkClusterDatabase({
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            cluster_id: props.clusterId,
-            db_list: value,
-          }).then((data) => data[value[0]]);
+            infos: [
+              {
+                cluster_id: props.clusterId,
+                db_names: value,
+              },
+            ],
+          }).then((data) => {
+            if (data.length < 1) {
+              return false;
+            }
+            return _.every(Object.values(data[0].check_info), (item) => item);
+          });
         },
         message: t('DB 不存在'),
       },
@@ -170,7 +153,6 @@
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
-    console.log('from tag change = ', value);
     emits('update:modelValue', value);
     emits('change', value);
   };

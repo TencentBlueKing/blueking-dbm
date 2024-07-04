@@ -12,7 +12,7 @@
  */
 import { type ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
 
-import { useFunController, useSystemEnviron } from '@stores';
+import { useSystemEnviron, useFunController } from '@stores';
 
 /**
  * 检查 dbconsole 开关

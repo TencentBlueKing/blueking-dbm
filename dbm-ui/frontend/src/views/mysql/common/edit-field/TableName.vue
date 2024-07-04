@@ -29,9 +29,9 @@
 
   interface Props {
     modelValue?: string[];
-    clusterId?: number;
-    required?: boolean;
+    clusterId: number;
     placeholder?: string;
+    required?: boolean;
     single?: boolean;
     rules?: {
       validator: (value: string[]) => boolean;
@@ -51,7 +51,6 @@
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
     placeholder: '',
-    clusterId: undefined,
     required: true,
     single: false,
     rules: undefined,

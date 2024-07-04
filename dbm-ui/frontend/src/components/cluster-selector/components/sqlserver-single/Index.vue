@@ -66,8 +66,6 @@
   interface Props {
     activeTab: ClusterTypes,
     selected: Record<string, (SqlServerSingleClusterModel | SqlServerHaClusterModel)[]>,
-    // 多选模式
-    multiple: TabItem['multiple'],
     // eslint-disable-next-line vue/no-unused-properties
     getResourceList: TabItem['getResourceList'],
     disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>,
@@ -113,13 +111,14 @@
   const columns = computed(() => [
     {
       width: 60,
-      label: () => props.multiple && (
+      label: () => (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
           model-value={isSelectedAll.value}
           indeterminate={isIndeterminate.value}
           disabled={mainSelectDisable.value}
           label={true}
+          onClick={(e: Event) => e.stopPropagation()}
           onChange={handleSelecteAll}
         />
       ),
@@ -132,24 +131,19 @@
               placement="top"
               popoverDelay={0}>
               {{
-                default: () => props.multiple ? <bk-checkbox style="vertical-align: middle;" disabled /> : <bk-radio disabled label={false}/>,
+                default: () => <bk-checkbox style="vertical-align: middle;" disabled />,
                 content: () => <span>{disabledRowConfig.tip}</span>,
               }}
             </bk-popover>
           );
         }
-        return props.multiple ? (
+        return (
           <bk-checkbox
             style="vertical-align: middle;"
             model-value={Boolean(selectedDomainMap.value[data.id])}
             label={true}
             onChange={(value: boolean) => handleSelecteRow(data, value)}
           />
-          ) : (
-          <bk-radio
-            model-value={Boolean(selectedDomainMap.value[data.id])}
-            onChange={(value: boolean) => handleSelecteRow(data, value)}
-            label={true}/>
         );
       },
     },
@@ -337,7 +331,7 @@
    * 选择当行数据
    */
   const handleSelecteRow = (data: ResourceItem, value: boolean) => {
-    const selectedMapMemo = props.multiple ? { ...selectedMap.value } : {};
+    const selectedMapMemo = { ...selectedMap.value };
     if (!selectedMapMemo[activeTab.value]) {
       selectedMapMemo[activeTab.value] = {};
     }

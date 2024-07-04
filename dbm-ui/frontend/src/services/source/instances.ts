@@ -37,6 +37,10 @@ export function checkRedisInstances(params: Record<'instance_addresses', Array<s
 /**
  * 判断 Mongo 实例是否存在
  */
-export function checkMongoInstances(params: { bizId: number; instance_addresses: string[]; cluster_ids?: number[] }) {
+export function checkMongoInstances(params: {
+  bizId: number;
+  instance_addresses: string[];
+  cluster_ids?: number[],
+}) {
   return http.post<InstanceItem[]>(`/apis/mongodb/bizs/${params.bizId}/instance/check_instances/`, params);
 }

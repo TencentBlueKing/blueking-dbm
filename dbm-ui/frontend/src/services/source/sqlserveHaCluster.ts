@@ -35,18 +35,6 @@ export function getHaClusterList(params: { limit?: number; offset?: number }) {
 }
 
 /**
- * 获取完整的集群列表
- */
-export function getHaClusterWholeList() {
-  return http
-    .get<ListBase<SqlServerClusterListModel[]>>(`${path}/`, {
-      limit: -1,
-      offset: 0,
-    })
-    .then((data) => data.results.map((item) => new SqlServerClusterListModel(item)));
-}
-
-/**
  * 获取集群详情
  */
 export function getHaClusterDetail(params: { cluster_id: number }) {

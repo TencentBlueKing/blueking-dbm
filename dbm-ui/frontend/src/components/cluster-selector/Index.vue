@@ -159,8 +159,8 @@
   import type { SearchSelectList } from './components/common/SearchBar.vue';
   import MongoTable from './components/mongo/Index.vue';
   import RedisTable from './components/redis/Index.vue';
-  import SqlserverHaTable from './components/sqlserver-ha/Index.vue';
-  import SqlserverSingleTable from './components/sqlserver-single/Index.vue';
+  import SqlserverHaTable from './components/sqlserver-ha/Index.vue'
+  import SqlserverSingleTable from './components/sqlserver-single/Index.vue'
   import SpiderTable from './components/tendb-cluster/Index.vue';
   import TendbSingleTable from './components/tendb-single/Index.vue';
   import TendbhaTable from './components/tendbha/Index.vue';
@@ -293,33 +293,27 @@
     },
     [ClusterTypes.SQLSERVER_SINGLE]: {
       id: ClusterTypes.SQLSERVER_SINGLE,
-      name: t('单节点'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+      name: t('集群选择'),
+      disabledRowConfig: [{
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      }],
       multiple: true,
       getResourceList: getSingleClusterList,
       tableContent: SqlserverSingleTable,
       resultContent: ResultPreview,
-      showPreviewResultTitle: true,
     },
     [ClusterTypes.SQLSERVER_HA]: {
       id: ClusterTypes.SQLSERVER_HA,
-      name: t('主从'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
+      name: t('集群选择'),
+      disabledRowConfig: [{
+        handler: (data: T) => data.isOffline,
+        tip: t('集群已禁用'),
+      }],
       multiple: true,
       getResourceList: getHaClusterList,
       tableContent: SqlserverHaTable,
       resultContent: ResultPreview,
-      showPreviewResultTitle: true,
     },
     [ClusterTypes.TENDBSINGLE]: {
       id: ClusterTypes.TENDBSINGLE,
@@ -435,15 +429,12 @@
       activePanelObj.value = currentTab;
     }
     if (props.onlyOneType) {
-      selectedMap.value = Object.keys(selectedMap.value).reduce(
-        (results, id) => {
-          Object.assign(results, {
-            [id]: {},
-          });
-          return results;
-        },
-        {} as Record<string, Record<string, any>>,
-      );
+      selectedMap.value = Object.keys(selectedMap.value).reduce((results, id) => {
+        Object.assign(results, {
+          [id]: {},
+        });
+        return results;
+      }, {} as Record<string, Record<string, any>>);
     }
   };
 
@@ -517,10 +508,6 @@
   };
 
   const handleSelectTable = (selected: Record<string, Record<string, T>>) => {
-    if (!activePanelObj.value.multiple) {
-      selectedMap.value = selected;
-      return;
-    }
     // 如果只允许选一种集群类型, 则清空非当前集群类型的选中列表
     // 如果是勾选的取消全选，则忽略
     if (props.onlyOneType && Object.keys(Object.values(selected)[0]).length > 0) {
@@ -548,7 +535,6 @@
     .bk-modal-header {
       display: none;
     }
-
     .bk-dialog-content {
       padding: 0;
       margin: 0;
@@ -572,7 +558,6 @@
         border-left: 0;
         border-bottom-color: transparent;
       }
-
       .tabs-item-active {
         background-color: @bg-white;
         border-bottom-color: @border-white;

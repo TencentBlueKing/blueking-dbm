@@ -2,7 +2,6 @@
   "plugins": [
     "prettier-plugin-curly"
   ],
-  "$schema": "https://json.schemastore.org/prettierrc",
   "semi": true,
   "quoteProps": "as-needed",
   "jsxSingleQuote": true,
