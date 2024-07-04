@@ -12,6 +12,7 @@
       <div
         v-if="item.type !== 'normal'"
         class="input-line">
+        <span v-if="item.type === 'command'"> </span>
         <span :class="{ 'error-text': item.type === 'error' }">{{ item.message }}</span>
       </div>
       <template v-else>
@@ -30,7 +31,7 @@
         :value="command"
         @input="handleInputChange"
         @keyup.down="handleClickDownBtn"
-        @keyup.enter="handleClickSendCommand"
+        @keyup.enter.stop="handleClickSendCommand"
         @keyup.left="handleClickLeftBtn"
         @keyup.up="handleClickUpBtn" />
     </div>
@@ -164,17 +165,25 @@
     });
   };
 
+  const initInput = () => {
+    command.value = '';
+    nextTick(() => {
+      command.value = inputPlaceholder;
+    });
+  };
+
   // 输入
   const handleInputChange = (e: any) => {
-    const { value } = e.target;
-    if (value.length <= inputPlaceholder.length) {
-      command.value = '';
-      nextTick(() => {
-        command.value = inputPlaceholder;
-      });
-
+    if (inputRef.value.selectionStart <= inputPlaceholder.length) {
+      initInput();
       return;
     }
+    const { value } = e.target;
+    if (value.length <= inputPlaceholder.length) {
+      initInput();
+      return;
+    }
+
     command.value = value;
 
     setTimeout(() => {

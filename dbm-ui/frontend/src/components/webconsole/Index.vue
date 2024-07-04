@@ -332,7 +332,7 @@
   .webconsole-main {
     display: flex;
     width: 100%;
-    height: 900px;
+    height: 100%;
     background: #1a1a1a;
     flex-direction: column;
 
