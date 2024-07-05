@@ -667,6 +667,7 @@ def get_cluster_capacity_update_required_info(
 ) -> Tuple[str, int, int, str]:
     """
     获取集群容量变更所需信息
+
     参数:
     - cluster_id: 集群id
     - new_storage_version: 存储版本
@@ -685,13 +686,6 @@ def get_cluster_capacity_update_required_info(
     require_machine_group_count = new_machine_group_count
     err_msg = ""
 
-    if new_shards_num % new_machine_group_count != 0:
-        # 分片数不能被机器组数整除,说明用户填入的分片数有问题
-        err_msg = _("分片数 不能被 机器组数 整除")
-        require_spec_id = 0
-        require_machine_group_count = 0
-        return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
-
     cluster = Cluster.objects.get(id=cluster_id)
 
     storage_machine = cluster.storageinstance_set.first().machine
@@ -707,6 +701,17 @@ def get_cluster_capacity_update_required_info(
     master_machines = set()
     for storage_inst in master_insts:
         master_machines.add(storage_inst.machine.ip)
+
+    if not is_tendisplus_instance_type(cluster_type=cluster.cluster_type):
+        # 不是TendisPlus集群,分片数和以前保持一致
+        new_shards_num = len(master_insts)
+
+    if new_shards_num % new_machine_group_count != 0:
+        # 分片数不能被机器组数整除,说明用户填入的分片数有问题
+        err_msg = _("分片数 不能被 机器组数 整除")
+        require_spec_id = 0
+        require_machine_group_count = 0
+        return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
 
     if len(master_insts) == new_shards_num and len(master_machines) == new_machine_group_count:
         # 集群机器规格、分片数、机器组数都没变,只是版本变了
@@ -751,13 +756,6 @@ def get_cluster_capacity_update_required_info(
         err_msg = _("redis 集群协议类型,机器组数不能小于3")
         require_spec_id = 0
         require_machine_group_count = 0
-        return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
-
-    if (not is_tendisplus_instance_type(cluster_type=cluster.cluster_type)) and new_shards_num != len(master_insts):
-        # 非tendisplus集群,分片数不允许变
-        require_spec_id = 0
-        require_machine_group_count = 0
-        err_msg = _("非tendisplus集群,容量变更不允许变更分片数。如果需要变更分片数,请使用 集群分片数变更 单据")
         return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
 
     if new_shards_num == len(master_insts):

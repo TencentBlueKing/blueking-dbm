@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
+source /etc/profile
+source ~/.bash_profile
+
 DIR=$(dirname $0)
 cd $DIR
 
