@@ -44,6 +44,10 @@
   import RenderData from './components/RenderData.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
+  interface Expose {
+    submit: () => Promise<any>;
+  }
+
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
     if (list.length > 1) {
@@ -55,7 +59,7 @@
 
   const { t } = useI18n();
 
-  const rowRefs = ref();
+  const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>();
   const isShowBatchSrcSelector = ref(false);
   const isShowBatchTargetSelector = ref(false);
 
@@ -114,4 +118,9 @@
     dataList.splice(index, 1);
     tableData.value = dataList;
   };
+  defineExpose<Expose>({
+    submit() {
+      return Promise.all(rowRefs.value!.map((item) => item.getValue()));
+    },
+  });
 </script>

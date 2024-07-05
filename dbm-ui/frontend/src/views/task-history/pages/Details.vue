@@ -258,7 +258,7 @@
       :is-show="logState.isShow"
       :node="logState.node"
       @close="() => (logState.isShow = false)"
-      @quickGoto="handleQuickGotoFailNodeLog"
+      @quick-goto="handleQuickGotoFailNodeLog"
       @refresh="handleRefresh" />
     <!-- 结果文件功能 -->
     <RedisResultFiles
@@ -340,9 +340,9 @@
             </BkPopover>
             <BkTag
               v-else
-              :theme="getStatusTheme(true)"
-              >{{ statusText }}</BkTag
-            >
+              :theme="getStatusTheme(true)">
+              {{ statusText }}
+            </BkTag>
           </span>
         </div>
         <div class="mission-detail-status-info">
