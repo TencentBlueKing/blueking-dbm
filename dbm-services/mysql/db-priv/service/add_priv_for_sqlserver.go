@@ -29,8 +29,12 @@ func (m *PrivTaskPara) AddPrivForSqlserver(jsonPara string) error {
 		return err
 	}
 	// 获取账号对应的规则信息
-	if rules, err = GetAccountRule(account); err != nil {
-		return err
+	for _, rule := range m.AccoutRules {
+		_, accountRule, err := GetAccountRuleInfo(m.BkBizId, m.ClusterType, m.User, rule.Dbname)
+		if err != nil {
+			return err
+		}
+		rules = append(rules, accountRule)
 	}
 
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
