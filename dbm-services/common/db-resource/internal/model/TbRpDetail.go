@@ -164,11 +164,6 @@ func (t *TbRpDetail) SetMore(ip string, diskMap map[string]*bk.ShellResCollectio
 	}
 }
 
-// TbRpDetailGetter TODO
-func TbRpDetailGetter() ([]TbRpDetail, error) {
-	return nil, nil
-}
-
 // UpdateTbRpDetail TODO
 func UpdateTbRpDetail(ids []int, status string) (int64, error) {
 	db := DB.Self.Table(TbRpDetailName()).Where("bk_host_id in (?)", ids).Update("status", status)
@@ -199,7 +194,7 @@ type BatchGetTbDetailResult struct {
 	Data []TbRpDetail `json:"data"`
 }
 
-// BatchGetSatisfiedByAssetIds TODO
+// BatchGetSatisfiedByAssetIds 批量设置资源状态
 func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (result []BatchGetTbDetailResult,
 	err error) {
 	db := DB.Self.Begin()
@@ -225,7 +220,7 @@ func BatchGetSatisfiedByAssetIds(elements []BatchGetTbDetail, mode string) (resu
 	return
 }
 
-// SetSatisfiedStatus TODO
+// SetSatisfiedStatus 获取满足条件的的资源,并更新状态
 func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []TbRpDetail, err error) {
 	err = tx.Exec("select * from tb_rp_detail where bk_host_id in (?) for update", bkhostIds).Error
 	if err != nil {
@@ -249,33 +244,4 @@ func SetSatisfiedStatus(tx *gorm.DB, bkhostIds []int, status string) (result []T
 			rdb.RowsAffected)
 	}
 	return result, nil
-}
-
-// GetLabels TODO
-func GetLabels(applyfor string) (data []map[string]string, err error) {
-	var ls []string
-	db := DB.Self.Table(TbRpDetailName())
-	if cmutil.IsNotEmpty(applyfor) {
-		db.Where("apply_for = ? and label is not null ", applyfor)
-	}
-	if err = db.Select("label").Scan(&ls).Error; err != nil {
-		logger.Error(fmt.Sprintf("Get Labels Failes %s", err.Error()))
-		return
-	}
-	checkExist := make(map[string]struct{})
-	for _, v := range ls {
-		var ldata map[string]string
-		if err = json.Unmarshal([]byte(v), &ldata); err != nil {
-			logger.Error(fmt.Sprintf("Json Unmarshal Failed %s", err.Error()))
-			continue
-		}
-		for key, value := range ldata {
-			exkey := fmt.Sprintf("%s:%s", key, value)
-			if _, ok := checkExist[exkey]; !ok {
-				checkExist[exkey] = struct{}{}
-				data = append(data, map[string]string{key: value})
-			}
-		}
-	}
-	return
 }

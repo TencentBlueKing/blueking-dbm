@@ -134,7 +134,7 @@ func recordRsOperationInfo(data model.TbRpOperationInfo) (err error) {
 	return model.DB.Self.Table(model.TbRpOperationInfoTableName()).Create(&data).Error
 }
 
-// UpdateResourceGseAgentStatus TODO
+// UpdateResourceGseAgentStatus 更新gse状态
 func UpdateResourceGseAgentStatus(agentIds ...string) (err error) {
 	var agentIdList []string
 	db := model.DB.Self.Table(model.TbRpDetailName()).Select("bk_agent_id").Where(
@@ -180,7 +180,7 @@ func UpdateResourceGseAgentStatus(agentIds ...string) (err error) {
 func AsyncResourceHardInfo() (err error) {
 	logger.Info("start async from cmdb ...")
 	var rsList []model.TbRpDetail
-	err = model.DB.Self.Table(model.TbRpDetailName()).Where("total_storage_cap <= 0").Limit(300).Scan(&rsList).Error
+	err = model.DB.Self.Table(model.TbRpDetailName()).Where("total_storage_cap <= 0").Limit(300).Find(&rsList).Error
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil
