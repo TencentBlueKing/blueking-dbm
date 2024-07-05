@@ -56,6 +56,7 @@ def create(
     db_version: str,
     storages: Optional[List] = None,
     creator: str = "",
+    region: str = "",
 ) -> Cluster:
     """
     注册 Kafka 集群
@@ -81,6 +82,7 @@ def create(
         phase=ClusterPhase.ONLINE.value,
         status=ClusterStatus.NORMAL.value,
         bk_cloud_id=bk_cloud_id,
+        region=region,
     )
     cluster.storageinstance_set.add(*storage_objs)
     cluster.save()
