@@ -199,15 +199,6 @@ class TenDBClusterDestroyFlow(object):
                 ),
             )
 
-            # # 阶段5 判断是否清理机器级别配置
-            # exec_act_kwargs.exec_ip = cluster["remote_ip_list"] + cluster["spider_ip_list"]
-            # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clear_machine_crontab.__name__
-            # sub_pipeline.add_act(
-            #     act_name=_("清理机器级别配置"),
-            #     act_component_code=MySQLClearMachineComponent.code,
-            #     kwargs=asdict(exec_act_kwargs),
-            # )
-
             sub_pipelines.append(
                 sub_pipeline.build_sub_process(sub_name=_("下架TenDB-Cluster集群[{}]").format(cluster["name"]))
             )

@@ -53,6 +53,13 @@ class SpiderController(BaseController):
         flow = TenDBClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_cluster()
 
+    def spider_cluster_apply_no_slave(self):
+        """
+        部署tenDB cluster(spider cluster) 部署场景，没有remote slave 单节点中控节点
+        """
+        flow = TenDBClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.deploy_cluster_no_slave()
+
     def spider_cluster_destroy_scene(self):
         """
         下架tenDB cluster(spider cluster) 部署场景

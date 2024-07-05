@@ -131,16 +131,24 @@ def create(
         obj.proxyinstance_set.add(*spiders_objs)
 
     # 根据传入的shard分片信息，保存对应实例主从对和分片信息, 增加额外mysql实例关联信息
+    # 这里考虑支持no slave 的集群异形架构的元数据录入
     for info in shard_infos:
         master_storage_obj = storage_objs.get(
             machine__ip=info.instance_tuple.master_ip, port=info.instance_tuple.mysql_port, cluster=cluster
         )
-        slave_storage_obj = storage_objs.get(
-            machine__ip=info.instance_tuple.slave_ip, port=info.instance_tuple.mysql_port, cluster=cluster
-        )
-        storage_inst_tuple = StorageInstanceTuple.objects.create(
-            ejector=master_storage_obj, receiver=slave_storage_obj
-        )
+        if info.instance_tuple.slave_ip:
+            slave_storage_obj = storage_objs.get(
+                machine__ip=info.instance_tuple.slave_ip, port=info.instance_tuple.mysql_port, cluster=cluster
+            )
+            storage_inst_tuple = StorageInstanceTuple.objects.create(
+                ejector=master_storage_obj, receiver=slave_storage_obj
+            )
+        else:
+            # no slave 存储对处理
+            storage_inst_tuple = StorageInstanceTuple.objects.create(
+                ejector=master_storage_obj, receiver=master_storage_obj
+            )
+
         TenDBClusterStorageSet.objects.create(
             storage_instance_tuple=storage_inst_tuple, shard_id=info.shard_key, cluster=cluster
         )

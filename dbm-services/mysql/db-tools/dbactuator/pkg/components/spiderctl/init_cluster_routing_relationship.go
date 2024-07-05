@@ -28,6 +28,8 @@ type InitClusterRoutingParam struct {
 	TdbctlPass           string          `json:"tdbctl_pass" validate:"required"`
 	NotFlushAll          bool            `json:"not_flush_all"`
 	OnltInitCtl          bool            `json:"only_init_ctl"`
+	IsNoSlave            bool            `json:"is_no_slave"`
+	IsCtlAlone           bool            `json:"is_ctl_alone"`
 	SpiderSlaveInstances []Instance      `json:"spider_slave_instances"`
 }
 
@@ -42,7 +44,7 @@ type Instance struct {
 type InstanceTuple struct {
 	Host      string `json:"host" validate:"required"`
 	Port      int    `json:"port" validate:"required"`
-	SlaveHost string `json:"slave_host" validate:"required"`
+	SlaveHost string `json:"slave_host"`
 	ShardID   int    `json:"shard_id" validate:"required"`
 }
 
@@ -126,6 +128,14 @@ func (i *InitClusterRoutingComp) InitMySQLServers() (err error) {
 		logger.Error("truncate mysql.servers failed:[%s]", err.Error())
 		return err
 	}
+	if i.Params.IsCtlAlone {
+		// 如果是tdbctl 单节点情况下 需要设置dbm_allow_standalone_primary
+		cmds := []string{"set tc_admin = 0; ", "set global dbm_allow_standalone_primary = ON;"}
+		if _, err := i.dbConn.ExecMore(cmds); err != nil {
+			logger.Error("set dbm_allow_standalone_primary failed:[%s]", err.Error())
+			return err
+		}
+	}
 	execSQLs = i.getFlushRouterSqls()
 	execSQLs = append(execSQLs, "tdbctl enable primary;")
 	execSQLs = append(execSQLs, "tdbctl flush routing;")
@@ -177,13 +187,19 @@ func (i *InitClusterRoutingComp) getRemoteRouterSqls() (execSQLs []string) {
 				i.Params.TdbctlUser, i.Params.TdbctlPass, inst.Host, inst.Port, inst.ShardID,
 			),
 		)
-		execSQLs = append(
-			execSQLs,
-			fmt.Sprintf(
-				"tdbctl create node wrapper 'mysql_slave' options(user '%s', password '%s', host '%s', port %d, number %d );",
-				i.Params.TdbctlUser, i.Params.TdbctlPass, inst.SlaveHost, inst.Port, inst.ShardID,
-			),
-		)
+		if !i.Params.IsNoSlave {
+			if inst.SlaveHost == "" {
+				panic(fmt.Sprintf("no slave in shard_id: %d", inst.ShardID))
+			}
+			execSQLs = append(
+				execSQLs,
+				fmt.Sprintf(
+					"tdbctl create node wrapper 'mysql_slave' options(user '%s', password '%s', host '%s', port %d, number %d );",
+					i.Params.TdbctlUser, i.Params.TdbctlPass, inst.SlaveHost, inst.Port, inst.ShardID,
+				),
+			)
+		}
+
 	}
 	return execSQLs
 }

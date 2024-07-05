@@ -96,7 +96,9 @@ class TenDBClusterApplyFlow(object):
         self.data["mysql_ip_list"] = []
         for i in self.data["remote_group"]:
             self.data["mysql_ip_list"].append(i["master"])
-            self.data["mysql_ip_list"].append(i["slave"])
+            if i["slave"]:
+                # 异形架构会不传
+                self.data["mysql_ip_list"].append(i["slave"])
 
     def __calc_install_ports(self, inst_sum: int) -> list:
         """
@@ -115,7 +117,9 @@ class TenDBClusterApplyFlow(object):
 
         return install_mysql_ports
 
-    def __assign_shard_master_slave(self, install_port_list: list) -> Optional[List[ShardInfo]]:
+    def __assign_shard_master_slave(
+        self, install_port_list: list, is_no_slave: bool = False
+    ) -> Optional[List[ShardInfo]]:
         """
         根据需求场景，为集群每个分片组分配合适的主从机器
         资源池获取的资源保持分片组的主从机器的具有反亲和性
@@ -127,9 +131,13 @@ class TenDBClusterApplyFlow(object):
             for index, mysql_port in enumerate(install_port_list):
                 inst_tuple = InstanceTuple(
                     master_ip=remote_tuple["master"]["ip"],
-                    slave_ip=remote_tuple["slave"]["ip"],
+                    slave_ip="",
                     mysql_port=mysql_port,
                 )
+                if not is_no_slave:
+                    # 表示是完整集群，slave信息必须存在
+                    inst_tuple.slave_ip = remote_tuple["slave"]["ip"]
+
                 shard_info = ShardInfo(shard_key=index + start_index, instance_tuple=inst_tuple)
                 shard_cluster_list.append(shard_info)
             start_index += len(install_port_list)
@@ -409,6 +417,241 @@ class TenDBClusterApplyFlow(object):
                 spiders=[spider["ip"] for spider in self.data["spider_ip_list"]],
                 root_id=self.root_id,
                 is_collect_sysinfo=True,
+                parent_global_data=copy.deepcopy(self.data),
+                spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
+            )
+        )
+
+        pipeline.add_sub_pipeline(
+            sub_flow=deploy_pipeline.build_sub_process(sub_name=_("{}集群部署").format(self.data["cluster_name"]))
+        )
+        pipeline.run_pipeline(init_trans_data_class=SpiderApplyManualContext())
+
+    def deploy_cluster_no_slave(self):
+        """
+        部署没有slave的TenDBCLuster集群，回档专属
+        异形架构：没有mremote slave，中控只有一个，不做主从
+        """
+        # 计算每个mysql机器需要部署的mysql端口信息
+        self.data["mysql_ports"] = self.__calc_install_ports(inst_sum=int(self.data["remote_shard_num"]))
+
+        # 先确定谁是中控集群中谁是master，异形架构
+        ctl_master = self.data["spider_ip_list"][0]
+
+        # 计算分片信息
+        shard_infos = self.__assign_shard_master_slave(
+            install_port_list=copy.deepcopy(self.data["mysql_ports"]),
+            is_no_slave=True,
+        )
+
+        # 初始化流程
+        pipeline = Builder(root_id=self.root_id, data=self.data)
+        deploy_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+
+        # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
+        exec_act_kwargs = ExecActuatorKwargs(
+            bk_cloud_id=int(self.data["bk_cloud_id"]),
+            cluster_type=ClusterType.TenDBCluster,
+        )
+
+        bk_host_ids = []
+        for spider in self.data["spider_ip_list"]:
+            bk_host_ids.append(spider["bk_host_id"])
+        for remote in self.data["mysql_ip_list"]:
+            bk_host_ids.append(remote["bk_host_id"])
+
+        deploy_pipeline.add_sub_pipeline(
+            sub_flow=init_machine_sub_flow(
+                uid=self.data["uid"],
+                root_id=self.root_id,
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                sys_init_ips=[ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]],
+                init_check_ips=[ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]],
+                yum_install_perl_ips=[
+                    ip_info["ip"] for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]
+                ],
+                bk_host_ids=bk_host_ids,
+            )
+        )
+        # 阶段1 并行分发安装文件
+        deploy_pipeline.add_parallel_acts(
+            acts_list=[
+                {
+                    "act_name": _("下发MySQL介质包"),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=int(self.data["bk_cloud_id"]),
+                            exec_ip=[ip_info["ip"] for ip_info in self.data["mysql_ip_list"]],
+                            file_list=GetFileList(db_type=DBType.MySQL).mysql_install_package(
+                                db_version=self.data["db_version"]
+                            ),
+                        )
+                    ),
+                },
+                {
+                    "act_name": _("下发Spider/tdbCtl介质包"),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=int(self.data["bk_cloud_id"]),
+                            exec_ip=[ip_info["ip"] for ip_info in self.data["spider_ip_list"]],
+                            file_list=GetFileList(db_type=DBType.MySQL).spider_master_install_package(
+                                spider_version=self.data["spider_version"],
+                            ),
+                        )
+                    ),
+                },
+            ]
+        )
+
+        acts_list = []
+        for ip_info in self.data["mysql_ip_list"] + self.data["spider_ip_list"]:
+            exec_act_kwargs.exec_ip = ip_info["ip"]
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_crond_payload.__name__
+            acts_list.append(
+                {
+                    "act_name": _("部署mysql-crond"),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(exec_act_kwargs),
+                }
+            )
+        deploy_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
+        acts_list = []
+        for mysql_ip in self.data["mysql_ip_list"]:
+            exec_act_kwargs.exec_ip = mysql_ip["ip"]
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__
+            acts_list.append(
+                {
+                    "act_name": _("安装MySQL实例"),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(exec_act_kwargs),
+                    "write_payload_var": SpiderApplyManualContext.get_time_zone_var_name(),
+                }
+            )
+        deploy_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        # 给安装好的mysql实例开启tokudb引擎
+        if self.data["enable_tokudb"]:
+            acts_list = []
+            for mysql_ip in self.data["mysql_ip_list"]:
+                exec_act_kwargs.exec_ip = mysql_ip["ip"]
+                exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.enable_tokudb_payload.__name__
+                acts_list.append(
+                    {
+                        "act_name": _("安装tokudb引擎"),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(exec_act_kwargs),
+                    }
+                )
+            deploy_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        acts_list = []
+        # 定义每个spider节点auto_incr_mode_value值，单调递增
+        auto_incr_value = 1
+        for spider_ip in self.data["spider_ip_list"]:
+            exec_act_kwargs.exec_ip = spider_ip["ip"]
+            exec_act_kwargs.cluster = {
+                "immutable_domain": self.data["immutable_domain"],
+                "auto_incr_value": auto_incr_value,
+            }
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
+            acts_list.append(
+                {
+                    "act_name": _("安装Spider实例"),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(exec_act_kwargs),
+                }
+            )
+            auto_incr_value += 1
+        deploy_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        acts_list = []
+        # 这里中控实例安装和spider机器复用的
+        for ctl_ip in self.data["spider_ip_list"]:
+            exec_act_kwargs.exec_ip = ctl_ip["ip"]
+            exec_act_kwargs.cluster = {"immutable_domain": self.data["immutable_domain"]}
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_ctl_payload.__name__
+            acts_list.append(
+                {
+                    "act_name": _("安装Spider集群中控实例"),
+                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                    "kwargs": asdict(exec_act_kwargs),
+                }
+            )
+        deploy_pipeline.add_parallel_acts(acts_list=acts_list)
+
+        # 阶段6 内部集群节点之间授权
+        deploy_pipeline.add_act(
+            act_name=_("集群内部节点间授权"),
+            act_component_code=AddSystemUserInClusterComponent.code,
+            kwargs=asdict(
+                AddSpiderSystemUserKwargs(ctl_master_ip=ctl_master["ip"], user=TDBCTL_USER, passwd=self.tdbctl_pass)
+            ),
+        )
+
+        # 阶段7 在ctl-master节点，生成spider集群路由表信息；添加node信息
+        exec_act_kwargs.cluster = self.__create_cluster_nodes_info(shard_infos=shard_infos)
+        exec_act_kwargs.exec_ip = ctl_master
+        exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_init_spider_routing_payload.__name__
+        deploy_pipeline.add_act(
+            act_name=_("初始化集群节点间关系"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(exec_act_kwargs),
+        )
+
+        # 阶段8 添加相关域名
+        deploy_pipeline.add_act(
+            act_name=_("添加集群域名"),
+            act_component_code=MySQLDnsManageComponent.code,
+            kwargs=asdict(
+                CreateDnsKwargs(
+                    bk_cloud_id=self.data["bk_cloud_id"],
+                    add_domain_name=self.data["immutable_domain"],
+                    dns_op_exec_port=self.data["spider_port"],
+                    exec_ip=[ip_info["ip"] for ip_info in self.data["spider_ip_list"]],
+                )
+            ),
+        )
+        # 阶段9 添加集群元数据
+        deploy_pipeline.add_act(
+            act_name=_("更新DBMeta元信息"),
+            act_component_code=SpiderDBMetaComponent.code,
+            kwargs=asdict(
+                DBMetaOPKwargs(
+                    db_meta_class_func=SpiderDBMeta.tendb_cluster_apply.__name__,
+                    cluster={"shard_infos": shard_infos},
+                    is_update_trans_data=True,
+                )
+            ),
+        )
+        # 阶段10 remote安装周边组件
+        deploy_pipeline.add_sub_pipeline(
+            sub_flow=build_surrounding_apps_sub_flow(
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                master_ip_list=list(set([info.instance_tuple.master_ip for info in shard_infos])),
+                slave_ip_list=list(set([info.instance_tuple.slave_ip for info in shard_infos])),
+                root_id=self.root_id,
+                parent_global_data=copy.deepcopy(self.data),
+                is_init=True,
+                collect_sysinfo=True,
+                is_install_checksum=False,
+                is_install_monitor=False,
+                is_install_rotate_binlog=False,
+                cluster_type=ClusterType.TenDBCluster.value,
+            )
+        )
+
+        # 阶段11 spider安装周边组件
+        deploy_pipeline.add_sub_pipeline(
+            sub_flow=build_apps_for_spider_sub_flow(
+                bk_cloud_id=int(self.data["bk_cloud_id"]),
+                spiders=[spider["ip"] for spider in self.data["spider_ip_list"]],
+                root_id=self.root_id,
+                is_collect_sysinfo=True,
+                is_install_monitor=False,
                 parent_global_data=copy.deepcopy(self.data),
                 spider_role=TenDBClusterSpiderRole.SPIDER_MASTER,
             )
