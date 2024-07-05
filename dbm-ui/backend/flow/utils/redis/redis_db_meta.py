@@ -1362,12 +1362,19 @@ class RedisDBMeta(object):
     def update_cluster_entry(self) -> bool:
         """
         更新nodes cluster_entry记录
-        cluster_id
+        cluster_id/immute_domain
         bk_biz_id
         nodes_domain
         """
         nodes_domain = self.cluster["nodes_domain"]
-        cluster = Cluster.objects.get(id=self.cluster["cluster_id"], bk_biz_id=self.cluster["bk_biz_id"])
+        if "cluster_id" in self.cluster:
+            cluster = Cluster.objects.get(id=self.cluster["cluster_id"], bk_biz_id=self.cluster["bk_biz_id"])
+        elif "immute_domain" in self.cluster:
+            cluster = Cluster.objects.get(
+                immute_domain=self.cluster["immute_domain"], bk_biz_id=self.cluster["bk_biz_id"]
+            )
+        else:
+            raise Exception("update_cluster_entry must have params[cluster_id/immute_domain]")
         cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
         storageinstances = cluster.storageinstance_set.all()
 

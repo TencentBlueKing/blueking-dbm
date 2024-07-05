@@ -25,6 +25,7 @@ from backend.db_meta.enums import InstanceInnerRole, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.models import Spec, StorageInstance
+from backend.db_services.redis.util import is_redis_cluster_protocal
 from backend.db_services.version.constants import RedisVersion
 from backend.flow.consts import DEPENDENCIES_PLUGINS, ClusterStatus, InstanceStatus
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -390,6 +391,20 @@ class RedisClusterMigrateLoadFlow(object):
                 act_kwargs.cluster["meta_func_name"] = RedisDBMeta.add_polairs_domain.__name__
                 sub_pipeline.add_act(
                     act_name=_("polairs元数据写入"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+                )
+
+            # 如果是cluster架构，需要将nodes相关元数据补充。
+            if is_redis_cluster_protocal(params["clusterinfo"]["cluster_type"]):
+                act_kwargs.cluster = {
+                    "nodes_domain": params["clusterinfo"]["nodes_domain"],
+                    "immute_domain": params["clusterinfo"]["immute_domain"],
+                    "bk_biz_id": self.data["bk_biz_id"],
+                    "meta_func_name": RedisDBMeta.update_cluster_entry.__name__,
+                }
+                sub_pipeline.add_act(
+                    act_name=_("更新storageinstance_bind_entry元数据"),
+                    act_component_code=RedisDBMetaComponent.code,
+                    kwargs=asdict(act_kwargs),
                 )
 
             # 为了把密码写进密码服务里去，写配置需要放在最后来做了
