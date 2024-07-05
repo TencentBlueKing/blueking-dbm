@@ -47,6 +47,7 @@ def create(
     db_module_id: int,
     storages: Optional[List] = None,
     creator: str = "",
+    region: str = "",
 ) -> Cluster:
     """
     注册 HDFS 集群
@@ -70,6 +71,7 @@ def create(
         db_module_id=db_module_id,
         creator=creator,
         bk_cloud_id=bk_cloud_id,
+        region=region,
     )
 
     cluster_entry = ClusterEntry.objects.create(
