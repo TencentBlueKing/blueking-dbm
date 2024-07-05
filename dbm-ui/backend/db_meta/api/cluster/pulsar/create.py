@@ -33,6 +33,7 @@ def create(
     db_module_id: int,
     storages: Optional[List] = None,
     creator: str = "",
+    region: str = "",
 ):
     """
     注册 PULSAR 集群
@@ -55,6 +56,7 @@ def create(
         status=ClusterStatus.NORMAL.value,
         major_version=major_version,
         bk_cloud_id=bk_cloud_id,
+        region=region,
     )
 
     cluster_entry = ClusterEntry.objects.create(

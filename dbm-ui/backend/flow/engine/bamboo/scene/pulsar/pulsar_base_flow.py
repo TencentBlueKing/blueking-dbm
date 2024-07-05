@@ -88,6 +88,7 @@ class PulsarBaseFlow(object):
         self.port = data.get("port")
         self.username = data.get("username")
         self.password = data.get("password")
+        self.city_code = data.get("city_code")
         base_flow_data = copy.deepcopy(data)
         base_flow_data["cluster_type"] = ClusterType.Pulsar.value
         self.base_flow_data = base_flow_data
