@@ -277,7 +277,7 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
         methods=["POST"],
         detail=False,
         serializer_class=TendbInstancesSerializer,
-        url_path="dbmeta/priv_manager/sqlserver_ha/cluster_instances",
+        url_path="dbmeta/priv_manager/sqlserver/sqlserver_ha/cluster_instances",
     )
     def sqlserver_ha_cluster_instances(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
@@ -296,7 +296,7 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
         methods=["POST"],
         detail=False,
         serializer_class=TendbInstancesSerializer,
-        url_path="dbmeta/priv_manager/sqlserver_single/cluster_instances",
+        url_path="dbmeta/priv_manager/sqlserver/sqlserver_single/cluster_instances",
     )
     def sqlserver_single_cluster_instances(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
