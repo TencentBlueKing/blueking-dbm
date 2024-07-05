@@ -607,3 +607,15 @@ class OperateNodeActionType(str, StructuredEnum):
 class ItsmTicketNodeEnum(str, StructuredEnum):
     ApprovalOption = EnumField("审批意见", "审批意见")
     Remark = EnumField("备注", "备注")
+
+
+class FlowMsgType(str, StructuredEnum):
+    DONE = EnumField(_("完成"), _("完成"))
+    TODO = EnumField(_("代办"), _("代办"))
+    PENDING = EnumField(_("待审批"), _("待审批"))
+
+
+class FlowMsgStatus(str, StructuredEnum):
+    DONE = EnumField(_("完成"), _("完成"))
+    UNCONFIRMED = EnumField(_("待确认"), _("待确认"))
+    PENDING = EnumField(_("待审批"), _("待审批"))
