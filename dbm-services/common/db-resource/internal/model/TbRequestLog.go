@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-// TbRequestLog TODO
+// TbRequestLog 请求日志表
 // TbRpOpsAPILog [...]
 // nolint
 type TbRequestLog struct {
@@ -19,7 +19,7 @@ type TbRequestLog struct {
 	CreateTime      time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"` // 创建时间
 }
 
-// TableName TODO
+// TableName table name
 func (TbRequestLog) TableName() string {
 	return TbRequestLogName()
 }
@@ -29,12 +29,12 @@ func TbRequestLogName() string {
 	return "tb_request_log"
 }
 
-// CreateTbRequestLog TODO
+// CreateTbRequestLog insert a request record
 func CreateTbRequestLog(m TbRequestLog) (err error) {
 	return DB.Self.Table(TbRequestLogName()).Create(&m).Error
 }
 
-// UpdateTbRequestLog TODO
+// UpdateTbRequestLog update request a record
 func UpdateTbRequestLog(requestid string, updatesCols map[string]interface{}) (err error) {
 	return DB.Self.Table(TbRequestLogName()).Where("request_id = ?", requestid).Updates(updatesCols).Error
 }

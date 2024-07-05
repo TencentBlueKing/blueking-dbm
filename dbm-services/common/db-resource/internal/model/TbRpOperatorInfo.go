@@ -37,7 +37,7 @@ type TbRpOperationInfo struct {
 	TaskId        string          `gorm:"column:task_id;type:varchar(128);not null;comment:'task Id'" json:"task_id"`
 	BillId        string          `gorm:"column:bill_id;type:varchar(128);not null;comment:'bill Id'" json:"bill_id"`
 	BillType      string          `gorm:"column:bill_type;type:varchar(128);not null;comment:'bill type'" json:"bill_type"`
-	Description   string          `gorm:"column:description;type:varchar(256);not null;comment:'description'" json:"description"`
+	Description   string          `gorm:"column:description;type:varchar(256);default:'';comment:'description'" json:"description"`
 	UpdateTime    time.Time       `gorm:"column:update_time;type:timestamp" json:"update_time"` // 最后修改时间
 	CreateTime    time.Time       `gorm:"column:create_time;type:datetime" json:"create_time"`  // 创建时间
 }

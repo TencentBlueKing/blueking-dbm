@@ -54,8 +54,9 @@ type TbRpDetailArchive struct {
 	LabelMap    map[string]string `gorm:"-"`
 	IsInit      int               `gorm:"column:is_init;type:int(11);comment:'是否初始化过'" json:"-"`  // 是否初始化过
 	IsIdle      int               `gorm:"column:is_idle;type:int(11);comment:'是否空闲检查过'" json:"-"` // 是否空闲检查过
-	Status      string            `gorm:"column:status;type:varchar(20);not null" json:"status"`  //  Unused: 未使用 Used: 已经售卖被使用: Preselected:预占用
-	BkAgentId   string            `gorm:"index:idx_bk_agent_id;column:bk_agent_id;type:varchar(64);not null" json:"bk_agent_id"`
+	// Status: Unused: 未使用 Used: 已经售卖被使用: Preselected:预占用
+	Status    string `gorm:"column:status;type:varchar(20);not null" json:"status"`
+	BkAgentId string `gorm:"index:idx_bk_agent_id;column:bk_agent_id;type:varchar(64);not null" json:"bk_agent_id"`
 	// gse Agent当前运行状态码, -1:未知 0:初始安装 1:启动中 2:运行中 3:有损状态 4:繁忙状态 5:升级中 6:停止中 7:解除安装
 	AgentStatusCode int `gorm:"column:gse_agent_status_code;type:int(11);not null" json:"gse_agent_status_code"`
 	// agent status 最后一次更新时间
@@ -65,7 +66,7 @@ type TbRpDetailArchive struct {
 	CreateTime            time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`   // 创建时间
 }
 
-// initarchive TODO
+// initarchive 启动的时候归档未清理的资源
 func initarchive() {
 	tx := DB.Self.Begin()
 	if err := tx.Exec("insert into tb_rp_detail_archive select * from tb_rp_detail where status = ? ", Used).
@@ -78,17 +79,17 @@ func initarchive() {
 	tx.Commit()
 }
 
-// TableName TODO
+// TableName table name
 func (TbRpDetailArchive) TableName() string {
 	return TbRpDetailArchiveName()
 }
 
-// TbRpDetailArchiveName TODO
+// TbRpDetailArchiveName  table name
 func TbRpDetailArchiveName() string {
 	return "tb_rp_detail_archive"
 }
 
-// ArchiverResouce TODO
+// ArchiverResouce 将申请完的资源转移到归档表
 func ArchiverResouce(ids []int) (err error) {
 	tx := DB.Self.Begin()
 	defer func() {
