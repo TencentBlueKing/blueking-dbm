@@ -49,7 +49,7 @@ func main() {
 
 	// process db migrate
 	pflag.Parse()
-	if config.GetBool("migrate") || config.GetBool("migrate.enable") {
+	if config.GetBool("migrate") || config.GetBool("migrate.enable") || true {
 		logger.Info("run db migrations...")
 		if err := dbMigrate(); err != nil && err != migrate.ErrNoChange {
 			log.Fatal(err)

@@ -66,9 +66,11 @@ func CheckAndCleanDiskSpace(cnf *config.Public) error {
 	if err != nil {
 		return err
 	}
+	// 第一次检查，空间满足直接通过
 	if _, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, backupSize); err == nil {
 		return nil
 	}
+	// 删除旧备份后，第二次检查
 	if err := DeleteOldBackup(cnf, 0); err != nil {
 		// 文件清理错误，只当做 warning
 		logger.Log.Warn("failed to delete old backup again, err:", err)
@@ -77,18 +79,21 @@ func CheckAndCleanDiskSpace(cnf *config.Public) error {
 	if err == nil {
 		return nil
 	} else {
-		logger.Log.Warn("clean backup: %s", err.Error())
+		logger.Log.Warnf("clean backup: %s", err.Error())
 	}
 	if sizeLeft < 0 {
-		cleanBinlogCmd := []string{"rotatebinlog", "clean-space", "--max-disk-used-pct", "20"}
+		// 删除 binlog，第三次检查
+		cleanBinlogCmd := []string{"./rotatebinlog", "clean-space", "--max-disk-used-pct", "20"}
 		//"--size-to-free", cast.ToString(math.Abs(float64(sizeLeft)))
 		logger.Log.Infof("clean binlog: %s", strings.Join(cleanBinlogCmd, " "))
 		// 如果备份全部清理完成，预测空间还不够备份，则请求清理 binlog
-		_, strErr, err := cmutil.ExecCommand(false, filepath.Join(cst.MysqlRotateBinlogInstallPath, "rotatebinlog"),
+		_, strErr, err := cmutil.ExecCommand(false, cst.MysqlRotateBinlogInstallPath,
 			cleanBinlogCmd[0], cleanBinlogCmd[1:]...)
 		if err != nil {
 			logger.Log.Warnf("rotatebinlog clean-space failed: %s, %s", err.Error(), strErr)
 		}
+		_, err = util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, backupSize)
+		return err
 	}
 	return nil
 }

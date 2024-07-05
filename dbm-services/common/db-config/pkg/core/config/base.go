@@ -52,7 +52,6 @@ func InitConfig(fileName string) {
 	viper.SetConfigType("yaml")
 	viper.SetConfigName(fileName)
 	viper.AutomaticEnv() // read in environment variables that match
-	// viper.SetEnvPrefix("ACCOUNT")
 	replacer := strings.NewReplacer(".", "_")
 	viper.SetEnvKeyReplacer(replacer)
 	if err := viper.MergeInConfig(); err != nil {
