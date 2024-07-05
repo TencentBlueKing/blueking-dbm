@@ -42,8 +42,8 @@ func CheckBackupType(cnf *config.BackupConfig) error {
 	if cnf.Public.BackupType == cst.BackupTypeAuto {
 		// report 时需要用真实的 backup type
 		if backupSize > cst.BackupTypeAutoDataSizeGB*1024*1024*1024 {
-			logger.Log.Info("data size %d for port %d is larger than %d GB, use physical",
-				backupSize, cst.BackupTypeAutoDataSizeGB, cnf.Public.MysqlPort)
+			logger.Log.Infof("data size %d for port %d is larger than %d GB, use physical",
+				backupSize, cnf.Public.MysqlPort, cst.BackupTypeAutoDataSizeGB)
 			cnf.Public.BackupType = cst.BackupPhysical
 		} else {
 			cnf.Public.BackupType = cst.BackupLogical

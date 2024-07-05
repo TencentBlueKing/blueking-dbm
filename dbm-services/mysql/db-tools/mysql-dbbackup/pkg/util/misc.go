@@ -149,8 +149,12 @@ func DiskUsage(path string) (disk DiskStatus, err error) {
 }
 
 // CheckDiskSpace Check whether disk free space is enough
-// 如果返回的值 <0，则表示空间不足，且还需要对应的空间大小
-// 如果返回值 >0，则表示空间足够，且还剩余的空间大小
+// err != nil
+//  1. 如果返回的值 <0，则表示空间不足，且还需要对应的空间大小
+//  2. 其他未知错误
+//
+// err == nil
+//  1. 如果返回值 >0，则表示空间足够，且还剩余的空间大小
 func CheckDiskSpace(backupDir string, mysqlPort int, backupSize uint64) (sizeLeft int64, err error) {
 	diskSpaceInfo, err := DiskUsage(backupDir)
 	if err != nil {
