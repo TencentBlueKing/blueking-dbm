@@ -6,10 +6,12 @@ on:
     paths:
       - "dbm-ui/backend/**"
       - "dbm-ui/config/**"
+      - "dbm-ui/poetry.lock"
   pull_request:
     paths:
       - "dbm-ui/backend/**"
       - "dbm-ui/config/**"
+      - "dbm-ui/poetry.lock"
 
 jobs:
   run:
