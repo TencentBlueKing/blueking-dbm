@@ -212,9 +212,10 @@ func (m *GetPasswordPara) DeletePassword(jsonPara string, ticket string) error {
 }
 
 // GetMysqlAdminPassword 查询mysql管理密码
+// 支持sqlserver admin账号的查询
 func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int, error) {
 	var passwords []*TbPasswords
-	if m.UserName != "ADMIN" {
+	if m.UserName != "ADMIN" && m.UserName != "dbm_admin" {
 		return passwords, 0, errno.NameNull
 	}
 	if m.Component == "" {
