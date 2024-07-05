@@ -1,4 +1,3 @@
-
 ### 功能描述
 
 创建单据
@@ -38,7 +37,7 @@
 ```json
 {
     "bk_biz_id": 3,
-    "cluster_type": "tendbha"
+    "cluster_type": "tendbha,tendbsingle"
 }
 ```
 

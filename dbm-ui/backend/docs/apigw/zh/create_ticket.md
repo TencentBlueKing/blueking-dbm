@@ -19,6 +19,7 @@ details的定义：
 | 字段 | 类型 | 必选 | 描述 |
 | ---- | ---- | ---- | ---- |
 | authorize_plugin_infos | list | 是 | 授权数据列表List[authorize_plugin_info]，详见下面定义 |
+
 ##### authorize_plugin_info
 
 | 字段 | 类型 | 必选 | 描述 |
@@ -63,24 +64,24 @@ details的定义：
     "ticket_type": "TENDBCLUSTER_AUTHORIZE_RULES",
     "remark": "xxx",
     "details": {
-	    "authorize_plugin_infos": [
-	        {
-	            "bk_biz_id": 3,
-	            "user": "bobo",
-	            "access_dbs": [
-	                "bobo",
-	                "testlin"
-	            ],
-	            "source_ips": [
-	                "127.0.0.1"
-	            ],
-	            "target_instances": [
-	                "spider.test.abc.db"
-	            ],
-	            "cluster_type": "tendbcluster"
-	        }
-	    ]
-	}
+        "authorize_plugin_infos": [
+            {
+                "bk_biz_id": 3,
+                "user": "bobo",
+                "access_dbs": [
+                    "bobo",
+                    "testlin"
+                ],
+                "source_ips": [
+                    "127.0.0.1"
+                ],
+                "target_instances": [
+                    "spider.test.abc.db"
+                ],
+                "cluster_type": "tendbcluster"
+            }
+        ]
+    }
 }
 ```
 
@@ -88,43 +89,43 @@ details的定义：
 
 ```json
 {
-	"id": 1885,
-	"creator": "admin",
-	"create_at": "2024-01-29T00:00:44+08:00",
-	"updater": "admin",
-	"update_at": "2024-01-29T00:00:44+08:00",
-	"ticket_type": "TENDBCLUSTER_AUTHORIZE_RULES",
-	"status": "PENDING",
-	"remark": "xxx",
-	"group": "tendbcluster",
-	"details": {
-		"authorize_plugin_infos": [
-			{
-				"bk_biz_id": 3,
-				"user": "bobo",
-				"access_dbs": [
-					"bobo",
-					"testlin"
-				],
-				"source_ips": [
-					"127.0.0.1"
-				],
-				"target_instances": [
-					"spider.test.abc.db"
-				],
-				"cluster_type": "tendbcluster"
-			}
-		]
-	},
-	"ticket_type_display": "TenDB Cluster 授权",
-	"status_display": "等待中",
-	"cost_time": 1,
-	"bk_biz_name": "DBA",
-	"db_app_abbr": "dba",
-	"ignore_duplication": false,
-	"send_msg_config": {},
-	"bk_biz_id": 3,
-	"is_reviewed": false
+    "id": 1885,
+    "creator": "admin",
+    "create_at": "2024-01-29T00:00:44+08:00",
+    "updater": "admin",
+    "update_at": "2024-01-29T00:00:44+08:00",
+    "ticket_type": "TENDBCLUSTER_AUTHORIZE_RULES",
+    "status": "PENDING",
+    "remark": "xxx",
+    "group": "tendbcluster",
+    "details": {
+        "authorize_plugin_infos": [
+            {
+                "bk_biz_id": 3,
+                "user": "bobo",
+                "access_dbs": [
+                    "bobo",
+                    "testlin"
+                ],
+                "source_ips": [
+                    "127.0.0.1"
+                ],
+                "target_instances": [
+                    "spider.test.abc.db"
+                ],
+                "cluster_type": "tendbcluster"
+            }
+        ]
+    },
+    "ticket_type_display": "TenDB Cluster 授权",
+    "status_display": "等待中",
+    "cost_time": 1,
+    "bk_biz_name": "DBA",
+    "db_app_abbr": "dba",
+    "ignore_duplication": false,
+    "send_msg_config": {},
+    "bk_biz_id": 3,
+    "is_reviewed": false
 }
 ```
 

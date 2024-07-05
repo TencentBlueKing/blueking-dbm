@@ -1,4 +1,3 @@
-
 ### 功能描述
 
 本接口用于spider以及mysql权限申请。该接口为异步接口，接口返回成功后，需要调用轮询接口，轮询授权状态。
@@ -77,7 +76,7 @@ mysql_ignoreCC与spider_ignoreCC读取的都是权限模版中“访问来源模
 ```json
 {
     "data": {
-        "task_id": 888,
+        "task_id": "888",
         "platform": "dbm"
     },
     "code": 0,
@@ -90,7 +89,7 @@ mysql_ignoreCC与spider_ignoreCC读取的都是权限模版中“访问来源模
 
 |参数名称|是否必须|类型|参数说明|
 |---|---|---|---|
-|task_id|Y|int|任务ID|
+|task_id|Y|string|任务ID|
 |platform|Y|string|授权平台：gcs/dbm|
 
 返回的 task_id, platform 后面可用于查询单据状态
