@@ -1464,6 +1464,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ctl_instances": self.cluster["ctl_instances"],
                     "tdbctl_user": self.cluster["tdbctl_user"],
                     "tdbctl_pass": self.cluster["tdbctl_pass"],
+                    "is_no_slave": self.cluster.get("is_no_slave", False),
+                    "is_ctl_alone": self.cluster.get("is_ctl_alone", False),
                 },
             },
         }

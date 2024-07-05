@@ -104,15 +104,16 @@ class TenDBClusterClusterHandler(ClusterHandler):
                     "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
                 },
             )
-            storages.append(
-                {
-                    "ip": info.instance_tuple.slave_ip,
-                    "port": info.instance_tuple.mysql_port,
-                    "instance_role": InstanceRole.REMOTE_SLAVE.value,
-                    "is_stand_by": True,  # 标记实例属于切换组实例
-                    "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
-                },
-            )
+            if info.instance_tuple.slave_ip:
+                storages.append(
+                    {
+                        "ip": info.instance_tuple.slave_ip,
+                        "port": info.instance_tuple.mysql_port,
+                        "instance_role": InstanceRole.REMOTE_SLAVE.value,
+                        "is_stand_by": True,  # 标记实例属于切换组实例
+                        "db_version": get_mysql_real_version(mysql_pkg.name),  # 存储真正的版本号信息
+                    },
+                )
 
         for ip_info in spider_ip_list:
             spiders.append(
