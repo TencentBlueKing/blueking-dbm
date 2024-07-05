@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
+source /etc/profile
+source ~/.bash_profile
+
 #检查必要文件是否存在
 confFile="./config.yaml"
 dtsBinFile="./redis_dts_server"

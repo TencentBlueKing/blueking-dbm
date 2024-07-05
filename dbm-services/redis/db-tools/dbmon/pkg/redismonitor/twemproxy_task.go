@@ -25,7 +25,7 @@ type TwemproxyMonitorTask struct {
 func NewTwemproxyMonitorTask(conf *config.Configuration, serverConf config.ConfServerItem,
 	password string) (task *TwemproxyMonitorTask, err error) {
 	task = &TwemproxyMonitorTask{}
-	task.baseTask, err = newBaseTask(conf, serverConf, password)
+	task.baseTask, err = newBaseTask(conf, serverConf)
 	if err != nil {
 		return
 	}
@@ -58,24 +58,18 @@ func (task *TwemproxyMonitorTask) UpdateConfFileHashTag() {
 		task.eventSender.SetInstance(proxyAddr)
 		confFile, task.Err = myredis.GetTwemproxyLocalConfFile(proxyPort)
 		if task.Err != nil {
-			task.eventSender.SendWarning(consts.EventTwemproxyLogin, task.Err.Error(), consts.WarnLevelError,
-				task.ServerConf.ServerIP)
 			continue
 		}
 		confFile = strings.TrimSpace(confFile)
 		if confFile == "" {
 			msg = fmt.Sprintf("twemproxy(%s:%d) config file not found", task.ServerConf.ServerIP, proxyPort)
 			mylog.Logger.Warn(msg)
-			task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError,
-				task.ServerConf.ServerIP)
 			continue
 		}
 		if !util.FileExists(confFile) {
 			msg = fmt.Sprintf("twemproxy(%s:%d) config file(%s) not exists",
 				task.ServerConf.ServerIP, proxyPort, confFile)
 			mylog.Logger.Warn(msg)
-			task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError,
-				task.ServerConf.ServerIP)
 			continue
 		}
 
@@ -102,6 +96,12 @@ func (task *TwemproxyMonitorTask) RestartWhenConnFail() {
 		task.eventSender.SetInstance(proxyAddr)
 		isPortInUse, _ = util.CheckPortIsInUse(task.ServerConf.ServerIP, strconv.Itoa(proxyPort))
 		if isPortInUse {
+			task.getPassword(proxyPort)
+			if task.Err != nil {
+				msg = fmt.Sprintf("twemproxy(%s) port in use, but connect failed,err:%s", proxyAddr, task.Err)
+				task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
+				continue
+			}
 			task.proxyCli, task.Err = myredis.NewRedisClientWithTimeout(proxyAddr, task.Password, 0,
 				consts.TendisTypeRedisInstance, 5*time.Second)
 			if task.Err == nil {
@@ -125,6 +125,12 @@ func (task *TwemproxyMonitorTask) RestartWhenConnFail() {
 			msg = fmt.Sprintf("twemproxy(%s) connect fail,restart fail", task.proxyCli.Addr)
 			task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
 			return
+		}
+		task.getPassword(proxyPort)
+		if task.Err != nil {
+			msg = fmt.Sprintf("twemproxy(%s) restart but get password failed,err: %s", proxyAddr, task.Err)
+			task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
+			continue
 		}
 		task.proxyCli, task.Err = myredis.NewRedisClientWithTimeout(proxyAddr, task.Password, 0,
 			consts.TendisTypeRedisInstance, 5*time.Second)
