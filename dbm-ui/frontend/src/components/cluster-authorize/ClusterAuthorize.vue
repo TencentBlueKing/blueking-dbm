@@ -230,10 +230,6 @@
   import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
   import AccountRulesSelector from './accouter-rules-selector/Index.vue';
   import MySqlClusterSelector, { getClusterSelectorSelected } from './cluster-selector/ClusterSelector.vue';
-
-  export default {
-    name: 'ClusterAuthorize',
-  };
 </script>
 
 <script setup lang="tsx">
@@ -270,7 +266,7 @@
 
   type ClusterSelectorResult = Record<string, Array<ResourceItem>>
 
-  const props = withDefaults(defineProps<Props>(), {
+    const props = withDefaults(defineProps<Props>(), {
     user: '',
     accessDbs: () => [],
     selected: () => [],
@@ -281,10 +277,15 @@
 
   const emits = defineEmits<Emits>();
 
+  defineOptions({
+    name: 'ClusterAuthorize',
+  })
+
   const isShow = defineModel<boolean>({
     required: true,
     default: false,
   });
+
 
   /**
    * 重置表单数据
@@ -634,11 +635,15 @@
    */
   const handleClusterSelected = (selected: ClusterSelectorResult) => {
     const clusterType = Object.keys(selected).find(key => selected[key].length > 0) || ClusterTypes.TENDBHA;
+
     clusterState.tableProps.data = selected[clusterType];
     clusterState.clusterType = clusterType as ClusterTypes;
   };
 
   const handleNewClusterChange = (selected: Record<string, MongodbModel[]>) => {
+    const clusterType = Object.keys(selected).find(key => selected[key].length > 0) || ClusterTypes.TENDBHA;
+    clusterState.clusterType = clusterType as ClusterTypes;
+
     clusterState.tableProps.data = Object.keys(selected).reduce((prev, key) => {
       const dataList = selected[key];
       return [...prev, ...dataList.map(dataItem => ({
@@ -682,6 +687,7 @@
       remark: '',
       ticket_type: ticketTypeMap[props.accountType],
     };
+
     createTicket(params)
       .then((res) => {
         ticketMessage(res.id);
@@ -765,11 +771,11 @@
     if (state.isLoading) return false;
 
     if (window.changeConfirm) {
-      return new Promise((resolve) => {
+      return new Promise<boolean>((resolve) => {
         InfoBox({
           title: t('确认离开当前页'),
           content: t('离开将会导致未保存信息丢失'),
-          confirmTxt: t('离开'),
+          confirmText: t('离开'),
           onConfirm: () => {
             window.changeConfirm = false;
             resolve(true);
