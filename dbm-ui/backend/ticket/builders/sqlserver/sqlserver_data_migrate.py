@@ -66,7 +66,7 @@ class SQLServerDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
     full_controller = SqlserverController.full_dts_scene
 
     def build_controller_info(self) -> dict:
-        if self.ticket_data["dts_mode"] == SqlserverDtsMode.INCR:
+        if self.ticket_data["dts_mode"] == SqlserverDtsMode.INCR and self.ticket_data["manual_terminate"]:
             self.controller = self.incr_controller
         else:
             self.controller = self.full_controller
@@ -88,8 +88,9 @@ class SQLServerDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
         )
 
     def format_ticket_data(self):
-        is_last = self.ticket_data["dts_mode"] == SqlserverDtsMode.FULL
-        self.ticket_data["is_last"] = is_last
+        self.ticket_data["is_last"] = (self.ticket_data["dts_mode"] == SqlserverDtsMode.FULL) or (
+            SqlserverDtsMode.INCR and self.ticket_data["manual_terminate"]
+        )
 
 
 class SQLServerRenameFlowParamBuilder(builders.FlowParamBuilder):
