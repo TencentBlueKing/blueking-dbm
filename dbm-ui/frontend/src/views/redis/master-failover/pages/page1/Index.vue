@@ -32,7 +32,7 @@
             :removeable="tableData.length < 2"
             @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
             @clone="(payload: IDataRow) => handleClone(index, payload)"
-            @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
+            @on-ip-input-finish="(ipInfo: string) => handleChangeHostIp(index, ipInfo)"
             @remove="handleRemove(index)" />
         </RenderData>
       </BkLoading>
@@ -82,9 +82,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { queryMasterSlaveByIp } from '@services/source/redisToolbox';
+  import { queryMachineInstancePair } from '@services/source/redisToolbox';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -98,9 +97,8 @@
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
-  type MasterSlaveByIp = ServiceReturnType<typeof queryMasterSlaveByIp>[number];
-
   interface ChoosedFailedMasterItem {
+    bk_cloud_id: number;
     cluster_id: number;
     ip: string;
     role?: string;
@@ -115,6 +113,7 @@
     type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
     onSuccess(cloneData) {
       const { tableList, force } = cloneData;
+
       tableData.value = tableList;
       isForceSwitch.value = force;
       remark.value = cloneData.remark;
@@ -169,27 +168,26 @@
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues<ChoosedFailedMasterItem>) => {
     selected.value = data;
-    const ips = data.redis.map((item) => item.ip);
+    const ips = data.redis.map((item) => `${item.bk_cloud_id}:${item.ip}`);
     isLoading.value = true;
-    const ret = await queryMasterSlaveByIp({ ips }).finally(() => {
+    const pairResult = await queryMachineInstancePair({ machines: ips }).finally(() => {
       isLoading.value = false;
     });
-    const masterIpMap: Record<string, MasterSlaveByIp> = {};
-    ret.forEach((item) => {
-      masterIpMap[item.master_ip] = item;
-    });
+    const masterIpMap = pairResult.machines!;
+
     const newList = [] as IDataRow[];
     data.redis.forEach((proxyData) => {
       const { ip } = proxyData;
+      const key = `${proxyData.bk_cloud_id}:${ip}`;
       if (!ipMemo[ip]) {
         newList.push({
           rowKey: ip,
           isLoading: false,
           ip,
-          clusterId: proxyData.cluster_id,
-          cluster: masterIpMap[ip]?.cluster?.immute_domain,
-          masters: masterIpMap[ip]?.instances.map((item) => item.instance),
-          slave: masterIpMap[ip]?.slave_ip,
+          clusterIds: masterIpMap[key].related_clusters.map((item) => item.id),
+          clusters: masterIpMap[key].related_clusters.map((item) => item.immute_domain),
+          masters: masterIpMap[key].related_pair_instances.map((item) => item.instance),
+          slave: masterIpMap[key].ip,
         });
         ipMemo[ip] = true;
       }
@@ -203,7 +201,9 @@
   };
 
   // 输入IP后查询详细信息
-  const handleChangeHostIp = async (index: number, ip: string) => {
+  const handleChangeHostIp = async (index: number, ipInfo: string) => {
+    const ipInfos = ipInfo.split(':');
+    const ip = ipInfos[1];
     if (ip === tableData.value[index].ip) {
       return;
     }
@@ -215,33 +215,33 @@
     }
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
-    const ret = await queryMasterSlaveByIp({
-      ips: [ip],
-    }).finally(() => {
+    const pairResult = await queryMachineInstancePair({ machines: [ipInfo] }).finally(() => {
       tableData.value[index].isLoading = false;
     });
-    if (ret.length === 0) {
+
+    const masterIpMap = pairResult.machines!;
+    if (!masterIpMap[ipInfo]) {
       return;
     }
-    const data = ret[0];
+    const data = masterIpMap[ipInfo];
     // if (data.instances.filter(item => item.status !== 'running').length > 0) {
     const obj = {
       rowKey: tableData.value[index].rowKey,
       isLoading: false,
       ip,
-      clusterId: data.cluster.id,
-      cluster: data.cluster?.immute_domain,
-      masters: data.instances.map((item) => item.instance),
-      slave: data.slave_ip,
+      clusterIds: data.related_clusters.map((item) => item.id),
+      clusters: data.related_clusters.map((item) => item.immute_domain),
+      masters: data.related_pair_instances.map((item) => item.instance),
+      slave: data.ip,
     };
     tableData.value[index] = obj;
     ipMemo[ip] = true;
-    selected.value.redis.push(
-      Object.assign(data, {
-        cluster_id: obj.clusterId,
-        ip,
-      }),
-    );
+    // selected.value.redis.push(
+    //   Object.assign(data, {
+    //     cluster_id: obj.clusterIds[0],
+    //     ip,
+    //   }),
+    // );
     // } else {
     //   tableData.value[index].ip = '';
     // }
@@ -274,11 +274,11 @@
 
   // 提交
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(
+    const infos = await Promise.all(
       rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
     );
 
-    const params: SubmitTicket<TicketTypes, InfoItem[]> & { details: { force: boolean } } = {
+    const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
       remark: remark.value,
@@ -287,6 +287,7 @@
         infos,
       },
     };
+
     InfoBox({
       title: t('确认提交 n 个主从切换任务？', { n: totalNum.value }),
       subTitle: t('从库将会直接替换主库所有信息，请谨慎操作！'),

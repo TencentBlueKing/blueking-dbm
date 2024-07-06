@@ -36,9 +36,8 @@
     <td style="padding: 0">
       <RenderTargetClusterVersion
         ref="versionRef"
-        :data="data.dbVersion"
-        :is-loading="data.isLoading"
-        :select-list="versionList" />
+        :cluster-type="data.clusterType"
+        :data="data.dbVersion" />
     </td>
     <td style="padding: 0">
       <RenderText
@@ -60,12 +59,12 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+  import RenderTargetClusterVersion from '@views/redis/common/edit-field/VersionSelect.vue';
   import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
 
   import RenderDeployPlan, { type ExposeValue } from './RenderDeployPlan.vue';
-  import RenderTargetClusterVersion from './RenderTargetClusterVersion.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -176,7 +175,6 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
-    clusterTypesMap: Record<string, string[]>;
     inputedClusters?: string[];
   }
 
@@ -200,16 +198,6 @@
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
   const versionRef = ref<InstanceType<typeof RenderTargetClusterVersion>>();
   const deployPlanRef = ref<InstanceType<typeof RenderDeployPlan>>();
-
-  const versionList = computed(() => {
-    if (props.clusterTypesMap && props.data.clusterType in props.clusterTypesMap) {
-      return props.clusterTypesMap[props.data.clusterType].map((item) => ({
-        value: item,
-        label: item,
-      }));
-    }
-    return [];
-  });
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);

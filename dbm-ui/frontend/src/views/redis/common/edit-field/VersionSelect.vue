@@ -12,12 +12,12 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
+  <BkLoading :loading="loading">
     <div class="render-role-box">
       <TableEditSelect
         ref="selectRef"
         v-model="localValue"
-        :list="list"
+        :list="selectList"
         :placeholder="$t('请选择')"
         :rules="rules" />
     </div>
@@ -26,16 +26,17 @@
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import { listPackages } from '@services/source/package';
+
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
+
+  import { clusterTypeMachineMap } from '@views/redis/common/const';
 
   interface Props {
     data?: string;
-    list?: {
-      value: string;
-      label: string;
-    }[];
-    isLoading?: boolean;
+    clusterType?: string;
   }
 
   interface Exposes {
@@ -44,13 +45,19 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    list: () => [],
-    isLoading: false,
+    clusterType: '',
   });
 
   const { t } = useI18n();
+
   const selectRef = ref();
   const localValue = ref(props.data);
+  const selectList = ref<
+    {
+      value: string;
+      label: string;
+    }[]
+  >([]);
 
   const rules = [
     {
@@ -59,9 +66,38 @@
     },
   ];
 
+  const { loading, run: fetchListPackages } = useRequest(listPackages, {
+    manual: true,
+    onSuccess(listResult) {
+      localValue.value = listResult[0];
+      selectList.value = listResult.map((value) => ({
+        value,
+        label: value,
+      }));
+    },
+  });
+
+  watch(
+    () => props.clusterType,
+    () => {
+      if (props.clusterType) {
+        fetchListPackages({
+          db_type: 'redis',
+          query_key: clusterTypeMachineMap[props.clusterType] ?? 'redis',
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value.getValue().then(() => localValue.value);
+      return selectRef.value
+        .getValue()
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>
