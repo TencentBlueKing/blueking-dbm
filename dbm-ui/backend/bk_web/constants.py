@@ -61,6 +61,7 @@ ROUTING_WHITELIST_PATTERNS = [
     r"/apis/monitor/grafana/get_dashboard/",
     # 制品库
     r"/apis/core/storage/create_bkrepo_access_token/",
+    r"/apis/generic/temporary/download/*",
 ]
 
 # 外部请求非转发路由(需要请求本地的视图)

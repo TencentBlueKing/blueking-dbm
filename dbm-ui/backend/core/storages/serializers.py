@@ -23,6 +23,11 @@ class FileSerializer(serializers.Serializer):
     file_path = serializers.CharField(help_text=_("文件路径"))
 
 
+class TemporaryDownloadSerializer(serializers.Serializer):
+    token = serializers.CharField(help_text=_("临时下载的token"), required=False)
+    download = serializers.BooleanField(help_text=_("是否强制下载"), required=False)
+
+
 class CreateTokenSerializer(serializers.Serializer):
     file_path = serializers.CharField(help_text=_("文件路径"))
 
