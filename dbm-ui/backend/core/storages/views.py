@@ -21,6 +21,7 @@ from backend.core.storages.serializers import (
     CreateTokenSerializer,
     CreateTokenSerializerResponseSerializer,
     FileSerializer,
+    TemporaryDownloadSerializer,
 )
 
 SWAGGER_TAG = "storage"
@@ -43,6 +44,21 @@ class StorageViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=BatchDownloadFileSerializer)
     def batch_download(self, request):
         file_path_list = self.params_validate(self.get_serializer_class())["file_path_list"]
+        return StorageHandler().batch_download(file_path_list)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("临时下载文件"),
+        query_serializer=TemporaryDownloadSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["GET"],
+        detail=False,
+        serializer_class=TemporaryDownloadSerializer,
+        url_path=r"generic/temporary/download/(?P<project>[\.\w-]+)/(?P<repo>[\.\w-]+)/(?P<path>[\./\w-]+)",
+    )
+    def temporary_download(self, request, *args, **kwargs):
+        file_path_list = [kwargs["path"]]
         return StorageHandler().batch_download(file_path_list)
 
     @common_swagger_auto_schema(operation_summary=_("获取文件内容"), query_serializer=FileSerializer(), tags=[SWAGGER_TAG])
