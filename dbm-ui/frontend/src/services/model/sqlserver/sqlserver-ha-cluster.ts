@@ -45,9 +45,10 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   bk_cloud_name: string;
   cluster_access_port: number;
   cluster_alias: string;
+  cluster_entry: string[];
   cluster_name: string;
-  cluster_time_zone: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
+  cluster_time_zone: string;
   cluster_type: string;
   cluster_type_name: string;
   create_at: string;
@@ -87,6 +88,29 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   region: string;
   slave_domain: string;
   slaves: SqlServerHaCluster['masters'];
+  spec_config: {
+    id: number;
+    cpu: {
+      max: number;
+      min: number;
+    };
+    mem: {
+      max: number;
+      min: number;
+    };
+    qps: {
+      max: number;
+      min: number;
+    };
+    name: string;
+    count: number;
+    device_class: string[];
+    storage_spec: {
+      size: number;
+      type: string;
+      mount_point: string;
+    }[];
+  };
   status: string;
   update_at: Date | string;
   updater: string;
@@ -99,6 +123,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
+    this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_stats = payload.cluster_stats || {};
@@ -113,12 +138,13 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     this.master_domain = payload.master_domain;
     this.masters = payload.masters;
     this.operations = payload.operations;
-    this.permission = payload.permission;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;
     this.slave_domain = payload.slave_domain;
     this.slaves = payload.slaves;
+    this.spec_config = payload.spec_config;
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;

@@ -15,8 +15,6 @@ import { clusterInstStatus, ClusterInstStatusKeys } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
-import type { HostDetails } from '../../types';
-
 export default class SqlServerHaInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
@@ -26,7 +24,7 @@ export default class SqlServerHaInstance {
   cluster_type: string;
   create_at: string;
   db_module_id: number;
-  host_info: HostDetails;
+  db_module_name: string;
   id: number;
   instance_address: string;
   ip: string;
@@ -90,13 +88,13 @@ export default class SqlServerHaInstance {
     this.cluster_type = payload.cluster_type;
     this.create_at = payload.create_at;
     this.db_module_id = payload.db_module_id;
-    this.host_info = payload.host_info;
+    this.db_module_name = payload.db_module_name;
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.ip = payload.ip;
     this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain;
-    this.permission = payload.permission;
+    this.permission = payload.permission || {};
     this.port = payload.port;
     this.related_clusters = payload.related_clusters || [];
     this.role = payload.role;

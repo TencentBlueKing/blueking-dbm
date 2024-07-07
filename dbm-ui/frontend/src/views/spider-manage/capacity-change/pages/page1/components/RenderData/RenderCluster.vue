@@ -80,6 +80,7 @@
               id: clusterData.id,
               machinePairCnt: clusterData.machine_pair_cnt,
               masterDomain: clusterData.master_domain,
+              remoteShardNum: clusterData.remote_shard_num,
             };
             return true;
           }
