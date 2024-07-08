@@ -1513,14 +1513,15 @@ class RedisActPayload(object):
         """
         params, proxy_version = kwargs["params"], ""
         self.namespace = params["cluster_type"]
-        if is_twemproxy_proxy_type(self.namespace):
-            proxy_version = ConfigFileEnum.Twemproxy
-        elif is_predixy_proxy_type(self.namespace):
-            proxy_version = ConfigFileEnum.Predixy
-        proxy_config = self.__get_cluster_config(params["immute_domain"], proxy_version, ConfigTypeEnum.ProxyConf)
         cluster_meta = nosqlcomm.other.get_cluster_detail(cluster_id=params["cluster_id"])[0]
-        cluster_meta["proxy_pass"] = proxy_config["password"]
-        cluster_meta["storage_pass"] = proxy_config["redis_password"]
+        if self.namespace != ClusterType.RedisInstance.value:
+            if is_twemproxy_proxy_type(self.namespace):
+                proxy_version = ConfigFileEnum.Twemproxy
+            elif is_predixy_proxy_type(self.namespace):
+                proxy_version = ConfigFileEnum.Predixy
+            proxy_config = self.__get_cluster_config(params["immute_domain"], proxy_version, ConfigTypeEnum.ProxyConf)
+            cluster_meta["proxy_pass"] = proxy_config["password"]
+            cluster_meta["storage_pass"] = proxy_config["redis_password"]
 
         logger.info("switch cluster {}, switch infos : {}".format(params["immute_domain"], params["switch_info"]))
         return {
