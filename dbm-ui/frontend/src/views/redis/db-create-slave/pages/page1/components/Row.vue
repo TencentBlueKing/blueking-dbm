@@ -28,7 +28,7 @@
       <RenderText
         :data="data.cluster.domain"
         :is-loading="data.isLoading"
-        :placeholder="$t('输入主机后自动生成')" />
+        :placeholder="t('输入主机后自动生成')" />
     </td>
     <td style="padding: 0">
       <RenderSpec
@@ -39,13 +39,13 @@
       <RenderText
         :data="data.slaveHost?.faults"
         :is-loading="data.isLoading"
-        :placeholder="$t('输入主机后自动生成')" />
+        :placeholder="t('输入主机后自动生成')" />
     </td>
     <td style="padding: 0">
       <RenderText
         :data="data.slaveHost?.total"
         :is-loading="data.isLoading"
-        :placeholder="$t('输入主机后自动生成')" />
+        :placeholder="t('输入主机后自动生成')" />
     </td>
     <!-- <td style="padding: 0;">
       <RenderSlaveHost
@@ -59,6 +59,8 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
@@ -74,7 +76,7 @@
     rowKey: string;
     isLoading: boolean;
     ip: string;
-    clusterId: number;
+    clusterIds: number[];
     bkCloudId: number;
     bkHostId: number;
     cluster: {
@@ -84,7 +86,6 @@
       rowSpan: number;
     };
     targetNum: number;
-    slaveNum?: number;
     spec?: SpecInfo;
     slaveHost?: {
       faults: number;
@@ -97,7 +98,7 @@
     rowKey: random(),
     isLoading: false,
     ip: data?.ip ?? '',
-    clusterId: 0,
+    clusterIds: [] as number[],
     bkCloudId: 0,
     bkHostId: 0,
     cluster: {
@@ -132,10 +133,12 @@
 
   const emits = defineEmits<Emits>();
 
-  const hostRef = ref();
+  const { t } = useI18n();
+
+  const hostRef = ref<InstanceType<typeof RenderHost>>();
 
   const handleInputFinish = (value: string) => {
-    emits('onIpInputFinish', value);
+    emits('onIpInputFinish', value.split(':')[1]);
   };
 
   const handleAppend = () => {
@@ -151,7 +154,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return hostRef.value.getValue();
+      return hostRef.value!.getValue(true);
     },
   });
 </script>

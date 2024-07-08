@@ -289,7 +289,7 @@
           },
           columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
-          isRemotePagination: false,
+          isRemotePagination: true,
         },
         previewConfig: {
           displayKey: 'ip',
