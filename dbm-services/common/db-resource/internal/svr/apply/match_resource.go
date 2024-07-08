@@ -30,6 +30,7 @@ func (c *PickerObject) PickerRandom() {
 	pq, ok := c.PriorityElements[RANDOM]
 	if !ok {
 		logger.Error("not exist %s", RANDOM)
+		return
 	}
 	logger.Info("random priority have %d machine", pq.Len())
 	for pq.Len() > 0 {
@@ -143,6 +144,7 @@ func (c *PickerObject) pickerOneByPriority(key string, cross_switch bool) bool {
 	pq, ok := c.PriorityElements[key]
 	if !ok {
 		logger.Error("not exist %s", key)
+		return false
 	}
 	for pq.Len() > 0 {
 		item, _ := pq.Pop()
@@ -185,7 +187,7 @@ const (
 )
 
 func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
-	var insDedicatedBizIds []int
+	var insDedicatedBizIds []string
 	var insDedicatedRstyps []string
 	logger.Info("%v", ins.Storages)
 	if err := ins.UnmarshalDiskInfo(); err != nil {
@@ -207,7 +209,7 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
 		ele.Priority += PriorityP1
 	}
 	// 如果请求参数请求了专属业务资源，则标记了专用业务的资源优先级更高
-	if o.IntetionBkBizId > 0 && lo.Contains(insDedicatedBizIds, o.IntetionBkBizId) {
+	if o.IntetionBkBizId > 0 && lo.Contains(insDedicatedBizIds, strconv.Itoa(o.IntetionBkBizId)) {
 		ele.Priority += PriorityP2
 	}
 	// 如果请求参数请求了专属db类型，则标记了专用db类型的资源优先级更高
