@@ -156,8 +156,8 @@
         tableConfig: {
           getTableList: (params: any) => getRedisHostList({
             ...params,
-            status: 'unavailable',
             cluster_status: 'abnormal',
+            limit: -1,
           }),
           isRemotePagination: false,
           columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
@@ -172,8 +172,8 @@
         tableConfig: {
           getTableList: (params: any) => getRedisHostList({
             ...params,
-            status: 'unavailable',
             cluster_status: 'abnormal',
+            limit: -1,
           }),
           isRemotePagination: false,
           columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
