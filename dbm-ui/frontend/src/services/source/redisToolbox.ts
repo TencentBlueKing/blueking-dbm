@@ -12,7 +12,6 @@
  */
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
-import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
 import RedisHostModel from '@services/model/redis/redis-host';
 
 import type { ListBase } from '../types';
@@ -30,15 +29,6 @@ interface MachineInstancePairItem {
   phase: string;
   port: number;
   status: string;
-}
-
-/**
- * 根据IP查询集群、角色和规格
- */
-export function queryInfoByIp(params: { ips: string[] }) {
-  return http
-    .post<RedisClusterNodeByIpModel[]>(`${getRootPath()}/query_by_ip/`, params)
-    .then((data) => data.map((item) => new RedisClusterNodeByIpModel(item)));
 }
 
 /**
