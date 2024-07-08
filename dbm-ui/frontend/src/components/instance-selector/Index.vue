@@ -182,8 +182,11 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
-  import { queryClusters as getMysqlClusterList , queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
-  import { getRedisClusterList , getRedisMachineList } from '@services/source/redis';
+  import {
+    queryClusters as getMysqlClusterList,
+    queryClusters as queryMysqlCluster,
+  } from '@services/source/mysqlCluster';
+  import { getRedisClusterList, getRedisMachineList } from '@services/source/redis';
   import { getRedisHostList } from '@services/source/redisToolbox';
   import { getSpiderInstanceList, getSpiderMachineList } from '@services/source/spider';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
@@ -289,7 +292,7 @@
           },
           columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
-          isRemotePagination: false,
+          isRemotePagination: true,
         },
         previewConfig: {
           displayKey: 'ip',
@@ -533,10 +536,10 @@
         name: t('主库主机'),
         topoConfig: {
           getTopoList: getRedisClusterList,
-          countFunc: (clusterItem: { redis_master: { ip: string }[]}) => {
-            const ipList = clusterItem.redis_master.map(hostItem => hostItem.ip)
-            return new Set(ipList).size
-          }
+          countFunc: (clusterItem: { redis_master: { ip: string }[] }) => {
+            const ipList = clusterItem.redis_master.map((hostItem) => hostItem.ip);
+            return new Set(ipList).size;
+          },
         },
         tableConfig: {
           getTableList: getRedisMachineList,
@@ -545,7 +548,7 @@
             field: 'ip',
             role: 'redis_master',
           },
-          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name']
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
         },
         previewConfig: {
           displayKey: 'ip',
@@ -562,7 +565,7 @@
             field: 'ip',
             role: 'redis_master',
           },
-          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name']
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
         },
         manualConfig: {
           checkInstances: getRedisMachineList,

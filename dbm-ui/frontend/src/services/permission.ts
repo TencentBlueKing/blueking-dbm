@@ -113,7 +113,7 @@ export const queryMysqlAdminPassword = (params: {
   instances?: string;
 }) =>
   http
-    .get<ListBase<MysqlAdminPasswordModel[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params)
+    .post<ListBase<MysqlAdminPasswordModel[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params)
     .then((res) => ({
       ...res,
       results: res.results.map((item) => new MysqlAdminPasswordModel(item)),

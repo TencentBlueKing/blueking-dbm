@@ -13,31 +13,50 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div class="render-cluster-box">
-      {{ data?.domain }}
+    <div
+      class="render-cluster-box"
+      :class="{ placeholder: !data }">
       <span
-        v-if="!data?.domain"
-        key="empty"
-        style="color: #c4c6cc">
-        {{ $t('选择主机后自动生成') }}
+        v-if="!data"
+        key="empty">
+        {{ t('选择主机后自动生成') }}
       </span>
+      <template v-else>
+        <div
+          v-for="item in renderMasters"
+          :key="item">
+          {{ item }}
+        </div>
+      </template>
     </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import type { IDataRow } from './Row.vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
-    data?: IDataRow['cluster'];
+    data?: string;
     isLoading?: boolean;
   }
 
-  defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    data: '',
+    isLoading: false,
+  });
+
+  const { t } = useI18n();
+
+  const renderMasters = computed(() => props.data.split(','));
 </script>
 <style lang="less" scoped>
   .render-cluster-box {
     padding: 10px 16px;
     line-height: 20px;
     color: #63656e;
+
+    &.placeholder {
+      background: #fafbfd;
+      color: #c4c6cc;
+    }
   }
 </style>
