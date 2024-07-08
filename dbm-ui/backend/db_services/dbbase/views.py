@@ -45,6 +45,7 @@ from backend.db_services.dbbase.serializers import (
 )
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.cluster import ClusterWebconsolePermission
 
 SWAGGER_TAG = _("集群通用接口")
 
@@ -62,6 +63,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             "simple_query_cluster",
             "common_query_cluster",
         ): [DBManagePermission()],
+        ("webconsole",): [ClusterWebconsolePermission()],
     }
     default_permission_class = [DBManagePermission()]
 

@@ -86,6 +86,7 @@ class DBHAViewSet(viewsets.ResourceViewSet):
         ActionEnum.MYSQL_VIEW,
         ActionEnum.TBINLOGDUMPER_INSTALL,
         ActionEnum.MYSQL_DUMP_DATA,
+        ActionEnum.MYSQL_WEBCONSOLE,
     ]
     list_instance_perm_actions = [ActionEnum.MYSQL_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]

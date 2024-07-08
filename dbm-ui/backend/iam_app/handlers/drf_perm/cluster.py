@@ -139,6 +139,10 @@ class ModifyClusterPasswordPermission(ResourceActionPermission):
 
 
 class QueryClusterPasswordPermission(MoreResourceActionPermission):
+    """
+    集群admin密码查询相关动作鉴权
+    """
+
     @staticmethod
     def instance_ids_getters(request, view):
         data = request.data or request.query_params
@@ -162,3 +166,25 @@ class QueryClusterPasswordPermission(MoreResourceActionPermission):
             resource_metes=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
             instance_ids_getters=self.instance_ids_getters,
         )
+
+
+class ClusterWebconsolePermission(ResourceActionPermission):
+    """
+    集群webconsole相关鉴权
+    """
+
+    def inst_ids_getter(self, request, view):
+        data = request.data
+        cluster = Cluster.objects.get(id=data["cluster_id"])
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
+        # 根据不同的组件类型获得对应的动作和资源类型
+        try:
+            self.actions = [getattr(ActionEnum, f"{db_type}_webconsole".upper())]
+            self.resource_meta = getattr(ResourceEnum, db_type.upper())
+        except AttributeError:
+            raise NotImplementedError
+
+        return [cluster.id]
+
+    def __init__(self):
+        super().__init__(actions=None, resource_meta=None, instance_ids_getter=self.inst_ids_getter)

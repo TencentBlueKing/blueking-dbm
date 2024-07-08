@@ -1329,6 +1329,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_webconsole",
+                "name": "MySQL Webconsole执行",
+                "name_en": "mysql_webconsole",
+                "type": "exec",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "集群管理",
+                "description": "MySQL Webconsole执行",
+                "description_en": "mysql_webconsole"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_admin_pwd_modify",
                 "name": "MySQL 临时密码修改",
                 "name_en": "mysql_admin_pwd_modify",
@@ -2144,6 +2175,37 @@
                 "subgroup": "集群管理",
                 "description": "TenDB Cluster 集群详情查看",
                 "description_en": "tendbcluster_view"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_webconsole",
+                "name": "TendbCluster Webconsole执行",
+                "name_en": "tendbcluster_webconsole",
+                "type": "exec",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "集群管理",
+                "description": "TendbCluster Webconsole执行",
+                "description_en": "tendbcluster_webconsole"
             }
         },
         {
@@ -9714,6 +9776,9 @@
                                     "id": "mysql_view"
                                 },
                                 {
+                                    "id": "mysql_webconsole"
+                                },
+                                {
                                     "id": "mysql_admin_pwd_modify"
                                 },
                                 {
@@ -9923,6 +9988,9 @@
                             "actions": [
                                 {
                                     "id": "tendbcluster_view"
+                                },
+                                {
+                                    "id": "tendbcluster_webconsole"
                                 },
                                 {
                                     "id": "tendbcluster_admin_pwd_modify"
@@ -10806,6 +10874,45 @@
                     "actions": [
                         {
                             "id": "db_manage"
+                        },
+                        {
+                            "id": "mysql_view"
+                        },
+                        {
+                            "id": "mysql_webconsole"
+                        },
+                        {
+                            "id": "tendbcluster_view"
+                        },
+                        {
+                            "id": "tendbcluster_webconsole"
+                        },
+                        {
+                            "id": "redis_view"
+                        },
+                        {
+                            "id": "es_view"
+                        },
+                        {
+                            "id": "doris_view"
+                        },
+                        {
+                            "id": "kafka_view"
+                        },
+                        {
+                            "id": "hdfs_view"
+                        },
+                        {
+                            "id": "pulsar_view"
+                        },
+                        {
+                            "id": "riak_view"
+                        },
+                        {
+                            "id": "mongodb_view"
+                        },
+                        {
+                            "id": "sqlserver_view"
                         }
                     ]
                 },
@@ -10833,6 +10940,9 @@
                         },
                         {
                             "id": "mysql_view"
+                        },
+                        {
+                            "id": "mysql_webconsole"
                         },
                         {
                             "id": "mysql_enable_disable"
@@ -10911,6 +11021,9 @@
                         },
                         {
                             "id": "tendbcluster_view"
+                        },
+                        {
+                            "id": "tendbcluster_webconsole"
                         },
                         {
                             "id": "tendbcluster_account_create"
@@ -11624,6 +11737,10 @@
                                 "required": true
                             },
                             {
+                                "id": "mysql_webconsole",
+                                "required": true
+                            },
+                            {
                                 "id": "mysql_admin_pwd_modify",
                                 "required": true
                             },
@@ -11809,6 +11926,10 @@
                         "actions": [
                             {
                                 "id": "tendbcluster_view",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_webconsole",
                                 "required": true
                             },
                             {

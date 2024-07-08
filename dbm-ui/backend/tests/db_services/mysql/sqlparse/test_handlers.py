@@ -691,3 +691,8 @@ class TestSQLParseHandler:
         """
         with pytest.raises(SQLParseBaseException):
             SQLParseHandler().parse_select_statement(invalid_show_sql)
+
+        show_tables_sql = """
+        SHOW TABLES FORM DBM;
+        """
+        assert SQLParseHandler().parse_select_statement(show_tables_sql) is None

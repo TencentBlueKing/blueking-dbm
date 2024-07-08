@@ -8,8 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 import logging.config
+import time
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -43,11 +43,12 @@ class DbConsoleDumpSqlFlow(object):
         self.data["uid"] = self.data.get("uid") or self.root_id
         self.uid = self.data["uid"]
         self.cluster_id = self.data["cluster_id"]
-        self.dbconsole_dump_file_name = f"{self.root_id}_dbm_console_dump.sql"
+        self.cluster = Cluster.objects.get(id=self.cluster_id)
+        self.dbconsole_dump_file_name = f"{self.cluster.immute_domain}_{int(time.time())}_dbm_console_dump.sql"
 
     def dump_flow(self):
         p = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[self.cluster_id])
-        ro_instance_info = self.__get_read_instance(Cluster.objects.filter(id=self.cluster_id).first())
+        ro_instance_info = self.__get_read_instance(self.cluster)
         bk_cloud_id = ro_instance_info["bk_cloud_id"]
         exec_ip = ro_instance_info["ip"]
         # 此处可以根据延迟来考虑是否需要抛出错误

@@ -157,7 +157,7 @@ def generate_iam_migration_json(json_name: str = ""):
         f.write(json.dumps(dbm_iam_json, ensure_ascii=False, indent=4))
 
 
-def generate_iam_biz_maintain_json(json_name: str = ""):
+def generate_iam_biz_maintain_json(label: str = CommonActionLabel.BIZ_MAINTAIN, json_name: str = ""):
     """
     根据dataclass的定义自动生成业务运维的用户组迁移json
     """
@@ -174,7 +174,7 @@ def generate_iam_biz_maintain_json(json_name: str = ""):
 
     # 聚合相同资源的动作
     for action in _all_actions.values():
-        if CommonActionLabel.BIZ_MAINTAIN not in action.common_labels:
+        if label not in action.common_labels:
             continue
         resource_ids = ",".join(sorted([resource.id for resource in action.related_resource_types]))
         resources__actions_map[resource_ids].append(action.id)
