@@ -202,7 +202,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis'
-  import { queryMasterSlaveByIp } from '@services/source/redisToolbox';
+  import { queryMachineInstancePair } from '@services/source/redisToolbox';
   import type { BizItem } from '@services/types';
 
   import {
@@ -358,19 +358,21 @@
             bk_cloud_id: redisMachineItem.bk_cloud_id,
             bk_host_id: redisMachineItem.bk_host_id
           }
-        })
-        queryMasterSlaveByIp({ips: [value]}).then(slavaList => {
-          if (slavaList.length > 0) {
-            const [slavaItem] = slavaList
-            const {slave_host_info: slaveHostInfo} = slavaItem
+        });
+
+        const ipInfo = `${formData.details.bk_cloud_id}:${value}`
+        queryMachineInstancePair({ machines: [ipInfo] }).then((pairResult) => {
+          const ipMap = pairResult.machines!;
+          if (ipMap[ipInfo]) {
             Object.assign(formData.details.infos[index], {
               slaveHost: {
-                ip: slavaItem.slave_ip,
-                bk_cloud_id: slaveHostInfo.bk_cloud_id,
-                bk_host_id: slaveHostInfo.bk_host_id
-              }})
+                ip: ipMap[ipInfo].ip,
+                bk_cloud_id: ipMap[ipInfo].bk_cloud_id,
+                bk_host_id: ipMap[ipInfo].bk_host_id
+              }
+            })
           }
-        })
+        });
       }
     })
   }

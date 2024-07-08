@@ -12,42 +12,46 @@
  */
 import type { RedisMasterSlaveSwitchDetails } from '@services/model/ticket/details/redis';
 import TicketModel from '@services/model/ticket/ticket';
-import { queryMasterSlaveByIp } from '@services/source/redisToolbox';
+import { checkRedisInstances } from '@services/source/instances';
+import { queryMachineInstancePair } from '@services/source/redisToolbox';
 
 import { random } from '@utils';
 
 // Redis 主从切换
 export async function generateRedisMasterSlaveSwitchCloneData(ticketData: TicketModel<RedisMasterSlaveSwitchDetails>) {
   const { infos, force } = ticketData.details;
-  const ips: string[] = [];
+  const masterIps: string[] = [];
   const ipSwitchMode: Record<string, string> = {};
   infos.forEach((item) => {
     item.pairs.forEach((pair) => {
       const masterIp = pair.redis_master;
-      ips.push(masterIp);
+      masterIps.push(masterIp);
       ipSwitchMode[masterIp] = item.online_switch_type;
     });
   });
-  const result = await queryMasterSlaveByIp({ ips });
-  const masterIpMap = result.reduce(
-    (results, item) => {
-      Object.assign(results, {
-        [item.master_ip]: item,
-      });
-      return results;
-    },
-    {} as Record<string, any>,
-  );
-  const tableList = ips.map((ip) => ({
-    rowKey: random(),
-    isLoading: false,
-    ip,
-    clusterId: masterIpMap[ip].cluster.id,
-    cluster: masterIpMap[ip].cluster.immute_domain,
-    masters: masterIpMap[ip].instances.map((item: { instance: string }) => item.instance),
-    slave: masterIpMap[ip].slave_ip,
-    switchMode: ipSwitchMode[ip],
-  }));
+
+  const checkResult = await checkRedisInstances({
+    bizId: ticketData.bk_biz_id,
+    instance_addresses: masterIps,
+  });
+
+  const ipInfo = Array.from(new Set(checkResult.map((item) => `${item.bk_cloud_id}:${item.ip}`)));
+  const pairResult = await queryMachineInstancePair({ machines: ipInfo });
+  const masterIpMap = pairResult.machines!;
+
+  const tableList = ipInfo.map((key) => {
+    const ip = key.split(':')[1];
+    return {
+      rowKey: random(),
+      isLoading: false,
+      ip,
+      clusterIds: masterIpMap[key].related_clusters.map((item) => item.id),
+      clusters: masterIpMap[key].related_clusters.map((item) => item.immute_domain),
+      masters: masterIpMap[key].related_pair_instances.map((item) => item.instance),
+      slave: masterIpMap[key].ip,
+      switchMode: ipSwitchMode[ip],
+    };
+  });
   return {
     tableList,
     force,

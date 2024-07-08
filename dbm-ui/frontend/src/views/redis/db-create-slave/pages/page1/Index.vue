@@ -66,13 +66,14 @@
 
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import { getRedisMachineList } from '@services/source/redis';
   import {
-    listClusterHostsCreateSlaveProxy,
+    getRedisHostList,
     listClustersCreateSlaveProxy,
-    queryInfoByIp,
     queryMasterSlavePairs,
   } from '@services/source/redisToolbox';
   import { createTicket } from '@services/source/ticket';
@@ -97,7 +98,7 @@
   } from './components/Row.vue';
 
   interface InfoItem {
-    cluster_id: number,
+    cluster_ids: number[],
     bk_cloud_id: number,
     pairs: {
       redis_master: {
@@ -113,8 +114,7 @@
   }
 
   type RedisModel = ServiceReturnType<typeof listClustersCreateSlaveProxy>[number]
-  type RedisHostModel = ServiceReturnType<typeof listClusterHostsCreateSlaveProxy>['results'][number]
-  type RedisClusterNodeByIpModel = ServiceReturnType<typeof queryInfoByIp>[number]
+  type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number]
 
 
   const { currentBizId } = useGlobalBizs();
@@ -154,7 +154,12 @@
           topoAlertContent: <bk-alert closable style="margin-bottom: 12px;" theme="info" title={t('仅支持从库有故障的集群新建从库')} />,
         },
         tableConfig: {
-          getTableList: listClusterHostsCreateSlaveProxy,
+          getTableList: (params: any) => getRedisHostList({
+            ...params,
+            status: 'unavailable',
+            cluster_status: 'abnormal',
+          }),
+          isRemotePagination: false,
           columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
           statusFilter: (data: RedisHostModel) => !data.isSlaveFailover,
           disabledRowConfig: {
@@ -165,7 +170,12 @@
       },
       {
         tableConfig: {
-          getTableList: listClusterHostsCreateSlaveProxy,
+          getTableList: (params: any) => getRedisHostList({
+            ...params,
+            status: 'unavailable',
+            cluster_status: 'abnormal',
+          }),
+          isRemotePagination: false,
           columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
         },
@@ -187,7 +197,7 @@
 
   // 更新slave -> master 映射表
   const updateSlaveMasterMap = async () => {
-    const clusterIds = [...new Set(tableData.value.map(item => item.clusterId))];
+    const clusterIds = [...new Set(_.flatMap(tableData.value.map(item => item.clusterIds)))];
     const retArr = await Promise.all(clusterIds.map(id => queryMasterSlavePairs({
       cluster_id: id,
     }).catch(() => null)));
@@ -213,40 +223,48 @@
     selected.value = data;
     const newList: IDataRow[] = [];
     const ips = data.createSlaveIdleHosts.map(item => item.ip);
-    const retArr = await queryInfoByIp({ ips });
-    const infoMap: Record<string, RedisClusterNodeByIpModel> = {};
-    retArr.forEach((item) => {
-      infoMap[item.ip] = item;
+    const listResult = await getRedisMachineList({
+      ip: ips.join(','),
+      add_role_count: true,
     });
+
+    const machineIpMap = listResult.results.reduce((results, item) => {
+      Object.assign(results, {
+        [item.ip]: item
+      });
+      return results;
+    }, {} as Record<string, ServiceReturnType<typeof getRedisMachineList>['results'][number]>);
+
     data.createSlaveIdleHosts.forEach((item) => {
       const { ip } = item;
-      if (!ipMemo[ip] && infoMap[ip].isSlaveFailover) {
+      if (!ipMemo[ip] && machineIpMap[ip].isSlaveFailover) {
         newList.push({
           rowKey: ip,
           isLoading: false,
           ip,
-          clusterId: item.cluster_id,
+          clusterIds: machineIpMap[item.ip].related_clusters.map(item => item.id),
           bkCloudId: item.bk_cloud_id,
           bkHostId: item.bk_host_id,
-          slaveNum: infoMap[ip].cluster.redis_slave_count,
           cluster: {
-            domain: infoMap[item.ip].cluster.immute_domain,
+            domain: machineIpMap[item.ip].related_clusters.map(item => item.immute_domain).join(','),
             isStart: false,
             isGeneral: true,
             rowSpan: 1,
           },
-          spec: infoMap[item.ip].spec_config,
+          spec: machineIpMap[item.ip].spec_config,
           targetNum: 1,
           slaveHost: {
-            faults: infoMap[item.ip].unavailable_slave,
-            total: infoMap[item.ip].total_slave,
+            faults: machineIpMap[item.ip].unavailable_slave,
+            total: machineIpMap[item.ip].total_slave,
           },
         });
         ipMemo[ip] = true;
       }
     });
     if (checkListEmpty(tableData.value)) {
-      if (newList.length > 0) tableData.value = newList;
+      if (newList.length > 0) {
+        tableData.value = newList;
+      };
     } else {
       tableData.value = [...tableData.value, ...newList];
     }
@@ -265,24 +283,27 @@
     }
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
-    const ret = await queryInfoByIp({ ips: [ip] }).finally(() => {
+    const listResult = await getRedisMachineList({
+      ip,
+      add_role_count: true,
+    }).finally(() => {
       tableData.value[index].isLoading = false;
     });
-    if (ret.length === 0) {
+
+    if (listResult.results.length === 0) {
       return;
     }
-    const data = ret[0];
+    const data = listResult.results[0];
     if (data.isSlaveFailover) {
       const obj = {
         rowKey: tableData.value[index].rowKey,
         isLoading: false,
         ip,
-        clusterId: data.cluster.id,
+        clusterIds: data.related_clusters.map(item => item.id),
         bkCloudId: data.bk_cloud_id,
         bkHostId: data.bk_host_id,
-        slaveNum: data.cluster.redis_slave_count,
         cluster: {
-          domain: data.cluster?.immute_domain,
+          domain: data.related_clusters.map(item => item.immute_domain).join(','),
           isStart: false,
           isGeneral: true,
           rowSpan: 1,
@@ -297,14 +318,14 @@
       tableData.value[index] = obj;
       ipMemo[ip]  = true;
       sortTableByCluster();
-      selected.value.createSlaveIdleHosts.push(Object.assign(data, {
-        cluster_id: obj.clusterId,
-        cluster_domain: data.cluster?.immute_domain,
-        port: 0,
-        instance_address: '',
-        cluster_type: '',
-        bk_cloud_name: '',
-      }));
+      // selected.value.createSlaveIdleHosts.push(Object.assign(data, {
+      //   cluster_id: obj.clusterId,
+      //   cluster_domain: data.cluster?.immute_domain,
+      //   port: 0,
+      //   instance_address: '',
+      //   cluster_type: '',
+      //   bk_cloud_name: '',
+      // } as unknown as IValue));
     } else {
       tableData.value[index].ip = '';
       Message({
@@ -348,7 +369,7 @@
     const infos = keys.map((domain) => {
       const sameArr = clusterMap[domain];
       const infoItem: InfoItem = {
-        cluster_id: sameArr[0].clusterId,
+        cluster_ids: sameArr[0].clusterIds,
         bk_cloud_id: sameArr[0].bkCloudId,
         pairs: [],
       };
