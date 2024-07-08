@@ -34,7 +34,7 @@
   import { random } from '@utils';
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, number>>;
+    getValue: () => Promise<Record<string, number>>;
   }
 
   const modelValue = defineModel<{

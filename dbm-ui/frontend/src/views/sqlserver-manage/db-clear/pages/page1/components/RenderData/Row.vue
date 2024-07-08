@@ -26,14 +26,14 @@
       </td>
       <td style="padding: 0">
         <RenderDbName
-          ref="dbPatternsRef"
+          ref="cleanDbsPatternsRef"
           v-model="localCleanDbsPatterns"
           check-not-exist
           :cluster-id="localClusterData?.id" />
       </td>
       <td style="padding: 0">
         <RenderDbName
-          ref="ignoreDbsRef"
+          ref="cleanIgnoreDbsPatternsRef"
           v-model="localCleanIgnoreDbsPatterns"
           check-not-exist
           :cluster-id="localClusterData?.id"
@@ -41,20 +41,20 @@
       </td>
       <td style="padding: 0">
         <RenderTableName
-          ref="tablePatternsRef"
+          ref="cleanTablesRef"
           :cluster-id="localClusterData?.id"
           :model-value="data.cleanTables" />
       </td>
       <td style="padding: 0">
         <RenderTableName
-          ref="ignoreTablesRef"
+          ref="ignoreCleanTablesRef"
           :cluster-id="localClusterData?.id"
           :model-value="data.ignoreCleanTables"
           :required="false" />
       </td>
       <td style="padding: 0">
         <RenderClearDbName
-          ref="ignoreTablesRef"
+          ref="cleanDbsRef"
           v-model:cleanDbsPatterns="localCleanDbsPatterns"
           v-model:cleanIgnoreDbsPatterns="localCleanIgnoreDbsPatterns"
           :cluster-data="localClusterData" />
@@ -123,12 +123,13 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const clearModeRef = ref();
-  const dbPatternsRef = ref();
-  const ignoreDbsRef = ref();
-  const tablePatternsRef = ref();
-  const ignoreTablesRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const clearModeRef = ref<InstanceType<typeof RenderClearMode>>();
+  const cleanDbsPatternsRef = ref<InstanceType<typeof RenderDbName>>();
+  const cleanIgnoreDbsPatternsRef = ref<InstanceType<typeof RenderDbName>>();
+  const cleanTablesRef = ref<InstanceType<typeof RenderTableName>>();
+  const ignoreCleanTablesRef = ref<InstanceType<typeof RenderTableName>>();
+  const cleanDbsRef = ref<InstanceType<typeof RenderClearDbName>>();
 
   const localClusterData = ref<IDataRow['clusterData']>();
   const localCleanDbsPatterns = ref<IDataRow['cleanDbsPatterns']>([]);
@@ -166,20 +167,32 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value.getValue(),
-        clearModeRef.value.getValue(),
-        dbPatternsRef.value.getValue('clean_dbs_patterns'),
-        tablePatternsRef.value.getValue('clean_ignore_dbs_patterns'),
-        ignoreDbsRef.value.getValue('clean_tables'),
-        ignoreTablesRef.value.getValue('ignore_clean_tables'),
-      ]).then(([clusterData, clearModeData, dbPatternsData, tablePatternsData, ignoreDbsData, ignoreTablesData]) => ({
-        ...clusterData,
-        ...clearModeData,
-        ...dbPatternsData,
-        ...tablePatternsData,
-        ...ignoreDbsData,
-        ...ignoreTablesData,
-      }));
+        clusterRef.value!.getValue(),
+        clearModeRef.value!.getValue(),
+        cleanDbsPatternsRef.value!.getValue('clean_dbs_patterns'),
+        cleanIgnoreDbsPatternsRef.value!.getValue('clean_ignore_dbs_patterns'),
+        cleanTablesRef.value!.getValue('clean_tables'),
+        ignoreCleanTablesRef.value!.getValue('ignore_clean_tables'),
+        cleanDbsRef.value!.getValue(),
+      ]).then(
+        ([
+          clusterData,
+          clearModeData,
+          cleanDbsPatternsData,
+          cleanIgnoreDbsPatternsData,
+          cleanTablesData,
+          ignoreCleanTablesData,
+          cleanDbData,
+        ]) => ({
+          ...clusterData,
+          ...clearModeData,
+          ...cleanDbsPatternsData,
+          ...cleanIgnoreDbsPatternsData,
+          ...cleanTablesData,
+          ...ignoreCleanTablesData,
+          ...cleanDbData,
+        }),
+      );
     },
   });
 </script>
