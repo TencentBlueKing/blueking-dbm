@@ -13,12 +13,13 @@
 
 <template>
   <div class="password-instance-selector-render-topo-host">
-    <BkInput
-      v-model="searchKey"
-      clearable
-      :placeholder="t('请输入实例')"
-      @clear="handlePageValueChange(1)"
-      @enter="handlePageValueChange(1)" />
+    <SearchBar
+      v-model="searchValue"
+      :placeholder="t('请输入或选择条件搜索')"
+      :search-attrs="searchAttrs"
+      :type="panelTabActive"
+      :validate-search-values="validateSearchValues"
+      @search-value-change="handleSearchValueChange" />
     <BkLoading
       :loading="isTableDataLoading"
       :z-index="2">
@@ -32,10 +33,10 @@
         remote-pagination
         :settings="tableSettings"
         style="margin-top: 12px"
-        @clear-search="handleClearSearch"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
         @page-limit-change="handlePageLimitChange"
         @page-value-change="handlePageValueChange"
-        @refresh="fetchData"
         @row-click.stop.prevent="handleRowClick" />
     </BkLoading>
   </div>
@@ -49,6 +50,8 @@
   import type { ResourceInstance } from '@services/types';
   import type { InstanceInfos } from '@services/types/clusters';
 
+  import { useLinkQueryColumnSerach } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import {
@@ -58,6 +61,9 @@
   } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
+  import SearchBar from '@components/instance-selector/components/common/SearchBar.vue';
+
+  import { getSearchSelectorParams } from '@utils';
 
   import getSettings from '../common/tableSettings';
   import type {
@@ -89,6 +95,7 @@
     node: undefined,
     role: '',
   });
+
   const emits = defineEmits<Emits>();
 
   const apiMap: Record<string, (params: any) => Promise<any>> = {
@@ -113,7 +120,43 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const columns = [
+  const {
+    columnAttrs,
+    searchAttrs,
+    searchValue,
+    columnCheckedMap,
+    columnFilterChange,
+    validateSearchValues,
+    clearSearchValue,
+    handleSearchValueChange,
+  } = useLinkQueryColumnSerach({
+    searchType: props.panelTabActive,
+    attrs: [
+      'bk_cloud_id'
+    ],
+    fetchDataFn: () => fetchData(),
+    defaultSearchItem: {
+      name: t('IP 或 IP:Port'),
+      id: 'instance',
+    },
+    isDiscardNondefault: true,
+  });
+
+  const searchKey = ref('');
+  const isAnomalies = ref(false);
+  const isTableDataLoading = ref(false);
+  const tableData = shallowRef<ResourceInstance []>([]);
+  const checkedMap = shallowRef<Record<string, InstanceSelectorValue>>({});
+  const pagination = reactive({
+    count: 0,
+    current: 1,
+    limit: 10,
+    limitList: [10, 20, 50, 100],
+    align: 'right',
+    layout: ['total', 'limit', 'list'],
+  });
+
+  const columns = computed(() => [
     {
       width: 60,
       fixed: 'left',
@@ -157,8 +200,12 @@
     {
       minWidth: 100,
       label: t('管控区域'),
-      field: 'cloud_area',
-      render: ({ data }: TableItem) => data.host_info?.cloud_area?.name || '--',
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: TableItem) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       minWidth: 100,
@@ -207,21 +254,7 @@
       showOverflowTooltip: true,
       render: ({ data }: TableItem) => data.host_info?.agent_id || '--',
     },
-  ];
-
-  const searchKey = ref('');
-  const isAnomalies = ref(false);
-  const isTableDataLoading = ref(false);
-  const tableData = shallowRef<ResourceInstance []>([]);
-  const checkedMap = shallowRef<Record<string, InstanceSelectorValue>>({});
-  const pagination = reactive({
-    count: 0,
-    current: 1,
-    limit: 10,
-    limitList: [10, 20, 50, 100],
-    align: 'right',
-    layout: ['total', 'limit', 'list'],
-  });
+  ]);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -239,24 +272,18 @@
     }
   }, { immediate: true, deep: true });
 
-  watch(() => props.node, () => {
-    if (props.node) {
-      fetchData();
-    }
-  });
-
   const fetchData = () => {
     isTableDataLoading.value = true;
     const instanceType = props.panelTabActive === 'tendbcluster' ? 'spider' : props.panelTabActive;
     const params = {
       db_type: 'mysql',
       bk_biz_id: currentBizId,
-      instance_address: searchKey.value,
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
       type: instanceType,
       role: props.role,
       extra: 1,
+      ...getSearchSelectorParams(searchValue.value),
     };
 
     if (instanceType === 'tendbha') {
@@ -344,11 +371,6 @@
   const handlePageValueChange = (pageValue:number) => {
     pagination.current = pageValue;
     fetchData();
-  };
-
-  const handleClearSearch = () => {
-    searchKey.value = '';
-    handlePageValueChange(1);
   };
 </script>
 
