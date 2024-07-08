@@ -36,6 +36,8 @@ class MysqlOpenAreaDetailSerializer(MySQLBaseOperateDetailSerializer):
             dbname = serializers.CharField(help_text=_("db名"))
             bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
 
+        bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+        operator = serializers.CharField(help_text=_("操作人"))
         user = serializers.CharField(help_text=_("用户"))
         source_ips = serializers.ListField(help_text=_("IP列表"), child=serializers.CharField())
         target_instances = serializers.ListField(help_text=_("目标集群列表"), child=serializers.CharField())
