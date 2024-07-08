@@ -141,6 +141,7 @@ func init() {
 	supportedClusterType[consts.TendisTypePredixyTendisplusCluster] = struct{}{}
 	supportedClusterType[consts.TendisTypePredixyRedisCluster] = struct{}{}
 	supportedClusterType[consts.TendisTypeRedisCluster] = struct{}{}
+	supportedClusterType[consts.TendisTypeRedisInstance] = struct{}{}
 }
 
 // Init 初始化
