@@ -106,13 +106,15 @@ class SQLParseHandler:
         if len(parsed_sqls) > 1:
             raise SQLParseBaseException(_("请保证一次只解析一条select语句"))
 
-        # 允许show databases, desc, use语句
+        # 允许show databases, show tables, desc, use语句
         def parse_show_desc_tokens(tokens):
             identifiers = [item.value.upper() for item in tokens if isinstance(item, sqlparse.sql.Identifier)]
-            keyword = next((token.value for token in tokens if token.is_keyword), "")
-            if keyword.upper() in ["DESC", "DESCRIBE", "USE"]:
+            keyword = [token.value for token in tokens if token.is_keyword] or [""]
+            if keyword[0].upper() in ["DESC", "DESCRIBE", "USE"]:
                 return True
-            if keyword.upper() == "SHOW" and identifiers == ["DATABASES"]:
+            if keyword[0].upper() == "SHOW" and identifiers == ["DATABASES"]:
+                return True
+            if len(keyword) > 1 and keyword[0].upper() == "SHOW" and keyword[1].upper() == "TABLES":
                 return True
             return False
 
