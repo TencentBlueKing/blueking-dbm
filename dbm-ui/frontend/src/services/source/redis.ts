@@ -220,6 +220,7 @@ export function getRedisMachineList(params: {
   bk_agent_id?: string;
   instance_role?: string;
   creator?: string;
+  add_role_count?: boolean;
 }) {
   return http.get<ListBase<RedisMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,
