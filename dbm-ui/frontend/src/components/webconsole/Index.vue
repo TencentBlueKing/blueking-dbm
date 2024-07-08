@@ -35,7 +35,7 @@
           <DbIcon
             class="add-icon"
             type="increase"
-            @mouseenter="handleHoverAddIcon" />
+            @mouseenter="handleShowClustersPanel" />
         </div>
       </div>
       <div class="top-operate-main">
@@ -64,6 +64,18 @@
         :cluster-info="clustersMap[activeClusterId]"
         :cluster-type="clusterType"
         :font-config="currentFontConfig" />
+      <div class="placeholder-main">
+        <DbIcon
+          class="warn-icon"
+          type="attention" />
+        <span>{{ t('请先添加链接的集群') }}，</span>
+        <BkButton
+          text
+          theme="primary"
+          @click="handleShowClustersPanel">
+          {{ t('立即添加') }}
+        </BkButton>
+      </div>
     </div>
     <div style="display: none">
       <div
@@ -121,6 +133,7 @@
   });
 
   const { t } = useI18n();
+  const route = useRoute();
 
   const rootRef = ref();
   const consolePanelRef = ref<InstanceType<typeof ConsolePanel>>();
@@ -150,6 +163,8 @@
     return `${height}px`;
   });
 
+  const routeClusterId = route.query.clusterId;
+
   const queryClusterTypesMap = {
     mysql: 'tendbha,tendbsingle',
     tendbcluster: 'tendbcluster',
@@ -177,6 +192,13 @@
         {} as Record<number, ClusterItem>,
       );
       clustersRaw = data;
+
+      if (routeClusterId) {
+        const clusterId = Number(routeClusterId);
+        setTimeout(() => {
+          handleClusterSelectChange([clusterId]);
+        });
+      }
     },
   });
 
@@ -201,7 +223,7 @@
     activeClusterId.value = id;
   };
 
-  const handleHoverAddIcon = () => {
+  const handleShowClustersPanel = () => {
     handleShowClustersSelect();
     setTimeout(() => {
       clutersRef.value.showPopover();
@@ -546,6 +568,21 @@
         width: 100%;
         height: 100%;
         background: transparent;
+      }
+
+      .placeholder-main {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #c4c6cc;
+        font-size: 14px;
+
+        .warn-icon {
+          margin-right: 8px;
+          margin-top: 3px;
+        }
       }
     }
   }
