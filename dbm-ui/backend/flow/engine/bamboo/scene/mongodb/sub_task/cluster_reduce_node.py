@@ -79,4 +79,4 @@ def cluster_reduce_node(root_id: str, ticket_data: Optional[Dict], sub_kwargs: A
         sub_pipelines.append(sub_sub_pipeline)
     sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
-    return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}增加节点".format(sub_get_kwargs.payload["cluster_name"])))
+    return sub_pipeline.build_sub_process(sub_name=_("MongoDB--{}减少节点".format(sub_get_kwargs.payload["cluster_name"])))
