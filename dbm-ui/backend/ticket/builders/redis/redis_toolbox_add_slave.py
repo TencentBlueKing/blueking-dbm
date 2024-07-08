@@ -32,7 +32,7 @@ class RedisAddSlaveDetailSerializer(SkipToRepresentationMixin, serializers.Seria
 
         def validate(self, attr):
             """业务逻辑校验"""
-            cluster = Cluster.objects.get(id=attr.get("cluster_id"))
+            cluster = Cluster.objects.get(id=attr["cluster_ids"][0])
             for pair in attr["pairs"]:
                 redis_master = pair["redis_master"]["bk_host_id"]
                 if StorageInstanceTuple.objects.filter(
