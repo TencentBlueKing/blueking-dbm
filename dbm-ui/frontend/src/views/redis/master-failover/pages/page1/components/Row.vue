@@ -21,12 +21,9 @@
         @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0">
-      <RenderText
-        ref="clusterRef"
-        :data="data.cluster"
-        :is-loading="data.isLoading"
-        :placeholder="$t('输入主库后自动生成')"
-        :rules="rules" />
+      <RenderCluster
+        :data="data.clusters?.join(',')"
+        :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
       <RenderMasterInstance
@@ -57,12 +54,14 @@
   </tr>
 </template>
 <script lang="ts">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderHost from '@views/redis/common/edit-field/HostName.vue';
+  import RenderCluster from '@views/redis/common/edit-field/RenderCluster.vue';
 
   import { random } from '@utils';
 
@@ -73,15 +72,15 @@
     rowKey: string;
     isLoading: boolean;
     ip: string;
-    clusterId: number;
+    clusterIds: number[];
     slave: string;
     switchMode?: string;
-    cluster?: string;
+    clusters?: string[];
     masters?: string[];
   }
 
   export interface InfoItem {
-    cluster_id: number;
+    cluster_ids: number[];
     online_switch_type: OnlineSwitchType;
     pairs: {
       redis_master: string;
@@ -93,8 +92,8 @@
     rowKey: random(),
     isLoading: false,
     ip: data?.ip ?? '',
-    clusterId: 0,
-    cluster: data?.cluster ?? '',
+    clusterIds: [],
+    clusters: data?.clusters ?? [],
     masters: data?.masters ?? [],
     slave: data?.slave ?? '',
     switchMode: data?.switchMode ?? '',
@@ -111,7 +110,7 @@
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
     (e: 'clone', value: IDataRow): void;
-    (e: 'onIpInputFinish', value: string): void;
+    (e: 'onIpInputFinish', ipInfo: string, clusterId: number): void;
   }
 
   interface Exposes {
@@ -126,11 +125,10 @@
 
   const { t } = useI18n();
 
-  const hostRef = ref();
-  const clusterRef = ref();
-  const instanceRef = ref();
-  const slaveRef = ref();
-  const switchModeRef = ref();
+  const hostRef = ref<InstanceType<typeof RenderHost>>();
+  const instanceRef = ref<InstanceType<typeof RenderMasterInstance>>();
+  const slaveRef = ref<ComponentExposed<typeof RenderText>>();
+  const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
 
   const rules = [
     {
@@ -139,8 +137,8 @@
     },
   ];
 
-  const handleInputFinish = (value: string) => {
-    emits('onIpInputFinish', value);
+  const handleInputFinish = (ipInfo: string, clusterId: number) => {
+    emits('onIpInputFinish', ipInfo, clusterId);
   };
 
   const handleAppend = () => {
@@ -156,11 +154,10 @@
 
   const getRowData = () => [
     [
-      hostRef.value.getValue(),
-      clusterRef.value.getValue(),
-      instanceRef.value.getValue(),
-      slaveRef.value.getValue(),
-      switchModeRef.value.getValue(),
+      hostRef.value!.getValue(),
+      instanceRef.value!.getValue(),
+      slaveRef.value!.getValue(),
+      switchModeRef.value!.getValue(),
     ],
   ];
 
@@ -178,10 +175,10 @@
 
   defineExpose<Exposes>({
     getValue: async () => {
-      await Promise.all(getRowData());
-      const switchType = await switchModeRef.value.getValue();
+      await Promise.all([hostRef.value!.getValue(true), instanceRef.value!.getValue(), slaveRef.value!.getValue()]);
+      const switchType = await switchModeRef.value!.getValue();
       return {
-        cluster_id: props.data.clusterId,
+        cluster_ids: props.data.clusterIds,
         online_switch_type: switchType,
         pairs: [
           {

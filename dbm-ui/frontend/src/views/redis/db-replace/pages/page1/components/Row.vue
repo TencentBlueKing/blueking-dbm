@@ -24,17 +24,16 @@
       <RenderText
         :data="data.role"
         :is-loading="data.isLoading"
-        :placeholder="$t('输入主机后自动生成')" />
+        :placeholder="t('输入主机后自动生成')" />
     </td>
     <!-- 跨行合并 -->
     <td
       v-if="data.cluster.isGeneral || data.cluster.isStart"
       :rowspan="data.cluster.rowSpan"
       style="padding: 0">
-      <RenderText
+      <RenderCluster
         :data="data.cluster.domain"
-        :is-loading="data.isLoading"
-        :placeholder="$t('选择主机后自动生成')" />
+        :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
       <RenderSpec
@@ -51,11 +50,14 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderHost from '@views/redis/common/edit-field/HostName.vue';
+  import RenderCluster from '@views/redis/common/edit-field/RenderCluster.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
@@ -65,7 +67,7 @@
     isLoading: boolean;
     ip: string;
     role: string;
-    clusterId: number;
+    clusterIds: number[];
     bkCloudId: number;
     cluster: {
       domain: string;
@@ -82,7 +84,7 @@
     isLoading: false,
     ip: data?.ip ?? '',
     role: data?.role ?? '',
-    clusterId: 0,
+    clusterIds: [],
     bkCloudId: 0,
     cluster: {
       domain: data?.cluster?.domain ?? '',
@@ -116,10 +118,12 @@
 
   const emits = defineEmits<Emits>();
 
-  const hostRef = ref();
+  const { t } = useI18n();
+
+  const hostRef = ref<InstanceType<typeof RenderHost>>();
 
   const handleInputFinish = (value: string) => {
-    emits('onIpInputFinish', value);
+    emits('onIpInputFinish', value.split(':')[1]);
   };
 
   const handleAppend = () => {
@@ -145,7 +149,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return hostRef.value.getValue();
+      return hostRef.value!.getValue(true);
     },
   });
 </script>

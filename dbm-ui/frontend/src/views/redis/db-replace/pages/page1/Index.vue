@@ -68,15 +68,13 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import {
-    queryInfoByIp,
-    queryMasterSlavePairs,
-  } from '@services/source/redisToolbox';
+  import { getRedisMachineList } from '@services/source/redis';
+  import { queryMasterSlavePairs } from '@services/source/redisToolbox';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -89,22 +87,18 @@
   import { switchToNormalRole } from '@utils';
 
   import RenderData from './components/Index.vue';
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-  } from './components/instance-selector/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/Row.vue';
+  import InstanceSelector, { type InstanceSelectorValues } from './components/instance-selector/Index.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
   interface SpecItem {
     ip: string;
-    spec_id: number
+    spec_id: number;
   }
+
   interface InfoItem {
-    cluster_id: number;
+    cluster_ids: number[];
     bk_cloud_id: number;
-    cluster_domain: string;
+    // cluster_domain: string;
     proxy: SpecItem[];
     redis_master: SpecItem[];
     redis_slave: SpecItem[];
@@ -119,24 +113,24 @@
     type: TicketTypes.REDIS_CLUSTER_CUTOFF,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
-      remark.value = cloneData.remark
+      remark.value = cloneData.remark;
       sortTableByCluster();
       updateSlaveMasterMap();
       window.changeConfirm = true;
-    }
+    },
   });
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
-  const tableData = ref([createRowData()])
-  const remark = ref('')
+  const isSubmitting = ref(false);
+  const tableData = ref([createRowData()]);
+  const remark = ref('');
 
   const selected = shallowRef({
     idleHosts: [],
   } as InstanceSelectorValues);
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
-  const inputedIps = computed(() => tableData.value.map(item => item.ip));
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.ip)).length);
+  const inputedIps = computed(() => tableData.value.map((item) => item.ip));
 
   // slave <-> master
   const slaveMasterMap: Record<string, string> = {};
@@ -155,10 +149,14 @@
 
   // 更新slave -> master 映射表
   const updateSlaveMasterMap = async () => {
-    const clusterIds = [...new Set(tableData.value.map(item => item.clusterId))];
-    const retArr = await Promise.all(clusterIds.map(id => queryMasterSlavePairs({
-      cluster_id: id,
-    }).catch(() => null)));
+    const clusterIds = [...new Set(_.flatMap(tableData.value.map((item) => item.clusterIds)))];
+    const retArr = await Promise.all(
+      clusterIds.map((id) =>
+        queryMasterSlavePairs({
+          cluster_id: id,
+        }).catch(() => null),
+      ),
+    );
     retArr.forEach((pairs) => {
       if (pairs !== null) {
         pairs.forEach((item) => {
@@ -178,10 +176,24 @@
   let ipMemo = {} as Record<string, boolean>;
 
   // 批量选择
-  const handelMasterProxyChange = (data: InstanceSelectorValues) => {
+  const handelMasterProxyChange = async (data: InstanceSelectorValues) => {
     selected.value = data;
+    const dalaList = data.idleHosts;
+    const listResult = await getRedisMachineList({
+      ip: dalaList.map((item) => item.ip).join(','),
+      add_role_count: true,
+    });
+    const machineIpMap = listResult.results.reduce(
+      (results, item) => {
+        Object.assign(results, {
+          [item.ip]: item,
+        });
+        return results;
+      },
+      {} as Record<string, ServiceReturnType<typeof getRedisMachineList>['results'][number]>,
+    );
     const newList: IDataRow[] = [];
-    data.idleHosts.forEach((item) => {
+    dalaList.forEach((item) => {
       const { ip } = item;
       if (!ipMemo[ip]) {
         newList.push({
@@ -189,10 +201,10 @@
           isLoading: false,
           ip,
           role: item.role,
-          clusterId: item.cluster_id,
+          clusterIds: machineIpMap[ip].related_clusters.map((item) => item.id),
           bkCloudId: item.bk_cloud_id,
           cluster: {
-            domain: item.cluster_domain,
+            domain: machineIpMap[ip].related_clusters.map((item) => item.immute_domain).join(','),
             isStart: false,
             isGeneral: true,
             rowSpan: 1,
@@ -222,19 +234,22 @@
     }
     tableData.value[index].isLoading = true;
     tableData.value[index].ip = ip;
-    const ret = await queryInfoByIp({ ips: [ip] }).finally(() => {
+    const result = await getRedisMachineList({
+      ip,
+      add_role_count: true,
+    }).finally(() => {
       tableData.value[index].isLoading = false;
     });
-    const data = ret[0];
-    const obj = {
+    const data = result.results[0];
+    const obj: IDataRow = {
       rowKey: tableData.value[index].rowKey,
       isLoading: false,
       ip,
-      role: switchToNormalRole(data.role),
-      clusterId: data.cluster.id,
-      bkCloudId: data.cluster.bk_cloud_id,
+      role: switchToNormalRole(data.instance_role),
+      clusterIds: data.related_clusters.map((item) => item.id),
+      bkCloudId: data.bk_cloud_id,
       cluster: {
-        domain: data.cluster?.immute_domain,
+        domain: data.related_clusters.map((item) => item.immute_domain).join(','),
         isStart: false,
         isGeneral: true,
         rowSpan: 1,
@@ -242,13 +257,17 @@
       spec: data.spec_config,
     };
     tableData.value[index] = obj;
-    ipMemo[ip]  = true;
+    ipMemo[ip] = true;
     sortTableByCluster();
     updateSlaveMasterMap();
-    selected.value.idleHosts.push(Object.assign(data, {
-      cluster_id: obj.clusterId,
-      cluster_domain: data.cluster?.immute_domain,
-    }));
+
+    // data.related_clusters.forEach(clusterInfo => {
+    //   selected.value.idleHosts.push(Object.assign(data, {
+    //     cluster_id: clusterInfo.id,
+    //     cluster_domain: clusterInfo.immute_domain,
+    //     role: ''
+    //   }));
+    // })
   };
 
   // 追加一个集群
@@ -285,7 +304,7 @@
     }
     sortTableByCluster();
     const ipsArr = selected.value.idleHosts;
-    selected.value.idleHosts = ipsArr.filter(item => ![removeIp, masterIp].includes(item.ip));
+    selected.value.idleHosts = ipsArr.filter((item) => ![removeIp, masterIp].includes(item.ip));
     if (tableData.value.length === 0) {
       tableData.value = [createRowData()];
       return;
@@ -305,10 +324,8 @@
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
-    const clusterIds = new Set<number>();
     tableData.value.forEach((item) => {
       if (item.ip) {
-        clusterIds.add(item.clusterId);
         const clusterName = item.cluster.domain;
         if (!clusterMap[clusterName]) {
           clusterMap[clusterName] = [item];
@@ -321,8 +338,8 @@
     const infos = domains.map((domain) => {
       const sameArr = clusterMap[domain];
       const infoItem: InfoItem = {
-        cluster_domain: domain,
-        cluster_id: sameArr[0].clusterId,
+        // cluster_domain: domain,
+        cluster_ids: sameArr[0].clusterIds,
         bk_cloud_id: sameArr[0].bkCloudId,
         proxy: [],
         redis_master: [],
@@ -339,13 +356,16 @@
         } else if (item.role === 'master') {
           infoItem.redis_master.push(specObj);
           const deleteSlaveIp = slaveMasterMap[item.ip];
-          if (deleteSlaveIp) needDeleteSlaves.push(deleteSlaveIp);
+
+          if (deleteSlaveIp) {
+            needDeleteSlaves.push(deleteSlaveIp);
+          }
         } else {
           infoItem.proxy.push(specObj);
         }
       });
       // 当选择了master的时候，对应的slave不要传给后端
-      infoItem.redis_slave = infoItem.redis_slave.filter(item => !needDeleteSlaves.includes(item.ip));
+      infoItem.redis_slave = infoItem.redis_slave.filter((item) => !needDeleteSlaves.includes(item.ip));
       return infoItem;
     });
     return infos;
@@ -353,11 +373,9 @@
 
   // 提交
   const handleSubmit = async () => {
-    await Promise.all(rowRefs.value.map((item: {
-      getValue: () => void
-    }) => item.getValue()));
+    await Promise.all(rowRefs.value.map((item: { getValue: () => void }) => item.getValue()));
     const infos = generateRequestParam();
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+    const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_CUTOFF,
       remark: remark.value,
@@ -366,34 +384,37 @@
         infos,
       },
     };
+
     InfoBox({
       title: t('确认整机替换n台主机？', { n: totalNum.value }),
       subTitle: t('替换后所有的数据将会迁移到新的主机上，请谨慎操作！'),
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisDBReplace',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'RedisDBReplace',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
-    remark.value = ''
+    remark.value = '';
     selected.value.idleHosts = [];
     ipMemo = {};
     window.changeConfirm = false;
@@ -418,7 +439,7 @@
       let isFirst = true;
       let isGeneral = true;
       if (sameArr.length > 1) {
-        isGeneral  = false;
+        isGeneral = false;
       }
       for (const item of sameArr) {
         if (isFirst) {
