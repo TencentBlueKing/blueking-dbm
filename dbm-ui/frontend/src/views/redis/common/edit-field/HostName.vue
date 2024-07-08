@@ -16,9 +16,8 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入IP（单个）')"
-      :rules="rules"
-      @submit="handleInputFinish" />
+      :placeholder="t('请输入IP（单个）')"
+      :rules="rules" />
     <!-- <BkPopover
       :content="t('从业务拓扑选择')"
       placement="top"
@@ -67,11 +66,11 @@
   }
 
   interface Emits {
-    (e: 'inputFinish', value: string): void;
+    (e: 'inputFinish', ipInfo: string, clusterId: number): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: (isSubmit?: boolean) => Promise<string>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -93,6 +92,8 @@
   //   idleHosts: [],
   // } as InstanceSelectorValues);
 
+  let isSkipCheckInstances = false;
+
   const rules = [
     {
       validator: (value: string) => Boolean(value),
@@ -104,11 +105,22 @@
     },
     {
       validator: async (value: string) => {
-        const r = await checkRedisInstances({
+        if (isSkipCheckInstances) {
+          return true;
+        }
+
+        const checkResult = await checkRedisInstances({
           bizId: currentBizId,
           instance_addresses: [value],
         });
-        return r.length > 0;
+
+        if (checkResult.length === 0) {
+          return false;
+        }
+
+        const ipInfo = `${checkResult[0].bk_cloud_id}:${value}`;
+        emits('inputFinish', ipInfo, checkResult[0].cluster_id);
+        return true;
       },
       message: t('目标主机不存在'),
     },
@@ -146,12 +158,13 @@
   //   isShowSelector.value = true;
   // };
 
-  const handleInputFinish = (value: string) => {
-    emits('inputFinish', value);
-  };
+  // const handleInputFinish = (value: string) => {
+  //   emits('inputFinish', value);
+  // };
 
   defineExpose<Exposes>({
-    getValue() {
+    getValue(isSubmit = false) {
+      isSkipCheckInstances = isSubmit;
       return editRef.value.getValue().then(() => localValue.value);
     },
   });
