@@ -90,7 +90,7 @@
   <ClusterAuthorize
     v-model="authorizeState.isShow"
     :account-type="AccountTypes.MYSQL"
-    :cluster-types="[ClusterTypes.TENDBHA]"
+    :cluster-types="[ClusterTypes.TENDBHA, 'tendbhaSlave']"
     :selected="authorizeState.selected"
     @success="handleClearSelected" />
   <!-- excel 导入授权 -->

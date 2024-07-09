@@ -71,7 +71,7 @@
       v-model="authorizeState.isShow"
       :access-dbs="authorizeState.dbs"
       :account-type="AccountTypes.MYSQL"
-      :cluster-types="[ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA]"
+      :cluster-types="[ClusterTypes.TENDBHA, 'tendbhaSlave', ClusterTypes.TENDBSINGLE]"
       :user="authorizeState.user" />
     <!-- 账号信息 dialog -->
     <BkDialog
