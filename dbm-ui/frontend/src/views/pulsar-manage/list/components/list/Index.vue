@@ -169,7 +169,7 @@
     validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.PULSAE,
+    searchType: ClusterTypes.PULSAR,
     attrs: [
       'bk_cloud_id',
       'major_version',
