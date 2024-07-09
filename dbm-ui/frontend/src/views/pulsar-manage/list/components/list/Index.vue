@@ -118,7 +118,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { DBTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, UserPersonalSettings } from '@common/const';
 
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
@@ -172,7 +172,7 @@
     validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: DBTypes.PULSAR,
+    searchType: ClusterTypes.PULSAR,
     attrs: [
       'bk_cloud_id',
       'major_version',
