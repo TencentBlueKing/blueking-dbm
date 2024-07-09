@@ -61,6 +61,26 @@ export default class tendbhaInstance {
   master_domain: string;
   permission: Record<'mysql_view', boolean>;
   port: number;
+  related_clusters: {
+    alias: string;
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    cluster_name: string;
+    cluster_type: string;
+    creator: string;
+    db_module_id: number;
+    disaster_tolerance_level: string;
+    id: number;
+    immute_domain: string;
+    major_version: string;
+    master_domain: string;
+    name: string;
+    phase: string;
+    region: string;
+    status: string;
+    time_zone: string;
+    updater: string;
+  }[];
   role: string;
   slave_domain: string;
   spce_config: {
@@ -103,6 +123,7 @@ export default class tendbhaInstance {
     this.master_domain = payload.master_domain || '';
     this.permission = payload.permission || {};
     this.port = payload.port || 0;
+    this.related_clusters = payload.related_clusters || [];
     this.role = payload.role || '';
     this.slave_domain = payload.slave_domain || '';
     this.spce_config = payload.spce_config || {};

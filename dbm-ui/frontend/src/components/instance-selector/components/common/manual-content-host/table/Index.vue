@@ -249,7 +249,7 @@
       },
     ];
 
-    if (props.activePanelId === 'TendbClusterHost') {
+    if (props.activePanelId === 'TendbClusterHost' || props.activePanelId === 'TendbhaHost') {
       baseColumns.splice(2, 0, {
         label: t('关联的从库实例'),
         field: 'related_instances',

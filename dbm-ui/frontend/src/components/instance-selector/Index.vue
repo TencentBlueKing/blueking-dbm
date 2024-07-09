@@ -102,23 +102,25 @@
     bk_cloud_id: number;
     bk_cloud_name: string;
     bk_host_id: number;
-    cluster_id: number;
-    cluster_name: string;
+    cluster_id?: number;
+    cluster_name?: string;
     cluster_type: string;
+    create_at: string;
     db_module_id: number;
     db_module_name: string;
+    host_info: any;
     id: number;
+    instance_address: string;
+    instance_role: string;
     ip: string;
     port: number;
-    instance_address: string;
     status?: string;
-    host_info?: any;
+    machine_type: string;
     master_domain: string;
-    related_instances?: {
-      instance: string;
-      status: string;
-    }[];
+    related_clusters?: SpiderMachineModel['related_clusters'];
+    related_instances?: SpiderMachineModel['related_instances'];
     spec_config?: SpiderMachineModel['spec_config'];
+    spec_id?: number;
   }
 
   export type InstanceSelectorValues<T> = Record<string, T[]>;
@@ -194,7 +196,7 @@
     getHaClusterWholeList as getSqlServerHaCluster,
     getSqlServerInstanceList,
   } from '@services/source/sqlserveHaCluster';
-  import { getTendbhaInstanceList } from '@services/source/tendbha';
+  import { getTendbhaInstanceList, getTendbhaMachineList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
 
   import { ClusterTypes } from '@common/const';
@@ -210,6 +212,7 @@
   import SqlServerContent from './components/sql-server/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
   import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
+  import TendbhaHostContent from './components/tendb-ha-host/Index.vue';
 
   export type TableSetting = ReturnType<typeof getSettings>;
 
@@ -261,7 +264,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost')[];
+    clusterTypes: (ClusterTypes | 'TendbhaHost' | 'TendbClusterHost')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
   }
@@ -489,6 +492,51 @@
           displayKey: 'ip',
         },
         content: ManualInputContent,
+      },
+    ],
+    TendbhaHost: [
+      {
+        id: 'TendbhaHost',
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: getMysqlClusterList,
+        },
+        tableConfig: {
+          getTableList: getTendbhaMachineList,
+          firsrColumn: {
+            label: t('主库主机'),
+            field: 'ip',
+            role: 'master',
+          },
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name'],
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: TendbhaHostContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getTendbhaMachineList,
+          firsrColumn: {
+            label: t('主库主机'),
+            field: 'ip',
+            role: 'master',
+          },
+          columnsChecked: ['ip', 'related_instances', 'cloud_area', 'alive', 'host_name', 'os_name'],
+        },
+        manualConfig: {
+          checkInstances: getTendbhaMachineList,
+          checkType: 'ip',
+          checkKey: 'ip',
+          activePanelId: 'TendbhaHost',
+        },
+        previewConfig: {
+          displayKey: 'ip',
+        },
+        content: ManualInputHostContent,
       },
     ],
     TendbClusterHost: [

@@ -17,7 +17,7 @@
       ref="inputRef"
       v-model="localValue"
       :disabled="disabled"
-      :placeholder="$t('请输入单个IP')"
+      :placeholder="t('请输入单个IP')"
       :rules="rules"
       textarea />
   </div>
