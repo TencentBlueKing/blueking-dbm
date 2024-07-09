@@ -16,30 +16,45 @@
     class="cluster-password"
     :is-show="isShow"
     :quick-close="false"
-    :title="title || $t('获取访问方式')"
+    :title="title || t('获取访问方式')"
     @closed="handleClose">
     <BkLoading :loading="state.isLoading">
-      <div class="cluster-password__content">
-        <div class="cluster-password__item">
-          <span class="cluster-password__item-label">{{ $t('集群名称') }}：</span>
-          <span class="cluster-password__item-value">{{ state.data.cluster_name || '--' }}</span>
+      <div class="copy-info">
+        <BkButton
+          text
+          theme="primary"
+          @click="handleCopyAll">
+          {{ t('复制信息') }}
+        </BkButton>
+      </div>
+      <div class="cluster-password-content">
+        <div class="cluster-password-item">
+          <span class="cluster-password-item-label">{{ t('集群名称') }}：</span>
+          <span class="cluster-password-item-value">{{ state.data.cluster_name || '--' }}</span>
+          <span
+            v-bk-tooltips="t('复制集群名称')"
+            class="copy-btn">
+            <DbIcon
+              type="copy"
+              @click="copy(state.data.cluster_name)" />
+          </span>
         </div>
-        <div class="cluster-password__item">
-          <span class="cluster-password__item-label">{{ $t('域名') }}：</span>
-          <span class="cluster-password__item-value">
+        <div class="cluster-password-item">
+          <span class="cluster-password-item-label">{{ t('域名') }}：</span>
+          <span class="cluster-password-item-value">
             <span>{{ state.data.domain || '--' }}</span>
             <span
-              v-bk-tooltips="$t('复制')"
-              class="password-btn">
-              <i
-                class="db-icon-copy"
+              v-bk-tooltips="t('复制域名')"
+              class="copy-btn">
+              <DbIcon
+                type="copy"
                 @click="copy(state.data.domain)" />
             </span>
           </span>
         </div>
-        <div class="cluster-password__item">
-          <span class="cluster-password__item-label">{{ $t('Proxy密码') }}：</span>
-          <span class="cluster-password__item-value">
+        <div class="cluster-password-item">
+          <span class="cluster-password-item-label">{{ t('Proxy密码') }}：</span>
+          <span class="cluster-password-item-value">
             <span>{{ passwordText }}</span>
             <span
               class="password-btn"
@@ -47,9 +62,13 @@
               <Unvisible v-if="isShowPassword" />
               <Eye v-else />
             </span>
-            <!-- <i
-              class="db-icon-copy"
-              @click="handleCopy" /> -->
+            <span
+              v-bk-tooltips="t('复制密码')"
+              class="copy-btn">
+              <DbIcon
+                type="copy"
+                @click="() => copy(state.data.password)" />
+            </span>
           </span>
         </div>
       </div>
@@ -77,7 +96,8 @@
                   {{ item.value }}
                 </span>
                 <DbIcon
-                  class="icon"
+                  v-bk-tooltips="t('复制n', { n: item.title })"
+                  class="copy-btn"
                   type="copy"
                   @click="() => copy(item.value)" />
                 <DbIcon
@@ -94,7 +114,7 @@
 
     <template #footer>
       <BkButton @click="handleClose">
-        {{ $t('关闭') }}
+        {{ t('关闭') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -216,6 +236,19 @@
     }
   });
 
+  const handleCopyAll = () => {
+    let content = `${t('集群名称')}: ${state.data.cluster_name}\n${t('域名')}: ${state.data.domain}\n${t('Proxy密码')}: ${state.data.password}\n`;
+    if (dataObj.value.clb.list[0].value) {
+      // 存在CLB
+      content = `${content}IP: ${dataObj.value.clb.list[0].value}\n${t('CLB域名')}: ${dataObj.value.clb.list[1].value}\n`;
+    }
+    if (dataObj.value.polary.list[0].value) {
+      // 存在北极星
+      content = `${content}CL5: ${dataObj.value.polary.list[0].value}\n${t('北极星服务名称')}: ${dataObj.value.polary.list[1].value}\n`;
+    }
+    copy(content);
+  };
+
   const handleNavigateTo = (url: string) => {
     window.open(url);
   };
@@ -239,38 +272,53 @@
       margin-bottom: 0;
     }
 
+    :deep(.copy-info) {
+      position: absolute;
+      top: -18px;
+      left: 160px;
+    }
+
     :deep(.bk-form-label) {
       padding-right: 8px;
     }
 
-    &__content {
+    .cluster-password-content {
       padding-bottom: 8px;
       font-size: @font-size-mini;
     }
 
-    &__item {
+    .cluster-password-item {
       display: flex;
       padding-bottom: 16px;
 
-      &-label {
+      &:hover {
+        .copy-btn {
+          visibility: visible;
+        }
+      }
+
+      .cluster-password-item-label {
         flex-shrink: 0;
         width: 100px;
         text-align: right;
       }
 
-      &-value {
+      .cluster-password-item-value {
         color: @title-color;
         word-break: break-all;
+      }
 
-        .db-icon-copy,
-        .password-btn {
-          display: inline-block;
-          margin-left: 4px;
-          font-size: @font-size-normal;
-          color: @primary-color;
-          vertical-align: middle;
-          cursor: pointer;
-        }
+      .copy-btn,
+      .password-btn {
+        display: inline-block;
+        margin-left: 4px;
+        font-size: @font-size-mini;
+        color: @primary-color;
+        cursor: pointer;
+      }
+
+      .copy-btn {
+        visibility: hidden;
       }
     }
 
@@ -312,10 +360,25 @@
             flex: 1;
             align-items: center;
 
+            &:hover {
+              .copy-btn {
+                visibility: visible;
+              }
+            }
+
             .icon {
               margin-left: 6px;
               color: #3a84ff;
               cursor: pointer;
+            }
+
+            .copy-btn {
+              display: inline-block;
+              margin-left: 6px;
+              font-size: @font-size-mini;
+              color: @primary-color;
+              cursor: pointer;
+              visibility: hidden;
             }
           }
         }
