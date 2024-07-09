@@ -180,21 +180,13 @@
       </BkButton>
     </template>
   </BkSideslider>
-  <MySqlClusterSelector
-    v-if="isMysql"
+  <ClusterSelector
     v-model:is-show="clusterState.isShow"
     :cluster-types="clusterTypes"
     only-one-type
     :selected="clusterSelectorSelected"
-    :tab-list="tabList"
-    @change="handleClusterSelected" />
-  <ClusterSelectorNew
-    v-else
-    v-model:is-show="clusterState.isShow"
-    :cluster-types="clusterTypes"
-    :selected="newClusterSelectorSelected"
     :tab-list-config="tabListConfig"
-    @change="handleNewClusterChange" />
+    @change="handleClusterChange" />
   <AccountRulesSelector
     v-model:is-show="accoutRulesShow"
     :account-type="accountType"
@@ -223,13 +215,12 @@
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelectorNew, { type TabConfig } from '@components/cluster-selector/Index.vue';
-  import DBCollapseTable, { type ClusterTableProps } from '@components/db-collapse-table/DBCollapseTable.vue';
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
+  import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
   import AccountRulesSelector from './accouter-rules-selector/Index.vue';
-  import MySqlClusterSelector, { getClusterSelectorSelected } from './cluster-selector/ClusterSelector.vue';
 
   export default {
     name: 'ClusterAuthorize',
@@ -251,8 +242,8 @@
       cluster_name: string,
       db_module_name?: string,
     }[],
-    clusterTypes?: ClusterTypes[],
-    tabList?: string[],
+    clusterTypes?: string[],
+    // tabList?: string[],
     permissonRuleList?: MongodbPermissonAccountModel[]
   }
 
@@ -275,7 +266,7 @@
     accessDbs: () => [],
     selected: () => [],
     clusterTypes: () => [ClusterTypes.TENDBHA],
-    tabList: () => [],
+    // tabList: () => [],
     permissonRuleList: () => [],
   });
 
@@ -304,6 +295,18 @@
   const copy = useCopy();
 
   const tabListConfigMap = {
+    tendbhaSlave: {
+      name: t('高可用-从域名'),
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.TENDBHA]: {
+      name: t('高可用-主域名'),
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.TENDBSINGLE]: {
+      name: t('单节点集群'),
+      showPreviewResultTitle: true,
+    },
     [ClusterTypes.MONGO_REPLICA_SET]: {
       name: t('副本集集群'),
       showPreviewResultTitle: true,
@@ -320,7 +323,7 @@
       name: t('主从集群'),
       showPreviewResultTitle: true,
     },
-  } as Record<string, TabConfig>;
+  } as unknown as Record<string, TabConfig>;
 
   const formRef = ref();
 
@@ -346,14 +349,20 @@
 
   const clusterState = reactive({
     clusterType: props.clusterTypes[0],
-    selected: getClusterSelectorSelected(),
+    selected: {
+      tendbhaSlave: [],
+      [ClusterTypes.TENDBHA]: [],
+      [ClusterTypes.TENDBSINGLE]: [],
+      [ClusterTypes.TENDBCLUSTER]: [],
+    } as ClusterSelectorResult,
     isShow: false,
     tableProps: {
       data: [] as ResourceItem[],
       pagination: {
         small: true,
+        count: 0,
       },
-    } as unknown as ClusterTableProps,
+    },
     operations: [
       {
         label: t('清除所有'),
@@ -432,16 +441,6 @@
   });
 
   const clusterSelectorSelected = computed(() => {
-    const {
-      selected,
-      clusterType,
-      tableProps,
-    } = clusterState;
-    selected[clusterType] = tableProps.data;
-    return selected;
-  });
-
-  const newClusterSelectorSelected = computed(() => {
     const {
       selected,
       clusterType,
@@ -551,18 +550,7 @@
       });
   };
 
-  const clusterTypeTitle = computed(() => {
-    const clusterTextMap: Record<string, string> = {
-      [ClusterTypes.TENDBSINGLE]: t('单节点'),
-      [ClusterTypes.TENDBHA]: t('主从'),
-      [ClusterTypes.TENDBCLUSTER]: 'Spider',
-      [ClusterTypes.MONGO_REPLICA_SET]: t('副本集'),
-      [ClusterTypes.MONGO_SHARED_CLUSTER]: t('分片集群'),
-      [ClusterTypes.SQLSERVER_SINGLE]: t('单节点'),
-      [ClusterTypes.SQLSERVER_HA]: t('主从'),
-    };
-    return clusterTextMap[clusterState.clusterType];
-  });
+  const clusterTypeTitle = computed(() => tabListConfigMap[clusterState.clusterType].name);
 
   // 获取选中集群
   watch(() => clusterState.tableProps.data, (data) => {
@@ -629,27 +617,22 @@
     accoutRulesShow.value = true;
   };
 
-  /**
-   * 选择器返回结果
-   */
-  const handleClusterSelected = (selected: ClusterSelectorResult) => {
-    const clusterType = Object.keys(selected).find(key => selected[key].length > 0) || ClusterTypes.TENDBHA;
-    clusterState.tableProps.data = selected[clusterType];
-    clusterState.clusterType = clusterType as ClusterTypes;
-  };
-
-  const handleNewClusterChange = (selected: Record<string, MongodbModel[]>) => {
-    clusterState.tableProps.data = Object.keys(selected).reduce((prev, key) => {
-      const dataList = selected[key];
-      return [...prev, ...dataList.map(dataItem => ({
-        master_domain: dataItem.master_domain,
-        cluster_name: dataItem.cluster_name,
-      }))];
-    }, [] as ResourceItem[]);
+  const handleClusterChange = (selected: ClusterSelectorResult) => {
+    const list: ResourceItem[] = [];
+    Object.keys(selected).forEach((key) => {
+      if (selected[key].length > 0) {
+        clusterState.clusterType = key;
+      }
+      list.push(...selected[key]);
+    });
+    clusterState.tableProps.data = list;
+    clusterState.tableProps.pagination.count = list.length;
+    clusterState.selected = selected;
   };
 
   const handleRemoveSelected = (index: number) => {
     clusterState.tableProps.data.splice(index, 1);
+    clusterState.tableProps.pagination.count = clusterState.tableProps.pagination.count - 1;
   };
 
   /**
