@@ -571,14 +571,17 @@
           <OperationBtnStatusTips
             data={data}
             v-db-console="mysql.singleClusterList.exportData">
-            <bk-button
+            <auth-button
+              action-id="mysql_dump_data"
+              permission={data.permission.mysql_dump_data}
+              resource={data.id}
               disabled={data.operationDisabled}
               text
               theme="primary"
               class="mr-8"
               onClick={() => handleShowDataExportSlider(data)}>
               { t('导出数据') }
-            </bk-button>
+            </auth-button>
           </OperationBtnStatusTips>
           {
             data.isOnline ? (

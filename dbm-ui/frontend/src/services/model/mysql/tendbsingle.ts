@@ -82,6 +82,7 @@ export default class Tendbsingle {
   }>;
   permission: {
     mysql_destroy: boolean;
+    mysql_dump_data: boolean;
     mysql_enable_disable: boolean;
     mysql_view: boolean;
     access_entry_edit: boolean;

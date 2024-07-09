@@ -904,14 +904,17 @@
             <OperationBtnStatusTips
               data={data}
               v-db-console="tendbCluster.clusterManage.exportData">
-              <bk-button
+              <auth-button
+                action-id="tendbcluster_dump_data"
+                permission={data.permission.tendbcluster_dump_data}
+                resource={data.id}
                 disabled={data.operationDisabled}
                 text
                 theme="primary"
                 class="mr-8"
                 onClick={() => handleShowDataExportSlider(data)}>
                 { t('导出数据') }
-              </bk-button>
+              </auth-button>
             </OperationBtnStatusTips>
           ];
           if (data.isOffline) {

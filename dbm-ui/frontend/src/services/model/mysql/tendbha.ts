@@ -84,6 +84,7 @@ export default class Tendbha {
   permission: {
     access_entry_edit: boolean;
     mysql_destroy: boolean;
+    mysql_dump_data: boolean;
     mysql_enable_disable: boolean;
     mysql_view: boolean;
     tbinlogdumper_install: boolean;

@@ -118,6 +118,7 @@ export default class TendbCluster {
   }>;
   permission: {
     tendbcluster_destroy: boolean;
+    tendbcluster_dump_data: boolean;
     tendbcluster_enable_disable: boolean;
     tendbcluster_node_rebalance: boolean;
     tendbcluster_spider_add_nodes: boolean;
