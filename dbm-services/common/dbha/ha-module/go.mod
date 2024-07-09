@@ -6,8 +6,8 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.3
 	github.com/go-playground/validator/v10 v10.14.1
 	github.com/go-redis/redis/v8 v8.11.5
-	github.com/go-sql-driver/mysql v1.8.1
-	github.com/jmoiron/sqlx v1.4.0
+	github.com/go-sql-driver/mysql v1.7.0
+	github.com/jmoiron/sqlx v1.3.5
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/pkg/errors v0.9.1
 	go.uber.org/zap v1.24.0
@@ -18,7 +18,6 @@ require (
 )
 
 require (
-	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 )
