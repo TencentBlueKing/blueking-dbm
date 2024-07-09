@@ -14,6 +14,7 @@ from typing import List, Optional
 from django.db import transaction
 from django.utils.translation import ungettext as _
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import (
@@ -72,6 +73,7 @@ def create(
     bk_cloud_id: int,
     time_zone: str,
     region: str,
+    disaster_tolerance_level: str = AffinityEnum.NONE.value,
     slave_domain: Optional[str] = None,
     proxies: Optional[List] = None,
     storages: Optional[List] = None,
@@ -109,6 +111,7 @@ def create(
         time_zone=time_zone,
         major_version=major_version,
         region=region,
+        disaster_tolerance_level=disaster_tolerance_level,
     )
     cluster.proxyinstance_set.add(*proxy_objs)
     cluster.storageinstance_set.add(*storage_objs)

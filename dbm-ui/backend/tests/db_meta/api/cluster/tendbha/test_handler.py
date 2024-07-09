@@ -81,6 +81,7 @@ class TestHandler:
                 "bk_cloud_id": 0,
                 "resource_spec": {MachineType.BACKEND.value: {"id": 0}, MachineType.PROXY.value: {"id": 0}},
                 "region": "",
+                "disaster_tolerance_level": "NONE",
             }
         )
         assert Cluster.objects.filter(name=cluster_name).exists()

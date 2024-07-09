@@ -13,6 +13,7 @@ from typing import List, Optional
 from django.db import transaction
 from django.utils.translation import ugettext as _
 
+from backend.configuration.constants import AffinityEnum
 from backend.db_meta import request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import (
@@ -84,6 +85,7 @@ def create(
     time_zone: str,
     spiders: Optional[List],
     storages: Optional[List],
+    disaster_tolerance_level: str = AffinityEnum.NONE.value,
     creator: str = "",
     region: str = "",
 ) -> Cluster:
@@ -120,6 +122,7 @@ def create(
         time_zone=time_zone,
         major_version=major_version,  # 这里存储集群的主版本信息，主要是为展示，存储mysql版本
         region=region,  # 这里保存申请资源的地域信息
+        disaster_tolerance_level=disaster_tolerance_level,
     )
 
     # 添加 cluster 与所有spider实例和storage实例的映射关系
