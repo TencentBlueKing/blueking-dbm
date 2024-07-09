@@ -59,6 +59,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         shard_infos: Optional[List[ShardInfo]],
         resource_spec: dict,
         region: str,
+        disaster_tolerance_level: str,
     ):
         """「必须」创建spider集群"""
 
@@ -144,6 +145,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
             storages=storages,
             creator=creator,
             region=region,
+            disaster_tolerance_level=disaster_tolerance_level,
         )
 
         cc_topo_operator = MysqlCCTopoOperator(cluster)
