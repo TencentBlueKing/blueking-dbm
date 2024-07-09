@@ -742,14 +742,17 @@
               { t('授权') }
             </bk-button>
           )}
-          <bk-button
+          <auth-button
             v-db-console="mysql.haClusterList.webconsole"
+            action-id="mysql_webconsole"
+            resource={data.id}
+            permission={data.permission.mysql_webconsole}
             text
             theme="primary"
             class="mr-8"
             onClick={() => handleGoWebconsole(data.id)}>
             Webconsole
-          </bk-button>
+          </auth-button>
           <OperationBtnStatusTips
             data={data}
             v-db-console="mysql.haClusterList.exportData">
