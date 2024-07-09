@@ -69,3 +69,6 @@ var (
 	CerFile = []string{"elastic-stack-ca.p12", "elastic-certificates.p12",
 		"elasticsearch.yml.append", "es_passfile", "elasticsearch.keystore"}
 )
+
+// OtherESFiles ik or other config
+var OtherESFiles = []string{"analysis-ik"}
