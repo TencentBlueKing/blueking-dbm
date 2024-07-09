@@ -52,7 +52,10 @@ type Public struct {
 	MysqlCharset string `ini:"MysqlCharset"`
 	// BackupTimeOut 备份时间阈值，格式 09:00:01
 	BackupTimeOut string `ini:"BackupTimeout"`
-	// BackupType backup type,  oneof=logical physical
+	// BackupType backup type,  oneof=logical physical auto
+	// BackupTypeAuto 自动选择备份方式
+	// 磁盘空间数据量大于 BackupTypeAutoDataSizeGB ，物理备份
+	// glibc 版本小于 2.14，物理备份
 	BackupType string `ini:"BackupType" validate:"required"`
 	// UseMysqldump true means used, false means disabled. The default value is false
 	UseMysqldump bool `ini:"UseMysqldump"`

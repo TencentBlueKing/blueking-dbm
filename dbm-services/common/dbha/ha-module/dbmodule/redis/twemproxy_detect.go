@@ -21,13 +21,13 @@ type TwemproxyDetectInstance struct {
 func (ins *TwemproxyDetectInstance) Detection() error {
 	err := ins.DoTwemproxyDetection()
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
-		log.Logger.Debugf("Twemproxy check ok and return")
+		log.Logger.Debugf("Twemproxy check ok and return ok . %s#%d", ins.Ip, ins.Port)
 		return nil
 	}
 
 	if err != nil && ins.Status == constvar.AUTHCheckFailed {
-		log.Logger.Errorf("Twemproxy auth failed,pass:%s,status:%s",
-			ins.Pass, ins.Status)
+		log.Logger.Errorf("Twemproxy auth failed. %s#%d|%s:%s %+v",
+			ins.Ip, ins.Port, ins.GetType(), ins.Pass, err)
 		return err
 	}
 
@@ -56,21 +56,20 @@ func (ins *TwemproxyDetectInstance) DoTwemproxyDetection() error {
 	var twemproxyErr error
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+	if ins.Pass == "" {
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetType()))
+	}
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
 	rsp, err := r.Type("twemproxy_mon")
 	if err != nil {
-		twemproxyErr = fmt.Errorf("do twemproxy cmd err,err: %s,info;%s",
+		twemproxyErr = fmt.Errorf("do twemproxy cmd failed,err: %s,info;%s",
 			err.Error(), ins.ShowDetectionInfo())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.AUTHCheckFailed
-			log.Logger.Errorf("tendisplus detect auth failed,err:%s,status:%s",
-				twemproxyErr.Error(), ins.Status)
 		} else {
 			ins.Status = constvar.DBCheckFailed
-			log.Logger.Errorf("tendisplus detect failed,err:%s,status:%s",
-				twemproxyErr.Error(), ins.Status)
 		}
 		return twemproxyErr
 	}
@@ -78,19 +77,16 @@ func (ins *TwemproxyDetectInstance) DoTwemproxyDetection() error {
 	rspInfo, ok := rsp.(string)
 	if !ok {
 		twemproxyErr := fmt.Errorf("redis info response type is not string")
-		log.Logger.Errorf(twemproxyErr.Error())
 		ins.Status = constvar.DBCheckFailed
 		return twemproxyErr
 	}
 
-	log.Logger.Infof("Twemproxy detection response:%s", rspInfo)
 	if strings.Contains(rspInfo, "none") {
 		ins.Status = constvar.DBCheckSuccess
 		return nil
 	} else {
 		twemproxyErr = fmt.Errorf("twemproxy exec detection failed,rsp:%s,info:%s",
 			rspInfo, ins.ShowDetectionInfo())
-		log.Logger.Errorf(twemproxyErr.Error())
 		ins.Status = constvar.DBCheckFailed
 		return twemproxyErr
 	}

@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
+from backend.db_proxy.constants import ExtensionAccountEnum
 from backend.flow.consts import CloudServiceConfFileEnum, CloudServiceName
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -62,33 +63,35 @@ class CloudBaseServiceFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def _get_or_generate_usr_pwd(self, service: str, host_infos: Dict = None, force: bool = False):
-        """获取drs和dbha的超级账户"""
+    def _get_or_generate_usr_pwd(self, service: CloudServiceName):
+        """获取drs和dbha的账户"""
         rsa_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(self.data["bk_cloud_id"])
 
-        if host_infos:
-            host = host_infos[0]
-        else:
-            host_infos = self.data[service]
-            if service == CloudServiceName.DBHA:
-                # 认为gm和agent存储的密码都是一样的
-                host = host_infos["gm"][0] if host_infos["gm"] else host_infos["agent"][0]
-            else:
-                host = host_infos["host_infos"][0]
-
-        # 若任意一台主机信息包含用户/密码，则沿用直接返回解密原始账户或密码，否则生成
-        if "user" in host and not force:
-            user, pwd = host["user"], host["pwd"]
+        def _fetch_usr_pwd(info, user_key, pwd_key):
+            # 若任意一台主机信息包含用户/密码，则沿用直接返回解密原始账户或密码，否则生成
+            user = info.get(user_key, AsymmetricHandler.encrypt(name=rsa_cloud_name, content=get_random_string(8)))
+            pwd = info.get(pwd_key, AsymmetricHandler.encrypt(name=rsa_cloud_name, content=get_random_string(16)))
             plain_user = AsymmetricHandler.decrypt(name=rsa_cloud_name, content=user)
             plain_pwd = AsymmetricHandler.decrypt(name=rsa_cloud_name, content=pwd)
+            return {user_key: user, pwd_key: pwd, f"plain_{user_key}": plain_user, f"plain_{pwd_key}": plain_pwd}
+
+        # 获取部署组件的主机信息
+        host_infos = self.data[service]
+        if service == CloudServiceName.DBHA:
+            # 认为gm和agent存储的密码都是一样的
+            host = host_infos["gm"][0] if host_infos["gm"] else host_infos["agent"][0]
         else:
-            plain_user, plain_pwd = get_random_string(8), get_random_string(16)
-            user = AsymmetricHandler.encrypt(name=rsa_cloud_name, content=plain_user)
-            pwd = AsymmetricHandler.encrypt(name=rsa_cloud_name, content=plain_pwd)
+            host = host_infos["host_infos"][0]
 
-        return {"user": user, "pwd": pwd, "plain_user": plain_user, "plain_pwd": plain_pwd}
+        # 获取组件的账号密码信息
+        account_info = {}
+        for account_tuple in ExtensionAccountEnum.get_account_tuple_with_service(service):
+            account_info.update(_fetch_usr_pwd(host, *account_tuple))
+        return account_info
 
-    def _get_access_hosts(self, host_infos):
+    @staticmethod
+    def _get_access_hosts(host_infos):
+        """获取主机IP列表"""
         return [host["ip"] for host in host_infos]
 
     def deploy_batch_service_flow(
@@ -131,7 +134,7 @@ class CloudBaseServiceFlow(object):
     ) -> Union[Builder, SubBuilder]:
         """
         部署二进制脚本服务的通用流程
-        分为四个步骤：下发二进制文件/压缩包 ---> 渲染脚本文件并下发到机器执行 ---> 写入meta信息
+        分为两个步骤：下发二进制文件/压缩包 ---> 渲染脚本文件并下发到机器执行
         @param pipeline: 流程
         @param bk_cloud_id: 云区域ID
         @param service_name: 服务名称
@@ -184,7 +187,7 @@ class CloudBaseServiceFlow(object):
     ) -> Union[Builder, SubBuilder]:
         """
         部署带有conf脚本服务的通用流程
-        分为四个步骤：渲染conf文件并下发到机器 ---> 下发二进制文件/压缩包 ---> 渲染脚本文件并下发到机器执行 ---> 写入meta信息
+        分为三个步骤：渲染conf文件并下发到机器 ---> 下发二进制文件/压缩包 ---> 渲染脚本文件并下发到机器执行
         @param pipeline: 流程
         @param bk_cloud_id: 云区域ID
         @param service_name: 服务名称
@@ -332,6 +335,7 @@ class CloudBaseServiceFlow(object):
     def add_privilege_act(self, pipeline: Union[Builder, SubBuilder], host_infos: Dict, user: str, pwd: str):
         """
         增加权限刷新的act
+        # TODO: fake节点，后续这个节点需要修改。需要对存量集群刷权限，还要考虑不同组件的账号有多个，以及不同集群类型刷权限的脚本
         @param pipeline: 流水线
         @param host_infos: 部署的机器信息
         @param user: 用户名
@@ -374,7 +378,7 @@ class CloudBaseServiceFlow(object):
         @param extra_kwargs: 对于CloudProxyKwargs额外的参数
         """
 
-        host_kwargs = host_kwargs or []
+        host_kwargs = host_kwargs or {}
         for host in host_infos:
             host.update(host_kwargs)
 

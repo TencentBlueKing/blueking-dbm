@@ -21,7 +21,6 @@ from backend.configuration.constants import (
     DBM_PASSWORD_SECURITY_NAME,
     MYSQL_ADMIN_USER,
     AdminPasswordRole,
-    DBType,
 )
 from backend.configuration.exceptions import PasswordPolicyBaseException
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
@@ -109,7 +108,7 @@ class DBPasswordHandler(object):
             else:
                 raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法，格式为[CLOUD_ID:]IP:PORT"))
 
-        filters = {"limit": limit, "offset": offset, "component": DBType.MySQL.value, "username": MYSQL_ADMIN_USER}
+        filters = {"limit": limit, "offset": offset, "username": MYSQL_ADMIN_USER}
         if instance_list:
             filters.update(instances=instance_list)
         if begin_time:

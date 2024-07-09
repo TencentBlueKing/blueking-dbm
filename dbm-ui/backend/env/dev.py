@@ -18,6 +18,10 @@ DRS_PASSWORD = get_type_env(key="DRS_PASSWORD", _type=str, default="")
 DBHA_USERNAME = get_type_env(key="DBHA_USERNAME", _type=str, default="")
 DBHA_PASSWORD = get_type_env(key="DBHA_PASSWORD", _type=str, default="")
 TEST_ACCESS_HOSTS = get_type_env(key="TEST_ACCESS_HOSTS", _type=list, default=[])
+WEBCONSOLE_USERNAME = get_type_env(key="WEBCONSOLE_USERNAME", _type=str, default="")
+WEBCONSOLE_PASSWORD = get_type_env(key="WEBCONSOLE_PASSWORD", _type=str, default="")
+PARTITION_YW_USERNAME = get_type_env(key="PARTITION_YW_USERNAME", _type=str, default="")
+PARTITION_YW_PASSWORD = get_type_env(key="PARTITION_YW_PASSWORD", _type=str, default="")
 
 # 资源池伪造开关
 FAKE_RESOURCE_APPLY_ENABLE = get_type_env(key="FAKE_RESOURCE_APPLY_ENABLE", _type=bool, default=False)

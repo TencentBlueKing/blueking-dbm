@@ -102,6 +102,7 @@ func (c *RotateBinlogComp) Start() (err error) {
 			errRet = errors.Join(errRet, err)
 			continue
 		} else {
+			inst.publicCfg = c.ConfigObj.Public
 			if err = inst.RegisterBinlog(lastFileBefore); err != nil {
 				logger.Error(err.Error())
 			}

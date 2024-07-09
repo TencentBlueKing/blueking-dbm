@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
+source /etc/profile
+source ~/.bash_profile
+
 DIR=$(dirname $0)
 cd $DIR
 
@@ -45,8 +48,8 @@ add_to_cron() {
     else
         crontab -l 2>/dev/null >$TMPF
         cat >>$TMPF <<EOF
-# bk-dbmon start.sh , check and start every 2 min
-*/2 *  * * * $CMD
+# bk-dbmon start.sh , check and start every 1 min
+* *  * * * $CMD
 EOF
         crontab $TMPF
         echo "[$nowtime] add to cron"

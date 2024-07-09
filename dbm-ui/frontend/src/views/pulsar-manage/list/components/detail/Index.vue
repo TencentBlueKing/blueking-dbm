@@ -72,11 +72,12 @@
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
-  import { checkDbConsole } from '@utils';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
+
+  import { checkDbConsole } from '@utils';
 
   import BaseInfo from './components/BaseInfo.vue';
   import NodeList from './components/node-list/Index.vue';

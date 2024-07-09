@@ -17,8 +17,8 @@ from django.utils.translation import ugettext_lazy as _
 from backend import env
 from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.components.cmsi.handler import CmsiHandler
-from backend.ticket.constants import TicketFlowStatus, TodoStatus, TodoType
+from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TodoStatus, TodoType
+from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
 
 logger = logging.getLogger("root")
 
@@ -29,21 +29,16 @@ class TodoManager(models.Manager):
 
     def create(self, **kwargs):
         todo = super().create(**kwargs)
-        ticket = todo.ticket
-        ticket_type = ticket.get_ticket_type_display()
-
-        msg = ticket.send_msg_config or {}
-        msg.update(
-            {
-                "receiver__username": ",".join(todo.operators),
-                "title": _("DBM数据库管理 待办通知").format(ticket_type=ticket_type),
-                "content": _("有一条[{ticket_type}]待办需要您处理\n" "待办详情：{todo_url}\n").format(
-                    ticket_type=ticket_type,
-                    todo_url=todo.url,
-                ),
+        send_msg_for_flow.apply_async(
+            kwargs={
+                "flow_id": todo.flow.id,
+                "flow_msg_type": FlowMsgType.TODO.value,
+                "flow_status": FlowMsgStatus.UNCONFIRMED.value,
+                "processor": todo.operators,
+                "receiver": todo.creator,
+                "detail_address": todo.url,
             }
         )
-        CmsiHandler.send_msg(msg)
 
         return todo
 

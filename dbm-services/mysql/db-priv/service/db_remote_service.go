@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"dbm-services/mysql/priv-service/util"
@@ -57,8 +58,10 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 	}
 
 	if len(errMsg) > 0 {
-		slog.Error("msg", "url", url, "error", fmt.Errorf(strings.Join(errMsg, "\n")))
-		return result, fmt.Errorf(strings.Join(errMsg, "\n"))
+		// 这里屏蔽一下sqlserver密码输出
+		errStr := RemovePasswordPrintForSqlserver(strings.Join(errMsg, "\n"))
+		slog.Error("msg", "url", url, "error", errStr)
+		return result, fmt.Errorf(errStr)
 	}
 	return temp[0], nil
 }
@@ -88,6 +91,12 @@ func OneAddressExecuteSqlserverSql(queryRequest QueryRequest) (oneAddressResult,
 		return result, err
 	}
 	return result, nil
+}
+
+// RemovePasswordPrintForSqlserver 去掉存在密码的错误输出
+func RemovePasswordPrintForSqlserver(str string) string {
+	re := regexp.MustCompile(`(PASSWORD=N')[^']+'(.*)`)
+	return re.ReplaceAllString(str, "${1}xxx'${2}")
 }
 
 // QueryRequest OneAddressExecuteSql函数的入参

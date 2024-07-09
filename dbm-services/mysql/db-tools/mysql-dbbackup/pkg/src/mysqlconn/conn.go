@@ -34,6 +34,43 @@ func InitConn(cfg *config.Public) (*sql.DB, error) {
 	return db, nil
 }
 
+// GetSingleGlobalVar get single global variable
+func GetSingleGlobalVar(variableName string, dbh *sql.DB) (val string, err error) {
+	var varName, varValue string
+	sqlStr := fmt.Sprintf("show global variables like '%s'", variableName)
+	row := dbh.QueryRow(sqlStr)
+	if err = row.Scan(&varName, &varValue); err != nil {
+		return "", err
+	}
+	return varValue, nil
+}
+
+// SetGlobalVarAndReturnOrigin set global and return origin value
+func SetGlobalVarAndReturnOrigin(variableName, varValue string, dbh *sql.DB) (originVal string, err error) {
+	originValue, err := GetSingleGlobalVar(variableName, dbh)
+	if err != nil {
+		return "", err
+	}
+	err = SetSingleGlobalVar(variableName, varValue, dbh)
+	return originValue, err
+}
+
+// SetSingleGlobalVar set global
+func SetSingleGlobalVar(variableName, varValue string, dbh *sql.DB) error {
+	var sqlStr = ""
+	if _, e := cast.ToBoolE(varValue); e == nil {
+		sqlStr = fmt.Sprintf("SET GLOBAL %s=%s", variableName, varValue)
+	} else if _, e := cast.ToFloat64E(varValue); e == nil { // fix Incorrect argument type to variable
+		sqlStr = fmt.Sprintf("SET GLOBAL %s=%s", variableName, varValue)
+	} else {
+		sqlStr = fmt.Sprintf("SET GLOBAL %s='%s'", variableName, varValue)
+	}
+	if _, err := dbh.Exec(sqlStr); err != nil {
+		return err
+	}
+	return nil
+}
+
 // MysqlSingleColumnQuery Send query to mysql, and query result should contain only one column
 func MysqlSingleColumnQuery(queryStr string, dbh *sql.DB) ([]string, error) {
 	var resArray []string

@@ -3,8 +3,13 @@ package rotate
 import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/spf13/viper"
+
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 )
+
+var PublicConfig PublicCfg
 
 // Config rotate_binlog config
 type Config struct {
@@ -28,12 +33,18 @@ type PublicCfg struct {
 	PurgeInterval string `json:"purge_interval" mapstructure:"purge_interval" validate:"required"`
 	// 每隔多久执行一次 flush binary logs
 	RotateInterval string `json:"rotate_interval" mapstructure:"rotate_interval" validate:"required"`
+	// BackupEnable 是否启用备份上报到备份系统
+	// auto，或为空: 根据 role 角色自动判断是否上报
+	// yes: 上报 binlog 到备份系统
+	// no: 不上报 binlog 到备份系统
+	BackupEnable string `json:"backup_enable" mapstructure:"backup_enable"`
 
 	maxBinlogTotalSizeMB int
 }
 
 // ReportCfg report config
 type ReportCfg struct {
+	// Enable 是否上报备份系统. repeater/orphan/slave 受此选项影响, master 一定会上报备份系统
 	Enable        bool   `json:"enable" mapstructure:"enable"`
 	Filepath      string `json:"filepath" mapstructure:"filepath"`
 	LogMaxsize    int    `json:"log_maxsize" mapstructure:"log_maxsize"`
@@ -74,6 +85,14 @@ func InitConfig(confFile string) (*Config, error) {
 	if err := viper.Unmarshal(configObj); err != nil {
 		// if err = yaml.Unmarshal(configBytes, ConfigObj); err != nil {
 		return nil, err
+	}
+	if configObj.Public.BackupEnable == "" {
+		configObj.Public.BackupEnable = cst.BackupEnableAuto
+	} else if !lo.Contains(cst.BackupEnableAllowed, configObj.Public.BackupEnable) {
+		return nil, errors.Errorf("public.backup_enable value only true/false/auto, but get %s",
+			configObj.Public.BackupEnable)
+	} else {
+		PublicConfig = configObj.Public
 	}
 	//logger.Debug("ConfigObj: %+v", ConfigObj)
 	return configObj, nil

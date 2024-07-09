@@ -158,6 +158,8 @@ class MySQLTruncateDataContext:
     old_new_map: dict = None
     db_table_filter_regex: str = None
     db_filter_regex: str = None
+    # dropsql ticket data
+    ticket_data: dict = None
 
     @staticmethod
     def get_master_ip_var_name() -> str:

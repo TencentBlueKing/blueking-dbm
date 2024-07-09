@@ -190,3 +190,14 @@ def swap_ctl_role(request: Request):
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:
         return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+
+
+@api_view(["POST"])
+# @permission_classes([AllowAny])
+@csrf_exempt
+def sqlserver_cluster_swap(request: Request):
+    try:
+        api.dbha.sqlserver_cluster_swap(request.data)
+        return JsonResponse({"code": 0, "data": "", "msg": ""})
+    except Exception as e:
+        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})

@@ -111,13 +111,12 @@ func (d *RestoreDRAct) Run() (err error) {
 
 // Next 运行下一个 component
 func (d *RestoreDRAct) Next() error {
-	logger.Info("run next: change-master")
 	if comp := d.Payload.BuildChangeMaster(); comp != nil {
 		act := BuildMsRelationAct{
 			BaseOptions: d.BaseOptions,
 			Payload:     *comp,
 		}
-		// comp.GeneralParam = subcmd.GeneralRuntimeParam
+		logger.Info("run next: change-master")
 		return act.Run()
 	}
 	return nil

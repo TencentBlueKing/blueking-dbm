@@ -169,6 +169,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": self.ticket_data.get("mysql_ports", []),
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": copy.deepcopy(mysql_config),
                 },
             },
@@ -215,6 +217,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": self.ticket_data["spider_ports"],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": copy.deepcopy(spider_config),
                     "spider_auto_incr_mode_map": spider_auto_incr_mode_map,
                 },
@@ -257,6 +261,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": [self.cluster["ctl_port"]],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": {
                         self.cluster["ctl_port"]: self.__get_mysql_config(
                             immutable_domain=self.cluster["immutable_domain"], db_version="Tdbctl"
@@ -309,6 +315,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ports": [self.ticket_data["ctl_port"]],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": {
                         self.ticket_data["ctl_port"]: self.__get_mysql_config(
                             immutable_domain=self.cluster["immutable_domain"], db_version="Tdbctl"
@@ -511,12 +519,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         shard_port_map = {}  # port as key
         options_map = {}
 
-        machine = Machine.objects.get(ip=kwargs["ip"])
+        machine = Machine.objects.get(ip=kwargs["ip"], bk_cloud_id=int(self.bk_cloud_id))
         if machine.machine_type == MachineType.SPIDER.value:
-            ins_list = ProxyInstance.objects.filter(machine__ip=kwargs["ip"])
+            ins_list = ProxyInstance.objects.filter(machine=machine)
             role = ins_list[0].tendbclusterspiderext.spider_role
         elif machine.machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
-            ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
+            ins_list = StorageInstance.objects.filter(machine=machine)
             role = ins_list[0].instance_inner_role
             # tendbcluster remote 补充shard信息
             if machine.machine_type == MachineType.REMOTE.value:
@@ -546,8 +554,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
 
         cluster_type = ins_list[0].cluster.get().cluster_type
 
-        # 获取backup程序包的名称
-        if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+        # 获取backup程序包的名称, spider默认给DbBackup
+        if env.MYSQL_BACKUP_PKG_MAP_ENABLE and machine.machine_type != MachineType.SPIDER.value:
             db_version = ins_list[0].cluster.get().major_version
             db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
         else:
@@ -1187,14 +1195,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         安装备份程序，针对从库重建、主从迁移的，实例还不属于集群
         """
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
         ini = get_backup_ini_config(
             bk_biz_id=self.ticket_data["bk_biz_id"], db_module_id=self.db_module_id, cluster_type=self.cluster_type
         )
         mysql_ports = []
         port_domain_map = {}
         options_map = {}
-        ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"])
+        ins_list = StorageInstance.objects.filter(machine__ip=kwargs["ip"], machine__bk_cloud_id=self.bk_cloud_id)
         # 获取待添加机器的实例角色，理论上统一主机的所有实例的角色都是一致的，故获取第一个即可
         role = ins_list[0].instance_inner_role
         if role == InstanceInnerRole.REPEATER:
@@ -1211,6 +1218,15 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 cluster_domain=master_domain,
             )
             mysql_ports.append(port)
+
+        # 获取backup程序包的名称
+        if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+            db_version = ins_list[0].cluster.get().major_version
+            db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
+        else:
+            db_backup_pkg_type = MediumEnum.DbBackup
+        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
+
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.DeployDbbackup.value,
@@ -1456,6 +1472,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "ctl_instances": self.cluster["ctl_instances"],
                     "tdbctl_user": self.cluster["tdbctl_user"],
                     "tdbctl_pass": self.cluster["tdbctl_pass"],
+                    "is_no_slave": self.cluster.get("is_no_slave", False),
+                    "is_ctl_alone": self.cluster.get("is_ctl_alone", False),
                 },
             },
         }
@@ -1802,9 +1820,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         数据恢复时安装临时备份程序。大部分信息可忽略不计
         """
-        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.DbBackup)
 
-        machine = Machine.objects.get(ip=kwargs["ip"])
+        machine = Machine.objects.get(ip=kwargs["ip"], bk_cloud_id=int(self.bk_cloud_id))
         if machine.machine_type == MachineType.SPIDER.value:
             role = machine.proxyinstance_set.first().tendbclusterspiderext.spider_role
         elif machine.machine_type in [MachineType.REMOTE.value, MachineType.BACKEND.value, MachineType.SINGLE.value]:
@@ -1812,6 +1829,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             role = InstanceInnerRole.MASTER.value
         else:
             raise DBMetaException(message=_("不支持的机器类型: {}".format(machine.machine_type)))
+
+        # 获取backup程序包的名称
+        if env.MYSQL_BACKUP_PKG_MAP_ENABLE and machine.machine_type != MachineType.SPIDER.value:
+            db_backup_pkg_type = MysqlVersionToDBBackupForMap[self.ticket_data["db_version"]]
+        else:
+            db_backup_pkg_type = MediumEnum.DbBackup
+        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
 
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -2046,6 +2070,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "mysql_version": self.cluster["version"],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                 },
             },
         }

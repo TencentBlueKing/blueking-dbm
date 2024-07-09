@@ -1,7 +1,11 @@
 package redismonitor
 
 import (
+	"fmt"
+
 	"dbm-services/redis/db-tools/dbmon/config"
+	"dbm-services/redis/db-tools/dbmon/models/myredis"
+	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/sendwarning"
 )
 
@@ -12,11 +16,10 @@ type baseTask struct {
 	Err         error                             `json:"-"`
 }
 
-func newBaseTask(conf *config.Configuration, serverConf config.ConfServerItem, passwd string) (task baseTask,
+func newBaseTask(conf *config.Configuration, serverConf config.ConfServerItem) (task baseTask,
 	err error) {
 	task = baseTask{
 		ServerConf: serverConf,
-		Password:   passwd,
 	}
 	task.eventSender, err = sendwarning.NewBkMonitorEventSender(
 		conf.RedisMonitor.BkMonitorEventDataID,
@@ -27,6 +30,10 @@ func newBaseTask(conf *config.Configuration, serverConf config.ConfServerItem, p
 	if err != nil {
 		return
 	}
+	instAddr := serverConf.ServerIP + ":0"
+	if len(serverConf.ServerPorts) > 0 {
+		instAddr = fmt.Sprintf("%s:%d", serverConf.ServerIP, serverConf.ServerPorts[0])
+	}
 	task.eventSender.
 		SetBkBizID(serverConf.BkBizID).
 		SetBkCloudID(serverConf.BkCloudID).
@@ -35,6 +42,16 @@ func newBaseTask(conf *config.Configuration, serverConf config.ConfServerItem, p
 		SetClusterDomain(serverConf.ClusterDomain).
 		SetClusterName(serverConf.ClusterName).
 		SetClusterType(serverConf.ClusterType).
-		SetInstanceRole(serverConf.MetaRole)
+		SetInstanceRole(serverConf.MetaRole).
+		SetInstance(instAddr)
+	return
+}
+
+func (task *baseTask) getPassword(port int) {
+	if task.ServerConf.MetaRole == consts.MetaRolePredixy || task.ServerConf.MetaRole == consts.MetaRoleTwemproxy {
+		task.Password, task.Err = myredis.GetProxyPasswdFromConfFlie(port, task.ServerConf.MetaRole)
+	} else if consts.IsRedisMetaRole(task.ServerConf.MetaRole) {
+		task.Password, task.Err = myredis.GetRedisPasswdFromConfFile(port)
+	}
 	return
 }

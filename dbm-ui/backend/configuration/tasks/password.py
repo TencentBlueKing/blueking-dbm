@@ -123,6 +123,7 @@ def get_all_sqlserver_clusters():
             {
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "cluster_type": cluster.cluster_type,
+                "bk_biz_id": cluster.bk_biz_id,
                 "instances": [
                     {
                         "role": AdminPasswordRole.STORAGE.value,

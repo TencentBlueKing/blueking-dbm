@@ -15,9 +15,10 @@ from django.utils.translation import gettext as _
 
 from backend.components import ItsmApi
 from backend.components.itsm.constants import ItsmTicketStatus
-from backend.ticket.constants import TicketFlowStatus, TicketStatus
+from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TicketStatus
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
+from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
 from backend.utils.time import datetime2str, standardized_time_str
 
 
@@ -98,4 +99,15 @@ class ItsmFlow(BaseTicketFlow):
 
     def _run(self) -> str:
         data = ItsmApi.create_ticket(self.flow_obj.details)
+        # 异步发送待审批消息
+        itsm_fields = {f["key"]: f["value"] for f in self.flow_obj.details["fields"]}
+        send_msg_for_flow.apply_async(
+            kwargs={
+                "flow_id": self.flow_obj.id,
+                "flow_msg_type": FlowMsgType.PENDING.value,
+                "flow_status": FlowMsgStatus.PENDING.value,
+                "processor": itsm_fields["approver"],
+                "receiver": self.ticket.creator,
+            }
+        )
         return data["sn"]

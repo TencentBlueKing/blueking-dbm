@@ -27,4 +27,15 @@ const (
 	RoleSpiderMaster = "spider_master"
 )
 
+const (
+	// BackupEnableTrue 启用备份上报，字符类型，不用 true，以免误解
+	BackupEnableTrue = "yes"
+	// BackupEnableFalse 不启用备份上报
+	BackupEnableFalse = "no"
+	// BackupEnableAuto 自动根据决定决定是否上报备份。目前仅 master 角色上报
+	BackupEnableAuto = "auto"
+)
+
+var BackupEnableAllowed = []string{BackupEnableTrue, BackupEnableFalse, BackupEnableAuto, ""}
+
 const OldRotateDir = "/home/mysql/rotate_logbin"

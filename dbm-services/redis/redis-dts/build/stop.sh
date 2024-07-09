@@ -1,5 +1,8 @@
 #!/usr/bin/env sh
 
+source /etc/profile
+source ~/.bash_profile
+
 processCnt=$(ps -ef|grep scp.exp.2|grep -v grep|wc -l)
 if [[ $processCnt -gt 0 ]]
 then

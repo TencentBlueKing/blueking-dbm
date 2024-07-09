@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"reflect"
 
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -17,6 +19,7 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
+	rcst "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/rotate"
 
 	"github.com/ghodss/yaml"
@@ -59,7 +62,12 @@ func (c *InstallMysqlRotateBinlogComp) Init() (err error) {
 		} else {
 			dbw.Stop()
 		}
+
+		if !lo.Contains(rcst.BackupEnableAllowed, c.Params.Configs.Public.BackupEnable) {
+			return errors.Errorf("public.backup_enable value only true/false/auto")
+		}
 	}
+
 	c.installPath = cst.MysqlRotateBinlogInstallPath
 	c.binPath = filepath.Join(c.installPath, string(tools.ToolMysqlRotatebinlog))
 	return nil
@@ -210,6 +218,7 @@ func (c *InstallMysqlRotateBinlogComp) Example() interface{} {
 					MaxKeepDuration:    "61d",
 					PurgeInterval:      "4h",
 					RotateInterval:     "10m",
+					BackupEnable:       "false",
 				},
 				Crond: rotate.ScheduleCfg{
 					Schedule: "*/10 * * * *",

@@ -1,6 +1,6 @@
 module dbm-services/common/dbha/hadb-api
 
-go 1.19
+go 1.21
 
 require (
 	github.com/natefinch/lumberjack v2.0.0+incompatible

@@ -23,6 +23,13 @@ func (m *PrivTaskPara) AddPrivDryRun() (PrivTaskPara, error) {
 	var errMsg []string
 	var errMsgTemp []string
 
+	if m.BkBizId == 0 {
+		return taskPara, errno.BkBizIdIsEmpty
+	}
+	if m.ClusterType == "" {
+		return taskPara, errno.ClusterTypeIsEmpty
+	}
+
 	taskPara.SourceIPs, errMsgTemp = DeduplicationIP(m.SourceIPs)
 	if len(errMsgTemp) > 0 {
 		errMsg = append(errMsg, errMsgTemp...)
@@ -65,6 +72,12 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 	// 为了避免通过api未调用AddPrivDryRun，直接调用AddPriv，未做检查参数，所以AddPriv先调用AddPrivDryRun
 	if _, outerErr := m.AddPrivDryRun(); outerErr != nil {
 		return outerErr
+	}
+	if m.BkBizId == 0 {
+		return errno.BkBizIdIsEmpty
+	}
+	if m.ClusterType == "" {
+		return errno.ClusterTypeIsEmpty
 	}
 	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))

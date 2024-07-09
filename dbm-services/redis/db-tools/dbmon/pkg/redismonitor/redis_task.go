@@ -25,7 +25,7 @@ type RedisMonitorTask struct {
 func NewRedisMonitorTask(conf *config.Configuration, serverConf config.ConfServerItem,
 	password string) (task *RedisMonitorTask, err error) {
 	task = &RedisMonitorTask{}
-	task.baseTask, err = newBaseTask(conf, serverConf, password)
+	task.baseTask, err = newBaseTask(conf, serverConf)
 	if err != nil {
 		return
 	}
@@ -45,6 +45,12 @@ func (task *RedisMonitorTask) RunMonitor() {
 		}
 		task.redisClis = []*myredis.RedisClient{}
 	}()
+	task.getPassword(task.ServerConf.ServerPorts[0])
+	if task.Err != nil {
+		task.eventSender.SendWarning(consts.EventRedisLogin, task.Err.Error(),
+			consts.WarnLevelError, task.ServerConf.ServerIP)
+		return
+	}
 	task.CheckRedisConn()
 	if task.Err != nil {
 		return

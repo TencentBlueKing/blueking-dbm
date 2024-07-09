@@ -25,7 +25,7 @@ type PredixyMonitorTask struct {
 func NewPredixyMonitorTask(conf *config.Configuration, serverConf config.ConfServerItem,
 	password string) (task *PredixyMonitorTask, err error) {
 	task = &PredixyMonitorTask{}
-	task.baseTask, err = newBaseTask(conf, serverConf, password)
+	task.baseTask, err = newBaseTask(conf, serverConf)
 	if err != nil {
 		return
 	}
@@ -57,6 +57,12 @@ func (task *PredixyMonitorTask) RestartWhenConnFail() {
 		proxyAddr = fmt.Sprintf("%s:%d", task.ServerConf.ServerIP, proxyPort)
 		isPortInUse, _ = util.CheckPortIsInUse(task.ServerConf.ServerIP, strconv.Itoa(proxyPort))
 		if isPortInUse {
+			task.getPassword(proxyPort)
+			if task.Err != nil {
+				msg = fmt.Sprintf("predixy(%s) port in use, but connect failed,err: %s", proxyAddr, task.Err)
+				task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
+				continue
+			}
 			task.proxyCli, task.Err = myredis.NewRedisClientWithTimeout(proxyAddr, task.Password, 0,
 				consts.TendisTypeRedisInstance, 5*time.Second)
 			if task.Err == nil {
@@ -81,6 +87,12 @@ func (task *PredixyMonitorTask) RestartWhenConnFail() {
 			mylog.Logger.Error(msg)
 			task.eventSender.SendWarning(consts.EventPredixyLogin, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
 			return
+		}
+		task.getPassword(proxyPort)
+		if task.Err != nil {
+			msg = fmt.Sprintf("predixy(%s) port in use, but get password failed,err: %s", proxyAddr, task.Err)
+			task.eventSender.SendWarning(consts.EventTwemproxyLogin, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
+			continue
 		}
 		task.proxyCli, task.Err = myredis.NewRedisClientWithTimeout(proxyAddr, task.Password, 0,
 			consts.TendisTypeRedisInstance, 5*time.Second)

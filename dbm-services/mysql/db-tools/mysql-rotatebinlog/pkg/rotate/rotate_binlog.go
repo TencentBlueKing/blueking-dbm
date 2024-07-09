@@ -29,6 +29,7 @@ type ServerObj struct {
 	Password string       `json:"password,omitempty" mapstructure:"password"`   // 连接当前实例的User Pwd
 	Socket   string       `json:"socket,omitempty" mapstructure:"socket"`       // 连接socket
 	Tags     InstanceMeta `json:"tags" mapstructure:"tags" validate:"required"`
+	//MaxBinlogTotalSize string       `json:"max_binlog_total_size" mapstructure:"max_binlog_total_size"`
 
 	dbWorker  *native.DbWorker
 	binlogDir string
@@ -37,6 +38,8 @@ type ServerObj struct {
 	backupClient backup.BackupClient
 	instance     *native.InsObject
 	rotate       *BinlogRotate
+	backupEnable bool
+	publicCfg    PublicCfg
 }
 
 // InstanceMeta servers.tags
@@ -71,7 +74,6 @@ func (i *ServerObj) Rotate() (lastFileBefore *models.BinlogFileModel, err error)
 		return nil, err
 	}
 	rotate := &BinlogRotate{
-		//backupClient: i.backupClient,
 		binlogInst: models.BinlogFileModel{
 			BkBizId:   i.Tags.BkBizId,
 			ClusterId: i.Tags.ClusterId,

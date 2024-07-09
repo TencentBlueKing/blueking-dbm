@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"dbm-services/common/go-pubpkg/errno"
 )
@@ -212,17 +215,15 @@ func (m *GetPasswordPara) DeletePassword(jsonPara string, ticket string) error {
 }
 
 // GetMysqlAdminPassword 查询mysql管理密码
+// 支持sqlserver admin账号的查询
 func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int, error) {
 	var passwords []*TbPasswords
-	if m.UserName != "ADMIN" {
+	if m.UserName != "ADMIN" && m.UserName != "dbm_admin" {
 		return passwords, 0, errno.NameNull
 	}
-	if m.Component == "" {
-		return passwords, 0, errno.ComponentNull
-	}
 	//  mysql实例中ADMIN用户的密码，仅能查看人为修改密码且在有效期的密码，不可以查看随机化生成的密码
-	where := fmt.Sprintf(" username='%s' and component='%s' and lock_until is not null and "+
-		"lock_until > now()", m.UserName, m.Component)
+	where := fmt.Sprintf(" username='%s' and component in ('%s','%s') and lock_until is not null and "+
+		"lock_until > now()", m.UserName, mysql, tendbcluster)
 	var filter []string
 	for _, item := range m.Instances {
 		if item.Port != nil {
@@ -277,7 +278,11 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error)
 	var security SecurityRule
 	var passwordInput string
 	var errCheck error
-	tokenBucket := make(chan int, 10)
+
+	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	burst := 10                                 // 桶容量 10
+	limiter := rate.NewLimiter(limit, burst)
+
 	if m.UserName == "" {
 		return batch, errno.NameNull
 	}
@@ -365,18 +370,20 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error)
 			return batch, errOuter
 		}
 		wg.Add(1)
-		tokenBucket <- 0
 		go func(psw, encrypt string, cluster OneCluster) {
 			defer func() {
-				<-tokenBucket
 				wg.Done()
 			}()
+			err := limiter.Wait(context.Background())
+			if err != nil {
+				AddError(&errMsg, "get parallel resource", err)
+				return
+			}
 			// 如果是sqlserver授权，走sqlserver授权通道
 			if m.Component == "sqlserver" {
 				m.ModifyAdminPasswordForSqlserver(
 					psw, encrypt, cluster, &errMsg, &success, &fail,
 				)
-
 			} else {
 				// 默认走mysql授权通道
 				m.ModifyAdminPasswordForMysql(
@@ -386,7 +393,6 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error)
 		}(psw, encrypt, cluster)
 	}
 	wg.Wait()
-	close(tokenBucket)
 	// 随机化成功的实例以及随机化失败的实例，返回格式与入参Clusters相同，便于失败重试
 	batch = BatchResult{Success: success.resources, Fail: fail.resources}
 	if len(errMsg.errs) > 0 {

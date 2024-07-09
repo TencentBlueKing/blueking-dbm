@@ -21,13 +21,13 @@ type PredixyDetectInstance struct {
 func (ins *PredixyDetectInstance) Detection() error {
 	err := ins.DoPredixyDetection()
 	if err == nil && ins.Status == constvar.DBCheckSuccess {
-		log.Logger.Debugf("Predixy check ok and return")
+		log.Logger.Debugf("predixy check ok and return ok . %s#%d", ins.Ip, ins.Port)
 		return nil
 	}
 
 	if err != nil && ins.Status == constvar.AUTHCheckFailed {
-		log.Logger.Errorf("Predixy auth failed,pass:%s,status:%s",
-			ins.Pass, ins.Status)
+		log.Logger.Debugf("predixy check auth failed. %s#%d|%s:%s %+v",
+			ins.Ip, ins.Port, ins.GetType(), ins.Pass, err)
 		return err
 	}
 
@@ -55,6 +55,9 @@ func (ins *PredixyDetectInstance) Detection() error {
 func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
+	if ins.Pass == "" {
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetType()))
+	}
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
@@ -64,12 +67,8 @@ func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 			err.Error(), ins.ShowDetectionInfo())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.AUTHCheckFailed
-			log.Logger.Errorf("predixy detect auth failed,err:%s,status:%s",
-				predixyErr.Error(), ins.Status)
 		} else {
 			ins.Status = constvar.DBCheckFailed
-			log.Logger.Errorf("predixy detect failed,err:%s,status:%s",
-				predixyErr.Error(), ins.Status)
 		}
 		return predixyErr
 	}

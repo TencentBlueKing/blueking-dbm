@@ -72,6 +72,8 @@ def build_surrounding_apps_sub_flow(  # noqa
     proxy_ip_list: list = None,
     is_install_backup: bool = True,
     is_install_monitor: bool = True,
+    is_install_checksum: bool = True,
+    is_install_rotate_binlog: bool = True,
     collect_sysinfo: bool = False,
 ):
     """
@@ -87,6 +89,9 @@ def build_surrounding_apps_sub_flow(  # noqa
     @param cluster_type: 操作的集群类型，涉及到获取配置空间
     @param is_install_backup: 是否安装备份,spider集群切换前忽略安装备份
     @param is_install_monitor: 是否安装监控,定点回档需要
+    @param is_install_checksum: 是否安装checksum
+    @param is_install_rotate_binlog: 是否安装rotate_binlog
+    @param collect_sysinfo: 是否收集机器信息
     """
     if not master_ip_list:
         master_ip_list = []
@@ -151,6 +156,7 @@ def build_surrounding_apps_sub_flow(  # noqa
             is_init=is_init,
             is_install_backup=is_install_backup,
             is_install_monitor=is_install_monitor,
+            is_install_checksum=is_install_checksum,
         )
     )
     acts_list.extend(
@@ -161,6 +167,7 @@ def build_surrounding_apps_sub_flow(  # noqa
             is_init=is_init,
             is_install_backup=is_install_backup,
             is_install_monitor=is_install_monitor,
+            is_install_checksum=is_install_checksum,
         )
     )
     acts_list.extend(
@@ -199,25 +206,28 @@ def build_surrounding_apps_for_master(
     is_init: bool = False,
     is_install_backup: bool = True,
     is_install_monitor: bool = True,
+    is_install_checksum: bool = True,
+    is_install_rotate_binlog: bool = True,
 ):
     acts_list = []
     if isinstance(master_ip_list, list) and len(master_ip_list) != 0:
         for master_ip in list(set(master_ip_list)):
-            acts_list.append(
-                {
-                    "act_name": _("Master[{}]安装rotate_binlog程序".format(master_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=master_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                },
-            )
+            if is_install_rotate_binlog:
+                acts_list.append(
+                    {
+                        "act_name": _("Master[{}]安装rotate_binlog程序".format(master_ip)),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(
+                            ExecActuatorKwargs(
+                                bk_cloud_id=bk_cloud_id,
+                                exec_ip=master_ip,
+                                get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
+                                cluster_type=cluster_type,
+                                run_as_system_user=DBA_ROOT_USER,
+                            )
+                        ),
+                    },
+                )
             if is_install_monitor:
                 acts_list.append(
                     {
@@ -252,7 +262,7 @@ def build_surrounding_apps_for_master(
                     }
                 )
 
-            if cluster_type in (ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value):
+            if cluster_type in (ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value) and is_install_checksum:
                 # 主从架构部署mysql-checksum程序
                 acts_list.append(
                     {
@@ -296,25 +306,28 @@ def build_surrounding_apps_for_slave(
     is_init: bool = False,
     is_install_backup: bool = True,
     is_install_monitor: bool = True,
+    is_install_checksum: bool = True,
+    is_install_rotate_binlog: bool = True,
 ):
     acts_list = []
     if isinstance(slave_ip_list, list) and len(slave_ip_list) != 0:
         for slave_ip in list(set(slave_ip_list)):
-            acts_list.append(
-                {
-                    "act_name": _("Slave[{}]安装rotate_binlog程序".format(slave_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=slave_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
-                            cluster_type=cluster_type,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                },
-            )
+            if is_install_rotate_binlog:
+                acts_list.append(
+                    {
+                        "act_name": _("Slave[{}]安装rotate_binlog程序".format(slave_ip)),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(
+                            ExecActuatorKwargs(
+                                bk_cloud_id=bk_cloud_id,
+                                exec_ip=slave_ip,
+                                get_mysql_payload_func=MysqlActPayload.get_install_mysql_rotatebinlog_payload.__name__,
+                                cluster_type=cluster_type,
+                                run_as_system_user=DBA_ROOT_USER,
+                            )
+                        ),
+                    },
+                )
             if is_install_monitor:
                 acts_list.append(
                     {
@@ -349,7 +362,7 @@ def build_surrounding_apps_for_slave(
                     },
                 )
 
-            if cluster_type in (ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value):
+            if cluster_type in (ClusterType.TenDBHA.value, ClusterType.TenDBCluster.value) and is_install_checksum:
                 # 主从架构部署mysql-checksum程序
                 acts_list.append(
                     {

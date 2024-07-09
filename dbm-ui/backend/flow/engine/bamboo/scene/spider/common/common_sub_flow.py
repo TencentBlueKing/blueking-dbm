@@ -390,6 +390,8 @@ def build_apps_for_spider_sub_flow(
     parent_global_data: dict,
     spider_role: TenDBClusterSpiderRole,
     is_collect_sysinfo: bool,
+    is_install_backup: bool = True,
+    is_install_monitor: bool = True,
 ):
     """
     定义为spider机器部署周边组件的子流程
@@ -399,6 +401,8 @@ def build_apps_for_spider_sub_flow(
     @param parent_global_data: 子流程的需要全局只读上下文
     @param spider_role: 这批spider的角色
     @param is_collect_sysinfo: 是否收集系统参数
+    @param is_install_backup: 是否安装备份
+    @param is_install_monitor: 是否安装监控
     """
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
     spider_ips = list(filter(None, list(set(spiders))))
@@ -444,24 +448,27 @@ def build_apps_for_spider_sub_flow(
                     ),
                 }
             )
-
-            acts_list.append(
-                {
-                    "act_name": _("spider[{}]安装mysql-monitor".format(spider_ip)),
-                    "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(
-                        ExecActuatorKwargs(
-                            bk_cloud_id=bk_cloud_id,
-                            exec_ip=spider_ip,
-                            get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
-                            cluster_type=ClusterType.TenDBCluster.value,
-                            run_as_system_user=DBA_ROOT_USER,
-                        )
-                    ),
-                },
-            )
+            if is_install_monitor:
+                acts_list.append(
+                    {
+                        "act_name": _("spider[{}]安装mysql-monitor".format(spider_ip)),
+                        "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                        "kwargs": asdict(
+                            ExecActuatorKwargs(
+                                bk_cloud_id=bk_cloud_id,
+                                exec_ip=spider_ip,
+                                get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
+                                cluster_type=ClusterType.TenDBCluster.value,
+                                run_as_system_user=DBA_ROOT_USER,
+                            )
+                        ),
+                    },
+                )
             # 因为同一台机器的只有会有一个spider实例，所以直接根据ip、bk_cloud_id获取对应实例的spider角色，来判断是否安装备份程序
-            if spider_role in [TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MNT]:
+            if (
+                spider_role in [TenDBClusterSpiderRole.SPIDER_MASTER, TenDBClusterSpiderRole.SPIDER_MNT]
+                and is_install_backup
+            ):
                 acts_list.append(
                     {
                         "act_name": _("spider[{}]安装备份程序".format(spider_ip)),

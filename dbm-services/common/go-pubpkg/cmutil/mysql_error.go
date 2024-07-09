@@ -41,9 +41,14 @@ var mysqlErrors = map[int]MySQLError{
 }
 var codeParser = regexp.MustCompile(`Error (\d+) .*`)
 
-// NewMySQLError TODO
+// NewMySQLError 对象化 mysql error, err入参要求非 nil
 func NewMySQLError(err error) MySQLError {
-	// logger.Log.Error("xxxxxxx ", err.Error())
+	if err == nil {
+		return MySQLError{
+			Code:    0,
+			Message: "ok",
+		}
+	}
 	errStr := err.Error()
 	matches := codeParser.FindStringSubmatch(errStr)
 	if len(matches) == 2 {

@@ -17,7 +17,11 @@ func GetDBSForSqlserver(address string, bkCloudId int64, dbInclude string) ([]st
 	var realDBS []string
 	var err error
 	queryPwdSQL := fmt.Sprintf(
-		"SELECT name FROM MASTER.SYS.DATABASES WHERE DATABASE_ID > 4 AND NAME <> '%s' AND NAME LIKE '%s'",
+		`SELECT name FROM MASTER.SYS.DATABASES WHERE DATABASE_ID > 4 AND NAME <> '%s' AND NAME LIKE '%s' 
+		AND IS_READ_ONLY = 0 
+		AND IS_DISTRIBUTOR = 0 
+		AND STATE = 0 
+		`,
 		sqlserverSysDB,
 		dbInclude,
 	)
@@ -146,7 +150,9 @@ func ImportSqlserverPrivilege(account TbAccounts, rules []TbAccountRules, bkClou
 		var queryRequest = QueryRequest{[]string{address}, backendSQL, false, 60, bkCloudId}
 		_, err = OneAddressExecuteSqlserverSql(queryRequest)
 		if err != nil {
-			slog.Error("ImportSqlserverPrivilege failed", err)
+			// 屏蔽报错出现的密码
+			newStr := RemovePasswordPrintForSqlserver(err.Error())
+			slog.Error("ImportSqlserverPrivilege failed", slog.String("err", newStr))
 			return err
 		}
 	}
@@ -163,9 +169,9 @@ func SaveAutoGRant(account TbAccounts, rules []TbAccountRules, bkCloudId int64, 
 		for _, p := range strings.Split(rule.Priv, ",") {
 			sqls = append(
 				sqls,
-				fmt.Sprintf("delete from %s where [ACCOUNT] = '%s' and [GRANT_DB] = '%s' and [GRANT_TYPE] = '%s';",
+				fmt.Sprintf("use Monitor; delete from %s where [ACCOUNT] = '%s' and [GRANT_DB] = '%s' and [GRANT_TYPE] = '%s';",
 					tableName, account.User, rule.Dbname, p),
-				fmt.Sprintf("insert into %s values('%s','%s','%s','getdate()');",
+				fmt.Sprintf("use Monitor; insert into %s values('%s','%s','%s',getdate());",
 					tableName, account.User, rule.Dbname, p),
 			)
 		}
@@ -176,7 +182,7 @@ func SaveAutoGRant(account TbAccounts, rules []TbAccountRules, bkCloudId int64, 
 	var queryRequest = QueryRequest{addresses, sqls, false, 60, bkCloudId}
 	_, err := OneAddressExecuteSqlserverSql(queryRequest)
 	if err != nil {
-		slog.Error("SaveAutoGRant failed", err)
+		slog.Error("SaveAutoGRant failed", slog.String("err", err.Error()))
 		return err
 	}
 	return nil
@@ -191,22 +197,10 @@ func GetAccount(bkBizId int64, user string) (TbAccounts, error) {
 		return account, fmt.Errorf("账号%s不存在", user)
 	} else if err != nil {
 		return account, err
+	} else if account.Sid == "" {
+		return account, fmt.Errorf("账号%s的Sid为空,练习系统管理员", user)
 	}
 	return account, nil
-}
-
-// 获取sqlserver账号对应的权限规则
-func GetAccountRule(account TbAccounts) ([]TbAccountRules, error) {
-	var rules []TbAccountRules
-	err := DB.Self.Model(&TbAccountRules{}).Where(
-		&TbAccountRules{AccountId: account.Id}).
-		Take(&rules).Error
-	if errors2.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("账号规则(账号:%s)不存在", account.User)
-	} else if err != nil {
-		return rules, err
-	}
-	return rules, nil
 }
 
 // 获取sqlserver的master/orphan 节点

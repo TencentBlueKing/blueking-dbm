@@ -9,11 +9,17 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import logging
 import re
 
 import sqlparse
+from django.utils.translation import gettext as _
 
+from backend.db_services.mysql.sqlparse.exceptions import SQLParseBaseException
+from backend.flow.consts import SYSTEM_DBS
 from backend.utils.md5 import count_md5
+
+logger = logging.getLogger("root")
 
 
 class SQLParseHandler:
@@ -89,3 +95,49 @@ class SQLParseHandler:
             "table_name": ",".join(sorted(self.tables)),
             "query_length": len(sql),
         }
+
+    def parse_select_statement(self, sql: str, need_keywords: list = None):
+        """判断并解析select语句"""
+        # 默认select语句要有limit
+        need_keywords = need_keywords or ["LIMIT"]
+
+        # 一次性只解析一条sql语句
+        parsed_sqls = sqlparse.parse(sql)
+        if len(parsed_sqls) > 1:
+            raise SQLParseBaseException(_("请保证一次只解析一条select语句"))
+
+        # 允许show databases, desc, use语句
+        def parse_show_desc_tokens(tokens):
+            identifiers = [item.value.upper() for item in tokens if isinstance(item, sqlparse.sql.Identifier)]
+            keyword = next((token.value for token in tokens if token.is_keyword), "")
+            if keyword.upper() in ["DESC", "DESCRIBE", "USE"]:
+                return True
+            if keyword.upper() == "SHOW" and identifiers == ["DATABASES"]:
+                return True
+            return False
+
+        if parse_show_desc_tokens(parsed_sqls[0].tokens):
+            return
+
+        # 判断解析表结构，不允许查询系统表
+        dbs = [table.split(".")[0] for table in self.parse_sql(sql)["table_name"].split(",")]
+        if dbs and set(dbs).intersection(set(SYSTEM_DBS)):
+            raise SQLParseBaseException(_("不允许查询以下系统库表:{}").format(SYSTEM_DBS))
+
+        # 解析是否为合法的select语句和包含对应的keyword
+        def parse_select_tokens(tokens):
+            is_select: bool = False
+            keywords: list = []
+            for token in tokens:
+                # 这里只用检查外层包含keyword. 子查询可以忽略，因为不体现最后的输出数据
+                if token.ttype is sqlparse.tokens.DML and token.value.upper() == "SELECT":
+                    is_select = True
+                elif token.ttype is sqlparse.tokens.Keyword:
+                    keywords.append(token.value.upper())
+
+            is_contain_keywords = set(keywords).issuperset(set(need_keywords))
+            return is_select, is_contain_keywords
+
+        valid_select = all(parse_select_tokens(parsed_sqls[0].tokens))
+        if not valid_select:
+            raise SQLParseBaseException(_("SQL语句不为查询语句，或者不包含{}命令").format(need_keywords))

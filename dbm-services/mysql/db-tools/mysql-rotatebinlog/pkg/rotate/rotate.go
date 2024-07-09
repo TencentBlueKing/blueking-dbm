@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/spf13/cast"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/reportlog"
@@ -194,7 +196,13 @@ func (i *ServerObj) RemoveMaxKeepDuration() error {
 // lastFileBefore 是上一次处理的最后一个文件
 // 实例最后一个 binlog 正在使用，不登记
 func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error {
-	fLen := len(i.binlogFiles)
+	if i.publicCfg.BackupEnable == cst.BackupEnableAuto || i.publicCfg.BackupEnable == "" {
+		if i.Tags.DBRole == cst.RoleMaster {
+			i.backupEnable = true
+		}
+	} else {
+		i.backupEnable = cast.ToBool(i.publicCfg.BackupEnable)
+	}
 	var roleSwitched bool
 	if i.Tags.DBRole == cst.RoleMaster && lastFileBefore.DBRole == cst.RoleSlave {
 		// 刚刚发生过切换，上报过去 24h 的 binlog
@@ -210,11 +218,12 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			Host:          i.Host,
 			Port:          i.Port,
 		}
-		if err := ff.HandleSwitchRole(models.DB.Conn); err != nil {
+		if err := ff.HandleSwitchRole(i.backupEnable, models.DB.Conn); err != nil {
 			return errors.WithMessage(err, "handle binlog for switching slave to master")
 		}
 	}
 
+	fLen := len(i.binlogFiles)
 	lastFileNameRegistered := filepath.Base(lastFileBefore.Filename)
 	var filesModel []*models.BinlogFileModel
 	for j, fileObj := range i.binlogFiles {
@@ -222,7 +231,15 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			j == fLen-1 { // 忽略最后一个binlog
 			continue
 		}
-		backupStatus := models.IBStatusNew
+		var backupStatus int
+		if i.backupEnable {
+			backupStatus = models.IBStatusNew
+		} else if i.Tags.DBRole == models.RoleSlave || i.Tags.DBRole == models.RoleOrphan { // slave 无需备份 binlog
+			backupStatus = models.FileStatusNoNeedUpload
+		} else {
+			backupStatus = models.FileStatusNoNeedUpload
+		}
+
 		backupStatusInfo := ""
 		bp, _ := binlog_parser.NewBinlogParse("", 0, reportlog.ReportTimeLayout1)
 		fileName := filepath.Join(i.binlogDir, fileObj.Filename)
@@ -234,9 +251,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 				events = append(events, events[0])
 			}
 		}
-		if i.Tags.DBRole == models.RoleSlave { // slave 无需备份 binlog
-			backupStatus = models.FileStatusNoNeedUpload
-		}
+
 		var startTime, stopTime string
 		if len(events) >= 2 {
 			startTime = events[0].EventTime
@@ -249,6 +264,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			DBRole:           i.Tags.DBRole,
 			Host:             i.Host,
 			Port:             i.Port,
+			BackupEnable:     i.backupEnable,
 			Filename:         fileObj.Filename,
 			Filesize:         fileObj.Size,
 			FileMtime:        fileObj.Mtime.Format(time.RFC3339),
@@ -259,6 +275,8 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 		}
 		filesModel = append(filesModel, ff)
 	}
+	logger.Info("new binlog files to process: %+v", filesModel)
+
 	if err := i.rotate.binlogInst.BatchSave(filesModel, models.DB.Conn); err != nil {
 		return err
 	} else {
@@ -283,6 +301,10 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 		// 需要上传的，提交上传任务
 		if f.BackupStatus == models.IBStatusNew || f.BackupStatus == models.IBStatusClientFail {
 			filename := filepath.Join(r.binlogDir, f.Filename)
+			if !cmutil.FileExists(filename) {
+				f.BackupStatus = models.FileStatusRemoved
+				continue
+			}
 			// 需要修改 binlog 的权限
 			if err := os.Chmod(filename, 0655); err != nil {
 				return errors.Wrap(err, "chmod 655")
@@ -328,7 +350,7 @@ func (r *BinlogRotate) Backup(backupClient backup.BackupClient) error {
 				} else { // 状态有变化，但不是 success，下一轮再看
 					f.BackupStatus = taskStatus
 					//log.Reporter().Status.Println(f)
-					logger.Info("backup_client query file: %s, taskid:%d, status: %d",
+					logger.Info("backup_client query file: %s, taskid:%s, status: %d",
 						f.Filename, f.BackupTaskid, f.BackupStatus)
 					if taskStatus == 12 || taskStatus == 2 || taskStatus == 0 {
 						f.BackupStatus = models.IBStatusWaiting

@@ -48,22 +48,10 @@ func TendisssdClusterNewIns(instances []interface{},
 	}
 
 	// get redis instance passwd
-	if len(redisIns) > 0 {
-		count, _ := GetInstancePass(redisIns, conf)
-		if count != len(redisIns) {
-			log.Logger.Errorf("RedisCluster redis passwd part failed,succ:%d,total:%d",
-				count, len(redisIns))
-		}
-	}
+	GetInstancePass(redisIns, conf)
 
 	// get twemproxy instance passwd
-	if len(twemIns) > 0 {
-		count, _ := GetInstancePass(twemIns, conf)
-		if count != len(twemIns) {
-			log.Logger.Errorf("RedisCluster twemproxy passwd part failed,succ:%d,total:%d",
-				count, len(twemIns))
-		}
-	}
+	GetInstancePass(twemIns, conf)
 
 	ret = append(ret, redisIns...)
 	ret = append(ret, twemIns...)

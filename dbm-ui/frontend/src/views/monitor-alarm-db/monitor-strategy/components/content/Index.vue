@@ -474,8 +474,10 @@
 
   watch(reqParams, () => {
     setTimeout(() => {
-      fetchData();
-    })
+      if (tableRef.value) {
+        fetchData();
+      }
+    });
   }, {
     deep: true,
   });

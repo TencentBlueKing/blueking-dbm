@@ -59,6 +59,8 @@ const (
 	PredixyMetaType = "predixy"
 	// TendisplusMetaType storage layer type name in TendisplusCluster
 	TendisplusMetaType = "tendisplus"
+	// SqlserverMetatype storage layer type name in SqlserverHa
+	SqlserverMetatype = "sqlserver_ha"
 )
 
 // instance role in cmdb
@@ -104,6 +106,8 @@ const (
 	Tendisplus = "Tendisplus"
 	// Riak TODO
 	Riak = "riak"
+	// SqlserverHA TODO
+	SqlserverHA = "sqlserver_ha"
 )
 
 // wrapper name in TenDBCluster
@@ -202,6 +206,8 @@ const (
 	GetDomainInfoUrl = "dns/domain/get/"
 	// DeleteDomainUrl TODO
 	DeleteDomainUrl = "dns/domain/delete/"
+	// UpdateDomainUrl TODO
+	CreateDomainUrl = "dns/domain/put/"
 	// CmDBRedisSwapUrl TODO
 	CmDBRedisSwapUrl = "dbmeta/dbha/tendis_cluster_swap/"
 	// CmDBEntryDetailUrl TODO
@@ -220,6 +226,8 @@ const (
 	BKConfigQueryUrl = "bkconfig/v1/confitem/query/"
 	// BKPasswdQueryUrl TODO
 	BKPasswdQueryUrl = "dbpriv/proxy_password/"
+	//CmDBSqlserverSwapRoleUrl TODO
+	CmDBSqlserverSwapRoleUrl = "dbmeta/dbha/sqlserver_cluster_swap/"
 )
 
 // name service's type
@@ -314,9 +322,13 @@ const (
 
 const (
 	// RedisPasswordLack TODO
-	RedisPasswordLack = "NOAUTH Authentication required"
+	RedisPasswordLack = "NOAUTH Authentication"
 	// RedisPasswordInvalid TODO
 	RedisPasswordInvalid = "invalid password"
+
+	// RedisPasswordInvalid2 TODO
+	RedisPasswordInvalid2 = "WRONGPASS invalid"
+
 	// PredixyPasswordLack TODO
 	PredixyPasswordLack = "auth permission deny"
 

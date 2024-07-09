@@ -163,3 +163,13 @@ class ResourceAdministrationSerializer(serializers.Serializer):
 class QueryBizClusterAttrsResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {"id": [1, 2, 3], "region": ["sz", "sh"]}}
+
+
+class WebConsoleSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    cmd = serializers.CharField(help_text=_("sql语句"))
+
+
+class WebConsoleResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": [{"title1": "xxx", "title2": "xxx"}]}

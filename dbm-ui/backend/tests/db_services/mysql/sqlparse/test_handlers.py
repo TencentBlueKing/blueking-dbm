@@ -8,6 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import pytest
+
+from backend.db_services.mysql.sqlparse.exceptions import SQLParseBaseException
 from backend.db_services.mysql.sqlparse.handlers import SQLParseHandler
 
 
@@ -634,3 +637,57 @@ class TestSQLParseHandler:
             "table_name": "PIMSCS.ESTAGIOS,PIMSCS.FORNECS,PIMSCS.HISTPREPRO,PIMSCS.OCORTEMD_DE,PIMSCS.OCORTEMD_HE,PIMSCS.QUEIMA_DE,PIMSCS.QUEIMA_HE,PIMSCS.SAFRUPNIV3,PIMSCS.TIPO_MATURAC,PIMSCS.UPNIVEL1,PIMSCS.UPNIVEL3,PIMSCS.VARIEDADES",  # noqa
             "query_length": 11057,
         }
+
+    @staticmethod
+    def test_sql_select_stat():
+        sql_no_limit = """
+        SELECT e.employee_id, e.employee_name,
+        (SELECT COUNT(*) FROM projects p WHERE p.employee_id = e.employee_id LIMIT 3) AS project_count, e.salary
+        FROM employees e
+        WHERE e.department_id IN (SELECT department_id FROM departments LIMIT) ORDER BY project_count DESC
+        """
+        with pytest.raises(SQLParseBaseException):
+            SQLParseHandler().parse_select_statement(sql_no_limit)
+
+        sql_no_select = """
+        UPDATE employees e
+        SET bonus = CASE
+            WHEN e.salary > (SELECT AVG(salary) FROM employees WHERE department_id = e.department_id)
+            THEN e.bonus * 1.2
+            ELSE e.bonus * 1.1
+        END
+        WHERE e.employee_id IN (SELECT DISTINCT employee_id FROM projects WHERE project_status = 'completed');
+        """
+        with pytest.raises(SQLParseBaseException):
+            SQLParseHandler().parse_select_statement(sql_no_select)
+
+        correct_select_sql = """
+        SELECT e.employee_id, e.employee_name,
+        FROM employees e
+        WHERE e.department_id NOT IN (1,2,3) ORDER BY project_count LIMIT 10
+        """
+        assert SQLParseHandler().parse_select_statement(correct_select_sql) is None
+
+        banned_select_sql = """
+        SELECT user, host
+        FROM mysql.user
+        WHERE user in ("admin", "test") LIMIT 10
+        """
+        with pytest.raises(SQLParseBaseException):
+            SQLParseHandler().parse_select_statement(banned_select_sql)
+
+        show_sql = """
+        SHOW DATABASES;
+        """
+        assert SQLParseHandler().parse_select_statement(show_sql) is None
+
+        desc_sql = """
+        DESCRIBE TABLE1;
+        """
+        assert SQLParseHandler().parse_select_statement(desc_sql) is None
+
+        invalid_show_sql = """
+        SHOW SLAVE STATUS
+        """
+        with pytest.raises(SQLParseBaseException):
+            SQLParseHandler().parse_select_statement(invalid_show_sql)

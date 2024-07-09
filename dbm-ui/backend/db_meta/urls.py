@@ -26,7 +26,7 @@ if env.SERVICE_ONLY:
         path("dbha/swap_ctl_role", views.dbha.swap_ctl_role, name="dbha-swap_ctl_role"),  # tendbcluster-spider
         path("dbha/tendis_cluster_swap", views.dbha.tendis_cluster_swap, name="dbha-tendis_cluster_swap"),
         path("dbha/entry_detail", views.dbha.entry_detail, name="dbha-entry_detail"),
-        # 提供给 接入服务查询集群详情使用
+        path("dbha/sqlserver_cluster_swap", views.dbha.sqlserver_cluster_swap, name="dbha-sqlserver_cluster_swap"),
         path(
             "meta/tendis_cluster_detail/<int:cluster_id>",
             views.meta.tendis_cluster_detail,
@@ -57,17 +57,5 @@ if env.SERVICE_ONLY:
             "priv_manager/biz_clusters",
             views.priv_manager.biz_clusters,
             name="priv_manager-biz_clusters",
-        ),
-        # priv manager sqlserver_single
-        path(
-            "priv_manager/sqlserver/sqlserver_single/cluster_instances",
-            views.priv_manager.sqlserver_single_cluster_instances,
-            name="priv-manager-sqlserver-single-cluster_instances",
-        ),
-        # priv manager sqlserver_ha
-        path(
-            "priv_manager/sqlserver/sqlserver_ha/cluster_instances",
-            views.priv_manager.sqlserver_ha_cluster_instances,
-            name="priv-manager-sqlserver_ha-cluster_instances",
         ),
     ]

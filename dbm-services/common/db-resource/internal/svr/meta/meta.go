@@ -160,7 +160,6 @@ func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
 		}
 		logger.Error("read respone body failed %s", err.Error())
 		time.Sleep(1 * time.Second)
-
 	}
 
 	logger.Info("respone %v", string(content))

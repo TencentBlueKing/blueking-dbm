@@ -77,5 +77,14 @@ class _DRSApi(object):
             description=_("sqlserver 远程执行"),
         )
 
+        self.webconsole_rpc = ProxyAPI(
+            method="POST",
+            base=self.BASE_DOMAIN,
+            url="webconsole/rpc",
+            module=self.MODULE,
+            ssl=ssl_flag,
+            description=_("webconsole 远程执行(只读账号)"),
+        )
+
 
 DRSApi = _DRSApi()

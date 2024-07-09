@@ -15,24 +15,17 @@ type TbRpApplyDetailLog struct {
 	CreateTime time.Time `gorm:"column:create_time;type:datetime" json:"create_time"`  // 创建时间
 }
 
-// TableName TODO
+// TableName table name
 func (TbRpApplyDetailLog) TableName() string {
 	return TbRpApplyDetailLogName()
 }
 
-// TbRpApplyDetailLogName TODO
+// TbRpApplyDetailLogName table name
 func TbRpApplyDetailLogName() string {
 	return "tb_rp_apply_detail_log"
 }
 
-// CreateTbRpOpsAPIDetailLog TODO
-// record  log
-func CreateTbRpOpsAPIDetailLog(m TbRpApplyDetailLog) error {
-	return DB.Self.Table(TbRpApplyDetailLogName()).Create(&m).Error
-}
-
-// CreateBatchTbRpOpsAPIDetailLog TODO
-// record  log
+// CreateBatchTbRpOpsAPIDetailLog batch insert
 func CreateBatchTbRpOpsAPIDetailLog(m []TbRpApplyDetailLog) error {
 	return DB.Self.Table(TbRpApplyDetailLogName()).CreateInBatches(m, len(m)).Error
 }

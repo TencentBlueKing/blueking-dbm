@@ -36,6 +36,11 @@ def get_mysql_sys_users(bk_cloud_id) -> list:
             info = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=key)
             logger.error(f"[{key}] details: {info.details}, bk_cloud_name: {bk_cloud_name}")
             sys_users.append(AsymmetricHandler.decrypt(name=bk_cloud_name, content=info.details["user"]))
+            # 对于drs组件单独添加webconsole账号
+            if key == ExtensionType.DRS:
+                sys_users.append(
+                    AsymmetricHandler.decrypt(name=bk_cloud_name, content=info.details["webconsole_user"])
+                )
 
     return sys_users
 

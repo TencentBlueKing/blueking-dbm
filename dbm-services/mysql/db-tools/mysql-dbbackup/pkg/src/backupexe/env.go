@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/samber/lo"
+
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
@@ -115,7 +117,7 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 			binPath = append(binPath, filepath.Join(ExecuteHome, "bin/xtrabackup_official"))
 		}
 	} else {
-		return fmt.Errorf("setEnv: unknown backupType")
+		return fmt.Errorf("setEnv: unknown backupType %s", backupType)
 	}
 	// xtrabackup --decompress 需要找到 qpress 命令
 	binPath = append(binPath, filepath.Join(ExecuteHome, "bin"))
@@ -134,6 +136,9 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 		return err
 	}
 	oldPaths := strings.Split(os.Getenv("PATH"), ":")
+	mustPaths := []string{"/usr/local/bin", "/usr/local/sbin", "/usr/bin", "/usr/sbin", "/bin", "/sbin"}
+	oldPaths = append(oldPaths, mustPaths...)
+	oldPaths = lo.Uniq(oldPaths)
 	oldPaths = append(oldPaths, binPath...)
 	err = os.Setenv("PATH", strings.Join(oldPaths, ":"))
 	if err != nil {

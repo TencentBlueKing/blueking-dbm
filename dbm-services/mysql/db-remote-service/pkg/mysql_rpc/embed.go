@@ -15,6 +15,7 @@ import (
 	"dbm-services/mysql/db-remote-service/pkg/parser"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -29,11 +30,11 @@ type MySQLRPCEmbed struct {
 }
 
 // MakeConnection mysql 建立连接
-func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password string, timeout int) (*sqlx.DB, error) {
+func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password string, timeout int, timezone string) (*sqlx.DB, error) {
 	connectParam := fmt.Sprintf(
-		"timeout=%ds&loc=%s&time_zone=%s",
-		timeout, "UTC", "%27%2B00%3A00%27",
-	) // +00:00 %27%2B00%3A00%27
+		"timeout=%ds&time_zone='%s'",
+		timeout, url.QueryEscape(timezone),
+	)
 
 	db, err := sqlx.Connect(
 		"mysql",
@@ -44,6 +45,8 @@ func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password str
 		slog.Warn("first time connect to mysql",
 			slog.String("err", err.Error()),
 			slog.String("address", address),
+			slog.String("user", user),
+			slog.String("password", password),
 		)
 
 		time.Sleep(2 * time.Second)
@@ -57,9 +60,12 @@ func (c *MySQLRPCEmbed) MakeConnection(address string, user string, password str
 				"retry connect to mysql",
 				slog.String("error", err.Error()),
 				slog.String("address", address),
+				slog.String("user", user),
+				slog.String("password", password),
 			)
 			return nil, err
 		}
+		slog.Info("retry connect to mysql success")
 		return db, nil
 	}
 	return db, nil

@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package model TODO
+// Package model dao
 package model
 
 import (

@@ -340,6 +340,9 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForSameType() (err error) {
 	dstConfContent = strings.ReplaceAll(dstConfContent, job.getDstProxyAddr(), job.getSrcProxyAddr())
 	job.runtime.Logger.Info(fmt.Sprintf("replace dstConfContent dstProxyAddr:%s => srcProxyAddr:%s",
 		job.getDstProxyAddr(), job.getDstProxyAddr()))
+	dstConfContent = strings.ReplaceAll(dstConfContent,
+		strconv.Itoa(job.params.DstProxyPort),
+		strconv.Itoa(job.params.SrcProxyPort))
 	dstConfContent = strings.ReplaceAll(dstConfContent, "\\n", "\n")
 	if consts.IsTwemproxyClusterType(job.params.SrcClusterType) {
 		re := regexp.MustCompile(`\s\spassword\s*:\s*` + job.params.DstProxyPassword)
@@ -413,6 +416,7 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 
 	proxyFileForDstPort := job.getProxyFile(job.params.DstClusterType, job.params.DstProxyPort)
 	proxyFileForDstPort = filepath.Join(saveDirForDstPort, proxyFileForDstPort)
+	job.runtime.Logger.Info(fmt.Sprintf("proxyFileForDstPort:%s", proxyFileForDstPort))
 	err = os.WriteFile(proxyFileForDstPort, []byte(dstConfContent), 0644)
 	if err != nil {
 		err = fmt.Errorf("write new proxy config file(%s) fail,err:%+v", proxyFileForDstPort, err)
@@ -428,11 +432,15 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 	}
 
 	// 重启 proxy(此时端口还是 dstProxyPort)
+	job.runtime.Logger.Info(fmt.Sprintf("stop proxy(%s:%d) dst cluster_type:%s",
+		job.params.SrcProxyIP, job.params.DstProxyPort, job.params.DstClusterType))
 	err = job.StopProxy(job.params.SrcProxyIP, job.params.DstProxyPort,
 		job.params.SrcProxyPassword, job.params.DstClusterType)
 	if err != nil {
 		return
 	}
+	job.runtime.Logger.Info(fmt.Sprintf("start proxy(%s:%d) dst cluster_type:%s",
+		job.params.SrcProxyIP, job.params.DstProxyPort, job.params.DstClusterType))
 	err = job.StartProxy(job.params.SrcProxyIP, job.params.DstProxyPort,
 		job.params.SrcProxyPassword, job.params.DstClusterType)
 	if err != nil {
@@ -456,19 +464,31 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 		job.params.SrcProxyIP, job.params.DstProxyPort, dstRedisAddr))
 
 	// 再次 stop proxy,修改端口
+	job.runtime.Logger.Info(fmt.Sprintf("stop proxy(%s:%d) dst cluster_type:%s",
+		job.params.SrcProxyIP, job.params.DstProxyPort, job.params.DstClusterType))
 	err = job.StopProxy(job.params.SrcProxyIP, job.params.DstProxyPort,
 		job.params.SrcProxyPassword, job.params.DstClusterType)
 	if err != nil {
 		return
 	}
 	// 修改端口
+	job.runtime.Logger.Info(fmt.Sprintf("replace dstConfContent %s -> %s",
+		job.params.SrcProxyIP+":"+strconv.Itoa(job.params.DstProxyPort),
+		job.params.SrcProxyIP+":"+strconv.Itoa(job.params.SrcProxyPort),
+	))
 	dstConfContent = strings.ReplaceAll(dstConfContent,
 		job.params.SrcProxyIP+":"+strconv.Itoa(job.params.DstProxyPort),
 		job.params.SrcProxyIP+":"+strconv.Itoa(job.params.SrcProxyPort),
 	)
+	job.runtime.Logger.Info(fmt.Sprintf("replace dstConfContent %s -> %s",
+		strconv.Itoa(job.params.DstProxyPort),
+		strconv.Itoa(job.params.SrcProxyPort),
+	))
 	dstConfContent = strings.ReplaceAll(dstConfContent,
 		strconv.Itoa(job.params.DstProxyPort),
 		strconv.Itoa(job.params.SrcProxyPort))
+	job.runtime.Logger.Info(fmt.Sprintf(" dstConfContent data:%s", dstConfContent))
+	// 重新写文件
 	err = os.WriteFile(proxyFileForDstPort, []byte(dstConfContent), 0644)
 	if err != nil {
 		err = fmt.Errorf("write final proxy config file(%s) fail,err:%+v", proxyFileForDstPort, err)

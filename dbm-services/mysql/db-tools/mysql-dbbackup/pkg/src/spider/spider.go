@@ -335,7 +335,6 @@ func (g GlobalBackup) runBackup(task InstBackupTask) error {
 		}
 	}
 	if g.Wrapper != cst.WrapperSpider {
-		g.localLog.Info("xxxx g.Wrapper = %s", g.Wrapper)
 		_ = g.handleOldTask(dbw.Db)
 	}
 	return nil

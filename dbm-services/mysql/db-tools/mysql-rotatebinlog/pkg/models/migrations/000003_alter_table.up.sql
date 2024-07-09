@@ -1,0 +1,1 @@
+ALTER TABLE binlog_rotate ADD COLUMN backup_enable BOOLEAN DEFAULT FALSE;

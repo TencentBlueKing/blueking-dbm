@@ -47,6 +47,7 @@ var migrateCmd = &cobra.Command{
 					ClusterDomain:    inst.Tags.ClusterDomain,
 					BkBizId:          inst.Tags.BkBizId,
 					DBRole:           "",
+					BackupEnable:     false,
 					BackupStatusInfo: "rotate_logbin",
 				}
 			}

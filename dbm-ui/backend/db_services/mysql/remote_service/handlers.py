@@ -15,8 +15,11 @@ from django.utils.translation import ugettext as _
 
 from backend.components import DRSApi
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
+from backend.db_meta.models import Cluster
 from backend.db_services.mysql.constants import QUERY_SCHEMA_DBS_SQL, QUERY_SCHEMA_TABLES_SQL, QUERY_TABLES_FROM_DB_SQL
 from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
+from backend.db_services.mysql.sqlparse.exceptions import SQLParseBaseException
+from backend.db_services.mysql.sqlparse.handlers import SQLParseHandler
 from backend.flow.consts import SYSTEM_DBS
 
 
@@ -263,3 +266,29 @@ class RemoteServiceHandler:
             databases = self.show_database_with_pattern(info["cluster_id"], info["dbs"], info["ignore_dbs"])
             cluster_databases_infos.append({"cluster_id": info["cluster_id"], "databases": databases})
         return cluster_databases_infos
+
+    def webconsole_rpc(self, cluster_id: int, cmd: str, cluster: Cluster = None):
+        """
+        执行webconsole命令，只支持select语句
+        @param cluster_id: 集群ID
+        @param sql: 执行命令
+        @param cluster: 集群实例
+        """
+
+        # 校验select语句
+        try:
+            SQLParseHandler().parse_select_statement(cmd)
+        except SQLParseBaseException as e:
+            return {"query": [], "error_msg": e.message}
+
+        # 获取远程执行地址
+        cluster = cluster or Cluster.objects.get(id=cluster_id)
+        bk_cloud_id = cluster.bk_cloud_id
+        __, remote_address = self._get_cluster_address(cluster_id__role_map={}, cluster_id=cluster.id)
+
+        # 获取rpc结果
+        rpc_results = DRSApi.webconsole_rpc({"bk_cloud_id": bk_cloud_id, "addresses": [remote_address], "cmds": [cmd]})
+        if rpc_results[0]["error_msg"]:
+            return {"query": [], "error_msg": rpc_results[0]["error_msg"]}
+
+        return {"query": rpc_results[0]["cmd_results"][0]["table_data"], "error_msg": ""}

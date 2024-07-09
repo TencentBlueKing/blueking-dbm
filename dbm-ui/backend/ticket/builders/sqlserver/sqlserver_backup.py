@@ -23,6 +23,8 @@ class SQLServerBackupDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class BackupDataInfoSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         backup_dbs = serializers.ListField(help_text=_("备份db列表"), child=serializers.CharField())
+        db_list = serializers.ListField(help_text=_("库正则"), child=serializers.CharField(), required=False)
+        ignore_db_list = serializers.ListField(help_text=_("忽略库正则"), child=serializers.CharField(), required=False)
 
     backup_place = serializers.CharField(help_text=_("备份位置(先固定为master)"), required=False, default="master")
     backup_type = serializers.ChoiceField(
