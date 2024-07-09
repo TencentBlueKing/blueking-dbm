@@ -81,7 +81,11 @@ func (c *PickerObject) PickerCrossSubzone(cross_subzone bool) {
 		subzoneChan <- v
 	}
 	for subzone := range subzoneChan {
-		pq := c.PriorityElements[subzone]
+		pq, ok := c.PriorityElements[subzone]
+		if !ok {
+			logger.Warn("%s is queue is nil", subzone)
+			continue
+		}
 		if pq.Len() == 0 {
 			delete(c.PriorityElements, subzone)
 		}
@@ -121,8 +125,17 @@ func (c *PickerObject) sortSubZoneNum(cross_subzone bool) []string {
 	var keys []string
 	var campusNice []CampusNice
 	for key, pq := range c.PriorityElements {
-		//	keys = append(keys, key)
-		if !cross_subzone || cmutil.ElementNotInArry(key, c.ExistSubZone) {
+		if pq == nil || pq.Len() == 0 {
+			continue
+		}
+		if cross_subzone {
+			if cmutil.ElementNotInArry(key, c.ExistSubZone) {
+				campusNice = append(campusNice, CampusNice{
+					Campus: key,
+					Count:  pq.Len(),
+				})
+			}
+		} else {
 			campusNice = append(campusNice, CampusNice{
 				Campus: key,
 				Count:  pq.Len(),
@@ -232,7 +245,6 @@ func (o *SearchContext) AnalysisResourcePriority(insList []model.TbRpDetail, isr
 	error) {
 	result := make(map[string]*PriorityQueue)
 	itemsMap := make(map[string][]Item)
-	result[RANDOM] = NewPriorityQueue()
 	for _, ins := range insList {
 		ele := Item{
 			Key:      strconv.Itoa(ins.BkHostID),
