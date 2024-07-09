@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <SerachBar
+  <SearchBar
     v-model="searchValue"
     :cluster-type="activeTab"
     :search-attrs="searchAttrs"
@@ -54,7 +54,7 @@
   import { makeMap } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
-  import SerachBar from '../common/SearchBar.vue';
+  import SearchBar from '../common/SearchBar.vue';
   import ClusterRelatedTasks from '../common/task-panel/Index.vue';
 
   import { useClusterData } from './useClusterData';
