@@ -15,10 +15,8 @@
   <TableEditInput
     ref="editRef"
     v-model="localInstanceAddress"
-    multi-input
-    :placeholder="$t('请输入IP_Port_使用换行分割一次可输入多个')"
-    :rules="rules"
-    @multi-input="handleMultiInput" />
+    :placeholder="t('请输入或从表头批量选择')"
+    :rules="rules" />
 </template>
 <script lang="ts">
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
@@ -34,19 +32,18 @@
 
   import { random } from '@utils';
 
-  import type { IProxyData } from './Row.vue';
+  import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IProxyData,
+    modelValue?: string;
   }
 
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void,
-    (e: 'inputFinish', value: IProxyData): void
+    (e: 'inputFinish', relatedClusters: IDataRow['relatedClusters']): void;
   }
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Array<number>;
   }
 
   const props = defineProps<Props>();
@@ -54,16 +51,13 @@
 
   const instanceKey = `render_original_proxy_${random()}`;
   instanceAddreddMemo[instanceKey] = {};
-  let proxyInstanceMemo = {} as IProxyData;
+  let proxyInstanceData = {} as IDataRow['originProxy'];
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const editRef = ref();
-
-  const localClusterId = ref(0);
   const localInstanceAddress = ref('');
-  const isShowEdit = ref(true);
 
   const rules = [
     {
@@ -76,21 +70,33 @@
       message: t('目标Proxy不能为空'),
     },
     {
-      validator: () => checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [localInstanceAddress.value],
-      }).then((data) => {
-        if (data.length < 1) {
-          return false;
-        }
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
-
-        const [currentInstanceData] = data;
-        proxyInstanceMemo = currentInstanceData;
-        emits('inputFinish', proxyInstanceMemo);
-        localClusterId.value = currentInstanceData.cluster_id;
-        return true;
-      }),
+      validator: (value: string) =>
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [value],
+        }).then((data) => {
+          if (data.length < 1) {
+            emits('inputFinish', []);
+            return false;
+          }
+          const [currentData] = data;
+          instanceAddreddMemo[instanceKey][currentData.instance_address] = true;
+          proxyInstanceData = {
+            ip: currentData.ip,
+            bk_cloud_id: currentData.bk_cloud_id,
+            bk_host_id: currentData.bk_host_id,
+            bk_biz_id: currentBizId,
+            port: currentData.port,
+            cluster_id: currentData.cluster_id,
+            instance_address: currentData.instance_address,
+          };
+          const relatedClusters = currentData.related_clusters.map((item) => ({
+            cluster_id: item.id,
+            domain: item.master_domain,
+          }));
+          emits('inputFinish', relatedClusters);
+          return true;
+        }),
       message: t('目标Proxy不存在'),
     },
     {
@@ -99,14 +105,18 @@
         const otherClusterMemoMap = { ...instanceAddreddMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
+            emits('inputFinish', []);
             return false;
           }
         }
@@ -116,63 +126,27 @@
     },
   ];
 
-  // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      proxyInstanceMemo = props.modelValue;
-      localClusterId.value = props.modelValue.cluster_id;
-      localInstanceAddress.value = props.modelValue.instance_address;
-
-      if (localInstanceAddress.value) {
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+  watch(
+    () => props.modelValue,
+    (newValue) => {
+      if (newValue) {
+        localInstanceAddress.value = newValue;
       }
-
-      isShowEdit.value = !props.modelValue.instance_address;
-    }
-  }, {
-    immediate: true,
-  });
-
-  // 获取关联集群
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-  }, {
-    immediate: true,
-  });
-
-  const handleMultiInput = (list: Array<string>) => {
-    nextTick(() => {
-      emits('inputCreate', list);
-    });
-  };
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onBeforeUnmount(() => {
-    delete instanceAddreddMemo[instanceKey]
-  })
+    delete instanceAddreddMemo[instanceKey];
+  });
 
   defineExpose<Exposes>({
     getValue() {
-      const {
-        bk_host_id,
-        bk_cloud_id,
-        ip,
-        port,
-      } = proxyInstanceMemo;
-
-      const result = {
-        cluster_ids: [localClusterId.value],
-        origin_proxy: {
-          bk_biz_id: currentBizId,
-          bk_host_id,
-          bk_cloud_id,
-          ip,
-          port,
-        },
-      };
-
-      return editRef.value.getValue().then(() => result);
+      return editRef.value.getValue().then(() => ({
+        origin_proxy: proxyInstanceData,
+      }));
     },
   });
 </script>

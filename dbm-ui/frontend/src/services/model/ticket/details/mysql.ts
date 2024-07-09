@@ -22,6 +22,22 @@ export interface MysqlIpItem {
   port?: number;
 }
 
+export interface MysqlMachineIpItem {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
+  ip: string;
+  related_instances: {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+    port: number;
+    bk_instance_id: number;
+    intance: string;
+  }[];
+}
+
 /**
  * mysql-授权详情
  */

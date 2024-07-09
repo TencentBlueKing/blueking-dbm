@@ -15,7 +15,7 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn>
-        {{ $t('目标Proxy') }}
+        {{ t('目标实例') }}
         <template #append>
           <span
             class="batch-edit-btn"
@@ -24,13 +24,16 @@
           </span>
         </template>
       </RenderTableHeadColumn>
+      <RenderTableHeadColumn :required="false">
+        {{ t('关联集群') }}
+      </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('新Proxy主机') }}
+        {{ t('新Proxy主机') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :required="false"
         :width="90">
-        {{ $t('操作') }}
+        {{ t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
         <slot />
@@ -39,6 +42,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
   import RenderTable from '@views/mysql/common/render-table/Index.vue';
 
@@ -47,6 +52,8 @@
   }
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const handleShowBatchSelectCluster = () => {
     emits('batchSelectCluster');

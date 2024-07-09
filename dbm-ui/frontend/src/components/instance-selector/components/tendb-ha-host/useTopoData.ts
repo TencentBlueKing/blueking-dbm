@@ -14,7 +14,7 @@ import { type ComponentInternalInstance } from 'vue';
 
 import { useGlobalBizs } from '@stores';
 
-import { activePanelInjectionKey } from '../../Index.vue';
+import { ClusterTypes } from '@common/const';
 
 interface TopoTreeData {
   id: number;
@@ -41,8 +41,6 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
     };
   };
 
-  const activePanel = inject(activePanelInjectionKey);
-
   const isLoading = ref(false);
   const selectClusterId = ref<number>();
   const treeRef = ref();
@@ -59,7 +57,7 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
       cluster_filters: [
         {
           bk_biz_id: currentBizId,
-          cluster_type: activePanel?.value,
+          cluster_type: ClusterTypes.TENDBHA,
         },
       ],
     } as Record<string, any>;

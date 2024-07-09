@@ -54,29 +54,27 @@
 
   import { encodeMult } from '@utils';
 
-  import useValidtor, {
-    type Rules,
-  } from './hooks/useValidtor';
+  import useValidtor, { type Rules } from './hooks/useValidtor';
 
   interface Props {
-    placeholder?: string,
-    textarea?: boolean,
-    rules?: Rules,
+    placeholder?: string;
+    textarea?: boolean;
+    rules?: Rules;
     // 多个输入
-    multiInput?: boolean,
-    disabled?: boolean,
-    readonly?: boolean,
+    multiInput?: boolean;
+    disabled?: boolean;
+    readonly?: boolean;
   }
 
   interface Emits {
-    (e: 'submit', value: string): void,
-    (e: 'multiInput', value: Array<string>): void,
-    (e: 'overflow-change', value: boolean): void,
+    (e: 'submit', value: string): void;
+    (e: 'multiInput', value: Array<string>): void;
+    (e: 'overflow-change', value: boolean): void;
   }
 
   interface Exposes {
     getValue: () => Promise<string>;
-    focus: () => void
+    focus: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -110,28 +108,29 @@
     };
   });
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
-  watch(modelValue, (value) => {
-    nextTick(() => {
-      if (localValue.value !== value) {
-        localValue.value = value;
-        inputRef.value.innerText = localValue.value;
-        window.changeConfirm = true;
-      }
-    });
-    if (value) {
-      setTimeout(() => {
-        const isOverflow = inputRef.value.clientWidth < inputRef.value.scrollWidth;
-        emits('overflow-change', isOverflow);
+  watch(
+    modelValue,
+    (value) => {
+      nextTick(() => {
+        if (localValue.value !== value) {
+          localValue.value = value;
+          inputRef.value.innerText = localValue.value;
+          window.changeConfirm = true;
+        }
       });
-    }
-  }, {
-    immediate: true,
-  });
+      if (value) {
+        setTimeout(() => {
+          const isOverflow = inputRef.value.clientWidth < inputRef.value.scrollWidth;
+          emits('overflow-change', isOverflow);
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const processMultiInputLocalValue = () => {
     if (!props.multiInput) {
@@ -141,7 +140,7 @@
       return localValue.value;
     }
     const [currentValue, ...appendList] = localValue.value.split('\n');
-    const validateAppendList = _.uniq(_.filter(appendList, item => _.trim(item))) as Array<string>;
+    const validateAppendList = _.uniq(_.filter(appendList, (item) => _.trim(item))) as Array<string>;
     if (validateAppendList.length > 0) {
       emits('multiInput', validateAppendList);
     }
@@ -182,11 +181,10 @@
     if (!localValue.value) {
       return;
     }
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('submit', localValue.value);
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+      emits('submit', localValue.value);
+    });
   };
   // enter键提交
   const handleKeydown = (event: KeyboardEvent) => {
@@ -201,14 +199,13 @@
     if (event.which === 13 || event.key === 'Enter') {
       if (!props.textarea && !props.multiInput) {
         event.preventDefault();
-        validator(localValue.value)
-          .then((result) => {
-            if (result) {
-              isFocused.value = false;
-              window.changeConfirm = true;
-              emits('submit', localValue.value);
-            }
-          });
+        validator(localValue.value).then((result) => {
+          if (result) {
+            isFocused.value = false;
+            window.changeConfirm = true;
+            emits('submit', localValue.value);
+          }
+        });
         return;
       }
     }
@@ -220,16 +217,15 @@
     paste = encodeMult(paste);
 
     const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return false;
+
+    if (!selection || !selection.rangeCount) {
+      return false;
+    }
     selection.deleteFromDocument();
     selection.getRangeAt(0).insertNode(document.createTextNode(paste));
-    paste = `${localValue.value}${paste}`;
-    localValue.value = paste;
     event.preventDefault();
-    if (!props.multiInput) {
-      window.changeConfirm = true;
-      modelValue.value = paste;
-    }
+    window.changeConfirm = true;
+    modelValue.value = props.multiInput ? `${localValue.value}${paste}` : paste;
   };
 
   defineExpose<Exposes>({
