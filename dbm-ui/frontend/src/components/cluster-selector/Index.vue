@@ -145,7 +145,7 @@
   import { getSpiderList } from '@services/source/spider';
   import { getHaClusterList } from '@services/source/sqlserveHaCluster';
   import { getSingleClusterList } from '@services/source/sqlserverSingleCluster';
-  import { getTendbhaList } from '@services/source/tendbha';
+  import { getTendbhaList, getTendbhaSalveList } from '@services/source/tendbha';
   import { getTendbsingleList } from '@services/source/tendbsingle';
   import type { ListBase } from '@services/types';
 
@@ -167,7 +167,7 @@
 
   export type TabListType = {
     name: string;
-    id: ClusterTypes;
+    id: string;
     tableContent: any;
     resultContent: any;
     // 不可选行及提示
@@ -196,11 +196,11 @@
 
   export type TabItem = TabListType[number];
 
-  export type TabConfig = Omit<TabItem, 'name' | 'id' | 'tableContent' | 'resultContent'>;
+  export type TabConfig = Omit<TabItem, 'tableContent' | 'resultContent'>;
 
   interface Props {
     selected: Record<string, T[]>;
-    clusterTypes: ClusterTypes[];
+    clusterTypes: string[];
     tabListConfig?: Record<string, TabConfig>;
     onlyOneType?: boolean;
   }
@@ -260,6 +260,20 @@
       ],
       multiple: true,
       getResourceList: getTendbhaList,
+      tableContent: TendbhaTable,
+      resultContent: ResultPreview,
+    },
+    tendbhaSlave: {
+      id: 'tendbhaSlave',
+      name: t('主从集群'),
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      multiple: true,
+      getResourceList: getTendbhaSalveList,
       tableContent: TendbhaTable,
       resultContent: ResultPreview,
     },
@@ -332,7 +346,7 @@
   };
 
   const tabTipsRef = ref();
-  const activeTab = ref<ClusterTypes>(ClusterTypes.TENDBCLUSTER);
+  const activeTab = ref(ClusterTypes.TENDBCLUSTER as string);
   const showTabTips = ref(false);
   const isSelectedAll = ref(false);
   const selectedMap = ref<Record<string, Record<string, T>>>({});
