@@ -44,6 +44,29 @@ export function getTendbhaList(params: {
   }));
 }
 
+export function getTendbhaSalveList(params: {
+  bk_biz_id?: number;
+  limit?: number;
+  offset?: number;
+  type?: string;
+  dbType?: string;
+  cluster_ids?: number[] | number;
+  domain?: string;
+}) {
+  return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new TendbhaModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+            master_domain: item.slave_domain,
+          }),
+        ),
+    ),
+  }));
+}
+
 /**
  * 根据业务 ID 查询资源列表
  */
