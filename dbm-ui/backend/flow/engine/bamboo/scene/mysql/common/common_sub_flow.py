@@ -498,6 +498,8 @@ def install_mysql_in_cluster_sub_flow(
     new_mysql_list: list,
     install_ports: list,
     bk_host_ids: list = None,
+    pkg_id: int = 0,
+    db_module_id: str = None,
 ):
     """
     设计基于某个cluster，以及计算好的实例安装端口列表，对新机器安装mysql实例的公共子流
@@ -512,11 +514,14 @@ def install_mysql_in_cluster_sub_flow(
 
     # 目前先根据cluster对应，请求bk-config服务去获取对应的
     # todo 后续可能继续优化这块逻辑，mysql的版本号通过记录的小版本信息来获取？
+    if db_module_id is None:
+        db_module_id = str(cluster.db_module_id)
+
     data = DBConfigApi.query_conf_item(
         {
             "bk_biz_id": str(cluster.bk_biz_id),
             "level_name": LevelName.MODULE,
-            "level_value": str(cluster.db_module_id),
+            "level_value": db_module_id,
             "conf_file": "deploy_info",
             "conf_type": "deploy",
             "namespace": cluster.cluster_type,
@@ -563,23 +568,42 @@ def install_mysql_in_cluster_sub_flow(
     )
 
     # 阶段1 并行分发安装文件
-    sub_pipeline.add_parallel_acts(
-        acts_list=[
-            {
-                "act_name": _("下发MySQL介质包"),
-                "act_component_code": TransFileComponent.code,
-                "kwargs": asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id,
-                        exec_ip=new_mysql_list,
-                        file_list=GetFileList(db_type=DBType.MySQL).mysql_install_package(
-                            db_version=data["db_version"]
-                        ),
-                    )
-                ),
-            }
-        ]
-    )
+    if pkg_id > 0:
+        sub_pipeline.add_parallel_acts(
+            acts_list=[
+                {
+                    "act_name": _("下发MySQL介质包"),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            exec_ip=new_mysql_list,
+                            file_list=GetFileList(db_type=DBType.MySQL).mysql_upgrade_package(
+                                pkg_id=pkg_id,
+                            ),
+                        )
+                    ),
+                }
+            ]
+        )
+    else:
+        sub_pipeline.add_parallel_acts(
+            acts_list=[
+                {
+                    "act_name": _("下发MySQL介质包"),
+                    "act_component_code": TransFileComponent.code,
+                    "kwargs": asdict(
+                        DownloadMediaKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            exec_ip=new_mysql_list,
+                            file_list=GetFileList(db_type=DBType.MySQL).mysql_install_package(
+                                db_version=data["db_version"]
+                            ),
+                        )
+                    ),
+                }
+            ]
+        )
 
     acts_list = []
     for mysql_ip in new_mysql_list:

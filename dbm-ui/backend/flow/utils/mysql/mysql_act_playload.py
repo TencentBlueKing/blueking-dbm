@@ -2035,7 +2035,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         local upgrade mysql proxy
         """
-        proxy_pkg = Package.get_latest_package(version=self.cluster["version"], pkg_type=MediumEnum.MySQL)
+        mysql_pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.MySQL)
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.Upgrade.value,
@@ -2045,8 +2045,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "host": kwargs["ip"],
                     "ports": self.cluster["ports"],
                     "force": False,
-                    "pkg": proxy_pkg.name,
-                    "pkg_md5": proxy_pkg.md5,
+                    "pkg": mysql_pkg.name,
+                    "pkg_md5": mysql_pkg.md5,
                     "run": self.cluster["run"],
                 },
             },

@@ -18,6 +18,7 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ProxyInstance
+from backend.db_package.models import Package
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
@@ -26,7 +27,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQ
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
-from backend.flow.utils.mysql.mysql_version_parse import proxy_version_parse
+from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name, proxy_version_parse
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
 
 logger = logging.getLogger("flow")
@@ -64,9 +65,10 @@ class MySQLProxyLocalUpgradeFlow(object):
         # 声明子流程
         for upgrade_info in self.upgrade_cluster_list:
             cluster_ids = upgrade_info["cluster_ids"]
-            new_proxy_version = upgrade_info["new_proxy_version"]
-            new_proxxy_version_num = proxy_version_parse(new_proxy_version)
-
+            pkg_id = upgrade_info["pkg_id"]
+            proxy_pkg = Package.objects.get(id=pkg_id)
+            logger.info("param pkg_id:{},get the pkg name: {}".format(pkg_id, proxy_pkg.name))
+            new_proxy_version_num = proxy_version_parse(proxy_pkg.name)
             clusters = Cluster.objects.filter(id__in=cluster_ids)
             proxies = ProxyInstance.objects.filter(cluster__in=clusters)
             if len(proxies) <= 0:
@@ -79,10 +81,10 @@ class MySQLProxyLocalUpgradeFlow(object):
 
             for proxy_instance in proxies:
                 current_version = proxy_version_parse(proxy_instance.version)
-                if current_version >= new_proxxy_version_num:
+                if current_version >= new_proxy_version_num:
                     logger.error(
                         "the upgrade version {} needs to be larger than the current verion {}".format(
-                            new_proxxy_version_num, current_version
+                            new_proxy_version_num, current_version
                         )
                     )
                     raise DBMetaException(message=_("待升级版本大于等于新版本，请确认升级的版本"))
@@ -94,11 +96,12 @@ class MySQLProxyLocalUpgradeFlow(object):
                     sub_flow=self.upgrade_mysql_proxy_subflow(
                         bk_cloud_id=self.bk_cloud_id,
                         ip=proxy_ip,
+                        pkg_id=pkg_id,
+                        proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
                         proxy_ports=proxy_ports,
-                        proxy_version=new_proxy_version,
                     )
                 )
-                sub_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
+                sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("本地升级proxy版本")))
         proxy_upgrade_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
@@ -109,8 +112,9 @@ class MySQLProxyLocalUpgradeFlow(object):
         self,
         ip: str,
         bk_cloud_id: int,
+        pkg_id: int,
+        proxy_version: str,
         proxy_ports: list = None,
-        proxy_version: str = "",
     ):
         """
         定义upgrade mysql proxy 的flow
@@ -124,12 +128,12 @@ class MySQLProxyLocalUpgradeFlow(object):
                 DownloadMediaKwargs(
                     bk_cloud_id=bk_cloud_id,
                     exec_ip=ip,
-                    file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_upgrade_package(version=proxy_version),
+                    file_list=GetFileList(db_type=DBType.MySQL).mysql_proxy_upgrade_package(pkg_id=pkg_id),
                 )
             ),
         )
 
-        cluster = {"proxy_ports": proxy_ports, "version": proxy_version}
+        cluster = {"proxy_ports": proxy_ports, "pkg_id": pkg_id}
         exec_act_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=bk_cloud_id)
         exec_act_kwargs.exec_ip = ip
         exec_act_kwargs.get_mysql_payload_func = ProxyActPayload.get_proxy_upgrade_payload.__name__

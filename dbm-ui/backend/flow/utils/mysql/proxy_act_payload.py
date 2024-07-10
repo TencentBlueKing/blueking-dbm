@@ -79,7 +79,7 @@ class ProxyActPayload(object):
         """
         local upgrade mysql proxy
         """
-        proxy_pkg = Package.get_latest_package(version=self.cluster["version"], pkg_type=MediumEnum.MySQLProxy)
+        proxy_pkg = Package.objects.get(id=self.cluster["pkg_id"], pkg_type=MediumEnum.MySQLProxy)
         return {
             "db_type": DBActuatorTypeEnum.Proxy.value,
             "action": DBActuatorActionEnum.Upgrade.value,
