@@ -35,7 +35,7 @@ from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_c
 from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
-from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
+from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name, mysql_version_parse
 from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
@@ -128,15 +128,15 @@ class MySQLStorageLocalUpgradeFlow(object):
     }
     """
 
-    def __init__(self, root_id: str, data: Optional[Dict]):
+    def __init__(self, root_id: str, ticket_data: Optional[Dict]):
         """
         @param root_id : 任务流程定义的root_id
         @param data : 单据传递参数
         """
         self.root_id = root_id
-        self.data = data
-        self.uid = data["uid"]
-        self.upgrade_cluster_list = data["infos"]
+        self.data = ticket_data
+        self.uid = ticket_data["uid"]
+        self.upgrade_cluster_list = ticket_data["infos"]
 
     def __the_clusters_use_same_machine(self, cluster_ids: list):
         clusters = Cluster.objects.filter(id__in=cluster_ids)
@@ -184,9 +184,9 @@ class MySQLStorageLocalUpgradeFlow(object):
         )
         return instances
 
-    def __get_pkg_name_by_version(self, version: str) -> str:
+    def __get_pkg_name_by_pkg_id(self, pkg_id: int) -> str:
         # 获取大版本的最新的包名
-        mysql_pkg = Package.get_latest_package(version=version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
+        mysql_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
         return mysql_pkg.name
 
     def upgrade_mysql_flow(self):
@@ -197,12 +197,11 @@ class MySQLStorageLocalUpgradeFlow(object):
         for upgrade_info in self.upgrade_cluster_list:
             sub_flow_context = copy.deepcopy(self.data)
             cluster_ids = upgrade_info["cluster_ids"]
-            new_module_id = upgrade_info["new_module_id"]
-            new_mysql_major_version = upgrade_info["new_mysql_version"]
-            new_mysql_pkg_name = self.__get_pkg_name_by_version(new_mysql_major_version)
+            pkg_id = upgrade_info["pkg_id"]
+            new_mysql_pkg_name = self.__get_pkg_name_by_pkg_id(pkg_id)
+            logger.info("param pkg_id:{},get the pkg name: {}".format(pkg_id, new_mysql_pkg_name))
             # 确保这批集群的master都是一个主机
             self.__the_clusters_use_same_machine(cluster_ids)
-
             sub_pipeline = SubBuilder(
                 root_id=self.root_id, data=copy.deepcopy(sub_flow_context), need_random_pass_cluster_ids=cluster_ids
             )
@@ -222,7 +221,6 @@ class MySQLStorageLocalUpgradeFlow(object):
                     raise DBMetaException(message=_("集群的master应该同属于一个机器,当前分布在{}").format(list(set(master_ip_list))))
 
                 master_ip = master_ip_list[0]
-
                 port_map = defaultdict(list)
                 for slave_instance in slave_instances:
                     port_map[slave_instance.machine.ip].append(slave_instance.port)
@@ -233,8 +231,9 @@ class MySQLStorageLocalUpgradeFlow(object):
                         sub_flow=self.upgrade_mysql_subflow(
                             bk_cloud_id=self.data["bk_cloud_id"],
                             ip=slaveIp,
-                            proxy_ports=ports,
-                            new_major_version=new_mysql_major_version,
+                            mysql_ports=ports,
+                            pkg_id=pkg_id,
+                            mysql_pkg_name=new_mysql_pkg_name,
                         )
                     )
 
@@ -311,22 +310,12 @@ class MySQLStorageLocalUpgradeFlow(object):
                         sub_flow=self.upgrade_mysql_subflow(
                             bk_cloud_id=self.data["bk_cloud_id"],
                             ip=slaveIp,
-                            proxy_ports=ports,
-                            new_major_version=new_mysql_major_version,
+                            mysql_ports=ports,
+                            pkg_id=pkg_id,
+                            mysql_pkg_name=new_mysql_pkg_name,
                         )
                     )
 
-                # update cluster model
-                sub_pipeline.add_act(
-                    act_name=_("更新cluster module信息"),
-                    act_component_code=MySQLDBMetaComponent.code,
-                    kwargs=asdict(
-                        DBMetaOPKwargs(
-                            db_meta_class_func=MySQLDBMeta.update_cluster_module.__name__,
-                            cluster={"new_module_id": new_module_id, "cluster_ids": cluster_ids},
-                        )
-                    ),
-                )
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[TendbHa]本地升级MySQL版本")))
 
             # tendbsingle 本地升级流程
@@ -339,24 +328,18 @@ class MySQLStorageLocalUpgradeFlow(object):
                     ipList.append(instance.machine.ip)
                     upgrade_version_check(instance.version, new_mysql_pkg_name)
 
+                if len(list(set(ipList))) != 1:
+                    raise DBMetaException(message=_("集群的master应该同属于一个机器,当前分布在{}").format(list(set(ipList))))
+
+                proxy_ip = ipList[0]
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=self.upgrade_mysql_subflow(
                         bk_cloud_id=self.data["bk_cloud_id"],
-                        ip=ipList[0],
-                        proxy_ports=ports,
-                        new_major_version=new_mysql_major_version,
+                        ip=proxy_ip,
+                        mysql_ports=ports,
+                        mysql_pkg_name=new_mysql_pkg_name,
+                        pkg_id=pkg_id,
                     )
-                )
-                # update cluster model
-                sub_pipeline.add_act(
-                    act_name=_("更新cluster module信息"),
-                    act_component_code=MySQLDBMetaComponent.code,
-                    kwargs=asdict(
-                        DBMetaOPKwargs(
-                            db_meta_class_func=MySQLDBMeta.update_cluster_module.__name__,
-                            cluster={"new_module_id": new_module_id, "cluster_ids": cluster_ids},
-                        )
-                    ),
                 )
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[TendbSingle]本地升级MySQL版本")))
             else:
@@ -372,8 +355,9 @@ class MySQLStorageLocalUpgradeFlow(object):
         self,
         ip: str,
         bk_cloud_id: int,
-        proxy_ports: list = None,
-        new_major_version: str = "",
+        pkg_id: int,
+        mysql_pkg_name: str,
+        mysql_ports: list = None,
     ):
         """
         定义upgrade mysql 的flow
@@ -387,12 +371,12 @@ class MySQLStorageLocalUpgradeFlow(object):
                 DownloadMediaKwargs(
                     bk_cloud_id=bk_cloud_id,
                     exec_ip=ip,
-                    file_list=GetFileList(db_type=DBType.MySQL).mysql_upgrade_package(db_version=new_major_version),
+                    file_list=GetFileList(db_type=DBType.MySQL).mysql_upgrade_package(pkg_id=pkg_id),
                 )
             ),
         )
 
-        cluster = {"run": False, "ports": proxy_ports, "version": new_major_version}
+        cluster = {"run": False, "ports": mysql_ports, "pkg_id": pkg_id}
         exec_act_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=bk_cloud_id)
         exec_act_kwargs.exec_ip = ip
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_mysql_upgrade_payload.__name__
@@ -403,7 +387,7 @@ class MySQLStorageLocalUpgradeFlow(object):
             kwargs=asdict(exec_act_kwargs),
         )
 
-        cluster = {"run": True, "ports": proxy_ports, "version": new_major_version}
+        cluster = {"run": True, "ports": mysql_ports, "pkg_id": pkg_id}
         exec_act_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=bk_cloud_id)
         exec_act_kwargs.exec_ip = ip
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_mysql_upgrade_payload.__name__
@@ -413,14 +397,14 @@ class MySQLStorageLocalUpgradeFlow(object):
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(exec_act_kwargs),
         )
-        # 更新proxy instance version 信息
+        # 更新mysql instance version 信息
         sub_pipeline.add_act(
             act_name=_("更新mysql instance version meta信息"),
             act_component_code=MySQLDBMetaComponent.code,
             kwargs=asdict(
                 DBMetaOPKwargs(
                     db_meta_class_func=MySQLDBMeta.update_mysql_instance_version.__name__,
-                    cluster={"ip": ip, "version": new_major_version},
+                    cluster={"ip": ip, "version": get_sub_version_by_pkg_name(mysql_pkg_name)},
                 )
             ),
         )

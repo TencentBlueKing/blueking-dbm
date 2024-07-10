@@ -105,10 +105,15 @@ class MySQLMigrateClusterRemoteFlow(object):
 
             # 如果是升级用途的话,需要改变module id
             db_module_id = cluster_class.db_module_id
+            self.data["package"] = Package.get_latest_package(
+                version=install_pkg_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+            ).name
 
+            pkg_id = 0
             if use_for_upgrade:
                 db_module_id = info["new_db_module_id"]
-                install_pkg_version = info["new_mysql_version"]
+                pkg_id = info["pkg_id"]
+                self.data["package"] = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
 
             charset, db_version = get_version_and_charset(
                 bk_biz_id=cluster_class.bk_biz_id,
@@ -129,9 +134,6 @@ class MySQLMigrateClusterRemoteFlow(object):
             self.data["module"] = db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
             self.data["uid"] = self.ticket_data["uid"]
-            self.data["package"] = Package.get_latest_package(
-                version=install_pkg_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
-            ).name
             self.data["ports"] = get_ports(info["cluster_ids"])
             self.data["force"] = info.get("force", False)
             self.data["charset"] = charset
@@ -154,6 +156,8 @@ class MySQLMigrateClusterRemoteFlow(object):
                     new_mysql_list=[self.data["new_slave_ip"], self.data["new_master_ip"]],
                     install_ports=self.data["ports"],
                     bk_host_ids=bk_host_ids,
+                    pkg_id=pkg_id,
+                    db_module_id=str(db_module_id),
                 )
             )
 

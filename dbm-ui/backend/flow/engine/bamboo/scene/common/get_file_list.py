@@ -154,21 +154,21 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
 
-    def mysql_proxy_upgrade_package(self, version: str) -> list:
+    def mysql_proxy_upgrade_package(self, pkg_id: str) -> list:
         """
         mysql_proxy 升级需要的安装包列表
         """
-        proxy_pkg = Package.get_latest_package(version=version, pkg_type=MediumEnum.MySQLProxy)
+        proxy_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQLProxy)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{proxy_pkg.path}",
         ]
 
-    def mysql_upgrade_package(self, db_version: str) -> list:
+    def mysql_upgrade_package(self, pkg_id: int) -> list:
         """
         mysql 升级需要的安装包列表
         """
-        mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
+        mysql_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_pkg.path}",

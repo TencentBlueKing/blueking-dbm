@@ -17,6 +17,15 @@ from backend.constants import IP_PORT_DIVIDER
 logger = logging.getLogger("flow")
 
 
+def get_sub_version_by_pkg_name(pkg_name: str) -> str:
+    re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
+    result = re.findall(re_pattern, pkg_name)
+    if len(result) == 0:
+        return ""
+    billion, thousand, single = result[0]
+    return "{}.{}.{}".format(billion, thousand, single)
+
+
 def mysql_version_parse(mysql_version: str) -> int:
     re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, mysql_version)
