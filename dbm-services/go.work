@@ -32,3 +32,5 @@ use (
 	mongodb/db-tools/dbactuator
 	common/db-dns/dns-api/pkg
 )
+
+replace github.com/go-sql-driver/mysql => github.com/go-sql-driver/mysql v1.7.1
