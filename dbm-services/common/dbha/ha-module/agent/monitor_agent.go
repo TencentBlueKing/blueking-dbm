@@ -180,8 +180,19 @@ func (a *MonitorAgent) RefreshGMCache() {
 
 // FetchDBInstance fetch instance list by city info
 func (a *MonitorAgent) FetchDBInstance() error {
-	rawInfo, err := a.CmDBClient.GetDBInstanceInfoByCity(a.CityID)
+	mod, modValue, err := a.HaDBClient.AgentGetHashValue(a.MonIp, a.CityID, a.DetectType, a.Conf.AgentConf.FetchInterval)
+	if err != nil {
+		log.Logger.Errorf("get Modulo failed and wait next refresh time. err:%s", err.Error())
+		return err
+	}
+	req := client.DBInstanceInfoRequest{
+		LogicalCityIDs: []int{a.CityID},
+		HashCnt:        mod,
+		HashValue:      modValue,
+		ClusterTypes:   []string{a.DetectType},
+	}
 
+	rawInfo, err := a.CmDBClient.GetDBInstanceInfo(req)
 	if err != nil {
 		log.Logger.Errorf("get instance info from cmdb failed. err:%s", err.Error())
 		return err
@@ -203,10 +214,30 @@ func (a *MonitorAgent) FetchDBInstance() error {
 	}
 	log.Logger.Debugf("get type[%s] instance info number:%d", a.DetectType, len(AllDbInstance))
 
-	a.DBInstance, err = a.moduloHashSharding(AllDbInstance)
+	shieldConfig, err := a.HaDBClient.GetShieldConfig(&model.HAShield{
+		ShieldType: string(model.ShieldSwitch),
+	})
 	if err != nil {
-		log.Logger.Errorf("fetch module hash sharding failed. err:%s", err.Error())
+		log.Logger.Errorf("get shield config failed:%s", err.Error())
 		return err
+	}
+	if len(a.DBInstance) == 0 {
+		a.DBInstance = make(map[string]dbutil.DataBaseDetect)
+	}
+	for _, rawIns := range AllDbInstance {
+		rawIp, rawPort := rawIns.GetAddress()
+		if _, ok := shieldConfig[rawIp]; ok {
+			log.Logger.Debugf("shield config exist this ip, skip detect :%s", rawIp)
+			continue
+		}
+		if ins, ok := a.DBInstance[rawIp]; !ok {
+			a.DBInstance[rawIp] = rawIns
+		} else {
+			_, port := ins.GetAddress()
+			if rawPort < port {
+				a.DBInstance[rawIp] = ins
+			}
+		}
 	}
 	log.Logger.Debugf("current agent need to detect type[%s] number:%d", a.DetectType, len(a.DBInstance))
 	return nil
@@ -391,7 +422,7 @@ func (a *MonitorAgent) moduloHashSharding(allDbInstance []dbutil.DataBaseDetect)
 			continue
 		}
 		if ins, ok := result[rawIp]; !ok {
-			if util.CRC32(rawIp)%mod == modValue {
+			if util.CRC32(rawIp)%uint32(mod) == uint32(modValue) {
 				result[rawIp] = rawIns
 			}
 		} else {

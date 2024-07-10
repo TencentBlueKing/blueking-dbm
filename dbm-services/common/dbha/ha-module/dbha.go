@@ -64,7 +64,7 @@ func main() {
 			go func(clusterType string) {
 				Agent, err := agent.NewMonitorAgent(conf, clusterType)
 				if err != nil {
-					log.Logger.Fatalf("agent init failed. clustertype:%s err:%s", clusterType, err.Error())
+					log.Logger.Errorf("agent init failed. clustertype:%s err:%s", clusterType, err.Error())
 				}
 
 				err = Agent.Run()

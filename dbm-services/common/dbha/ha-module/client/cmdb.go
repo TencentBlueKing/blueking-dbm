@@ -16,19 +16,22 @@ type CmDBClient struct {
 	Client
 }
 
-// DBInstanceInfoRequest fetch instances list from cmdb by ip
-type DBInstanceInfoRequest struct {
+// DBInstanceInfoByAddressRequest fetch instances list from cmdb by ip
+type DBInstanceInfoByAddressRequest struct {
 	DBCloudToken string   `json:"db_cloud_token"`
 	BKCloudID    int      `json:"bk_cloud_id"`
 	Addresses    []string `json:"addresses"`
 }
 
-// DBInstanceInfoByCityRequest fetch instances list from cmdb by city and status
-type DBInstanceInfoByCityRequest struct {
+// DBInstanceInfoRequest fetch instances list from cmdb by city and status
+type DBInstanceInfoRequest struct {
 	DBCloudToken   string   `json:"db_cloud_token"`
 	BKCloudID      int      `json:"bk_cloud_id"`
 	LogicalCityIDs []int    `json:"logical_city_ids"`
 	Statuses       []string `json:"statuses"`
+	HashCnt        int      `json:"hash_cnt"`
+	HashValue      int      `json:"hash_value"`
+	ClusterTypes   []string `json:"cluster_types"`
 }
 
 // DBInstanceInfo instance info
@@ -132,7 +135,7 @@ func NewCmDBClient(conf *config.APIConfig, cloudId int) *CmDBClient {
 // GetDBInstanceInfoByIp fetch instance info from cmdb by ip
 func (c *CmDBClient) GetDBInstanceInfoByIp(ip string) ([]interface{}, error) {
 	var res []interface{}
-	req := DBInstanceInfoRequest{
+	req := DBInstanceInfoByAddressRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Addresses:    []string{ip},
@@ -155,7 +158,7 @@ func (c *CmDBClient) GetDBInstanceInfoByIp(ip string) ([]interface{}, error) {
 
 // GetAllDBInstanceInfo detect running, available status instance
 func (c *CmDBClient) GetAllDBInstanceInfo() ([]interface{}, error) {
-	req := DBInstanceInfoByCityRequest{
+	req := DBInstanceInfoRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Statuses:     []string{constvar.RUNNING, constvar.AVAILABLE},
@@ -181,7 +184,7 @@ func (c *CmDBClient) GetAllDBInstanceInfo() ([]interface{}, error) {
 
 // GetDBInstanceInfoByCity detect running, available status instance
 func (c *CmDBClient) GetDBInstanceInfoByCity(cityID int) ([]interface{}, error) {
-	req := DBInstanceInfoByCityRequest{
+	req := DBInstanceInfoRequest{
 		DBCloudToken:   c.Conf.BKConf.BkToken,
 		BKCloudID:      c.CloudId,
 		LogicalCityIDs: []int{cityID},
@@ -206,10 +209,40 @@ func (c *CmDBClient) GetDBInstanceInfoByCity(cityID int) ([]interface{}, error) 
 	return res, nil
 }
 
+// GetDBInstanceInfo detect running, available status instance
+func (c *CmDBClient) GetDBInstanceInfo(requestInfo DBInstanceInfoRequest) ([]interface{}, error) {
+	req := DBInstanceInfoRequest{
+		DBCloudToken:   c.Conf.BKConf.BkToken,
+		BKCloudID:      c.CloudId,
+		LogicalCityIDs: requestInfo.LogicalCityIDs,
+		Statuses:       []string{constvar.RUNNING, constvar.AVAILABLE},
+		HashCnt:        requestInfo.HashCnt,
+		HashValue:      requestInfo.HashValue,
+		ClusterTypes:   requestInfo.ClusterTypes,
+	}
+
+	response, err := c.DoNew(
+		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)
+	if err != nil {
+		return nil, err
+	}
+	if response.Code != 0 {
+		return nil, fmt.Errorf("%s failed, return code:%d, msg:%s", util.AtWhere(), response.Code, response.Msg)
+	}
+
+	var res []interface{}
+	err = json.Unmarshal(response.Data, &res)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 // GetDBInstanceInfoByCluster fetch instance info from cmdb by ip
 func (c *CmDBClient) GetDBInstanceInfoByCluster(clusterName string) ([]interface{}, error) {
 	var res []interface{}
-	req := DBInstanceInfoRequest{
+	req := DBInstanceInfoByAddressRequest{
 		DBCloudToken: c.Conf.BKConf.BkToken,
 		BKCloudID:    c.CloudId,
 		Addresses:    []string{clusterName},

@@ -191,13 +191,13 @@ type TdbctlInfo struct {
 func (ins *MySQLCommonSwitch) SetStandbySlave(slaves []dbutil.SlaveInfo) {
 	if len(slaves) > 0 {
 		//try to found standby slave
+		ins.StandBySlave = slaves[0]
 		for _, slave := range slaves {
 			if slave.IsStandBy {
 				ins.StandBySlave = slave
 				break
 			}
 		}
-		ins.StandBySlave = slaves[0]
 		log.Logger.Debugf("set standy slave success:%#v", ins.StandBySlave)
 	} else {
 		ins.StandBySlave = dbutil.SlaveInfo{}
