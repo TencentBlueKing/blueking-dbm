@@ -15,12 +15,13 @@ import TicketModel from '@services/model/ticket/ticket';
 
 // Mysql 高可用部署
 export function generateMysqlHaApplyCloneData(ticketData: TicketModel<MySQLDetails>) {
-  const { details } =  ticketData;
+  const { details } = ticketData;
   return Promise.resolve({
     affinity: details.disaster_tolerance_level,
     bizId: ticketData.bk_biz_id,
     cloudId: details.bk_cloud_id,
     backendSpecId: details.resource_spec?.backend.spec_id,
+    dbAppAbbr: ticketData.db_app_abbr,
     cityCode: details.city_code,
     clusterCount: details.cluster_count,
     dbModuleId: details.db_module_id,

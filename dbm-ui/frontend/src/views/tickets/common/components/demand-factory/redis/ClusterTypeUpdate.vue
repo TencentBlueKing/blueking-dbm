@@ -12,37 +12,32 @@
 -->
 
 <template>
-  <div class="ticket-details__info">
-    <div
-      class="ticket-details__item"
-      style="align-items: flex-start">
-      <span class="ticket-details__item-label">{{ t('变更信息') }}：</span>
+  <div
+    class="ticket-details__item"
+    style="align-items: flex-start">
+    <span class="ticket-details__item-label">{{ t('变更信息') }}：</span>
+    <span class="ticket-details__item-value">
+      <BkLoading :loading="loading">
+        <DbOriginalTable
+          :columns="columns"
+          :data="tableData" />
+      </BkLoading>
+    </span>
+  </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('校验与修复类型') }}：</span>
       <span class="ticket-details__item-value">
-        <BkLoading :loading="loading">
-          <DbOriginalTable
-            :columns="columns"
-            :data="tableData" />
-        </BkLoading>
+        {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
       </span>
     </div>
-  </div>
-
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('校验与修复类型') }}：</span>
-        <span class="ticket-details__item-value">
-          {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
-        </span>
-      </div>
-      <div
-        v-if="ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'"
-        class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('校验与修复频率设置') }}：</span>
-        <span class="ticket-details__item-value">
-          {{ repairAndVerifyFrequencyMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
-        </span>
-      </div>
+    <div
+      v-if="ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'"
+      class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('校验与修复频率设置') }}：</span>
+      <span class="ticket-details__item-value">
+        {{ repairAndVerifyFrequencyMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
+      </span>
     </div>
   </div>
 </template>
@@ -84,7 +79,7 @@
 
   const tableData = ref<RowData[]>([]);
 
-  const { infos } = props.ticketDetails.details;
+  const { clusters, infos } = props.ticketDetails.details;
 
   const columns = [
     {
@@ -181,7 +176,7 @@
         const targetSepcPlan = sepcMap[item.target_cluster_type].filter(row => row.spec_id === item.resource_spec.backend_group.spec_id);
         return ({
           clusterName: currentCluster.master_domain,
-          srcClusterType: clusterTypeMap[currentCluster.cluster_spec.spec_cluster_type],
+          srcClusterType: clusterTypeMap[clusters[item.src_cluster].cluster_type],
           currentSepc: `${currentCluster.cluster_capacity}G_${specConfig.qps.max}/s（${item.current_shard_num} 分片）`,
           deployPlan: targetSepcPlan.length > 0 ? targetSepcPlan[0].spec_name : '',
           targetClusterType: clusterTypeMap[item.target_cluster_type],
