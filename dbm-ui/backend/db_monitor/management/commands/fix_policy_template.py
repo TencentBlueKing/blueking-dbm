@@ -113,8 +113,7 @@ class Command(BaseCommand):
                         # 根据监控侧长度限制进行截断
                         if len(query_config["metric_id"]) > 128:
                             print(f"found too long promql metric rule: {template_name} -> {query_config['metric_id']}")
-
-                        query_config["metric_id"] = query_config["metric_id"][:128]
+                            query_config["metric_id"] = ""
 
                         # if "agg_dimension" in query_config and "appid" not in query_config["agg_dimension"]:
                         #     query_config["agg_dimension"].append("appid")
