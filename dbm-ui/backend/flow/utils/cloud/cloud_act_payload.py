@@ -26,6 +26,8 @@ from backend.flow.consts import (
     CloudDBHATypeEnum,
     CloudServiceConfFileEnum,
     CloudServiceName,
+    MySQLPrivComponent,
+    UserName,
 )
 from backend.flow.engine.exceptions import ServiceDoesNotApply
 from backend.flow.utils.base.payload_handler import PayloadHandler
@@ -134,7 +136,8 @@ class CloudServiceActPayload(object):
             "mysql_crond_event_data_token": bkm_dbm_report["event"]["token"],
             "mysql_crond_agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
             "mysql_crond_beat_path": env.MYSQL_CROND_BEAT_PATH,
-            "proxy_password": DBPasswordHandler.query_proxy_password(),
+            "proxy_password": DBPasswordHandler.get_component_password(UserName.PROXY, MySQLPrivComponent.PROXY),
+            "mysql_os_password": DBPasswordHandler.get_component_password(UserName.OS_MYSQL, MySQLPrivComponent.MYSQL),
             "local_ip": self.kwargs["exec_ip"]["ip"],
         }
 
@@ -162,7 +165,7 @@ class CloudServiceActPayload(object):
             "drs_webconsole_user": self.kwargs["plain_webconsole_user"],
             "drs_webconsole_password": self.kwargs["plain_webconsole_pwd"],
             "dns_nameserver": dns_nameserver_str,
-            "proxy_password": DBPasswordHandler.query_proxy_password(),
+            "proxy_password": DBPasswordHandler.get_component_password(UserName.PROXY, MySQLPrivComponent.PROXY),
         }
 
     def get_drs_apply_paylaod(self):

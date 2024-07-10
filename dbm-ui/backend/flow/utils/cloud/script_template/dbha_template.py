@@ -134,7 +134,7 @@ monitor:
 ssh:
   port: 36000
   user: "mysql"
-  pass: "qljl1rH"
+  pass: "{{mysql_os_password}}"
   dest: "agent"
   timeout: 10
 """
@@ -259,7 +259,7 @@ monitor:
 ssh:
   port: 36000
   user: "mysql"
-  pass: "qljl1rH"
+  pass: "{{mysql_os_password}}"
   dest: "agent"
   timeout: 10
 """

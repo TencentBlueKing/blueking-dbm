@@ -29,6 +29,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, 
 from backend.db_meta.models import Machine
 from backend.db_periodic_task.models import DBPeriodicTask
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
+from backend.flow.consts import DEFAULT_INSTANCE
 from backend.utils.string import base64_decode, base64_encode
 
 logger = logging.getLogger("root")
@@ -224,13 +225,12 @@ class DBPasswordHandler(object):
         celery_task.save(update_fields=[model_field])
 
     @classmethod
-    def query_proxy_password(cls):
-        """查询proxy password，用于渲染drs和dbha配置中的proxy password"""
-        # 查询参数固定
-        params = {
-            "instances": [{"ip": "0.0.0.0", "port": 0, "bk_cloud_id": 0}],
-            "users": [{"username": "proxy", "component": "proxy"}],
-        }
-        data = DBPrivManagerApi.get_password(params)["items"][0]
-        # 注意要用base64解密
-        return base64_decode(data["password"])
+    def get_component_password(cls, username, component):
+        """组件的默认账号密码"""
+        data = DBPrivManagerApi.get_password(
+            {
+                "instances": [DEFAULT_INSTANCE],
+                "users": [{"username": username, "component": component}],
+            }
+        )["items"]
+        return base64_decode(data[0]["password"])

@@ -1332,7 +1332,7 @@
                 "id": "mysql_webconsole",
                 "name": "MySQL Webconsole执行",
                 "name_en": "mysql_webconsole",
-                "type": "exec",
+                "type": "execute",
                 "related_resource_types": [
                     {
                         "system_id": "bk_dbm",
@@ -2183,7 +2183,7 @@
                 "id": "tendbcluster_webconsole",
                 "name": "TendbCluster Webconsole执行",
                 "name_en": "tendbcluster_webconsole",
-                "type": "exec",
+                "type": "execute",
                 "related_resource_types": [
                     {
                         "system_id": "bk_dbm",
