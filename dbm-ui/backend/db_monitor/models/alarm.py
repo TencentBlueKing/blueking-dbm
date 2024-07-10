@@ -674,11 +674,14 @@ class MonitorPolicy(AuditedModel):
                 bkm_dbm_report_event = bkm_dbm_report["event"]
                 bkm_dbm_report_metric = bkm_dbm_report["metric"]
                 if "metric_id" in query_config:
-                    query_config["metric_id"] = query_config["metric_id"].format(
-                        bk_biz_id=env.DBA_APP_BK_BIZ_ID,
-                        event_data_id=bkm_dbm_report_event["data_id"],
-                        metric_data_id=bkm_dbm_report_metric["data_id"],
-                    )
+                    try:
+                        query_config["metric_id"] = query_config["metric_id"].format(
+                            bk_biz_id=env.DBA_APP_BK_BIZ_ID,
+                            event_data_id=bkm_dbm_report_event["data_id"],
+                            metric_data_id=bkm_dbm_report_metric["data_id"],
+                        )
+                    except ValueError:
+                        logger.exception(f"format metric_id error, {query_config['metric_id']}")
                 if "result_table_id" in query_config:
                     query_config["result_table_id"] = query_config["result_table_id"].format(
                         bk_biz_id=env.DBA_APP_BK_BIZ_ID,

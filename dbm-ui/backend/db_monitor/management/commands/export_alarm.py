@@ -169,7 +169,6 @@ class Command(BaseCommand):
                         if metric_id != promql:
                             query_config["metric_id"] = promql
                     else:
-                        # 奇怪，监控新版阉割了name
                         metric_field = query_config.get("metric_field")
                         if metric_field and not metric_id.endswith(metric_field):
                             query_config["metric_id"] = ".".join(metric_id.split(".")[:-1] + [metric_field])
@@ -178,8 +177,7 @@ class Command(BaseCommand):
                     # 根据监控侧长度限制进行截断
                     if len(query_config["metric_id"]) > 128:
                         logger.info(f"found too long promql metric: {template_name} -> {query_config['metric_id']}")
-
-                    query_config["metric_id"] = query_config["metric_id"][:128]
+                        query_config["metric_id"] = ""
 
                     if "agg_dimension" in query_config and "appid" not in query_config["agg_dimension"]:
                         query_config["agg_dimension"].append("appid")
