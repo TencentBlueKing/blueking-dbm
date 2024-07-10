@@ -45,8 +45,10 @@
               mode="collapse"
               :title="t('实施进度')">
               <FlowInfo
+                ref="flowInfoRef"
                 :data="state.ticketData"
-                @fetch-data="handleFetchData" />
+                @fetch-data="handleFetchData"
+                @mounted="handleFlowInfoMounted" />
             </DbCard>
           </template>
         </div>
@@ -122,6 +124,8 @@
 
   const isFullscreen = ref<LocationQueryValue | LocationQueryValue[]>();
   const demandCollapse = ref(false);
+  const flowInfoRef = ref<InstanceType<typeof FlowInfo>>()
+
   const state = reactive({
     isLoading: false,
     ticketData: null as TicketModel | null,
@@ -183,6 +187,8 @@
     ],
   ];
 
+  let flowInit = false;
+
   watch(() => props.data?.id, (id) => {
     if (id) {
       fetchTicketDetails(id);
@@ -217,7 +223,15 @@
     }
   };
 
+  const handleFlowInfoMounted = () => {
+    if (flowInit) {
+      flowInfoRef.value!.fetchFlowData();
+      flowInit = false;
+    }
+  }
+
   onMounted(() => {
+    flowInit = true;
     window.addEventListener('keydown', exitFullscreen);
   });
 
