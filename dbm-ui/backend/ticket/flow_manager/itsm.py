@@ -104,7 +104,7 @@ class ItsmFlow(BaseTicketFlow):
         send_msg_for_flow.apply_async(
             kwargs={
                 "flow_id": self.flow_obj.id,
-                "flow_msg_type": FlowMsgType.PENDING.value,
+                "flow_msg_type": FlowMsgType.TODO.value,
                 "flow_status": FlowMsgStatus.PENDING.value,
                 "processor": itsm_fields["approver"],
                 "receiver": self.ticket.creator,
