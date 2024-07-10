@@ -21,9 +21,7 @@
       @fetch-data="handleFecthData" />
   </BkLoading>
 </template>
-<script lang="ts">
-  let initOnce = false;
-</script>
+<script lang="ts"></script>
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketFlows } from '@services/source/ticket';
@@ -43,6 +41,11 @@
 
   interface Emits {
     (e: 'fetchData'): void;
+    (e: 'mounted'): void;
+  }
+
+  interface Expose {
+    fetchFlowData: () => void;
   }
 
   const props = defineProps<Props>();
@@ -75,10 +78,8 @@
   watch(
     () => props.data.id,
     (id) => {
-      if (id) {
-        state.flows = [];
-        fetchTicketFlows(id);
-      }
+      state.flows = [];
+      fetchTicketFlows(id);
     },
     // { immediate: true },
   );
@@ -106,15 +107,20 @@
       });
   }
 
-  if (!initOnce) {
-    fetchTicketFlows(props.data.id);
-    initOnce = true;
-  }
-
   const handleFecthData = () => {
     fetchTicketFlows(props.data.id);
     emits('fetchData'); // 操作单据后立即查询基本信息
   };
+
+  onMounted(() => {
+    emits('mounted');
+  });
+
+  defineExpose<Expose>({
+    fetchFlowData() {
+      fetchTicketFlows(props.data.id);
+    },
+  });
 </script>
 
 <style lang="less" scoped>
