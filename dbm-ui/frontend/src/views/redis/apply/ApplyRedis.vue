@@ -410,6 +410,7 @@
     type: TicketTypes.REDIS_CLUSTER_APPLY,
     onSuccess(formdata) {
       state.formdata = formdata;
+      bizState.hasEnglishName = !!formdata.details.db_app_abbr;
     },
   });
 

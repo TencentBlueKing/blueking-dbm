@@ -418,6 +418,7 @@
         bizId,
         cloudId,
         backendSpecId,
+        dbAppAbbr,
         cityCode,
         clusterCount,
         dbModuleId,
@@ -445,6 +446,9 @@
       formdata.remark = remark;
       formdata.details.start_mysql_port = startMysqlPort;
       formdata.details.start_proxy_port = startProxyPort;
+      formdata.details.db_app_abbr = dbAppAbbr;
+
+      bizState.hasEnglishName = !!dbAppAbbr;
 
       // TODO: 需要提供接口补全每台主机的信息，不然会缺少字段导致数据处理报错
       // formdata.details.nodes = nodes;
@@ -462,6 +466,7 @@
         cityCode,
         clusterCount,
         dbModuleId,
+        dbAppAbbr,
         domains,
         instNum,
         ipSource,
@@ -484,6 +489,9 @@
       formdata.remark = remark;
       formdata.details.start_mysql_port = startMysqlPort;
       // formdata.details.nodes = nodes;
+      formdata.details.db_app_abbr = dbAppAbbr;
+
+      bizState.hasEnglishName = !!dbAppAbbr;
     },
   });
 
