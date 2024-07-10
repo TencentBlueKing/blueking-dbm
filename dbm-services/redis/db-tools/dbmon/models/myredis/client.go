@@ -1,6 +1,7 @@
 package myredis
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -297,38 +298,41 @@ func (db *RedisClient) DbSize() (ret int64, err error) {
 // Info 执行info [section]命令并将返回结果保存在map中
 func (db *RedisClient) Info(section string) (infoRet map[string]string, err error) {
 	infoRet = make(map[string]string)
-	var str01 string
+	var infoRetStr string
 	ctx := context.TODO()
 	if section == "" && db.DbType == consts.TendisTypeRedisCluster {
-		str01, err = db.ClusterClient.Info(ctx).Result()
+		infoRetStr, err = db.ClusterClient.Info(ctx).Result()
 	} else if section != "" && db.DbType == consts.TendisTypeRedisCluster {
-		str01, err = db.ClusterClient.Info(ctx, section).Result()
+		infoRetStr, err = db.ClusterClient.Info(ctx, section).Result()
 	} else if section == "" && db.DbType != consts.TendisTypeRedisCluster {
-		str01, err = db.InstanceClient.Info(ctx).Result()
+		infoRetStr, err = db.InstanceClient.Info(ctx).Result()
 	} else if section != "" && db.DbType != consts.TendisTypeRedisCluster {
-		str01, err = db.InstanceClient.Info(ctx, section).Result()
+		infoRetStr, err = db.InstanceClient.Info(ctx, section).Result()
 	}
 	if err != nil {
 		err = fmt.Errorf("redis:%s 'info %s' fail,err:%v", db.Addr, section, err)
 		mylog.Logger.Error(err.Error())
 		return
 	}
-	infoList := strings.Split(str01, "\n")
-	for _, infoItem := range infoList {
-		infoItem = strings.TrimSpace(infoItem)
-		if strings.HasPrefix(infoItem, "#") {
-			continue
-		}
-		if len(infoItem) == 0 {
+	scanner := bufio.NewScanner(strings.NewReader(infoRetStr))
+	for scanner.Scan() {
+		infoItem := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(infoItem, "#") || len(infoItem) == 0 {
 			continue
 		}
 		list01 := strings.SplitN(infoItem, ":", 2)
 		if len(list01) < 2 {
 			continue
 		}
-		list01[0] = strings.TrimSpace(list01[0])
-		list01[1] = strings.TrimSpace(list01[1])
-		infoRet[list01[0]] = list01[1]
+		key := strings.TrimSpace(list01[0])
+		value := strings.TrimSpace(list01[1])
+		infoRet[key] = value
+	}
+
+	if err := scanner.Err(); err != nil {
+		err = fmt.Errorf("redis:%s 'info %s' error reading info response: %v", db.Addr, section, err)
+		mylog.Logger.Error(err.Error())
+		return nil, err
 	}
 	return
 }
@@ -439,6 +443,36 @@ func (db *RedisClient) GetRole() (role string, err error) {
 		return
 	}
 	role = infoRet["role"]
+	return
+}
+
+// GetMasterRole info replication中master信息,而后连接master获取其role信息
+func (db *RedisClient) GetMasterRole() (masterRole string, err error) {
+	var confRet map[string]string
+	var masterCli *RedisClient
+	masterHost, masterPort, _, selfRole, _, err := db.GetMasterData()
+	if err != nil {
+		return
+	}
+	if selfRole != consts.RedisSlaveRole {
+		return "", nil
+	}
+	masterAddr := fmt.Sprintf("%s:%s", masterHost, masterPort)
+	confRet, err = db.ConfigGet("masterauth")
+	if err != nil {
+		return
+	}
+	masterAuth, ok := confRet["masterauth"]
+	if !ok {
+		masterAuth = db.Password
+	}
+	// 连接master
+	masterCli, err = NewRedisClientWithTimeout(masterAddr, masterAuth, 0, consts.TendisTypeRedisInstance, 5*time.Second)
+	if err != nil {
+		return masterRole, err
+	}
+	defer masterCli.Close()
+	masterRole, err = masterCli.GetRole()
 	return
 }
 
@@ -1608,6 +1642,49 @@ func (db *RedisClient) GetTendisplusHeartbeat(key string) (heartbeat map[int]tim
 		heartbeat[storeID], _ = time.ParseInLocation(consts.UnixtimeLayout, value, time.Local)
 	}
 	return heartbeat, nil
+}
+
+// GetInfoReplSlaves 获取info replication中slave列表
+func (db *RedisClient) GetInfoReplSlaves() (slaveList []*InfoReplSlave, slaveMap map[string]*InfoReplSlave, err error) {
+	var replRet string
+	if db.DbType == consts.TendisTypeRedisCluster {
+		replRet, err = db.ClusterClient.Info(context.TODO(), "replication").Result()
+	} else {
+		replRet, err = db.InstanceClient.Info(context.TODO(), "replication").Result()
+	}
+	if err != nil {
+		err = fmt.Errorf("info replication fail,err:%v,aadr:%s", err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	infoList := strings.Split(replRet, "\n")
+	slaveReg := regexp.MustCompile(`^slave\d+$`)
+	slaveMap = make(map[string]*InfoReplSlave)
+	for _, infoItem := range infoList {
+		infoItem = strings.TrimSpace(infoItem)
+		if strings.HasPrefix(infoItem, "#") {
+			continue
+		}
+		if len(infoItem) == 0 {
+			continue
+		}
+		list01 := strings.SplitN(infoItem, ":", 2)
+		if len(list01) < 2 {
+			continue
+		}
+		list01[0] = strings.TrimSpace(list01[0])
+		list01[1] = strings.TrimSpace(list01[1])
+		if slaveReg.MatchString(list01[0]) == true {
+			slave01 := &InfoReplSlave{}
+			err = slave01.decode(infoItem)
+			if err != nil {
+				return
+			}
+			slaveList = append(slaveList, slave01)
+			slaveMap[slave01.Addr()] = slave01
+		}
+	}
+	return
 }
 
 // Close 关闭连接

@@ -66,10 +66,10 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 	var overrideLocal bool = true
 	var newMysqlHomeLink bool = true
 	var realLink string
-	err = pkg.Check()
-	if err != nil {
-		return
-	}
+	// err = pkg.Check()
+	// if err != nil {
+	// 	return
+	// }
 	toolsName := filepath.Base(consts.DbToolsPath)
 	backupDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak") // 如 /data/dbbak
 	bakdirToolsTar := filepath.Join(backupDir, toolsName+".tar.gz") // 如 /data/dbbak/dbtools.tar.gz

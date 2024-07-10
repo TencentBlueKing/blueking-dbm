@@ -116,6 +116,7 @@ const (
 	DbToolsPath            = "/home/mysql/dbtools"
 	RedisShakeBin          = "/home/mysql/dbtools/redis-shake"
 	RedisSafeDeleteToolBin = "/home/mysql/dbtools/redisSafeDeleteTool"
+	// LdbTendisplusBin TODO
 	// same with tendisplus package
 	LdbTendisplusBin        = "/usr/local/redis/bin/ldb_tendis"
 	TredisverifyBin         = "/home/mysql/dbtools/tredisverify"
@@ -192,6 +193,21 @@ const (
 	PayloadFormatRaw = "raw"
 	// PayloadFormatBase64 base64
 	PayloadFormatBase64 = "base64"
+)
+
+// kibis of bits
+const (
+	Byte = 1 << (iota * 10)
+	KiByte
+	MiByte
+	GiByte
+	TiByte
+	EiByte
+)
+
+// redis maxmemory-policy
+const (
+	PolicyNoeviction = "noeviction"
 )
 
 // IsClusterDbType 存储端是否是cluster类型

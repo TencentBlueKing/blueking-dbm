@@ -29,6 +29,10 @@ from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.db_package.models import Package
+from backend.db_services.redis.maxmemory_set.util import (
+    get_dbmon_maxmemory_config_by_bkbizid,
+    get_dbmon_maxmemory_config_by_cluster_ids,
+)
 from backend.db_services.redis.redis_dts.models.tb_tendis_dts_switch_backup import TbTendisDtsSwitchBackup
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
@@ -1128,17 +1132,24 @@ class RedisActPayload(object):
             "redis_heartbeat": heartbeat_config,
             "redis_monitor": monitor_config,
             "redis_keylife": keylife_config,
+            "redis_maxmemory_set": get_dbmon_maxmemory_config_by_bkbizid(bk_biz_id=bk_biz_id),
         }
 
     def bkdbmon_install(self, **kwargs) -> dict:
         """
         redis bk-dbmon安装
         """
+        payload = self.get_bkdbmon_payload_header(str(self.bk_biz_id))
+        if kwargs["params"] and kwargs["params"]["servers"]:
+            if len(kwargs["params"]["servers"]) > 0:
+                cluster_domain = kwargs["params"]["servers"][0]["cluster_domain"]
+                cluster = Cluster.objects.get(immute_domain=cluster_domain)
+                payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
 
         return {
             "db_type": DBActuatorTypeEnum.Bkdbmon.value,
             "action": DBActuatorTypeEnum.Bkdbmon.value + "_" + RedisActuatorActionEnum.Install.value,
-            "payload": self.get_bkdbmon_payload_header(str(self.bk_biz_id)),
+            "payload": payload,
         }
 
     @staticmethod
@@ -1195,6 +1206,7 @@ class RedisActPayload(object):
         except Cluster.DoesNotExist:
             raise Exception("redis cluster {} does not exist".format(params["cluster_domain"]))
         payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+        payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
         if params["is_stop"]:
             payload["servers"] = []
         else:
@@ -1214,6 +1226,7 @@ class RedisActPayload(object):
         """
         ip = kwargs["params"]["ip"]
         cluster_list = query_cluster_by_hosts([ip])
+        cluster_ids = set()
 
         servers = []
         cluster: Cluster = None
@@ -1223,11 +1236,13 @@ class RedisActPayload(object):
             except Cluster.DoesNotExist:
                 raise Exception("redis cluster {} does not exist".format(c["cluster"]))
             servers.append(RedisActPayload.get_bkdbmon_servers_params(cluster, ip))
+            cluster_ids.add(cluster.id)
         # 单实例下架的时候，如果全下架完了的话，这个地方的cluster是没有了的
         if cluster is None:
             payload = self.get_bkdbmon_payload_header(kwargs["params"]["bk_biz_id"])
         else:
             payload = self.get_bkdbmon_payload_header(str(cluster.bk_biz_id))
+            payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids(list(cluster_ids))
         payload["servers"] = servers
         return {
             "db_type": DBActuatorTypeEnum.Bkdbmon.value,

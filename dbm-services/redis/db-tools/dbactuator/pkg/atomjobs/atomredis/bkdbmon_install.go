@@ -49,6 +49,7 @@ type BkDbmonInstallParams struct {
 	RedisHeartbeat           map[string]interface{} `json:"redis_heartbeat" validate:"required"`
 	RedisMonitor             map[string]interface{} `json:"redis_monitor" validate:"required"`
 	RedisKeyLifecyckle       map[string]interface{} `json:"redis_keylife" mapstructure:"redis_keylife"`
+	RedisMaxmemorySet        map[string]interface{} `json:"redis_maxmemory_set" mapstructure:"redis_maxmemory_set"`
 	Servers                  []ConfServerItem       `json:"servers" yaml:"servers" validate:"required"`
 }
 
@@ -437,6 +438,7 @@ type bkDbmonConf struct {
 	RedisHeartbeat           map[string]interface{} `json:"redis_heartbeat" yaml:"redis_heartbeat"`
 	RedisMonitor             map[string]interface{} `json:"redis_monitor" yaml:"redis_monitor"`
 	RedisKeyLifecyckle       map[string]interface{} `json:"redis_keylife" yaml:"redis_keylife"`
+	RedisMaxmemorySet        map[string]interface{} `json:"redis_maxmemory_set" yaml:"redis_maxmemory_set"`
 	Servers                  []ConfServerItem       `json:"servers" yaml:"servers"`
 }
 
@@ -463,6 +465,7 @@ func (job *BkDbmonInstall) GenerateConfigFile() (err error) {
 		RedisHeartbeat:           job.params.RedisHeartbeat,
 		RedisMonitor:             job.params.RedisMonitor,
 		RedisKeyLifecyckle:       job.params.RedisKeyLifecyckle,
+		RedisMaxmemorySet:        job.params.RedisMaxmemorySet,
 		Servers:                  job.params.Servers,
 	}
 
