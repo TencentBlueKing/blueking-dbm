@@ -722,7 +722,7 @@ func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, app, result
 //
 //	mod value  : agent number
 //	hash value : agent's index
-func (c *HaDBClient) AgentGetHashValue(agentIP string, cityID int, dbType string, interval int) (uint32, uint32, error) {
+func (c *HaDBClient) AgentGetHashValue(agentIP string, cityID int, dbType string, interval int) (int, int, error) {
 	//	select ip from ha_status where city_id = ? and db_type = ?
 	//	and module = "agent" and status = "RUNNING"
 	//	and last_time > DATE_SUB(now(), interval 5 minute)
@@ -732,10 +732,10 @@ func (c *HaDBClient) AgentGetHashValue(agentIP string, cityID int, dbType string
 		log.Logger.Errorf("get agent list failed. err:%s", err.Error())
 		return 0, 0, err
 	}
-	var mod uint32
-	var modValue uint32
+	var mod int
+	var modValue int
 	var find bool
-	mod = uint32(len(agents))
+	mod = len(agents)
 	for index, agent := range agents {
 		if agent == agentIP {
 			if find {
@@ -743,7 +743,7 @@ func (c *HaDBClient) AgentGetHashValue(agentIP string, cityID int, dbType string
 				return 0, 0, err
 			}
 			find = true
-			modValue = uint32(index)
+			modValue = index
 		}
 	}
 	if !find {
