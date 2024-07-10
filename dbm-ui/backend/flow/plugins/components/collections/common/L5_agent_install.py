@@ -42,6 +42,7 @@ class L5AgentInstall(BkSopsService):
                     "flow_type": "common",
                     "constants": {
                         "${biz_cc_id}": bk_biz_id,
+                        "${bk_biz_id}": bk_biz_id,
                         "${job_ip_list}": ip,
                         "${job_account}": DBA_ROOT_USER,
                     },

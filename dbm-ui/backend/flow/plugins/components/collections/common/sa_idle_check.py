@@ -60,6 +60,7 @@ class CheckMachineIdleCheck(BkSopsService):
             "flow_type": "common",
             "constants": {
                 "${biz_cc_id}": bk_biz_id,
+                "${bk_biz_id}": bk_biz_id,
                 "${job_ip_list}": "\n".join(ips),
                 "${job_account}": "root",
             },
