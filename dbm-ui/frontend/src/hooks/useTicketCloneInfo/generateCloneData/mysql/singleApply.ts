@@ -15,7 +15,7 @@ import TicketModel from '@services/model/ticket/ticket';
 
 // Mysql 单节点部署
 export function generateMysqlSingleApplyCloneData(ticketData: TicketModel<MySQLDetails>) {
-  const { details } =  ticketData;
+  const { details } = ticketData;
   return Promise.resolve({
     affinity: details.disaster_tolerance_level,
     bizId: ticketData.bk_biz_id,
@@ -23,12 +23,13 @@ export function generateMysqlSingleApplyCloneData(ticketData: TicketModel<MySQLD
     cityCode: details.city_code,
     clusterCount: details.cluster_count,
     dbModuleId: details.db_module_id,
+    dbAppAbbr: ticketData.db_app_abbr,
     domains: details.domains,
     instNum: details.inst_num,
     ipSource: details.ip_source,
     nodes: details.nodes,
     singleSpecId: details.resource_spec?.single.spec_id,
     remark: ticketData.remark,
-    startMysqlPort: details.start_mysql_port
+    startMysqlPort: details.start_mysql_port,
   });
 }
