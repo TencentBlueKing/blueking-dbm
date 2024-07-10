@@ -98,7 +98,7 @@ def callback_ticket(ticket_id, root_id):
             kwargs={
                 "flow_id": current_flow.id,
                 "flow_msg_type": FlowMsgType.DONE.value,
-                "flow_status": current_flow.status,
+                "flow_status": TicketFlowStatus.get_choice_label(current_flow.status),
                 "processor": ticket.creator,
                 "receiver": ticket.creator,
             }

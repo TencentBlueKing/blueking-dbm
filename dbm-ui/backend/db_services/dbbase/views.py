@@ -179,12 +179,17 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         existing_values: Dict[str, Set[str]] = defaultdict(set)
         # 过滤一些不合格的数据
         if data["cluster_attrs"]:
+            # 获取choice map
+            field__choice_map = {
+                attr: {value: label for value, label in getattr(Cluster, attr).field.choices or []}
+                for attr in data["cluster_attrs"]
+            }
             for attr in clusters.values(*data["cluster_attrs"]):
                 for key, value in attr.items():
                     # 保留bk_cloud_id有等于0的情况
                     if value is not None and value not in existing_values[key]:
                         existing_values[key].add(value)
-                        cluster_attrs[key].append({"value": value, "text": value})
+                        cluster_attrs[key].append({"value": value, "text": field__choice_map[key].get(value, value)})
 
         # 如果需要查询模块信息，则需要同时提供db_module_id/db_module_name
         if "db_module_id" in cluster_attrs:
@@ -197,6 +202,7 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                 ]
             else:
                 cluster_attrs["db_module_id"] = []
+
         # 如果需要查询管控区域信息
         if "bk_cloud_id" in cluster_attrs:
             cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)

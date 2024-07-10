@@ -17,9 +17,9 @@ from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 class ClusterType(str, StructuredEnum):
-    TenDBSingle = EnumField("tendbsingle", _("tendbsingle"))
-    TenDBHA = EnumField("tendbha", _("tendbha"))
-    TenDBCluster = EnumField("tendbcluster", _("tendbcluster"))
+    TenDBSingle = EnumField("tendbsingle", _("MySQL单节点集群"))
+    TenDBHA = EnumField("tendbha", _("MySQL高可用集群"))
+    TenDBCluster = EnumField("tendbcluster", _("TendbCluster集群"))
 
     RedisCluster = EnumField("redis", _("Redis"))
     TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("Redis集群"))
@@ -34,9 +34,9 @@ class ClusterType(str, StructuredEnum):
     TendisTendisplusCluster = EnumField("TendisplusCluster", _("TendisplusCluster集群"))
 
     #  GetTendisType 获取redis类型,返回RedisInstance or TendisplusInstance or TendisSSDInstance
-    TendisplusInstance = EnumField("TendisplusInstance", _("Tendisplus存储版集群 GetTendisType 获取redis类型值"))
-    RedisInstance = EnumField("RedisInstance", _("TendisCache集群 GetTendisType 获取redis类型值"))
-    TendisSSDInstance = EnumField("TendisSSDInstance", _("TendisSSD集群 GetTendisType 获取redis类型值"))
+    TendisplusInstance = EnumField("TendisplusInstance", _("Tendisplus存储版集群"))
+    RedisInstance = EnumField("RedisInstance", _("TendisCache集群"))
+    TendisSSDInstance = EnumField("TendisSSDInstance", _("TendisSSD集群"))
 
     Es = EnumField("es", _("ES集群"))
     Kafka = EnumField("kafka", _("Kafka集群"))

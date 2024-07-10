@@ -28,7 +28,7 @@ from backend.components.cmsi.handler import CmsiHandler
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
-from backend.ticket.constants import FlowErrCode, FlowType, TicketType
+from backend.ticket.constants import FlowErrCode, FlowMsgType, FlowType, TicketStatus, TicketType
 from backend.ticket.exceptions import TicketTaskTriggerException
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.models.ticket import Flow, Ticket
@@ -255,7 +255,7 @@ def send_msg_for_flow(
     异步发送消息通知
     @param flow_id: 流程ID
     @param flow_msg_type: 流程类型
-    @param flow_status: 流程状态
+    @param flow_status: 流程状态展示
     @param receiver: 通知人(多个处理人用,分割)
     @param processor: 处理人(多个处理人用,分割)
     @param detail_address: 查看详情链接
@@ -268,15 +268,13 @@ def send_msg_for_flow(
 
     # 通知模板
     content = _(
-        """
-        单据类型：{ticket_type}
-        所属业务：{biz_name}
-        提单人：{creator}
-        提单时间：{submit_time}
-        处理人：{processor}
-        执行情况：{flow_status}
-        查看详情：{detail_address}
-        """
+        """单据类型：{ticket_type}
+    所属业务：{biz_name}
+    提单人：{creator}
+    提单时间：{submit_time}
+    处理人：{processor}
+    执行情况：{flow_status}
+    查看详情：{detail_address}"""
     ).format(
         ticket_type=ticket_type,
         biz_name=biz_name,
@@ -294,7 +292,10 @@ def send_msg_for_flow(
             approval_address = data[0]["ticket_url"]
         except IndexError:
             approval_address = ""
-        content += _("审批链接：{approval_address}").format(approval_address=approval_address)
+        content += _("\n审批链接：{approval_address}").format(approval_address=approval_address)
+
+    if flow_msg_type == FlowMsgType.DONE.value:
+        flow_msg_type = TicketStatus.get_choice_label(ticket.status)
 
     # 通知人 = 额外通知人 + 处理人 + 提单人
     receiver__username = set(f"{receiver},{processor},{ticket.creator}".split(","))

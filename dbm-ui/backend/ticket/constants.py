@@ -612,7 +612,6 @@ class ItsmTicketNodeEnum(str, StructuredEnum):
 class FlowMsgType(str, StructuredEnum):
     DONE = EnumField(_("完成"), _("完成"))
     TODO = EnumField(_("代办"), _("代办"))
-    PENDING = EnumField(_("待审批"), _("待审批"))
 
 
 class FlowMsgStatus(str, StructuredEnum):
