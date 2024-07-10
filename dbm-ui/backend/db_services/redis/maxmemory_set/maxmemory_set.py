@@ -19,20 +19,20 @@ from typing import Tuple
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 
-from backend import env
 from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.maxmemory_set.models import TbTendisMaxmemoryBackends
 from backend.db_services.redis.redis_dts.models import TbTendisDtsTask
 from backend.db_services.redis.util import is_redis_instance_type
-from backend.flow.consts import ConfigFileEnum, ConfigTypeEnum, NameSpaceEnum
+from backend.flow.consts import RedisMaxmemoryConfigType
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_maxmemory_set import RedisClusterMaxmemorySetSceneFlow
 from backend.flow.utils.base.payload_handler import PayloadHandler
-from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_util import decode_info_cmd, humanbytes, parse_human_size
 from backend.ticket.constants import TicketType
 from backend.utils.basic import generate_root_id
+
+from .models import TbTendisMaxmemoryConfig
 
 logger = logging.getLogger("flow")
 
@@ -50,7 +50,7 @@ class RedisClusterMaxmemorySet:
         self.master_ip_ports = defaultdict(list)
 
         self.bk_biz_id_blacklist = set()
-        self.domain_blacklist = set()
+        self.cluster_id_blacklist = set()
         self.used_memory_change_threshold = 0
         self.used_memory_change_percent = 0
 
@@ -62,26 +62,37 @@ class RedisClusterMaxmemorySet:
         self.cluster_password = PayloadHandler.redis_get_cluster_password(self.cluster)
 
     def get_maxmemory_set_config(self):
-        maxmemory_set_config = RedisActPayload.get_common_config(
-            bk_biz_id=str(env.DBA_APP_BK_BIZ_ID),
-            namespace=NameSpaceEnum.RedisCommon,
-            conf_file=ConfigFileEnum.MaxMemorySet,
-            conf_type=ConfigTypeEnum.Config,
-        )
-        if not maxmemory_set_config:
-            return
+        row = TbTendisMaxmemoryConfig.objects.filter(
+            config_type=RedisMaxmemoryConfigType.BK_BIZ_ID_BLACKLIST.value
+        ).first()
+        if row:
+            for item in row.config_data.replace(";", ",").split(","):
+                item.strip()
+                if item:
+                    self.bk_biz_id_blacklist.add(int(item))
+        row = TbTendisMaxmemoryConfig.objects.filter(
+            config_type=RedisMaxmemoryConfigType.CLUSTER_ID_BLACKLIST.value
+        ).first()
+        if row:
+            for item in row.config_data.replace(";", ",").split(","):
+                item.strip()
+                if item:
+                    self.cluster_id_blacklist.add(int(item))
+        row = TbTendisMaxmemoryConfig.objects.filter(
+            config_type=RedisMaxmemoryConfigType.USED_MEMORY_CHANGE_THRESHOLD.value
+        ).first()
+        if row and row.config_data != "" and row.config_data != "0":
+            self.used_memory_change_threshold = parse_human_size(row.config_data)
+        else:
+            self.used_memory_change_threshold = parse_human_size("200MB")
 
-        for item in maxmemory_set_config["bk_biz_id_blacklist"].replace(";", ",").split(","):
-            item.strip()
-            if item:
-                self.bk_biz_id_blacklist.add(int(item))
-        for item in maxmemory_set_config["domains_blacklist"].replace(";", ",").split(","):
-            item.strip()
-            if item:
-                self.domain_blacklist.add(item)
-        self.used_memory_change_percent = int(maxmemory_set_config.get("master_used_memory_change_percent", 20))
-        threshold = maxmemory_set_config.get("master_used_memory_change_threshold", "200MB")
-        self.used_memory_change_threshold = parse_human_size(threshold)
+        row = TbTendisMaxmemoryConfig.objects.filter(
+            config_type=RedisMaxmemoryConfigType.USED_MEMORY_CHANGE_PERCENT.value
+        ).first()
+        if row and row.config_data != "" and row.config_data != "0":
+            self.used_memory_change_percent = int(row.config_data)
+        else:
+            self.used_memory_change_percent = 20
 
     def get_cluster_masters_used_memory(self):
         self.master_addrs = []
@@ -116,7 +127,7 @@ class RedisClusterMaxmemorySet:
             msg = _("bk_biz_id {} in blacklist,skip maxmemory set").format(self.cluster.bk_biz_id)
             logger.info(msg)
             return True, msg
-        if self.cluster.immute_domain in self.domain_blacklist:
+        if self.cluster.id in self.cluster_id_blacklist:
             msg = _("domain {} in blacklist,skip maxmemory set").format(self.cluster.immute_domain)
             logger.info(msg)
             return True, msg

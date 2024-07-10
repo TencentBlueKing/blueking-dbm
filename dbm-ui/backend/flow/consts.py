@@ -1007,6 +1007,17 @@ class RedisCapacityUpdateType(str, StructuredEnum):
     ALL_MACHINES_REPLACE = EnumField("all_machines_replace", _("全部机器替换"))
 
 
+class RedisMaxmemoryConfigType(str, StructuredEnum):
+    """
+    redis maxmemory配置类型
+    """
+
+    BK_BIZ_ID_BLACKLIST = EnumField("bk_biz_id_blacklist", _("bk_biz_id黑名单"))
+    CLUSTER_ID_BLACKLIST = EnumField("cluster_id_blacklist", _("cluster_id黑名单"))
+    USED_MEMORY_CHANGE_THRESHOLD = EnumField("used_memory_change_threshold", _("used_memory变更阈值"))
+    USED_MEMORY_CHANGE_PERCENT = EnumField("used_memory_change_percent", _("used_memory变更百分比"))
+
+
 class KafkaRoleEnum(str, StructuredEnum):
     ZOOKEEPER = EnumField("zookeeper", _("zookeeper"))
     BROKER = EnumField("broker", _("broker"))

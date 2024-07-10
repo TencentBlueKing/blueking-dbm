@@ -9,3 +9,4 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .tb_tendis_maxmemory_backends import TbTendisMaxmemoryBackends
+from .tb_tendis_maxmemory_config import TbTendisMaxmemoryConfig

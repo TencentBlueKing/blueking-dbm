@@ -86,10 +86,27 @@ chown -R mysql /home/mysql/install
 password="$2"
 #password=$(echo "$2" | /home/mysql/install/lib/tools/base64 -d)
 echo "mysql:$password" | chpasswd
-FOUND=$(grep 'ulimit -n 204800' /etc/profile)
+FOUND=$(grep -A 2 -B 2 'ulimit -n 204800' /etc/profile || { true; } )
 if [ -z "$FOUND" ]; then
-        echo 'ulimit -n 204800' >>/etc/profile
+cat >> /etc/profile <<EOF
+if [ "\`id -u\`" == "0" ] ;then
+:
+ulimit -n 204800
 fi
+EOF
+elif [[ $FOUND =~ "id -u" ]]; then
+echo "ok"
+else
+# 删除 ulimit -n 204800,重新插入
+sed -i '/ulimit -n 204800/d' /etc/profile
+cat >> /etc/profile <<EOF
+if [ "\`id -u\`" == "0" ] ;then
+:
+ulimit -n 204800
+fi
+EOF
+fi
+
 FOUND=$(grep 'export LC_ALL=en_US' /etc/profile)
 if [ -z "$FOUND" ]; then
         echo 'export LC_ALL=en_US' >>/etc/profile

@@ -15,6 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	"math/big"
+
+	"github.com/dustin/go-humanize"
+
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 
@@ -324,4 +328,13 @@ func GetFileLines(f string) (int64, error) {
 func ToString(param interface{}) string {
 	ret, _ := json.Marshal(param)
 	return string(ret)
+}
+
+// SizeToHumanStr 将字节大小转换为人类可读的字符串
+// 如: 1024 -> 1KiB, 1024*1024 -> 1MiB, 1024*1024*1024 -> 1GiB
+func SizeToHumanStr(ssize int64) string {
+	if ssize >= 0 {
+		return "+" + humanize.BigIBytes((&big.Int{}).SetInt64(ssize))
+	}
+	return "-" + humanize.BigIBytes((&big.Int{}).SetInt64(-ssize))
 }

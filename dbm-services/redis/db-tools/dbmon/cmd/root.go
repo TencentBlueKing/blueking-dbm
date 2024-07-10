@@ -19,6 +19,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/redisbinlogbackup"
 	"dbm-services/redis/db-tools/dbmon/pkg/redisfullbackup"
 	"dbm-services/redis/db-tools/dbmon/pkg/redisheartbeat"
+	"dbm-services/redis/db-tools/dbmon/pkg/redismaxmemory"
 	"dbm-services/redis/db-tools/dbmon/pkg/redismonitor"
 	"dbm-services/redis/db-tools/dbmon/pkg/redisnodesreport"
 	"dbm-services/redis/db-tools/dbmon/pkg/redistaillog"
@@ -181,6 +182,15 @@ Buildstamp:%s`, version, githash, buildstamp),
 				}
 				mylog.Logger.Info(fmt.Sprintf("create cron RedisKeyLifeCycleJob success,entryID:%d", entryID))
 			}
+			// 动态设置 maxmemory
+			entryID, err = c.AddJob("@every 10s",
+				cron.NewChain(cron.SkipIfStillRunning(mylog.GlobCronLogger)).Then(
+					redismaxmemory.GetGlobRedisMaxmemorySet(config.GlobalConf)))
+			if err != nil {
+				fmt.Printf("redis maxmemory_set addjob fail,entryID:%d,err:%v\n", entryID, err)
+				return
+			}
+			mylog.Logger.Info(fmt.Sprintf("create cron GRedisMaxmemorySetJob success,entryID:%d", entryID))
 		} else if hasMongo {
 
 			// Login 登录检查和拉起

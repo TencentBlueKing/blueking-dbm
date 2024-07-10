@@ -66,6 +66,13 @@ type ConfRedisMonitor struct {
 	Cron                  string `json:"cron" mapstructure:"cron"`
 }
 
+// ConfMaxmemorySet TODO
+type ConfMaxmemorySet struct {
+	Enable                    bool   `json:"enable" mapstructure:"enable"`
+	UsedMemoryChangeThreshold string `json:"used_memory_change_threshold" mapstructure:"used_memory_change_threshold"`
+	UsedMemoryChangePercent   int    `json:"used_memory_change_percent" mapstructure:"used_memory_change_percent"`
+}
+
 // Configuration 配置
 type Configuration struct {
 	ReportSaveDir            string                `json:"report_save_dir" mapstructure:"report_save_dir"`
@@ -79,6 +86,7 @@ type Configuration struct {
 	RedisHeartbeat           ConfRedisHeartbeat    `json:"redis_heartbeat" mapstructure:"redis_heartbeat"`
 	KeyLifeCycle             ConfRedisKeyLifeCycle `json:"redis_keylife" mapstructure:"redis_keylife"`
 	RedisMonitor             ConfRedisMonitor      `json:"redis_monitor" mapstructure:"redis_monitor"`
+	RedisMaxmemorySet        ConfMaxmemorySet      `json:"redis_maxmemory_set" mapstructure:"redis_maxmemory_set"`
 	Servers                  []ConfServerItem      `json:"servers" mapstructure:"servers"`
 	InstConfig               InstConfigList        `json:"inst_config,omitempty" mapstructure:"inst_config"`
 }

@@ -23,6 +23,11 @@ type InfoReplSlave struct {
 	Lag    int64  `json:"lag"`
 }
 
+// Addr addr字符串
+func (slave *InfoReplSlave) Addr() string {
+	return slave.IP + ":" + strconv.Itoa(slave.Port)
+}
+
 func (slave *InfoReplSlave) decode(line string) error {
 	line = strings.TrimSpace(line)
 	list01 := strings.Split(line, ":")
