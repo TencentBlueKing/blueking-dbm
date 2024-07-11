@@ -58,7 +58,7 @@ class Spec(AuditedModel):
         根据不同集群类型，计算该规格的容量
         TendbCluster: 如果只有/data数据盘，则容量/2; 如果有/data和/data1数据盘，则按照/data1为准
         TendisPlus, TendisSSD: 一定有两块盘，以/data1为准
-        TendisCache: 以内存为准，内存不是范围，是一个准确的值
+        RedisCluster/TendisCache/Redis: 以内存为准，内存不是范围，是一个准确的值
         默认：磁盘总容量
         """
         mount_point__size: Dict[str, int] = {disk["mount_point"]: disk["size"] for disk in self.storage_spec}
@@ -72,9 +72,13 @@ class Spec(AuditedModel):
         ]:
             return mount_point__size.get("/data1") or mount_point__size["/data"] / 2
 
-        if self.spec_cluster_type == ClusterType.TendisTwemproxyRedisInstance:
-            # 取min, max都一样
-            return self.mem["min"]
+        if self.spec_cluster_type in [
+            ClusterType.TendisTwemproxyRedisInstance,
+            ClusterType.RedisInstance,
+            ClusterType.TendisPredixyRedisCluster,
+        ]:
+            # 取规格内存平均值
+            return (self.mem["min"] + self.mem["max"]) / 2
 
         return sum(map(lambda x: int(x), mount_point__size.values()))
 

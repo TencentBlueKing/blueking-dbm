@@ -55,7 +55,6 @@ class RedisClusterAddSlaveFlow(object):
     @staticmethod
     def get_cluster_info(bk_biz_id, cluster_id):
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
-        cluster_masters = None
         if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
             """
             如果是主从版,根据cluster_id找到cluster,进而找到相同 master ip,所有master/slave实例
@@ -175,7 +174,6 @@ class RedisClusterAddSlaveFlow(object):
                         ] = "{}{}{}".format(master_ip, IP_PORT_DIVIDER, port)
 
             twemproxy_server_shards = get_twemproxy_cluster_server_shards(bk_biz_id, cluster_id, newslave_to_master)
-
             sub_pipeline.add_act(
                 act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
                 act_component_code=GetRedisActPayloadComponent.code,

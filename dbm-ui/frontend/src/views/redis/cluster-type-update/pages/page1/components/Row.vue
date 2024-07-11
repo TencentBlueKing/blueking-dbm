@@ -51,9 +51,8 @@
     <td style="padding: 0">
       <RenderTargetClusterVersion
         ref="versionRef"
-        :data="data.dbVersion"
-        :is-loading="data.isLoading"
-        :select-list="versionList" />
+        :cluster-type="data.clusterType"
+        :data="data.dbVersion" />
     </td>
     <td style="padding: 0">
       <RenderText
@@ -74,13 +73,13 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+  import RenderTargetClusterVersion from '@views/redis/common/edit-field/VersionSelect.vue';
   import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
 
   import RenderDeployPlan, { type ExposeValue } from './RenderDeployPlan.vue';
   import RenderTargetClusterType from './RenderTargetClusterType.vue';
-  import RenderTargetClusterVersion from './RenderTargetClusterVersion.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -195,7 +194,6 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
-    clusterTypesMap: Record<string, string[]>;
     inputedClusters?: string[];
   }
 
@@ -220,16 +218,6 @@
   const targetClusterTypeRef = ref<InstanceType<typeof RenderTargetClusterType>>();
   const versionRef = ref<InstanceType<typeof RenderTargetClusterVersion>>();
   const selectClusterType = ref('');
-
-  const versionList = computed(() => {
-    if (props.clusterTypesMap && selectClusterType.value in props.clusterTypesMap) {
-      return props.clusterTypesMap[selectClusterType.value].map((item) => ({
-        value: item,
-        label: item,
-      }));
-    }
-    return [];
-  });
 
   const handleClusterTypeChange = (value: string) => {
     selectClusterType.value = value;

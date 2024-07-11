@@ -20,10 +20,8 @@ from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.cluster.serializers import (
     GetIntersectedSlavaMachinesResponseSerializer,
     GetIntersectedSlavaMachinesSerializer,
-    GetTendbMachineInstancePairResponseSerializer,
-    GetTendbMachineInstancePairSerializer,
-    GetTendbRemoteMachinesResponseSerializer,
-    GetTendbRemoteMachinesSerializer,
+    GetMachineInstancePairResponseSerializer,
+    GetMachineInstancePairSerializer,
     GetTendbRemotePairsResponseSerializer,
     GetTendbRemotePairsSerializer,
     QueryClustersRequestSerializer,
@@ -53,19 +51,6 @@ class ClusterViewSet(BaseClusterViewSet):
         return Response(ClusterServiceHandler(bk_biz_id).query_clusters(cluster_filters=cluster_filters))
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询tendbcluster集群的remote相关角色机器"),
-        request_body=GetTendbRemoteMachinesSerializer(),
-        tags=[SWAGGER_TAG],
-        responses={status.HTTP_200_OK: GetTendbRemoteMachinesResponseSerializer()},
-    )
-    @action(methods=["POST"], detail=False, serializer_class=GetTendbRemoteMachinesSerializer)
-    def get_remote_machine_pairs(self, request, bk_biz_id):
-        validated_data = self.params_validate(self.get_serializer_class())
-        return Response(
-            ClusterServiceHandler(bk_biz_id).get_remote_machine_pairs(cluster_ids=validated_data["cluster_ids"])
-        )
-
-    @common_swagger_auto_schema(
         operation_summary=_("查询tendbcluster集群的remote_db/remote_dr"),
         request_body=GetTendbRemotePairsSerializer(),
         tags=[SWAGGER_TAG],
@@ -78,14 +63,14 @@ class ClusterViewSet(BaseClusterViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("[tendbcluster]根据实例/机器查询关联对"),
-        request_body=GetTendbMachineInstancePairSerializer(),
+        request_body=GetMachineInstancePairSerializer(),
         tags=[SWAGGER_TAG],
-        responses={status.HTTP_200_OK: GetTendbMachineInstancePairResponseSerializer()},
+        responses={status.HTTP_200_OK: GetMachineInstancePairResponseSerializer()},
     )
-    @action(methods=["POST"], detail=False, serializer_class=GetTendbMachineInstancePairSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=GetMachineInstancePairSerializer)
     def get_remote_machine_instance_pair(self, request, bk_biz_id):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(ClusterServiceHandler(bk_biz_id).get_remote_machine_instance_pair(validated_data))
+        return Response(ClusterServiceHandler(bk_biz_id).query_machine_instance_pair(validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取关联集群从库的交集"),

@@ -28,7 +28,6 @@
           :data="item"
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
-          :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
@@ -58,6 +57,7 @@
       v-model:is-show="isShowMasterInstanceSelector"
       :cluster-types="[ClusterTypes.REDIS]"
       :selected="selectedClusters"
+      :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </SmartAction>
 </template>
@@ -69,7 +69,6 @@
 
   import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
-  import { getClusterTypeToVersions } from '@services/source/version';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -101,7 +100,6 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
-  const versionsMap = ref<Record<string, string[]>>({});
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
   const inputedClusters = computed(() => tableData.value.map((item) => item.targetCluster));
@@ -110,12 +108,20 @@
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
 
-  const queryDBVersions = async () => {
-    const ret = await getClusterTypeToVersions();
-    versionsMap.value = ret;
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
+        getRedisList({
+          ...params,
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+          ].join(','),
+        }),
+    },
   };
-
-  queryDBVersions();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {

@@ -38,6 +38,10 @@ class ListMySQLResourceSLZ(ListResourceSLZ):
     pass
 
 
+class ListRedisResourceSLZ(ListResourceSLZ):
+    pass
+
+
 class ListSQLServerResourceSLZ(ListResourceSLZ):
     db_module_id = serializers.IntegerField(required=False)
 
@@ -128,3 +132,7 @@ class ListMachineSLZ(serializers.Serializer):
     bk_agent_id = serializers.CharField(help_text=_("agent id"), required=False)
     instance_role = serializers.CharField(help_text=_("机器部署的实例角色"), required=False)
     creator = serializers.CharField(help_text=_("创建者"), required=False)
+
+
+class ListRedisMachineResourceSLZ(ListMachineSLZ):
+    add_role_count = serializers.BooleanField(required=False)
