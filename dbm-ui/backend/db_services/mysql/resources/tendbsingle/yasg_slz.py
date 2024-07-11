@@ -23,7 +23,7 @@ paginated_resource_example = {
     "results": [
         {
             "cluster_name": "bk-dbm",
-            "master_domain": "gamedb.bk-dbm.blueking.db",
+            "master_domain": "example.domain.db",
             "masters": ["0.0.0.1#30000"],
             "...": "...",
         }

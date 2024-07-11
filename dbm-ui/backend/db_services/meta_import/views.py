@@ -25,6 +25,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.meta_import.constants import SWAGGER_TAG
 from backend.db_services.meta_import.serializers import (
+    GeneralMetadataImportSerializer,
     TenDBClusterAppendCTLSerializer,
     TenDBClusterMetadataImportSerializer,
     TenDBClusterStandardizeSerializer,
@@ -48,7 +49,6 @@ logger = logging.getLogger("root")
 
 
 class DBMetadataImportViewSet(viewsets.SystemViewSet):
-
     pagination_class = None
 
     def _get_custom_permissions(self):
@@ -56,6 +56,16 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
         if self.request.user.is_superuser or self.request.user.username in migrate_users:
             return []
         return [RejectPermission()]
+
+    @common_swagger_auto_schema(operation_summary=_("通用元数据导入"), tags=[SWAGGER_TAG])
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=GeneralMetadataImportSerializer,
+    )
+    def general_metadata_import(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(data)
 
     @common_swagger_auto_schema(
         operation_summary=_("TenDB HA 元数据导入"),

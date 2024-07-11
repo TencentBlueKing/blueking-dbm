@@ -122,7 +122,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 					AddErrorOnly(&errMsg, errors.New(failInfo+sep+err.Error()))
 					return
 				}
-				if m.ClusterType == tendbha || m.ClusterType == tendbsingle {
+				if m.ClusterType == tendbha || m.ClusterType == tendbsingle || m.ClusterType == delegatedMysql {
 					// 当"cluster_type": "tendbha", "bind_to": "proxy" tendbha的主域名, "bind_to": "storage" tendbha的备域名
 					if instance.ClusterType == tendbha && instance.BindTo == machineTypeProxy {
 						tendbhaMasterDomain = true

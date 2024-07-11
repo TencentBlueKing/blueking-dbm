@@ -9,7 +9,13 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from .delegated_mysql import delegated_mysql
-from .tendbcluster import tendbcluster
-from .tendbha import tendbha
-from .tendbsingle import tendbsingle
+from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.register import register_resource_decorator
+
+
+@register_resource_decorator()
+class ListRetrieveResource(query.ListRetrieveResource):
+    """查看 mysql 容器部署的资源"""
+
+    cluster_types = [ClusterType.DelegatedMySQL]

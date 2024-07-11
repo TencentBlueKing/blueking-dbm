@@ -22,7 +22,7 @@ import (
 func GetAccountRuleInfo(bkBizId int64, clusterType string, user, dbname string) (TbAccounts, TbAccountRules, error) {
 	var account TbAccounts
 	var accountRule TbAccountRules
-	if clusterType == tendbha || clusterType == tendbsingle {
+	if clusterType == tendbha || clusterType == tendbsingle || clusterType == delegatedMysql {
 		clusterType = mysql
 	}
 	if clusterType == sqlserverHA || clusterType == sqlserverSingle {
@@ -201,7 +201,7 @@ func GenerateBackendSQL(account TbAccounts, rule TbAccountRules, ips []string, m
 				CreateUserVersion8 = fmt.Sprintf(`CREATE USER IF NOT EXISTS '%s'@'%s' %s;`,
 					account.User, ip, fmt.Sprintf("IDENTIFIED WITH %s AS '%s'", pswResp.PwdType, pswResp.Psw))
 			}
-			if (clusterType == tendbha || clusterType == tendbsingle) && MySQLVersionParse(mysqlVersion, "") >=
+			if (clusterType == tendbha || clusterType == tendbsingle || clusterType == delegatedMysql) && MySQLVersionParse(mysqlVersion, "") >=
 				MySQLVersionParse("8.0.0", "") {
 				sqlTemp = append(sqlTemp, CreateUserVersion8)
 				identifiedByPassword = ""
@@ -318,7 +318,7 @@ func GetPassword(user string, multiPsw MultiPsw, mysqlVersion, ip string, addres
 	var tipsForProxyIP string
 
 	if (MySQLVersionParse(mysqlVersion, "") > MySQLVersionParse("5.7.5", "")) &&
-		(clusterType == tendbha || clusterType == tendbsingle) {
+		(clusterType == tendbha || clusterType == tendbsingle || clusterType == delegatedMysql) {
 		passwdColName = "authentication_string"
 	}
 

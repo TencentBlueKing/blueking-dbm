@@ -13,6 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.viewsets import SystemViewSet
+from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission
 from backend.iam_app.handlers.permission import Permission
@@ -131,6 +132,12 @@ class ResourceViewSet(SystemViewSet):
         """导出实例数据为 excel 文件"""
         bk_host_ids = request.data.get("bk_host_ids")
         return self.query_class.export_instance(bk_biz_id, bk_host_ids)
+
+    @action(methods=["POST"], detail=False, url_path="import_metadata")
+    def import_metadata(self, request, bk_biz_id: int):
+        """导入元数据"""
+        details = request.data.get("details")
+        return Response(ClusterHandler.import_meta(details))
 
     def _paginate_resource_list(self, request, bk_biz_id: int):
         return self.paginator.paginate_resource_list(request, bk_biz_id, self)

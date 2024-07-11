@@ -16,6 +16,7 @@ from backend.components.base import DataAPI
 from backend.components.exception import DataAPIException
 from backend.components.utils.params import add_esb_info_before_request
 from backend.db_proxy.models import DBCloudProxy
+from backend.db_services.ipchooser.constants import DEFAULT_CLOUD
 
 
 class ProxyAPI(DataAPI):
@@ -37,6 +38,9 @@ class ProxyAPI(DataAPI):
 
         # 只取最新的nginx作为转发服务
         proxy = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()
+        # 直连区域未部署代理时，直接返回原地址（用于一般容器化环境或本地开发）
+        if not proxy and bk_cloud_id == DEFAULT_CLOUD:
+            return url
         host = "https://" if self.ssl else "http://"
         external_address = f"{host}{proxy.external_address}"
         return url.replace(self.base.rstrip("/"), external_address)

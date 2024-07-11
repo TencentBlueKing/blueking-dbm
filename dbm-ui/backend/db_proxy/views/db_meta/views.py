@@ -284,6 +284,22 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
         return Response(data)
 
     @common_swagger_auto_schema(
+        operation_summary=_("[dbmeta]priv_manager查询delegated_mysql集群信息"),
+        request_body=TendbInstancesSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=TendbInstancesSerializer,
+        url_path="dbmeta/priv_manager/delegated_mysql/cluster_instances",
+    )
+    def delegated_mysql_cluster_instances(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        data = api.priv_manager.mysql.cluster_instances.delegated_mysql(validated_data.get("entry_name"))
+        return Response(data)
+
+    @common_swagger_auto_schema(
         operation_summary=_("[dbmeta]priv_manager查询SqlserverHA集群信息"),
         request_body=TendbInstancesSerializer(),
         tags=[SWAGGER_TAG],
