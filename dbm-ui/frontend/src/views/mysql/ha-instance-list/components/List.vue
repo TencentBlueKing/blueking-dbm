@@ -285,7 +285,7 @@
               default: () => cell,
               append: () => (
                 <db-icon
-                  v-bk-tooltips={t('复制主访问入口')}
+                  v-bk-tooltips={t('复制从访问入口')}
                   type="copy"
                   class="copy-btn"
                   onClick={() => copy(cell)} />
