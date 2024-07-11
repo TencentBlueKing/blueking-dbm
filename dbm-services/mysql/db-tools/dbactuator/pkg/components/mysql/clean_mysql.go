@@ -15,12 +15,12 @@ import (
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/computil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 
 	"github.com/pkg/errors"
 )
@@ -134,7 +134,7 @@ func (c *CleanMysqlComp) Start() error {
 	}
 
 	// 计划删除的 databases 列表
-	inStr, _ := mysqlutil.UnsafeBuilderStringIn(native.DBSys, "'")
+	inStr, _ := mysqlcomm.UnsafeBuilderStringIn(native.DBSys, "'")
 	dbsSql := fmt.Sprintf("select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME not in (%s)"+
 		" and SCHEMA_NAME != '__cdb_recycle_bin__'", inStr)
 

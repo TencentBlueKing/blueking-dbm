@@ -1,14 +1,6 @@
 package dbbackup
 
 const (
-	// ReSplitPart physical.part_0
-	ReSplitPart = `(.+)(\.part_\d+)`
-	// ReTarPart xxxx_logical_0.tar physical.tar
-	// ReTarPart = `(.+)_(\d+)\.tar`
-	ReTarPart = `(.+)\.tar$`
-)
-
-const (
 	// MYSQL_FULL_BACKUP TODO
 	MYSQL_FULL_BACKUP string = "full"
 	// INCREMENT_BACKUP TODO

@@ -26,7 +26,6 @@ func InitConn(cfg *config.Public) (*sql.DB, error) {
 		logger.Log.Error("can't create the connection to Mysql server:", err)
 		return nil, err
 	}
-
 	if err := db.Ping(); err != nil {
 		logger.Log.Error("The connection is dead:", err)
 		return nil, err

@@ -79,7 +79,7 @@ func TruncateDir(dirName string, bwlimitMB int) error {
 	for _, filePath := range fs {
 		fullFile := filepath.Join(dirName, filePath.Name())
 		if filePath.IsDir() {
-			fmt.Printf("path %s is dir, ignore\n", fullFile)
+			fmt.Printf("truncate path %s is dir, ignore\n", fullFile)
 			continue
 		} else {
 			fmt.Println(dirName + filePath.Name())

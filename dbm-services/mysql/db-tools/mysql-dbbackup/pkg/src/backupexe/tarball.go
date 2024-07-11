@@ -183,6 +183,14 @@ func (p *PackageFile) SplittingPackage() (string, error) {
 	}
 }
 
+// SplittingPackage2 Firstly, put all backup files into the tar file. Secondly, split the tar file to multiple parts
+// will save index meta info to file
+func (p *PackageFile) SplittingPackage2() (string, error) {
+	return p.tarAndSplit()
+
+	// tar -rf - /xxx | openssl... | split
+}
+
 // tarballDir tar srcDir to dstTarFile
 // remove srcDir if success
 func (p *PackageFile) tarballDir() error {
@@ -236,6 +244,82 @@ func (p *PackageFile) tarballDir() error {
 	return nil
 }
 
+func (p *PackageFile) tarAndSplit() (string, error) {
+	logger.Log.Infof("Tarball Package: src dir %s, iolimit %d MB/s", p.srcDir, p.cnf.Public.IOLimitMBPerSec)
+
+	var tarUtil = util.TarWriter{IOLimitMB: p.cnf.Public.IOLimitMBPerSec}
+	var dstTarName = fmt.Sprintf(`%s.tar`, p.dstDir)
+	if p.cnf.Public.EncryptOpt.EncryptEnable {
+		logger.Log.Infof("tar file encrypt enabled for port: %d", p.cnf.Public.MysqlPort)
+		tarUtil.Encrypt = true
+		tarUtil.EncryptTool = p.cnf.Public.EncryptOpt.GetEncryptTool()
+		dstTarName = fmt.Sprintf(`%s.tar.%s`, p.dstDir, tarUtil.EncryptTool.DefaultSuffix())
+	}
+
+	if err := tarUtil.NewSplit(dstTarName, int(p.cnf.Public.TarSizeThreshold*1024*1024)); err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = tarUtil.Close() // the last tar file to close
+	}()
+
+	var backupTotalFileSize uint64
+	//tarSizeMaxBytes := p.cnf.Public.TarSizeThreshold * 1024 * 1024
+	// 把 schema 单独打包？
+
+	// The files are walked in lexical order
+	walkErr := filepath.Walk(p.srcDir, func(filename string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		header, err := tar.FileInfoHeader(info, "")
+		if err != nil {
+			return err
+		}
+		header.Name = filepath.Join(p.cnf.Public.TargetName(), strings.TrimPrefix(filename, p.srcDir))
+		isFile, written, err := tarUtil.WriteTar(header, filename)
+		if err != nil {
+			return err
+		} else if !isFile {
+			return nil
+		}
+		backupTotalFileSize += uint64(written)
+
+		if err = os.Remove(filename); err != nil { //TODO 限速？
+			logger.Log.Error("failed to remove file while taring, err:", err)
+		}
+		return nil
+	})
+	if walkErr != nil {
+		logger.Log.Error("walk dir, err: ", walkErr)
+		return "", walkErr
+	}
+	for filename, filesize := range tarUtil.GetSplitTars() {
+		tarFileName := filepath.Base(filename)
+		tarFile := &dbareport.TarFileItem{FileName: tarFileName, FileType: cst.FilePart, FileSize: int64(filesize)}
+		p.indexFile.FileList = append(p.indexFile.FileList, tarFile)
+
+	}
+	//logger.Log.Infof("need to tar file, accumulated tar size: %d bytes, dstFile: %s", tarSize, dstTarName)
+	//p.indexFile.TotalSizeKBUncompress = totalSizeUncompress / 1024
+	p.indexFile.TotalFilesize = backupTotalFileSize
+
+	logger.Log.Infof("old srcDir removing io is limited to: %d MB/s", p.cnf.Public.IOLimitMBPerSec)
+	if err := cmutil.TruncateDir(p.srcDir, p.cnf.Public.IOLimitMBPerSec); err != nil {
+		// if err := os.RemoveAll(p.srcDir); err != nil {
+		logger.Log.Error("failed to remove useless backup files")
+		return "", err
+	}
+
+	p.indexFile.AddPrivFileItem(p.dstDir)
+	if indexFilePath, err := p.indexFile.SaveIndexContent(&p.cnf.Public); err != nil {
+		return "", err
+	} else {
+		p.indexFilePath = indexFilePath
+		return p.indexFilePath, nil
+	}
+}
+
 // splitTarFile split Tar file into multiple part_file
 // update indexFile
 // destFile has is full path file
@@ -271,7 +355,7 @@ func (p *PackageFile) splitTarFile(destFile string) error {
 	paddingSize := len(cast.ToString(partNum))
 	for i := 0; i < partNum; i++ {
 		dstTarName := strings.TrimSuffix(destFile, ".tar")
-		partTarName := fmt.Sprintf(`%s.part_%0*d`, dstTarName, paddingSize, i) // ReSplitPart
+		partTarName := fmt.Sprintf(`%s.part_%0*d`, dstTarName, paddingSize, i) // need to be same with ReSplitPart
 		destFileWriter, err := os.OpenFile(partTarName, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 		if err != nil {
 			return err
@@ -330,7 +414,7 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 			}
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
-		if indexFilePath, err = packageFile.SplittingPackage(); err != nil {
+		if indexFilePath, err = packageFile.SplittingPackage2(); err != nil {
 			return "", err
 		}
 	}

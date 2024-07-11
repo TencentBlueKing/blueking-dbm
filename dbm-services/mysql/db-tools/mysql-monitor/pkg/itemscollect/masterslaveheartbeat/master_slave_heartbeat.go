@@ -11,7 +11,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/internal/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -85,12 +84,12 @@ func (c *Checker) updateHeartbeat() error {
 VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate()))`,
 		c.heartBeatTable, masterServerId)
 
-	if _, err := conn.ExecContext(ctx, txrrSQL); err != nil {
+	if _, err = conn.ExecContext(ctx, txrrSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need SET SESSION tx_isolation = 'REPEATABLE-READ'")
 		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
-	if _, err := conn.ExecContext(ctx, binlogSQL); err != nil {
+	if _, err = conn.ExecContext(ctx, binlogSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need binlog_format=STATEMENT")
 		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
@@ -98,36 +97,14 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 
 	res, err := conn.ExecContext(ctx, insertSQL)
 	if err != nil {
+		// 不再自动创建表
+		// merr.Number == 1146 || merr.Number == 1054 , c.initTableHeartbeat()
 		return err
-		var merr *mysql.MySQLError
-		if errors.As(err, &merr) {
-			if merr.Number == 1146 || merr.Number == 1054 {
-				slog.Debug("master-slave-heartbeat table not found") // ERROR 1054 (42S22): Unknown colum
-				res, err = c.initTableHeartbeat()
-				if err != nil {
-					slog.Error("master-slave-heartbeat init table", slog.String("error", err.Error()))
-					return err
-				}
-				slog.Debug("master-slave-heartbeat init table success")
-			}
-		}
 	} else {
 		if num, _ := res.RowsAffected(); num > 0 {
 			slog.Debug("master-slave-heartbeat insert success")
 		}
 	}
-	/*
-				// 正常只在 slave 上才需要 update slave beat_sec，但 repeater 也需要更新，所以可以直接忽略角色
-				updateSlave := fmt.Sprintf(
-					`UPDATE %s
-			  SET beat_sec = timestampdiff(SECOND, master_time, now())
-		WHERE slave_server_id=@@server_id and master_server_id='%s'`,
-					c.heartBeatTable, masterServerId)
-				if _, err := conn.ExecContext(ctx, updateSlave); err != nil {
-					slog.Error("master-slave-heartbeat update slave", err)
-					return err
-				}
-	*/
 	slog.Debug("master-slave-heartbeat update slave success")
 	return nil
 }
@@ -139,6 +116,7 @@ func (c *Checker) initTableHeartbeat() (sql.Result, error) {
 
 // Run TODO
 func (c *Checker) Run() (msg string, err error) {
+	// check if dbbackup loadbackup running, skip this round
 	err = c.updateHeartbeat()
 	return "", err
 }

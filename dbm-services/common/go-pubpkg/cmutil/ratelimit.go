@@ -12,9 +12,10 @@ func IOLimitRate(dst io.Writer, src io.Reader, bwlimitMB int64) (written int64, 
 	if bwlimitMB == 0 {
 		return io.Copy(dst, src)
 	}
+	buf := make([]byte, 128*1024) // not use default 32 * 1024
 	bwlimit := bwlimitMB * 1024 * 1024
 	srcBucket := ratelimit.NewBucketWithRate(float64(bwlimit), bwlimit)
-	return io.Copy(dst, ratelimit.Reader(src, srcBucket))
+	return io.CopyBuffer(dst, ratelimit.Reader(src, srcBucket), buf)
 }
 
 // IOLimitRateWithChunk io.Copy limit io rate
