@@ -318,6 +318,55 @@ func (task *ReplicaTask) CreateReplicaREL() {
 		return
 	}
 	task.runtime.Logger.Info("slave(%s) 'confxx rewrite' ok ", task.SlaveAddr())
+
+	task.slaveofInConfigFile()
+	if task.Err != nil {
+		return
+	}
+}
+
+func (task *ReplicaTask) slaveofInConfigFile() {
+	var localIP string
+	var confFile string
+	var ret string
+	localIP, task.Err = util.GetLocalIP()
+	if task.Err != nil {
+		return
+	}
+	if localIP != task.SlaveIP {
+		task.runtime.Logger.Info("localIP:%s slaveIP:%s not equal,return", localIP, task.SlaveIP)
+		return
+	}
+	confFile, task.Err = myredis.GetRedisLoccalConfFile(task.SlavePort)
+	if task.Err != nil {
+		return
+	}
+	grepCmd := fmt.Sprintf("grep -iP '^slaveof|^replicaof' %s|awk '{print $2,$3}'", confFile)
+	task.runtime.Logger.Info(grepCmd)
+	ret, task.Err = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
+	if task.Err != nil {
+		return
+	}
+	if ret == "" {
+		echoCmd := fmt.Sprintf("echo 'slaveof %s %d' >> %s", task.MasterIP, task.MasterPort, confFile)
+		task.runtime.Logger.Info(echoCmd)
+		_, task.Err = util.RunBashCmd(echoCmd, "", nil, 10*time.Second)
+	} else if ret != fmt.Sprintf("%s %s", task.MasterIP, strconv.Itoa(task.MasterPort)) {
+		// 先删除slaveof行
+		sedCmd := fmt.Sprintf("sed -i -e '/^slaveof/d' %s", confFile)
+		task.runtime.Logger.Info(sedCmd)
+		_, task.Err = util.RunBashCmd(sedCmd, "", nil, 10*time.Second)
+		sedCmd = fmt.Sprintf("sed -i -e '/^replicaof/d' %s", confFile)
+		task.runtime.Logger.Info(sedCmd)
+		_, task.Err = util.RunBashCmd(sedCmd, "", nil, 10*time.Second)
+		// 再添加slaveof行
+		echoCmd := fmt.Sprintf("echo 'slaveof %s %d' >> %s", task.MasterIP, task.MasterPort, confFile)
+		task.runtime.Logger.Info(echoCmd)
+		_, task.Err = util.RunBashCmd(echoCmd, "", nil, 10*time.Second)
+	}
+	grepCmd = fmt.Sprintf("grep -iP '^slaveof|^replicaof' %s|awk '{print $2,$3}'", confFile)
+	ret, _ = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
+	task.runtime.Logger.Info("slave data in config file:%s ==> %s", confFile, ret)
 }
 
 // CreateReplicaAndWait slaveof and wait util status==up

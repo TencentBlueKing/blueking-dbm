@@ -341,7 +341,7 @@ class RedisClusterVersionUpdateOnline(object):
                     act_kwargs.cluster["shell_command"] = REDIS_CONF_DEL_SLAVEOF.format(ports_str)
                     acts_list.append(
                         {
-                            "act_name": _("old_slave:{} 删除slaveof配置").format(master_ip),
+                            "act_name": _("old_slave:{} 删除slaveof配置").format(slave_ip),
                             "act_component_code": ExecuteShellScriptComponent.code,
                             "kwargs": asdict(act_kwargs),
                         }
