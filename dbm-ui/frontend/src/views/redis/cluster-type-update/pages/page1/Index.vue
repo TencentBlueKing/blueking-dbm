@@ -167,13 +167,13 @@
     [ClusterTypes.REDIS]: {
       getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
         getRedisList({
-          ...params,
           cluster_type: [
             ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
             ClusterTypes.PREDIXY_REDIS_CLUSTER,
             ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
             ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
           ].join(','),
+          ...params,
         }),
     },
   };
