@@ -8,20 +8,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package router TODO
+// Package router routers
 package router
 
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/service"
 	"dbm-services/mysql/db-simulation/handler"
-
-	"github.com/gin-gonic/gin"
 )
 
-// RegisterRouter reg routers
+// RegisterRouter register routers
 func RegisterRouter(engine *gin.Engine) {
 	engine.Handle("GET", "/ping", func(context *gin.Context) {
 		context.String(http.StatusOK, "pong")
@@ -30,11 +30,12 @@ func RegisterRouter(engine *gin.Engine) {
 
 	// query simulation task status info
 	t := engine.Group("/simulation")
-	t.POST("/task/file", handler.QueryFileTask)
+	t.POST("/task/file", handler.QuerySimulationFileResult)
 	t.POST("/task", handler.QueryTask)
 	// mysql
 	g := engine.Group("/mysql")
-	g.POST("/simulation", handler.Dbsimulation)
+	// g.POST("/simulation", handler.Dbsimulation)
+	g.POST("/simulation", handler.TendbSimulation)
 	g.POST("/task", handler.QueryTask)
 	// syntax
 	s := engine.Group("/syntax")
@@ -48,11 +49,12 @@ func RegisterRouter(engine *gin.Engine) {
 	r.POST("/update", handler.UpdateRule)
 	// spider
 	sp := engine.Group("/spider")
-	sp.POST("/simulation", handler.SpiderClusterSimulation)
+	// sp.POST("/simulation", handler.SpiderClusterSimulation)
+	sp.POST("/simulation", handler.TendbClusterSimulation)
 	sp.POST("/create", handler.CreateTmpSpiderPodCluster)
 }
 
-// TurnOnDebug TODO
+// TurnOnDebug turn on debug,not del simulation pod
 func TurnOnDebug(r *gin.Context) {
 	logger.Info("current delpod: %v", service.DelPod)
 	service.DelPod = !service.DelPod

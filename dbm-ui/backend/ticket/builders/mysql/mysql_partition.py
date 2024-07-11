@@ -25,7 +25,7 @@ class InitPartitionSerializer(serializers.Serializer):
     has_unique_key = serializers.BooleanField(help_text=_("表是否包含唯一键或者主键"))
 
 
-class ExecuteObjectSerializer(serializers.Serializer):
+class ExecuteConfObjectSerializer(serializers.Serializer):
     config_id = serializers.IntegerField(help_text=_("配置ID"))
     dblike = serializers.CharField(help_text=_("库名匹配规则"))
     tblike = serializers.CharField(help_text=_("表明匹配规则"))
@@ -38,7 +38,7 @@ class PartitionObjectSerializer(serializers.Serializer):
     ip = serializers.CharField(help_text=_("ip"))
     port = serializers.IntegerField(help_text=_("port"))
     shard_name = serializers.CharField(help_text=_("分片名"))
-    execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=ExecuteObjectSerializer())
+    execute_objects = serializers.ListField(help_text=_("执行对象列表"), child=ExecuteConfObjectSerializer())
 
 
 class MySQLPartitionDetailSerializer(MySQLBaseOperateDetailSerializer):

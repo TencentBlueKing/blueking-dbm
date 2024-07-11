@@ -21,6 +21,7 @@ from backend.db_services.mysql.sql_import.serializers import (
     DeleteUserSemanticListSerializer,
     GetSemanticCheckResultLogsResponseSerializer,
     GetSemanticCheckResultLogsSerializer,
+    GetSemanticExecResultSerializer,
     GetUserSemanticListResponseSerializer,
     GetUserSemanticListSerializer,
     QuerySemanticDataResponseSerializer,
@@ -140,3 +141,13 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=GetSemanticCheckResultLogsSerializer)
     def get_semantic_check_result_logs(self, request, bk_biz_id):
         return self._view_common_handler(request, bk_biz_id, SQLHandler.get_semantic_check_result_logs.__name__)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取语义执行结果"),
+        request_body=GetSemanticExecResultSerializer(),
+        responses={status.HTTP_200_OK: GetSemanticCheckResultLogsResponseSerializer()},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=GetSemanticExecResultSerializer)
+    def get_semantic_execute_result(self, request, bk_biz_id):
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.get_semantic_execute_result.__name__)

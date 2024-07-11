@@ -38,8 +38,7 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=SQLUploadSerializer)
     def upload_sql(self, request, bk_biz_id):
         data = self.params_validate(self.get_serializer_class())
-        data.pop("bkrepo_path")
-        return Response(SQLHandler.upload_sql_file(**data))
+        return Response(SQLHandler.upload_sql_file(**data, bk_biz_id=bk_biz_id))
 
     @common_swagger_auto_schema(
         operation_summary=_("sqlserver语法检查"),
@@ -52,4 +51,4 @@ class SQLImportViewSet(viewsets.SystemViewSet):
         # sqlserver 语法检查占位接口
         validated_data = self.params_validate(self.get_serializer_class())
         validated_data.pop("cluster_type")
-        return Response(SQLHandler.grammar_check(**validated_data))
+        return Response(SQLHandler.grammar_check(**validated_data, bk_biz_id=bk_biz_id))

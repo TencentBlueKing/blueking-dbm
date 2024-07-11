@@ -249,7 +249,7 @@ func (c UploadBkRepoParam) Upload() (err error) {
 	}
 	if resp.Code != 0 {
 		errMsg := fmt.Sprintf(
-			"upload respone code is %d,respone msg:%s,traceId:%s",
+			"upload response code is %d,response msg:%s,traceId:%s",
 			resp.Code,
 			resp.Message,
 			resp.RequestId,
@@ -257,10 +257,10 @@ func (c UploadBkRepoParam) Upload() (err error) {
 		logger.Error(errMsg)
 		return fmt.Errorf(errMsg)
 	}
-	logger.Info("Resp: code:%d,msg:%s,traceid:%s", resp.Code, resp.Message, resp.RequestId)
+	logger.Info("resp: code:%d,msg:%s,traceid:%s", resp.Code, resp.Message, resp.RequestId)
 	var uploadRespdata bkrepo.UploadRespData
 	if err := json.Unmarshal(resp.Data, &uploadRespdata); err != nil {
-		logger.Error("unmarshal upload respone data failed %s", err.Error())
+		logger.Error("unmarshal upload response data failed %s", err.Error())
 		return err
 	}
 	logger.Info("%v", uploadRespdata)

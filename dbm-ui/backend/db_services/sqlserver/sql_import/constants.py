@@ -9,4 +9,4 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-BKREPO_SQLFILE_PATH = "sqlserver/sqlfile"
+BKREPO_SQLSERVER_SQLFILE_PATH = "sqlserver/sqlfile/{biz}"

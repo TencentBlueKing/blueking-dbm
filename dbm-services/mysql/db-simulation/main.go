@@ -70,7 +70,7 @@ func apiLogger(c *gin.Context) {
 		tee := io.TeeReader(c.Request.Body, &buf)
 		body, _ := io.ReadAll(tee)
 		c.Request.Body = io.NopCloser(&buf)
-		if len(body) <= 0 {
+		if len(body) == 0 {
 			body = []byte("{}")
 		}
 		model.DB.Create(&model.TbRequestRecord{

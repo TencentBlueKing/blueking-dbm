@@ -41,10 +41,10 @@ type CheckerResult struct {
 }
 
 const (
-	// DEFAUTL_RULE_FILE TODO
-	DEFAUTL_RULE_FILE = "rule.yaml"
-	// DEFAUTL_SPIDER_RULE_FILE TODO
-	DEFAUTL_SPIDER_RULE_FILE = "spider_rule.yaml"
+	// DefaultRuleFile tendb 默认语法检查规则
+	DefaultRuleFile = "rule.yaml"
+	// DefaultSpiderRuleFile tendbcluster 默认语法检查规则
+	DefaultSpiderRuleFile = "spider_rule.yaml"
 )
 
 func init() {
@@ -54,13 +54,13 @@ func init() {
 	if cmutil.FileExists(config.GAppConfig.RulePath) {
 		fileContent, err = os.ReadFile(config.GAppConfig.RulePath)
 	} else {
-		fileContent, err = os.ReadFile(DEFAUTL_RULE_FILE)
+		fileContent, err = os.ReadFile(DefaultRuleFile)
 	}
 	if err != nil {
 		logger.Fatal("failed to read the rule file:%s", err.Error())
 		return
 	}
-	if err := yaml.Unmarshal(fileContent, R); err != nil {
+	if err = yaml.Unmarshal(fileContent, R); err != nil {
 		logger.Fatal("unmarshal rule config failed:%v", err)
 	}
 	// 是否从db中加载配置覆盖配置文件
@@ -87,7 +87,7 @@ func (c CheckerResult) IsPass() bool {
 	return len(c.BanWarns) == 0 && len(c.RiskWarns) == 0
 }
 
-// Parse TODO
+// Parse do parse
 func (c *CheckerResult) Parse(rule *RuleItem, val interface{}, additionalMsg string) {
 	matched, err := rule.CheckItem(val)
 	if matched {
@@ -162,17 +162,16 @@ type BuiltInRule struct {
 	ShemaNamespecification ShemaNamespecification `yaml:"ShemaNamespecification"`
 }
 
-// TableNameSpecification TODO
+// TableNameSpecification table name check
 type TableNameSpecification struct {
 	KeyWord     bool `yaml:"keyword"`
 	SpeicalChar bool `yaml:"speicalChar"`
 }
 
-// ShemaNamespecification TODO
+// ShemaNamespecification schema name check
 type ShemaNamespecification struct {
 	KeyWord     bool `yaml:"keyword"`
 	SpeicalChar bool `yaml:"speicalChar"`
-	sysDbName   bool `yaml:"sysDbName"`
 }
 
 // CommandRule TODO
@@ -181,7 +180,7 @@ type CommandRule struct {
 	BanCommandRule      *RuleItem `yaml:"BanCommandRule"`
 }
 
-// CreateTableRule TODO
+// CreateTableRule create table rules
 type CreateTableRule struct {
 	SuggestBlobColumCount *RuleItem `yaml:"SuggestBlobColumCount"`
 	SuggestEngine         *RuleItem `yaml:"SuggestEngine"`
@@ -189,7 +188,7 @@ type CreateTableRule struct {
 	DefinerRule           *RuleItem `yaml:"DefinerRule"`
 }
 
-// AlterTableRule TODO
+// AlterTableRule alter table rules
 type AlterTableRule struct {
 	HighRiskType        *RuleItem `yaml:"HighRiskType"`
 	HighRiskPkAlterType *RuleItem `yaml:"HighRiskPkAlterType"`

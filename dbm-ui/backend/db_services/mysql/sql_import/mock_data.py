@@ -32,10 +32,12 @@ SQL_SEMANTIC_CHECK_REQUEST_DATA = {
     "ticket_type": "MYSQL_SEMANTIC_CHECK",
     "charset": "default",
     "cluster_ids": [1, 2],
-    "execute_sql_files": ["bar.sql", "foo.sql"],
-    "execute_db_infos": [
-        {"dbnames": ["db_log%"], "ignore_dbnames": ["db1", "db2"]},
-        {"dbnames": ["user_log%"], "ignore_dbnames": ["user1", "user2"]},
+    "execute_objects": [
+        {
+            "sql_files": ["bar.sql", "foo.sql"],
+            "dbnames": ["db_log%"],
+            "ignore_dbnames": ["db1", "db2"],
+        }
     ],
     "ticket_mode": {"mode": "timer", "trigger_time": "2022-11-11 08:18:18.314432"},
     "import_mode": "file",
@@ -75,8 +77,14 @@ SEMANTIC_SQL_FILES = {
         "backup": [],
         "uid": "202308306822cd",
         "blueking_language": "en",
-        "execute_sql_files": ["xxtestxxx.sql"],
-        "execute_db_infos": [{"dbnames": ["test"], "ignore_dbnames": []}],
+        "execute_objects": [
+            {
+                "sql_files": ["bar.sql", "foo.sql"],
+                "dbnames": ["db_log%"],
+                "ignore_dbnames": ["db1", "db2"],
+            }
+        ],
+        "execute_sql_files": ["bar.sql", "foo.sql"],
     },
     "import_mode": "file",
     "sql_data_ready": True,
@@ -94,4 +102,22 @@ SEMANTIC_CHECK_RESULT_LOGS = [
     },
     {"filename": "1.sql", "match_logs": [], "status": "FAILED"},
     {"filename": "2.sql", "match_logs": [], "status": "PENDING"},
+]
+
+
+SEMANTIC_EXEC_RESULT_DATA = [
+    {
+        "bill_task_id": "xxx",
+        "task_id": "xxx",
+        "line_id": 0,
+        "mysql_version": "MySQL-5.7",
+        "file_name_hash": "xxx",
+        "file_name": "xxx.sql",
+        "status": "Failed",
+        "err_msg": "\nexec xxx.sql in test failed:command terminated with exit code 1\n",
+        "update_time": "2024-06-27T17:28:53+08:00",
+        "create_time": "2024-06-27T17:28:53+08:00",
+        "dbnames": ["db1"],
+        "ignore_dbnames": [],
+    }
 ]

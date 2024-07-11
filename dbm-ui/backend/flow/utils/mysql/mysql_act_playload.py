@@ -679,6 +679,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{bk_cloud_id}_dbactuator_token"
         )
 
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket_data["bk_biz_id"])
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.SemanticDumpSchema.value,
@@ -698,7 +699,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "username": settings.BKREPO_USERNAME,
                         "password": settings.BKREPO_PASSWORD,
                         "project": settings.BKREPO_PROJECT,
-                        "upload_path": BKREPO_SQLFILE_PATH,
+                        "upload_path": upload_sql_path,
                     },
                 },
             },
@@ -1887,6 +1888,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         db_cloud_token = AsymmetricHandler.encrypt(
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
         )
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket_data["bk_biz_id"])
         if self.cluster["is_upload_bkrepo"]:
             fileserver.update(
                 {
@@ -1895,7 +1897,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "username": settings.BKREPO_USERNAME,
                     "password": settings.BKREPO_PASSWORD,
                     "project": settings.BKREPO_PROJECT,
-                    "upload_path": BKREPO_SQLFILE_PATH,
+                    "upload_path": upload_sql_path,
                 }
             )
 
@@ -1951,7 +1953,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         db_cloud_token = AsymmetricHandler.encrypt(
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
         )
-
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket_data["bk_biz_id"])
         if self.cluster["is_upload_bkrepo"]:
             fileserver.update(
                 {
@@ -1960,7 +1962,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "username": settings.BKREPO_USERNAME,
                     "password": settings.BKREPO_PASSWORD,
                     "project": settings.BKREPO_PROJECT,
-                    "upload_path": BKREPO_SQLFILE_PATH,
+                    "upload_path": upload_sql_path,
                 }
             )
         return {
@@ -2085,6 +2087,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         db_cloud_token = AsymmetricHandler.encrypt(
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
         )
+        upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket_data["bk_biz_id"])
         fileserver.update(
             {
                 "url": get_bk_repo_url(self.bk_cloud_id),
@@ -2092,7 +2095,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "username": settings.BKREPO_USERNAME,
                 "password": settings.BKREPO_PASSWORD,
                 "project": settings.BKREPO_PROJECT,
-                "upload_path": BKREPO_SQLFILE_PATH,
+                "upload_path": upload_sql_path,
             }
         )
 
@@ -2180,7 +2183,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                             "username": settings.BKREPO_USERNAME,
                             "password": settings.BKREPO_PASSWORD,
                             "project": settings.BKREPO_PROJECT,
-                            "upload_path": BKREPO_DBCONSOLE_DUMPFILE_PATH,
+                            "upload_path": BKREPO_DBCONSOLE_DUMPFILE_PATH.format(biz=self.ticket_data["bk_biz_id"]),
                         },
                     },
                 },
