@@ -16,18 +16,19 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// TbContainerRecord TODO
+// TbContainerRecord 记录每个模拟执行pod的生命周期表
 type TbContainerRecord struct {
-	ID            int       `gorm:"primaryKey;column:id;type:int(11);not null" json:"-"`
-	Uid           string    `gorm:"column:uid;type:varchar(255);not null" json:"uid"`
-	Container     string    `gorm:"column:container;type:varchar(255);not null" json:"container"`
+	ID        int    `gorm:"primaryKey;column:id;type:int(11);not null" json:"-"`
+	Uid       string `gorm:"column:uid;type:varchar(255);not null" json:"uid"`
+	Container string `gorm:"column:container;type:varchar(255);not null" json:"container"`
+	//nolint
 	CreatePodTime time.Time `gorm:"column:create_pod_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_pod_time"`
 	PodReadyTime  time.Time `gorm:"column:pod_ready_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"pod_ready_time"`
 	UpdateTime    time.Time `gorm:"column:update_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"update_time"`
 	CreateTime    time.Time `gorm:"column:create_time;type:timestamp;default:CURRENT_TIMESTAMP()" json:"create_time"`
 }
 
-// UpdateTbContainerRecord TODO
+// UpdateTbContainerRecord 更新pod状态变化
 func UpdateTbContainerRecord(container string) {
 	err := DB.Model(TbContainerRecord{}).Where("container = ?", container).Updates(
 		TbContainerRecord{
@@ -37,9 +38,4 @@ func UpdateTbContainerRecord(container string) {
 	if err != nil {
 		logger.Error("update heartbeat time failed %s", err.Error())
 	}
-}
-
-// CreateTbContainerRecord TODO
-func CreateTbContainerRecord(m *TbContainerRecord) {
-	DB.Create(m)
 }

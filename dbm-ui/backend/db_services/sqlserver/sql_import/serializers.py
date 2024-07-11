@@ -12,7 +12,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.mysql.sql_import import mock_data
-from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.exceptions import ValidationError
 
 
@@ -21,7 +20,6 @@ class SQLUploadSerializer(serializers.Serializer):
     sql_files = serializers.ListField(
         help_text=_("sql文件列表"), child=serializers.FileField(help_text=_("sql文件"), required=False), required=False
     )
-    bkrepo_path = serializers.CharField(help_text=_("上传路径"), required=False, default=BKREPO_SQLFILE_PATH)
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}

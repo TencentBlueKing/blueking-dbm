@@ -14,7 +14,6 @@ import logging
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_import_sqlfile import (
@@ -26,8 +25,7 @@ from backend.ticket.builders.mysql.mysql_import_sqlfile import (
 )
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.builders.tendbcluster.tendb_full_backup import TendbFullBackUpDetailSerializer
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
-from backend.ticket.models import Flow
+from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("root")
 
@@ -58,81 +56,21 @@ class TenDBClusterSqlImportFlowParamBuilder(MysqlSqlImportFlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_IMPORT_SQLFILE)
-class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder):
+class TenDBClusterSqlImportFlowBuilder(MysqlSqlImportFlowBuilder, BaseTendbTicketFlowBuilder):
     serializer = TenDBClusterSqlImportDetailSerializer
     editable = False
+    # 定义流程所用到的cls，方便继承复用
+    itsm_flow_builder = TenDBClusterSqlImportItsmParamBuilder
+    backup_flow_builder = TenDBClusterSqlImportBackUpFlowParamBuilder
+    import_flow_builder = TenDBClusterSqlImportFlowParamBuilder
 
     def patch_ticket_detail(self):
-        MysqlSqlImportFlowBuilder.patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.TenDBCluster)
-        MysqlSqlImportFlowBuilder.patch_sqlfile_grammar_check_info(
-            ticket=self.ticket, cluster_type=DBType.TenDBCluster
-        )
+        super().patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.TenDBCluster)
+        super().patch_sqlfile_grammar_check_info(ticket=self.ticket, cluster_type=DBType.TenDBCluster)
         super().patch_ticket_detail()
 
     def init_ticket_flows(self):
-        """
-        sql导入根据执行模式可分为三种执行流程：
-        手动：语义检查-->单据审批-->手动确认-->(备份)--->sql导入
-        自动：语义检查-->单据审批-->(备份)--->sql导入
-        定时：语义检查-->单据审批-->定时触发-->(备份)--->sql导入
-        """
-
-        flows = [
-            # SQL语法检测这个节点仅作占位描述节点
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.DELIVERY.value,
-                details={},
-                flow_alias=_("语法检测"),
-            ),
-            # SQL模拟执行仅做描述模拟执行状态的节点
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.DESCRIBE_TASK.value,
-                details=TenDBClusterSqlImportFlowParamBuilder(self.ticket).get_params(),
-                flow_alias=_("模拟执行"),
-            ),
-        ]
-
-        if self.need_itsm:
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.BK_ITSM.value,
-                    details=TenDBClusterSqlImportItsmParamBuilder(self.ticket).get_params(),
-                    flow_alias=_("单据审批"),
-                )
-            )
-
-        mode = self.ticket.details["ticket_mode"]["mode"]
-        if mode == SQLExecuteTicketMode.MANUAL.value:
-            flows.append(Flow(ticket=self.ticket, flow_type=FlowType.PAUSE.value, flow_alias=_("人工确认执行")))
-        elif mode == SQLExecuteTicketMode.TIMER.value:
-            flows.append(Flow(ticket=self.ticket, flow_type=FlowType.TIMER.value, flow_alias=_("定时执行")))
-
-        if self.ticket.details.get("backup"):
-            flows.append(
-                Flow(
-                    ticket=self.ticket,
-                    flow_type=FlowType.INNER_FLOW.value,
-                    details=TenDBClusterSqlImportBackUpFlowParamBuilder(self.ticket).get_params(),
-                    retry_type=FlowRetryType.MANUAL_RETRY.value,
-                    flow_alias=_("库表备份"),
-                )
-            )
-
-        flows.append(
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.INNER_FLOW.value,
-                details=TenDBClusterSqlImportFlowParamBuilder(self.ticket).get_params(),
-                retry_type=FlowRetryType.MANUAL_RETRY.value,
-                flow_alias=_("变更SQL执行"),
-            )
-        )
-
-        Flow.objects.bulk_create(flows)
-        return list(Flow.objects.filter(ticket=self.ticket))
+        super().init_ticket_flows()
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):

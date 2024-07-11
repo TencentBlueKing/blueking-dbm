@@ -12,8 +12,8 @@ from django.utils.translation import gettext_lazy as _
 
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
-BKREPO_SQLFILE_PATH = "mysql/sqlfile"
-BKREPO_DBCONSOLE_DUMPFILE_PATH = "dbconsole/dump"
+BKREPO_SQLFILE_PATH = "mysql/sqlfile/{biz}"
+BKREPO_DBCONSOLE_DUMPFILE_PATH = "dbconsole/dump/{biz}"
 
 CACHE_SEMANTIC_TASK_FIELD = "{user}_{cluster_type}_semantic_check_task"
 SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME = 7 * 24 * 60 * 60
@@ -52,3 +52,13 @@ class SQLImportMode(str, StructuredEnum):
 
     FILE = EnumField("file", _("文件上传"))
     MANUAL = EnumField("manual", _("手动输入"))
+
+
+class SemanticExecStatus(str, StructuredEnum):
+    """
+    SQL语义执行状态
+    """
+
+    FAILED = EnumField("Failed", _("执行失败"))
+    SUCCESS = EnumField("Success", _("执行成功"))
+    LOAD_SCHEMA_FAILED = EnumField("LoadSchemaFailed", _("导入表结构失败"))

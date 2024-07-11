@@ -46,12 +46,12 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 }
 
 func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
-	var has_shard_key bool
+	var hasShardKey bool
 	var shardKeyCol string
 	var err error
 	logger.Info("start shardKeyChecker...")
 	// 如果沒有任何索引,则直接返回错误
-	if len(c.CreateDefinitions.KeyDefs) <= 0 {
+	if len(c.CreateDefinitions.KeyDefs) == 0 {
 		r.Trigger(SR.SpiderCreateTableRule.NoIndexExists, "")
 		return
 	}
@@ -82,10 +82,10 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 			logger.Error("parse %s comment %s shard key failed %s", c.TableName, tableComment, err.Error())
 			return
 		}
-		has_shard_key = true
+		hasShardKey = true
 	}
 	// 如果table comment 为空,表示没有指定shard key,或table comnent 没有指定shardkey 由中控自主选择
-	if !has_shard_key {
+	if !hasShardKey {
 		switch {
 		case pk != nil:
 			return
