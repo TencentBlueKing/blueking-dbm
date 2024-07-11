@@ -136,7 +136,7 @@ def RedisBatchInstallAtomJob(
     else:
         act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_install_4_scene.__name__
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-安装实例").format(exec_ip),
+        act_name=_("{}-{}-安装实例").format(exec_ip, param.get("ports", [])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -154,7 +154,7 @@ def RedisBatchInstallAtomJob(
     else:
         raise Exception("unkown instance role {}:{}", param["meta_role"], exec_ip)
     sub_pipeline.add_act(
-        act_name=_("Redis-{}-写入元数据").format(exec_ip),
+        act_name=_("{}-{}-写入元数据").format(exec_ip, param.get("ports", [])),
         act_component_code=RedisDBMetaComponent.code,
         kwargs=asdict(act_kwargs),
     )
@@ -178,6 +178,7 @@ def RedisBatchInstallAtomJob(
             }
         ]
         act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install.__name__
+
         sub_pipeline.add_act(
             act_name=_("Redis-{}-安装监控").format(exec_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,

@@ -114,6 +114,96 @@ def create(
 
 
 @transaction.atomic
+def get_or_create(
+    bk_cloud_id: int,
+    machines: Optional[List] = None,
+    creator: str = "",
+):
+    """#单实例
+    :param machines: 机器列表
+    [{"ip": "127.0.0.0", "bk_biz_id": 2, "machine_type": "backend"}]
+    :param creator: 创建者
+    :param bk_cloud_id: 云区域id
+    """
+    machines = request_validator.validated_machine_create(machines, allow_empty=False, allow_null=False)
+
+    ips = [m["ip"] for m in machines]
+    kwargs = {
+        "fields": [
+            "bk_host_id",
+            "bk_os_name",
+            "bk_host_innerip",
+            "idc_city_name",
+            "idc_city_id",
+            "bk_idc_area",
+            "bk_idc_area_id",
+            "sub_zone_id",
+            "sub_zone",
+            "rack_id",
+            "rack",
+            "bk_svr_device_cls_name",
+            "idc_name",
+            "idc_id",
+            "bk_cloud_id",
+            "net_device_id",
+            "bk_agent_id",
+        ],
+        "host_property_filter": {
+            "condition": "AND",
+            "rules": [
+                {"field": "bk_host_innerip", "operator": "in", "value": ips},
+                {"field": "bk_cloud_id", "operator": "equal", "value": bk_cloud_id},
+            ],
+        },
+    }
+
+    res = CCApi.list_hosts_without_biz(kwargs, use_admin=True)
+
+    inf_dict = {}
+    for inf in res["info"]:
+        inf_dict[inf["bk_host_innerip"]] = inf
+
+    not_found_ips = list(set(ips) - set(inf_dict.keys()))
+    if not_found_ips:
+        raise Exception("{} not found in bk cc".format(not_found_ips))
+    for machine in machines:
+        ip = machine["ip"]
+        inf = inf_dict[ip]
+        bk_idc_city_id = inf.get("idc_city_id") or 0
+
+        bk_city_obj = BKCity.objects.get(pk=bk_idc_city_id)
+        machine_type = machine["machine_type"]
+        spec_id = machine.get("spec_id", 0)
+        spec_config = machine.get("spec_config", {})
+
+        Machine.objects.get_or_create(
+            ip=ip,
+            bk_host_id=inf.get("bk_host_id") or 0,
+            bk_biz_id=machine["bk_biz_id"],
+            access_layer=MachineTypeAccessLayerMap[machine_type],
+            machine_type=machine_type,
+            cluster_type=machine_type_to_cluster_type(machine_type),
+            bk_city=bk_city_obj,
+            bk_os_name=inf.get("bk_os_name") or "",
+            bk_idc_area=inf.get("bk_idc_area") or "",
+            bk_idc_area_id=inf.get("bk_idc_area_id") or 0,
+            bk_sub_zone=inf.get("sub_zone") or "",
+            bk_sub_zone_id=inf.get("sub_zone_id") or 0,
+            bk_rack=inf.get("rack") or "",
+            bk_rack_id=inf.get("rack_id") or 0,
+            bk_svr_device_cls_name=inf.get("bk_svr_device_cls_name") or "",
+            bk_idc_name=inf.get("idc_name") or "",
+            bk_idc_id=inf.get("idc_id") or 0,
+            bk_cloud_id=inf.get("bk_cloud_id") or 0,
+            bk_agent_id=inf.get("bk_agent_id") or "",
+            net_device_id=inf.get("net_device_id") or "",  # 这个 id 是个逗号分割的字符串
+            spec_id=spec_id,
+            spec_config=spec_config,
+            creator=creator,
+        )
+
+
+@transaction.atomic
 def delete(machines: Optional[List], bk_cloud_id: int):
     """
     删除主机并挪到待回收模块
