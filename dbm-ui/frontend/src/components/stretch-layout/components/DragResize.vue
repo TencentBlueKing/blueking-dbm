@@ -35,25 +35,37 @@
         class="resize-trigger-button resize-trigger-left"
         @click="handleDirection('left')">
         <DbIcon
+          v-bk-tooltips="{
+            content: isRightHidden ? t('展开详情') : t('收起列表'),
+            placement: 'left',
+          }"
           style="display: inline-block; transform: rotate(180deg)"
           type="right-big" />
       </span>
       <span
         class="resize-trigger-button resize-trigger-right"
         @click="handleDirection('right')">
-        <DbIcon type="right-big" />
+        <DbIcon
+          v-bk-tooltips="{
+            content: t('展开列表'),
+            placement: 'right',
+          }"
+          type="right-big" />
       </span>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import { onMounted, ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Props {
+    isRightHidden: boolean;
     showTrigger: boolean;
   }
 
   withDefaults(defineProps<Props>(), {
+    isRightHidden: true,
     showTrigger: true,
   });
 
@@ -62,6 +74,8 @@
     change: [leftWidth: number];
     open: [direction: string];
   }>();
+
+  const { t } = useI18n();
 
   const rounds = [1, 2, 3, 4, 5];
   const wrapperRef = ref<HTMLDivElement>();
