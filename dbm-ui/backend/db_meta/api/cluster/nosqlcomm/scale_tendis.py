@@ -78,6 +78,11 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
                 machine__bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
             )
+            receiver_obj.cluster_type = cluster.cluster_type
+            receiver_obj.save(update_fields=["cluster_type"])
+            master_machine = receiver_obj.machine
+            master_machine.cluster_type = cluster.cluster_type
+            master_machine.save(update_fields=["cluster_type"])
             StorageInstanceTuple.objects.create(ejector=ejector_obj, receiver=receiver_obj, creator=created_by)
             logger.info("create link info {} -> {}".format(ejector_obj, receiver_obj))
         # 修改表 db_meta_storageinstance_cluster

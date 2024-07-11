@@ -132,6 +132,10 @@ export default class RedisMachine {
     }[];
   };
   spec_id: number;
+  total_master: number;
+  total_slave: number;
+  unavailable_master: number;
+  unavailable_slave: number;
 
   constructor(payload = {} as RedisMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -147,5 +151,13 @@ export default class RedisMachine {
     this.related_instances = payload.related_instances;
     this.spec_config = payload.spec_config;
     this.spec_id = payload.spec_id;
+    this.total_master = payload.total_master;
+    this.total_slave = payload.total_slave;
+    this.unavailable_master = payload.unavailable_master;
+    this.unavailable_slave = payload.unavailable_slave;
+  }
+
+  get isSlaveFailover() {
+    return this.instance_role === 'redis_master' && this.unavailable_slave > 0;
   }
 }

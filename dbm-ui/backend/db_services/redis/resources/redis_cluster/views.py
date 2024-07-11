@@ -81,7 +81,7 @@ from .query import RedisListRetrieveResource
 @method_decorator(
     name="list_machines",
     decorator=common_swagger_auto_schema(
-        query_serializer=serializers.ListMachineSLZ(),
+        query_serializer=serializers.ListRedisMachineResourceSLZ(),
         responses={status.HTTP_200_OK: yasg_slz.PaginatedMachineResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
@@ -96,7 +96,8 @@ from .query import RedisListRetrieveResource
 )
 class RedisClusterViewSet(viewsets.ResourceViewSet):
     query_class = RedisListRetrieveResource
-    query_serializer_class = serializers.ListResourceSLZ
+    query_serializer_class = serializers.ListRedisResourceSLZ
+    list_machine_slz = serializers.ListRedisMachineResourceSLZ
     db_type = DBType.Redis
 
     list_perm_actions = [
