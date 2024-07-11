@@ -197,7 +197,7 @@ class ImportSQLFlow(object):
                     "spider_version": spider_version,
                     "mysql_version": remotedb_version,
                     "mysql_charset": spider_charset,
-                    "path": BKREPO_SQLFILE_PATH,
+                    "path": BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
                     "task_id": self.root_id,
                     "schema_sql_file": self.semantic_dump_schema_file_name,
                     "execute_objects": self.data["execute_objects"],
@@ -272,5 +272,5 @@ class ImportSQLFlow(object):
     def __get_sql_file_name_list(self) -> list:
         file_list = []
         for obj in self.data["execute_objects"]:
-            file_list.append(obj["sql_file"])
+            file_list.extend(obj["sql_files"])
         return file_list

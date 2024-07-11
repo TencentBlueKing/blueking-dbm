@@ -66,7 +66,7 @@ class DumperConfigViewSet(viewsets.AuditedModelViewSet):
         return [view.kwargs["pk"]]
 
     def get_queryset(self):
-        return self.queryset.filter(bk_biz_id=self.kwargs["bk_biz_id"])
+        return self.queryset.filter(bk_biz_id=self.kwargs.get("bk_biz_id"))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询数据订阅配置列表"),

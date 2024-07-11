@@ -29,6 +29,11 @@ const (
 	MYSQL_TOOL_INSTALL_PATH = "/home/mysql"
 )
 
+const (
+	// DefaultCharset default charset
+	DefaultCharset = "default"
+)
+
 // GetNowTimeLayoutStr 20060102150405
 func GetNowTimeLayoutStr() string {
 	return time.Now().Format(TimeLayoutDir)

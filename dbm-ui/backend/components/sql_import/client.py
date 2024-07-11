@@ -35,11 +35,15 @@ class _SQLSimulationApi(BaseApi):
             url="/mysql/task",
             description=_("查询模拟执行任务状态也"),
         )
-
         self.spider_simulation = self.generate_data_api(
             method="POST",
             url="/spider/simulation",
             description=_("容器化SQL模拟执行"),
+        )
+        self.query_semantic_result = self.generate_data_api(
+            method="POST",
+            url="/simulation/task/file",
+            description=_("查询语义执行结果"),
         )
 
 

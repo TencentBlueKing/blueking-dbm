@@ -80,8 +80,8 @@ func ParseGetSpiderUserComment(tableComment string) (ret int) {
 	keywordBuf := []byte{}
 	valueBuf := []byte{}
 	stage := 0
-	get_key := 0
-	get_value := 0
+	getKey := 0
+	getValue := 0
 	pos := 0
 	for {
 		switch stage {
@@ -93,11 +93,12 @@ func ParseGetSpiderUserComment(tableComment string) (ret int) {
 				pos++
 				continue
 			}
-			if get_key != 0 && get_value != 0 {
+			switch {
+			case getKey != 0 && getValue != 0:
 				stage = PARSE_DONE
-			} else if get_key != 0 {
+			case getKey != 0:
 				stage = PARSE_VALUE
-			} else {
+			default:
 				stage = PARSE_KEY
 			}
 		case PARSE_KEY:
@@ -113,7 +114,7 @@ func ParseGetSpiderUserComment(tableComment string) (ret int) {
 				logger.Info(" illegal keyword:%s", kw)
 				return TCADMIN_PARSE_TABLE_COMMENT_UNSUPPORTED
 			}
-			get_key = 1
+			getKey = 1
 			stage = TRIM
 			keywordBuf = []byte{}
 		case PARSE_VALUE:
@@ -129,7 +130,7 @@ func ParseGetSpiderUserComment(tableComment string) (ret int) {
 				pos++
 			}
 			pos++
-			get_value = 1
+			getValue = 1
 			stage = TRIM
 			valueBuf = []byte{}
 		case PARSE_DONE:
@@ -139,8 +140,8 @@ func ParseGetSpiderUserComment(tableComment string) (ret int) {
 			fmt.Println(bs[pos])
 			if bs[pos] == 0x2c {
 				stage = TRIM
-				get_key = 0
-				get_value = 0
+				getKey = 0
+				getValue = 0
 				pos++
 			} else {
 				return TCADMIN_PARSE_TABLE_COMMENT_ERROR

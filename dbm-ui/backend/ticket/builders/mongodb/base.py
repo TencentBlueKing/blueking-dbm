@@ -28,7 +28,7 @@ from backend.ticket.builders.common.base import (
 )
 
 MONGODB_SHARD_GROUP_COUNT = 3
-MONGODB_JS_FILE_PREFIX = "mongodb/script_result"
+MONGODB_JS_FILE_PREFIX = "mongodb/script_result/{biz}"
 
 
 class DBTableSerializer(serializers.Serializer):

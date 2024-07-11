@@ -38,3 +38,7 @@ class CreateTokenSerializer(serializers.Serializer):
 class CreateTokenSerializerResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.CREATE_TOKEN_DATA}
+
+
+class DownloadDirSerializer(serializers.Serializer):
+    file_path_list = serializers.ListField(help_text=_("文件路径列表"), child=serializers.CharField(), min_length=1)

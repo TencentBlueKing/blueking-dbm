@@ -18,11 +18,11 @@ import (
 	"os"
 	"time"
 
-	"dbm-services/mysql/db-simulation/app/config"
-
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"dbm-services/mysql/db-simulation/app/config"
 )
 
 // DB TODO
@@ -53,6 +53,7 @@ func init() {
 
 // Migration TODO
 func Migration() {
+	//nolint
 	DB.AutoMigrate(&TbSimulationTask{}, &TbRequestRecord{}, &TbSyntaxRule{}, &TbContainerRecord{},
 		&TbSqlFileSimulationInfo{})
 }
