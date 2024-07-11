@@ -129,11 +129,11 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询mysql生效实例密码(admin)"),
-        query_serializer=GetMySQLAdminPasswordSerializer(),
+        request_body=GetMySQLAdminPasswordSerializer(),
         responses={status.HTTP_200_OK: GetMySQLAdminPasswordResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=GetMySQLAdminPasswordSerializer, pagination_class=None)
+    @action(methods=["POST"], detail=False, serializer_class=GetMySQLAdminPasswordSerializer, pagination_class=None)
     def query_mysql_admin_password(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         if validated_data.get("instances"):
