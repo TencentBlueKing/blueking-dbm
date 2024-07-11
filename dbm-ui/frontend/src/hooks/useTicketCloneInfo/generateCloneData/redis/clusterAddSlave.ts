@@ -12,7 +12,7 @@
  */
 import type { RedisAddSlaveDetails } from '@services/model/ticket/details/redis';
 import TicketModel from '@services/model/ticket/ticket';
-import { queryInfoByIp } from '@services/source/redisToolbox';
+import { getRedisMachineList } from '@services/source/redis';
 
 import { random } from '@utils';
 
@@ -23,7 +23,7 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
   const IpInfoMap: Record<
     string,
     {
-      cluster_id: number;
+      cluster_ids: number[];
       bk_cloud_id: number;
       bk_host_id: number;
     }
@@ -33,42 +33,44 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
       const masterIp = pair.redis_master.ip;
       ips.push(masterIp);
       IpInfoMap[masterIp] = {
-        cluster_id: item.cluster_id,
+        cluster_ids: item.cluster_ids,
         bk_cloud_id: pair.redis_master.bk_cloud_id,
         bk_host_id: pair.redis_master.bk_host_id,
       };
     });
   });
-  const infoResult = await queryInfoByIp({ ips });
-  const infoMap = infoResult.reduce(
+  const listResult = await getRedisMachineList({
+    ip: ips.join(','),
+    add_role_count: true,
+  });
+  const machineIpMap = listResult.results.reduce(
     (results, item) => {
       Object.assign(results, {
         [item.ip]: item,
       });
       return results;
     },
-    {} as Record<string, any>,
+    {} as Record<string, ServiceReturnType<typeof getRedisMachineList>['results'][number]>,
   );
 
   return ips.map((ip) => ({
     rowKey: random(),
     isLoading: false,
     ip,
-    clusterId: IpInfoMap[ip].cluster_id,
+    clusterIds: IpInfoMap[ip].cluster_ids,
     bkCloudId: IpInfoMap[ip].bk_cloud_id,
     bkHostId: IpInfoMap[ip].bk_host_id,
-    slaveNum: infoMap[ip].cluster.redis_slave_count,
     cluster: {
-      domain: infoMap[ip].cluster.immute_domain,
+      domain: machineIpMap[ip].related_clusters.map((item) => item.immute_domain).join(','),
       isStart: false,
       isGeneral: true,
       rowSpan: 1,
     },
-    spec: infoMap[ip].spec_config,
+    spec: machineIpMap[ip].spec_config,
     targetNum: 1,
     slaveHost: {
-      faults: infoMap[ip].unavailable_slave,
-      total: infoMap[ip].total_slave,
+      faults: machineIpMap[ip].unavailable_slave,
+      total: machineIpMap[ip].total_slave,
     },
   }));
 }

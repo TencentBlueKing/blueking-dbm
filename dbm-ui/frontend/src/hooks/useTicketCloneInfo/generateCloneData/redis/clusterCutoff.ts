@@ -35,10 +35,10 @@ export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<Redi
                 isLoading: false,
                 ip: info.ip,
                 role: roleMap[role],
-                clusterId: item.cluster_id,
+                clusterIds: item.cluster_ids,
                 bkCloudId: item.bk_cloud_id,
                 cluster: {
-                  domain: clusters[item.cluster_id].immute_domain,
+                  domain: item.cluster_ids.map((id) => clusters[id].immute_domain).join(','),
                   isStart: false,
                   isGeneral: true,
                   rowSpan: 1,
@@ -55,7 +55,7 @@ export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<Redi
         isLoading: boolean;
         ip: string;
         role: string;
-        clusterId: number;
+        clusterIds: number[];
         bkCloudId: number;
         cluster: any;
         spec: any;
