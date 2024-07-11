@@ -21,8 +21,7 @@ from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.builders.tendbcluster.base import TendbBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
@@ -78,7 +77,7 @@ class TendbClusterRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RESTORE_LOCAL_SLAVE)
-class TendbClusterRestoreLocalSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
+class TendbClusterRestoreLocalSlaveFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterRestoreLocalSlaveDetailSerializer
     inner_flow_builder = TendbClusterRestoreLocalSlaveParamBuilder
     inner_flow_name = _("TenDB Cluster Slave原地重建执行")

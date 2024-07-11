@@ -12,16 +12,16 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_dump_data import (
     MySQLDumpDataDetailSerializer,
     MySQLDumpDataFlowParamBuilder,
     MySQLDumpDataItsmFlowParamsBuilder,
 )
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class TendbClusterDumpDataDetailSerializer(MySQLDumpDataDetailSerializer):
+class TendbClusterDumpDataDetailSerializer(MySQLDumpDataDetailSerializer, TendbBaseOperateDetailSerializer):
     pass
 
 
@@ -34,7 +34,7 @@ class TendbClusterDumpDataItsmFlowParamsBuilder(MySQLDumpDataItsmFlowParamsBuild
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DUMP_DATA)
-class TendbClusterDumpDataFlowBuilder(BaseMySQLTicketFlowBuilder):
+class TendbClusterDumpDataFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterDumpDataDetailSerializer
     itsm_flow_builder = TendbClusterDumpDataItsmFlowParamsBuilder
     inner_flow_builder = TendbClusterDumpDataFlowParamBuilder

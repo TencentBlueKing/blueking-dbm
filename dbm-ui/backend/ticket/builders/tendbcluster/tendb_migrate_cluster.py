@@ -17,11 +17,11 @@ from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class TendbClusterMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
+class TendbClusterMigrateClusterDetailSerializer(TendbBaseOperateDetailSerializer):
     class MigrateClusterInfoSerializer(serializers.Serializer):
         new_master = HostInfoSerializer(help_text=_("新主库主机"), required=False)
         new_slave = HostInfoSerializer(help_text=_("新从库主机"), required=False)
@@ -72,7 +72,7 @@ class TendbClusterMigrateClusterResourceParamBuilder(BaseOperateResourceParamBui
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_MIGRATE_CLUSTER, is_apply=True)
-class TendbClusterMigrateClusterFlowBuilder(BaseMySQLTicketFlowBuilder):
+class TendbClusterMigrateClusterFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterMigrateClusterDetailSerializer
     inner_flow_builder = TendbClusterMigrateClusterParamBuilder
     inner_flow_name = _("TenDB Cluster 主从迁移执行")

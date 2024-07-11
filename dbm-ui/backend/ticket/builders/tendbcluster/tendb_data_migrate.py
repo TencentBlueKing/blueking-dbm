@@ -13,15 +13,15 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_data_migrate import (
     MySQLDataMigrateDetailSerializer,
     MySQLDataMigrateFlowParamBuilder,
 )
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class TenDBClusterDataMigrateDetailSerializer(MySQLDataMigrateDetailSerializer):
+class TenDBClusterDataMigrateDetailSerializer(MySQLDataMigrateDetailSerializer, TendbBaseOperateDetailSerializer):
     def validate(self, attrs):
         return super().validate(attrs)
 
@@ -36,7 +36,7 @@ class TenDBClusterDataMigrateFlowParamBuilder(MySQLDataMigrateFlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DATA_MIGRATE)
-class TenDBClusterDataMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
+class TenDBClusterDataMigrateFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TenDBClusterDataMigrateDetailSerializer
     inner_flow_builder = TenDBClusterDataMigrateFlowParamBuilder
     inner_flow_name = _("数据迁移执行")

@@ -558,9 +558,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
         ticket_flow_config_count = ticket_flow_configs.count()
         ticket_flow_configs = ticket_flow_configs[offset : offset + limit]
-
-        ticket_flow_config_count = ticket_flow_configs.count()
-        ticket_flow_configs = ticket_flow_configs[offset : offset + limit]
         # 获得单据类型与单据flow配置映射表
         flow_config_map = {config.ticket_type: config.configs for config in ticket_flow_configs}
 

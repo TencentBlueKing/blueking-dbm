@@ -21,13 +21,13 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule, Spec
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 logger = logging.getLogger("root")
 
 
-class TenDBClusterMetadataImportDetailSerializer(MySQLBaseOperateDetailSerializer):
+class TenDBClusterMetadataImportDetailSerializer(TendbBaseOperateDetailSerializer):
     json_content = serializers.JSONField(help_text=_("元数据json内容"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     db_module_id = serializers.IntegerField(help_text=_("模块ID"))
@@ -231,7 +231,7 @@ class TenDBClusterMetadataImportFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_METADATA_IMPORT)
-class TenDBClusterMetadataImportFlowBuilder(BaseMySQLTicketFlowBuilder):
+class TenDBClusterMetadataImportFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TenDBClusterMetadataImportDetailSerializer
     inner_flow_builder = TenDBClusterMetadataImportFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 元数据导入")
