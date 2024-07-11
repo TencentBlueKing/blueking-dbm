@@ -333,18 +333,15 @@ class RedisDBMeta(object):
 
         if self.cluster.get("new_slave_ips"):
             for ip in self.cluster.get("new_slave_ips"):
-                if not Machine.objects.filter(
-                    bk_biz_id=self.ticket_data["bk_biz_id"], ip=ip, bk_cloud_id=bk_cloud_id
-                ).exists():
-                    machines.append(
-                        {
-                            "bk_biz_id": self.ticket_data["bk_biz_id"],
-                            "ip": ip,
-                            "machine_type": machine_type,
-                            "spec_id": self.cluster["spec_id"],
-                            "spec_config": self.cluster["spec_config"],
-                        }
-                    )
+                machines.append(
+                    {
+                        "bk_biz_id": self.ticket_data["bk_biz_id"],
+                        "ip": ip,
+                        "machine_type": machine_type,
+                        "spec_id": self.cluster["spec_id"],
+                        "spec_config": self.cluster["spec_config"],
+                    }
+                )
                 if self.cluster.get("inst_num"):
                     for n in range(0, self.cluster["inst_num"]):
                         port = n + self.cluster["start_port"]
@@ -354,7 +351,11 @@ class RedisDBMeta(object):
                         ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
 
         with atomic():
-            if machines:
+            if cluster_type == ClusterType.TendisRedisInstance.value:
+                api.machine.get_or_create(
+                    machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id
+                )
+            else:
                 api.machine.create(machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id)
             api.storage_instance.create(instances=ins, creator=self.ticket_data["created_by"], status=ins_status)
         return True

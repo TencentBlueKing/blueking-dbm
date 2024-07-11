@@ -16,13 +16,15 @@ from typing import Dict
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterEntryRole, InstanceRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceRole
 from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
+from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
@@ -62,6 +64,8 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         old_slaves.append(old_slave)
         new_slaves.append(new_slave)
         new_ins_port = DEFAULT_REDIS_START_PORT
+        if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+            new_ins_port = min(act_kwargs.cluster["slave_ports"][old_slave])
         old_ports = act_kwargs.cluster["slave_ports"][old_slave]
         old_ports.sort()  # 升序
         for port in old_ports:
@@ -104,6 +108,8 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
                 act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
             ),
         }
+        if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+            params["start_port"] = min(act_kwargs.cluster["slave_ports"][old_slave])
         sub_builder = RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params)
         sub_pipelines.append(sub_builder)
     redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
@@ -170,6 +176,19 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
         act_name=_("Redis-新节点加入集群"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
     )
     # #### 新节点加入集群 ################################################################# 完毕 ###
+
+    # 刷新bkdbmon
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+        for replace_link in slave_replace_detail:
+            new_slave = replace_link["target"]["ip"]
+            act_kwargs.exec_ip = new_slave
+            act_kwargs.cluster["ip"] = new_slave
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            redis_pipeline.add_act(
+                act_name=_("{}-刷新监控").format(new_slave),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
     # rediscluster集群类型需要更新Nodes域名 ########################################################
     if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
