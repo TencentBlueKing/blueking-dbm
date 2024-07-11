@@ -62,7 +62,7 @@ class GetTendbRemotePairsResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": GET_TENDB_REMOTE_PAIRS_RESPONSE_DATA}
 
 
-class GetTendbMachineInstancePairSerializer(serializers.Serializer):
+class GetMachineInstancePairSerializer(serializers.Serializer):
     instances = serializers.ListField(help_text=_("查询的实例列表"), required=False, child=serializers.CharField())
     machines = serializers.ListField(help_text=_("查询的机器列表"), required=False, child=serializers.CharField())
 
@@ -70,7 +70,7 @@ class GetTendbMachineInstancePairSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": GET_TENDB_MACHINE_INSTANCE_PAIR_REQUEST_DATA}
 
 
-class GetTendbMachineInstancePairResponseSerializer(serializers.Serializer):
+class GetMachineInstancePairResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": GET_TENDB_MACHINE_INSTANCE_PAIR_RESPONSE_DATA}
 

@@ -146,22 +146,23 @@ class RedisClusterMSSSceneFlow(object):
         sub_pipelines = []
         force_switch = self.data.get("force", False)
         for ms_switch in self.data["infos"]:
-            cluster_kwargs = deepcopy(act_kwargs)
-            cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], ms_switch["cluster_id"])
+            for cluster_id in ms_switch["cluster_ids"]:
+                cluster_kwargs = deepcopy(act_kwargs)
+                cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], cluster_id)
 
-            flow_data = self.data
-            for k, v in cluster_info.items():
-                cluster_kwargs.cluster[k] = v
-            cluster_kwargs.cluster["created_by"] = self.data["created_by"]
-            cluster_kwargs.cluster["switch_option"] = ms_switch["online_switch_type"]
-            flow_data["switch_input"] = ms_switch
-            redis_pipeline.add_act(
-                act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
-                act_component_code=GetRedisActPayloadComponent.code,
-                kwargs=asdict(cluster_kwargs),
-            )
-            sub_pipeline = self.generate_ms_switch_flow(flow_data, cluster_kwargs, ms_switch, force_switch)
-            sub_pipelines.append(sub_pipeline)
+                flow_data = self.data
+                for k, v in cluster_info.items():
+                    cluster_kwargs.cluster[k] = v
+                cluster_kwargs.cluster["created_by"] = self.data["created_by"]
+                cluster_kwargs.cluster["switch_option"] = ms_switch["online_switch_type"]
+                flow_data["switch_input"] = ms_switch
+                redis_pipeline.add_act(
+                    act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
+                    act_component_code=GetRedisActPayloadComponent.code,
+                    kwargs=asdict(cluster_kwargs),
+                )
+                sub_pipeline = self.generate_ms_switch_flow(flow_data, cluster_kwargs, ms_switch, force_switch)
+                sub_pipelines.append(sub_pipeline)
 
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         return redis_pipeline.run_pipeline()
@@ -174,10 +175,14 @@ class RedisClusterMSSSceneFlow(object):
         4. 刷新 new master 监控
         5. 元数据修改 old-master 2 unavliable.
         """
-        redis_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
-        twemproxy_server_shards = get_twemproxy_cluster_server_shards(
-            act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
-        )
+        redis_pipeline, twemproxy_server_shards = SubBuilder(root_id=self.root_id, data=flow_data), {}
+        if act_kwargs.cluster["cluster_type"] in [
+            ClusterType.TwemproxyTendisSSDInstance.value,
+            ClusterType.TendisTwemproxyRedisInstance.value,
+        ]:
+            twemproxy_server_shards = get_twemproxy_cluster_server_shards(
+                act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"], act_kwargs.cluster["slave_ins_map"]
+            )
 
         sync_relations, master_ips, slave_ips = [], [], []
         for ms_pair in ms_switch["pairs"]:

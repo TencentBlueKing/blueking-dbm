@@ -29,7 +29,7 @@ class RedisMasterSlaveSwitchDetailSerializer(SkipToRepresentationMixin, serializ
             redis_master = serializers.IPAddressField(help_text=_("master主机"))
             redis_slave = serializers.IPAddressField(help_text=_("slave主机"))
 
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         pairs = serializers.ListField(help_text=_("主从切换对"), child=PairSerializer(), allow_empty=False)
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
@@ -37,13 +37,13 @@ class RedisMasterSlaveSwitchDetailSerializer(SkipToRepresentationMixin, serializ
 
         def validate(self, attr):
             """业务逻辑校验"""
-            cluster = Cluster.objects.get(id=attr.get("cluster_id"))
+            # 只用取第一个集群验证，因为单机多实例情况是一样的
+            cluster_id = attr["cluster_ids"][0]
+            cluster = Cluster.objects.get(id=cluster_id)
 
             master_slaves = {
                 pair["master_ip"]: pair["slave_ip"]
-                for pair in ToolboxHandler(self.context.get("bk_biz_id")).query_master_slave_pairs(
-                    attr.get("cluster_id")
-                )
+                for pair in ToolboxHandler(self.context.get("bk_biz_id")).query_master_slave_pairs(cluster_id)
             }
 
             for pair in attr["pairs"]:

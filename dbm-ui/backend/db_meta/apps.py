@@ -12,7 +12,7 @@ import logging
 
 from django.apps import AppConfig
 from django.db import IntegrityError
-from django.db.models.signals import m2m_changed, post_delete, post_migrate, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_migrate, post_save, pre_delete
 
 logger = logging.getLogger("root")
 
@@ -50,7 +50,7 @@ class DBMeta(AppConfig):
         # 当实例进行修改或者删除时，更新集群状态
         post_save.connect(update_cluster_status, sender=StorageInstance)
         post_save.connect(update_cluster_status, sender=ProxyInstance)
-        post_delete.connect(update_cluster_status, sender=StorageInstance)
+        pre_delete.connect(update_cluster_status, sender=StorageInstance)
         post_delete.connect(update_cluster_status, sender=ProxyInstance)
         m2m_changed.connect(update_cluster_status, sender=StorageInstance.cluster.through)
         m2m_changed.connect(update_cluster_status, sender=ProxyInstance.cluster.through)

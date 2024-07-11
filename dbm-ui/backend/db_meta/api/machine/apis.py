@@ -23,8 +23,7 @@ from backend.flow.utils.cc_manage import CcManage
 logger = logging.getLogger("root")
 
 
-@transaction.atomic
-def create(
+def get_create_machines(
     bk_cloud_id: int,
     machines: Optional[List] = None,
     creator: str = "",
@@ -76,6 +75,8 @@ def create(
     not_found_ips = list(set(ips) - set(inf_dict.keys()))
     if not_found_ips:
         raise Exception("{} not found in bk cc".format(not_found_ips))
+
+    to_create_machines = []
     for machine in machines:
         ip = machine["ip"]
         inf = inf_dict[ip]
@@ -86,31 +87,61 @@ def create(
         spec_id = machine.get("spec_id", 0)
         spec_config = machine.get("spec_config", {})
 
-        Machine.objects.create(
-            ip=ip,
-            bk_host_id=inf.get("bk_host_id") or 0,
-            bk_biz_id=machine["bk_biz_id"],
-            access_layer=MachineTypeAccessLayerMap[machine_type],
-            machine_type=machine_type,
-            cluster_type=machine_type_to_cluster_type(machine_type),
-            bk_city=bk_city_obj,
-            bk_os_name=inf.get("bk_os_name") or "",
-            bk_idc_area=inf.get("bk_idc_area") or "",
-            bk_idc_area_id=inf.get("bk_idc_area_id") or 0,
-            bk_sub_zone=inf.get("sub_zone") or "",
-            bk_sub_zone_id=inf.get("sub_zone_id") or 0,
-            bk_rack=inf.get("rack") or "",
-            bk_rack_id=inf.get("rack_id") or 0,
-            bk_svr_device_cls_name=inf.get("bk_svr_device_cls_name") or "",
-            bk_idc_name=inf.get("idc_name") or "",
-            bk_idc_id=inf.get("idc_id") or 0,
-            bk_cloud_id=inf.get("bk_cloud_id") or 0,
-            bk_agent_id=inf.get("bk_agent_id") or "",
-            net_device_id=inf.get("net_device_id") or "",  # 这个 id 是个逗号分割的字符串
-            spec_id=spec_id,
-            spec_config=spec_config,
-            creator=creator,
+        to_create_machines.append(
+            Machine(
+                ip=ip,
+                bk_host_id=inf.get("bk_host_id") or 0,
+                bk_biz_id=machine["bk_biz_id"],
+                access_layer=MachineTypeAccessLayerMap[machine_type],
+                machine_type=machine_type,
+                cluster_type=machine_type_to_cluster_type(machine_type),
+                bk_city=bk_city_obj,
+                bk_os_name=inf.get("bk_os_name") or "",
+                bk_idc_area=inf.get("bk_idc_area") or "",
+                bk_idc_area_id=inf.get("bk_idc_area_id") or 0,
+                bk_sub_zone=inf.get("sub_zone") or "",
+                bk_sub_zone_id=inf.get("sub_zone_id") or 0,
+                bk_rack=inf.get("rack") or "",
+                bk_rack_id=inf.get("rack_id") or 0,
+                bk_svr_device_cls_name=inf.get("bk_svr_device_cls_name") or "",
+                bk_idc_name=inf.get("idc_name") or "",
+                bk_idc_id=inf.get("idc_id") or 0,
+                bk_cloud_id=inf.get("bk_cloud_id") or 0,
+                bk_agent_id=inf.get("bk_agent_id") or "",
+                net_device_id=inf.get("net_device_id") or "",  # 这个 id 是个逗号分割的字符串
+                spec_id=spec_id,
+                spec_config=spec_config,
+                creator=creator,
+            )
         )
+
+    return to_create_machines
+
+
+@transaction.atomic
+def create(
+    bk_cloud_id: int,
+    machines: Optional[List] = None,
+    creator: str = "",
+):
+    """
+    批量创建主机
+    """
+    to_create_machines = get_create_machines(bk_cloud_id, machines, creator)
+    Machine.objects.bulk_create(to_create_machines)
+
+
+@transaction.atomic
+def get_or_create(
+    bk_cloud_id: int,
+    machines: Optional[List] = None,
+    creator: str = "",
+):
+    """
+    批量创建主机，忽略冲突(效果等价与get_or_create)
+    """
+    to_create_machines = get_create_machines(bk_cloud_id, machines, creator)
+    Machine.objects.bulk_create(to_create_machines, ignore_conflicts=True)
 
 
 @transaction.atomic
