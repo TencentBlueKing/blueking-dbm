@@ -135,6 +135,7 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                     },
                 }
             )
+    act_kwargs.cluster["db_version"] = act_kwargs.cluster["db_version"]
     act_kwargs.cluster["domain_name"] = act_kwargs.cluster["immute_domain"]
     act_kwargs.cluster["switch_condition"] = act_kwargs.cluster["switch_condition"]
     act_kwargs.get_redis_payload_func = RedisActPayload.redis__switch_4_scene.__name__

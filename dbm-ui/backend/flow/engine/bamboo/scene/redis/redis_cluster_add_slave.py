@@ -145,8 +145,8 @@ class RedisClusterAddSlaveFlow(object):
         sub_pipelines = []
         for input_item in self.data["infos"]:
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-            cluster_kwargs = deepcopy(act_kwargs)
-            cluster_info = self.get_cluster_info(bk_biz_id, input_item["cluster_id"])
+            cluster_kwargs, one_cluster_id = deepcopy(act_kwargs), input_item["cluster_ids"][0]
+            cluster_info = self.get_cluster_info(bk_biz_id, one_cluster_id)
             cluster_kwargs.cluster.update(cluster_info)
             cluster_kwargs.cluster["created_by"] = self.data["created_by"]
 
@@ -168,7 +168,7 @@ class RedisClusterAddSlaveFlow(object):
                         ] = "{}{}{}".format(master_ip, IP_PORT_DIVIDER, port)
 
             twemproxy_server_shards = get_twemproxy_cluster_server_shards(
-                bk_biz_id, input_item["cluster_id"], newslave_to_master
+                bk_biz_id, one_cluster_id, newslave_to_master
             )
 
             sub_pipeline.add_act(
@@ -193,7 +193,7 @@ class RedisClusterAddSlaveFlow(object):
                             "spec_id": input_item["resource_spec"][master_ip].get("id", 0),
                             "spec_config": input_item["resource_spec"][master_ip],
                             "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
-                            "cache_backup_mode": get_cache_backup_mode(bk_biz_id, input_item["cluster_id"]),
+                            "cache_backup_mode": get_cache_backup_mode(bk_biz_id, one_cluster_id),
                         },
                     )
                     child_pipelines.append(install_builder)
@@ -209,7 +209,7 @@ class RedisClusterAddSlaveFlow(object):
                         "sync_dst1": new_slave_item["ip"],
                         "ins_link": [],
                         "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
-                        "cache_backup_mode": get_cache_backup_mode(bk_biz_id, input_item["cluster_id"]),
+                        "cache_backup_mode": get_cache_backup_mode(bk_biz_id, one_cluster_id),
                     }
                     for port in cluster_info["master_ports"][master_ip]:
                         sync_param["ins_link"].append({"origin_1": str(port), "sync_dst1": str(port)})
@@ -254,7 +254,7 @@ class RedisClusterAddSlaveFlow(object):
                 act_kwargs=deepcopy(cluster_kwargs),
                 param={
                     "op_type": DnsOpType.ADD_AND_DELETE.value,
-                    "cluster_id": int(input_item["cluster_id"]),
+                    "cluster_id": int(one_cluster_id),
                     "add_ips": new_slave_ips,
                     "del_ips": old_slave_ips,
                     "port": DEFAULT_REDIS_START_PORT,
@@ -308,10 +308,11 @@ class RedisClusterAddSlaveFlow(object):
         """
         bk_biz_id = self.data["bk_biz_id"]
         for input_item in self.data["infos"]:
+            one_cluster_id = input_item["cluster_ids"][0]
             try:
-                cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=input_item["cluster_id"])
+                cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=one_cluster_id)
             except Cluster.DoesNotExist:
-                raise Exception("redis cluster {} does not exist".format(input_item["cluster_id"]))
+                raise Exception("redis cluster {} does not exist".format(one_cluster_id))
 
             for host_pair in input_item["pairs"]:
                 master_insts = cluster.storageinstance_set.filter(

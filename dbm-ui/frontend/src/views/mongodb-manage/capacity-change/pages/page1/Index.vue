@@ -27,7 +27,6 @@
           ref="rowRefs"
           :data="item"
           :removeable="tableData.length < 2"
-          :versions-map="versionsMap"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
@@ -69,7 +68,6 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { getMongoList } from '@services/source/mongodb';
   import { createTicket } from '@services/source/ticket';
-  import { getClusterTypeToVersions } from '@services/source/version';
 
   import { useGlobalBizs } from '@stores';
 
@@ -88,7 +86,6 @@
   const isShowSelector = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
-  const versionsMap = ref<Record<string, string[]>>({});
 
   const selectedClusters = shallowRef<{ [key: string]: Array<MongodbModel> }>({
     [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
@@ -98,13 +95,6 @@
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
-
-  const queryDBVersions = async () => {
-    const ret = await getClusterTypeToVersions();
-    versionsMap.value = ret;
-  };
-
-  queryDBVersions();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {

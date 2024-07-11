@@ -25,7 +25,9 @@ from backend.flow.consts import (
     SyncType,
 )
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
@@ -43,6 +45,7 @@ def RedisClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, ma
     if sub_kwargs.cluster["cluster_type"] in [
         ClusterType.TwemproxyTendisSSDInstance,
         ClusterType.TendisTwemproxyRedisInstance,
+        ClusterType.TendisRedisInstance,
     ]:
         return TwemproxyClusterMasterReplaceJob(root_id, ticket_data, sub_kwargs, master_replace_info)
 
@@ -84,6 +87,8 @@ def TwemproxyClusterMasterReplaceJob(
 
         new_ins_port = DEFAULT_REDIS_START_PORT
         old_ports = act_kwargs.cluster["master_ports"][old_master_ip]
+        if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+            new_ins_port = min(old_ports)
         old_ports.sort()
         for port in old_ports:  # 升序
             one_link = StorageRepLink()
@@ -129,6 +134,8 @@ def TwemproxyClusterMasterReplaceJob(
                 act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
             ),
         }
+        if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+            params["start_port"] = min(act_kwargs.cluster["master_ports"][old_master])
         sub_pipelines.append(RedisBatchInstallAtomJob(root_id, ticket_data, act_kwargs, params))
 
         # 安装slave
@@ -190,6 +197,29 @@ def TwemproxyClusterMasterReplaceJob(
     sub_pipeline = RedisClusterSwitchAtomJob(root_id, ticket_data, act_kwargs, sync_relations)
     redis_pipeline.add_sub_pipeline(sub_flow=sub_pipeline)
     # #### 执行切换 ###############################################################################
+
+    # 刷新bkdbmon
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+        for replace_link in master_replace_detail:
+            new_host_master = replace_info["target"]["master"]["ip"]
+            act_kwargs.exec_ip = new_host_master
+            act_kwargs.cluster["ip"] = new_host_master
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            redis_pipeline.add_act(
+                act_name=_("{}-刷新监控").format(new_host_master),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
+
+            new_host_slave = replace_info["target"]["slave"]["ip"]
+            act_kwargs.exec_ip = new_host_slave
+            act_kwargs.cluster["ip"] = new_host_slave
+            act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+            redis_pipeline.add_act(
+                act_name=_("{}-刷新监控").format(new_host_slave),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
     # #### 下架旧实例 #############################################################################
     sub_pipelines, shutdown_kwargs = [], deepcopy(act_kwargs)

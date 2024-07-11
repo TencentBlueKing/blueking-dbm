@@ -9,18 +9,21 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import importlib
+import operator
 from collections import defaultdict
+from functools import reduce
 from typing import Any, Dict, List, Set
 
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.enums import AccessLayer, ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException, InstanceNotExistException
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.machine import Machine
 from backend.db_services.dbbase.dataclass import DBInstance
+from backend.utils.basic import remove_duplicated_dict
 
 
 class ClusterServiceHandler:
@@ -56,6 +59,105 @@ class ClusterServiceHandler:
     def check_cluster_database(self, cluster_id: int, db_list: List[int]):
         """子类可单独实现的校验库表是否存在的逻辑，非必须实现"""
         raise NotImplementedError
+
+    def query_machine_instance_pair(self, query: Dict[str, List[str]]):
+        """
+        根据主机/实例查询关系对，适用于一主一从关系
+         @param query 查询参数，支持查询主机或者实例维度的pair
+         eg:
+         {
+             "machines": ["0:127.0.0.1"],
+             "instances": ["127.0.0.1:3306"]
+         }
+        """
+        related_pairs: Dict[str, Dict] = defaultdict(dict)
+
+        def add_pair_instance_info(pair_map, ejector, receiver):
+            ejector_key = ejector.ip_port
+            pair_map[ejector_key].update(receiver.simple_desc)
+            # 填充实例关联的集群
+            pair_map[ejector_key]["related_clusters"].append(receiver.cluster.first().simple_desc)
+
+        def add_pair_machine_info(pair_map, ejector, receiver):
+            ejector_key = f"{ejector.machine.bk_cloud_id}:{ejector.machine.ip}"
+            pair_map[ejector_key].update(receiver.machine.simple_desc)
+            # 填充机器关联的集群，自身关联实例和映射关联实例
+            pair_map[ejector_key]["related_clusters"].append(receiver.cluster.first().simple_desc)
+            pair_map[ejector_key]["related_instances"].append(receiver.simple_desc)
+            pair_map[ejector_key]["related_pair_instances"].append(ejector.simple_desc)
+
+        def get_machine_instance_pair_info(tuple_filters, add_func, key):
+            # 查询关联实例对
+            pairs = (
+                StorageInstanceTuple.objects.select_related("ejector__machine", "receiver__machine")
+                .prefetch_related("ejector__cluster", "receiver__cluster")
+                .filter(tuple_filters)
+            )
+
+            if not pairs.exists():
+                related_pairs[key] = {}
+                return
+
+            pair_map = defaultdict(lambda: defaultdict(list))
+            for pair in pairs:
+                add_func(pair_map, pair.ejector, pair.receiver)
+                add_func(pair_map, pair.receiver, pair.ejector)
+
+            related_pairs[key] = {inst: pair_map[inst] for inst in query[key]}
+            # 关联集群和关联实例可能重复，需要去重
+            for info in related_pairs[key].values():
+                info["related_clusters"] = remove_duplicated_dict(info["related_clusters"], key="id")
+                info["related_pair_instances"] = remove_duplicated_dict(
+                    info["related_pair_instances"], key="bk_instance_id"
+                )
+
+        # 查询关联的实例信息
+        if query.get("instances"):
+            q_filters = [
+                Q(bk_biz_id=self.bk_biz_id, machine__ip=inst.split(":")[0], port=inst.split(":")[1])
+                for inst in query["instances"]
+            ]
+            insts = StorageInstance.objects.filter(reduce(operator.or_, q_filters)).values_list("id", flat=True)
+            filters = Q(ejector__in=insts) | Q(receiver__in=insts)
+            get_machine_instance_pair_info(filters, add_pair_instance_info, "instances")
+
+        # 查询关联的机器信息
+        if query.get("machines"):
+            q_filters = [
+                Q(bk_biz_id=self.bk_biz_id, bk_cloud_id=machine.split(":")[0], ip=machine.split(":")[1])
+                for machine in query["machines"]
+            ]
+            machines = Machine.objects.filter(reduce(operator.or_, q_filters)).values_list("bk_host_id", flat=True)
+            filters = Q(ejector__machine__in=machines) | Q(receiver__machine__in=machines)
+            get_machine_instance_pair_info(filters, add_pair_machine_info, "machines")
+
+        return related_pairs
+
+    def query_master_slave_pairs(self, cluster_id: int) -> list:
+        """
+        查询主从架构集群的关系对，适用于一主一从关系
+        @param cluster_id: 集群ID
+        """
+        try:
+            cluster = Cluster.objects.get(pk=cluster_id, bk_biz_id=self.bk_biz_id)
+        except Cluster.DoesNotExist:
+            return []
+
+        # 获取该集群关联的实例对
+        pairs = StorageInstanceTuple.objects.select_related("ejector__machine", "receiver__machine").filter(
+            receiver__cluster=cluster, ejector__cluster=cluster
+        )
+        master_slave_pair_infos = [
+            {
+                "masters": pair.ejector.simple_desc,
+                "slaves": pair.receiver.simple_desc,
+            }
+            for pair in pairs
+        ]
+        # 兼容原来redis协议
+        for info in master_slave_pair_infos:
+            info.update(master_ip=info["masters"]["ip"], slave_ip=info["slaves"]["ip"])
+        return master_slave_pair_infos
 
     def find_related_clusters_by_cluster_ids(
         self,
@@ -143,10 +245,10 @@ class ClusterServiceHandler:
 
     def get_intersected_machines_from_clusters(self, cluster_ids: List[int], role: str, is_stand_by: bool):
         """
+        获取关联集群特定实例角色的交集
         @param cluster_ids: 查询的集群ID列表
         @param role: 角色
         @param is_stand_by: 是否只过滤is_stand_by标志的实例，仅用于slave
-        获取关联集群特定实例角色的交集
         cluster1: slave1, slave2, slave3
         cluster2: slave1, slave2
         cluster3： slave1, slave3
@@ -219,6 +321,7 @@ class ClusterServiceHandler:
 
 
 def get_cluster_service_handler(bk_biz_id: int, db_type: str = "dbbase"):
+    """根据集群类型获取对应的集群查询handler"""
     handler_import_path = f"backend.db_services.{db_type}.cluster.handlers"
     try:
         handler_class = getattr(importlib.import_module(handler_import_path), "ClusterServiceHandler")

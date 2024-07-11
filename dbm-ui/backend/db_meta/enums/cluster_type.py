@@ -22,7 +22,7 @@ class ClusterType(str, StructuredEnum):
     TenDBCluster = EnumField("tendbcluster", _("TendbCluster集群"))
 
     RedisCluster = EnumField("redis", _("Redis"))
-    TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("Redis集群"))
+    TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("RedisCluster集群"))
     TendisPredixyTendisplusCluster = EnumField("PredixyTendisplusCluster", _("Tendisplus存储版集群"))
     TendisTwemproxyRedisInstance = EnumField("TwemproxyRedisInstance", _("TendisCache集群"))
     TwemproxyTendisSSDInstance = EnumField("TwemproxyTendisSSDInstance", _("TendisSSD集群"))
