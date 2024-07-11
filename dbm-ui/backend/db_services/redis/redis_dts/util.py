@@ -729,7 +729,7 @@ def is_in_full_transfer(row: TbTendisDtsTask) -> bool:
             DtsTaskType.TENDISSSD_BACKUP,
             DtsTaskType.TENDISSSD_BACKUPFILE_FETCH,
             DtsTaskType.TENDISSSD_TREDISDUMP,
-            DtsTaskType.TENDISSSD_CMDSIMPOTER,
+            DtsTaskType.TENDISSSD_CMDSIMPORTER,
         ] and row.status in [0, 1]:
             return True
     if row.src_dbtype == ClusterType.TendisRedisInstance:
@@ -756,7 +756,7 @@ def is_full_transfer_failed(row: TbTendisDtsTask) -> bool:
                 DtsTaskType.TENDISSSD_BACKUP,
                 DtsTaskType.TENDISSSD_BACKUPFILE_FETCH,
                 DtsTaskType.TENDISSSD_TREDISDUMP,
-                DtsTaskType.TENDISSSD_CMDSIMPOTER,
+                DtsTaskType.TENDISSSD_CMDSIMPORTER,
             ]
             and row.status == -1
         ):

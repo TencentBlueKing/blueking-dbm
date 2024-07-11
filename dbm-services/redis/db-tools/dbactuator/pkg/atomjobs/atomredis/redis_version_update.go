@@ -430,6 +430,10 @@ func (job *RedisVersionUpdate) startRedis(port int) (err error) {
 	addr := fmt.Sprintf("%s:%d", job.params.IP, port)
 	cli, err := myredis.NewRedisClientWithTimeout(addr, job.params.Password, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
+	if err != nil && strings.Contains(err.Error(), "LOADING Redis is loading") {
+		job.runtime.Logger.Warn(fmt.Sprintf("redis:%s conn warn,err:%v", addr, err))
+		err = nil
+	}
 	if err != nil {
 		return err
 	}
