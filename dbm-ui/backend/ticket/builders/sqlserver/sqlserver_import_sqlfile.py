@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
-from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLFILE_PATH
+from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.flow.consts import SqlserverBackupFileTagEnum, SqlserverBackupMode, SqlserverCharSet
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver import sqlserver_db_function
@@ -41,7 +41,6 @@ class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
 
     charset = serializers.ChoiceField(help_text=_("字符集"), required=False, choices=SqlserverCharSet.get_choices())
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
-    path = serializers.CharField(help_text=_("SQL文件路径"), required=False, default=BKREPO_SQLFILE_PATH)
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
     execute_sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
     execute_db_infos = serializers.ListSerializer(help_text=_("sql执行的DB信息"), child=ExecuteDBInfoSerializer())
@@ -107,6 +106,7 @@ class SQLServerImportFlowParamBuilder(builders.FlowParamBuilder):
         for sql_file in ticket_data["execute_sql_files"]:
             execute_objects.extend([{"sql_file": sql_file, **db_info} for db_info in ticket_data["execute_db_infos"]])
         ticket_data["execute_objects"] = execute_objects
+        ticket_data["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_IMPORT_SQLFILE)

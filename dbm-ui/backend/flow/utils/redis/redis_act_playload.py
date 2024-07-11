@@ -14,6 +14,7 @@ import logging.config
 import time
 from typing import Any
 
+from django.conf import settings
 from django.utils.translation import ugettext as _
 
 from backend import env
@@ -171,6 +172,17 @@ class RedisActPayload(object):
             }
         )
         return data["content"]
+
+    @staticmethod
+    def __get_fileserver():
+        """获取制品库下载信息"""
+        return {
+            "url": settings.BKREPO_ENDPOINT_URL,
+            "bucket": settings.BKREPO_BUCKET,
+            "password": settings.BKREPO_PASSWORD,
+            "username": settings.BKREPO_USERNAME,
+            "project": settings.BKREPO_PROJECT,
+        }
 
     @staticmethod
     def get_common_config(bk_biz_id: str, namespace: str, conf_file: str, conf_type: str) -> Any:
@@ -843,13 +855,13 @@ class RedisActPayload(object):
                 "pkg": tools_pkg.name,
                 "pkg_md5": tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
-                "fileserver": self.ticket_data["fileserver"],
                 "path": self.cluster["path"],
                 "domain": self.cluster["domain_name"],
                 "key_white_regex": self.cluster["white_regex"],
                 "key_black_regex": self.cluster["black_regex"],
                 "ip": ip,
                 "ports": self.cluster[ip],
+                "fileserver": self.__get_fileserver(),
             },
         }
 
@@ -869,7 +881,7 @@ class RedisActPayload(object):
                 "pkg": tools_pkg.name,
                 "pkg_md5": tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
-                "fileserver": self.ticket_data["fileserver"],
+                "fileserver": self.__get_fileserver(),
                 "path": self.cluster["path"],
                 "domain": self.cluster["domain_name"],
                 "key_white_regex": self.cluster["white_regex"],
@@ -900,7 +912,7 @@ class RedisActPayload(object):
                 "pkg": tools_pkg.name,
                 "pkg_md5": tools_pkg.md5,
                 "bk_biz_id": self.bk_biz_id,
-                "fileserver": self.ticket_data["fileserver"],
+                "fileserver": self.__get_fileserver(),
                 "path": self.cluster["path"],
                 "domain": self.cluster["domain_name"],
                 "delete_rate": int(self.global_config["delete_rate"]),

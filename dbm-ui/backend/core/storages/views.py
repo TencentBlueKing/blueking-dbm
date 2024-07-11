@@ -20,16 +20,16 @@ from backend.core.storages.serializers import (
     BatchDownloadFileSerializer,
     CreateTokenSerializer,
     CreateTokenSerializerResponseSerializer,
-    DirDownloadSerializer,
     FileSerializer,
-    TemporaryDownloadSerializer,
+    TemporaryDownloadSerializer, DirDownloadSerializer,
 )
+from backend.iam_app.handlers.drf_perm.storage import StoragePermission
 
 SWAGGER_TAG = "storage"
 
 
 class StorageViewSet(viewsets.SystemViewSet):
-    default_permission_class = []
+    default_permission_class = [StoragePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("批量获取文件内容"), request_body=BatchDownloadFileSerializer(), tags=[SWAGGER_TAG]

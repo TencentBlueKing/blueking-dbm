@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package syntax
 
 import (
@@ -10,10 +20,10 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// SR TODO
+// SR tendbcluster syntax rules
 var SR *SpiderRules
 
-// SpiderChecker TODO
+// SpiderChecker tendbcluster syntax checker
 type SpiderChecker interface {
 	SpiderChecker(mysqlVersion string) *CheckerResult
 }
@@ -45,7 +55,7 @@ func init() {
 	if cmutil.FileExists(config.GAppConfig.SpiderRulePath) {
 		fileContent, err = os.ReadFile(config.GAppConfig.SpiderRulePath)
 	} else {
-		fileContent, err = os.ReadFile(DEFAUTL_SPIDER_RULE_FILE)
+		fileContent, err = os.ReadFile(DefaultSpiderRuleFile)
 	}
 	if err != nil {
 		logger.Fatal("read rule config file failed %s", err.Error())

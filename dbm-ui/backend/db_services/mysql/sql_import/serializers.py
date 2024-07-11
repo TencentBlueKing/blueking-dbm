@@ -14,7 +14,6 @@ from rest_framework import serializers
 from backend.configuration.constants import DBType
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import (
-    BKREPO_SQLFILE_PATH,
     MAX_UPLOAD_SQL_FILE_SIZE,
     SQLCharset,
     SQLExecuteTicketMode,
@@ -65,9 +64,10 @@ class SQLGrammarCheckResponseSerializer(serializers.Serializer):
 
 
 class SQLSemanticCheckSerializer(serializers.Serializer):
-    class ExecuteDBInfoSerializer(serializers.Serializer):
+    class ExecuteSQLObjectSerializer(serializers.Serializer):
         dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
         ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField())
+        sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
 
     class SQLImportModeSerializer(serializers.Serializer):
         mode = serializers.ChoiceField(help_text=_("单据执行模式"), choices=SQLExecuteTicketMode.get_choices())
@@ -87,10 +87,8 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
     charset = serializers.ChoiceField(
         help_text=_("字符集"), required=False, choices=SQLCharset.get_choices(), default=SQLCharset.DEFAULT.value
     )
-    path = serializers.CharField(help_text=_("SQL文件路径"), required=False, default=BKREPO_SQLFILE_PATH)
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-    execute_sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
-    execute_db_infos = serializers.ListSerializer(help_text=_("sql执行的DB信息"), child=ExecuteDBInfoSerializer())
+    execute_objects = serializers.ListSerializer(help_text=_("sql执行体信息"), child=ExecuteSQLObjectSerializer())
     ticket_type = serializers.ChoiceField(help_text=_("单据类型"), choices=TicketType.get_choices())
     ticket_mode = SQLImportModeSerializer()
     import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
@@ -116,23 +114,17 @@ class SQLSemanticCheckResponseSerializer(serializers.Serializer):
 
 
 class ImportSQLForceSerializer(SQLSemanticCheckSerializer):
-    class ExecuteDBInfoSerializer(serializers.Serializer):
+    class ExecuteObjectSerializer(serializers.Serializer):
         dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
         ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField())
-
-    class ExecuteSQLSerializer(ExecuteDBInfoSerializer):
-        sql_file = serializers.CharField(help_text=_("sql执行文件"))
+        # 支持sql文件或者sql内容
+        sql_content = serializers.CharField(help_text=_("sql执行内容"), required=False, default=None)
+        sql_files = serializers.ListField(
+            help_text=_("sql执行文件"), child=serializers.CharField(), required=False, default=None
+        )
 
     ticket_type = serializers.ChoiceField(help_text=_("单据类型"), choices=TicketType.get_choices(), required=False)
-    execute_db_infos = serializers.ListSerializer(help_text=_("sql执行的DB信息"), child=ExecuteDBInfoSerializer())
-    execute_sql_content = serializers.CharField(help_text=_("sql执行内容"), required=False, default=None)
-    execute_sql_files = serializers.ListField(
-        help_text=_("sql执行文件"), child=serializers.FileField(), required=False, default=None
-    )
-
-    def validate(self, attrs):
-        if attrs["execute_sql_content"] and attrs["execute_sql_files"]:
-            raise serializers.ValidationError(_("请填写SQL执行的数据"))
+    execute_objects = serializers.ListSerializer(help_text=_("sql执行体信息"), child=ExecuteObjectSerializer())
 
 
 class SQLUserConfigSerializer(serializers.Serializer):
@@ -229,3 +221,15 @@ class GetSemanticCheckResultLogsSerializer(serializers.Serializer):
 class GetSemanticCheckResultLogsResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.SEMANTIC_CHECK_RESULT_LOGS}
+
+
+class GetSemanticExecResultSerializer(serializers.Serializer):
+    root_id = serializers.CharField(help_text=_("流程id"))
+
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.REVOKE_SEMANTIC_CHECK_REQUEST_DATA}
+
+
+class GetSemanticExecResultResSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.SEMANTIC_EXEC_RESULT_DATA}

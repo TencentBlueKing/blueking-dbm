@@ -15,10 +15,13 @@
 package mysql
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -52,21 +55,21 @@ type ExcuteSQLFileParam struct {
 // ExcuteSQLFileObj 单个文件的执行对象
 // 一次可以多个文件操作不同的数据库
 type ExcuteSQLFileObj struct {
-	SQLFile       string   `json:"sql_file"`       // 变更文件名称
+	//	SQLFile string `json:"sql_file"` // 变更文件名称
+	LineId        int      `json:"line_id"`
+	SQLFiles      []string `json:"sql_files"`      // 变更文件名称
 	IgnoreDbNames []string `json:"ignore_dbnames"` // 忽略的,需要排除变更的dbName,支持模糊匹配
 	DbNames       []string `json:"dbnames"`        // 需要变更的DBNames,支持模糊匹配
 }
 
 // ExcuteSQLFileRunTimeCtx 运行时上下文
 type ExcuteSQLFileRunTimeCtx struct {
-	ports                []int
-	dbConns              map[Port]*native.DbWorker
-	vermap               map[Port]string // 当前实例的数据版本
-	charsetmap           map[Port]string // 当前实例的字符集
-	socketmap            map[Port]string // 当前实例的socket value
-	taskdir              string
-	RegularIgnoreDbNames []string
-	RegularDbNames       []string
+	ports      []int
+	dbConns    map[Port]*native.DbWorker
+	vermap     map[Port]string // 当前实例的数据版本
+	charsetmap map[Port]string // 当前实例的字符集
+	socketmap  map[Port]string // 当前实例的socket value
+	taskdir    string
 }
 
 // Example TODO
@@ -80,7 +83,7 @@ func (e *ExcuteSQLFileComp) Example() interface{} {
 			FilePath: "/data/workspace",
 			ExcuteObjects: []ExcuteSQLFileObj{
 				{
-					SQLFile:       "111.sql",
+					SQLFiles:      []string{"111.sql"},
 					IgnoreDbNames: []string{"a%"},
 					DbNames:       []string{"db1", "db2"},
 				},
@@ -89,6 +92,63 @@ func (e *ExcuteSQLFileComp) Example() interface{} {
 			IsSpider: false,
 		},
 	}
+}
+
+// Precheck do some check step
+func (e *ExcuteSQLFileComp) Precheck() (err error) {
+	for _, port := range e.ports {
+		if err = e.checkDuplicateObjects(port); err != nil {
+			return err
+		}
+	}
+	return
+}
+
+// checkDuplicateObjects  判断每行变更对象，是否存在相同文件变更相同db的情况
+func (e *ExcuteSQLFileComp) checkDuplicateObjects(port int) (err error) {
+	var errs []error
+	alldbs, err := e.dbConns[port].ShowDatabases()
+	if err != nil {
+		logger.Error("获取实例db list失败:%s", err.Error())
+		return err
+	}
+	dbsExcluesysdbs := util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest(e.vermap[port]))
+	m := make(map[int][]string)
+	for _, f := range e.Params.ExcuteObjects {
+		var realexcutedbs []string
+		// 获得目标库 因为是通配符 所以需要获取完整名称
+		intentionDbs, err := e.match(dbsExcluesysdbs, f.parseDbParamRe())
+		if err != nil {
+			return err
+		}
+		// 获得忽略库
+		ignoreDbs, err := e.match(dbsExcluesysdbs, f.parseIgnoreDbParamRe())
+		if err != nil {
+			return err
+		}
+		// 获取最终需要执行的库
+		realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
+		m[f.LineId] = realexcutedbs
+	}
+	total := len(e.Params.ExcuteObjects)
+	for i, baseObj := range e.Params.ExcuteObjects {
+		for j := i + 1; j < total; j++ {
+			nextObj := e.Params.ExcuteObjects[j]
+			duplicateFiles := lo.Intersect(baseObj.SQLFiles, nextObj.SQLFiles)
+			// 如果上一行于下一行存在文件交集
+			if len(duplicateFiles) > 0 {
+				// 	则判断上一行和下一行变更的db对象是否存在重叠
+				baseObjdbs := m[baseObj.LineId]
+				nextObjdbs := m[nextObj.LineId]
+				duplicatedbs := lo.Intersect(baseObjdbs, nextObjdbs)
+				if len(duplicatedbs) > 0 {
+					errs = append(errs, fmt.Errorf("第%d行和第%d行存在变相同的db:%v,该文件会变更多次%v,", baseObj.LineId, nextObj.LineId, duplicatedbs,
+						duplicatedbs))
+				}
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // Init init
@@ -118,7 +178,7 @@ func (e *ExcuteSQLFileComp) Init() (err error) {
 		}
 
 		charset = e.Params.CharSet
-		if e.Params.CharSet == "default" {
+		if e.Params.CharSet == cst.DefaultCharset {
 			if charset, err = dbConn.ShowServerCharset(); err != nil {
 				logger.Error("获取实例的字符集失败：%s", err.Error())
 				return err
@@ -144,7 +204,7 @@ func (e *ExcuteSQLFileComp) Init() (err error) {
 	return nil
 }
 
-// Excute TODO
+// Excute excute
 func (e *ExcuteSQLFileComp) Excute() (err error) {
 	defer e.closeDb()
 	for _, port := range e.ports {
@@ -164,20 +224,21 @@ func (e *ExcuteSQLFileComp) closeDb() {
 	}
 }
 
-// OpenDdlExecuteByCtl TODO
-// sed 之前考虑是否需要保留源文件
+// OpenDdlExecuteByCtl tendbcluster变更时候 sed 之前考虑是否需要保留源文件
 // 此方法仅用于spider集群变更
 func (e *ExcuteSQLFileComp) OpenDdlExecuteByCtl() (err error) {
 	for _, f := range e.Params.ExcuteObjects {
-		stdout, err := osutil.StandardShellCommand(
-			false,
-			fmt.Sprintf(`sed -i '1 i\/*!50600 SET ddl_execute_by_ctl=1*/;' %s`, path.Join(e.taskdir, f.SQLFile)),
-		)
-		if err != nil {
-			logger.Error("sed insert ddl_execute_by_ctl failed %s,stdout:%s", err.Error(), stdout)
-			return err
+		for _, sqlFile := range f.SQLFiles {
+			stdout, err := osutil.StandardShellCommand(
+				false,
+				fmt.Sprintf(`sed -i '1 i\/*!50600 SET ddl_execute_by_ctl=1*/;' %s`, path.Join(e.taskdir, sqlFile)),
+			)
+			if err != nil {
+				logger.Error("sed insert ddl_execute_by_ctl failed %s,stdout:%s", err.Error(), stdout)
+				return err
+			}
+			logger.Info("sed at %s,stdout:%s", sqlFile, stdout)
 		}
-		logger.Info("sed at %s,stdout:%s", f.SQLFile, stdout)
 	}
 	return
 }
@@ -194,37 +255,39 @@ func (e *ExcuteSQLFileComp) excuteOne(port int) (err error) {
 	}
 	dbsExcluesysdbs := util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest(e.vermap[port]))
 	for _, f := range e.Params.ExcuteObjects {
-		var realexcutedbs []string
+		var realexcutedbs, intentionDbs, ignoreDbs []string
 		// 获得目标库 因为是通配符 所以需要获取完整名称
-		intentionDbs, err := e.match(dbsExcluesysdbs, f.parseDbParamRe())
+		intentionDbs, err = e.match(dbsExcluesysdbs, f.parseDbParamRe())
 		if err != nil {
 			return err
 		}
 		// 获得忽略库
-		ignoreDbs, err := e.match(dbsExcluesysdbs, f.parseIgnoreDbParamRe())
+		ignoreDbs, err = e.match(dbsExcluesysdbs, f.parseIgnoreDbParamRe())
 		if err != nil {
 			return err
 		}
 		// 获取最终需要执行的库
 		realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
-		if len(realexcutedbs) <= 0 {
+		if len(realexcutedbs) == 0 {
 			return fmt.Errorf("没有适配到任何db")
 		}
 		logger.Info("will real excute on %v", realexcutedbs)
-		err = mysqlutil.ExecuteSqlAtLocal{
-			IsForce:          e.Params.Force,
-			Charset:          e.charsetmap[port],
-			NeedShowWarnings: false,
-			Host:             e.Params.Host,
-			Port:             port,
-			Socket:           e.socketmap[port],
-			WorkDir:          e.taskdir,
-			User:             e.GeneralParam.RuntimeAccountParam.AdminUser,
-			Password:         e.GeneralParam.RuntimeAccountParam.AdminPwd,
-		}.ExcuteSqlByMySQLClient(f.SQLFile, realexcutedbs)
-		if err != nil {
-			logger.Error("执行%s文件失败:%s", f.SQLFile, err.Error())
-			return err
+		for _, sqlFile := range f.SQLFiles {
+			err = mysqlutil.ExecuteSqlAtLocal{
+				IsForce:          e.Params.Force,
+				Charset:          e.charsetmap[port],
+				NeedShowWarnings: false,
+				Host:             e.Params.Host,
+				Port:             port,
+				Socket:           e.socketmap[port],
+				WorkDir:          e.taskdir,
+				User:             e.GeneralParam.RuntimeAccountParam.AdminUser,
+				Password:         e.GeneralParam.RuntimeAccountParam.AdminPwd,
+			}.ExcuteSqlByMySQLClient(sqlFile, realexcutedbs)
+			if err != nil {
+				logger.Error("执行%s文件失败:%s", sqlFile, err.Error())
+				return err
+			}
 		}
 	}
 	return err
@@ -274,8 +337,8 @@ func (e *ExcuteSQLFileObj) parseIgnoreDbParamRe() (s []string) {
 func changeToMatch(input []string) []string {
 	var result []string
 	for _, str := range input {
-		str = strings.Replace(str, "?", ".", -1)
-		str = strings.Replace(str, "%", ".*", -1)
+		str = strings.ReplaceAll(str, "?", ".")
+		str = strings.ReplaceAll(str, "%", ".*")
 		str = `^` + str + `$`
 		result = append(result, str)
 	}

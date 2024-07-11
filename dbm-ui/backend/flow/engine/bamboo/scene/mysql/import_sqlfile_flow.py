@@ -150,22 +150,25 @@ class ImportSQLFlow(object):
         SQL语义检测流程编排，如果是个多集群执行SQL导入，默认拿集群列表第一位的库表结构来检验，加速输出校验结果
         todo 这块涉及到调用bcs来创建临时实例，这块需要怎么考虑兼容跨云管理
         """
-        sub_pipelines = []
+
         cluster_ids = self.data["cluster_ids"]
-        clusters = Cluster.objects.filter(id__in=cluster_ids)
-        cluster_module_map = {}
-        random_pass_cluster_ids = []
-        for cluster in clusters:
-            if cluster.db_module_id in cluster_module_map:
-                cluster_module_map[cluster.db_module_id].append(cluster)
-            else:
-                cluster_module_map[cluster.db_module_id] = [cluster]
-                random_pass_cluster_ids.append(cluster.id)
-        if len(clusters) <= 0:
+        if len(cluster_ids) <= 0:
             raise Exception(_("查询不到可执行的集群！！！"))
+        templ_cluster_id = cluster_ids[0]
+        cluster = Cluster.objects.get(id=templ_cluster_id)
+        template_cluster = self.__get_master_instance_info(cluster=cluster)
+        cluster_type = template_cluster["cluster_type"]
+        template_db_version = self.__get_version_and_charset(
+            db_module_id=cluster.db_module_id, cluster_type=cluster_type
+        )
+        backend_ip = template_cluster["backend_ip"]
+        backend_port = template_cluster["port"]
+        bk_cloud_id = template_cluster["bk_cloud_id"]
+        backend_charset = self.__get_backend_charset(backend_ip, backend_port, bk_cloud_id)
+        logger.info(f"backend_charset: {backend_charset}")
 
         semantic_check_pipeline = Builder(
-            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=random_pass_cluster_ids
+            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[templ_cluster_id]
         )
         for db_module_id, clusterList in cluster_module_map.items():
             # 声明子流程
@@ -186,52 +189,49 @@ class ImportSQLFlow(object):
                 if origin_mysql_var_map.__contains__(var):
                     start_mysqld_configs[var] = origin_mysql_var_map.get(var)
 
-            sub_pipeline.add_act(
-                act_name=_("给模板集群下发db-actuator"),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(
-                    DownloadMediaKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=backend_ip,
-                        file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-                    )
-                ),
-            )
+        semantic_check_pipeline.add_act(
+            act_name=_("给模板集群下发db-actuator"),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=bk_cloud_id,
+                    exec_ip=backend_ip,
+                    file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
+                )
+            ),
+        )
 
-            sub_pipeline.add_act(
-                act_name=_("备份测试库表结构"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(
-                    ExecActuatorKwargs(
-                        bk_cloud_id=bk_cloud_id,
-                        exec_ip=backend_ip,
-                        cluster=template_cluster,
-                        get_mysql_payload_func=MysqlActPayload.get_semantic_dump_schema_payload.__name__,
-                    )
-                ),
-            )
-            sub_pipeline.add_act(
-                act_name=_("对SQL文件进行语义测试"),
-                act_component_code=SemanticCheckComponent.code,
-                kwargs={
-                    "cluster": template_cluster,
-                    "cluster_type": cluster_type,
-                    "payload": {
-                        "uid": self.data["uid"],
-                        "mysql_version": template_db_version,
-                        "mysql_charset": backend_charset,
-                        "path": BKREPO_SQLFILE_PATH,
-                        "task_id": self.root_id,
-                        "schema_sql_file": self.semantic_dump_schema_file_name,
-                        "execute_objects": self.data["execute_objects"],
-                        "mysql_start_config": start_mysqld_configs,
-                    },
+        semantic_check_pipeline.add_act(
+            act_name=_("备份测试库表结构"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(
+                ExecActuatorKwargs(
+                    bk_cloud_id=bk_cloud_id,
+                    exec_ip=backend_ip,
+                    cluster=template_cluster,
+                    get_mysql_payload_func=MysqlActPayload.get_semantic_dump_schema_payload.__name__,
+                )
+            ),
+        )
+
+        semantic_check_pipeline.add_act(
+            act_name=_("对SQL文件进行语义测试"),
+            act_component_code=SemanticCheckComponent.code,
+            kwargs={
+                "cluster": template_cluster,
+                "cluster_type": cluster_type,
+                "payload": {
+                    "uid": self.data["uid"],
+                    "mysql_version": template_db_version,
+                    "mysql_charset": backend_charset,
+                    "path": BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
+                    "task_id": self.root_id,
+                    "schema_sql_file": self.semantic_dump_schema_file_name,
+                    "execute_objects": self.data["execute_objects"],
+                     "mysql_start_config": start_mysqld_configs,
                 },
-            )
-            sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("执行模拟执行子流程")))
-
-        # 并行编排模拟执行子流程
-        semantic_check_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            },
+        )
 
         # 模拟执行成功串提单操作
         semantic_check_pipeline.add_act(
@@ -271,7 +271,7 @@ class ImportSQLFlow(object):
     def __get_sql_file_name_list(self) -> list:
         file_list = []
         for obj in self.data["execute_objects"]:
-            file_list.append(obj["sql_file"])
+            file_list.extend(obj["sql_files"])
         return list(set(file_list))
 
     def __get_version_and_charset(self, db_module_id, cluster_type) -> Any:

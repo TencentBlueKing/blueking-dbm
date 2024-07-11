@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import itertools
 import logging
 
 from django.utils.translation import ugettext as _
@@ -19,11 +19,9 @@ from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import DBType
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
-from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.models import FlowNode, FlowTree
-from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import (
@@ -67,11 +65,7 @@ class MysqlSqlImportItsmParamBuilder(builders.ItsmParamBuilder):
 
         # 获取模拟执行结果 -- 这里获取语义执行结果节点的状态
         flow_tree = FlowTree.objects.get(root_id=root_id)
-        semantic_node = TaskFlowHandler.get_node_id_by_component(flow_tree.tree, SemanticCheckComponent.code)
-        semantic_state = BambooEngine(root_id).get_node_state(semantic_node)
-        semantic_state = semantic_state.name if semantic_state else ""
-        # 模拟执行结果与单据结果映射，并加入itsm的动态字段中
-        exec_status = BAMBOO_STATE__TICKET_STATE_MAP.get(semantic_state, TicketFlowStatus.PENDING.value)
+        exec_status = BAMBOO_STATE__TICKET_STATE_MAP.get(flow_tree.status, TicketFlowStatus.PENDING.value)
         exec_status_display = str(TicketFlowStatus.get_choice_label(exec_status))
         params["dynamic_fields"].append({"name": _("模拟执行结果"), "type": "STRING", "value": exec_status_display})
 
@@ -113,6 +107,10 @@ class MysqlSqlImportFlowParamBuilder(builders.FlowParamBuilder):
 class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSqlImportDetailSerializer
     editable = False
+    # 定义流程所用到的cls，方便继承复用
+    itsm_flow_builder = MysqlSqlImportItsmParamBuilder
+    backup_flow_builder = MysqlSqlImportBackUpFlowParamBuilder
+    import_flow_builder = MysqlSqlImportFlowParamBuilder
 
     @classmethod
     def patch_sqlimport_ticket_detail(cls, ticket, cluster_type):
@@ -137,16 +135,13 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
             pop_fields = ["uid", "ticket_type"]
             [details.pop(field, None) for field in pop_fields]
 
-        # 补充集群信息和node_id
-        semantic_node_id = TaskFlowHandler.get_node_id_by_component(flow_tree.tree, SemanticCheckComponent.code)
-        details.update(semantic_node_id=semantic_node_id)
         ticket.details.update(details)
 
     @classmethod
     def patch_sqlfile_grammar_check_info(cls, ticket, cluster_type):
-        sqlfile_list = list(set([obj["sql_file"] for obj in ticket.details["execute_objects"]]))
+        sqlfile_list = itertools.chain(*[set(obj["sql_files"]) for obj in ticket.details["execute_objects"]])
         check_info = SQLSimulationApi.grammar_check(
-            params={"path": ticket.details["path"], "files": sqlfile_list, "cluster_type": cluster_type}
+            params={"path": ticket.details["path"], "files": list(sqlfile_list), "cluster_type": cluster_type}
         )
         ticket.details.update(grammar_check_info=check_info)
 
@@ -175,7 +170,7 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.DESCRIBE_TASK.value,
-                details=MysqlSqlImportFlowParamBuilder(self.ticket).get_params(),
+                details=self.import_flow_builder(self.ticket).get_params(),
                 flow_alias=_("SQL模拟执行状态查询"),
             ),
         ]
@@ -185,7 +180,7 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.BK_ITSM.value,
-                    details=MysqlSqlImportItsmParamBuilder(self.ticket).get_params(),
+                    details=self.itsm_flow_builder(self.ticket).get_params(),
                     flow_alias=_("单据审批"),
                 )
             )
@@ -201,7 +196,7 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
                 Flow(
                     ticket=self.ticket,
                     flow_type=FlowType.INNER_FLOW.value,
-                    details=MysqlSqlImportBackUpFlowParamBuilder(self.ticket).get_params(),
+                    details=self.backup_flow_builder(self.ticket).get_params(),
                     retry_type=FlowRetryType.MANUAL_RETRY.value,
                     flow_alias=_("库表备份"),
                 )
@@ -211,7 +206,7 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.INNER_FLOW.value,
-                details=MysqlSqlImportFlowParamBuilder(self.ticket).get_params(),
+                details=self.import_flow_builder(self.ticket).get_params(),
                 retry_type=FlowRetryType.MANUAL_RETRY.value,
                 flow_alias=_("变更SQL执行"),
             )

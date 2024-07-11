@@ -24,6 +24,7 @@ from backend.db_services.taskflow.serializers import FlowTaskSerializer
 from backend.flow.models import FlowTree
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.taskflow import TaskFlowPermission
 from backend.ticket.builders.redis.redis_key_extract import KEY_FILE_PREFIX
 from backend.ticket.models import Ticket
@@ -50,7 +51,7 @@ class KeyOpsViewSet(viewsets.ReadOnlyAuditedModelViewSet):
     queryset = FlowTree.objects.all()
 
     action_permission_map = {("key_files",): [TaskFlowPermission([ActionEnum.FLOW_DETAIL], ResourceEnum.TASKFLOW)]}
-    default_permission_class = []
+    default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
         operation_summary=_("结果文件列表"),
@@ -70,7 +71,7 @@ class KeyOpsViewSet(viewsets.ReadOnlyAuditedModelViewSet):
             biz_domain_name = f'{ticket.id}.{rule["domain"]}'
             # 兼容集群被删除的极端情况
             cluster = Cluster.objects.filter(pk=rule["cluster_id"]).last()
-            path = os.path.join(KEY_FILE_PREFIX, biz_domain_name)
+            path = os.path.join(KEY_FILE_PREFIX.format(biz=ticket.bk_biz_id), biz_domain_name)
             _, files = storage.listdir(path)
             total_size = sum(f["size"] for f in files)
             task_files.append(
