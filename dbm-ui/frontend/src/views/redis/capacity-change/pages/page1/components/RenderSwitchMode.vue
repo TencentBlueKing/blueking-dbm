@@ -33,7 +33,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
     data?: string;

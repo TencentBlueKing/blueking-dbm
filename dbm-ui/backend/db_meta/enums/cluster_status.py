@@ -29,6 +29,10 @@ class ClusterStatusFlags(IntFlag):
         return flag_str.split("|")
 
 
+class ClusterCommonStatusFlags(ClusterStatusFlags):
+    InstanceUnavailable = auto()
+
+
 class ClusterDBSingleStatusFlags(ClusterStatusFlags):
     SingleUnavailable = auto()
 
@@ -43,3 +47,7 @@ class ClusterTenDBClusterStatusFlag(ClusterStatusFlags):
     SpiderUnavailable = auto()
     RemoteMasterUnavailable = auto()
     RemoteSlaveUnavailable = auto()
+
+
+class ClusterRedisStatusFlags(ClusterStatusFlags):
+    RedisUnavailable = auto()

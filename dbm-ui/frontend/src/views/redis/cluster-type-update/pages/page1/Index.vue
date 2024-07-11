@@ -25,7 +25,6 @@
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
-          :cluster-types-map="clusterTypesMap"
           :data="item"
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
@@ -103,6 +102,7 @@
       v-model:is-show="isShowClusterSelector"
       :cluster-types="[ClusterTypes.REDIS]"
       :selected="selectedClusters"
+      :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </SmartAction>
 </template>
@@ -112,11 +112,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisModel from '@services/model/redis/redis';
   import { RepairAndVerifyFrequencyModes, RepairAndVerifyModes } from '@services/model/redis/redis-dst-history-job';
+  import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
-  import { getClusterTypeToVersions } from '@services/source/version';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -131,14 +129,7 @@
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
-  type SubmitType = SubmitTicket<TicketTypes, InfoItem[]> & {
-    details: {
-      data_check_repair_setting: {
-        type: RepairAndVerifyModes;
-        execution_frequency: RepairAndVerifyFrequencyModes | '';
-      };
-    };
-  };
+  type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
 
   const router = useRouter();
   const { t } = useI18n();
@@ -163,7 +154,6 @@
   const repairAndVerifyType = ref(RepairAndVerifyModes.DATA_CHECK_AND_REPAIR);
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
   const tableData = ref([createRowData()]);
-  const clusterTypesMap = ref<Record<string, string[]>>({});
 
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
@@ -173,13 +163,20 @@
   // 集群域名是否已存在表格的映射表
   let domainMemo = {} as Record<string, boolean>;
 
-  // 查询全部的集群类型映射表
-  const queryDBVersions = async () => {
-    const ret = await getClusterTypeToVersions();
-    clusterTypesMap.value = ret;
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
+        getRedisList({
+          ...params,
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+          ].join(','),
+        }),
+    },
   };
-
-  queryDBVersions();
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -272,7 +269,7 @@
     const infos = await Promise.all<InfoItem[]>(
       rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
     );
-    const params: SubmitType = {
+    const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
       details: {

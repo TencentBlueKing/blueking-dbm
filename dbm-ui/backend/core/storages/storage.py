@@ -68,6 +68,16 @@ class MyBKGenericRepoClient(BKGenericRepoClient):
                 files.append(record)
         return directories, files, (cur_page < total_pages)
 
+    def build_download_url(self, key: str, force_download: bool = False) -> str:
+        """构造下载url
+        :param str key: 文件完整路径
+        :param bool force_download: 如果为true，响应体会添加Content-Disposition，强制浏览器进行下载；不加此参数，浏览器将根据情况展示文件预览
+        """
+        key = key.lstrip("/")
+        download = "true" if force_download else "false"
+        url = urljoin(self.endpoint_url, f"/generic/{self.project}/{self.bucket}/{key}/?download={download}")
+        return url
+
     def batch_download(self, paths: List[str]) -> requests.Response:
         """
         返回更多文件信息

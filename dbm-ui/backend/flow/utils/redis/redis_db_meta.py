@@ -289,6 +289,14 @@ class RedisDBMeta(object):
         """
         Redis实例上架、单机器级别。
         """
+        bk_cloud_id, ins_status = 0, InstanceStatus.RUNNING
+        if self.cluster.get("ins_status"):
+            ins_status = self.cluster["ins_status"]
+        if "bk_cloud_id" in self.ticket_data:
+            bk_cloud_id = self.ticket_data["bk_cloud_id"]
+        else:
+            bk_cloud_id = self.cluster["bk_cloud_id"]
+
         machines, ins, cluster_type = [], [], ""
         if "cluster_type" in self.ticket_data:
             cluster_type = self.ticket_data["cluster_type"]
@@ -343,15 +351,12 @@ class RedisDBMeta(object):
                         ins.append({"ip": ip, "port": port, "instance_role": InstanceRole.REDIS_SLAVE.value})
 
         with atomic():
-            bk_cloud_id = 0
-            ins_status = InstanceStatus.RUNNING
-            if self.cluster.get("ins_status"):
-                ins_status = self.cluster["ins_status"]
-            if "bk_cloud_id" in self.ticket_data:
-                bk_cloud_id = self.ticket_data["bk_cloud_id"]
+            if cluster_type == ClusterType.TendisRedisInstance.value:
+                api.machine.get_or_create(
+                    machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id
+                )
             else:
-                bk_cloud_id = self.cluster["bk_cloud_id"]
-            api.machine.create(machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id)
+                api.machine.create(machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id)
             api.storage_instance.create(instances=ins, creator=self.ticket_data["created_by"], status=ins_status)
         return True
 

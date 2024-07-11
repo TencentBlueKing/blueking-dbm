@@ -7984,35 +7984,6 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "redis_dts_online_switch",
-                "name": "Redis DTS在线切换",
-                "name_en": "REDIS_DTS_ONLINE_SWITCH",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "redis",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "redis_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "Redis",
-                "subgroup": "工具箱",
-                "description": "Redis DTS在线切换",
-                "description_en": "REDIS_DTS_ONLINE_SWITCH"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "redis_version_update_online",
                 "name": "Redis 集群版本升级",
                 "name_en": "REDIS_VERSION_UPDATE_ONLINE",
@@ -8066,35 +8037,6 @@
                 "subgroup": "工具箱",
                 "description": "Redis 集群重装DBMON",
                 "description_en": "REDIS_CLUSTER_REINSTALL_DBMON"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "redis_cluster_proxys_upgrade",
-                "name": "Redis 集群proxys版本升级",
-                "name_en": "REDIS_CLUSTER_PROXYS_UPGRADE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "redis",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "redis_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "Redis",
-                "subgroup": "工具箱",
-                "description": "Redis 集群proxys版本升级",
-                "description_en": "REDIS_CLUSTER_PROXYS_UPGRADE"
             }
         },
         {
@@ -10423,16 +10365,10 @@
                                     "id": "redis_datacopy_check_repair"
                                 },
                                 {
-                                    "id": "redis_dts_online_switch"
-                                },
-                                {
                                     "id": "redis_version_update_online"
                                 },
                                 {
                                     "id": "redis_cluster_reinstall_dbmon"
-                                },
-                                {
-                                    "id": "redis_cluster_proxys_upgrade"
                                 },
                                 {
                                     "id": "redis_cluster_rename_domain"
@@ -11647,16 +11583,10 @@
                             "id": "redis_cluster_add_slave"
                         },
                         {
-                            "id": "redis_dts_online_switch"
-                        },
-                        {
                             "id": "redis_version_update_online"
                         },
                         {
                             "id": "redis_cluster_reinstall_dbmon"
-                        },
-                        {
-                            "id": "redis_cluster_proxys_upgrade"
                         },
                         {
                             "id": "redis_cluster_rename_domain"
@@ -12318,19 +12248,11 @@
                                 "required": true
                             },
                             {
-                                "id": "redis_dts_online_switch",
-                                "required": true
-                            },
-                            {
                                 "id": "redis_version_update_online",
                                 "required": true
                             },
                             {
                                 "id": "redis_cluster_reinstall_dbmon",
-                                "required": true
-                            },
-                            {
-                                "id": "redis_cluster_proxys_upgrade",
                                 "required": true
                             },
                             {
