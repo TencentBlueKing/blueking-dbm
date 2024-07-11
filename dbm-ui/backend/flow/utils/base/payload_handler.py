@@ -219,7 +219,7 @@ class PayloadHandler(object):
         partition_yw = DBPrivManagerApi.get_password(
             params={
                 "instances": [DEFAULT_INSTANCE],
-                "users": [{"username": UserName.PARTITION.value, "component": MySQLPrivComponent.MYSQL.value}],
+                "users": [{"username": UserName.PARTITION_YW.value, "component": MySQLPrivComponent.MYSQL.value}],
             }
         )
         partition_yw = partition_yw["items"][0]
