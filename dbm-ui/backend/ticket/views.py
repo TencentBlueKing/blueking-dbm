@@ -64,6 +64,7 @@ from backend.ticket.serializers import (
     ListTicketStatusSerializer,
     QueryTicketFlowDescribeSerializer,
     RetryFlowSLZ,
+    RevokeFlowSLZ,
     SensitiveTicketSerializer,
     TicketFlowDescribeSerializer,
     TicketFlowSerializer,
@@ -330,6 +331,19 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         ticket = Ticket.objects.get(pk=pk)
         flow_instance = Flow.objects.get(ticket=pk, id=validated_data["flow_id"])
         TicketFlowManager(ticket=ticket).get_ticket_flow_cls(flow_instance.flow_type)(flow_instance).retry()
+        return Response()
+
+    @common_swagger_auto_schema(
+        operation_summary=_("单据流程终止"),
+        request_body=RevokeFlowSLZ(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=True, serializer_class=RetryFlowSLZ)
+    def revoke_flow(self, request, pk):
+        validated_data = self.params_validate(self.get_serializer_class())
+        ticket = Ticket.objects.get(pk=pk)
+        flow_instance = Flow.objects.get(ticket=pk, id=validated_data["flow_id"])
+        TicketFlowManager(ticket=ticket).get_ticket_flow_cls(flow_instance.flow_type)(flow_instance).revoke()
         return Response()
 
     @swagger_auto_schema(
