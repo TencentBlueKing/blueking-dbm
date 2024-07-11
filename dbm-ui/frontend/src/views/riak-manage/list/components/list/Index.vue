@@ -21,11 +21,10 @@
         {{ t('申请实例') }}
       </AuthButton>
       <DropdownExportExcel
-        class="mr-8"
         :ids="selectedIds"
         type="riak" />
+      <ClusterIpCopy :selected="selected" />
       <DbSearchSelect
-        class="header-action-search-select"
         :data="serachData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
@@ -35,7 +34,6 @@
       <BkDatePicker
         v-model="deployTime"
         append-to-body
-        class="header-action-deploy-time"
         clearable
         :placeholder="t('请选择xx', [t('部署时间')])"
         type="daterange"
@@ -75,7 +73,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -89,6 +87,7 @@
   import { getUserList } from '@services/source/user';
 
   import {
+    useCopy,
     useLinkQueryColumnSerach,
     useStretchLayout,
     useTicketMessage,
@@ -107,6 +106,9 @@
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
     getMenuListSearch,
@@ -135,6 +137,7 @@
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
+  const copy = useCopy();
   const { currentBizId } = useGlobalBizs();
   const {
     isOpen: isStretchLayoutOpen,
@@ -239,9 +242,10 @@
   const addNodeShow = ref(false);
   const deleteNodeShow = ref(false);
   const detailData = ref<RiakModel>();
-  const selected = shallowRef<RiakModel[]>([]);
+  const selected = ref<RiakModel[]>([])
 
   const selectedIds = computed(() => selected.value.map(item => item.id));
+  const hasSelected = computed(() => selected.value.length > 0);
 
   const columns = computed(() => [
     {
@@ -250,6 +254,22 @@
       minWidth: 240,
       fixed: 'left',
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: RiakModel }) => (
         <TextOverflowLayout>
           {{
@@ -352,6 +372,29 @@
     {
       label: t('节点'),
       field: 'riak_node',
+      minWidth: 230,
+      showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'riak_node')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'riak_node')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('节点')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: RiakModel }) => (
         <RenderNodeInstance
           highlightIps={batchSearchIpInatanceList.value}
@@ -651,6 +694,48 @@
     tableRef.value!.fetchData({ ...params }, sortValue);
   };
 
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: RiakModel[], field: keyof RiakModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as RiakModel['riak_node']);
+    return result;
+  }, [] as RiakModel['riak_node']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof RiakModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof RiakModel) => {
+    const allData = await tableRef.value!.getAllData<RiakModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'primary',
+        message: t('暂无数据可复制'),
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
+
+
   onMounted(() => {
     if (!clusterId.value && route.query.id) {
       handleToDetail(Number(route.query.id));
@@ -679,14 +764,17 @@
 
     .header-action {
       display: flex;
+      flex-wrap: wrap;
       margin-bottom: 16px;
 
-      .header-action-search-select {
-        width: 500px;
+      .bk-search-select {
+        flex: 1;
+        max-width: 500px;
+        min-width: 320px;
         margin-left: auto;
       }
 
-      .header-action-deploy-time {
+      .bk-date-picker {
         width: 300px;
         margin-left: 8px;
       }
@@ -715,11 +803,11 @@
         margin-left: 4px;
       }
 
-      .db-icon-copy {
+      td .cell .db-icon-copy {
         display: none;
       }
 
-      tr:hover {
+      td:hover {
         .db-icon-copy {
           display: inline-block !important;
           margin-left: 4px;

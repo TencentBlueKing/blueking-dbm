@@ -135,6 +135,7 @@
   interface Exposes {
     fetchData: (params: Record<string, any>, baseParams: Record<string, any>, loading?: boolean) => void,
     getData: <T>() => Array<T>,
+    getAllData: <T>() => Promise<Array<T>>,
     clearSelected: () => void,
     loading: Ref<boolean>,
     bkTableRef: Ref<InstanceType<typeof Table>>,
@@ -352,6 +353,18 @@
             emits('requestFinished', tableData.value.results);
           });
       });
+  };
+
+  // 拉取全量数据
+  const fetchAllData = async () => {
+    const { results } = await props.dataSource({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      offset: (pagination.current - 1) * pagination.limit,
+      limit: -1,
+      ...paramsMemo,
+      ...sortParams,
+    })
+    return results;
   };
 
   watch(() => props.columns, () => {
@@ -580,6 +593,8 @@
     getData() {
       return tableData.value.results;
     },
+    // 获取全量数据
+    getAllData: fetchAllData,
     // 清空选择
     clearSelected() {
       bkTableRef.value?.clearSelection();

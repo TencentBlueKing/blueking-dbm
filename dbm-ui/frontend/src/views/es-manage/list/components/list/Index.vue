@@ -27,6 +27,7 @@
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="es" />
+      <ClusterIpCopy :selected="selected" />
       <DbSearchSelect
         class="mb16"
         :data="serachData"
@@ -96,7 +97,7 @@
     :get-detail-info="getEsDetail" />
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -136,9 +137,13 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import ClusterExpansion from '@views/es-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/es-manage/common/shrink/Index.vue';
 
@@ -259,14 +264,13 @@
   ] as SearchSelectData);
 
   const dataSource = getEsList;
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
-
-  const selected = shallowRef<EsModel[]>([]);
+  const selected = ref<EsModel[]>([])
   const operationData = shallowRef<EsModel>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
 
@@ -316,6 +320,27 @@
       width: 300,
       minWidth: 300,
       fixed: 'left',
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'domain',
+                label: t('域名')
+              },
+              {
+                field: 'domainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: EsModel}) => (
         <TextOverflowLayout>
           {{
@@ -333,10 +358,18 @@
             append: () => (
               <>
                 {data.domain && (
-                  <db-icon
-                    type="copy"
-                    v-bk-tooltips={t('复制访问入口')}
-                    onClick={() => copy(data.domainDisplayName)} />
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.domainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
@@ -361,6 +394,22 @@
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: EsModel}) => (
         <div style="line-height: 14px; display: flex;">
           <div>
@@ -448,6 +497,27 @@
       field: 'es_master',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'es_master')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'es_master')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('Master节点')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: EsModel}) => (
         <RenderNodeInstance
           highlightIps={batchSearchIpInatanceList.value}
@@ -463,6 +533,27 @@
       field: 'es_client',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'es_client')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'es_client')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('Client节点')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: EsModel}) => (
         <RenderNodeInstance
           role="es_client"
@@ -477,6 +568,27 @@
       field: 'es_datanode_hot',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'es_datanode_hot')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'es_datanode_hot')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('热节点')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: EsModel}) => (
         <RenderNodeInstance
           role="es_datanode_hot"
@@ -491,6 +603,27 @@
       field: 'es_datanode_cold',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'es_datanode_cold')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'es_datanode_cold')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('冷节点')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: EsModel}) => (
         <RenderNodeInstance
           role="es_datanode_cold"
@@ -706,6 +839,47 @@
     tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
     isInit.value = false;
   };
+
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: EsModel[], field: keyof EsModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as EsModel['es_master']);
+    return result;
+  }, [] as EsModel['es_master']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof EsModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof EsModel) => {
+    const allData = await tableRef.value!.getAllData<EsModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'primary',
+        message: t('暂无数据可复制'),
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
 
   const handleSelection = (data: EsModel, list: EsModel[]) => {
     selected.value = list;
@@ -928,17 +1102,19 @@
       }
     }
 
-    .db-icon-copy {
+    td .cell .db-icon-copy {
       display: none;
+      margin-top: 1px;
+      margin-left: 4px;
+      color: #3a84ff;
+      vertical-align: middle;
+      cursor: pointer;
     }
 
-    tr:hover {
+    th:hover,
+    td:hover {
       .db-icon-copy {
         display: inline-block !important;
-        margin-left: 4px;
-        color: #3a84ff;
-        vertical-align: middle;
-        cursor: pointer;
       }
     }
   }
@@ -955,13 +1131,14 @@
 
       .db-icon-edit {
         display: none;
+        margin-top: 1px;
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
       }
     }
 
-    :deep(tr:hover) {
+    :deep(td:hover) {
       .db-icon-edit {
         display: inline-block !important;
       }

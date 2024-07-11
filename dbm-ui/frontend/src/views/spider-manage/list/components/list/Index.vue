@@ -53,6 +53,7 @@
           v-db-console="'tendbCluster.clusterManage.export'"
           :ids="selectedIds"
           type="spider" />
+        <ClusterIpCopy :selected="selected" />
       </div>
       <DbSearchSelect
         :data="searchSelectData"
@@ -128,7 +129,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { Checkbox } from 'bkui-vue';
+  import { Checkbox, Message } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
   import {
@@ -136,7 +137,6 @@
     useRouter,
   } from 'vue-router';
 
-  import type { ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
   import TendbClusterModel from '@services/model/spider/tendbCluster';
   import {
     getSpiderDetail,
@@ -172,9 +172,14 @@
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
     getMenuListSearch,
@@ -234,7 +239,7 @@
 
   const clusterId = defineModel<number>('clusterId');
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowScaleUp = ref(false);
   const isShowShrink = ref(false);
   const isShowCapacityChange = ref(false);
@@ -245,8 +250,7 @@
   const excelAuthorizeShow = ref(false);
   const showEditEntryConfig = ref(false);
   const clusterAuthorizeShow = ref(false);
-
-  const selected = shallowRef<ResourceItem[]>([]);
+  const selected = ref<TendbClusterModel[]>([]);
   const operationData = shallowRef({} as TendbClusterModel);
 
   const hasSelected = computed(() => selected.value.length > 0);
@@ -351,6 +355,27 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'master_domain',
+                label: t('域名')
+              },
+              {
+                field: 'masterDomainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('主访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: IColumn) => (
         <TextOverflowLayout>
           {{
@@ -368,10 +393,18 @@
             append: () => (
               <>
                 {data.master_domain && (
-                  <db-icon
-                    type="copy"
-                    v-bk-tooltips={t('复制主访问入口')}
-                    onClick={() => copy(data.masterDomainDisplayName)} />
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.master_domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.masterDomainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
@@ -396,6 +429,22 @@
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: IColumn) => (
         <TextOverflowLayout>
           {{
@@ -465,6 +514,27 @@
       field: 'slave_domain',
       minWidth: 200,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'slave_domain',
+                label: t('域名')
+              },
+              {
+                field: 'slaveDomainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('从访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: IColumn) => (
         <div class="domain">
           <span
@@ -546,6 +616,27 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'spider_master')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'spider_master')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Spider Master'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: IColumn) => {
         if (data.spider_master.length === 0) return '--';
         return (
@@ -568,6 +659,27 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'spider_slave')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'spider_slave')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Spider Slave'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: IColumn) => {
         if (data.spider_slave.length === 0) return '--';
         return (
@@ -590,6 +702,27 @@
       width: 200,
       minWidth: 200,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'spider_mnt')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'spider_mnt')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('运维节点')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: IColumn) => {
         if (data.spider_mnt.length === 0) return '--';
         return (
@@ -612,6 +745,27 @@
       width: 250,
       minWidth: 250,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'remote_db')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'remote_db')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'RemoteDB'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: IColumn) => {
         if (data.remote_db.length === 0) return '--';
         return (
@@ -640,6 +794,27 @@
       width: 250,
       minWidth: 250,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'remote_dr')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'remote_dr')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'RemoteDR'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: IColumn) => {
         if (data.remote_dr.length === 0) return '--';
         return (
@@ -968,6 +1143,47 @@
     return Promise.resolve([]);
   };
 
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: TendbClusterModel[], field: keyof TendbClusterModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as TendbClusterModel['spider_master']);
+    return result;
+  }, [] as TendbClusterModel['spider_master']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof TendbClusterModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof TendbClusterModel) => {
+    const allData = await tableRef.value!.getAllData<TendbClusterModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'primary',
+        message: t('暂无数据可复制'),
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
+
   // 查看集群详情
   const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
@@ -1147,7 +1363,7 @@
     });
   };
 
-  const handleTableSelected = (data: ResourceItem, list: ResourceItem[]) => {
+  const handleTableSelected = (data: ResourceItem, list: TendbClusterModel[]) => {
     selected.value = list;
   };
 
@@ -1156,7 +1372,7 @@
   };
 
   const handleClearSelected = () => {
-    tableRef.value.clearSelected();
+    tableRef.value!.clearSelected();
     selected.value = [];
   };
 
@@ -1198,7 +1414,7 @@
       }
     }
 
-    :deep(.cell) {
+    :deep(td .cell) {
       line-height: normal !important;
 
       .domain {
@@ -1209,6 +1425,7 @@
       .db-icon-copy,
       .db-icon-edit {
         display: none;
+        margin-top: 2px;
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
@@ -1229,7 +1446,8 @@
       }
     }
 
-    :deep(tr:hover) {
+    :deep(th:hover),
+    :deep(td:hover) {
       .db-icon-copy,
       .db-icon-edit {
         display: inline-block !important;
@@ -1264,7 +1482,7 @@
         }
       }
 
-      :deep(.cell) {
+      :deep(td .cell) {
         line-height: normal !important;
 
         .domain {
@@ -1275,6 +1493,7 @@
         .db-icon-copy,
         .db-icon-edit {
           display: none;
+          margin-top: 2px;
           margin-left: 4px;
           color: @primary-color;
           cursor: pointer;
@@ -1295,7 +1514,8 @@
         }
       }
 
-      :deep(tr:hover) {
+      :deep(th:hover),
+      :deep(td:hover) {
         .db-icon-copy,
         .db-icon-edit {
           display: inline-block !important;

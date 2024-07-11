@@ -261,7 +261,7 @@
     const formatData = dataList.map(dataItem => ({
       [t('主机ID')]: String(dataItem.bk_host_id),
       [t('云区域ID')]: String(dataItem.bk_cloud_id),
-      [t('IP')]: dataItem.ip,
+      ['IP']: dataItem.ip,
       [t('IP端口')]: String(dataItem.port),
       [t('实例角色')]: dataItem.role,
       [t('城市')]: dataItem.bk_idc_area,
