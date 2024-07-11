@@ -47,8 +47,26 @@ class RedisClusterRenameDomainFlow(object):
         @param data : 单据传递过来的参数列表,是dict格式
         data={
             'infos':[
-                { "cluster_id":44,"new_domain":"tendisplus.test01.testapp.db"},
-                { "cluster_id":45,"new_domain":"tendisplus.test02.testapp.db"},
+                {
+                    "cluster_id":44,
+                    "new_domain":"tendisplus.test01.testapp.db",
+                    "extra": '{
+                        "cluster_entry_type":"polaris",
+                        "entry_name":"polaris.tendisplus.test01.testapp.db",
+                        "l5_name":"1111:2222",
+                        "token":"some_token"
+                    }'}
+                },
+                {
+                "cluster_id":45,
+                "new_domain":"tendisplus.test02.testapp.db",
+                "extra": '{
+                    "cluster_entry_type":"polaris",
+                    "entry_name":"polaris.tendisplus.test02.testapp.db",
+                    "l5_name":"1111:2222",
+                    "token":"some_token"
+                    }'}
+                },
             ]
         }
         """

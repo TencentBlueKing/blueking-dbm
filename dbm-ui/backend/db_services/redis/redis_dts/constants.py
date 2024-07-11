@@ -20,7 +20,7 @@ class DtsTaskType(str, StructuredEnum):
     TENDISSSD_BACKUP = EnumField("tendisBackup", _("tendis ssd备份任务"))
     TENDISSSD_BACKUPFILE_FETCH = EnumField("backupfileFetch", _("tendis ssd备份拉取任务"))
     TENDISSSD_TREDISDUMP = EnumField("tendisdump", _("tendis ssd备份解析任务"))
-    TENDISSSD_CMDSIMPOTER = EnumField("cmdsImpoter", _("tendis ssd数据导入任务"))
+    TENDISSSD_CMDSIMPORTER = EnumField("cmdsImporter", _("tendis ssd数据导入任务"))
     TENDISSSD_MAKESYNC = EnumField("makeSync", _("tendis ssd拉起sync任务"))
     TENDISSSD_WATCHOLDSYNC = EnumField("WatchOldSync", _("tendis ssd监视sync任务"))
 
@@ -219,7 +219,7 @@ ports="{}"
 while read -r port
 do
     # skip empty line
-    if [[ "$line" =~ ^[[:space:]]*$ ]]; then
+    if [[ "$port" =~ ^[[:space:]]*$ ]]; then
         continue
     fi
     if [[ ! -e $REDIS_DATA_DIR/redis/$port ]]

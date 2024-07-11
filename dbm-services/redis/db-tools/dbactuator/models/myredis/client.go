@@ -127,6 +127,10 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 		db.InstanceClient = redis.NewClient(redisOpt)
 		_, err = db.InstanceClient.Ping(context.TODO()).Result()
 	}
+	if err != nil && strings.Contains(err.Error(), "LOADING Redis is loading") {
+		mylog.Logger.Warn(fmt.Sprintf("redis:%s conn warn,err:%v", db.Addr, err))
+		err = nil
+	}
 	if err != nil {
 		errStr := fmt.Sprintf("redis new conn fail,sleep 10s then retry.err:%v,addr:%s", err, db.Addr)
 		mylog.Logger.Error(errStr)
