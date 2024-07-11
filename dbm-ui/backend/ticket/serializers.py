@@ -256,6 +256,10 @@ class RetryFlowSLZ(serializers.Serializer):
     flow_id = serializers.IntegerField(help_text=_("单据流程的ID"))
 
 
+class RevokeFlowSLZ(serializers.Serializer):
+    flow_id = serializers.IntegerField(help_text=_("单据流程的ID"))
+
+
 class GetTodosSLZ(serializers.Serializer):
     todo_status = serializers.ChoiceField(
         help_text=_("状态"), choices=TodoStatus.get_choices(), required=False, allow_blank=True
