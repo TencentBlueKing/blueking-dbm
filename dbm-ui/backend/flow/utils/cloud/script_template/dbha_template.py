@@ -208,8 +208,8 @@ db_conf:
     bk_conf:
       bk_token: "{{db_cloud_token}}"
   mysql:
-    user: "MONITOR"
-    pass: "cmbJx"
+    user: "{{dbha_user}}"
+    pass: "{{dbha_password}}"
     proxy_user: "proxy"
     proxy_pass: "{{proxy_password}}"
     timeout: 10

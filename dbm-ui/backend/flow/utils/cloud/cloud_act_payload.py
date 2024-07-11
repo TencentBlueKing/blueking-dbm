@@ -123,6 +123,12 @@ class CloudServiceActPayload(object):
     def get_dbha_conf_payload(self):
         db_cloud_token = self.__generate_service_token(service_type=CloudServiceName.DBHA.value)
         bkm_dbm_report = SystemSettings.get_setting_value(key="BKM_DBM_REPORT")
+        dbha_password_map = DBPasswordHandler.batch_query_components_password(
+            components=[
+                {"username": UserName.PROXY, "component": MySQLPrivComponent.PROXY},
+                {"username": UserName.OS_MYSQL, "component": MySQLPrivComponent.MYSQL},
+            ]
+        )
         return {
             "db_cloud_token": db_cloud_token,
             "cloud": self.cloud_id,
@@ -136,8 +142,8 @@ class CloudServiceActPayload(object):
             "mysql_crond_event_data_token": bkm_dbm_report["event"]["token"],
             "mysql_crond_agent_address": env.MYSQL_CROND_AGENT_ADDRESS,
             "mysql_crond_beat_path": env.MYSQL_CROND_BEAT_PATH,
-            "proxy_password": DBPasswordHandler.get_component_password(UserName.PROXY, MySQLPrivComponent.PROXY),
-            "mysql_os_password": DBPasswordHandler.get_component_password(UserName.OS_MYSQL, MySQLPrivComponent.MYSQL),
+            "proxy_password": dbha_password_map[UserName.PROXY][MySQLPrivComponent.PROXY],
+            "mysql_os_password": dbha_password_map[UserName.OS_MYSQL][MySQLPrivComponent.MYSQL],
             "local_ip": self.kwargs["exec_ip"]["ip"],
         }
 

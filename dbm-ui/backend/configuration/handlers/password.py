@@ -225,12 +225,22 @@ class DBPasswordHandler(object):
         celery_task.save(update_fields=[model_field])
 
     @classmethod
-    def get_component_password(cls, username, component):
-        """组件的默认账号密码"""
+    def batch_query_components_password(cls, components):
+        """批量组件的默认账号密码"""
         data = DBPrivManagerApi.get_password(
             {
                 "instances": [DEFAULT_INSTANCE],
-                "users": [{"username": username, "component": component}],
+                "users": [{"username": com["username"], "component": com["component"]} for com in components],
             }
         )["items"]
-        return base64_decode(data[0]["password"])
+        username_password_map = defaultdict(lambda: defaultdict(dict))
+        for item in data:
+            username_password_map[item["username"]][item["component"]] = base64_decode(item["password"])
+        return username_password_map
+
+    @classmethod
+    def get_component_password(cls, username, component):
+        """获取组件的账号密码"""
+        components = [{"username": username, "component": component}]
+        password = cls.batch_query_components_password(components)[username][component]
+        return password
