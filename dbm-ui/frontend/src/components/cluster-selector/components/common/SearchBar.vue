@@ -54,6 +54,8 @@
     ),
   );
 
+  const showClusterTypeSelect = computed(() => props.clusterType === ClusterTypes.REDIS);
+
   const searchSelectData = computed(() => {
     const baseSelectList = [
       {
@@ -101,6 +103,17 @@
         children: props.searchAttrs?.db_module_id,
       };
       baseSelectList.splice(3, 0, dbModuleSelect);
+    }
+
+    console.log('架构版本');
+    if (showClusterTypeSelect.value) {
+      const clusterTypeSelect = {
+        name: t('架构版本'),
+        id: 'cluster_type',
+        multiple: true,
+        children: props.searchAttrs?.cluster_type,
+      };
+      baseSelectList.splice(3, 0, clusterTypeSelect);
     }
     return props.searchSelectList ? props.searchSelectList : baseSelectList;
   });
