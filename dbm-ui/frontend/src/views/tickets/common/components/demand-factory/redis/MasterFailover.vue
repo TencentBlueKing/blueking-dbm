@@ -82,7 +82,9 @@
     return infos.reduce((results, item) => {
       item.pairs.forEach((pair) => {
         const obj = {
-          clusterName: clusters[item.cluster_id].immute_domain,
+          clusterName: item.cluster_id
+            ? clusters[item.cluster_id].immute_domain // 兼容旧单据
+            : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
           masterIp: pair.redis_master,
           slaveIp: pair.redis_slave,
           switchMode: item.online_switch_type,
