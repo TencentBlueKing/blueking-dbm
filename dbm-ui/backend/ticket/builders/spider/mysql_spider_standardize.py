@@ -17,11 +17,11 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
-class TenDBClusterStandardizeDetailSerializer(MySQLBaseOperateDetailSerializer):
+class TenDBClusterStandardizeDetailSerializer(TendbBaseOperateDetailSerializer):
     class InnerDetailSerializer(serializers.Serializer):
         cluster_ids = serializers.ListField(help_text=_("集群ID列表"))
 
@@ -65,10 +65,10 @@ class TenDBClusterStandardizeFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_STANDARDIZE)
-class TenDBClusterStandardizeFlowBuilder(BaseMySQLTicketFlowBuilder):
+class TenDBClusterStandardizeFlowBuilder(BaseTendbTicketFlowBuilder):
     """Mysql下架流程的构建基类"""
 
     serializer = TenDBClusterStandardizeDetailSerializer
     inner_flow_builder = TenDBClusterStandardizeFlowParamBuilder
-    inner_flow_name = _("MySQL高可用标准化")
+    inner_flow_name = _("TendbCluster 高可用标准化")
     retry_type = FlowRetryType.MANUAL_RETRY
