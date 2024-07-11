@@ -24,6 +24,7 @@
       <slot name="list" />
     </div>
     <DragResize
+      :is-right-hidden="isRightHidden"
       :show-trigger="isShowTrigger"
       :style="{
         left: `${renderLeftWidth - 1}px`,
@@ -70,6 +71,7 @@
   const isShowTrigger = ref(false);
   const isOpen = ref(false);
   const renderLeftWidth = ref(0);
+  const isRightHidden = ref(true);
 
   const getMaxWidth = () => rootRef.value.getBoundingClientRect().width;
   // 拖动改变左侧宽度
@@ -95,6 +97,7 @@
       renderLeftWidth.value = props.minLeftWidth;
     }
     isOpen.value = !isOpen.value;
+    isRightHidden.value = renderLeftWidth.value === getMaxWidth();
   };
 
   // 拖拽改变浏览器大小
