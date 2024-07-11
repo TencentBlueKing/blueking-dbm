@@ -50,18 +50,6 @@
   const localValue = ref(props.data?.targetVersion ? props.data?.targetVersion : '');
   const targetVersionList = ref<IListItem[]>([]);
 
-  const currentVersionsMap = computed(() =>
-    props.currentList.reduce(
-      (results, item) => {
-        Object.assign(results, {
-          [item]: true,
-        });
-        return results;
-      },
-      {} as Record<string, boolean>,
-    ),
-  );
-
   const { loading, run: fetchTargetClusterVersions } = useRequest(getClusterVersions, {
     manual: true,
     onSuccess(versions) {
@@ -103,7 +91,7 @@
         targetVersionList.value = targetVersionList.value.map((item) => ({
           label: item.label,
           value: item.value,
-          disabled: currentVersionsMap.value[item.value as string],
+          disabled: props.currentList.every((value) => value === item.value),
         }));
       }
     },
