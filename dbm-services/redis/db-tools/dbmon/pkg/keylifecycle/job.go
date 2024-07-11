@@ -81,16 +81,8 @@ func (job *Job) precheck() {
 		}
 	}
 
-	baseBins := []string{
-		consts.TendisKeyLifecycleBin,
-		consts.LdbTendisplusBin,
-		consts.LdbWithV38Bin,
-		consts.LdbWithV513Bin,
-	}
-	for _, binfile := range baseBins {
-		if !util.FileExists(binfile) {
-			job.Err = fmt.Errorf("file :%s does not exist|%+v", binfile, job.Err)
-		}
+	if !util.FileExists(consts.TendisKeyLifecycleBin) {
+		job.Err = fmt.Errorf("file :%s does not exist|%+v", consts.TendisKeyLifecycleBin, job.Err)
 	}
 }
 
