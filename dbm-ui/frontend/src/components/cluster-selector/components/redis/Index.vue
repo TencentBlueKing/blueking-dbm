@@ -99,6 +99,7 @@
       'major_version',
       'region',
       'time_zone',
+      'cluster_type'
     ],
     defaultSearchItem: {
       name: t('访问入口'),
@@ -220,6 +221,16 @@
       label: t('集群名称'),
       field: 'cluster_name',
       showOverflowTooltip: true,
+    },
+    {
+      label: t('架构版本'),
+      field: 'cluster_type',
+      showOverflowTooltip: true,
+      filter: {
+        list: columnAttrs.value.cluster_type,
+        checked: columnCheckedMap.value.cluster_type,
+      },
+      render: ({ data }: { data: ResourceItem }) => <span>{data.cluster_type_name}</span>,
     },
     {
       label: t('管控区域'),

@@ -53,9 +53,8 @@
     <td style="padding: 0">
       <RenderSpecifyVersion
         ref="versionRef"
-        :data="data.version"
-        :is-loading="data.isLoading"
-        :list="versionList" />
+        :cluster-type="data.clusterType"
+        :data="data.version" />
     </td>
     <td style="padding: 0">
       <RenderSwitchMode
@@ -76,12 +75,12 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+  import RenderSpecifyVersion from '@views/redis/common/edit-field/VersionSelect.vue';
   import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
 
   import RenderCurrentCapacity from './RenderCurrentCapacity.vue';
-  import RenderSpecifyVersion from './RenderSpecifyVersion.vue';
   import RenderSwitchMode, { type OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetCapacity from './RenderTargetCapacity.vue';
 
@@ -140,7 +139,6 @@
     data: IDataRow;
     removeable: boolean;
     inputedClusters?: string[];
-    versionsMap?: Record<string, string[]>;
   }
 
   interface Emits {
@@ -155,7 +153,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     inputedClusters: () => [],
-    versionsMap: () => ({}),
   });
 
   const emits = defineEmits<Emits>();
@@ -164,16 +161,6 @@
   const versionRef = ref<InstanceType<typeof RenderSpecifyVersion>>();
   const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
   const targetCapacityRef = ref<InstanceType<typeof RenderTargetCapacity>>();
-
-  const versionList = computed(() => {
-    if (Object.keys(props.versionsMap).length > 0 && props.data.clusterType) {
-      return props.versionsMap[props.data.clusterType].map((item) => ({
-        value: item,
-        label: item,
-      }));
-    }
-    return [];
-  });
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);

@@ -55,14 +55,6 @@ interface MasterSlaveByIp {
   slave_ip: string;
 }
 
-// 根据IP查询集群、角色和规格
-export const queryInfoByIp = (params: { ips: string[] }) => {
-  const { currentBizId } = useGlobalBizs();
-  return http
-    .post<RedisClusterNodeByIpModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_by_ip/`, params)
-    .then((data) => data.map((item) => new RedisClusterNodeByIpModel(item)));
-};
-
 // 根据cluster_id查询主从关系对
 export const queryMasterSlavePairs = (params: { cluster_id: number }) => {
   const { currentBizId } = useGlobalBizs();
