@@ -1,6 +1,7 @@
 package precheck
 
 import (
+	"database/sql"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -12,19 +13,12 @@ import (
 )
 
 // CheckCharset Check Mysql server charset
-func CheckCharset(cnf *config.Public) error {
+func CheckCharset(cnf *config.Public, dbh *sql.DB) error {
 	if strings.ToLower(cnf.BackupType) != cst.BackupLogical {
 		return nil
 	}
 	confCharset := cnf.MysqlCharset
 	var superCharset string
-	dbh, err := mysqlconn.InitConn(cnf)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = dbh.Close()
-	}()
 
 	version, verErr := mysqlconn.GetMysqlVersion(dbh)
 	if verErr != nil {

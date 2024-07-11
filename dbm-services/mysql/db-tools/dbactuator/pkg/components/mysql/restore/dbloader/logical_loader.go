@@ -118,6 +118,7 @@ func (l *LogicalLoader) loadBackup() error {
 		logger.Info("dbbackup loadbackup stdout: %s", outStr)
 		return errors.Wrap(err, errStr)
 	}
+	// 尝试读取 myloader.log 里 CRITICAL 关键字
 	return nil
 }
 

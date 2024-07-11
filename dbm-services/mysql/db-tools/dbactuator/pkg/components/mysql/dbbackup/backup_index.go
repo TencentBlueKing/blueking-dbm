@@ -85,9 +85,9 @@ func (f *BackupIndexFile) GetTarFileList(fileType string) []string {
 // tarParts example:  [a.0.tar  a.1.tar]
 func (f *BackupIndexFile) ValidateFiles() error {
 	var errFiles []string
-	reSplitPart := regexp.MustCompile(ReSplitPart)
-	reTarPart := regexp.MustCompile(ReTarPart) // 如果只有一个tar，也会存到这里
-	tarPartsWithoutSuffix := []string{}        // remove .tar suffix from tar to get no. sequence
+	reSplitPart := regexp.MustCompile(dbareport.ReSplitPart)
+	reTarPart := regexp.MustCompile(dbareport.ReTar) // 如果只有一个tar，也会存到这里
+	tarPartsWithoutSuffix := []string{}              // remove .tar suffix from tar to get no. sequence
 	for _, tarFile := range f.FileList {
 		if fSize := cmutil.GetFileSize(filepath.Join(f.backupDir, tarFile.FileName)); fSize < 0 {
 			errFiles = append(errFiles, tarFile.FileName)

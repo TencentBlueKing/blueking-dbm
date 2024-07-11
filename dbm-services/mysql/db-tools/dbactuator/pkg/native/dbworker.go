@@ -21,8 +21,8 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/spf13/cast"
@@ -458,7 +458,7 @@ func (h *DbWorker) ShowOpenTables(sleepTime time.Duration) (openTables []ShowOpe
 	db := sqlx.NewDb(h.Db, "mysql")
 	udb := db.Unsafe()
 	// show open tables WHERE `Database` not in
-	inStr, _ := mysqlutil.UnsafeBuilderStringIn(DBSys, "'")
+	inStr, _ := mysqlcomm.UnsafeBuilderStringIn(DBSys, "'")
 	sqlStr := fmt.Sprintf("show open tables where `Database` not in (%s)", inStr)
 	if err := udb.Select(&openTables, sqlStr); err != nil {
 		return nil, err
@@ -568,7 +568,7 @@ func (h *DbWorker) ShowDatabases() (databases []string, err error) {
 
 // SelectDatabases 查询 databases
 func (h *DbWorker) SelectDatabases(dbNameLike string) (databases []string, err error) {
-	inStr, _ := mysqlutil.UnsafeBuilderStringIn(DBSys, "'")
+	inStr, _ := mysqlcomm.UnsafeBuilderStringIn(DBSys, "'")
 	dbsSql := fmt.Sprintf("select SCHEMA_NAME from information_schema.SCHEMATA where SCHEMA_NAME not in (%s) "+
 		" and SCHEMA_NAME != '__cdb_recycle_bin__'", inStr)
 	if dbNameLike != "" {
@@ -610,14 +610,14 @@ func (h *DbWorker) SelectTables(dbNames, tbNames []string) (map[string]TableSche
 	queryStr :=
 		"SELECT TABLE_SCHEMA,TABLE_NAME,TABLE_TYPE,TABLE_ROWS FROM information_schema.TABLES WHERE TABLE_TYPE='BASE TABLE' "
 	if len(dbNames) > 0 {
-		if dbs, err := mysqlutil.UnsafeBuilderStringIn(dbNames, "'"); err != nil {
+		if dbs, err := mysqlcomm.UnsafeBuilderStringIn(dbNames, "'"); err != nil {
 			return nil, err
 		} else {
 			queryStr += fmt.Sprintf(" AND TABLE_SCHEMA IN (%s)", dbs)
 		}
 	}
 	if len(tbNames) > 0 {
-		if tbs, err := mysqlutil.UnsafeBuilderStringIn(tbNames, "'"); err != nil {
+		if tbs, err := mysqlcomm.UnsafeBuilderStringIn(tbNames, "'"); err != nil {
 			return nil, err
 		} else {
 			queryStr += fmt.Sprintf(" AND TABLE_NAME IN (%s)", tbs)

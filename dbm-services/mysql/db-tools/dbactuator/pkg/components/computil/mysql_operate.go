@@ -249,6 +249,8 @@ func JudgeMysqldShutDown(prefix string) (err error) {
 			logger.Info("shell output information is %s", out)
 			if strings.TrimSpace(out) == "0" {
 				logger.Info("mysql has been exited,success～ ,process count is %s", out)
+				// 遇见过进程停掉之后，还往 data/xxx.err 写了条 mysqld_safe mysqld from pid file ....pid ended
+				time.Sleep(2 * time.Second)
 				return nil
 			}
 			logger.Warn("mysqld 进程还在，等待进程关闭...")

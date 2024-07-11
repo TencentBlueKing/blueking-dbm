@@ -161,7 +161,7 @@ func CheckDiskSpace(backupDir string, mysqlPort int, backupSize uint64) (sizeLef
 		return 0, err
 	}
 
-	expectSize := backupSize * 1 // 预计备份需要多少实际空间
+	expectSize := backupSize*1 + 5*1024*1024*1024 // 预计备份需要多少实际空间
 	expectSizeLeft := float64(diskSpaceInfo.Free) - float64(expectSize)
 	if expectSizeLeft < 0 {
 		err = errors.New("free space is not enough")

@@ -9,7 +9,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
 
 // Medium 通用介质包处理
@@ -20,19 +19,22 @@ type Medium struct {
 
 // Check TODO
 func (m *Medium) Check() (err error) {
-	var fileMd5 string
 	// 判断安装包是否存在
 	pkgAbPath := m.GetAbsolutePath()
 	if !cmutil.FileExists(pkgAbPath) {
 		return fmt.Errorf("%s不存在", pkgAbPath)
 	}
+	/*  取消校验
+	var fileMd5 string
 	if fileMd5, err = util.GetFileMd5(pkgAbPath); err != nil {
 		return fmt.Errorf("获取[%s]md5失败, %v", m.Pkg, err.Error())
 	}
+
 	// 校验md5
 	if fileMd5 != m.PkgMd5 {
 		return fmt.Errorf("安装包的md5不匹配,[%s]文件的md5[%s]不正确", fileMd5, m.PkgMd5)
 	}
+	*/
 	return
 }
 

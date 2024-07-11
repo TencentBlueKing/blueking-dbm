@@ -27,10 +27,10 @@ const (
 	ReData = `(.+)(\.\d+\.sql)`
 	// ReSchemaView TODO
 	ReSchemaView = `(.+)(\-schema\-view\.sql)`
-	// ReSplitPart TODO
+	// ReSplitPart like physical.part_0
 	ReSplitPart = `(.+)(\.part_\d+)`
 	// ReTar tar file with suffix .tar
-	ReTar = `(.+)(\.tar)`
+	ReTar = `(.+)\.tar$`
 )
 
 // BackupMetaFileBase index meta info 基础内容

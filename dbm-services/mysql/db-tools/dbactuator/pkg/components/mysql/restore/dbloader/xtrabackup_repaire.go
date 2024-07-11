@@ -21,6 +21,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -61,7 +62,7 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 	sqlList := []string{"FLUSH PRIVILEGES;"}
 	if len(dropUserHosts) > 0 {
 		sqlList = append(sqlList, fmt.Sprintf("DELETE FROM `mysql`.`user` WHERE `user`='%s' AND `host` IN (%s);",
-			userAdmin, mysqlutil.UnsafeIn(dropUserHosts, "'")))
+			userAdmin, mysqlcomm.UnsafeIn(dropUserHosts, "'")))
 		/*
 			for _, h := range dropUserHosts {
 				sqlList = append(sqlList, fmt.Sprintf("DROP USER IF EXISTS %s@'%s';", userAdmin, h))
@@ -102,7 +103,7 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
 	sql := fmt.Sprintf(
 		`SELECT table_schema, table_name FROM information_schema.tables `+
 			`WHERE table_schema not in (%s) AND engine = 'MyISAM' AND TABLE_TYPE ='BASE TABLE'`,
-		mysqlutil.UnsafeIn(systemDbs, "'"),
+		mysqlcomm.UnsafeIn(systemDbs, "'"),
 	)
 
 	rows, err := x.dbWorker.Db.Query(sql)
@@ -165,9 +166,9 @@ func (x *Xtrabackup) RepairPrivileges() error {
 	}
 	myUsers := []string{"ADMIN", "sync", "repl"}
 
-	srcHostUnsafe := mysqlutil.UnsafeEqual(x.SrcBackupHost, "'")
-	tgtHostUnsafe := mysqlutil.UnsafeEqual(x.TgtInstance.Host, "'")
-	myUsersUnsafe := mysqlutil.UnsafeIn(myUsers, "'")
+	srcHostUnsafe := mysqlcomm.UnsafeEqual(x.SrcBackupHost, "'")
+	tgtHostUnsafe := mysqlcomm.UnsafeEqual(x.TgtInstance.Host, "'")
+	myUsersUnsafe := mysqlcomm.UnsafeIn(myUsers, "'")
 
 	var batchSQLs []string
 	// delete src host's ADMIN/sync user

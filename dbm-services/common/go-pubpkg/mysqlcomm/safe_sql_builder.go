@@ -1,4 +1,4 @@
-package mysqlutil
+package mysqlcomm
 
 import (
 	"fmt"

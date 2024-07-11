@@ -67,9 +67,10 @@ type Public struct {
 	IOLimitMBPerSec int `ini:"IOLimitMBPerSec"`
 	// IOLimitMasterFactor master机器专用限速因子，master io限速 = IOLimitMBPerSec * IOLimitMasterFactor
 	IOLimitMasterFactor float64 `ini:"IOLimitMasterFactor"`
-	//ResultReportPath string `ini:"ResultReportPath" validate:"required"`
-	StatusReportPath string `ini:"StatusReportPath" validate:"required"`
-	ReportPath       string `ini:"ReportPath" validate:"required"`
+	StatusReportPath    string  `ini:"StatusReportPath" validate:"required"`
+	ReportPath          string  `ini:"ReportPath" validate:"required"`
+	// NotCheckDiskSpace 不做空间检查. 但依然会先尝试本集群的全部旧全备
+	NotCheckDiskSpace bool `ini:"NotCheckDiskSpace"`
 
 	// EncryptOpt backup files encrypt options
 	EncryptOpt *cmutil.EncryptOpt `ini:"EncryptOpt"`
