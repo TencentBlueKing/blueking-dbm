@@ -114,9 +114,10 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
                 if not role_hosts:
                     continue
 
-                if role == InstanceRole.REDIS_MASTER.value:
+                if role in [InstanceRole.REDIS_MASTER.value, InstanceRole.REDIS_PROXY.value]:
                     # 如果替换角色是master，则是master/slave成对替换
-                    resource_spec["backend_group"] = {
+                    resource_role = "backend_group" if role == InstanceRole.REDIS_MASTER.value else role
+                    resource_spec[resource_role] = {
                         "spec_id": info[role][0]["spec_id"],
                         "count": len(role_hosts),
                         "location_spec": {"city": cluster.region, "sub_zone_ids": []},
@@ -139,9 +140,6 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
                                 "include_or_exclue": False,
                             },
                         }
-                elif role == InstanceRole.REDIS_PROXY.value:
-                    # TODO: proxy替换的亲和性需要衡量存量proxy的分布，暂时忽略
-                    resource_spec[role] = {"spec_id": info[role][0]["spec_id"], "count": len(role_hosts)}
 
             info["resource_spec"] = resource_spec
 
