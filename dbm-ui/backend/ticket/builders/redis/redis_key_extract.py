@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
 from backend.flow.engine.controller.redis import RedisController
@@ -50,14 +49,7 @@ class RedisKeyExtractFlowParamBuilder(builders.FlowParamBuilder):
             "uid": 340,
             "ticket_type": "REDIS_KEYS_EXTRACT",
             "created_by": "admin",
-            "bk_biz_id": 1111,
-            "fileserver": {
-                "url": "制品库地址",
-                "bucket": "目标bucket",
-                "password": "制品库token"
-                "username": "制品库username"
-                "project": "制品库project"
-            }
+            "bk_biz_id": 1111
         }
         """
 
@@ -65,19 +57,7 @@ class RedisKeyExtractFlowParamBuilder(builders.FlowParamBuilder):
         for rule in self.ticket_data["rules"]:
             # key文件名格式要求：{project}/{bucket}/{rule['path']}/biz.ip.keys.x
             biz_domain_name = f'{self.ticket.id}.{rule["domain"]}'
-            rule["path"] = f"{KEY_FILE_PREFIX}/{biz_domain_name}"
-
-        self.ticket_data.update(
-            {
-                "fileserver": {
-                    "url": settings.BKREPO_ENDPOINT_URL,
-                    "bucket": settings.BKREPO_BUCKET,
-                    "password": settings.BKREPO_PASSWORD,
-                    "username": settings.BKREPO_USERNAME,
-                    "project": settings.BKREPO_PROJECT,
-                }
-            }
-        )
+            rule["path"] = f"{KEY_FILE_PREFIX.format(biz=self.ticket_data['bk_biz_id'])}/{biz_domain_name}"
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_KEYS_EXTRACT)

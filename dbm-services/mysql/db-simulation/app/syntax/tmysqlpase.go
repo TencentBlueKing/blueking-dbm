@@ -13,8 +13,30 @@ package syntax
 import util "dbm-services/common/go-pubpkg/cmutil"
 
 const (
-	// ALTER_TYPE_ADD_COLUMN add_column
-	ALTER_TYPE_ADD_COLUMN = "add_column"
+	// AlterTypeAddColumn add_column
+	AlterTypeAddColumn = "add_column"
+
+	// SQLTypeCreateTable is creat table sql
+	SQLTypeCreateTable = "create_table"
+	// SQLTypeCreateDb ise create database sql
+	SQLTypeCreateDb = "create_db"
+	// SQLTypeCreateFunction is create function sql
+	SQLTypeCreateFunction = "create_function"
+	// SQLTypeCreateTrigger is create trigger sql
+	SQLTypeCreateTrigger = "create_trigger"
+	// SQLTypeCreateEvent  is create event sql
+	SQLTypeCreateEvent = "create_event"
+	// SQLTypeCreateProcedure is create procedure sql
+	SQLTypeCreateProcedure = "create_procedure"
+	// SQLTypeCreateView is create view sql
+	SQLTypeCreateView = "create_view"
+
+	// SQLTypeAlterTable is alter table sql
+	SQLTypeAlterTable = "alter_table"
+	// SQLTypeDelete is delete sql
+	SQLTypeDelete = "delete"
+	// SQLTypeUpdate is update sql
+	SQLTypeUpdate = "update"
 )
 
 // ColDef TODO
@@ -172,7 +194,7 @@ type UserHost struct {
 	Host string `json:"host"`
 }
 
-// CreateView TODO
+// CreateView tmysqlparse create view result
 type CreateView struct {
 	ParseBase
 	DbName      string   `json:"db_name,omitempty"`
@@ -185,7 +207,7 @@ type CreateView struct {
 	CheckOption string   `json:"check_option,omitempty"`
 }
 
-// CreateProcedure TODO
+// CreateProcedure tmysqlparse create proceduce result
 type CreateProcedure struct {
 	ParseBase
 	Definer     UserHost `json:"definer,omitempty"`
@@ -194,7 +216,7 @@ type CreateProcedure struct {
 	DataAccess  string   `json:"data_access,omitempty"`
 }
 
-// CreateTrigger TODO
+// CreateTrigger  tmysqlparse create trigger result
 type CreateTrigger struct {
 	ParseBase
 	Definer      UserHost `json:"definer,omitempty"`
@@ -203,21 +225,21 @@ type CreateTrigger struct {
 	TriggerEvent string   `json:"trigger_event"`
 }
 
-// CreateFunction TODO
+// CreateFunction tmysqlparse create function result
 type CreateFunction struct {
 	ParseBase
 	Definer UserHost `json:"definer,omitempty"`
 	// TODO
 }
 
-// CreateEvent TODO
+// CreateEvent  tmysqlparse create event result
 type CreateEvent struct {
 	ParseBase
 	Definer UserHost `json:"definer,omitempty"`
 	// TODO
 }
 
-// CreateIndex TODO
+// CreateIndex  tmysqlparse create index result
 type CreateIndex struct {
 	ParseBase
 	DbName    string   `json:"db_name,omitempty"`
@@ -227,7 +249,7 @@ type CreateIndex struct {
 	Lock      string   `json:"lock,omitempty"`
 }
 
-// DeleteResult TODO
+// DeleteResult tmysqlparse delete result
 type DeleteResult struct {
 	ParseBase
 	DbName    string `json:"db_name,omitempty"`
@@ -236,7 +258,7 @@ type DeleteResult struct {
 	Limit     int    `json:"limit"`
 }
 
-// UpdateResult TODO
+// UpdateResult tmysqlparse update result
 type UpdateResult struct {
 	ParseBase
 	DbName           string `json:"db_name,omitempty"`

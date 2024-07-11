@@ -197,11 +197,12 @@ SQL_IMPORT_DATA = {
         "path": "/bk-dbm/mysql/sqlfile",
         "cluster_ids": [110],
         "execute_objects": [
-            {"sql_file": "7IHBk96_record.sql", "ignore_dbnames": ["db1", "db2"], "dbnames": ["db_log%"]},
-            {"sql_file": "L23x1qs_record.sql", "ignore_dbnames": ["db1", "db2"], "dbnames": ["db_log%"]},
+            {
+                "sql_files": ["bar.sql", "foo.sql"],
+                "dbnames": ["db_log%"],
+                "ignore_dbnames": ["db1", "db2"],
+            }
         ],
-        "execute_sql_files": ["7IHBk96_record.sql", "L23x1qs_record.sql"],
-        "execute_db_infos": [{"dbnames": ["db_log%"], "ignore_dbnames": ["db1", "db2"]}],
         "ticket_mode": {"mode": "auto"},
         "backup": [],
         "import_mode": "file",

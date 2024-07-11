@@ -15,7 +15,10 @@ import "time"
 // TbSqlFileSimulationInfo 记录每个SQL文件模拟执行的结果
 type TbSqlFileSimulationInfo struct {
 	ID           int       `gorm:"primaryKey;column:id;type:int(11);not null" json:"-"`
+	BillTaskId   string    `gorm:"column:bill_task_id;type:varchar(128);not null" json:"bill_task_id"`
 	TaskId       string    `gorm:"uniqueIndex:uk_tk_file,column:task_id;type:varchar(128);not null" json:"task_id"`
+	LineId       int       `gorm:"uniqueIndex:uk_tk_file,column:line_id;type:int(11);not null" json:"line_id"`
+	MySQLVersion string    `gorm:"column:mysql_version;type:varchar(64);not null" json:"mysql_version"`
 	FileNameHash string    `gorm:"uniqueIndex:uk_tk_file,column:file_name_hash;type:varchar(65)" json:"file_name_hash"`
 	FileName     string    `gorm:"column:file_name;type:text;not null" json:"file_name"`
 	Status       string    `gorm:"column:status;type:varchar(16);not null" json:"status"`

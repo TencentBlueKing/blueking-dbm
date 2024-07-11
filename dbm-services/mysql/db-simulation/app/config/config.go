@@ -14,17 +14,17 @@ package config
 import (
 	"path"
 
-	util "dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
+
+	util "dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 )
 
-// GAppConfig TODO
+// GAppConfig global app config
 var GAppConfig = AppConfig{}
 
-// AppConfig TODO
+// AppConfig app config
 type AppConfig struct {
 	BkRepo                BkRepoConfig `yaml:"bkrepo"`
 	Image                 Images
@@ -42,7 +42,7 @@ type AppConfig struct {
 	SimulationtaintLables []LabelItem       `yaml:"simulationtaintLables"`
 }
 
-// BkRepoConfig TODO
+// BkRepoConfig bkrepo config
 type BkRepoConfig struct {
 	Project      string `yaml:"project"`
 	PublicBucket string `yaml:"publicBucket"`
@@ -57,7 +57,7 @@ type LabelItem struct {
 	Value string `json:"value" yaml:"value"`
 }
 
-// Images TODO
+// Images simulate execution of basic image configuration
 type Images struct {
 	Tendb55Img string
 	Tendb57Img string // 5.7版本对应的镜像
@@ -67,7 +67,7 @@ type Images struct {
 	SpiderImg  string // spider 镜像
 }
 
-// BcsConfig TODO
+// BcsConfig bcs config
 type BcsConfig struct {
 	EndpointUrl string `yaml:"endpointUrl"`
 	ClusterId   string `yaml:"clusterId"`
@@ -76,7 +76,7 @@ type BcsConfig struct {
 	Timeout     int    `yaml:"timeout"`
 }
 
-// DbConfig TODO
+// DbConfig db config
 type DbConfig struct {
 	User string `yaml:"user"`
 	Pwd  string `yaml:"pwd"`
@@ -85,25 +85,25 @@ type DbConfig struct {
 	Port int    `yaml:"port"`
 }
 
-// MySQLPodResource TODO
+// MySQLPodResource  tendbha pod resource limits
 type MySQLPodResource struct {
 	Limits   PodResource `yaml:"limits"`
 	Requests PodResource `yaml:"requests"`
 }
 
-// TdbctlPodResource TODO
+// TdbctlPodResource tendbctl pod resource limits
 type TdbctlPodResource struct {
 	Limits   PodResource `yaml:"limits"`
 	Requests PodResource `yaml:"requests"`
 }
 
-// PodResource TODO
+// PodResource pod resource limits
 type PodResource struct {
 	Cpu string `yaml:"cpu"`
 	Mem string `yaml:"mem"`
 }
 
-// ImgConfig TODO
+// ImgConfig img config
 type ImgConfig struct {
 	Version string `yaml:"version"`
 	Image   string `yaml:"image"`
@@ -111,32 +111,6 @@ type ImgConfig struct {
 
 func init() {
 	viper.AutomaticEnv()
-	// bkrepo
-	viper.BindEnv("bkrepo_project", "BKREPO_PROJECT")
-	viper.BindEnv("bkrepo_public_bucket", "BKREPO_PUBLIC_BUCKET")
-	viper.BindEnv("bkrepo_username", "BKREPO_USERNAME")
-	viper.BindEnv("bkrepo_password", "BKREPO_PASSWORD")
-	viper.BindEnv("bkrepo_endpoint_url", "BKREPO_ENDPOINT_URL")
-	// bcs
-	viper.BindEnv("bcs_base_url", "BCS_BASE_URL")
-	viper.BindEnv("bcs_token", "BCS_TOKEN")
-	viper.BindEnv("bcs_cluster_id", "BCS_CLUSTER_ID")
-	viper.BindEnv("bcs_namespace", "BCS_NAMESPACE")
-	// db conf
-	viper.BindEnv("db_user", "DB_USER")
-	viper.BindEnv("db_password", "DB_PASSWORD")
-	viper.BindEnv("db_host", "DB_HOST")
-	viper.BindEnv("db_port", "DB_PORT")
-	viper.BindEnv("dbsimulation_db", "DBSIMULATION_DB")
-	viper.BindEnv("debug", "DEBUG")
-	// img conf
-	viper.BindEnv("mirrors_addr", "MIRRORS_ADDR")
-	viper.BindEnv("mysql56", "MYSQL56")
-	viper.BindEnv("mysql57", "MYSQL57")
-	viper.BindEnv("mysql80", "MYSQL80")
-	viper.BindEnv("spider_img", "SPIDER_IMG")
-	viper.BindEnv("tdbctl_img", "TDBCTL_IMG")
-
 	GAppConfig.ListenAddr = "0.0.0.0:80"
 	if viper.GetString("LISTEN_ADDR") != "" {
 		GAppConfig.ListenAddr = viper.GetString("LISTEN_ADDR")

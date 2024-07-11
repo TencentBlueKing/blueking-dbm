@@ -14,19 +14,19 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"dbm-services/common/go-pubpkg/logger"
-
 	"gorm.io/gorm/clause"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 const (
-	// StringItem TODO
+	// StringItem string
 	StringItem = "string"
-	// ArryItem TODO
+	// ArryItem arry
 	ArryItem = "arry"
-	// IntItem TODO
+	// IntItem int
 	IntItem = "int"
-	// BoolItem TODO
+	// BoolItem bool
 	BoolItem = "bool"
 )
 
@@ -61,7 +61,7 @@ func init() {
 	}
 }
 
-// InitRule TODO
+// InitRule init rules
 func InitRule() (err error) {
 	initRules := []TbSyntaxRule{}
 	initRules = append(initRules, TbSyntaxRule{
@@ -183,68 +183,67 @@ func InitRule() (err error) {
 		Status:    true,
 	})
 
-	for _, rule := range initRules {
-		if err := CreateRule(&rule); err != nil {
+	for i := range initRules {
+		if err = CreateRule(&initRules[i]); err != nil {
 			logger.Error("初始化规则失败%s", err.Error())
 			return err
 		}
 	}
-	GetAllRule()
-	return
+	return err
 }
 
-// CreateRule TODO
+// CreateRule create rule
 func CreateRule(m *TbSyntaxRule) (err error) {
 	return DB.Clauses(clause.OnConflict{
 		DoNothing: true,
 	}).Create(m).Error
 }
 
-// GetAllRule TODO
+// GetAllRule get all rules
 func GetAllRule() (rs []TbSyntaxRule, err error) {
 	err = DB.Find(&rs).Error
 	return
 }
 
-// GetRuleByName TODO
+// GetRuleByName get rules group by group name
 func GetRuleByName(group, rulename string) (rs TbSyntaxRule, err error) {
 	err = DB.Where("group_name = ? and rule_name = ? ", group, rulename).First(&rs).Error
 	return
 }
 
-// GetItemVal TODO
+// GetItemVal get item val
 func GetItemVal(rule TbSyntaxRule) (val interface{}, err error) {
 	switch rule.ItemType {
 	case ArryItem:
 		var d []string
 		if err = json.Unmarshal(rule.Item, &d); err != nil {
 			logger.Error("umarshal failed %s", err.Error())
-			return
+			return nil, err
 		}
 		val = d
 	case StringItem:
 		var d string
 		if err = json.Unmarshal(rule.Item, &d); err != nil {
 			logger.Error("umarshal failed %s", err.Error())
-			return
+			return nil, err
 		}
 		val = d
 	case IntItem:
 		var d int
 		if err = json.Unmarshal(rule.Item, &d); err != nil {
 			logger.Error("umarshal failed %s", err.Error())
-			return
+			return nil, err
 		}
 		val = d
 	case BoolItem:
 		var d bool
 		if err = json.Unmarshal(rule.Item, &d); err != nil {
 			logger.Error("umarshal failed %s", err.Error())
-			return
+			return nil, err
 		}
 		val = d
 	default:
 		return nil, fmt.Errorf("unrecognizable type:%s", rule.ItemType)
 	}
-	return
+	return val, err
 }

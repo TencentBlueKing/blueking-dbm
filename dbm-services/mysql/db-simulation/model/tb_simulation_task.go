@@ -15,9 +15,9 @@ import (
 	"fmt"
 	"time"
 
-	"dbm-services/common/go-pubpkg/logger"
-
 	"gorm.io/gorm"
+
+	"dbm-services/common/go-pubpkg/logger"
 )
 
 // TbSimulationTask [...]
@@ -25,7 +25,9 @@ import (
 type TbSimulationTask struct {
 	ID            int       `gorm:"primaryKey;column:id;type:int(11);not null" json:"-"`
 	TaskId        string    `gorm:"unique;column:task_id;type:varchar(256);not null" json:"task_id"`
+	BillTaskId    string    `gorm:"column:bill_task_id;type:varchar(128);not null" json:"bill_task_id"`
 	RequestID     string    `gorm:"unique;column:request_id;type:varchar(64);not null" json:"request_id"`
+	MySQLVersion  string    `gorm:"column:mysql_version;type:varchar(64);not null" json:"mysql_version"`
 	Phase         string    `gorm:"column:phase;type:varchar(16);not null" json:"phase"`
 	Status        string    `gorm:"column:status;type:varchar(16);not null" json:"status"`
 	Stdout        string    `gorm:"column:stdout;type:mediumtext" json:"stdout"`
@@ -38,30 +40,30 @@ type TbSimulationTask struct {
 }
 
 const (
-	// Phase_Waitting TODO
-	Phase_Waitting = "Waitting"
-	// Phase_CreatePod TODO
-	Phase_CreatePod = "PodCreating"
-	// Phase_LoadSchema TODO
-	Phase_LoadSchema = "SchemaLoading"
-	// Phase_Running TODO
-	Phase_Running = "Running"
-	// Phase_Done TODO
-	Phase_Done = "Done"
+	// PhaseWaitting TODO
+	PhaseWaitting = "Waitting"
+	// PhaseCreatePod TODO
+	PhaseCreatePod = "PodCreating"
+	// PhaseLoadSchema TODO
+	PhaseLoadSchema = "SchemaLoading"
+	// PhaseRunning TODO
+	PhaseRunning = "Running"
+	// PhaseDone TODO
+	PhaseDone = "Done"
 )
 
 const (
-	// Task_Failed TODO
-	Task_Failed = "Failed"
-	// Task_Success TODO
-	Task_Success = "Success"
+	// TaskFailed task failed
+	TaskFailed = "Failed"
+	// TaskSuccess task successful
+	TaskSuccess = "Success"
 )
 
-// CompleteTask TODO
-func CompleteTask(task_id, status, stderr, stdout, syserrMsg string) (err error) {
-	return DB.Model(TbSimulationTask{}).Where("task_id = ?", task_id).Updates(
+// CompleteTask end the task and update the task status
+func CompleteTask(task_id, version, status, stderr, stdout, syserrMsg string) (err error) {
+	return DB.Model(TbSimulationTask{}).Where("task_id = ? and mysql_version = ? ", task_id, version).Updates(
 		TbSimulationTask{
-			Phase:      Phase_Done,
+			Phase:      PhaseDone,
 			Status:     status,
 			Stdout:     stdout,
 			Stderr:     stderr,
@@ -69,7 +71,7 @@ func CompleteTask(task_id, status, stderr, stdout, syserrMsg string) (err error)
 			UpdateTime: time.Now()}).Error
 }
 
-// UpdateHeartbeat TODO
+// UpdateHeartbeat update task heartbeat
 func UpdateHeartbeat(taskid, stderr, stdout string) {
 	err := DB.Model(TbSimulationTask{}).Where("task_id = ?", taskid).Updates(
 		TbSimulationTask{
@@ -82,9 +84,9 @@ func UpdateHeartbeat(taskid, stderr, stdout string) {
 	}
 }
 
-// UpdatePhase TODO
-func UpdatePhase(taskid, phase string) {
-	err := DB.Model(TbSimulationTask{}).Where("task_id = ?", taskid).Updates(
+// UpdatePhase update task phase
+func UpdatePhase(taskid, version, phase string) {
+	err := DB.Model(TbSimulationTask{}).Where("task_id = ? and mysql_version = ? ", taskid, version).Updates(
 		TbSimulationTask{
 			Phase:      phase,
 			UpdateTime: time.Now(),
@@ -94,8 +96,8 @@ func UpdatePhase(taskid, phase string) {
 	}
 }
 
-// CreateTask TODO
-func CreateTask(taskid, requestid string) (err error) {
+// CreateTask create task
+func CreateTask(taskid, requestid, version string, billTaskId string) (err error) {
 	var task TbSimulationTask
 	err = DB.Where(&TbSimulationTask{TaskId: taskid}).First(&task).Error
 	if err == nil {
@@ -106,9 +108,11 @@ func CreateTask(taskid, requestid string) (err error) {
 		return err
 	}
 	return DB.Create(&TbSimulationTask{
-		TaskId:     taskid,
-		RequestID:  requestid,
-		Phase:      Phase_Waitting,
-		CreateTime: time.Now(),
+		TaskId:       taskid,
+		RequestID:    requestid,
+		BillTaskId:   billTaskId,
+		MySQLVersion: version,
+		Phase:        PhaseWaitting,
+		CreateTime:   time.Now(),
 	}).Error
 }

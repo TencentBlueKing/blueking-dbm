@@ -10,7 +10,6 @@ specific language governing permissions and limitations under the License.
 """
 import os
 
-from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
@@ -70,30 +69,18 @@ class RedisKeyDeleteFlowParamBuilder(builders.FlowParamBuilder):
 
         storage = get_storage()
         delete_type = self.ticket_data["delete_type"]
-
+        key_file_prefix = KEY_FILE_PREFIX.format(biz=self.ticket_data["bk_biz_id"])
         # 填充文件保存路径，不包括project和bucket部分
         for rule in self.ticket_data["rules"]:
 
             # 补充total_size，用于筛选临时
             if delete_type == KeyDeleteType.BY_FILES:
-                rule["path"] = os.path.join(KEY_FILE_PREFIX, rule["path"])
+                rule["path"] = os.path.join(key_file_prefix, rule["path"])
                 _, files = storage.listdir(rule["path"])
                 rule["total_size"] = sum(f["size"] for f in files)
             else:
                 biz_domain_name = f'{self.ticket.id}.{rule["domain"]}'
-                rule["path"] = os.path.join(KEY_FILE_PREFIX, biz_domain_name)
-
-        self.ticket_data.update(
-            {
-                "fileserver": {
-                    "url": settings.BKREPO_ENDPOINT_URL,
-                    "bucket": settings.BKREPO_BUCKET,
-                    "password": settings.BKREPO_PASSWORD,
-                    "username": settings.BKREPO_USERNAME,
-                    "project": settings.BKREPO_PROJECT,
-                }
-            }
-        )
+                rule["path"] = os.path.join(key_file_prefix, biz_domain_name)
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_KEYS_DELETE)
