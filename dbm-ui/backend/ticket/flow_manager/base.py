@@ -132,6 +132,11 @@ class BaseTicketFlow(ABC):
         self.flow_obj.status = TicketFlowStatus.RUNNING
         self.flow_obj.save(update_fields=["err_msg", "status", "err_code", "update_at"])
 
+    def flush_revoke_status_handler(self):
+        """终止节点，更新相关状态和错误信息"""
+        self.flow_obj.status = TicketFlowStatus.TERMINATED
+        self.flow_obj.save(update_fields=["err_msg", "status"])
+
     def create_operate_records(self, object_key, record_model, object_ids):
         """
         写入操作记录的通用方法
@@ -189,6 +194,10 @@ class BaseTicketFlow(ABC):
         """重试当前的flow节点（默认只能重新执行错误节点）"""
         return self._retry()
 
+    def revoke(self):
+        """终止当前flow节点，终止后不允许重试"""
+        return self._revoke()
+
     @property
     @abstractmethod
     def _status(self) -> str:
@@ -225,7 +234,5 @@ class BaseTicketFlow(ABC):
         self.flush_error_status_handler()
         self.run()
 
-        # 更新单据信息
-        from backend.ticket.flow_manager.manager import TicketFlowManager
-
-        TicketFlowManager(self.ticket).update_ticket_status()
+    def _revoke(self) -> Any:
+        self.flush_revoke_status_handler()
