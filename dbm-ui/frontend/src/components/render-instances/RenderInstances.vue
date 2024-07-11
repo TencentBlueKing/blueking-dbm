@@ -36,12 +36,12 @@
             {{ t('不可用') }}
           </BkTag>
           <template v-if="index === 0">
-            <BkPopover
-              ext-cls="copy-popover"
-              placement="top"
-              theme="light">
-              <DbIcon type="copy" />
-              <template #content>
+            <DbIcon
+              ref="copyRootRef"
+              :class="{ 'is-active': isCopyIconClicked }"
+              type="copy" />
+            <div style="display: none">
+              <div ref="popRef">
                 <BkButton
                   class="copy-trigger"
                   text
@@ -57,8 +57,8 @@
                   @click="handleCopyInstances">
                   {{ t('复制实例') }}
                 </BkButton>
-              </template>
-            </BkPopover>
+              </div>
+            </div>
           </template>
         </template>
       </TextOverflowLayout>
@@ -125,6 +125,7 @@
   }
 </script>
 <script setup lang="tsx" generic="T extends InstanceListData">
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
   import type {
@@ -177,6 +178,11 @@
   const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
 
+  let tippyIns: Instance;
+
+  const copyRootRef = ref();
+  const popRef = ref();
+  const isCopyIconClicked = ref(false);
   const tableRef = ref();
   const renderData = computed(() => props.data.slice(0, 10));
   const hasMore = computed(() => props.data.length > 10);
@@ -286,6 +292,38 @@
     dialogState.keyword = '';
     dialogState.data = [];
   }
+
+  onMounted(() => {
+    nextTick(() => {
+      tippyIns = tippy(copyRootRef.value[0].$el as SingleTarget, {
+        content: popRef.value[0],
+        placement: 'top',
+        appendTo: () => document.body,
+        theme: 'light',
+        maxWidth: 'none',
+        trigger: 'mouseenter click',
+        interactive: true,
+        arrow: false,
+        allowHTML: true,
+        zIndex: 999999,
+        hideOnClick: true,
+        onShow() {
+          isCopyIconClicked.value = true;
+        },
+        onHide() {
+          isCopyIconClicked.value = false;
+        },
+      });
+    });
+  });
+
+  onBeforeUnmount(() => {
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+    }
+  });
 </script>
 
 <style lang="less" scoped>
@@ -297,10 +335,13 @@
     .db-icon-copy {
       display: none;
       margin-top: 1px;
-      margin-left: 4px;
       color: @primary-color;
       vertical-align: text-top;
       cursor: pointer;
+    }
+
+    .is-active {
+      display: inline-block !important;
     }
 
     .is-unavailable {
@@ -351,15 +392,5 @@
     margin: 0 4px;
     vertical-align: middle;
     background-color: #f0f1f5;
-  }
-</style>
-
-<style lang="less">
-  .copy-popover {
-    padding: 4px 6px !important;
-
-    .bk-pop2-arrow {
-      display: none;
-    }
   }
 </style>

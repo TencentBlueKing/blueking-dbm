@@ -31,7 +31,7 @@
         <BkButton
           class="ml-8"
           :disabled="!hasSelected"
-          @click="handleShowAuthorize(state.selected)">
+          @click="handleShowAuthorize(selected)">
           {{ t('批量授权') }}
         </BkButton>
       </span>
@@ -45,6 +45,7 @@
         v-db-console="'mysql.singleClusterList.export'"
         :ids="selectedIds"
         type="tendbsingle" />
+      <ClusterIpCopy :selected="selected" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -95,7 +96,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -139,9 +140,14 @@
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
 
   import {
     getMenuListSearch,
@@ -157,10 +163,6 @@
   interface ColumnData {
     cell: string,
     data: TendbsingleModel
-  }
-
-  interface State {
-    selected: Array<TendbsingleModel>,
   }
 
   const clusterId = defineModel<number>('clusterId');
@@ -204,24 +206,20 @@
     }
   });
 
-  const tableRef = ref();
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const showDataExportSlider = ref(false)
   const showEditEntryConfig = ref(false);
   const currentData = ref<ColumnData['data']>()
-
+  const selected = ref<TendbsingleModel[]>([])
   const authorizeState = reactive({
     isShow: false,
     selected: [] as TendbsingleModel[],
   });
 
-  const state = reactive<State>({
-    selected: [],
-  });
-
   const isCN = computed(() => locale.value === 'zh-cn');
-  const hasSelected = computed(() => state.selected.length > 0);
-  const selectedIds = computed(() => state.selected.map(item => item.id));
+  const hasSelected = computed(() => selected.value.length > 0);
+  const selectedIds = computed(() => selected.value.map(item => item.id));
   const searchSelectData = computed(() => [
     {
       name: t('访问入口'),
@@ -312,6 +310,27 @@
       fixed: 'left',
       width: 300,
       minWidth: 300,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'master_domain',
+                label: t('域名')
+              },
+              {
+                field: 'masterDomainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: ColumnData) => (
         <TextOverflowLayout>
           {{
@@ -328,10 +347,18 @@
             ),
             append: () => (
               <>
-                <db-icon
-                  v-bk-tooltips={t('复制主访问入口')}
-                  type="copy"
-                  onClick={() => copy(data.masterDomainDisplayName)} />
+                <RenderCellCopy copyItems={
+                  [
+                    {
+                      value: data.master_domain,
+                      label: t('域名')
+                    },
+                    {
+                      value: data.masterDomainDisplayName,
+                      label: t('域名:端口')
+                    }
+                  ]
+                } />
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
                   v-db-console="mysql.singleClusterList.modifyEntryConfiguration"
@@ -355,6 +382,22 @@
       minWidth: 200,
       fixed: 'left',
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: ColumnData) => (
         <TextOverflowLayout>
           {{
@@ -433,6 +476,27 @@
       width: 180,
       minWidth: 180,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'masters')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'masters')}
+          config={
+            [
+              {
+                label: t('IP'),
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('实例')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: ColumnData) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
@@ -631,8 +695,49 @@
 
   const fetchData = () => {
     const params = getSearchSelectorParams(searchValue.value);
-    tableRef.value.fetchData(params, { ...sortValue });
+    tableRef.value!.fetchData(params, { ...sortValue });
   };
+
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: TendbsingleModel[], field: keyof TendbsingleModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as TendbsingleModel['masters']);
+    return result;
+  }, [] as TendbsingleModel['masters']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof TendbsingleModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof TendbsingleModel) => {
+    const allData = await tableRef.value!.getAllData<TendbsingleModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'primary',
+        message: '暂无数据可复制',
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
 
   // 设置行样式
   const setRowClass = (row: TendbsingleModel) => {
@@ -664,7 +769,7 @@
     authorizeState.selected = selected;
   };
   const handleClearSelected = () => {
-    state.selected = [];
+    selected.value = [];
     authorizeState.selected = [];
   };
   const handleShowExcelAuthorize = () => {
@@ -694,7 +799,7 @@
    */
 
   const handleSelection = (data: TendbsingleModel, list: TendbsingleModel[]) => {
-    state.selected = list;
+    selected.value = list;
   };
 
   /**
@@ -842,7 +947,7 @@
         }
       }
 
-      :deep(.cell) {
+      :deep(td .cell) {
         line-height: normal !important;
 
         .domain {
@@ -853,6 +958,7 @@
         .db-icon-copy,
         .db-icon-edit {
           display: none;
+          margin-top: 1px;
           margin-left: 4px;
           color: @primary-color;
           cursor: pointer;
@@ -874,7 +980,13 @@
         }
       }
 
-      :deep(tr:hover) {
+      :deep(th:hover) {
+        .db-icon-copy {
+          display: inline-block !important;
+        }
+      }
+
+      :deep(td:hover) {
         .db-icon-copy,
         .db-icon-edit {
           display: inline-block !important;

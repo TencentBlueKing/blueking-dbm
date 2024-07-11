@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import dayjs from 'dayjs';
+import { uniq } from 'lodash';
 
 import { utcDisplayTime } from '@utils';
 
@@ -155,6 +156,24 @@ export default class Riak {
     const createDay = dayjs(this.create_at);
     const today = dayjs();
     return today.diff(createDay, 'hour') <= 24;
+  }
+
+  get allInstanceList() {
+    return [...this.riak_node];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {

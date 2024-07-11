@@ -9,69 +9,6 @@
           @click="handleApply">
           {{ t('申请实例') }}
         </AuthButton>
-        <BkDropdown
-          class="ml-8"
-          @hide="() => (isCopyDropdown = false)"
-          @show="() => (isCopyDropdown = true)">
-          <BkButton
-            class="dropdown-button"
-            :class="{ active: isCopyDropdown }">
-            {{ t('复制') }}
-            <DbIcon type="up-big dropdown-button-icon" />
-          </BkButton>
-          <template #content>
-            <BkDropdownMenu>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="tableDataList.length === 0"
-                  text
-                  @click="handleCopy(tableDataList)">
-                  {{ t('所有集群 IP') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="selected.length === 0"
-                  text
-                  @click="handleCopy(selected)">
-                  {{ t('已选集群 IP') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="abnormalDataList.length === 0"
-                  text
-                  @click="handleCopy(abnormalDataList)">
-                  {{ t('异常集群 IP') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="tableDataList.length === 0"
-                  text
-                  @click="handleCopy(tableDataList, true)">
-                  {{ t('所有集群实例') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="selected.length === 0"
-                  text
-                  @click="handleCopy(selected, true)">
-                  {{ t('已选集群实例') }}
-                </BkButton>
-              </BkDropdownItem>
-              <BkDropdownItem>
-                <BkButton
-                  :disabled="abnormalDataList.length === 0"
-                  text
-                  @click="handleCopy(abnormalDataList, true)">
-                  {{ t('异常集群实例') }}
-                </BkButton>
-              </BkDropdownItem>
-            </BkDropdownMenu>
-          </template>
-        </BkDropdown>
         <span
           v-bk-tooltips="{
             disabled: hasSelected,
@@ -95,6 +32,7 @@
           :has-selected="hasSelected"
           :ids="selectedIds"
           type="sqlserver_single" />
+        <ClusterIpCopy :selected="selected" />
       </div>
       <DbSearchSelect
         class="header-select"
@@ -142,7 +80,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import {
@@ -187,11 +125,15 @@
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import ClusterReset from '@views/sqlserver-manage/components/cluster-reset/Index.vue'
 
   import {
     getMenuListSearch,
     getSearchSelectorParams,
+    isRecentDays,
   } from '@utils';
 
   import type {
@@ -247,11 +189,10 @@
   });
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
-  const isCopyDropdown = ref(false);
-  const selected = ref<SqlServerSingleClusterModel[]>([]);
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false)
   const currentData = ref<SqlServerSingleClusterModel>()
+  const selected = ref<SqlServerSingleClusterModel[]>([])
 
   /** 集群授权 */
   const authorizeShow = ref(false);
@@ -262,8 +203,6 @@
     db_module_name: string,
   }[]>([]);
 
-  const tableDataList = computed(() => tableRef.value!.getData<SqlServerSingleClusterModel>());
-  const abnormalDataList = computed(() => tableDataList.value.filter(dataItem => dataItem.isAbnormal));
   const hasSelected = computed(() => selected.value.length > 0);
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
@@ -358,6 +297,27 @@
       field: 'master_domain',
       fixed: 'left',
       width: 200,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'master_domain',
+                label: t('域名')
+              },
+              {
+                field: 'masterDomainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
         <TextOverflowLayout>
           {{
@@ -381,10 +341,18 @@
                   }
                 </div>
                 <div style="display: flex; align-items: center;">
-                  <db-icon
-                    type="copy"
-                    v-bk-tooltips={ t('复制主访问入口') }
-                    onClick={ () => copy(data.master_domain) } />
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.master_domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.masterDomainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
                   {/* <db-icon
                     type="link"
                     v-bk-tooltips={ t('新开tab打开') }
@@ -410,7 +378,59 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      minWidth: 300,
+      minWidth: 200,
+      fixed: 'left',
+      showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
+      render: ({ data }: { data: SqlServerSingleClusterModel }) => (
+        <TextOverflowLayout>
+          {{
+            default: () => data.cluster_name,
+            append: () => (
+              <>
+                {
+                  data.operationTagTips.map(item => <RenderOperationTag class="cluster-tag ml-4" data={item}/>)
+                }
+                {
+                  data.isOffline && !data.isStarting && (
+                    <bk-tag
+                      class="ml-4"
+                      size="small">
+                      {t('已禁用')}
+                    </bk-tag>
+                  )
+                }
+                {
+                  isRecentDays(data.create_at, 24 * 3) && (
+                    <span
+                      class="glob-new-tag cluster-tag ml-4"
+                      data-text="NEW" />
+                  )
+                }
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  type="copy"
+                  onClick={() => copy(data.cluster_name)} />
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
+      ),
     },
     {
       label: t('管控区域'),
@@ -451,6 +471,30 @@
     {
       label: t('实例'),
       field: 'storages',
+      width: 180,
+      minWidth: 180,
+      showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'storages')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'storages')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {t('实例')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
@@ -725,13 +769,46 @@
     isInit = false;
   };
 
-  const handleCopy = (dataList: SqlServerSingleClusterModel[], isInstance = false) => {
-    const list = dataList.reduce((prevList, tableItem) => {
-      const storageList = tableItem.storages.map(storageItem => (isInstance ? `${storageItem.ip}:${storageItem.port}` : `${storageItem.ip}`));
-      return [...prevList, ...storageList];
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
     }, [] as string[]);
-    copy(list.join('\n'));
-  };
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: SqlServerSingleClusterModel[], field: keyof SqlServerSingleClusterModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as SqlServerSingleClusterModel['storages']);
+    return result;
+  }, [] as SqlServerSingleClusterModel['storages']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof SqlServerSingleClusterModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof SqlServerSingleClusterModel) => {
+    const allData = await tableRef.value!.getAllData<SqlServerSingleClusterModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'primary',
+        message: t('暂无数据可复制'),
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
 
   // 设置行样式
   const setRowClass = (row: SqlServerSingleClusterModel) => {
@@ -811,7 +888,7 @@
       }
     }
 
-    :deep(.cell) {
+    :deep(td .cell) {
       line-height: normal !important;
 
       .domain {
@@ -843,7 +920,7 @@
       }
     }
 
-    :deep(tr:hover) {
+    :deep(td:hover) {
       .db-icon-copy,
       .db-icon-link {
         display: inline-block !important;

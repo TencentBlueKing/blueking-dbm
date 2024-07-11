@@ -25,6 +25,7 @@
         v-db-console="'kafka.clusterManage.export'"
         :ids="selectedIds"
         type="kafka" />
+      <ClusterIpCopy :selected="selected" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
@@ -94,7 +95,7 @@
     :get-detail-info="getKafkaDetail" />
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
+  import { InfoBox, Message } from 'bkui-vue';
   import {
     onMounted,
     ref,
@@ -134,9 +135,13 @@
   import RenderPassword from '@components/cluster-common/RenderPassword.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
+  import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import ClusterExpansion from '@views/kafka-manage/common/expansion/Index.vue';
   import ClusterShrink from '@views/kafka-manage/common/shrink/Index.vue';
 
@@ -199,19 +204,20 @@
     }
     return classList.filter(cls => cls).join(' ');
   };
-  const tableRef = ref();
+
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
   const isShowExpandsion = ref(false);
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
-
+  const selected = ref<KafkaModel[]>([])
   const operationData = shallowRef<KafkaModel>();
-  const selected = shallowRef<KafkaModel[]>([]);
 
   const selectedIds = computed(() => selected.value.map(item => item.id));
   const isCN = computed(() => locale.value === 'zh-cn');
+  const hasSelected = computed(() => selected.value.length > 0);
   const paginationExtra = computed(() => {
     if (!isStretchLayoutOpen.value) {
       return { small: false };
@@ -311,6 +317,27 @@
       width: 200,
       minWidth: 200,
       fixed: 'left',
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'domain',
+                label: t('域名')
+              },
+              {
+                field: 'domainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: KafkaModel}) => (
         <TextOverflowLayout>
           {{
@@ -328,10 +355,18 @@
             append: () => (
               <>
                 {data.domain && (
-                  <db-icon
-                    type="copy"
-                    v-bk-tooltips={t('复制访问入口')}
-                    onClick={() => copy(data.domainDisplayName)} />
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.domainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
                 )}
                 <auth-button
                   v-bk-tooltips={t('修改入口配置')}
@@ -352,10 +387,27 @@
     },
     {
       label: t('集群名称'),
-      minWidth: 200,
+      width: 150,
+      minWidth: 150,
       fixed: 'left',
       showOverflowTooltip: false,
-      render: ({ data }: {data: KafkaModel}) => (
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'cluster_name'
+              },
+            ]
+          }
+        >
+          {t('集群名称')}
+        </RenderHeadCopy>
+      ),
+      render: ({ data }: { data: KafkaModel }) => (
         <TextOverflowLayout>
           {{
             default: () => (
@@ -446,6 +498,27 @@
       field: 'zookeeper',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'zookeeper')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'zookeeper')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Zookeeper'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: KafkaModel}) => (
         <RenderNodeInstance
           highlightIps={batchSearchIpInatanceList.value}
@@ -461,6 +534,27 @@
       field: 'broker',
       minWidth: 230,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={(field) => handleCopySelected(field, 'broker')}
+          onHandleCopyAll={(field) => handleCopyAll(field, 'broker')}
+          config={
+            [
+              {
+                label: 'IP',
+                field: 'ip'
+              },
+              {
+                label: t('实例'),
+                field: 'instance'
+              }
+            ]
+          }
+        >
+          {'Broker'}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: {data: KafkaModel}) => (
         <RenderNodeInstance
           highlightIps={batchSearchIpInatanceList.value}
@@ -687,6 +781,47 @@
     isInit.value = false;
   };
 
+  const handleCopy = <T,>(dataList: T[], field: keyof T) => {
+    const copyList = dataList.reduce((prevList, tableItem) => {
+      const value = String(tableItem[field]);
+      if (value && value !== '--' && !prevList.includes(value)) {
+        prevList.push(value);
+      }
+      return prevList;
+    }, [] as string[]);
+    copy(copyList.join('\n'));
+  }
+
+  // 获取列表数据下的实例子列表
+  const getInstanceListByRole = (dataList: KafkaModel[], field: keyof KafkaModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as KafkaModel['zookeeper']);
+    return result;
+  }, [] as KafkaModel['zookeeper']);
+
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof KafkaModel) => {
+    if(role) {
+      handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
+      return;
+    }
+    handleCopy(selected.value as T[], field)
+  }
+
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof KafkaModel) => {
+    const allData = await tableRef.value!.getAllData<KafkaModel>();
+    if(allData.length === 0) {
+      Message({
+        theme: 'primary',
+        message: t('暂无数据可复制'),
+      });
+      return;
+    }
+    if(role) {
+      handleCopy(getInstanceListByRole(allData, role) as T[], field)
+      return;
+    }
+    handleCopy(allData as T[], field)
+  }
+
   // 申请实例
   const handleGoApply = () => {
     router.push({
@@ -891,8 +1026,13 @@
       }
     }
 
-    .db-icon-copy {
+    td div.cell .db-icon-copy {
       display: none;
+      margin-top: 2px;
+      margin-left: 4px;
+      color: #3a84ff;
+      vertical-align: middle;
+      cursor: pointer;
     }
 
     .db-icon-more {
@@ -908,14 +1048,9 @@
       }
     }
 
-    tr:hover {
-      .db-icon-copy {
-        display: inline-block !important;
-        margin-left: 4px;
-        color: #3a84ff;
-        vertical-align: middle;
-        cursor: pointer;
-      }
+    th:hover .db-icon-copy,
+    td:hover .db-icon-copy {
+      display: inline-block !important;
     }
   }
 </style>
@@ -931,6 +1066,7 @@
 
       .db-icon-edit {
         display: none;
+        margin-top: 2px;
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;

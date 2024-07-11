@@ -10,8 +10,44 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { uniq } from 'lodash';
+
 import { PipelineStatus } from '@common/const';
 
+interface SpiderInstance {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
+  bk_instance_id: number;
+  instance: string;
+  ip: string;
+  name: string;
+  phase: string;
+  port: number;
+  status: string;
+  spec_config: {
+    count: number;
+    cpu: {
+      max: number;
+      min: number;
+    };
+    id: number;
+    mem: {
+      max: number;
+      min: number;
+    };
+    name: string;
+    qps: {
+      max: number;
+      min: number;
+    };
+    storage_spec: {
+      mount_point: string;
+      size: number;
+      type: string;
+    }[];
+  };
+}
 export default class Spider {
   bk_biz_id: number;
   bk_biz_name: string;
@@ -86,46 +122,13 @@ export default class Spider {
   }>;
   phase: string;
   region: string;
-  remote_db: {
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    bk_instance_id: number;
-    instance: string;
-    ip: string;
-    name: string;
-    phase: string;
-    port: number;
-    status: string;
-    spec_config: {
-      count: number;
-      cpu: {
-        max: number;
-        min: number;
-      };
-      id: number;
-      mem: {
-        max: number;
-        min: number;
-      };
-      name: string;
-      qps: {
-        max: number;
-        min: number;
-      };
-      storage_spec: {
-        mount_point: string;
-        size: number;
-        type: string;
-      }[];
-    };
-  }[];
-  remote_dr: Spider['remote_db'];
+  remote_db: SpiderInstance[];
+  remote_dr: SpiderInstance[];
   remote_shard_num: number;
   slave_domain: string;
-  spider_master: Spider['remote_db'];
-  spider_mnt: Spider['remote_db'];
-  spider_slave: Spider['remote_db'];
+  spider_master: SpiderInstance[];
+  spider_mnt: SpiderInstance[];
+  spider_slave: SpiderInstance[];
   status: string;
 
   constructor(payload = {} as Spider) {
@@ -162,5 +165,23 @@ export default class Spider {
 
   get isClusterNormal() {
     return this.status === 'normal';
+  }
+
+  get allInstanceList() {
+    return [...this.remote_db, ...this.remote_dr, ...this.spider_master, ...this.spider_mnt, ...this.spider_slave];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 }

@@ -10,9 +10,25 @@
  * on an "AS IS" BASIS; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND; either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+import { uniq } from 'lodash';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
+
+interface TendbsingleInstance {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
+  bk_instance_id: number;
+  instance: string;
+  ip: string;
+  name: string;
+  phase: string;
+  port: number;
+  spec_config: Record<'id', number>;
+  status: string;
+}
 
 export default class Tendbsingle {
   static MYSQL_HA_DESTROY = 'MYSQL_HA_DESTROY';
@@ -54,19 +70,7 @@ export default class Tendbsingle {
   id: number;
   master_domain: string;
   major_version: string;
-  masters: {
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    bk_instance_id: number;
-    instance: string;
-    ip: string;
-    name: string;
-    phase: string;
-    port: number;
-    spec_config: Record<'id', number>;
-    status: string;
-  }[];
+  masters: TendbsingleInstance[];
   operations: Array<{
     cluster_id: number;
     flow_id: number;
@@ -84,10 +88,10 @@ export default class Tendbsingle {
   };
   phase: string;
   phase_name: string;
-  proxies: Tendbsingle['masters'];
+  proxies: TendbsingleInstance[];
   region: string;
   slave_domain: string;
-  slaves: Tendbsingle['masters'];
+  slaves: TendbsingleInstance[];
   status: string;
 
   constructor(payload = {} as Tendbsingle) {
@@ -137,6 +141,24 @@ export default class Tendbsingle {
 
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
+  }
+
+  get allInstanceList() {
+    return [...this.masters, ...this.proxies, ...this.slaves];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {

@@ -12,6 +12,7 @@
  */
 
 import dayjs from 'dayjs';
+import { uniq } from 'lodash';
 
 import { PipelineStatus, TicketTypes } from '@common/const';
 
@@ -177,6 +178,24 @@ export default class Mongodb {
 
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.MONGODB_ENABLE));
+  }
+
+  get allInstanceList() {
+    return [...this.mongo_config, ...this.mongodb, ...this.mongos];
+  }
+
+  get allIPList() {
+    return uniq(this.allInstanceList.map((item) => item.ip));
+  }
+
+  // 异常主机IP
+  get allUnavailableIPList() {
+    return uniq(
+      this.allInstanceList.reduce(
+        (pre, cur) => [...pre, ...(cur.status === 'unavailable' ? [cur.ip] : [])],
+        [] as string[],
+      ),
+    );
   }
 
   get runningOperation() {
