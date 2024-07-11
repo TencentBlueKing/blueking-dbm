@@ -24,7 +24,7 @@ from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import RedisTicketFlowBuilderPatchMixin, SkipToRepresentationMixin
 from backend.ticket.constants import CheckRepairFrequencyType, DataCheckRepairSettingType
 
-KEY_FILE_PREFIX = "/redis/keyfiles"
+KEY_FILE_PREFIX = "/redis/keyfiles/{biz}"
 
 
 class BaseRedisTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, TicketFlowBuilder):
@@ -76,13 +76,14 @@ class RedisKeyBaseDetailSerializer(RedisOpsBaseDetailSerializer):
         # 查看单，补充key文件信息
         storage = get_storage()
         delete_type = result.get("delete_type")
+        key_file_prefix = KEY_FILE_PREFIX.format(biz=ticket.bk_biz_id)
         for rule in result["rules"]:
             if delete_type == KeyDeleteType.BY_FILES:
-                rule["path"] = os.path.join(KEY_FILE_PREFIX, rule["path"])
+                rule["path"] = os.path.join(key_file_prefix, rule["path"])
             else:
                 # 拼接key文件路径，集群维度存储
                 biz_domain_name = f'{ticket.id}.{rule["domain"]}'
-                rule["path"] = f"{KEY_FILE_PREFIX}/{biz_domain_name}"
+                rule["path"] = f"{key_file_prefix}/{biz_domain_name}"
 
             # 目录大小计算
             _, files = storage.listdir(rule["path"])

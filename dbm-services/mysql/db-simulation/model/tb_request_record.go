@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// TbRequestRecord TODO
+// TbRequestRecord 请求日志表
 type TbRequestRecord struct {
 	ID          int    `gorm:"primaryKey;column:id;type:int(11);not null" json:"-"`
 	RequestID   string `gorm:"unique;column:request_id;type:varchar(64);not null" json:"request_id"` // request_id

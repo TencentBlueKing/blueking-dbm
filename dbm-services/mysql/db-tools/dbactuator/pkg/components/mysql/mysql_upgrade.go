@@ -183,10 +183,10 @@ func (current *VersionInfo) canUpgrade(newVersion VersionInfo) (err error) {
 	case current.MysqlVersion < native.MYSQL_5P5P24:
 		return fmt.Errorf("don't support current version: %d lower than mysql-5.5.24 to upgrade", current.MysqlVersion)
 	case current.MysqlVersion > newVersion.MysqlVersion:
-		return fmt.Errorf("don't allow to decrease mysql versoin: current version: %s,  new version: %s", current.Version,
+		return fmt.Errorf("don't allow to decrease mysql version: current version: %s,  new version: %s", current.Version,
 			newVersion.Version)
 	case (newVersion.MysqlVersion == current.MysqlVersion && newVersion.TmysqlVersion < current.TmysqlVersion):
-		return fmt.Errorf("don't allow to decrease tmysql versoin: current version: %s,  new version: %s", current.Version,
+		return fmt.Errorf("don't allow to decrease tmysql version: current version: %s,  new version: %s", current.Version,
 			newVersion.Version)
 	case newVersion.TmysqlVersion < native.TMYSQL_1P1:
 		return fmt.Errorf("don't allow to upgrade to NON-TMYSQL: current version: %s, new version: %s", current.Version,
@@ -318,7 +318,7 @@ func (m *MysqlUpgradeComp) Upgrade() (err error) {
 			logger.Error("do %d mysqlUpgrade failed %s", port, err.Error())
 			return err
 		}
-		logger.Info("exec upgrade addtion actions for %d", port)
+		logger.Info("exec upgrade addition actions for %d", port)
 		if err = m.additionalActions(dbConn, port); err != nil {
 			logger.Error("do %d additionalActions failed %s", port, err.Error())
 			return err
@@ -524,7 +524,7 @@ func (m MysqlUpgradeComp) mysqlUpgrade(conn *native.DbWorker, port int) (err err
 	}
 	// safe big version, ignore mysqlcheck
 	if int32(m.newVersion.TmysqlVersion/1000000)-int32(currentVersion.TmysqlVersion/100000) == 0 {
-		logger.Info("same big tmysql versoin, ignore mysqlupgrade")
+		logger.Info("same big tmysql version, ignore mysqlupgrade")
 		return nil
 	}
 	// open general_log
@@ -692,7 +692,7 @@ func (m MysqlUpgradeComp) mysqlCheck(conn *native.DbWorker, port int) (err error
 	}
 	// safe big version, ignore mysqlcheck
 	if int32(m.newVersion.TmysqlVersion/1000000)-int32(currentVersion.TmysqlVersion/100000) == 0 {
-		logger.Info("same big tmysql versoin, ignore mysqlcheck")
+		logger.Info("same big tmysql version, ignore mysqlcheck")
 		return nil
 	}
 	// open general_log

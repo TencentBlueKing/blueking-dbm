@@ -164,22 +164,24 @@ class TaskFlowHandler:
         return sorted(histories, key=itemgetter("started_time"), reverse=True)
 
     @classmethod
-    def get_node_id_by_component(cls, tree: Dict, component_code: str) -> str:
+    def get_node_id_by_component(cls, tree: Dict, component_code: str) -> List[str]:
         """
-        根据component获取node id
-        先仅考虑获取流程中单个的component_code的node id
+        根据component获取node id id
         :param tree: 流程树对象
         :param component_code: 组件code名称
         """
-        activities: Dict = tree["activities"]
-        for node_id, activity in activities.items():
-            if activity.get("component") and activity["component"]["code"] == component_code:
-                return node_id
-            if activity.get("pipeline"):
-                node_id = cls.get_node_id_by_component(activity["pipeline"], component_code)
-                if node_id:
-                    return node_id
-        return ""
+        node_ids: List = []
+
+        def component_search(_tree):
+            activities: Dict = _tree["activities"]
+            for node_id, activity in activities.items():
+                if activity.get("component") and activity["component"]["code"] == component_code:
+                    node_ids.append(node_id)
+                if activity.get("pipeline"):
+                    component_search(activity["pipeline"])
+
+        component_search(tree)
+        return node_ids
 
     @staticmethod
     def bklog_esquery_search(indices, query_string, start_time, end_time):

@@ -23,7 +23,7 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 		r.Parse(R.AlterTableRule.HighRiskPkAlterType, altercmd.GetPkAlterType(), "")
 		r.Parse(R.AlterTableRule.AlterUseAfter, altercmd.After, "")
 		// 如果是增加字段，需要判断增加的字段名称是否是关键字
-		if altercmd.Type == ALTER_TYPE_ADD_COLUMN {
+		if altercmd.Type == AlterTypeAddColumn {
 			logger.Info("col name is %s", altercmd.ColDef.ColName)
 			r.ParseBultinRisk(func() (bool, string) {
 				return KeyWordValidator(mysqlVersion, altercmd.ColDef.ColName)
