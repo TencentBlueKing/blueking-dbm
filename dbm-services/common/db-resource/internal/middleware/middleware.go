@@ -116,7 +116,7 @@ func ApiLogger(c *gin.Context) {
 		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 		if err := model.CreateTbRequestLog(model.TbRequestLog{
 			RequestID:   rid,
-			RequestUser: "",
+			RequestUser: c.Request.Header.Get("bk_username"),
 			RequestUrl:  c.Request.RequestURI,
 			RequestBody: string(bodyBytes),
 			SourceIP:    c.Request.RemoteAddr,
