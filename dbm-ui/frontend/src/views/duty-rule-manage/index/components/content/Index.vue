@@ -16,6 +16,7 @@
     <div class="rotation-setting-type-content">
       <div class="create-box">
         <AuthButton
+          v-if="activeDbType"
           action-id="duty_rule_create"
           class="w-88 mb-14"
           :resource="activeDbType"
