@@ -40,7 +40,7 @@ func (x *Xtrabackup) PreRun() error {
 	// 关闭本地mysql
 	inst := x.TgtInstance
 
-	logger.Info("stop local mysqld")
+	logger.Info("stop local mysqld ", inst.Socket)
 	param := &computil.ShutdownMySQLParam{MySQLUser: inst.User, MySQLPwd: inst.Pwd, Socket: inst.Socket}
 	if err := param.ForceShutDownMySQL(); err != nil {
 		logger.Error("shutdown mysqld failed %s", inst.Socket)
@@ -122,7 +122,7 @@ func (x *Xtrabackup) PostRun() (err error) {
 	if _, err := startParam.RestartMysqlInstance(); err != nil {
 		return errors.WithMessage(err, "RestartMysqlInstance")
 	}
-	// reconnect use ADMIN and temp_job_user pwd(already repaired)
+	logger.Info("reconnect use ADMIN and temp_job_user pwd(already repaired)", x.TgtInstance.Port)
 	tmpAdminPassInst := deepcopy.Copy(x.TgtInstance).(native.InsObject)
 	tmpAdminPassInst.User = native.DBUserAdmin
 	//tmpAdminPassInst.ConnBySocket()
