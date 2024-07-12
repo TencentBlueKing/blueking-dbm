@@ -85,11 +85,7 @@ export function queryBizClusterAttrs(params: {
 /**
  * 查询资源池,污点主机管理表头筛选数据
  */
-export function queryResourceAdministrationAttrs(params: {
-  resource_type: string;
-  limit?: number;
-  offset?: number;
-}) {
+export function queryResourceAdministrationAttrs(params: { resource_type: string; limit?: number; offset?: number }) {
   return http.get<
     Record<
       string,
@@ -99,4 +95,14 @@ export function queryResourceAdministrationAttrs(params: {
       }[]
     >
   >(`${path}/query_resource_administration_attrs/`, params);
+}
+
+/**
+ * webconsole查询
+ */
+export function queryWebconsole(params: { cluster_id: number; cmd: string }) {
+  return http.post<{
+    query: Array<Record<string, string>>;
+    error_msg?: string;
+  }>(`${path}/webconsole/`, params);
 }
