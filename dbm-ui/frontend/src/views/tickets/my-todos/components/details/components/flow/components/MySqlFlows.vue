@@ -279,7 +279,7 @@
   };
 
   onMounted(() => {
-    const uploadSQLFileList = props.ticketData.details.execute_objects.map(item => item.sql_file);
+    const uploadSQLFileList = props.ticketData.details.execute_sql_files;
     uploadFileList.value = uploadSQLFileList;
 
     const filePathList = uploadSQLFileList.reduce((result, item) => {

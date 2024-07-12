@@ -280,3 +280,13 @@ export function updateTicketFlowConfig(params: {
     ticket_types: string[],
   }>(`${path}/update_ticket_flow_config/`, params);
 }
+
+/**
+  * 单据流程终止
+  */
+export function revokeTicketFlow(params: {
+  ticketId: number,
+  flow_id: number
+}) {
+  return http.post(`${path}/${params.ticketId}/revoke_flow/`, params);
+}

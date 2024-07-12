@@ -140,64 +140,38 @@
       </template>
       <slot name="extra-text" />
     </div>
-    <div
-      v-if="content.end_time"
-      class="flow-time">
-      {{ utcDisplayTime(content.end_time) }}
-    </div>
-    <!-- <BkPopover
-      v-if="content.err_code === 2"
-      v-model:is-show="state.confirmTips"
-      theme="light"
-      trigger="manual"
-      :width="320">
-      <BkButton
-        ref="retryButtonRef"
-        class="w-88 mt-8"
-        :loading="state.isLoading"
-        theme="primary"
-        @click="handleConfirmToggle">
-        {{ t('重试') }}
-      </BkButton>
-      <template #content>
-        <div
-          v-clickoutside:[retryButtonRef?.$el]="handleConfirmCancel"
-          class="ticket-flow-content">
-          <div class="ticket-flow-content-desc">
-            {{ t('是否确认重新执行单据') }}
-          </div>
-          <div class="ticket-flow-content-buttons">
-            <BkButton
-              :loading="state.isLoading"
-              size="small"
-              theme="primary"
-              @click="handleConfirm(content)">
-              {{ t('确认') }}
-            </BkButton>
-            <BkButton
-              :disabled="state.isLoading"
-              size="small"
-              @click="handleConfirmCancel">
-              {{ t('取消') }}
-            </BkButton>
-          </div>
-        </div>
-      </template>
-    </BkPopover> -->
     <div class="mt-8">
       <BkPopConfirm
-        v-if="content.err_code === 2"
+        v-if="(content.err_code === 2) || (content.flow_type === 'INNER_FLOW' && content.status === 'FAILED' && content.err_msg)"
         :content="t('重新执行后无法撤回，请谨慎操作！')"
-        :title="t('是否确认重新执行单据')"
+        :title="t('是否确认重试此步骤')"
         trigger="click"
         :width="320"
-        @confirm="handleConfirm(content)">
+        @confirm="handleConfirmRetry(content)">
         <BkButton
-          class="w-88 mt-8"
+          class="w-88"
           theme="primary">
           {{ t('重试') }}
         </BkButton>
       </BkPopConfirm>
+      <BkPopConfirm
+        v-if="content.flow_type === 'INNER_FLOW' && content.status === 'FAILED' && content.err_msg"
+        :content="t('终止执行后无法撤回，请谨慎操作！')"
+        :title="t('是否确认终止执行单据')"
+        trigger="click"
+        :width="320"
+        @confirm="handleConfirmTerminal(content)">
+        <BkButton
+          class="w-88 ml-8"
+          theme="danger">
+          {{ t('终止') }}
+        </BkButton>
+      </BkPopConfirm>
+    </div>
+    <div
+      v-if="content.end_time"
+      class="flow-time">
+      {{ utcDisplayTime(content.end_time) }}
     </div>
   </template>
 </template>
@@ -207,7 +181,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { processTicketTodo, retryTicketFlow  } from '@services/source/ticket';
+  import { processTicketTodo, retryTicketFlow, revokeTicketFlow } from '@services/source/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import { useUserProfile } from '@stores';
@@ -218,7 +192,6 @@
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
-  // import FlowContentInnerFlow from './components/ContentInnerFlow.vue';
   import FlowContentTodo from './components/ContentTodo.vue';
 
 
@@ -240,13 +213,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  // const { username } = useUserProfile();
 
-  // const retryButtonRef = ref();
-  // const state = reactive({
-  //   confirmTips: false,
-  //   isLoading: false,
-  // });
   const { username } = useUserProfile();
 
   const manualNexFlowDisaply = computed(() => {
@@ -266,7 +233,15 @@
 
   const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
 
-  const handleConfirm = (item: FlowItem) => retryTicketFlow({
+  const handleConfirmTerminal = (item: FlowItem) => revokeTicketFlow({
+    ticketId: item.ticket,
+    flow_id: item.id,
+  })
+    .then(() => {
+      emits('fetch-data');
+    });
+
+  const handleConfirmRetry = (item: FlowItem) => retryTicketFlow({
     ticketId: item.ticket,
     flow_id: item.id,
   })
@@ -288,13 +263,6 @@
     emits('fetch-data');
   };
 
-  // function handleConfirmToggle() {
-  //   state.confirmTips = !state.confirmTips;
-  // }
-
-  // function handleConfirmCancel() {
-  //   state.confirmTips = false;
-  // }
 </script>
 
 <style lang="less" scoped>
