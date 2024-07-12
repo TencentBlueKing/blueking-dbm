@@ -166,8 +166,6 @@
   import { getTicketHostNodes } from '@services/source/ticket';
   import { getInfrasCities } from '@services/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
   import {
@@ -179,6 +177,7 @@
 
   import { firstLetterToUpper } from '@utils';
 
+  import { useAffinity } from '../../../hooks/useAffinity';
   import SpecInfos from '../../SpecInfos.vue';
 
   interface Props {
@@ -188,7 +187,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
+  const { affinity } = useAffinity(props.ticketDetails);
 
   const cityName = ref('--');
 
@@ -208,14 +207,6 @@
   const backendData = computed(() => {
     const data = props.ticketDetails?.details?.resource_spec?.backend_group?.spec_info;
     return data ? [data] : [];
-  });
-
-  const affinity = computed(() => {
-    const level = props.ticketDetails?.details?.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find((item) => item.value === level)?.label;
-    }
-    return '--';
   });
 
   const columns = [

@@ -31,12 +31,15 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import type { DetailClusters } from '@services/model/ticket/details/common';
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   interface Props {
-    data: TicketModel<unknown>;
+    data: TicketModel<{
+      clusters: DetailClusters;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -106,12 +109,30 @@
     [TicketTypes.MYSQL_LOCAL_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 原地升级
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 迁移升级
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
+    [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
   };
 
   const isShowTicketClone = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
 
   const handleResubmitTicket = async () => {
-    const name = ticketTypeRouteNameMap[props.data.ticket_type];
+    let name = '';
+    if (
+      [
+        TicketTypes.REDIS_KEYS_EXTRACT,
+        TicketTypes.REDIS_KEYS_DELETE,
+        TicketTypes.REDIS_BACKUP,
+        TicketTypes.REDIS_PURGE,
+      ].includes(props.data.ticket_type)
+    ) {
+      const clusterInfo = Object.values(props.data.details.clusters)[0];
+      if (clusterInfo.cluster_type === ClusterTypes.REDIS_INSTANCE) {
+        name = 'DatabaseRedisHaList';
+      } else {
+        name = 'DatabaseRedisList';
+      }
+    } else {
+      name = ticketTypeRouteNameMap[props.data.ticket_type];
+    }
     if (name) {
       router.push({
         name,
