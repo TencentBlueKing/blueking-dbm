@@ -34,6 +34,7 @@ func init() {
 	middleware.RequestLoggerFilter.Add("/resource/import")
 	middleware.RequestLoggerFilter.Add("/resource/update")
 	middleware.RequestLoggerFilter.Add("/resource/delete")
+	middleware.RequestLoggerFilter.Add("/resource/batch/update")
 }
 
 // RegisterRouter 注册路由信息
