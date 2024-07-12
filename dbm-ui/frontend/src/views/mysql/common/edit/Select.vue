@@ -22,7 +22,9 @@
       'is-disabled': disabled,
       'is-seleced': !!localValue,
     }">
-    <div class="select-result-text">
+    <div
+      v-overflow-tips
+      class="select-result-text">
       <span>{{ renderText }}</span>
     </div>
     <DbIcon
@@ -63,7 +65,7 @@
         </div>
         <div class="options-list">
           <div
-            v-for="item in renderList"
+            v-for="(item, index) in renderList"
             :key="item.id"
             class="option-item"
             :class="{
@@ -73,6 +75,7 @@
             @click="handleSelect(item)">
             <slot
               v-if="slots.default"
+              :index="index"
               :item="item" />
             <span v-else>{{ item.name }}</span>
           </div>
