@@ -113,12 +113,19 @@ func (l *LogicalLoader) loadBackup() error {
 	cmd := []string{l.Client}
 	cmd = append(cmd, cmdArgs...)
 	logger.Info("dbLoader cmd: %s", strings.Join(cmd, " "))
-	outStr, errStr, err := cmutil.ExecCommand(false, l.TaskDir, cmd[0], cmd[1:]...)
+	_, errStr, err := cmutil.ExecCommand(false, l.TaskDir, cmd[0], cmd[1:]...)
 	if err != nil {
-		logger.Info("dbbackup loadbackup stdout: %s", outStr)
+		logger.Error("logical dbbackup loadbackup stderr: ", errStr)
+		// 尝试读取 myloader.log 里 CRITICAL 关键字
+		_, errStr, _ = cmutil.ExecCommand(false, l.TaskDir, "grep", "-Ei 'CRITICAL'",
+			"logs/myloader_*.log", "| head -5 >&2")
+		if len(strings.TrimSpace(errStr)) > 0 {
+			logger.Info("head 5 error from", filepath.Join(l.TaskDir, "logs/myloader_*.log"))
+			logger.Error(errStr)
+		}
 		return errors.Wrap(err, errStr)
 	}
-	// 尝试读取 myloader.log 里 CRITICAL 关键字
+
 	return nil
 }
 

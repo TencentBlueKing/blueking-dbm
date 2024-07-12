@@ -32,9 +32,6 @@ import (
 // RepairUserAdmin 修复 ADMIN 用户的权限，主要是host和密码
 // 以 skip-grant 模式运行
 func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string) error {
-	if x.TgtInstance.Host == x.SrcBackupHost {
-		return nil
-	}
 	// 这些是合法的 admin host，保留下来
 	localHosts := []string{"localhost", "127.0.0.1", x.SrcBackupHost}
 	adminHostsQuery := fmt.Sprintf("SELECT `host` FROM `mysql`.`user` where `user`='%s'", userAdmin)
