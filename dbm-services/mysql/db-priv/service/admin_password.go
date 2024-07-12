@@ -61,6 +61,14 @@ func (m *GetPasswordPara) GetPassword() ([]*TbPasswords, int, error) {
 		where = fmt.Sprintf(" %s and bk_biz_id = %d ", where, *m.BkBizId)
 	}
 	var err error
+	cnt := Cnt{}
+	vsql := fmt.Sprintf("select count(*) as cnt from tb_passwords where %s", where)
+	err = DB.Self.Raw(vsql).Scan(&cnt).Error
+	if err != nil {
+		slog.Error(vsql, "execute error", err)
+		return nil, 0, err
+	}
+
 	// 分页
 	if m.Limit != nil && m.Offset != nil {
 		err = DB.Self.Model(&TbPasswords{}).Where(where).Order("update_time DESC").Limit(*m.Limit).Offset(
@@ -84,7 +92,7 @@ func (m *GetPasswordPara) GetPassword() ([]*TbPasswords, int, error) {
 		slog.Error("msg", "DecodePassword", err)
 		return passwords, 0, err
 	}
-	return passwords, len(passwords), nil
+	return passwords, cnt.Count, nil
 }
 
 // ModifyPassword 修改tb_passwords表中密码

@@ -135,7 +135,8 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) er
 			if item.ClusterType == tendbha || item.ClusterType == tendbsingle {
 				for _, storage := range item.Storages {
 					address := fmt.Sprintf("%s:%d", storage.IP, storage.Port)
-					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId, machineTypeBackend, m.User)
+					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId,
+						machineTypeBackend, m.User, false)
 					if err != nil {
 						AddError(&errMsg, address, err)
 						continue
@@ -149,7 +150,8 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) er
 			} else {
 				for _, spider := range item.Proxies {
 					address := fmt.Sprintf("%s:%d", spider.IP, spider.Port)
-					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId, machineTypeSpider, m.User)
+					userGrants, err := GetRemotePrivilege(address, m.SourceIp, item.BkCloudId,
+						machineTypeSpider, m.User, false)
 					if err != nil {
 						AddError(&errMsg, address, err)
 						continue

@@ -68,6 +68,11 @@ type GetAccountListPara struct {
 	Offset *int64 `json:"offset"`
 }
 
+// Cnt 用于返回匹配到的行数
+type Cnt struct {
+	Count int `gorm:"column:cnt"`
+}
+
 // PrivLog 记录权限相关接口的调用日志
 type PrivLog struct {
 	Id       int64     `gorm:"column:id;primary_key;auto_increment" json:"id"`

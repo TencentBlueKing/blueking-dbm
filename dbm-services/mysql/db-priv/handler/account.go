@@ -111,7 +111,7 @@ func (m *PrivService) GetAccountList(c *gin.Context) {
 
 	accounts, count, err := input.GetAccountList()
 	type ListResponse struct {
-		Count   int64       `json:"count"`
+		Count   int         `json:"count"`
 		Results interface{} `json:"results"`
 	}
 	SendResponse(c, err, ListResponse{
@@ -167,6 +167,6 @@ type Response struct {
 
 // ListResponse TODO
 type ListResponse struct {
-	Count int64       `json:"count"`
+	Count int         `json:"count"`
 	Items interface{} `json:"items"`
 }

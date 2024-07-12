@@ -1,32 +1,34 @@
 package service
 
 import (
+	"dbm-services/mysql/priv-service/util"
 	errors2 "errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
-	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
-
 	"github.com/jinzhu/gorm"
+
+	"dbm-services/common/go-pubpkg/errno"
 )
 
 // QueryAccountRule 获取账号规则
-func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
+func (m *QueryRulePara) QueryAccountRule() ([]*AccountRuleSplitUser, int, error) {
 	var (
 		rules                []*Rule
 		accounts             []*Account
 		accountRuleSplitUser []*AccountRuleSplitUser
-		count                int64
-		result               *gorm.DB
+		filterAccount        []*Account
+		filterAccountIds     string
+		count                int
 		err                  error
-		rulesWhere           string
-		accountsWhere        string
 		ruleIds              string
 		accountIds           string
+		where                string
+		noRuleAccount        []*Account
 	)
+	slog.Info("QueryRulePara", *m)
 	if m.BkBizId == 0 {
 		return nil, count, errno.BkBizIdIsEmpty
 	}
@@ -35,63 +37,108 @@ func (m *BkBizId) QueryAccountRule() ([]*AccountRuleSplitUser, int64, error) {
 		m.ClusterType = &ct
 		// return nil, count, errno.ClusterTypeIsEmpty
 	}
-
-	if len(m.RuleIds) > 0 {
-		var acountList []*AccountId
-		for _, id := range m.RuleIds {
-			ruleIds = fmt.Sprintf("%d,%s", id, ruleIds)
-		}
-		ruleIds = strings.TrimRight(ruleIds, ",")
-		rulesWhere = fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and id in (%s)",
-			m.BkBizId, *m.ClusterType, ruleIds)
-		err = DB.Self.Model(&TbAccountRules{}).Where(rulesWhere).
-			Select("distinct(account_id) as account_id").Scan(&acountList).Error
+	base := fmt.Sprintf("bk_biz_id=%d and cluster_type='%s'", m.BkBizId, *m.ClusterType)
+	where = base
+	for _, id := range m.RuleIds {
+		ruleIds = fmt.Sprintf("%s,%d", ruleIds, id)
+	}
+	if ruleIds != "" {
+		ruleIds = strings.TrimPrefix(ruleIds, ",")
+		where = fmt.Sprintf("%s and id in (%s)", where, ruleIds)
+	}
+	if m.Dbname != "" {
+		where = fmt.Sprintf("%s and dbname like '%%%s%%'", where, m.Dbname)
+	}
+	if m.User != "" {
+		err = DB.Self.Table("tb_accounts").Where(fmt.Sprintf("%s and user like '%%%s%%'", base,
+			m.User)).Select("id,bk_biz_id,user,creator,create_time").Find(&filterAccount).Error
 		if err != nil {
 			return nil, count, err
 		}
-		// 没有查到帐号规则
-		if len(acountList) == 0 {
+		if len(filterAccount) == 0 {
 			return nil, count, nil
 		}
-		for _, id := range acountList {
-			accountIds = fmt.Sprintf("%d,%s", id.AccountId, accountIds)
+		for _, item := range filterAccount {
+			filterAccountIds = fmt.Sprintf("%s,%d", filterAccountIds, (*item).Id)
 		}
-		accountIds = strings.TrimRight(accountIds, ",")
-		slog.Info("msg", "accountIds", accountIds)
-		accountsWhere = fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and id in (%s)",
-			m.BkBizId, *m.ClusterType, accountIds)
-		slog.Info("msg", "accountsWhere", accountsWhere)
-		err = DB.Self.Model(&TbAccounts{}).Where(accountsWhere).Select(
-			"id,bk_biz_id,user,creator,create_time").Scan(&accounts).Error
-		if err != nil {
-			return nil, count, err
+		filterAccountIds = strings.TrimPrefix(filterAccountIds, ",")
+		where = fmt.Sprintf("%s and account_id in (%s)", where, filterAccountIds)
+	}
+	if len(m.Privs) > 0 {
+		for _, priv := range m.Privs {
+			where = fmt.Sprintf("%s and priv like '%%%s%%'", where, priv)
 		}
+	}
+	cnt := Cnt{}
+	vsql := fmt.Sprintf("select count(*) as cnt from tb_account_rules where %s", where)
+	err = DB.Self.Raw(vsql).Scan(&cnt).Error
+	if err != nil {
+		slog.Error(vsql, "execute error", err)
+		return nil, 0, err
+	}
+	if m.Limit != nil && m.Offset != nil {
+		err = DB.Self.Table("tb_account_rules").Where(where).
+			Select("id,account_id,bk_biz_id,dbname,priv,creator,create_time").Limit(*m.Limit).Offset(
+			*m.Offset).Order("account_id, id").Find(&rules).Error
+	} else if m.Limit == nil && m.Offset == nil {
+		err = DB.Self.Table("tb_account_rules").Where(where).
+			Select("id,account_id,bk_biz_id,dbname,priv,creator,create_time").Order(
+			"account_id, id").Find(&rules).Error
+	} else if m.Limit != nil && m.Offset == nil {
+		err = DB.Self.Table("tb_account_rules").Where(where).
+			Select("id,account_id,bk_biz_id,dbname,priv,creator,create_time").Limit(*m.Limit).Order(
+			"account_id, id").Find(&rules).Error
 	} else {
-		err = DB.Self.Model(&TbAccounts{}).Where(&TbAccounts{BkBizId: m.BkBizId, ClusterType: *m.ClusterType}).Select(
-			"id,bk_biz_id,user,creator,create_time").Scan(&accounts).Error
+		return accountRuleSplitUser, 0, fmt.Errorf("offset not null but limit null")
+	}
+	if err != nil {
+		slog.Error("query account rule error", "where", where)
+		return nil, 0, err
+	}
+	// 没有查到帐号规则
+	if len(rules) != 0 {
+		accountRuleRelate := make(map[int64][]*Rule)
+		uniqAccount := make(map[int64]struct{})
+		for _, rule := range rules {
+			id := (*rule).AccountId
+			accountRuleRelate[id] = append(accountRuleRelate[id], rule)
+			if _, isExists := uniqAccount[id]; isExists == false {
+				uniqAccount[id] = struct{}{}
+				accountIds = fmt.Sprintf("%s,%d", accountIds, id)
+			}
+		}
+		accountIds = strings.TrimPrefix(accountIds, ",")
+		accountWhere := fmt.Sprintf("%s and id in (%s)", base, accountIds)
+		err = DB.Self.Table("tb_accounts").Where(accountWhere).Select(
+			"id,bk_biz_id,user,creator,create_time").Order("id").Scan(&accounts).Error
 		if err != nil {
-			return nil, count, err
+			slog.Error("msg", "query account error", err)
+			return nil, 0, err
+		}
+		for _, account := range accounts {
+			accountRuleSplitUser = append(accountRuleSplitUser,
+				&AccountRuleSplitUser{Account: account, Rules: accountRuleRelate[account.Id]})
 		}
 	}
-	accountRuleSplitUser = make([]*AccountRuleSplitUser, len(accounts))
-	for k, v := range accounts {
-		where := fmt.Sprintf("bk_biz_id=%d and cluster_type='%s' and account_id=%d ",
-			m.BkBizId, *m.ClusterType, (*v).Id)
-		slog.Info("msg", "where", where)
-		if len(m.RuleIds) > 0 {
-			where = fmt.Sprintf("%s and id in (%s)", where, ruleIds)
-			slog.Info("msg", "where", where)
+	// 显示没有规则的账号（由于提高效率分页用于账号规则，将没有规则的账号展示在首页）,没有任何过滤条件或者仅有user过滤条件时会展示
+	if m.NoRuleUser == true {
+		where = base
+		if m.User != "" {
+			where = fmt.Sprintf("%s and id in (%s)", base, filterAccountIds)
 		}
-		result = DB.Self.Model(&TbAccountRules{}).Where(where).
-			Select("id,account_id,bk_biz_id,dbname,priv,creator,create_time").Scan(&rules)
-		accountRuleSplitUser[k] = &AccountRuleSplitUser{Account: v, Rules: rules}
+		vsql = fmt.Sprintf("select id,bk_biz_id,user,creator,create_time from tb_accounts where id not in "+
+			"(select distinct(account_id) from tb_account_rules where %s) and %s;", base, where)
+		err = DB.Self.Raw(vsql).Scan(&noRuleAccount).Error
 		if err != nil {
-			return nil, count, err
+			slog.Error("msg", "query account error", err)
+			return nil, 0, err
 		}
-		count += result.RowsAffected
 	}
-	// count账号规则的数目，不是账号的数目
-	return accountRuleSplitUser, count, nil
+	for _, account := range noRuleAccount {
+		accountRuleSplitUser = append(accountRuleSplitUser,
+			&AccountRuleSplitUser{Account: account, Rules: nil})
+	}
+	return accountRuleSplitUser, cnt.Count, nil
 }
 
 // AddAccountRule 新增账号规则
@@ -288,17 +335,7 @@ func (m *DeleteAccountRuleById) DeleteAccountRule(jsonPara string, ticket string
 	if m.ClusterType == nil {
 		ct := mysql
 		m.ClusterType = &ct
-		// return errno.ClusterTypeIsEmpty
 	}
-
-	/*
-		批量删除调整为execute sql。
-			（1）当多个条件中存在主键，gorm生成的语句自动忽略非主键条件，导致条件丢失：
-			result := DB.Self.Delete(&TbAccountRules{}, m.Id, m.BkBizId)
-			result := DB.Self.Delete(&TbAccountRules{}, m.Id).Where("bk_biz_id=?", m.BkBizId)
-			（2）delete where多个条件不支持：
-			result := DB.Self.Delete(&TbAccountRules{}).Where("id IN (?) AND bk_biz_id = ?", strings.Join(temp, ","), m.BkBizId)
-	*/
 
 	var temp = make([]string, len(m.Id))
 	for k, v := range m.Id {

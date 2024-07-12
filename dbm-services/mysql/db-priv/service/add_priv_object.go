@@ -20,19 +20,6 @@ type PrivTaskPara struct {
 	TargetInstances []string         `json:"target_instances"`
 }
 
-/*
-// Instance GetClusterInfo 函数返回的结构体
-type Instance struct {
-	Proxies     []Proxy   `json:"proxies"`
-	Storages    []Storage `json:"storages"`
-	ClusterType string    `json:"cluster_type"`
-	BkBizId     int64     `json:"bk_biz_id"`
-	DbModuleId  int64     `json:"db_module_id"`
-	BindTo      string    `json:"bind_to"`
-	BkCloudId   int64     `json:"bk_cloud_id"`
-}
-*/
-
 // Instance GetCluster 函数返回的结构体
 type Instance struct {
 	Proxies      []Proxy   `json:"proxies"`
@@ -81,11 +68,17 @@ type Domain struct {
 	EntryName string `json:"entry_name" url:"entry_name"`
 }
 
-// BkBizId QueryAccountRule 函数的入参
-type BkBizId struct {
-	BkBizId     int64   `json:"bk_biz_id" url:"bk_biz_id"`
-	RuleIds     []int64 `json:"ids" url:"ids"`
-	ClusterType *string `json:"cluster_type" url:"cluster_type"`
+// QueryRulePara QueryAccountRule 函数的入参
+type QueryRulePara struct {
+	BkBizId     int64    `json:"bk_biz_id" url:"bk_biz_id"`
+	RuleIds     []int64  `json:"ids" url:"ids"`
+	ClusterType *string  `json:"cluster_type" url:"cluster_type"`
+	Limit       *int     `json:"limit"`
+	Offset      *int     `json:"offset"`
+	User        string   `json:"user"`
+	Dbname      string   `json:"dbname"`
+	Privs       []string `json:"privs"`
+	NoRuleUser  bool     `json:"no_rule_user"`
 }
 
 // BkBizIdPara 业务 id，GetAllClustersInfo 函数的入参

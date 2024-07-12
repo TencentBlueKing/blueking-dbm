@@ -46,3 +46,9 @@ type Resource struct {
 	mu        sync.RWMutex
 	resources []OneCluster
 }
+
+// StringList 字符串列表
+type StringList struct {
+	mu sync.RWMutex
+	l  []string
+}

@@ -40,6 +40,8 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "add_priv_dry_run", HandlerFunc: m.AddPrivDryRun},
 		{Method: http.MethodPost, Path: "add_priv", HandlerFunc: m.AddPriv},
 		{Method: http.MethodPost, Path: "add_priv_without_account_rule", HandlerFunc: m.AddPrivWithoutAccountRule},
+		{Method: http.MethodPost, Path: "get_priv", HandlerFunc: m.GetPriv},
+		{Method: http.MethodPost, Path: "get_user_list", HandlerFunc: m.GetUserList},
 
 		// 实例间权限克隆
 		{Method: http.MethodPost, Path: "clone_instance_priv_dry_run", HandlerFunc: m.CloneInstancePrivDryRun},
@@ -75,8 +77,10 @@ func (m *PrivService) Routes() []*gin.RouteInfo {
 		// 迁移平台密码
 		{Method: http.MethodPost, Path: "migrate_platform_password", HandlerFunc: m.MigratePlatformPassword},
 
-		// 检查和迁移账号规则
+		// 检查和迁移账号规则 scr到dbm
 		{Method: http.MethodPost, Path: "migrate_account_rule", HandlerFunc: m.MigrateAccountRule},
+		// 克隆dbm A业务的账号与权限规则到B业务
+		{Method: http.MethodPost, Path: "clone_account_rule", HandlerFunc: m.MigrateAccountRuleInDbm},
 	}
 }
 

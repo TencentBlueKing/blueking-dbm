@@ -14,7 +14,7 @@ import (
 // GetAccountRuleList 获取账号规则
 func (m *PrivService) GetAccountRuleList(c *gin.Context) {
 	slog.Info("do GetAccountRuleList!")
-	var input service.BkBizId
+	var input service.QueryRulePara
 
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {

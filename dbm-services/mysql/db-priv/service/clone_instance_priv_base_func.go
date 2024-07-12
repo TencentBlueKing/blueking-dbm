@@ -10,9 +10,6 @@ import (
 
 	"dbm-services/mysql/priv-service/util"
 
-	//"github.com/pingcap/parser"
-	//"github.com/pingcap/parser/ast"
-	//_ "github.com/pingcap/tidb/types/parser_driver" // parser_driver TODO
 	"github.com/pingcap/tidb/parser"
 	"github.com/pingcap/tidb/parser/ast"
 )
@@ -36,7 +33,7 @@ func (v *visitor) Leave(node ast.Node) (out ast.Node, ok bool) {
 
 // GetRemotePrivilege 获取mysql上的授权语句
 func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceType string,
-	user string) ([]UserGrant, error) {
+	user string, raw bool) ([]UserGrant, error) {
 	var version string
 	var errOuter error
 	var repsOuter oneAddressResult
@@ -63,25 +60,26 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	}
 	selectUser := `select user,host from mysql.user where 1=1 `
 	if host != "" {
-		selectUser += fmt.Sprintf(` and host='%s' `, host)
+		selectUser += fmt.Sprintf(` and host in ("%s") `, host)
 	}
 	if user != "" {
-		selectUser += fmt.Sprintf(` and user='%s' `, user)
+		selectUser += fmt.Sprintf(` and user in ("%s") `, user)
 	}
+	flush := UserGrant{"", []string{flushPriv, setBinlogOff}}
 	queryRequestOuter := QueryRequest{[]string{address}, []string{selectUser},
 		true, 30, bkCloudId}
 	repsOuter, errOuter = OneAddressExecuteSql(queryRequestOuter)
 	if errOuter != nil {
 		return nil, errOuter
 	}
-	flush := UserGrant{"", []string{flushPriv}}
-	resultTemp.userGrants = append([]UserGrant{flush}, resultTemp.userGrants...)
-
+	if !raw {
+		resultTemp.userGrants = append([]UserGrant{flush}, resultTemp.userGrants...)
+	}
 	for _, row := range repsOuter.CmdResults[0].TableData {
 		if row["user"] == "" || row["host"] == "" {
 			return nil, fmt.Errorf("execute %s in %s ,user or host is null", selectUser, address)
 		}
-		userHost := fmt.Sprintf(`'%s'@'%s'`, row["user"], row["host"])
+		userHost := fmt.Sprintf(`'%s'@'%s'`, row["user"].(string), row["host"].(string))
 		wg.Add(1)
 		tokenBucket <- 0 // 在这里操作 token 可以防止过多的协程启动但处于等待 token 的阻塞状态
 		go func(userHost string, needShowCreateUser bool) {
@@ -112,7 +110,10 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	case err := <-errorChan:
 		return nil, err
 	}
-	return append(resultTemp.userGrants, flush), nil
+	if !raw {
+		resultTemp.userGrants = append(resultTemp.userGrants, flush)
+	}
+	return resultTemp.userGrants, nil
 }
 
 // GetUserGantSql 查询用户创建以及授权语句
@@ -431,19 +432,19 @@ func PrivMysql80ToMysql57(grants *[]string) error {
 		dynamicGrantsFlag := false
 		for _, dynamic := range dynamicGrantsForMySQL8 {
 			/* 排除8.0的动态权限
-			在8.0 grant all privileges on *.* to xxx，show grants for xxx结果：
-			(1) GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE,
-			REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES,
-			EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE,
-			ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE, CREATE ROLE,
-			DROP ROLE ON *.* TO xxx
-			(2) GRANT APPLICATION_PASSWORD_ADMIN,AUDIT_ADMIN,BACKUP_ADMIN,BINLOG_ADMIN,
-			BINLOG_ENCRYPTION_ADMIN,CLONE_ADMIN,CONNECTION_ADMIN,ENCRYPTION_KEY_ADMIN,
-			GROUP_REPLICATION_ADMIN,INNODB_REDO_LOG_ARCHIVE,PERSIST_RO_VARIABLES_ADMIN,
-			REPLICATION_APPLIER,REPLICATION_SLAVE_ADMIN,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,
-			ROLE_ADMIN,SERVICE_CONNECTION_ADMIN,SESSION_VARIABLES_ADMIN,SET_USER_ID,SYSTEM_USER,
-			SYSTEM_VARIABLES_ADMIN,TABLE_ENCRYPTION_ADMIN,XA_RECOVER_ADMIN ON *.* TO xxx;
-			固定权限（1）8.0比5.7多了CREATE ROLE, DROP ROLE；8.0有动态权限，5.7没有
+			   在8.0 grant all privileges on *.* to xxx，show grants for xxx结果：
+			   (1) GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE,
+			   REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES,
+			   EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE,
+			   ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE, CREATE ROLE,
+			   DROP ROLE ON *.* TO xxx
+			   (2) GRANT APPLICATION_PASSWORD_ADMIN,AUDIT_ADMIN,BACKUP_ADMIN,BINLOG_ADMIN,
+			   BINLOG_ENCRYPTION_ADMIN,CLONE_ADMIN,CONNECTION_ADMIN,ENCRYPTION_KEY_ADMIN,
+			   GROUP_REPLICATION_ADMIN,INNODB_REDO_LOG_ARCHIVE,PERSIST_RO_VARIABLES_ADMIN,
+			   REPLICATION_APPLIER,REPLICATION_SLAVE_ADMIN,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,
+			   ROLE_ADMIN,SERVICE_CONNECTION_ADMIN,SESSION_VARIABLES_ADMIN,SET_USER_ID,SYSTEM_USER,
+			   SYSTEM_VARIABLES_ADMIN,TABLE_ENCRYPTION_ADMIN,XA_RECOVER_ADMIN ON *.* TO xxx;
+			   固定权限（1）8.0比5.7多了CREATE ROLE, DROP ROLE；8.0有动态权限，5.7没有
 			*/
 			if regexp.MustCompile(dynamic).MatchString(item) {
 				slog.Info("dynamicGrantExist", "sql", item)
@@ -553,39 +554,18 @@ func CheckGrantInMySqlVersion(userGrants []UserGrant, address string, bkCloudId 
 
 // ImportMysqlPrivileges 执行mysql权限
 func ImportMysqlPrivileges(userGrants []UserGrant, address string, bkCloudId int64) error {
-	// Err 错误信息列表
 	type Err struct {
 		mu   sync.RWMutex
 		errs []string
 	}
-	var errMsg Err
-	wg := sync.WaitGroup{}
-	tokenBucket := make(chan int, 10)
-
+	var grants []string
 	for _, row := range userGrants {
-		wg.Add(1)
-		tokenBucket <- 0
-		go func(row UserGrant) {
-			defer func() {
-				<-tokenBucket
-				wg.Done()
-			}()
-			queryRequest := QueryRequest{[]string{address}, row.Grants, true, 60, bkCloudId}
-			_, err := OneAddressExecuteSql(queryRequest)
-			if err != nil {
-				errMsg.mu.Lock()
-				errMsg.errs = append(errMsg.errs, err.Error())
-				errMsg.mu.Unlock()
-				return
-			}
-		}(row)
+		grants = append(grants, row.Grants...)
 	}
-
-	wg.Wait()
-	close(tokenBucket)
-
-	if len(errMsg.errs) > 0 {
-		return fmt.Errorf(strings.Join(errMsg.errs, "\n"))
+	queryRequest := QueryRequest{[]string{address}, grants, true, 60, bkCloudId}
+	_, err := OneAddressExecuteSql(queryRequest)
+	if err != nil {
+		return err
 	}
 	return nil
 }
