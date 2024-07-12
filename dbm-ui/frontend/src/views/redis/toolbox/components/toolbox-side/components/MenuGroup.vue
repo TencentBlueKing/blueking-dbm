@@ -1,5 +1,7 @@
 <template>
-  <BkCollapsePanel :name="currentConfig.id">
+  <BkCollapsePanel
+    v-if="currentConfig"
+    :name="currentConfig.id">
     <div class="toolbox-side-header">
       <DbIcon
         class="toolbox-side-status"
@@ -23,6 +25,7 @@
           v-for="item of currentConfig.children"
           :key="item.id">
           <div
+            v-show="calcRender(item)"
             v-db-console="item.dbConsoleValue"
             class="toolbox-side-item"
             :class="{
@@ -61,9 +64,9 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import MenuConfig from '@views/redis/toolbox-menu';
+  import MenuConfig, { type MenuChild } from '@views/redis/toolbox-menu';
 
-  import { messageSuccess } from '@utils';
+  import { encodeRegexp, messageSuccess } from '@utils';
 
   import TaskCount from './TaskCount.vue';
 
@@ -71,6 +74,7 @@
     id: string;
     draggable: boolean;
     activeViewName: string;
+    serachKey: string;
   }
 
   const props = defineProps<Props>();
@@ -84,7 +88,16 @@
     required: true,
   });
 
-  const currentConfig = _.find(MenuConfig, (item) => item.id === props.id) as (typeof MenuConfig)[number];
+  const menuChildList = _.flatten(MenuConfig.map((item) => item.menuList));
+  const currentConfig = _.find(menuChildList, (item) => item.id === props.id);
+
+  const calcRender = (payload: MenuChild) => {
+    if (!props.serachKey) {
+      return true;
+    }
+    const reg = new RegExp(encodeRegexp(props.serachKey), 'i');
+    return reg.test(payload.name);
+  };
 
   const handleRouterChange = (routerName: string) => {
     router.push({

@@ -1,5 +1,5 @@
 <template>
-  <div class="recommend-architecture">
+  <div class="recommend-architecture mb-24">
     <BkCard
       class="mt-8"
       is-collapse

@@ -161,12 +161,11 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getInfrasCities } from '@services/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
   import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
 
   import PreviewTable from '@views/mysql/apply/components/PreviewTable.vue';
 
+  import { useAffinity } from '../../../hooks/useAffinity';
   import SpecInfos from '../../SpecInfos.vue';
 
   interface Props {
@@ -176,8 +175,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
+  const { affinity } = useAffinity(props.ticketDetails);
 
   const cityName = ref('--');
 
@@ -205,14 +203,6 @@
       };
     }),
   );
-
-  const affinity = computed(() => {
-    const level = props.ticketDetails?.details?.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find((item) => item.value === level)?.label;
-    }
-    return '--';
-  });
 
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
