@@ -207,6 +207,7 @@ func (x *XLoad) DoXLoad() (err error) {
 		Socket:          inst.Socket,
 		SkipGrantTables: true, // 以 skip-grant-tables 启动来修复 ADMIN
 	}
+	logger.Info("start local mysqld with --skip-grant-tables", x.TgtInstance.Port)
 	if _, err = startParam.StartMysqlInstance(); err != nil {
 		return errors.WithMessage(err, "xload start mysqld with --skip-grant-table")
 	}
@@ -240,7 +241,7 @@ func (x *XLoad) DoXLoad() (err error) {
 	}
 
 	x.dbWorker.Stop()
-	logger.Info("restart local mysqld %d", x.TgtInstance.Port)
+	logger.Info("restart local mysqld with normal grant mode", x.TgtInstance.Port)
 	// 重启mysql（去掉 skip-grant-tables）
 	startParam.SkipGrantTables = false
 	startParam.MySQLUser = native.DBUserAdmin
