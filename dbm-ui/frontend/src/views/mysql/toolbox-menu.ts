@@ -189,4 +189,17 @@ export default [
       },
     ],
   },
+  {
+    name: t('数据查询'),
+    id: 'mysql_data_query',
+    icon: 'db-icon-search',
+    children: [
+      {
+        name: 'Webconsole',
+        id: 'MySQLWebconsole',
+        parentId: 'mysql_data_query',
+        dbConsoleValue: 'mysql.toolbox.webconsole',
+      },
+    ],
+  },
 ];
