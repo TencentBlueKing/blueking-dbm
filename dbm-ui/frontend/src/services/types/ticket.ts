@@ -699,19 +699,6 @@ export interface SpecInfo {
   }[];
 }
 
-/**
- * redis 版本升级
- */
-export interface RedisVersionUpgrade {
-  clusters: clustersItems;
-  infos: {
-    cluster_id: number;
-    current_versions: string[];
-    node_type: string;
-    target_version: string;
-  }[];
-}
-
 // Spider Checksum
 export interface SpiderCheckSumDetails {
   data_repair: {

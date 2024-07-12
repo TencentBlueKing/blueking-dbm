@@ -238,6 +238,7 @@
       label: t('管控区域'),
       minWidth: 140,
       field: 'bk_cloud_id',
+      width: 150,
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,
