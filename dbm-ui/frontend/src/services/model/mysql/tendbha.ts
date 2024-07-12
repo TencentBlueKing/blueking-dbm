@@ -87,6 +87,7 @@ export default class Tendbha {
     mysql_enable_disable: boolean;
     mysql_view: boolean;
     tbinlogdumper_install: boolean;
+    mysql_webconsole: boolean;
   };
   phase: string;
   phase_name: string;
