@@ -270,10 +270,13 @@
 
   watch(reqParams, () => {
     setTimeout(() => {
-      fetchHostNodes();
+      if (tableRef.value) {
+        fetchHostNodes();
+      }
     });
   }, {
     deep: true,
+    immediate: true,
   });
 
   const updateRowClass = (row: MonitorPolicyModel) => (row.isNewCreated ? 'is-new' : '');
