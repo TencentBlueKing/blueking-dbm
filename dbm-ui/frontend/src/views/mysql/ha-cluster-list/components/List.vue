@@ -739,6 +739,7 @@
       field: '',
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
+      showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <>
           {isShowDumperEntry.value && (
@@ -751,71 +752,90 @@
               { t('授权') }
             </bk-button>
           )}
-          {isShowDumperEntry.value && (
-            <auth-button
-              v-db-console="mysql.dataSubscription"
-              action-id="tbinlogdumper_install"
-              resource={data.id}
-              permission={data.permission.tbinlogdumper_install}
-              text
-              theme="primary"
-              class="mr-8"
-              onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
-              { t('数据订阅') }
-            </auth-button>
-          )}
-          {
-            data.isOnline ? (
-              <OperationBtnStatusTips
-                data={data}
-                v-db-console="mysql.haClusterList.disable">
-                <auth-button
-                  text
-                  theme="primary"
-                  disabled={Boolean(data.operationTicketId)}
-                  class="mr-8"
-                  action-id="mysql_enable_disable"
-                  permission={data.permission.mysql_enable_disable}
-                  resource={data.id}
-                  onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
-                  { t('禁用') }
-                </auth-button>
-              </OperationBtnStatusTips>
-            ) : (
-              <>
-                <OperationBtnStatusTips
-                  data={data}
-                  v-db-console="mysql.haClusterList.enable">
-                  <auth-button
-                    text
-                    theme="primary"
-                    disabled={data.isStarting}
-                    class="mr-8"
-                    action-id="mysql_enable_disable"
-                    permission={data.permission.mysql_enable_disable}
-                    resource={data.id}
-                    onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
-                    { t('启用') }
-                  </auth-button>
-                </OperationBtnStatusTips>
-                <OperationBtnStatusTips
-                  data={data}
-                  v-db-console="mysql.haClusterList.delete">
-                  <auth-button
-                    text
-                    theme="primary"
-                    disabled={Boolean(data.operationTicketId)}
-                    class="mr-8"
-                    action-id="mysql_destroy"
-                    permission={data.permission.mysql_destroy}
-                    resource={data.id}
-                    onClick={() => handleDeleteCluster(data)}>
-                    { t('删除') }
-                  </auth-button>
-                </OperationBtnStatusTips>
-              </>
-            )
+          <auth-button
+            v-db-console="mysql.haClusterList.webconsole"
+            action-id="mysql_webconsole"
+            resource={data.id}
+            permission={data.permission.mysql_webconsole}
+            text
+            theme="primary"
+            class="mr-8"
+            onClick={() => handleGoWebconsole(data.id)}>
+            Webconsole
+          </auth-button>
+          <bk-dropdown
+            class="operations-more"
+            trigger="click"
+            popover-options={{ zIndex: 10 }}>
+            {{
+              default: () => <db-icon type="more" />,
+              content: () => (
+                <bk-dropdown-menu>
+                  {isShowDumperEntry.value && (
+                    <bk-dropdown-item v-db-console="mysql.dataSubscription">
+                      <auth-button
+                        action-id="tbinlogdumper_install"
+                        resource={data.id}
+                        permission={data.permission.tbinlogdumper_install}
+                        text
+                        class="mr-8"
+                        onClick={() => handleShowCreateSubscribeRuleSlider(data)}>
+                        { t('数据订阅') }
+                      </auth-button>
+                    </bk-dropdown-item>
+                  )}
+                  {data.isOnline ? (
+                    <bk-dropdown-item v-db-console="mysql.haClusterList.disable">
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          text
+                          disabled={Boolean(data.operationTicketId)}
+                          class="mr-8"
+                          action-id="mysql_enable_disable"
+                          permission={data.permission.mysql_enable_disable}
+                          resource={data.id}
+                          onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_DISABLE, data)}>
+                          { t('禁用') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                  ) : (
+                    <>
+                      <bk-dropdown-item v-db-console="mysql.haClusterList.enable">
+                        <OperationBtnStatusTips data={data}>
+                          <auth-button
+                            text
+                            disabled={data.isStarting}
+                            class="mr-8"
+                            action-id="mysql_enable_disable"
+                            permission={data.permission.mysql_enable_disable}
+                            resource={data.id}
+                            onClick={() => handleSwitchCluster(TicketTypes.MYSQL_HA_ENABLE, data)}>
+                            { t('启用') }
+                          </auth-button>
+                        </OperationBtnStatusTips>
+                      </bk-dropdown-item>
+                      <bk-dropdown-item v-db-console="mysql.haClusterList.delete">
+                        <OperationBtnStatusTips data={data}>
+                          <auth-button
+                            text
+                            disabled={Boolean(data.operationTicketId)}
+                            class="mr-8"
+                            action-id="mysql_destroy"
+                            permission={data.permission.mysql_destroy}
+                            resource={data.id}
+                            onClick={() => handleDeleteCluster(data)}>
+                            { t('删除') }
+                          </auth-button>
+                        </OperationBtnStatusTips>
+                      </bk-dropdown-item>
+                    </>
+                  )
           }
+                </bk-dropdown-menu>
+              ),
+            }}
+          </bk-dropdown>
         </>
       ),
     },
@@ -953,6 +973,15 @@
     stretchLayoutSplitScreen();
     clusterId.value = id;
   };
+
+  const handleGoWebconsole = (clusterId: number) => {
+    router.push({
+      name: 'MySQLWebconsole',
+      query: {
+        clusterId
+      }
+    });
+  }
 
   /**
    * 集群启停
@@ -1174,6 +1203,19 @@
 
       .cell {
         color: @disable-color;
+      }
+    }
+
+    :deep(.operations-more) {
+      .db-icon-more {
+        font-size: 16px;
+        color: @default-color;
+        cursor: pointer;
+
+        &:hover {
+          background-color: @bg-disable;
+          border-radius: 2px;
+        }
       }
     }
   }
