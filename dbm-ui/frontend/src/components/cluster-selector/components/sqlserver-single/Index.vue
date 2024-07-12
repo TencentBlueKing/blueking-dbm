@@ -110,7 +110,8 @@
 
   const columns = computed(() => [
     {
-      width: 60,
+      width: 54,
+      minWidth: 54,
       label: () => (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}

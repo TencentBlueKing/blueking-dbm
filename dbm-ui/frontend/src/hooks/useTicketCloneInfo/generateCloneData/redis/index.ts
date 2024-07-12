@@ -12,3 +12,4 @@ export * from './proxyScaleDown';
 export * from './proxyScaleUp';
 export * from './rollbackData';
 export * from './scaleUpdown';
+export * from './versionUpgrade';

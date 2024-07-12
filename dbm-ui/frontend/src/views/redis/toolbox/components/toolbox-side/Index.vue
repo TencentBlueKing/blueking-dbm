@@ -19,9 +19,8 @@
       clearable
       :placeholder="t('请输入')"
       type="search" />
-
     <BkException
-      v-if="allRenderMenuGroupList.length === 0"
+      v-if="!isFilterMenuExit"
       class="pt-40"
       :description="t('搜索为空')"
       scene="part"
@@ -30,49 +29,71 @@
       v-else
       class="toolbox-side-collapse">
       <ScrollFaker>
-        <BkCollapse v-model="activeCollapses">
-          <Vuedraggable
-            v-model="allRenderMenuGroupList"
-            item-key="id"
-            @end="handleDragEnd">
-            <template #item="{ element }">
-              <RenderMenuGroup
-                :id="element.id"
-                v-model:favor-map="favorRouteNameMap"
-                :active-view-name="activeViewName"
-                :draggable="!Boolean(serachKey)" />
-            </template>
-          </Vuedraggable>
-        </BkCollapse>
+        <div
+          v-for="menuItem in filterMenusConfig"
+          :key="menuItem.id">
+          <div class="toolbox-side-collapse-type">
+            <span class="type-title">{{ menuItem.title }}</span>
+            <DbIcon
+              v-bk-tooltips="{
+                placement: 'right',
+                content: menuItem.titleTooltip,
+              }"
+              class="type-icon"
+              type="attention" />
+          </div>
+          <DragContent
+            :active-view-name="activeViewName"
+            :list="menuItem.menuList"
+            :serach-key="serachKey" />
+        </div>
       </ScrollFaker>
     </div>
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import Vuedraggable from 'vuedraggable';
-
-  import { useUserProfile } from '@stores';
-
-  import { UserPersonalSettings } from '@common/const';
 
   import menusConfig from '@views/redis/toolbox-menu';
 
-  import { makeMap } from '@utils';
-
-  import RenderMenuGroup from './components/MenuGroup.vue';
+  import DragContent from './components/DragContent.vue';
 
   const { t } = useI18n();
   const route = useRoute();
-  const userProfileStore = useUserProfile();
 
   const activeViewName = ref('');
-  const menuGroupIdList = menusConfig.map((item) => item.id);
-
   const serachKey = ref('');
-  const activeCollapses = ref([...menuGroupIdList]);
-  const allRenderMenuGroupList = ref<Record<'id' | 'name', string>[]>([]);
-  const favorRouteNameMap = ref<Record<string, boolean>>({});
+  // const allRenderMenuGroupList = ref<Record<'id' | 'name', string>[]>([1]);
+
+  const filterMenusConfig = computed(() => {
+    const key = serachKey.value;
+    const menusConfigClone = _.cloneDeep(menusConfig);
+
+    menusConfigClone.forEach((configItem) =>
+      configItem.menuList.forEach((menuItem) => {
+        const filterChildren = menuItem.children.filter((childItem) => childItem.name.includes(key));
+        Object.assign(menuItem, {
+          children: filterChildren,
+        });
+      }),
+    );
+
+    return menusConfigClone;
+  });
+
+  const isFilterMenuExit = computed(() => {
+    const configList = filterMenusConfig.value;
+    for (let i = 0; i < configList.length; i++) {
+      const configItem = configList[i].menuList;
+      for (let j = 0; j < configItem.length; j++) {
+        if (configItem[j].children.length > 0) {
+          return true;
+        }
+      }
+    }
+    return false;
+  });
 
   watch(
     route,
@@ -84,44 +105,12 @@
     },
   );
 
-  watch(
-    () => serachKey,
-    () => {
-      activeCollapses.value = [...menuGroupIdList];
-    },
-  );
-
-  watch(
-    () => userProfileStore.profile,
-    () => {
-      const userMenuGroupSortList =
-        (userProfileStore.profile[UserPersonalSettings.REDIS_TOOLBOX_MENUS] as string[]) || [];
-      const allMenuGroupMap = makeMap(menuGroupIdList);
-      const renderMenuGroupList: string[] = [];
-      userMenuGroupSortList.forEach((item) => {
-        if (allMenuGroupMap[item]) {
-          renderMenuGroupList.push(item);
-          delete allMenuGroupMap[item];
-        }
-      });
-      allRenderMenuGroupList.value = renderMenuGroupList.concat(Object.keys(allMenuGroupMap)).map((item) => ({
-        id: item,
-        name: item,
-      }));
-
-      favorRouteNameMap.value = makeMap(userProfileStore.profile[UserPersonalSettings.REDIS_TOOLBOX_FAVOR] as string[]);
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  const handleDragEnd = () => {
-    userProfileStore.updateProfile({
-      label: UserPersonalSettings.REDIS_TOOLBOX_MENUS,
-      values: allRenderMenuGroupList.value.map((item) => item.id),
-    });
-  };
+  // watch(
+  //   () => serachKey,
+  //   () => {
+  //     // activeCollapses.value = [...menuGroupIdList];
+  //   },
+  // );
 </script>
 
 <style lang="less">
@@ -140,7 +129,24 @@
 
     .toolbox-side-collapse {
       height: calc(100% - 40px);
-      margin-top: 8px;
+      // margin-top: 8px;
+
+      .toolbox-side-collapse-type {
+        line-height: 32px;
+        height: 32px;
+        background: #eaebf0;
+        padding-left: 21px;
+        margin: 16px 0 4px;
+
+        .type-title {
+          font-size: 12px;
+          color: #313238;
+        }
+
+        .type-icon {
+          margin-left: 4px;
+        }
+      }
 
       .drag-move {
         transition: all 0.5s ease;
@@ -156,6 +162,7 @@
       height: 32px;
       padding: 0 16px;
       line-height: 32px;
+      background: transparent;
 
       &:hover {
         background-color: unset;

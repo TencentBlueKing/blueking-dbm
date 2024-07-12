@@ -378,3 +378,14 @@ export interface RedisStructureDeleteDetails {
     bk_cloud_id: number;
   }[];
 }
+
+// redis 版本升级
+export interface RedisVersionUpgrade {
+  clusters: DetailClusters;
+  infos: {
+    cluster_id: number;
+    current_versions: string[];
+    node_type: string;
+    target_version: string;
+  }[];
+}
