@@ -747,16 +747,19 @@
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       showOverflowTooltip: false,
+      showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <>
-          <bk-button
-            v-db-console="mysql.haClusterList.authorize"
-            text
-            theme="primary"
-            class="mr-8"
-            onClick={() => handleShowAuthorize([data])}>
-            { t('授权') }
-          </bk-button>
+          {isShowDumperEntry.value && (
+            <bk-button
+              v-db-console="mysql.haClusterList.authorize"
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleShowAuthorize([data])}>
+              { t('授权') }
+            </bk-button>
+          )}
           <auth-button
             v-db-console="mysql.haClusterList.webconsole"
             action-id="mysql_webconsole"
@@ -769,21 +772,6 @@
             onClick={() => handleGoWebconsole(data.id)}>
             Webconsole
           </auth-button>
-          <OperationBtnStatusTips
-            data={data}
-            v-db-console="mysql.haClusterList.exportData">
-            <auth-button
-              action-id="mysql_dump_data"
-              resource={data.id}
-              permission={data.permission.mysql_dump_data}
-              disabled={data.operationDisabled}
-              text
-              theme="primary"
-              class="mr-8"
-              onClick={() => handleShowDataExportSlider(data)}>
-              { t('导出数据') }
-            </auth-button>
-          </OperationBtnStatusTips>
           <bk-dropdown
             class="operations-more"
             trigger="click"
