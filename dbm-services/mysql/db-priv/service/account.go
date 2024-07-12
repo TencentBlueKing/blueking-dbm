@@ -175,11 +175,7 @@ func (m *AccountPara) DeleteAccount(jsonPara string, ticket string) error {
 }
 
 // GetAccountList 获取账号列表
-func (m *GetAccountListPara) GetAccountList() ([]*TbAccounts, int64, error) {
-	// Cnt 用于返回匹配到的行数
-	type Cnt struct {
-		Count int64 `gorm:"column:cnt"`
-	}
+func (m *GetAccountListPara) GetAccountList() ([]*TbAccounts, int, error) {
 	var (
 		accounts []*TbAccounts
 	)
@@ -232,7 +228,7 @@ func (m *GetAccountListPara) GetAccountList() ([]*TbAccounts, int64, error) {
 }
 
 // GetAccountIncludePsw 获取帐号以及密码
-func (m *GetAccountIncludePswPara) GetAccountIncludePsw() ([]*TbAccounts, int64, error) {
+func (m *GetAccountIncludePswPara) GetAccountIncludePsw() ([]*TbAccounts, int, error) {
 	var (
 		accounts []*TbAccounts
 		result   *gorm.DB
@@ -269,7 +265,7 @@ func (m *GetAccountIncludePswPara) GetAccountIncludePsw() ([]*TbAccounts, int64,
 			return nil, 0, fmt.Errorf("SM4Decrypt error: %s", err.Error())
 		}
 	}
-	return accounts, int64(len(accounts)), nil
+	return accounts, len(accounts), nil
 }
 
 // EncryptPswInDb 明文加密

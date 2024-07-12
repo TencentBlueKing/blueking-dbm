@@ -43,6 +43,14 @@ type MigratePara struct {
 	SapPassword string `json:"sap_password"`
 }
 
+// MigrateInDbmPara DBM不同业务间迁移帐号规则的入参
+type MigrateInDbmPara struct {
+	SourceBiz   int64    `json:"source_biz"`
+	TargetBiz   int64    `json:"target_biz"`
+	ClusterType *string  `json:"cluster_type"`
+	Users       []string `json:"users"`
+}
+
 // DbConf 帐号规则所在数据库的配置
 type DbConf struct {
 	User string `json:"user"`

@@ -33,7 +33,7 @@ func (m *PrivService) GetPassword(c *gin.Context) {
 		return
 	}
 	SendResponse(c, err, ListResponse{
-		Count: int64(count),
+		Count: count,
 		Items: batch,
 	})
 	return
@@ -103,7 +103,7 @@ func (m *PrivService) GetMysqlAdminPassword(c *gin.Context) {
 		return
 	}
 	SendResponse(c, err, ListResponse{
-		Count: int64(count),
+		Count: count,
 		Items: batch,
 	})
 	return

@@ -173,3 +173,10 @@ func AddResource(resources *Resource, resource OneCluster) {
 	resources.resources = append(resources.resources, resource)
 	resources.mu.Unlock()
 }
+
+// AddString 添加数组
+func AddString(s *StringList, newString []string) {
+	s.mu.Lock()
+	s.l = append(s.l, newString...)
+	s.mu.Unlock()
+}
