@@ -89,7 +89,7 @@ class MySQLProxyLocalUpgradeFlow(object):
                     )
                     raise DBMetaException(message=_("待升级版本大于等于新版本，请确认升级的版本"))
                 proxy_ports.append(proxy_instance.port)
-                cloud_proxy_ip_list[proxy_instance.machine.ip].append(proxy_instance.machine.ip)
+                cloud_proxy_ip_list[proxy_instance.machine.bk_cloud_id].append(proxy_instance.machine.ip)
 
             for bk_cloud_id, ips in cloud_proxy_ip_list.items():
                 for ip in ips:
