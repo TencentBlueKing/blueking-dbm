@@ -975,8 +975,8 @@
                     <bk-dropdown-menu>
                       <bk-dropdown-item v-db-console="redis.clusterManage.getAccess">
                         <OperationBtnStatusTips
-                        data={data}
-                        disabled={!data.isOffline}>
+                          data={data}
+                          disabled={!data.isOffline}>
                           <auth-button
                             action-id="redis_access_entry_view"
                             resource={data.id}
