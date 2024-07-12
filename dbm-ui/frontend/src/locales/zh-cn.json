@@ -3267,5 +3267,8 @@
     "只能输入select，不支持 insert, delete, update，且 select 必须带limit控制行数，行数<=1000": "只能输入select，不支持 insert, delete, update，且 select 必须带limit控制行数，行数<=1000",
     "暂时不支持 use 语句": "暂时不支持 use 语句",
     "不允许访问系统库，如 mysql information_schema performance_schema db_infobase": "不允许访问系统库，如 mysql information_schema performance_schema db_infobase",
+    "版本包文件": "版本包文件",
+    "数据库版本不能为空": "数据库版本不能为空",
+    "版本包文件不能为空": "版本包文件不能为空",
     "这行勿动！新增翻译请在上一行添加！": ""
 }

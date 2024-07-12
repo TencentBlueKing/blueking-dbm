@@ -19,15 +19,21 @@
       :disabled="!data.clusterData"
       :list="versionList"
       :rules="rules">
-      <template #default="{ item }">
-        <span>{{ item.name }}</span>
-        <!-- <BkTag
-          v-if="compareVersions(item.name, data.clusterData!.currentVersion) === 0"
-          class="ml-4"
-          size="small"
-          theme="info">
-          {{ t('当前版本') }}
-        </BkTag> -->
+      <template #default="{ item, index }">
+        <div class="target-version-select-option">
+          <div
+            v-overflow-tips
+            class="option-name">
+            {{ item.name }}
+          </div>
+          <BkTag
+            v-if="index === 0"
+            class="ml-4"
+            size="small"
+            theme="info">
+            {{ t('推荐') }}
+          </BkTag>
+        </div>
       </template>
     </TableEditSelect>
   </BkLoading>
@@ -38,12 +44,10 @@
 
   import { getPackages } from '@services/source/package';
 
-  import { versionRegex } from '@common/regex';
-
+  // import { versionRegex } from '@common/regex';
   import TableEditSelect, { type IListItem } from '@views/mysql/common/edit/Select.vue';
 
-  import { compareVersions } from '@utils';
-
+  // import { compareVersions } from '@utils';
   import type { IDataRow } from './Row.vue';
 
   interface Props {
@@ -72,20 +76,25 @@
   const { loading, run: fetchClusterVersions } = useRequest(getPackages, {
     manual: true,
     onSuccess(versions) {
-      const currentVersion = props.data.clusterData!.currentVersion.match(versionRegex)![0];
-      versionList.value = versions.results.reduce((prevList, versionItem) => {
-        const version = versionItem.name.match(versionRegex);
-        if (version && compareVersions(version[0], currentVersion) === 1) {
-          return [
-            ...prevList,
-            {
-              id: versionItem.id,
-              name: versionItem.name,
-            },
-          ];
-        }
-        return prevList;
-      }, [] as IListItem[]);
+      // TODO 原地升级暂时先不限制版本, 后续再看是否直接用接口获取
+      // const currentVersion = props.data.clusterData!.currentVersion.match(versionRegex)![0];
+      // versionList.value = versions.results.reduce((prevList, versionItem) => {
+      //   const version = versionItem.name.match(versionRegex);
+      //   if (version && compareVersions(version[0], currentVersion) === 1) {
+      //     return [
+      //       ...prevList,
+      //       {
+      //         id: versionItem.id,
+      //         name: versionItem.name,
+      //       },
+      //     ];
+      //   }
+      //   return prevList;
+      // }, [] as IListItem[]);
+      versionList.value = versions.results.map((versionItem) => ({
+        id: versionItem.id,
+        name: versionItem.name,
+      }));
     },
   });
 
@@ -121,6 +130,18 @@
   });
 </script>
 
+<style lang="less">
+  .target-version-select-option {
+    display: flex;
+    align-items: center;
+
+    .option-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+</style>
 <style lang="less" scoped>
   .render-text-box {
     position: relative;

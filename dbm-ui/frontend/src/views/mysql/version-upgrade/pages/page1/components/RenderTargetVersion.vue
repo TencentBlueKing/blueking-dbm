@@ -64,15 +64,21 @@
               :pop-width="240"
               :rules="packageRules"
               @change="(value) => handlePackageChange(value as number)">
-              <template #default="{ item }">
-                <span>{{ item.name }}</span>
-                <!-- <BkTag
-                  v-if="item.name.split('-')[1] === data.currentVersion.split('-')[1]"
-                  class="ml-4"
-                  size="small"
-                  theme="info">
-                  {{ t('当前版本') }}
-                </BkTag> -->
+              <template #default="{ item, index }">
+                <div class="target-version-select-option">
+                  <div
+                    v-overflow-tips
+                    class="option-name">
+                    {{ item.name }}
+                  </div>
+                  <BkTag
+                    v-if="index === 0"
+                    class="ml-4"
+                    size="small"
+                    theme="info">
+                    {{ t('推荐') }}
+                  </BkTag>
+                </div>
               </template>
             </TableEditSelect>
           </div>
@@ -281,10 +287,16 @@
         emits('module-change', currentCharset);
 
         modules.forEach((moduleItem) => {
-          const charset = currentModule.db_module_info.conf_items.find(
-            (confItem) => confItem.conf_name === 'charset',
-          )!.conf_value;
-          if (charset === currentCharset) {
+          let moduleItemCharset = '';
+          let moduleItemDbVersion = '';
+          moduleItem.db_module_info.conf_items.forEach((confItem) => {
+            if (confItem.conf_name === 'charset') {
+              moduleItemCharset = confItem.conf_value;
+            } else if (confItem.conf_name === 'db_version') {
+              moduleItemDbVersion = confItem.conf_value;
+            }
+          });
+          if (moduleItemCharset === currentCharset && moduleItemDbVersion === localVersion.value) {
             moduleList.push({
               ...moduleItem,
               id: moduleItem.db_module_id,
@@ -353,29 +365,35 @@
       const packageList = packageDataList.value?.results || [];
       const versionItem = packageList.find((item) => item.version === props.data?.currentVersion);
       if (versionItem) {
-        // 当前大版本下高于当前小版本的所有版本
-        const currentVersion = versionItem.name.match(versionRegex)![0];
-        const nextMinorVersionList = currentVersion.split('.');
-        nextMinorVersionList[1] = String(Number(nextMinorVersionList[1]) + 1);
-        const nextMinorVersion = nextMinorVersionList.join('.');
+        // 原地升级：当前大版本下高于当前小版本的所有版本
+        // const currentVersion = versionItem.name.match(versionRegex)![0];
+        // const nextMinorVersionList = currentVersion.split('.');
+        // nextMinorVersionList[1] = String(Number(nextMinorVersionList[1]) + 1);
+        // const nextMinorVersion = nextMinorVersionList.join('.');
 
-        packageSelectList.value = packageList.reduce((prevList, versionItem) => {
-          const version = versionItem.name.match(versionRegex);
-          if (
-            version &&
-            compareVersions(version[0], currentVersion) === 1 &&
-            compareVersions(version[0], nextMinorVersion) === -1
-          ) {
-            return [
-              ...prevList,
-              {
-                id: versionItem.id,
-                name: versionItem.name,
-              },
-            ];
-          }
-          return prevList;
-        }, [] as IListItem[]);
+        // packageSelectList.value = packageList.reduce((prevList, versionItem) => {
+        //   const version = versionItem.name.match(versionRegex);
+        //   if (
+        //     version &&
+        //     compareVersions(version[0], currentVersion) === 1 &&
+        //     compareVersions(version[0], nextMinorVersion) === -1
+        //   ) {
+        //     return [
+        //       ...prevList,
+        //       {
+        //         id: versionItem.id,
+        //         name: versionItem.name,
+        //       },
+        //     ];
+        //   }
+        //   return prevList;
+        // }, [] as IListItem[]);
+
+        // TODO 原地升级暂时先不限制版本, 后续再看是否直接用接口获取
+        packageSelectList.value = packageList.map((versionItem) => ({
+          id: versionItem.id,
+          name: versionItem.name,
+        }));
       }
     } else {
       if (props.isLocal) {
@@ -389,7 +407,7 @@
       const packageList = packageDataList.value?.results || [];
       const versionItem = packageList.find((item) => item.version === localVersion.value);
       if (versionItem) {
-        // 当前大版本下的所有小版本
+        // 迁移升级：当前大版本下的所有小版本
         const currentVersion = versionItem.version.match(versionRegex)![0];
         packageSelectList.value = packageList.reduce((prevList, versionItem) => {
           if (versionItem.name.includes(currentVersion)) {
@@ -435,6 +453,7 @@
 
   const handleVersionChange = (value: string) => {
     localVersion.value = value;
+    fetchModuleList();
   };
 
   const handlePackageChange = (value: number) => {
@@ -482,7 +501,7 @@
 
 <style lang="less" scoped>
   .capacity-box {
-    padding: 11px 16px;
+    padding: 9px 16px;
     overflow: hidden;
     line-height: 24px;
     color: #63656e;
@@ -538,6 +557,17 @@
 </style>
 
 <style lang="less">
+  .target-version-select-option {
+    display: flex;
+    align-items: center;
+
+    .option-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
   .module-select-item {
     display: flex;
     align-items: center;
@@ -553,9 +583,9 @@
 
   .module-select-footer {
     display: flex;
-    align-items: center;
-    color: #63656e;
     height: 100%;
+    color: #63656e;
+    align-items: center;
     justify-content: center;
 
     .plus-button {

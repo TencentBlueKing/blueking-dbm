@@ -159,7 +159,6 @@
 <style lang="less" scoped>
   .render-cluster-width-relate-cluster {
     position: relative;
-    padding: 10px 0;
 
     &.is-editing {
       padding: 0;
