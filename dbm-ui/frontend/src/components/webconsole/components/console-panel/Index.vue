@@ -170,13 +170,13 @@
     nextTick(() => {
       command.value = inputPlaceholder;
     });
-  }
+  };
 
   // 输入
   const handleInputChange = (e: any) => {
     if (inputRef.value.selectionStart <= inputPlaceholder.length) {
       initInput();
-      return
+      return;
     }
     const { value } = e.target;
     if (value.length <= inputPlaceholder.length) {
