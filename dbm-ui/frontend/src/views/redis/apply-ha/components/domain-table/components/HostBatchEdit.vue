@@ -121,7 +121,7 @@
       ip: inputHostList.join(','),
       instance_role: 'redis_master',
       bk_cloud_id: props.cloudId as number,
-      bk_city_name: props.cityName,
+      region: props.cityName,
     });
     const inputHostMap = inputHostList.reduce(
       (prevMap, hostItem) => ({

@@ -3138,5 +3138,7 @@
     "只能输入select，不支持 insert, delete, update，且 select 必须带limit控制行数，行数<=1000": "只能输入select，不支持 insert, delete, update，且 select 必须带limit控制行数，行数<=1000",
     "暂时不支持 use 语句": "暂时不支持 use 语句",
     "不允许访问系统库，如 mysql information_schema performance_schema db_infobase": "不允许访问系统库，如 mysql information_schema performance_schema db_infobase",
+    "集群数量 / 每组主机部署集群需为整数": "集群数量 / 每组主机部署集群需为整数",
+    "必须大于当前台数n": "必须大于当前台数：{n}",
     "这行勿动！新增翻译请在上一行添加！": ""
 }
