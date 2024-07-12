@@ -50,6 +50,12 @@
     run: fetchData,
   } = useRequest(listPackages, {
     manual: true,
+    onSuccess(packageList) {
+      if (packageList.length > 0) {
+        const defaultVersion = packageList[0];
+        modelValue.value = defaultVersion;
+      }
+    },
   });
 
   watch(

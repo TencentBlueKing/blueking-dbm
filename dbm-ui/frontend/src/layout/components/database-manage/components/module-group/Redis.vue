@@ -57,7 +57,7 @@
         :key="toolboxGroupId"
         v-db-console="'redis.toolbox'"
         :favor-map="favorMeunMap"
-        :toolbox-menu-config="toolboxMenuConfig" />
+        :toolbox-menu-config="menuChildList" />
       <FunController
         controller-id="toolbox"
         module-id="redis">
@@ -78,6 +78,7 @@
   </FunController>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { onBeforeUnmount, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -100,9 +101,17 @@
   const toolboxMenuSortList = shallowRef<string[]>([]);
   const favorMeunMap = shallowRef<Record<string, boolean>>({});
 
+  // const menuChildList = _.flatten(toolboxMenuConfig.map((item) => item.menuList));
+
+  // TODO 暂时先做特殊处理至同层级，后期等设计稿交互变更
+  const commonMenuList = _.cloneDeep(toolboxMenuConfig[0]);
+  const manageItem = commonMenuList.menuList.find((item) => item.id === 'common-manage');
+  manageItem!.children.push(...toolboxMenuConfig[1].menuList[0].children);
+  const menuChildList = commonMenuList.menuList;
+
   const renderToolboxMenu = () => {
     toolboxMenuSortList.value =
-      userProfile.profile[UserPersonalSettings.REDIS_TOOLBOX_MENUS] || toolboxMenuConfig.map((item) => item.id);
+      userProfile.profile[UserPersonalSettings.REDIS_TOOLBOX_MENUS] || menuChildList.map((item) => item.id);
     favorMeunMap.value = makeMap(userProfile.profile[UserPersonalSettings.REDIS_TOOLBOX_FAVOR]);
   };
 

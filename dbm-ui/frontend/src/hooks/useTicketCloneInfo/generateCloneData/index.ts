@@ -43,6 +43,7 @@ import {
   generateRedisOperationCloneData,
   generateRedisProxyScaleDownCloneData,
   generateRedisProxyScaleUpCloneData,
+  generateRedisRedisVersionUpgradeCloneData,
   generateRedisRollbackDataCloneData,
   generateRedisScaleUpdownCloneData,
 } from './redis';
@@ -92,6 +93,7 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_LOCAL_UPGRADE]: generateMysqlVersionLocalUpgradeCloneData, // MySQL 原地升级
   [TicketTypes.MYSQL_MIGRATE_UPGRADE]: generateMysqlVersionMigrateUpgradeCloneData, // MySQL 迁移升级
   [TicketTypes.TENDBCLUSTER_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Spider 开区
+  [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: generateRedisRedisVersionUpgradeCloneData, // Redis 版本升级
 };
 
 export type CloneDataHandlerMap = typeof generateCloneDataHandlerMap;

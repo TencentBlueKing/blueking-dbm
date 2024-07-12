@@ -70,6 +70,8 @@
   import RedisModel from '@services/model/redis/redis';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -77,15 +79,20 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);

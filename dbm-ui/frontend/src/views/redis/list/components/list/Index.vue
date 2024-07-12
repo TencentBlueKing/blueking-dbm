@@ -217,6 +217,11 @@
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
+  import RedisBackup from '@views/redis/common/cluster-oprations/Backup.vue';
+  import ClusterPassword from '@views/redis/common/cluster-oprations/ClusterPassword.vue';
+  import DeleteKeys from '@views/redis/common/cluster-oprations/DeleteKeys.vue';
+  import ExtractKeys from '@views/redis/common/cluster-oprations/ExtractKeys.vue';
+  import RedisPurge from '@views/redis/common/cluster-oprations/Purge.vue';
 
   import {
     getMenuListSearch,
@@ -224,12 +229,7 @@
     messageWarn,
   } from '@utils';
 
-  import RedisBackup from './components/Backup.vue';
-  import ClusterPassword from './components/ClusterPassword.vue';
-  import DeleteKeys from './components/DeleteKeys.vue';
   import EntryPanel from './components/EntryPanel.vue';
-  import ExtractKeys from './components/ExtractKeys.vue';
-  import RedisPurge from './components/Purge.vue';
 
   import type {
     SearchSelectData,

@@ -119,36 +119,13 @@
   });
 </script>
 <style lang="less" scoped>
-
-.panel {
-  display: flex;
-  width: 420px;
-  height: 220px;
-  padding: 16px;
-  margin-top: -12px;
-  margin-left: -12px;
-  background: #FFF;
-  border: 1px solid #DCDEE5;
-  box-shadow: 0 3px 6px 0 #00000029;
-  box-sizing: border-box;
-  flex-direction: column;
-
-  .title {
-    height: 20px;
-    margin-bottom: 12px;
-    font-size: 12px;
-    font-weight: 700;
-    line-height: 20px;
-    color: #63656E;
-  }
-
-  .item {
+  .panel {
     display: flex;
     width: 420px;
     height: 220px;
     padding: 16px;
-    margin-top: -7px;
-    margin-left: -14px;
+    margin-top: -12px;
+    margin-left: -12px;
     background: #fff;
     border: 1px solid #dcdee5;
     box-shadow: 0 3px 6px 0 #00000029;
@@ -253,5 +230,4 @@
       }
     }
   }
-}
 </style>

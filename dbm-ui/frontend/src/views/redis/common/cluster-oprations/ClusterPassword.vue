@@ -73,7 +73,9 @@
         </div>
       </div>
     </BkLoading>
-    <BkLoading :loading="clbLoading">
+    <BkLoading
+      v-if="showClb"
+      :loading="clbLoading">
       <div class="cluster-clb-main">
         <template
           v-for="(value, key) in dataObj"
@@ -136,10 +138,12 @@
   interface Props {
     title?: string;
     fetchParams: ClusterPasswordParams;
+    showClb?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     title: '',
+    showClb: true,
   });
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -217,7 +221,6 @@
   // 获取集群密码
   watch(isShow, (isShow) => {
     if (isShow) {
-      dataObj.value = initDataObj();
       state.isLoading = true;
       getRedisPassword(props.fetchParams)
         .then((res) => {
@@ -229,10 +232,13 @@
         .finally(() => {
           state.isLoading = false;
         });
-      runGetClusterEntries({
-        cluster_id: props.fetchParams.cluster_id,
-        bk_biz_id: currentBizId,
-      });
+      if (props.showClb) {
+        dataObj.value = initDataObj();
+        runGetClusterEntries({
+          cluster_id: props.fetchParams.cluster_id,
+          bk_biz_id: currentBizId,
+        });
+      }
     }
   });
 

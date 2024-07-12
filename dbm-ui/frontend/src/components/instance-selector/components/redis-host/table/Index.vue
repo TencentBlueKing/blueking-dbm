@@ -164,7 +164,8 @@
 
   const columns = computed(() => [
     {
-      width: 60,
+      width: 54,
+      minWidth: 54,
       fixed: 'left',
       label: () => (
         <bk-checkbox
