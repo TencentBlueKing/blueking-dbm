@@ -125,7 +125,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 // Start 执行导入
 // 选择logical / physical tool
 // 恢复前操作：比如build filter
-// 解压
+// 解压 untar
 // 恢复数据
 func (m *DBLoader) Start() error {
 	if err := m.chooseDBBackupLoader(); err != nil {
@@ -134,17 +134,17 @@ func (m *DBLoader) Start() error {
 	if err := m.dbLoader.PreLoad(); err != nil {
 		return err
 	}
-
 	logger.Info("dbloader params %+v", m)
 	if m.taskDir == "" {
 		return errors.Errorf("dbloader taskDir error")
 	}
+	logger.Info("开始解压 taskDir=%s", m.taskDir)
 	if err := m.BackupInfo.indexObj.UntarFiles(m.taskDir); err != nil {
 		return err
 	}
-
+	logger.Info("开始数据恢复 targetDir=%s", m.targetDir)
 	if err := m.dbLoader.Load(); err != nil {
-		return errors.Wrap(err, "dbloaderData failed")
+		return errors.Wrap(err, "dbactuator dbloaderData failed")
 	}
 	return nil
 }

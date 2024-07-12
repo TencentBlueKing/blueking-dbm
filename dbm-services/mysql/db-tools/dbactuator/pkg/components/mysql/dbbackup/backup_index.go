@@ -143,7 +143,8 @@ func (f *BackupIndexFile) UntarFiles(untarDir string) error {
 	// 物理备份, merge parts
 	if len(f.splitParts) > 0 {
 		// TODO 考虑使用 pv 限速
-		cmd := fmt.Sprintf(`cd %s && cat %s | tar -xf - -C %s/`, f.backupDir, strings.Join(f.splitParts, " "), untarDir)
+		cmd := fmt.Sprintf(`cd %s && cat %s | tar -xf - -C %s/`,
+			f.backupDir, strings.Join(f.splitParts, " "), untarDir)
 		if _, err := osutil.ExecShellCommand(false, cmd); err != nil {
 			return errors.Wrap(err, cmd)
 		}
