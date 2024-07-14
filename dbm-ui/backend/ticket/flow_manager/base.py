@@ -18,10 +18,19 @@ from typing import Any, Optional, Union
 from django.db.models import Q
 from django.utils.translation import gettext as _
 
+from backend.constants import DEFAULT_SYSTEM_USER
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
-from backend.ticket.constants import FLOW_FINISHED_STATUS, FLOW_NOT_EXECUTE_STATUS, FlowErrCode, TicketFlowStatus
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord
+from backend.ticket.constants import (
+    FLOW_FINISHED_STATUS,
+    FLOW_NOT_EXECUTE_STATUS,
+    FLOW_TYPE__EXPIRE_TYPE_CONFIG,
+    FlowContext,
+    FlowErrCode,
+    FlowTypeConfig,
+    TicketFlowStatus,
+)
+from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, TicketFlowsConfig
 
 logger = logging.getLogger("root")
 
@@ -132,10 +141,24 @@ class BaseTicketFlow(ABC):
         self.flow_obj.status = TicketFlowStatus.RUNNING
         self.flow_obj.save(update_fields=["err_msg", "status", "err_code", "update_at"])
 
-    def flush_revoke_status_handler(self):
+    def flush_revoke_status_handler(self, operator):
         """终止节点，更新相关状态和错误信息"""
         self.flow_obj.status = TicketFlowStatus.TERMINATED
-        self.flow_obj.save(update_fields=["err_msg", "status"])
+        if operator == DEFAULT_SYSTEM_USER:
+            self.flow_obj.err_code = FlowErrCode.SYSTEM_TERMINATED_ERROR
+            self.flow_obj.context = {FlowContext.EXPIRE_TIME: self.get_current_config_expire_time()}
+        self.flow_obj.save(update_fields=["status", "err_code", "context", "update_at"])
+        # 更新操作者
+        self.ticket.updater = operator
+        self.ticket.save(update_fields=["updater"])
+
+    def get_current_config_expire_time(self):
+        """获取当前配置的flow过期时间"""
+        if self.flow_obj.flow_type not in FLOW_TYPE__EXPIRE_TYPE_CONFIG:
+            return -1
+        config = TicketFlowsConfig.get_config(ticket_type=self.ticket.ticket_type)
+        expire_time = config[FlowTypeConfig.EXPIRE_CONFIG][FLOW_TYPE__EXPIRE_TYPE_CONFIG[self.flow_obj.flow_type]]
+        return expire_time
 
     def create_operate_records(self, object_key, record_model, object_ids):
         """
@@ -194,9 +217,9 @@ class BaseTicketFlow(ABC):
         """重试当前的flow节点（默认只能重新执行错误节点）"""
         return self._retry()
 
-    def revoke(self):
+    def revoke(self, operator):
         """终止当前flow节点，终止后不允许重试"""
-        return self._revoke()
+        return self._revoke(operator)
 
     @property
     @abstractmethod
@@ -234,5 +257,5 @@ class BaseTicketFlow(ABC):
         self.flush_error_status_handler()
         self.run()
 
-    def _revoke(self) -> Any:
-        self.flush_revoke_status_handler()
+    def _revoke(self, operator) -> Any:
+        self.flush_revoke_status_handler(operator)

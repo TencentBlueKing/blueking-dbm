@@ -66,7 +66,6 @@ class PauseFlow(BaseTicketFlow):
             flow=self.flow_obj,
             ticket=self.ticket,
             type=TodoType.APPROVE,
-            # TODO: 暂时设置为提单人
             operators=[self.ticket.creator],
             context=PauseTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
         )

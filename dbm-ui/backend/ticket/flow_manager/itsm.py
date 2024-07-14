@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 
 from backend.components import ItsmApi
 from backend.components.itsm.constants import ItsmTicketStatus
+from backend.exceptions import ApiResultError
 from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TicketStatus
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.models import Flow
@@ -56,7 +57,10 @@ class ItsmFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> str:
-        logs = ItsmApi.get_ticket_logs({"sn": [self.flow_obj.flow_obj_id]})
+        try:
+            logs = ItsmApi.get_ticket_logs({"sn": [self.flow_obj.flow_obj_id]})
+        except ApiResultError:
+            return _("未知单据")
         # 目前审批流程是固定的，取流程中第三个节点的日志作为概览即可
         try:
             return logs["logs"][2]["message"]
@@ -86,9 +90,9 @@ class ItsmFlow(BaseTicketFlow):
         elif current_status == ItsmTicketStatus.FINISHED and approve_result:
             self.flow_obj.update_status(TicketFlowStatus.SUCCEEDED)
             return TicketStatus.SUCCEEDED
-        else:
-            self.flow_obj.update_status(TicketFlowStatus.FAILED)
-            return TicketStatus.FAILED
+        elif current_status == ItsmTicketStatus.TERMINATED:
+            self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
+            return TicketStatus.TERMINATED
 
     @property
     def _url(self) -> str:

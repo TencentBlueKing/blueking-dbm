@@ -8,8 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import Dict, List
 
+from django.db.models import Prefetch
 from django.utils.translation import ugettext as _
 
 from backend import env
@@ -17,8 +19,12 @@ from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
-from backend.ticket.constants import FlowTypeConfig, TicketType
-from backend.ticket.models import Ticket, TicketFlowsConfig
+from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowTypeConfig, TicketFlowStatus, TicketType
+from backend.ticket.flow_manager.manager import TicketFlowManager
+from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
+from backend.ticket.todos import ActionType, TodoActorFactory
+
+logger = logging.getLogger("root")
 
 
 class TicketHandler:
@@ -146,7 +152,6 @@ class TicketHandler:
     @classmethod
     def ticket_flow_config_init(cls):
         """初始化单据配置"""
-
         exist_ticket_types = list(TicketFlowsConfig.objects.all().values_list("ticket_type", flat=True))
         created_configs = [
             TicketFlowsConfig(
@@ -157,11 +162,53 @@ class TicketHandler:
                 group=flow_class.group,
                 editable=flow_class.editable,
                 configs={
+                    # 单据流程配置
                     FlowTypeConfig.NEED_MANUAL_CONFIRM: flow_class.default_need_manual_confirm,
                     FlowTypeConfig.NEED_ITSM: flow_class.default_need_itsm,
+                    # 单据过期配置
+                    FlowTypeConfig.EXPIRE_CONFIG: flow_class.default_expire_config,
                 },
             )
             for ticket_type, flow_class in BuilderFactory.registry.items()
             if ticket_type not in exist_ticket_types
         ]
         TicketFlowsConfig.objects.bulk_create(created_configs)
+
+    @classmethod
+    def operate_flow(cls, ticket_id, flow_id, func, *args, **kwargs):
+        """进行flow操作，目前支持重试和终止"""
+        ticket = Ticket.objects.get(pk=ticket_id)
+        flow_instance = Flow.objects.get(ticket=ticket, id=flow_id)
+        flow_cls = TicketFlowManager(ticket=ticket).get_ticket_flow_cls(flow_instance.flow_type)(flow_instance)
+        getattr(flow_cls, func)(*args, **kwargs)
+
+    @classmethod
+    def revoke_ticket(cls, ticket_ids, operator):
+        """
+        终止单据
+        - 单据状态本身设置为 终止
+        - 找到第一个非成功的flow 设置为终止
+        - 如果有关联正在运行的todos，也设置为终止
+        """
+        # 查询ticket，关联正在运行的flows(这里定义的"运行"指的就是非成功)
+        finished_status = [*FLOW_FINISHED_STATUS, Flow, TicketFlowStatus.TERMINATED]
+        running_flows = Flow.objects.filter(ticket__in=ticket_ids).exclude(status__in=finished_status)
+        tickets = Ticket.objects.prefetch_related(
+            Prefetch("flows", queryset=running_flows, to_attr="running_flows")
+        ).filter(id__in=ticket_ids)
+
+        # 对每个单据进行终止
+        for ticket in tickets:
+            if not ticket.running_flows:
+                logger.info(_("单据[{}]没有需要终止的流程，跳过...").format(ticket.id))
+                continue
+            first_running_flow = ticket.running_flows[0]
+
+            # 如果有todo，则把所有todo终止
+            todos = Todo.objects.filter(ticket=ticket, flow=first_running_flow)
+            for todo in todos:
+                TodoActorFactory.actor(todo).process(operator, ActionType.TERMINATE, params={})
+
+            # 用户终止 / 系统终止flow
+            logger.info(_("操作人[{}]终止了单据[{}]").format(operator, ticket.id))
+            cls.operate_flow(ticket.id, first_running_flow.id, func="revoke", operator=operator)

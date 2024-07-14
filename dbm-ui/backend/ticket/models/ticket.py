@@ -60,6 +60,7 @@ class Flow(models.Model):
     retry_type = models.CharField(
         _("重试类型(专用于inner_flow)"), max_length=LEN_SHORT, choices=FlowRetryType.get_choices(), blank=True, null=True
     )
+    context = models.JSONField(_("流程上下文(用于扩展字段)"), default=dict)
 
     class Meta:
         verbose_name_plural = verbose_name = _("单据流程(Flow)")

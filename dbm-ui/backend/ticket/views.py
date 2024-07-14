@@ -38,7 +38,7 @@ from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
 from backend.ticket.constants import (
-    DONE_STATUS,
+    TODO_DONE_STATUS,
     CountType,
     ItsmTicketNodeEnum,
     OperateNodeActionType,
@@ -328,9 +328,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=True, serializer_class=RetryFlowSLZ)
     def retry_flow(self, request, pk):
         validated_data = self.params_validate(self.get_serializer_class())
-        ticket = Ticket.objects.get(pk=pk)
-        flow_instance = Flow.objects.get(ticket=pk, id=validated_data["flow_id"])
-        TicketFlowManager(ticket=ticket).get_ticket_flow_cls(flow_instance.flow_type)(flow_instance).retry()
+        TicketHandler.operate_flow(ticket_id=pk, flow_id=validated_data["flow_id"], func="retry")
         return Response()
 
     @common_swagger_auto_schema(
@@ -341,9 +339,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     @action(methods=["POST"], detail=True, serializer_class=RetryFlowSLZ)
     def revoke_flow(self, request, pk):
         validated_data = self.params_validate(self.get_serializer_class())
-        ticket = Ticket.objects.get(pk=pk)
-        flow_instance = Flow.objects.get(ticket=pk, id=validated_data["flow_id"])
-        TicketFlowManager(ticket=ticket).get_ticket_flow_cls(flow_instance.flow_type)(flow_instance).revoke()
+        user = self.request.user.username
+        TicketHandler.operate_flow(ticket_id=pk, flow_id=validated_data["flow_id"], func="revoke", operator=user)
         return Response()
 
     @swagger_auto_schema(
@@ -405,8 +402,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         my_todos = Todo.objects.filter(operators__contains=request.user.username)
 
         # 状态筛选：已处理/未处理
-        if todo_status in DONE_STATUS:
-            my_todos = my_todos.filter(status__in=DONE_STATUS)
+        if todo_status in TODO_DONE_STATUS:
+            my_todos = my_todos.filter(status__in=TODO_DONE_STATUS)
         elif todo_status:
             my_todos = my_todos.filter(status=todo_status)
 
@@ -694,7 +691,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         """
         批量处理待办: 返回处理后的待办列表
         """
-        # 使用 BatchTodoOperateSerializer 验证请求数据
         validated_data = self.params_validate(self.get_serializer_class())
         act = validated_data["action"]
 
