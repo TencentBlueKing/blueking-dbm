@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import json
 import logging
 import operator
+import textwrap
 from collections import defaultdict
 from datetime import datetime, timedelta
 from functools import reduce
@@ -20,18 +21,32 @@ from celery import shared_task
 from celery.result import AsyncResult
 from django.db.models import Q
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import BKLogApi, ItsmApi
 from backend.components.cmsi.handler import CmsiHandler
+from backend.configuration.constants import PLAT_BIZ_ID
+from backend.constants import DEFAULT_SYSTEM_USER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.ticket.builders.common.constants import MYSQL_CHECKSUM_TABLE, MySQLDataRepairTriggerMode
-from backend.ticket.constants import FlowErrCode, FlowMsgType, FlowType, TicketStatus, TicketType
+from backend.ticket.constants import (
+    TICKET_EXPIRE_DEFAULT_CONFIG,
+    TODO_RUNNING_STATUS,
+    FlowErrCode,
+    FlowMsgType,
+    FlowType,
+    FlowTypeConfig,
+    TicketExpireType,
+    TicketFlowStatus,
+    TicketStatus,
+    TicketType,
+    TodoType,
+)
 from backend.ticket.exceptions import TicketTaskTriggerException
 from backend.ticket.flow_manager.inner import InnerFlow
-from backend.ticket.models.ticket import Flow, Ticket
+from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig
 from backend.utils.time import datetime2str
 
 logger = logging.getLogger("root")
@@ -205,12 +220,63 @@ class TicketTask(object):
                 ticket_type = TicketType.TENDBCLUSTER_DATA_REPAIR
             cls._create_ticket(
                 ticket_type=ticket_type,
-                # TODO: 这里可以设置一个自动提单人，但是todo确认可以增加DBA
-                creator=cluster.creator,
+                creator=DEFAULT_SYSTEM_USER,
                 bk_biz_id=cluster.bk_biz_id,
                 remark=_("集群{}存在数据不一致，自动创建的数据修复单据").format(cluster.name),
                 details=ticket_details,
             )
+
+    @classmethod
+    def auto_clear_expire_flow(cls):
+        """清理过期的单据和flow，避免重试带来问题"""
+        from backend.ticket.handler import TicketHandler
+        from backend.ticket.models import Todo
+
+        # 一次批量只操作100个单据
+        batch = 100
+        now = datetime.now()
+        # 只考虑平台级别的过期配置，暂不考虑业务和集群粒度
+        ticket_configs = TicketFlowsConfig.objects.filter(bk_biz_id=PLAT_BIZ_ID)
+
+        def get_expire_flow_tickets(expire_type):
+            """获取超时过期的过滤条件"""
+            qs, ticket_ids = [], []
+            for cnf in ticket_configs:
+                expire_days = cnf.configs.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)[expire_type]
+                if expire_days < 0:
+                    continue
+                qs.append(Q(update_at__lt=now - timedelta(days=expire_days), ticket__ticket_type=cnf.ticket_type))
+
+            # 如果设置为无限制过期，则不进行过滤
+            if not qs:
+                return ticket_ids
+
+            filters = reduce(operator.or_, qs)
+            # itsm: 审批中的流程
+            if expire_type == TicketExpireType.ITSM:
+                filters &= Q(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING)
+                ticket_ids = list(Flow.objects.filter(filters).values_list("ticket", flat=True))
+            # inner flow / pipeline: 失败的流程和pipeline暂停节点(防止重试)
+            elif expire_type == TicketExpireType.INNER_FLOW:
+                f = filters & Q(flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.FAILED)
+                ticket_ids = list(Flow.objects.filter(f).values_list("ticket", flat=True))
+                f = filters & Q(type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS)
+                ticket_ids.extend(list(Todo.objects.filter(f).values_list("ticket", flat=True)))
+            # flow-pause: 流程中的暂定节点
+            elif expire_type == TicketExpireType.FLOW_TODO:
+                filters &= Q(type__in=[TodoType.APPROVE, TodoType.RESOURCE_REPLENISH], status__in=TODO_RUNNING_STATUS)
+                ticket_ids = list(Todo.objects.filter(filters).values_list("ticket", flat=True))
+
+            return ticket_ids
+
+        # 根据超时保护类型，获取需要过期处理的单据
+        expire_ticket_ids = []
+        for expire_type in TicketExpireType.get_values():
+            expire_ticket_ids.extend(get_expire_flow_tickets(expire_type))
+
+        # 终止单据
+        TicketHandler.revoke_ticket(ticket_ids=expire_ticket_ids[:batch], operator=DEFAULT_SYSTEM_USER)
+        # print(expire_ticket_ids)
 
 
 # ----------------------------- 异步执行任务函数 ----------------------------------------
@@ -268,13 +334,15 @@ def send_msg_for_flow(
 
     # 通知模板
     content = _(
-        """单据类型：{ticket_type}
-所属业务：{biz_name}
-提单人：{creator}
-提单时间：{submit_time}
-处理人：{processor}
-执行情况：{flow_status}
-查看详情：{detail_address}"""
+        """\
+        单据类型：{ticket_type}
+        所属业务：{biz_name}
+        提单人：{creator}
+        提单时间：{submit_time}
+        处理人：{processor}
+        执行情况：{flow_status}
+        查看详情：{detail_address}\
+        """
     ).format(
         ticket_type=ticket_type,
         biz_name=biz_name,
@@ -284,6 +352,7 @@ def send_msg_for_flow(
         flow_status=flow_status,
         detail_address=detail_address or ticket.url,
     )
+    content = textwrap.dedent(content)
 
     if flow.flow_type == FlowType.BK_ITSM.value:
         # 调用ITSM接口查询审批状态

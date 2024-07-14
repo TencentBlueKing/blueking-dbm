@@ -28,3 +28,8 @@ def auto_create_data_repair_ticket():
 @register_periodic_task(run_every=crontab(minute="*/1"))
 def clean_bamboo_engine_expired_data():
     TaskFlow.clean_bamboo_engine_expired_data()
+
+
+@register_periodic_task(run_every=crontab(hour="*/1", minute=0))
+def auto_clear_expire_flow():
+    TicketTask.auto_clear_expire_flow()

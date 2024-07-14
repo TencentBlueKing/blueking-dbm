@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from django.utils.translation import gettext as _
 
+from backend.constants import DEFAULT_SYSTEM_USER
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket import todos
 from backend.ticket.constants import TodoType
@@ -35,7 +36,7 @@ class PipelineTodo(todos.TodoActor):
 
     def process(self, username, action, params):
         """确认/终止"""
-        if username not in self.todo.operators:
+        if username not in self.todo.operators and username != DEFAULT_SYSTEM_USER:
             raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
 
         # 从todo的上下文获取pipeline节点信息

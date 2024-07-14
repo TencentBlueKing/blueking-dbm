@@ -15,6 +15,9 @@ from dataclasses import dataclass
 # 默认云区域ID
 DEFAULT_BK_CLOUD_ID = 0
 
+# 默认系统用户名，一般用于系统的操作(自动提单，超时终止等..)
+DEFAULT_SYSTEM_USER = "system"
+
 # 一些常量值
 INT_MAX = 2**31 - 1
 

@@ -24,7 +24,7 @@ from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.ticket.constants import FlowRetryType, FlowType, TicketType
+from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
 
 logger = logging.getLogger("root")
@@ -282,6 +282,8 @@ class TicketFlowBuilder:
     # 默认是否需要审批,人工确认。后续用于初始化单据配置表
     default_need_itsm: bool = True
     default_need_manual_confirm: bool = True
+    # 默认过期时间配置
+    default_expire_config: dict = TICKET_EXPIRE_DEFAULT_CONFIG
     # 是否用户可修改单据流程(在单据配置表中)
     editable: bool = True
 
