@@ -126,6 +126,11 @@
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
     :get-detail-info="getSpiderDetail" />
+  <ClusterExportData
+    v-if="currentData"
+    v-model:is-show="showDataExportSlider"
+    :data="currentData"
+    :ticket-type="TicketTypes.TENDBCLUSTER_DUMP_DATA" />
 </template>
 
 <script setup lang="tsx">
@@ -171,6 +176,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -250,6 +256,8 @@
   const excelAuthorizeShow = ref(false);
   const showEditEntryConfig = ref(false);
   const clusterAuthorizeShow = ref(false);
+  const showDataExportSlider = ref(false)
+  const currentData = ref<IColumn['data']>()
   const selected = ref<TendbClusterModel[]>([]);
   const operationData = shallowRef({} as TendbClusterModel);
 
@@ -330,7 +338,7 @@
   });
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 200 : 300;
+      return isCN.value ? 270 : 300;
     }
     return 60;
   });
@@ -902,6 +910,21 @@
                 { t('集群容量变更') }
               </auth-button>
             </OperationBtnStatusTips>,
+            <OperationBtnStatusTips
+              data={data}
+              v-db-console="tendbCluster.clusterManage.exportData">
+              <auth-button
+                action-id="tendbcluster_dump_data"
+                permission={data.permission.tendbcluster_dump_data}
+                resource={data.id}
+                disabled={data.operationDisabled}
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={() => handleShowDataExportSlider(data)}>
+                { t('导出数据') }
+              </auth-button>
+            </OperationBtnStatusTips>
           ];
           if (data.isOffline) {
             operations.push(...[
@@ -1370,6 +1393,10 @@
     selected.value = [];
   };
 
+  const handleShowDataExportSlider = (data: IColumn['data']) => {
+    currentData.value = data
+    showDataExportSlider.value = true;
+  };
 
   const handleShowExcelAuthorize = () => {
     excelAuthorizeShow.value = true;
