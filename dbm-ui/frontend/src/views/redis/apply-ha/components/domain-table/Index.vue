@@ -33,8 +33,10 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import RedisModel from '@services/model/redis/redis';
   import { getRedisMachineList } from '@services/source/redis'
 
+  import { ClusterTypes } from '@common/const'
   import { ipv4, nameRegx } from '@common/regex';
 
   import InstanceSelector, {
@@ -116,17 +118,18 @@
         validator: (value: string) => ipv4.test(value),
         message: t('目标从库主机格式不正确'),
       },
-      {
-        validator: (value: string) => masterHostIpList.value.filter(item => item === value).length < 2,
-        message: t('目标主机重复'),
-      },
+      // {
+      //   validator: (value: string) => masterHostIpList.value.filter(item => item === value).length < 2,
+      //   message: t('目标主机重复'),
+      // },
       {
         validator: (value: string) =>
           getRedisMachineList({
             ip: value,
             instance_role: 'redis_master',
             bk_cloud_id: props.cloudId as number,
-            region: props.cityName
+            region: props.cityName,
+            cluster_type: ClusterTypes.REDIS_INSTANCE
           }).then((data) => {
             const redisMachineList = data.results;
             if (redisMachineList.length < 1) {
@@ -323,11 +326,19 @@
   const tabListConfig = computed(() => ({
     RedisHost: [
       {
+        topoConfig: {
+          totalCountFunc: (dataList: RedisModel[]) => {
+            const ipSet = new Set<string>()
+            dataList.forEach(dataItem => dataItem.redis_master.forEach(masterItem => ipSet.add(masterItem.ip)))
+            return ipSet.size
+          }
+        },
         tableConfig: {
           getTableList: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            region: props.cityName
+            region: props.cityName,
+            cluster_type: ClusterTypes.REDIS_INSTANCE
           })
         }
       },
@@ -336,14 +347,16 @@
           getTableList: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            region: props.cityName
+            region: props.cityName,
+            cluster_type: ClusterTypes.REDIS_INSTANCE
           })
         },
         manualConfig: {
           checkInstances: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            region: props.cityName
+            region: props.cityName,
+            cluster_type: ClusterTypes.REDIS_INSTANCE
           })
         }
       },
@@ -359,7 +372,7 @@
   });
 
   const clusterNameList = computed(() => tableData.value.map(item => item.cluster_name));
-  const masterHostIpList = computed(() => tableData.value.map(item => item.masterHost.ip));
+  // const masterHostIpList = computed(() => tableData.value.map(item => item.masterHost.ip));
 
   const handleBatchClusterName = (values: string[]) => {
     if (values.length !== 0) {

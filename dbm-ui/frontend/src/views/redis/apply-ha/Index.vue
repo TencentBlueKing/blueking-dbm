@@ -377,6 +377,7 @@
       instance_role: 'redis_master',
       bk_cloud_id: formData.details.bk_cloud_id,
       region: cityName.value,
+      cluster_type: ClusterTypes.REDIS_INSTANCE,
     }).then((data) => {
       const redisMachineList = data.results;
       if (redisMachineList.length) {

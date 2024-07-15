@@ -51,6 +51,7 @@
           :status-filter="activePanelObj?.tableConfig?.statusFilter"
           :table-setting="tableSettings"
           :topo-alert-content="activePanelObj?.topoConfig?.topoAlertContent"
+          :total-count-func="activePanelObj?.topoConfig?.totalCountFunc"
           @change="handleChange" />
       </template>
       <template #aside>
@@ -214,6 +215,7 @@
       topoAlertContent?: Element;
       filterClusterId?: number;
       getTopoList?: (params: any) => Promise<any[]>;
+      totalCountFunc?: (data: any) => number;
       countFunc?: (data: any) => number;
     };
     tableConfig?: {

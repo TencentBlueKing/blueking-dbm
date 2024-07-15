@@ -9,7 +9,7 @@
     <DbIcon
       class="redis-domain-batch-edit-trigger"
       type="bulk-edit"
-      @click="() => stateShow = true" />
+      @click="() => (stateShow = true)" />
     <template #content>
       <div class="batch-edit-content">
         <p class="batch-edit-header">
@@ -20,9 +20,7 @@
           class="batch-edit-domain"
           :style="{ '--offset': `${stateOffsetWidth}px` }">
           <p class="batch-edit-domain-name">
-            <span ref="moduleNameRef">
-              ins.
-            </span>
+            <span ref="moduleNameRef"> ins. </span>
             <span class="batch-edit-domain-underline" />
             .{{ appAbbr }}.db
           </p>
@@ -58,17 +56,16 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { nameRegx } from '@common/regex';
 
   interface Props {
-    appAbbr: string,
+    appAbbr: string;
   }
 
   interface Emits {
-    (e: 'change', value: string[]): void
+    (e: 'change', value: string[]): void;
   }
 
   withDefaults(defineProps<Props>(), {
@@ -122,20 +119,20 @@
   const handleValidate = () => {
     const newDomains = stateValue.value.split('\n');
     // 最大长度
-    if (!newDomains.every(key => key.length <= 63)) {
+    if (!newDomains.every((key) => key.length <= 63)) {
       validateErrorText.value = t('最大长度为m', { m: 63 });
       return;
     }
     // 格式
-    if (!newDomains.every(key => nameRegx.test(key))) {
+    if (!newDomains.every((key) => nameRegx.test(key))) {
       validateErrorText.value = t('以小写英文字母开头_且只能包含英文字母_数字_连字符');
       return;
     }
     // 校验名称是否重复
-    if (newDomains.length !== _.uniq(newDomains).length) {
-      validateErrorText.value = t('输入域名重复');
-      return;
-    }
+    // if (newDomains.length !== _.uniq(newDomains).length) {
+    //   validateErrorText.value = t('输入域名重复');
+    //   return;
+    // }
 
     validateErrorText.value = '';
   };
@@ -162,99 +159,99 @@
 </script>
 
 <style lang="less" scoped>
-.redis-domain-batch-edit {
-  .batch-edit-content {
-    padding: 9px 2px;
-  }
-
-  .batch-edit-header {
-    padding-bottom: 16px;
-    font-size: @font-size-large;
-    color: @title-color;
-
-    span {
-      font-size: @font-size-mini;
-      color: @default-color;
-    }
-  }
-
-  .batch-edit-domain {
-    position: relative;
-    color: @default-color;
-
-    .batch-edit-domain-name {
-      word-wrap: break-word;
+  .redis-domain-batch-edit {
+    .batch-edit-content {
+      padding: 9px 2px;
     }
 
-    .batch-edit-domain-underline {
-      position: relative;
-      display: inline-block;
-      width: 54px;
-      height: 1px;
-      margin: 0 2px;
-      color: @default-color;
-      background-color: #c4c6cc;
+    .batch-edit-header {
+      padding-bottom: 16px;
+      font-size: @font-size-large;
+      color: @title-color;
 
-      &::after {
-        position: absolute;
-        top: -4px;
-        left: 50%;
-        z-index: 1;
-        width: 6px;
-        height: 6px;
-        background-color: white;
-        border: 1px solid transparent;
-        border-bottom-color: #c4c6cc;
-        border-left-color: #c4c6cc;
-        content: '';
-        transform: translateX(-50%) rotate(-45deg);
+      span {
+        font-size: @font-size-mini;
+        color: @default-color;
       }
     }
 
-    .batch-edit-domain-input {
+    .batch-edit-domain {
       position: relative;
-      margin: 12px 0 16px;
+      color: @default-color;
 
-      &::before {
-        position: absolute;
-        top: -4px;
-        left: var(--offset);
-        width: 6px;
-        height: 6px;
-        background-color: @white-color;
-        border: 1px solid transparent;
-        border-top-color: @border-light-gray;
-        border-left-color: @border-light-gray;
-        content: "";
-        transform: rotateZ(45deg);
+      .batch-edit-domain-name {
+        word-wrap: break-word;
       }
 
-      .batch-edit.is-focused {
-        &::before {
-          border-top-color: @border-primary;
-          border-left-color: @border-primary;
+      .batch-edit-domain-underline {
+        position: relative;
+        display: inline-block;
+        width: 54px;
+        height: 1px;
+        margin: 0 2px;
+        color: @default-color;
+        background-color: #c4c6cc;
+
+        &::after {
+          position: absolute;
+          top: -4px;
+          left: 50%;
+          z-index: 1;
+          width: 6px;
+          height: 6px;
+          background-color: white;
+          border: 1px solid transparent;
+          border-bottom-color: #c4c6cc;
+          border-left-color: #c4c6cc;
+          content: '';
+          transform: translateX(-50%) rotate(-45deg);
         }
       }
+
+      .batch-edit-domain-input {
+        position: relative;
+        margin: 12px 0 16px;
+
+        &::before {
+          position: absolute;
+          top: -4px;
+          left: var(--offset);
+          width: 6px;
+          height: 6px;
+          background-color: @white-color;
+          border: 1px solid transparent;
+          border-top-color: @border-light-gray;
+          border-left-color: @border-light-gray;
+          content: '';
+          transform: rotateZ(45deg);
+        }
+
+        .batch-edit.is-focused {
+          &::before {
+            border-top-color: @border-primary;
+            border-left-color: @border-primary;
+          }
+        }
+      }
+
+      .batch-edit-domain-error {
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        font-size: @font-size-mini;
+        color: @danger-color;
+      }
     }
 
-    .batch-edit-domain-error {
-      position: absolute;
-      bottom: -4px;
-      left: 0;
-      font-size: @font-size-mini;
-      color: @danger-color;
+    .batch-edit-footer {
+      text-align: right;
+
+      .bk-button {
+        min-width: 60px;
+        font-size: 12px;
+      }
     }
   }
-
-  .batch-edit-footer {
-    text-align: right;
-
-    .bk-button {
-      min-width: 60px;
-      font-size: 12px;
-    }
-  }
-}
 </style>
 
 <style lang="less">

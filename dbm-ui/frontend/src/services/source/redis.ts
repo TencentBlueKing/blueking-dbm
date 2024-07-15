@@ -221,6 +221,7 @@ export function getRedisMachineList(params: {
   instance_role?: string;
   creator?: string;
   add_role_count?: boolean;
+  cluster_type?: string;
 }) {
   return http.get<ListBase<RedisMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,
