@@ -27,13 +27,16 @@
               activeItem?.port
             }}（从）
           </div>
-          <BkTable :columns="tableColumns" />
+          <BkTable
+            :columns="tableColumns"
+            :data="tableData" />
         </div>
       </div>
     </BkLoading>
   </BkSideslider>
 </template>
-<script setup lang="ts">
+<script setup lang="tsx">
+  import type { Column } from 'bkui-vue/lib/table/props';
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import { computed, shallowRef, watch } from 'vue';
@@ -44,11 +47,18 @@
 
   import { useDebouncedRef } from '@hooks';
 
-  import { encodeRegexp } from '@utils';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import { calcTextHeight, encodeRegexp } from '@utils';
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  interface IDataRow {
+    db_name: string;
+    table_name: string;
+  }
 
   interface Props {
     id: number;
@@ -57,22 +67,44 @@
     default: false,
   });
 
+  const isTextOverflow = ref<Record<string, boolean>>({})
   const searchKey = useDebouncedRef('');
   const activeKey = ref(0);
   const instanceList = shallowRef<ServiceReturnType<typeof getChecksumInstance>['results']>([]);
-
+  const tableData = shallowRef<IDataRow[]>([]);
   const activeItem = computed(() => _.find(instanceList.value, (item) => item.id === activeKey.value));
   const renderList = computed(() => {
     const rule = new RegExp(encodeRegexp(searchKey.value), 'i');
     return instanceList.value.filter((item) => rule.test(item.ip));
   });
 
-  const tableColumns = [
+  const tableColumns: Column[] = [
     {
       label: t('库名'),
+      field: 'db_name',
+      minWidth: 220,
+      render: ({ data }: { data: IDataRow }) => (
+        <TextOverflowLayout>
+          {{
+            default: () => data.db_name
+          }}
+        </TextOverflowLayout>
+      )
     },
     {
       label: t('表名'),
+      field: 'table_name',
+      render: ({ data, index }: { data: IDataRow, index: number }) => (
+        <p
+          class="table-name"
+          row-key={`row-${index}`}
+          v-bk-tooltips={{
+            content: data.table_name,
+            disabled: !isTextOverflow.value[`row-${index}`],
+          }}>
+          {data.table_name}
+        </p>
+      )
     },
   ];
 
@@ -81,7 +113,7 @@
     onSuccess(data) {
       instanceList.value = data.results;
       if (instanceList.value.length > 0) {
-        activeKey.value = instanceList.value[0].id;
+        handleActive(instanceList.value[0]);
       }
     },
   });
@@ -97,9 +129,38 @@
     });
   });
 
+  const checkOverflow = () => {
+    setTimeout(()=>{
+      const elementList = document.querySelectorAll('.table-name');
+      elementList.forEach(ele => {
+        const { clientWidth } = ele;
+        const rowKey = ele.getAttribute('row-key') as string;
+        const textHeight = calcTextHeight(ele.innerHTML, clientWidth); // 计算实际文本高度，默认行高40
+        isTextOverflow.value[rowKey] = textHeight > 400; // 400为最大高度，即最多展示10行
+      })
+    })
+  }
+
   const handleActive = (data: UnwrapRef<typeof instanceList>[number]) => {
     activeKey.value = data.id;
+    const dataList: IDataRow[] = [];
+    const rows = convertDataRows(data.details);
+    dataList.push(...rows);
+    tableData.value = dataList;
+    checkOverflow();
   };
+
+  const convertDataRows = (details: Record<string, string[]>) =>
+    Object.entries(details).reduce(
+      (pre, [key, value]) => [
+        ...pre,
+        {
+          db_name: key,
+          table_name: value ? value.join(' , ') : '--',
+        },
+      ],
+      [] as IDataRow[],
+    );
 </script>
 <style lang="less">
   .inspection-instance-detail {
@@ -165,6 +226,15 @@
 
       .bk-table .bk-table-head table thead th {
         background: #fafbfd;
+      }
+
+      .bk-table td .cell .table-name {
+        display: -webkit-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: pre-wrap;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 10;
       }
     }
   }
