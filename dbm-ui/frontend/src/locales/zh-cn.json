@@ -3140,5 +3140,8 @@
     "不允许访问系统库，如 mysql information_schema performance_schema db_infobase": "不允许访问系统库，如 mysql information_schema performance_schema db_infobase",
     "集群数量 / 每组主机部署集群需为整数": "集群数量 / 每组主机部署集群需为整数",
     "必须大于当前台数n": "必须大于当前台数：{n}",
+    "除use dbname外，必须有结束符; 或": "除use dbname外，必须有结束符; 或 {n}",
+    "不允许访问系统库，如": "不允许访问系统库，如 {n}",
+    "目标主库主机不存在": "目标主库主机不存在",
     "这行勿动！新增翻译请在上一行添加！": ""
 }
