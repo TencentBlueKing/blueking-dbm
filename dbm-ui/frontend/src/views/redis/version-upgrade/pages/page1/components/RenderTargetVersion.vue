@@ -22,18 +22,18 @@
       <template #suffix="{ item, index }">
         <div>
           <BkTag
-            v-if="index === 0"
-            class="ml-4"
-            size="small"
-            theme="warning">
-            {{ t('推荐') }}
-          </BkTag>
-          <BkTag
             v-if="isCurrentVersion(item.label as string)"
             class="ml-4"
             size="small"
             theme="info">
             {{ t('当前版本') }}
+          </BkTag>
+          <BkTag
+            v-if="index === 0"
+            class="ml-4"
+            size="small"
+            theme="warning">
+            {{ t('推荐') }}
           </BkTag>
         </div>
       </template>
@@ -123,6 +123,10 @@
     targetVersionList,
     () => {
       localValue.value = '';
+      if (targetVersionList.value.length > 0) {
+        const currentVersion = targetVersionList.value[0].value as string;
+        localValue.value = currentVersion;
+      }
     },
     {
       immediate: true,

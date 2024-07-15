@@ -117,6 +117,8 @@
     statusFilter?: TableConfigType['statusFilter'];
     // eslint-disable-next-line vue/no-unused-properties
     countFunc?: TopoConfigType['countFunc'];
+    // eslint-disable-next-line vue/no-unused-properties
+    totalCountFunc?: TopoConfigType['totalCountFunc'];
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -124,6 +126,7 @@
     statusFilter: undefined,
     isRemotePagination: true,
     countFunc: undefined,
+    totalCountFunc: undefined,
     disabledRowConfig: undefined,
     topoAlertContent: undefined,
     roleFilterList: undefined,
