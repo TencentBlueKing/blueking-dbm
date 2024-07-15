@@ -120,6 +120,7 @@ class ListMachineSLZ(serializers.Serializer):
     bk_host_id = serializers.IntegerField(help_text=_("主机ID"), required=False)
     ip = serializers.CharField(help_text=_("IP(多个IP过滤以逗号分隔)"), required=False)
     cluster_ids = serializers.CharField(help_text=_("集群ID(多个过滤以逗号分隔)"), required=False)
+    cluster_type = serializers.CharField(help_text=_("集群类型"), required=False)
     bk_city_name = serializers.CharField(help_text=_("城市名(多个过滤以逗号分隔)"), required=False)
     machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=MachineType.get_choices(), required=False)
     bk_os_name = serializers.CharField(help_text=_("os名字"), required=False)
