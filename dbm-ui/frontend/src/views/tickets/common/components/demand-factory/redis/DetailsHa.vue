@@ -96,10 +96,10 @@
           label: t('业务英文名'),
           key: 'bk_biz_name',
         },
-        {
-          label: t('管控区域'),
-          key: 'details.bk_cloud_name',
-        },
+        // {
+        //   label: t('管控区域'),
+        //   key: 'details.bk_cloud_name',
+        // },
       ],
     },
     {
