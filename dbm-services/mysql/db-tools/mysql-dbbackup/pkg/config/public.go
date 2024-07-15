@@ -69,8 +69,8 @@ type Public struct {
 	IOLimitMasterFactor float64 `ini:"IOLimitMasterFactor"`
 	StatusReportPath    string  `ini:"StatusReportPath" validate:"required"`
 	ReportPath          string  `ini:"ReportPath" validate:"required"`
-	// NotCheckDiskSpace 不做空间检查. 但依然会先尝试本集群的全部旧全备
-	NotCheckDiskSpace bool `ini:"NotCheckDiskSpace"`
+	// NoCheckDiskSpace 不做空间检查. 但依然会先尝试本集群的全部旧全备
+	NoCheckDiskSpace bool `ini:"NoCheckDiskSpace"`
 
 	// EncryptOpt backup files encrypt options
 	EncryptOpt *cmutil.EncryptOpt `ini:"EncryptOpt"`

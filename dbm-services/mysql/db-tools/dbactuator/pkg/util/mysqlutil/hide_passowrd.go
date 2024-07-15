@@ -24,6 +24,7 @@ var (
 	dsnRegex             = regexp.MustCompile(`\w+:[^\s]*@tcp\([^\s]+\)`)
 	dsnPasswordRegex     = regexp.MustCompile(`:[^\s]*@tcp\(`)
 	passwordRegex        = regexp.MustCompile(`password ['|"]*\S+['|"]*`)
+	passwordGrantRegex   = regexp.MustCompile(`password\(['|"]\S+['|"]\)`)
 )
 
 // ClearSensitiveInformation clear sensitive information from input
@@ -34,12 +35,18 @@ func ClearSensitiveInformation(input string) string {
 	output = clearIdentifyByInSQL(output)
 	output = RemovePasswordInDSN(output)
 	output = CleanSvrPassword(output)
+	output = CleanGrantPassword(output)
 	return output
 }
 
 // CleanSvrPassword TODO
 func CleanSvrPassword(input string) string {
 	return passwordRegex.ReplaceAllString(input, "password 'xxxx'")
+}
+
+// CleanGrantPassword clean grant sql password
+func CleanGrantPassword(input string) string {
+	return passwordGrantRegex.ReplaceAllString(input, "password('xxxx')")
 }
 
 // clearIdentifyByInSQL TODO
@@ -52,7 +59,8 @@ func clearIdentifyByInSQL(input string) string {
 func ClearIdentifyByInSQLs(input []string) []string {
 	output := make([]string, len(input))
 	for i, s := range input {
-		output[i] = clearIdentifyByInSQL(s)
+		s = clearIdentifyByInSQL(s)
+		output[i] = CleanGrantPassword(s)
 	}
 	return output
 }

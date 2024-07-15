@@ -13,8 +13,8 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
-// GrantBackup backup grant information
-func GrantBackup(cfg *config.Public) error {
+// BackupGrant backup grant information
+func BackupGrant(cfg *config.Public) error {
 	db, err := mysqlconn.InitConn(cfg)
 	if err != nil {
 		return err

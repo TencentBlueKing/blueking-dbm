@@ -10,6 +10,11 @@ import (
 )
 
 // BeforeDump precheck before dumping backup
+// 检查备份方式
+// 检查是否可连接
+// 检查字符集
+// 删除就备份
+// 检查磁盘空间
 func BeforeDump(cnf *config.BackupConfig) error {
 	if err := CheckBackupType(cnf); err != nil {
 		return err
@@ -26,18 +31,18 @@ func BeforeDump(cnf *config.BackupConfig) error {
 
 	// check server charset
 	if err := CheckCharset(cnfPublic, dbh); err != nil {
-		logger.Log.Error("failed to get Mysqlcharset")
+		logger.Log.Errorf("failed to get Mysqlcharset for %d", cnfPublic.MysqlPort)
 		return err
 	}
 
 	// 例行删除旧备份
-	logger.Log.Infof("remove old backup files OldFileLeftDay %d", cnfPublic.OldFileLeftDay)
+	logger.Log.Infof("remove old backup files OldFileLeftDay=%d normally", cnfPublic.OldFileLeftDay)
 	if err := DeleteOldBackup(cnfPublic, cnfPublic.OldFileLeftDay); err != nil {
 		logger.Log.Warn("failed to delete old backup, err:", err)
 	}
 
 	if err := CheckAndCleanDiskSpace(cnfPublic, dbh); err != nil {
-		logger.Log.Error("disk space is not enough, err:", err)
+		logger.Log.Errorf("disk space is not enough for %d, err:%s", cnfPublic.MysqlPort, err.Error())
 		return err
 	}
 	return nil
