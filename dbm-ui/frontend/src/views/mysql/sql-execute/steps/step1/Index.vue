@@ -30,7 +30,7 @@
           v-model:importMode="formData.import_mode"
           @grammar-check="handleGrammarCheck" />
         <BkFormItem
-          :label="$t('字符集')"
+          :label="t('字符集')"
           property="charset"
           required>
           <BkSelect
@@ -59,17 +59,17 @@
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
-          {{ $t('模拟执行') }}
+          {{ t('模拟执行') }}
         </BkButton>
       </span>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会清空当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -129,10 +129,12 @@
       const {
         backup,
         charset,
+        path,
         import_mode: importMode,
         execute_db_infos: executeDbInfos,
         cluster_ids: clusterIds,
         ticket_mode: ticketMode,
+        execute_sql_files: executeSqlFiles,
       } = cloneData;
       formData.backup = backup;
       formData.charset = charset;
@@ -140,6 +142,8 @@
       formData.execute_db_infos = executeDbInfos;
       formData.cluster_ids = clusterIds;
       formData.ticket_mode = ticketMode;
+      formData.execute_sql_files = executeSqlFiles;
+      updateFilePath.value = path;
       window.changeConfirm = true;
     },
   });
