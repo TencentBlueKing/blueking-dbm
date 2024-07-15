@@ -63,7 +63,6 @@
       <div ref="timeRef">
         <BkDatePicker
           v-model="localTriggerTime"
-          class="not-seconds-date-picker"
           :disabled-date="disableDate"
           type="datetime"
           @change="handleTriggerTimeChange" />
