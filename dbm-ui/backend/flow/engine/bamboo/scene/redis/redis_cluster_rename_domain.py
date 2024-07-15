@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
@@ -50,23 +49,28 @@ class RedisClusterRenameDomainFlow(object):
                 {
                     "cluster_id":44,
                     "new_domain":"tendisplus.test01.testapp.db",
-                    "extra": '{
+                    "extra": {
                         "cluster_entry_type":"polaris",
                         "entry_name":"polaris.tendisplus.test01.testapp.db",
                         "l5_name":"1111:2222",
                         "token":"some_token"
-                    }'}
+                    }
                 },
                 {
-                "cluster_id":45,
-                "new_domain":"tendisplus.test02.testapp.db",
-                "extra": '{
-                    "cluster_entry_type":"polaris",
-                    "entry_name":"polaris.tendisplus.test02.testapp.db",
-                    "l5_name":"1111:2222",
-                    "token":"some_token"
-                    }'}
+                    "cluster_id":45,
+                    "new_domain":"tendisplus.test02.testapp.db",
+                    "extra": {
+                        "cluster_entry_type":"polaris",
+                        "entry_name":"polaris.tendisplus.test02.testapp.db",
+                        "l5_name":"1111:2222",
+                        "token":"some_token"
+                    }
                 },
+                {
+                    "cluster_id":45,
+                    "new_domain":"tendisplus.test02.testapp.db",
+                    "extra":{}
+                }
             ]
         }
         """
@@ -229,6 +233,25 @@ class RedisClusterRenameDomainFlow(object):
                     act_component_code=RedisDnsManageComponent.code,
                     kwargs={**asdict(act_kwargs), **asdict(dns_kwargs)},
                 )
+
+            # 按需注册北极星信息
+            if "extra" in info and info["extra"] != {}:
+                polaris_data = info["extra"]
+                if "cluster_entry_type" in polaris_data and polaris_data["cluster_entry_type"] == "polaris":
+                    act_kwargs.cluster = {
+                        "bk_cloud_id": cluster.bk_cloud_id,
+                        "immute_domain": cluster.immute_domain,
+                        "created_by": cluster.creator,
+                        "name": polaris_data["entry_name"],
+                        "l5": polaris_data.get("l5", ""),
+                        "token": polaris_data["token"],
+                    }
+                    act_kwargs.cluster["meta_func_name"] = RedisDBMeta.add_polairs_domain.__name__
+                    sub_pipeline.add_act(
+                        act_name=_("polairs元数据写入"),
+                        act_component_code=RedisDBMetaComponent.code,
+                        kwargs=asdict(act_kwargs),
+                    )
 
             # 集群所有节点,重装bkdbmon
             params = {
