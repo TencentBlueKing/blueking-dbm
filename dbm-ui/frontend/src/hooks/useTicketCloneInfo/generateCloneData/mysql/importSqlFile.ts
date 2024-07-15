@@ -18,13 +18,16 @@ import { random } from '@utils';
 // Mysql SQL变更执行
 export function generateMysqlImportSqlFileCloneData(ticketData: TicketModel<MySQLImportSQLFileDetails>) {
   const { details } = ticketData;
+  const dbInfosCount = details.execute_objects.length / details.execute_sql_files.length;
   return Promise.resolve({
     backup: details.backup,
     charset: details.charset,
     ticket_mode: details.ticket_mode,
     import_mode: details.import_mode,
     cluster_ids: details.cluster_ids,
-    execute_db_infos: details.execute_objects.map(item => ({
+    execute_sql_files: details.execute_sql_files,
+    path: details.path,
+    execute_db_infos: details.execute_objects.slice(0, dbInfosCount).map((item) => ({
       ...item,
       rowKey: random(),
     })),
