@@ -130,6 +130,7 @@
           :start-time="utcTimeToSeconds(content.start_time)"
           :value="content.cost_time" />
       </template>
+      <slot name="extra-text" />
       <template v-if="content.url">
         ，
         <a
@@ -138,11 +139,13 @@
           {{ t('查看详情') }} &gt;
         </a>
       </template>
-      <slot name="extra-text" />
     </div>
     <div class="mt-8">
       <BkPopConfirm
-        v-if="(content.err_code === 2) || (content.flow_type === 'INNER_FLOW' && content.status === 'FAILED' && content.err_msg)"
+        v-if="
+          content.err_code === 2 ||
+          (content.flow_type === 'INNER_FLOW' && content.status === 'FAILED' && content.err_msg)
+        "
         :content="t('重新执行后无法撤回，请谨慎操作！')"
         :title="t('是否确认重试此步骤')"
         trigger="click"
@@ -194,16 +197,15 @@
 
   import FlowContentTodo from './components/ContentTodo.vue';
 
-
   interface Emits {
     (e: 'fetch-data'): void;
   }
 
   interface Props {
-    ticketData: TicketModel<unknown>,
-    content: FlowItem,
-    flows?: FlowItem[],
-    isTodos?: boolean
+    ticketData: TicketModel<unknown>;
+    content: FlowItem;
+    flows?: FlowItem[];
+    isTodos?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -218,7 +220,7 @@
 
   const manualNexFlowDisaply = computed(() => {
     if (props.flows.length > 0) {
-      const manualIndex = props.flows.findIndex(item => item.flow_type === 'PAUSE');
+      const manualIndex = props.flows.findIndex((item) => item.flow_type === 'PAUSE');
       if (manualIndex > -1) {
         return props.flows[manualIndex + 1].flow_type_display;
       }
@@ -249,20 +251,19 @@
       emits('fetch-data');
     });
 
-  const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE', todoItem: FlowItem['todos'][number]) => processTicketTodo({
-    action,
-    todo_id: todoItem.id,
-    ticket_id: props.content.ticket,
-    params: {},
-  })
-    .then(() => {
+  const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE', todoItem: FlowItem['todos'][number]) =>
+    processTicketTodo({
+      action,
+      todo_id: todoItem.id,
+      ticket_id: props.content.ticket,
+      params: {},
+    }).then(() => {
       emits('fetch-data');
     });
 
   const handleEmitFetchData = () => {
     emits('fetch-data');
   };
-
 </script>
 
 <style lang="less" scoped>
