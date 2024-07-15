@@ -33,6 +33,7 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
     proxy: {
       getTopoList: (params: any) => Promise<any>;
       countFunc?: (data: T) => number;
+      totalCountFunc?: (data: { ip: string }[]) => number;
     };
   };
 
@@ -63,6 +64,7 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
           count: item.count,
           children: [],
         }));
+        const totalCountFunc = currentInstance.proxy?.totalCountFunc;
         treeData.value = filterClusterId.value
           ? children
           : [
@@ -70,7 +72,9 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
                 name: currentBizInfo?.display_name || '--',
                 id: currentBizId,
                 obj: 'biz',
-                count: formatData.reduce((count: number, item: any) => count + item.count, 0),
+                count: totalCountFunc
+                  ? totalCountFunc(data)
+                  : formatData.reduce((count: number, item: any) => count + item.count, 0),
                 children,
               },
             ];

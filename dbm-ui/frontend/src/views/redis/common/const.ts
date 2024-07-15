@@ -106,8 +106,8 @@ export const repairAndVerifyTypeList = [
 ];
 
 export const clusterTypeMachineMap: Record<string, string> = {
-  TwemproxyRedisInstance: 'twemproxy',
+  TwemproxyRedisInstance: 'redis',
   TwemproxyTendisSSDInstance: 'twemproxy',
-  PredixyTendisplusCluster: 'predixy',
-  PredixyRedisCluster: 'predixy',
+  PredixyTendisplusCluster: 'tendisplus',
+  PredixyRedisCluster: 'redis',
 };
