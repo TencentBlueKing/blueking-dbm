@@ -244,7 +244,7 @@ class SQLHandler(object):
             return {"sql_files": "", "import_mode": "", "sql_data_ready": False}
 
         import_mode = details["import_mode"]
-        details["execute_sql_files"] = [detail.pop("sql_file") for detail in details["execute_objects"]]
+        details["execute_sql_files"] = list(set([detail.pop("sql_file") for detail in details["execute_objects"]]))
         details["execute_db_infos"] = details.pop("execute_objects")
         return {"semantic_data": details, "import_mode": import_mode, "sql_data_ready": True}
 
