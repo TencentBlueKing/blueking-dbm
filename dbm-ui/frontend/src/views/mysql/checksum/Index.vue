@@ -51,7 +51,7 @@
             <TimeZonePicker style="width: 350px" />
             <BkDatePicker
               v-model="formdata.timing"
-              class="not-seconds-date-picker ml-8"
+              class="ml-8"
               :disabled-date="disabledDate"
               :placeholder="t('请选择xx', [t('定时执行时间')])"
               style="width: 360px"
