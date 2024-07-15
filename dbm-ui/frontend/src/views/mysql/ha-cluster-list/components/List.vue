@@ -106,6 +106,11 @@
     v-model="showCreateSubscribeRuleSlider"
     :selected-clusters="selectedClusterList"
     show-tab-panel />
+  <ClusterExportData
+    v-if="currentData"
+    v-model:is-show="showDataExportSlider"
+    :data="currentData"
+    :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
 </template>
 
 <script setup lang="tsx">
@@ -149,6 +154,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -235,7 +241,9 @@
   const isInit = ref(false);
   const showEditEntryConfig = ref(false);
   const showCreateSubscribeRuleSlider = ref(false);
+  const showDataExportSlider = ref(false)
   const selectedClusterList = ref<ColumnData['data'][]>([]);
+  const currentData = ref<ColumnData['data']>()
 
   const selected = ref<TendbhaModel[]>([])
   /** 集群授权 */
@@ -320,7 +328,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 200 : 280;
+      return isCN.value ? 270 : 280;
     }
     return 60;
   });
@@ -763,6 +771,21 @@
             onClick={() => handleGoWebconsole(data.id)}>
             Webconsole
           </auth-button>
+          <OperationBtnStatusTips
+            data={data}
+            v-db-console="mysql.haClusterList.exportData">
+            <auth-button
+              action-id="mysql_dump_data"
+              resource={data.id}
+              permission={data.permission.mysql_dump_data}
+              disabled={data.operationDisabled}
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleShowDataExportSlider(data)}>
+              { t('导出数据') }
+            </auth-button>
+          </OperationBtnStatusTips>
           <bk-dropdown
             class="operations-more"
             trigger="click"
@@ -954,6 +977,11 @@
       selectedClusterList.value = [data];
     }
     showCreateSubscribeRuleSlider.value = true;
+  };
+
+  const handleShowDataExportSlider = (data: ColumnData['data']) => {
+    currentData.value = data
+    showDataExportSlider.value = true;
   };
 
   const handleClearSelected = () => {
