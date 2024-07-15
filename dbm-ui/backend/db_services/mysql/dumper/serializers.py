@@ -37,8 +37,6 @@ class DumperSubscribeConfigSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if self.context["view"].action == "list":
-            return {"id": data["id"], "name": data["name"], "instance_count": data["instance_count"]}
         return data
 
     def get_instance_count(self, obj):
