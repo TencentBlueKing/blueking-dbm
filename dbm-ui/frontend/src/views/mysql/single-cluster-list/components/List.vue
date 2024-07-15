@@ -88,6 +88,11 @@
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
     :get-detail-info="getTendbsingleDetail" />
+  <ClusterExportData
+    v-if="currentData"
+    v-model:is-show="showDataExportSlider"
+    :data="currentData"
+    :ticket-type="TicketTypes.MYSQL_DUMP_DATA" />
 </template>
 
 <script setup lang="tsx">
@@ -133,6 +138,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
@@ -202,8 +208,11 @@
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
+  const showDataExportSlider = ref(false)
   const showEditEntryConfig = ref(false);
   const selected = ref<TendbsingleModel[]>([])
+  const currentData = ref<ColumnData['data']>()
+
   const authorizeState = reactive({
     isShow: false,
     selected: [] as TendbsingleModel[],
@@ -284,7 +293,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 160 : 200;
+      return isCN.value ? 220 : 200;
     }
     return 60;
   });
@@ -569,6 +578,21 @@
             onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
           </bk-button>
+          <OperationBtnStatusTips
+            data={data}
+            v-db-console="mysql.singleClusterList.exportData">
+            <auth-button
+              action-id="mysql_dump_data"
+              permission={data.permission.mysql_dump_data}
+              resource={data.id}
+              disabled={data.operationDisabled}
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleShowDataExportSlider(data)}>
+              { t('导出数据') }
+            </auth-button>
+          </OperationBtnStatusTips>
           {
             data.isOnline ? (
               <OperationBtnStatusTips
@@ -759,6 +783,11 @@
   const handleOpenEntryConfig = (row: TendbsingleModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
+  };
+
+  const handleShowDataExportSlider = (data: TendbsingleModel) => {
+    currentData.value = data
+    showDataExportSlider.value = true;
   };
 
   /**
