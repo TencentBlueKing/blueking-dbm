@@ -15,8 +15,7 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DRSApi
-from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -50,18 +49,20 @@ class DropTempUserForClusterService(BaseService):
         """
         根据cluster对象获取所有的cluster需要实例信息
         """
-        objs = [{"ip_port": i.ip_port, "is_tdbctl": False} for i in list(cluster.storageinstance_set.all())]
+        objs = [
+            {"ip_port": i.ip_port, "is_tdbctl": False}
+            for i in list(cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING))
+        ]
 
         if cluster.cluster_type == ClusterType.TenDBCluster:
             # 如果是TenDB cluster集群，获取所有spider实例
-            objs += [{"ip_port": i.ip_port, "is_tdbctl": False} for i in list(cluster.proxyinstance_set.all())]
+            objs += [
+                {"ip_port": i.ip_port, "is_tdbctl": False}
+                for i in list(cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING))
+            ]
 
-            # 如果是tenDB cluster 集群类型，需要获取中控实例
-            for spider in cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-            ):
-
-                objs.append({"ip_port": f"{spider.machine.ip}{IP_PORT_DIVIDER}{spider.admin_port}", "is_tdbctl": True})
+            # 如果是tenDB cluster 集群类型，需要获取中控实例primary
+            objs.append({"ip_port": cluster.tendbcluster_ctl_primary_address(), "is_tdbctl": True})
         return objs
 
     def drop_jor_user(self, cluster: Cluster, root_id: str):

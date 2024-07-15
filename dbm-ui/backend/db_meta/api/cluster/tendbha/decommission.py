@@ -16,7 +16,7 @@ from django.utils.translation import ugettext as _
 from backend.components import DBPrivManagerApi
 from backend.components.mysql_partition.client import DBPartitionApi
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import Cluster, ClusterEntry, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ClusterDBHAExt, ClusterEntry, StorageInstanceTuple
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.flow.consts import MySQLPrivComponent, UserName
 from backend.flow.utils.cc_manage import CcManage
@@ -62,6 +62,8 @@ def decommission(cluster: Cluster):
     for ce in ClusterEntry.objects.filter(cluster=cluster).all():
         ce.delete(keep_parents=True)
 
+    # 删除dbha配置信息
+    ClusterDBHAExt.objects.filter(cluster=cluster).delete()
     # 删除集群相关的配置模板
     TendbOpenAreaConfig.objects.filter(source_cluster_id=cluster.id).delete()
     DBPartitionApi.cluster_del_conf(
