@@ -15,8 +15,7 @@ from django.utils.translation import ugettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
-from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType, InstanceStatus
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MachinePrivRoleMap, PrivRole
@@ -60,18 +59,16 @@ class AddTempUserForClusterService(BaseService):
         根据cluster对象获取所有的cluster需要实例信息
         """
         inst_list = []
-        for inst in cluster.storageinstance_set.all():
+        for inst in cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING):
             inst_list.append({"instance": inst.ip_port, "priv_role": MachinePrivRoleMap.get(inst.machine_type)})
         if cluster.cluster_type == ClusterType.TenDBCluster:
             # 获取tendb cluster集群所有spider实例
-            for inst in cluster.proxyinstance_set.all():
+            for inst in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
                 inst_list.append({"instance": inst.ip_port, "priv_role": MachinePrivRoleMap.get(inst.machine_type)})
-            # 获取tendb cluster集群所有tdbctl实例
-            for inst in cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-            ):
-                ip_port = f"{inst.machine.ip}{IP_PORT_DIVIDER}{inst.admin_port}"
-                inst_list.append({"instance": ip_port, "priv_role": PrivRole.TDBCTL.value})
+            # 获取tendb cluster集群所有tdbctl实例,只给中控primary授权，权限同步到每个节点
+            inst_list.append(
+                {"instance": cluster.tendbcluster_ctl_primary_address(), "priv_role": PrivRole.TDBCTL.value}
+            )
 
         return inst_list
 
