@@ -26,7 +26,7 @@ import (
 // DeleteOldBackup Delete expired backup file
 func DeleteOldBackup(cnf *config.Public, expireDays int) error {
 	expireTime := time.Now().AddDate(0, 0, -1*expireDays)
-	logger.Log.Infof("try to remove old backup files before %s", expireTime)
+	logger.Log.Infof("try to remove old backup files before '%s'", expireTime)
 	dir, err := ioutil.ReadDir(cnf.BackupDir)
 	if err != nil {
 		logger.Log.Error("failed to read backupdir, err :", err)
@@ -74,7 +74,8 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dbh *sql.DB) error {
 		return err
 	}
 	// 第一次检查，空间满足直接通过
-	if _, err = util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSize); err == nil {
+	if sizeLeft, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSize); err == nil {
+		logger.Log.Infof("disk space meets ok1, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSize)
 		return nil
 	}
 	// 删除旧备份后，第二次检查
@@ -82,16 +83,17 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dbh *sql.DB) error {
 		// 文件清理错误，只当做 warning
 		logger.Log.Warn("failed to delete old backup again, err:", err)
 	}
-	if cnf.NotCheckDiskSpace {
+	if cnf.NoCheckDiskSpace {
 		logger.Log.Warnf("not check disk space for port %d", cnf.MysqlPort)
 		return nil
 	}
 
 	sizeLeft, err := util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSize)
 	if err == nil {
+		logger.Log.Infof("disk space meets ok2, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSize)
 		return nil
 	} else {
-		logger.Log.Warnf("clean backup: %s", err.Error())
+		logger.Log.Warnf("clean all backups still does not meet space needed: %s", err.Error())
 	}
 	if sizeLeft <= 0 {
 		// 删除 binlog，第三次检查
@@ -118,6 +120,8 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dbh *sql.DB) error {
 			logger.Log.Infof("use datadir size=%d, sizeLeft=%d, err=%v", dataDirSize, sizeLeft, err)
 		}
 		return err
+	} else {
+		logger.Log.Infof("disk space meets ok3, sizeLeft=%d, dataDirSize=%d", sizeLeft, dataDirSize)
 	}
 	return nil
 }

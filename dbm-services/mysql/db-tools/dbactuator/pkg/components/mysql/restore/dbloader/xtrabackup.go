@@ -101,11 +101,15 @@ func (x *Xtrabackup) PostRun() (err error) {
 		logger.Warn("get version failed: %s. set it to 5.7.20", err.Error())
 		serverVersion = "5.7.20" // fake
 	}
-	logger.Info("repair ADMIN user host and password")
+	logger.Info("repair user 'ADMIN' host and password")
 	// 物理备份，ADMIN密码与 backup instance(cluster?) 相同，修复成
 	// 修复ADMIN用户，而不是 x.TgtInstance.User，主要是修复 host，密码修复成临时用户 DBM_JOB_xxx 的密码
 	// ADMIN 密码后续会被随机化掉
 	if err := x.RepairUserAdmin(native.DBUserAdmin, x.TgtInstance.Pwd, serverVersion); err != nil {
+		return err
+	}
+	logger.Info("repair user '%s' host and password", x.TgtInstance.User)
+	if err := x.RepairUserAdmin(x.TgtInstance.User, x.TgtInstance.Pwd, serverVersion); err != nil {
 		return err
 	}
 	logger.Info("repair other user privileges")
@@ -115,14 +119,14 @@ func (x *Xtrabackup) PostRun() (err error) {
 	}
 	x.dbWorker.Stop()
 
-	logger.Info("restart local mysqld", x.TgtInstance.Port)
+	logger.Info("restart local mysqld %d", x.TgtInstance.Port)
 	// 重启mysql（去掉 skip-grant-tables）
 	startParam.SkipGrantTables = false
 	startParam.MySQLUser = native.DBUserAdmin
 	if _, err := startParam.RestartMysqlInstance(); err != nil {
 		return errors.WithMessage(err, "RestartMysqlInstance")
 	}
-	logger.Info("reconnect use ADMIN and temp_job_user pwd(already repaired)", x.TgtInstance.Port)
+	logger.Info("reconnect use ADMIN and temp_job_user pwd(already repaired) %d", x.TgtInstance.Port)
 	tmpAdminPassInst := deepcopy.Copy(x.TgtInstance).(native.InsObject)
 	tmpAdminPassInst.User = native.DBUserAdmin
 	//tmpAdminPassInst.ConnBySocket()
