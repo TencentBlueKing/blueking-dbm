@@ -81,6 +81,7 @@ export interface MySQLImportSQLFileDetails {
   execute_sql_files: string[] | MySQLForceImportSQLFileExecuteSqlFiles[];
   import_mode: string;
   semantic_node_id: string;
+  dump_file_path?: string;
 }
 
 export interface MySQLForceImportSQLFileExecuteSqlFiles {

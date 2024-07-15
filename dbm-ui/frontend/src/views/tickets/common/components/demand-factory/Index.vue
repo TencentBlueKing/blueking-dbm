@@ -63,6 +63,7 @@
   import DumperInstall from './mysql/DumperInstall.vue';
   import DumperNodeStatusUpdate from './mysql/DumperNodeStatusUpdate.vue';
   import DumperSwitchNode from './mysql/DumperSwitchNode.vue';
+  import MysqlExportData from './mysql/ExportData.vue';
   import MySQLFlashback from './mysql/Flashback.vue';
   import MySQLFullBackup from './mysql/FullBackup.vue';
   import MySQLHATruncate from './mysql/HATruncate.vue';
@@ -247,7 +248,11 @@
     TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
   ];
 
-  const importSQLTypes = [TicketTypes.MYSQL_IMPORT_SQLFILE, TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE];
+  const importSQLTypes = [
+    TicketTypes.MYSQL_IMPORT_SQLFILE,
+    TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+    TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE,
+  ];
 
   const redisCLBTypes = [
     TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB,
@@ -276,6 +281,8 @@
   ];
 
   const openareaTypes = [TicketTypes.MYSQL_OPEN_AREA, TicketTypes.TENDBCLUSTER_OPEN_AREA];
+
+  const dataExportTypes = [TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA];
 
   // 单一情况映射表
   const SingleDemandMap = {
@@ -469,6 +476,9 @@
     }
     if ([TicketTypes.MYSQL_PARTITION, TicketTypes.TENDBCLUSTER_PARTITION].includes(ticketType)) {
       return MysqlParition;
+    }
+    if (dataExportTypes.includes(ticketType)) {
+      return MysqlExportData;
     }
 
     return DefaultDetails;
