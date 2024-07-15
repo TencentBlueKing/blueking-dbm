@@ -167,23 +167,28 @@ func (c *Client) doNewInner(method, url string, params interface{},
 		}
 	}()
 
-	// 目前出现偶现网关超时问题，重试一次看是否时间段内必现
+	// 处理响应和重试逻辑
 	for i := 1; i <= 5; i++ {
-		// 500 可能正在发布
-		// 429 可能大并发量偶现超频
-		// 504 具体原因未知，先重试
-		if !util.HasElem(resp.StatusCode, []int{http.StatusInternalServerError, http.StatusTooManyRequests,
-			http.StatusGatewayTimeout}) {
-			break
-		}
+		if resp.StatusCode != http.StatusOK && util.HasElem(resp.StatusCode, []int{
+			http.StatusInternalServerError, http.StatusTooManyRequests, http.StatusGatewayTimeout,
+		}) {
+			time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
+			log.Logger.Warnf("client.Do result with %s, wait no more than 10s and retry, url: %s", resp.Status, req.URL.String())
 
-		time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
-		log.Logger.Warnf("client.Do result with %s, wait no more than 10s and retry, url: %s", resp.Status, req.URL.String())
-		resp, err = c.client.Do(req)
-		if err != nil {
-			log.Logger.Errorf("an error occur while invoking client.Do, url: %s, error:%s",
-				req.URL.String(), err.Error())
-			return nil, fmt.Errorf("do http request failed, err: %+v", err)
+			// 关闭前一个响应体，防止内存泄漏
+			if resp.Body != nil {
+				resp.Body.Close()
+			}
+
+			// 重新发起请求
+			resp, err = c.client.Do(req)
+			if err != nil {
+				log.Logger.Errorf("an error occur while invoking client.Do, url: %s, error:%s",
+					req.URL.String(), err.Error())
+				return nil, fmt.Errorf("do http request failed, err: %+v", err)
+			}
+		} else {
+			break
 		}
 	}
 
