@@ -247,6 +247,8 @@ class Cluster(AuditedModel):
         try:
             if self.cluster_type == ClusterType.TenDBSingle:
                 return self.storageinstance_set.first().port
+            elif self.cluster_type == ClusterType.RedisInstance:
+                return self.storageinstance_set.first().port
             elif self.cluster_type in [ClusterType.TenDBHA, *ClusterType.db_type_to_cluster_types(DBType.Redis)]:
                 return self.proxyinstance_set.first().port
             elif self.cluster_type == ClusterType.TenDBCluster:
