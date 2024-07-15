@@ -16,7 +16,6 @@
     ref="localRollbackTimeRef"
     v-model="localRollbackTime"
     :disabled-date="disableDate"
-    ext-popover-cls="not-seconds-date-picker"
     :rules="timerRules"
     type="datetime" />
 </template>
@@ -28,7 +27,7 @@
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
 
   interface Exposes {
-    getValue: () => Promise<{ rollback_time: string }>
+    getValue: () => Promise<{ rollback_time: string }>;
   }
 
   const disableDate = (date: Date) => date && date.valueOf() > Date.now();
@@ -48,10 +47,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return localRollbackTimeRef.value.getValue()
-        .then(() => ({
-          rollback_time: formatDateToUTC(localRollbackTime.value),
-        }));
+      return localRollbackTimeRef.value.getValue().then(() => ({
+        rollback_time: formatDateToUTC(localRollbackTime.value),
+      }));
     },
   });
 </script>
