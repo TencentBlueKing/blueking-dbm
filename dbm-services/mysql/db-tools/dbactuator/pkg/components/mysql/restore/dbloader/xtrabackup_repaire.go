@@ -49,7 +49,7 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 		}
 		// 以下逻辑只是为为了减少出错的可能
 		if !cmutil.StringsHas(keepUserHosts, x.SrcBackupHost) {
-			logger.Warn("src backup host does not has ADMIN@%s, cannot fix it for new host", x.SrcBackupHost)
+			logger.Warn("src backup host does not has %s@%s, cannot fix it for new host", userAdmin, x.SrcBackupHost)
 			if cmutil.StringsHas(dropUserHosts, x.TgtInstance.Host) {
 				dropUserHosts = cmutil.StringsRemove(dropUserHosts, x.TgtInstance.Host)
 			}
@@ -83,7 +83,7 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 	}
 	sqlList = append(sqlList, "FLUSH PRIVILEGES;")
 
-	logger.Info("RepairUserAdmin: %v", mysqlutil.ClearIdentifyByInSQLs(sqlList))
+	logger.Info("RepairUserAdmin %s: %v", userAdmin, mysqlutil.ClearIdentifyByInSQLs(sqlList))
 	if _, err := x.dbWorker.ExecMore(sqlList); err != nil {
 		return err
 	}

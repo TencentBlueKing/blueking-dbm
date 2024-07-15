@@ -35,11 +35,13 @@ func init() {
 	dumpCmd.Flags().String("bill-id", "", "overwrite Public.BillId")
 	dumpCmd.Flags().String("backup-type", cst.BackupLogical, "overwrite Public.BackupType")
 	dumpCmd.Flags().Int("shard-value", -1, "overwrite Public.ShardValue")
+	dumpCmd.Flags().Bool("nocheck-diskspace", false, "overwrite Public.NoCheckDiskSpace")
 	dumpCmd.Flags().String("file-tag", "", "overwrite BackupClient.FileTag")
 	_ = viper.BindPFlag("Public.BackupId", dumpCmd.Flags().Lookup("backup-id"))
 	_ = viper.BindPFlag("Public.BillId", dumpCmd.Flags().Lookup("bill-id"))
 	_ = viper.BindPFlag("Public.BackupType", dumpCmd.Flags().Lookup("backup-type"))
 	_ = viper.BindPFlag("Public.ShardValue", dumpCmd.Flags().Lookup("shard-value"))
+	_ = viper.BindPFlag("Public.NoCheckDiskSpace", dumpCmd.Flags().Lookup("nocheck-diskspace"))
 	_ = viper.BindPFlag("BackupClient.FileTag", dumpCmd.Flags().Lookup("file-tag"))
 
 	//dumpCmd.Flags().SetAnnotation("backup-type", "Public.BackupType", []string{"logical", "physical"})
@@ -133,7 +135,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 }
 
 func backupData(cnf *config.BackupConfig) (err error) {
-	logger.Log.Info("Dbbackup begin")
+	logger.Log.Infof("Dbbackup begin for %d", cnf.Public.MysqlPort)
 	// validate dumpBackup
 	if err = validate.GoValidateStruct(cnf.Public, false, false); err != nil {
 		return err
@@ -171,10 +173,14 @@ func backupData(cnf *config.BackupConfig) (err error) {
 		logger.Log.Info("backup nothing, exit")
 		return nil
 	}
-	// backup grant info
+	if err := precheck.BeforeDump(cnf); err != nil {
+		return err
+	}
+
+	// 备份权限 backup priv info
 	if cnf.Public.IfBackupGrant() {
-		logger.Log.Info("backup Grant information: begin")
-		if err := backupexe.GrantBackup(&cnfPublic); err != nil {
+		logger.Log.Infof("backup grant for %d: begin", cnf.Public.MysqlPort)
+		if err := backupexe.BackupGrant(&cnfPublic); err != nil {
 			logger.Log.Error("Failed to backup Grant information")
 			return err
 		}
@@ -183,10 +189,6 @@ func backupData(cnf *config.BackupConfig) (err error) {
 	if !cnf.Public.IfBackupData() && !cnf.Public.IfBackupSchema() {
 		logger.Log.Info("no need to backup data or schema")
 		return nil
-	}
-
-	if err := precheck.BeforeDump(cnf); err != nil {
-		return err
 	}
 
 	// long_slow_query
@@ -248,6 +250,6 @@ func backupData(cnf *config.BackupConfig) (err error) {
 		logger.Log.Error("report success failed: ", err)
 		return err
 	}
-	logger.Log.Info("Dbbackup Success")
+	logger.Log.Infof("Dbbackup Success for %d", cnf.Public.MysqlPort)
 	return nil
 }

@@ -12,6 +12,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 
 from backend.db_meta.enums import ClusterType
@@ -27,11 +28,13 @@ logger = logging.getLogger("root")
 def get_query_date_time(date_str: str):
     # date_str 为空时，取当前时间的前一天为查询区间，不为空时需要是 2024-05-20 这样的格式，指定查询这一天 00:00:01-23:59:59 的数据
     # 指定时间，一般用于手动触发使用
-    date_object = datetime.utcnow() - timedelta(days=1)
+    date_object = datetime.utcnow()
     if date_str != "":
         date_object = datetime.strptime(date_str, "%Y-%m-%d").date()
     start_time = datetime(date_object.year, date_object.month, date_object.day).astimezone(timezone.utc)
     end_time = datetime(date_object.year, date_object.month, date_object.day, 23, 59, 59).astimezone(timezone.utc)
+    start_time = start_time - timedelta(days=1)
+    end_time = end_time - timedelta(days=1)
     return start_time, end_time
 
 
@@ -94,13 +97,19 @@ def _check_tendbha_full_backup(date_str: str):
     """
     tendbha 必须有一份完整的备份
     """
+
+    # 清理过期的报表
+    MysqlBackupCheckReport.objects.filter(create_at__lte=timezone.now() - timedelta(days=60)).delete()
+
+    # 检查前一天的全备
     start_time, end_time = get_query_date_time(date_str)
     logger.info(
         "====  start check full backup for cluster type {}, time range[{},{}] ====".format(
             ClusterType.TenDBHA, start_time, end_time
         )
     )
-    for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
+    query = Q(cluster_type=ClusterType.TenDBHA) & Q(create_at__lt=timezone.now() - timedelta(days=1))
+    for c in Cluster.objects.filter(query):
         logger.info("==== start check full backup for cluster {} ====".format(c.immute_domain))
         backup = ClusterBackup(c.id, c.immute_domain)
 
