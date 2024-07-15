@@ -1142,9 +1142,10 @@ class RedisActPayload(object):
         payload = self.get_bkdbmon_payload_header(str(self.bk_biz_id))
         if kwargs["params"] and kwargs["params"]["servers"]:
             if len(kwargs["params"]["servers"]) > 0:
-                cluster_domain = kwargs["params"]["servers"][0]["cluster_domain"]
-                cluster = Cluster.objects.get(immute_domain=cluster_domain)
-                payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
+                cluster_domain = kwargs["params"]["servers"][0].get("cluster_domain", "")
+                if cluster_domain:
+                    cluster = Cluster.objects.get(immute_domain=cluster_domain)
+                    payload["redis_maxmemory_set"] = get_dbmon_maxmemory_config_by_cluster_ids([cluster.id])
 
         return {
             "db_type": DBActuatorTypeEnum.Bkdbmon.value,
