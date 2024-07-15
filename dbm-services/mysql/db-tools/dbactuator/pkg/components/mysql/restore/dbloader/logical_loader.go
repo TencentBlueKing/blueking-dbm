@@ -117,7 +117,7 @@ func (l *LogicalLoader) loadBackup() error {
 	if err != nil {
 		logger.Error("logical dbbackup loadbackup stderr: ", errStr)
 		// 尝试读取 myloader.log 里 CRITICAL 关键字
-		_, errStr, _ = cmutil.ExecCommand(false, l.TaskDir, "grep", "-Ei 'CRITICAL'",
+		_, errStr, _ = cmutil.ExecCommand(false, l.TaskDir, "grep", "-E 'CRITICAL'",
 			"logs/myloader_*.log", "| head -5 >&2")
 		if len(strings.TrimSpace(errStr)) > 0 {
 			logger.Info("head 5 error from", filepath.Join(l.TaskDir, "logs/myloader_*.log"))

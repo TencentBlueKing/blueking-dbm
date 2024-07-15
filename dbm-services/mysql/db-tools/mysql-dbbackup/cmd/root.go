@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -66,6 +67,14 @@ func initConfig(confFile string, v interface{}) error {
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("read config failed: %v", err)
 	}
+
+	viper.AutomaticEnv() // read in environment variables that match
+	replacer := strings.NewReplacer(".", "_")
+	viper.SetEnvKeyReplacer(replacer)
+	if err := viper.MergeInConfig(); err != nil {
+		log.Fatal(err)
+	}
+
 	err := viper.Unmarshal(v)
 	if err != nil {
 		log.Fatalf("parse config failed: %v", err)
