@@ -98,7 +98,7 @@ func (l *PhysicalLoader) loadBackup() error {
 	errStr, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
 		logger.Error("physical dbbackup loadbackup stderr: ", errStr)
-		// 尝试读取 myloader.log 里 CRITICAL 关键字
+		// 尝试读取 xtrabackup.log 里 CRITICAL 关键字
 		_, errStr, _ = cmutil.ExecCommand(false, l.TaskDir, "grep", "-Ei 'CRITICAL|ERROR|FATAL'",
 			"logs/xtrabackup_*.log", "| head -5 >&2")
 		if len(strings.TrimSpace(errStr)) > 0 {

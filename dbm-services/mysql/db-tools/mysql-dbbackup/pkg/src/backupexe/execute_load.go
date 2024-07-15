@@ -57,6 +57,8 @@ func ExecuteLoad(cnf *config.BackupConfig) error {
 		return err
 	}
 
+	// 检查目标实例是否空闲
+
 	if err = loader.Execute(); err != nil {
 		return err
 	}

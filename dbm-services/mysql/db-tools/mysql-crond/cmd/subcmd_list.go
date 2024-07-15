@@ -30,6 +30,9 @@ func init() {
 	_ = listEntriesCmd.MarkPersistentFlagRequired("config")
 	_ = viper.BindPFlag("list-config", listEntriesCmd.PersistentFlags().Lookup("config"))
 
+	listEntriesCmd.Flags().Bool("all", false, "list all entries")
+	_ = viper.BindPFlag("list-all", listEntriesCmd.Flags().Lookup("all"))
+
 	rootCmd.AddCommand(listEntriesCmd)
 }
 
