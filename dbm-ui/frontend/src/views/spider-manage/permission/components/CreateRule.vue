@@ -15,7 +15,7 @@
   <BkSideslider
     :is-show="isShow"
     render-directive="if"
-    :title="t('添加授权规则')"
+    :title="isEdit ? t('编辑授权规则') : t('添加授权规则')"
     :width="840"
     @closed="handleClose">
     <DbForm
@@ -31,6 +31,7 @@
         <BkSelect
           v-model="formdata.account_id"
           :clearable="false"
+          :disabled="isEdit"
           filterable
           :input-search="false"
           :loading="isLoading">
@@ -49,6 +50,7 @@
         <DbTextarea
           ref="textareaRef"
           v-model="formdata.access_db"
+          :disabled="isEdit"
           :max-height="400"
           :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
           :teleport-to-body="false" />
@@ -85,7 +87,7 @@
                     content: t('你已选择所有权限'),
                     disabled: !checkAllPrivileges,
                   }"
-                  :disabled="checkAllPrivileges"
+                  :disabled="checkAllPrivileges || (isEdit && editModeDisabledPrivileges.includes(option))"
                   :label="option">
                   {{ option }}
                 </BkCheckbox>
@@ -118,7 +120,7 @@
                     content: t('你已选择所有权限'),
                     disabled: !checkAllPrivileges,
                   }"
-                  :disabled="checkAllPrivileges"
+                  :disabled="checkAllPrivileges || (isEdit && editModeDisabledPrivileges.includes(option))"
                   :label="option">
                   {{ option }}
                 </BkCheckbox>
@@ -151,7 +153,7 @@
                     content: t('你已选择所有权限'),
                     disabled: !checkAllPrivileges,
                   }"
-                  :disabled="checkAllPrivileges"
+                  :disabled="checkAllPrivileges || (isEdit && editModeDisabledPrivileges.includes(option))"
                   :label="option">
                   {{ option }}
                   <span class="sensitive-tip">{{ t('敏感') }}</span>
@@ -203,7 +205,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { Message } from 'bkui-vue';
   import _ from 'lodash';
   import type { JSX } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
@@ -212,6 +213,7 @@
   import {
     createAccountRule,
     getPermissionRules,
+    modifyAccountRule,
     preCheckAddAccountRule,
     queryAccountRules,
   } from '@services/permission';
@@ -224,12 +226,17 @@
 
   import { AccountTypes } from '@common/const';
 
+  import { messageSuccess } from '@utils';
+
   import { dbOperations } from '../common/consts';
 
   type AuthItemKey = keyof typeof dbOperations;
 
+  type IRule = ServiceReturnType<typeof getPermissionRules>['results'][number]['rules'][number];
+
   interface Props {
     accountId: number,
+    ruleObj?: IRule;
   }
 
   interface Emits {
@@ -295,6 +302,9 @@
   const accounts = ref<PermissionRuleAccount[]>([]);
   const isLoading = ref(false);
   const existDBs = ref<string[]>([]);
+  const editModeDisabledPrivileges = ref<string[]>([])
+
+  const isEdit = computed(() => !!props.ruleObj?.account_id);
 
   const selectedUserInfo = computed(() => accounts.value.find(item => item.account_id === formdata.value.account_id));
 
@@ -335,10 +345,7 @@
   } = useRequest(createAccountRule, {
     manual: true,
     onSuccess() {
-      Message({
-        message: t('成功添加授权规则'),
-        theme: 'success',
-      });
+      messageSuccess(t('成功添加授权规则'));
       emits('success');
       window.changeConfirm = false;
       handleClose();
@@ -349,6 +356,25 @@
     if (show) {
       formdata.value.account_id = props.accountId ?? -1;
       getAccount();
+
+      if (isEdit.value) {
+        formdata.value.access_db = props.ruleObj!.access_db;
+        editModeDisabledPrivileges.value = props.ruleObj!.privilege.split(',');
+        const dbOperationsMap = Object.entries(dbOperations).reduce((resultMap, [key, values]) => {
+          values.forEach(value => {
+            resultMap[value] = key;
+          });
+          return resultMap;
+        }, {} as Record<string, string>);
+
+        editModeDisabledPrivileges.value.forEach(privilege => {
+          const key = dbOperationsMap[privilege] as keyof AccountRule['privilege'];
+          if (!key) {
+            return;
+          }
+          formdata.value.privilege[key].push(privilege);
+        })
+      }
     }
   });
 
@@ -435,9 +461,24 @@
   };
 
   const handleSubmit = async () => {
-    await ruleRef.value.validate();
+    if (!isEdit.value) {
+      await ruleRef.value.validate();
+    }
+
     isSubmitting.value = true;
     const params = generateRequestParam();
+    if (isEdit.value) {
+      modifyAccountRule({
+        ...params,
+        rule_id: props.ruleObj!.rule_id,
+      }).finally(() => {
+        messageSuccess(t('编辑授权规则成功'));
+        emits('success');
+        isSubmitting.value = false;
+        isShow.value = false;
+      });
+      return
+    }
     preCheckAddAccountRule(params)
       .then((result) => {
         if (result.warning) {
