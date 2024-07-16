@@ -86,3 +86,19 @@ export function queryWebconsole(params: { cluster_id: number; cmd: string }) {
     error_msg?: string;
   }>(`${path}/webconsole/`, params);
 }
+
+// 查询集群的库是否存在
+export function checkClusterDatabase(params: { bk_biz_id: number; cluster_id: number; db_list: string[] }) {
+  return http.post<Record<string, boolean>>(`${path}/check_cluster_databases/`, params);
+}
+
+// 根据用户手动输入的ip[:port]查询真实的实例
+export function checkInstance<
+  T extends {
+    bk_host_id: number;
+    ip: string;
+    bk_cloud_id: number;
+  },
+>(params: { instance_addresses: string[]; bk_biz_id: number }) {
+  return http.post<T[]>(`${path}/check_instances/`, params);
+}

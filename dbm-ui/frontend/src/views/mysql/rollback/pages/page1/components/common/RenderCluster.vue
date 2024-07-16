@@ -41,17 +41,15 @@
 
   import { random } from '@utils';
 
+  import type { IDataRow } from '../../components/new-cluster/RenderData/Row.vue';
+
   interface Props {
-    modelValue?: {
-      id: number,
-      domain: string,
-      cloudId: null | number
-    },
+    modelValue?: IDataRow['clusterData'],
   }
 
   interface Emits {
     (e: 'inputCreate', value: Array<string>): void,
-    (e: 'idChange', value: { id: number, cloudId: number | null }): void,
+    (e: 'change', data: Props['modelValue']): void,
   }
 
   interface Exposes {
@@ -78,9 +76,11 @@
         if (value) {
           return true;
         }
-        emits('idChange', {
+        emits('change', {
           id: 0,
-          cloudId: null,
+          domain: localDomain.value,
+          cloudId: undefined,
+          cloudName: undefined
         });
         return false;
       },
@@ -97,15 +97,19 @@
       }).then((data) => {
         if (data.length > 0) {
           localClusterId.value = data[0].id;
-          emits('idChange', {
+          emits('change', {
             id: localClusterId.value,
+            domain: localDomain.value,
             cloudId: data[0].bk_cloud_id,
+            cloudName: data[0].bk_cloud_name
           });
           return true;
         }
-        emits('idChange', {
+        emits('change', {
           id: 0,
-          cloudId: null,
+          domain: localDomain.value,
+          cloudId: undefined,
+          cloudName: undefined
         });
         return false;
       }),

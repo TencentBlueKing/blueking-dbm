@@ -37,7 +37,7 @@
   interface Props {
     modelValue?: string;
     disabled?: boolean;
-    cloudId: null | number;
+    cloudId: string | number | undefined;
     domain?: string;
   }
 
