@@ -88,10 +88,7 @@ func (job *RedisKillDeadConn) Run() (err error) {
 		rconn, err := myredis.NewRedisClientWithTimeout(addr, pwd, 0, job.params.ClusterType, time.Second)
 		if err != nil {
 			job.runtime.Logger.Error("conn redis failed,err %s:%v", addr, err)
-			if job.params.IgnoreKill {
-				return nil
-			}
-			return fmt.Errorf("conn redis %s failed:%+v", addr, err)
+			return nil
 		}
 		defer rconn.Close()
 
