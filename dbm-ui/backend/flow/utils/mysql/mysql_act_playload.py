@@ -2201,3 +2201,22 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 },
             },
         }
+
+    def get_change_mycnf_payload(self, **kwargs) -> dict:
+        """
+        return sync change mysql my.cnf payload
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.MysqlChangeMycnf.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": kwargs["ip"],
+                    "ports": self.cluster["ports"],
+                    "items": self.cluster["items"],
+                    "persistent": 1,
+                    "restart": 2,
+                },
+            },
+        }

@@ -126,7 +126,6 @@ class MySQLSingleApplyFlow(object):
                     bk_host_ids=[info["new_ip"]["bk_host_id"]],
                 )
             )
-
             sub_pipeline.add_act(
                 act_name=_("下发MySQL介质"),
                 act_component_code=TransFileComponent.code,
