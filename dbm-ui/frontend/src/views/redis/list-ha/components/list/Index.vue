@@ -806,22 +806,16 @@
         </div>
       ),
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: type,
-            details: {
-              cluster_ids: [data.id],
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: type,
+          details: {
+            cluster_ids: [data.id],
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+        });
       },
     });
   };
@@ -845,22 +839,16 @@
         </div>
       ),
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: TicketTypes.REDIS_DESTROY,
-            details: {
-              cluster_id: data.id,
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: TicketTypes.REDIS_DESTROY,
+          details: {
+            cluster_id: data.id,
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+        });
       },
     });
   };

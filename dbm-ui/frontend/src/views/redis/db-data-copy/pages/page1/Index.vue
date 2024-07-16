@@ -230,12 +230,8 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
     onSuccess(cloneData) {
-      const {
-        copyMode,
-        writeMode,
-        disconnectSetting,
-      } = cloneData;
-      
+      const { copyMode, writeMode, disconnectSetting } = cloneData;
+
       copyType.value = copyMode;
       writeType.value = writeMode;
       disconnectType.value = disconnectSetting.type;
@@ -355,10 +351,6 @@
                 ticketId: data.id,
               },
             });
-          })
-          .catch((e) => {
-            // 目前后台还未调通
-            console.error('submit data copy ticket error', e);
           })
           .finally(() => {
             isSubmitting.value = false;

@@ -827,23 +827,17 @@
         </div>
       ),
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: type,
-            details: {
-              cluster_ids: [data.id],
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-              fetchData();
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: type,
+          details: {
+            cluster_ids: [data.id],
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+          fetchData();
+        });
       },
     });
   };
@@ -867,23 +861,17 @@
         </div>
       ),
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: TicketTypes.MYSQL_SINGLE_DESTROY,
-            details: {
-              cluster_ids: [data.id],
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-              fetchData();
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: TicketTypes.MYSQL_SINGLE_DESTROY,
+          details: {
+            cluster_ids: [data.id],
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+          fetchData();
+        });
       },
     });
   };
