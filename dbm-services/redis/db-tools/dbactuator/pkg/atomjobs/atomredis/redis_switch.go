@@ -295,6 +295,7 @@ func (job *RedisSwitch) tryShutdownMasterInstance(ip string, port int, pass stri
 		return
 	}
 	defer oldMasterConn.Close()
+	job.runtime.Logger.Warn("[%s] try shutdown instance , when RedisInstance exec switch.", oldMasterAddr)
 	if _, err := oldMasterConn.DoCommand([]string{"ShutDown"}, 0); err != nil {
 		job.runtime.Logger.Warn("[%s] shutdown old master failed:%+v", oldMasterAddr, err)
 	}
