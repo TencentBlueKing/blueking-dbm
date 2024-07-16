@@ -54,22 +54,24 @@
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
-    placeholder?: string,
-    rules?: Rules,
-    disabled?: boolean,
-    type?: string,
-    min?: number,
-    max?: number,
-    isShowBlur?: boolean,
+    placeholder?: string;
+    rules?: Rules;
+    disabled?: boolean;
+    type?: string;
+    min?: number;
+    max?: number;
+    isShowBlur?: boolean;
   }
 
   interface Emits {
-    (e: 'submit', value: string): void,
+    (e: 'submit', value: string): void;
+    (e: 'error', result: boolean): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>,
-    focus: () => void,
+    getValue: () => Promise<string>;
+    validator: () => Promise<boolean>;
+    focus: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -93,18 +95,21 @@
 
   const isPassword = computed(() => props.type === 'password');
 
-  let oldInputText = ''
+  let oldInputText = '';
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
-  watch(modelValue, (value) => {
-    if (value) {
-      window.changeConfirm = true;
-    }
-  });
+  watch(
+    modelValue,
+    (value) => {
+      if (value) {
+        window.changeConfirm = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 响应输入
   const handleInput = (value: string) => {
@@ -128,8 +133,10 @@
       validator(modelValue.value)
         .then(() => {
           window.changeConfirm = true;
+          emits('error', false);
           emits('submit', modelValue.value);
-        });
+        })
+        .catch(() => emits('error', true));
       return;
     }
     emits('submit', modelValue.value);
@@ -155,9 +162,11 @@
         .then((result) => {
           if (result) {
             window.changeConfirm = true;
+            emits('error', false);
             emits('submit', modelValue.value);
           }
-        });
+        })
+        .catch(() => emits('error', true));
     }
   };
 
@@ -173,6 +182,12 @@
   defineExpose<Exposes>({
     getValue() {
       return validator(modelValue.value).then(() => modelValue.value);
+    },
+    validator() {
+      return validator(modelValue.value).then(
+        () => true,
+        () => false,
+      );
     },
     focus() {
       (rootRef.value as HTMLElement).querySelector('input')?.focus();

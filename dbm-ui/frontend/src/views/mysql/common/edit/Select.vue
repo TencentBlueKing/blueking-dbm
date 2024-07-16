@@ -211,7 +211,7 @@
     }
     tippyIns = tippy(rootRef.value as SingleTarget, {
       content: popRef.value,
-      placement: 'bottom',
+      placement: 'bottom-start',
       appendTo: () => document.body,
       theme: theme.join(' '),
       maxWidth: 'none',
@@ -222,7 +222,7 @@
       onShow: () => {
         const { width } = rootRef.value.getBoundingClientRect();
         Object.assign(popRef.value.style, {
-          width: `${props.popWidth ? Math.max(props.popWidth, width) : width}px`,
+          minWidth: `${Math.max(props.popWidth, width)}px`,
         });
         isShowPop.value = true;
         isError.value = false;

@@ -235,19 +235,19 @@
 
   const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
 
-  const handleConfirmTerminal = (item: FlowItem) => revokeTicketFlow({
-    ticketId: item.ticket,
-    flow_id: item.id,
-  })
-    .then(() => {
+  const handleConfirmTerminal = (item: FlowItem) =>
+    revokeTicketFlow({
+      ticketId: item.ticket,
+      flow_id: item.id,
+    }).then(() => {
       emits('fetch-data');
     });
 
-  const handleConfirmRetry = (item: FlowItem) => retryTicketFlow({
-    ticketId: item.ticket,
-    flow_id: item.id,
-  })
-    .then(() => {
+  const handleConfirmRetry = (item: FlowItem) =>
+    retryTicketFlow({
+      ticketId: item.ticket,
+      flow_id: item.id,
+    }).then(() => {
       emits('fetch-data');
     });
 

@@ -25,13 +25,11 @@ export const useFullscreenStyle = (elementRef: Ref<HTMLElement | undefined>) => 
         },
       ),
     );
-
     observer.observe(document.body, {
       subtree: true,
       childList: true,
       attributes: true,
     });
-
     onBeforeUnmount(() => {
       observer.takeRecords();
       observer.disconnect();
