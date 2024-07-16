@@ -5,7 +5,6 @@ import (
 	"dbm-services/mongodb/db-tools/dbactuator/pkg/util"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -30,7 +29,7 @@ func WriteExporterConfigFile(port int, data interface{}) (err error) {
 	}
 	confFile = getConfFileName(port)
 	fileData, _ = json.Marshal(data)
-	err = ioutil.WriteFile(confFile, fileData, 0755)
+	err = os.WriteFile(confFile, fileData, 0755)
 	if err != nil {
 		return err
 	}
