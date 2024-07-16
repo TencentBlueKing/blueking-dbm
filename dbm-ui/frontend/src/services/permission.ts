@@ -187,6 +187,16 @@ export const createAccountRule = (params: AccountRule & { bk_biz_id: number }) =
   http.post(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/add_account_rule/`, params);
 
 /**
+ * 修改账号规则
+ */
+export const modifyAccountRule = (
+  params: AccountRule & {
+    rule_id: number;
+    bk_biz_id: number;
+  },
+) => http.post(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/modify_account_rule/`, params);
+
+/**
  * 授权规则前置检查
  */
 export const preCheckAuthorizeRules = (params: AuthorizePreCheckData & { bizId: number }) =>
