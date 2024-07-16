@@ -712,6 +712,7 @@ class ConfigDefaultEnum(list, StructuredEnum):
 class DirEnum(str, StructuredEnum):
     GSE_DIR = EnumField("/usr/local/gse_bkte", _("gcs 安装路径"))
     REDIS_KEY_LIFE_DIR = EnumField("/data/dbbak/keylifecycle", _("key生命周期路径"))
+    MONGO_RECOVER_DIR = EnumField("/data/dbbak/recover_mg", _("mongo恢复路径"))
 
 
 class TruncateDataTypeEnum(str, StructuredEnum):

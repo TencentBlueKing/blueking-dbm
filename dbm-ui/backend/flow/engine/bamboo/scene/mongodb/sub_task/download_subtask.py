@@ -32,7 +32,7 @@ class DownloadSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(cls, payload: Dict, sub_payload: Dict, rs: ReplicaSet, file_path: str) -> dict:
+    def make_kwargs(cls, payload: Dict, sub_payload: Dict, rs: ReplicaSet, file_path, dest_dir: str) -> dict:
         print("get_backup_node", sub_payload)
         node = rs.get_not_backup_nodes()[0]
         os_account = PayloadHandler.redis_get_os_account()
@@ -42,7 +42,7 @@ class DownloadSubTask(BaseSubTask):
             "bk_cloud_id": node.bk_cloud_id,
             "task_ids": task_id_list,
             "dest_ip": node.ip,
-            "dest_dir": "/data/dbbak/recover_mg",
+            "dest_dir": dest_dir,
             "reason": "mongodb recover setName:{} to {}".format(rs.set_name, node.ip),
             "login_user": os_account["os_user"],
             "login_passwd": os_account["os_password"],
@@ -55,7 +55,8 @@ class DownloadSubTask(BaseSubTask):
         ticket_data: Optional[Dict],
         sub_ticket_data: Optional[Dict],
         cluster: MongoDBCluster,
-        file_path: str,
+        file_path,
+        dest_dir: str,
     ) -> Tuple[SubBuilder, List]:
         """
         cluster can be  a ReplicaSet or  a ShardedCluster
@@ -65,7 +66,7 @@ class DownloadSubTask(BaseSubTask):
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         acts_list = []
         for rs in cluster.get_shards():
-            kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, rs, file_path)
+            kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, rs, file_path, dest_dir)
             acts_list.append(
                 {
                     "act_name": _("下载备份文件 {} {}".format(rs.set_name, kwargs["dest_ip"])),

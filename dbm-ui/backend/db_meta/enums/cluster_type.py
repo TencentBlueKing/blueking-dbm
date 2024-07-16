@@ -52,7 +52,6 @@ class ClusterType(str, StructuredEnum):
     MongoShardedCluster = EnumField("MongoShardedCluster", _("Mongo分片集群"))
 
     Riak = EnumField("riak", _("Riak集群"))
-
     SqlserverSingle = EnumField("sqlserver_single", _("sqlserver单节点版"))
     SqlserverHA = EnumField("sqlserver_ha", _("sqlserver主从版"))
 

@@ -28,14 +28,21 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.install_dbmon_sub import 
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoNodeWithLabel
+from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 logger = logging.getLogger("flow")
 
 
 def get_pkg_info():
+    # repo_version 如果REPO_VERSION_FOR_DEV有值，则使用REPO_VERSION_FOR_DEV，否则使用最新版本
+    # 正式环境中，REPO_VERSION_FOR_DEV为空
+    # 个人测试环境中，REPO_VERSION_FOR_DEV 按需配置
+    repo_version = env.REPO_VERSION_FOR_DEV if env.REPO_VERSION_FOR_DEV else MediumEnum.Latest
+
     actuator_pkg = Package.get_latest_package(
-        version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=DBType.MongoDB
+        version=repo_version, pkg_type=MediumEnum.DBActuator, db_type=DBType.MongoDB
     )
+
     dbtools_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type="dbtools", db_type=DBType.MongoDB)
     toolkit_pkg = Package.get_latest_package(
         version=MediumEnum.Latest, pkg_type="mongo-toolkit", db_type=DBType.MongoDB
@@ -54,7 +61,7 @@ def add_install_dbmon(flow, flow_data, pipeline, iplist, bk_cloud_id, allow_empt
     allow_empty_instance 上架流程中，允许ip没有实例. allow_empty_instance = True
     """
 
-    actuator_workdir = flow.get_kwargs.file_path
+    actuator_workdir = MongoUtil().get_mongodb_os_conf()["file_path"]
     pkg_info = get_pkg_info()
     file_list = [
         "{}/{}/{}".format(env.BKREPO_PROJECT, env.BKREPO_BUCKET, pkg_info.get("actuator_pkg").path),
@@ -121,7 +128,7 @@ def add_install_dbmon(flow, flow_data, pipeline, iplist, bk_cloud_id, allow_empt
     pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
 
-class MongoInstallDBMon(MongoBaseFlow):
+class MongoInstallDBMonFlow(MongoBaseFlow):
     class Serializer(serializers.Serializer):
         class DataRow(serializers.Serializer):
             ip = serializers.CharField()

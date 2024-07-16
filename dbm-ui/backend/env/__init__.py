@@ -173,3 +173,6 @@ MYSQL_BACKUP_PKG_MAP_ENABLE = get_type_env(key="MYSQL_BACKUP_PKG_MAP_ENABLE", _t
 # bkdbm 通知机器人的key
 WECOM_ROBOT = get_type_env(key="WECOM_ROBOT", _type=str, default="")
 MYSQL_CHATID = get_type_env(key="MYSQL_CHATID", _type=str, default="")
+
+# 本地测试人员优先使用的版本
+REPO_VERSION_FOR_DEV = get_type_env(key="REPO_VERSION_FOR_DEV", _type=str, default="")

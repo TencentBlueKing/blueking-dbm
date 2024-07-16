@@ -60,3 +60,10 @@ class MachineType(str, StructuredEnum):
     VM_INSERT = EnumField("vminsert", _("vminsert"))
     VM_SELECT = EnumField("vmselect", _("vmselect"))
     VM_AUTH = EnumField("vmauth", _("vmauth"))
+
+
+class MongoSetType(str, StructuredEnum):
+    Mongos = EnumField("mongos", _("mongos"))
+    ShardSvr = EnumField("shardsvr", _("shardsvr"))
+    Configsvr = EnumField("configsvr", _("configsvr"))
+    Replicaset = EnumField("replicaset", _("replicaset"))

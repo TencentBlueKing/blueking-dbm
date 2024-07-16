@@ -16,9 +16,9 @@ from backend.flow.consts import MongoDBActuatorActionEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
-from backend.flow.utils.mongodb import mongodb_password
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, ReplicaSet
+from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 
 # RestoreSubTask 处理某个Cluster的Restore
@@ -30,7 +30,7 @@ class RestoreSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(cls, payload: Dict, sub_payload: Dict, rs: ReplicaSet, file_path: str) -> dict:
+    def make_kwargs(cls, sub_payload: Dict, rs: ReplicaSet, file_path, dest_dir: str) -> dict:
         print("get_backup_node", sub_payload)
         nodes = rs.get_not_backup_nodes()
         if len(nodes) == 0:
@@ -39,11 +39,7 @@ class RestoreSubTask(BaseSubTask):
         ns_filter = sub_payload.get("ns_filter")
         is_partial = MongoDBNsFilter.is_partial(ns_filter)
         node = nodes[0]
-        dba_user = "dba"
-        dba_pwd = mongodb_password.MongoDBPassword().get_password_from_db(
-            node.ip, int(node.port), node.bk_cloud_id, dba_user
-        )["password"]
-
+        dba_user, dba_pwd = MongoUtil.get_dba_user_password(node.ip, node.port, node.bk_cloud_id)
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -64,6 +60,7 @@ class RestoreSubTask(BaseSubTask):
                         "isPartial": is_partial,
                         "oplog": False,
                         "nsFilter": sub_payload["ns_filter"],
+                        "recoverDir": dest_dir,
                     },
                 },
             },
@@ -76,7 +73,8 @@ class RestoreSubTask(BaseSubTask):
         ticket_data: Optional[Dict],
         sub_ticket_data: Optional[Dict],
         cluster: MongoDBCluster,
-        file_path: str,
+        file_path,
+        dest_dir: str,
     ) -> Tuple[SubBuilder, List]:
         """
         cluster can be  a ReplicaSet or  a ShardedCluster
@@ -86,7 +84,7 @@ class RestoreSubTask(BaseSubTask):
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         acts_list = []
         for rs in cluster.get_shards():
-            kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, rs, file_path)
+            kwargs = cls.make_kwargs(sub_ticket_data, rs, file_path, dest_dir)
             acts_list.append(
                 {
                     "act_name": _("{} {}".format(rs.set_name, kwargs["exec_ip"])),

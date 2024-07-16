@@ -7,7 +7,8 @@ from backend.db_meta import request_validator
 from backend.db_meta.enums import machine_type
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
-from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.enums.machine_type import MongoSetType
+from backend.db_meta.models import AppCache, Cluster, Machine, ProxyInstance, StorageInstance
 from backend.flow.utils.mongodb import mongodb_password
 
 # entities
@@ -40,14 +41,13 @@ class MongoNode:
 
 class ReplicaSet:
     set_name: str
-    set_type: str
+    set_type: str  # replicaset or shardsvr or configsvr
     members: List[MongoNode]
 
-    def __init__(self, set_name: str = None, members: List[MongoNode] = None):
+    def __init__(self, set_type: str, set_name: str = None, members: List[MongoNode] = None):
+        self.set_type = set_type
         self.set_name = set_name
         self.members = members
-        if len(self.members) > 0:
-            self.set_type = self.members[0].role
 
     # get_backup_node 返回MONGO_BACKUP member
     def get_backup_node(self):
@@ -63,7 +63,7 @@ class ReplicaSet:
     def get_not_backup_nodes(self):
         members = []
         for m in self.members:
-            if m.role == InstanceRole.MONGO_BACKUP:
+            if m.role != InstanceRole.MONGO_BACKUP:
                 members.append(m)
 
         return members
@@ -74,7 +74,7 @@ class ReplicaSet:
         return None
 
 
-# MongoDBCluster 有cluster_id cluster_name cluster_type
+# MongoDBCluster [interface] 有cluster_id cluster_name cluster_type
 class MongoDBCluster:
     bk_cloud_id: int
     bk_biz_id: int
@@ -225,9 +225,17 @@ class MongoRepository:
             if i.cluster_type == ClusterType.MongoReplicaSet.value:
                 # MongoReplicaSet 只有一个Set
                 if set_get_domain:
-                    shard = ReplicaSet(i.name, [MongoNode.from_proxy_instance(m) for m in i.storageinstance_set.all()])
+                    shard = ReplicaSet(
+                        MongoSetType.Replicaset.value,
+                        i.name,
+                        [MongoNode.from_proxy_instance(m) for m in i.storageinstance_set.all()],
+                    )
                 else:
-                    shard = ReplicaSet(i.name, [MongoNode.from_instance(m) for m in i.storageinstance_set.all()])
+                    shard = ReplicaSet(
+                        MongoSetType.Replicaset.value,
+                        i.name,
+                        [MongoNode.from_instance(m) for m in i.storageinstance_set.all()],
+                    )
 
                 row = ReplicaSetCluster(
                     bk_cloud_id=i.bk_cloud_id,
@@ -248,15 +256,20 @@ class MongoRepository:
                 mongos = [MongoNode.from_proxy_instance(m) for m in i.proxyinstance_set.all()]
 
                 for m in i.nosqlstoragesetdtl_set.all():
-                    # seg_range
+                    # find first member
                     members = [MongoNode.from_instance(m.instance)]
+                    # find all receiver member
                     for e in m.instance.as_ejector.all():
                         members.append(MongoNode.from_instance(e.receiver))
 
-                    shard = ReplicaSet(set_name=m.seg_range, members=members)
+                    # configsvr
                     if m.instance.machine_type == machine_type.MachineType.MONOG_CONFIG.value:
+                        shard = ReplicaSet(MongoSetType.Configsvr.value, set_name=m.seg_range, members=members)
                         configsvr = shard
+
+                    # shardsvr
                     else:
+                        shard = ReplicaSet(MongoSetType.ShardSvr.value, set_name=m.seg_range, members=members)
                         shards.append(shard)
 
                 row = ShardedCluster(
@@ -285,7 +298,7 @@ class MongoRepository:
         return None
 
     @classmethod
-    def fetch_many_cluster_dict(cls, set_get_domain: bool, **kwargs):
+    def fetch_many_cluster_dict(cls, set_get_domain: bool = False, **kwargs):
         clusters = cls.fetch_many_cluster(set_get_domain, **kwargs)
         clusters_map = {}
         for cluster in clusters:
@@ -441,17 +454,13 @@ class MongoNodeWithLabel(object):
             "set_name": self.set_name,
         }
 
-    def append_set_info(self, rs: ReplicaSet):
-        self.set_name = rs.set_name
-        self.role_type = rs.set_type
-
     def append_cluster_info(self, clu: MongoDBCluster):
         self.cluster_id = clu.cluster_id
         self.cluster_name = clu.name
         self.cluster_type = clu.cluster_type
         self.cluster_domain = clu.immute_domain
-        self.app = clu.app
-        self.app_name = clu.app
+        self.app = AppCache.get_app_attr(clu.bk_biz_id, "db_app_abbr")
+        self.app_name = AppCache.get_biz_name(clu.bk_biz_id)
         self.bk_cloud_id = clu.bk_cloud_id
         self.bk_biz_id = clu.bk_biz_id
 
@@ -462,12 +471,14 @@ class MongoNodeWithLabel(object):
         m.ip = node.ip
         m.port = int(node.port)
         m.meta_role = node.role
-        # if mongos, set set_name && role_type to 'mongos' for compatibility
         if m.meta_role == machine_type.MachineType.MONGOS.value:
-            m.set_name = machine_type.MachineType.MONGOS.value
-            m.role_type = machine_type.MachineType.MONGOS.value
-        elif rs is not None:
-            m.append_set_info(rs)
+            # if mongos, set set_name && role_type to 'mongos' for compatibility
+            m.set_name = m.meta_role
+            m.role_type = m.meta_role
+        else:
+            # not mongos
+            m.set_name = rs.set_name
+            m.role_type = rs.set_type
 
         if clu is not None:
             m.append_cluster_info(clu)
@@ -490,15 +501,24 @@ class MongoNodeWithLabel(object):
             return instance_list
 
         clusters = MongoRepository.fetch_many_cluster_dict(set_get_domain=False, id__in=cluster_id_list)
-        for cluster_id in clusters:
-            cluster = clusters[cluster_id]
+        for cluster in clusters.values():
+            for member in cluster.get_mongos():
+                if member.ip in iplist:
+                    instance_list.append(MongoNodeWithLabel.from_node(member, None, cluster))
+
             for rs in cluster.get_shards():
+                if not rs:
+                    continue
                 for member in rs.members:
                     if member.ip in iplist:
                         instance_list.append(MongoNodeWithLabel.from_node(member, rs, cluster))
-            for m in cluster.get_mongos():
-                if m.ip in iplist:
-                    instance_list.append(MongoNodeWithLabel.from_node(m, None, cluster))
+
+            rs = cluster.get_config()
+            if not rs:
+                continue
+            for member in rs.members:
+                if member.ip in iplist:
+                    instance_list.append(MongoNodeWithLabel.from_node(member, rs, cluster))
 
         return instance_list
 

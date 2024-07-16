@@ -143,12 +143,15 @@ def make_script_common_kwargs(timeout=3600, exec_account="root", is_param_sensit
     }
 
 
-def prepare_recover_dir_script() -> str:
+def prepare_recover_dir_script(dest_dir: str) -> str:
+    if not dest_dir.startwith("/data/dbbak"):
+        raise Exception("dest_dir must start with /data/dbbak")
+
     script = """
 # todo add root id and node id
 set -x
-mkdir -p /data/dbbak/recover_mg
+mkdir -p {}
 echo return code $?
-chown -R {} /data/dbbak/recover_mg
+chown -R {} {}
 echo return code $?"""
-    return script.format("mysql")
+    return script.format(dest_dir, "mysql", dest_dir)

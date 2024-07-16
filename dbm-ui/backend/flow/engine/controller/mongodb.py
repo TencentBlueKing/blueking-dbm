@@ -15,7 +15,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_enable_disable import Mong
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoExecScriptFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
-from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import MongoInstallDBMon
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import MongoInstallDBMonFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_remove_ns import MongoRemoveNsFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplaceFlow
@@ -24,7 +24,6 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_node import MongoSca
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_scale_storage import MongoScaleFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_user import MongoUserFlow
 from backend.flow.engine.controller.base import BaseController
-from backend.ticket.constants import TicketType
 
 
 class MongoDBController(BaseController):
@@ -49,21 +48,21 @@ class MongoDBController(BaseController):
         flow.cluster_install_flow()
 
     def mongo_backup(self):
-        """
-        发起任务
-        """
-        # Get Ticket Name. 以后再拆到url那边. 临时用法.
-        ticket_name = self.ticket_data["ticket_type"]
-        if ticket_name == TicketType.MONGODB_RESTORE:
-            flow = MongoRestoreFlow(root_id=self.root_id, data=self.ticket_data)
-        elif ticket_name == TicketType.MONGODB_FULL_BACKUP or ticket_name == TicketType.MONGODB_BACKUP:
-            flow = MongoBackupFlow(root_id=self.root_id, data=self.ticket_data)
-        elif ticket_name == TicketType.MONGODB_INSTALL_DBMON:
-            flow = MongoInstallDBMon(root_id=self.root_id, data=self.ticket_data)
-        else:
-            raise Exception("Unknown ticket name: %s" % ticket_name)
+        MongoBackupFlow(root_id=self.root_id, data=self.ticket_data).start()
 
-        flow.start()
+    def mongo_restore(self):
+        # 发起恢复任务
+        MongoRestoreFlow(root_id=self.root_id, data=self.ticket_data).start()
+
+    def install_dbmon(self):
+        # 部署MongoDB bk-dbmon
+        MongoInstallDBMonFlow(root_id=self.root_id, data=self.ticket_data).start()
+
+    def mongo_remove_ns(self):
+        """
+        发起删除库表任务
+        """
+        MongoRemoveNsFlow(root_id=self.root_id, data=self.ticket_data).start()
 
     def fake_install(self):
         """
@@ -103,12 +102,6 @@ class MongoDBController(BaseController):
 
         flow = MongoRestartInstanceFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_instance_restart_flow()
-
-    def mongo_remove_ns(self):
-        """
-        发起删除库表任务
-        """
-        MongoRemoveNsFlow(root_id=self.root_id, data=self.ticket_data).start()
 
     def machine_replace(self):
         """
