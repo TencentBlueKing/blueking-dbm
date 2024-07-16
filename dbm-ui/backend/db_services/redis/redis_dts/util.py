@@ -136,13 +136,18 @@ def get_cluster_info_by_id(
         if len(resp) > 0 and resp[0].get("result", "") != "":
             databases = int(resp[0]["result"].split("\n")[1])
 
+        cluster_port = one_master.port
+        one_proxy = cluster.proxyinstance_set.first()
+        if one_proxy:
+            cluster_port = one_proxy.port
+
         return {
             "cluster_id": cluster.id,
             "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_domain": cluster.immute_domain,
             "cluster_type": cluster.cluster_type,
             "cluster_password": passwd_ret.get("redis_proxy_password"),
-            "cluster_port": cluster.proxyinstance_set.first().port,
+            "cluster_port": cluster_port,
             "cluster_version": cluster.major_version,
             "cluster_name": cluster.name,
             "cluster_city_name": one_master.machine.bk_city.logical_city.name,
