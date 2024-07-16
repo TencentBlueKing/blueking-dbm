@@ -49,8 +49,9 @@ type SpiderRemotedbSwitchParam struct {
 	// 客户端连接检查
 	ClientConnCheck bool `json:"client_conn_check"`
 	// 数据校验结果检查
-	VerifyChecksum bool         `json:"verify_checksum"`
-	SwitchParis    []SwitchUnit `json:"switch_paris" validate:"required,gt=0,dive"`
+	VerifyChecksum bool `json:"verify_checksum"`
+	// SwitchPairs fix typo from Paris to Pairs, but not change json param
+	SwitchPairs []SwitchUnit `json:"switch_paris" validate:"required,gt=0,dive"`
 	// force: 忽略部分切换前检查
 	Force bool `json:"force"`
 }
@@ -100,7 +101,7 @@ func (r *SpiderClusterBackendSwitchComp) Example() interface{} {
 			ClientConnCheck: true,
 			//	SlaveDelayCheck: true,
 			VerifyChecksum: true,
-			SwitchParis: []SwitchUnit{
+			SwitchPairs: []SwitchUnit{
 				{
 					Master: Instance{
 						Host: "2.2.2.2",
@@ -157,7 +158,7 @@ func (r *SpiderClusterBackendSwitchComp) Init() (err error) {
 	logger.Info("connect backend instance ...")
 	r.mastesConn = make(map[string]*native.DbWorker)
 	r.slavesConn = make(map[string]*native.DbWorker)
-	for _, swpair := range r.Params.SwitchParis {
+	for _, swpair := range r.Params.SwitchPairs {
 		masterAddr := swpair.Master.IpPort()
 		slaveAddr := swpair.Slave.IpPort()
 		masterSvr, ok := ipPortServersMap[masterAddr]
@@ -255,7 +256,7 @@ func connSpiders(servers []native.Server) (conns map[string]*native.DbWorker, lo
 
 // checkReplicationRelation 检查remotedb remotedr 同步关系是否正常
 func (r *SpiderClusterBackendSwitchComp) checkReplicationRelation() (err error) {
-	for _, switch_pair := range r.Params.SwitchParis {
+	for _, switch_pair := range r.Params.SwitchPairs {
 		slaveptname, err := r.getSvrName(switch_pair.Slave.IpPort())
 		if err != nil {
 			return err
@@ -281,7 +282,7 @@ func (r *SpiderClusterBackendSwitchComp) checkReplicationRelation() (err error) 
 }
 
 // func (r *SpiderClusterBackendSwitchComp) checkReplicationStatus() (err error) {
-// 	for _, switch_pair := range r.Params.SwitchParis {
+// 	for _, switch_pair := range r.Params.SwitchPairs {
 // 		slaveptname, err := r.getSvrName(switch_pair.Slave.IpPort())
 // 		if err != nil {
 // 			return err
@@ -349,7 +350,7 @@ func transServersToMap(servers []native.Server) (map[IPPORT]native.Server, map[S
 
 func (r *SpiderClusterBackendSwitchComp) validateServers() (err error) {
 	svrmap := r.ipPortServersMap
-	for _, ms := range r.Params.SwitchParis {
+	for _, ms := range r.Params.SwitchPairs {
 		var mastersvr, slavesvr native.Server
 		var exist bool
 		mh := ms.Master.IpPort()
@@ -524,7 +525,7 @@ func (r *SpiderClusterBackendSwitchComp) PersistenceRollbackFile() (err error) {
 
 func (r *SpiderClusterBackendSwitchComp) recordBinLogPos() (err error) {
 	r.newMasterPosInfos = make(map[string]native.MasterStatusResp)
-	for _, swpair := range r.Params.SwitchParis {
+	for _, swpair := range r.Params.SwitchPairs {
 		conn, ok := r.slavesConn[swpair.Slave.IpPort()]
 		if !ok {
 			return fmt.Errorf("get  %s conn failed", swpair.Slave.IpPort())
@@ -543,7 +544,7 @@ func (r *SpiderClusterBackendSwitchComp) recordBinLogPos() (err error) {
 
 // GrantReplForNewSlave TODO
 func (r *SpiderClusterBackendSwitchComp) GrantReplForNewSlave() (err error) {
-	for _, swpair := range r.Params.SwitchParis {
+	for _, swpair := range r.Params.SwitchPairs {
 		conn, ok := r.slavesConn[swpair.Slave.IpPort()]
 		if !ok {
 			return fmt.Errorf("get  %s conn failed", swpair.Slave.IpPort())
@@ -557,7 +558,7 @@ func (r *SpiderClusterBackendSwitchComp) GrantReplForNewSlave() (err error) {
 
 // StopRepl TODO
 func (r *SpiderClusterBackendSwitchComp) StopRepl() (err error) {
-	for _, swpair := range r.Params.SwitchParis {
+	for _, swpair := range r.Params.SwitchPairs {
 		conn, ok := r.slavesConn[swpair.Slave.IpPort()]
 		if !ok {
 			return fmt.Errorf("get  %s conn failed", swpair.Slave.IpPort())
@@ -585,7 +586,7 @@ func (r *SpiderClusterBackendSwitchComp) grantReplSql(host string) []string {
 func (r *SpiderClusterBackendSwitchComp) ChangeMasterToNewMaster() (err error) {
 	repl_user := r.GeneralParam.RuntimeAccountParam.ReplUser
 	repl_pwd := r.GeneralParam.RuntimeAccountParam.ReplPwd
-	for _, swpair := range r.Params.SwitchParis {
+	for _, swpair := range r.Params.SwitchPairs {
 		conn := r.mastesConn[swpair.Master.IpPort()]
 		pos := r.newMasterPosInfos[swpair.Slave.IpPort()]
 		changeMastersql := fmt.Sprintf(

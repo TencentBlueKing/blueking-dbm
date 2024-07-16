@@ -108,10 +108,13 @@ func (x *Xtrabackup) PostRun() (err error) {
 	if err := x.RepairUserAdmin(native.DBUserAdmin, x.TgtInstance.Pwd, serverVersion); err != nil {
 		return err
 	}
-	logger.Info("repair user '%s' host and password", x.TgtInstance.User)
-	if err := x.RepairUserAdmin(x.TgtInstance.User, x.TgtInstance.Pwd, serverVersion); err != nil {
-		return err
+	if x.TgtInstance.User != native.DBUserAdmin {
+		logger.Info("repair user '%s' host and password", x.TgtInstance.User)
+		if err := x.RepairUserAdmin(x.TgtInstance.User, x.TgtInstance.Pwd, serverVersion); err != nil {
+			return err
+		}
 	}
+
 	logger.Info("repair other user privileges")
 	// 修复权限
 	if err := x.RepairPrivileges(); err != nil {
