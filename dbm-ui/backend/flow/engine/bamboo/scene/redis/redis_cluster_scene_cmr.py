@@ -225,11 +225,7 @@ class RedisClusterCMRSceneFlow(object):
                 cluster_kwargs.cluster["created_by"] = self.data["created_by"]
                 flow_data["sync_type"] = sync_type
                 flow_data["replace_info"] = cluster_replacement
-                redis_pipeline.add_act(
-                    act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
-                    act_component_code=GetRedisActPayloadComponent.code,
-                    kwargs=asdict(cluster_kwargs),
-                )
+
                 sub_pipeline = self.generate_cluster_replacement(flow_data, cluster_kwargs, cluster_replacement)
                 sub_pipelines.append(sub_pipeline)
 
@@ -240,6 +236,11 @@ class RedisClusterCMRSceneFlow(object):
     def generate_cluster_replacement(self, flow_data, act_kwargs, replacement_param):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
 
+        sub_pipeline.add_act(
+            act_name=_("初始化-{}".format(act_kwargs.cluster["immute_domain"])),
+            act_component_code=GetRedisActPayloadComponent.code,
+            kwargs=asdict(act_kwargs),
+        )
         # 先添加Slave替换流程
         if replacement_param.get("redis_slave"):
             slave_kwargs = deepcopy(act_kwargs)
