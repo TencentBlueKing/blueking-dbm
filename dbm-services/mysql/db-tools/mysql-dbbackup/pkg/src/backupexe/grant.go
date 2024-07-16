@@ -28,7 +28,7 @@ func BackupGrant(cfg *config.Public) error {
 		logger.Log.Error("can't send query to Mysql server %v\n", err)
 		return err
 	}
-
+	defer rows.Close()
 	var user string
 	var host string
 
