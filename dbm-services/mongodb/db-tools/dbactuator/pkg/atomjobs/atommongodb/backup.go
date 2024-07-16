@@ -12,6 +12,7 @@ import (
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/logical"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path"
 	"time"
 
@@ -31,7 +32,6 @@ const backupTypePhysical string = "physical" // 未实现
 
 // backupParams 备份任务参数，由前端传入
 type backupParams struct {
-	// 这个参数是不是可以从bk-dbmon.conf中获得？
 	BkDbmInstance         config.BkDbmLabel `json:"bk_dbm_instance"`
 	IP                    string            `json:"ip"`
 	Port                  int               `json:"port"`
@@ -136,15 +136,19 @@ func (s *backupJob) doLogicalBackup() error {
 			partialArgs.DbList, partialArgs.IgnoreDbList,
 			partialArgs.ColList, partialArgs.IgnoreColList)
 
-		cmdLineList, cmdLine, err := helper.DumpPartial(tmpPath, "dump.log", filter)
+		cmdLineList, cmdLine, err, _ := helper.DumpPartial(tmpPath, "dump.log", filter)
 
 		if err != nil {
-			s.runtime.Logger.Error("exec cmd fail, cmd: %s, error:%s", cmdLine, err)
-			return errors.Wrap(err, "LogicalDumpPartial")
+			if errors.Is(err, logical.ErrorNoMatchDb) {
+				s.runtime.Logger.Warn("NoMatchDb")
+				return nil
+			} else {
+				s.runtime.Logger.Error("exec cmd fail, cmd: %s, error:%s", cmdLine, err)
+				return errors.Wrap(err, "LogicalDumpPartial")
+			}
 		}
 		s.runtime.Logger.Info("exec cmd success, cmd: %+v", cmdLineList)
 	} else {
-		// backupType = "dumpAll"
 		cmdLine, err := helper.LogicalDumpAll(tmpPath, "dump.log")
 		if err != nil {
 			s.runtime.Logger.Error("exec cmd fail, cmd: %s, error:%s", cmdLine, err)
@@ -180,6 +184,13 @@ func (s *backupJob) doLogicalBackup() error {
 	endTime = time.Now()
 	fSize, _ := util.GetFileSize(tarPath)
 	s.runtime.Logger.Info("backup file: %s size: %d", tarPath, fSize)
+
+	err = os.Chmod(tarPath, 0744)
+	if err != nil {
+		s.runtime.Logger.Error("chmod 0744 %s, err:%v", tarPath, err)
+		return errors.Wrap(err, "chmod")
+	}
+
 	// 上报备份记录。
 	task, err := backupsys.UploadFile(tarPath, s.ConfParams.BsTag)
 	// 如果此处失败，任务失败。

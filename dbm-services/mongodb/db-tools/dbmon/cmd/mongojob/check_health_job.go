@@ -42,6 +42,7 @@ type CheckHealthJob struct { // NOCC:golint/naming(其他:设计如此)
 }
 
 const mongoBin = "/usr/local/mongodb/bin/mongo"
+const startMongoScript = "/usr/local/mongodb/bin/start_mongo.sh"
 
 // Run 执行例行备份. 被cron对象调用
 func (job *CheckHealthJob) Run() {
@@ -94,9 +95,9 @@ func (job *CheckHealthJob) runOneServer(svrItem *config.ConfServerItem) {
 		return
 	}
 
-	// 不存在，尝试启动
-	//  启动成功: 发送消息LoginSuccess
-	//  启动失败: 发送消息LoginFailed
+	// 进程不存在，尝试启动
+	// 启动成功: 发送消息LoginSuccess
+	// 启动失败: 发送消息LoginFailed
 	startMongo(svrItem.Port)
 	err = checkService(loginTimeout, svrItem)
 	if err == nil {
@@ -161,8 +162,9 @@ func checkService(loginTimeout int, svrItem *config.ConfServerItem) error {
 }
 
 func startMongo(port int) error {
-	cmd := "/usr/local/mongodb/bin/start.sh"
-	_, err := DoCommandWithTimeout(60, cmd, fmt.Sprintf("%d", port))
+	ret, err := DoCommandWithTimeout(60, startMongoScript, fmt.Sprintf("%d", port))
+	mylog.Logger.Info(fmt.Sprintf("exec %s return err:%v", ret.Cmdline, err))
+
 	if err != nil {
 		return err
 	}

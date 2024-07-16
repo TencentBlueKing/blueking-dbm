@@ -100,8 +100,8 @@ func (bm *BkMonitorEventSender) SendTimeSeriesMsg(dataId int64, token string, ta
 		"-report.message.kind", "timeseries",
 		"-report.agent.address", bm.AgentAddress,
 		"-report.message.body", string(tempBytes))
-	mylog.Logger.Info(sendCmd.GetCmdLine("", false))
 	_, err = sendCmd.Run2(20 * time.Second)
+	mylog.Logger.Info(fmt.Sprintf("%s err: %v", sendCmd.GetCmdLine("", false), err))
 	return
 }
 

@@ -5,6 +5,8 @@ import (
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/backupsys"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/report"
+	"os"
+	"path/filepath"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -97,6 +99,7 @@ func backupIncrForPrevFull(option *BackupOption, bm *BackupMetaV2,
 }
 
 func uploadFileAndAppendToReportFile(option *BackupOption, result *BackupFileName) {
+
 	task, err := sendToBackupSystem(option, result)
 	if err == nil {
 		log.Infof("sendToBackupSystem file: %s, taskid: %s err:%v", task.FilePath, task.TaskId, err)
@@ -164,6 +167,24 @@ func canSkip(option *BackupOption, lastFull, lastIncr *BackupFileName, now time.
 	return isSkip
 }
 
+// setOtherReadPerm 设置文件的perm 0744，父目录的perm 为0755
+func setOtherReadPerm(filePath string) error {
+	var err error
+	if err = os.Chmod(filePath, 0744); err != nil {
+		return err
+	}
+
+	dirName := filepath.Dir(filePath)
+	if dirName == "/" {
+		return nil
+	}
+
+	if err = os.Chmod(filePath, 0755); err != nil {
+		return err
+	}
+	return nil
+}
+
 func sendToBackupSystem(option *BackupOption, backupRec *BackupFileName) (task *backupsys.TaskInfo, err error) {
 	if !option.SendToBackupSystem {
 		task = &backupsys.TaskInfo{
@@ -177,6 +198,7 @@ func sendToBackupSystem(option *BackupOption, backupRec *BackupFileName) (task *
 	} else {
 		fileTag = option.IncrTag
 	}
+	setOtherReadPerm(backupRec.FileName)
 	if task, err = backupsys.UploadFile(backupRec.FileName, fileTag); err != nil {
 		log.Warnf("UploadFile failed %v", err)
 		return

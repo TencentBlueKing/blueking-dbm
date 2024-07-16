@@ -30,12 +30,12 @@ type pitrRecoverParam struct {
 	Port            int    `json:"port"`
 	AdminUsername   string `json:"adminUsername"`
 	AdminPassword   string `json:"adminPassword"`
-	InstanceType    string `json:"instanceType"`
 	SrcAddr         string `json:"srcAddr"`        // ip:port
 	RecoverTimeStr  string `json:"recoverTimeStr"` // recoverTime yyyy-mm-ddTHH:MM:SS
 	DryRun          bool   `json:"dryRun"`         // 测试模式
 	Dir             string `json:"dir"`            // 备份文件存放目录.
 	recvoerTimeUnix uint32 `json:"-"`
+	//	InstanceType    string `json:"instanceType"`
 }
 
 type pitrRecoverJob struct {
@@ -97,7 +97,6 @@ func (s *pitrRecoverJob) checkDstMongo() error {
 	}
 	var notEmptyDb []string
 	for _, db := range dbList {
-
 		if mymongo.IsSysDb(db) {
 			continue
 		}

@@ -24,7 +24,7 @@ type BkDbmLabel struct {
 	BkCloudID     int64  `json:"bk_cloud_id" mapstructure:"bk_cloud_id" yaml:"bk_cloud_id"`
 	BkBizID       int    `json:"bk_biz_id" mapstructure:"bk_biz_id" yaml:"bk_biz_id" yaml:"bk_biz_id"`
 	App           string `json:"app" mapstructure:"app" yaml:"app"`
-	AppName       string `json:"app_name" mapstructure:"-" yaml:"app_name"`
+	AppName       string `json:"app_name" mapstructure:"app_name" yaml:"app_name"`
 	ClusterDomain string `json:"cluster_domain" mapstructure:"cluster_domain" yaml:"cluster_domain"`
 	ClusterId     int64  `json:"cluster_id" mapstructure:"cluster_id" yaml:"cluster_id"`
 	ClusterName   string `json:"cluster_name" mapstructure:"cluster_name" yaml:"cluster_name"`

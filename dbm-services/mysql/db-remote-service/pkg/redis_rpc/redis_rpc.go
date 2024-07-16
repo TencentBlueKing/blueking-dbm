@@ -4,6 +4,7 @@ package redis_rpc
 import (
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -13,9 +14,25 @@ import (
 type RedisRPCEmbed struct {
 }
 
+// WebConsoleMode webconsole mode, using redis-cli to execute command
+const WebConsoleMode = "webconsole"
+
 // NewRedisRPCEmbed TODO
 func NewRedisRPCEmbed() *RedisRPCEmbed {
 	return &RedisRPCEmbed{}
+}
+
+// IsAdminCommand 是否为admin类的指令
+// 也许应该放开cluster nodes, info 之类.
+func (r *RedisRPCEmbed) IsAdminCommand(cmdArgs []string) bool {
+	if len(cmdArgs) == 0 {
+		return false
+	}
+	cmd := strings.ToLower(cmdArgs[0])
+	if _, ok := RedisCommandTable[cmd]; !ok {
+		return false
+	}
+	return strings.Contains(RedisCommandTable[cmd].Sflags, adminFlag)
 }
 
 // IsQueryCommand redis 解析命令
@@ -118,8 +135,20 @@ func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 			return
 		}
 
-		// ret, err := DoRedisCmd(address, password, formatCmd, strconv.Itoa(param.DbNum), true)
-		ret, err := DoRedisCmdNew(address, password, formatCmd, param.DbNum)
+		var ret string
+		// webConsole模式，不支持管理类命令
+		if param.ClientType == WebConsoleMode {
+			if r.IsAdminCommand(cmdArgs) {
+				slog.Error("RedisRPCEmbed is admin command, not support", slog.String("command", formatCmd))
+				SendResponse(c, 1, fmt.Sprintf("non-support admin command:'%s'", formatCmd), nil)
+				return
+			}
+
+			ret, err = DoRedisCmd(address, password, formatCmd, strconv.Itoa(param.DbNum), param.Raw)
+		} else {
+			ret, err = DoRedisCmdNew(address, password, formatCmd, param.DbNum)
+		}
+
 		if err != nil {
 			slog.Error("RedisRPCEmbed execute command", err,
 				slog.String("address", address),

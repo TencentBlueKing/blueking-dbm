@@ -31,6 +31,10 @@ type RedisQueryParams struct {
 	DbNum     int      `json:"db_num"`
 	Password  string   `json:"password"`
 	Command   string   `json:"command"`
+	// ClientType webconsole or 其它任何值。 当这个值为webconsole时，调用redis-cli执行命令.
+	ClientType string `json:"client_type,omitempty"`
+	// Raw 只对ClientType为webconsole时生效. 为redis-cli添加--raw参数 raw模式下，能返回中文. 默认为false
+	Raw bool `json:"raw,omitempty"`
 }
 
 // StringWithoutPasswd 打印参数，不打印密码
@@ -77,7 +81,7 @@ func FormatName(msg string) (string, error) {
 	return stringMsg, nil
 }
 
-// DoRedisCmd 执行redis命令
+// DoRedisCmd 执行redis命令 by redis-cli
 func DoRedisCmd(address, redisPass, cmdline, dbNum string, raw bool) (string, error) {
 	splitList := strings.Split(address, ":")
 	redisHost, redisPort := splitList[0], splitList[1]
@@ -126,7 +130,7 @@ func DoRedisCmd(address, redisPass, cmdline, dbNum string, raw bool) (string, er
 	return string(out), nil
 }
 
-// DoRedisCmdNew 执行redis命令
+// DoRedisCmdNew 执行redis命令 by go driver
 func DoRedisCmdNew(address, redisPass, cmd string, dbNum int) (ret string, err error) {
 	var strBuilder strings.Builder
 	cli, err := NewRedisClientWithTimeout(address, redisPass, dbNum, time.Second*2)

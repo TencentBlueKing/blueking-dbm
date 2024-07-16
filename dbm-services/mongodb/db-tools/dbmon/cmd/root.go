@@ -95,16 +95,15 @@ Wait each job finish,the job result would write to local file, and other program
 			entryID, err = c.AddJob(row.cron,
 				cron.NewChain(cron.SkipIfStillRunning(mylog.AdapterLog)).Then(row.job))
 			if err != nil {
-				log.Panicf("addjob fail,jobName: %s entryID:%d,err:%v\n", row.name, entryID, err)
+				log.Panicf("addjob fail,jobName: %s entryID:%d,err:%v", row.name, entryID, err)
 				return
 			}
-			mylog.Logger.Info(fmt.Sprintf("AddJob %s, entryID:%d ", row.name, entryID))
 			mylog.Logger.Info("AddJob success",
 				zapcore.Field{Key: "jobName", Type: zapcore.StringType, String: row.name},
 				zapcore.Field{Key: "entryID", Type: zapcore.Int64Type, Integer: int64(entryID)},
 			)
 		}
-		mylog.Logger.Info(fmt.Sprintf("start dbmon, Listen:%s\n", config.GlobalConf.HttpAddress))
+		mylog.Logger.Info(fmt.Sprintf("start dbmon, Listen:%s", config.GlobalConf.HttpAddress))
 		c.Start()
 		// go func() {
 		//	// for go tool pprof. curl http://127.0.0.1:6600/debug/pprof/heap

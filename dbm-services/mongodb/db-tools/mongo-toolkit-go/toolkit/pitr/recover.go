@@ -175,15 +175,15 @@ func DoMongoRestoreFULL(bin string, conn *mymongo.MongoHost, file *BackupFileNam
 	restoreCmd := mycmd.New(bin, "--host", conn.Host, "--port", conn.Port,
 		"--authenticationDatabase", conn.AuthDb, "--oplogReplay")
 	if len(conn.User) > 0 {
-		restoreCmd.AppendArg("-u", conn.User)
+		restoreCmd.Append("-u", conn.User)
 	}
 	if len(conn.Pass) > 0 {
-		restoreCmd.AppendArg("-p", mycmd.Password(conn.Pass))
+		restoreCmd.Append("-p", mycmd.Password(conn.Pass))
 	}
 	if gzip {
-		restoreCmd.AppendArg("--gzip")
+		restoreCmd.Append("--gzip")
 	}
-	restoreCmd.AppendArg("--dir", dumpDir)
+	restoreCmd.Append("--dir", mycmd.Val(dumpDir))
 	errReader, errWriter := io.Pipe()
 	var outBuf, errBuf bytes.Buffer
 	bgCmd := mycmd.NewExecCmdBg()

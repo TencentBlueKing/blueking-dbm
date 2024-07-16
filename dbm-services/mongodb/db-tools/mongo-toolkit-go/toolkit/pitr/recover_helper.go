@@ -7,15 +7,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ParseTimeStr 解析时间字符串 TODO: 改为RFC3339格式
+// ParseTimeStr 解析时间字符串
+// timeStr 合法格式为 "2006-01-02T15:04:05[+=08:00]" 默认为Asia/Chongqing
 func ParseTimeStr(timeStr string) (uint32, error) {
 	var recoverTime uint32
 	loc, _ := time.LoadLocation("Asia/Chongqing")
-	if tv, err := time.ParseInLocation("2006-01-02T15:04:05", timeStr, loc); err == nil {
+	tv, err := time.ParseInLocation("2006-01-02T15:04:05", timeStr, loc)
+	if err == nil {
+		recoverTime = uint32(tv.Unix())
+		return recoverTime, nil
+	}
+	tv, err = time.Parse(time.RFC3339, timeStr)
+	if err == nil {
 		recoverTime = uint32(tv.Unix())
 		return recoverTime, nil
 	} else {
-		return 0, errors.Wrap(err, "time.ParseInLocation")
+		return 0, errors.Wrap(err, "ParseTimeStr")
 	}
 
 }

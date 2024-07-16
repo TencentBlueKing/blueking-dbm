@@ -72,6 +72,7 @@ func (job *installDbmonJob) Name() string {
 func (job *installDbmonJob) Run() error {
 	// 生成配置文件 updateDbTool updateDbmon startDbmon
 	return job.runSteps([]stepFunc{
+		{"mkExporterConfigFile", job.mkExporterConfigFile},
 		{"updateConfigFile", job.updateConfigFile},
 		{"updateDbTool", job.updateDbTool},
 		{"updateToolKit", job.updateToolKit},
@@ -156,6 +157,21 @@ func compareServers(old, new []config.ConfServerItem) bool {
 	return true
 }
 
+// mkExporterConfigFile exporter需要的用户和密码.
+func (job *installDbmonJob) mkExporterConfigFile() error {
+	var err error
+	for _, s := range job.params.Servers {
+		err = common.WriteExporterConfigFile(s.Port, map[string]string{
+			"username": s.UserName,
+			"password": s.Password,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (job *installDbmonJob) updateConfigFile() error {
 	// consts.BkDbmonPath
 	configFile := consts.BkDbmonConfFile
@@ -174,11 +190,20 @@ func (job *installDbmonJob) updateConfigFile() error {
 	}
 
 	if oldConf != nil {
-		if oldConf.ReportSaveDir == conf.ReportSaveDir &&
-			oldConf.ReportLeftDay == conf.ReportLeftDay &&
-			oldConf.HttpAddress == conf.HttpAddress &&
-			oldConf.BkMonitorBeat == conf.BkMonitorBeat &&
-			compareServers(oldConf.Servers, conf.Servers) {
+		eq := make(map[string]bool)
+		eq["ReportSaveDir"] = oldConf.ReportSaveDir == conf.ReportSaveDir
+		eq["ReportLeftDay"] = oldConf.ReportLeftDay == conf.ReportLeftDay
+		eq["HttpAddress"] = oldConf.HttpAddress == conf.HttpAddress
+		eq["BkMonitorBeat"] = reflect.DeepEqual(oldConf.BkMonitorBeat, conf.BkMonitorBeat)
+		eq["Servers"] = compareServers(oldConf.Servers, conf.Servers)
+		ndiff := 0
+		for fieldName, same := range eq {
+			if !same {
+				ndiff++
+				job.runtime.Logger.Info("config file %s %q has been changed", configFile, fieldName)
+			}
+		}
+		if ndiff == 0 {
 			job.runtime.Logger.Info("config file %s has not been changed", configFile)
 			return nil
 		}
@@ -195,8 +220,6 @@ func (job *installDbmonJob) updateConfigFile() error {
 			err = cpfile(srcFile, dstFile)
 			if err != nil {
 				job.runtime.Logger.Warn("cpfile %s to %s failed, err:%v", srcFile, dstFile, err)
-			} else {
-				job.runtime.Logger.Info("cpfile %s to %s success", srcFile, dstFile)
 			}
 		}
 	}
@@ -236,18 +259,20 @@ func (job *installDbmonJob) updateToolKit() error {
 	prevFile := path.Join(consts.PackageCachePath, fileName)
 	newFile := path.Join(consts.PackageSavePath, fileName)
 	dstDir := "/home/mysql/dbtools/mg/"
+	dstFile := path.Join(dstDir, fileName)
 	util.MkDirsIfNotExists([]string{dstDir})
 	skipped, err := untarMedia(prevFile, newFile, dstDir)
 	if err != nil {
-		return errors.Wrap(err, "updateDbTool")
+		return errors.Wrap(err, "updateToolKit")
 	}
 	if skipped {
 		job.runtime.Logger.Info(
-			"updateDbTool %s to %s skipped. Because the MD5 value of the file has not changed.",
+			"updateToolKit %s to %s skipped. Because the MD5 value of the file has not changed.",
 			newFile, dstDir)
 		return nil
 	}
-	job.runtime.Logger.Info("updateDbTool %s to %s done", newFile, dstDir)
+	os.Chmod(dstFile, 0755)
+	job.runtime.Logger.Info("updateToolKit %s to %s done", newFile, dstDir)
 	cpfile(newFile, prevFile) // 只在成功untar后才能cp
 	return nil
 }
@@ -283,7 +308,7 @@ func (job *installDbmonJob) startDbmon() error {
 	job.updateDbmonFlag = true // always restart bk-dbmon
 
 	if isRunning {
-		job.runtime.Logger.Info("bk-dbmon is running, and md5 is changed. no need to restart. ")
+		job.runtime.Logger.Info("bk-dbmon is running, and md5 is changed, restart dbmon")
 		if err := exec.Command("kill", "-9", strconv.Itoa(pid)).Run(); err != nil {
 			return errors.Wrap(err, "kill -9")
 		} else {
@@ -293,12 +318,14 @@ func (job *installDbmonJob) startDbmon() error {
 	} else {
 		job.runtime.Logger.Info("bk-dbmon is not running")
 	}
+	cmd := mycmd.New("/home/mysql/bk-dbmon/start.sh")
+	job.runtime.Logger.Info("exec %s", cmd.GetCmdLine2(false))
+	cmd.Run(30 * time.Second)
 
-	pid, err = startDbmon(consts.BkDbmonBin, consts.BkDbmonConfFile, "output.log")
+	pid, err = dbmonIsRunning(consts.BkDbmonBin)
 	if err != nil || pid <= 0 {
-		return errors.Errorf("start dbmon failed, err:%v, pid:%d", err, pid)
+		return errors.New("bk-dbmon start failed")
 	}
-
 	job.runtime.Logger.Info("start dbmon success, pid:%d", pid)
 	return nil
 }
@@ -340,7 +367,6 @@ func untarMedia(prevFile, newFile, dstDir string) (skipped bool, err error) {
 		}
 	}
 
-	// 是否要将output打印出来呢？不了吧，太多了.
 	return
 }
 
@@ -406,17 +432,4 @@ func dbmonIsRunning(comm string) (pid int, err error) {
 		}
 	}
 	return 0, nil
-}
-
-func startDbmon(dbmonBin, configFilePath, outputFileName string) (pid int, err error) {
-	if !util.FileExists(dbmonBin) {
-		err = errors.New("dbmonBin not exists")
-
-	}
-	if err = os.Chdir(path.Dir(dbmonBin)); err != nil {
-		err = errors.Wrap(err, "os.Chdir")
-		return
-	}
-
-	return mycmd.New(dbmonBin, "--config", path.Base(configFilePath)).RunBackground(outputFileName)
 }
