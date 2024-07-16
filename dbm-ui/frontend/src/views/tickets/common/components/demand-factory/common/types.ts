@@ -11,6 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { SpecInfo } from '@services/model/ticket/details/common';
+import type { MySQLExportData } from '@services/model/ticket/details/mysql';
 import type { clustersItems } from '@services/types/ticket';
 
 import { ClusterTypes } from '@common/const';
@@ -299,4 +300,6 @@ export type TicketDetailTypes =
   | SqlserverDbBackup
   | SqlserverAuthorizeRules
   | SpiderMigrateCluster
-  | RedisHaApply;
+  | SpiderMigrateCluster
+  | RedisHaApply
+  | MySQLExportData;

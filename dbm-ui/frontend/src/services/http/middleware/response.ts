@@ -9,28 +9,18 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-import type {
-  AxiosError,
-  AxiosInterceptorManager,
-  AxiosResponse,
-} from 'axios';
+ */
+import type { AxiosError, AxiosInterceptorManager, AxiosResponse } from 'axios';
 
 import IamApplyDataModel from '@services/model/iam/apply-data';
 
 import { useEventBus } from '@hooks';
 
-import {
-  downloadFile,
-  messageError,
-  parseURL,
-  permissionDialog,
-} from '@utils';
+import { downloadFile, messageError, parseURL, permissionDialog } from '@utils';
 
 import { showLoginModal } from '@blueking/login-modal';
 
 import RequestError from '../lib/request-error';
-
 
 // 标记已经登录过状态
 // 第一次登录跳转登录页面，之后弹框登录
@@ -68,49 +58,49 @@ const handlePermission = (error: RequestError) => {
 };
 
 export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
-  interceptors.use((response: AxiosResponse) => {
-    // 处理http响应成功，后端返回逻辑
-    switch (response.data.code) {
-      // 后端业务逻辑处理成功
-      case 0:
-        hasLogined = true;
-        return response.data;
-      default: {
-        // 文件的字节流
-        if (response.headers['content-type'] === 'application/octet-stream') {
-          downloadFile(response);
+  interceptors.use(
+    (response: AxiosResponse) => {
+      // 处理http响应成功，后端返回逻辑
+      switch (response.data.code) {
+        // 后端业务逻辑处理成功
+        case 0:
+          hasLogined = true;
           return response.data;
+        default: {
+          // 文件的字节流
+          if (response.headers['content-type'] === 'application/octet-stream') {
+            downloadFile(response);
+            return response.data;
+          }
+          // 后端逻辑处理报错
+          const { code, message = '系统错误' } = response.data;
+          throw new RequestError(code, message, response);
         }
-        // 后端逻辑处理报错
-        const { code, message = '系统错误' } = response.data;
-        throw new RequestError(code, message, response);
       }
-    }
-  }, (error: AxiosError<{ message: string }> & { __CANCEL__: any }) => {
-    // 超时取消
-    if (error.__CANCEL__) { // eslint-disable-line no-underscore-dangle
-      return Promise.reject(new RequestError('CANCEL', '请求已取消'));
-    }
-    // 处理 http 错误响应逻辑
-    if (error.response) {
-      // 登录状态失效
-      if (error.response.status === 401) {
-        return Promise.reject(new RequestError(401, '登录状态失效', error.response));
+    },
+    (error: AxiosError<{ message: string }> & { __CANCEL__: any }) => {
+      // 超时取消
+      // eslint-disable-next-line no-underscore-dangle
+      if (error.__CANCEL__) {
+        return Promise.reject(new RequestError('CANCEL', '请求已取消'));
       }
-      // 默认使用 http 错误描述，
-      // 如果 response body 里面有自定义错误描述优先使用
-      let errorMessage = error.response.statusText;
-      if (error.response.data && error.response.data.message) {
-        errorMessage = error.response.data.message as string;
+      // 处理 http 错误响应逻辑
+      if (error.response) {
+        // 登录状态失效
+        if (error.response.status === 401) {
+          return Promise.reject(new RequestError(401, '登录状态失效', error.response));
+        }
+        // 默认使用 http 错误描述，
+        // 如果 response body 里面有自定义错误描述优先使用
+        let errorMessage = error.response.statusText;
+        if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message as string;
+        }
+        return Promise.reject(new RequestError(error.response.status || -1, errorMessage, error.response));
       }
-      return Promise.reject(new RequestError(
-        error.response.status || -1,
-        errorMessage,
-        error.response,
-      ));
-    }
-    return Promise.reject(new RequestError(-1, `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX} 无法访问`));
-  });
+      return Promise.reject(new RequestError(-1, `${window.PROJECT_ENV.VITE_AJAX_URL_PREFIX} 无法访问`));
+    },
+  );
 
   // 统一错误处理逻辑
   interceptors.use(undefined, (error: RequestError) => {
