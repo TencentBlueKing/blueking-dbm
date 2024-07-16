@@ -237,24 +237,21 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisProxyScaleUp',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
+        createTicket(params).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'RedisProxyScaleUp',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
           });
-      },
-    });
+        }).finally(() => {
+          isSubmitting.value = false;
+        });
+      } });
   };
 
   const handleReset = () => {
