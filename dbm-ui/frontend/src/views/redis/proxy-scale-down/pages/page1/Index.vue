@@ -233,10 +233,6 @@
               },
             });
           })
-          .catch((e) => {
-            console.error('submit proxy scale down error: ', e);
-            window.changeConfirm = false;
-          })
           .finally(() => {
             isSubmitting.value = false;
           });

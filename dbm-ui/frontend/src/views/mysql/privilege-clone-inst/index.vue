@@ -507,11 +507,11 @@
             isSubmitting.value = false;
             messageError(res.message);
           })
-          .catch(() => {
+          .finally(() => {
             isSubmitting.value = false;
           });
       })
-      .catch(() => {
+      .finally(() => {
         isSubmitting.value = false;
       });
   }
