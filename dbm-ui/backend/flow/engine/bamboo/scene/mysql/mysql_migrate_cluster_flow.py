@@ -15,6 +15,8 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
+from backend.components import DBConfigApi
+from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
@@ -26,6 +28,7 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
+    sync_mycnf_item_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
@@ -199,6 +202,35 @@ class MySQLMigrateClusterFlow(object):
                 kwargs=asdict(exec_act_kwargs),
             )
             install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装实例")))
+
+            # 同步配置
+            sync_mycnf_sub_pipeline_list = []
+            for cluster_id in self.data["cluster_ids"]:
+                cluster_model = Cluster.objects.get(id=cluster_id)
+                master_model = cluster_model.storageinstance_set.get(
+                    instance_inner_role=InstanceInnerRole.MASTER.value
+                )
+                sync_mycnf_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+                sync_mycnf_sub_pipeline.add_sub_pipeline(
+                    sub_flow=sync_mycnf_item_sub_flow(
+                        uid=self.data["uid"],
+                        root_id=self.root_id,
+                        bk_cloud_id=self.data["bk_cloud_id"],
+                        src_host=self.data["master_ip"],
+                        src_port=master_model.port,
+                        master_slave_hosts=[self.data["new_slave_ip"], self.data["new_master_ip"]],
+                        dest_port=master_model.port,
+                        var_list=[
+                            "collation_server",
+                            "collation_database",
+                            "collation_connection",
+                            "lower_case_table_names",
+                        ],
+                    )
+                )
+                sync_mycnf_sub_pipeline_list.append(
+                    sync_mycnf_sub_pipeline.build_sub_process(_("{}:同步配置到新的主从实例上").format(cluster_model.immute_domain))
+                )
 
             sync_data_sub_pipeline_list = []
             for cluster_id in self.data["cluster_ids"]:
@@ -388,6 +420,8 @@ class MySQLMigrateClusterFlow(object):
 
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
+            # 同步配置
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_mycnf_sub_pipeline_list)
             # 数据同步
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
             #  新机器安装周边组件
@@ -418,6 +452,34 @@ class MySQLMigrateClusterFlow(object):
                     cluster_type=ClusterType.TenDBHA.value,
                 )
             )
+            # 如果是做升级版本的话 则更新集群模块id
+            if use_for_upgrade:
+                data = DBConfigApi.query_conf_item(
+                    {
+                        "bk_biz_id": str(self.data["bk_biz_id"]),
+                        "level_name": LevelName.MODULE,
+                        "level_value": db_module_id,
+                        "conf_file": "deploy_info",
+                        "conf_type": "deploy",
+                        "namespace": ClusterType.TenDBHA.value,
+                        "format": FormatType.MAP,
+                    }
+                )["content"]
+                major_version = data["db_version"]
+                tendb_migrate_pipeline.add_act(
+                    act_name=_("更新集群模块"),
+                    act_component_code=MySQLDBMetaComponent.code,
+                    kwargs=asdict(
+                        DBMetaOPKwargs(
+                            db_meta_class_func=MySQLDBMeta.update_cluster_module.__name__,
+                            cluster={
+                                "cluster_ids": self.data["cluster_ids"],
+                                "new_module_id": info["new_db_module_id"],
+                                "major_version": major_version,
+                            },
+                        )
+                    ),
+                )
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # 卸载remote节点

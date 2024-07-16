@@ -162,7 +162,7 @@ func (m *MysqlUpgradeComp) PreCheck() (err error) {
 			return err
 		}
 		if len(pls) > 0 {
-			return fmt.Errorf("Exist dirty processlist:%v in %d", pls, port)
+			return fmt.Errorf("exist dirty processlist:%v in %d", pls, port)
 		}
 	}
 	if m.Params.Run {
@@ -627,7 +627,7 @@ func (m MysqlUpgradeComp) additionalActions(conn *native.DbWorker, port int) (er
 	}
 	if currentVersion.IsToku && currentVersion.TmysqlVersion <= native.TMYSQL_2P1 &&
 		m.newVersion.TmysqlVersion >= native.TMYSQL_2P1P1 {
-		tokudbRenameTablesql := fmt.Sprintf("rename_tokudb_table.sql")
+		tokudbRenameTablesql := "rename_tokudb_table.sql"
 		if cmutil.FileExists(tokudbRenameTablesql) {
 			os.Remove(tokudbRenameTablesql)
 		}

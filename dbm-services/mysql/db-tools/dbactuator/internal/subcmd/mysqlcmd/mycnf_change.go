@@ -71,15 +71,15 @@ func (d *MycnfChangeAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
 			FunName: "加载配置文件",
-			Func:    d.Payload.Params.Init,
+			Func:    d.Payload.Init,
 		},
 		{
 			FunName: "预检查",
-			Func:    d.Payload.Params.PreCheck,
+			Func:    d.Payload.PreCheck,
 		},
 		{
 			FunName: "修改配置",
-			Func:    d.Payload.Params.Start,
+			Func:    d.Payload.Start,
 		},
 	}
 

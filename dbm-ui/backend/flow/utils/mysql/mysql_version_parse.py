@@ -49,6 +49,32 @@ def mysql_version_parse(mysql_version: str) -> int:
     return total
 
 
+# 解析tmysql 版本号码
+# mysql-5.6.24-linux-x86_64-tmysql-2.1.5-gcs
+# 解析 tmysql-2.1.5 成数字 2.1.5  => 2 * 1000000 + 1 * 1000 + 5
+def tmysql_version_parse(mysql_version: str) -> int:
+    re_pattern = r"tmysql-([\d]+).?([\d]+)?.?([\d]+)?"
+    result = re.findall(re_pattern, mysql_version)
+
+    if len(result) == 0:
+        return 0
+
+    billion, thousand, single = result[0]
+
+    total = 0
+
+    if billion != "":
+        total += int(billion) * 1000000
+
+    if thousand != "":
+        total += int(thousand) * 1000
+
+    if single != "":
+        total += int(single)
+
+    return total
+
+
 def proxy_version_parse(proxy_version: str) -> int:
     re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
     result = re.findall(re_pattern, proxy_version)

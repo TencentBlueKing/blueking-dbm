@@ -95,10 +95,10 @@ func (c *MycnfCloneParam) Init() error {
 		ignoreUnknownVars = true
 	}
 	c.mycnfChange = &MycnfChangeParam{
-		Restart:     c.Restart,
-		Persistent:  c.Persistent,
-		Items:       map[string]*ConfItemOp{},
-		TgtInstance: c.TgtInstance,
+		Restart:    c.Restart,
+		Persistent: c.Persistent,
+		Items:      map[string]*ConfItemOp{},
+		//	TgtInstance: c.TgtInstance,
 	}
 	srcDB, err := c.SrcInstance.Conn()
 	if err != nil {
@@ -123,26 +123,26 @@ func (c *MycnfCloneParam) Init() error {
 		}
 	}
 
-	if err := c.mycnfChange.Init(); err != nil {
-		return err
-	}
+	// if err := c.mycnfChange.Init(); err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
 // PreCheck TODO
 func (c *MycnfCloneParam) PreCheck() error {
 
-	if err := c.mycnfChange.PreCheck(); err != nil {
-		return err
-	}
+	// if err := c.mycnfChange.PreCheck(); err != nil {
+	// 	return err
+	// }
 	logger.Info(" MycnfCloneParam.PreCheck %v", c)
 	return nil
 }
 
 // Start TODO
 func (c *MycnfCloneParam) Start() error {
-	if err := c.mycnfChange.Start(); err != nil {
-		return err
-	}
+	// if err := c.mycnfChange.Start(); err != nil {
+	// 	return err
+	// }
 	return nil
 }

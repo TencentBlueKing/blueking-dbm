@@ -11,10 +11,14 @@ specific language governing permissions and limitations under the License.
 
 from django.db import transaction
 
+from backend.configuration.constants import DBType
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import StorageInstance
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum
+from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
 
 
@@ -54,6 +58,9 @@ class TenDBSingleClusterHandler(ClusterHandler):
         )
         new_clusters = []
         new_storage_objs = []
+        mysql_pkg = Package.get_latest_package(version=major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
+        mysql_real_ver = get_mysql_real_version(mysql_pkg.name)
+
         for cluster in clusters:
             storage = {"ip": ip, "port": cluster["mysql_port"]}
             immute_domain = cluster["master"]
@@ -65,6 +72,7 @@ class TenDBSingleClusterHandler(ClusterHandler):
                             "port": cluster["mysql_port"],
                             "instance_role": InstanceRole.ORPHAN.value,
                             "bk_cloud_id": bk_cloud_id,
+                            "db_version": mysql_real_ver,
                         }
                     ],
                     creator=creator,
