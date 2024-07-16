@@ -59,15 +59,31 @@ class AddTempUserForClusterService(BaseService):
         根据cluster对象获取所有的cluster需要实例信息
         """
         inst_list = []
-        for inst in cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING):
-            inst_list.append({"instance": inst.ip_port, "priv_role": MachinePrivRoleMap.get(inst.machine_type)})
+        for inst in cluster.storageinstance_set.all():
+            inst_list.append(
+                {
+                    "instance": inst.ip_port,
+                    "priv_role": MachinePrivRoleMap.get(inst.machine_type),
+                    "cmdb_status": inst.status,
+                }
+            )
         if cluster.cluster_type == ClusterType.TenDBCluster:
             # 获取tendb cluster集群所有spider实例
-            for inst in cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING):
-                inst_list.append({"instance": inst.ip_port, "priv_role": MachinePrivRoleMap.get(inst.machine_type)})
+            for inst in cluster.proxyinstance_set.all():
+                inst_list.append(
+                    {
+                        "instance": inst.ip_port,
+                        "priv_role": MachinePrivRoleMap.get(inst.machine_type),
+                        "cmdb_status": inst.status,
+                    }
+                )
             # 获取tendb cluster集群所有tdbctl实例,只给中控primary授权，权限同步到每个节点
             inst_list.append(
-                {"instance": cluster.tendbcluster_ctl_primary_address(), "priv_role": PrivRole.TDBCTL.value}
+                {
+                    "instance": cluster.tendbcluster_ctl_primary_address(),
+                    "priv_role": PrivRole.TDBCTL.value,
+                    "cmdb_status": InstanceStatus.RUNNING.value,
+                }
             )
 
         return inst_list
@@ -119,7 +135,13 @@ class AddTempUserForClusterService(BaseService):
                 common_param["hosts"] = ["localhost", inst["instance"].split(":")[0]]
                 common_param["role"] = inst["priv_role"]
                 if not self.__add_priv(common_param):
-                    err_num = err_num + 1
+                    if inst["cmdb_status"] == InstanceStatus.RUNNING:
+                        # 如果实例是running状态，应该记录错误，并且返回异常
+                        err_num = err_num + 1
+                    else:
+                        # 如果是非running状态，标记warning信息，但不作异常处理
+                        self.log_warning(f"[{inst['instance']} is not running in dbm [{inst['cmdb_status']}],ignore]")
+                        continue
 
         if err_num > 0:
             # 有错误先返回则直接返回异常
