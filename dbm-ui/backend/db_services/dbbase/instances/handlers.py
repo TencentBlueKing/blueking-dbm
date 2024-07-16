@@ -57,7 +57,7 @@ class InstanceHandler:
                     query_filter |= Q(machine__ip=spilt_addr[0], inst_port=spilt_addr[1])
                 else:
                     query_filter |= Q(
-                        machine__ip=spilt_addr[0], cluster__bk_cloud_id=spilt_addr[1], inst_port=spilt_addr[2]
+                        cluster__bk_cloud_id=spilt_addr[0], machine__ip=spilt_addr[1], inst_port=spilt_addr[2]
                     )
 
             query_filter &= Q(bk_biz_id=self.bk_biz_id)
