@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Tuple
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MongoDBActuatorActionEnum
+from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
@@ -40,7 +40,7 @@ class RemoveNsSubTask(BaseSubTask):
         ns_filter = sub_payload.get("ns_filter")
         is_partial = MongoDBNsFilter.is_partial(ns_filter)
         node = nodes[0]
-        dba_user = "dba"
+        dba_user = MongoDBManagerUser.DbaUser.value
         dba_pwd = mongodb_password.MongoDBPassword().get_password_from_db(
             node.ip, int(node.port), node.bk_cloud_id, dba_user
         )["password"]

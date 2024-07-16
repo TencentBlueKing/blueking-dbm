@@ -42,7 +42,6 @@ CMDB_HOST_STATE_ATTR = get_type_env(key="CMDB_HOST_STATE_ATTR", _type=str, defau
 CMDB_NO_MONITOR_STATUS = get_type_env(key="CMDB_NO_MONITOR_STATUS", _type=str, default="运营中[无告警]")
 CMDB_NEED_MONITOR_STATUS = get_type_env(key="CMDB_NEED_MONITOR_STATUS", _type=str, default="运营中[需告警]")
 
-
 # 蓝鲸全业务业务ID
 JOB_BLUEKING_BIZ_ID = get_type_env(key="JOB_BLUEKING_BIZ_ID", _type=int, default=9991001)
 
@@ -88,10 +87,9 @@ ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
 # SaaS访问地址，用于用户访问/第三方应用跳转/Iframe/Grafana 等场景
 BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm")
 # BK_SAAS_CALLBACK_URL 用于 接口回调/权限中心访问 等场景
-BK_SAAS_CALLBACK_URL = (
-    # 通常因证书问题，这里需要使用 http
-    get_type_env(key="BK_SAAS_CALLBACK_URL", _type=str, default="")
-    or BK_SAAS_HOST.replace("https", "http")
+# 通常因证书问题，这里需要使用 http
+BK_SAAS_CALLBACK_URL = get_type_env(key="BK_SAAS_CALLBACK_URL", _type=str, default="") or BK_SAAS_HOST.replace(
+    "https", "http"
 )
 
 # 其他系统访问地址
@@ -125,7 +123,6 @@ BK_SOPS_PROJECT_ID = get_type_env(key="BK_SOPS_PROJECT_ID", _type=int, default=1
 ENABLE_CLEAN_EXPIRED_BAMBOO_TASK = get_type_env(key="ENABLE_CLEAN_EXPIRED_BAMBOO_TASK", _type=bool, default=False)
 ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE = get_type_env(key="ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE", _type=bool, default=False)
 BAMBOO_TASK_VALIDITY_DAY = get_type_env(key="BAMBOO_TASK_VALIDITY_DAY", _type=int, default=360)
-
 
 # 是否在部署 MySQL 的时候安装 PERL
 YUM_INSTALL_PERL = get_type_env(key="YUM_INSTALL_PERL", _type=bool, default=False)
@@ -180,3 +177,5 @@ DEBUG_TOOL_BAR = get_type_env(key="DEBUG_TOOL_BAR", _type=bool, default=False)
 
 # window ssh服务远程端口
 WINDOW_SSH_PORT = get_type_env(key="WINDOW_SSH_PORT", _type=int, default=22)
+# 本地测试人员优先使用的版本
+REPO_VERSION_FOR_DEV = get_type_env(key="REPO_VERSION_FOR_DEV", _type=str, default="")

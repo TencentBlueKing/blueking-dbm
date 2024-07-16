@@ -494,12 +494,13 @@ class MongoDBActuatorActionEnum(str, StructuredEnum):
     Backup = EnumField("mongodb_backup", _("mongodb_backup"))
     RemoveNs = EnumField("mongodb_remove_ns", _("mongodb_remove_ns"))
     Restore = EnumField("mongodb_restore", _("mongodb_restore"))
-    PitRestore = EnumField("mongodb_pit_restore", _("mongodb_pit_restore"))
+    PitRestore = EnumField("mongodb_pitr_restore", _("mongodb_pitr_restore"))
     MongoRestart = EnumField("mongo_restart", _("mongo_restart"))
     MongoDReplace = EnumField("mongod_replace", _("mongod_replace"))
     MongoDeInstall = EnumField("mongo_deinstall", _("mongo_deinstall"))
     InstallDBMon = EnumField("install_dbmon", _("install_dbmon"))
     MongoStart = EnumField("mongo_start", _("mongo_start"))
+    MongoHello = EnumField("mongodb_hello", _("mongodb_hello"))
 
 
 class EsActuatorActionEnum(str, StructuredEnum):
@@ -742,6 +743,7 @@ class ConfigDefaultEnum(list, StructuredEnum):
 class DirEnum(str, StructuredEnum):
     GSE_DIR = EnumField("/usr/local/gse_bkte", _("gcs 安装路径"))
     REDIS_KEY_LIFE_DIR = EnumField("/data/dbbak/keylifecycle", _("key生命周期路径"))
+    MONGO_RECOVER_DIR = EnumField("/data/dbbak/recover_mg", _("mongo恢复路径"))
 
 
 class TruncateDataTypeEnum(str, StructuredEnum):
@@ -1177,6 +1179,8 @@ class MongoDBClusterRole(str, StructuredEnum):
 
     ConfigSvr = EnumField("configsvr", _("configsvr"))
     ShardSvr = EnumField("shardsvr", _("shardsvr"))
+    Mongos = EnumField("mongos", _("mongos"))
+    Replicaset = EnumField("replicaset", _("replicaset"))
 
 
 class MongoDBTotalCache(float, StructuredEnum):

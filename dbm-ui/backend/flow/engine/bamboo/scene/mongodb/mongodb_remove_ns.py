@@ -20,8 +20,8 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.remove_ns import RemoveNsSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
-from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBNsFilter, MongoRepository
+from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 logger = logging.getLogger("flow")
 
@@ -66,7 +66,8 @@ class MongoRemoveNsFlow(MongoBaseFlow):
         # 创建流程实例
         pipeline = Builder(root_id=self.root_id, data=self.payload)
         # actuator_workdir 提前创建好的，在部署的时候就创建好了.
-        actuator_workdir = ActKwargs().get_mongodb_os_conf()["file_path"]
+        actuator_workdir = MongoUtil().get_mongodb_os_conf()["file_path"]
+
         file_list = GetFileList(db_type=DBType.MongoDB).get_db_actuator_package()
         sub_pipelines = []
         bk_host_list = []
@@ -80,7 +81,7 @@ class MongoRemoveNsFlow(MongoBaseFlow):
                 self.check_cluster_valid(cluster, self.payload)
             except Exception as e:
                 logger.exception("check_cluster_valid fail")
-                raise Exception("check_cluster_valid fail cluster_id:{} {}".format(row["cluster_id"], e))
+                raise Exception("check_cluster_valid fail cluster_id:{} {}".format(cluster_id, e))
 
             sub_pl, sub_bk_host_list = RemoveNsSubTask.process_cluster(
                 root_id=self.root_id,

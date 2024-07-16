@@ -20,8 +20,8 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mongodb.base_flow import MongoBaseFlow
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.backup import BackupSubTask
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
-from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBNsFilter, MongoRepository
+from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 logger = logging.getLogger("flow")
 
@@ -67,11 +67,8 @@ class MongoBackupFlow(MongoBaseFlow):
         """
         logger.debug("MongoBackupFlow start, payload", self.payload)
         # actuator_workdir 提前创建好的，在部署的时候就创建好了.
-        actuator_workdir = ActKwargs().get_mongodb_os_conf()["file_path"]
+        actuator_workdir = MongoUtil().get_mongodb_os_conf()["file_path"]
         file_list = GetFileList(db_type=DBType.MongoDB).get_db_actuator_package()
-
-        # 创建流程实例
-        pipeline = Builder(root_id=self.root_id, data=self.payload)
 
         # 解析输入 确定每个输入的域名实例都存在.
         # 1. 解析每个集群Id的节点列表
@@ -85,7 +82,11 @@ class MongoBackupFlow(MongoBaseFlow):
         bk_host_list = []
 
         cluster_id_list = [row["cluster_id"] for row in self.payload["infos"]]
+        self.check_cluster_id_list(cluster_id_list)
         clusters = MongoRepository.fetch_many_cluster_dict(id__in=cluster_id_list)
+
+        # 创建流程实例
+        pipeline = Builder(root_id=self.root_id, data=self.payload)
 
         for row in self.payload["infos"]:
             try:
@@ -111,7 +112,7 @@ class MongoBackupFlow(MongoBaseFlow):
                 raise Exception("sub_bk_host_list is None")
 
             bk_host_list.extend(sub_bk_host_list)
-            sub_pipelines.append(sub_pl.build_sub_process(_("MongoDB-备份-{}").format(cluster.name)))
+            sub_pipelines.append(sub_pl.build_sub_process(_("Backup:{}").format(cluster.immute_domain)))
 
         # 介质下发 bk_host_list 在SendMedia.act会去重.
         pipeline.add_act(

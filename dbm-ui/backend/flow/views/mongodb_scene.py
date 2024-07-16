@@ -50,10 +50,49 @@ class MongoBackupApiView(FlowTestView):
         mongo_backup
         """
         root_id = uuid.uuid1().hex
-        # root_id 32位字串 320ba2d87a1411eebbed525400066689
-        # request 是一个request对象
-        # request.data 输入Json
         MongoDBController(root_id=root_id, ticket_data=request.data).mongo_backup()
+        return Response({"root_id": root_id})
+
+
+class MongoRestoreApiView(FlowTestView):
+    """
+    Mongo Restore Api
+    """
+
+    @staticmethod
+    def post(request):
+        """
+        mongo_restore
+        """
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).mongo_restore()
+        return Response({"root_id": root_id})
+
+
+class MongoPitrRestoreApiView(FlowTestView):
+    """
+    Mongo PitrRestore Api
+    """
+
+    @staticmethod
+    def post(request):
+        """
+        mongo_restore
+        """
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).mongo_pitr_restore()
+        return Response({"root_id": root_id})
+
+
+class MongoInstallDbmonApiView(FlowTestView):
+    """
+    Mongo InstallDbmon Api
+    """
+
+    @staticmethod
+    def post(request):
+        root_id = uuid.uuid1().hex
+        MongoDBController(root_id=root_id, ticket_data=request.data).install_dbmon()
         return Response({"root_id": root_id})
 
 
@@ -68,9 +107,6 @@ class MongoFakeInstallApiView(FlowTestView):
         mongo_backup
         """
         root_id = uuid.uuid1().hex
-        # root_id 32位字串 320ba2d87a1411eebbed525400066689
-        # request 是一个request对象
-        # request.data 输入Json
         MongoDBController(root_id=root_id, ticket_data=request.data).fake_install()
         return Response({"root_id": root_id})
 

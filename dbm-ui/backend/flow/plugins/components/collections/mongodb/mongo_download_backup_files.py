@@ -57,7 +57,7 @@ class MongoDownloadBackupFile(BaseService):
 
         self.log_debug(params)
         response = RedisBackupApi.download(params=params)  # 这里使用RedisBackupApi，这是通用的.
-        self.log_warning("RedisBackupApi.download response: {}".format(response))
+        self.log_warning("RedisBackupApi.download resp: {}".format(response))
 
         backup_bill_id = response.get("bill_id", -1)
         if backup_bill_id > 0:

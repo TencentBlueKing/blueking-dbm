@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
@@ -23,7 +24,9 @@ from backend.db_services.mongodb.restore.constants import BACKUP_LOG_RANGE_DAYS,
 from backend.exceptions import AppBaseException
 from backend.ticket.constants import TicketType
 from backend.ticket.models import ClusterOperateRecord, Ticket
-from backend.utils.time import find_nearby_time, timezone2timestamp
+from backend.utils.time import find_nearby_time
+
+logger = logging.getLogger("root")
 
 
 class MongoDBRestoreHandler(object):
@@ -38,7 +41,8 @@ class MongoDBRestoreHandler(object):
 
     def _query_latest_log_and_index(self, rollback_time: datetime, query_string: str, time_key: str, flag: int):
         """查询距离rollback_time最近的备份记录"""
-        end_time = rollback_time
+        """ end_time 要获得rollback_time后的一个incr文件，这里多查一天，就比较稳了"""
+        end_time = rollback_time + timedelta(days=1)
         start_time = end_time - timedelta(days=BACKUP_LOG_RANGE_DAYS)
 
         backup_logs = self._get_log_from_bklog(
@@ -48,35 +52,41 @@ class MongoDBRestoreHandler(object):
             query_string=query_string,
         )
         if not backup_logs:
-            raise AppBaseException(_("距离回档时间点7天内没有备份日志").format(rollback_time))
+            raise AppBaseException(_("距离回档时间点7天内没有备份日志 {} {}").format(query_string, rollback_time))
 
         # 获取距离回档时间最近的全备日志
         backup_logs.sort(key=lambda x: x[time_key])
         time_keys = [log[time_key] for log in backup_logs]
         try:
-            latest_backup_log_index = find_nearby_time(time_keys, timezone2timestamp(rollback_time), flag)
+            latest_backup_log_index = find_nearby_time(time_keys, rollback_time, flag)
         except IndexError:
-            raise AppBaseException(_("无法找到时间点{}附近的全备日志记录").format(rollback_time))
+            raise AppBaseException(_("无法找到时间点{}附近的全备日志记录 query_string:{} ").format(rollback_time, query_string))
 
         return backup_logs, latest_backup_log_index
 
-    def query_latest_backup_log(self, rollback_time: datetime) -> Dict[str, Any]:
+    def query_latest_backup_log(self, rollback_time: datetime, set_name: str = None) -> Dict[str, Any]:
         """
         查询距离rollback_time最近的全备-增量备份文件
-        @param rollback_time: 回档时间
+        @param rollback_time: 回档时query_ticket_backup_log间
+        @param set_name: 指定SetName. cluster_type为ReplicaSet时，只有一个set_name， 可以为空.
         """
         # 获取距离回档时间最近的全备日志
-        query_string = f"cluster: {self.cluster.id} AND pitr_file_type: {PitrFillType.FULL}"
+        query_string = f"cluster_id: {self.cluster.id} AND pitr_file_type: {PitrFillType.FULL}"
+        if set_name is not None:
+            query_string += f" AND set_name: {set_name}"
         full_backup_logs, full_latest_index = self._query_latest_log_and_index(
             rollback_time, query_string, time_key="pitr_last_pos", flag=1
         )
         latest_full_backup_log = full_backup_logs[full_latest_index]
-
+        logger.info("latest_full_backup_log {}".format(latest_full_backup_log))
         # 找到与全备日志pitr_fullname相同的增量备份日志
         pitr_fullname = latest_full_backup_log["pitr_fullname"]
         query_string = (
-            f"cluster: {self.cluster.id} AND pitr_file_type: {PitrFillType.INCR} AND pitr_fullname: {pitr_fullname}"
+            f"cluster_id: {self.cluster.id} AND pitr_file_type: {PitrFillType.INCR} AND pitr_fullname: {pitr_fullname}"
         )
+        if set_name is not None:
+            query_string += f" AND set_name: {set_name}"
+
         incr_backup_logs, incr_latest_index = self._query_latest_log_and_index(
             rollback_time, query_string, time_key="pitr_last_pos", flag=0
         )
@@ -116,7 +126,7 @@ class MongoDBRestoreHandler(object):
             collector="mongo_backup_result",
             start_time=start_time,
             end_time=end_time,
-            query_string=f"cluster_id: {cluster_id} AND releate_bill_id: /[0-9]*/",
+            query_string=f"cluster_id: {cluster_id} AND related_bill_id: /[0-9]*/",
         )
         if not backup_logs:
             raise AppBaseException(_("{}-{}内没有通过单据备份的日志").format(start_time, end_time))
@@ -132,7 +142,7 @@ class MongoDBRestoreHandler(object):
             collector="mongo_backup_result",
             start_time=start_time,
             end_time=end_time,
-            query_string=f"cluster_type: {ClusterType.MongoReplicaSet} AND releate_bill_id: /[0-9]*/",
+            query_string=f"cluster_type: {ClusterType.MongoReplicaSet} AND related_bill_id: /[0-9]*/",
         )
         if not backup_logs:
             raise AppBaseException(_("{}-{}内没有通过单据备份的日志").format(start_time, end_time))

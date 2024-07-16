@@ -92,6 +92,10 @@ from backend.flow.views.mongodb_scene import (
     MongoDBReplaceView,
     MongoDBScaleView,
     MongoFakeInstallApiView,
+    MongoInstallDbmonApiView,
+    MongoPitrRestoreApiView,
+    MongoRemoveNsApiView,
+    MongoRestoreApiView,
     MultiReplicasetInstallApiView,
 )
 from backend.flow.views.mysql_add_slave import AddMysqlSlaveSceneApiView
@@ -312,6 +316,10 @@ urlpatterns = [
     url(r"^scene/multi_replicaset_create$", MultiReplicasetInstallApiView.as_view()),
     url(r"^scene/cluster_create$", ClusterInstallApiView.as_view()),
     url(r"^scene/mongo_backup$", MongoBackupApiView.as_view()),
+    url(r"^scene/mongo_restore$", MongoRestoreApiView.as_view()),
+    url(r"^scene/mongo_pitr_restore$", MongoPitrRestoreApiView.as_view()),
+    url(r"^scene/mongo_remove_ns$", MongoRemoveNsApiView.as_view()),
+    url(r"^scene/mongo_install_dbmon$", MongoInstallDbmonApiView.as_view()),
     url(r"^scene/install_rs_fake$", MongoFakeInstallApiView.as_view()),
     url(r"^scene/multi_cluster_create_user$", MongoDBCreateUserView.as_view()),
     url(r"^scene/multi_cluster_delete_user$", MongoDBDeleteUserView.as_view()),

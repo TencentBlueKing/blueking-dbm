@@ -13,13 +13,14 @@ from typing import Dict, List, Optional, Tuple
 
 from django.utils.translation import ugettext as _
 
-from backend.flow.consts import MongoDBActuatorActionEnum
+from backend.flow.consts import MongoDBActuatorActionEnum, MongoDBManagerUser
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from backend.flow.utils.mongodb import mongodb_password
-from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs, CommonContext
+from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
 from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNodeWithLabel, ReplicaSet
+from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 logger = logging.getLogger("flow")
 
@@ -48,7 +49,7 @@ class BackupSubTask(BaseSubTask):
         cls.parse_ns_filter(sub_payload)
         node = nodes[0]
 
-        dba_user = "dba"
+        dba_user = MongoDBManagerUser.DbaUser.value
         dba_pwd = mongodb_password.MongoDBPassword().get_password_from_db(
             node.ip, int(node.port), node.bk_cloud_id, dba_user
         )["password"]
@@ -59,7 +60,7 @@ class BackupSubTask(BaseSubTask):
         if is_partial and oplog:
             raise Exception(_("oplog为True时, 不支持partial备份"))
         bk_dbm_instance = MongoNodeWithLabel.from_node(node, rs, cluster)
-        sudo_account = ActKwargs().get_mongodb_os_conf()["user"]
+        sudo_account = MongoUtil().get_mongodb_os_conf()["user"]
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -107,7 +108,7 @@ class BackupSubTask(BaseSubTask):
             port = kwargs["db_act_template"]["payload"]["port"]
             acts_list.append(
                 {
-                    "act_name": _("MongoDB-备份-[{}:{}]".format(exec_ip, port)),
+                    "act_name": _("{}:[{}:{}]".format(rs.set_name, exec_ip, port)),
                     "act_component_code": ExecJobComponent2.code,
                     "kwargs": kwargs,
                 }

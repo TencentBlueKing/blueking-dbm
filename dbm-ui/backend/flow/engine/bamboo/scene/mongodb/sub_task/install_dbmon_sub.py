@@ -100,14 +100,13 @@ class InstallDBMonSubTask(BaseSubTask):
         # 创建子流程
         sub_pipeline = SubBuilder(root_id=root_id, data=flow_data)
         kwargs = cls.make_kwargs(ip, bk_cloud_id, nodes, file_path, pkg_info, bk_monitor_beat_config)
-        acts_list = [
-            {
-                "act_name": _("node-{}".format(kwargs["exec_ip"])),
-                "act_component_code": ExecJobComponent2.code,
-                "kwargs": kwargs,
-            }
-        ]
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
+        act = {
+            "act_name": _("node-{}".format(kwargs["exec_ip"])),
+            "act_component_code": ExecJobComponent2.code,
+            "kwargs": kwargs,
+        }
+
+        sub_pipeline.add_act(**act)
         sub_bk_host_list = [{"ip": ip, "bk_cloud_id": bk_cloud_id}]
         return sub_pipeline, sub_bk_host_list
 

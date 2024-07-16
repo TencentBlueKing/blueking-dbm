@@ -166,7 +166,7 @@ def find_nearby_time(
     # 越界的情况抛出错误，交给业务逻辑处理
     index = bisect_right(time_keys, match_time) - flag
     if index < 0 or index >= len(time_keys):
-        raise IndexError(_("无法找到合适的附近时间点"))
+        raise IndexError(_("无法找到合适的附近时间点 {}".format(match_time)))
 
     return index
 
