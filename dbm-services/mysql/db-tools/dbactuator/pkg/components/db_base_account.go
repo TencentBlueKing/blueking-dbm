@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 )
@@ -54,7 +55,7 @@ type MySQLAccountPrivs struct {
 	PassWd     string
 	AuthString string // 也可以直接授权 加密的密码
 	WithGrant  bool
-	PrivParis  []PrivPari
+	PrivPairs  []PrivPari
 	// 系统账户默认对象 *.*
 	AccessObjects []string // %,localhost
 }
@@ -87,7 +88,7 @@ func (p *MySQLAccountPrivs) GenerateInitSql(version string) (initPrivSqls []stri
 		withGrant = "WITH GRANT OPTION"
 	}
 	for _, accHost := range p.AccessObjects {
-		for _, pp := range p.PrivParis {
+		for _, pp := range p.PrivPairs {
 			if needCreate {
 				initPrivSqls = append(initPrivSqls, fmt.Sprintf(
 					"CREATE USER IF NOT EXISTS  %s@'%s'  IDENTIFIED WITH mysql_native_password  %s '%s'", p.User, accHost, encr, pwd))
@@ -115,7 +116,7 @@ func (m MySQLAdminAccount) GetAccountPrivs(localIp string) MySQLAccountPrivs {
 	return MySQLAccountPrivs{
 		User:   m.AdminUser,
 		PassWd: m.AdminPwd,
-		PrivParis: []PrivPari{
+		PrivPairs: []PrivPari{
 			{
 				Object: "*.*",
 				Privs:  allPriv,
@@ -141,7 +142,7 @@ func (m MySQLMonitorAccount) GetAccountPrivs(grantHosts ...string) MySQLAccountP
 	p := MySQLAccountPrivs{
 		User:   m.MonitorUser,
 		PassWd: m.MonitorPwd,
-		PrivParis: []PrivPari{
+		PrivPairs: []PrivPari{
 			{
 				Object: "*.*",
 				Privs:  monitorUserPriv,
@@ -169,7 +170,7 @@ func (m MySQLMonitorAccessAllAccount) GetAccountPrivs(grantHosts ...string) MySQ
 	p := MySQLAccountPrivs{
 		User:   m.MonitorAccessAllUser,
 		PassWd: m.MonitorAccessAllPwd,
-		PrivParis: []PrivPari{
+		PrivPairs: []PrivPari{
 			{
 				Object: fmt.Sprintf("%s.*", native.INFODBA_SCHEMA),
 				Privs:  monitorAccessallPriv,
@@ -199,7 +200,7 @@ func (m MySQLReplAccount) GetAccountPrivs(grantHosts ...string) MySQLAccountPriv
 	return MySQLAccountPrivs{
 		User:   m.ReplUser,
 		PassWd: m.ReplPwd,
-		PrivParis: []PrivPari{
+		PrivPairs: []PrivPari{
 			{
 				Object: "*.*",
 				Privs:  replUserPriv,
@@ -218,7 +219,10 @@ type MySQLDbBackupAccount struct {
 
 // GetAccountPrivs 获取备份语句
 // 如果是 mysql 8.0，grant 需要 BACKUP_ADMIN 权限
-func (m MySQLDbBackupAccount) GetAccountPrivs(is80 bool, grantHosts ...string) MySQLAccountPrivs {
+func (m MySQLDbBackupAccount) GetAccountPrivs(ver string, grantHosts ...string) MySQLAccountPrivs {
+	var isMysql80 = cmutil.MySQLVersionParse(ver) >= cmutil.MySQLVersionParse("8.0") &&
+		!strings.Contains(ver, "tspider")
+	logger.Info("mysql version", ver, ", is >=8.0 : ", isMysql80)
 	privPairs := []PrivPari{
 		{Object: "*.*", Privs: backupUserPriv},
 		{
@@ -226,7 +230,7 @@ func (m MySQLDbBackupAccount) GetAccountPrivs(is80 bool, grantHosts ...string) M
 			Privs:  allPriv,
 		},
 	}
-	if is80 {
+	if isMysql80 {
 		privPairs = []PrivPari{
 			{Object: "*.*", Privs: backupUserPriv80},
 			{
@@ -238,7 +242,7 @@ func (m MySQLDbBackupAccount) GetAccountPrivs(is80 bool, grantHosts ...string) M
 	return MySQLAccountPrivs{
 		User:          m.DbBackupUser,
 		PassWd:        m.DbBackupPwd,
-		PrivParis:     privPairs,
+		PrivPairs:     privPairs,
 		WithGrant:     false,
 		AccessObjects: grantHosts,
 	}
@@ -256,7 +260,7 @@ func (m MySQLYwAccount) GetAccountPrivs() MySQLAccountPrivs {
 	return MySQLAccountPrivs{
 		User:   m.YwUser,
 		PassWd: m.YwPwd,
-		PrivParis: []PrivPari{
+		PrivPairs: []PrivPari{
 			{
 				Object: "*.*",
 				Privs:  ywUserPriv,
@@ -278,7 +282,7 @@ func (m TBinlogDumperAccoutParam) GetAccountPrivs(localIp string) MySQLAccountPr
 	return MySQLAccountPrivs{
 		User:   m.TBinlogDumperUser,
 		PassWd: m.TBinlogDumperPwd,
-		PrivParis: []PrivPari{
+		PrivPairs: []PrivPari{
 			{
 				Object: "*.*",
 				Privs:  allPriv,

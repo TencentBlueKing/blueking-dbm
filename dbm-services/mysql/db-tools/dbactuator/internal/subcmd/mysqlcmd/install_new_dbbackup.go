@@ -79,10 +79,6 @@ func (d *InstallNewDbBackupAct) Run() (err error) {
 			Func:    d.Service.BackupBackupIfExist,
 		},
 		{
-			FunName: "初始化备份程序用户",
-			Func:    d.Service.InitBackupUserPriv,
-		},
-		{
 			FunName: "解压备份程序压缩包",
 			Func:    d.Service.DecompressPkg,
 		},
