@@ -9,7 +9,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
-import time
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -44,7 +43,7 @@ class DbConsoleDumpSqlFlow(object):
         self.uid = self.data["uid"]
         self.cluster_id = self.data["cluster_id"]
         self.cluster = Cluster.objects.get(id=self.cluster_id)
-        self.dbconsole_dump_file_name = f"{self.cluster.immute_domain}_{int(time.time())}_dbm_console_dump.sql"
+        self.dbconsole_dump_file_name = self.data["dump_file_name"]
 
     def dump_flow(self):
         p = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[self.cluster_id])
