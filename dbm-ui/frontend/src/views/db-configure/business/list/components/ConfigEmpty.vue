@@ -42,6 +42,13 @@
   const globalBizsStore = useGlobalBizs();
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
 
+  const jumpMap: Record<string, TicketTypes> = {
+    [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
+    [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
+    [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
+    [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
+  };
+
   const handleModuleBind = () => {
     if (!treeNode) {
       return;
@@ -56,10 +63,7 @@
     router.push({
       name: 'SelfServiceBindDbModule',
       params: {
-        type:
-          route.params.clusterType === ClusterTypes.TENDBSINGLE
-            ? TicketTypes.MYSQL_SINGLE_APPLY
-            : TicketTypes.MYSQL_HA_APPLY,
+        type: jumpMap[route.params.clusterType as string],
         bk_biz_id: globalBizsStore.currentBizId,
         db_module_id: id,
       },

@@ -64,7 +64,7 @@ export const useBaseDetails = (immediateFetch = true) => {
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
   const route = useRoute();
   const clusterType = computed(() => route.params.clusterType as ClusterTypes);
-  const dbType = computed(() => clusterTypeInfos[clusterType.value].dbType);
+  const dbType = computed(() => clusterTypeInfos[clusterType.value]?.dbType);
   const state = reactive<State>({
     loading: false,
     loadingDetails: false,
