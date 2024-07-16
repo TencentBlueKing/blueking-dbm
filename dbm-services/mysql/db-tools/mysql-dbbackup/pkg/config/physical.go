@@ -17,6 +17,9 @@ type PhysicalBackup struct {
 	// DisableSlaveMultiThread 在 slave并行多线程复制，且未开启 gtid 时，是否可临时关闭并行复制。默认值 false
 	// 解决 The --slave-info option requires GTID enabled for a multi-threaded slave
 	DisableSlaveMultiThread bool `ini:"DisableSlaveMultiThread"`
+	// MaxMyisamTables 最大允许的 myisam tables 数量，默认 10，设置 大于 99999 表示不检查。不包含系统库
+	// 只有在 master 上进行物理备份数据时，才执行检查
+	MaxMyisamTables int `int:"MaxMyisamTables"`
 }
 
 // PhysicalLoad the config of physical loading

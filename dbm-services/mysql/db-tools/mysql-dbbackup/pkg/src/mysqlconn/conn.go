@@ -2,15 +2,19 @@
 package mysqlconn
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/mysqlcomm"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 
 	// mysql driver
@@ -79,6 +83,7 @@ func MysqlSingleColumnQuery(queryStr string, dbh *sql.DB) ([]string, error) {
 		logger.Log.Error("can't send query to Mysql server , error :", err)
 		return resArray, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		err := rows.Scan(&res)
 		if err != nil {
@@ -108,6 +113,36 @@ func GetStorageEngine(dbh *sql.DB) (string, error) {
 		return "", err
 	}
 	return version[0], nil
+}
+
+// TestEngineTablesNum 判断指定的标引擎数量，是否超过允许值
+// 注意，这里是为了避免 count information_schema.tables 全表，导致打开所有表
+// 比如 MyISAM, 10, 返回 true 表示 myisam 表的数量超过 10个，false表示少于 10个
+// 已经剔除系统库。 greaterThenNum >= (99999) cst.SkipMyisamTableMaxValue 表示不检查
+func TestEngineTablesNum(engine string, greaterThenNum int, dbh *sql.DB) (bool, error) {
+	if greaterThenNum >= cst.SkipMyisamTableMaxValue {
+		return false, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	sqlStr := fmt.Sprintf(
+		`SELECT table_schema, table_name FROM information_schema.tables `+
+			`WHERE table_schema not in (%s) AND engine = %s AND TABLE_TYPE ='BASE TABLE' LIMIT %d`,
+		mysqlcomm.UnsafeIn(native.DBSys, "'"), mysqlcomm.UnsafeEqual(engine, "'"), greaterThenNum+1,
+	)
+	if res, err := dbh.QueryContext(ctx, sqlStr); err != nil {
+		return false, errors.WithMessage(err, "test engine tables count")
+	} else {
+		defer res.Close()
+		rowsCount := 0
+		for res.Next() {
+			rowsCount += 1
+		}
+		if rowsCount > greaterThenNum {
+			return true, nil
+		}
+		return false, nil
+	}
 }
 
 // GetMysqlCharset Get charset of mysql server
@@ -163,6 +198,7 @@ func ShowMysqlSlaveStatus(db *sql.DB) (masterHost string, masterPort int, err er
 		logger.Log.Error("failed to query show slave status, err: ", err)
 		return masterHost, masterPort, err
 	}
+	defer rows.Close()
 	cols, err := rows.Columns()
 	if err != nil {
 		logger.Log.Error("failed to return column names, err: ", err)
