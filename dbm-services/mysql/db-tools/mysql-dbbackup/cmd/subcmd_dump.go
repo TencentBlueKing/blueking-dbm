@@ -113,6 +113,9 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 			cnf.PhysicalBackup.Throttle = int(math.Max(1,
 				cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
 		}
+		if cnf.PhysicalBackup.MaxMyisamTables == 0 {
+			cnf.PhysicalBackup.MaxMyisamTables = 10
+		}
 
 		err := backupData(&cnf)
 		if err != nil {
