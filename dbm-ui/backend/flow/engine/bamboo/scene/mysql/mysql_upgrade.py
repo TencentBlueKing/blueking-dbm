@@ -140,7 +140,9 @@ class MySQLStorageLocalUpgradeFlow(object):
 
     def __the_clusters_use_same_machine(self, cluster_ids: list):
         clusters = Cluster.objects.filter(id__in=cluster_ids)
-        instances = StorageInstance.objects.filter(cluster__in=clusters, machine_type=MachineType.BACKEND)
+        instances = StorageInstance.objects.filter(
+            cluster__in=clusters, machine_type__in=[MachineType.BACKEND, MachineType.SINGLE]
+        )
         mach_ip_list = []
         for ins in instances:
             mach_ip_list.append(ins.machine.ip)
@@ -180,7 +182,7 @@ class MySQLStorageLocalUpgradeFlow(object):
     def __get_tendbsingle_instance(self, cluster_ids: list):
         clusters = Cluster.objects.filter(id__in=cluster_ids)
         instances = StorageInstance.objects.filter(
-            cluster__in=clusters, machine_type=MachineType.BACKEND, instance_role=InstanceRole.ORPHAN
+            cluster__in=clusters, machine_type=MachineType.SINGLE, instance_role=InstanceRole.ORPHAN
         )
         return instances
 
@@ -210,7 +212,7 @@ class MySQLStorageLocalUpgradeFlow(object):
             first_cluster = Cluster.objects.filter(id__in=cluster_ids).first()
             if first_cluster:
                 cluster_type = first_cluster.cluster_type
-
+            bk_cloud_id = first_cluster.bk_cloud_id
             # 高可用升级
             if cluster_type == ClusterType.TenDBHA:
                 slave_instances = self.__get_clusters_slave_instance(cluster_ids)
@@ -235,7 +237,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 for slaveIp, ports in port_map.items():
                     sub_pipeline.add_sub_pipeline(
                         sub_flow=self.upgrade_mysql_subflow(
-                            bk_cloud_id=self.data["bk_cloud_id"],
+                            bk_cloud_id=bk_cloud_id,
                             ip=slaveIp,
                             mysql_ports=ports,
                             pkg_id=pkg_id,
@@ -314,7 +316,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 for slaveIp, ports in port_map.items():
                     sub_pipeline.add_sub_pipeline(
                         sub_flow=self.upgrade_mysql_subflow(
-                            bk_cloud_id=self.data["bk_cloud_id"],
+                            bk_cloud_id=bk_cloud_id,
                             ip=slaveIp,
                             mysql_ports=ports,
                             pkg_id=pkg_id,
@@ -324,7 +326,7 @@ class MySQLStorageLocalUpgradeFlow(object):
 
                 sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("[TendbHa]本地升级MySQL版本")))
 
-            # tendbsingle 本地升级流程
+            # tendbsingle 本地升级
             elif cluster_type == ClusterType.TenDBSingle:
                 instances = self.__get_tendbsingle_instance(cluster_ids)
                 ipList = []
@@ -340,7 +342,7 @@ class MySQLStorageLocalUpgradeFlow(object):
                 proxy_ip = ipList[0]
                 sub_pipeline.add_sub_pipeline(
                     sub_flow=self.upgrade_mysql_subflow(
-                        bk_cloud_id=self.data["bk_cloud_id"],
+                        bk_cloud_id=bk_cloud_id,
                         ip=proxy_ip,
                         mysql_ports=ports,
                         mysql_pkg_name=new_mysql_pkg_name,
@@ -381,7 +383,6 @@ class MySQLStorageLocalUpgradeFlow(object):
                 )
             ),
         )
-
         cluster = {"run": False, "ports": mysql_ports, "pkg_id": pkg_id}
         exec_act_kwargs = ExecActuatorKwargs(cluster=cluster, bk_cloud_id=bk_cloud_id)
         exec_act_kwargs.exec_ip = ip

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging.config
 from dataclasses import asdict
 from typing import List, Optional
 
@@ -15,8 +16,10 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import DBConfigApi
+from backend.components.db_remote_service.client import DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import (
@@ -55,6 +58,8 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+
+logger = logging.getLogger("flow")
 
 """
 定义一些mysql流程上可能会用到的子流程，以便于减少代码的重复率
@@ -810,3 +815,76 @@ def update_machine_system_info_flow(
         ),
     )
     return sub_pipeline.build_sub_process(sub_name=_("获取机器系统信息"))
+
+
+def query_mysql_variables(host: str, port: int, bk_cloud_id: int):
+    """
+    查询远程节点变量
+    """
+    body = {
+        "addresses": ["{}{}{}".format(host, IP_PORT_DIVIDER, port)],
+        "cmds": ["show global variables;"],
+        "force": False,
+        "bk_cloud_id": bk_cloud_id,
+    }
+    resp = DRSApi.rpc(body)
+    logger.info(f"query charset {resp}")
+    if not resp and len(resp) < 1:
+        raise Exception(_("DRS{}:{}查询变量失败,返回为空值").format(host, port))
+
+    if not resp[0]["cmd_results"]:
+        raise Exception(_("DRS查询字符集失败：{}").format(resp[0]["error_msg"]))
+
+    var_list = resp[0]["cmd_results"][0]["table_data"]
+
+    var_map = {}
+    for var_item in var_list:
+        var_name = var_item["Variable_name"]
+        val = var_item["Value"]
+        var_map[var_name] = val
+    return var_map
+
+
+def sync_mycnf_item_sub_flow(
+    uid: str,
+    root_id: str,
+    bk_cloud_id: int,
+    src_host: str,
+    src_port: int,
+    master_slave_hosts: list,
+    dest_port: int,
+    var_list: list,
+):
+    """
+    同步修改mysql配置
+    """
+    var_map = query_mysql_variables(
+        host=src_host,
+        port=src_port,
+        bk_cloud_id=bk_cloud_id,
+    )
+    item = {}
+    act_lists = []
+    for var_name in var_list:
+        key = "mysqld.{}".format(var_name)
+        val = var_map.get(var_name)
+        item[key] = {"conf_value": val, "op_type": "upsert"}
+
+    sub_pipeline = SubBuilder(root_id=root_id, data={"uid": uid})
+    for host in master_slave_hosts:
+        act_lists.append(
+            {
+                "act_name": _("修改{}上实例的的my.cnf配置".format(host)),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ip=host,
+                        bk_cloud_id=bk_cloud_id,
+                        cluster={"ports": [dest_port], "items": item},
+                        get_mysql_payload_func=MysqlActPayload.get_change_mycnf_payload.__name__,
+                    )
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=act_lists)
+    return sub_pipeline.build_sub_process(sub_name=_("同步修改my.cnf配置"))

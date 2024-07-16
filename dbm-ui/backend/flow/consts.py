@@ -413,6 +413,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     Upgrade = EnumField("upgrade", _("本地升级"))
     MysqlDataMigrateDump = EnumField("mysql_data_migrate_dump", _("Mysql数据迁移导出库"))
     MysqlDataMigrateImport = EnumField("mysql_data_migrate_import", _("Mysql数据迁移导入库"))
+    MysqlChangeMycnf = EnumField("mycnf-change", _("修改MySQL配置"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):
