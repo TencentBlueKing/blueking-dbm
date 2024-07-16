@@ -67,13 +67,13 @@ type ctx struct {
 	CutOverCtx
 	destMasterConn   map[IPPORT]*native.DbWorker
 	destSlaveConn    map[IPPORT]*native.DbWorker
-	cutOverPairs     []CutOverParis
+	cutOverPairs     []CutOverPairs
 	existRemoteSlave bool
 	checkVars        []string
 }
 
-// CutOverParis TODO
-type CutOverParis struct {
+// CutOverPairs TODO
+type CutOverPairs struct {
 	MasterSvr  native.Server
 	SlaveSvr   native.Server
 	DestMaster CutoverUnit
@@ -215,7 +215,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 
 // PreCheck TODO
 func (s *SpiderClusterBackendMigrateCutoverComp) PreCheck() (err error) {
-	if err := s.cutOverParisParamCheck(); err != nil {
+	if err := s.cutOverPairsParamCheck(); err != nil {
 		return err
 	}
 	// check dest master with dest slave replicate status
@@ -279,9 +279,9 @@ func (s *SpiderClusterBackendMigrateCutoverComp) checkPairsVariables() (err erro
 	return
 }
 
-// cutOverParisParamCheck 参数中、目标的master 和目标slave 检查
+// cutOverPairsParamCheck 参数中、目标的master 和目标slave 检查
 // 目标slave 只能都为空、或者呀完全匹配目标master的个数
-func (s *SpiderClusterBackendMigrateCutoverComp) cutOverParisParamCheck() (err error) {
+func (s *SpiderClusterBackendMigrateCutoverComp) cutOverPairsParamCheck() (err error) {
 	destSlaveNum := 0
 	s.existRemoteSlave = false
 	for _, ins := range s.Params.MigrateCutoverPairs {
@@ -336,7 +336,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) validateServers() (err error) {
 	for _, ins := range s.Params.MigrateCutoverPairs {
 		var mastersvr native.Server
 		var exist bool
-		var pair CutOverParis
+		var pair CutOverPairs
 		if mastersvr, exist = s.ipPortServersMap[ins.Master.IpPort()]; !exist {
 			return fmt.Errorf("master %s: not found in mysql.servers", ins.Master.IpPort())
 		}

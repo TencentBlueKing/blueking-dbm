@@ -11,6 +11,7 @@
 package dbloader
 
 import (
+	"database/sql"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -19,9 +20,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -38,6 +42,16 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 	var dropUserHosts []string
 	var keepUserHosts []string // 不在这些列表里的 admin host 将会被 DELETE
 	if adminHosts, err := x.dbWorker.QueryOneColumn("host", adminHostsQuery); err != nil {
+		logger.Warn("failed to query admin account '%s': %s", userAdmin, err.Error())
+		if errors.Is(err, sql.ErrNoRows) || err.Error() == native.NotRowFound {
+			adminAccount := components.MySQLAdminAccount{AdminUser: userAdmin, AdminPwd: password}.
+				GetAccountPrivs(x.TgtInstance.Host)
+			grantSql := adminAccount.GenerateInitSql(version)
+			logger.Info("recreate admin user '%s': %s", userAdmin, mysqlutil.ClearIdentifyByInSQLs(grantSql))
+			if _, err = x.dbWorker.ExecMore(grantSql); err != nil {
+				return err
+			}
+		}
 		return err
 	} else {
 		for _, h := range adminHosts {
@@ -156,7 +170,7 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
 	return nil
 }
 
-// RepairPrivileges TODO
+// RepairPrivileges repair user host like dba_bak_all_sel,MONITOR,yw
 func (x *Xtrabackup) RepairPrivileges() error {
 	if x.TgtInstance.Host == x.SrcBackupHost {
 		return nil
