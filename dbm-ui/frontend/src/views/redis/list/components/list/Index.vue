@@ -1354,23 +1354,17 @@
         </div>
       ),
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: type,
-            details: {
-              cluster_id: data.id,
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-              fetchData();
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: type,
+          details: {
+            cluster_id: data.id,
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+          fetchData();
+        });
       },
     });
   };
@@ -1390,22 +1384,16 @@
       content: t('启用 CLB 之后，该集群可以通过 CLB 来访问'),
       width: 400,
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: ticketType,
-            details: {
-              cluster_id: data.id,
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: ticketType,
+          details: {
+            cluster_id: data.id,
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+        });
       },
     });
   };
@@ -1423,22 +1411,16 @@
       content,
       width: 400,
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: type,
-            details: {
-              cluster_id: data.id,
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: type,
+          details: {
+            cluster_id: data.id,
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+        });
       },
     });
   };
@@ -1456,22 +1438,16 @@
       type: 'warning',
       title,
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: ticketType,
-            details: {
-              cluster_id: data.id,
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: ticketType,
+          details: {
+            cluster_id: data.id,
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+        });
       },
     });
   };
@@ -1495,23 +1471,17 @@
       </div>
     ),
       onConfirm: async () => {
-        try {
-          const params = {
-            bk_biz_id: globalBizsStore.currentBizId,
-            ticket_type: TicketTypes.REDIS_DESTROY,
-            details: {
-              cluster_id: data.id,
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-              fetchData();
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const params = {
+          bk_biz_id: globalBizsStore.currentBizId,
+          ticket_type: TicketTypes.REDIS_DESTROY,
+          details: {
+            cluster_id: data.id,
+          },
+        };
+        await createTicket(params).then((res) => {
+          ticketMessage(res.id);
+          fetchData();
+        });
       },
     });
   };

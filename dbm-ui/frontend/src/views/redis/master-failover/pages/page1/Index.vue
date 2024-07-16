@@ -279,10 +279,6 @@
               },
             });
           })
-          .catch((e) => {
-            // 目前后台还未调通
-            console.error('master failover submit ticket error', e);
-          })
           .finally(() => {
             isSubmitting.value = false;
           });

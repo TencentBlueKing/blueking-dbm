@@ -187,15 +187,7 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
     onSuccess(cloneData) {
-      const {
-        tableList,
-        executeType,
-        executeTime,
-        stopTime,
-        isKeepCheck,
-        isRepairEnable,
-        repairType,
-      } = cloneData;
+      const { tableList, executeType, executeTime, stopTime, isKeepCheck, isRepairEnable, repairType } = cloneData;
 
       tableData.value = tableList;
       executeMode.value = executeType;
@@ -280,9 +272,6 @@
                 ticketId: data.id,
               },
             });
-          })
-          .catch((e) => {
-            console.error('submit data check repair ticket error', e);
           })
           .finally(() => {
             isSubmitting.value = false;

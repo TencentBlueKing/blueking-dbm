@@ -229,10 +229,6 @@
               },
             });
           })
-          .catch((e) => {
-            // 目前后台还未调通
-            console.error('submit capacity change ticket error: ', e);
-          })
           .finally(() => {
             isSubmitting.value = false;
           });
