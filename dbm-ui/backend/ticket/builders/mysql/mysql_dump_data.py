@@ -8,11 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import time
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.mysql.sql_import.constants import BKREPO_DBCONSOLE_DUMPFILE_PATH, SQLCharset
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -28,8 +29,8 @@ class MySQLDumpDataDetailSerializer(MySQLBaseOperateDetailSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     charset = serializers.ChoiceField(help_text=_("字符集"), choices=SQLCharset.get_choices())
     where = serializers.CharField(help_text=_("where条件"), required=False, allow_null=True, allow_blank=True)
-    databases = serializers.ListField(help_text=_("导出库列表"), child=DBTableField(db_field=True))
-    tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
+    databases = serializers.ListField(help_text=_("导出库列表"), child=serializers.CharField())
+    tables = serializers.ListField(help_text=_("目标table列表"), child=serializers.CharField())
     tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField(), required=False, default=[])
     dump_schema = serializers.BooleanField(help_text=_("是否导出表结构"))
     dump_data = serializers.BooleanField(help_text=_("是否导出表数据"))
@@ -51,10 +52,15 @@ class MySQLDumpDataItsmFlowParamsBuilder(builders.ItsmParamBuilder):
 class MySQLDumpDataFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.dbconsole_dump_scene
 
+    def format_ticket_data(self):
+        cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+        dump_file_name = f"{cluster.immute_domain}_{int(time.time())}_dbm_console_dump.sql"
+        self.ticket_data["dump_file_name"] = dump_file_name
+
     def post_callback(self):
-        # 往flow的detail中写入制品库的下载链接
         flow = self.ticket.current_flow()
-        dump_file_name = f"{flow.flow_obj_id}_dbm_console_dump.sql.zip"
+        # 往flow的detail中写入制品库的下载链接
+        dump_file_name = f"{flow.details['ticket_data']['dump_file_name']}.zip"
         flow.details["ticket_data"].update(
             dump_file_name=dump_file_name, dump_file_path=f"{BKREPO_DBCONSOLE_DUMPFILE_PATH}/{dump_file_name}"
         )
