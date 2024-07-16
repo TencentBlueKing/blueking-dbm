@@ -153,34 +153,7 @@
         @confirm="handleConfirmRetry(content)">
         <BkButton
           class="w-88"
-          theme="primary">
-          {{ t('重试') }}
-        </BkButton>
-      </BkPopConfirm>
-      <BkPopConfirm
-        v-if="content.flow_type === 'INNER_FLOW' && content.status === 'FAILED' && content.err_msg"
-        :content="t('终止执行后无法撤回，请谨慎操作！')"
-        :title="t('是否确认终止执行单据')"
-        trigger="click"
-        :width="320"
-        @confirm="handleConfirmTerminal(content)">
-        <BkButton
-          class="w-88 ml-8"
-          theme="danger">
-          {{ t('终止') }}
-        </BkButton>
-      </BkPopConfirm>
-    </div>
-    <div class="mt-8">
-      <BkPopConfirm
-        v-if="(content.err_code === 2) || (content.flow_type === 'INNER_FLOW' && content.status === 'FAILED' && content.err_msg)"
-        :content="t('重新执行后无法撤回，请谨慎操作！')"
-        :title="t('是否确认重试此步骤')"
-        trigger="click"
-        :width="320"
-        @confirm="handleConfirmRetry(content)">
-        <BkButton
-          class="w-88"
+          :disabled="btnState.retryLoading"
           :loading="btnState.retryLoading"
           theme="primary">
           {{ t('重试') }}
@@ -195,6 +168,7 @@
         @confirm="handleConfirmTerminal(content)">
         <BkButton
           class="w-88 ml-8"
+          :disabled="btnState.terminateLoading"
           :loading="btnState.terminateLoading"
           theme="danger">
           {{ t('终止') }}
