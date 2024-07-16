@@ -771,6 +771,21 @@
             onClick={() => handleGoWebconsole(data.id)}>
             Webconsole
           </auth-button>
+          <OperationBtnStatusTips
+            data={data}
+            v-db-console="mysql.haClusterList.exportData">
+            <auth-button
+              action-id="mysql_dump_data"
+              resource={data.id}
+              permission={data.permission.mysql_dump_data}
+              disabled={data.operationDisabled}
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleShowDataExportSlider(data)}>
+              { t('导出数据') }
+            </auth-button>
+          </OperationBtnStatusTips>
           <bk-dropdown
             class="operations-more"
             trigger="click"
@@ -962,6 +977,11 @@
       selectedClusterList.value = [data];
     }
     showCreateSubscribeRuleSlider.value = true;
+  };
+
+  const handleShowDataExportSlider = (data: ColumnData['data']) => {
+    currentData.value = data
+    showDataExportSlider.value = true;
   };
 
   const handleClearSelected = () => {

@@ -17,15 +17,15 @@ import { random } from '@utils';
 
 // MySQL 定点构造
 export function generateMysqlRollbackCloneData(ticketData: TicketModel<MySQLRollbackDetails>) {
-  const { clusters, infos} = ticketData.details;
-  const tableDataList = infos.map(item => ({
+  const { clusters, infos } = ticketData.details;
+  const tableDataList = infos.map((item) => ({
     rowKey: random(),
     clusterData: {
       id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
-      cloudId: clusters[item.cluster_id].bk_cloud_id
+      cloudId: clusters[item.cluster_id].bk_cloud_id,
     },
-    rollbackIp: item.rollback_ip,
+    rollbackIp: item.rollback_host.ip,
     backupSource: item.backup_source,
     backupid: item.backupid,
     rollbackTime: item.rollback_time,
@@ -33,6 +33,6 @@ export function generateMysqlRollbackCloneData(ticketData: TicketModel<MySQLRoll
     databasesIgnore: item.databases_ignore,
     tables: item.tables,
     tablesIgnore: item.tables_ignore,
-  }))
+  }));
   return Promise.resolve({ tableDataList });
 }
