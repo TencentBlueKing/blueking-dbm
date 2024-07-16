@@ -28,8 +28,13 @@ class GetFileList(object):
         """
         @param db_type: db类型，默认是MySQL，如果是Redis这actuator包不一样
         """
+        # repo_version 如果REPO_VERSION_FOR_DEV有值，则使用REPO_VERSION_FOR_DEV，否则使用最新版本
+        # 正式环境: REPO_VERSION_FOR_DEV为空 个人测试环境中，REPO_VERSION_FOR_DEV 按需配置
+        dev_env = str(env.REPO_VERSION_FOR_DEV)
+        repo_version = dev_env if dev_env != "" else MediumEnum.Latest
+
         self.actuator_pkg = Package.get_latest_package(
-            version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=db_type
+            version=repo_version, pkg_type=MediumEnum.DBActuator, db_type=db_type
         )
 
     def get_db_actuator_package(self):

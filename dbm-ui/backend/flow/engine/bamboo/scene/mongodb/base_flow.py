@@ -46,3 +46,9 @@ class MongoBaseFlow(object):
                     cluster.bk_biz_id, payload["bk_biz_id"], type(cluster.bk_biz_id), type(payload["bk_biz_id"])
                 )
             )
+
+    @staticmethod
+    def check_cluster_id_list(cluster_id_list):
+        cluster_id_list_set = set(cluster_id_list)
+        if len(cluster_id_list_set) != len(cluster_id_list):
+            raise Exception("duplicate cluster_id")

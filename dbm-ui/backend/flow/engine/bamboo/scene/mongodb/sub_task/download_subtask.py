@@ -19,7 +19,7 @@ from backend.flow.plugins.components.collections.mongodb.mongo_download_backup_f
 )
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
-from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, ReplicaSet
+from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, ReplicaSet, MongoNode
 
 
 # Prepare datafile 准备数据文件
@@ -32,17 +32,20 @@ class DownloadSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(cls, payload: Dict, sub_payload: Dict, rs: ReplicaSet, file_path: str) -> dict:
+    def make_kwargs(
+        cls, payload: Dict, sub_payload: Dict, rs: ReplicaSet, file_path, dest_dir: str, node: MongoNode
+    ) -> dict:
         print("get_backup_node", sub_payload)
-        node = rs.get_not_backup_nodes()[0]
         os_account = PayloadHandler.redis_get_os_account()
         task_id_list = [m.get("task_id") for m in sub_payload["task_ids"]]
+        # sub_payload["_tmp_data"]["dest_node"] = node
+
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "bk_cloud_id": node.bk_cloud_id,
             "task_ids": task_id_list,
             "dest_ip": node.ip,
-            "dest_dir": "/data/dbbak/recover_mg",
+            "dest_dir": dest_dir,
             "reason": "mongodb recover setName:{} to {}".format(rs.set_name, node.ip),
             "login_user": os_account["os_user"],
             "login_passwd": os_account["os_password"],
@@ -55,7 +58,8 @@ class DownloadSubTask(BaseSubTask):
         ticket_data: Optional[Dict],
         sub_ticket_data: Optional[Dict],
         cluster: MongoDBCluster,
-        file_path: str,
+        file_path,
+        dest_dir: str,
     ) -> Tuple[SubBuilder, List]:
         """
         cluster can be  a ReplicaSet or  a ShardedCluster
@@ -64,8 +68,10 @@ class DownloadSubTask(BaseSubTask):
         # 创建子流程
         sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
         acts_list = []
+
         for rs in cluster.get_shards():
-            kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, rs, file_path)
+            node = rs.get_not_backup_nodes()[0]
+            kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, rs, file_path, dest_dir, node)
             acts_list.append(
                 {
                     "act_name": _("下载备份文件 {} {}".format(rs.set_name, kwargs["dest_ip"])),
@@ -80,3 +86,31 @@ class DownloadSubTask(BaseSubTask):
             sub_bk_host_list.append({"ip": v["kwargs"]["dest_ip"], "bk_cloud_id": v["kwargs"]["bk_cloud_id"]})
 
         return sub_pipeline, sub_bk_host_list
+
+    @classmethod
+    def process_shard(
+        cls,
+        root_id: str,
+        ticket_data: Optional[Dict],
+        sub_ticket_data: Optional[Dict],
+        shard: ReplicaSet,
+        file_path,
+        dest_dir: str,
+        dest_node: MongoNode,
+        sub_pipeline: SubBuilder,
+    ) -> Tuple[SubBuilder]:
+        """
+        for one process_shard
+        """
+
+        # 创建子流程
+        if sub_pipeline is None:
+            sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
+        kwargs = cls.make_kwargs(ticket_data, sub_ticket_data, shard, file_path, dest_dir, dest_node)
+        act = {
+            "act_name": _("下载备份文件 {}".format(kwargs["dest_ip"])),
+            "act_component_code": MongoDownloadBackupFileComponent.code,
+            "kwargs": kwargs,
+        }
+        sub_pipeline.add_act(**act)
+        return sub_pipeline

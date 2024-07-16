@@ -17,12 +17,12 @@ from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.base_subtask import BaseSubTask
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job2 import ExecJobComponent2
 from backend.flow.utils.mongodb.mongodb_dataclass import CommonContext
-from backend.flow.utils.mongodb.mongodb_repo import MongoDBCluster, MongoDBNsFilter, MongoNode
+from backend.flow.utils.mongodb.mongodb_repo import ReplicaSet, MongoNode
 from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 
-# RestoreSubTask 处理某个Cluster的Restore
-class RestoreSubTask(BaseSubTask):
+# PitrRestoreSubTask 处理某个Cluster的PitrRestore
+class PitrRestoreSubTask(BaseSubTask):
     """
     payload: 整体的ticket_data
     sub_payload: 这个子任务的ticket_data
@@ -30,79 +30,57 @@ class RestoreSubTask(BaseSubTask):
     """
 
     @classmethod
-    def make_kwargs(
-        cls, sub_payload: Dict, file_path, dest_dir: str, exec_node: MongoNode, dest_node: MongoNode, dest_type: str
-    ) -> dict:
-        ns_filter = sub_payload.get("ns_filter")
-        is_partial = MongoDBNsFilter.is_partial(ns_filter)
-        dba_user, dba_pwd = MongoUtil.get_dba_user_password(dest_node.ip, dest_node.port, dest_node.bk_cloud_id)
+    def make_kwargs(cls, sub_payload: Dict, shard: ReplicaSet, file_path, dest_dir: str, exec_node: MongoNode) -> dict:
+        # todo find primary node
+        dba_user, dba_pwd = MongoUtil.get_dba_user_password(exec_node.ip, exec_node.port, exec_node.bk_cloud_id)
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
             "bk_cloud_id": exec_node.bk_cloud_id,
             "exec_ip": exec_node.ip,
             "db_act_template": {
-                "action": MongoDBActuatorActionEnum.Restore,
+                "action": MongoDBActuatorActionEnum.PitRestore,
                 "file_path": file_path,
                 "exec_account": "root",
                 "sudo_account": "mysql",
                 "payload": {
-                    "ip": dest_node.ip,
-                    "port": int(dest_node.port),
-                    "dest_type": dest_type,
+                    "ip": exec_node.ip,
+                    "port": int(exec_node.port),
                     "adminUsername": dba_user,
                     "adminPassword": dba_pwd,
-                    "args": {
-                        "srcFile": sub_payload["task_ids"],
-                        "isPartial": is_partial,
-                        "oplog": False,
-                        "nsFilter": sub_payload["ns_filter"],
-                        "recoverDir": dest_dir,
-                    },
+                    "srcAddr": sub_payload["task_ids"][0]["instance"],
+                    "recoverTimeStr": sub_payload["dst_time"],
+                    "dryRun": False,
+                    "dir": dest_dir,
                 },
             },
         }
 
     @classmethod
-    def process_cluster(
+    def process_shard(
         cls,
         root_id: str,
         ticket_data: Optional[Dict],
         sub_ticket_data: Optional[Dict],
-        cluster: MongoDBCluster,
+        shard: ReplicaSet,
         file_path,
         dest_dir: str,
         exec_node: MongoNode,
+        sub_pipeline: SubBuilder,
     ) -> Tuple[SubBuilder, List]:
         """
         cluster can be  a ReplicaSet or  a ShardedCluster
         """
 
         # 创建子流程
-        sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
-        acts_list = []
+        if sub_pipeline is None:
+            sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
-        # 导入数据时，集群只使用一个分片，待完善.
-        rs = cluster.get_shards()[0]
-        if cluster.is_sharded_cluster():
-            dest_node = cluster.get_mongos()[0]
-            dest_type = "mongos"
-        else:
-            dest_node = exec_node
-            dest_type = "mongod"
-
-        kwargs = cls.make_kwargs(sub_ticket_data, file_path, dest_dir, exec_node, dest_node, dest_type)
-        acts_list.append(
-            {
-                "act_name": _("{} {}".format(rs.set_name, kwargs["exec_ip"])),
-                "act_component_code": ExecJobComponent2.code,
-                "kwargs": kwargs,
-            }
-        )
-
-        sub_pipeline.add_parallel_acts(acts_list=acts_list)
-        sub_bk_host_list = []
-        for v in acts_list:
-            sub_bk_host_list.append({"ip": v["kwargs"]["exec_ip"], "bk_cloud_id": v["kwargs"]["bk_cloud_id"]})
-
-        return sub_pipeline, sub_bk_host_list
+        kwargs = cls.make_kwargs(sub_ticket_data, shard, file_path, dest_dir, exec_node)
+        act = {
+            "act_name": _("执行回档命令 {}:{}".format(exec_node.ip, exec_node.port)),
+            "act_component_code": ExecJobComponent2.code,
+            "kwargs": kwargs,
+        }
+        sub_pipeline.add_act(**act)
+        return sub_pipeline

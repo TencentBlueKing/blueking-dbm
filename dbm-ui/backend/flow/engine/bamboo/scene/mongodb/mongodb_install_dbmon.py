@@ -27,15 +27,22 @@ from backend.flow.engine.bamboo.scene.mongodb.sub_task.install_dbmon_sub import 
 )
 from backend.flow.engine.bamboo.scene.mongodb.sub_task.send_media import SendMedia
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
-from backend.flow.utils.mongodb.mongodb_repo import MongoNodeWithLabel
+from backend.flow.utils.mongodb.mongodb_repo import MongoNodeWithLabel, MongoRepository
+from backend.flow.utils.mongodb.mongodb_util import MongoUtil
 
 logger = logging.getLogger("flow")
 
 
 def get_pkg_info():
+    # repo_version 如果REPO_VERSION_FOR_DEV有值，则使用REPO_VERSION_FOR_DEV，否则使用最新版本
+    # 正式环境中，REPO_VERSION_FOR_DEV为空
+    # 个人测试环境中，REPO_VERSION_FOR_DEV 按需配置
+    repo_version = env.REPO_VERSION_FOR_DEV if env.REPO_VERSION_FOR_DEV else MediumEnum.Latest
+
     actuator_pkg = Package.get_latest_package(
-        version=MediumEnum.Latest, pkg_type=MediumEnum.DBActuator, db_type=DBType.MongoDB
+        version=repo_version, pkg_type=MediumEnum.DBActuator, db_type=DBType.MongoDB
     )
+
     dbtools_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type="dbtools", db_type=DBType.MongoDB)
     toolkit_pkg = Package.get_latest_package(
         version=MediumEnum.Latest, pkg_type="mongo-toolkit", db_type=DBType.MongoDB
@@ -54,7 +61,7 @@ def add_install_dbmon(flow, flow_data, pipeline, iplist, bk_cloud_id, allow_empt
     allow_empty_instance 上架流程中，允许ip没有实例. allow_empty_instance = True
     """
 
-    actuator_workdir = flow.get_kwargs.file_path
+    actuator_workdir = MongoUtil().get_mongodb_os_conf()["file_path"]
     pkg_info = get_pkg_info()
     file_list = [
         "{}/{}/{}".format(env.BKREPO_PROJECT, env.BKREPO_BUCKET, pkg_info.get("actuator_pkg").path),
@@ -121,19 +128,15 @@ def add_install_dbmon(flow, flow_data, pipeline, iplist, bk_cloud_id, allow_empt
     pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
 
-class MongoInstallDBMon(MongoBaseFlow):
+class MongoInstallDBMonFlow(MongoBaseFlow):
     class Serializer(serializers.Serializer):
-        class DataRow(serializers.Serializer):
-            ip = serializers.CharField()
-            object_type = serializers.CharField()
-
         uid = serializers.CharField()
         created_by = serializers.CharField()
         bk_biz_id = serializers.IntegerField()
         ticket_type = serializers.CharField()
         action = serializers.CharField()
         bk_cloud_id = serializers.IntegerField()
-        infos = DataRow(many=True)
+        infos = serializers.ListField(child=serializers.CharField())  # ip or cluster_id
 
     """MongoInstallDBMon flow
     分析 payload，检查输入，生成Flow """
@@ -162,8 +165,38 @@ class MongoInstallDBMon(MongoBaseFlow):
         logger.debug("MongoInstallDBMon start, payload", self.payload)
         # 创建流程实例
         pipeline = Builder(root_id=self.root_id, data=self.payload)
-        add_install_dbmon(
-            self, self.payload, pipeline, [x["ip"] for x in self.payload["infos"]], self.payload["bk_cloud_id"]
-        )
+
+        # parse iplist
+        iplist = self.get_iplist(self.payload["infos"], bk_cloud_id=self.payload["bk_cloud_id"])
+
+        add_install_dbmon(self, self.payload, pipeline, iplist, self.payload["bk_cloud_id"])
         # 运行流程
         pipeline.run_pipeline()
+
+    @staticmethod
+    def get_iplist(infos: list, bk_cloud_id: int) -> list[str]:
+        iplist = []
+        cluster_id_list = []
+        cluster_domain_list = []
+        for v in infos:
+            if v.isdigit():
+                cluster_id_list.append(int(v))
+            elif v.endswith(".db"):
+                cluster_domain_list.append(v)
+            else:
+                iplist.append(v)
+
+        if cluster_domain_list:
+            tmp_cluster_id_list = MongoRepository.get_cluster_id_by_domain(cluster_domain_list)
+            cluster_id_list.extend(tmp_cluster_id_list)
+
+        if cluster_id_list:
+            cluster_id_list = list(set(cluster_id_list))  # unique
+            clusters = MongoRepository.fetch_many_cluster(with_domain=False, id__in=cluster_id_list)
+            for cluster in clusters:
+                if cluster.bk_cloud_id == bk_cloud_id:
+                    iplist.extend(cluster.get_iplist())
+                else:
+                    raise Exception("bk_cloud_id not match {} vs {}".format(bk_cloud_id, cluster.bk_cloud_id))
+
+        return list(set(iplist))
