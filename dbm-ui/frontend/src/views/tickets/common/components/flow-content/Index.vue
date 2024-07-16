@@ -171,6 +171,36 @@
         </BkButton>
       </BkPopConfirm>
     </div>
+    <div class="mt-8">
+      <BkPopConfirm
+        v-if="(content.err_code === 2) || (content.flow_type === 'INNER_FLOW' && content.status === 'FAILED' && content.err_msg)"
+        :content="t('重新执行后无法撤回，请谨慎操作！')"
+        :title="t('是否确认重试此步骤')"
+        trigger="click"
+        :width="320"
+        @confirm="handleConfirmRetry(content)">
+        <BkButton
+          class="w-88"
+          :loading="btnState.retryLoading"
+          theme="primary">
+          {{ t('重试') }}
+        </BkButton>
+      </BkPopConfirm>
+      <BkPopConfirm
+        v-if="content.flow_type === 'INNER_FLOW' && content.status === 'FAILED' && content.err_msg"
+        :content="t('终止执行后无法撤回，请谨慎操作！')"
+        :title="t('是否确认终止执行单据')"
+        trigger="click"
+        :width="320"
+        @confirm="handleConfirmTerminal(content)">
+        <BkButton
+          class="w-88 ml-8"
+          :loading="btnState.terminateLoading"
+          theme="danger">
+          {{ t('终止') }}
+        </BkButton>
+      </BkPopConfirm>
+    </div>
     <div
       v-if="content.end_time"
       class="flow-time">
@@ -218,6 +248,11 @@
 
   const { username } = useUserProfile();
 
+  const btnState = reactive({
+    terminateLoading: false,
+    retryLoading: false,
+  })
+
   const manualNexFlowDisaply = computed(() => {
     if (props.flows.length > 0) {
       const manualIndex = props.flows.findIndex((item) => item.flow_type === 'PAUSE');
@@ -235,21 +270,29 @@
 
   const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
 
-  const handleConfirmTerminal = (item: FlowItem) =>
+  const handleConfirmTerminal = (item: FlowItem) => {
+    btnState.terminateLoading = true;
     revokeTicketFlow({
       ticketId: item.ticket,
       flow_id: item.id,
     }).then(() => {
       emits('fetch-data');
-    });
+    }).finally(() => {
+      btnState.terminateLoading = false;
+    })
+  }
 
-  const handleConfirmRetry = (item: FlowItem) =>
+  const handleConfirmRetry = (item: FlowItem) => {
+    btnState.retryLoading = true;
     retryTicketFlow({
       ticketId: item.ticket,
       flow_id: item.id,
     }).then(() => {
       emits('fetch-data');
-    });
+    }).finally(() => {
+      btnState.retryLoading = false;
+    })
+  }
 
   const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE', todoItem: FlowItem['todos'][number]) =>
     processTicketTodo({
