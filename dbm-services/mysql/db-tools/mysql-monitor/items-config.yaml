@@ -33,12 +33,14 @@
   role: []
 - name: engine
   enable: true
-  schedule: 0 0 12 * * *
+  schedule: 0 10 1 * * *
   machine_type:
   - single
   - backend
   - remote
-  role: []
+  role:
+    - slave
+    - orphan
 - name: ext3-check
   enable: true
   schedule: 0 0 16 * * 1

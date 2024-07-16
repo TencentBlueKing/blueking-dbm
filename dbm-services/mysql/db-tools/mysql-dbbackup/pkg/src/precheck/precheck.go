@@ -2,6 +2,10 @@
 package precheck
 
 import (
+	"database/sql"
+
+	"github.com/pkg/errors"
+
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
@@ -28,6 +32,11 @@ func BeforeDump(cnf *config.BackupConfig) error {
 	defer func() {
 		_ = dbh.Close()
 	}()
+
+	// check myisam tables
+	if err = CheckEngineTables(cnf, dbh); err != nil {
+		return err
+	}
 
 	// check server charset
 	if err := CheckCharset(cnfPublic, dbh); err != nil {
@@ -70,6 +79,24 @@ func CheckBackupType(cnf *config.BackupConfig) error {
 			logger.Log.Infof("BackupType auto with glibc version %s < 2.14, use physical", glibcVer)
 			cnf.Public.BackupType = cst.BackupPhysical
 		}
+	}
+	return nil
+}
+
+// CheckEngineTables 只有在 master 上进行物理备份数据时，才执行检查
+func CheckEngineTables(cnf *config.BackupConfig, db *sql.DB) error {
+	if !(cnf.Public.BackupType == cst.BackupPhysical &&
+		cnf.Public.MysqlRole == cst.RoleMaster &&
+		cnf.Public.IfBackupData()) {
+		return nil
+	}
+	testMysiamNum, err := mysqlconn.TestEngineTablesNum("MyISAM", cnf.PhysicalBackup.MaxMyisamTables, db)
+	if err != nil {
+		return err
+	}
+	if testMysiamNum {
+		return errors.Errorf("instance %d has mysiam tables count > %d (PhysicalBackup.MaxMyisamTables)",
+			cnf.Public.MysqlPort, cnf.PhysicalBackup.MaxMyisamTables)
 	}
 	return nil
 }

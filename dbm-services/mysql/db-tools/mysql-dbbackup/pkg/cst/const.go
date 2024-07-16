@@ -66,6 +66,9 @@ const (
 // 注意不能指定负数，因为 -1 mod 2 的结果也为负数，会无法写入数据
 const SpiderNodeShardValue = 0
 
+// SkipMyisamTableMaxValue 大于该值，不检查 myisam 数量
+const SkipMyisamTableMaxValue = 99999
+
 // ZstdSuffix zstd compress file suffix
 const ZstdSuffix = ".zst"
 

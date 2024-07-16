@@ -133,30 +133,31 @@ func (i *InstallNewDbBackupComp) Init() (err error) {
 
 	i.initBackupOptions()
 	i.installPath = path.Join(cst.MYSQL_TOOL_INSTALL_PATH, cst.BackupDir)
-	i.dbConn = make(map[int]*native.DbWorker)
-	i.versionMap = make(map[int]string)
+	i.dbConn = make(map[int]*native.DbWorker) // not use
+	i.versionMap = make(map[int]string)       // not use
 	i.renderCnf = make(map[int]config.BackupConfig)
 	if i.Params.UntarOnly {
 		logger.Info("untar_only=true do not try to connect")
 		return nil
 	}
 	for _, port := range i.Params.Ports {
-		dbwork, err := native.InsObject{
-			Host: i.Params.Host,
-			Port: port,
-			User: i.GeneralParam.RuntimeAccountParam.AdminUser,
-			Pwd:  i.GeneralParam.RuntimeAccountParam.AdminPwd,
-		}.Conn()
-		if err != nil {
-			return fmt.Errorf("init db conn %d failed err:%w", port, err)
-		}
-		i.dbConn[port] = dbwork
-		version, err := dbwork.SelectVersion()
-		if err != nil {
-			return err
-		}
-		i.versionMap[port] = version
-
+		/*
+			dbwork, err := native.InsObject{
+				Host: i.Params.Host,
+				Port: port,
+				User: i.GeneralParam.RuntimeAccountParam.AdminUser,
+				Pwd:  i.GeneralParam.RuntimeAccountParam.AdminPwd,
+			}.Conn()
+			if err != nil {
+				return fmt.Errorf("init db conn %d failed err:%w", port, err)
+			}
+			i.dbConn[port] = dbwork
+			version, err := dbwork.SelectVersion()
+			if err != nil {
+				return err
+			}
+			i.versionMap[port] = version
+		*/
 		if i.Params.Role == cst.BackupRoleSpiderMaster {
 			tdbctlPort := mysqlcomm.GetTdbctlPortBySpider(port)
 			tdbctlWork, err := native.InsObject{
@@ -393,10 +394,7 @@ func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
 
 func (i *InstallNewDbBackupComp) initPriv(port int, isTdbCtl bool) (err error) {
 	ver := i.versionMap[port]
-	var isMysql80 = cmutil.MySQLVersionParse(ver) >= cmutil.MySQLVersionParse("8.0") &&
-		!strings.Contains(ver, "tspider")
-	logger.Info("mysql version", ver, ", is >=8.0 : ", isMysql80)
-	privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(isMysql80, i.Params.Host)
+	privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(ver, i.Params.Host)
 	var sqls []string
 	if isTdbCtl {
 		logger.Info("tdbctl port %d need tc_admin=0, binlog_format=off", port)
