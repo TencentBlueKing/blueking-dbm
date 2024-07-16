@@ -52,6 +52,7 @@
       <CreateRule
         v-model="createRuleShow"
         :account-id="createRuleAccountId"
+        :rule-obj="currentRule"
         @success="getList" />
       <ClusterAuthorize
         v-model="authorizeShow"
@@ -104,6 +105,7 @@
 
   const tableIsAnomalies = ref(false);
   const tableSearch = ref([]);
+  const currentRule = ref({} as PermissionTableRow['rules'][number])
 
   const {
     run: getPermissionRulesRun,
@@ -271,13 +273,20 @@
         }
 
         return (
-          getRenderList(data).map(item => (
+          getRenderList(data).map((item, index) => (
             <div class="permission-cell">
               <bk-button
                 theme="primary"
                 text
                 onClick={ () => handleShowAuthorize(data, item) }>
                 { t('授权') }
+              </bk-button>
+              <bk-button
+                theme="primary"
+                class="ml-8"
+                text
+                onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
+                {t('编辑')}
               </bk-button>
             </div>
           ))
@@ -323,8 +332,15 @@
 
   const handleShowCreateRule = (row: PermissionTableRow, event: Event) => {
     event.stopPropagation();
-
+    currentRule.value = {} as PermissionTableRow['rules'][number];
     createRuleAccountId.value = row.account.account_id;
+    createRuleShow.value = true;
+  };
+
+  const handleShowEditRule = (e: PointerEvent, row: PermissionTableRow, index: number) => {
+    e.stopPropagation();
+    createRuleAccountId.value = row.account.account_id;
+    currentRule.value = row.rules[index];
     createRuleShow.value = true;
   };
 
