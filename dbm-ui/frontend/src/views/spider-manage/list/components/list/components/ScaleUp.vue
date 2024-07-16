@@ -227,9 +227,6 @@
                     resolve('success');
                     isChange.value = false;
                   })
-                  .catch(() => {
-                    reject();
-                  });
               },
             });
           });

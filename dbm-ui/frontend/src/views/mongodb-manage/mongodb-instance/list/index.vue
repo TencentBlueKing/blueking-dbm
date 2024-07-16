@@ -389,30 +389,25 @@
       contentAlign: 'center',
       footerAlign: 'center',
       onConfirm: async () => {
-        try {
-          const type = flag ? TicketTypes.MONGODB_INSTANCE_RELOAD : TicketTypes.MONGODB_DISABLE;
-          const params = {
-            bk_biz_id: currentBizId,
-            ticket_type: type,
-            details: {
-              infos: [
-                {
-                  cluster_id: data.cluster_id,
-                  bk_host_id: data.bk_host_id,
-                  port: data.port,
-                  role: data.role,
-                },
-              ],
-            },
-          };
-          await createTicket(params)
-            .then((res) => {
-              ticketMessage(res.id);
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        const type = flag ? TicketTypes.MONGODB_INSTANCE_RELOAD : TicketTypes.MONGODB_DISABLE;
+        const params = {
+          bk_biz_id: currentBizId,
+          ticket_type: type,
+          details: {
+            infos: [
+              {
+                cluster_id: data.cluster_id,
+                bk_host_id: data.bk_host_id,
+                port: data.port,
+                role: data.role,
+              },
+            ],
+          },
+        };
+        await createTicket(params)
+          .then((res) => {
+            ticketMessage(res.id);
+          });
       },
     });
   };

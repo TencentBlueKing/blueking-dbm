@@ -236,13 +236,9 @@
               ticketId: data.id,
             },
           });
-        })
-          .catch((e) => {
-            console.error('proxy scale up submit ticket error：', e);
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
+        }).finally(() => {
+          isSubmitting.value = false;
+        });
       } });
   };
 

@@ -285,13 +285,9 @@
               ticketId: data.id,
             },
           });
-        })
-          .catch(() => {
-            window.changeConfirm = false;
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
+        }).finally(() => {
+          isSubmitting.value = false;
+        });
       } });
   };
 

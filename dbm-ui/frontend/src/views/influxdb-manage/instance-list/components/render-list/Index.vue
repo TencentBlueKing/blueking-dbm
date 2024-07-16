@@ -741,9 +741,7 @@
             if (data.length > 1) {
               tableRef.value.clearSelected();
             }
-            return true;
           })
-          .catch(() => false)
           .finally(() => {
             data.forEach((item) => {
               handleChangeTableActionLoading(item.id, false);
@@ -778,9 +776,7 @@
         })
           .then((res) => {
             ticketMessage(res.id);
-            return true;
           })
-          .catch(() => false)
           .finally(() => {
             handleChangeTableActionLoading(data.id, false);
           });
@@ -813,9 +809,7 @@
         })
           .then((res) => {
             ticketMessage(res.id);
-            return true;
           })
-          .catch(() => false)
           .finally(() => {
             handleChangeTableActionLoading(data.id, false);
           });
@@ -852,9 +846,7 @@
         })
           .then((res) => {
             ticketMessage(res.id);
-            return true;
           })
-          .catch(() => false)
           .finally(() => {
             handleChangeTableActionLoading(data.id, false);
           });

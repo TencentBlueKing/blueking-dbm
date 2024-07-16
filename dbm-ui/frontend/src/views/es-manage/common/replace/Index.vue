@@ -385,9 +385,6 @@
                   emits('change');
                   resolve('success');
                 })
-                .catch(() => {
-                  reject();
-                });
             },
           });
         }, () => reject('error'));

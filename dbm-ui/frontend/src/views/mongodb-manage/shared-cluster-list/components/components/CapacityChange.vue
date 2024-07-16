@@ -15,15 +15,11 @@
   <div class="capacity-form">
     <div class="spec-box mb-24">
       <div class="spec-box-item">
-        <div class="spec-box-item-label">
-          {{ t('当前规格') }} :
-        </div>
+        <div class="spec-box-item-label">{{ t('当前规格') }} :</div>
         <div>{{ data.specName || '--' }}</div>
       </div>
       <div class="spec-box-item">
-        <div class="spec-box-item-label">
-          {{ t('变更后规格') }} :
-        </div>
+        <div class="spec-box-item-label">{{ t('变更后规格') }} :</div>
         <div>{{ currentSpec?.spec_name ? `${currentSpec?.spec_name}` : t('请先选择部署方案') }}</div>
       </div>
     </div>
@@ -38,7 +34,7 @@
         :origin-spec-id="originSpecId"
         :properties="{
           capacity: 'capacity',
-          specId: 'spec_id'
+          specId: 'spec_id',
         }"
         :shard-node-count="data.shardNodeCount"
         :shard-num="data.shardNum"
@@ -142,9 +138,6 @@
                 isChange.value = false;
                 resolve(true);
               })
-              .catch(() => {
-                reject();
-              });
           },
         });
       });
@@ -156,33 +149,33 @@
 </script>
 
 <style lang="less" scoped>
-.capacity-form {
-  padding: 28px 40px 24px;
+  .capacity-form {
+    padding: 28px 40px 24px;
 
-  .spec-box {
-    display: flex;
-    flex-wrap: wrap;
-    padding: 12px 16px;
-    font-size: 12px;
-    background-color: #FAFBFD;
-
-    .spec-box-item {
+    .spec-box {
       display: flex;
-      width: 50%;
-      line-height: 22px;
+      flex-wrap: wrap;
+      padding: 12px 16px;
+      font-size: 12px;
+      background-color: #fafbfd;
 
-      .spec-box-item-label {
-        min-width: 100px;
-        padding-right: 8px;
-        text-align: right;
+      .spec-box-item {
+        display: flex;
+        width: 50%;
+        line-height: 22px;
+
+        .spec-box-item-label {
+          min-width: 100px;
+          padding-right: 8px;
+          text-align: right;
+        }
       }
     }
-  }
 
-  .tips {
-    display: flex;
-    align-items: center;
-    font-size: 12px;
+    .tips {
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+    }
   }
-}
 </style>

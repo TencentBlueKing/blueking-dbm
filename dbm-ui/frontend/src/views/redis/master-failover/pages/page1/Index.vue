@@ -110,11 +110,8 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
     onSuccess(cloneData) {
-      const {
-        tableList,
-        force,
-      } = cloneData;
-      
+      const { tableList, force } = cloneData;
+
       tableData.value = tableList;
       isForceSwitch.value = force;
       window.changeConfirm = true;
@@ -281,10 +278,6 @@
                 ticketId: data.id,
               },
             });
-          })
-          .catch((e) => {
-            // 目前后台还未调通
-            console.error('master failover submit ticket error', e);
           })
           .finally(() => {
             isSubmitting.value = false;
