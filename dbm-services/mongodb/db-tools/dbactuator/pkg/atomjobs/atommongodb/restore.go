@@ -39,7 +39,7 @@ type restoreParam struct {
 	InstanceType  string `json:"instanceType"`
 
 	Args struct {
-		RecoverDir string      `json:"RecoverDir"` // /data/dbbak/recover_mg/
+		RecoverDir string      `json:"recoverDir"` // /data/dbbak/recover_mg/
 		SrcFile    []BsTaskArg `json:"srcFile"`    // 目前只需要1个文件，但是为了兼容，还是使用数组.
 		IsPartial  bool        `json:"isPartial"`  // 为true时，备份指定库和表
 		Oplog      bool        `json:"oplog"`      // 是否备份oplog，只有在IsPartial为false可为true
@@ -73,13 +73,23 @@ func (s *restoreJob) Name() string {
 
 // Run 运行原子任务
 func (s *restoreJob) Run() error {
-	err := s.checkDstMongo()
-	if err != nil {
-		return errors.Wrap(err, "checkDstMongo")
+
+	type execFunc struct {
+		name string
+		f    func() error
 	}
-	s.runtime.Logger.Info("checkDstMongo ok")
-	// 1. check dst mongo is ok
-	return s.doLogicalRestore()
+	for _, f := range []execFunc{
+		{"checkDstMongo", s.checkDstMongo},
+		{"doLogicalRestore", s.doLogicalRestore},
+	} {
+		s.runtime.Logger.Info("Run %s start", f.name)
+		if err := f.f(); err != nil {
+			s.runtime.Logger.Error("Run %s failed. err %s", f.name, err.Error())
+			return errors.Wrap(err, f.name)
+		}
+		s.runtime.Logger.Info("Run %s done", f.name)
+	}
+	return nil
 }
 
 // checkDstMongo 检查目标MongoDB中，没有要恢复的库和表.
@@ -124,16 +134,18 @@ func (s *restoreJob) doLogicalRestore() error {
 	}
 	log.Info("end untar file %s, dstDir %s", srcFilePath, dstDir)
 	dstDirWithDump := path.Join(dstDir, "dump")
+
+	// dbm系统产生的表. 不需要重复导入.
+	deletedCol, err := s.removeDbmSysNs(dstDirWithDump)
+	if err != nil {
+		return errors.Wrap(err, "removeDbmSysNs")
+	} else {
+		log.Info("removeDbmSysNs File: %+v", deletedCol)
+	}
 	// get DbCollection from Dir
 	dbColList, err := logical.GetDbCollectionFromDir(dstDirWithDump)
 	if err != nil {
 		return errors.Wrap(err, "GetDbCollectionFromDir")
-	}
-
-	for _, row := range dbColList {
-		if row.Db == "admin" {
-			continue
-		}
 	}
 
 	// 导入部分表时，要删除掉不需要的库和表文件.
@@ -174,6 +186,44 @@ func (s *restoreJob) doLogicalRestore() error {
 	return nil
 }
 
+// removeDbmSysNs
+// 删除掉 admin/gcs.backup文件
+// 删除掉 test/dbmon_heartbeat文件
+// 删除掉 test/dbmon_heartbeat文件
+func (s *restoreJob) removeDbmSysNs(dstDir string) ([]string, error) {
+	var colList = [][2]string{
+		{"admin", "gcs.backup"},
+		{"test", "dbmon.heartbeat"},
+		{"test", "dbmon_heartbeat"},
+	}
+	var deletedCol []string
+
+	for _, row := range colList {
+		db, col := row[0], row[1]
+		var toDelFileList []string
+		toDelFileList = append(toDelFileList,
+			fmt.Sprintf("%s/%s/%s.bson", dstDir, db, col),
+			fmt.Sprintf("%s/%s/%s.bson.gz", dstDir, db, col),
+			fmt.Sprintf("%s/%s/%s.metadata.json", dstDir, db, col),
+		)
+		ndel := 0
+		for _, file := range toDelFileList {
+			if !util.FileExists(file) {
+				continue
+			}
+			err := os.Remove(file)
+			if err != nil {
+				return nil, errors.Wrap(err, fmt.Sprintf("Remove %s", file))
+			}
+			ndel++
+		}
+		if ndel > 0 {
+			deletedCol = append(deletedCol, fmt.Sprintf("%s.%s", db, col))
+		}
+	}
+	return deletedCol, nil
+}
+
 func (s *restoreJob) removeNsByFilter(dbColList []logical.DbCollection, dstDir string) error {
 	// 导入部分表时，要删除掉不需要的库和表文件.
 	if !s.param.Args.IsPartial {
@@ -197,7 +247,7 @@ func (s *restoreJob) removeNsByFilter(dbColList []logical.DbCollection, dstDir s
 			continue
 		}
 		for _, col := range notMatchList {
-			var toDelFileList = []string{}
+			var toDelFileList []string
 			toDelFileList = append(toDelFileList,
 				fmt.Sprintf("%s/%s/%s.bson", dstDir, row.Db, col),
 				fmt.Sprintf("%s/%s/%s.bson.gz", dstDir, row.Db, col),
