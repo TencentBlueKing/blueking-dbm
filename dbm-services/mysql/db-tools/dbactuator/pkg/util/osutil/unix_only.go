@@ -50,6 +50,22 @@ func FindFirstMountPoint(paths ...string) (string, error) {
 			return path, nil
 		}
 	}
+	// 以上正常返回独立挂载的盘
+
+	// 以下特殊逻辑，当所有候选目录 paths 都不是独立挂载时，但如果都有软链接，则允许使用
+	var allowedSymlink = true
+	for _, path := range paths {
+		info, err := os.Lstat(path)
+		if err != nil {
+			allowedSymlink = false // path not exists or any other error
+		} else if info.Mode()&os.ModeSymlink == 0 { // 不是软链
+			allowedSymlink = false
+		}
+	}
+	if allowedSymlink {
+		return paths[0], nil
+	}
+
 	return "", fmt.Errorf("no available mountpoint found, choices: %#v", paths)
 }
 

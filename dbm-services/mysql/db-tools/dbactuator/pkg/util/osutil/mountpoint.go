@@ -14,7 +14,7 @@ import (
 
 // IsDataDirOk TODO
 func IsDataDirOk(filepath string) bool {
-	mountPaths := GetMountPathInfo()
+	mountPaths := GetMountPathInfo("")
 	if m, ok := mountPaths[filepath]; ok {
 		// 如果 /data 在根分区，并且根分区大于 60G，通过
 		if m.AvailSizeMB > 6144 {
@@ -30,16 +30,23 @@ func IsDataDirOk(filepath string) bool {
 
 // MountPath TODO
 type MountPath struct {
-	Filesystem     string
+	Filesystem string
+	// Type
 	FileSystemType string
 	TotalSizeMB    int64
-	UsedSizeMB     int64
-	AvailSizeMB    int64
-	UsePct         int
-	Path           string
+	// Used
+	UsedSizeMB int64
+	// Available
+	AvailSizeMB int64
+	// UsePct Use%
+	UsePct int
+	// Path Mounted on
+	Path string
 }
 
-// ParseDfOutput TODO
+// ParseDfOutput format like
+// Filesystem     Type 1M-blocks  Used Available Use% Mounted on
+// /dev/vda1      ext4    100669  9295     87161  10% /
 func ParseDfOutput(rawOutput string) map[string]*MountPath {
 	mountPaths := make(map[string]*MountPath)
 	lines := strings.Split(rawOutput, "\n")
@@ -54,10 +61,10 @@ func ParseDfOutput(rawOutput string) map[string]*MountPath {
 			continue
 		}
 		mountPath := &MountPath{
-			Path:       fields[5],
-			Filesystem: fields[0],
+			Path:           fields[6],
+			Filesystem:     fields[0],
+			FileSystemType: fields[1],
 		}
-		mountPath.FileSystemType = fields[1]
 		mountPath.TotalSizeMB, _ = strconv.ParseInt(fields[2], 10, 64)
 		mountPath.UsedSizeMB, _ = strconv.ParseInt(fields[3], 10, 64)
 		mountPath.AvailSizeMB, _ = strconv.ParseInt(fields[4], 10, 64)
@@ -69,11 +76,16 @@ func ParseDfOutput(rawOutput string) map[string]*MountPath {
 }
 
 // GetMountPathInfo TODO
-func GetMountPathInfo() map[string]*MountPath {
-	cmdDfm, err := ExecShellCommand(false, "df -Thm")
-	mountPaths := ParseDfOutput(cmdDfm)
+func GetMountPathInfo(path string) map[string]*MountPath {
+	cmd := "df -Thm"
+	if path != "" {
+		cmd = cmd + " " + path
+	}
+	cmdDfm, err := ExecShellCommand(false, cmd)
+	mountPaths := make(map[string]*MountPath)
+	mountPaths = ParseDfOutput(cmdDfm)
 	if err != nil {
-		return nil
+		return mountPaths // empty map
 	}
 	return mountPaths
 }
