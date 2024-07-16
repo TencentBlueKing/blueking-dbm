@@ -299,6 +299,10 @@
       name: t('高可用-从域名'),
       showPreviewResultTitle: true,
     },
+    [ClusterTypes.TENDBCLUSTER]: {
+      name: t('TendbCluster集群'),
+      showPreviewResultTitle: true,
+    },
     [ClusterTypes.TENDBHA]: {
       name: t('高可用-主域名'),
       showPreviewResultTitle: true,
@@ -694,7 +698,7 @@
     };
     const params = {
       target_instances: formdata.target_instances,
-      cluster_type: clusterState.clusterType,
+      cluster_type: clusterState.clusterType === 'tendbhaSlave' ? 'tendbha' : clusterState.clusterType,
     };
 
     if (props.accountType === AccountTypes.MONGODB) {
@@ -739,7 +743,7 @@
         state.errors.message = message.split('\n');
         state.isLoading = false;
       })
-      .catch(() => {
+      .finally(() => {
         state.isLoading = false;
       });
   };

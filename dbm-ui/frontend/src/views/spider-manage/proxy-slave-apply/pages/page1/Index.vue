@@ -97,10 +97,12 @@
 
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: {
-      disabledRowConfig: [{
-        handler: (data: SpiderModel) => data.spider_slave.length > 0,
-        tip: t('该集群已有只读集群'),
-      }],
+      disabledRowConfig: [
+        {
+          handler: (data: SpiderModel) => data.spider_slave.length > 0,
+          tip: t('该集群已有只读集群'),
+        },
+      ],
     },
   };
 
@@ -229,9 +231,6 @@
                 ticketId: data.id,
               },
             });
-          })
-          .catch((e) => {
-            console.error('submit spider slave apply ticket error：', e);
           })
           .finally(() => {
             isSubmitting.value = false;

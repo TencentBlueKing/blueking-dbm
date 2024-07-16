@@ -41,20 +41,15 @@ export const useDisableCluster = () => {
       ),
       confirmText: t('禁用'),
       onConfirm: async () => {
-        try {
-          await createTicket({
-            bk_biz_id: currentBizId,
-            ticket_type: TicketTypes.MONGODB_DISABLE,
-            details: {
-              cluster_ids: [data.id],
-            },
-          }).then((res) => {
-            ticketMessage(res.id);
-          });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        await createTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: TicketTypes.MONGODB_DISABLE,
+          details: {
+            cluster_ids: [data.id],
+          },
+        }).then((res) => {
+          ticketMessage(res.id);
+        });
       },
     });
   };

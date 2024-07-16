@@ -269,7 +269,6 @@
                 resolve('success');
                 emits('change');
               })
-              .catch(() => reject());
           },
         });
       });

@@ -18,7 +18,7 @@
         <strong>{{ t('待办列表') }}</strong>
         <BkDropdown
           :is-show="isShowDropdown"
-          trigger="click"
+          trigger="manual"
           @hide="handleClose">
           <div
             class="status-trigger"

@@ -304,9 +304,6 @@
               },
             });
           })
-          .catch(() => {
-            window.changeConfirm = false;
-          })
           .finally(() => {
             isSubmitting.value = false;
           });

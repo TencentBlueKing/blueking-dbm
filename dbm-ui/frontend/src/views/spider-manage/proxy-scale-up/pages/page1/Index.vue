@@ -276,13 +276,9 @@
               ticketId: data.id,
             },
           });
-        })
-          .catch((e) => {
-            console.error('submit spider scale up ticket error：', e);
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
+        }).finally(() => {
+          isSubmitting.value = false;
+        });
       } });
   };
 

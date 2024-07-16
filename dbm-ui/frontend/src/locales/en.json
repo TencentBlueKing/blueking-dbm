@@ -440,7 +440,6 @@
   "清档": "Data Cleanup",
   "清档前备份": "Backup before clearing",
   "清档集群": "Cluster cleanup",
-  "申请实例": "New",
   "确定删除该集群": "Confirm to delete this cluster?",
   "确定启用该集群": "Confirm to enable this cluster?",
   "确定禁用该集群": "Confirm to disable this cluster?",

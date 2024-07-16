@@ -110,11 +110,8 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
     onSuccess(cloneData) {
-      const {
-        tableList,
-        writeMode,
-      } = cloneData;
-      
+      const { tableList, writeMode } = cloneData;
+
       tableData.value = tableList;
       writeType.value = writeMode;
       window.changeConfirm = true;
@@ -328,9 +325,6 @@
                 ticketId: data.id,
               },
             });
-          })
-          .catch((e) => {
-            console.error('recover from instance ticket error', e);
           })
           .finally(() => {
             isSubmitting.value = false;
