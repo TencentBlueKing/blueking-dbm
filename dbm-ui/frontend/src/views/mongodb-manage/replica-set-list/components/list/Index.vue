@@ -713,21 +713,16 @@
       ),
       confirmText: t('启用'),
       onConfirm: async () => {
-        try {
-          await createTicket({
-            bk_biz_id: currentBizId,
-            ticket_type: TicketTypes.MONGODB_ENABLE,
-            details: {
-              cluster_ids: [row.id],
-            },
-          })
-            .then((res) => {
-              ticketMessage(res.id);
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        await createTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: TicketTypes.MONGODB_ENABLE,
+          details: {
+            cluster_ids: [row.id],
+          },
+        })
+          .then((res) => {
+            ticketMessage(res.id);
+          });
       },
     });
   };
@@ -753,21 +748,16 @@
         </div>
       ),
       onConfirm: async () => {
-        try {
-          await createTicket({
-            bk_biz_id: currentBizId,
-            ticket_type: TicketTypes.MONGODB_DESTROY,
-            details: {
-              cluster_ids: [row.id],
-            },
-          })
-            .then((res) => {
-              ticketMessage(res.id);
-            });
-          return true;
-        } catch (_) {
-          return false;
-        }
+        await createTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: TicketTypes.MONGODB_DESTROY,
+          details: {
+            cluster_ids: [row.id],
+          },
+        })
+          .then((res) => {
+            ticketMessage(res.id);
+          });
       },
     });
   };

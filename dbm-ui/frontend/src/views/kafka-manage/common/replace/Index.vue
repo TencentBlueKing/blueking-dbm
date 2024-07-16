@@ -279,14 +279,10 @@
                     },
                     ...nodeData,
                   },
-                })
-                  .then(() => {
-                    emits('change');
-                    resolve('success');
-                  })
-                  .catch(() => {
-                    reject();
-                  });
+                }).then(() => {
+                  emits('change');
+                  resolve('success');
+                });
               },
             });
           },

@@ -445,9 +445,6 @@
             const ticketId = data.id;
             handleDeleteSuccess(ticketId);
           })
-          .catch((e) => {
-            console.error('destroy instance submit ticket error: ', e);
-          });
       },
     });
   };
@@ -488,9 +485,6 @@
             const ticketId = data.id;
             handleDeleteSuccess(ticketId);
           })
-          .catch((e) => {
-            console.error('destroy instance submit ticket error: ', e);
-          });
       },
     });
   };

@@ -165,7 +165,6 @@
                   emits('submitSuccess');
                   resolve(true);
                 })
-                .catch(() => reject());
             },
             onClosed: () => {
               reject();

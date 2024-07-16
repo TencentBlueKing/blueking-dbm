@@ -1280,9 +1280,7 @@
       })
         .then((res) => {
           ticketMessage(res.id);
-          return true;
         })
-        .catch(() => false),
     });
   };
 
@@ -1314,9 +1312,7 @@
         .then((res) => {
           ticketMessage(res.id);
           fetchTableData();
-          return true;
         })
-        .catch(() => false),
     });
   };
 
@@ -1346,9 +1342,7 @@
         .then((res) => {
           ticketMessage(res.id);
           fetchTableData();
-          return true;
         })
-        .catch(() => false),
     });
   };
 
