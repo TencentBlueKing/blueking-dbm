@@ -64,6 +64,7 @@
     <CreateRuleSlider
       v-model="ruleState.isShow"
       :account-id="ruleState.accountId"
+      :rule-obj="ruleState.rowData"
       @success="fetchData" />
     <!-- 集群授权 -->
     <ClusterAuthorize
@@ -234,6 +235,7 @@
   const ruleState = reactive({
     isShow: false,
     accountId: -1,
+    rowData: {} as IPermissioRule['rules'][number],
   });
 
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
@@ -362,13 +364,20 @@
         }
 
         return (
-          getRenderList(data).map(item => (
+          getRenderList(data).map((item, index) => (
             <div class="cell-row">
               <bk-button
                 theme="primary"
                 text
                 onClick={(event: PointerEvent) => handleShowAuthorize(data, item, event)}>
                 {t('授权')}
+              </bk-button>
+              <bk-button
+                theme="primary"
+                class="ml-8"
+                text
+                onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
+                {t('编辑')}
               </bk-button>
             </div>
           ))
@@ -488,7 +497,15 @@
 
   const handleShowCreateRule = (row: IPermissioRule, e: PointerEvent) => {
     e.stopPropagation();
+    ruleState.rowData = {} as IPermissioRule['rules'][number];
     ruleState.accountId = row.account.account_id;
+    ruleState.isShow = true;
+  };
+
+  const handleShowEditRule = (e: PointerEvent, row: IPermissioRule, index: number) => {
+    e.stopPropagation();
+    ruleState.accountId = row.account.account_id;
+    ruleState.rowData = row.rules[index];
     ruleState.isShow = true;
   };
 
