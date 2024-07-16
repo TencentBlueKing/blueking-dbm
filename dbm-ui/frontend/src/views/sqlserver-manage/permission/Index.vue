@@ -20,11 +20,12 @@
       </template>
     </BkAlert>
     <div class="permission-rules-operations">
-      <BkButton
+      <AuthButton
+        action-id="sqlserver_account_create"
         theme="primary"
         @click="accountDialogIsShow = true">
         {{ t('新建账号') }}
-      </BkButton>
+      </AuthButton>
       <DbSearchSelect
         v-model="searchData"
         :data="filters"
