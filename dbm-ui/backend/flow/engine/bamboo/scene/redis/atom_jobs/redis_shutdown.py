@@ -59,6 +59,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
 
     #  监听请求。集群是先关闭再下架，所以理论上这里是没请求才对
     act_kwargs.exec_ip = exec_ip
+    act_kwargs.cluster["ip"] = exec_ip
     act_kwargs.cluster["exec_ip"] = exec_ip
     act_kwargs.cluster["ports"] = shutdown_param["ports"]
     act_kwargs.cluster["monitor_time_ms"] = DEFAULT_MONITOR_TIME

@@ -29,9 +29,9 @@ def update_cluster_status(sender, instance: Union[StorageInstance, ProxyInstance
     if kwargs.get("signal") == pre_delete and not isinstance(instance, Cluster):
         # 提前删除实例与cluster的关联关系
         cluster = instance.cluster.first()
-        if sender == StorageInstance:
+        if cluster and sender == StorageInstance:
             cluster.storageinstance_set.remove(instance)
-        else:
+        elif cluster and sender == ProxyInstance:
             cluster.proxyinstance_set.remove(instance)
 
     # 仅在实例状态变更时，同步更新集群状态
