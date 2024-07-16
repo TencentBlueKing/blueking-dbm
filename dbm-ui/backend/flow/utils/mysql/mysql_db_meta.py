@@ -958,9 +958,10 @@ class MySQLDBMeta(object):
 
     def update_cluster_module(self):
         """
-        更新主机模块id
+        更新主机模块ID
         """
         new_module_id = self.cluster.get("new_module_id")
+        major_version = self.cluster.get("major_version")
         with atomic():
             for cluster_id in self.cluster["cluster_ids"]:
-                Cluster.objects.filter(id=cluster_id).update(db_module_id=new_module_id)
+                Cluster.objects.filter(id=cluster_id).update(db_module_id=new_module_id, major_version=major_version)
