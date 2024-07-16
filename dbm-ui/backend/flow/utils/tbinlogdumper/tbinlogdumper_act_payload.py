@@ -127,6 +127,8 @@ class TBinlogDumperActPayload(object):
                     "ports": [conf["port"] for conf in self.ticket_data["add_conf_list"]],
                     "super_account": drs_account,
                     "dbha_account": dbha_account,
+                    "webconsolers_account": self.get_webconsolers_account(),
+                    "partition_yw_account": self.get_partition_yw_account(),
                     "mycnf_configs": mycnf_configs,
                     "dumper_configs": dumper_configs,
                 },
