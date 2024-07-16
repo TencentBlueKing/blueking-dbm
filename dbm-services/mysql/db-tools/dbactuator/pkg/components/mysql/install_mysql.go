@@ -21,6 +21,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -312,15 +314,19 @@ func (i *InstallMySQLComp) precheckMysqlDir() error {
 }
 
 func (i *InstallMySQLComp) precheckFilesystemType() (err error) {
-	mountInfo := osutil.GetMountPathInfo()
-	for _, key := range util.UniqueStrings([]string{i.DataRootPath, i.LogRootPath}) {
-		if v, exist := mountInfo[key]; exist {
-			logger.Info("%s : %s", key, v.FileSystemType)
-			if !util.StringsHas(i.Params.AllowDiskFileSystemTypes, v.FileSystemType) {
-				return fmt.Errorf("the %s,Filesystem is %s,is not allowed", key, v.FileSystemType)
+	for _, dirPath := range util.UniqueStrings([]string{i.DataRootPath, i.LogRootPath}) {
+		mountInfo := osutil.GetMountPathInfo(dirPath)
+		if len(mountInfo) != 1 {
+			return errors.Errorf("failed to get filesystem type for %s", dirPath)
+		}
+		for mountPath, info := range mountInfo {
+			if mountPath != dirPath {
+				logger.Warn("dir %s is mounted original on %s with device %s", dirPath, info.Path, info.Filesystem)
 			}
-		} else {
-			return fmt.Errorf("the %s Not Found Filesystem Type", key)
+			logger.Info("dir %s : %s", dirPath, info.FileSystemType)
+			if !util.StringsHas(i.Params.AllowDiskFileSystemTypes, info.FileSystemType) {
+				return fmt.Errorf("the %s,Filesystem is %s,is not allowed", dirPath, info.FileSystemType)
+			}
 		}
 	}
 	return nil
