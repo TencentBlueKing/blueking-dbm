@@ -50,19 +50,25 @@ class DropTempUserForClusterService(BaseService):
         根据cluster对象获取所有的cluster需要实例信息
         """
         objs = [
-            {"ip_port": i.ip_port, "is_tdbctl": False}
-            for i in list(cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING))
+            {"ip_port": i.ip_port, "is_tdbctl": False, "cmdb_status": i.status}
+            for i in list(cluster.storageinstance_set.all())
         ]
 
         if cluster.cluster_type == ClusterType.TenDBCluster:
             # 如果是TenDB cluster集群，获取所有spider实例
             objs += [
-                {"ip_port": i.ip_port, "is_tdbctl": False}
-                for i in list(cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING))
+                {"ip_port": i.ip_port, "is_tdbctl": False, "cmdb_status": i.status}
+                for i in list(cluster.proxyinstance_set.all())
             ]
 
             # 如果是tenDB cluster 集群类型，需要获取中控实例primary
-            objs.append({"ip_port": cluster.tendbcluster_ctl_primary_address(), "is_tdbctl": True})
+            objs.append(
+                {
+                    "ip_port": cluster.tendbcluster_ctl_primary_address(),
+                    "is_tdbctl": True,
+                    "cmdb_status": InstanceStatus.RUNNING.value,
+                }
+            )
         return objs
 
     def drop_jor_user(self, cluster: Cluster, root_id: str):
@@ -77,8 +83,7 @@ class DropTempUserForClusterService(BaseService):
             for instance in self._get_instance_for_cluster(cluster=cluster):
                 # 默认先关闭binlog记录， 最后统一打开
                 cmd = ["set session sql_log_bin = 0 ;"]
-                if instance["is_tdbctl"]:
-                    cmd.append("set tc_admin = 0;")
+
                 self.log_info(f"the cluster version is {cluster.major_version}")
                 if mysql_version_parse(cluster.major_version) >= mysql_version_parse("5.7"):
                     cmd += [
@@ -100,15 +105,26 @@ class DropTempUserForClusterService(BaseService):
                         "bk_cloud_id": cluster.bk_cloud_id,
                     }
                 )
-                for info in resp:
+                for info in resp[0]["cmd_results"]:
+                    # 其实只是一行
                     if info["error_msg"]:
-                        self.log_error(
-                            f"The result [drop user if exists `{user}`] in {info['address']}"
-                            f"is [{info['error_msg']}]"
-                        )
-                        err_num = err_num + 1
-                    else:
-                        self.log_info(f"The result [drop user if exists `{user}`] in {info['address']} is [success]")
+                        if instance["cmdb_status"] == InstanceStatus.RUNNING.value:
+                            # 如果实例是running状态，应该记录错误，并且返回异常
+                            self.log_error(
+                                f"The result [drop user `{user}`] in {instance['ip_port']}"
+                                f" is [{info['error_msg']}]"
+                            )
+                            err_num = err_num + 1
+                        else:
+                            # 如果是非running状态，标记warning信息，但不作异常处理
+                            self.log_warning(info["error_msg"])
+                            self.log_warning(
+                                f"[{instance['ip_port']} is not running in dbm [{instance['cmdb_status']}],ignore]"
+                            )
+                            continue
+
+                if err_num == 0:
+                    self.log_info(f"The result [drop user if exists `{user}`] in {instance['ip_port']} is [success]")
 
         except Exception as e:  # pylint: disable=broad-except
             self.log_error(f"drop user error in cluster [{cluster.name}]: {e}")
