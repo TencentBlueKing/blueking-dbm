@@ -29,6 +29,7 @@ class RedisClusterRenameDomainSerializer(SkipToRepresentationMixin, serializers.
     class InfoSerializer(ClusterValidateMixin, serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         new_domain = serializers.CharField(help_text=_("集群新域名"))
+        extra = serializers.JSONField(help_text=_("集群额外信息"))
 
         def validate(self, attr):
             RedisClusterRenameDomainFlow.precheck_info_item(attr["cluster_id"], attr["new_domain"])
