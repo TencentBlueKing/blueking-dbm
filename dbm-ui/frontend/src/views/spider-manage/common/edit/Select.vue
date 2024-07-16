@@ -69,6 +69,10 @@
               active: item.id === localValue,
             }"
             @click="handleSelect(item)">
+            <slot
+              v-if="slots.option"
+              name="option"
+              :option-item="item" />
             <span>{{ item.name }}</span>
           </div>
         </div>
@@ -97,6 +101,7 @@
   interface IListItem {
     id: IKey;
     name: string;
+    [x: string]: string | number | undefined;
   }
 
   interface Props {
@@ -109,6 +114,9 @@
   interface Emits {
     (e: 'update:modelValue', value: IKey): void;
     (e: 'change', value: IKey): void;
+  }
+  interface Slots {
+    option(value: { optionItem: IListItem }): void;
   }
 
   interface Exposes {
@@ -123,6 +131,7 @@
     disabled: false,
   });
   const emits = defineEmits<Emits>();
+  const slots = useSlots<Slots>();
 
   let tippyIns: Instance;
 

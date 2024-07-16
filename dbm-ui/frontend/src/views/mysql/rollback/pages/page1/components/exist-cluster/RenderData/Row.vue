@@ -13,58 +13,55 @@
 
 <template>
   <tr>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderCluster
         ref="clusterRef"
-        :model-value="data.clusterData"
-        @id-change="handleClusterIdChange"
+        :model-value="localClusterData"
+        @change="handleClusterChange"
         @input-create="handleCreate" />
     </td>
-    <td style="padding: 0;">
-      <RenderHost
-        ref="hostRef"
-        :cloud-id="cloudId"
-        :disabled="!localClusterId"
-        :domain="data.clusterData?.domain"
-        :model-value="data.rollbackIp" />
+    <td style="padding: 0">
+      <RenderTargetCluster
+        ref="targetClustersRef"
+        :data="data.targetClusters"
+        :source-cluster-id="localClusterData!.id" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderBackup
         ref="backupSourceRef"
         :model-value="localBackupSource"
         @change="handleBackupSourceChange" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderMode
         ref="modeRef"
         :backup-source="localBackupSource"
-        :backupid="data.backupid"
-        :cluster-id="localClusterId"
+        :cluster-id="localClusterData!.id"
         :rollback-time="data.rollbackTime" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderDbName
         ref="databasesRef"
-        :cluster-id="localClusterId"
+        :cluster-id="localClusterData!.id"
         :model-value="data.databases" />
     </td>
-    <td style="padding: 0;">
-      <RenderTableName
-        ref="tablesRef"
-        :cluster-id="localClusterId"
-        :model-value="data.tables" />
-    </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
       <RenderDbName
         ref="databasesIgnoreRef"
-        :cluster-id="localClusterId"
+        :cluster-id="localClusterData!.id"
         :model-value="data.databasesIgnore"
         :required="false" />
     </td>
-    <td style="padding: 0;">
+    <td style="padding: 0">
+      <RenderTableName
+        ref="tablesRef"
+        :cluster-id="localClusterData!.id"
+        :model-value="data.tables" />
+    </td>
+    <td style="padding: 0">
       <RenderTableName
         ref="tablesIgnoreRef"
-        :cluster-id="localClusterId"
+        :cluster-id="localClusterData!.id"
         :model-value="data.tablesIgnore"
         :required="false" />
     </td>
@@ -82,11 +79,13 @@
     clusterData?: {
       id: number;
       domain: string;
-      cloudId: number | null;
+      cloudId?: number;
+      cloudName?: string;
     };
+    targetClusters?: string;
     rollbackIp?: string;
     backupSource: string;
-    backupid?: number;
+    backupid?: number | string;
     rollbackTime?: string;
     databases?: string[];
     databasesIgnore?: string[];
@@ -97,14 +96,18 @@
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
-    clusterData: data.clusterData,
+    clusterData: data.clusterData || {
+      id: 0,
+      domain: '',
+    },
+    targetClusters: data.targetClusters || '',
     rollbackIp: data.rollbackIp,
     backupSource: data.backupSource || 'remote',
-    backupid: data.backupid,
+    backupid: data.backupid || '',
     rollbackTime: data.rollbackTime || '',
-    databases: data.databases,
+    databases: data.databases || ['*'],
     databasesIgnore: data.databasesIgnore,
-    tables: data.tables,
+    tables: data.tables || ['*'],
     tablesIgnore: data.tablesIgnore,
   });
 </script>
@@ -115,11 +118,11 @@
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
+  import RenderTargetCluster from '@views/mysql/rollback/pages/page1/components/common/render-target-clusters/Index.vue';
+  import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
+  import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
 
-  import RenderBackup from './RenderBackup.vue';
-  import RenderCluster from './RenderCluster.vue';
-  import RenderHost from './RenderHost.vue';
-  import RenderMode from './RenderMode.vue';
+  import RenderMode from '@/views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
 
   interface Props {
     data: IDataRow;
@@ -139,7 +142,7 @@
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
-  const hostRef = ref();
+  const targetClustersRef = ref();
   const backupSourceRef = ref();
   const modeRef = ref();
   const databasesRef = ref();
@@ -147,16 +150,17 @@
   const tablesRef = ref();
   const tablesIgnoreRef = ref();
 
-  const localClusterId = ref(0);
-  const cloudId = ref<number | null>(null);
+  const localClusterData = ref<IDataRow['clusterData']>({
+    id: 0,
+    domain: '',
+  });
   const localBackupSource = ref('');
 
   watch(
     () => props.data,
     () => {
       if (props.data.clusterData) {
-        localClusterId.value = props.data.clusterData.id;
-        cloudId.value = props.data.clusterData.cloudId;
+        localClusterData.value = props.data.clusterData;
       }
       localBackupSource.value = props.data.backupSource;
     },
@@ -165,9 +169,8 @@
     },
   );
 
-  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
-    localClusterId.value = idData.id;
-    cloudId.value = idData.cloudId;
+  const handleClusterChange = (data: IDataRow['clusterData']) => {
+    localClusterData.value = data;
   };
 
   const handleBackupSourceChange = (value: string) => {
@@ -182,7 +185,6 @@
           clusterData: {
             id: 0,
             domain,
-            cloudId: null,
           },
         }),
       ),
@@ -204,7 +206,7 @@
     getValue() {
       return Promise.all([
         clusterRef.value.getValue(),
-        hostRef.value.getValue(),
+        targetClustersRef.value.getValue(),
         backupSourceRef.value.getValue(),
         modeRef.value.getValue(),
         databasesRef.value.getValue('databases'),
@@ -214,7 +216,7 @@
       ]).then(
         ([
           clusterData,
-          hostData,
+          tagetClusterData,
           backupSourceData,
           modeData,
           databasesData,
@@ -223,7 +225,7 @@
           tablesIgnoreData,
         ]) => ({
           ...clusterData,
-          ...hostData,
+          ...tagetClusterData,
           ...backupSourceData,
           ...modeData,
           ...databasesData,

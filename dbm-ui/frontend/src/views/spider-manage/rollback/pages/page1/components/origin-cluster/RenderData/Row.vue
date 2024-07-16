@@ -17,40 +17,22 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange" />
+          :model-value="localClusterData"
+          @change="handleClusterChange" />
+      </td>
+      <td style="padding: 0">
+        <RenderBackup
+          ref="backupSourceRef"
+          :model-value="localBackupSource"
+          @change="handleBackupSourceChange" />
       </td>
       <td style="padding: 0">
         <RenderMode
           ref="modeRef"
-          :cluster-id="localClusterId"
+          :backup-source="localBackupSource"
+          :backupid="data.backupid"
+          :cluster-id="localClusterData.id"
           :rollback-time="data.rollbackTime" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="databasesRef"
-          :cluster-id="localClusterId"
-          :model-value="data.databases" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="databasesIgnoreRef"
-          :cluster-id="localClusterId"
-          :model-value="data.databasesIgnore"
-          :required="false" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablesRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tables" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablesIgnoreRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tablesIgnore"
-          :required="false" />
       </td>
     </tr>
   </tbody>
@@ -63,34 +45,32 @@
     clusterData?: {
       id: number;
       domain: string;
-      cloudId: number | null;
+      cloudId?: number;
+      cloudName?: string;
     };
+    backupSource: string;
     rollbackupType: string;
+    backupid?: string;
     rollbackTime?: string;
-    databases?: string[];
-    databasesIgnore?: string[];
-    tables?: string[];
-    tablesIgnore?: string[];
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
-    clusterData: data.clusterData,
+    clusterData: data.clusterData || {
+      id: 0,
+      domain: '',
+    },
+    backupSource: data.backupSource || 'remote',
     rollbackupType: data.rollbackupType || 'REMOTE_AND_TIME',
-    rollbackTime: data.rollbackTime,
-    databases: data.databases,
-    databasesIgnore: data.databasesIgnore,
-    tables: data.tables,
-    tablesIgnore: data.tablesIgnore,
+    backupid: data.backupid || '',
+    rollbackTime: data.rollbackTime || '',
   });
 </script>
 <script setup lang="ts">
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
-  import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
-
-  import RenderCluster from './RenderCluster.vue';
-  import RenderMode from './RenderMode.vue';
+  import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
+  import RenderMode from '@views/spider-manage/rollback/pages/page1/components/common/render-mode/Index.vue';
+  import RenderBackup from '@views/spider-manage/rollback/pages/page1/components/common/RenderBackup.vue';
 
   interface Props {
     data: IDataRow;
@@ -104,19 +84,24 @@
 
   const clusterRef = ref();
   const modeRef = ref();
-  const databasesRef = ref();
-  const databasesIgnoreRef = ref();
-  const tablesRef = ref();
-  const tablesIgnoreRef = ref();
 
-  const localClusterId = ref(0);
+  const localClusterData = ref();
   const localRollbackuoType = ref('');
+  const localBackupSource = ref('remote');
+
+  const handleBackupSourceChange = (value: string) => {
+    localBackupSource.value = value;
+  };
+
+  const handleClusterChange = (data?: IDataRow['clusterData']) => {
+    localClusterData.value = data;
+  };
 
   watch(
     () => props.data,
     () => {
       if (props.data.clusterData) {
-        localClusterId.value = props.data.clusterData.id;
+        localClusterData.value = props.data.clusterData;
       }
       localRollbackuoType.value = props.data.rollbackupType;
     },
@@ -125,26 +110,12 @@
     },
   );
 
-  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
-    localClusterId.value = idData.id;
-  };
-
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value.getValue(),
-        modeRef.value.getValue(),
-        databasesRef.value.getValue('databases'),
-        tablesRef.value.getValue('tables'),
-        databasesIgnoreRef.value.getValue('databases_ignore'),
-        tablesIgnoreRef.value.getValue('tables_ignore'),
-      ]).then(([clusterData, modeData, databasesData, tablesData, databasesIgnoreData, tablesIgnoreData]) => ({
+      return Promise.all([clusterRef.value.getValue(), modeRef.value.getValue()]).then(([clusterData, modeData]) => ({
         ...clusterData,
         ...modeData,
-        ...databasesData,
-        ...tablesData,
-        ...databasesIgnoreData,
-        ...tablesIgnoreData,
+        target_cluster_id: clusterData.cluster_id,
       }));
     },
   });

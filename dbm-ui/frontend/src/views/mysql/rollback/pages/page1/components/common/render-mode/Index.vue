@@ -17,59 +17,58 @@
       <TableEditSelect
         v-model="localBackupType"
         :disabled="editDisabled"
-        :list="targetList" />
+        :list="targetList"
+        @change="hanldeBackupTypeChange" />
     </div>
     <div class="action-item">
       <TableEditDateTime
-        v-if="localBackupType === 'time'"
+        v-if="localBackupType === BackupTypes.REMOTE_AND_TIME"
         ref="localRollbackTimeRef"
         v-model="localRollbackTime"
         :disabled="editDisabled"
         :disabled-date="disableDate"
         :rules="timerRules"
         type="datetime" />
+
       <div
         v-else
         class="local-backup-select">
         <DbIcon
           class="file-flag"
           type="wenjian" />
-        <TableEditSelect
-          ref="localBackupidRef"
-          v-model="localBackupid"
-          :disabled="editDisabled"
-          :list="logRecordList"
-          :rules="rules"
-          style="flex: 1" />
+        <RecordSelector
+          ref="localBackupFileRef"
+          :backup-source="backupSource"
+          :backupid="backupid"
+          :cluster-id="clusterId"
+          :disabled="editDisabled" />
       </div>
     </div>
   </div>
 </template>
-<script setup lang="ts">
-  import dayjs from 'dayjs';
-  import _ from 'lodash';
+<script setup lang="tsx">
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { queryBackupLogFromBklog, queryBackupLogFromLoacal } from '@services/source/fixpointRollback';
-
   import { useTimeZoneFormat } from '@hooks';
-
-  import { useTimeZone } from '@stores';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
+  import RecordSelector from './RecordSelector.vue';
+
+  import type { BackupLogRecord } from '@/services/source/fixpointRollback';
+
   interface Props {
     clusterId: number;
+    backupid?: string;
     backupSource?: string;
-    backupid?: number;
     rollbackTime?: string;
   }
 
   interface Exposes {
     getValue: (field: string) => Promise<{
-      backupinfo?: any;
+      backupinfo?: BackupLogRecord;
       rollback_time?: string;
     }>;
   }
@@ -80,7 +79,6 @@
 
   const { t } = useI18n();
   const formatDateToUTC = useTimeZoneFormat();
-  const timeZoneStore = useTimeZone();
 
   const timerRules = [
     {
@@ -88,61 +86,41 @@
       message: t('回档时间不能为空'),
     },
   ];
-
-  const rules = [
-    {
-      validator: (value: string) => !!value,
-      message: t('备份记录不能为空'),
-    },
-  ];
-
+  enum BackupTypes {
+    REMOTE_AND_BACKUPID = 'REMOTE_AND_BACKUPID',
+    REMOTE_AND_TIME = 'REMOTE_AND_TIME',
+  }
   const targetList = [
     {
-      id: 'record',
+      id: BackupTypes.REMOTE_AND_BACKUPID,
       name: t('备份记录'),
     },
     {
-      id: 'time',
+      id: BackupTypes.REMOTE_AND_TIME,
       name: t('回档到指定时间'),
     },
   ];
 
   const localRollbackTimeRef = ref();
-  const localBackupidRef = ref();
-  const localBackupType = ref('record');
-  const localBackupid = ref(0);
+  const localBackupFileRef = ref();
+  const localBackupType = ref(BackupTypes.REMOTE_AND_BACKUPID);
   const localRollbackTime = ref('');
-
-  const logRecordList = shallowRef<Array<{ id: string; name: string }>>([]);
 
   const editDisabled = computed(() => !props.clusterId || !props.backupSource);
 
-  let logRecordListMemo = [] as any[];
-
-  const fetchLogData = () => {
-    logRecordList.value = [];
-    logRecordListMemo = [];
-    const queryBackupLog = props.backupSource === 'local' ? queryBackupLogFromLoacal : queryBackupLogFromBklog;
-    queryBackupLog({
-      cluster_id: props.clusterId,
-    }).then((dataList) => {
-      logRecordList.value = dataList.map((item) => ({
-        id: item.backup_id,
-        name: `${item.mysql_role} ${dayjs(item.backup_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
-      }));
-      logRecordListMemo = dataList;
-    });
+  const hanldeBackupTypeChange = () => {
+    localRollbackTime.value = '';
   };
 
   watch(
-    () => [props.backupSource, props.clusterId, timeZoneStore.label],
-    () => {
-      localBackupid.value = 0;
-      localRollbackTime.value = '';
-      if (!props.clusterId || !props.backupSource) {
-        return;
+    () => props.rollbackTime,
+    (newVal) => {
+      if (newVal) {
+        localRollbackTime.value = newVal;
+        localBackupType.value = BackupTypes.REMOTE_AND_TIME;
+      } else {
+        localBackupType.value = BackupTypes.REMOTE_AND_BACKUPID;
       }
-      fetchLogData();
     },
     {
       immediate: true,
@@ -151,15 +129,10 @@
 
   watch(
     () => props.backupid,
-    () => {
-      if (props.backupid) {
-        localBackupid.value = props.backupid;
+    (newVal) => {
+      if (newVal) {
+        localBackupType.value = BackupTypes.REMOTE_AND_BACKUPID;
       }
-      if (props.rollbackTime) {
-        localRollbackTime.value = props.rollbackTime;
-      }
-
-      localBackupType.value = props.rollbackTime ? 'time' : 'record';
     },
     {
       immediate: true,
@@ -168,15 +141,11 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (localBackupType.value === 'record') {
-        return localBackupidRef.value.getValue().then(() => {
-          const backupInfo = _.find(logRecordListMemo, (item) => item.backup_id === localBackupid.value);
-          return {
-            backupinfo: backupInfo,
-          };
-        });
+      if (localBackupType.value === BackupTypes.REMOTE_AND_BACKUPID) {
+        return localBackupFileRef.value.getValue().then((data: BackupLogRecord) => ({
+          backupinfo: data,
+        }));
       }
-
       return localRollbackTimeRef.value.getValue().then(() => ({
         rollback_time: formatDateToUTC(localRollbackTime.value),
       }));
@@ -196,7 +165,8 @@
   .local-backup-select {
     position: relative;
 
-    :deep(.table-edit-select) {
+    :deep(.table-edit-select),
+    :deep(.rollback-mode-select) {
       .select-result-text {
         padding-left: 14px;
       }

@@ -490,7 +490,7 @@ export interface MySQLRollbackDetails {
   clusters: DetailClusters;
   infos: {
     backup_source: string;
-    backupid: number;
+    backupid: string;
     cluster_id: number;
     databases: string[];
     databases_ignore: string[];
@@ -500,6 +500,7 @@ export interface MySQLRollbackDetails {
       bk_host_id: number;
       ip: string;
     };
+    rollback_ip: string;
     rollback_time: string;
     tables: string[];
     tables_ignore: string[];

@@ -18,7 +18,7 @@ import { useGlobalBizs } from '@stores';
 import http from '../http';
 import type { ListBase } from '../types';
 
-interface BackupLogRecord {
+export interface BackupLogRecord {
   backup_begin_time: string;
   backup_config_file: string;
   backup_consistent_time: string;
@@ -116,11 +116,14 @@ export function queryLatesBackupLog(params: {
   bk_biz_id: number;
   cluster_id: number;
   rollback_time: string;
-  job_instance_id: number;
+  job_instance_id?: number;
 }) {
-  return http.get<{
-    backup_logs: Array<any>;
-    job_status: string;
-    message: string;
-  }>(`${path}/query_latest_backup_log/`, params);
+  return http.get<
+    | {
+        backup_logs: Array<any>;
+        job_status: string;
+        message: string;
+      }
+    | BackupLogRecord
+  >(`${path}/query_latest_backup_log/`, params);
 }

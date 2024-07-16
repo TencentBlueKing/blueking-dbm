@@ -24,6 +24,7 @@ export function generateMysqlRollbackCloneData(ticketData: TicketModel<MySQLRoll
       id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
       cloudId: clusters[item.cluster_id].bk_cloud_id,
+      cloudName: clusters[item.cluster_id].bk_cloud_name,
     },
     rollbackIp: item.rollback_host.ip,
     backupSource: item.backup_source,

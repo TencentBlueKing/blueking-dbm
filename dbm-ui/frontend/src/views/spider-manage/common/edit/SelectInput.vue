@@ -47,7 +47,7 @@
     <DbIcon
       v-if="localValue"
       class="remove-btn"
-      :style="{ 'right': validateError ? '20px' : '4px' }"
+      :style="{ right: validateError ? '20px' : '4px' }"
       type="delete-fill"
       @click.self="handleRemove" />
     <DbIcon
@@ -83,16 +83,17 @@
             v-bk-tooltips="{
               content: item.tooltips,
               placement: 'left',
-              disabled: item.id === currentSelectItem?.id
+              disabled: item.id === currentSelectItem?.id,
             }"
             class="option-item"
             :class="{
               active: item.id === currentSelectItem?.id,
             }"
             @click="handleSelect(item)">
-            <template v-if="slots.option">
-              <slot name="option" :option-item="item" />
-            </template>
+            <slot
+              v-if="slots.option"
+              name="option"
+              :option-item="item" />
             <span v-else>{{ item.name }}</span>
           </div>
         </div>
@@ -114,9 +115,7 @@
 
   import { encodeMult, encodeRegexp } from '@utils';
 
-  import useValidtor, {
-    type Rules,
-  } from './hooks/useValidtor';
+  import useValidtor, { type Rules } from './hooks/useValidtor';
 
   import { t } from '@/locales';
 
@@ -128,31 +127,31 @@
 
   interface Props {
     list: Array<IListItem>;
-    placeholder?: string,
-    textarea?: boolean,
-    rules?: Rules,
-    disabled?: boolean,
-    selectDisabled?: boolean,
-    readonly?: boolean,
-    inputSearch?: boolean,
-    selectDisplayFun?: (value: string, item?: IListItem) => string
+    placeholder?: string;
+    textarea?: boolean;
+    rules?: Rules;
+    disabled?: boolean;
+    selectDisabled?: boolean;
+    readonly?: boolean;
+    inputSearch?: boolean;
+    selectDisplayFun?: (value: string, item?: IListItem) => string;
   }
 
   interface Emits {
-    (e: 'submit', value: string): void,
-    (e: 'input', value: string): void,
-    (e: 'overflow-change', value: boolean): void,
+    (e: 'submit', value: string): void;
+    (e: 'input', value: string): void;
+    (e: 'overflow-change', value: boolean): void;
     (e: 'change', value: string): void;
   }
 
   interface Exposes {
     getValue: () => Promise<string>;
     getCurrentItem: () => IListItem | undefined;
-    focus: () => void
+    focus: () => void;
   }
 
   interface Slots {
-    option(value: { optionItem: IListItem }): void
+    option(value: { optionItem: IListItem }): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -163,7 +162,7 @@
     selectDisabled: false,
     readonly: false,
     inputSearch: true,
-    selectDisplayFun: (value: string, item?: IListItem) => item?.name || ''
+    selectDisplayFun: (value: string, item?: IListItem) => item?.name || '',
   });
 
   const emits = defineEmits<Emits>();
@@ -174,13 +173,9 @@
 
   let selectorInstance: Instance;
 
-  const {
-    error: validateError,
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { error: validateError, message: errorMessage, validator } = useValidtor(props.rules);
   const searchKey = useDebouncedRef('');
-  const slots = useSlots()
+  const slots = useSlots();
 
   const rootRef = ref<HTMLElement>();
   const popRef = ref<HTMLElement>();
@@ -189,7 +184,7 @@
   const isShowPop = ref(false);
   const isError = ref(false);
   const localValue = ref('');
-  const currentSelectItem = ref<IListItem | undefined>()
+  const currentSelectItem = ref<IListItem | undefined>();
 
   const isEmpty = computed(() => !modelValue.value);
   const inputStyles = computed(() => {
@@ -214,36 +209,44 @@
     }, [] as Array<IListItem>),
   );
 
-  watch(modelValue, (value) => {
-    if (localValue.value !== value) {
-      localValue.value = value;
-      window.changeConfirm = true;
-    }
-    if (value) {
-      setTimeout(() => {
-        const isOverflow = inputRef.value!.clientWidth < inputRef.value!.scrollWidth;
-        emits('overflow-change', isOverflow);
-      });
-    }
-    validator(value)
-  }, {
-    immediate: true,
-  });
+  watch(
+    modelValue,
+    (value) => {
+      if (localValue.value !== value) {
+        localValue.value = value;
+        window.changeConfirm = true;
+      }
+      if (value) {
+        setTimeout(() => {
+          const isOverflow = inputRef.value!.clientWidth < inputRef.value!.scrollWidth;
+          emits('overflow-change', isOverflow);
+        });
+      }
+      validator(value);
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(localValue, () => {
-    nextTick(() => {
-      inputRef.value!.innerText = props.selectDisplayFun(localValue.value, currentSelectItem.value);
-    })
-  }, {
-    immediate: true
-  })
+  watch(
+    localValue,
+    () => {
+      nextTick(() => {
+        inputRef.value!.innerText = props.selectDisplayFun(localValue.value, currentSelectItem.value);
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleRootClick = () => {
     if (props.disabled && props.selectDisabled) {
-      return
+      return;
     }
-    selectorInstance.show()
-  }
+    selectorInstance.show();
+  };
 
   // 获取焦点
   const handleFocus = () => {
@@ -259,7 +262,7 @@
       sel.removeAllRanges();
       sel.addRange(range);
     }
-  }
+  };
 
   // 响应输入
   const handleInput = (event: Event) => {
@@ -273,8 +276,8 @@
       emits('input', localValue.value);
     });
     setTimeout(() => {
-      setCursorPosition(inputRef.value!, localValue.value.length)
-    })
+      setCursorPosition(inputRef.value!, localValue.value.length);
+    });
   };
 
   // 失去焦点
@@ -287,11 +290,10 @@
     if (!localValue.value) {
       return;
     }
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('submit', localValue.value);
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+      emits('submit', localValue.value);
+    });
   };
 
   // enter键提交
@@ -307,14 +309,13 @@
     if (event.which === 13 || event.key === 'Enter') {
       if (!props.textarea) {
         event.preventDefault();
-        validator(localValue.value)
-          .then((result) => {
-            if (result) {
-              isFocused.value = false;
-              window.changeConfirm = true;
-              emits('submit', localValue.value);
-            }
-          });
+        validator(localValue.value).then((result) => {
+          if (result) {
+            isFocused.value = false;
+            window.changeConfirm = true;
+            emits('submit', localValue.value);
+          }
+        });
         return;
       }
     }
@@ -326,7 +327,10 @@
     paste = encodeMult(paste);
 
     const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return false;
+
+    if (!selection || !selection.rangeCount) {
+      return false;
+    }
     selection.deleteFromDocument();
     selection.getRangeAt(0).insertNode(document.createTextNode(paste));
     localValue.value = paste;
@@ -336,10 +340,10 @@
   // 选择
   const handleSelect = (item: IListItem) => {
     if (currentSelectItem.value && item === currentSelectItem.value) {
-      return
+      return;
     }
     localValue.value = item.id;
-    currentSelectItem.value = item
+    currentSelectItem.value = item;
     selectorInstance.hide();
     modelValue.value = localValue.value;
     emits('change', localValue.value);
@@ -349,7 +353,7 @@
   // 删除值
   const handleRemove = () => {
     localValue.value = '';
-    currentSelectItem.value = undefined
+    currentSelectItem.value = undefined;
     validator(localValue.value).then(() => {
       window.changeConfirm = true;
       modelValue.value = localValue.value;
@@ -359,10 +363,10 @@
 
   onMounted(() => {
     if (modelValue.value) {
-      const index = props.list.findIndex(listItem => listItem.id === modelValue.value)
+      const index = props.list.findIndex((listItem) => listItem.id === modelValue.value);
       if (index > -1) {
-        const listItem = props.list[index]
-        currentSelectItem.value = listItem
+        const listItem = props.list[index];
+        currentSelectItem.value = listItem;
       }
     }
 
@@ -406,7 +410,7 @@
       return validator(localValue.value).then(() => localValue.value);
     },
     getCurrentItem() {
-      return currentSelectItem.value
+      return currentSelectItem.value;
     },
     // 编辑框获取焦点
     focus() {
@@ -421,12 +425,12 @@
     display: flex;
     width: 100%;
     height: 42px;
-    cursor: pointer;
-    background: #fff;
-    transition: all 0.15s;
     overflow: hidden;
     color: #63656e;
+    cursor: pointer;
+    background: #fff;
     border: 1px solid transparent;
+    transition: all 0.15s;
     align-items: center;
 
     &:hover {
@@ -437,6 +441,7 @@
     &.is-focused {
       z-index: 99;
       border: 1px solid #3a84ff;
+
       .focused-flag {
         transform: rotateZ(-90deg);
       }
@@ -470,6 +475,7 @@
 
     &.is-error {
       background: rgb(255 221 221 / 20%);
+
       .inner-input {
         background-color: #fff1f1;
       }
@@ -572,7 +578,6 @@
         color: #979ba5;
       }
     }
-
   }
 </style>
 
@@ -594,7 +599,6 @@
         .bk-input--text {
           background-color: #fff;
         }
-
       }
 
       .options-list {
@@ -612,7 +616,7 @@
         white-space: pre;
 
         &:hover {
-          color: #63656E;
+          color: #63656e;
           cursor: pointer;
           background-color: #f5f7fa;
         }
