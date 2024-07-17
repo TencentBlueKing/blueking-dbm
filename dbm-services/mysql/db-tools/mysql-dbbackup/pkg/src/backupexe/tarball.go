@@ -404,7 +404,7 @@ func PackageBackupFiles(cnf *config.BackupConfig, metaInfo *dbareport.IndexConte
 
 	// package files, and produce the index file at the same time
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
-		if cnf.Public.UseMysqldump {
+		if cnf.Public.UseMysqldump == cst.LogicalMysqldumpYes {
 			if indexFilePath, err = packageFile.SplittingPackage(); err != nil {
 				return "", err
 			}

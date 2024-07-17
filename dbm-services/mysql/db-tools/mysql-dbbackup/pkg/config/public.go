@@ -57,8 +57,8 @@ type Public struct {
 	// 磁盘空间数据量大于 BackupTypeAutoDataSizeGB ，物理备份
 	// glibc 版本小于 2.14，物理备份
 	BackupType string `ini:"BackupType" validate:"required"`
-	// UseMysqldump true means used, false means disabled. The default value is false
-	UseMysqldump bool `ini:"UseMysqldump"`
+	// UseMysqldump yes means used, no means disabled, auto depends on glibc version. The default value is no
+	UseMysqldump string `ini:"UseMysqldump"`
 	// OldFileLeftDay will remove old backup files before the days
 	OldFileLeftDay int `ini:"OldFileLeftDay"`
 	// TarSizeThreshold tar file size. MB

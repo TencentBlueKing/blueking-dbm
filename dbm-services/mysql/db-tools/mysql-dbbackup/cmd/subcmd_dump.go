@@ -116,6 +116,9 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 		if cnf.PhysicalBackup.MaxMyisamTables == 0 {
 			cnf.PhysicalBackup.MaxMyisamTables = 10
 		}
+		if cnf.Public.UseMysqldump == "" {
+			cnf.Public.UseMysqldump = cst.LogicalMysqldumpNo
+		}
 
 		err := backupData(&cnf)
 		if err != nil {
