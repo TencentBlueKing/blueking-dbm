@@ -34,7 +34,7 @@ export default [
     titleTooltip: t('支持所有架构类型'),
     menuList: [
       {
-        name: t('集群维护'),
+        name: t('通用维护'),
         id: 'common-manage',
         icon: 'db-icon-cluster',
         children: [

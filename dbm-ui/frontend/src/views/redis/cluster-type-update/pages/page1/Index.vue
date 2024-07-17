@@ -204,6 +204,7 @@
       used: 1,
       total: item.cluster_capacity,
     },
+    cluster_type_name: item.cluster_type_name,
     currentSpecId: item.cluster_spec.spec_id,
     srcClusterType: item.cluster_type_name,
     clusterType: item.cluster_type,

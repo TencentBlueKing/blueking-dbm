@@ -22,6 +22,12 @@
     </td>
     <td style="padding: 0">
       <RenderText
+        :data="data.cluster_type_name"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
         :data="data.srcClusterType"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
@@ -94,6 +100,7 @@
     srcClusterType: string;
     clusterType: string;
     currentShardNum: number;
+    cluster_type_name: string;
     specConfig: {
       cpu: {
         max: number;
@@ -168,6 +175,7 @@
     clusterType: '',
     dbVersion: '',
     currentShardNum: 0,
+    cluster_type_name: '',
     currentSepc: '',
     specConfig: {
       cpu: {

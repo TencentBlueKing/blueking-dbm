@@ -22,6 +22,12 @@
     </td>
     <td style="padding: 0">
       <RenderText
+        :data="data.cluster_type_name"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
         :data="data.currentSepc"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
@@ -75,6 +81,7 @@
     clusterType: string;
     currentShardNum: number;
     currentSpecId: number;
+    cluster_type_name: string;
     dbVersion: string;
     specConfig: {
       cpu: {
@@ -144,6 +151,7 @@
     bkCloudId: 0,
     switchMode: '',
     clusterType: '',
+    cluster_type_name: '',
     currentShardNum: 0,
     currentSpecId: 0,
     dbVersion: '',
