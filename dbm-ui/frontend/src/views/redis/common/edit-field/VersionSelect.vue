@@ -19,7 +19,33 @@
         v-model="localValue"
         :list="selectList"
         :placeholder="$t('请选择')"
-        :rules="rules" />
+        :rules="rules">
+        <template #default="{ optionItem, index }">
+          <div class="redis-version-select-option">
+            <div
+              v-overflow-tips
+              class="option-label">
+              {{ optionItem.label }}
+            </div>
+            <div>
+              <BkTag
+                v-if="data === optionItem.label"
+                class="ml-4"
+                size="small"
+                theme="info">
+                {{ t('当前版本') }}
+              </BkTag>
+              <BkTag
+                v-if="index === 0"
+                class="ml-4"
+                size="small"
+                theme="warning">
+                {{ t('推荐') }}
+              </BkTag>
+            </div>
+          </div>
+        </template>
+      </TableEditSelect>
     </div>
   </BkLoading>
 </template>
@@ -98,6 +124,19 @@
     },
   });
 </script>
+
+<style lang="less">
+  .redis-version-select-option {
+    display: flex;
+    width: 100%;
+
+    .option-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+</style>
 <style lang="less" scoped>
   .render-role-box {
     padding: 0;

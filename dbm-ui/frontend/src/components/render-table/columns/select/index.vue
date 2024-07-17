@@ -44,7 +44,13 @@
         v-for="(item, index) in list"
         :key="index"
         :label="item.label"
-        :value="item.value" />
+        :value="item.value">
+        <slot
+          v-if="slots.default"
+          :index="index"
+          :option-item="item" />
+        <span v-else>{{ item.label }}</span>
+      </BkOption>
     </BkSelect>
   </div>
 </template>
@@ -95,6 +101,7 @@
   const localValue = ref<IKey>('');
   const rootHeight = ref(42);
 
+  const slots = useSlots();
   const { message: errorMessage, validator } = useValidtor(props.rules);
 
   watch(

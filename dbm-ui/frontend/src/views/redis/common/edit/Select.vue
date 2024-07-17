@@ -43,6 +43,7 @@
         v-for="(item, index) in list"
         :key="index"
         :disabled="item.disabled"
+        :label="item.label"
         :value="item.value">
         <span>{{ item.label }}</span>
         <slot

@@ -22,6 +22,12 @@
     </td>
     <td style="padding: 0">
       <RenderText
+        :data="data.cluster_type_name"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
         :data="data.currentSepc"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
@@ -90,6 +96,7 @@
     targetCluster: string;
     clusterId: number;
     bkCloudId: number;
+    cluster_type_name: string;
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
@@ -132,6 +139,7 @@
     targetCluster: '',
     clusterId: 0,
     bkCloudId: 0,
+    cluster_type_name: '',
   });
 </script>
 <script setup lang="ts">
