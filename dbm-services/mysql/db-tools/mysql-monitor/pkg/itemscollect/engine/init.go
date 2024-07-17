@@ -10,69 +10,101 @@ package engine
 
 import (
 	"context"
-	"fmt"
-	"strings"
-
+	"database/sql"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"regexp"
+	"slices"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
+var executable string
+
 var name = "engine"
 
-type tableEngineInfo struct {
-	TableSchema string `db:"TABLE_SCHEMA"`
-	TableName   string `db:"TABLE_NAME"`
-	Engine      string `db:"ENGINE"`
+var partitionPattern *regexp.Regexp
+
+var systemDBs = []string{
+	"mysql",
+	"sys",
+	"information_schema",
+	"infodba_schema",
+	"performance_schema",
+	"test",
+	"db_infobase",
 }
 
 // Checker TODO
 type Checker struct {
-	db    *sqlx.DB
-	infos []tableEngineInfo
+	db *sqlx.DB
+}
+
+func init() {
+	executable, _ = os.Executable()
+	partitionPattern = regexp.MustCompile(`^(.*)#[pP]#.*\.ibd`)
 }
 
 // Run TODO
 func (c *Checker) Run() (msg string, err error) {
+	var report = &engineReport{}
+
+	regFilePath := filepath.Join(
+		filepath.Dir(executable),
+		fmt.Sprintf("table-engine-count-%d.reg", config.MonitorConfig.Port),
+	)
+	regFile, err := os.OpenFile(
+		regFilePath,
+		os.O_CREATE|os.O_TRUNC|os.O_RDWR,
+		0777)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to open reg file")
+	}
+	defer func() {
+		jsonString, _ := json.Marshal(*report)
+		_, _ = regFile.WriteString(fmt.Sprintf("%s\n", jsonString))
+		_ = regFile.Close()
+	}()
+
 	ctx, cancel := context.WithTimeout(context.Background(), config.MonitorConfig.InteractTimeout)
 	defer cancel()
 
-	q, args, err := sqlx.In(
-		`SELECT TABLE_SCHEMA, TABLE_NAME, ENGINE 
-					FROM information_schema.TABLES 
-					WHERE TABLE_SCHEMA NOT IN (?) 
-					AND 
-					    TABLE_TYPE = ?`,
-		config.MonitorConfig.DBASysDbs,
-		"BASE TABLE",
-	)
+	var dataDir sql.NullString
+	err = c.db.GetContext(ctx, &dataDir, `SELECT @@datadir`)
 	if err != nil {
-		return "", errors.Wrap(err, "build IN query table engine")
+		slog.Error("ibd-statistic", slog.String("error", err.Error()))
+		return "", err
 	}
 
-	var infos []tableEngineInfo
-	err = c.db.SelectContext(ctx, &infos, c.db.Rebind(q), args...)
+	if !dataDir.Valid {
+		err := errors.Errorf("invalid datadir: '%s'", dataDir.String)
+		slog.Error("ibd-statistic", slog.String("error", err.Error()))
+		return "", err
+	}
+	slog.Info("engine", slog.String("datadir", dataDir.String))
+
+	report, err = c.idEngine(dataDir.String)
 	if err != nil {
-		return "", errors.Wrap(err, "query table engine")
-	}
-	c.infos = infos
-
-	myisamTables := c.myisam()
-	if len(myisamTables) > 0 {
-		msg = fmt.Sprintf("%d myisam-like talbe found", len(myisamTables))
+		return "", err
 	}
 
-	engineCountMap := c.hyperEngine()
-	var engineCountSlice []string
-	for k, v := range engineCountMap {
-		engineCountSlice = append(engineCountSlice, fmt.Sprintf("%d %s tables", v, k))
-	}
-	if len(engineCountSlice) > 1 {
+	sid := slices.IndexFunc(report.Summaries, func(summary *engineSummary) bool {
+		return summary.Engine == MyISAMEngine
+	})
+
+	if sid >= 0 && report.Summaries[sid].Count > 0 {
+		dtid := slices.IndexFunc(report.Details, func(detail *engineDetail) bool {
+			return detail.Engine == MyISAMEngine
+		})
 		msg = fmt.Sprintf(
-			"%s. hyper engine found: %s",
-			msg, strings.Join(engineCountSlice, ","),
+			"%d myisam table found: %v",
+			report.Summaries[sid].Count, report.Details[dtid],
 		)
 	}
 
