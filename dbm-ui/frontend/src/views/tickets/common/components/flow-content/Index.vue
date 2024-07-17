@@ -153,7 +153,7 @@
         @confirm="handleConfirmRetry(content)">
         <BkButton
           class="w-88"
-          :disabled="btnState.retryLoading"
+          :disabled="btnState.retryLoading || btnState.terminateLoading"
           :loading="btnState.retryLoading"
           theme="primary">
           {{ t('重试') }}
@@ -168,7 +168,7 @@
         @confirm="handleConfirmTerminal(content)">
         <BkButton
           class="w-88 ml-8"
-          :disabled="btnState.terminateLoading"
+          :disabled="btnState.terminateLoading || btnState.retryLoading"
           :loading="btnState.terminateLoading"
           theme="danger">
           {{ t('终止') }}
@@ -209,7 +209,6 @@
     ticketData: TicketModel<unknown>;
     content: FlowItem;
     flows?: FlowItem[];
-    isTodos?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -225,7 +224,7 @@
   const btnState = reactive({
     terminateLoading: false,
     retryLoading: false,
-  })
+  });
 
   const manualNexFlowDisaply = computed(() => {
     if (props.flows.length > 0) {
@@ -249,24 +248,28 @@
     revokeTicketFlow({
       ticketId: item.ticket,
       flow_id: item.id,
-    }).then(() => {
-      emits('fetch-data');
-    }).finally(() => {
-      btnState.terminateLoading = false;
     })
-  }
+      .then(() => {
+        emits('fetch-data');
+      })
+      .finally(() => {
+        btnState.terminateLoading = false;
+      });
+  };
 
   const handleConfirmRetry = (item: FlowItem) => {
     btnState.retryLoading = true;
     retryTicketFlow({
       ticketId: item.ticket,
       flow_id: item.id,
-    }).then(() => {
-      emits('fetch-data');
-    }).finally(() => {
-      btnState.retryLoading = false;
     })
-  }
+      .then(() => {
+        emits('fetch-data');
+      })
+      .finally(() => {
+        btnState.retryLoading = false;
+      });
+  };
 
   const handleProcessTicket = (action: 'APPROVE' | 'TERMINATE', todoItem: FlowItem['todos'][number]) =>
     processTicketTodo({

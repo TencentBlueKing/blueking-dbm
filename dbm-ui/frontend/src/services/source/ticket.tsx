@@ -79,7 +79,6 @@ export function createTicket(formData: Record<string, any>) {
     .post<TicketItem>(`${path}/`, formData, { catchError: true })
     .then((res) => res)
     .catch((e) => {
-      console.log('ticker erro = ', e);
       const { code, data } = e;
       const duplicateCode = 8704005;
       if (code === duplicateCode) {
