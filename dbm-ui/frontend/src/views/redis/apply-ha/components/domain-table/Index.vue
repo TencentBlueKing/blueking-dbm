@@ -34,6 +34,7 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+  import RedisMachineModel from '@services/model/redis/redis-machine';
   import { getRedisMachineList } from '@services/source/redis'
 
   import { ClusterTypes } from '@common/const'
@@ -339,7 +340,11 @@
             bk_cloud_id: props.cloudId as number,
             region: props.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
-          })
+          }),
+          disabledRowConfig: {
+            handler: (data: RedisMachineModel) => data.isUnvailable,
+            tip: t('异常主机不可用')
+          }
         }
       },
       {
@@ -349,7 +354,11 @@
             bk_cloud_id: props.cloudId as number,
             region: props.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
-          })
+          }),
+          disabledRowConfig: {
+            handler: (data: RedisMachineModel) => data.isUnvailable,
+            tip: t('异常主机不可用')
+          }
         },
         manualConfig: {
           checkInstances: (params: Record<string, any>) => getRedisMachineList({
