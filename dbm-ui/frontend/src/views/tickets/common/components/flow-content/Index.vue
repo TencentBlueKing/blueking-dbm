@@ -209,6 +209,7 @@
     ticketData: TicketModel<unknown>;
     content: FlowItem;
     flows?: FlowItem[];
+    isTodos?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
