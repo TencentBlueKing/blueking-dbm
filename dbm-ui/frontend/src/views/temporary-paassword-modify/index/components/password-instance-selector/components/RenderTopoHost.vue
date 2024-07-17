@@ -272,6 +272,16 @@
     }
   }, { immediate: true, deep: true });
 
+  watch(
+    () => props.node?.id,
+    () => {
+      if (props.node?.id) {
+        pagination.current = 1;
+        fetchData();
+      }
+    }
+  );
+
   const fetchData = () => {
     isTableDataLoading.value = true;
     const instanceType = props.panelTabActive === 'tendbcluster' ? 'spider' : props.panelTabActive;
