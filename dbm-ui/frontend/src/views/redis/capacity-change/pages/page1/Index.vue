@@ -67,6 +67,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
 
@@ -80,8 +81,6 @@
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
-
-  type RedisModel = ServiceReturnType<typeof getRedisList>['results'][number];
 
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -143,12 +142,20 @@
     cluster_type_name: data.cluster_type_name,
     shardNum: data.cluster_shard_num,
     groupNum: data.machine_pair_cnt,
+    machineCount: data.redis_master.length,
     version: data.major_version,
     clusterType: data.cluster_spec.spec_cluster_type,
     currentCapacity: {
       used: 1,
       total: data.cluster_capacity,
     },
+    spec: data.cluster_spec,
+    // machineType: data.machine_type,
+    // machinePair: data.machine_pair_cnt,
+    machineNum: data.machine_pair_cnt, // TODO: ??
+    // shardNodeCount: data.shard_node_count,
+    targetShardNum: 0,
+    targetGroupNum: 0,
   });
 
   // 批量选择

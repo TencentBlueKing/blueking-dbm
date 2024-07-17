@@ -13,43 +13,76 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <div v-if="!localValue">
+    <div
+      v-overflow-tips
+      class="capacity-box"
+      @click="handleClickSelect">
       <DisableSelect
+        v-if="!localValue || !activeRowData || !targetObj"
         ref="selectRef"
+        :data="localValue?.spec_id"
         :is-disabled="isDisabled"
         :placeholder="t('请选择')"
         :rules="rules"
         @click="handleClickSelect" />
-    </div>
-
-    <div
-      v-else
-      class="capacity-box"
-      @click="handleClickSelect">
-      <div class="content">
-        <!-- <span style="margin-right: 5px;">{{ t('磁盘') }}:</span>
-        <BkProgress
-          color="#2DCB56"
-          :percent="percent"
-          :show-text="false"
-          size="small"
-          :stroke-width="18"
-          type="circle"
-          :width="20" /> -->
-        <!-- <span class="percent">{{ percent > 100 ? 100 : percent }}%</span> -->
-        <!-- <span class="spec">{{ `(${data.used}G/${data.total}G)` }}</span> -->
-        <span class="spec">{{ `${localValue.cluster_capacity}G` }}</span>
-        <!-- <span
-          class="scale-percent"
-          :style="{color: data.total > data.current ?
-            '#EA3636' : '#2DCB56'}">{{ `(${changeObj.rate}%, ${changeObj.num}G)` }}</span> -->
-        <span
-          class="scale-percent"
-          :style="{
-            color: localValue.cluster_capacity > Number(props.rowData?.targetCapacity?.current) ? '#EA3636' : '#2DCB56',
-          }">
-          {{ `(${changeObj.num}G)` }}
-        </span>
+      <div
+        v-else
+        class="display-content">
+        <div class="content-item">
+          <div class="item-title">{{ t('目标容量') }}：</div>
+          <div class="item-content">
+            <span class="spec">{{ `${localValue.capacity}G` }}</span>
+            <ValueDiff
+              :current-value="activeRowData.capacity.total"
+              num-unit="G"
+              :target-value="targetObj.capacity" />
+          </div>
+        </div>
+        <div class="content-item">
+          <div class="item-title">{{ t('资源规格') }}：</div>
+          <div class="item-content">
+            <RenderSpec
+              :data="targetObj.spec"
+              :hide-qps="!targetObj.spec.qps.max"
+              is-ignore-counts />
+          </div>
+        </div>
+        <div class="content-item">
+          <div class="item-title">{{ t('机器组数') }}：</div>
+          <div class="item-content">
+            {{ targetObj.machinePair }}
+            <ValueDiff
+              :current-value="activeRowData.groupNum"
+              :show-rate="false"
+              :target-value="targetObj.machinePair" />
+          </div>
+        </div>
+        <div class="content-item">
+          <div class="item-title">{{ t('机器数量') }}：</div>
+          <div class="item-content">
+            {{ targetObj.machineCount }}
+            <ValueDiff
+              :current-value="activeRowData.machineNum"
+              :show-rate="false"
+              :target-value="targetObj.machineCount" />
+          </div>
+        </div>
+        <div class="content-item">
+          <div class="item-title">{{ t('分片数') }}：</div>
+          <div class="item-content">
+            {{ targetObj.machineCount }}
+            <ValueDiff
+              :current-value="activeRowData.shardNum"
+              :show-rate="false"
+              :target-value="targetObj.machineCount" />
+          </div>
+        </div>
+        <div class="content-item">
+          <div class="item-title">{{ t('变更方式') }}：</div>
+          <div class="item-content">
+            {{ targetObj.methed }}
+          </div>
+        </div>
       </div>
     </div>
   </BkLoading>
@@ -68,14 +101,17 @@
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
+  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+
+  import { AffinityType } from '@views/redis/common/types';
 
   import ChooseClusterTargetPlan, {
     type CapacityNeed,
     type Props as TargetPlanProps,
-  } from '@views/redis/common/cluster-deploy-plan/Index.vue';
-  import { AffinityType } from '@views/redis/common/types';
-
+    type TargetInfo,
+  } from './ClusterDeployPlan.vue';
   import type { IDataRow } from './Row.vue';
+  import ValueDiff from './ValueDiff.vue';
 
   interface Props {
     isDisabled: boolean;
@@ -83,21 +119,20 @@
     isLoading?: boolean;
   }
 
-
   interface Exposes {
     getValue: () => Promise<{
-      shard_num: number,
-      group_num: number,
-      capacity: number,
-      future_capacity: number,
+      shard_num: number;
+      group_num: number;
+      capacity: number;
+      future_capacity: number;
       resource_spec: {
         backend_group: {
-          spec_id: number,
-          count: number,
-          affinity: AffinityType,
-        },
-      },
-    }>
+          spec_id: number;
+          count: number;
+          affinity: AffinityType;
+        };
+      };
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -109,34 +144,7 @@
   const showChooseClusterTargetPlan = ref(false);
   const localValue = shallowRef<ClusterSpecModel>();
   const capacityObj = ref<CapacityNeed>();
-
-  // const percent = computed(() => {
-  //   if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
-  //   return 0;
-  // });
-
-  const changeObj = computed(() => {
-    const data = props.rowData;
-    const currentTotal =  data?.currentCapacity?.total || 1;
-    if (data && localValue.value) {
-      const diff = localValue.value.cluster_capacity - currentTotal;
-      const rate = ((diff / currentTotal) * 100).toFixed(2);
-      if (diff < 0) {
-        return {
-          rate,
-          num: diff,
-        };
-      }
-      return {
-        rate: `+${rate}`,
-        num: `+${diff}`,
-      };
-    }
-    return {
-      rate: 0,
-      num: 0,
-    };
-  });
+  const targetObj = ref<TargetInfo>();
 
   const rules = [
     {
@@ -149,11 +157,21 @@
   const handleClickSelect = () => {
     const { rowData } = props;
     if (rowData && rowData.targetCluster) {
+      const { spec = {} as NonNullable<IDataRow['spec']> } = rowData;
       const obj = {
         targetCluster: rowData.targetCluster,
-        currentSepc: rowData.currentSepc ?? '',
+        currentSepc: {
+          name: spec.spec_name ?? '',
+          cpu: spec.cpu,
+          id: spec.spec_id,
+          mem: spec.mem,
+          qps: spec.qps,
+          storage_spec: spec.storage_spec,
+        },
         capacity: rowData.currentCapacity ?? { used: 0, total: 1 },
         clusterType: rowData.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance,
+        groupNum: rowData.groupNum ?? 0,
+        machineNum: rowData.machineNum ?? 0,
         shardNum: rowData.shardNum ?? 0,
       };
       activeRowData.value = obj;
@@ -162,18 +180,17 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (obj: ClusterSpecModel, capacity: CapacityNeed) => {
+  const handleChoosedTargetCapacity = (obj: ClusterSpecModel, capacity: CapacityNeed, targetInfo: TargetInfo) => {
     localValue.value = obj;
     capacityObj.value = capacity;
+    targetObj.value = targetInfo;
     showChooseClusterTargetPlan.value = false;
   };
 
   defineExpose<Exposes>({
     getValue() {
       if (!localValue.value) {
-        return selectRef.value
-          .getValue()
-          .then(() => true);
+        return selectRef.value.getValue().then(() => true);
       }
       return Promise.resolve({
         shard_num: props.rowData!.shardNum, // localValue.value.cluster_shard_num,
@@ -193,7 +210,6 @@
 </script>
 <style lang="less" scoped>
   .capacity-box {
-    padding: 10px 16px;
     overflow: hidden;
     line-height: 20px;
     color: #63656e;
@@ -201,11 +217,6 @@
     white-space: nowrap;
     cursor: pointer;
     border: 1px solid transparent;
-
-    &:hover {
-      background-color: #fafbfd;
-      border-color: #a3c5fd;
-    }
 
     .content {
       display: flex;
@@ -230,6 +241,46 @@
         margin-left: 5px;
         font-size: 12px;
         font-weight: bold;
+      }
+    }
+
+    .display-content {
+      display: flex;
+      flex-direction: column;
+      padding: 11px 16px;
+
+      .content-item {
+        display: flex;
+        width: 100%;
+
+        .item-title {
+          width: 84px;
+          text-align: right;
+        }
+
+        .item-content {
+          flex: 1;
+          display: flex;
+          align-items: center;
+
+          .percent {
+            margin-left: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #313238;
+          }
+
+          .spec {
+            margin-left: 2px;
+            font-size: 12px;
+            color: #979ba5;
+          }
+
+          :deep(.render-spec-box) {
+            height: 22px;
+            padding: 0;
+          }
+        }
       }
     }
   }

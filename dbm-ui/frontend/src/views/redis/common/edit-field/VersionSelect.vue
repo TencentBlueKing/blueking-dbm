@@ -95,7 +95,8 @@
   const { loading, run: fetchListPackages } = useRequest(listPackages, {
     manual: true,
     onSuccess(listResult) {
-      localValue.value = listResult[0];
+      const currentVersion = listResult[0];
+      localValue.value = currentVersion;
       selectList.value = listResult.map((value) => ({
         value,
         label: value,

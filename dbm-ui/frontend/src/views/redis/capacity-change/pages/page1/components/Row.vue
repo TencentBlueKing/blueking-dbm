@@ -27,27 +27,18 @@
         :placeholder="$t('选择集群后自动生成')" />
     </td>
     <td style="padding: 0">
-      <RenderText
-        :data="data.currentSepc"
-        :is-loading="data.isLoading"
-        :placeholder="$t('选择集群后自动生成')" />
-    </td>
-    <td style="padding: 0">
-      <RenderText
-        :data="data.shardNum"
-        :is-loading="data.isLoading"
-        placeholder="--" />
-    </td>
-    <td style="padding: 0">
-      <RenderText
-        :data="data.groupNum"
-        :is-loading="data.isLoading"
-        placeholder="--" />
+      <RenderSpecifyVersion
+        ref="versionRef"
+        :cluster-type="data.clusterType"
+        :data="data.version"
+        :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
       <RenderCurrentCapacity
-        :data="data.currentCapacity"
-        :is-loading="data.isLoading" />
+        :data="data"
+        :is-loading="data.isLoading"
+        :placeholder="t('选择集群后自动生成')">
+      </RenderCurrentCapacity>
     </td>
     <td style="padding: 0">
       <RenderTargetCapacity
@@ -55,12 +46,6 @@
         :is-disabled="!data.targetCluster"
         :is-loading="data.isLoading"
         :row-data="data" />
-    </td>
-    <td style="padding: 0">
-      <RenderSpecifyVersion
-        ref="versionRef"
-        :cluster-type="data.clusterType"
-        :data="data.version" />
     </td>
     <td style="padding: 0">
       <RenderSwitchMode
@@ -75,6 +60,9 @@
   </tr>
 </template>
 <script lang="ts">
+  import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
@@ -99,6 +87,7 @@
     cluster_type_name: string;
     shardNum?: number;
     groupNum?: number;
+    machineNum?: number;
     currentSepc?: string;
     targetCapacity?: {
       current: number;
@@ -112,6 +101,7 @@
     version?: string;
     clusterType?: RedisClusterTypes;
     switchMode?: OnlineSwitchType;
+    spec?: RedisModel['cluster_spec'];
   }
 
   export interface InfoItem {
@@ -165,10 +155,12 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
-  const versionRef = ref<InstanceType<typeof RenderSpecifyVersion>>();
-  const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
-  const targetCapacityRef = ref<InstanceType<typeof RenderTargetCapacity>>();
+  const { t } = useI18n();
+
+  const clusterRef = ref();
+  const versionRef = ref();
+  const switchModeRef = ref();
+  const targetCapacityRef = ref();
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
