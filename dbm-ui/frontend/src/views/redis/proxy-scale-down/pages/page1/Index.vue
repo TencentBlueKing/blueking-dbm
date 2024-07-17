@@ -150,6 +150,7 @@
     clusterId: item.id,
     bkCloudId: item.bk_cloud_id,
     nodeType: 'Proxy',
+    cluster_type_name: item.cluster_type_name,
     spec: {
       ...item.proxy[0].spec_config,
       name: item.cluster_spec.spec_name,

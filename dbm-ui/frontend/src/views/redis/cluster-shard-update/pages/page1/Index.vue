@@ -207,6 +207,7 @@
       currentSepc: `${item.cluster_capacity}G_${specConfig.qps.max}/s（${item.cluster_shard_num} 分片）`,
       clusterType: item.cluster_spec.spec_cluster_type,
       currentShardNum: item.cluster_shard_num,
+      cluster_type_name: item.cluster_type_name,
       currentSpecId: item.cluster_spec.spec_id,
       dbVersion: item.major_version,
       specConfig: {

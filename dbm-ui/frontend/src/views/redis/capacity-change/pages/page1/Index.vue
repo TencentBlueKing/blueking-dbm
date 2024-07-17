@@ -140,6 +140,7 @@
     currentSepc: data.cluster_spec.spec_name,
     clusterId: data.id,
     bkCloudId: data.bk_cloud_id,
+    cluster_type_name: data.cluster_type_name,
     shardNum: data.cluster_shard_num,
     groupNum: data.machine_pair_cnt,
     version: data.major_version,

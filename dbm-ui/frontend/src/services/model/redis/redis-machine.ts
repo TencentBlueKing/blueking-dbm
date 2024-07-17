@@ -160,4 +160,8 @@ export default class RedisMachine {
   get isSlaveFailover() {
     return this.instance_role === 'redis_master' && this.unavailable_slave > 0;
   }
+
+  get isUnvailable() {
+    return this.host_info?.alive !== 1;
+  }
 }
