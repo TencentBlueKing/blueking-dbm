@@ -240,7 +240,7 @@ class RedisClusterRenameDomainFlow(object):
                 if "cluster_entry_type" in polaris_data and polaris_data["cluster_entry_type"] == "polaris":
                     act_kwargs.cluster = {
                         "bk_cloud_id": cluster.bk_cloud_id,
-                        "immute_domain": cluster.immute_domain,
+                        "immute_domain": new_domain,
                         "created_by": cluster.creator,
                         "name": polaris_data["entry_name"],
                         "l5": polaris_data.get("l5", ""),
@@ -261,9 +261,7 @@ class RedisClusterRenameDomainFlow(object):
             }
             dbmon_builfer = ClusterIPsDbmonInstallAtomJob(self.root_id, self.data, act_kwargs, params)
             sub_pipeline.add_sub_pipeline(sub_flow=dbmon_builfer)
-            sub_pipelines.append(
-                sub_pipeline.build_sub_process(_("集群:{}重命名域名为{}").format(cluster.id, cluster.immute_domain))
-            )
+            sub_pipelines.append(sub_pipeline.build_sub_process(_("集群:{}重命名域名为{}").format(cluster.id, new_domain)))
 
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         redis_pipeline.run_pipeline()
