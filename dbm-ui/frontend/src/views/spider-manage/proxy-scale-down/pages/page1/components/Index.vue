@@ -46,7 +46,12 @@
         <RenderTableHeadColumn
           :min-width="100"
           :width="300">
-          <span>{{ $t('缩容至(台)') }}</span>
+          <span>{{ $t('主机选择方式') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="100"
+          :width="300">
+          <span>{{ $t('缩容数量(台)') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"

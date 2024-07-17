@@ -34,7 +34,7 @@
       class="select-box"
       :clearable="false"
       :disabled="disabled"
-      filterable
+      :filterable="filterable"
       :input-search="false"
       :multiple="multiple"
       :placeholder="placeholder"
@@ -50,7 +50,8 @@
         v-for="(item, index) in list"
         :key="index"
         :label="item.label"
-        :value="item.value">
+        :value="item.value"
+        @click="handleOptionClick(item.value)">
         <slot
           v-if="slots.default"
           :index="index"
@@ -82,10 +83,12 @@
     disabled?: boolean;
     multiple?: boolean;
     showSelectAll?: boolean;
+    filterable?: boolean;
     validateAfterSelect?: boolean; // 选择完立即校验
   }
   interface Emits {
     (e: 'change', value: IKey): void;
+    (e: 'option-click', value: IKey): void;
   }
 
   interface Exposes {
@@ -100,6 +103,7 @@
     disabled: false,
     multiple: false,
     showSelectAll: false,
+    filterable: true,
     validateAfterSelect: true,
   });
   const emits = defineEmits<Emits>();
@@ -174,6 +178,10 @@
 
   const checkRootHeight = () => {
     rootHeight.value = rootRef.value.parentNode.clientHeight;
+  };
+
+  const handleOptionClick = (value: IKey) => {
+    emits('option-click', value);
   };
 
   useResizeObserver(rootRef, _.throttle(checkRootHeight, 500));

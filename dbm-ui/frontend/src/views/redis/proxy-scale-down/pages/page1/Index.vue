@@ -157,7 +157,8 @@
       id: item.cluster_spec.spec_id,
       count: item.proxy.length,
     },
-    targetNum: `${item.proxy.length}`,
+    // targetNum: `${item.proxy.length}`,
+    targetNum: '1',
   });
 
   // 批量选择

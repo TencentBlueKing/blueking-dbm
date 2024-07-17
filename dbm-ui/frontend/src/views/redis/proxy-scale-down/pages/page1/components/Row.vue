@@ -38,12 +38,24 @@
         :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
-      <RenderTargetNumber
-        ref="editRef"
-        :data="data.targetNum"
-        :disabled="!data.cluster"
+      <RenderRoleHostSelect
+        ref="hostRef"
+        :cluster-type="ClusterTypes.REDIS"
+        :count="data.spec?.count"
+        :data="data"
         :is-loading="data.isLoading"
-        :max="data.spec?.count" />
+        :selected-node-list="data.selectedNodeList"
+        :tab-list-config="tabListConfig"
+        @num-change="handleHostNumChange"
+        @type-change="handleChangeHostSelectType" />
+    </td>
+    <td style="padding: 0">
+      <RenderTargetNumber
+        ref="targetNumberRef"
+        :count="data.spec?.count"
+        :data="localTargerNum"
+        :disabled="!data.cluster || currentHostSelectType === HostSelectType.MANUAL"
+        :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
       <RenderSwitchMode
@@ -58,9 +70,16 @@
   </tr>
 </template>
 <script lang="ts">
-  import RedisModel from '@services/model/redis/redis';
+  import { useI18n } from 'vue-i18n';
 
+  import RedisModel from '@services/model/redis/redis';
+  import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
+
+  import { ClusterTypes } from '@common/const';
+
+  import type { IValue, PanelListType } from '@components/instance-selector/Index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+  import RenderRoleHostSelect, { HostSelectType } from '@components/render-table/columns/role-host-select/Index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
@@ -82,13 +101,21 @@
     cluster_type_name: string;
     switchMode?: string;
     spec?: SpecInfo;
+    hostSelectType?: string;
+    selectedNodeList?: IValue[];
     targetNum?: string;
   }
 
   export interface InfoItem {
     cluster_id: number;
     bk_cloud_id: number;
-    target_proxy_count: number;
+    target_proxy_count?: number | string;
+    spider_reduced_hosts?: {
+      ip: string;
+      bk_host_id: number;
+      bk_cloud_id: number;
+      bk_biz_id: number;
+    }[];
     online_switch_type: OnlineSwitchType;
   }
 
@@ -113,6 +140,7 @@
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
     (e: 'clusterInputFinish', value: RedisModel): void;
+    (e: 'targetNumChange', value: number): void;
   }
 
   interface Exposes {
@@ -125,9 +153,61 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
   const switchRef = ref<InstanceType<typeof RenderSwitchMode>>();
-  const editRef = ref<InstanceType<typeof RenderTargetNumber>>();
+  const targetNumberRef = ref<InstanceType<typeof RenderTargetNumber>>();
+  const hostRef = ref<InstanceType<typeof RenderRoleHostSelect>>();
+  const currentHostSelectType = ref('');
+  const localTargerNum = ref('');
+
+  const tabListConfig = computed(
+    () =>
+      ({
+        [ClusterTypes.REDIS]: [
+          {
+            name: t('主机选择'),
+            topoConfig: {
+              filterClusterId: props.data!.clusterId,
+              getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) =>
+                getRedisClusterList({
+                  ...params,
+                  domain: props.data.cluster,
+                }),
+            },
+            tableConfig: {
+              getTableList: getRedisInstances,
+              firsrColumn: {
+                label: t('Proxy 主机'),
+                field: 'ip',
+                role: 'proxy',
+              },
+            },
+          },
+          {
+            tableConfig: {
+              getTableList: getRedisInstances,
+              firsrColumn: {
+                label: t('Proxy 主机'),
+                field: 'ip',
+                role: 'proxy',
+              },
+            },
+          },
+        ],
+      }) as unknown as Record<ClusterTypes, PanelListType>,
+  );
+
+  watch(
+    () => props.data.targetNum,
+    () => {
+      localTargerNum.value = props.data.targetNum ?? '';
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
@@ -144,17 +224,33 @@
     emits('remove');
   };
 
+  const handleChangeHostSelectType = (value: string) => {
+    currentHostSelectType.value = value;
+  };
+
+  const handleHostNumChange = (value: number) => {
+    localTargerNum.value = String(value);
+  };
+
   defineExpose<Exposes>({
     async getValue() {
       await clusterRef.value!.getValue(true);
-      return await Promise.all([editRef.value!.getValue(), switchRef.value!.getValue()]).then((data) => {
-        const [targetNum, switchMode] = data;
-        return {
+      return await Promise.all([
+        targetNumberRef.value!.getValue(),
+        hostRef.value!.getValue('proxy_reduced_hosts'),
+        switchRef.value!.getValue(),
+      ]).then((data) => {
+        const [targetNum, hostData, switchMode] = data;
+        const info = {
           cluster_id: props.data.clusterId,
           bk_cloud_id: props.data.bkCloudId,
-          target_proxy_count: targetNum,
-          online_switch_type: switchMode,
+          online_switch_type: switchMode as OnlineSwitchType,
         };
+
+        if (hostData) {
+          return Object.assign(info, { ...hostData });
+        }
+        return Object.assign(info, { target_proxy_count: targetNum });
       });
     },
   });

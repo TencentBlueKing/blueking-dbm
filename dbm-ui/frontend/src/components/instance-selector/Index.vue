@@ -82,7 +82,7 @@
       </span>
       <BkButton
         class="ml8 w-88"
-        @click="handleClose">
+        @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -271,6 +271,7 @@
 
   interface Emits {
     (e: 'change', value: NonNullable<Props['selected']>): void;
+    (e: 'cancel'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -758,14 +759,11 @@
     },
   );
 
-  watch(
-    () => isShow,
-    (show) => {
-      if (show && props.selected) {
-        Object.assign(lastValues, props.selected);
-      }
-    },
-  );
+  watch(isShow, (show) => {
+    if (show && props.selected) {
+      Object.assign(lastValues, props.selected);
+    }
+  });
 
   const handleChangePanel = (obj: PanelListItem) => {
     activePanelObj.value = obj;
@@ -777,6 +775,11 @@
 
   const handleSubmit = () => {
     emits('change', lastValues);
+    handleClose();
+  };
+
+  const handleCancel = () => {
+    emits('cancel');
     handleClose();
   };
 

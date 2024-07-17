@@ -26,12 +26,18 @@
       }">
       <span
         v-if="showDefault"
-        style="color: #c4c6cc;">
+        style="color: #c4c6cc">
         {{ placeholder }}
       </span>
       <span
         v-else
-        v-bind="$attrs">{{ data }}</span>
+        v-bind="$attrs">
+        <slot
+          v-if="slots.content"
+          :data="data"
+          name="content" />
+        <span v-else>{{ data }}</span>
+      </span>
       <div
         v-if="errorMessage"
         class="input-error">
@@ -66,6 +72,7 @@
   const renderData = computed(() => props.data);
   const showDefault = computed(() => props.data === undefined || props.data === '');
 
+  const slots = useSlots();
   const { isOverflow } = useIsWidthOverflow(textRef, renderData);
 
   const { message: errorMessage, validator } = useValidtor(props.rules);

@@ -6,12 +6,12 @@
     :model="formdata"
     :rules="rules">
     <BkFormItem
-      :label="t('Master缩容至')"
+      :label="t('Master 缩容数量 （台）')"
       property="master">
       <BkInput
         v-model="formdata.master"
         v-bk-tooltips="{
-          content: t('可缩容数量已达上限_至少保留n台', { n: masterShrinkLimit.min }),
+          content: t('可缩容数量已达上限_至少保留n台', { n: 2 }),
           disabled: isAllowShrinkMaster,
         }"
         :disabled="!isAllowShrinkMaster"
@@ -25,12 +25,12 @@
           （
           <strong>{{ masterSpecInfo.count }}</strong>
           {{ t('台') }}
-          ），{{ t('至少保留n台', { n: masterShrinkLimit.min }) }}
+          ），{{ t('至少保留n台', { n: 2 }) }}
         </span>
       </div>
     </BkFormItem>
     <BkFormItem
-      :label="t('Slave缩容至')"
+      :label="t('Slave 缩容数量 （台）')"
       property="slave">
       <BkInput
         v-model="formdata.slave"
@@ -48,7 +48,7 @@
           （
           <strong>{{ slaveSpecInfo.count }}</strong>
           {{ t('台') }}
-          ），{{ t('至少保留n台', { n: slaveShrinkLimit.min }) }}
+          ），{{ t('至少保留n台', { n: 1 }) }}
         </span>
       </div>
     </BkFormItem>
@@ -86,22 +86,22 @@
   });
   const initFormdata = JSON.stringify(formdata.value);
   const masterShrinkLimit = computed(() => ({
-    min: 2, // 至少保留 2 台
-    max: props.data.spider_master.length - 1,
+    min: 1,
+    max: props.data.spider_master.length - 2, // 至少保留 2 台
   }));
   const slaveShrinkLimit = computed(() => ({
-    min: 1, // 至少保留 1 台
-    max: props.data.spider_slave.length - 1,
+    min: 1,
+    max: props.data.spider_slave.length - 1, // 至少保留 1 台
   }));
   const masterSpecInfo = computed(() => props.data.spider_master[0].spec_config);
   const slaveSpecInfo = computed(() => props.data.spider_slave[0]?.spec_config);
-  const isAllowShrinkMaster = computed(() => props.data.spider_master.length > masterShrinkLimit.value.min);
-  const isAllowShrinkSlave = computed(() => props.data.spider_slave.length > slaveShrinkLimit.value.min);
+  const isAllowShrinkMaster = computed(() => masterShrinkLimit.value.max > 0);
+  const isAllowShrinkSlave = computed(() => slaveShrinkLimit.value.max > 0);
   const spiderSlaveTips = computed(() => {
     const hasSlave = props.data.spider_slave.length > 0;
     if (hasSlave) {
       return {
-        content: t('可缩容数量已达上限_至少保留n台', { n: slaveShrinkLimit.value.min }),
+        content: t('可缩容数量已达上限_至少保留n台', { n: 1 }),
         disabled: isAllowShrinkSlave.value,
       };
     }
@@ -116,7 +116,9 @@
       {
         validator: (value: number | string) => {
           // 禁用则不需校验
-          if (isAllowShrinkMaster.value === false) return true;
+          if (isAllowShrinkMaster.value === false) {
+            return true;
+          }
 
           const num = Number(value);
           const { min, max } = masterShrinkLimit.value;
@@ -130,7 +132,9 @@
       {
         validator: (value: number | string) => {
           // 没有可缩容 slave 则直接返回 true
-          if (props.data.spider_slave.length === 0) return true;
+          if (props.data.spider_slave.length === 0) {
+            return true;
+          }
 
           const { min, max } = slaveShrinkLimit.value;
           const num = Number(value);
@@ -159,7 +163,7 @@
                       {
                         t('name机器数量将从n台缩减至m台', {
                           n: props.data.spider_master.length,
-                          m: formdata.value.master,
+                          m: props.data.spider_master.length - Number(formdata.value.master),
                           name: 'Master ',
                         })
                       }
@@ -173,7 +177,7 @@
                       {
                         t('name机器数量将从n台缩减至m台', {
                           n: props.data.spider_slave.length,
-                          m: formdata.value.slave,
+                          m: props.data.spider_slave.length - Number(formdata.value.slave),
                           name: 'Slave ',
                         })
                       }
@@ -205,7 +209,7 @@
                   infos.push({
                     cluster_id: id,
                     reduce_spider_role: 'spider_master',
-                    spider_reduced_to_count: masterCount,
+                    spider_reduced_to_count: props.data.spider_master.length - masterCount,
                   });
                 }
                 const slaveCount = Number(formdata.value.slave);
@@ -213,7 +217,7 @@
                   infos.push({
                     cluster_id: id,
                     reduce_spider_role: 'spider_slave',
-                    spider_reduced_to_count: slaveCount,
+                    spider_reduced_to_count: props.data.spider_slave.length - slaveCount,
                   });
                 }
                 createTicket({

@@ -10,19 +10,28 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
+
+import _ from 'lodash';
+
 import RedisModel from '@services/model/redis/redis';
+import RedisInstanceModel from '@services/model/redis/redis-instance';
 import type { RedisProxyScaleDownDetails } from '@services/model/ticket/details/redis';
 import TicketModel from '@services/model/ticket/ticket';
-import { getRedisList } from '@services/source/redis';
+import { getRedisInstances, getRedisList } from '@services/source/redis';
 
 import { random } from '@utils';
 
 // Redis 接入层缩容
 export async function generateRedisProxyScaleDownCloneData(ticketData: TicketModel<RedisProxyScaleDownDetails>) {
   const { clusters, infos } = ticketData.details;
-  const clusterListResult = await getRedisList({
-    cluster_ids: infos.map((item) => item.cluster_id).join(','),
-  });
+  const [clusterListResult, instanceListResult] = await Promise.all([
+    getRedisList({
+      cluster_ids: infos.map((item) => item.cluster_id).join(','),
+    }),
+    getRedisInstances({
+      ip: _.flatten(infos.map((infoItem) => infoItem.proxy_reduced_hosts?.map((hostItem) => hostItem.ip))).join(','),
+    }),
+  ]);
   const clusterListMap = clusterListResult.results.reduce(
     (obj, item) => {
       Object.assign(obj, {
@@ -32,6 +41,31 @@ export async function generateRedisProxyScaleDownCloneData(ticketData: TicketMod
     },
     {} as Record<number, RedisModel>,
   );
+  const instanceListMap = instanceListResult.results.reduce(
+    (obj, item) => {
+      Object.assign(obj, {
+        [item.ip]: item,
+      });
+      return obj;
+    },
+    {} as Record<string, RedisInstanceModel>,
+  );
+
+  const formatValue = (data: RedisInstanceModel) => ({
+    bk_host_id: data.bk_host_id,
+    instance_address: data.instance_address || '',
+    cluster_id: data.cluster_id,
+    bk_cloud_id: data.bk_cloud_id,
+    ip: data.ip || '',
+    port: data.port,
+    cluster_type: data.cluster_type,
+    id: data.id,
+    master_domain: data.master_domain,
+    bk_cloud_name: data.bk_cloud_name,
+    db_module_id: data.db_module_id,
+    db_module_name: '',
+    cluster_name: '',
+  });
 
   return infos.map((item) => {
     const clusterId = item.cluster_id;
@@ -42,13 +76,17 @@ export async function generateRedisProxyScaleDownCloneData(ticketData: TicketMod
       clusterId,
       bkCloudId: clusterListMap[clusterId].bk_cloud_id,
       nodeType: 'Proxy',
+      cluster_type_name: clusterListMap[clusterId].cluster_type_name,
       spec: {
         ...clusterListMap[clusterId].proxy[0].spec_config,
         name: clusterListMap[clusterId].cluster_spec.spec_name,
         id: clusterListMap[clusterId].cluster_spec.spec_id,
         count: clusterListMap[clusterId].proxy.length,
       },
-      targetNum: `${clusterListMap[clusterId].proxy.length}`,
+      selectedNodeList: (item.proxy_reduced_hosts || []).map((proxyHost) => formatValue(instanceListMap[proxyHost.ip])),
+      // targetNum: `${clusterListMap[clusterId].proxy.length}`,
+      targetNum: `${clusterListMap[clusterId].proxy.length - (item.target_proxy_count || 0)}`,
+      switchMode: item.online_switch_type,
     };
   });
 }
