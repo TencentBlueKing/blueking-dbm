@@ -390,6 +390,21 @@ func (m *BinlogFileModel) Query(db *sqlx.DB, pred interface{}, params ...interfa
 	return files, nil
 }
 
+// Delete delete binlog items from db
+func (m *BinlogFileModel) Delete(db *sql.DB, pred interface{}, params ...interface{}) (int, error) {
+	sqlBuilder := sq.Delete(m.TableName()).Where(pred, params...)
+	sqlStr, sqlArgs, err := sqlBuilder.ToSql()
+	if err != nil {
+		return 0, err
+	}
+	if res, err := db.Exec(sqlStr, sqlArgs...); err != nil {
+		return 0, err
+	} else {
+		rowsAffected, _ := res.RowsAffected()
+		return int(rowsAffected), nil
+	}
+}
+
 func (m *BinlogFileModel) QueryWithBuildWhere(db *sqlx.DB, builder *sq.SelectBuilder) ([]*BinlogFileModel, error) {
 	var files []*BinlogFileModel
 	sqlStr, args, err := builder.ToSql()
