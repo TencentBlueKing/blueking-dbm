@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -41,13 +42,20 @@ func (l *LogicalDumperMysqldump) initConfig(mysqlVerStr string) error {
 }
 
 // Execute excute dumping backup with logical backup tool[mysqldump]
-func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) error {
+func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 	var binPath string
 	if l.cnf.LogicalBackupMysqldump.BinPath != "" {
 		binPath = l.cnf.LogicalBackupMysqldump.BinPath
 	} else {
 		binPath = filepath.Join(l.dbbackupHome, "/bin/mysqldump")
+		if !cmutil.FileExists(binPath) {
+			binPath, err = exec.LookPath("mysqldump")
+			if err != nil {
+				return err
+			}
+		}
 	}
+	logger.Log.Info("user mysqldump path:", binPath)
 
 	errCreatDir := os.Mkdir(filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName()), 0755)
 	if errCreatDir != nil {
@@ -62,6 +70,7 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) error {
 		"-p" + l.cnf.Public.MysqlPasswd,
 		"--single-transaction",
 		"-r", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName(), l.cnf.Public.TargetName()+".sql"),
+		// --max-allowed-packet=1G
 	}
 
 	if l.cnf.Public.MysqlRole == cst.RoleMaster {

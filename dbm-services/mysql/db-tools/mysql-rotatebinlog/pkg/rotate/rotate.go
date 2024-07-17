@@ -225,6 +225,23 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 
 	fLen := len(i.binlogFiles)
 	lastFileNameRegistered := filepath.Base(lastFileBefore.Filename)
+	if i.binlogFiles[fLen-1].Filename < lastFileNameRegistered { // 本地最大的 binlog 文件，不应该小于 local db 记录的
+		logger.Warn("the last registered file %s is greater than the max binlog file %s in local",
+			lastFileNameRegistered, i.binlogFiles[fLen-1].Filename)
+		// reset binlog files
+		whereMap := map[string]interface{}{
+			"port": i.Port,
+		}
+		binlogInst := models.BinlogFileModel{}
+		if rowsAffected, err := binlogInst.Delete(models.DB.Conn.DB, whereMap); err != nil {
+			logger.Error("failed to reset binlog items in local db for %d, err:%s", i.Port, err.Error())
+		} else {
+			logger.Info("reset binlog items in local db rows %d for %d", rowsAffected, i.Port)
+		}
+		// 直接返回，下一轮生效
+		return nil
+	}
+
 	var filesModel []*models.BinlogFileModel
 	for j, fileObj := range i.binlogFiles {
 		if (lastFileBefore.Filename != "" && fileObj.Filename <= lastFileNameRegistered) ||

@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/precheck"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
 )
 
 // Dumper TODO
@@ -27,20 +30,34 @@ func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 	}
 
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
-		if !cnf.Public.UseMysqldump {
+		if cnf.Public.UseMysqldump == cst.LogicalMysqldumpAuto {
+			if glibcVer, err := util.GetGlibcVersion(); err != nil {
+				logger.Log.Warn("failed to glibc version, err:", err)
+			} else if glibcVer < "2.14" {
+				// mydumper need glibc version >= 2.14
+				logger.Log.Infof("UseMysqldump auto with glibc version %s < 2.14, use mysqldump", glibcVer)
+				cnf.Public.UseMysqldump = cst.LogicalMysqldumpYes
+			} else {
+				logger.Log.Infof("UseMysqldump auto with glibc version %s >= 2.14, use mydumper", glibcVer)
+				cnf.Public.UseMysqldump = cst.LogicalMysqldumpNo
+			}
+		}
+		if cnf.Public.UseMysqldump == cst.LogicalMysqldumpNo {
 			if err := validate.GoValidateStruct(cnf.LogicalBackup, false, false); err != nil {
 				return nil, err
 			}
 			dumper = &LogicalDumper{
 				cnf: cnf,
 			}
-		} else {
+		} else if cnf.Public.UseMysqldump == cst.LogicalMysqldumpYes {
 			if err := validate.GoValidateStruct(cnf.LogicalBackupMysqldump, false, false); err != nil {
 				return nil, err
 			}
 			dumper = &LogicalDumperMysqldump{
 				cnf: cnf,
 			}
+		} else {
+			return nil, errors.Errorf("unknown Public.UseMysqldump %s", cnf.Public.UseMysqldump)
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
 		if err := validate.GoValidateStruct(cnf.PhysicalBackup, false, false); err != nil {
