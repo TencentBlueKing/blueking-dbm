@@ -35,6 +35,12 @@
           :min-width="120"
           :required="false"
           :width="200">
+          <span>{{ $t('架构版本') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="120"
+          :required="false"
+          :width="200">
           <span>{{ $t('当前资源规格') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn

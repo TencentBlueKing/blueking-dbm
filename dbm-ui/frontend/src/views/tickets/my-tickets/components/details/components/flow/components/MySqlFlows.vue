@@ -13,16 +13,16 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{content}">
+    <template #content="{ content }">
       <template v-if="content.flow_type === 'DELIVERY'">
         <div class="sql-risk-main">
           <I18nT
             keypath="共n个文件，含有m个高危语句"
             tag="div">
-            <span style="font-weight: 700;color: #63656E">
+            <span style="font-weight: 700; color: #63656e">
               {{ ticketData.details.execute_sql_files.length }}
             </span>
-            <span style="font-weight: 700;color: #EA3636">
+            <span style="font-weight: 700; color: #ea3636">
               {{ totalWarnCount }}
             </span>
           </I18nT>
@@ -33,10 +33,11 @@
               text
               @click="() => handleClickFile(fileName)">
               <DbIcon
-                style="color:#3A84FF"
+                style="color: #3a84ff"
                 type="file" />
               <span>
-                <span style="color:#3A84FF">{{ fileName.replace(/[^_]+_/, '') }}</span>，
+                <span style="color: #3a84ff">{{ fileName.replace(/[^_]+_/, '') }}</span
+                >，
                 <span v-if="ticketData.details.grammar_check_info[fileName].highrisk_warnings?.length > 0">
                   <I18nT
                     keypath="含有n个高危语句"
@@ -54,13 +55,13 @@
             <BkButton
               text
               @click="handleToggleShowMore">
-              <span style="color:#3A84FF">
+              <span style="color: #3a84ff">
                 {{ isShowCollapse ? t('收起') : t('更多') }}
               </span>
               <DbIcon
                 class="collapse-dropdown-icon"
-                :class="{'collapse-dropdown-icon-active': isShowCollapse}"
-                style="color:#3A84FF"
+                :class="{ 'collapse-dropdown-icon-active': isShowCollapse }"
+                style="color: #3a84ff"
                 type="down-big" />
             </BkButton>
           </div>
@@ -70,10 +71,14 @@
         <p>
           <span
             v-if="counts.fail === 0"
-            style="color:#2DCB56">{{ t('执行成功') }}</span>
+            style="color: #2dcb56"
+            >{{ t('执行成功') }}</span
+          >
           <span
             v-else
-            style="color:#EA3636">{{ t('执行失败') }}</span>
+            style="color: #ea3636"
+            >{{ t('执行失败') }}</span
+          >
           , {{ t('共执行') }}
           <span class="sql-count">{{ sqlFileTotal }}</span>
           {{ t('个SQL文件_成功') }}
@@ -83,9 +88,7 @@
           {{ t('个_失败') }}
           <span class="sql-count danger">{{ counts.fail }}</span>
           {{ t('个') }}
-          <template v-if="content.summary">
-            ，{{ t('耗时') }}：{{ getCostTimeDisplay(content.cost_time) }}，
-          </template>
+          <template v-if="content.summary"> ，{{ t('耗时') }}：{{ getCostTimeDisplay(content.cost_time) }}， </template>
           <BkButton
             text
             theme="primary"
@@ -120,7 +123,7 @@
     :title="t('执行SQL变更_内容详情')"
     :width="960"
     :z-index="99999"
-    @closed="() => isShowSqlFile = false">
+    @closed="() => (isShowSqlFile = false)">
     <div
       v-if="uploadFileList.length > 1"
       class="editor-layout">
@@ -279,7 +282,7 @@
   };
 
   onMounted(() => {
-    const uploadSQLFileList = props.ticketData.details.execute_objects.map(item => item.sql_file);
+    const uploadSQLFileList = props.ticketData.details.execute_sql_files;
     uploadFileList.value = uploadSQLFileList;
 
     const filePathList = uploadSQLFileList.reduce((result, item) => {
@@ -302,66 +305,65 @@
 </script>
 
 <style lang="less" scoped>
-:deep(.bk-modal-content) {
-  height: 100%;
-  padding: 15px;
-}
-
-.sql-risk-main{
-  margin-bottom: 10px;
-  gap: 8px;
-  display: flex;
-  flex-direction: column;
-
-  .danger-count {
-    color: #EA3636;
-    font-weight: 700;
-    display: inline-block;
+  :deep(.bk-modal-content) {
+    height: 100%;
+    padding: 15px;
   }
 
-  .collapse-dropdown-icon {
+  .sql-risk-main {
+    margin-bottom: 10px;
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
+
+    .danger-count {
+      color: #ea3636;
+      font-weight: 700;
+      display: inline-block;
+    }
+
+    .collapse-dropdown-icon {
       transform: rotate(0);
       transition: all 0.5s;
-
     }
 
     .collapse-dropdown-icon-active {
       transform: rotate(-180deg);
     }
-}
+  }
 
-.sql-log-sideslider {
-  .editor-layout {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    background: #2e2e2e;
-
-    .editor-layout-left {
-      width: 238px;
-    }
-
-    .editor-layout-right {
-      position: relative;
+  .sql-log-sideslider {
+    .editor-layout {
+      display: flex;
+      width: 100%;
       height: 100%;
-      flex: 1;
+      background: #2e2e2e;
+
+      .editor-layout-left {
+        width: 238px;
+      }
+
+      .editor-layout-right {
+        position: relative;
+        height: 100%;
+        flex: 1;
+      }
     }
   }
-}
 
-.sql-count {
-  font-weight: 700;
+  .sql-count {
+    font-weight: 700;
 
-  &.success {
-    color: @success-color;
+    &.success {
+      color: @success-color;
+    }
+
+    &.warning {
+      color: @warning-color;
+    }
+
+    &.danger {
+      color: @danger-color;
+    }
   }
-
-  &.warning {
-    color: @warning-color;
-  }
-
-  &.danger {
-    color: @danger-color;
-  }
-}
 </style>

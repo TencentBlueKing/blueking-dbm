@@ -52,6 +52,11 @@ func CleanGrantPassword(input string) string {
 	return passwordGrantRegex.ReplaceAllString(strings.ToLower(input), "password('xxxx')")
 }
 
+// CleanGrantPassword clean grant sql password
+func CleanGrantPassword(input string) string {
+	return passwordGrantRegex.ReplaceAllString(input, "password('xxxx')")
+}
+
 // clearIdentifyByInSQL TODO
 func clearIdentifyByInSQL(input string) string {
 	output := identifyByRegex.ReplaceAllString(strings.ToLower(input), `identified by 'xxxx'`)

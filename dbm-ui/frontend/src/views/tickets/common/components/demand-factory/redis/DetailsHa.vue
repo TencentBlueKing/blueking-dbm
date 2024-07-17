@@ -24,8 +24,7 @@
   import { getInfrasCities } from '@services/ticket';
   import type { TicketDetails } from '@services/types/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
+  import { useAffinity } from '../../../hooks/useAffinity';
   import SpecInfos from '../../SpecInfos.vue';
   import type { RedisHaApply } from '../common/types';
   import DemandInfo from '../components/DemandInfo.vue';
@@ -37,15 +36,15 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
+  const { affinity } = useAffinity(props.ticketDetails);
 
   const { db_app_abbr: appAbbr, details } = props.ticketDetails
   const { resource_spec: resourceSpec, infos, port = 0, append_apply: isAppend } = details;
   const tableData = infos.map((infoItem, index) => {
     const { cluster_name: clusterName } = infoItem
     return {
-      mainDomain: `ins.${clusterName}${appAbbr}.db#${port+index}`,
-      slaveDomain: `ins.${clusterName}${appAbbr}.dr#${port+index}`,
+      mainDomain: `ins.${clusterName}.${appAbbr}.db${isAppend ? '' : `#${port+index}`}`,
+      slaveDomain: `ins.${clusterName}.${appAbbr}.dr#${isAppend ? '' : `#${port+index}`}`,
       databases: infoItem.databases,
       masterIp: infoItem.backend_group?.master.ip,
       slaveIp: infoItem.backend_group?.slave.ip
@@ -58,11 +57,11 @@
       field: 'mainDomain',
       showOverflowTooltip: true,
     },
-    {
-      label: t('从域名'),
-      field: 'slaveDomain',
-      showOverflowTooltip: true,
-    },
+    // {
+    //   label: t('从域名'),
+    //   field: 'slaveDomain',
+    //   showOverflowTooltip: true,
+    // },
     {
       label: 'Databases',
       field: 'databases',
@@ -97,10 +96,10 @@
           label: t('业务英文名'),
           key: 'bk_biz_name',
         },
-        {
-          label: t('管控区域'),
-          key: 'details.bk_cloud_name',
-        },
+        // {
+        //   label: t('管控区域'),
+        //   key: 'details.bk_cloud_name',
+        // },
       ],
     },
     {
@@ -183,13 +182,13 @@
 
   const cityName = ref('--');
 
-  const affinity = computed(() => {
-    const level = props.ticketDetails?.details?.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find(item => item.value === level)?.label;
-    }
-    return '--';
-  });
+  // const affinity = computed(() => {
+  //   const level = props.ticketDetails?.details?.disaster_tolerance_level;
+  //   if (level && affinityList) {
+  //     return affinityList.find(item => item.value === level)?.label;
+  //   }
+  //   return '--';
+  // });
 
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {

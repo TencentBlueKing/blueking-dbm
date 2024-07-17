@@ -64,7 +64,7 @@
     },
     {
       validator: (value: string) => Number(value) > props.min,
-      message: t('必须大于当前台数'),
+      message: t('必须大于当前台数n', { n: props.min }),
     },
   ];
 

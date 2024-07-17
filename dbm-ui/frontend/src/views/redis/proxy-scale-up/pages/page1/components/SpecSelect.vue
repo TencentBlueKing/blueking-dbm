@@ -39,8 +39,25 @@
         <template #hover>
           <BkOption
             :key="index"
+            class="reids-spec-selector-display"
             :label="item.label"
-            :value="item.value" />
+            :value="item.value">
+            <div class="reids-spec-selector-display-item">
+              <div>{{ item.label }}</div>
+              <BkTag
+                v-if="item.value === localValue"
+                class="ml-6"
+                size="small"
+                theme="info">
+                {{ t('当前规格') }}
+              </BkTag>
+              <div
+                v-if="item.count"
+                class="reids-spec-selector-display-count">
+                {{ item.count }}
+              </div>
+            </div>
+          </BkOption>
         </template>
         <SpecPanel />
       </SpecPanel>
@@ -54,9 +71,12 @@
     value: IKey;
     label: string;
     specData: SpecInfo;
+    count?: number;
   }
 </script>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import useValidtor, { type Rules } from '@views/redis/common/edit/hooks/useValidtor';
 
   import type { SpecInfo } from './SpecPanel.vue';
@@ -87,6 +107,7 @@
   });
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
   const { message: errorMessage, validator } = useValidtor(props.rules);
 
   const localValue = ref<IKey>('');
@@ -127,6 +148,32 @@
     },
   });
 </script>
+
+<style lang="less">
+  .reids-spec-selector-display {
+    .reids-spec-selector-display-item {
+      display: flex;
+      width: 100%;
+
+      .reids-spec-selector-display-count {
+        margin-left: auto;
+        background-color: #f0f1f5;
+        padding: 0 8px;
+        color: #979ba5;
+        width: 23px;
+        height: 16px;
+        border-radius: 2px;
+      }
+    }
+  }
+
+  &.is-selected {
+    .reids-spec-selector-display-count {
+      color: #ffffff !important;
+      background-color: #a3c5fd !important;
+    }
+  }
+</style>
 <style lang="less" scoped>
   .is-error {
     :deep(input) {
@@ -134,61 +181,61 @@
       border-radius: 0;
     }
 
-  :deep(.angle-up ){
-    display: none !important;
-  }
-}
-
-.table-edit-select {
-  position: relative;
-  display: flex;
-  height: 42px;
-  overflow: hidden;
-  color: #63656e;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.15s;
-  align-items: center;
-
-  &:hover {
-    background-color: #fafbfd;
-    border-color: #a3c5fd;
+    :deep(.angle-up) {
+      display: none !important;
+    }
   }
 
-  :deep(.select-box) {
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    background: transparent;
-    border: none;
-    outline: none;
+  .table-edit-select {
+    position: relative;
+    display: flex;
+    height: 42px;
+    overflow: hidden;
+    color: #63656e;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    align-items: center;
 
-    .bk-select-trigger {
+    &:hover {
+      background-color: #fafbfd;
+      border-color: #a3c5fd;
+    }
+
+    :deep(.select-box) {
+      width: 100%;
       height: 100%;
+      padding: 0;
+      background: transparent;
+      border: none;
+      outline: none;
 
-      .bk-input {
+      .bk-select-trigger {
         height: 100%;
-        background: transparent;
-        border: none;
 
-        input {
-          padding: 0 8px 0 16px;
+        .bk-input {
+          height: 100%;
+          background: transparent;
+          border: none;
+
+          input {
+            padding: 0 8px 0 16px;
+          }
         }
       }
     }
+
+    .select-error {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 9999;
+      display: flex;
+      padding-right: 6px;
+      font-size: 14px;
+      color: #ea3636;
+      align-items: center;
+    }
   }
-    
-  .select-error {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9999;
-    display: flex;
-    padding-right: 6px;
-    font-size: 14px;
-    color: #ea3636;
-    align-items: center;
-  }
-}
 </style>

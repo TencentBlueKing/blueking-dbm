@@ -42,8 +42,6 @@
 
   const { t } = useI18n();
 
-
-
   const columns = [
     {
       label: t('待替换的主机'),
@@ -81,8 +79,10 @@
           const obj = {
             ip: proxyItem.ip,
             role: 'Proxy',
-            clusterName: clusters[item.cluster_id].immute_domain,
-            clusterType: clusters[item.cluster_id].cluster_type,
+            clusterName: item.cluster_id
+              ? clusters[item.cluster_id].immute_domain // 兼容旧单据
+              : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
+            clusterType: clusters[item.cluster_ids[0]].cluster_type,
             sepc: {
               id: proxyItem.spec_id,
               name: specInfo ? specInfo.name : '',
@@ -97,8 +97,10 @@
           const obj = {
             ip: masterItem.ip,
             role: 'Master',
-            clusterName: clusters[item.cluster_id].immute_domain,
-            clusterType: clusters[item.cluster_id].cluster_type,
+            clusterName: item.cluster_id
+              ? clusters[item.cluster_id].immute_domain // 兼容旧单据
+              : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
+            clusterType: clusters[item.cluster_ids[0]].cluster_type,
             sepc: {
               id: masterItem.spec_id,
               name: specInfo ? specInfo.name : '',
@@ -113,8 +115,10 @@
           const obj = {
             ip: slaveItem.ip,
             role: 'Slave',
-            clusterName: clusters[item.cluster_id].immute_domain,
-            clusterType: clusters[item.cluster_id].cluster_type,
+            clusterName: item.cluster_id
+              ? clusters[item.cluster_id].immute_domain // 兼容旧单据
+              : item.cluster_ids.map(id => clusters[id].immute_domain).join(','),
+            clusterType: clusters[item.cluster_ids[0]].cluster_type,
             sepc: {
               id: slaveItem.spec_id,
               name: specInfo ? specInfo.name : '',

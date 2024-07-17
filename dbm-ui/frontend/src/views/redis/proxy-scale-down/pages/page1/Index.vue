@@ -68,6 +68,7 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
+  import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
   import type { SubmitTicket } from '@services/types/ticket';
 
@@ -115,6 +116,16 @@
   const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
   const tabListConfig = {
     [ClusterTypes.REDIS]: {
+      getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
+        getRedisList({
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+          ].join(','),
+          ...params,
+        }),
       disabledRowConfig: [
         {
           handler: (data: RedisModel) => data.proxy.length < 3,
@@ -139,6 +150,7 @@
     clusterId: item.id,
     bkCloudId: item.bk_cloud_id,
     nodeType: 'Proxy',
+    cluster_type_name: item.cluster_type_name,
     spec: {
       ...item.proxy[0].spec_config,
       name: item.cluster_spec.spec_name,

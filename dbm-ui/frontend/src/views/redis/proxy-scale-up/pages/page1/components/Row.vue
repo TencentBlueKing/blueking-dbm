@@ -22,6 +22,12 @@
     </td>
     <td style="padding: 0">
       <RenderText
+        :data="data.cluster_type_name"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
         :data="data.nodeType"
         :is-loading="data.isLoading"
         :placeholder="t('输入集群后自动生成')" />
@@ -51,6 +57,7 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+  import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
@@ -72,6 +79,7 @@
     clusterId: number;
     bkCloudId: number;
     nodeType: string;
+    cluster_type_name: '';
     spec?: SpecInfo;
     targetNum?: string;
     clusterType?: string;
@@ -103,6 +111,7 @@
     clusterId: 0,
     bkCloudId: 0,
     nodeType: '',
+    cluster_type_name: '',
   });
 </script>
 <script setup lang="ts">
@@ -177,6 +186,16 @@
         return;
       }
       specList.value = await querySpecList(rowData);
+      getSpecResourceCount({
+        bk_biz_id: rowData.bk_biz_id,
+        bk_cloud_id: rowData.bk_cloud_id,
+        spec_ids: specList.value.map((item) => item.specData.id),
+      }).then((data) => {
+        specList.value = specList.value.map((item) => ({
+          ...item,
+          count: data[item.specData.id],
+        }));
+      });
     },
     {
       immediate: true,

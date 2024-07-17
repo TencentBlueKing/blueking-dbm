@@ -51,11 +51,11 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
 
+  import { ClusterTypes } from '@common/const';
   import { ipv4 } from '@common/regex';
 
   interface Props {
@@ -112,16 +112,17 @@
       return;
     }
     // 校验名称是否重复
-    if (inputHostList.length !== _.uniq(inputHostList).length) {
-      validateErrorText.value = t('输入主机重复');
-      return;
-    }
+    // if (inputHostList.length !== _.uniq(inputHostList).length) {
+    //   validateErrorText.value = t('输入主机重复');
+    //   return;
+    // }
     // 存在性
     const data = await getRedisMachineList({
       ip: inputHostList.join(','),
       instance_role: 'redis_master',
       bk_cloud_id: props.cloudId as number,
-      bk_city_name: props.cityName,
+      region: props.cityName,
+      cluster_type: ClusterTypes.REDIS_INSTANCE,
     });
     const inputHostMap = inputHostList.reduce(
       (prevMap, hostItem) => ({

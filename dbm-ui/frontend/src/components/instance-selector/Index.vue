@@ -51,6 +51,7 @@
           :status-filter="activePanelObj?.tableConfig?.statusFilter"
           :table-setting="tableSettings"
           :topo-alert-content="activePanelObj?.topoConfig?.topoAlertContent"
+          :total-count-func="activePanelObj?.topoConfig?.totalCountFunc"
           @change="handleChange" />
       </template>
       <template #aside>
@@ -89,12 +90,12 @@
 </template>
 
 <script lang="ts">
+  import type { InjectionKey, Ref } from 'vue';
+
   import SpiderMachineModel from '@services/model/spider/spiderMachine';
   import type { ListBase } from '@services/types';
 
   import { t } from '@locales/index';
-
-  export default { name: 'InstanceSelector' };
 
   export interface IValue {
     [key: string]: any;
@@ -182,10 +183,17 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import { checkMongoInstances, checkMysqlInstances, checkRedisInstances } from '@services/source/instances';
   import { getMongoInstancesList, getMongoTopoList } from '@services/source/mongodb';
-  import { queryClusters as getMysqlClusterList , queryClusters as queryMysqlCluster } from '@services/source/mysqlCluster';
-  import { getRedisClusterList , getRedisMachineList } from '@services/source/redis';
+  import {
+    queryClusters as getMysqlClusterList,
+    queryClusters as queryMysqlCluster,
+  } from '@services/source/mysqlCluster';
+  import { getRedisClusterList, getRedisMachineList } from '@services/source/redis';
   import { getRedisHostList } from '@services/source/redisToolbox';
   import { getSpiderInstanceList, getSpiderMachineList } from '@services/source/spider';
+  import {
+    getHaClusterWholeList as getSqlServerHaCluster,
+    getSqlServerInstanceList,
+  } from '@services/source/sqlserveHaCluster';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
 
@@ -199,6 +207,7 @@
   import MysqlContent from './components/mysql/Index.vue';
   import RedisContent from './components/redis/Index.vue';
   import RenderRedisHost from './components/redis-host/Index.vue';
+  import SqlServerContent from './components/sql-server/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
   import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
 
@@ -211,6 +220,7 @@
       topoAlertContent?: Element;
       filterClusterId?: number;
       getTopoList?: (params: any) => Promise<any[]>;
+      totalCountFunc?: (data: any) => number;
       countFunc?: (data: any) => number;
     };
     tableConfig?: {
@@ -219,7 +229,7 @@
       firsrColumn?: {
         label: string;
         field: string;
-        role: string; // 接口过滤
+        role?: string; // 接口过滤
       };
       roleFilterList?: {
         list: { text: string; value: string }[];
@@ -251,7 +261,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbClusterHost')[];
+    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
   }
@@ -266,6 +276,10 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  defineOptions({
+    name: 'InstanceSelector',
+  });
 
   const isShow = defineModel<boolean>('isShow', {
     default: false,
@@ -289,7 +303,7 @@
           },
           columnsChecked: ['ip', 'cloud_area', 'status', 'host_name', 'os_name'],
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
-          isRemotePagination: false,
+          isRemotePagination: true,
         },
         previewConfig: {
           displayKey: 'ip',
@@ -445,7 +459,6 @@
         },
         tableConfig: {
           getTableList: getMongoInstancesList,
-          multiple: true,
           firsrColumn: {
             label: 'IP',
             field: 'ip',
@@ -533,10 +546,10 @@
         name: t('主库主机'),
         topoConfig: {
           getTopoList: getRedisClusterList,
-          countFunc: (clusterItem: { redis_master: { ip: string }[]}) => {
-            const ipList = clusterItem.redis_master.map(hostItem => hostItem.ip)
-            return new Set(ipList).size
-          }
+          countFunc: (clusterItem: { redis_master: { ip: string }[] }) => {
+            const ipList = clusterItem.redis_master.map((hostItem) => hostItem.ip);
+            return new Set(ipList).size;
+          },
         },
         tableConfig: {
           getTableList: getRedisMachineList,
@@ -545,7 +558,7 @@
             field: 'ip',
             role: 'redis_master',
           },
-          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name']
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
         },
         previewConfig: {
           displayKey: 'ip',
@@ -562,7 +575,7 @@
             field: 'ip',
             role: 'redis_master',
           },
-          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name']
+          columnsChecked: ['ip', 'cloud_area', 'alive', 'host_name', 'os_name'],
         },
         manualConfig: {
           checkInstances: getRedisMachineList,
@@ -574,6 +587,38 @@
           displayKey: 'ip',
         },
         content: ManualInputHostContent,
+      },
+    ],
+    [ClusterTypes.SQLSERVER_HA]: [
+      {
+        id: ClusterTypes.SQLSERVER_HA,
+        name: t('主库主机'),
+        topoConfig: {
+          getTopoList: getSqlServerHaCluster,
+          countFunc: (item: ServiceReturnType<typeof getSqlServerHaCluster>[number]) => item.masters.length,
+        },
+        tableConfig: {
+          getTableList: getSqlServerInstanceList,
+        },
+        content: SqlServerContent,
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          getTableList: getSqlServerInstanceList,
+          firsrColumn: {
+            label: 'remote_master',
+            field: 'instance_address',
+          },
+        },
+        manualConfig: {
+          checkInstances: checkMysqlInstances,
+          checkType: 'instance',
+          checkKey: 'instance_address',
+          activePanelId: ClusterTypes.SQLSERVER_HA,
+        },
+        content: ManualInputContent,
       },
     ],
   };
@@ -697,9 +742,11 @@
     width: 80%;
     max-width: 1600px;
     min-width: 1200px;
+
     .bk-modal-header {
       display: none;
     }
+
     .bk-dialog-content {
       padding: 0;
       margin: 0;

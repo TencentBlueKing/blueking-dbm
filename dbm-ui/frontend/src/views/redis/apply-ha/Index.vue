@@ -18,7 +18,8 @@
         ref="formRef"
         auto-label-width
         class="apply-form mb-16"
-        :model="formData">
+        :model="formData"
+        :rules="rules">
         <DbCard :title="t('业务信息')">
           <BusinessItems
             v-model:app-abbr="formData.details.db_app_abbr"
@@ -33,10 +34,6 @@
           ref="regionItemRef"
           v-model="formData.details.city_code" />
         <DbCard :title="t('数据库部署信息')">
-          <AffinityItem
-            v-if="!isAppend"
-            v-model="formData.details.disaster_tolerance_level"
-            :city-code="formData.details.city_code" />
           <BkFormItem
             :label="t('部署方式')"
             property="details.appendApply"
@@ -54,6 +51,10 @@
               </BkRadio>
             </BkRadioGroup>
           </BkFormItem>
+          <AffinityItem
+            v-if="!isAppend"
+            v-model="formData.details.disaster_tolerance_level"
+            :city-code="formData.details.city_code" />
         </DbCard>
         <DbCard :title="t('部署需求')">
           <BkFormItem
@@ -67,6 +68,7 @@
               query-key="redis" />
           </BkFormItem>
           <BkFormItem
+            ref="clusterCountRef"
             :label="t('集群数量')"
             property="details.cluster_count"
             required>
@@ -80,12 +82,14 @@
           </BkFormItem>
           <BkFormItem
             v-if="!isAppend"
+            ref="groupCountRef"
             :label="t('每组主机部署集群')"
             property="details.group_count"
             required>
             <BkInput
               v-model="formData.details.group_count"
               clearable
+              :max="formData.details.cluster_count"
               :min="1"
               show-clear-only-hover
               style="width: 185px"
@@ -196,24 +200,19 @@
 </template>
 
 <script setup lang="ts">
+  import { Form } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
-  import _ from 'lodash'
+  import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getRedisMachineList } from '@services/source/redis'
-  import { queryMasterSlaveByIp } from '@services/source/redisToolbox';
+  import { getRedisMachineList } from '@services/source/redis';
+  import { queryMachineInstancePair } from '@services/source/redisToolbox';
   import type { BizItem } from '@services/types';
 
-  import {
-    useApplyBase,
-  } from '@hooks';
+  import { useApplyBase } from '@hooks';
 
-  import {
-    ClusterTypes,
-    MachineTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';
@@ -255,77 +254,110 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const {
-    baseState,
-    bizState,
-    handleCancel,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-  } = useApplyBase();
+  const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const formRef = ref<InstanceType<typeof DbForm>>();
   const regionItemRef = ref<InstanceType<typeof RegionItem>>();
   const specRef = ref<InstanceType<typeof SpecSelector>>();
+  const clusterCountRef = ref<InstanceType<typeof Form.FormItem>>();
+  const groupCountRef = ref<InstanceType<typeof Form.FormItem>>();
   const cloudInfo = ref({
     id: '' as number | string,
     name: '',
   });
-  const maxMemory = ref(0)
-  const cityName = ref('')
+  const maxMemory = ref('0G');
+  const cityName = ref('');
 
   const formData = reactive(initData());
 
-  const isAppend = computed(() => formData.details.appendApply === 'append')
-  const machineCount = computed(() => formData.details.cluster_count / formData.details.group_count)
+  const rules = {
+    'details.cluster_count': [
+      {
+        message: t('集群数量 / 每组主机部署集群需为整数'),
+        trigger: 'change',
+        validator: (value: number) => {
+          if (isAppend.value) {
+            return true;
+          }
+          groupCountRef.value!.clearValidate();
+          return value % formData.details.group_count === 0;
+        },
+      },
+    ],
+    'details.group_count': [
+      {
+        message: t('集群数量 / 每组主机部署集群需为整数'),
+        trigger: 'change',
+        validator: (value: number) => {
+          clusterCountRef.value!.clearValidate();
+          return formData.details.cluster_count % value === 0;
+        },
+      },
+    ],
+  };
 
-  watch(() => formData.details.city_code, () => {
-    cityName.value = regionItemRef.value!.getValue().cityName
-  })
+  const isAppend = computed(() => formData.details.appendApply === 'append');
+  const machineCount = computed(() => formData.details.cluster_count / formData.details.group_count);
 
-  watch([() => formData.details.resource_spec.spec_id, machineCount], ([newSpecId]) => {
-    nextTick(() => {
-      if (newSpecId) {
-        const { storage_spec: storageSpec } = specRef.value!.getData()
-        const specCapacity = (storageSpec || []).reduce((sizePrev, storageItem) => sizePrev + storageItem.size, 0)
-        maxMemory.value = specCapacity * 0.9 * machineCount.value / formData.details.cluster_count * 1024
-      } else {
-        maxMemory.value = 0
-      }
-    })
-  }, {
-    deep: true
-  })
+  watch(
+    () => formData.details.city_code,
+    () => {
+      cityName.value = regionItemRef.value!.getValue().cityName;
+    },
+  );
+
+  watch(
+    [() => formData.details.resource_spec.spec_id, machineCount],
+    ([newSpecId]) => {
+      nextTick(() => {
+        if (newSpecId) {
+          const { mem } = specRef.value!.getData();
+          const capicity = ((mem?.min ?? 0) * 0.9 * machineCount.value) / formData.details.cluster_count;
+          maxMemory.value = `${capicity.toFixed(2)}G`;
+        } else {
+          maxMemory.value = '0G';
+        }
+      });
+    },
+    {
+      deep: true,
+    },
+  );
 
   // 设置 domain 数量
-  watch(() => formData.details.cluster_count, (count) => {
-    if (count > 0 && count <= 200) {
-      const len = formData.details.infos.length;
-      if (count > len) {
-        const appends = Array.from({ length: count - len }, () => ({
-          cluster_name: '',
-          databases: 2,
-          masterHost: {
-            ip: '',
-            bk_cloud_id: 0,
-            bk_host_id: 0
-          },
-          slaveHost: {
-            ip: '',
-            bk_cloud_id: 0,
-            bk_host_id: 0
-          },
-        }));
-        formData.details.infos.push(...appends);
-        return;
+  watch(
+    () => formData.details.cluster_count,
+    (count) => {
+      if (count > 0 && count <= 200) {
+        const len = formData.details.infos.length;
+        if (count > len) {
+          const appends = Array.from({ length: count - len }, () => ({
+            cluster_name: '',
+            databases: 2,
+            masterHost: {
+              ip: '',
+              bk_cloud_id: 0,
+              bk_host_id: 0,
+            },
+            slaveHost: {
+              ip: '',
+              bk_cloud_id: 0,
+              bk_host_id: 0,
+            },
+          }));
+          formData.details.infos.push(...appends);
+          return;
+        }
+        if (count < len) {
+          formData.details.infos.splice(count, len - count);
+          return;
+        }
       }
-      if (count < len) {
-        formData.details.infos.splice(count, len - count);
-        return;
-      }
-    }
-  }, {
-    immediate: true,
-  });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
@@ -334,10 +366,7 @@
     bizState.hasEnglishName = !!info.english_name;
   };
 
-  const handleChangeCloud = (info: {
-    id: number | string,
-    name: string
-  }) => {
+  const handleChangeCloud = (info: { id: number | string; name: string }) => {
     cloudInfo.value = info;
   };
 
@@ -347,39 +376,42 @@
       ip: value,
       instance_role: 'redis_master',
       bk_cloud_id: formData.details.bk_cloud_id,
-      bk_city_name: cityName.value
+      region: cityName.value,
+      cluster_type: ClusterTypes.REDIS_INSTANCE,
     }).then((data) => {
       const redisMachineList = data.results;
       if (redisMachineList.length) {
-        const [redisMachineItem] = redisMachineList
+        const [redisMachineItem] = redisMachineList;
         Object.assign(formData.details.infos[index], {
           masterHost: {
             ip: value,
             bk_cloud_id: redisMachineItem.bk_cloud_id,
-            bk_host_id: redisMachineItem.bk_host_id
-          }
-        })
-        queryMasterSlaveByIp({ips: [value]}).then(slavaList => {
-          if (slavaList.length > 0) {
-            const [slavaItem] = slavaList
-            const {slave_host_info: slaveHostInfo} = slavaItem
+            bk_host_id: redisMachineItem.bk_host_id,
+          },
+        });
+
+        const ipInfo = `${formData.details.bk_cloud_id}:${value}`;
+        queryMachineInstancePair({ machines: [ipInfo] }).then((pairResult) => {
+          const ipMap = pairResult.machines!;
+          if (ipMap[ipInfo]) {
             Object.assign(formData.details.infos[index], {
               slaveHost: {
-                ip: slavaItem.slave_ip,
-                bk_cloud_id: slaveHostInfo.bk_cloud_id,
-                bk_host_id: slaveHostInfo.bk_host_id
-              }})
+                ip: ipMap[ipInfo].ip,
+                bk_cloud_id: ipMap[ipInfo].bk_cloud_id,
+                bk_host_id: ipMap[ipInfo].bk_host_id,
+              },
+            });
           }
-        })
+        });
       }
-    })
-  }
+    });
+  };
 
   const handleResetFormdata = () => {
     InfoBox({
       title: t('确认重置表单内容'),
       content: t('重置后_将会清空当前填写的内容'),
-      cancelText : t('取消'),
+      cancelText: t('取消'),
       onConfirm: () => {
         Object.assign(formData, initData());
         nextTick(() => {
@@ -396,7 +428,7 @@
     baseState.isSubmitting = true;
 
     const getDetails = () => {
-      const { details } : { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
+      const { details }: { details: Partial<UnwrapRef<typeof formData>['details']> } = _.cloneDeep(formData);
 
       if (details.appendApply === 'new') {
         Object.assign(details, {
@@ -407,39 +439,39 @@
               ...specRef.value!.getData(),
             },
           },
-          infos: details.infos!.map(infoItem => ({
+          infos: details.infos!.map((infoItem) => ({
             cluster_name: infoItem.cluster_name,
             databases: infoItem.databases,
-          }))
-        })
+          })),
+        });
       } else {
-        delete details.port
-        delete details.city_code
-        delete details.db_version
-        delete details.resource_spec
+        delete details.port;
+        delete details.city_code;
+        delete details.db_version;
+        delete details.resource_spec;
 
         Object.assign(details, {
-          infos: details.infos!.map(infoItem => ({
+          infos: details.infos!.map((infoItem) => ({
             cluster_name: infoItem.cluster_name,
             databases: infoItem.databases,
             backend_group: {
               master: infoItem.masterHost,
-              slave: infoItem.slaveHost
-            }
-          }))
-        })
+              slave: infoItem.slaveHost,
+            },
+          })),
+        });
       }
 
-      delete details.cluster_count
-      delete details.group_count
-      delete details.appendApply
+      delete details.cluster_count;
+      delete details.group_count;
+      delete details.appendApply;
 
       return {
         ...details,
         append_apply: isAppend.value,
         ip_source: isAppend.value ? 'manual_input' : 'resource_pool',
-      }
-    }
+      };
+    };
 
     const params = {
       ...formData,

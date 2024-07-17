@@ -217,6 +217,11 @@
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
+  import RedisBackup from '@views/redis/common/cluster-oprations/Backup.vue';
+  import ClusterPassword from '@views/redis/common/cluster-oprations/ClusterPassword.vue';
+  import DeleteKeys from '@views/redis/common/cluster-oprations/DeleteKeys.vue';
+  import ExtractKeys from '@views/redis/common/cluster-oprations/ExtractKeys.vue';
+  import RedisPurge from '@views/redis/common/cluster-oprations/Purge.vue';
 
   import {
     getMenuListSearch,
@@ -224,12 +229,7 @@
     messageWarn,
   } from '@utils';
 
-  import RedisBackup from './components/Backup.vue';
-  import ClusterPassword from './components/ClusterPassword.vue';
-  import DeleteKeys from './components/DeleteKeys.vue';
   import EntryPanel from './components/EntryPanel.vue';
-  import ExtractKeys from './components/ExtractKeys.vue';
-  import RedisPurge from './components/Purge.vue';
 
   import type {
     SearchSelectData,
@@ -275,6 +275,7 @@
       'major_version',
       'region',
       'time_zone',
+      'cluster_type'
     ],
     fetchDataFn: () => fetchData(isInit),
     defaultSearchItem: {
@@ -405,6 +406,12 @@
           name: t('异常'),
         },
       ],
+    },
+    {
+      name: t('架构版本'),
+      id: 'cluster_type',
+      multiple: true,
+      children: searchAttrs.value.cluster_type,
     },
     {
       name: t('版本'),
@@ -775,9 +782,13 @@
     },
     {
       label: t('架构版本'),
-      field: 'cluster_type_name',
+      field: 'cluster_type',
       minWidth: 160,
-      render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+      filter: {
+        list: columnAttrs.value.cluster_type,
+        checked: columnCheckedMap.value.cluster_type,
+      },
+      render: ({ data }: ColumnRenderData) => <span>{data.cluster_type_name || '--'}</span>,
     },
     {
       label: t('版本'),
@@ -1175,13 +1186,14 @@
 
   const fetchData = (loading?:boolean) => {
     const params = {
-      ...getSearchSelectorParams(searchValue.value),
       cluster_type: [
         ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
         ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      ].join(',')
+      ].join(','),
+      ...getSearchSelectorParams(searchValue.value),
+
     }
     tableRef.value!.fetchData(params, {
       ...sortValue,

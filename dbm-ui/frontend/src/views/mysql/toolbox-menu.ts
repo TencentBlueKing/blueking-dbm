@@ -144,6 +144,12 @@ export default [
         parentId: 'migrate',
         dbConsoleValue: 'mysql.toolbox.masterFailover',
       },
+      {
+        name: t('版本升级'),
+        id: 'MySQLVersionUpgrade',
+        parentId: 'migrate',
+        dbConsoleValue: 'mysql.toolbox.versionUpgrade',
+      },
     ],
   },
   {

@@ -37,6 +37,7 @@
         v-model:is-show="isShowClusterSelector"
         :cluster-types="[ClusterTypes.REDIS]"
         :selected="selectedClusters"
+        :tab-list-config="tabListConfig"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -68,7 +69,10 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
+  import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
+
+  import { useTicketCloneInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -77,15 +81,20 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
@@ -130,6 +139,21 @@
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
+
+  const tabListConfig = {
+    [ClusterTypes.REDIS]: {
+      getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
+        getRedisList({
+          cluster_type: [
+            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+            ClusterTypes.PREDIXY_REDIS_CLUSTER,
+            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+          ].join(','),
+          ...params,
+        }),
+    },
+  };
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {

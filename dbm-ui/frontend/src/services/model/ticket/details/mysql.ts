@@ -53,6 +53,17 @@ export interface MySQLImportSQLFileDetails {
   created_by: string;
   cluster_ids: number[];
   clusters: DetailClusters;
+  grammar_check_info: Record<
+    string,
+    {
+      highrisk_warnings: {
+        command_type: string;
+        line: number;
+        sqltext: string;
+        warn_info: string;
+      }[];
+    }
+  >;
   ticket_mode: {
     mode: string;
     trigger_time: string;
@@ -67,10 +78,40 @@ export interface MySQLImportSQLFileDetails {
     dbnames: [];
     ignore_dbnames: [];
   }[];
-  execute_sql_files: [];
+  execute_sql_files: string[] | MySQLForceImportSQLFileExecuteSqlFiles[];
   import_mode: string;
   semantic_node_id: string;
   dump_file_path?: string;
+}
+
+export interface MySQLForceImportSQLFileExecuteSqlFiles {
+  raw_file_name: string;
+  sql_content: string;
+  sql_path: string;
+}
+
+export interface MySQLForceImportSQLFileExecuteSqlFiles {
+  raw_file_name: string;
+  sql_content: string;
+  sql_path: string;
+}
+
+export interface MySQLForceImportSQLFileExecuteSqlFiles {
+  raw_file_name: string;
+  sql_content: string;
+  sql_path: string;
+}
+
+export interface MySQLForceImportSQLFileExecuteSqlFiles {
+  raw_file_name: string;
+  sql_content: string;
+  sql_path: string;
+}
+
+export interface MySQLForceImportSQLFileExecuteSqlFiles {
+  raw_file_name: string;
+  sql_content: string;
+  sql_path: string;
 }
 
 /**
@@ -514,5 +555,63 @@ export interface MysqlDataMigrateDetails {
     db_list: string;
     source_cluster: number;
     target_clusters: number[];
+  }[];
+}
+
+/**
+ * MySQL Proxy 升级
+ */
+export interface MySQLProxyUpgradeDetails {
+  clusters: DetailClusters;
+  infos: {
+    pkg_id: string;
+    cluster_ids: number[];
+    display_info: {
+      current_version: string;
+    };
+  }[];
+}
+
+/**
+ * MySQL 原地升级
+ */
+export interface MySQLLocalUpgradeDetails {
+  clusters: DetailClusters;
+  infos: {
+    pkg_id: number;
+    cluster_ids: number[];
+    display_info: {
+      cluster_type: string;
+      current_version: string;
+      current_package: string;
+      target_package: string;
+      charset: string;
+      current_module_name: string;
+    };
+  }[];
+}
+
+/**
+ * MySQL 迁移升级
+ */
+export interface MySQLMigrateUpgradeDetails {
+  clusters: DetailClusters;
+  ip_source: string;
+  backup_source: string;
+  infos: {
+    cluster_ids: number[];
+    new_db_module_id: number;
+    pkg_id: string;
+    new_master: MysqlIpItem;
+    new_slave: MysqlIpItem;
+    display_info: {
+      current_version: string;
+      target_version: string;
+      current_package: string;
+      target_package: string;
+      charset: string;
+      current_module_name: string;
+      target_module_name: string;
+    };
   }[];
 }

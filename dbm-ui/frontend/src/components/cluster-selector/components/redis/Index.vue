@@ -99,6 +99,7 @@
       'major_version',
       'region',
       'time_zone',
+      'cluster_type'
     ],
     defaultSearchItem: {
       name: t('访问入口'),
@@ -122,7 +123,8 @@
 
   const columns = computed(() => [
     {
-      width: 60,
+      width: 54,
+      minWidth: 54,
       label: () => (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
@@ -162,6 +164,7 @@
       label: t('访问入口'),
       field: 'cluster_name',
       showOverflowTooltip: true,
+      minWidth: 300,
       render: ({ data }: { data: ResourceItem }) => (
         <TextOverflowLayout class="cluster-name-box">
           {{
@@ -219,11 +222,23 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
+      width: 200,
       showOverflowTooltip: true,
+    },
+    {
+      label: t('架构版本'),
+      field: 'cluster_type',
+      showOverflowTooltip: true,
+      filter: {
+        list: columnAttrs.value.cluster_type,
+        checked: columnCheckedMap.value.cluster_type,
+      },
+      render: ({ data }: { data: ResourceItem }) => <span>{data.cluster_type_name}</span>,
     },
     {
       label: t('管控区域'),
       field: 'bk_cloud_id',
+      width: 150,
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,

@@ -114,8 +114,7 @@
   import { getInfrasCities } from '@services/ticket';
   import type { TicketDetails } from '@services/types/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
+  import { useAffinity } from '../../../hooks/useAffinity';
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
 
   interface Details {
@@ -156,7 +155,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
+  const { affinity } = useAffinity(props.ticketDetails);
 
   const cityName = ref('--');
 
@@ -164,14 +163,6 @@
   const backendData = computed(() => {
     const data = props.ticketDetails?.details?.resource_spec?.backend_group?.spec_info;
     return data ? [data] : [];
-  });
-
-  const affinity = computed(() => {
-    const level = props.ticketDetails?.details?.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find((item) => item.value === level)?.label;
-    }
-    return '--';
   });
 
   const columns = [

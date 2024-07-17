@@ -213,13 +213,15 @@ export function getRedisMachineList(params: {
   bk_host_id?: number;
   ip?: string;
   cluster_ids?: string;
-  bk_city_name?: string;
+  region?: string;
   machine_type?: string;
   bk_os_name?: string;
   bk_cloud_id?: number;
   bk_agent_id?: string;
   instance_role?: string;
   creator?: string;
+  add_role_count?: boolean;
+  cluster_type?: string;
 }) {
   return http.get<ListBase<RedisMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,

@@ -35,7 +35,7 @@
           :min-width="110"
           :required="false"
           :width="150">
-          <span>{{ t('架构类型') }}</span>
+          <span>{{ t('架构版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="150"

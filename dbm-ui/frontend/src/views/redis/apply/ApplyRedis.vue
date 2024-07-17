@@ -349,6 +349,7 @@
   </SmartAction>
   <DbSideslider
     v-model:is-show="isShowRecommendArchitectrue"
+    class="recommend-architecture-sideslider"
     :show-footer="false"
     :title="t('如何选择架构？')"
     width="1110">
@@ -908,6 +909,15 @@
     p {
       padding-bottom: 12px;
       color: @default-color;
+    }
+  }
+</style>
+
+<style lang="less">
+  .recommend-architecture-sideslider {
+    .bk-modal-content {
+      overflow-y: auto;
+      max-height: calc(100vh - 51px);
     }
   }
 </style>

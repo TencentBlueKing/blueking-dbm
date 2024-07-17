@@ -22,6 +22,12 @@
     </td>
     <td style="padding: 0">
       <RenderText
+        :data="data.cluster_type_name"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
         :data="data.srcClusterType"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
@@ -51,9 +57,8 @@
     <td style="padding: 0">
       <RenderTargetClusterVersion
         ref="versionRef"
-        :data="data.dbVersion"
-        :is-loading="data.isLoading"
-        :select-list="versionList" />
+        :cluster-type="data.clusterType"
+        :data="data.dbVersion" />
     </td>
     <td style="padding: 0">
       <RenderText
@@ -74,13 +79,13 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+  import RenderTargetClusterVersion from '@views/redis/common/edit-field/VersionSelect.vue';
   import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
 
   import RenderDeployPlan, { type ExposeValue } from './RenderDeployPlan.vue';
   import RenderTargetClusterType from './RenderTargetClusterType.vue';
-  import RenderTargetClusterVersion from './RenderTargetClusterVersion.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -95,6 +100,7 @@
     srcClusterType: string;
     clusterType: string;
     currentShardNum: number;
+    cluster_type_name: string;
     specConfig: {
       cpu: {
         max: number;
@@ -169,6 +175,7 @@
     clusterType: '',
     dbVersion: '',
     currentShardNum: 0,
+    cluster_type_name: '',
     currentSepc: '',
     specConfig: {
       cpu: {
@@ -195,7 +202,6 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
-    clusterTypesMap: Record<string, string[]>;
     inputedClusters?: string[];
   }
 
@@ -220,16 +226,6 @@
   const targetClusterTypeRef = ref<InstanceType<typeof RenderTargetClusterType>>();
   const versionRef = ref<InstanceType<typeof RenderTargetClusterVersion>>();
   const selectClusterType = ref('');
-
-  const versionList = computed(() => {
-    if (props.clusterTypesMap && selectClusterType.value in props.clusterTypesMap) {
-      return props.clusterTypesMap[selectClusterType.value].map((item) => ({
-        value: item,
-        label: item,
-      }));
-    }
-    return [];
-  });
 
   const handleClusterTypeChange = (value: string) => {
     selectClusterType.value = value;

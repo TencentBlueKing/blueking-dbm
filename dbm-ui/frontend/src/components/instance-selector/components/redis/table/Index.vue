@@ -157,7 +157,8 @@
 
   const columns = computed(() => [
     {
-      width: 60,
+      width: 54,
+      minWidth: 54,
       fixed: 'left',
       label: () => (
       <bk-checkbox
@@ -297,13 +298,10 @@
 
   watch(
     () => props.clusterId,
-    () => {
-      if (props.clusterId) {
+    (newClusterId, oldClusterId) => {
+      if (newClusterId && oldClusterId) {
         fetchResources();
       }
-    },
-    {
-      immediate: true,
     },
   );
 

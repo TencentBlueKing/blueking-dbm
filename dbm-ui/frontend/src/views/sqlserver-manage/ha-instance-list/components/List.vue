@@ -14,12 +14,13 @@
 <template>
   <div class="sqlserver-ha-instance-list-page">
     <div class="operation-box">
-      <BkButton
+      <AuthButton
+        action-id="sqlserver_apply"
         class="mb-16"
         theme="primary"
         @click="handleApply">
         {{ t('申请实例') }}
-      </BkButton>
+      </AuthButton>
       <DropdownExportExcel
         export-type="instance"
         :has-selected="hasSelected"

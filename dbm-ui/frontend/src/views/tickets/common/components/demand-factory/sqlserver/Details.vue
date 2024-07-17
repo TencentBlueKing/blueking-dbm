@@ -24,12 +24,11 @@
   import { getInfrasCities } from '@services/ticket';
   import type { TicketDetails } from '@services/types/ticket';
 
-  import { useSystemEnviron } from '@stores';
-
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import PreviewTable from '@views/sqlserver-manage/apply/components/PreviewTable.vue';
 
+  import { useAffinity } from '../../../hooks/useAffinity';
   import SpecInfos from '../../SpecInfos.vue';
   import type { DetailsSqlserver } from '../common/types';
   import DemandInfo, {
@@ -44,7 +43,7 @@
 
   const { t } = useI18n();
 
-  const { AFFINITY: affinityList } = useSystemEnviron().urls;
+  const { affinity } = useAffinity(props.ticketDetails);
 
   const {
     details,
@@ -184,14 +183,6 @@
     }
     ),
   );
-
-  const affinity = computed(() => {
-    const level = props.ticketDetails.details.disaster_tolerance_level;
-    if (level && affinityList) {
-      return affinityList.find((item) => item.value === level)?.label;
-    }
-    return '--';
-  });
 
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {

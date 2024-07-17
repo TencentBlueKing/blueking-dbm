@@ -81,6 +81,9 @@
   import MySQLRollbackCluster from './mysql/RollbackCluster.vue';
   import MySQLAddSlave from './mysql/SlaveAdd.vue';
   import MySQLTableBackup from './mysql/TableBackup.vue';
+  import MySQLVerisonLocalUpgrade from './mysql/version-upgrade/VersionLocalUpgrade.vue';
+  import MySQLVerisonMigrateUpgrade from './mysql/version-upgrade/VersionMigrateUpgrade.vue';
+  import MySQLVerisonProxyUpgrade from './mysql/version-upgrade/VersionProxyUpgrade.vue';
   import RedisAddSlave from './redis/AddSlave.vue';
   import CLBDetail from './redis/CLBDetail.vue';
   import RedisClusterCapacityUpdate from './redis/ClusterCapacityUpdate.vue';
@@ -245,7 +248,11 @@
     TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
   ];
 
-  const importSQLTypes = [TicketTypes.MYSQL_IMPORT_SQLFILE, TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE];
+  const importSQLTypes = [
+    TicketTypes.MYSQL_IMPORT_SQLFILE,
+    TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+    TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE,
+  ];
 
   const redisCLBTypes = [
     TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB,
@@ -354,6 +361,9 @@
     [TicketTypes.SQLSERVER_BACKUP_DBS]: SqlserverDbBackup,
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: SpiderMigrateCluster,
     [TicketTypes.REDIS_INS_APPLY]: DetailsRedisHa,
+    [TicketTypes.MYSQL_PROXY_UPGRADE]: MySQLVerisonProxyUpgrade,
+    [TicketTypes.MYSQL_LOCAL_UPGRADE]: MySQLVerisonLocalUpgrade,
+    [TicketTypes.MYSQL_MIGRATE_UPGRADE]: MySQLVerisonMigrateUpgrade,
   };
 
   // 不同集群详情组件

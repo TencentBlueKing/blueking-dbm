@@ -22,6 +22,12 @@
     </td>
     <td style="padding: 0">
       <RenderText
+        :data="data.cluster_type_name"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
         :data="data.currentSepc"
         :is-loading="data.isLoading"
         :placeholder="$t('选择集群后自动生成')" />
@@ -36,9 +42,8 @@
     <td style="padding: 0">
       <RenderTargetClusterVersion
         ref="versionRef"
-        :data="data.dbVersion"
-        :is-loading="data.isLoading"
-        :select-list="versionList" />
+        :cluster-type="data.clusterType"
+        :data="data.dbVersion" />
     </td>
     <td style="padding: 0">
       <RenderText
@@ -59,12 +64,12 @@
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
+  import RenderTargetClusterVersion from '@views/redis/common/edit-field/VersionSelect.vue';
   import { AffinityType } from '@views/redis/common/types';
 
   import { random } from '@utils';
 
   import RenderDeployPlan, { type ExposeValue } from './RenderDeployPlan.vue';
-  import RenderTargetClusterVersion from './RenderTargetClusterVersion.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -76,6 +81,7 @@
     clusterType: string;
     currentShardNum: number;
     currentSpecId: number;
+    cluster_type_name: string;
     dbVersion: string;
     specConfig: {
       cpu: {
@@ -145,6 +151,7 @@
     bkCloudId: 0,
     switchMode: '',
     clusterType: '',
+    cluster_type_name: '',
     currentShardNum: 0,
     currentSpecId: 0,
     dbVersion: '',
@@ -173,7 +180,6 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
-    clusterTypesMap: Record<string, string[]>;
     inputedClusters?: string[];
   }
 
@@ -196,16 +202,6 @@
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
   const versionRef = ref<InstanceType<typeof RenderTargetClusterVersion>>();
   const deployPlanRef = ref<InstanceType<typeof RenderDeployPlan>>();
-
-  const versionList = computed(() => {
-    if (props.clusterTypesMap && props.data.clusterType in props.clusterTypesMap) {
-      return props.clusterTypesMap[props.data.clusterType].map((item) => ({
-        value: item,
-        label: item,
-      }));
-    }
-    return [];
-  });
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);

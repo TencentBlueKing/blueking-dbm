@@ -33,8 +33,11 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
+  import RedisModel from '@services/model/redis/redis';
+  import RedisMachineModel from '@services/model/redis/redis-machine';
   import { getRedisMachineList } from '@services/source/redis'
 
+  import { ClusterTypes } from '@common/const'
   import { ipv4, nameRegx } from '@common/regex';
 
   import InstanceSelector, {
@@ -67,7 +70,7 @@
     appAbbr: string;
     port: number;
     cloudId: string | number;
-    maxMemory: number;
+    maxMemory: string;
     cityName: string;
   }
 
@@ -116,17 +119,18 @@
         validator: (value: string) => ipv4.test(value),
         message: t('目标从库主机格式不正确'),
       },
-      {
-        validator: (value: string) => masterHostIpList.value.filter(item => item === value).length < 2,
-        message: t('目标主机重复'),
-      },
+      // {
+      //   validator: (value: string) => masterHostIpList.value.filter(item => item === value).length < 2,
+      //   message: t('目标主机重复'),
+      // },
       {
         validator: (value: string) =>
           getRedisMachineList({
             ip: value,
             instance_role: 'redis_master',
             bk_cloud_id: props.cloudId as number,
-            bk_city_name: props.cityName
+            region: props.cityName,
+            cluster_type: ClusterTypes.REDIS_INSTANCE
           }).then((data) => {
             const redisMachineList = data.results;
             if (redisMachineList.length < 1) {
@@ -134,7 +138,7 @@
             }
             return true;
           }),
-        message: t('目标从库主机不存在'),
+        message: t('目标主库主机不存在'),
       },
     ],
     'slaveHost.ip': [
@@ -182,7 +186,7 @@
               rules={rules.cluster_name}
               label-width={0}>
               <bk-input
-                model-value={domains.value[index].cluster_name}
+                model-value={domains.value[index]?.cluster_name}
                 style="width: 200px"
                 onChange={(value: string) => handleChangeCellValue(value, index, 'cluster_name')}
               />
@@ -191,12 +195,12 @@
           </div>
         ),
       },
-      {
-        label: t('从域名'),
-        field: 'slave_domain',
-        minWidth: 260,
-        render: ({ data, index }: { data: Domain, index: number }) => `ins.${data.cluster_name}.${props.appAbbr}.dr${props.isAppend ? '' : `#${props.port + index}`}`
-      },
+      // {
+      //   label: t('从域名'),
+      //   field: 'slave_domain',
+      //   minWidth: 260,
+      //   render: ({ data, index }: { data: Domain, index: number }) => `ins-slave.${data.cluster_name}.${props.appAbbr}.db${props.isAppend ? '' : `#${props.port + index}`}`
+      // },
       {
         label: () => (
           <div class='table-custom-label'>
@@ -221,7 +225,7 @@
             key={index}
             label-width={0}>
             <bk-input
-              model-value={domains.value[index].databases}
+              model-value={domains.value[index]?.databases}
               type="number"
               min={2}
               max={64}
@@ -237,7 +241,7 @@
         label: 'Maxmemory',
         field: 'maxmemory',
         width: 200,
-        render: () => `${props.maxMemory}MB`
+        render: () => props.maxMemory
       }
     ]
     const appendColums: Column[] = [
@@ -269,8 +273,7 @@
             key={index}
             label-width={0}>
             <bk-input
-              model-value={domains.value[index].masterHost.ip}
-              style="width: 200px"
+              model-value={domains.value[index]?.masterHost.ip}
               placeholder={t('请输入或选择')}
               onChange={(value: string) => handleHostIpChange(value, index)}>
               {{
@@ -303,7 +306,7 @@
             label-width={0}>
             <bk-input
               readonly
-              model-value={domains.value[index].slaveHost.ip}
+              model-value={domains.value[index]?.slaveHost.ip}
               placeholder={t('选择主库主机后自动生成')}
             />
           </bk-form-item>
@@ -324,12 +327,24 @@
   const tabListConfig = computed(() => ({
     RedisHost: [
       {
+        topoConfig: {
+          totalCountFunc: (dataList: RedisModel[]) => {
+            const ipSet = new Set<string>()
+            dataList.forEach(dataItem => dataItem.redis_master.forEach(masterItem => ipSet.add(masterItem.ip)))
+            return ipSet.size
+          }
+        },
         tableConfig: {
           getTableList: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            bk_city_name: props.cityName
-          })
+            region: props.cityName,
+            cluster_type: ClusterTypes.REDIS_INSTANCE
+          }),
+          disabledRowConfig: {
+            handler: (data: RedisMachineModel) => data.isUnvailable,
+            tip: t('异常主机不可用')
+          }
         }
       },
       {
@@ -337,14 +352,20 @@
           getTableList: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            bk_city_name: props.cityName
-          })
+            region: props.cityName,
+            cluster_type: ClusterTypes.REDIS_INSTANCE
+          }),
+          disabledRowConfig: {
+            handler: (data: RedisMachineModel) => data.isUnvailable,
+            tip: t('异常主机不可用')
+          }
         },
         manualConfig: {
           checkInstances: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            bk_city_name: props.cityName
+            region: props.cityName,
+            cluster_type: ClusterTypes.REDIS_INSTANCE
           })
         }
       },
@@ -360,7 +381,7 @@
   });
 
   const clusterNameList = computed(() => tableData.value.map(item => item.cluster_name));
-  const masterHostIpList = computed(() => tableData.value.map(item => item.masterHost.ip));
+  // const masterHostIpList = computed(() => tableData.value.map(item => item.masterHost.ip));
 
   const handleBatchClusterName = (values: string[]) => {
     if (values.length !== 0) {
@@ -476,7 +497,7 @@
 
     :deep(.master-ip-input-item) {
       .bk-form-error-tips {
-        right: 14px;
+        right: 26px;
       }
     }
   }

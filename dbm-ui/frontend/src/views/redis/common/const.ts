@@ -104,3 +104,10 @@ export const repairAndVerifyTypeList = [
     value: RepairAndVerifyModes.NO_CHECK_NO_REPAIR,
   },
 ];
+
+export const clusterTypeMachineMap: Record<string, string> = {
+  TwemproxyRedisInstance: 'redis',
+  TwemproxyTendisSSDInstance: 'twemproxy',
+  PredixyTendisplusCluster: 'tendisplus',
+  PredixyRedisCluster: 'redis',
+};

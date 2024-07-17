@@ -30,7 +30,8 @@ export interface RedisAddSlaveDetails {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
   infos: {
-    cluster_id: number;
+    cluster_id?: number; // 旧协议，兼容旧单据用
+    cluster_ids: number[];
     bk_cloud_id: number;
     pairs: {
       redis_master: {
@@ -239,7 +240,8 @@ export interface RedisDBReplaceDetails {
   clusters: DetailClusters;
   ip_source: 'resource_pool';
   infos: {
-    cluster_id: number;
+    cluster_id?: number; // 旧协议，兼容旧单据用
+    cluster_ids: number[];
     bk_cloud_id: number;
     proxy: {
       ip: string;
@@ -297,7 +299,8 @@ export interface RedisMasterSlaveSwitchDetails {
   clusters: DetailClusters;
   force: boolean;
   infos: {
-    cluster_id: number;
+    cluster_id?: number; // 旧协议，兼容旧单据用
+    cluster_ids: number[];
     online_switch_type: 'user_confirm' | 'no_confirm';
     pairs: {
       redis_master: string;
@@ -373,5 +376,16 @@ export interface RedisStructureDeleteDetails {
     related_rollback_bill_id: number;
     prod_cluster: string;
     bk_cloud_id: number;
+  }[];
+}
+
+// redis 版本升级
+export interface RedisVersionUpgrade {
+  clusters: DetailClusters;
+  infos: {
+    cluster_id: number;
+    current_versions: string[];
+    node_type: string;
+    target_version: string;
   }[];
 }
