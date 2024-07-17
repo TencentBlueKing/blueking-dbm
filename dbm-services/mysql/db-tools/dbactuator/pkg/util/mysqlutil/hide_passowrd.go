@@ -12,6 +12,7 @@ package mysqlutil
 
 import (
 	"regexp"
+	"strings"
 )
 
 var (
@@ -19,12 +20,14 @@ var (
 	mysqlAdminRegex      = regexp.MustCompile(`mysqladmin.*-u\w+.*\s-p(\S+).*`)
 	mysqlPasswordRegex   = regexp.MustCompile(`\s-p[^\s]+`)
 	masterPasswordRegexp = regexp.MustCompile(`master_password="[^\s]*"`)
-	identifyByRegex      = regexp.MustCompile(`identified by '[^\s]*'`)
-	userPasswordRegex    = regexp.MustCompile(`\s-u\w+.*\s-p(\S+).*`)
-	dsnRegex             = regexp.MustCompile(`\w+:[^\s]*@tcp\([^\s]+\)`)
-	dsnPasswordRegex     = regexp.MustCompile(`:[^\s]*@tcp\(`)
-	passwordRegex        = regexp.MustCompile(`password ['|"]*\S+['|"]*`)
-	passwordGrantRegex   = regexp.MustCompile(`password\(['|"]\S+['|"]\)`)
+	// identifyByRegex identified by ''  or IDENTIFIED WITH mysql_native_password BY 'aa'
+	identifyByRegex     = regexp.MustCompile(`identified by '[^\s]*'`)
+	identifyWithByRegex = regexp.MustCompile(`identified (with.*password )?by '[^\s]*'`)
+	userPasswordRegex   = regexp.MustCompile(`\s-u\w+.*\s-p(\S+).*`)
+	dsnRegex            = regexp.MustCompile(`\w+:[^\s]*@tcp\([^\s]+\)`)
+	dsnPasswordRegex    = regexp.MustCompile(`:[^\s]*@tcp\(`)
+	passwordRegex       = regexp.MustCompile(`password ['|"]*\S+['|"]*`)
+	passwordGrantRegex  = regexp.MustCompile(`password\(['|"]\S+['|"]\)`)
 )
 
 // ClearSensitiveInformation clear sensitive information from input
@@ -41,7 +44,12 @@ func ClearSensitiveInformation(input string) string {
 
 // CleanSvrPassword TODO
 func CleanSvrPassword(input string) string {
-	return passwordRegex.ReplaceAllString(input, "password 'xxxx'")
+	return passwordRegex.ReplaceAllString(strings.ToLower(input), "password 'xxxx'")
+}
+
+// CleanGrantPassword clean grant sql password
+func CleanGrantPassword(input string) string {
+	return passwordGrantRegex.ReplaceAllString(strings.ToLower(input), "password('xxxx')")
 }
 
 // CleanGrantPassword clean grant sql password
@@ -51,7 +59,8 @@ func CleanGrantPassword(input string) string {
 
 // clearIdentifyByInSQL TODO
 func clearIdentifyByInSQL(input string) string {
-	output := identifyByRegex.ReplaceAllString(input, `identified by 'xxxx'`)
+	output := identifyByRegex.ReplaceAllString(strings.ToLower(input), `identified by 'xxxx'`)
+	output = identifyWithByRegex.ReplaceAllString(output, "identified ${1}by 'xxxx'")
 	return output
 }
 

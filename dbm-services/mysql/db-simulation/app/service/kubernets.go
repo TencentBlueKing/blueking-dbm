@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
-	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
 	"dbm-services/mysql/db-simulation/app/config"
@@ -65,7 +64,7 @@ type MySQLPodBaseInfo struct {
 type DbPodSets struct {
 	K8S         KubeClientSets
 	BaseInfo    *MySQLPodBaseInfo
-	DbWork      *util.DbWorker
+	DbWork      *cmutil.DbWorker
 	DbImage     string
 	TdbCtlImage string
 	SpiderImage string
@@ -246,7 +245,7 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 			return err
 		}
 		if len(podI.Status.ContainerStatuses) <= 0 {
-			return fmt.Errorf("get pod status is empty,wait ...")
+			return fmt.Errorf("get pod status is empty,wait")
 		}
 		for _, cStatus := range podI.Status.ContainerStatuses {
 			logger.Info("%s: %v", cStatus.Name, cStatus.Ready)
@@ -258,12 +257,12 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		logger.Info("the pod is ready,ip is %s", podIp)
 		return nil
 	}
-	if err = util.Retry(util.RetryConfig{Times: 120, DelayTime: 2 * time.Second}, fn); err != nil {
+	if err = cmutil.Retry(cmutil.RetryConfig{Times: 120, DelayTime: 2 * time.Second}, fn); err != nil {
 		return err
 	}
 	logger.Info("the podIp is %s", podIp)
 	fnc := func() error {
-		k.DbWork, err = util.NewDbWorker(fmt.Sprintf("%s:%s@tcp(%s:%d)/?timeout=5s&multiStatements=true",
+		k.DbWork, err = cmutil.NewDbWorker(fmt.Sprintf("%s:%s@tcp(%s:%d)/?timeout=5s&multiStatements=true",
 			DefaultUser,
 			k.BaseInfo.RootPwd,
 			podIp, probePort))
@@ -273,11 +272,11 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 		}
 		return nil
 	}
-	if err = util.Retry(util.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc); err == nil {
+	if err = cmutil.Retry(cmutil.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc); err == nil {
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
-	k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;")
 	k.DbWork.Db.Exec("create user ADMIN@localhost;")
+	k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;")
 	return err
 }
 

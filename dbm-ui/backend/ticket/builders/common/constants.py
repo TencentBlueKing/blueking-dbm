@@ -126,6 +126,16 @@ class FixpointRollbackType(str, StructuredEnum):
     LOCAL_AND_BACKUPID = EnumField("LOCAL_AND_BACKUPID", _("本地备份 + backupid"))
 
 
+class RollbackBuildClusterType(str, StructuredEnum):
+    """
+    定点回档构造集群类型
+    """
+
+    BUILD_INTO_NEW_CLUSTER = EnumField("BUILD_INTO_NEW_CLUSTER", _("回档到新集群"))
+    BUILD_INTO_EXIST_CLUSTER = EnumField("BUILD_INTO_EXIST_CLUSTER", _("回档到已有集群"))
+    BUILD_INTO_METACLUSTER = EnumField("BUILD_INTO_METACLUSTER", _("回档到原集群"))
+
+
 class DumperProtocolType(str, StructuredEnum):
     KAFKA = EnumField("KAFKA", _("KAFKA"))
     L5_AGENT = EnumField("L5_AGENT", _("L5_AGENT"))

@@ -30,7 +30,7 @@
       v-for="item of content.todos"
       :key="item.id"
       :data="item"
-      :href-target="getHrefTarget(content)" />
+      href-target="_blank" />
   </template>
   <!-- 人工确认 -->
   <template v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
@@ -135,7 +135,7 @@
         ，
         <a
           :href="content.url"
-          :target="getHrefTarget(content)">
+          target="_blank">
           {{ t('查看详情') }} &gt;
         </a>
       </template>
@@ -242,7 +242,7 @@
     return content.status === 'RUNNING' && content.flow_type === 'PAUSE';
   });
 
-  const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
+  // const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
 
   const handleConfirmTerminal = (item: FlowItem) => {
     btnState.terminateLoading = true;

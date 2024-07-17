@@ -267,6 +267,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	for _, e := range t.ExcuteObjects {
 		sstdout, sstderr, err = t.executeOneObject(e, containerName, xlogger)
 		if err != nil {
+			//nolint
 			errs = append(errs, fmt.Errorf("%s:%w\n", e.SQLFile, err))
 			sstderrs = append(sstderrs, sstderr)
 		}

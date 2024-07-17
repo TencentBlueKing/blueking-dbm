@@ -21,6 +21,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -312,15 +314,19 @@ func (i *InstallMySQLComp) precheckMysqlDir() error {
 }
 
 func (i *InstallMySQLComp) precheckFilesystemType() (err error) {
-	mountInfo := osutil.GetMountPathInfo()
-	for _, key := range util.UniqueStrings([]string{i.DataRootPath, i.LogRootPath}) {
-		if v, exist := mountInfo[key]; exist {
-			logger.Info("%s : %s", key, v.FileSystemType)
-			if !util.StringsHas(i.Params.AllowDiskFileSystemTypes, v.FileSystemType) {
-				return fmt.Errorf("the %s,Filesystem is %s,is not allowed", key, v.FileSystemType)
+	for _, dirPath := range util.UniqueStrings([]string{i.DataRootPath, i.LogRootPath}) {
+		mountInfo := osutil.GetMountPathInfo(dirPath)
+		if len(mountInfo) != 1 {
+			return errors.Errorf("failed to get filesystem type for %s", dirPath)
+		}
+		for mountPath, info := range mountInfo {
+			if mountPath != dirPath {
+				logger.Warn("dir %s is mounted original on %s with device %s", dirPath, info.Path, info.Filesystem)
 			}
-		} else {
-			return fmt.Errorf("the %s Not Found Filesystem Type", key)
+			logger.Info("dir %s : %s", dirPath, info.FileSystemType)
+			if !util.StringsHas(i.Params.AllowDiskFileSystemTypes, info.FileSystemType) {
+				return fmt.Errorf("the %s,Filesystem is %s,is not allowed", dirPath, info.FileSystemType)
+			}
 		}
 	}
 	return nil
@@ -684,20 +690,21 @@ func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (init
 	initAccountsql = append(initAccountsql, i.Params.PartitionYWAccount.GetPartitionYWAccount(realVersion)...)
 
 	runp := i.GeneralParam.RuntimeAccountParam
-	var privParis []components.MySQLAccountPrivs
-	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
+	var privPairs []components.MySQLAccountPrivs
+	privPairs = append(privPairs, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
 	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
 	if runp.AdminUser != "ADMIN" {
-		privParis = append(privParis, components.MySQLAdminAccount{
+		privPairs = append(privPairs, components.MySQLAdminAccount{
 			AdminUser: "ADMIN",
 			AdminPwd:  runp.AdminPwd,
 		}.GetAccountPrivs(i.Params.Host))
 
 	}
-	privParis = append(privParis, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
-	privParis = append(privParis, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
-	privParis = append(privParis, runp.MySQLYwAccount.GetAccountPrivs())
-	for _, v := range privParis {
+	privPairs = append(privPairs, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
+	privPairs = append(privPairs, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
+	privPairs = append(privPairs, runp.MySQLYwAccount.GetAccountPrivs())
+	privPairs = append(privPairs, runp.MySQLDbBackupAccount.GetAccountPrivs(realVersion, i.Params.Host))
+	for _, v := range privPairs {
 		initAccountsql = append(initAccountsql, v.GenerateInitSql(realVersion)...)
 	}
 	if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
@@ -908,7 +915,8 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 			i.AvoidReset = true // spider 有可能没开 binlog，reset master 会报错
 		case strings.Contains(version, "tdbctl"):
 			// 对tdbctl 初始化权限
-			initAccountSqls = append(initAccountSqls, "set tc_admin = 0;")
+			logger.Info("tdbctl port %d need tc_admin=0, binlog_format=off", port)
+			initAccountSqls = append(initAccountSqls, "set session tc_admin=0;", "set session sql_log_bin=off;")
 			initAccountSqls = append(initAccountSqls, i.generateDefaultMysqlAccount(version)...)
 		default:
 			// 默认按照mysql的初始化权限的方式
@@ -1081,20 +1089,20 @@ func (i *InstallMySQLComp) TdbctlStartup() (err error) {
 func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (initAccountsql []string) {
 	initAccountsql = i.getSuperUserAccountForSpider()
 	runp := i.GeneralParam.RuntimeAccountParam
-	var privParis []components.MySQLAccountPrivs
-	privParis = append(privParis, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
+	var privPairs []components.MySQLAccountPrivs
+	privPairs = append(privPairs, runp.MySQLAdminAccount.GetAccountPrivs(i.Params.Host))
 	// 这里做一个处理，传入的AdminUser 不一定是真正的ADMIN账号，如果不是则手动添加一个,保证新实例有ADMIN账号
 	if runp.AdminUser != "ADMIN" {
-		privParis = append(privParis, components.MySQLAdminAccount{
+		privPairs = append(privPairs, components.MySQLAdminAccount{
 			AdminUser: "ADMIN",
 			AdminPwd:  runp.AdminPwd,
 		}.GetAccountPrivs(i.Params.Host))
 
 	}
-	privParis = append(privParis, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
-	privParis = append(privParis, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
-	privParis = append(privParis, runp.MySQLYwAccount.GetAccountPrivs())
-	for _, v := range privParis {
+	privPairs = append(privPairs, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
+	privPairs = append(privPairs, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
+	privPairs = append(privPairs, runp.MySQLYwAccount.GetAccountPrivs())
+	for _, v := range privPairs {
 		initAccountsql = append(initAccountsql, v.GenerateInitSql(realVersion)...)
 	}
 	if cmutil.MySQLVersionParse(realVersion) <= cmutil.MySQLVersionParse("5.6") {
