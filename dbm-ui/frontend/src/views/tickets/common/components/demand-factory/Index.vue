@@ -248,7 +248,11 @@
     TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
   ];
 
-  const importSQLTypes = [TicketTypes.MYSQL_IMPORT_SQLFILE, TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE, TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE];
+  const importSQLTypes = [
+    TicketTypes.MYSQL_IMPORT_SQLFILE,
+    TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+    TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE,
+  ];
 
   const redisCLBTypes = [
     TicketTypes.REDIS_PLUGIN_DNS_BIND_CLB,
