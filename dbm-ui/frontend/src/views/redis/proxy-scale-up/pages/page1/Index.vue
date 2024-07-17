@@ -146,6 +146,7 @@
     bkCloudId: item.bk_cloud_id,
     clusterType: item.cluster_spec.spec_cluster_type,
     nodeType: 'Proxy',
+    cluster_type_name: item.cluster_type_name,
     spec: {
       ...item.proxy[0].spec_config,
       name: item.cluster_spec.spec_name,

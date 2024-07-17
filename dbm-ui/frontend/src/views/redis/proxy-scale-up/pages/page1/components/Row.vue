@@ -22,6 +22,12 @@
     </td>
     <td style="padding: 0">
       <RenderText
+        :data="data.cluster_type_name"
+        :is-loading="data.isLoading"
+        :placeholder="$t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
         :data="data.nodeType"
         :is-loading="data.isLoading"
         :placeholder="t('输入集群后自动生成')" />
@@ -73,6 +79,7 @@
     clusterId: number;
     bkCloudId: number;
     nodeType: string;
+    cluster_type_name: '';
     spec?: SpecInfo;
     targetNum?: string;
     clusterType?: string;
@@ -104,6 +111,7 @@
     clusterId: 0,
     bkCloudId: 0,
     nodeType: '',
+    cluster_type_name: '',
   });
 </script>
 <script setup lang="ts">
