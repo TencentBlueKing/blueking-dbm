@@ -32,6 +32,7 @@ type TendisInsRecoverTask struct {
 	SSDIncrBackup     *TredisRocksDBIncrBack `json:"ssdIncrBackup"`   // ssd binlog
 
 	TendisType     string `json:"tendis_type"`
+	ClusterType    string `json:"cluster_type"` // 集群类型。
 	IsIncludeSlave bool   `json:"is_include_slave"`
 	KvstoreNums    int    `json:"kvstore_nums"`
 	MasterVersion  string `json:"master_version"` // 确定ssd 加载全备工具版本
@@ -60,7 +61,7 @@ type FileDetail struct {
 
 // NewTendisInsRecoverTask 新建数据构建任务
 func NewTendisInsRecoverTask(sourceIP string, sourcePort int, neWTempIP string, newTmpPort int,
-	newTmpPasswordsword, recoveryTimePoint, recoverDir, tendisType string, isIncludeSlave bool,
+	newTmpPasswordsword, recoveryTimePoint, recoverDir, tendisType, clusterType string, isIncludeSlave bool,
 	runtime *jobruntime.JobGenericRuntime, fullFileList []FileDetail,
 	binlogFileList []FileDetail) (task *TendisInsRecoverTask, err error) {
 	return &TendisInsRecoverTask{
@@ -72,6 +73,7 @@ func NewTendisInsRecoverTask(sourceIP string, sourcePort int, neWTempIP string, 
 		RecoveryTimePoint: recoveryTimePoint,
 		RecoverDir:        recoverDir,
 		TendisType:        tendisType,
+		ClusterType:       clusterType,
 		IsIncludeSlave:    isIncludeSlave,
 		runtime:           runtime,
 		FullFileList:      fullFileList,
@@ -1368,11 +1370,16 @@ func (task *TendisInsRecoverTask) Run() {
 			task.Err = err
 			return
 		}
-		// 回档结果校验
-		err = task.CheckTendisRollbackResult()
-		if err != nil {
-			task.Err = err
-			return
+		if task.ClusterType == consts.TendisTypePredixyRedisCluster {
+			task.runtime.Logger.Info("架构类型是：%s, 不需要校验dbsize和heart key",
+				consts.TendisTypePredixyRedisCluster)
+		} else {
+			// 回档结果校验
+			err = task.CheckTendisRollbackResult()
+			if err != nil {
+				task.Err = err
+				return
+			}
 		}
 
 	}
