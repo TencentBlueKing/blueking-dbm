@@ -98,7 +98,9 @@ class DBPasswordHandler(object):
         instance_list = []
         for address in instances:
             split_len = len(address.split(":"))
-            if split_len == 2:
+            if split_len == 1:
+                instance_list.append({"ip": address})
+            elif split_len == 2:
                 # 输入ip:port
                 ip, port = address.split(":")
                 instance_list.append({"ip": ip, "port": int(port)})
