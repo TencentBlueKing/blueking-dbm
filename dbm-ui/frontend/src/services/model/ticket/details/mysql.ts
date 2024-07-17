@@ -108,6 +108,12 @@ export interface MySQLForceImportSQLFileExecuteSqlFiles {
   sql_path: string;
 }
 
+export interface MySQLForceImportSQLFileExecuteSqlFiles {
+  raw_file_name: string;
+  sql_content: string;
+  sql_path: string;
+}
+
 /**
  * MySQL 校验
  */
