@@ -34,12 +34,23 @@
         :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
+      <RenderRoleHostSelect
+        ref="hostRef"
+        :cluster-type="ClusterTypes.TENDBCLUSTER"
+        :count="nodeCount"
+        :data="data"
+        :is-loading="data.isLoading"
+        :tab-list-config="tabListConfig"
+        @num-change="handleHostNumChange"
+        @type-change="handleChangeHostSelectType" />
+    </td>
+    <td style="padding: 0">
       <RenderTargetNumber
         ref="tergetNumRef"
-        :data="data.targetNum"
-        :disabled="!data.cluster"
+        :count="nodeCount"
+        :data="localTargerNum"
+        :disabled="!data.cluster || currentHostSelectType === HostSelectType.MANUAL"
         :is-loading="data.isLoading"
-        :max="targetMax"
         :role="currentType" />
     </td>
     <OperateColumn
@@ -49,9 +60,15 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import SpiderModel from '@services/model/spider/spider';
 
+  import { ClusterTypes } from '@common/const';
+
+  import { type PanelListType } from '@components/instance-selector/Index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+  import RenderRoleHostSelect, { HostSelectType } from '@components/render-table/columns/role-host-select/Index.vue';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
   import RenderSpec from '@views/spider-manage/common/edit-field/RenderSpec.vue';
@@ -59,7 +76,7 @@
 
   import { random } from '@utils';
 
-  import RenderNodeType from './RenderNodeType.vue';
+  import RenderNodeType, { NodeType } from './RenderNodeType.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
@@ -74,12 +91,19 @@
     spiderMasterList: SpiderModel['spider_master'];
     spiderSlaveList: SpiderModel['spider_slave'];
     spec?: SpecInfo;
+    hostSelectType?: string;
     targetNum?: string;
   }
 
   export interface InfoItem {
     cluster_id: number;
-    spider_reduced_to_count: number;
+    spider_reduced_to_count?: number | string;
+    spider_reduced_hosts?: {
+      ip: string;
+      bk_host_id: number;
+      bk_cloud_id: number;
+      bk_biz_id: number;
+    }[];
     reduce_spider_role: string;
   }
 
@@ -120,13 +144,58 @@
 
   const emits = defineEmits<Emits>();
 
-  const nodeTypeRef = ref();
-  const tergetNumRef = ref();
+  const { t } = useI18n();
+
+  const nodeTypeRef = ref<InstanceType<typeof RenderNodeType>>();
+  const hostRef = ref<InstanceType<typeof RenderRoleHostSelect>>();
+  const tergetNumRef = ref<InstanceType<typeof RenderTargetNumber>>();
   const currentSepc = ref(props.data.spec);
-  const targetMax = ref(1);
+  const nodeCount = ref(1);
   const currentType = ref('');
+  const currentHostSelectType = ref('');
+  const localTargerNum = ref('');
 
   const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
+
+  const tabListConfig = computed(() => {
+    const isMater = props.data?.nodeType === NodeType.MASTER;
+    return {
+      [ClusterTypes.TENDBCLUSTER]: [
+        {
+          name: t('主机选择'),
+          topoConfig: {
+            filterClusterId: props.data!.clusterId,
+          },
+          tableConfig: {
+            firsrColumn: {
+              label: isMater ? t('Master 主机') : t('Slave 主机'),
+              field: 'ip',
+              role: isMater ? 'spider_master' : 'spider_slave',
+            },
+          },
+        },
+        {
+          tableConfig: {
+            firsrColumn: {
+              label: isMater ? t('Master 主机') : t('Slave 主机'),
+              field: 'ip',
+              role: isMater ? 'spider_master' : 'spider_slave',
+            },
+          },
+        },
+      ],
+    } as unknown as Record<ClusterTypes, PanelListType>;
+  });
+
+  watch(
+    () => props.data.targetNum,
+    () => {
+      localTargerNum.value = props.data.targetNum ?? '';
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChangeNodeType = (choosedLabel: string) => {
     currentType.value = choosedLabel;
@@ -136,11 +205,22 @@
     } else {
       count = props.data.slaveCount;
     }
-    targetMax.value = count;
+    nodeCount.value = count;
     if (currentSepc.value) {
       currentSepc.value.count = count;
     }
     emits('nodeTypeChoosed', choosedLabel);
+
+    localTargerNum.value = '';
+    hostRef.value?.resetValue();
+  };
+
+  const handleChangeHostSelectType = (value: string) => {
+    currentHostSelectType.value = value;
+  };
+
+  const handleHostNumChange = (value: number) => {
+    localTargerNum.value = String(value);
   };
 
   const handleInputFinish = (value: string) => {
@@ -160,13 +240,21 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([nodeTypeRef.value.getValue(), tergetNumRef.value.getValue()]).then((data) => {
-        const [nodeType, targetNum] = data;
-        return {
+      return Promise.all([
+        nodeTypeRef.value!.getValue(),
+        hostRef.value!.getValue('spider_reduced_hosts'),
+        tergetNumRef.value!.getValue(),
+      ]).then((data) => {
+        const [nodeType, hostData, targetNum] = data;
+        const info = {
           cluster_id: props.data.clusterId,
           ...nodeType,
-          ...targetNum,
         };
+
+        if (hostData) {
+          return Object.assign(info, { ...hostData });
+        }
+        return Object.assign(info, { ...targetNum });
       });
     },
   });

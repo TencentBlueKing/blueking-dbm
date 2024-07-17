@@ -41,6 +41,7 @@
       id: number,
       name: string,
     },
+    hostSelectType: string,
     targetNum: number,
     switchMode: string,
   }
@@ -73,7 +74,15 @@
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
-      label: t('缩容至(台)'),
+      label: t('主机选择方式'),
+      field: 'hostSelectType',
+      showOverflowTooltip: true,
+      render: ({ data }: {data: RowData}) => (
+        <div style="white-space: break-spaces; line-height: 18px">{data.hostSelectType}</div>
+      )
+    },
+    {
+      label: t('缩容数量(台)'),
       field: 'targetNum',
     },
     {
@@ -99,9 +108,10 @@
           clusterName: item.master_domain,
           clusterType: item.cluster_spec.spec_cluster_type,
           specId: item.cluster_spec.spec_id,
+          proxyCount: item.proxy.length
         } });
         return obj;
-      }, {} as Record<number, {clusterName: string, clusterType: string, specId: number}>);
+      }, {} as Record<number, {clusterName: string, clusterType: string, specId: number, proxyCount: number}>);
 
       // 避免重复查询
       const clusterTypes = [...new Set(Object.values(clusterMap).map(item => item.clusterType))];
@@ -119,6 +129,7 @@
       tableData.value = infos.map((item) => {
         const sepcList = sepcMap[clusterMap[item.cluster_id].clusterType];
         const specInfo = sepcList.find(row => row.spec_id === clusterMap[item.cluster_id].specId);
+        const ipList = (item.proxy_reduced_hosts || []).map(item => item.ip)
         return {
           clusterName: clusterMap[item.cluster_id].clusterName,
           clusterType: clusterMap[item.cluster_id].clusterType,
@@ -128,7 +139,8 @@
             id: clusterMap[item.cluster_id].specId,
             name: specInfo ? specInfo.spec_name : '',
           },
-          targetNum: item.target_proxy_count,
+          hostSelectType: ipList.length > 0 ? ipList.join('\n') : t('自动匹配'),
+          targetNum: clusterMap[item.cluster_id].proxyCount - (item.target_proxy_count || ipList.length),
           switchMode: item.online_switch_type,
         };
       });

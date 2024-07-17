@@ -40,6 +40,7 @@
       id: number,
       name: string,
     },
+    hostSelectType: string,
     targetNum: number
   }
 
@@ -68,7 +69,15 @@
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
-      label: t('缩容至(台)'),
+      label: t('主机选择方式'),
+      field: 'hostSelectType',
+      showOverflowTooltip: true,
+      render: ({ data }: {data: RowData}) => (
+        <div style="white-space: break-spaces; line-height: 18px">{data.hostSelectType}</div>
+      )
+    },
+    {
+      label: t('缩容数量(台)'),
       field: 'targetNum',
     },
   ];
@@ -109,6 +118,7 @@
       tableData.value = infos.map((item) => {
         const sepcList = sepcMap[clusterMap[item.cluster_id].clusterType];
         const specInfo = sepcList.find(row => row.spec_id === clusterMap[item.cluster_id].specId);
+        const ipList = (item.spider_reduced_hosts || []).map(item => item.ip)
         return {
           clusterName: clusterMap[item.cluster_id].clusterName,
           clusterType: clusterMap[item.cluster_id].clusterType,
@@ -117,7 +127,8 @@
             id: clusterMap[item.cluster_id].specId,
             name: specInfo ? specInfo.spec_name : '',
           },
-          targetNum: item.spider_reduced_to_count,
+          hostSelectType: ipList.length > 0 ? ipList.join('\n') : t('自动匹配'),
+          targetNum: item.spider_reduced_to_count || ipList.length
         };
       });
     },

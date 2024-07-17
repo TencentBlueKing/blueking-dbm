@@ -13,27 +13,32 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <SpecPanel
-      :data="data"
-      :hide-qps="hideQps">
-      <div
-        class="render-spec-box"
-        :class="{ 'default-display': !data }">
-        <span
-          v-if="!data"
-          style="color: #c4c6cc">
-          {{ placeholder || $t('输入主机后自动生成') }}
-        </span>
-        <span
-          v-else
-          class="content">
-          {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : $t('((n))台', { n: data?.count })}` : '' }}
-        </span>
-      </div>
-    </SpecPanel>
+    <div
+      class="render-spec-box"
+      :class="{ 'default-display': !data }">
+      <span
+        v-if="!data"
+        style="color: #c4c6cc">
+        {{ placeholder || t('输入主机后自动生成') }}
+      </span>
+      <span
+        v-else
+        class="content">
+        {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : t('((n))台', { n: data?.count })}` : '' }}
+        <SpecPanel
+          :data="data"
+          :hide-qps="hideQps">
+          <DbIcon
+            class="visible-icon ml-4"
+            type="visible1" />
+        </SpecPanel>
+      </span>
+    </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import SpecPanel from './Panel.vue';
 
   interface Props {
@@ -72,6 +77,8 @@
     isIgnoreCounts: false,
     hideQps: true,
   });
+
+  const { t } = useI18n();
 </script>
 <style lang="less" scoped>
   .render-spec-box {
@@ -84,14 +91,20 @@
     white-space: nowrap;
 
     .content {
-      padding-bottom: 2px;
+      // padding-bottom: 2px;
       cursor: pointer;
-      border-bottom: 1px dotted #979ba5;
+      // border-bottom: 1px dotted #979ba5;
     }
   }
 
   .default-display {
     cursor: not-allowed;
     background: #fafbfd;
+  }
+
+  .visible-icon {
+    color: #3a84ff;
+    cursor: pointer;
+    font-size: 16px;
   }
 </style>

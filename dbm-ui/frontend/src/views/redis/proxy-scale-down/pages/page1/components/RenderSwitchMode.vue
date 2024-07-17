@@ -52,7 +52,7 @@
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref(props.data);
+  const localValue = ref();
 
   const selectList = [
     {
@@ -71,6 +71,16 @@
       message: t('请选择切换模式'),
     },
   ];
+
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string) => {
     localValue.value = value as OnlineSwitchType;
