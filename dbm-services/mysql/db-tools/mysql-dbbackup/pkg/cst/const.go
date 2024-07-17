@@ -37,6 +37,15 @@ const (
 )
 
 const (
+	// LogicalMysqldumpYes backup_type=logical时，使用 mysqldump
+	LogicalMysqldumpYes = "yes"
+	// LogicalMysqldumpNo backup_type=logical时，不使用 mysqldump，即使用 mydumper
+	LogicalMysqldumpNo = "no"
+	// LogicalMysqldumpAuto backup_type=logical时，自动根据数据量、兼容性、glibc版本选择是用 mydumper 还是 mysqldump
+	LogicalMysqldumpAuto = "auto"
+)
+
+const (
 	// WrapperRemote TODO
 	WrapperRemote = "mysql"
 	// WrapperRemoteSlave TODO
