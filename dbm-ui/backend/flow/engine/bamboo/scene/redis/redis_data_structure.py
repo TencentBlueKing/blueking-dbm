@@ -27,6 +27,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.handlers import DataStructureHandler
 from backend.db_services.redis.util import (
+    is_have_proxy,
     is_predixy_proxy_type,
     is_redis_cluster_protocal,
     is_redis_instance_type,
@@ -142,7 +143,7 @@ class RedisDataStructureFlow(object):
             )
             logger.info(_("是否是集群维度：is_cluster_all:{}".format(is_cluster_all)))
             # 如果是tendisplus必须要传入所有节点，也就是需要是集群维度的
-            if cluster_type == ClusterType.TendisPredixyTendisplusCluster.value and not is_cluster_all:
+            if is_redis_cluster_protocal(cluster_type) and not is_cluster_all:
                 raise Exception(
                     _(
                         "tendisplus 需要按集群维度进行数据构造，请检查传入的节点：cluster_type is :{},"
@@ -372,42 +373,43 @@ class RedisDataStructureFlow(object):
             act_kwargs.new_install_proxy_exec_ip = info["redis"][0]["ip"]
             act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
 
-            trans_files = GetFileList(db_type=DBType.Redis)
-            if is_twemproxy_proxy_type(cluster_type):
-                # 部署proxy pkg包
-                act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster_type)
-                proxy_payload = RedisActPayload.add_twemproxy_payload.__name__
-            elif is_predixy_proxy_type(cluster_type):
-                act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
-                proxy_payload = RedisActPayload.add_predixy_payload.__name__
-            else:
-                raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
+            if is_have_proxy(cluster_type):
+                trans_files = GetFileList(db_type=DBType.Redis)
+                if is_twemproxy_proxy_type(cluster_type):
+                    # 部署proxy pkg包
+                    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster_type)
+                    proxy_payload = RedisActPayload.add_twemproxy_payload.__name__
+                elif is_predixy_proxy_type(cluster_type):
+                    act_kwargs.file_list = trans_files.tendisplus_apply_proxy()
+                    proxy_payload = RedisActPayload.add_predixy_payload.__name__
+                else:
+                    raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
 
-            act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
-            act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
-            redis_pipeline.add_act(
-                act_name=_("{}proxy下发介质包").format(act_kwargs.exec_ip),
-                act_component_code=TransFileComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+                act_kwargs.get_trans_data_ip_var = RedisDataStructureContext.get_proxy_exec_ip_var_name()
+                act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
+                redis_pipeline.add_act(
+                    act_name=_("{}proxy下发介质包").format(act_kwargs.exec_ip),
+                    act_component_code=TransFileComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
 
-            # 构造proxy server信息
-            if is_twemproxy_proxy_type(cluster_type):
-                servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
-            elif cluster_type == ClusterType.TendisPredixyTendisplusCluster:
-                servers = cluster_dst_instance
-            else:
-                raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
+                # 构造proxy server信息
+                if is_twemproxy_proxy_type(cluster_type):
+                    servers = self.cal_twemproxy_serveres("admin", redis_instance_set, node_pairs)
+                elif is_redis_cluster_protocal(cluster_type):
+                    servers = cluster_dst_instance
+                else:
+                    raise NotImplementedError("Not supported cluster type: %s" % cluster_type)
 
-            act_kwargs.cluster["servers"] = servers
-            logger.info("proxy servers: {}".format(act_kwargs.cluster["servers"]))
-            act_kwargs.get_redis_payload_func = proxy_payload
-            act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
-            redis_pipeline.add_act(
-                act_name=_("{}安装proxy实例").format(act_kwargs.new_install_proxy_exec_ip),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(act_kwargs),
-            )
+                act_kwargs.cluster["servers"] = servers
+                logger.info("proxy servers: {}".format(act_kwargs.cluster["servers"]))
+                act_kwargs.get_redis_payload_func = proxy_payload
+                act_kwargs.exec_ip = act_kwargs.new_install_proxy_exec_ip
+                redis_pipeline.add_act(
+                    act_name=_("{}安装proxy实例").format(act_kwargs.new_install_proxy_exec_ip),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(act_kwargs),
+                )
             # ### 数据构造payload json下发 #########################################################################
             redis_pipeline.add_parallel_acts(acts_list=acts_list_push_json)
             # ### 数据构造下发actuator #############################################################################
@@ -585,6 +587,9 @@ class RedisDataStructureFlow(object):
             server_port = item["server_port"]
             instance = f"{source_ip}{IP_PORT_DIVIDER}{server_port}"
             shard_value = item["shard_value"]
+
+            if cluster_type in [ClusterType.TendisRedisInstance]:
+                shard_value = "{}-{}".format(DEFAULT_TWEMPROXY_SEG_MIN_NUM, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM)
             if not shard_value:
                 raise Exception(_("备份文件中没有上报shard_value，集群维度的场景需要校验shard_value信息，请检查备份情况！备份文件：{}".format(item)))
             if instance in instance_shard_dict:
@@ -604,10 +609,13 @@ class RedisDataStructureFlow(object):
             missing_ranges = set(range(DEFAULT_TWEMPROXY_SEG_MIN_NUM, DEFAULT_TWEMPROXY_SEG_TOTOL_NUM)) - set(
                 missing_ranges
             )
-        # tendisplus
-        if cluster_type == ClusterType.TendisPredixyTendisplusCluster:
+        # tendisplus、rediscluster
+        if is_redis_cluster_protocal(cluster_type):
             missing_ranges = set(range(RedisSlotNum.MIN_SLOT, RedisSlotNum.TOTAL_SLOT)) - set(missing_ranges)
 
+        # 单实例
+        if cluster_type in [ClusterType.TendisRedisInstance]:
+            missing_ranges = []
         if missing_ranges:
             raise Exception(
                 _(
@@ -664,6 +672,11 @@ class RedisDataStructureFlow(object):
         cluster_name = cluster_info["name"]
         redis_slave_set = cluster_info["redis_slave_set"]
         redis_master_set = cluster_info["redis_master_set"]
+        if len(cluster_info["twemproxy_ports"]) != 0:
+            proxy_port = cluster_info["twemproxy_ports"][0]
+        # 单实例节点。proxy端口就用起始端口
+        else:
+            proxy_port = DEFAULT_REDIS_START_PORT
 
         return {
             "immute_domain": cluster.immute_domain,
@@ -671,7 +684,7 @@ class RedisDataStructureFlow(object):
             "bk_cloud_id": cluster.bk_cloud_id,
             "cluster_type": cluster.cluster_type,
             "cluster_name": cluster_name,
-            "proxy_port": cluster_info["twemproxy_ports"][0],
+            "proxy_port": proxy_port,
             "master_nums": master_nums,
             "slave_ports": dict(slave_ports),
             "slave_ins_map": dict(slave_ins_map),
@@ -792,7 +805,8 @@ class RedisDataStructureFlow(object):
                         "size":178635,
                         "source_ip":"xxxx",
                         "task_id":"1692870412566863699-0514017472-22072-0",
-                        "file_name":"3-redis-slave-xxx-xxx-20230824-174325.aof.zst"
+                        "file_name":"3-redis-slave-xxx-xxx-20230824-174325.aof.zst",
+                        "shard_value": "0-5461"
                     }
                 ],
                 "binlog_file_list":[
@@ -804,7 +818,8 @@ class RedisDataStructureFlow(object):
                         "size":5734,
                         "source_ip":"xxxx",
                         "task_id":"1696629732091541786-0160215607-30893-0",
-                        "file_name":"binlog-xxxx-30000-0004173-20231007053751.log.zst"
+                        "file_name":"binlog-xxxx-30000-0004173-20231007053751.log.zst",
+                         "shard_value": "5462-10923"
                     }
                 ]
             }
