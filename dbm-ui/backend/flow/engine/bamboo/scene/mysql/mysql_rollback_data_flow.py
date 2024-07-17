@@ -290,7 +290,7 @@ class MySQLRollbackDataFlow(object):
                     act_component_code=TransFileComponent.code,
                     kwargs=asdict(
                         DownloadMediaKwargs(
-                            bk_cloud_id=rollback_storage.bk_cloud_id,
+                            bk_cloud_id=rollback_storage.machine.bk_cloud_id,
                             exec_ip=[rollback_storage.machine.ip],
                             file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
                         )
