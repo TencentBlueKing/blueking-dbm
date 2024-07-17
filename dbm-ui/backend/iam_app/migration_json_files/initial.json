@@ -6041,6 +6041,93 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_local_upgrade",
+                "name": "MySQL 原地升级",
+                "name_en": "MYSQL_LOCAL_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "版本升级",
+                "description": "MySQL 原地升级",
+                "description_en": "MYSQL_LOCAL_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_migrate_upgrade",
+                "name": "MySQL 迁移升级",
+                "name_en": "MYSQL_MIGRATE_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "版本升级",
+                "description": "MySQL 迁移升级",
+                "description_en": "MYSQL_MIGRATE_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_proxy_upgrade",
+                "name": "MySQL Proxy升级",
+                "name_en": "MYSQL_PROXY_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "版本升级",
+                "description": "MySQL Proxy升级",
+                "description_en": "MYSQL_PROXY_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "tendbcluster_checksum",
                 "name": "TenDB Cluster 数据校验修复",
                 "name_en": "TENDBCLUSTER_CHECKSUM",
@@ -9916,6 +10003,21 @@
                                     "id": "mysql_rollback_cluster"
                                 }
                             ]
+                        },
+                        {
+                            "name": "版本升级",
+                            "name_en": "版本升级",
+                            "actions": [
+                                {
+                                    "id": "mysql_local_upgrade"
+                                },
+                                {
+                                    "id": "mysql_migrate_upgrade"
+                                },
+                                {
+                                    "id": "mysql_proxy_upgrade"
+                                }
+                            ]
                         }
                     ]
                 },
@@ -11280,6 +11382,15 @@
                             "id": "mysql_dump_data"
                         },
                         {
+                            "id": "mysql_local_upgrade"
+                        },
+                        {
+                            "id": "mysql_migrate_upgrade"
+                        },
+                        {
+                            "id": "mysql_proxy_upgrade"
+                        },
+                        {
                             "id": "tendbcluster_checksum"
                         },
                         {
@@ -11796,6 +11907,18 @@
                             },
                             {
                                 "id": "mysql_dump_data",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_local_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_migrate_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_proxy_upgrade",
                                 "required": true
                             }
                         ]

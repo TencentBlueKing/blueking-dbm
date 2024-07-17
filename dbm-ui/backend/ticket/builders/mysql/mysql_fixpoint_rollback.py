@@ -17,7 +17,7 @@ from rest_framework import serializers
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
-from backend.ticket.builders.common.constants import MySQLBackupSource
+from backend.ticket.builders.common.constants import MySQLBackupSource, RollbackBuildClusterType
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import (
     BaseMySQLTicketFlowBuilder,
@@ -31,7 +31,8 @@ from backend.utils.time import str2datetime
 class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
     class FixPointRollbackSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        rollback_host = HostInfoSerializer(help_text=_("备份新机器"))
+        target_cluster_id = serializers.IntegerField(help_text=_("回档集群ID"), default=False)
+        rollback_host = HostInfoSerializer(help_text=_("备份新机器"), default=False)
         backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
         rollback_time = DBTimezoneField(
             help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default=""
@@ -44,10 +45,22 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
         tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField())
 
+    rollback_cluster_type = serializers.ChoiceField(
+        help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
+    )
     infos = serializers.ListSerializer(help_text=_("定点构造信息"), child=FixPointRollbackSerializer())
 
     @classmethod
-    def validate_rollback_info(cls, info, now):
+    def validate_rollback_info(cls, rollback_cluster_type, info, now):
+        # 校验回档集群类型参数
+        if rollback_cluster_type == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER and not info.get("rollback_host"):
+            raise serializers.ValidationError(_("请提供部署新集群的机器信息"))
+
+        if rollback_cluster_type != RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER and not info.get(
+            "target_cluster_id"
+        ):
+            raise serializers.ValidationError(_("请提供部署新集群的机器信息"))
+
         # 校验rollback_time和backupinfo参数至少存在一个
         if not info["rollback_time"] and not info["backupinfo"]:
             raise serializers.ValidationError(_("请保证rollback_time或backupinfo参数至少存在一个"))
@@ -66,7 +79,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
 
         now = datetime.datetime.now(timezone.utc)
         for info in attrs["infos"]:
-            self.validate_rollback_info(info, now)
+            self.validate_rollback_info(attrs["rollback_cluster_type"], info, now)
 
         # TODO: 库表校验
 
@@ -74,15 +87,28 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MySQLController.mysql_rollback_data_cluster_scene
+    rollback_to_new_controller = MySQLController.mysql_rollback_data_cluster_scene
+    rollback_to_exist_controller = MySQLController.mysql_rollback_to_cluster_scene
 
     def format_ticket_data(self):
-        # 获取定点回档的类型
+        rollback_cluster_type = self.ticket_data["rollback_cluster_type"]
         for info in self.ticket_data["infos"]:
+            # 获取定点回档的类型
             op_type = "BACKUPID" if info.get("backupinfo") else "TIME"
             info["rollback_type"] = f"{info['backup_source'].upper()}_AND_{op_type}"
-            info["rollback_ip"] = info["rollback_host"]["ip"]
-            info["bk_rollback"] = info.pop("rollback_host")
+            # 格式化定点回档部署的信息
+            if rollback_cluster_type == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
+                info["rollback_ip"] = info["rollback_host"]["ip"]
+                info["bk_rollback"] = info.pop("rollback_host")
+            else:
+                info["rollback_cluster_id"] = info.pop("target_cluster_id")
+
+    def build_controller_info(self) -> dict:
+        if self.ticket_data["rollback_cluster_type"] == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
+            self.controller = self.rollback_to_new_controller
+        else:
+            self.controller = self.rollback_to_exist_controller
+        return super().build_controller_info()
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK_CLUSTER)

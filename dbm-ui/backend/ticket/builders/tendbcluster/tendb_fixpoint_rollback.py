@@ -16,25 +16,34 @@ from rest_framework import serializers
 
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
-from backend.db_meta.enums import ClusterType, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import AppCache, Cluster, Tag
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.constants import FixpointRollbackType
+from backend.ticket.builders.common.base import HostInfoSerializer
+from backend.ticket.builders.common.constants import FixpointRollbackType, RollbackBuildClusterType
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import DBTableField
 from backend.ticket.builders.mysql.mysql_fixpoint_rollback import MySQLFixPointRollbackDetailSerializer
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
-from backend.ticket.builders.tendbcluster.tendb_apply import TenDBClusterApplyResourceParamBuilder
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.models import ClusterOperateRecord, Flow
 from backend.utils.time import date2str
 
 
 class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
+    class RollbackHostSerializer(serializers.Serializer):
+        spider_host = HostInfoSerializer(help_text=_("spider新机器"))
+        remote_hosts = serializers.ListSerializer(help_text=_("remote新机器"), child=HostInfoSerializer())
+
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    rollback_cluster_type = serializers.ChoiceField(
+        help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
+    )
+    target_cluster_id = serializers.IntegerField(help_text=_("回档集群ID"), default=False)
+    rollback_host = RollbackHostSerializer(help_text=_("备份新机器"), default=False)
     rollback_type = serializers.ChoiceField(help_text=_("回档类型"), choices=FixpointRollbackType.get_choices())
     rollback_time = DBTimezoneField(help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default="")
     backupinfo = serializers.DictField(
@@ -50,7 +59,9 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
         super().validate_cluster_can_access(attrs)
 
         # 校验回档信息
-        MySQLFixPointRollbackDetailSerializer.validate_rollback_info(attrs, datetime.datetime.now(timezone.utc))
+        MySQLFixPointRollbackDetailSerializer.validate_rollback_info(
+            attrs["rollback_cluster_type"], attrs, datetime.datetime.now(timezone.utc)
+        )
 
         return attrs
 
@@ -59,9 +70,12 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendb_cluster_rollback_data
 
     def format_ticket_data(self):
-        pass
+        self.ticket_data.update(source_cluster_id=self.ticket_data.pop("cluster_id"))
 
     def pre_callback(self):
+        if self.ticket_data["rollback_cluster_type"] != RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
+            return
+
         rollback_flow = self.ticket.current_flow()
         ticket_data = rollback_flow.details["ticket_data"]
 
@@ -83,7 +97,7 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class TendbApplyTemporaryFlowParamBuilder(builders.FlowParamBuilder):
-    controller = SpiderController.spider_cluster_apply_scene
+    controller = SpiderController.spider_cluster_apply_no_slave
 
     def format_ticket_data(self):
         self.ticket_data = self.ticket_data["apply_details"]
@@ -93,23 +107,9 @@ class TendbApplyTemporaryFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["ticket_type"] = TicketType.TENDBCLUSTER_APPLY
 
 
-class TenDBClusterApplyCopyResourceParamBuilder(TenDBClusterApplyResourceParamBuilder):
-    def format(self):
-        self.ticket_data = self.ticket_data["apply_details"]
-
-    def post_callback(self):
-        super().post_callback()
-
-
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER, is_apply=True)
 class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbFixPointRollbackDetailSerializer
-
-    def get_machine_spec(self, machine_infos):
-        # 获取机器的数量和规格，默认认为同一角色的规格是相同的
-        machine_count = len(set([data["machine__bk_host_id"] for data in machine_infos]))
-        spec_id = machine_infos[0]["machine__spec_id"]
-        return machine_count, spec_id
 
     def get_cluster_config(self, cluster, details):
         db_config = DBConfigApi.query_conf_item(
@@ -123,6 +123,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
                 "format": dbconf_const.FormatType.MAP,
             }
         )["content"]
+
         details.update(
             charset=db_config.get("charset"),
             db_version=db_config.get("db_version"),
@@ -132,13 +133,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     def get_cluster_apply_spec(self, cluster, details):
         # 获取集群分片数
         cluster_shard_num = cluster.tendbclusterstorageset_set.count()
-        # 获取spider的部署规格和机器数
-        spider_machine_data = list(
-            cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
-            ).values("machine__bk_host_id", "machine__spec_id")
-        )
-        spider_machine_count, spider_spec_id = self.get_machine_spec(spider_machine_data)
+
         # 获取remote的部署规格和机器组数
         remote_machine_data = []
         for storage_set in cluster.tendbclusterstorageset_set.all():
@@ -147,19 +142,20 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
                 {"machine__bk_host_id": master_machine.bk_host_id, "machine__spec_id": master_machine.spec_id}
             )
 
-        remote_machine_count, remote_spec_id = self.get_machine_spec(remote_machine_data)
-        # 填充资源池规格信息和分片信息
-        resource_spec = {
-            "spider": {"spec_id": spider_spec_id, "count": spider_machine_count},
-            "backend_group": {"spec_id": remote_spec_id, "count": remote_machine_count},
-        }
+        rollback_host = self.ticket.details["rollback_host"]
+        remote_machine_count = len(rollback_host["remote_hosts"])
+
         details.update(
-            resource_spec=resource_spec,
             cluster_shard_num=cluster_shard_num,
             remote_shard_num=int(cluster_shard_num / remote_machine_count),
+            spider_ip_list=[rollback_host["spider_host"]],
+            remote_group=[{"master": host, "slave": {}} for host in rollback_host["remote_hosts"]],
         )
 
-    def patch_ticket_detail(self):
+    def patch_apply_ticket_detail(self):
+        if self.ticket.details["rollback_cluster_type"] != RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
+            return
+
         cluster = Cluster.objects.get(id=self.ticket.details["cluster_id"])
         cluster_name = f"{cluster.name}-tmp{date2str(datetime.date.today(), '%Y%m%d')}-{self.ticket.id}"
         db_app_abbr = AppCache.get_app_attr(cluster.bk_biz_id)
@@ -181,40 +177,39 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
         self.get_cluster_apply_spec(cluster, apply_details)
 
         self.ticket.update_details(apply_details=apply_details)
+
+    def patch_ticket_detail(self):
+        self.patch_apply_ticket_detail()
         super().patch_ticket_detail()
 
     def custom_ticket_flows(self):
-        flows = [
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.RESOURCE_APPLY,
-                details=TenDBClusterApplyCopyResourceParamBuilder(self.ticket).get_params(),
-                flow_alias=_("资源申请"),
-            ),
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.INNER_FLOW.value,
-                details=TendbApplyTemporaryFlowParamBuilder(self.ticket).get_params(),
-                flow_alias=_("回档临时集群部署"),
-                retry_type=FlowRetryType.MANUAL_RETRY.value,
-            ),
+        flows = []
+
+        if self.ticket.details["rollback_cluster_type"] == RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.INNER_FLOW.value,
+                    details=TendbApplyTemporaryFlowParamBuilder(self.ticket).get_params(),
+                    flow_alias=_("回档临时集群部署"),
+                    retry_type=FlowRetryType.MANUAL_RETRY.value,
+                )
+            )
+
+        flows.append(
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.INNER_FLOW.value,
                 details=TendbFixPointRollbackFlowParamBuilder(self.ticket).get_params(),
                 flow_alias=_("TenDBCluster 回档执行"),
                 retry_type=FlowRetryType.MANUAL_RETRY.value,
-            ),
-            Flow(
-                ticket=self.ticket,
-                flow_type=FlowType.RESOURCE_DELIVERY,
-                flow_alias=_("资源确认"),
-            ),
-        ]
+            )
+        )
+
         return flows
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("TenDBCluster 回档执行"), _("资源确认")])
+        flow_desc.extend([_("回档临时集群部署"), _("TenDBCluster 回档执行")])
         return flow_desc

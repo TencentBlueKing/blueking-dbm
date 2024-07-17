@@ -176,7 +176,7 @@ def generate_iam_biz_maintain_json(label: str = CommonActionLabel.BIZ_MAINTAIN, 
     for action in _all_actions.values():
         if label not in action.common_labels:
             continue
-        resource_ids = ",".join(sorted([resource.id for resource in action.related_resource_types]))
+        resource_ids = ",".join([resource.id for resource in action.related_resource_types])
         resources__actions_map[resource_ids].append(action.id)
 
     # 对每种聚合的资源生成迁移json，其中resource的path规则:
