@@ -446,12 +446,12 @@
       },
       resource_spec: {
         proxy: {
-          spec_id: 0,
+          spec_id: '' as number | '',
           count: 2,
         },
         backend_group: {
           count: 0,
-          spec_id: 0,
+          spec_id: '' as number | '',
           capacity: '' as number | string,
           future_capacity: '' as number | string,
           affinity: 'NONE',
@@ -609,11 +609,11 @@
 
   const handleChangeClusterType = () => {
     state.formdata.details.db_version = '';
-    state.formdata.details.resource_spec.proxy.spec_id = 0;
+    state.formdata.details.resource_spec.proxy.spec_id = '';
     state.formdata.details.resource_spec.backend_group = {
       ...state.formdata.details.resource_spec.backend_group,
       count: 0,
-      spec_id: 0,
+      spec_id: '',
       capacity: '',
       future_capacity: '',
     };
