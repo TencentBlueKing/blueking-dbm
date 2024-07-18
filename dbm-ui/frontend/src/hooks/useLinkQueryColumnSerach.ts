@@ -200,6 +200,10 @@ export const useLinkQueryColumnSerach = (config: {
       }
       if (item.id === 'domain') {
         const list = values[0].id.split(batchSplitRegex);
+        if (list.length === 1) {
+          return Promise.resolve(true);
+        }
+
         if (list.some((ip) => !domainRegex.test(ip) && !domainPort.test(ip))) {
           return Promise.resolve(t('格式错误'));
         }
