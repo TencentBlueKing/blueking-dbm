@@ -24,7 +24,9 @@ import (
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 
@@ -40,16 +42,17 @@ type Component struct {
 }
 
 type Param struct {
-	Host            string   `json:"host" validate:"required,ip"`
-	Port            int      `json:"port" validate:"required,gte=3306,lt=65535"`
-	Role            string   `json:"role" validate:"required"`
-	ShardID         int      `json:"shard_id"`
-	BackupType      string   `json:"backup_type" validate:"required"`
-	BackupGSD       []string `json:"backup_gsd" validate:"required"` // [grant, schema, data]
-	Regex           string   `json:"regex"`
-	BackupId        string   `json:"backup_id" validate:"required"`
-	BillId          string   `json:"bill_id" validate:"required"`
-	CustomBackupDir string   `json:"custom_backup_dir"`
+	Host       string   `json:"host" validate:"required,ip"`
+	Port       int      `json:"port" validate:"required,gte=3306,lt=65535"`
+	Role       string   `json:"role" validate:"required"`
+	ShardID    int      `json:"shard_id"`
+	BackupType string   `json:"backup_type" validate:"required"`
+	BackupGSD  []string `json:"backup_gsd" validate:"required"` // [grant, schema, data]
+	// Regex database or tables to backup, only logical. set to empty if it's full backup
+	Regex           string `json:"regex"`
+	BackupId        string `json:"backup_id" validate:"required"`
+	BillId          string `json:"bill_id" validate:"required"`
+	CustomBackupDir string `json:"custom_backup_dir"`
 }
 
 type context struct {
@@ -138,7 +141,15 @@ func (c *Component) GenerateBackupConfig() error {
 
 		backupConfig.LogicalBackup.Regex = ""
 		if c.Params.BackupType == "logical" {
-			backupConfig.LogicalBackup.Regex = c.Params.Regex
+			if c.Params.Regex == "" {
+				ignoreSys, _ := db_table_filter.NewDbTableFilter(
+					[]string{"*"}, []string{"*"}, native.DBSys, []string{"*"})
+				ignoreSys.BuildFilter()
+				myloaderRegex := ignoreSys.MyloaderRegex(true) // doDr true has specific pattern
+				backupConfig.LogicalBackup.Regex = myloaderRegex
+			} else {
+				backupConfig.LogicalBackup.Regex = c.Params.Regex
+			}
 		}
 
 		if c.Params.CustomBackupDir != "" {

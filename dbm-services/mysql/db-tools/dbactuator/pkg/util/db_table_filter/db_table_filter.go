@@ -35,12 +35,8 @@ type DbTableFilter struct {
 // NewDbTableFilter 构造函数
 // 如果是 mydumper，内置忽略 infodba_schema.conn_log 表
 // NewDbTableFilter 完成后，需要 BuildFilter()
-func NewDbTableFilter(
-	includeDbPatterns []string,
-	includeTablePatterns []string,
-	excludeDbPatterns []string,
-	excludeTablePatterns []string,
-) (*DbTableFilter, error) {
+func NewDbTableFilter(includeDbPatterns []string, includeTablePatterns []string,
+	excludeDbPatterns []string, excludeTablePatterns []string) (*DbTableFilter, error) {
 
 	tf := &DbTableFilter{
 		IncludeDbPatterns:       cleanIt(includeDbPatterns),

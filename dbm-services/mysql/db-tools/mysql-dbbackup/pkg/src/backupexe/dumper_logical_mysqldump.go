@@ -68,21 +68,17 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		"-P", strconv.Itoa(l.cnf.Public.MysqlPort),
 		"-u" + l.cnf.Public.MysqlUser,
 		"-p" + l.cnf.Public.MysqlPasswd,
-		"--single-transaction",
+		"--single-transaction", "--master-data=2",
 		"-r", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName(), l.cnf.Public.TargetName()+".sql"),
 		// --max-allowed-packet=1G
 	}
-
-	if l.cnf.Public.MysqlRole == cst.RoleMaster {
-		args = append(args, []string{
-			"--master-data=2",
-		}...)
-	} else {
-		args = append(args, []string{
-			"--dump-slave=2",
-		}...)
-	}
-
+	/*
+		if l.cnf.Public.MysqlRole == cst.RoleSlave {
+			args = append(args, []string{
+				"--dump-slave=2",
+			}...)
+		}
+	*/
 	if l.cnf.LogicalBackupMysqldump.ExtraOpt != "" {
 		args = append(args, []string{
 			fmt.Sprintf(`%s`, l.cnf.LogicalBackupMysqldump.ExtraOpt),

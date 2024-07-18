@@ -3,12 +3,10 @@ package dbloader
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
@@ -98,13 +96,6 @@ func (l *PhysicalLoader) loadBackup() error {
 	errStr, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
 		logger.Error("physical dbbackup loadbackup stderr: ", errStr)
-		// 尝试读取 xtrabackup.log 里 CRITICAL 关键字
-		_, errStr, _ = cmutil.ExecCommand(false, l.TaskDir, "grep", "-E 'Error|fatal'",
-			"logs/xtrabackup_*.log", "| head -5 >&2")
-		if len(strings.TrimSpace(errStr)) > 0 {
-			logger.Info("head 5 error from", filepath.Join(l.TaskDir, "logs/xtrabackup_*.log"))
-			logger.Error(errStr)
-		}
 		return errors.Wrap(err, errStr)
 	}
 	return nil

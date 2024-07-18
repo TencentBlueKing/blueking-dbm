@@ -113,6 +113,8 @@ func (f *BackupIndexFile) ValidateFiles() error {
 		// logger index baseName nad tarfile baseName does not match
 	}
 	sort.Strings(f.splitParts)
+	f.splitParts = util.SortSplitPartFiles(f.splitParts, "_")
+
 	sort.Strings(f.tarParts)
 
 	if len(f.splitParts) >= 2 { // 校验文件是否连续
