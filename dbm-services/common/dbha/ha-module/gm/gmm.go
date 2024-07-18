@@ -78,8 +78,8 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 				"db check failed. no need to switch in machine level",
 			)
 		}
-	// AUTHCheckFailed also need double-check and process base on the result of double check.
-	case constvar.SSHCheckFailed, constvar.AUTHCheckFailed:
+	// SSHAuthFailed also need double-check and process base on the result of double check.
+	case constvar.SSHCheckFailed, constvar.SSHAuthFailed, constvar.RedisAuthFailed:
 		{ // double check
 			go func(doubleCheckInstance DoubleCheckInstanceInfo) {
 				ip, port := doubleCheckInstance.db.GetAddress()
@@ -106,7 +106,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 							fmt.Sprintf("double check success: db check failed, ssh check ok. dbcheck err:%s", err),
 						)
 					}
-				case constvar.SSHCheckFailed:
+				case constvar.SSHCheckFailed, constvar.SSHAuthFailed:
 					{
 						gmm.HaDBClient.ReportHaLog(
 							gmIP,
@@ -126,7 +126,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 						gmm.GQAChan <- doubleCheckInstance
 						return
 					}
-				case constvar.AUTHCheckFailed:
+				case constvar.RedisAuthFailed:
 					{
 						content := fmt.Sprintf("database authenticate failed, err:%s", err.Error())
 						log.Logger.Errorf(content)

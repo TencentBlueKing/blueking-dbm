@@ -106,7 +106,7 @@ func (s *SqlserverDetectInstance) Detection() error {
 	sshErr := s.CheckSSH()
 	if sshErr != nil {
 		if util.CheckSSHErrIsAuthFail(sshErr) {
-			s.Status = constvar.AUTHCheckFailed
+			s.Status = constvar.SSHAuthFailed
 			log.Logger.Warnf("check ssh auth failed. ip:%s, port:%d, app:%s, status:%s",
 				s.Ip, s.Port, s.App, s.Status)
 		} else {

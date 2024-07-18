@@ -165,7 +165,7 @@ func (m *MySQLDetectInstance) Detection() error {
 	sshErr := m.CheckSSH()
 	if sshErr != nil {
 		if util.CheckSSHErrIsAuthFail(sshErr) {
-			m.Status = constvar.AUTHCheckFailed
+			m.Status = constvar.SSHAuthFailed
 			log.Logger.Warnf("check ssh auth failed. ip:%s, port:%d, app:%s, status:%s",
 				m.Ip, m.Port, m.App, m.Status)
 		} else {
