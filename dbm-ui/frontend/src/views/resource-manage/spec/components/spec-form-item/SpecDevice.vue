@@ -77,7 +77,7 @@
 
     if (list[list.length - 1] === '-1') {
       // 最后选的无限制，前面选过的都要去除
-      modelValue.value = ['-1'];
+      modelValue.value = '-1';
       return;
     }
 
