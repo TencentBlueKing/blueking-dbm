@@ -122,7 +122,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
 
@@ -174,7 +174,7 @@
           ...params,
         }),
     },
-  };
+  } as unknown as Record<string, TabItem>;
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -207,7 +207,7 @@
       currentSepc: `${item.cluster_capacity}G_${specConfig.qps.max}/s（${item.cluster_shard_num} 分片）`,
       clusterType: item.cluster_spec.spec_cluster_type,
       currentShardNum: item.cluster_shard_num,
-      cluster_type_name: item.cluster_type_name,
+      clusterTypeName: item.cluster_type_name,
       currentSpecId: item.cluster_spec.spec_id,
       dbVersion: item.major_version,
       specConfig: {

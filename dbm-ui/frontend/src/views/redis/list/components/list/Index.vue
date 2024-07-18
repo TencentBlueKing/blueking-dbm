@@ -110,6 +110,7 @@
         class="operations-right mb-16"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
+        :parse-url="false"
         :model-value="searchValue"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
@@ -787,6 +788,7 @@
       filter: {
         list: columnAttrs.value.cluster_type,
         checked: columnCheckedMap.value.cluster_type,
+        height: 200,
       },
       render: ({ data }: ColumnRenderData) => <span>{data.cluster_type_name || '--'}</span>,
     },

@@ -3221,5 +3221,10 @@
     "(共 n 个)": "（共 {0} 个）",
     "变更后机器组数": "变更后机器组数",
     "终止": "终止",
+    "支持所有架构类型": "支持所有架构类型",
+    "通用": "通用",
+    "通用维护": "通用维护",
+    "仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型": "仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型",
+    "待重建的主机": "待重建的主机",
     "这行勿动！新增翻译请在上一行添加！": ""
 }

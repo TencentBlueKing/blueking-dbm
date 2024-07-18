@@ -232,6 +232,7 @@
       filter: {
         list: columnAttrs.value.cluster_type,
         checked: columnCheckedMap.value.cluster_type,
+        height: 200
       },
       render: ({ data }: { data: ResourceItem }) => <span>{data.cluster_type_name}</span>,
     },
