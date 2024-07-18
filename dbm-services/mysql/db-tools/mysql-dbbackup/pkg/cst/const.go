@@ -105,6 +105,8 @@ const (
 
 const DBAReportBase = "/home/mysql/dbareport"
 
+const DbbackupGoInstallPath = "/home/mysql/dbbackup-go"
+
 const MysqlCrondUrl = "http://127.0.0.1:9999"
 
 const MysqlRotateBinlogInstallPath = "/home/mysql/mysql-rotatebinlog"
