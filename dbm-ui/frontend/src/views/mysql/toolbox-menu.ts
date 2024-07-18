@@ -173,6 +173,7 @@ export default [
         name: t('DB克隆'),
         id: 'MySQLDataMigrate',
         parentId: 'data',
+        dbConsoleValue: 'mysql.toolbox.dataMigrate',
       },
     ],
   },
