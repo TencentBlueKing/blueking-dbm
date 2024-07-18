@@ -250,7 +250,7 @@ func VersionParser(version string) (parse string, isOfficial bool) {
 		newTemp := StringSliceToInterfaceSlice(temp)
 		parse = fmt.Sprintf("%03s%03s%03s", newTemp...)
 	}
-	if strings.Contains(version, "tmysql") {
+	if strings.Contains(version, "tmysql") || strings.Contains(version, "txsql") {
 		isOfficial = false
 	} else {
 		isOfficial = true

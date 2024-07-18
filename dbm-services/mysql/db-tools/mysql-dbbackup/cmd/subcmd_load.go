@@ -3,7 +3,9 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/backupexe"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
@@ -18,8 +20,10 @@ var loadCmd = &cobra.Command{
 	Use:   "loadbackup",
 	Short: "Run load backup",
 	Long:  `Run load backup using config, include logical and physical`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		var err error
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		defer func() {
+			cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", cst.DbbackupGoInstallPath)
+		}()
 		if err = logger.InitLog("dbbackup_load.log"); err != nil {
 			return err
 		}

@@ -55,8 +55,11 @@ var dumpCmd = &cobra.Command{
 	Use:   "dumpbackup",
 	Short: "Run backup",
 	Long:  `Run backup using config, include logical and physical`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if err := dumpExecute(cmd, args); err != nil {
+	RunE: func(cmd *cobra.Command, args []string) (err error) {
+		defer func() {
+			cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", cst.DbbackupGoInstallPath)
+		}()
+		if err = dumpExecute(cmd, args); err != nil {
 			manager := ma.NewManager(cst.MysqlCrondUrl)
 			body := struct {
 				Name      string
