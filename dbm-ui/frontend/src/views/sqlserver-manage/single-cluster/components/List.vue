@@ -322,12 +322,15 @@
         <TextOverflowLayout>
           {{
             default: () => (
-              <bk-button
+              <auth-button
+                action-id="sqlserver_view"
+                resource={data.id}
+                permission={data.permission.sqlserver_view}
                 text
                 theme="primary"
                 onClick={() => handleToDetails(data)}>
                 {data.master_domain}
-              </bk-button>
+              </auth-button>
             ),
             append: () => (
               <>
@@ -899,6 +902,7 @@
       .db-icon-copy,
       .db-icon-link {
         display: none;
+        margin-top: 1px;
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
@@ -917,6 +921,12 @@
             border-radius: 2px;
           }
         }
+      }
+    }
+
+    :deep(th:hover) {
+      .db-icon-copy {
+        display: inline-block !important;
       }
     }
 
