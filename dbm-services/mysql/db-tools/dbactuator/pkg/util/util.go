@@ -22,8 +22,11 @@ import (
 	"os"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
+
+	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/logger"
 
@@ -217,6 +220,19 @@ func GetSuffixWithLenAndSep(strList []string, separator string, maxlen int) []st
 		seqList[i] = LastElement(strings.Split(s, separator))
 	}
 	return seqList
+}
+
+// SortSplitPartFiles 切割文件排序，升序
+// separator 是最后一个分隔符
+func SortSplitPartFiles(strList []string, separator string) []string {
+	sort.Slice(strList, func(i, j int) bool {
+		iNumSuffixStr := LastElement(strings.Split(strList[i], separator))
+		iNumSuffix := cast.ToInt(iNumSuffixStr)
+		jNumSuffixStr := LastElement(strings.Split(strList[j], separator))
+		jNumSuffix := cast.ToInt(jNumSuffixStr)
+		return iNumSuffix < jNumSuffix
+	})
+	return strList
 }
 
 // LastElement TODO

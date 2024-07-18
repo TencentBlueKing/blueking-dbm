@@ -188,7 +188,16 @@ func (p *PhysicalLoader) load() error {
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
 		logger.Log.Error("xtrabackup recover failed: ", err, errStr)
-		return errors.Wrap(err, errStr)
+		// 尝试读取 xtrabackup.log 里 ERROR 关键字
+		_, errStrDetail, _ := cmutil.ExecCommand(false, "", "grep", "-Ei", "'ERROR|fatal'",
+			logfile, "| tail -5 >&2")
+		if len(strings.TrimSpace(errStrDetail)) > 0 {
+			logger.Log.Info("tail 5 error from", logfile)
+			logger.Log.Error(errStrDetail)
+		} else {
+			logger.Log.Warn("can not find more detail error message from ", logfile)
+		}
+		return errors.Wrap(err, errStr+"\n"+errStrDetail)
 	}
 	logger.Log.Info("xtrabackup recover success: ", outStr)
 	return nil
