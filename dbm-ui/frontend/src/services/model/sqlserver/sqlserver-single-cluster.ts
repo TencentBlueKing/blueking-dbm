@@ -67,6 +67,9 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    sqlserver_view: boolean;
+  };
   phase: string;
   phase_name: string;
   region: string;
@@ -125,6 +128,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
     this.operations = payload.operations;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;
