@@ -335,7 +335,6 @@
           device_class: formdata.value.device_class === '-1' ? [] : formdata.value.device_class,
           storage_spec: formdata.value.storage_spec.filter((item) => item.mount_point && item.size && item.type),
         });
-
         if (props.mode === 'edit') {
           updateResourceSpec(params)
             .then(() => {
@@ -372,7 +371,7 @@
             isLoading.value = false;
           });
       })
-      .catch(() => {
+      .finally(() => {
         isLoading.value = false;
       });
   };
