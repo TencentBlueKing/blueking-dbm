@@ -28,6 +28,7 @@
         type="exclamation-fill" />
     </div>
     <BkSelect
+      ref="selectRef"
       v-model="localValue"
       auto-focus
       class="select-box"
@@ -40,6 +41,11 @@
       :show-select-all="showSelectAll"
       @change="handleSelect"
       @clear="handleRemove">
+      <template
+        v-if="slots.trigger"
+        #trigger>
+        <slot name="trigger" />
+      </template>
       <BkOption
         v-for="(item, index) in list"
         :key="index"
@@ -76,6 +82,7 @@
     disabled?: boolean;
     multiple?: boolean;
     showSelectAll?: boolean;
+    validateAfterSelect?: boolean; // 选择完立即校验
   }
   interface Emits {
     (e: 'change', value: IKey): void;
@@ -83,6 +90,7 @@
 
   interface Exposes {
     getValue: () => Promise<IKey>;
+    hidePopover: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -92,16 +100,24 @@
     disabled: false,
     multiple: false,
     showSelectAll: false,
+    validateAfterSelect: true,
   });
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<IKey>();
 
+  const slots = defineSlots<
+    Partial<{
+      trigger: any;
+      default: any;
+    }>
+  >();
+
   const rootRef = ref();
   const localValue = ref<IKey>('');
   const rootHeight = ref(42);
+  const selectRef = ref();
 
-  const slots = useSlots();
   const { message: errorMessage, validator } = useValidtor(props.rules);
 
   watch(
@@ -112,6 +128,10 @@
       }
       localValue.value = value;
       if (typeof value !== 'object' && value) {
+        if (!props.validateAfterSelect) {
+          return;
+        }
+
         validator(value);
         return;
       }
@@ -128,6 +148,13 @@
   // 选择
   const handleSelect = (value: IKey) => {
     localValue.value = value;
+    if (!props.validateAfterSelect) {
+      window.changeConfirm = true;
+      modelValue.value = value;
+      emits('change', localValue.value);
+      return;
+    }
+
     validator(localValue.value).then(() => {
       window.changeConfirm = true;
       modelValue.value = value;
@@ -154,6 +181,9 @@
   defineExpose<Exposes>({
     getValue() {
       return validator(localValue.value).then(() => localValue.value);
+    },
+    hidePopover() {
+      selectRef.value.hidePopover();
     },
   });
 </script>

@@ -71,25 +71,17 @@
   import SpiderModel from '@services/model/spider/spider';
   import { getSpiderList } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    TicketTypes,
-  } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import { random } from '@utils';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-    type InfoItem,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -97,22 +89,25 @@
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
 
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
-  const totalNum = computed(() => (tableData.value.length > 0
-    ? new Set(tableData.value.map(item => item.cluster)).size : 0));
-  const canSubmit = computed(() => tableData.value.filter(item => Boolean(item.cluster)).length > 0);
+  const totalNum = computed(() =>
+    tableData.value.length > 0 ? new Set(tableData.value.map((item) => item.cluster)).size : 0,
+  );
+  const canSubmit = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length > 0);
 
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: {
-      disabledRowConfig: [{
-        handler: (data: SpiderModel) => data.status !== 'normal',
-        tip: t('集群异常'),
-      }],
+      disabledRowConfig: [
+        {
+          handler: (data: SpiderModel) => data.status !== 'normal',
+          tip: t('集群异常'),
+        },
+      ],
     },
   };
 
@@ -121,7 +116,7 @@
 
   const handleChangeNodeType = (index: number, domain: string, label: string) => {
     tableData.value[index].nodeType = label;
-    const domainCount = tableData.value.filter(item => item.cluster === domain).length;
+    const domainCount = tableData.value.filter((item) => item.cluster === domain).length;
     const sameDomainArr = clusterNodeTypeMap.value[domain];
     if (sameDomainArr === undefined) {
       clusterNodeTypeMap.value[domain] = [label];
@@ -176,7 +171,7 @@
   };
 
   // 批量选择
-  const handelClusterChoosed = async (selected: {[key: string]: Array<SpiderModel>}) => {
+  const handelClusterChoosed = async (selected: { [key: string]: Array<SpiderModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -204,7 +199,10 @@
       tableData.value[index].cluster = '';
       return;
     }
-    if (tableData.value[index].cluster === domain) return;
+
+    if (tableData.value[index].cluster === domain) {
+      return;
+    }
     tableData.value[index].isLoading = true;
     const ret = await getSpiderList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
@@ -234,23 +232,23 @@
     // 恢复已选择的节点类型到列表
     const sameClusterArr = clusterNodeTypeMap.value[cluster];
     if (sameClusterArr && nodeType) {
-      const index = sameClusterArr.findIndex(item => item === nodeType);
+      const index = sameClusterArr.findIndex((item) => item === nodeType);
       if (index > -1) {
         sameClusterArr.splice(index, 1);
       }
     }
     tableData.value.splice(index, 1);
     const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter(item => item.master_domain !== cluster);
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== cluster);
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(rowRefs.value.map((item: {
-      getValue: () => Promise<InfoItem>
-    }) => item.getValue()));
+    const infos = await Promise.all(
+      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+    );
 
-    const params: SubmitTicket<TicketTypes, InfoItem[]> & { remark: string} = {
+    const params = {
       remark: '',
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
@@ -265,21 +263,24 @@
       width: 480,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'SpiderProxyScaleUp',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'SpiderProxyScaleUp',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
+          .finally(() => {
+            isSubmitting.value = false;
           });
-        }).finally(() => {
-          isSubmitting.value = false;
-        });
-      } });
+      },
+    });
   };
 
   const handleReset = () => {
