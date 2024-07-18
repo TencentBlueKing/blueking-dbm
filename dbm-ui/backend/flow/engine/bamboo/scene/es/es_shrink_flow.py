@@ -77,8 +77,7 @@ class EsShrinkFlow(EsFlow):
         )
         """
         shrink_ips = get_all_node_ips_in_ticket(data=shrink_data)
-        act_kwargs.exec_ip = shrink_ips
-        act_kwargs.exec_ip.append(self.master_exec_ip)
+        act_kwargs.exec_ip = self.master_exec_ip
         es_pipeline.add_act(
             act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
@@ -137,6 +136,7 @@ class EsShrinkFlow(EsFlow):
             )
 
         # 检查shard是否搬完
+        act_kwargs.exec_ip = self.master_exec_ip
         act_kwargs.get_es_payload_func = EsActPayload.get_check_shards_payload.__name__
         es_pipeline.add_act(
             act_name=_("校验搬迁状态"), act_component_code=ExecuteEsActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
