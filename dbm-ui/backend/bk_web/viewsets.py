@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, StreamingHttpResponse
 from django.utils.decorators import classonlymethod
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.response import Response
@@ -217,8 +217,18 @@ class ExternalProxyViewSet(viewsets.ViewSet):
             data["url"] = settings.BKREPO_ENDPOINT_URL
             return Response(data)
 
-        # 外部 API 转发请求，把 IP 替换为 *.*.*.*
-        if request.path.startswith("/external/apis/"):
+        # 制品库临时下载接口以文件流返回
+        if "/storage/generic/temporary/download/" in request.path:
+            return StreamingHttpResponse(
+                response.iter_content(),
+                content_type="application/octet‑stream",
+                headers={"Content-Disposition": 'attachment; filename="dump.tar.gz"'},
+            )
+
+        # 外部 API 转发请求，把 IP 替换为 *.*.*.*。适用于json响应
+        if request.path.startswith("/external/apis/") and response.headers.get("Content-Type").startswith(
+            "application/json"
+        ):
             data = re.sub(IP_RE, "*.*.*.*", response.content.decode("utf-8"))
             return Response(json.loads(data))
         # for path in [
