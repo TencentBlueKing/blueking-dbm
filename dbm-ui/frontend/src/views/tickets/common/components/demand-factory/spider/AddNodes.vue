@@ -63,13 +63,13 @@
       showOverflowTooltip: true,
     },
     {
-      label: t('当前规格'),
+      label: t('规格'),
       field: 'sepc',
       showOverflowTooltip: true,
       render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
     },
     {
-      label: t('扩容至(台)'),
+      label: t('扩容数量'),
       field: 'targetNum',
     },
   ];
