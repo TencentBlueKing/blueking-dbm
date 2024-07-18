@@ -151,6 +151,10 @@
         label: t('单据类型'),
         key: 'ticket_type_display',
       },
+      {
+        label: t('备注'),
+        key: 'remark',
+      },
     ],
     [
       {
