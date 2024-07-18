@@ -20,7 +20,9 @@ import { random } from '@utils';
 import { t } from '@locales/index';
 
 // Redis 集群分片数变更
-export async function generateRedisClusterShardUpdateCloneData(ticketData: TicketModel<RedisClusterShardUpdateDetails>) {
+export async function generateRedisClusterShardUpdateCloneData(
+  ticketData: TicketModel<RedisClusterShardUpdateDetails>,
+) {
   const { clusters, infos } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.src_cluster).join(','),
@@ -50,6 +52,7 @@ export async function generateRedisClusterShardUpdateCloneData(ticketData: Ticke
       },
       currentSepc: `${currentClusterInfo.cluster_capacity}G_${currentClusterInfo.cluster_spec.qps.max}/s（${currentClusterInfo.cluster_shard_num} 分片）`,
       clusterType: currentClusterInfo.cluster_spec.spec_cluster_type,
+      clusterTypeName: currentClusterInfo.cluster_type_name,
       currentShardNum: currentClusterInfo.cluster_shard_num,
       currentSpecId: currentClusterInfo.cluster_spec.spec_id,
       dbVersion: item.db_version,

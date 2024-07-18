@@ -33,6 +33,12 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="120"
+          :required="false"
+          :width="200">
+          <span>{{ t('架构版本') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="120"
           :width="170">
           <span>{{ t('目标业务') }}</span>
         </RenderTableHeadColumn>
@@ -165,6 +171,7 @@
         rowKey: item.src_cluster,
         isLoading: false,
         srcCluster: item.src_cluster,
+        srcClusterTypeName: '',
         srcClusterId: item.src_cluster_id,
         targetBusines: Number(item.dst_bk_biz_id),
         targetClusterId: item.dst_cluster_id,
@@ -206,6 +213,7 @@
     rowKey: item.master_domain,
     isLoading: false,
     srcCluster: item.master_domain,
+    srcClusterTypeName: item.cluster_type_name,
     srcClusterId: item.id,
     targetClusterId: 0,
     targetCluster: '',

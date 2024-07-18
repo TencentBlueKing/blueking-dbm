@@ -37,11 +37,17 @@
       field: 'clusterName',
       showOverflowTooltip: true,
     },
+    {
+      label: t('架构版本'),
+      field: 'clusterTypeName',
+      showOverflowTooltip: true,
+    },
   ];
 
   const tableData = computed(() =>
     Object.values(props.ticketDetails.details.clusters).map((item) => ({
       clusterName: item.immute_domain,
+      clusterTypeName: item.cluster_type_name,
     })),
   );
 </script>

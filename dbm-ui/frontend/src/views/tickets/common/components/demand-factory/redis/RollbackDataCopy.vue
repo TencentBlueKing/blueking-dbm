@@ -75,6 +75,11 @@
       showOverflowTooltip: true,
     },
     {
+      label: t('架构版本'),
+      field: 'clusterTypeName',
+      showOverflowTooltip: true,
+    },
+    {
       label: t('构造到指定时间'),
       field: 'time',
       showOverflowTooltip: true,
@@ -112,6 +117,7 @@
     return infos.map(item => ({
       entry: item.src_cluster,
       taregtClusterName: clusters[item.dst_cluster].immute_domain,
+      clusterTypeName: clusters[item.dst_cluster].cluster_type_name,
       time: item.recovery_time_point,
       includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
       excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),

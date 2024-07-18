@@ -80,7 +80,7 @@
       ),
     },
     {
-      label: t('集群类型'),
+      label: t('架构版本'),
       field: 'cluster_type_name',
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     }

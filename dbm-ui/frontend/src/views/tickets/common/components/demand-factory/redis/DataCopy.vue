@@ -99,6 +99,7 @@
   interface RowData {
     srcClusterName: string,
     srcClusterType: string,
+    srcClusterTypeName: string,
     dstClusterName: string,
     dstDiz: string,
     includeKeys: string[],
@@ -110,7 +111,8 @@
     let obj: RowData = {
       srcClusterName: '',
       dstClusterName: '',
-      srcClusterType: '',
+      srcClusterType: clusters[item.src_cluster]?.cluster_type_name,
+      srcClusterTypeName: '',
       dstDiz: '',
       includeKeys: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
       excludeKeys: item.key_black_regex === '' ? [] : item.key_black_regex.split('\n'),
@@ -168,7 +170,7 @@
   const { t } = useI18n();
   const { bizs } = useGlobalBizs();
 
-  const { infos } = props.ticketDetails.details;
+  const { clusters, infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
 
   const copyTypesMap = generateMap(copyTypeList);
@@ -187,6 +189,11 @@
     {
       label: t('源集群'),
       field: 'srcClusterName',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('架构版本'),
+      field: 'srcClusterTypeName',
       showOverflowTooltip: true,
     },
     {

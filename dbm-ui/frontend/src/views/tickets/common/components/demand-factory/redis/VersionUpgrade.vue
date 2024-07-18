@@ -35,7 +35,7 @@
     const { clusters, infos } = props.ticketDetails.details;
     return infos.map(item => ({
       immute_domain: clusters[item.cluster_id].immute_domain,
-      cluster_type: clusters[item.cluster_id].cluster_type,
+      cluster_type_name: clusters[item.cluster_id].cluster_type_name,
       ...item,
     }));
   });
@@ -45,19 +45,19 @@
       label: t('目标集群'),
       field: 'immute_domain',
       showOverflowTooltip: true,
-      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
-      label: t('架构类型'),
-      field: 'cluster_type',
+      label: t('架构版本'),
+      field: 'cluster_type_name',
       showOverflowTooltip: true,
-      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
       label: t('节点类型'),
       field: 'node_type',
       showOverflowTooltip: true,
-      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
     {
       label: t('当前使用的版本'),
@@ -69,7 +69,7 @@
       label: t('目标版本'),
       field: 'target_version',
       showOverflowTooltip: true,
-      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
     },
   ];
 </script>
