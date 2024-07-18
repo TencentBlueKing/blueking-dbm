@@ -235,7 +235,6 @@
     }
   });
 
-
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isInit = ref(false);
@@ -750,16 +749,14 @@
       showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <>
-          {isShowDumperEntry.value && (
-            <bk-button
-              v-db-console="mysql.haClusterList.authorize"
-              text
-              theme="primary"
-              class="mr-8"
-              onClick={() => handleShowAuthorize([data])}>
-              { t('授权') }
-            </bk-button>
-          )}
+          <bk-button
+            v-db-console="mysql.haClusterList.authorize"
+            text
+            theme="primary"
+            class="mr-8"
+            onClick={() => handleShowAuthorize([data])}>
+            { t('授权') }
+          </bk-button>
           <auth-button
             v-db-console="mysql.haClusterList.webconsole"
             action-id="mysql_webconsole"
