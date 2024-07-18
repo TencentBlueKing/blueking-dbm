@@ -185,7 +185,7 @@
               type="number"
               show-control={false}
               min={10}
-              max={6000}
+              max={20000}
               disabled={props.isEdit} />
           </div>
         </bk-form-item>

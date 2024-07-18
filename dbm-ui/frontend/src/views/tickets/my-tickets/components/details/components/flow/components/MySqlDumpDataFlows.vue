@@ -26,7 +26,7 @@
               class="download-button"
               text
               theme="primary"
-              @click="handleDownload(content.details.ticket_data.dump_file_path)">
+              @click="handleDownload(`${content.details.ticket_data.dump_file_path}/`)">
               <DbIcon
                 class="download-line-button"
                 type="download-line" />
