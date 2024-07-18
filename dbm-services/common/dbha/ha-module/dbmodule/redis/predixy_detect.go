@@ -25,7 +25,7 @@ func (ins *PredixyDetectInstance) Detection() error {
 		return nil
 	}
 
-	if err != nil && ins.Status == constvar.AUTHCheckFailed {
+	if err != nil && ins.Status == constvar.RedisAuthFailed {
 		log.Logger.Debugf("predixy check auth failed. %s#%d|%s:%s %+v",
 			ins.Ip, ins.Port, ins.GetType(), ins.Pass, err)
 		return err
@@ -34,7 +34,7 @@ func (ins *PredixyDetectInstance) Detection() error {
 	sshErr := ins.CheckSSH()
 	if sshErr != nil {
 		if util.CheckSSHErrIsAuthFail(sshErr) {
-			ins.Status = constvar.AUTHCheckFailed
+			ins.Status = constvar.SSHAuthFailed
 			log.Logger.Errorf("Predixy check ssh auth failed.ip:%s,port:%d,app:%s,status:%s",
 				ins.Ip, ins.Port, ins.App, ins.Status)
 		} else {
@@ -66,7 +66,7 @@ func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 		predixyErr := fmt.Errorf("do predixy cmd err,err: %s,info;%s",
 			err.Error(), ins.ShowDetectionInfo())
 		if util.CheckRedisErrIsAuthFail(err) {
-			ins.Status = constvar.AUTHCheckFailed
+			ins.Status = constvar.RedisAuthFailed
 		} else {
 			ins.Status = constvar.DBCheckFailed
 		}
