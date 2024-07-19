@@ -19,7 +19,7 @@
       :columns="columns"
       :data="state.accessData" />
   </div>
-  <div
+  <div 
     v-else
     class="ticket-details__list">
     <span>{{ t('Excel文件') }}：</span>
