@@ -35,14 +35,14 @@
           tag="div">
           <span
             class="tip-number"
-            style="color: #3a84ff"
-            >{{ ticketDetails.details.execute_sql_files.length }}</span
-          >
+            style="color: #3a84ff">
+            {{ ticketDetails.details.execute_sql_files.length }}
+          </span>
           <span
             class="tip-number"
-            style="color: #ea3636"
-            >{{ highRiskNum }}</span
-          >
+            style="color: #ea3636">
+            {{ highRiskNum }}
+          </span>
         </I18nT>
       </BkButton>
     </div>
@@ -132,7 +132,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLImportSQLFileDetails, MySQLForceImportSQLFileExecuteSqlFiles } from '@services/model/ticket/details/mysql';
+  import type { MySQLForceImportSQLFileExecuteSqlFiles,MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
 

@@ -55,7 +55,6 @@
       v-model:is-show="isShowBatchSelector"
       :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
       :selected="selectedClusters"
-      :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </SmartAction>
 </template>
@@ -74,7 +73,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
@@ -103,15 +102,6 @@
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
   });
-
-  const tabListConfig = {
-    [ClusterTypes.TENDBHA]: {
-      showPreviewResultTitle: true,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      showPreviewResultTitle: true,
-    },
-  } as Record<string, TabConfig>;
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};

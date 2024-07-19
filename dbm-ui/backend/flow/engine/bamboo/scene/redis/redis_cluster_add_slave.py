@@ -144,9 +144,16 @@ class RedisClusterAddSlaveFlow(object):
         bk_biz_id = self.data["bk_biz_id"]
         sub_pipelines = []
         for input_item in self.data["infos"]:
+            cluster_ids = []
+            if "cluster_ids" in input_item and input_item["cluster_ids"]:
+                cluster_ids = input_item["cluster_ids"]
+            else:
+                cluster_ids.append(input_item["cluster_id"])
+
+            cluster_id = cluster_ids[0]
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             cluster_kwargs = deepcopy(act_kwargs)
-            cluster_info = self.get_cluster_info(bk_biz_id, input_item["cluster_id"])
+            cluster_info = self.get_cluster_info(bk_biz_id, cluster_id)
             cluster_kwargs.cluster.update(cluster_info)
             cluster_kwargs.cluster["created_by"] = self.data["created_by"]
 
@@ -167,9 +174,7 @@ class RedisClusterAddSlaveFlow(object):
                             "{}{}{}".format(new_slave_item["ip"], IP_PORT_DIVIDER, port)
                         ] = "{}{}{}".format(master_ip, IP_PORT_DIVIDER, port)
 
-            twemproxy_server_shards = get_twemproxy_cluster_server_shards(
-                bk_biz_id, input_item["cluster_id"], newslave_to_master
-            )
+            twemproxy_server_shards = get_twemproxy_cluster_server_shards(bk_biz_id, cluster_id, newslave_to_master)
 
             sub_pipeline.add_act(
                 act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
@@ -193,7 +198,7 @@ class RedisClusterAddSlaveFlow(object):
                             "spec_id": input_item["resource_spec"][master_ip].get("id", 0),
                             "spec_config": input_item["resource_spec"][master_ip],
                             "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
-                            "cache_backup_mode": get_cache_backup_mode(bk_biz_id, input_item["cluster_id"]),
+                            "cache_backup_mode": get_cache_backup_mode(bk_biz_id, cluster_id),
                         },
                     )
                     child_pipelines.append(install_builder)
@@ -209,7 +214,7 @@ class RedisClusterAddSlaveFlow(object):
                         "sync_dst1": new_slave_item["ip"],
                         "ins_link": [],
                         "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
-                        "cache_backup_mode": get_cache_backup_mode(bk_biz_id, input_item["cluster_id"]),
+                        "cache_backup_mode": get_cache_backup_mode(bk_biz_id, cluster_id),
                     }
                     for port in cluster_info["master_ports"][master_ip]:
                         sync_param["ins_link"].append({"origin_1": str(port), "sync_dst1": str(port)})
@@ -254,7 +259,7 @@ class RedisClusterAddSlaveFlow(object):
                 act_kwargs=deepcopy(cluster_kwargs),
                 param={
                     "op_type": DnsOpType.ADD_AND_DELETE.value,
-                    "cluster_id": int(input_item["cluster_id"]),
+                    "cluster_id": int(cluster_id),
                     "add_ips": new_slave_ips,
                     "del_ips": old_slave_ips,
                     "port": DEFAULT_REDIS_START_PORT,
@@ -308,21 +313,23 @@ class RedisClusterAddSlaveFlow(object):
         """
         bk_biz_id = self.data["bk_biz_id"]
         for input_item in self.data["infos"]:
-            try:
-                cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=input_item["cluster_id"])
-            except Cluster.DoesNotExist:
-                raise Exception("redis cluster {} does not exist".format(input_item["cluster_id"]))
+            cluster_ids = []
+            if "cluster_ids" in input_item and input_item["cluster_ids"]:
+                cluster_ids = input_item["cluster_ids"]
+            else:
+                cluster_ids.append(input_item["cluster_id"])
+
+            for cluster_id in cluster_ids:
+                try:
+                    Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
+                except Cluster.DoesNotExist:
+                    raise Exception("redis cluster {} does not exist".format(cluster_id))
 
             for host_pair in input_item["pairs"]:
-                master_insts = cluster.storageinstance_set.filter(
-                    machine__ip=host_pair["redis_master"]["ip"], instance_role=InstanceRole.REDIS_MASTER.value
-                )
+                master_ip = host_pair["redis_master"]["ip"]
+                master_insts = StorageInstance.objects.filter(machine__ip=master_ip)
                 if not master_insts:
-                    raise Exception(
-                        "master {} does not exist in cluster {}".format(
-                            host_pair["redis_master"]["ip"], cluster.immute_domain
-                        )
-                    )
+                    raise Exception("master {} instances not found".format(master_ip))
                 running_slaves_cnt = 0
                 for master_obj in master_insts:
                     # running的slave 个数与 master 个数不相同,则可以继续执行
@@ -332,9 +339,4 @@ class RedisClusterAddSlaveFlow(object):
                         if slave_obj.status == InstanceStatus.RUNNING:
                             running_slaves_cnt += 1
                 if running_slaves_cnt >= len(master_insts):
-                    raise Exception(
-                        "master({}) in cluster {} all instances has a running slave".format(
-                            master_obj.machine.ip,
-                            cluster.immute_domain,
-                        )
-                    )
+                    raise Exception("master({})  all instances has a running slave".format(master_ip))

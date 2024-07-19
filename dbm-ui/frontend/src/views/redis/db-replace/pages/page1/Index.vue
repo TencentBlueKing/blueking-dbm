@@ -357,7 +357,10 @@
 
   // 提交
   const handleSubmit = async () => {
+    isSubmitting.value = true;
     await Promise.all(rowRefs.value.map((item: { getValue: () => void }) => item.getValue()));
+    isSubmitting.value = false;
+
     const infos = generateRequestParam();
     const params = {
       bk_biz_id: currentBizId,
@@ -373,7 +376,6 @@
       subTitle: t('替换后所有的数据将会迁移到新的主机上，请谨慎操作！'),
       width: 480,
       onConfirm: () => {
-        isSubmitting.value = true;
         createTicket(params)
           .then((data) => {
             window.changeConfirm = false;

@@ -40,11 +40,7 @@
                   :is-loading="state.isLoading" />
                 <div class="mt-10">
                   <span>{{ t('备注') }}:</span>
-                  <span class="ml-5"
-                    >{{
-                      state.ticketData.remark
-                    }}语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据</span
-                  >
+                  <span class="ml-5">{{ state.ticketData.remark }}</span>
                 </div>
               </DbCard>
             </Teleport>

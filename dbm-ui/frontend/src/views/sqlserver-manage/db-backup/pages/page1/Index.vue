@@ -340,6 +340,7 @@
   };
 
   const handleSubmit = async () => {
+    isSubmitting.value = true;
     const infos = await Promise.all(
       rowRefs.value!.map(
         (item: {
@@ -350,12 +351,12 @@
         }) => item.getValue(),
       ),
     );
+    isSubmitting.value = false;
 
     InfoBox({
       title: t('确认提交n个数据库备份任务', { n: totalNum.value }),
       width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
+      onConfirm: () =>
         createTicket({
           bk_biz_id: currentBizId,
           ticket_type: TicketTypes.SQLSERVER_BACKUP_DBS,
@@ -363,23 +364,18 @@
             ...formData,
             infos,
           },
-        })
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'SqlServerDbBackup',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'SqlServerDbBackup',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
           });
-      },
+        }),
     });
   };
 
