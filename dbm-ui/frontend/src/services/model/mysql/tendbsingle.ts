@@ -86,6 +86,7 @@ export default class Tendbsingle {
     mysql_enable_disable: boolean;
     mysql_view: boolean;
     access_entry_edit: boolean;
+    mysql_webconsole: boolean;
   };
   phase: string;
   phase_name: string;

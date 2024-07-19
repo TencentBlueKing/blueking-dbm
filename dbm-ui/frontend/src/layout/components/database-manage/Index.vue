@@ -35,7 +35,9 @@
         <BkMenuGroup
           v-db-console="'databaseManage.missionManage'"
           :name="t('任务中心')">
-          <BkMenuItem key="ticketManage">
+          <BkMenuItem
+            key="ticketManage"
+            v-db-console="'databaseManage.missionManage.ticketManage'">
             <template #icon>
               <DbIcon type="ticket" />
             </template>
@@ -45,7 +47,9 @@
               {{ t('单据') }}
             </span>
           </BkMenuItem>
-          <BkMenuItem key="taskHistory">
+          <BkMenuItem
+            key="taskHistory"
+            v-db-console="'databaseManage.missionManage.historyMission'">
             <template #icon>
               <DbIcon type="history" />
             </template>
