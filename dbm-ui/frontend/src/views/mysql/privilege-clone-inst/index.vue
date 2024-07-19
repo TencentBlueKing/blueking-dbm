@@ -467,50 +467,41 @@
   function handleSubmit() {
     isSubmitting.value = true;
     toolboxTableRef.value.validate()
-      .then(() => {
-        precheckPermissionClone({
-          bizId: globalBizsStore.currentBizId,
-          clone_type: 'instance',
-          clone_cluster_type: 'mysql',
-          clone_list: tableData.value.map((item) => {
-            const infos = getOriginlInstanceInfos(item.source);
-            return {
-              source: infos.inst,
-              target: item.target,
-              cluster_domain: instanceMap.get(item.source)?.master_domain,
-              bk_cloud_id: instanceMap.get(item.source)?.bk_cloud_id,
-            };
-          }),
-        })
-          .then((res) => {
-            if (res.pre_check) {
-              createTicket({
-                ticket_type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
-                bk_biz_id: globalBizsStore.currentBizId,
-                details: {
-                  ...res,
-                  clone_type: 'instance',
-                },
-              })
-                .then((res) => {
-                  ticketId.value = res.id;
-                  tableData.value = [getTableItem()];
-                  nextTick(() => {
-                    window.changeConfirm = false;
-                  });
-                })
-                .finally(() => {
-                  isSubmitting.value = false;
-                });
-              return;
-            }
-            isSubmitting.value = false;
-            messageError(res.message);
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
+      .then(() => precheckPermissionClone({
+        bizId: globalBizsStore.currentBizId,
+        clone_type: 'instance',
+        clone_cluster_type: 'mysql',
+        clone_list: tableData.value.map((item) => {
+          const infos = getOriginlInstanceInfos(item.source);
+          return {
+            source: infos.inst,
+            target: item.target,
+            cluster_domain: instanceMap.get(item.source)?.master_domain,
+            bk_cloud_id: instanceMap.get(item.source)?.bk_cloud_id,
+          };
+        }),
       })
+        .then((res) => {
+          if (res.pre_check) {
+            return createTicket({
+              ticket_type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
+              bk_biz_id: globalBizsStore.currentBizId,
+              details: {
+                ...res,
+                clone_type: 'instance',
+              },
+            })
+              .then((res) => {
+                ticketId.value = res.id;
+                tableData.value = [getTableItem()];
+                nextTick(() => {
+                  window.changeConfirm = false;
+                });
+              })
+          }
+          messageError(res.message);
+        })
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

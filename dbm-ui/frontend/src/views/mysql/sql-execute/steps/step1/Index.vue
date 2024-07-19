@@ -206,7 +206,7 @@
 
     formRef.value
       .validate()
-      .then(() => {
+      .then(() =>
         semanticCheck({
           ...formData,
           cluster_type: 'mysql',
@@ -222,8 +222,8 @@
               nodeId: data.node_id,
             },
           });
-        });
-      })
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

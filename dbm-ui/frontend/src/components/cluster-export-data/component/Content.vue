@@ -218,7 +218,7 @@
           });
         }
 
-        createTicket({
+        return createTicket({
           ignore_duplication: true,
           ticket_type: props.ticketType,
           bk_biz_id: props.data.bk_biz_id,
@@ -246,13 +246,15 @@
 
     .target-dbs {
       .required-mark {
-        color: #ea3636;
         margin: 0 4px;
+        color: #ea3636;
       }
+
       .label-text {
         color: #979ba5;
       }
-      :deep(.bk-form-label:after) {
+
+      :deep(.bk-form-label::after) {
         display: none;
       }
     }

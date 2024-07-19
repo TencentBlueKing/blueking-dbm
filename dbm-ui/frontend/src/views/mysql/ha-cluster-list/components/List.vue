@@ -747,19 +747,16 @@
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       showOverflowTooltip: false,
-      showOverflowTooltip: false,
       render: ({ data }: ColumnData) => (
         <>
-          {isShowDumperEntry.value && (
-            <bk-button
-              v-db-console="mysql.haClusterList.authorize"
-              text
-              theme="primary"
-              class="mr-8"
-              onClick={() => handleShowAuthorize([data])}>
-              { t('授权') }
-            </bk-button>
-          )}
+          <bk-button
+            v-db-console="mysql.haClusterList.authorize"
+            text
+            theme="primary"
+            class="mr-8"
+            onClick={() => handleShowAuthorize([data])}>
+            { t('授权') }
+          </bk-button>
           <auth-button
             v-db-console="mysql.haClusterList.webconsole"
             action-id="mysql_webconsole"
@@ -963,11 +960,6 @@
       selectedClusterList.value = [data];
     }
     showCreateSubscribeRuleSlider.value = true;
-  };
-
-  const handleShowDataExportSlider = (data: ColumnData['data']) => {
-    currentData.value = data
-    showDataExportSlider.value = true;
   };
 
   const handleClearSelected = () => {

@@ -244,9 +244,12 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all(
+    isSubmitting.value = true;
+    const infos = await Promise.all<InfoItem[]>(
       rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
     );
+
+    isSubmitting.value = false;
 
     const params = {
       remark: '',
@@ -261,25 +264,19 @@
     InfoBox({
       title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
       width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'SpiderProxyScaleUp',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
+      onConfirm: () =>
+        createTicket(params).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'SpiderProxyScaleUp',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
           });
-      },
+        }),
     });
   };
 
