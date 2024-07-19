@@ -762,6 +762,7 @@
             action-id="mysql_webconsole"
             resource={data.id}
             permission={data.permission.mysql_webconsole}
+            disabled={data.operationDisabled}
             text
             theme="primary"
             class="mr-8"
