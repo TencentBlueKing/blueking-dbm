@@ -130,23 +130,15 @@
 </template>
 
 <script setup lang="tsx">
-  import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
+  import type { MySQLForceImportSQLFileExecuteSqlFiles,MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getResources as getSpiderResources } from '@services/source/spider';
   import { batchFetchFile } from '@services/source/storage';
-  import { getTendbhaList } from '@services/source/tendbha';
-  import { getTendbsingleList } from '@services/source/tendbsingle';
-  import type { ResourceItem } from '@services/types';
 
   import { useDefaultPagination } from '@hooks';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-  } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
 
@@ -155,6 +147,12 @@
 
   interface Props {
     ticketDetails: TicketModel<MySQLImportSQLFileDetails>
+  }
+
+  interface RowData {
+    immute_domain: string,
+    cluster_type: string,
+    status: string,
   }
 
   const props = defineProps<Props>();
@@ -170,12 +168,6 @@
     table_patterns: [],
   }
 
-  const apiMap = {
-    [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
-    [ClusterTypes.TENDBHA]: getTendbhaList,
-    [ClusterTypes.TENDBCLUSTER]: getSpiderResources,
-  };
-
   const { t } = useI18n();
 
   const selectFileName = ref('');
@@ -187,12 +179,12 @@
   const clusterState = reactive({
     clusterType: '',
     tableProps: {
-      data: [] as ResourceItem[],
+      data: [] as RowData[],
       pagination: useDefaultPagination(),
       columns: [
         {
           label: t('集群'),
-          field: 'master_domain',
+          field: 'immute_domain',
           showOverflowTooltip: true,
           render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
         },
@@ -214,18 +206,26 @@
           },
         },
       ],
-    } as unknown as TablePropTypes,
+    },
   });
 
-  const highRiskNum = computed(() => Object.values(props.ticketDetails.details.grammar_check_info)
+  const highRiskNum = computed(() => props.ticketDetails.details.grammar_check_info ? Object.values(props.ticketDetails.details.grammar_check_info)
     .reduce((results, item) => {
       if (item.highrisk_warnings) {
         return results + item.highrisk_warnings.length;
       }
       return results;
-    }, 0));
+    }, 0) : 0);
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
+
+  // SQL 文件来源
+  const importModeType = computed(() => (props.ticketDetails.details.import_mode === 'manual' ? t('手动输入') : t('文件导入')));
+
+  // 执行前备份
+  const isBackup = computed(() => (props.ticketDetails.details.backup.length ? t('是') : t('否')));
+
+  const isForceSql = computed(() => props.ticketDetails.ticket_type === TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE);
 
   const targetDB = [
     {
@@ -281,12 +281,6 @@
     },
   ];
 
-  // SQL 文件来源
-  const importModeType = computed(() => (props.ticketDetails?.details?.import_mode === 'manual' ? t('手动输入') : t('文件导入')));
-
-  // 执行前备份
-  const isBackup = computed(() => (props.ticketDetails?.details?.backup?.length ? t('是') : t('否')));
-
   const ticketModeType = [
     {
       type: 'manual',
@@ -304,7 +298,7 @@
 
   // 执行模式
   const ticketModeData = computed(() => {
-    const modeType = props.ticketDetails?.details?.ticket_mode?.mode;
+    const modeType = props.ticketDetails.details.ticket_mode.mode;
     let modeItem: any = {};
     ticketModeType.forEach((item) => {
       if (item.type === modeType) {
@@ -334,7 +328,7 @@
   // 备份设置
   const backupList = computed(() => {
     const list: backupDBItem[] = [];
-    const tableList = props.ticketDetails?.details?.backup || [];
+    const tableList = props.ticketDetails.details.backup || [];
     tableList.forEach((item) => {
       list.push(Object.assign({
         backup_on: item.backup_on,
@@ -348,12 +342,11 @@
   // 查看日志详情
   const handleClickFile = () => {
     isShow.value = true;
-
-    const uploadSQLFileList = props.ticketDetails?.details?.execute_objects.map(item => item.sql_file);
+    const uploadSQLFileList = isForceSql.value ? (props.ticketDetails.details.execute_sql_files as MySQLForceImportSQLFileExecuteSqlFiles[]).map(item => item.sql_path) : props.ticketDetails.details.execute_sql_files as string[];
     uploadFileList.value = uploadSQLFileList;
 
     const filePathList = uploadSQLFileList.reduce((result, item) => {
-      result.push(`${props.ticketDetails.details.path}/${item}`);
+      result.push(isForceSql.value ? item : `${props.ticketDetails.details.path}/${item}`);
       return result;
     }, [] as string[]);
 
@@ -381,31 +374,19 @@
 
   // 目标集群
   onBeforeMount(() => {
-    const clustersData = props.ticketDetails?.details?.clusters || {};
-    const clusterIds = props.ticketDetails?.details?.cluster_ids;
-    clusterIds.forEach((id) => {
-      const clusterId = clustersData[id].id;
-      const clusterType = clustersData[id].cluster_type;
+    const { clusters, cluster_ids: clusterIds } = props.ticketDetails.details;
+    clusterState.tableProps.pagination.count = clusterIds.length;
+    clusterState.tableProps.data = clusterIds.reduce((results, id) => {
+      const clusterType = clusters[id].cluster_type;
       clusterState.clusterType = clusterType === 'tendbha' ? t('主从') : t('单节点');
-      const { pagination } = clusterState.tableProps;
-      const paginationParams = typeof pagination === 'boolean' ? {} : pagination.getFetchParams();
       const type = clusterType === 'tendbcluster' ? 'spider' : clusterType;
-      const params = {
-        dbType: DBTypes.MYSQL,
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-        type,
-        cluster_ids: clusterId,
-        ...paginationParams,
-      };
-      apiMap[clusterType as keyof typeof apiMap](params)
-        .then((res) => {
-          res.results.forEach((item) => {
-            clusterState.tableProps.data.push(Object.assign({
-              cluster_type: clusterState.clusterType,
-            }, item));
-          });
-        });
-    });
+      results.push({
+        immute_domain: clusters[id].immute_domain,
+        cluster_type: type,
+        status: clusters[id].cluster_type
+      });
+      return results;
+    }, [] as RowData[]);
   });
 </script>
 
