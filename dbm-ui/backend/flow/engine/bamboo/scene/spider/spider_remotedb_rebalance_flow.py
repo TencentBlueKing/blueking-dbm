@@ -272,7 +272,7 @@ class TenDBRemoteRebalanceFlow(object):
                     )
 
                 sync_data_sub_pipeline.add_act(
-                    act_name=_("同步数据完毕,写入数据节点的主从关系相关元数据"),
+                    act_name=_("同步完毕,写入数据节点的主从关系"),
                     act_component_code=SpiderDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(

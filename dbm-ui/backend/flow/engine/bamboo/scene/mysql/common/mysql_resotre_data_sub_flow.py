@@ -74,7 +74,7 @@ def mysql_restore_data_sub_flow(
     )
 
     sub_pipeline.add_act(
-        act_name=_("下发db-actor到节点"),
+        act_name=_("下发db-actor到节点{}".format(cluster["master_ip"])),
         act_component_code=TransFileComponent.code,
         kwargs=asdict(
             DownloadMediaKwargs(
@@ -102,19 +102,6 @@ def mysql_restore_data_sub_flow(
         ),
     )
 
-    sub_pipeline.add_act(
-        act_name=_("下发db-actor到节点{}".format(cluster["master_ip"])),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=cluster_model.bk_cloud_id,
-                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"]],
-                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-            )
-        ),
-    )
-
-    #  恢复
     # 阶段4 恢复数据remote主从节点的数据
     cluster["restore_ip"] = cluster["new_slave_ip"]
     cluster["restore_port"] = cluster["new_slave_port"]
