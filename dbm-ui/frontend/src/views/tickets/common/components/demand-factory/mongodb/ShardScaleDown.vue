@@ -18,14 +18,12 @@
       :columns="columns"
       :data="tableData" />
   </BkLoading>
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('忽略业务连接') }}：</span>
-        <span class="ticket-details__item-value">
-          {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
-        </span>
-      </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('忽略业务连接') }}：</span>
+      <span class="ticket-details__item-value">
+        {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
+      </span>
     </div>
   </div>
 </template>
@@ -38,30 +36,33 @@
   import type { TicketDetails } from '@services/types/ticket';
 
   interface ShardScaleDownDetails {
-    clusters: Record<number, {
-      alias: string;
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      cluster_type: string;
-      cluster_type_name: string;
-      creator: string;
-      db_module_id: number;
-      disaster_tolerance_level: string;
-      id: number;
-      immute_domain: string;
-      major_version: string;
-      name: string;
-      phase: string;
-      region: string;
-      status: string;
-      tag: {
+    clusters: Record<
+      number,
+      {
+        alias: string;
         bk_biz_id: number;
+        bk_cloud_id: number;
+        cluster_type: string;
+        cluster_type_name: string;
+        creator: string;
+        db_module_id: number;
+        disaster_tolerance_level: string;
+        id: number;
+        immute_domain: string;
+        major_version: string;
         name: string;
-        type: string;
-      }[];
-      time_zone: string;
-      updater: string;
-    }>;
+        phase: string;
+        region: string;
+        status: string;
+        tag: {
+          bk_biz_id: number;
+          name: string;
+          type: string;
+        }[];
+        time_zone: string;
+        updater: string;
+      }
+    >;
     infos: {
       cluster_id: number;
       reduce_shard_nodes: number;
@@ -71,14 +72,14 @@
   }
 
   interface Props {
-    ticketDetails: TicketDetails<ShardScaleDownDetails>
+    ticketDetails: TicketDetails<ShardScaleDownDetails>;
   }
 
   interface RowData {
-    immute_domain: string,
-    cluster_type: string,
-    current_nodes: number,
-    reduce_shard_nodes: number,
+    immute_domain: string;
+    cluster_type: string;
+    current_nodes: number;
+    reduce_shard_nodes: number;
   }
 
   const props = defineProps<Props>();
@@ -87,10 +88,7 @@
 
   const tableData = ref<RowData[]>([]);
 
-  const {
-    clusters,
-    infos,
-  } = props.ticketDetails.details;
+  const { clusters, infos } = props.ticketDetails.details;
 
   const columns = [
     {
@@ -115,19 +113,19 @@
     },
   ];
 
-  const {
-    loading,
-    run: fetchMongoList,
-  } = useRequest(getMongoList, {
+  const { loading, run: fetchMongoList } = useRequest(getMongoList, {
     manual: true,
     onSuccess(result) {
-      const shardNumMap = result.results.reduce((results, item) => {
-        Object.assign(results, {
-          [item.id]: item.shard_node_count,
-        });
-        return results;
-      }, {} as Record<number, number>);
-      tableData.value = infos.map(item => ({
+      const shardNumMap = result.results.reduce(
+        (results, item) => {
+          Object.assign(results, {
+            [item.id]: item.shard_node_count,
+          });
+          return results;
+        },
+        {} as Record<number, number>,
+      );
+      tableData.value = infos.map((item) => ({
         immute_domain: clusters[item.cluster_id].immute_domain,
         cluster_type: clusters[item.cluster_id].cluster_type_name,
         reduce_shard_nodes: shardNumMap[item.cluster_id] - item.reduce_shard_nodes,
@@ -137,31 +135,29 @@
   });
 
   fetchMongoList({
-    domains: props.ticketDetails.details.infos.map(item => clusters[item.cluster_id].immute_domain).join(','),
+    domains: props.ticketDetails.details.infos.map((item) => clusters[item.cluster_id].immute_domain).join(','),
   });
-
-
 </script>
 <style lang="less" scoped>
-@import "@views/tickets/common/styles/DetailsTable.less";
-@import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
-.ticket-details {
-  &__info {
-    padding-left: 80px;
-  }
+  .ticket-details {
+    &__info {
+      padding-left: 80px;
+    }
 
-  &__item {
-    &-label {
-      min-width: 0;
-      text-align: left;
+    &__item {
+      &-label {
+        min-width: 0;
+        text-align: left;
+      }
     }
   }
-}
 
-.details-backup {
-  &__table {
-    padding-left: 80px;
+  .details-backup {
+    &__table {
+      padding-left: 80px;
+    }
   }
-}
 </style>

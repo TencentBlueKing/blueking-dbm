@@ -12,26 +12,22 @@
 -->
 
 <template>
-  <div class="ticket-details__info">
-    <div
-      class="ticket-details__item"
-      style="align-items: flex-start">
-      <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-      <span class="ticket-details__item-value">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData" />
-      </span>
-    </div>
+  <div
+    class="ticket-details__item"
+    style="align-items: flex-start">
+    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+    <span class="ticket-details__item-value">
+      <DbOriginalTable
+        :columns="columns"
+        :data="tableData" />
+    </span>
   </div>
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('是否强制切换') }}：</span>
-        <span class="ticket-details__item-value">
-          {{ ticketDetails.details.force ? t('是') : t('否') }}
-        </span>
-      </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('是否强制切换') }}：</span>
+      <span class="ticket-details__item-value">
+        {{ ticketDetails.details.force ? t('是') : t('否') }}
+      </span>
     </div>
   </div>
 </template>

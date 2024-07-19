@@ -3227,5 +3227,6 @@
     "仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型": "仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型",
     "待重建的主机": "待重建的主机",
     "主机选择方式": "主机选择方式",
+    "是否删除索引": "是否删除索引",
     "这行勿动！新增翻译请在上一行添加！": ""
 }

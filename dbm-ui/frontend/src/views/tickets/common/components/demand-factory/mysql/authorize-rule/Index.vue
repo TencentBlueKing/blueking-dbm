@@ -14,22 +14,18 @@
 <template>
   <div
     v-if="isAddAuthorization"
-    class="ticket-details__info">
-    <div class="mysql-table">
-      <DbOriginalTable
-        :columns="columns"
-        :data="state.accessData" />
-    </div>
+    class="mysql-table">
+    <DbOriginalTable
+      :columns="columns"
+      :data="state.accessData" />
   </div>
   <div
     v-else
-    class="ticket-details__info">
-    <div class="ticket-details__list">
-      <span>{{ t('Excel文件') }}：</span>
-      <div>
-        <i class="db-icon-excel" />
-        <a :href="excelUrl">{{ t('批量授权文件') }} <i class="db-icon-import" /></a>
-      </div>
+    class="ticket-details__list">
+    <span>{{ t('Excel文件') }}：</span>
+    <div>
+      <i class="db-icon-excel" />
+      <a :href="excelUrl">{{ t('批量授权文件') }} <i class="db-icon-import" /></a>
     </div>
   </div>
   <HostPreview
