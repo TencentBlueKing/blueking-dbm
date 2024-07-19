@@ -123,8 +123,7 @@
 
   const columns = computed(() => [
     {
-      width: 54,
-      minWidth: 54,
+      minWidth: 60,
       label: () => (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
@@ -163,8 +162,8 @@
     {
       label: t('访问入口'),
       field: 'cluster_name',
+      minWidth: 250,
       showOverflowTooltip: true,
-      minWidth: 300,
       render: ({ data }: { data: ResourceItem }) => (
         <TextOverflowLayout class="cluster-name-box">
           {{
@@ -199,6 +198,7 @@
     {
       label: t('状态'),
       field: 'status',
+      minWidth: 120,
       filter: {
         list: [
           {
@@ -212,7 +212,6 @@
         ],
         checked: columnCheckedMap.value.status,
       },
-      width: 100,
       render: ({ data }: { data: ResourceItem }) => {
         const isNormal = props.columnStatusFilter ? props.columnStatusFilter(data) : data.status === 'normal';
         const info = isNormal ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
@@ -222,7 +221,7 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      width: 200,
+      minWidth: 140,
       showOverflowTooltip: true,
     },
     {
@@ -238,6 +237,7 @@
     },
     {
       label: t('管控区域'),
+      minWidth: 140,
       field: 'bk_cloud_id',
       width: 150,
       showOverflowTooltip: true,

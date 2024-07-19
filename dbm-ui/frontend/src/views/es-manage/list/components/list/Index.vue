@@ -58,6 +58,7 @@
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
+      class="es-manage-sideslider"
       :title="t('xx扩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
@@ -67,6 +68,7 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
+      class="es-manage-sideslider"
       :title="t('xx缩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
@@ -1116,6 +1118,12 @@
       .db-icon-copy {
         display: inline-block !important;
       }
+    }
+  }
+  .es-manage-sideslider {
+    .bk-modal-content {
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
     }
   }
 </style>
