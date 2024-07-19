@@ -100,3 +100,7 @@ func CheckEngineTables(cnf *config.BackupConfig, db *sql.DB) error {
 	}
 	return nil
 }
+
+func CheckEngineTablesFromMonitorReg() {
+	//regPath := "/home/mysql/mysql-monitor/table-engine-count-${PORT}.reg"
+}

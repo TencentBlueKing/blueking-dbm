@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/validate"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore/dbloader"
@@ -138,6 +139,9 @@ func (m *DBLoader) Start() error {
 	if m.taskDir == "" {
 		return errors.Errorf("dbloader taskDir error")
 	}
+	defer func() {
+		cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", m.taskDir)
+	}()
 	logger.Info("开始解压 taskDir=%s", m.taskDir)
 	if err := m.BackupInfo.indexObj.UntarFiles(m.taskDir); err != nil {
 		return err
