@@ -13,47 +13,45 @@
 
 <template>
   <BkLoading :loading="loading">
-    <div class="ticket-details__info">
-      <div class="ticket-details__list">
+    <div class="ticket-details__list">
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ t('集群') }}：</span>
+        <span class="ticket-details__item-value">{{ rowData?.clusterName || '--' }}</span>
+      </div>
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ t('集群ID') }}：</span>
+        <span class="ticket-details__item-value">{{ rowData?.clusterId || '--' }}</span>
+      </div>
+      <template v-if="isScaleUp">
         <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ t('集群') }}：</span>
-          <span class="ticket-details__item-value">{{ rowData?.clusterName || '--' }}</span>
+          <span class="ticket-details__item-label">{{ t('服务器选择方式') }}：</span>
+          <span class="ticket-details__item-value">
+            {{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }}
+          </span>
         </div>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ t('集群ID') }}：</span>
-          <span class="ticket-details__item-value">{{ rowData?.clusterId || '--' }}</span>
-        </div>
-        <template v-if="isScaleUp">
+        <template v-if="isFromResourcePool">
           <div class="ticket-details__item">
-            <span class="ticket-details__item-label">{{ t('服务器选择方式') }}：</span>
+            <span class="ticket-details__item-label">{{ t('扩容规格') }}：</span>
+            <span class="ticket-details__item-value">{{ rowData?.specName || '--' }}</span>
+          </div>
+          <div class="ticket-details__item">
+            <span class="ticket-details__item-label">{{ t('扩容数量') }}：</span>
             <span class="ticket-details__item-value">
-              {{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }}
+              {{ t('n台', [rowData?.count]) || '--' }}
             </span>
           </div>
-          <template v-if="isFromResourcePool">
-            <div class="ticket-details__item">
-              <span class="ticket-details__item-label">{{ t('扩容规格') }}：</span>
-              <span class="ticket-details__item-value">{{ rowData?.specName || '--' }}</span>
-            </div>
-            <div class="ticket-details__item">
-              <span class="ticket-details__item-label">{{ t('扩容数量') }}：</span>
-              <span class="ticket-details__item-value">
-                {{ t('n台', [rowData?.count]) || '--' }}
-              </span>
-            </div>
-          </template>
-          <template v-else>
-            <div class="ticket-details__item table">
-              <span class="ticket-details__item-label">{{ t('已选IP') }}：</span>
-              <span class="ticket-details__item-value">
-                <BkTable
-                  :columns="tableColumns"
-                  :data="ipList" />
-              </span>
-            </div>
-          </template>
         </template>
-      </div>
+        <template v-else>
+          <div class="ticket-details__item table">
+            <span class="ticket-details__item-label">{{ t('已选IP') }}：</span>
+            <span class="ticket-details__item-value">
+              <BkTable
+                :columns="tableColumns"
+                :data="ipList" />
+            </span>
+          </div>
+        </template>
+      </template>
     </div>
   </BkLoading>
 </template>

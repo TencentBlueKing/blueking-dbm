@@ -12,90 +12,82 @@
 -->
 
 <template>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('业务信息') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('业务英文名') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('分组名') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.group_name || '--' }}</span>
-      </div>
+  <strong class="ticket-details__info-title">{{ $t('业务信息') }}</strong>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('业务英文名') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('分组名') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.details?.group_name || '--' }}</span>
     </div>
   </div>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
-        <span class="ticket-details__item-value">{{ cityName }}</span>
-      </div>
+  <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
+      <span class="ticket-details__item-value">{{ cityName }}</span>
     </div>
   </div>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
-        <span class="ticket-details__item-value">{{ affinity }}</span>
-      </div>
+  <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
+      <span class="ticket-details__item-value">{{ affinity }}</span>
     </div>
   </div>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
-    <div class="ticket-details__list">
+  <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('版本') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
+    </div>
+    <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('版本') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
+        <span class="ticket-details__item-label">{{ $t('服务器') }}：</span>
+        <span class="ticket-details__item-value">
+          <span
+            v-if="getServiceNums() > 0"
+            class="host-nums"
+            @click="handleShowPreview()">
+            <a href="javascript:">{{ getServiceNums() }}</a>
+            {{ $t('台') }}
+          </span>
+          <template v-else>--</template>
+        </span>
       </div>
-      <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('服务器') }}：</span>
-          <span class="ticket-details__item-value">
+    </template>
+    <template v-if="ticketDetails?.details?.ip_source === 'resource_pool'">
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('规格') }}：</span>
+        <span class="ticket-details__item-value">
+          <BkPopover
+            placement="top"
+            theme="light">
             <span
-              v-if="getServiceNums() > 0"
-              class="host-nums"
-              @click="handleShowPreview()">
-              <a href="javascript:">{{ getServiceNums() }}</a>
-              {{ $t('台') }}
+              class="pb-2"
+              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+              {{ influxdbSpec?.spec_name }}（{{ `${influxdbSpec?.count} ${$t('台')}` }}）
             </span>
-            <template v-else>--</template>
-          </span>
-        </div>
-      </template>
-      <template v-if="ticketDetails?.details?.ip_source === 'resource_pool'">
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('规格') }}：</span>
-          <span class="ticket-details__item-value">
-            <BkPopover
-              placement="top"
-              theme="light">
-              <span
-                class="pb-2"
-                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-                {{ influxdbSpec?.spec_name }}（{{ `${influxdbSpec?.count} ${$t('台')}` }}）
-              </span>
-              <template #content>
-                <SpecInfos :data="influxdbSpec" />
-              </template>
-            </BkPopover>
-          </span>
-        </div>
-      </template>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('访问端口') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.port || '--' }}</span>
+            <template #content>
+              <SpecInfos :data="influxdbSpec" />
+            </template>
+          </BkPopover>
+        </span>
       </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
-      </div>
+    </template>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('访问端口') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.details?.port || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
     </div>
   </div>
   <HostPreview
