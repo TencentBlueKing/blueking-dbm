@@ -294,7 +294,7 @@
   });
 
   useRequest(listDumperConfig, {
-    
+
     defaultParams: [
       {
         offset: 0,
@@ -334,25 +334,25 @@
 
   // 点击确定
   const handleConfirm = async () => {
-    await formRef.value.validate();
-    const replTables = isUseExistedSubscribe.value
-      ? replTableMap[formModel.name] : await subscribeDbTableRef.value.getValue();
-    const infos = await receiverDataRef.value.getValue();
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
-      remark: '',
-      details: {
-        name: isUseExistedSubscribe.value
-          ? subscribeNameList.value.find(item => item.value === formModel.name)?.label : formModel.name,
-        add_type: syncType.value,
-        repl_tables: replTables,
-        infos,
-      },
-
-    };
     isSubmitting.value = true;
     try {
+      await formRef.value.validate();
+      const replTables = isUseExistedSubscribe.value
+        ? replTableMap[formModel.name] : await subscribeDbTableRef.value.getValue();
+      const infos = await receiverDataRef.value.getValue();
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.TBINLOGDUMPER_INSTALL,
+        remark: '',
+        details: {
+          name: isUseExistedSubscribe.value
+            ? subscribeNameList.value.find(item => item.value === formModel.name)?.label : formModel.name,
+          add_type: syncType.value,
+          repl_tables: replTables,
+          infos,
+        },
+      };
+
       const data = await createTicket(params);
       if (data && data.id) {
         ticketMessage(data.id);

@@ -454,52 +454,45 @@
   };
 
   const handleSubmit = () => {
+    isSubmitting.value = true;
     toolboxTableRef.value.validate()
-      .then(() => {
-        isSubmitting.value = true;
-        precheckPermissionClone({
-          bizId: globalBizsStore.currentBizId,
-          clone_type: 'client',
-          clone_cluster_type: 'mysql',
-          clone_list: tableData.value.map((item) => {
-            const sourceInfos = getSourceInfos(item.source);
-            return {
-              source: sourceInfos.ip,
-              target: item.target,
-              bk_cloud_id: sourceInfos.cloudId,
-              module: hostTopoMap.get(sourceInfos.ip)?.topo?.[0] || '',
-            };
-          }),
-        })
-          .then((res) => {
-            if (res.pre_check) {
-              createTicket({
-                ticket_type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
-                bk_biz_id: globalBizsStore.currentBizId,
-                details: {
-                  ...res,
-                  clone_type: 'client',
-                },
-              })
-                .then((res) => {
-                  ticketId.value = res.id;
-                  tableData.value = [getTableItem()];
-                  nextTick(() => {
-                    window.changeConfirm = false;
-                  });
-                })
-                .finally(() => {
-                  isSubmitting.value = false;
+      .then(() => precheckPermissionClone({
+        bizId: globalBizsStore.currentBizId,
+        clone_type: 'client',
+        clone_cluster_type: 'mysql',
+        clone_list: tableData.value.map((item) => {
+          const sourceInfos = getSourceInfos(item.source);
+          return {
+            source: sourceInfos.ip,
+            target: item.target,
+            bk_cloud_id: sourceInfos.cloudId,
+            module: hostTopoMap.get(sourceInfos.ip)?.topo?.[0] || '',
+          };
+        }),
+      })
+        .then((res) => {
+          if (res.pre_check) {
+            return createTicket({
+              ticket_type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
+              bk_biz_id: globalBizsStore.currentBizId,
+              details: {
+                ...res,
+                clone_type: 'client',
+              },
+            })
+              .then((res) => {
+                ticketId.value = res.id;
+                tableData.value = [getTableItem()];
+                nextTick(() => {
+                  window.changeConfirm = false;
                 });
-              return;
-            }
-            isSubmitting.value = false;
-            messageError(res.message);
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      });
+              })
+          }
+          messageError(res.message);
+        }))
+      .finally(() => {
+        isSubmitting.value = false;
+      })
   };
 
   const handleCloseSuccess = () => {

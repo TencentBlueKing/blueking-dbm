@@ -54,7 +54,7 @@
     </template>
     <InstanceSelector
       v-model:is-show="isShowMasterInstanceSelector"
-      :cluster-types="[ClusterTypes.MONGOCLUSTER]"
+      :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
       :selected="selected"
       @change="handleInstanceSelectChange" />
   </SmartAction>
@@ -73,27 +73,24 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
 
   const tableData = ref([createRowData()]);
-  const selected = shallowRef({ [ClusterTypes.MONGOCLUSTER]: [] } as InstanceSelectorValues<MongodbInstanceModel>);
+  const selected = shallowRef({
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
+  } as InstanceSelectorValues<MongodbInstanceModel>);
 
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.ip)).length);
 
   // ip 是否已存在表格的映射表
   let ipMemo = {} as Record<string, boolean>;
@@ -120,7 +117,7 @@
     isLoading: false,
     ip: item.ip,
     role: item.role,
-    relatedClusters: item.related_clusters.map(obj => obj.immute_domain),
+    relatedClusters: item.related_clusters.map((obj) => obj.immute_domain),
     bkCloudId: item.bk_cloud_id,
     clusterId: item.cluster_id,
     clusterType: item.cluster_type,
@@ -138,7 +135,7 @@
   const handleInstanceSelectChange = (data: InstanceSelectorValues<MongodbInstanceModel>) => {
     selected.value = data;
     const newList: IDataRow[] = [];
-    data[ClusterTypes.MONGOCLUSTER].forEach((item) => {
+    data[ClusterTypes.MONGO_SHARED_CLUSTER].forEach((item) => {
       const { ip } = item;
       if (!ipMemo[ip]) {
         newList.push(generateRowDateFromRequest(item));
@@ -176,7 +173,7 @@
     const data = ret.results[0];
     const obj = generateRowDateFromRequest(data);
     tableData.value[index] = obj;
-    ipMemo[ip]  = true;
+    ipMemo[ip] = true;
     sortTableByCluster();
   };
 
@@ -193,8 +190,8 @@
     tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
     sortTableByCluster();
-    const ipsArr = selected.value[ClusterTypes.MONGOCLUSTER];
-    selected.value[ClusterTypes.MONGOCLUSTER] = ipsArr.filter(item => item.ip !== removeIp);
+    const ipsArr = selected.value[ClusterTypes.MONGO_SHARED_CLUSTER];
+    selected.value[ClusterTypes.MONGO_SHARED_CLUSTER] = ipsArr.filter((item) => item.ip !== removeIp);
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -234,9 +231,9 @@
 
   // 提交
   const handleSubmit = async () => {
-    const ipSpecList = await Promise.all(rowRefs.value.map((item: {
-      getValue: () => Promise<Record<string, number>>
-    }) => item.getValue()));
+    const ipSpecList = await Promise.all(
+      rowRefs.value.map((item: { getValue: () => Promise<Record<string, number>> }) => item.getValue()),
+    );
     const ipSpecMap = ipSpecList.reduce((results, item) => Object.assign(results, item), {});
     const infos = generateRequestParam(ipSpecMap);
     const params = {
@@ -254,28 +251,30 @@
       width: 500,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MongoDBReplace',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'MongoDBReplace',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .finally(() => {
             isSubmitting.value = false;
           });
-      } });
+      },
+    });
   };
 
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selected.value[ClusterTypes.MONGOCLUSTER] = [];
+    selected.value[ClusterTypes.MONGO_SHARED_CLUSTER] = [];
     ipMemo = {};
     window.changeConfirm = false;
   };
@@ -299,7 +298,7 @@
       let isFirst = true;
       let isGeneral = true;
       if (sameArr.length > 1) {
-        isGeneral  = false;
+        isGeneral = false;
       }
       for (const item of sameArr) {
         if (isFirst) {
