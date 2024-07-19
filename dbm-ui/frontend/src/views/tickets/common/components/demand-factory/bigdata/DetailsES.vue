@@ -12,194 +12,186 @@
 -->
 
 <template>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('业务信息') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('业务英文名') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('集群名称') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_name || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('集群别名') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_alias || '--' }}</span>
-      </div>
+  <strong class="ticket-details__info-title">{{ $t('业务信息') }}</strong>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('业务英文名') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('集群名称') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_name || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('集群别名') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_alias || '--' }}</span>
     </div>
   </div>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
-        <span class="ticket-details__item-value">{{ cityName }}</span>
-      </div>
+  <strong class="ticket-details__info-title">{{ $t('地域要求') }}</strong>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('数据库部署地域') }}：</span>
+      <span class="ticket-details__item-value">{{ cityName }}</span>
     </div>
   </div>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
-        <span class="ticket-details__item-value">{{ affinity }}</span>
-      </div>
+  <strong class="ticket-details__info-title">{{ $t('数据库部署信息') }}</strong>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('容灾要求') }}：</span>
+      <span class="ticket-details__item-value">{{ affinity }}</span>
     </div>
   </div>
-  <div class="ticket-details__info">
-    <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
-    <div class="ticket-details__list">
+  <strong class="ticket-details__info-title">{{ $t('部署需求') }}</strong>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('版本') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
+    </div>
+    <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
       <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('版本') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
-      </div>
-      <template v-if="ticketDetails?.details?.ip_source === redisIpSources.manual_input.id">
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('热节点IP') }}：</span>
-          <span class="ticket-details__item-value">
-            <span
-              v-if="getServiceNums('hot') > 0"
-              class="host-nums"
-              @click="handleShowPreview('hot')">
-              <a href="javascript:">{{ getServiceNums('hot') }}</a>
-              {{ $t('台') }}
-            </span>
-            <template v-else>--</template>
+        <span class="ticket-details__item-label">{{ $t('热节点IP') }}：</span>
+        <span class="ticket-details__item-value">
+          <span
+            v-if="getServiceNums('hot') > 0"
+            class="host-nums"
+            @click="handleShowPreview('hot')">
+            <a href="javascript:">{{ getServiceNums('hot') }}</a>
+            {{ $t('台') }}
           </span>
-        </div>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('冷节点IP') }}：</span>
-          <span class="ticket-details__item-value">
-            <span
-              v-if="getServiceNums('cold') > 0"
-              class="host-nums"
-              @click="handleShowPreview('cold')">
-              <a href="javascript:">{{ getServiceNums('cold') }}</a>
-              {{ $t('台') }}
-            </span>
-            <template v-else>--</template>
-          </span>
-        </div>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('Client节点IP') }}：</span>
-          <span class="ticket-details__item-value">
-            <span
-              v-if="getServiceNums('client') > 0"
-              class="host-nums"
-              @click="handleShowPreview('client')">
-              <a href="javascript:">{{ getServiceNums('client') }}</a>
-              {{ $t('台') }}
-            </span>
-            <template v-else>--</template>
-          </span>
-        </div>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('Master节点IP') }}：</span>
-          <span class="ticket-details__item-value">
-            <span
-              v-if="getServiceNums('master') > 0"
-              class="host-nums"
-              @click="handleShowPreview('master')">
-              <a href="javascript:">{{ getServiceNums('master') }}</a>
-              {{ $t('台') }}
-            </span>
-            <template v-else>--</template>
-          </span>
-        </div>
-      </template>
-      <template v-else>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('Master节点规格') }}：</span>
-          <span class="ticket-details__item-value">
-            <BkPopover
-              placement="top"
-              theme="light">
-              <span
-                class="pb-2"
-                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-                {{ masterSpec?.spec_name }}（{{ `${masterSpec?.count} ${$t('台')}` }}）
-              </span>
-              <template #content>
-                <SpecInfos :data="masterSpec" />
-              </template>
-            </BkPopover>
-          </span>
-        </div>
-        <div
-          v-if="clientSpec.spec_id"
-          class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('Client节点规格') }}：</span>
-          <span class="ticket-details__item-value">
-            <BkPopover
-              placement="top"
-              theme="light">
-              <span
-                class="pb-2"
-                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-                {{ clientSpec?.spec_name }}（{{ `${clientSpec?.count} ${$t('台')}` }}）
-              </span>
-              <template #content>
-                <SpecInfos :data="clientSpec" />
-              </template>
-            </BkPopover>
-          </span>
-        </div>
-        <div
-          v-if="hotSpec.spec_id"
-          class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('热节点规格') }}：</span>
-          <span class="ticket-details__item-value">
-            <BkPopover
-              placement="top"
-              theme="light">
-              <span
-                class="pb-2"
-                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-                {{ hotSpec?.spec_name }}（{{ `${hotSpec?.count} ${$t('台')}` }}）
-              </span>
-              <template #content>
-                <SpecInfos :data="clientSpec" />
-              </template>
-            </BkPopover>
-          </span>
-        </div>
-        <div
-          v-if="coldSpec.spec_id"
-          class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ $t('冷节点规格') }}：</span>
-          <span class="ticket-details__item-value">
-            <BkPopover
-              placement="top"
-              theme="light">
-              <span
-                class="pb-2"
-                style="cursor: pointer; border-bottom: 1px dashed #979ba5">
-                {{ coldSpec?.spec_name }}（{{ `${coldSpec?.count} ${$t('台')}` }}）
-              </span>
-              <template #content>
-                <SpecInfos :data="coldSpec" />
-              </template>
-            </BkPopover>
-          </span>
-        </div>
-      </template>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('端口号') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.details?.http_port || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
-        <span
-          v-overflow-tips
-          class="ticket-details__item-value">
-          {{ ticketDetails?.remark || '--' }}
+          <template v-else>--</template>
         </span>
       </div>
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('冷节点IP') }}：</span>
+        <span class="ticket-details__item-value">
+          <span
+            v-if="getServiceNums('cold') > 0"
+            class="host-nums"
+            @click="handleShowPreview('cold')">
+            <a href="javascript:">{{ getServiceNums('cold') }}</a>
+            {{ $t('台') }}
+          </span>
+          <template v-else>--</template>
+        </span>
+      </div>
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('Client节点IP') }}：</span>
+        <span class="ticket-details__item-value">
+          <span
+            v-if="getServiceNums('client') > 0"
+            class="host-nums"
+            @click="handleShowPreview('client')">
+            <a href="javascript:">{{ getServiceNums('client') }}</a>
+            {{ $t('台') }}
+          </span>
+          <template v-else>--</template>
+        </span>
+      </div>
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('Master节点IP') }}：</span>
+        <span class="ticket-details__item-value">
+          <span
+            v-if="getServiceNums('master') > 0"
+            class="host-nums"
+            @click="handleShowPreview('master')">
+            <a href="javascript:">{{ getServiceNums('master') }}</a>
+            {{ $t('台') }}
+          </span>
+          <template v-else>--</template>
+        </span>
+      </div>
+    </template>
+    <template v-else>
+      <div class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('Master节点规格') }}：</span>
+        <span class="ticket-details__item-value">
+          <BkPopover
+            placement="top"
+            theme="light">
+            <span
+              class="pb-2"
+              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+              {{ masterSpec?.spec_name }}（{{ `${masterSpec?.count} ${$t('台')}` }}）
+            </span>
+            <template #content>
+              <SpecInfos :data="masterSpec" />
+            </template>
+          </BkPopover>
+        </span>
+      </div>
+      <div
+        v-if="clientSpec.spec_id"
+        class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('Client节点规格') }}：</span>
+        <span class="ticket-details__item-value">
+          <BkPopover
+            placement="top"
+            theme="light">
+            <span
+              class="pb-2"
+              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+              {{ clientSpec?.spec_name }}（{{ `${clientSpec?.count} ${$t('台')}` }}）
+            </span>
+            <template #content>
+              <SpecInfos :data="clientSpec" />
+            </template>
+          </BkPopover>
+        </span>
+      </div>
+      <div
+        v-if="hotSpec.spec_id"
+        class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('热节点规格') }}：</span>
+        <span class="ticket-details__item-value">
+          <BkPopover
+            placement="top"
+            theme="light">
+            <span
+              class="pb-2"
+              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+              {{ hotSpec?.spec_name }}（{{ `${hotSpec?.count} ${$t('台')}` }}）
+            </span>
+            <template #content>
+              <SpecInfos :data="clientSpec" />
+            </template>
+          </BkPopover>
+        </span>
+      </div>
+      <div
+        v-if="coldSpec.spec_id"
+        class="ticket-details__item">
+        <span class="ticket-details__item-label">{{ $t('冷节点规格') }}：</span>
+        <span class="ticket-details__item-value">
+          <BkPopover
+            placement="top"
+            theme="light">
+            <span
+              class="pb-2"
+              style="cursor: pointer; border-bottom: 1px dashed #979ba5">
+              {{ coldSpec?.spec_name }}（{{ `${coldSpec?.count} ${$t('台')}` }}）
+            </span>
+            <template #content>
+              <SpecInfos :data="coldSpec" />
+            </template>
+          </BkPopover>
+        </span>
+      </div>
+    </template>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('端口号') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.details?.http_port || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('备注') }}：</span>
+      <span
+        v-overflow-tips
+        class="ticket-details__item-value">
+        {{ ticketDetails?.remark || '--' }}
+      </span>
     </div>
   </div>
   <HostPreview

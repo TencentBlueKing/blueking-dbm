@@ -487,7 +487,7 @@
 
 <style lang="less" scoped>
   .ticket-details {
-    padding: 24px;
+    // padding: 24px;
 
     .db-card {
       margin-bottom: 16px;

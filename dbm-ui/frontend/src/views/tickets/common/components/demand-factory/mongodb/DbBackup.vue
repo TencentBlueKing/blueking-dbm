@@ -16,16 +16,14 @@
     class="details-backup__table"
     :columns="columns"
     :data="dataList" />
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('备份文件保存时间') }}：</span>
-        <span class="ticket-details__item-value">{{ fileTag }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('是否开启 Oplog') }}：</span>
-        <span class="ticket-details__item-value">{{ oplogType }}</span>
-      </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('备份文件保存时间') }}：</span>
+      <span class="ticket-details__item-value">{{ fileTag }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('是否开启 Oplog') }}：</span>
+      <span class="ticket-details__item-value">{{ oplogType }}</span>
     </div>
   </div>
 </template>
@@ -70,19 +68,14 @@
   }
 
   interface Props {
-    ticketDetails: TicketDetails<DbBackupDetails>
+    ticketDetails: TicketDetails<DbBackupDetails>;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const {
-    clusters,
-    file_tag,
-    oplog,
-    infos,
-  } = props.ticketDetails.details;
+  const { clusters, file_tag, oplog, infos } = props.ticketDetails.details;
 
   // eslint-disable-next-line camelcase
   const fileTag = file_tag === 'normal_backup' ? t('常规备份（25天）') : t('长期备份（3年）');
@@ -101,34 +94,32 @@
     },
   ];
 
-  const dataList = infos.map(item => ({
+  const dataList = infos.map((item) => ({
     immute_domain: clusters[item.cluster_id].immute_domain,
     cluster_type_name: clusters[item.cluster_id].cluster_type_name,
-
   }));
-
 </script>
 
 <style lang="less" scoped>
-@import "@views/tickets/common/styles/DetailsTable.less";
-@import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
-.ticket-details {
-  &__info {
-    padding-left: 80px;
-  }
+  .ticket-details {
+    &__info {
+      padding-left: 80px;
+    }
 
-  &__item {
-    &-label {
-      min-width: 0;
-      text-align: left;
+    &__item {
+      &-label {
+        min-width: 0;
+        text-align: left;
+      }
     }
   }
-}
 
-.details-backup {
-  &__table {
-    padding-left: 80px;
+  .details-backup {
+    &__table {
+      padding-left: 80px;
+    }
   }
-}
 </style>

@@ -12,35 +12,31 @@
 -->
 
 <template>
-  <div class="ticket-details__info">
-    <div
-      class="ticket-details__item"
-      style="align-items: flex-start">
-      <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-      <span class="ticket-details__item-value">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData" />
-      </span>
-    </div>
+  <div
+    class="ticket-details__item"
+    style="align-items: flex-start">
+    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
+    <span class="ticket-details__item-value">
+      <DbOriginalTable
+        :columns="columns"
+        :data="tableData" />
+    </span>
   </div>
 
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('检查业务来源的连接') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_process ? t('是') : t('否') }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('检查主从同步延迟') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('检查主从数据校验结果') }}：</span>
-        <span class="ticket-details__item-value">
-          {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
-        </span>
-      </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('检查业务来源的连接') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_process ? t('是') : t('否') }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('检查主从同步延迟') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('检查主从数据校验结果') }}：</span>
+      <span class="ticket-details__item-value">
+        {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
+      </span>
     </div>
   </div>
 </template>

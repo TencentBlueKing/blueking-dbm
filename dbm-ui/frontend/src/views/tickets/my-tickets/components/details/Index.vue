@@ -38,6 +38,14 @@
                 <DemandInfo
                   :data="state.ticketData"
                   :is-loading="state.isLoading" />
+                <div class="mt-10">
+                  <span>{{ t('备注') }}:</span>
+                  <span class="ml-5"
+                    >{{
+                      state.ticketData.remark
+                    }}语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据语义检查出发的自动创建单据</span
+                  >
+                </div>
               </DbCard>
             </Teleport>
             <DbCard
@@ -247,6 +255,7 @@
 <style lang="less">
   .ticket-details-page {
     padding: 24px;
+    font-size: 12px;
 
     .db-card {
       .db-card__content {
