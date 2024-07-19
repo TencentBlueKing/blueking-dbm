@@ -506,9 +506,10 @@
   };
 
   const handleSubmit = () => {
+    isSubmitting.value = true;
     toolboxTableRef.value.validate()
       .then(() => {
-        isSubmitting.value = true;
+
         const params = {
           ticket_type: TicketTypes.MYSQL_ADD_SLAVE,
           bk_biz_id: globalBizsStore.currentBizId,
@@ -529,17 +530,17 @@
             backup_source: backupSource.value,
           },
         };
-        createTicket(params)
+
+        return createTicket(params)
           .then((res) => {
             ticketId.value = res.id;
             tableData.value = [getTableItem()];
             nextTick(() => {
               window.changeConfirm = false;
             });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
           });
+      }).finally(() => {
+        isSubmitting.value = false;
       });
   };
 

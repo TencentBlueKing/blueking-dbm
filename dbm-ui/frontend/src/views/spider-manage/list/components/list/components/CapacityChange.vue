@@ -149,7 +149,7 @@
               headerAlign: 'center',
               contentAlign: 'center',
               footerAlign: 'center',
-              onClosed: () => reject(),
+              onCancel: () => reject(),
               onConfirm: () => {
                 createTicket({
                   ticket_type: 'TENDBCLUSTER_NODE_REBALANCE',

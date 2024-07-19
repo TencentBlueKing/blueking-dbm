@@ -216,7 +216,7 @@
       headerAlign: 'center',
       contentAlign: 'center',
       footerAlign: 'center',
-      onClosed: () => {
+      onClose: () => {
         isBatchRestartLoading.value = false;
       },
       onConfirm: () => {
@@ -254,7 +254,7 @@
       headerAlign: 'center',
       contentAlign: 'center',
       footerAlign: 'center',
-      onClosed: () => {
+      onCancel: () => {
         isRestartLoading.value = false;
       },
       onConfirm: () => {
