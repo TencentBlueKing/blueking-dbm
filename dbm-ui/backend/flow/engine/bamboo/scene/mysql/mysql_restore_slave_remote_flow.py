@@ -200,7 +200,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     )
                 )
                 sync_data_sub_pipeline.add_act(
-                    act_name=_("同步数据完毕,写入数据节点的主从关系相关元数据,设置新节点为running状态"),
+                    act_name=_("同步完毕,写入主从关系,设置节点为running状态"),
                     act_component_code=MySQLDBMetaComponent.code,
                     kwargs=asdict(
                         DBMetaOPKwargs(

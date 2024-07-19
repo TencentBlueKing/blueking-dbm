@@ -210,6 +210,8 @@ class MySQLRollbackDataFlow(object):
         增加单据临时ADMIN账号的添加和删除逻辑
         """
         cluster_ids = [i["cluster_id"] for i in self.ticket_data["infos"]]
+        cluster_ids_desc = [i["rollback_cluster_id"] for i in self.ticket_data["infos"]]
+        cluster_ids.extend(cluster_ids_desc)
         mysql_restore_slave_pipeline = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
