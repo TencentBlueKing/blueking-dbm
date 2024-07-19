@@ -131,20 +131,25 @@ func (l *LogicalLoader) loadBackup() error {
 
 // buildFilter 只有逻辑备份才有 filter options, myloader filter regex 存入 myloaderRegex
 func (l *LogicalLoader) buildFilter() error {
-	o := l.MyloaderOpt
-	if o != nil {
-		if len(o.Databases) == 0 {
-			l.Databases = []string{"*"}
-		}
-		if len(o.Tables) == 0 {
-			l.Tables = []string{"*"}
-		}
-		if len(o.Databases)+len(o.Tables)+len(o.IgnoreDatabases)+len(o.IgnoreTables) == 0 {
+	opt := l.MyloaderOpt
+	// TODO 待重写，Databases 分不清是哪个？
+	if opt != nil {
+		if len(opt.Databases)+len(opt.Tables)+len(opt.IgnoreDatabases)+len(opt.IgnoreTables) == 0 {
 			// schema/data 一起全部导入, recover-binlog quick_mode只能false
 			logger.Info("no filter: import schema and data together, recover-binlog need quick_mode=false")
 			l.doDr = true
 		}
-		if o.WillRecoverBinlog && o.SourceBinlogFormat != "ROW" {
+		if len(opt.Databases) > 0 && len(opt.Tables) > 0 && opt.Databases[0] == "*" && opt.Tables[0] == "*" &&
+			len(opt.IgnoreDatabases)+len(opt.IgnoreTables) == 0 {
+			l.doDr = true
+		}
+		if len(opt.Databases) == 0 {
+			l.Databases = []string{"*"}
+		}
+		if len(opt.Tables) == 0 {
+			l.Tables = []string{"*"}
+		}
+		if opt.WillRecoverBinlog && opt.SourceBinlogFormat != "ROW" {
 			// 指定 filter databases/tables（或者指定无效）,导入数据时
 			// 必须全部导入 schema 和 data.恢复时也恢复全量 binlog,即 quick_mode=false
 			logger.Info("binlog_format!=row: import schema and data together, recover-binlog need quick_mode=false")
@@ -152,10 +157,10 @@ func (l *LogicalLoader) buildFilter() error {
 		} else {
 			// 后续不恢复binlog
 			// 或者，后续要恢复binlog，且源binlog格式是row，可以只导入需要的表
-			l.Databases = o.Databases
-			l.Tables = o.Tables
-			l.ExcludeDatabases = o.IgnoreDatabases
-			l.ExcludeTables = o.IgnoreTables
+			l.Databases = opt.Databases
+			l.Tables = opt.Tables
+			l.ExcludeDatabases = opt.IgnoreDatabases
+			l.ExcludeTables = opt.IgnoreTables
 		}
 	} else {
 		l.doDr = true
