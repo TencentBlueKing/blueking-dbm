@@ -12,68 +12,66 @@
 -->
 
 <template>
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('脚本来源') }}：</span>
-        <span class="ticket-details__item-value">
-          {{ ticketDetails.details.mode === 'file' ? t('脚本文件') : t('手动输入') }}
-        </span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('脚本执行内容') }}：</span>
-        <BkButton
-          text
-          theme="primary"
-          @click="handleClickFile">
-          {{ t('点击查看') }}
-        </BkButton>
-      </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('脚本来源') }}：</span>
+      <span class="ticket-details__item-value">
+        {{ ticketDetails.details.mode === 'file' ? t('脚本文件') : t('手动输入') }}
+      </span>
     </div>
-    <div class="mysql-table">
-      <div
-        v-if="clusterState.tableProps.data.length > 0"
-        class="mysql-table__item">
-        <span>{{ t('目标集群') }}：</span>
-        <DBCollapseTable
-          :show-icon="false"
-          style="width: 800px"
-          :table-props="clusterState.tableProps"
-          :title="clusterState.clusterType" />
-      </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('脚本执行内容') }}：</span>
+      <BkButton
+        text
+        theme="primary"
+        @click="handleClickFile">
+        {{ t('点击查看') }}
+      </BkButton>
     </div>
-    <BkSideslider
-      class="sql-log-sideslider"
-      :is-show="isShow"
-      render-directive="if"
-      :title="t('执行脚本变更_内容详情')"
-      :width="960"
-      :z-index="99999"
-      @closed="handleClose">
-      <div
-        v-if="uploadFileList.length > 1"
-        class="editor-layout">
-        <div class="editor-layout-left">
-          <RenderFileList
-            v-model="selectFileName"
-            :data="uploadFileList"
-            @sort="handleFileSortChange" />
-        </div>
-        <div class="editor-layout-right">
-          <RenderFileContent
-            :model-value="currentFileContent"
-            readonly
-            :title="selectFileName" />
-        </div>
+  </div>
+  <div class="mysql-table">
+    <div
+      v-if="clusterState.tableProps.data.length > 0"
+      class="mysql-table__item">
+      <span>{{ t('目标集群') }}：</span>
+      <DBCollapseTable
+        :show-icon="false"
+        style="width: 800px"
+        :table-props="clusterState.tableProps"
+        :title="clusterState.clusterType" />
+    </div>
+  </div>
+  <BkSideslider
+    class="sql-log-sideslider"
+    :is-show="isShow"
+    render-directive="if"
+    :title="t('执行脚本变更_内容详情')"
+    :width="960"
+    :z-index="99999"
+    @closed="handleClose">
+    <div
+      v-if="uploadFileList.length > 1"
+      class="editor-layout">
+      <div class="editor-layout-left">
+        <RenderFileList
+          v-model="selectFileName"
+          :data="uploadFileList"
+          @sort="handleFileSortChange" />
       </div>
-      <template v-else>
+      <div class="editor-layout-right">
         <RenderFileContent
           :model-value="currentFileContent"
           readonly
-          :title="uploadFileList.toString()" />
-      </template>
-    </BkSideslider>
-  </div>
+          :title="selectFileName" />
+      </div>
+    </div>
+    <template v-else>
+      <RenderFileContent
+        :model-value="currentFileContent"
+        readonly
+        :title="uploadFileList.toString()" />
+    </template>
+  </BkSideslider>
 </template>
 
 <script setup lang="tsx">

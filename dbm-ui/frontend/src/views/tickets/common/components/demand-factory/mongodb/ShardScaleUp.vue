@@ -16,14 +16,12 @@
     class="details-backup__table"
     :columns="columns"
     :data="tableData" />
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('忽略业务连接') }}：</span>
-        <span class="ticket-details__item-value">
-          {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
-        </span>
-      </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('忽略业务连接') }}：</span>
+      <span class="ticket-details__item-value">
+        {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
+      </span>
     </div>
   </div>
 </template>

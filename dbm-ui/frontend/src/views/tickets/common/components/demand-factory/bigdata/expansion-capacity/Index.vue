@@ -15,8 +15,7 @@
   <BkLoading :loading="loading">
     <div
       v-for="(item, index) in dataList"
-      :key="index"
-      class="ticket-details__info">
+      :key="index">
       <strong class="ticket-details__info-title">{{ item.title }}</strong>
       <div class="ticket-details__list">
         <div class="ticket-details__item">
