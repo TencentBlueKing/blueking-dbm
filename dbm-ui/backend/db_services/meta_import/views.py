@@ -214,7 +214,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
 
         domain_list = []
         for line in data.pop("file").readlines():
-            domain_list.append(line.decode("utf-8".strip().rstrip(".")))
+            domain_list.append(line.decode("utf-8").strip().rstrip("."))
 
         cluster_ids = list(
             Cluster.objects.filter(
