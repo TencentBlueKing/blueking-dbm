@@ -71,6 +71,7 @@ class KafkaShrinkFlow(object):
         broker_list = cluster.storageinstance_set.filter(instance_role=InstanceRole.BROKER)
         broker_ips = [broker.machine.ip for broker in broker_list]
         self.data["broker_ips"] = broker_ips
+        self.remain_brokers = list(set(broker_ips) - set(self.__get_all_node_ips()))
 
         # get username
         query_params = {
@@ -102,7 +103,7 @@ class KafkaShrinkFlow(object):
         return ips
 
     def __get_manager_ip(self, manager_ip: str) -> str:
-        for broker_ip in self.data["broker_ips"]:
+        for broker_ip in self.remain_brokers:
             if broker_ip != manager_ip:
                 return broker_ip
         return ""
@@ -118,16 +119,18 @@ class KafkaShrinkFlow(object):
         act_kwargs.set_trans_data_dataclass = ApplyContext.__name__
         act_kwargs.file_list = trans_files.get_db_actuator_package()
 
-        # 下发dbacuator
+        # 下发dbacuator, 所有的缩容节点+执行节点
         exclude_brokers = self.__get_all_node_ips()
-        exec_ip = self.data["nodes"]["broker"]
-        act_kwargs.exec_ip = exec_ip
+        dbacuator_nodes = list(exclude_brokers)
+        exec_ip = self.remain_brokers[0] if self.remain_brokers else None
+        dbacuator_nodes.append(exec_ip)
+        act_kwargs.exec_ip = [{"ip": ip} for ip in dbacuator_nodes]
         kafka_pipeline.add_act(
             act_name=_("下发dbacuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
 
         # 执行搬迁数据调度，只在一台机器上执行
-        act_kwargs.exec_ip = self.data["nodes"]["broker"][:1]
+        act_kwargs.exec_ip = [{"ip": exec_ip}]
         act_payload = KafkaActPayload(ticket_data=self.data, zookeeper_ip=self.data["zookeeper_ip"])
         act_kwargs.template = act_payload.get_shrink_payload(
             action=KafkaActuatorActionEnum.ReduceBroker.value, host=exclude_brokers
@@ -139,6 +142,7 @@ class KafkaShrinkFlow(object):
         )
 
         # 检查搬迁进度，只在一台机器上执行
+        act_kwargs.exec_ip = [{"ip": exec_ip}]
         act_kwargs.template = act_payload.get_shrink_payload(
             action=KafkaActuatorActionEnum.CheckReassign.value, host=exclude_brokers
         )
@@ -209,6 +213,10 @@ class KafkaShrinkFlow(object):
             # 安装kafka manager
             new_manager_ip = self.__get_manager_ip(manager_ip=manager_ip)
             act_kwargs.exec_ip = [{"ip": new_manager_ip}]
+            # 这里重新下发一次dbacuator
+            kafka_pipeline.add_act(
+                act_name=_("下发dbacuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+            )
             act_kwargs.template = act_payload.get_manager_payload(
                 action=KafkaActuatorActionEnum.installManager.value, host=new_manager_ip
             )
