@@ -293,7 +293,7 @@
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 220 : 200;
+      return isCN.value ? 250 : 220;
     }
     return 60;
   });
@@ -566,6 +566,7 @@
     {
       label: t('操作'),
       field: '',
+      showOverflowTooltip: false,
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: ColumnData) => (
@@ -578,6 +579,18 @@
             onClick={() => handleShowAuthorize([data])}>
             { t('授权') }
           </bk-button>
+          <auth-button
+            v-db-console="mysql.haClusterList.webconsole"
+            action-id="mysql_webconsole"
+            resource={data.id}
+            disabled={data.operationDisabled}
+            permission={data.permission.mysql_webconsole}
+            text
+            theme="primary"
+            class="mr-8"
+            onClick={() => handleGoWebconsole(data.id)}>
+            Webconsole
+          </auth-button>
           <OperationBtnStatusTips
             data={data}
             v-db-console="mysql.singleClusterList.exportData">
@@ -766,6 +779,15 @@
       },
     });
   };
+
+  const handleGoWebconsole = (clusterId: number) => {
+    router.push({
+      name: 'MySQLWebconsole',
+      query: {
+        clusterId
+      }
+    });
+  }
 
   /** 集群授权 */
   const handleShowAuthorize = (selected: TendbsingleModel[] = []) => {

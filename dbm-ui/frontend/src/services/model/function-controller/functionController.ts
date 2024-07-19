@@ -175,6 +175,7 @@ interface ControllerData {
   'hdfs.clusterManage.changeLog': ControllerItem<string>;
   'pulsar.clusterManage.clusterTopo': ControllerItem<string>;
   'pulsar.clusterManage.changeLog': ControllerItem<string>;
+  'personalWorkbench.myTickets.viewDetails': ControllerItem<string>;
 }
 
 export type ExtractedControllerDataKeys = Extract<keyof ControllerData, string>;
@@ -313,6 +314,7 @@ export default class FunctionController {
   'hdfs.clusterManage.changeLog': ControllerItem<string>;
   'pulsar.clusterManage.clusterTopo': ControllerItem<string>;
   'pulsar.clusterManage.changeLog': ControllerItem<string>;
+  'personalWorkbench.myTickets.viewDetails': ControllerItem<string>;
 
   constructor(payload = {} as ControllerData) {
     this.addons = payload.addons;
