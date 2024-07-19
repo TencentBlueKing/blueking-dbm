@@ -122,18 +122,13 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_HA_FULL_BACKUP,
     onSuccess(cloneData) {
-      const {
-        backupType,
-        tableDataList,
-        fileTag,
-      } = cloneData
+      const { backupType, tableDataList, fileTag } = cloneData;
       tableData.value = tableDataList;
       formData.backup_type = backupType;
       formData.file_tag = fileTag;
       window.changeConfirm = true;
     },
   });
-
 
   const formRef = ref();
   const rowRefs = ref();
@@ -142,7 +137,7 @@
   const formData = reactive(createDefaultData());
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -224,20 +219,20 @@
   };
 
   const handleSubmit = () => {
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue())).then((data) => {
-      isSubmitting.value = true;
-      createTicket({
-        bk_biz_id: currentBizId,
-        ticket_type: 'MYSQL_HA_FULL_BACKUP',
-        remark: '',
-        details: {
-          infos: {
-            ...formData,
-            clusters: data,
+    isSubmitting.value = true;
+    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
+      .then((data) =>
+        createTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: 'MYSQL_HA_FULL_BACKUP',
+          remark: '',
+          details: {
+            infos: {
+              ...formData,
+              clusters: data,
+            },
           },
-        },
-      })
-        .then((data) => {
+        }).then((data) => {
           window.changeConfirm = false;
           router.push({
             name: 'MySQLDBBackup',
@@ -248,11 +243,11 @@
               ticketId: data.id,
             },
           });
-        })
-        .finally(() => {
-          isSubmitting.value = false;
-        });
-    });
+        }),
+      )
+      .finally(() => {
+        isSubmitting.value = false;
+      });
   };
 
   const handleReset = () => {

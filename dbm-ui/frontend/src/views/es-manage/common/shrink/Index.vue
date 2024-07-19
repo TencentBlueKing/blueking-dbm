@@ -305,7 +305,7 @@
           headerAlign: 'center',
           contentAlign: 'center',
           footerAlign: 'center',
-          onClosed: () => reject(),
+          onCancel: () => reject(),
           onConfirm: () => {
             const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
               ip: hostItem.ip,
@@ -332,7 +332,7 @@
               return results;
             }, {} as Record<string, any>);
 
-            createTicket({
+            return createTicket({
               ticket_type: 'ES_SHRINK',
               bk_biz_id: bizId,
               details: {

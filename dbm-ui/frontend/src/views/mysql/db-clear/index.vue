@@ -844,16 +844,16 @@
   }
 
   function handleSubmit() {
+    isSubmitting.value = true;
     toolboxTableRef.value.validate()
       .then(() => {
         const clusterTypes = _.uniq(tableData.value.map(item => item.cluster_type));
         // 限制只能提同一种类型的集群，否则提示
         if (clusterTypes.length > 1) {
           messageError('只允许提交一种集群类型');
-          return;
+          return Promise.reject();
         }
 
-        isSubmitting.value = true;
         const formatList = (values: string[]) => values.map(val => val.trim()).filter(val => val);
         const params = {
           ticket_type: clusterTypes[0] === ClusterTypes.TENDBHA
@@ -873,17 +873,15 @@
           },
         };
 
-        createTicket(params)
+        return createTicket(params)
           .then((res) => {
             ticketId.value = res.id;
             tableData.value = [getTableItem()];
-            nextTick(() => {
-              window.changeConfirm = false;
-            });
+            window.changeConfirm = false;
           })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
+        ;
+      }).finally(() => {
+        isSubmitting.value = false;
       });
   }
 
