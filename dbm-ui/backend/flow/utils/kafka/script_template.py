@@ -25,5 +25,5 @@ mkdir -p /data/install/dbactuator-{{uid}}/logs
 cp /data/install/dbactuator /data/install/dbactuator-{{uid}}
 cd /data/install/dbactuator-{{uid}}
 chmod +x dbactuator
-./dbactuator {{db_type}} {{action}} --uid {{uid}} --payload {{payload}}
+./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} --payload {{payload}}
 """  # noqa
