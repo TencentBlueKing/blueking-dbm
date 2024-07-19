@@ -12,20 +12,18 @@
 -->
 
 <template>
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('所属业务') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('指定执行时间') }}：</span>
-        <span class="ticket-details__item-value">{{ utcDisplayTime(ticketDetails?.details?.timing) || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('自动修复') }}：</span>
-        <span class="ticket-details__item-value">{{ isRepair }}</span>
-      </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('所属业务') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('指定执行时间') }}：</span>
+      <span class="ticket-details__item-value">{{ utcDisplayTime(ticketDetails?.details?.timing) || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('自动修复') }}：</span>
+      <span class="ticket-details__item-value">{{ isRepair }}</span>
     </div>
   </div>
   <DbOriginalTable

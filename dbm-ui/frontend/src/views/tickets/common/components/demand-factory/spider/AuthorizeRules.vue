@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <div
-    v-if="isAddAuth"
-    class="ticket-details__info">
+  <div v-if="isAddAuth">
     <div class="ticket-details__list">
       <div class="ticket-details__item">
         <span class="ticket-details__item-label">{{ t('访问源') }}：</span>
@@ -62,9 +60,7 @@
         :data="accessData" />
     </div>
   </div>
-  <div
-    v-else
-    class="ticket-details__info">
+  <div v-else>
     <div class="ticket-details__list">
       <span>{{ t('Excel文件') }}：</span>
       <div class="excel-link">

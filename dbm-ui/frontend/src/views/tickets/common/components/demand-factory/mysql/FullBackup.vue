@@ -12,24 +12,22 @@
 -->
 
 <template>
-  <div class="ticket-details__info">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
-        <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('备份选项') }}：</span>
-        <span class="ticket-details__item-value">{{ backupOptions }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('备份类型') }}：</span>
-        <span class="ticket-details__item-value">{{ backupType }}</span>
-      </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ $t('备份保存时间') }}：</span>
-        <span class="ticket-details__item-value">{{ backupTime }}</span>
-      </div>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('所属业务') }}：</span>
+      <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('备份选项') }}：</span>
+      <span class="ticket-details__item-value">{{ backupOptions }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('备份类型') }}：</span>
+      <span class="ticket-details__item-value">{{ backupType }}</span>
+    </div>
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ $t('备份保存时间') }}：</span>
+      <span class="ticket-details__item-value">{{ backupTime }}</span>
     </div>
   </div>
   <DbOriginalTable

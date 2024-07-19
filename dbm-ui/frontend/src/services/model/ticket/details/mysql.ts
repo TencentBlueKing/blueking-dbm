@@ -53,6 +53,17 @@ export interface MySQLImportSQLFileDetails {
   created_by: string;
   cluster_ids: number[];
   clusters: DetailClusters;
+  grammar_check_info: Record<
+    string,
+    {
+      highrisk_warnings: {
+        command_type: string;
+        line: number;
+        sqltext: string;
+        warn_info: string;
+      }[];
+    }
+  >;
   ticket_mode: {
     mode: string;
     trigger_time: string;
@@ -67,10 +78,16 @@ export interface MySQLImportSQLFileDetails {
     dbnames: [];
     ignore_dbnames: [];
   }[];
-  execute_sql_files: [];
+  execute_sql_files: string[] | MySQLForceImportSQLFileExecuteSqlFiles[];
   import_mode: string;
   semantic_node_id: string;
   dump_file_path?: string;
+}
+
+export interface MySQLForceImportSQLFileExecuteSqlFiles {
+  raw_file_name: string;
+  sql_content: string;
+  sql_path: string;
 }
 
 /**
