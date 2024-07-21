@@ -173,3 +173,7 @@ MYSQL_BACKUP_PKG_MAP_ENABLE = get_type_env(key="MYSQL_BACKUP_PKG_MAP_ENABLE", _t
 # bkdbm 通知机器人的key
 WECOM_ROBOT = get_type_env(key="WECOM_ROBOT", _type=str, default="")
 MYSQL_CHATID = get_type_env(key="MYSQL_CHATID", _type=str, default="")
+
+# django DebugToolbar是否开启。开启后会对接口进行SQL分析和统计，将大幅度降低接口效率
+# 需要开启DEBUG_TOOL_BAR和DEBUG模式，DebugToolbar才会生效
+DEBUG_TOOL_BAR = get_type_env(key="DEBUG_TOOL_BAR", _type=bool, default=False)

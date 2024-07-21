@@ -212,8 +212,9 @@ class CommonQueryResourceMixin(abc.ABC):
 
     @classmethod
     def get_temporary_cluster_info(cls, cluster, ticket_type):
-        """如果当前集群是临时集群，则补充临时集群相关信息。注: 会存在N+1问题，不过临时集群较少先忽略"""
-        if not cluster.tag_set.filter(name=SystemTagEnum.TEMPORARY.value).exists():
+        """如果当前集群是临时集群，则补充临时集群相关信息。"""
+        tags = [tag.name for tag in cluster.tag_set.all()]
+        if SystemTagEnum.TEMPORARY.value not in tags:
             return {}
         record = ClusterOperateRecord.objects.filter(cluster_id=cluster.id, ticket__ticket_type=ticket_type).first()
         # 临时集群名称的构造规则是: {cluster_name}_{20201212}_{ticket_id}
@@ -468,16 +469,13 @@ class ListRetrieveResource(BaseListRetrieveResource):
         cluster_queryset = cluster_queryset[offset : limit + offset].prefetch_related(
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
-            "tag_set",
-            # 预取优化access_port。TODO: 如果access port作为集群字段则删除当前逻辑
-            "proxyinstance_set",
-            "storageinstance_set",
             Prefetch("clusterentry_set", to_attr="entries"),
+            "tag_set",
         )
         cluster_ids = list(cluster_queryset.values_list("id", flat=True))
 
         # 获取集群与访问入口的映射
-        cluster_entry_map = ClusterEntry.get_cluster_entry_map([cluster.id for cluster in cluster_queryset])
+        cluster_entry_map = ClusterEntry.get_cluster_entry_map(cluster_ids)
 
         # 获取DB模块的映射信息
         db_module_names_map = {
@@ -862,17 +860,17 @@ class ListRetrieveResource(BaseListRetrieveResource):
         # 获取machine关联的实例角色
         instance_role: str = ""
         instances: list = []
-        if machine.storageinstance_set.count():
-            instance_role = machine.storageinstance_set.first().instance_role
+        if len(machine.storageinstance_set.all()):
+            instance_role = machine.storageinstance_set.all()[0].instance_role
             instances = [inst.simple_desc for inst in machine.storageinstance_set.all()]
-        if machine.proxyinstance_set.count():
-            instance_role = machine.proxyinstance_set.first().access_layer
+        if len(machine.proxyinstance_set.all()):
+            instance_role = machine.proxyinstance_set.all()[0].access_layer
             instances = [inst.simple_desc for inst in machine.proxyinstance_set.all()]
 
         # 获取machine关联的集群信息，目前一个实例只关联一个集群
         related_clusters_map: Dict[int, List[Dict]] = {}
         for inst in [*list(machine.storageinstance_set.all()), *list(machine.proxyinstance_set.all())]:
-            cluster = inst.cluster.first()
+            cluster = inst.cluster.all()[0]
             related_clusters_map[cluster.id] = cluster.to_dict()
 
         return {

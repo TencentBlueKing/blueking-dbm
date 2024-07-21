@@ -102,3 +102,10 @@ vue_patterns = [
     re_path("", HomeView.as_view()),
 ]
 urlpatterns += vue_patterns
+
+if settings.DEBUG and env.DEBUG_TOOL_BAR:
+    import debug_toolbar
+
+    urlpatterns = [
+        path("__debug__/", include(debug_toolbar.urls)),
+    ] + urlpatterns
