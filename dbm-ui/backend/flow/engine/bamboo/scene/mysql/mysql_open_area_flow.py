@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import copy
+import json
+import os
 from dataclasses import asdict
 from typing import Dict, Optional
 
@@ -19,12 +21,14 @@ from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster
+from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.plugins.components.collections.mysql.upload_file import UploadFileServiceComponent
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs, UploadFile
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 
 
@@ -46,6 +50,7 @@ class MysqlOpenAreaFlow(object):
         self.schema_md5sum_file_name = f"{self.root_id}_schema.md5sum"
         self.data_tar_file_name = f"{self.root_id}_data.tar.gz"
         self.data_md5sum_file_name = f"{self.root_id}_data.md5sum"
+        self.file_name = f"{self.root_id}_info.txt"
 
     def __get_cluster_info(self, cluster_id: int, bk_biz_id: int, data_flag=False) -> dict:
         """
@@ -224,7 +229,7 @@ class MysqlOpenAreaFlow(object):
 
         # 不管目标集群有多少个 源只有一个 源库的规则也是一样的
         pipeline.add_act(
-            act_name=_("从源实例获取开区所需库表结构"),
+            act_name=_("从源实例:{}#{}获取开区所需库表结构".format(source_cluster_schema["ip"], source_cluster_schema["port"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
@@ -250,7 +255,8 @@ class MysqlOpenAreaFlow(object):
                         exec_ip=exec_ip_list,
                         file_target_path=self.work_dir,
                         file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                            path="mysql/sqlfile", filelist=[self.schema_tar_file_name, self.schema_md5sum_file_name]
+                            path=BKREPO_SQLFILE_PATH,
+                            filelist=[self.schema_tar_file_name, self.schema_md5sum_file_name],
                         ),
                     )
                 ),
@@ -260,7 +266,7 @@ class MysqlOpenAreaFlow(object):
         for target_cluster in target_clusters_schema:
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             sub_pipeline.add_act(
-                act_name=_("向目标实例导入库表结构"),
+                act_name=_("向目标实例:{}#{}导入库表结构".format(target_cluster["ip"], target_cluster["port"])),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
@@ -318,8 +324,36 @@ class MysqlOpenAreaFlow(object):
                     )
                 ),
             )
+
+        # 开区需要数据迁移时，指定部分表后会因为过多造成需要下发的参数多，因此采用下发文件形式
         sub_pipeline.add_act(
-            act_name=_("从源实例获取开区所需库表数据"),
+            act_name=_("上传开区参数文件"),
+            act_component_code=UploadFileServiceComponent.code,
+            kwargs=asdict(
+                UploadFile(
+                    path=os.path.join(BKREPO_SQLFILE_PATH, self.file_name),
+                    content=json.dumps(source_cluster_data["open_area_param"]),
+                )
+            ),
+        )
+        # 都是在源集群所在机器操作
+        sub_pipeline.add_act(
+            act_name=_("下发开区参数文件"),
+            act_component_code=TransFileComponent.code,
+            kwargs=asdict(
+                DownloadMediaKwargs(
+                    bk_cloud_id=source_cluster_data["bk_cloud_id"],
+                    exec_ip=source_cluster_data["ip"],
+                    file_target_path=self.work_dir,
+                    file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
+                        path=BKREPO_SQLFILE_PATH, filelist=[self.file_name]
+                    ),
+                )
+            ),
+        )
+
+        sub_pipeline.add_act(
+            act_name=_("从源实例:{}#{}获取开区所需库表结构".format(source_cluster_data["ip"], source_cluster_data["port"])),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(
                 ExecActuatorKwargs(
@@ -341,11 +375,11 @@ class MysqlOpenAreaFlow(object):
                 act_component_code=TransFileComponent.code,
                 kwargs=asdict(
                     DownloadMediaKwargs(
-                        bk_cloud_id=0,
+                        bk_cloud_id=source_cluster_data["bk_cloud_id"],
                         exec_ip=exec_ip_list,
                         file_target_path=self.work_dir,
                         file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                            path="mysql/sqlfile", filelist=[self.data_tar_file_name, self.data_md5sum_file_name]
+                            path=BKREPO_SQLFILE_PATH, filelist=[self.data_tar_file_name, self.data_md5sum_file_name]
                         ),
                     )
                 ),
@@ -355,7 +389,7 @@ class MysqlOpenAreaFlow(object):
         for target_cluster in target_clusters_data:
             acts_list.append(
                 {
-                    "act_name": _("向目标实例导入库表数据"),
+                    "act_name": _("向目标实例:{}#{}导入库表数据".format(target_cluster["ip"], target_cluster["port"])),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
                     "kwargs": asdict(
                         ExecActuatorKwargs(

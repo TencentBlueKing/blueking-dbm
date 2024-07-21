@@ -12,6 +12,7 @@ package mysql
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -49,6 +50,7 @@ type OpenAreaDumpSchemaParam struct {
 	DumpDirName   string              `json:"dump_dir_name"` // dump目录名称 {}_schema {}_data
 	FileServer    FileServer          `json:"fileserver"`
 	OpenAreaParam []OneOpenAreaSchema `json:"open_area_param"`
+	InfoFile      bool                `json:"info_file"` // 用于兼容以文件形式下发参数
 }
 
 // OneOpenAreaSchema 用于存放一个区库表的信息
@@ -156,6 +158,15 @@ func (c *OpenAreaDumpSchemaComp) Init() (err error) {
 		return err
 	}
 
+	if c.Params.InfoFile {
+		filePath := path.Join(c.workDir, fmt.Sprintf("%s_info.txt", c.Params.RootId))
+		c.Params.OpenAreaParam, err = c.getOpenAreaInfo(filePath)
+		if err != nil {
+			logger.Error("开区库表信息文件读取失败！%s", err.Error())
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -223,6 +234,11 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 			continue
 		}
 		outputfileName := fmt.Sprintf("%s.sql", oneOpenAreaSchema.Schema)
+
+		if oneOpenAreaSchema.Tables[0] == "*" {
+			oneOpenAreaSchema.Tables[0] = ""
+		}
+
 		schema := fmt.Sprintf("%s %s",
 			oneOpenAreaSchema.Schema, strings.Join(oneOpenAreaSchema.Tables, " "),
 		)
@@ -431,4 +447,16 @@ func (c *OpenAreaDumpSchemaComp) VersionCompare(version string) bool {
 		}
 	}
 	return false
+}
+
+func (c *OpenAreaDumpSchemaComp) getOpenAreaInfo(filePath string) (epsos []OneOpenAreaSchema, err error) {
+	f, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("读取文件失败！--->%s", err.Error()))
+	}
+	err = json.Unmarshal(f, &epsos)
+	if err != nil {
+		return nil, errors.New(fmt.Sprintf("反序列化失败！--->%s", err.Error()))
+	}
+	return epsos, nil
 }
