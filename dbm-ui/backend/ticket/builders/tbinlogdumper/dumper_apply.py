@@ -85,11 +85,11 @@ class TbinlogdumperApplyDetailSerializer(serializers.Serializer):
 
     @classmethod
     def validate_unique_dumper_rules(cls, bk_biz_id, attrs):
-        # 不同的订阅，库表不能完全一致
-        repl_table_filter = Q(repl_tables=attrs["repl_tables"], bk_biz_id=bk_biz_id) & ~Q(name=attrs["name"])
-        exist_dumper_config = DumperSubscribeConfig.objects.filter(repl_table_filter)
-        if exist_dumper_config.exists():
-            raise serializers.ValidationError(_("不同的订阅库表不能完全一致! 当前库表与订阅{}重复").format(exist_dumper_config.first().name))
+        # 不同的订阅，库表不能完全一致 TODO: 考虑线上已经无新增dumper，这个校验可以先屏蔽
+        # repl_table_filter = Q(repl_tables=attrs["repl_tables"], bk_biz_id=bk_biz_id) & ~Q(name=attrs["name"])
+        # exist_dumper_config = DumperSubscribeConfig.objects.filter(repl_table_filter)
+        # if exist_dumper_config.exists():
+        #     raise serializers.ValidationError(_("当前库表与订阅{}重复").format(exist_dumper_config.first().name))
 
         # 所有订阅里，数据源 + 接收端 （类型+接收地址) 唯一校验（全局唯一） ，避免重复发送接收问题
         unique_filters = Q()

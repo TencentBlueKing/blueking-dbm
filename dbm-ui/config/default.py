@@ -77,6 +77,7 @@ INSTALLED_APPS += (
     "crispy_forms",
     "django_filters",
     "corsheaders",
+    "debug_toolbar",
     # version log
     "backend.version_log",
     # bk_notice
@@ -138,6 +139,8 @@ MIDDLEWARE = (
     "apigw_manager.apigw.authentication.ApiGatewayJWTGenericMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTAppMiddleware",
     "apigw_manager.apigw.authentication.ApiGatewayJWTUserMiddleware",
+    # 分析页面、接口和SQL调用耗时调试工具
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
     # request instance provider
     "blueapps.middleware.request_provider.RequestProvider",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -576,3 +579,7 @@ GRAFANA = {
 
 # 全局启用 pyinstrument，或者在url后面加上?profile=1
 # PYINSTRUMENT_PROFILE_DIR = os.path.join(STATIC_ROOT, 'assets/perf')
+
+# 开启DEBUG_TOOL_BAR，需要内联IP
+if env.DEBUG_TOOL_BAR:
+    INTERNAL_IPS = ["127.0.0.1", "localhost"]

@@ -88,8 +88,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
         offset: int,
         **kwargs,
     ) -> ResourceList:
-        # 提前预取storage的tuple TODO: 优化不是很明显？
-        storage_queryset = storage_queryset.prefetch_related("as_receiver__ejector").all()
+        # 提前预取storage的tuple
+        storage_queryset = storage_queryset.prefetch_related("as_receiver__ejector")
         return super()._filter_cluster_hook(
             bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
         )
@@ -115,7 +115,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
             m.simple_desc
             for m in cluster.storages
             if m.instance_inner_role in [InstanceInnerRole.SLAVE, InstanceInnerRole.REPEATER]
-            if m.as_receiver.exists() and m.as_receiver.first().ejector.instance_inner_role == InstanceInnerRole.MASTER
+            if len(m.as_receiver.all())
+            and m.as_receiver.all()[0].ejector.instance_inner_role == InstanceInnerRole.MASTER
         ]
 
         cluster_role_info = {"proxies": proxies, "masters": masters, "slaves": slaves}
