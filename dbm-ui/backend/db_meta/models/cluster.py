@@ -73,14 +73,11 @@ class Cluster(AuditedModel):
 
     def to_dict(self):
         """将集群所有字段转为字段"""
-        return {
-            **model_to_dict(self),
-            "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type)),
-            "tag": [t.tag_desc for t in self.tag_set.all()],
-        }
+        return {**model_to_dict(self), "cluster_type_name": str(ClusterType.get_choice_label(self.cluster_type))}
 
     @property
     def simple_desc(self):
+        """集群简略信息"""
         return model_to_dict(
             self,
             [
@@ -232,6 +229,7 @@ class Cluster(AuditedModel):
     def access_port(self) -> int:
         """
         获取集群的访问端口，如果要批量查询，请使用prefetch预存instance得queryset
+        TODO: 是否考虑将此字段作为表字段，而不是实时计算
         tendbsingle: 只有一台机器，直接取那个port
         tendbha, redis: 取proxy的一台port
         tendbcluster: 主域名取spider master的port   从域名取spider slave的port
@@ -245,6 +243,8 @@ class Cluster(AuditedModel):
         sqlserver: ?
         """
         try:
+            if hasattr(self, "storages") and hasattr(self, "proxies"):
+                return self.prefetched_access_port
             if self.cluster_type == ClusterType.TenDBSingle:
                 return self.storageinstance_set.first().port
             elif self.cluster_type == ClusterType.RedisInstance:
@@ -272,6 +272,40 @@ class Cluster(AuditedModel):
                 return self.storageinstance_set.filter(instance_role=InstanceRole.DORIS_FOLLOWER).first().port
         except AttributeError:
             logger.warning(_("无法访问集群[]的访问端口，请检查实例信息").format(self.name))
+            return 0
+
+    @property
+    def prefetched_access_port(self):
+        """
+        加速获取集群的访问端口，
+        适用于预取了storageinstance和proxyinstance的情况，避免N+1查询
+        """
+        if self.cluster_type == ClusterType.TenDBSingle:
+            return self.storages[0].port
+        elif self.cluster_type == ClusterType.RedisInstance:
+            return self.storages[0].port
+        elif self.cluster_type in [ClusterType.TenDBHA, *ClusterType.db_type_to_cluster_types(DBType.Redis)]:
+            return self.proxies[0].port
+        elif self.cluster_type == ClusterType.TenDBCluster:
+            role = TenDBClusterSpiderRole.SPIDER_MASTER
+            return next(inst.port for inst in self.proxies if inst.tendbclusterspiderext.spider_role == role)
+        elif self.cluster_type == ClusterType.Es:
+            return next(inst.port for inst in self.storages if inst.instance_role == InstanceRole.ES_MASTER)
+        elif self.cluster_type == ClusterType.Kafka:
+            return next(inst.port for inst in self.storages if inst.instance_role == InstanceRole.BROKER)
+        elif self.cluster_type == ClusterType.Hdfs:
+            return next(inst.port for inst in self.storages if inst.instance_role == InstanceRole.HDFS_NAME_NODE)
+        elif self.cluster_type == ClusterType.Pulsar:
+            return next(inst.port for inst in self.storages if inst.instance_role == InstanceRole.PULSAR_BROKER)
+        elif self.cluster_type == ClusterType.Riak:
+            return DEFAULT_RIAK_PORT
+        elif self.cluster_type == ClusterType.MongoShardedCluster:
+            return next(inst.port for inst in self.proxies if inst.machine_type == MachineType.MONGOS)
+        elif self.cluster_type == ClusterType.MongoReplicaSet:
+            return next(inst.port for inst in self.proxies if inst.machine_type == MachineType.MONGODB)
+        elif self.cluster_type == ClusterType.Doris:
+            return next(inst.port for inst in self.storages if inst.instance_role == InstanceRole.DORIS_FOLLOWER)
+        else:
             return 0
 
     def get_partition_port(self):

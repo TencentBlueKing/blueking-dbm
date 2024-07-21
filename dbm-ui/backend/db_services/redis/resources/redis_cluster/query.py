@@ -10,9 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 from typing import Any, Dict, List
 
+from django.db.models import QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
+from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.redisinstance.handler import RedisInstanceHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
@@ -23,6 +25,7 @@ from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
+from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
 
@@ -86,6 +89,31 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         return ResourceQueryHelper.search_cc_hosts(role_host_ids, keyword)
 
     @classmethod
+    def _filter_cluster_hook(
+        cls,
+        bk_biz_id,
+        cluster_queryset: QuerySet,
+        proxy_queryset: QuerySet,
+        storage_queryset: QuerySet,
+        limit: int,
+        offset: int,
+        **kwargs,
+    ) -> ResourceList:
+        # 预取remote的spec
+        redis_types = ClusterType.db_type_to_cluster_types(DBType.Redis)
+        redis_spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type__in=redis_types)}
+        return super()._filter_cluster_hook(
+            bk_biz_id,
+            cluster_queryset,
+            proxy_queryset,
+            storage_queryset,
+            limit,
+            offset,
+            redis_spec_map=redis_spec_map,
+            **kwargs,
+        )
+
+    @classmethod
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
@@ -106,9 +134,10 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
 
         # 补充集群的规格和容量信息
         cluster_spec = cluster_capacity = ""
+        redis_spec_map = kwargs["redis_spec_map"]
         if machine_list:
-            spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
-            spec = Spec.objects.get(spec_id=spec_id)
+            spec_id = cluster.storages[0].machine.spec_id
+            spec = redis_spec_map.get(spec_id)
             cluster_spec = model_to_dict(spec)
             cluster_capacity = spec.capacity * machine_pair_cnt
 
