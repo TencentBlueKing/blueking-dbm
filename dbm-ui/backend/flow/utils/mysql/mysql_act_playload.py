@@ -1987,7 +1987,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "db_cloud_token": db_cloud_token,
                     "dump_dir_name": f"{self.cluster['root_id']}_data",
                     "fileserver": fileserver,
-                    "open_area_param": self.cluster["open_area_param"],
+                    "open_area_param": [],
+                    "info_file": True,
                 },
             },
         }
