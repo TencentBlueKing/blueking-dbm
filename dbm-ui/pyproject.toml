@@ -61,6 +61,7 @@ bk-notice-sdk = "^1.1.1"
 protobuf = "3.19.6"
 promql-parser = "0.3.3"
 chardet = "^5.2.0"
+django-debug-toolbar = "3.8.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "6.2.4"

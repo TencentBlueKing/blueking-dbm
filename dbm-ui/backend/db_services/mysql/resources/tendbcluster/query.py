@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from typing import Any, Callable, Dict, List
 
-from django.db.models import F, Q, Value
+from django.db.models import F, Q, QuerySet, Value
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
@@ -20,7 +20,7 @@ from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.exceptions import DBMetaException
-from backend.db_meta.models import AppCache, Machine, Spec
+from backend.db_meta.models import AppCache, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources import query
@@ -67,6 +67,37 @@ class ListRetrieveResource(query.ListRetrieveResource):
         )
 
     @classmethod
+    def _filter_cluster_hook(
+        cls,
+        bk_biz_id,
+        cluster_queryset: QuerySet,
+        proxy_queryset: QuerySet,
+        storage_queryset: QuerySet,
+        limit: int,
+        offset: int,
+        **kwargs,
+    ) -> ResourceList:
+        # 提前预取storage的tuple
+        storage_queryset = storage_queryset.prefetch_related(
+            "as_ejector__tendbclusterstorageset", "as_receiver__tendbclusterstorageset"
+        )
+        proxy_queryset = proxy_queryset.prefetch_related("tendbclusterspiderext")
+        # 预取remote的spec
+        remote_spec_map = {
+            spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type=ClusterType.TenDBCluster)
+        }
+        return super()._filter_cluster_hook(
+            bk_biz_id,
+            cluster_queryset,
+            proxy_queryset,
+            storage_queryset,
+            limit,
+            offset,
+            remote_spec_map=remote_spec_map,
+            **kwargs,
+        )
+
+    @classmethod
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
@@ -87,7 +118,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             for inst in insts:
                 try:
                     related = "as_ejector" if inst.instance_inner_role == InstanceInnerRole.MASTER else "as_receiver"
-                    shard_id = getattr(inst, related).first().tendbclusterstorageset.shard_id
+                    shard_id = getattr(inst, related).all()[0].tendbclusterstorageset.shard_id
                 except Exception:
                     # 如果无法找到shard_id，则默认为-1。有可能实例处于restoring状态(比如集群容量变更时)
                     shard_id = -1
@@ -98,17 +129,18 @@ class ListRetrieveResource(query.ListRetrieveResource):
             remote_infos[InstanceInnerRole.SLAVE.value].sort(key=lambda x: x.get("shard_id", -1))
             return remote_infos[InstanceInnerRole.MASTER.value], remote_infos[InstanceInnerRole.SLAVE.value]
 
+        # 获取spider，remote角色实例信息
         spider = {
             role: [inst.simple_desc for inst in cluster.proxies if inst.tendbclusterspiderext.spider_role == role]
             for role in TenDBClusterSpiderRole.get_values()
         }
         remote_db, remote_dr = get_remote_infos(cluster.storages)
-
+        # 计算machine分组
         machine_list = list(set([inst["bk_host_id"] for inst in [*remote_db, *remote_dr]]))
         machine_pair_cnt = len(machine_list) / 2
-
-        spec_id = Machine.objects.get(bk_host_id=machine_list[0]).spec_id
-        cluster_spec = Spec.objects.get(spec_id=spec_id)
+        # 获取集群规格
+        spec_id = cluster.storages[0].machine.spec_id
+        cluster_spec = kwargs["remote_spec_map"].get(spec_id)
 
         cluster_extra_info = {
             "cluster_spec": model_to_dict(cluster_spec),
