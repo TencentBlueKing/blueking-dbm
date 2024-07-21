@@ -153,7 +153,7 @@ class MysqlDataMigrateFlow(object):
 
             source_cluster["dump_dir_name"] = dump_dir_name
             sub_pipeline.add_act(
-                act_name=_("从源实例获取库"),
+                act_name=_("从源实例{}#{}获取库".format(source_cluster["ip"], source_cluster["port"])),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(
                     ExecActuatorKwargs(
@@ -194,7 +194,7 @@ class MysqlDataMigrateFlow(object):
                 target_cluster["dump_dir_name"] = dump_dir_name
                 acts_list.append(
                     {
-                        "act_name": _("向目标实例导入库"),
+                        "act_name": _("向目标实例:{}#{}导入库".format(target_cluster["ip"], target_cluster["port"])),
                         "act_component_code": ExecuteDBActuatorScriptComponent.code,
                         "kwargs": asdict(
                             ExecActuatorKwargs(

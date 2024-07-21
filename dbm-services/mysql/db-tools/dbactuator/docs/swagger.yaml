@@ -824,8 +824,10 @@ definitions:
           type: integer
         type: array
       mysql_version:
-        description: MySQLVerion 只需5.6 5.7 这样的大版本号
+        description: MySQLVersion 只需5.6 5.7 这样的大版本号
         type: string
+      partition_yw_account:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.AdditionalAccount'
       pkg:
         description: 安装包名
         type: string
@@ -842,6 +844,8 @@ definitions:
           type: integer
         type: array
       super_account:
+        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.AdditionalAccount'
+      webconsolers_account:
         $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.AdditionalAccount'
     required:
     - charset
@@ -1646,6 +1650,10 @@ definitions:
         type: array
       host:
         type: string
+      is_ctl_alone:
+        type: boolean
+      is_no_slave:
+        type: boolean
       mysql_instance_tuples:
         items:
           $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InstanceTuple'
@@ -1705,7 +1713,6 @@ definitions:
     - host
     - port
     - shard_id
-    - slave_host
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.TableSchemaCheckComp:
     properties:
