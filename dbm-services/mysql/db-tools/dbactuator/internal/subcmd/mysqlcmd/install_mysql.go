@@ -124,6 +124,10 @@ func (d *DeployMySQLAct) Run() (err error) {
 			Func:    d.Service.InitDefaultPrivAndSchemaWithResetMaster,
 		},
 		{
+			FunName: "建立socker软连接",
+			Func:    d.Service.MakeSocketSoftLink,
+		},
+		{
 			FunName: "生成exporter配置文件",
 			Func:    d.Service.CreateExporterCnf,
 		},

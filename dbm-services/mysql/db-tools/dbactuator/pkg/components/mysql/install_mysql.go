@@ -647,11 +647,28 @@ func (i *InstallMySQLComp) Install() (err error) {
 	return nil
 }
 
-// Startup TODO
-/**
- * @description: 启动mysqld实例 会重试连接判断是否启动成功
- * @return {*}
- */
+// MakeSocketSoftLink 当单机只存在一个实例的时候,mysql.socket 软链到tmp 下
+func (i *InstallMySQLComp) MakeSocketSoftLink() (err error) {
+	logger.Info("install ports %v", i.InsPorts)
+	if len(i.InsPorts) == 1 {
+		port := i.InsPorts[0]
+		socket, ok := i.InsSockets[port]
+		if !ok {
+			return fmt.Errorf("not found %d's socket", port)
+		}
+		shellCmds := []string{"unlink  /tmp/mysql.sock", fmt.Sprintf("ln -s %s  /tmp/mysql.sock", socket)}
+		for _, shell := range shellCmds {
+			stderr, err := osutil.StandardShellCommand(false, shell)
+			if err != nil {
+				logger.Warn("do %s failed,stderr:%s", shell, stderr)
+				continue
+			}
+		}
+	}
+	return nil
+}
+
+// Startup @description: 启动mysqld实例 会重试连接判断是否启动成功
 func (i *InstallMySQLComp) Startup() (err error) {
 	if err = osutil.ClearTcpRecycle(); err != nil {
 		err = fmt.Errorf("clear tcp recycle failed, err: %w", err)
@@ -732,7 +749,7 @@ type AdditionalAccount struct {
 	AccessHosts []string `json:"access_hosts"`
 }
 
-// GetSuperUserAccount TODO
+// GetSuperUserAccount 获取超级账户授权语句
 func (a *AdditionalAccount) GetSuperUserAccount(realVersion string) (initAccountsql []string) {
 	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
 		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
@@ -750,6 +767,7 @@ func (a *AdditionalAccount) GetSuperUserAccount(realVersion string) (initAccount
 	return
 }
 
+// GetPartitionYWAccount  获取分区管理运维账户授权语句
 func (a *AdditionalAccount) GetPartitionYWAccount(realVersion string) (initAccountsql []string) {
 	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
 		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
@@ -784,6 +802,7 @@ func (a *AdditionalAccount) GetPartitionYWAccount(realVersion string) (initAccou
 	return
 }
 
+// GetWEBCONSOLERSAccount 获取webconsole账户授权语句
 func (a *AdditionalAccount) GetWEBCONSOLERSAccount(realVersion string) (initAccountsql []string) {
 	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
 		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
