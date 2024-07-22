@@ -214,7 +214,8 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 		}
 	}()
 
-	if err := m.realDB.Exec("set binlog_format='statement'").Error; err != nil {
+	//DB user should with super privileges
+	if err := m.realDB.Exec("set sql_log_bin=0").Error; err != nil {
 		log.Logger.Warnf("set binlog_format to statement failed. ip:%s, port:%d, err:%s",
 			m.Ip, m.Port, err.Error())
 		errChan <- err
