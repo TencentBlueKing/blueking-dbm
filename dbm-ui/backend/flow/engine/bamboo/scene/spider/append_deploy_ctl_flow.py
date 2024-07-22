@@ -172,7 +172,7 @@ class AppendDeployCTLFlow(object):
 
     def run(self):
         cluster_ids = self.data["cluster_ids"]
-        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
+        pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
         exec_act_kwargs = ExecActuatorKwargs(
