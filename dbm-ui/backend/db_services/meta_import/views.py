@@ -228,7 +228,7 @@ class DBMetadataImportViewSet(viewsets.SystemViewSet):
                 bk_biz_id=data["bk_biz_id"], immute_domain__in=domain_list, cluster_type=ClusterType.TenDBCluster.value
             ).values_list("immute_domain", flat=True)
         )
-        diff = list(set(cluster_ids) - set(exists_domains))
+        diff = list(set(domain_list) - set(exists_domains))
         if diff:
             raise serializers.ValidationError(_("cluster {} not found".format(diff)))
 
