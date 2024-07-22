@@ -26,6 +26,7 @@ type RedisDataStructureParams struct {
 	RecoveryTimePoint string                     `json:"recovery_time_point" validate:"required"`
 	IsIncludeSlave    bool                       `json:"is_include_slave" `
 	TendisType        string                     `json:"tendis_type" validate:"required"`
+	ClusterType       string                     `json:"cluster_type"`
 	DestDir           string                     `json:"dest_dir"`                           // 备份下载/存放目录
 	FullFileList      []datastructure.FileDetail `json:"full_file_list" validate:"required"` // 全备文件列表
 	BinlogFileList    []datastructure.FileDetail `json:"binlog_file_list" `                  // binlog文件列表
@@ -151,7 +152,7 @@ func (task *RedisDataStructure) Run() (err error) {
 		recoverTask, err := datastructure.NewTendisInsRecoverTask(task.params.SourceIP, sourceRort,
 			task.params.NeWTempIP, newTmpPort, task.password,
 			task.params.RecoveryTimePoint, task.RecoverDir, task.TendisType,
-			task.params.IsIncludeSlave, task.runtime,
+			task.params.ClusterType, task.params.IsIncludeSlave, task.runtime,
 			task.params.FullFileList, task.params.BinlogFileList)
 		if err != nil {
 			return err

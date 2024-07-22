@@ -76,6 +76,13 @@ def is_redis_cluster_protocal(cluster_type: str) -> bool:
     ]
 
 
+def is_have_proxy(cluster_type: str) -> bool:
+    """
+    是否有proxy
+    """
+    return is_twemproxy_proxy_type(cluster_type) or is_predixy_proxy_type(cluster_type)
+
+
 def is_have_binlog(cluster_type: str) -> bool:
     """
     是否有binlog

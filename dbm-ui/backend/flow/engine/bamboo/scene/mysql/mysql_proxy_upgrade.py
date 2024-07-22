@@ -73,11 +73,10 @@ class MySQLProxyLocalUpgradeFlow(object):
             proxies = ProxyInstance.objects.filter(cluster__in=clusters)
             if len(proxies) <= 0:
                 raise DBMetaException(message=_("根据cluster ids:{}法找到对应的proxy实例").format(cluster_ids))
-
+            bk_cloud_id = clusters[0].bk_cloud_id
             sub_flow_context = copy.deepcopy(self.data)
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
-            proxy_ports = []
-            cloud_proxy_ip_list = defaultdict(list)
+            ports_map = defaultdict(list)
 
             for proxy_instance in proxies:
                 current_version = proxy_version_parse(proxy_instance.version)
@@ -88,20 +87,19 @@ class MySQLProxyLocalUpgradeFlow(object):
                         )
                     )
                     raise DBMetaException(message=_("待升级版本大于等于新版本，请确认升级的版本"))
-                proxy_ports.append(proxy_instance.port)
-                cloud_proxy_ip_list[proxy_instance.machine.bk_cloud_id].append(proxy_instance.machine.ip)
-
-            for bk_cloud_id, ips in cloud_proxy_ip_list.items():
-                for ip in ips:
-                    sub_pipeline.add_sub_pipeline(
-                        sub_flow=self.upgrade_mysql_proxy_subflow(
-                            bk_cloud_id=bk_cloud_id,
-                            ip=ip,
-                            pkg_id=pkg_id,
-                            proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
-                            proxy_ports=proxy_ports,
-                        )
+                ports_map[proxy_instance.machine.ip].append(proxy_instance.port)
+            for index, (proxy_ip, ports) in enumerate(ports_map.items()):
+                sub_pipeline.add_sub_pipeline(
+                    sub_flow=self.upgrade_mysql_proxy_subflow(
+                        bk_cloud_id=bk_cloud_id,
+                        ip=proxy_ip,
+                        pkg_id=pkg_id,
+                        proxy_version=get_sub_version_by_pkg_name(proxy_pkg.name),
+                        proxy_ports=ports,
                     )
+                )
+                # 最后一个节点无需再确认
+                if index < len(ports_map) - 1:
                     sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("本地升级proxy版本")))
@@ -155,4 +153,4 @@ class MySQLProxyLocalUpgradeFlow(object):
                 )
             ),
         )
-        return sub_pipeline.build_sub_process(sub_name=_("proxy实例升级"))
+        return sub_pipeline.build_sub_process(sub_name=_("{}proxy实例升级").format(ip))

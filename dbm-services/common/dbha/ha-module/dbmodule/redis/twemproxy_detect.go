@@ -25,7 +25,7 @@ func (ins *TwemproxyDetectInstance) Detection() error {
 		return nil
 	}
 
-	if err != nil && ins.Status == constvar.AUTHCheckFailed {
+	if err != nil && ins.Status == constvar.RedisAuthFailed {
 		log.Logger.Errorf("Twemproxy auth failed. %s#%d|%s:%s %+v",
 			ins.Ip, ins.Port, ins.GetType(), ins.Pass, err)
 		return err
@@ -34,7 +34,7 @@ func (ins *TwemproxyDetectInstance) Detection() error {
 	sshErr := ins.CheckSSH()
 	if sshErr != nil {
 		if util.CheckSSHErrIsAuthFail(sshErr) {
-			ins.Status = constvar.AUTHCheckFailed
+			ins.Status = constvar.SSHAuthFailed
 			log.Logger.Errorf("Twemproxy check ssh auth failed.ip:%s,port:%d,app:%s,status:%s",
 				ins.Ip, ins.Port, ins.App, ins.Status)
 		} else {
@@ -67,7 +67,7 @@ func (ins *TwemproxyDetectInstance) DoTwemproxyDetection() error {
 		twemproxyErr = fmt.Errorf("do twemproxy cmd failed,err: %s,info;%s",
 			err.Error(), ins.ShowDetectionInfo())
 		if util.CheckRedisErrIsAuthFail(err) {
-			ins.Status = constvar.AUTHCheckFailed
+			ins.Status = constvar.RedisAuthFailed
 		} else {
 			ins.Status = constvar.DBCheckFailed
 		}

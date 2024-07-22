@@ -128,8 +128,10 @@ const (
 	SSHCheckFailed = "SSH_check_failed"
 	// SSHCheckSuccess TODO
 	SSHCheckSuccess = "SSH_check_success"
-	// AUTHCheckFailed TODO
-	AUTHCheckFailed = "AUTH_check_failed"
+	// SSHAuthFailed ssh auth failed
+	SSHAuthFailed = "SSH_auth_failed"
+	// RedisAuthFailed TODO
+	RedisAuthFailed = "Redis_auth_failed"
 )
 
 const (
@@ -351,8 +353,10 @@ const (
 	DBHAEventRiakSwitchSucc = "dbha_riak_switch_ok"
 	// DBHAEventMysqlSwitchErr TODO
 	DBHAEventRiakSwitchErr = "dbha_riak_switch_err"
-	// DBHAEventDetectAuth TODO
-	DBHAEventDetectAuth = "dbha_detect_auth_fail"
+	// DBHAEventDetectRedisAuth TODO
+	DBHAEventDetectRedisAuth = "dbha_detect_redis_auth_fail"
+	// DBHAEventDetectSSHAuth TODO
+	DBHAEventDetectSSHAuth = "dbha_detect_ssh_auth_fail"
 	// DBHAEventDetectSSH TODO
 	DBHAEventDetectSSH = "dbha_detect_ssh_fail"
 	// DBHAEventDetectDB TODO

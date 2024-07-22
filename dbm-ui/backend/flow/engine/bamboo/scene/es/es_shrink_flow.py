@@ -113,8 +113,12 @@ class EsShrinkFlow(EsFlow):
         if manager_ip in shrink_ips:
             # 安装kibana
             kibana_ip = self.get_node_in_dbmeta_preferred_hot(exclude_ips=shrink_ips)
-            act_kwargs.get_es_payload_func = EsActPayload.get_install_kibana_payload.__name__
             act_kwargs.exec_ip = kibana_ip
+            # 再次下发dbactuator
+            es_pipeline.add_act(
+                act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+            )
+            act_kwargs.get_es_payload_func = EsActPayload.get_install_kibana_payload.__name__
             es_pipeline.add_act(
                 act_name=_("安装kibana"),
                 act_component_code=ExecuteEsActuatorScriptComponent.code,
