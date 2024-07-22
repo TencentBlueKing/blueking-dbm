@@ -53,9 +53,11 @@
 </template>
 <script lang="ts">
   import { useI18n } from 'vue-i18n';
+
   import RedisModel from '@services/model/redis/redis';
-  import RenderText from '@components/render-table/columns/text-plain/index.vue';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderSourceCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
@@ -111,7 +113,7 @@
   });
 
   const emits = defineEmits<Emits>();
-  
+
   const { t } = useI18n();
 
   const sourceClusterRef = ref<InstanceType<typeof RenderSourceCluster>>();
@@ -121,8 +123,8 @@
   const selectClusterList = ref<SelectItem[]>([]);
 
   watch(
-    () => props.data.srcCluster,
-    (cluster) => {
+    () => [props.data.srcCluster, props.clusterList],
+    ([cluster]) => {
       if (cluster) {
         selectClusterList.value = props.clusterList.filter((item) => item.label !== cluster);
       }
