@@ -37,7 +37,16 @@ from backend.utils.basic import get_target_items_from_details
 
 
 def fetch_cluster_ids(details: Dict[str, Any]) -> List[int]:
-    cluster_keys = ["cluster_id", "cluster_ids", "src_cluster", "source_cluster", "target_cluster", "target_clusters"]
+    cluster_keys = [
+        "cluster_id",
+        "cluster_ids",
+        "src_cluster",
+        "dst_cluster",
+        "source_cluster",
+        "source_clusters",
+        "target_cluster",
+        "target_clusters",
+    ]
     return [
         item for item in get_target_items_from_details(obj=details, match_keys=cluster_keys) if isinstance(item, int)
     ]

@@ -97,18 +97,21 @@ class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
     def format_append_cluster_info(self):
         """补充追加集群的信息"""
         master_host_ids = [info["backend_group"]["master"]["bk_host_id"] for info in self.ticket_data["infos"]]
-        storages = StorageInstance.objects.prefetch_related("cluster").filter(machine__in=master_host_ids)
+        storages = (
+            StorageInstance.objects.select_related("machine")
+            .prefetch_related("cluster")
+            .filter(machine__in=master_host_ids)
+        )
 
         master_host__cluster: Dict[int, Cluster] = {}
         master_host__machine: Dict[int, Machine] = {}
         master_host__max_port: Dict[int, int] = {}
         # 获取主机IP与集群，主机和起始端口的映射
         for inst in storages:
-            cluster = inst.cluster.first()
             master_host__machine[inst.machine.bk_host_id] = inst.machine
-            master_host__cluster[inst.machine.bk_host_id] = cluster
+            master_host__cluster[inst.machine.bk_host_id] = inst.cluster.all()[0]
             if inst.machine.bk_host_id not in master_host__max_port:
-                max_port = max(cluster.storageinstance_set.values_list("port", flat=True))
+                max_port = max(inst.machine.storageinstance_set.values_list("port", flat=True))
                 master_host__max_port[inst.machine.bk_host_id] = max_port
 
         for info in self.ticket_data["infos"]:
