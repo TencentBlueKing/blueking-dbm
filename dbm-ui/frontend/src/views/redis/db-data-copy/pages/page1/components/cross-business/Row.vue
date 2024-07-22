@@ -60,9 +60,11 @@
 </template>
 <script lang="ts">
   import { useI18n } from 'vue-i18n';
+
   import RedisModel from '@services/model/redis/redis';
-  import RenderText from '@components/render-table/columns/text-plain/index.vue';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderSourceCluster from '@views/redis/common/edit-field/ClusterName.vue';
   import RenderKeyRelated from '@views/redis/common/edit-field/RegexKeys.vue';
