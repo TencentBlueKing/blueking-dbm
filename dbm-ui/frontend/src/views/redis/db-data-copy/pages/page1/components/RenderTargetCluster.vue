@@ -36,6 +36,7 @@
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   interface Props {
+    data: number;
     selectList?: SelectItem[];
     isLoading?: boolean;
   }
@@ -48,7 +49,7 @@
     (e: 'select-change', value: number): void;
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     selectList: () => [],
     isLoading: false,
   });
@@ -66,6 +67,16 @@
       message: t('请选择目标集群'),
     },
   ];
+
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: number) => {
     localValue.value = value;
