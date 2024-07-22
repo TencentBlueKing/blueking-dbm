@@ -221,9 +221,9 @@ func (a *MonitorAgent) FetchDBInstance() error {
 		log.Logger.Errorf("get shield config failed:%s", err.Error())
 		return err
 	}
-	if len(a.DBInstance) == 0 {
-		a.DBInstance = make(map[string]dbutil.DataBaseDetect)
-	}
+
+	//should clean cache always
+	a.DBInstance = make(map[string]dbutil.DataBaseDetect)
 	for _, rawIns := range AllDbInstance {
 		rawIp, rawPort := rawIns.GetAddress()
 		if _, ok := shieldConfig[rawIp]; ok {
