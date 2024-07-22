@@ -39,7 +39,7 @@ class BFPluginViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         host = data["host"]
         try:
-            machine = Machine.objects.get(bk_host_id=host["bk_host_id"], bk_biz_id=host["bk_biz_id"])
+            machine = Machine.objects.get(bk_host_id=host["bk_host_id"])
         except Machine.DoesNotExist:
             logger.warning(_("主机{}不存在业务{}下").format(host["bk_host_innerip"], host["bk_biz_id"]))
             return Response(False)
