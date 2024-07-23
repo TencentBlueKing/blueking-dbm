@@ -12,7 +12,6 @@ import json
 
 from django.db import connection
 
-from backend import env
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
@@ -38,7 +37,7 @@ class ToolboxHandler(ClusterServiceHandler):
     def query_cluster_ips(
         self, limit=None, offset=None, cluster_id=None, ip=None, role=None, status=None, cluster_status=None
     ):
-        """聚合查询集群下的主机"""
+        """聚合查询集群下的主机 TODO:"""
 
         limit_sql = ""
         if limit and limit > 0:
@@ -98,12 +97,7 @@ class ToolboxHandler(ClusterServiceHandler):
             return {"count": 0, "results": ips}
 
         # 查询主机信息
-        host_id_info_map = {
-            host_info["host_id"]: host_info
-            for host_info in HostHandler.check(
-                [{"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "scope_type": "biz"}], [], [], bk_host_ids
-            )
-        }
+        host_id_info_map = {host["host_id"]: host for host in HostHandler.check([], [], [], bk_host_ids)}
 
         # 查询主从状态对
         master_slave_map = RedisListRetrieveResource.query_master_slave_map(
