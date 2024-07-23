@@ -1,4 +1,4 @@
-{{- if .Values.enabled -}}
+{{- if .Values.saas.celeryWorker.enabled | default .Values.enabled -}}
 {{- $fullName := ( include "dbm.celery-worker.fullname" .) -}}
 apiVersion: apps/v1
 kind: Deployment
