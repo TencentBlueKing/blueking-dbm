@@ -5,10 +5,13 @@
       @batch-edit="handleBatchEditBackupSource"
       @batch-select-cluster="handleShowBatchSelector">
       <RenderDataRow
-        v-for="item in tableData"
+        v-for="(item, index) in tableData"
         :key="item.rowKey"
         ref="rowRefs"
-        :data="item" />
+        :data="item"
+        :removeable="tableData.length < 2"
+        @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+        @remove="handleRemove(index)" />
     </RenderData>
     <template #action>
       <BkButton
@@ -65,6 +68,8 @@
       multiple: false,
     },
   };
+  // 集群域名是否已存在表格的映射表
+  const domainMemo: Record<string, boolean> = {};
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -107,18 +112,38 @@
     window.changeConfirm = true;
   };
 
+  // 追加一个集群
+  const handleAppend = (index: number, appendList: Array<IDataRow>) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, ...appendList);
+    tableData.value = dataList;
+  };
+
+  // 删除一个集群
+  const handleRemove = (index: number) => {
+    const dataList = [...tableData.value];
+    const domain = dataList[index].clusterData?.domain;
+    if (domain) {
+      delete domainMemo[domain];
+      const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
+    }
+    dataList.splice(index, 1);
+    tableData.value = dataList;
+  };
+
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
+      .then((infos) =>
         createTicket({
+          bk_biz_id: currentBizId,
           ticket_type: 'TENDBCLUSTER_ROLLBACK_CLUSTER',
           remark: '',
           details: {
             rollback_cluster_type: 'BUILD_INTO_METACLUSTER',
-            ...data[0],
+            infos,
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

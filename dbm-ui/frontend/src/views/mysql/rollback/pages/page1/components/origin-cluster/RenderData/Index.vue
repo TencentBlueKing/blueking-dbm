@@ -15,8 +15,8 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn
-        :min-width="130"
-        :width="150">
+        :min-width="270"
+        :width="280">
         {{ t('待回档集群') }}
         <template #append>
           <span
@@ -46,8 +46,8 @@
         {{ t('备份源') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="320"
-        :width="340">
+        :min-width="380"
+        :width="400">
         <template #append>
           <BatchEditColumn
             v-model="isShowBatchEdit.mode"
@@ -65,7 +65,7 @@
                 filterable
                 :list="selectList.mode"
                 @change="handleModeType" />
-              <div v-if="checkedModeType === 'time'">
+              <div v-if="checkedModeType === BackupTypes.TIME">
                 <div
                   class="title-spot edit-title mt-24"
                   style="font-weight: normal">
@@ -92,6 +92,11 @@
                   type="datetime"
                   :value="datePickerValue"
                   @change="handleDatePickerChange" />
+                <div
+                  class="mt-4"
+                  :style="{ color: '#979ba5', lineHeight: '20px' }">
+                  {{ t('自动匹配指定日期前的最新全库备份') }}
+                </div>
               </div>
             </template>
           </BatchEditColumn>
@@ -123,6 +128,8 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import { BackupTypes, selectList } from '../../common/const';
+
   import type { IDataRow } from './Row.vue';
 
   interface Emits {
@@ -134,44 +141,25 @@
 
   const { t } = useI18n();
 
+  const checkedModeType = ref(BackupTypes.BACKUPID);
+  const datePickerValue = ref('');
   const isShowBatchEdit = reactive({
     backupSource: false,
     mode: false,
+    databases: false,
+    databasesIgnore: false,
+    tables: false,
+    tablesIgnore: false,
   });
-  const checkedModeType = ref('record');
-  const datePickerValue = ref('');
 
-  const selectList = {
-    backupSource: [
-      {
-        value: 'remote',
-        label: t('远程备份'),
-      },
-      {
-        value: 'local',
-        label: t('本地备份'),
-      },
-    ],
-    mode: [
-      {
-        value: 'record',
-        label: t('备份记录'),
-      },
-      {
-        value: 'time',
-        label: t('回档到指定时间'),
-      },
-    ],
-  };
-
-  const handleModeType = (value: string) => {
+  const handleModeType = (value: BackupTypes) => {
     checkedModeType.value = value;
   };
   const handleDatePickerChange = (date: string) => {
     datePickerValue.value = date;
   };
   const handleBatchModeEdit = () => {
-    if (checkedModeType.value === 'time') {
+    if (checkedModeType.value === BackupTypes.TIME) {
       handleBatchEdit('rollbackTime', datePickerValue.value);
       handleBatchEdit('backupid', '');
     } else {

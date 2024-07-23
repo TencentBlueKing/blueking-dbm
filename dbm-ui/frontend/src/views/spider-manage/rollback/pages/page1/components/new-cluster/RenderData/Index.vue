@@ -15,8 +15,8 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn
-        :min-width="130"
-        :width="150">
+        :min-width="170"
+        :width="180">
         {{ t('待回档集群') }}
         <template #append>
           <span
@@ -37,8 +37,8 @@
         {{ t('存储层主机') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="140"
-        :width="160">
+        :min-width="150"
+        :width="170">
         {{ t('接入层主机') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
@@ -61,8 +61,8 @@
         {{ t('备份源') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="320"
-        :width="340">
+        :min-width="380"
+        :width="400">
         <template #append>
           <BatchEditColumn
             v-model="isShowBatchEdit.mode"
@@ -80,7 +80,7 @@
                 filterable
                 :list="selectList.mode"
                 @change="handleModeType" />
-              <div v-if="checkedModeType === BackupTypes.REMOTE_AND_TIME">
+              <div v-if="checkedModeType === BackupTypes.TIME">
                 <div
                   class="title-spot edit-title mt-24"
                   style="font-weight: normal">
@@ -107,6 +107,11 @@
                   type="datetime"
                   :value="datePickerValue"
                   @change="handleDatePickerChange" />
+                <div
+                  class="mt-4"
+                  :style="{ color: '#979ba5', lineHeight: '20px' }">
+                  {{ t('自动匹配指定日期前的最新全库备份') }}
+                </div>
               </div>
             </template>
           </BatchEditColumn>
@@ -214,6 +219,8 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import { BackupTypes, selectList } from '../../common/const';
+
   import type { IDataRow } from './Row.vue';
 
   interface Emits {
@@ -225,29 +232,8 @@
 
   const { t } = useI18n();
 
-  enum BackupTypes {
-    REMOTE_AND_BACKUPID = 'REMOTE_AND_BACKUPID',
-    REMOTE_AND_TIME = 'REMOTE_AND_TIME',
-  }
-  const selectList = {
-    backupSource: [
-      {
-        value: 'remote',
-        label: t('远程备份'),
-      },
-    ],
-    mode: [
-      {
-        value: BackupTypes.REMOTE_AND_BACKUPID,
-        label: t('备份记录'),
-      },
-      {
-        value: BackupTypes.REMOTE_AND_TIME,
-        label: t('回档到指定时间'),
-      },
-    ],
-  };
-
+  const checkedModeType = ref(BackupTypes.BACKUPID);
+  const datePickerValue = ref('');
   const isShowBatchEdit = reactive({
     backupSource: false,
     mode: false,
@@ -256,8 +242,6 @@
     tables: false,
     tablesIgnore: false,
   });
-  const checkedModeType = ref(BackupTypes.REMOTE_AND_BACKUPID);
-  const datePickerValue = ref('');
 
   const handleModeType = (value: BackupTypes) => {
     checkedModeType.value = value;
@@ -266,7 +250,7 @@
     datePickerValue.value = date;
   };
   const handleBatchModeEdit = () => {
-    if (checkedModeType.value === BackupTypes.REMOTE_AND_TIME) {
+    if (checkedModeType.value === BackupTypes.TIME) {
       handleBatchEdit('rollbackTime', datePickerValue.value);
       handleBatchEdit('backupid', '');
     } else {

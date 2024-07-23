@@ -21,12 +21,16 @@
         @input-create="handleCreate" />
     </td>
     <td style="padding: 0">
-      <RenderHost
+      <RenderHostSource
+        ref="hostSourceRef"
+        :model-value="localHostSource"
+        @change="handleHostSourceChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderHostInputSelect
         ref="hostRef"
-        :cloud-id="localClusterData?.cloudId"
-        :disabled="!localClusterData?.id"
-        :domain="localClusterData?.domain"
-        :model-value="data.rollbackIp" />
+        :cluster-data="localClusterData"
+        single />
     </td>
     <td style="padding: 0">
       <RenderBackup
@@ -46,6 +50,7 @@
       <RenderDbName
         ref="databasesRef"
         :cluster-id="localClusterData!.id"
+        disabled-model-value-init
         :model-value="data.databases" />
     </td>
     <td style="padding: 0">
@@ -59,6 +64,7 @@
       <RenderTableName
         ref="tablesRef"
         :cluster-id="localClusterData!.id"
+        disabled-model-value-init
         :model-value="data.tables" />
     </td>
     <td style="padding: 0">
@@ -77,6 +83,8 @@
 <script lang="ts">
   import { random } from '@utils';
 
+  import { BackupSources, BackupTypes } from '../../common/const';
+
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
@@ -85,8 +93,14 @@
       cloudId?: number;
       cloudName?: string;
     };
-    rollbackIp?: string;
-    backupSource: string;
+    rollbackHost?: {
+      ip: string;
+      bk_host_id: number;
+      bk_cloud_id: number;
+      bk_biz_id: number;
+    };
+    backupSource: BackupSources;
+    rollbackType: BackupTypes;
     backupid?: string;
     rollbackTime?: string;
     databases?: string[];
@@ -102,8 +116,14 @@
       id: 0,
       domain: '',
     },
-    rollbackIp: data.rollbackIp,
-    backupSource: data.backupSource || 'remote',
+    rollbackHost: data.rollbackHost || {
+      ip: '',
+      bk_host_id: 0,
+      bk_cloud_id: 0,
+      bk_biz_id: 0,
+    },
+    backupSource: data.backupSource || BackupSources.REMOTE,
+    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
     backupid: data.backupid || '',
     rollbackTime: data.rollbackTime || '',
     databases: data.databases || ['*'],
@@ -119,11 +139,11 @@
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
+  import RenderMode from '@views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
   import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
-  import RenderHost from '@views/mysql/rollback/pages/page1/components/common/RenderHost.vue';
-
-  import RenderMode from '@/views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
+  import RenderHostInputSelect from '@views/mysql/rollback/pages/page1/components/common/RenderHostInputSelect.vue';
+  import RenderHostSource from '@views/mysql/rollback/pages/page1/components/common/RenderHostSource.vue';
 
   interface Props {
     data: IDataRow;
@@ -143,6 +163,7 @@
   const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
+  const hostSourceRef = ref();
   const hostRef = ref();
   const backupSourceRef = ref();
   const modeRef = ref();
@@ -151,18 +172,23 @@
   const tablesRef = ref();
   const tablesIgnoreRef = ref();
 
+  const localHostSource = ref('idle');
   const localClusterData = ref<IDataRow['clusterData']>({
     id: 0,
     domain: '',
   });
-  const localBackupSource = ref('');
+  const localBackupSource = ref(BackupSources.REMOTE);
 
   const handleClusterChange = (data: IDataRow['clusterData']) => {
     localClusterData.value = data;
   };
 
+  const handleHostSourceChange = (value: string) => {
+    localHostSource.value = value;
+  };
+
   const handleBackupSourceChange = (value: string) => {
-    localBackupSource.value = value;
+    localBackupSource.value = value as BackupSources;
   };
 
   const handleCreate = (list: Array<string>) => {
@@ -227,7 +253,7 @@
           tablesIgnoreData,
         ]) => ({
           ...clusterData,
-          ...hostData,
+          rollback_host: { ...hostData.hosts[0] },
           ...backupSourceData,
           ...modeData,
           ...databasesData,

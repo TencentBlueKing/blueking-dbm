@@ -21,7 +21,12 @@
       'is-disabled': disabled,
       'is-seleced': !!localValue,
     }">
-    <div class="select-result-text">
+    <div
+      v-bk-tooltips="{
+        content: renderText,
+        disabled: !renderText,
+      }"
+      class="select-result-text">
       <span>{{ renderText }}</span>
     </div>
     <DbIcon
@@ -50,7 +55,7 @@
           <div
             v-for="item in tabOptions"
             :key="item.name"
-            v-bk-tooltips="t('自动选择与指定时间最近的全备记录文件')"
+            v-bk-tooltips="t('自动匹配指定日期前的最新全库备份')"
             class="tab-header-item"
             :class="{ 'is-active': recordType === item.name }"
             @click="hanldeChangeTab(item.name)">
@@ -262,6 +267,7 @@
   const hanldeChangeTab = (tabName: OperateType) => {
     recordType.value = tabName;
     if (tabName === OperateType.MATCH) {
+      localValue.value = '';
       nextTick(() => {
         dateTriggerRef.value.click();
       });

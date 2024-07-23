@@ -14,11 +14,11 @@
 <template>
   <TableEditSelect
     ref="editSelectRef"
-    :list="list"
+    :list="targetList"
     :model-value="modelValue"
-    :placeholder="$t('请选择')"
+    :placeholder="t('请选择')"
     :rules="rules"
-    @change="(value) => handleChange(value as string)" />
+    @change="(value) => handleChange(value as BackupSources)" />
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
@@ -26,12 +26,18 @@
 
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
+  import { BackupSources, selectList } from './const';
+
   interface Props {
-    modelValue: string;
+    modelValue: BackupSources;
+    list?: {
+      value: string;
+      label: string;
+    }[];
   }
 
   interface Emits {
-    (e: 'change', value: string): void;
+    (e: 'change', value: BackupSources): void;
   }
 
   interface Exposes {
@@ -48,20 +54,13 @@
       message: t('备份源不能为空'),
     },
   ];
-
-  const list = [
-    {
-      id: 'remote',
-      name: t('远程备份'),
-    },
-    {
-      id: 'local',
-      name: t('本地备份'),
-    },
-  ];
+  const targetList = (props.list || selectList.backupSource).map((item) => ({
+    id: item.value,
+    name: item.label,
+  }));
 
   const editSelectRef = ref();
-  const localValue = ref('');
+  const localValue = ref(BackupSources.REMOTE);
 
   watch(
     () => props.modelValue,
@@ -73,7 +72,7 @@
     },
   );
 
-  const handleChange = (value: string) => {
+  const handleChange = (value: BackupSources) => {
     localValue.value = value;
     emits('change', localValue.value);
   };

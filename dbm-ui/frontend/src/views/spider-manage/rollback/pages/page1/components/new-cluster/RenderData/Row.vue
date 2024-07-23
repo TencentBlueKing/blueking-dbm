@@ -17,34 +17,34 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
           :model-value="localClusterData"
+          :placeholder="t('请输入集群')"
           @change="handleClusterChange" />
       </td>
       <td style="padding: 0">
         <RenderHostSource
-          ref="backupSourceRef"
+          ref="hostSourceRef"
           :model-value="localHostSource"
           @change="handleHostSourceChange" />
       </td>
       <td style="padding: 0">
         <!-- 存储层 -->
-        <RenderHostSelector
+        <RenderHostInputSelect
           ref="remoteHostRef"
-          :cluster-data="localClusterData"
-          :cluster-id="localClusterData!.id" />
+          :cluster-data="localClusterData" />
       </td>
       <td style="padding: 0">
         <!-- 接入层 -->
-        <RenderHostSelector
+        <RenderHostInputSelect
           ref="spiderHostRef"
           :cluster-data="localClusterData"
-          :cluster-id="localClusterData!.id"
-          :placeholder="t('请选择主机 (1台)')"
           single />
       </td>
       <td style="padding: 0">
         <RenderBackup
           ref="backupSourceRef"
+          :list="selectList.backupSource"
           :model-value="localBackupSource"
           @change="handleBackupSourceChange" />
       </td>
@@ -60,6 +60,7 @@
         <RenderDbName
           ref="databasesRef"
           :cluster-id="localClusterData!.id"
+          disabled-model-value-init
           :model-value="data.databases" />
       </td>
       <td style="padding: 0">
@@ -73,6 +74,7 @@
         <RenderTableName
           ref="tablesRef"
           :cluster-id="localClusterData!.id"
+          disabled-model-value-init
           :model-value="data.tables" />
       </td>
       <td style="padding: 0">
@@ -86,7 +88,11 @@
   </tbody>
 </template>
 <script lang="ts">
+  import { ClusterTypes } from '@common/const';
+
   import { random } from '@utils';
+
+  import { BackupSources, BackupTypes, selectList } from '../../common/const';
 
   export interface IDataRow {
     rowKey: string;
@@ -96,24 +102,24 @@
       cloudId?: number;
       cloudName?: string;
     };
-    rollback_host: {
+    rollbackHost: {
       // 接入层
-      spider_host?: {
+      spiderHost?: {
         ip: string;
         bk_host_id: number;
         bk_cloud_id: number;
         bk_biz_id: number;
       };
       // 存储层
-      remote_hosts?: {
+      remoteHosts?: {
         ip: string;
         bk_host_id: number;
         bk_cloud_id: number;
         bk_biz_id: number;
       }[];
     };
-    backupSource: string;
-    rollbackupType: string;
+    backupSource: BackupSources;
+    rollbackType: BackupTypes;
     backupid?: string;
     rollbackTime?: string;
     databases: string[];
@@ -129,17 +135,17 @@
       id: 0,
       domain: '',
     },
-    rollback_host: data.rollback_host || {
-      spider_host: {
+    rollbackHost: data.rollbackHost || {
+      spiderHost: {
         ip: '',
         bk_host_id: 0,
         bk_cloud_id: 0,
         bk_biz_id: 0,
       },
-      remote_hosts: [],
+      remoteHosts: [],
     },
-    backupSource: data.backupSource || 'remote',
-    rollbackupType: data.rollbackupType || 'REMOTE_AND_TIME',
+    backupSource: data.backupSource || BackupSources.REMOTE,
+    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
     backupid: data.backupid || '',
     rollbackTime: data.rollbackTime || '',
     databases: data.databases || ['*'],
@@ -153,11 +159,11 @@
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
+  import RenderMode from '@views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
+  import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
-  import RenderMode from '@views/spider-manage/rollback/pages/page1/components/common/render-mode/Index.vue';
-  import RenderBackup from '@views/spider-manage/rollback/pages/page1/components/common/RenderBackup.vue';
-  import RenderHostSelector from '@views/spider-manage/rollback/pages/page1/components/common/RenderHostSelector.vue';
-  import RenderHostSource from '@views/spider-manage/rollback/pages/page1/components/common/RenderHostSource.vue';
+  import RenderHostInputSelect from '@views/mysql/rollback/pages/page1/components/common/RenderHostInputSelect.vue';
+  import RenderHostSource from '@views/mysql/rollback/pages/page1/components/common/RenderHostSource.vue';
 
   interface Props {
     data: IDataRow;
@@ -172,6 +178,7 @@
   const { t } = useI18n();
 
   const clusterRef = ref();
+  const hostSourceRef = ref();
   const spiderHostRef = ref();
   const remoteHostRef = ref();
   const modeRef = ref();
@@ -184,19 +191,18 @@
     domain: '',
   });
   const localHostSource = ref('idle');
-  const localRollbackuoType = ref('');
-  const localBackupSource = ref('remote');
+  const localBackupSource = ref(BackupSources.REMOTE);
+
+  const handleClusterChange = (data: IDataRow['clusterData']) => {
+    localClusterData.value = data;
+  };
 
   const handleHostSourceChange = (value: string) => {
     localHostSource.value = value;
   };
 
   const handleBackupSourceChange = (value: string) => {
-    localBackupSource.value = value;
-  };
-
-  const handleClusterChange = (data: IDataRow['clusterData']) => {
-    localClusterData.value = data;
+    localBackupSource.value = value as BackupSources;
   };
 
   watch(
@@ -205,10 +211,11 @@
       if (props.data.clusterData) {
         localClusterData.value = props.data.clusterData;
       }
-      localRollbackuoType.value = props.data.rollbackupType;
+      localBackupSource.value = props.data.backupSource;
     },
     {
       immediate: true,
+      deep: true,
     },
   );
 

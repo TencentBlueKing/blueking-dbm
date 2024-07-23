@@ -153,7 +153,7 @@
     showView?: boolean,
     required?: boolean,
     isCloudAreaRestrictions?: boolean,
-    cloudInfo?: {id?: number | string, name?: string},
+    cloudInfo?: {id?: number, name?: string},
     disableDialogSubmitMethod?: (hostList: Array<any>) => string | boolean
     disableHostMethod?: (...args: any) => string | boolean,
     serviceMode?: 'all' | 'idle_only',
@@ -250,7 +250,7 @@
     }
 
     const { id } = props.cloudInfo;
-    if (props.isCloudAreaRestrictions && (id === '' || id === undefined || Number(id) < 0)) {
+    if (props.isCloudAreaRestrictions && (id === 0 || id === undefined || Number(id) < 0)) {
       tips.disabled = false;
       tips.content = t('请选择管控区域');
       return tips;

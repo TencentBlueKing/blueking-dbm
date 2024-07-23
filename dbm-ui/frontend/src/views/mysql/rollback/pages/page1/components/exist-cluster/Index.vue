@@ -75,7 +75,7 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
     onSuccess(cloneData) {
-      tableData.value = cloneData.tableDataList;
+      tableData.value = cloneData.tableDataList as IDataRow[];
       window.changeConfirm = true;
     },
   });
@@ -123,7 +123,6 @@
       }
       return results;
     }, [] as IDataRow[]);
-
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -155,14 +154,15 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
+      .then((infos) =>
         createTicket({
-          rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
+          bk_biz_id: currentBizId,
+          ticket_type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
           remark: '',
           details: {
-            infos: data,
+            rollback_cluster_type: 'BUILD_INTO_EXIST_CLUSTER',
+            infos,
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

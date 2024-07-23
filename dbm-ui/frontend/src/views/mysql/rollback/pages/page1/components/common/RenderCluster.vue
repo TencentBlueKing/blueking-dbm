@@ -17,7 +17,7 @@
       ref="editRef"
       v-model="localDomain"
       multi-input
-      :placeholder="$t('请输入集群_使用换行分割一次可输入多个')"
+      :placeholder="placeholder"
       :rules="rules"
       @multi-input="handleMultiInput" />
   </div>
@@ -26,16 +26,14 @@
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
-  import {
-    onBeforeUnmount,
-    ref,
-    watch,
-  } from 'vue';
+  import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
+
+  import { ClusterTypes } from '@common/const';
 
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
@@ -44,22 +42,28 @@
   import type { IDataRow } from '../../components/new-cluster/RenderData/Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['clusterData'],
+    clusterType?: ClusterTypes;
+    modelValue?: IDataRow['clusterData'];
+    placeholder?: string;
   }
 
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void,
-    (e: 'change', data: Props['modelValue']): void,
+    (e: 'inputCreate', value: Array<string>): void;
+    (e: 'change', data: Props['modelValue']): void;
   }
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Array<number>;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    clusterType: ClusterTypes.TENDBHA,
+    modelValue: undefined,
+    placeholder: '请输入集群_使用换行分割一次可输入多个',
+  });
   const emits = defineEmits<Emits>();
 
-  const instanceKey = `render_cluster_instance_${random()}`;
+  const instanceKey = `render_cluster_${random()}`;
   clusterIdMemo[instanceKey] = {};
 
   const { currentBizId } = useGlobalBizs();
@@ -72,93 +76,78 @@
 
   const rules = [
     {
-      validator: (value: string) => {
-        if (value) {
+      validator: (domain: string) => {
+        if (domain) {
           return true;
         }
-        emits('change', {
-          id: 0,
-          domain: localDomain.value,
-          cloudId: undefined,
-          cloudName: undefined
-        });
         return false;
       },
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => queryClusters({
-        cluster_filters: [
-          {
-            immute_domain: value,
-          },
-        ],
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        if (data.length > 0) {
-          localClusterId.value = data[0].id;
+      validator: (domain: string) =>
+        queryClusters({
+          cluster_filters: [
+            {
+              immute_domain: domain,
+              cluster_type: props.clusterType,
+            },
+          ],
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          if (data.length > 0) {
+            const { id, master_domain: domain, bk_cloud_id: cloudId, bk_cloud_name: cloudName } = data[0];
+            localClusterId.value = id;
+            emits('change', {
+              id,
+              domain,
+              cloudId,
+              cloudName,
+            });
+            clusterIdMemo[instanceKey] = {
+              [id]: true,
+            };
+            return true;
+          }
           emits('change', {
-            id: localClusterId.value,
-            domain: localDomain.value,
-            cloudId: data[0].bk_cloud_id,
-            cloudName: data[0].bk_cloud_name
+            id: 0,
+            domain: '',
+            cloudId: undefined,
+            cloudName: undefined,
           });
-          return true;
-        }
-        emits('change', {
-          id: 0,
-          domain: localDomain.value,
-          cloudId: undefined,
-          cloudName: undefined
-        });
-        return false;
-      }),
+          return false;
+        }),
       message: t('目标集群不存在'),
     },
     {
       validator: () => {
-        const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
-
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
-        }
-        return true;
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
+        return !otherClusterIdMap[localClusterId.value];
       },
       message: t('目标集群重复'),
     },
   ];
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    const {
-      id = 0,
-      domain = '',
-    } = props.modelValue || {};
-    localClusterId.value = id;
-    localDomain.value = domain;
-  }, {
-    immediate: true,
-  });
-
-  // 获取关联集群
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-    clusterIdMemo[instanceKey][localClusterId.value] = true;
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      const { id = 0, domain = '' } = props.modelValue || {};
+      localClusterId.value = id;
+      localDomain.value = domain;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleMultiInput = (list: Array<string>) => {
     emits('inputCreate', list);
@@ -175,9 +164,7 @@
       };
       // 用户输入未完成验证
       if (editRef.value) {
-        return editRef.value
-          .getValue()
-          .then(() => result);
+        return editRef.value.getValue().then(() => result);
       }
       // 用户输入错误
       if (!localClusterId.value) {

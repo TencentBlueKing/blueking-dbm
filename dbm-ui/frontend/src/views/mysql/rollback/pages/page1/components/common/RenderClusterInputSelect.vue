@@ -13,16 +13,15 @@
 
 <template>
   <div class="render-host-box">
-    <TableEditInput
+    <TableSeletorInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="t('请选择或输入')"
       :rules="rules"
       @click-seletor="handleOpenSeletor" />
   </div>
   <ClusterSelector
     v-model:is-show="isShowSelector"
-    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"
     @change="handelClusterChange" />
@@ -40,7 +39,7 @@
 
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
-  import TableEditInput from './Input.vue';
+  import TableSeletorInput from '@views/db-manage/common/TableSeletorInput.vue';
 
   interface Props {
     sourceClusterId: number;
@@ -56,6 +55,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    sourceClusterId: 0,
     data: '',
   });
 
@@ -65,16 +65,27 @@
   const { currentBizId } = useGlobalBizs();
 
   const isShowSelector = ref(false);
-  const localValue = ref(props.data);
-  const editRef = ref();
-  const localClusterIds = ref<number[]>([]);
 
+  const editRef = ref();
+  const localValue = ref(props.data);
+  const localClusterIds = ref<number[]>([]);
   const selectedClusters = shallowRef<{ [key: string]: Array<any> }>({
-    [ClusterTypes.TENDBCLUSTER]: [],
+    [ClusterTypes.TENDBHA]: [],
+    [ClusterTypes.TENDBSINGLE]: [],
   });
 
   const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: {
+    [ClusterTypes.TENDBHA]: {
+      showPreviewResultTitle: true,
+      disabledRowConfig: [
+        {
+          handler: (data: TendbhaModel) => data.id === props.sourceClusterId,
+          tip: t('不能选择源集群'),
+        },
+      ],
+      multiple: false,
+    },
+    [ClusterTypes.TENDBSINGLE]: {
       showPreviewResultTitle: true,
       disabledRowConfig: [
         {
@@ -152,15 +163,5 @@
 <style lang="less" scoped>
   .render-host-box {
     position: relative;
-
-    :deep(.is-error) {
-      .error-icon {
-        top: auto;
-        top: 50%;
-        right: auto;
-        left: 50%;
-        transform: translate(-50%, -50%);
-      }
-    }
   }
 </style>
