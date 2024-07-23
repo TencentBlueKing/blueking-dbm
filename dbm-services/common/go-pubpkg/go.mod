@@ -10,6 +10,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/golang/glog v1.1.2
 	github.com/google/go-querystring v1.1.0
+	github.com/hashicorp/go-version v1.7.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/juju/ratelimit v1.0.2
 	github.com/pkg/errors v0.9.1

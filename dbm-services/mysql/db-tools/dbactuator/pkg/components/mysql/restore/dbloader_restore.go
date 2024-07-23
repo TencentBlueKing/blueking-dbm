@@ -148,7 +148,7 @@ func (m *DBLoader) Start() error {
 	}
 	logger.Info("开始数据恢复 targetDir=%s", m.targetDir)
 	if err := m.dbLoader.Load(); err != nil {
-		return errors.Wrap(err, "dbactuator dbloaderData failed")
+		return errors.WithMessage(err, "dbactuator dbloaderData failed")
 	}
 	return nil
 }

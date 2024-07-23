@@ -87,12 +87,7 @@ func (p *PhysicalDumper) buildArgs() []string {
 		fmt.Sprintf("--port=%d", p.cnf.Public.MysqlPort),
 		fmt.Sprintf("--user=%s", p.cnf.Public.MysqlUser),
 		fmt.Sprintf("--password=%s", p.cnf.Public.MysqlPasswd),
-		fmt.Sprintf(
-			"--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)),
-		"--no-timestamp",
 		"--compress",
-		"--lazy-backup-non-innodb",
-		"--wait-last-flush=2",
 	}
 
 	targetPath := filepath.Join(p.cnf.Public.BackupDir, p.cnf.Public.TargetName())
@@ -101,7 +96,7 @@ func (p *PhysicalDumper) buildArgs() []string {
 	} else {
 		args = append(args,
 			fmt.Sprintf("--target-dir=%s", targetPath),
-			"--backup", "--binlog-info=ON", "--lock-ddl",
+			"--backup", "--lock-ddl",
 		)
 	}
 
@@ -125,8 +120,16 @@ func (p *PhysicalDumper) buildArgs() []string {
 		}...)
 	}
 
-	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
-		args = append(args, "--skip-strict")
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 {
+		if p.isOfficial {
+			args = append(args, "--skip-strict")
+		}
+	} else { // xtrabackup_80 has no this args, and will report errors
+		args = append(args, "--no-timestamp", "--lazy-backup-non-innodb", "--wait-last-flush=2")
+		args = append(args, fmt.Sprintf("--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)))
+		if strings.Compare(p.mysqlVersion, "005007000") > 0 {
+			args = append(args, "--binlog-info=ON")
+		}
 	}
 
 	// ToDo extropt

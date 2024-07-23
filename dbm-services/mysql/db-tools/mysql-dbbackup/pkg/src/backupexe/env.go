@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/samber/lo"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/util"
@@ -19,9 +21,10 @@ import (
 
 // InnodbCommand the binary for xtrabackup
 type InnodbCommand struct {
-	innobackupexBin string
-	xtrabackupBin   string
-	xbcryptBin      string
+	innobackupexBin   string
+	xtrabackupBin     string
+	xbcryptBin        string
+	xtrabackupVersion string
 }
 
 var (
@@ -33,6 +36,24 @@ var (
 	CmdQpress  = ""
 	XbcryptBin = ""
 )
+
+// ParseXtrabackupVersion
+// ./xtrabackup/xtrabackup_80 version 8.0.30-23 based on MySQL server 8.0.30 Linux (x86_64)
+func (i *InnodbCommand) ParseXtrabackupVersion() {
+	if cmutil.FileExists(i.xtrabackupBin) {
+		verReg := regexp.MustCompile(`xtrabackup version (\d+\.\d+\.\d)`)
+		outStr, _, _ := cmutil.ExecCommand(false, "", i.xtrabackupBin, "--version")
+		res := verReg.FindAllString(outStr, -1)
+		if len(res) == 2 {
+			i.xtrabackupVersion = res[1]
+		}
+	}
+}
+
+// GetXtrabackupVersion return version
+func (i *InnodbCommand) GetXtrabackupVersion() string {
+	return i.xtrabackupVersion
+}
 
 // ChooseXtrabackupTool Decide the version of xtrabackup tool
 func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial bool) error {
@@ -79,6 +100,7 @@ func (i *InnodbCommand) ChooseXtrabackupTool(mysqlVersion string, isOfficial boo
 			return fmt.Errorf("unrecognizable mysql version:%s", mysqlVersion)
 		}
 	}
+	i.ParseXtrabackupVersion()
 	return nil
 }
 
@@ -103,18 +125,18 @@ func SetEnv(backupType string, mysqlVersionStr string) error {
 		libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libmydumper"))
 	} else if strings.ToLower(backupType) == cst.BackupPhysical {
 		_, isOfficial := util.VersionParser(mysqlVersionStr)
-		if !isOfficial {
-			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra"))
-			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80"))
-
-			binPath = append(binPath, filepath.Join(ExecuteHome, "bin/xtrabackup"))
-		} else {
+		if isOfficial {
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/private"))
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_57_official/plugin"))
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/private"))
 			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80_official/plugin"))
 
 			binPath = append(binPath, filepath.Join(ExecuteHome, "bin/xtrabackup_official"))
+		} else {
+			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra"))
+			libPath = append(libPath, filepath.Join(ExecuteHome, "lib/libxtra_80"))
+
+			binPath = append(binPath, filepath.Join(ExecuteHome, "bin/xtrabackup"))
 		}
 	} else {
 		return fmt.Errorf("setEnv: unknown backupType %s", backupType)
