@@ -208,6 +208,8 @@
     const newLineInfos =  newLines.map(item => getContents(item));
     const clusters = newLineInfos.map(item => item[0]);
     const clusterInfoResults = await getSpiderList({
+      offset: 0,
+      limit: -1,
       domain: clusters.join(','),
     }).finally(() => {
       loading.value = false;
