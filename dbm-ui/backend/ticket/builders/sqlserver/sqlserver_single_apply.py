@@ -21,8 +21,8 @@ from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.constants import BkOsType
-from backend.db_services.mysql.constants import DEFAULT_ORIGIN_MYSQL_PORT, SERVER_PORT_LIMIT_MAX, SERVER_PORT_LIMIT_MIN
 from backend.exceptions import ValidationError
+from backend.flow.consts import DEFAULT_SQLSERVER_PORT
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -66,12 +66,8 @@ class SQLServerSingleApplyDetailSerializer(serializers.Serializer):
     city_name = serializers.SerializerMethodField(help_text=_("城市名"))
     spec_display = serializers.SerializerMethodField(help_text=_("机器规格展示名"))
 
-    start_mysql_port = serializers.IntegerField(
-        help_text=_("MySQL起始端口"),
-        required=False,
-        min_value=SERVER_PORT_LIMIT_MIN,
-        max_value=SERVER_PORT_LIMIT_MAX,
-        default=DEFAULT_ORIGIN_MYSQL_PORT,
+    start_mssql_port = serializers.IntegerField(
+        help_text=_("SQLServer起始端口"), required=False, default=DEFAULT_SQLSERVER_PORT
     )
 
     def to_representation(self, instance):

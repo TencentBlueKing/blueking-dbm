@@ -17,7 +17,6 @@ from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_D
 from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import AppCache, DBModule
 from backend.db_services.dbbase.constants import IpSource
-from backend.flow.consts import DEFAULT_SQLSERVER_PORT
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.builders import BuilderFactory
@@ -33,9 +32,6 @@ from backend.ticket.constants import TicketType
 class SQLServerHAApplyDetailSerializer(SQLServerSingleApplyDetailSerializer):
     disaster_tolerance_level = serializers.ChoiceField(
         help_text=_("容灾级别"), choices=AffinityEnum.get_choices(), required=False, default=AffinityEnum.NONE.value
-    )
-    start_mssql_port = serializers.IntegerField(
-        help_text=_("SQLServer起始端口"), required=False, default=DEFAULT_SQLSERVER_PORT
     )
 
     def validate(self, attrs):
