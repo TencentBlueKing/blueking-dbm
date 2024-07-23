@@ -383,7 +383,7 @@
       results.push({
         immute_domain: clusters[id].immute_domain,
         cluster_type: type,
-        status: clusters[id].cluster_type
+        status: clusters[id].status
       });
       return results;
     }, [] as RowData[]);
