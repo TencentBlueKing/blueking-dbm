@@ -59,6 +59,7 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       class="es-manage-sideslider"
+      backgroundColor="#F5F7FA"
       :title="t('xx扩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
@@ -68,7 +69,6 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
-      class="es-manage-sideslider"
       :title="t('xx缩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink

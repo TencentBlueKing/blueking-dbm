@@ -56,6 +56,7 @@
     <DbSideslider
       v-model:is-show="isShowExpandsion"
       class="pulsar-manage-sideslider"
+      backgroundColor="#F5F7FA"
       quick-close
       :title="t('xx扩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
       :width="960">
@@ -66,7 +67,6 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
-      class="pulsar-manage-sideslider"
       quick-close
       :title="t('xx缩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
       :width="960">
