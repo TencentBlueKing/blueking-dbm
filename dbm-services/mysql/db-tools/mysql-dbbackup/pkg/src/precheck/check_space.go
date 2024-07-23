@@ -114,10 +114,12 @@ func CheckAndCleanDiskSpace(cnf *config.Public, dbh *sql.DB) error {
 		}
 		if lastBackupSize > 0 {
 			sizeLeft, err = util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, lastBackupSize)
-			logger.Log.Infof("use last backup size=%d, sizeLeft=%d, err=%v", lastBackupSize, sizeLeft, err)
+			logger.Log.Infof("evaluate using last backup size=%d, sizeLeft=%d, BackupDir=%s err=%v",
+				lastBackupSize, sizeLeft, cnf.BackupDir, err)
 		} else {
 			sizeLeft, err = util.CheckDiskSpace(cnf.BackupDir, cnf.MysqlPort, dataDirSize)
-			logger.Log.Infof("use datadir size=%d, sizeLeft=%d, err=%v", dataDirSize, sizeLeft, err)
+			logger.Log.Infof("evaluate using datadir size=%d, sizeLeft=%d, BackupDir=%s err=%v",
+				dataDirSize, sizeLeft, cnf.BackupDir, err)
 		}
 		return err
 	} else {
