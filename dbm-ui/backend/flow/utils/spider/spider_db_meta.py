@@ -46,6 +46,7 @@ class SpiderDBMeta(object):
         # 部署spider集群，更新cmdb
         # 这里采用dict转换到 ShardInfo 类型数据结构体，让后续代码可读性更高
         shard_infos = []
+        def_resource_spec = {MachineType.REMOTE.value: {"id": 0}, MachineType.SPIDER.value: {"id": 0}}
         for info in self.cluster["shard_infos"]:
             shard_infos.append(dict_to_dataclass(data_dict=info, data_class=ShardInfo))
 
@@ -63,7 +64,7 @@ class SpiderDBMeta(object):
             "creator": self.global_data["created_by"],
             "time_zone": self.cluster["time_zone_info"]["time_zone"],
             "bk_cloud_id": int(self.global_data["bk_cloud_id"]),
-            "resource_spec": self.global_data["resource_spec"],
+            "resource_spec": self.global_data.get("resource_spec") or def_resource_spec,
             "shard_infos": shard_infos,
             "region": self.global_data["city"],
             "disaster_tolerance_level": self.global_data["disaster_tolerance_level"],
