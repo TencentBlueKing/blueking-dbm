@@ -230,7 +230,7 @@
             type="number" />
         </BkFormItem>
         <BkFormItem
-          :label="t('消息保留')"
+          :label="t('消息保留时间')"
           property="details.retention_hours"
           required>
           <BkInput
@@ -242,6 +242,21 @@
             type="number" />
           <span style="margin-left: 12px; font-size: 12px; color: #63656e">
             {{ t('小时') }}
+          </span>
+        </BkFormItem>
+        <BkFormItem
+          :label="t('消息保留大小')"
+          property="details.retention_bytes"
+          required>
+          <BkInput
+            v-model="formData.details.retention_bytes"
+            clearable
+            :min="-1"
+            show-clear-only-hover
+            style="width: 185px"
+            type="number" />
+          <span style="margin-left: 12px; font-size: 12px; color: #63656e">
+            {{ t('字节') }}
           </span>
         </BkFormItem>
         <BkFormItem
@@ -259,7 +274,7 @@
             {{ t('需小于等于broker数量') }}
           </span>
         </BkFormItem>
-        <BkFormItem
+        <!-- <BkFormItem
           :label="t('开启认证')"
           property="no_security">
           <BkCheckbox
@@ -267,7 +282,7 @@
             :false-label="1"
             style="vertical-align: middle"
             :true-label="0" />
-        </BkFormItem>
+        </BkFormItem> -->
         <BkFormItem
           :label="t('备注')"
           property="remark">
@@ -371,6 +386,7 @@
       port: 9092,
       partition_num: 1,
       retention_hours: 4,
+      retention_bytes: -1,
       replication_num: 2,
       no_security: 0,
     },
