@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localDomain"
-      :placeholder="t('请输入')"
+      :placeholder="t('请输入集群')"
       :rules="rules" />
   </div>
 </template>
@@ -26,11 +26,12 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   // import { random } from '@utils';
   import type { IDataRow } from './Row.vue';
@@ -40,11 +41,11 @@
   }
 
   interface Emits {
-    (e: 'change', value: IDataRow['clusterData']): void;
+    (e: 'clusterInputFinish', value: TendbhaModel): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<{
+    getValue: (isSubmit: boolean) => Promise<{
       cluster_id: number;
     }>;
   }
@@ -59,11 +60,13 @@
 
   const { currentBizId } = useGlobalBizs();
 
-  const editRef = ref();
+  const editRef = ref<InstanceType<typeof TableEditInput>>();
 
   const localClusterId = ref(0);
   const localDomain = ref('');
   const isShowEdit = ref(true);
+
+  let isSkipCheckClusterExisted = false;
 
   const rules = [
     {
@@ -71,8 +74,12 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) =>
-        queryClusters({
+      validator: (value: string) => {
+        if (isSkipCheckClusterExisted) {
+          return true;
+        }
+
+        return queryClusters({
           cluster_filters: [
             {
               immute_domain: value,
@@ -81,12 +88,13 @@
           bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.length > 0) {
-            emits('change', data[0]);
+            emits('clusterInputFinish', data[0]);
             localClusterId.value = data[0].id;
             return true;
           }
           return false;
-        }),
+        });
+      },
       message: t('目标集群不存在'),
     },
     // {
@@ -148,8 +156,9 @@
   // });
 
   defineExpose<Exposes>({
-    getValue() {
-      return (editRef.value as InstanceType<typeof TableEditInput>).getValue().then(() => ({
+    getValue(isSubmit = false) {
+      isSkipCheckClusterExisted = isSubmit;
+      return editRef.value!.getValue().then(() => ({
         cluster_id: localClusterId.value,
       }));
     },
