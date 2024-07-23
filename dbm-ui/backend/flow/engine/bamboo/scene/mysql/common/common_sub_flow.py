@@ -16,10 +16,8 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components import DBConfigApi
-from backend.components.db_remote_service.client import DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.flow.consts import (
@@ -57,6 +55,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     YumInstallPerlKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_commom_query import query_mysql_variables
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 logger = logging.getLogger("flow")
@@ -815,34 +814,6 @@ def update_machine_system_info_flow(
         ),
     )
     return sub_pipeline.build_sub_process(sub_name=_("获取机器系统信息"))
-
-
-def query_mysql_variables(host: str, port: int, bk_cloud_id: int):
-    """
-    查询远程节点变量
-    """
-    body = {
-        "addresses": ["{}{}{}".format(host, IP_PORT_DIVIDER, port)],
-        "cmds": ["show global variables;"],
-        "force": False,
-        "bk_cloud_id": bk_cloud_id,
-    }
-    resp = DRSApi.rpc(body)
-    logger.info(f"query charset {resp}")
-    if not resp and len(resp) < 1:
-        raise Exception(_("DRS{}:{}查询变量失败,返回为空值").format(host, port))
-
-    if not resp[0]["cmd_results"]:
-        raise Exception(_("DRS查询字符集失败：{}").format(resp[0]["error_msg"]))
-
-    var_list = resp[0]["cmd_results"][0]["table_data"]
-
-    var_map = {}
-    for var_item in var_list:
-        var_name = var_item["Variable_name"]
-        val = var_item["Value"]
-        var_map[var_name] = val
-    return var_map
 
 
 def sync_mycnf_item_sub_flow(

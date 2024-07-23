@@ -16,10 +16,8 @@ from typing import Any, Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
-from backend.components.db_remote_service.client import DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
-from backend.constants import IP_PORT_DIVIDER
 from backend.core import consts
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
@@ -33,6 +31,7 @@ from backend.flow.plugins.components.collections.mysql.semantic_check import Sem
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_commom_query import query_mysql_variables
 from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
@@ -177,8 +176,12 @@ class ImportSQLFlow(object):
             backend_ip = template_cluster["backend_ip"]
             backend_port = template_cluster["port"]
             bk_cloud_id = template_cluster["bk_cloud_id"]
-            backend_charset = self.__get_backend_charset(backend_ip, backend_port, bk_cloud_id)
-            logger.info(f"backend_charset: {backend_charset}")
+            origin_mysql_var_map = query_mysql_variables(host=backend_ip, port=backend_port, bk_cloud_id=bk_cloud_id)
+            backend_charset = origin_mysql_var_map.get("character_set_client")
+            start_mysqld_configs = {}
+            for var in ["sql_mode", "lower_case_table_names", "log_bin_trust_function_creators"]:
+                if origin_mysql_var_map.__contains__(var):
+                    start_mysqld_configs[var] = origin_mysql_var_map.get(var)
 
             sub_pipeline.add_act(
                 act_name=_("给模板集群下发db-actuator"),
@@ -218,6 +221,7 @@ class ImportSQLFlow(object):
                         "task_id": self.root_id,
                         "schema_sql_file": self.semantic_dump_schema_file_name,
                         "execute_objects": self.data["execute_objects"],
+                        "mysql_start_config": start_mysqld_configs,
                     },
                 },
             )
@@ -286,25 +290,3 @@ class ImportSQLFlow(object):
             }
         )["content"]
         return data["db_version"]
-
-    def __get_backend_charset(self, ip, port, bk_cloud_id) -> str:
-        # 获取远端字符集
-        logger.info(f"param: {ip}:{port}")
-        body = {
-            "addresses": ["{}{}{}".format(ip, IP_PORT_DIVIDER, port)],
-            "cmds": ["show global variables like 'character_set_client'"],
-            "force": False,
-            "bk_cloud_id": bk_cloud_id,
-        }
-
-        resp = DRSApi.rpc(body)
-        logger.info(f"query charset {resp}")
-
-        if not resp[0]["cmd_results"]:
-            raise Exception(_("DRS查询字符集失败：{}").format(resp[0]["error_msg"]))
-
-        charset = resp[0]["cmd_results"][0]["table_data"][0]["Value"]
-        if not charset:
-            logger.error(_("获取字符集为空..."))
-            raise Exception(_("获取字符集为空"))
-        return charset
