@@ -75,7 +75,7 @@ func ExecCommandReturnBytes(bash bool, cwd string, cmdName string, args ...strin
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		//logger.Error("stdout:%s, stderr:%s, cmd:%s", stdout.String(), stderr.String(), cmd.String())
-		return stdout.Bytes(), stderr.Bytes(), errors.Wrap(err, cmd.String())
+		return stdout.Bytes(), stderr.Bytes(), err
 	}
 	return stdout.Bytes(), stderr.Bytes(), nil
 }

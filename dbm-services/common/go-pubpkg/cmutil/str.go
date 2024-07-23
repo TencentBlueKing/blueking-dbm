@@ -3,6 +3,8 @@ package cmutil
 import (
 	"math/rand"
 	"strings"
+
+	"github.com/spf13/cast"
 )
 
 // IsEmpty TODO
@@ -46,4 +48,10 @@ func SplitAnyRuneTrim(s string, seps string) []string {
 		// 忽略空字符
 	}
 	return ss
+}
+
+// StringToInt trim left 0
+func StringToInt(s string) int {
+	s = strings.TrimLeft(s, "0")
+	return cast.ToInt(s)
 }
