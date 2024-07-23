@@ -455,7 +455,7 @@
           config={
             [
               {
-                label: t('IP'),
+                label: 'IP',
                 field: 'ip'
               },
               {
@@ -491,7 +491,7 @@
           config={
             [
               {
-                label: t('IP'),
+                label: 'IP',
                 field: 'ip'
               },
               {
@@ -527,7 +527,7 @@
           config={
             [
               {
-                label: t('IP'),
+                label: 'IP',
                 field: 'ip'
               },
               {

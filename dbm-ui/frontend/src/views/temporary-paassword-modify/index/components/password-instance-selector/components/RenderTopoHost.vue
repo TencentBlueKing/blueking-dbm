@@ -158,7 +158,7 @@
 
   const columns = computed(() => [
     {
-      width: 60,
+      minWidth: 60,
       fixed: 'left',
       label: () => (
         <bk-checkbox
@@ -185,11 +185,13 @@
     {
       label: t('角色'),
       field: 'role',
+      minWidth: 80,
       showOverflowTooltip: true,
     },
     {
       label: t('实例状态'),
       field: 'status',
+      minWidth: 100,
       render: ({ data }: TableItem) => {
         const info = data.status === 'running'
           ? { theme: 'success', text: t('正常') }
@@ -198,9 +200,9 @@
       },
     },
     {
-      minWidth: 100,
       label: t('管控区域'),
       field: 'bk_cloud_id',
+      minWidth: 100,
       filter: {
         list: columnAttrs.value.bk_cloud_id,
         checked: columnCheckedMap.value.bk_cloud_id,
@@ -208,9 +210,9 @@
       render: ({ data }: TableItem) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
-      minWidth: 100,
       label: t('Agent状态'),
       field: 'alive',
+      minWidth: 100,
       render: ({ data }: TableItem) => {
         const info = data.host_info?.alive === 1
           ? { theme: 'success', text: t('正常') }
@@ -221,36 +223,42 @@
     {
       label: t('主机名称'),
       field: 'host_name',
+      minWidth: 100,
       showOverflowTooltip: true,
       render: ({ data }: TableItem) => data.host_info?.host_name || '--',
     },
     {
       label: t('OS名称'),
       field: 'os_name',
+      minWidth: 100,
       showOverflowTooltip: true,
       render: ({ data }: TableItem) => data.host_info?.os_name || '--',
     },
     {
       label: t('所属云厂商'),
       field: 'cloud_vendor',
+      minWidth: 100,
       showOverflowTooltip: true,
       render: ({ data }: TableItem) => data.host_info?.cloud_vendor || '--',
     },
     {
       label: t('OS类型'),
       field: 'os_type',
+      minWidth: 100,
       showOverflowTooltip: true,
       render: ({ data }: TableItem) => data.host_info?.os_type || '--',
     },
     {
       label: t('主机ID'),
       field: 'host_id',
+      minWidth: 100,
       showOverflowTooltip: true,
       render: ({ data }: TableItem) => data.host_info?.host_id || '--',
     },
     {
       label: 'Agent ID',
       field: 'agent_id',
+      minWidth: 100,
       showOverflowTooltip: true,
       render: ({ data }: TableItem) => data.host_info?.agent_id || '--',
     },
