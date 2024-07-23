@@ -134,10 +134,10 @@ export const useLinkQueryColumnSerach = (config: {
     };
     index: number;
   }) => {
-    // console.log('filtervalue>>>', data);
-    if (!data.column.filter.checked) {
-      return;
-    }
+    // console.log('???', data);
+    // if (!data.column.filter.checked) {
+    //   return;
+    // }
     if (data.checked.length === 0) {
       searchValue.value = searchValue.value.filter((item) => item.id !== data.column.field);
       fetchDataFn();

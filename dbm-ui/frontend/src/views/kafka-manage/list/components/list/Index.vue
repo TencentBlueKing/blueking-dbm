@@ -55,6 +55,8 @@
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
+      class="kafka-manage-sideslider"
+      backgroundColor="#F5F7FA"
       quick-close
       :title="t('xx扩容【name】', { title: 'Kafka', name: operationData?.cluster_name })"
       :width="960">
@@ -65,6 +67,8 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
+      class="kafka-manage-sideslider"
+      backgroundColor="#F5F7FA"
       quick-close
       :title="t('xx缩容【name】', { title: 'Kafka', name: operationData?.cluster_name })"
       :width="960">
@@ -1051,6 +1055,13 @@
     th:hover .db-icon-copy,
     td:hover .db-icon-copy {
       display: inline-block !important;
+    }
+  }
+
+  .kafka-manage-sideslider {
+    .bk-modal-content {
+      max-height: calc(100vh - 120px);
+      overflow-y: auto;
     }
   }
 </style>
