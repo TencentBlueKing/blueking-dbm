@@ -21,10 +21,10 @@ import (
 // RedisVersionUpdateParams redis 版本更新参数
 type RedisVersionUpdateParams struct {
 	common.MediaPkg
-	IP       string `json:"ip" validate:"required"`
-	Ports    []int  `json:"ports" validate:"required"`
-	Password string `json:"password" validate:"required"`
-	Role     string `json:"role" validate:"required"` // redis_master or redis_slave
+	IP          string `json:"ip" validate:"required"`
+	Ports       []int  `json:"ports" validate:"required"`
+	Role        string `json:"role" validate:"required"` // redis_master or redis_slave
+	ClusterType string `json:"cluster_type"`
 }
 
 // RedisVersionUpdate TODO
@@ -81,7 +81,12 @@ func (job *RedisVersionUpdate) Name() string {
 
 // Run Command Run
 func (job *RedisVersionUpdate) Run() (err error) {
-	err = myredis.LocalRedisConnectTest(job.params.IP, job.params.Ports, job.params.Password)
+	if job.params.Role == consts.MetaRoleRedisMaster && job.params.ClusterType == consts.TendisTypeRedisInstance {
+		// 对RedisInstance + redis_master 升级,单独处理
+		return job.upgradeRedisInstanceMaster()
+	}
+	// 本地redis连接测试
+	err = myredis.LocalRedisConnectTest(job.params.IP, job.params.Ports, "")
 	if err != nil {
 		return err
 	}
@@ -186,6 +191,61 @@ func (job *RedisVersionUpdate) Run() (err error) {
 	return nil
 }
 
+func (job *RedisVersionUpdate) upgradeRedisInstanceMaster() (err error) {
+	job.AddrMapCli = make(map[string]*myredis.RedisClient, len(job.params.Ports))
+	defer job.allInstDisconnect()
+
+	err = job.getLocalRedisPkgBaseName()
+	if err != nil {
+		return err
+	}
+	err = job.params.Check()
+	if err != nil {
+		return err
+	}
+	err = job.checkRedisLocalPkgAndTargetPkgSameType()
+	if err != nil {
+		return err
+	}
+	// 关闭 dbmon,最后再拉起
+	err = util.StopBkDbmon()
+	if err != nil {
+		return err
+	}
+	defer util.StartBkDbmon()
+	// 当前/usr/local/redis 指向版本不是 目标版本
+	if job.localPkgBaseName != job.params.GePkgBaseName() {
+		// 解压 介质 到 /usr/local/
+		err = job.untarMedia()
+		if err != nil {
+			return err
+		}
+		// 如果有实例在运行,先 stop 所有 redis
+		isAlive := false
+		for _, port := range job.params.Ports {
+			isAlive, _ = util.CheckPortIsInUse(job.params.IP, strconv.Itoa(port))
+			if isAlive {
+				err = job.stopRedis(port)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		// 更新 /usr/local/redis 软链接
+		err = job.updateFileLink()
+		if err != nil {
+			return err
+		}
+	}
+	// 再 start 所有 redis
+	for _, port := range job.params.Ports {
+		err = job.startRedis(port)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (job *RedisVersionUpdate) getLocalRedisPkgBaseName() (err error) {
 	redisSoftLink := filepath.Join(consts.UsrLocal, "redis")
 	_, err = os.Stat(redisSoftLink)
@@ -220,13 +280,17 @@ func (job *RedisVersionUpdate) checkRedisLocalPkgAndTargetPkgSameType() (err err
 
 // allInstsAbleToConnect 检查所有实例可连接
 func (job *RedisVersionUpdate) allInstsAbleToConnect() (err error) {
+	var addr, password string
 	instsAddrs := make([]string, 0, len(job.params.Ports))
 	job.AddrMapCli = make(map[string]*myredis.RedisClient, len(job.params.Ports))
 	for _, port := range job.params.Ports {
-		instsAddrs = append(instsAddrs, fmt.Sprintf("%s:%d", job.params.IP, port))
-	}
-	for _, addr := range instsAddrs {
-		cli, err := myredis.NewRedisClientWithTimeout(addr, job.params.Password, 0,
+		addr = fmt.Sprintf("%s:%d", job.params.IP, port)
+		instsAddrs = append(instsAddrs, addr)
+		password, err = myredis.GetRedisPasswdFromConfFile(port)
+		if err != nil {
+			return err
+		}
+		cli, err := myredis.NewRedisClientWithTimeout(addr, password, 0,
 			consts.TendisTypeRedisInstance, 5*time.Second)
 		if err != nil {
 			return err
@@ -379,6 +443,11 @@ func (job *RedisVersionUpdate) checkAndBackupRedis(port int) (err error) {
 }
 
 func (job *RedisVersionUpdate) stopRedis(port int) (err error) {
+	var password string
+	password, err = myredis.GetRedisPasswdFromConfFile(port)
+	if err != nil {
+		return err
+	}
 	stopScript := filepath.Join(consts.UsrLocal, "redis", "bin", "stop-redis.sh")
 	_, err = os.Stat(stopScript)
 	if err != nil && os.IsNotExist(err) {
@@ -389,7 +458,7 @@ func (job *RedisVersionUpdate) stopRedis(port int) (err error) {
 	job.runtime.Logger.Info(fmt.Sprintf("su %s -c \"%s\"",
 		consts.MysqlAaccount, stopScript+" "+strconv.Itoa(port)+" xxxx"))
 	_, err = util.RunLocalCmd("su",
-		[]string{consts.MysqlAaccount, "-c", stopScript + " " + strconv.Itoa(port) + " " + job.params.Password},
+		[]string{consts.MysqlAaccount, "-c", stopScript + " " + strconv.Itoa(port) + " " + password},
 		"", nil, 10*time.Minute)
 	if err != nil && !strings.Contains(err.Error(), "Warning: Using a password") {
 		return err
@@ -418,6 +487,11 @@ func (job *RedisVersionUpdate) stopRedis(port int) (err error) {
 }
 
 func (job *RedisVersionUpdate) startRedis(port int) (err error) {
+	var password string
+	password, err = myredis.GetRedisPasswdFromConfFile(port)
+	if err != nil {
+		return err
+	}
 	startScript := filepath.Join(consts.UsrLocal, "redis", "bin", "start-redis.sh")
 	job.runtime.Logger.Info(fmt.Sprintf("su %s -c \"%s\" 2>/dev/null",
 		consts.MysqlAaccount, startScript+" "+strconv.Itoa(port)))
@@ -428,7 +502,7 @@ func (job *RedisVersionUpdate) startRedis(port int) (err error) {
 		return err
 	}
 	addr := fmt.Sprintf("%s:%d", job.params.IP, port)
-	cli, err := myredis.NewRedisClientWithTimeout(addr, job.params.Password, 0,
+	cli, err := myredis.NewRedisClientWithTimeout(addr, password, 0,
 		consts.TendisTypeRedisInstance, 10*time.Second)
 	if err != nil && strings.Contains(err.Error(), "LOADING Redis is loading") {
 		job.runtime.Logger.Warn(fmt.Sprintf("redis:%s conn warn,err:%v", addr, err))

@@ -1223,9 +1223,11 @@ class RedisActPayload(object):
         根据ip去获取对应的域名，然后再安装bk-dbmon
         {
             "ip":"a.a.a.a",
+            "is_stop":True/False
         }
         """
         ip = kwargs["params"]["ip"]
+        is_stop = kwargs["params"].get("is_stop", False)
         cluster_list = query_cluster_by_hosts([ip])
         cluster_ids = set()
 
@@ -1236,7 +1238,8 @@ class RedisActPayload(object):
                 cluster = Cluster.objects.get(id=c["cluster_id"])
             except Cluster.DoesNotExist:
                 raise Exception("redis cluster {} does not exist".format(c["cluster"]))
-            servers.append(RedisActPayload.get_bkdbmon_servers_params(cluster, ip))
+            if not is_stop:
+                servers.append(RedisActPayload.get_bkdbmon_servers_params(cluster, ip))
             cluster_ids.add(cluster.id)
         # 单实例下架的时候，如果全下架完了的话，这个地方的cluster是没有了的
         if cluster is None:
@@ -1954,6 +1957,7 @@ class RedisActPayload(object):
     def redis_cluster_version_update_online_payload(self, **kwargs) -> dict:
         params = kwargs["params"]
         db_version = params["db_version"]
+        cluster_type = params.get("cluster_type", "")
         redis_pkg = get_latest_redis_package_by_version(db_version)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
@@ -1963,8 +1967,8 @@ class RedisActPayload(object):
                 "pkg_md5": redis_pkg.md5,
                 "ip": params["ip"],
                 "ports": params["ports"],
-                "password": params["password"],
                 "role": params["role"],
+                "cluster_type": cluster_type,
             },
         }
 
@@ -2212,6 +2216,23 @@ class RedisActPayload(object):
             "payload": {
                 "ip": params["ip"],
                 "ports": params["ports"],
+            },
+        }
+
+    def redis_config_set(self, **kwargs) -> dict:
+        """
+        Redis动态设置配置
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CONFIG_SET.value,
+            "payload": {
+                "ip": params["ip"],
+                "ports": params["ports"],
+                "role": params["role"],
+                "config_set_map": params["config_set_map"],
+                "sync_to_config_file": params.get("sync_to_config_file", True),
             },
         }
 
