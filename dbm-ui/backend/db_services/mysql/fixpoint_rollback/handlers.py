@@ -32,6 +32,7 @@ from backend.exceptions import AppBaseException
 from backend.flow.consts import SUCCESS_LIST, DBActuatorActionEnum, DBActuatorTypeEnum, InstanceStatus, JobStatusEnum
 from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import get_local_backup_list
 from backend.flow.utils.script_template import dba_toolkit_actuator_template, fast_execute_script_common_kwargs
+from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.utils.string import base64_encode
 from backend.utils.time import compare_time, datetime2str, find_nearby_time
 
@@ -480,10 +481,15 @@ class FixPointRollbackHandler:
         local_backup_logs = get_local_backup_list(instances=instances, cluster=self.cluster)
         return local_backup_logs
 
-    def query_latest_backup_log(self, rollback_time: datetime, job_instance_id: int = None) -> Dict[str, Any]:
-        if job_instance_id:
+    def query_latest_backup_log(
+        self, rollback_time: datetime, backup_source: str = MySQLBackupSource.REMOTE.value
+    ) -> Dict[str, Any]:
+        """
+        根据回档时间查询最新一次的备份记录
+        """
+        if backup_source == MySQLBackupSource.LOCAL.value:
             # 本地查询
-            backup_logs = self.query_backup_log_from_job(job_instance_id)["backup_logs"]
+            backup_logs = self.query_backup_log_from_local()
         else:
             # 日志平台查询
             end_time = rollback_time
