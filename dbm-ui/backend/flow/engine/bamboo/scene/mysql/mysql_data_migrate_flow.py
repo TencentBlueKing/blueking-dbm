@@ -162,7 +162,7 @@ class MysqlDataMigrateFlow(object):
                         cluster=source_cluster,
                         exec_ip=source_cluster["ip"],
                         job_timeout=LONG_JOB_TIMEOUT,
-                        get_mysql_payload_func=MysqlActPayload.get_mysql_data_migrate_dump_payload.__name__,
+                        get_mysql_payload_func=MysqlActPayload.get_data_migrate_dump_payload.__name__,
                     )
                 ),
             )
@@ -203,7 +203,7 @@ class MysqlDataMigrateFlow(object):
                                 cluster=target_cluster,
                                 exec_ip=target_cluster["ip"],
                                 job_timeout=LONG_JOB_TIMEOUT,
-                                get_mysql_payload_func=MysqlActPayload.get_mysql_data_migrate_import_payload.__name__,
+                                get_mysql_payload_func=MysqlActPayload.get_data_migrate_import_payload.__name__,
                             )
                         ),
                     }

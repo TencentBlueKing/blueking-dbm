@@ -27,7 +27,6 @@ from backend.db_meta.enums import InstanceInnerRole, MachineType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
-from backend.db_proxy.models import DBCloudProxy
 from backend.db_services.mysql.sql_import.constants import BKREPO_DBCONSOLE_DUMPFILE_PATH, BKREPO_SQLFILE_PATH
 from backend.flow.consts import (
     CHECKSUM_DB,
@@ -44,6 +43,7 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
+from backend.flow.utils.base.bkrepo import get_bk_repo_url
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.mysql.mysql_bk_config import get_backup_ini_config, get_backup_options_config
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
@@ -679,10 +679,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{bk_cloud_id}_dbactuator_token"
         )
 
-        # 获取url
-        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last().internal_address
-        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if bk_cloud_id else settings.BKREPO_ENDPOINT_URL
-
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.SemanticDumpSchema.value,
@@ -697,7 +693,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "backup_file_name": f"{self.cluster['semantic_dump_schema_file_name']}",
                     "backup_dir": BK_PKG_INSTALL_PATH,
                     "fileserver": {
-                        "url": bkrepo_url,
+                        "url": get_bk_repo_url(bk_cloud_id),
                         "bucket": settings.BKREPO_BUCKET,
                         "username": settings.BKREPO_USERNAME,
                         "password": settings.BKREPO_PASSWORD,
@@ -1891,13 +1887,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         db_cloud_token = AsymmetricHandler.encrypt(
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
         )
-        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
-        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
-
         if self.cluster["is_upload_bkrepo"]:
             fileserver.update(
                 {
-                    "url": bkrepo_url,
+                    "url": get_bk_repo_url(self.bk_cloud_id),
                     "bucket": settings.BKREPO_BUCKET,
                     "username": settings.BKREPO_USERNAME,
                     "password": settings.BKREPO_PASSWORD,
@@ -1959,13 +1952,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
         )
 
-        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
-        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
-
         if self.cluster["is_upload_bkrepo"]:
             fileserver.update(
                 {
-                    "url": bkrepo_url,
+                    "url": get_bk_repo_url(self.bk_cloud_id),
                     "bucket": settings.BKREPO_BUCKET,
                     "username": settings.BKREPO_USERNAME,
                     "password": settings.BKREPO_PASSWORD,
@@ -2085,7 +2075,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "payload": {"general": {}, "extend": {}},  # {"runtime_account": self.account},
         }
 
-    def get_mysql_data_migrate_dump_payload(self, **kwargs):
+    def get_data_migrate_dump_payload(self, **kwargs):
         """
         数据迁移导出库表结构与数据
         @param kwargs:
@@ -2095,12 +2085,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         db_cloud_token = AsymmetricHandler.encrypt(
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{self.bk_cloud_id}_dbactuator_token"
         )
-        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=self.bk_cloud_id).last().internal_address
-        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if self.bk_cloud_id else settings.BKREPO_ENDPOINT_URL
-
         fileserver.update(
             {
-                "url": bkrepo_url,
+                "url": get_bk_repo_url(self.bk_cloud_id),
                 "bucket": settings.BKREPO_BUCKET,
                 "username": settings.BKREPO_USERNAME,
                 "password": settings.BKREPO_PASSWORD,
@@ -2129,7 +2116,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    def get_mysql_data_migrate_import_payload(self, **kwargs):
+    def get_data_migrate_import_payload(self, **kwargs):
         """
         数据迁移导入库表结构与数据
         @param kwargs:
@@ -2163,9 +2150,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             name=AsymmetricCipherConfigType.PROXYPASS.value, content=f"{bk_cloud_id}_dbactuator_token"
         )
 
-        # 获取url
-        nginx_ip = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last().internal_address
-        bkrepo_url = f"http://{nginx_ip}/apis/proxypass" if bk_cloud_id else settings.BKREPO_ENDPOINT_URL
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.MysqlDumpData.value,
@@ -2191,7 +2175,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "backup_file_name": f"{self.cluster['dbconsole_dump_file_name']}",
                         "backup_dir": BK_PKG_INSTALL_PATH,
                         "fileserver": {
-                            "url": bkrepo_url,
+                            "url": get_bk_repo_url(bk_cloud_id),
                             "bucket": settings.BKREPO_BUCKET,
                             "username": settings.BKREPO_USERNAME,
                             "password": settings.BKREPO_PASSWORD,
