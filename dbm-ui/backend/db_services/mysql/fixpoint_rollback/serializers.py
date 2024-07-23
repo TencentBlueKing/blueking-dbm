@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.mysql.fixpoint_rollback.constants import BACKUP_LOG_RANGE_DAYS
+from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.common.field import DBTimezoneField
 
 from . import mock_data
@@ -41,7 +42,9 @@ class BackupLocalLogMySQLResponseSerializer(serializers.Serializer):
 class BackupLogRollbackTimeSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     rollback_time = DBTimezoneField(help_text=_("回档时间"))
-    job_instance_id = serializers.IntegerField(help_text=_("JOB实例ID"), required=False)
+    backup_source = serializers.ChoiceField(
+        help_text=_("备份源"), choices=MySQLBackupSource.get_choices(), required=False, default=MySQLBackupSource.REMOTE
+    )
 
 
 class BackupLogRollbackTimeTendbResponseSerializer(serializers.Serializer):
