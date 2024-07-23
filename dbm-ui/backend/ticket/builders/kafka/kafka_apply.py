@@ -74,15 +74,10 @@ class KafkaApplyDetailSerializer(BigDataApplyDetailsSerializer):
     no_security = serializers.IntegerField(
         help_text=_("无认证开关, 1表示无认证。0表示认证，默认0"), min_value=0, max_value=1, required=False, default=0
     )
-    replication_num = serializers.IntegerField(
-        help_text=_("副本数量"),
-    )
-    partition_num = serializers.IntegerField(
-        help_text=_("分区数量"),
-    )
-    retention_hours = serializers.IntegerField(
-        help_text=_("保留时长（小时）"),
-    )
+    retention_bytes = serializers.IntegerField(help_text=_("消息保留大小"), required=False, default=-1)
+    replication_num = serializers.IntegerField(help_text=_("副本数量"))
+    partition_num = serializers.IntegerField(help_text=_("分区数量"))
+    retention_hours = serializers.IntegerField(help_text=_("保留时长（小时）"))
     port = serializers.IntegerField(help_text=_("端口"), default=KAFKA_DEFAULT_PORT)
 
     # TODO: 暂时不涉及账号密码
