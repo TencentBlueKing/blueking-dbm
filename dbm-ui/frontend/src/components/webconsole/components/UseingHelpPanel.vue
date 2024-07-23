@@ -9,21 +9,18 @@
     style="height: 100%">
     <template #aside>
       <div class="aside-main">
-        <div style="font-weight: 700">{{ t('使用帮助') }}</div>
-        <div>1. {{ t('除use dbname外，必须有结束符; 或', { n: '/\G' }) }};</div>
-        <div>2. {{ t('结束符后不允许有空白外的字符') }};</div>
-        <div>3. {{ t('不允许访问系统库，如', { n: 'mysql information_schema performance_schema db_infobase' }) }};</div>
-        <div>4. {{ t('只能输入select，不支持insert, delete, update，且select必须带limit控制行数，行数<=100') }};</div>
+        <div style="font-weight: 700">## {{ t('使用帮助') }}</div>
+        <div>1. {{ t('支持 show databases、show tables from db1 等部分 show 语句') }};</div>
+        <div>
+          2. {{ t('只能输入select，不支持 insert, delete, update，且 select 必须带limit控制行数，行数<=1000') }};
+        </div>
+        <div>3. {{ t('暂时不支持 use 语句') }};</div>
+        <div>4. {{ t('不允许访问系统库，如 mysql information_schema performance_schema db_infobase') }};</div>
         <div>5. {{ t('查询结果数据量不能大于64M') }};</div>
-        <div>## Support Statements</div>
-        <div>- use dbname;</div>
-        <div>- select databases();</div>
-        <div>- set names utf8;</div>
-        <div>- show variables like '%xxx%';</div>
-        <div>- show [full] databases|tables [like '%xxx%'];</div>
-        <div>- show create table|database name;</div>
-        <div>- select * from [db.]table [where cond] [order by ...] limit [skip,]N; (N&lt;=100);</div>
-        <div>- select * from [db.]table,[db.]table2 [where cond] [order by ...] limit [skip,]N;</div>
+        <div style="font-weight: 700">## {{ t('示例') }}</div>
+        <div>- show databases;</div>
+        <div>- show tables from db1;</div>
+        <div>- select * from [db.]table [where cond] [order by ...] limit [skip,]N; (N&lt;=1000)</div>
       </div>
     </template>
     <template #main>

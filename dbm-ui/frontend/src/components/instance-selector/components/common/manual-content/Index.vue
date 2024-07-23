@@ -304,6 +304,8 @@
       margin-bottom: 8px;
 
       textarea {
+        height: 100%;
+
         &::selection {
           background-color: #fdd;
         }

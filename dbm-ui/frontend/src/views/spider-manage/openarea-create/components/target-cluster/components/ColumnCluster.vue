@@ -26,9 +26,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { queryClusters } from '@services/source/mysqlCluster';
-
-  import { useGlobalBizs } from '@stores';
+  import SpiderModel from '@services/model/spider/spider';
+  import { getSpiderList } from '@services/source/spider';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
 
@@ -40,11 +39,11 @@
   }
 
   interface Emits {
-    (e: 'change', value: IDataRow['clusterData']): void;
+    (e: 'clusterInputFinish', value: SpiderModel): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<{
+    getValue: (isSubmit: boolean) => Promise<{
       cluster_id: number;
     }>;
   }
@@ -57,13 +56,13 @@
   // const instanceKey = `render_cluster_${random()}`;
   // clusterIdMemo[instanceKey] = {};
 
-  const { currentBizId } = useGlobalBizs();
-
-  const editRef = ref();
+  const editRef = ref<InstanceType<typeof TableEditInput>>();
 
   const localClusterId = ref(0);
   const localDomain = ref('');
   const isShowEdit = ref(true);
+
+  let isSkipCheckClusterExisted = false;
 
   const rules = [
     {
@@ -71,22 +70,20 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) =>
-        queryClusters({
-          cluster_filters: [
-            {
-              immute_domain: value,
-            },
-          ],
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          if (data.length > 0) {
-            emits('change', data[0]);
-            localClusterId.value = data[0].id;
+      validator: (value: string) => {
+        if (isSkipCheckClusterExisted) {
+          return true;
+        }
+
+        return getSpiderList({ exact_domain: value }).then((data) => {
+          if (data.results.length > 0) {
+            emits('clusterInputFinish', data.results[0]);
+            localClusterId.value = data.results[0].id;
             return true;
           }
           return false;
-        }),
+        });
+      },
       message: t('目标集群不存在'),
     },
     // {
@@ -148,8 +145,9 @@
   // });
 
   defineExpose<Exposes>({
-    getValue() {
-      return (editRef.value as InstanceType<typeof TableEditInput>).getValue().then(() => ({
+    getValue(isSubmit = false) {
+      isSkipCheckClusterExisted = isSubmit;
+      return editRef.value!.getValue().then(() => ({
         cluster_id: localClusterId.value,
       }));
     },

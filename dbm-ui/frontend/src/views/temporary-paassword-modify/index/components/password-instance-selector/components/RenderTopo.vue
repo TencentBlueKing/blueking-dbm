@@ -73,7 +73,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { queryClusters } from '@services/mysqlCluster';
+  import { getSpiderList } from '@services/source/spider';
+  import { getTendbhaList } from '@services/source/tendbha';
+  import { getTendbsingleList } from '@services/source/tendbsingle';
 
   import { useGlobalBizs } from '@stores';
 
@@ -114,30 +116,37 @@
   const selectNode = ref<TTopoTreeData>();
   const treeData = shallowRef<TTopoTreeData[]>([]);
 
+  const fetchClusterHandlerMap = {
+    tendbsingle: getTendbsingleList,
+    tendbha: getTendbhaList,
+    tendbcluster: getSpiderList,
+    manualInput: getTendbsingleList,
+  };
+
   const tableSettings = getSettings(props.role);
 
   const fetchClusterTopo = () => {
     isTreeDataLoading.value = true;
-    queryClusters({
-      bk_biz_id: currentBizId,
-      cluster_filters: [
-        {
-          bk_biz_id: currentBizId,
-          cluster_type: props.panelTabActive,
-        },
-      ],
-    })
+    const fetchClusterHandler = fetchClusterHandlerMap[props.panelTabActive];
+    const params = {
+      offset: 0,
+      limit: -1,
+    };
+    if (props.panelTabActive === 'tendbcluster') {
+      Object.assign(params, {
+        spider_ctl: 1,
+      });
+    }
+    fetchClusterHandler(params)
       .then((data) => {
-        const formatData = data.map((item) => {
-          const formatDataItem = { ...item, count: item.instance_count };
-          if (props.role === 'slave') {
-            formatDataItem.count = item.slaves?.length || 0;
-          } else if (props.role === 'proxy') {
-            formatDataItem.count = item.proxies?.length || 0;
-          } else if (props.role === 'master') {
-            formatDataItem.count = item.masters?.length || 0;
+        const formatData = data.results.map((item: any) => {
+          const formatDataItem = { ...item };
+          if (props.panelTabActive === 'tendbsingle') {
+            formatDataItem.count = item.masters.length;
           } else if (props.panelTabActive === 'tendbha') {
-            formatDataItem.count = formatDataItem.count - (item.proxies?.length || 0);
+            formatDataItem.count = item.masters.length + item.slaves.length;
+          } else if (props.panelTabActive === 'tendbcluster') {
+            formatDataItem.count = item.remote_db.length + item.remote_dr.length + item.spider_master.length * 2;
           }
           return formatDataItem;
         });
@@ -157,7 +166,7 @@
           },
         ];
         setTimeout(() => {
-          if (data.length > 0) {
+          if (data.results.length > 0) {
             const [firstNode] = treeData.value;
             treeRef.value.setOpen(firstNode);
             treeRef.value.setSelect(firstNode);
