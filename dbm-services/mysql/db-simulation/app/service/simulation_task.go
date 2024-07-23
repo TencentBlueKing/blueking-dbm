@@ -33,16 +33,35 @@ var DelPod bool = true
 
 // BaseParam 请求模拟执行的基础参数
 type BaseParam struct {
-	Uid           string             `json:"uid"`
-	NodeId        string             `json:"node_id"`
-	RootId        string             `json:"root_id"`
-	VersionId     string             `json:"version_id"`
-	TaskId        string             `json:"task_id"  binding:"required"`
-	MySQLVersion  string             `json:"mysql_version"  binding:"required"`
-	MySQLCharSet  string             `json:"mysql_charset"  binding:"required"`
-	Path          string             `json:"path"  binding:"required"`
-	SchemaSQLFile string             `json:"schema_sql_file"  binding:"required"`
-	ExcuteObjects []ExcuteSQLFileObj `json:"execute_objects"  binding:"gt=0,dive,required"`
+	//nolint
+	Uid string `json:"uid"`
+	//nolint
+	NodeId string `json:"node_id"`
+	//nolint
+	RootId string `json:"root_id"`
+	//nolint
+	VersionId string `json:"version_id"`
+	//nolint
+	TaskId            string             `json:"task_id"  binding:"required"`
+	MySQLVersion      string             `json:"mysql_version"  binding:"required"`
+	MySQLCharSet      string             `json:"mysql_charset"  binding:"required"`
+	MySQLStartConfigs map[string]string  `json:"mysql_start_config"`
+	Path              string             `json:"path"  binding:"required"`
+	SchemaSQLFile     string             `json:"schema_sql_file"  binding:"required"`
+	ExcuteObjects     []ExcuteSQLFileObj `json:"execute_objects"  binding:"gt=0,dive,required"`
+}
+
+// BuildStartArgs mysql pod start args
+func (b BaseParam) BuildStartArgs() []string {
+	if len(b.MySQLStartConfigs) == 0 {
+		return []string{}
+	}
+	var args []string
+	for key, val := range b.MySQLStartConfigs {
+		p := strings.ReplaceAll(strings.TrimSpace(key), "_", "-")
+		args = append(args, fmt.Sprintf("--%s=%s", p, strings.TrimSpace(val)))
+	}
+	return args
 }
 
 // SpiderSimulationExecParam TODO

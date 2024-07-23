@@ -103,6 +103,7 @@ func SpiderClusterSimulation(r *gin.Context) {
 		Lables: map[string]string{"task_id": replaceUnderSource(param.TaskId),
 			"request_id": requestId},
 		RootPwd: rootPwd,
+		Args:    param.BuildStartArgs(),
 		Charset: param.MySQLCharSet,
 	}
 	service.SpiderTaskChan <- tsk
@@ -145,6 +146,7 @@ func Dbsimulation(r *gin.Context) {
 		Lables: map[string]string{"task_id": replaceUnderSource(param.TaskId),
 			"request_id": requestId},
 		RootPwd: param.TaskId,
+		Args:    param.BuildStartArgs(),
 		Charset: param.MySQLCharSet,
 	}
 	service.TaskChan <- tsk
