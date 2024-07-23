@@ -210,7 +210,7 @@ class SpiderController(BaseController):
         """
         tendb cluster 定点回档
         """
-        flow = TenDBRollBackDataFlow(root_id=self.root_id, data=self.ticket_data)
+        flow = TenDBRollBackDataFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.tendb_rollback_data()
 
     def destroy_tendb_slave_cluster(self):
