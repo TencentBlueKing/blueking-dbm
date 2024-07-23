@@ -34,34 +34,41 @@ from backend.utils.time import date2str
 
 
 class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
-    class RollbackHostSerializer(serializers.Serializer):
-        spider_host = HostInfoSerializer(help_text=_("spider新机器"))
-        remote_hosts = serializers.ListSerializer(help_text=_("remote新机器"), child=HostInfoSerializer())
+    class RollbackInfoSerializer(serializers.Serializer):
+        class RollbackHostSerializer(serializers.Serializer):
+            spider_host = HostInfoSerializer(help_text=_("spider新机器"))
+            remote_hosts = serializers.ListSerializer(help_text=_("remote新机器"), child=HostInfoSerializer())
 
-    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        target_cluster_id = serializers.IntegerField(help_text=_("回档集群ID"), default=False)
+        rollback_host = RollbackHostSerializer(help_text=_("备份新机器"), default=False)
+        rollback_type = serializers.ChoiceField(help_text=_("回档类型"), choices=FixpointRollbackType.get_choices())
+        rollback_time = DBTimezoneField(
+            help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default=""
+        )
+        backupinfo = serializers.DictField(
+            help_text=_("备份文件信息"), required=False, allow_null=True, allow_empty=True, default={}
+        )
+        databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
+        databases_ignore = serializers.ListField(
+            help_text=_("忽略库列表"), child=DBTableField(db_field=True), required=False
+        )
+        tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
+        tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField(), required=False)
+
     rollback_cluster_type = serializers.ChoiceField(
         help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
     )
-    target_cluster_id = serializers.IntegerField(help_text=_("回档集群ID"), default=False)
-    rollback_host = RollbackHostSerializer(help_text=_("备份新机器"), default=False)
-    rollback_type = serializers.ChoiceField(help_text=_("回档类型"), choices=FixpointRollbackType.get_choices())
-    rollback_time = DBTimezoneField(help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default="")
-    backupinfo = serializers.DictField(
-        help_text=_("备份文件信息"), required=False, allow_null=True, allow_empty=True, default={}
-    )
-    databases = serializers.ListField(help_text=_("目标库列表"), child=DBTableField(db_field=True))
-    databases_ignore = serializers.ListField(help_text=_("忽略库列表"), child=DBTableField(db_field=True), required=False)
-    tables = serializers.ListField(help_text=_("目标table列表"), child=DBTableField())
-    tables_ignore = serializers.ListField(help_text=_("忽略table列表"), child=DBTableField(), required=False)
+    infos = serializers.ListSerializer(help_text=_("回档信息"), child=RollbackInfoSerializer())
 
     def validate(self, attrs):
         # 校验集群是否可用
         super().validate_cluster_can_access(attrs)
 
         # 校验回档信息
-        MySQLFixPointRollbackDetailSerializer.validate_rollback_info(
-            attrs["rollback_cluster_type"], attrs, datetime.datetime.now(timezone.utc)
-        )
+        now = datetime.datetime.now(timezone.utc)
+        for info in attrs["infos"]:
+            MySQLFixPointRollbackDetailSerializer.validate_rollback_info(attrs["rollback_cluster_type"], info, now)
 
         return attrs
 
@@ -70,20 +77,22 @@ class TendbFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.tendb_cluster_rollback_data
 
     def format_ticket_data(self):
-        self.ticket_data.update(source_cluster_id=self.ticket_data.pop("cluster_id"))
+        for info in self.ticket_data["infos"]:
+            info["source_cluster_id"] = info.pop("cluster_id")
 
     def pre_callback(self):
         if self.ticket_data["rollback_cluster_type"] != RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
             return
 
         rollback_flow = self.ticket.current_flow()
+        # 新部署集群的回档，infos只会有一个元素
         ticket_data = rollback_flow.details["ticket_data"]
-
+        info = ticket_data["infos"][0]
         # 为定点构造的flow填充临时集群信息
-        source_cluster_id = ticket_data["cluster_id"]
+        source_cluster_id = info["source_cluster_id"]
         # 对同一个集群同一天回档26^4才有可能重名, 暂时无需担心
         target_cluster = Cluster.objects.get(name=ticket_data["apply_details"]["cluster_name"])
-        ticket_data.update(source_cluster_id=source_cluster_id, target_cluster_id=target_cluster.id)
+        info.update(source_cluster_id=source_cluster_id, target_cluster_id=target_cluster.id)
         rollback_flow.save(update_fields=["details"])
 
         # 对临时集群记录变更
@@ -142,7 +151,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
                 {"machine__bk_host_id": master_machine.bk_host_id, "machine__spec_id": master_machine.spec_id}
             )
 
-        rollback_host = self.ticket.details["rollback_host"]
+        rollback_host = self.ticket.details["infos"][0]["rollback_host"]
         remote_machine_count = len(rollback_host["remote_hosts"])
 
         details.update(
@@ -156,7 +165,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
         if self.ticket.details["rollback_cluster_type"] != RollbackBuildClusterType.BUILD_INTO_NEW_CLUSTER:
             return
 
-        cluster = Cluster.objects.get(id=self.ticket.details["cluster_id"])
+        cluster = Cluster.objects.get(id=self.ticket.details["infos"][0]["cluster_id"])
         cluster_name = f"{cluster.name}-tmp{date2str(datetime.date.today(), '%Y%m%d')}-{self.ticket.id}"
         db_app_abbr = AppCache.get_app_attr(cluster.bk_biz_id)
 
@@ -167,6 +176,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
             "cluster_name": cluster_name,
             "city": cluster.region,
             "module": cluster.db_module_id,
+            "disaster_tolerance_level": cluster.disaster_tolerance_level,
             "immutable_domain": f"spider.{cluster_name}.{db_app_abbr}.db",
             "ip_source": IpSource.RESOURCE_POOL,
             "spider_port": cluster.proxyinstance_set.first().port,
