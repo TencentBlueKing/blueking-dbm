@@ -1,4 +1,4 @@
-{{- if .Values.enabled -}}
+{{- if .Values.saas.celeryBeat.enabled | default .Values.enabled -}}
 {{- $fullName := ( include "dbm.celery-beater.fullname" .) -}}
 apiVersion: apps/v1
 kind: Deployment

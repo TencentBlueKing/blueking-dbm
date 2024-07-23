@@ -1,4 +1,4 @@
-{{- if .Values.enabled -}}
+{{- if .Values.saas.pipelineWorker.enabled | default .Values.enabled -}}
 {{- $fullName := ( include "dbm.pipeline-worker.fullname" .) -}}
 apiVersion: apps/v1
 kind: Deployment
