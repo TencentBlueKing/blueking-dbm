@@ -812,8 +812,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
 
         # 预取host的cc信息
         bk_host_ids = list(machine_queryset.values_list("bk_host_id", flat=True))
-        host_infos = HostHandler.check([{"bk_biz_id": bk_biz_id, "scope_type": "biz"}], [], [], bk_host_ids)
-        host_id_info_map = {host_info["host_id"]: host_info for host_info in host_infos}
+        host_id_info_map = {host["host_id"]: host for host in HostHandler.check([], [], [], bk_host_ids)}
 
         # 将集群的查询结果序列化为集群字典信息
         machine_infos: List[Dict[str, Any]] = []
