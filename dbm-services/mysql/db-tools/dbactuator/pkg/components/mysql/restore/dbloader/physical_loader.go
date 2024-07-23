@@ -96,7 +96,7 @@ func (l *PhysicalLoader) loadBackup() error {
 	errStr, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
 		logger.Error("physical dbbackup loadbackup stderr: ", errStr)
-		return errors.Wrap(err, errStr)
+		return errors.WithMessage(err, errStr)
 	}
 	return nil
 }

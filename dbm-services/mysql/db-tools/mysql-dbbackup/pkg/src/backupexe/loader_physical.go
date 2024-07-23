@@ -110,12 +110,21 @@ func (p *PhysicalLoader) apply() error {
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
-		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
-		fmt.Sprintf(
-			"--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)),
-		"--use-memory=1GB",
+		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads), "--use-memory=1GB",
 	}
-
+	/*
+		xtraVersion := p.innodbCmd.GetXtrabackupVersion()
+		if cmutil.MustNewVersion(xtraVersion).LessThan(cmutil.MustNewVersion("8.0.0"))  {
+			args = append(args, fmt.Sprintf("--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)))
+		}
+	*/
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 {
+		if p.isOfficial {
+			args = append(args, "--skip-strict")
+		}
+	} else {
+		args = append(args, fmt.Sprintf("--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)))
+	}
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
 		args = append(args, "--apply-log")
 	} else {
@@ -130,10 +139,6 @@ func (p *PhysicalLoader) apply() error {
 		}...)
 	}
 
-	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
-		args = append(args, "--skip-strict")
-	}
-
 	// apply 日志输出到当前目录的 logs/xtrabackup_xx.log
 	pwd, _ := os.Getwd()
 	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("xtrabackup_%d.log", int(time.Now().Weekday())))
@@ -144,19 +149,36 @@ func (p *PhysicalLoader) apply() error {
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
 		logger.Log.Error("physical apply failed: ", err, errStr)
-		return errors.Wrap(err, errStr)
+		// 尝试读取 xtrabackup.log 里 ERROR 关键字
+		errStrDetail, _, _ := cmutil.ExecCommand(false, "", "grep", "-Ei", "ERROR|fatal",
+			logfile, "| tail -2 >&2")
+		if len(strings.TrimSpace(errStrDetail)) > 0 {
+			logger.Log.Info("tail 2 error from ", logfile)
+			logger.Log.Error(errStrDetail)
+		} else {
+			logger.Log.Warn("can not find more detail error message from ", logfile)
+		}
+		return errors.WithMessage(err, errStr+"\n"+errStrDetail)
 	}
 	logger.Log.Info("physical apply success: ", outStr)
 	return nil
 }
 
+// load copy-back or move-back
 func (p *PhysicalLoader) load() error {
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
+	_, _, err := cmutil.ExecCommand(false, "", "sed", "-i", "/^innodb_undo_directory/d",
+		p.cnf.PhysicalLoad.DefaultsFile)
+	if err != nil {
+		logger.Log.Warn("xtrabackup fix innodb_undo_directory for ", p.cnf.PhysicalLoad.DefaultsFile, err)
+	}
+
 	args := []string{
 		fmt.Sprintf("--defaults-file=%s", p.cnf.PhysicalLoad.DefaultsFile),
-		fmt.Sprintf(
-			"--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)),
+	}
+	if p.cnf.PhysicalLoad.ExtraOpt != "" {
+		args = append(args, p.cnf.PhysicalLoad.ExtraOpt)
 	}
 
 	if p.cnf.PhysicalLoad.CopyBack {
@@ -165,16 +187,19 @@ func (p *PhysicalLoader) load() error {
 		args = append(args, "--move-back")
 	}
 
+	if strings.Compare(p.mysqlVersion, "008000000") >= 0 {
+		if p.isOfficial {
+			args = append(args, "--skip-strict")
+		}
+	} else {
+		args = append(args, fmt.Sprintf("--ibbackup=%s", filepath.Join(p.dbbackupHome, p.innodbCmd.xtrabackupBin)))
+	}
 	if strings.Compare(p.mysqlVersion, "005007000") < 0 {
 		args = append(args, p.cnf.PhysicalLoad.MysqlLoadDir)
 	} else {
 		args = append(args, []string{
 			fmt.Sprintf("--target-dir=%s", p.cnf.PhysicalLoad.MysqlLoadDir),
 		}...)
-	}
-
-	if strings.Compare(p.mysqlVersion, "008000000") >= 0 && p.isOfficial {
-		args = append(args, "--skip-strict")
 	}
 
 	// ToDo extraopt
@@ -184,20 +209,20 @@ func (p *PhysicalLoader) load() error {
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")
-	logger.Log.Info("xtrabackup recover command:", binPath, strings.Join(args, " "))
+	logger.Log.Info("xtrabackup copy/move data command:", binPath, strings.Join(args, " "))
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
-		logger.Log.Error("xtrabackup recover failed: ", err, errStr)
+		logger.Log.Error("xtrabackup copy data failed: ", err, errStr)
 		// 尝试读取 xtrabackup.log 里 ERROR 关键字
-		_, errStrDetail, _ := cmutil.ExecCommand(false, "", "grep", "-Ei", "'ERROR|fatal'",
-			logfile, "| tail -5 >&2")
+		errStrDetail, _, _ := cmutil.ExecCommand(false, "", "grep", "-Ei", "ERROR|fatal",
+			logfile, "| tail -2 >&2")
 		if len(strings.TrimSpace(errStrDetail)) > 0 {
-			logger.Log.Info("tail 5 error from", logfile)
+			logger.Log.Info("tail 2 error from ", logfile)
 			logger.Log.Error(errStrDetail)
 		} else {
 			logger.Log.Warn("can not find more detail error message from ", logfile)
 		}
-		return errors.Wrap(err, errStr+"\n"+errStrDetail)
+		return errors.WithMessage(err, errStr+"\n"+errStrDetail)
 	}
 	logger.Log.Info("xtrabackup recover success: ", outStr)
 	return nil

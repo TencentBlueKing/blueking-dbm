@@ -26,8 +26,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cast"
-
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
 	"github.com/TylerBrock/colorjson"
@@ -227,9 +226,9 @@ func GetSuffixWithLenAndSep(strList []string, separator string, maxlen int) []st
 func SortSplitPartFiles(strList []string, separator string) []string {
 	sort.Slice(strList, func(i, j int) bool {
 		iNumSuffixStr := LastElement(strings.Split(strList[i], separator))
-		iNumSuffix := cast.ToInt(iNumSuffixStr)
+		iNumSuffix := cmutil.StringToInt(iNumSuffixStr)
 		jNumSuffixStr := LastElement(strings.Split(strList[j], separator))
-		jNumSuffix := cast.ToInt(jNumSuffixStr)
+		jNumSuffix := cmutil.StringToInt(jNumSuffixStr)
 		return iNumSuffix < jNumSuffix
 	})
 	return strList
