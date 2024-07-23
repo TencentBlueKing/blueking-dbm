@@ -12,7 +12,7 @@ import logging
 
 from django.apps import AppConfig
 from django.db import IntegrityError
-from django.db.models.signals import m2m_changed, post_delete, post_migrate, post_save, pre_delete
+from django.db.models.signals import m2m_changed, post_migrate, post_save, pre_delete
 
 logger = logging.getLogger("root")
 
@@ -51,6 +51,6 @@ class DBMeta(AppConfig):
         post_save.connect(update_cluster_status, sender=StorageInstance)
         post_save.connect(update_cluster_status, sender=ProxyInstance)
         pre_delete.connect(update_cluster_status, sender=StorageInstance)
-        post_delete.connect(update_cluster_status, sender=ProxyInstance)
+        pre_delete.connect(update_cluster_status, sender=ProxyInstance)
         m2m_changed.connect(update_cluster_status, sender=StorageInstance.cluster.through)
         m2m_changed.connect(update_cluster_status, sender=ProxyInstance.cluster.through)
