@@ -30,6 +30,7 @@
       <RenderMode
         ref="modeRef"
         :backup-source="localBackupSource"
+        :backupid="data.backupid"
         :cluster-id="localClusterData!.id"
         :rollback-time="data.rollbackTime" />
     </td>
