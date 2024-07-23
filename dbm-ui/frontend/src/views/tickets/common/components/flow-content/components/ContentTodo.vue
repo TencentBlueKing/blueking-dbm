@@ -53,7 +53,7 @@
   const getOperation = (item: FlowItemTodo) => {
     const text = {
       DONE_SUCCESS: item.type === 'RESOURCE_REPLENISH' ? t('重试') : t('确认执行'),
-      DONE_FAILED: t('终止单据'),
+      DONE_FAILED: t('人工终止'),
       RUNNING: '--',
       TODO: '--',
     };
