@@ -851,8 +851,7 @@
                         </OperationBtnStatusTips>
                       </bk-dropdown-item>
                     </>
-                  )
-          }
+                  )}
                 </bk-dropdown-menu>
               ),
             }}

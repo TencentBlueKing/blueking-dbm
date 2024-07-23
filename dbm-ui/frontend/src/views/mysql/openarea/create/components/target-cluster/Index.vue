@@ -22,6 +22,7 @@
         :show-ip-cloumn="showIpCloumn"
         :variable-list="variableList"
         @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+        @clusterInputFinish="(value) => handleInputCluster(index, value)"
         @remove="handleRemove(index)" />
     </RenderTable>
     <BatchInput
@@ -150,6 +151,22 @@
   // 批量输入
   const handleBatchInput = (rowInfos: IData[]) => {
     tableData.value = rowInfos.map((item) => createRowData(item));
+  };
+
+  // 输入集群后查询集群信息并填充到table
+  const handleInputCluster = async (index: number, item: TendbhaModel) => {
+    const row = createRowData({
+      clusterData: {
+        id: item.id,
+        master_domain: item.master_domain,
+        bk_biz_id: item.bk_biz_id,
+        bk_cloud_id: item.bk_cloud_id,
+        bk_cloud_name: item.bk_cloud_name,
+      },
+    });
+    tableData.value[index] = row;
+    domainMemo[item.master_domain] = true;
+    selectedClusters.value[props.clusterType].push(item);
   };
 
   // 批量选择
