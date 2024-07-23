@@ -594,6 +594,8 @@ class TenDBClusterApplyFlow(object):
 
         # 阶段7 在ctl-master节点，生成spider集群路由表信息；添加node信息
         exec_act_kwargs.cluster = self.__create_cluster_nodes_info(shard_infos=shard_infos)
+        exec_act_kwargs.cluster["is_no_slave"] = True
+        exec_act_kwargs.cluster["is_ctl_alone"] = True
         exec_act_kwargs.exec_ip = ctl_master
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_init_spider_routing_payload.__name__
         deploy_pipeline.add_act(
