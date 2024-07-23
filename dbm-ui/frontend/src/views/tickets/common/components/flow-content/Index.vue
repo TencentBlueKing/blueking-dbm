@@ -12,10 +12,6 @@
 -->
 
 <template>
-  <!-- <FlowContentInnerFlow
-    v-if="content?.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && isTodos === false"
-    :content="content"
-    @fetch-data="handleEmitFetchData" /> -->
   <template v-if="content.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
     <ManualConfirm
       v-for="item in content.todos"
@@ -31,6 +27,13 @@
       :key="item.id"
       :data="item"
       href-target="_blank" />
+  </template>
+  <!-- 系统终止 -->
+  <template v-else-if="content.flow_type === 'PAUSE' && content.err_code === 3">
+    <div>{{ t('system已处理') }}（{{ t('超过n小时自动终止', { n: content.flow_expire_time }) }}）</div>
+    <div style="margin-top: 5px">
+      {{ utcDisplayTime(ticketData.update_at) }}
+    </div>
   </template>
   <!-- 人工确认 -->
   <template v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
@@ -83,7 +86,7 @@
     </div>
   </template>
   <template v-if="content.flow_type !== 'PAUSE'">
-    <div>
+    <div style="padding-top: 8px">
       <template
         v-if="
           content.status === 'RUNNING' &&
@@ -140,7 +143,7 @@
         </a>
       </template>
     </div>
-    <div class="mt-8">
+    <div>
       <BkPopConfirm
         v-if="
           content.err_code === 2 ||
@@ -152,7 +155,7 @@
         :width="320"
         @confirm="handleConfirmRetry(content)">
         <BkButton
-          class="w-88"
+          class="w-88 mt-8"
           :disabled="btnState.retryLoading || btnState.terminateLoading"
           :loading="btnState.retryLoading"
           theme="primary">
@@ -167,7 +170,7 @@
         :width="320"
         @confirm="handleConfirmTerminal(content)">
         <BkButton
-          class="w-88 ml-8"
+          class="w-88 ml-8 mt-8"
           :disabled="btnState.terminateLoading || btnState.retryLoading"
           :loading="btnState.terminateLoading"
           theme="danger">
@@ -179,6 +182,17 @@
       v-if="content.end_time"
       class="flow-time">
       {{ utcDisplayTime(content.end_time) }}
+    </div>
+  </template>
+  <!-- 系统自动终止 -->
+  <template v-if="content.err_code === 3 && content.status === 'FAILED'">
+    <div style="color: #ea3636; padding-top: 8px">
+      <div>
+        {{ t('单据超过n状态未变化，系统自动终止', { n: systemTimeoutCountDisplay }) }}
+      </div>
+      <div style="margin-top: 5px">
+        {{ utcDisplayTime(ticketData.update_at) }}
+      </div>
     </div>
   </template>
 </template>
@@ -241,6 +255,19 @@
     const { content } = props;
     return content.status === 'RUNNING' && content.flow_type === 'PAUSE';
   });
+
+  const systemTimeoutCountDisplay = computed(() => {
+    const expireHours = props.content.flow_expire_time;
+    if (!expireHours) {
+      return '';
+    }
+
+    if (expireHours <= 72) {
+      return ` ${expireHours} ${t('小时')}`
+    }
+
+    return ` ${Math.floor(expireHours / 24)} ${t('天')}`
+  })
 
   // const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
 

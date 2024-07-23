@@ -150,6 +150,7 @@ export interface FlowItem {
   flow_type: string;
   flow_type_display: string;
   flow_obj_id: string;
+  flow_expire_time?: number;
   ticket: number;
   summary: string;
   cost_time: number;
