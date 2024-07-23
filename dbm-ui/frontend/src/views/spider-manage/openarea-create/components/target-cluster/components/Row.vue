@@ -16,7 +16,8 @@
     <td style="padding: 0">
       <ColumnCluster
         ref="clusterRef"
-        :model-value="localClusterData" />
+        :model-value="localClusterData"
+        @clusterInputFinish="handleClusterInputFinish" />
     </td>
     <ColumnVariable
       v-for="variableName in variableList"
@@ -54,6 +55,8 @@
 <script setup lang="ts">
   import { watch } from 'vue';
 
+  import SpiderModel from '@services/model/spider/spider';
+
   import ColumnCluster from './ColumnCluster.vue';
   import ColumnHost from './ColumnHost.vue';
   import ColumnVariable from './ColumnVariable.vue';
@@ -84,6 +87,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: SpiderModel): void;
   }
 
   interface Exposes {
@@ -110,6 +114,10 @@
     },
   );
 
+  const handleClusterInputFinish = (value: SpiderModel) => {
+    emits('clusterInputFinish', value);
+  };
+
   const handleAppend = () => {
     emits('add', [createRowData()]);
   };
@@ -124,7 +132,7 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value!.getValue(),
+        clusterRef.value!.getValue(true),
         Promise.all(variableRefs.value.map((item) => item.getValue())),
         hostRef.value?.getValue(),
       ]).then(([clusterData, variableData, hostData]) =>

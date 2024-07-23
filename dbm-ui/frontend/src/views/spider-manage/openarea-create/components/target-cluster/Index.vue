@@ -22,6 +22,7 @@
         :show-ip-cloumn="showIpCloumn"
         :variable-list="variableList"
         @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+        @clusterInputFinish="(value) => handleInputCluster(index, value)"
         @remove="handleRemove(index)" />
     </RenderTable>
     <BatchInput
@@ -146,6 +147,22 @@
         },
       });
     });
+  };
+
+  // 输入集群后查询集群信息并填充到table
+  const handleInputCluster = async (index: number, item: SpiderModel) => {
+    const row = createRowData({
+      clusterData: {
+        id: item.id,
+        master_domain: item.master_domain,
+        bk_biz_id: item.bk_biz_id,
+        bk_cloud_id: item.bk_cloud_id,
+        bk_cloud_name: item.bk_cloud_name,
+      },
+    });
+    tableData.value[index] = row;
+    domainMemo[item.master_domain] = true;
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER].push(item);
   };
 
   // 批量选择

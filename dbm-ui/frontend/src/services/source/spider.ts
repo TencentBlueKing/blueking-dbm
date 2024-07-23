@@ -54,6 +54,7 @@ export function getSpiderList(params: {
   name?: string;
   ip?: string;
   domain?: string;
+  exact_domain?: string;
   creator?: string;
   version?: string;
   cluster_ids?: number[];
