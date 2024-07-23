@@ -21,8 +21,10 @@ from backend.components import DBConfigApi, DRSApi
 from backend.components.dbconfig.constants import FormatType, LevelName, OpType, ReqType
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.instance import StorageInstance
 from backend.db_package.models import Package
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
@@ -800,3 +802,161 @@ def get_cluster_capacity_update_required_info(
                 require_machine_group_count = 0
                 require_spec_id = 0
                 return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+
+
+def get_cluster_info_by_cluster_id(cluster_id):
+    """
+    通过cluster_id集中获取集群信息
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    cluster_masters = None
+    cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+    passwd_ret = PayloadHandler.redis_get_cluster_password(cluster)
+
+    master_ports, slave_ports = defaultdict(list), defaultdict(list)
+    master_ins_to_slave_ins, slave_ins_to_master_ins = defaultdict(), defaultdict()
+    master_ip_to_slave_ip, slave_ip_to_master_ip = defaultdict(), defaultdict()
+    master_slave_ins_pairs = []
+    redis_ips = set()
+
+    # 获取redis的databases
+    one_master = cluster.storageinstance_set.filter(
+        instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
+    ).first()
+    passwd_ret = PayloadHandler.redis_get_cluster_password(cluster)
+    master_addrs = ["{}:{}".format(one_master.machine.ip, one_master.port)]
+    resp = DRSApi.redis_rpc(
+        {
+            "addresses": master_addrs,
+            "db_num": 0,
+            "password": passwd_ret.get("redis_password"),
+            "command": "confxx get databases",
+            "bk_cloud_id": cluster.bk_cloud_id,
+        }
+    )
+    databases = 2
+    if len(resp) > 0 and resp[0].get("result", "") != "":
+        databases = int(resp[0]["result"].split("\n")[1])
+
+    for master_obj in cluster_masters:
+        master_ports[master_obj.machine.ip].append(master_obj.port)
+        redis_ips.add(master_obj.machine.ip)
+        if master_obj.as_ejector and master_obj.as_ejector.first():
+            my_slave_obj = master_obj.as_ejector.get().receiver
+            redis_ips.add(my_slave_obj.machine.ip)
+            slave_ports[my_slave_obj.machine.ip].append(my_slave_obj.port)
+            master_ins_to_slave_ins[
+                "{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)
+            ] = "{}{}{}".format(my_slave_obj.machine.ip, IP_PORT_DIVIDER, my_slave_obj.port)
+            master_slave_ins_pairs.append(
+                {
+                    "master": {"ip": master_obj.machine.ip, "port": master_obj.port},
+                    "slave": {"ip": my_slave_obj.machine.ip, "port": my_slave_obj.port},
+                }
+            )
+            ifslave = master_ip_to_slave_ip.get(master_obj.machine.ip)
+            if ifslave and ifslave != my_slave_obj.machine.ip:
+                raise Exception(
+                    "unsupport mutil slave with cluster {} 4:{}".format(cluster.immute_domain, master_obj.machine.ip)
+                )
+            else:
+                master_ip_to_slave_ip[master_obj.machine.ip] = my_slave_obj.machine.ip
+
+            slave_ins_to_master_ins[
+                "{}{}{}".format(my_slave_obj.machine.ip, IP_PORT_DIVIDER, my_slave_obj.port)
+            ] = "{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)
+
+            ifmaster = slave_ip_to_master_ip.get(my_slave_obj.machine.ip)
+            if ifmaster and ifmaster != master_obj.machine.ip:
+                raise Exception(
+                    "unsupport mutil master for cluster {}:{}".format(cluster.immute_domain, my_slave_obj.machine.ip)
+                )
+            else:
+                slave_ip_to_master_ip[my_slave_obj.machine.ip] = master_obj.machine.ip
+    proxy_port = 0
+    proxy_ips = []
+    if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+        """
+        非主从版才有proxy
+        """
+        proxy_port = cluster.proxyinstance_set.first().port
+        proxy_ips = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
+    return {
+        "immute_domain": cluster.immute_domain,
+        "bk_biz_id": str(cluster.bk_biz_id),
+        "bk_cloud_id": cluster.bk_cloud_id,
+        "cluster_type": cluster.cluster_type,
+        "cluster_name": cluster.name,
+        "cluster_id": cluster.id,
+        "region": cluster.region,
+        "cluster_city_name": one_master.machine.bk_city.logical_city.name,
+        "slave_ports": dict(slave_ports),
+        "master_ports": dict(master_ports),
+        "master_ins_to_slave_ins": dict(master_ins_to_slave_ins),
+        "slave_ins_to_master_ins": dict(slave_ins_to_master_ins),
+        "slave_ip_to_master_ip": dict(slave_ip_to_master_ip),
+        "master_ip_to_slave_ip": dict(master_ip_to_slave_ip),
+        "master_slave_ins_pairs": master_slave_ins_pairs,
+        "proxy_port": proxy_port,
+        "proxy_ips": proxy_ips,
+        "major_version": cluster.major_version,
+        "redis_ips": list(redis_ips),
+        "redis_password": passwd_ret.get("redis_password"),
+        "redis_proxy_password": passwd_ret.get("redis_proxy_password"),
+        "redis_proxy_admin_password": passwd_ret.get("redis_proxy_admin_password"),
+        "redis_databases": databases,
+    }
+
+
+def get_cluster_info_by_ip(ip: str) -> Dict[str, Any]:
+    """
+    根据redis ip获取集群信息
+    """
+    ret = {
+        "ip": ip,
+        "bk_host_id": "",
+        "ports": [],
+        "pair_ip": "",
+        "pair_ports": [],
+        "instance_role": [],
+        "clusters": [],
+    }
+    instance_role = set()
+    insts = StorageInstance.objects.filter(machine__ip=ip)
+
+    for inst in insts:
+        ret["ports"].append(inst.port)
+        instance_role.add(inst.instance_role)
+        if inst.instance_role == InstanceRole.REDIS_MASTER.value:
+            master_obj = inst
+            if master_obj.as_ejector and master_obj.as_ejector.first():
+                my_slave_obj = master_obj.as_ejector.get().receiver
+                ret["pair_ip"] = my_slave_obj.machine.ip
+                ret["pair_ports"].append(my_slave_obj.port)
+        elif inst.instance_role == InstanceRole.REDIS_SLAVE.value:
+            slave_obj = inst
+            if slave_obj.as_receiver and slave_obj.as_receiver.first():
+                my_master_obj = slave_obj.as_receiver.get().ejector
+                ret["pair_ip"] = my_master_obj.machine.ip
+                ret["pair_ports"].append(my_master_obj.port)
+    ret["instance_role"] = list(instance_role)
+    clusters = query_cluster_by_hosts([ip])
+    for cluster in clusters:
+        ret["bk_host_id"] = cluster["bk_host_id"]
+        cluster_meta = get_cluster_info_by_cluster_id(int(cluster["cluster_id"]))
+        ret["clusters"].append(
+            {
+                "bk_biz_id": cluster_meta["bk_biz_id"],
+                "bk_cloud_id": cluster_meta["bk_cloud_id"],
+                "cluster_id": cluster_meta["cluster_id"],
+                "immute_domain": cluster_meta["immute_domain"],
+                "cluster_type": cluster_meta["cluster_type"],
+                "major_version": cluster_meta["major_version"],
+                "redis_databases": cluster_meta["redis_databases"],
+                "cluster_city_name": cluster_meta["cluster_city_name"],
+                "ip": cluster["ip"],
+                "ports": cluster["cs_ports"],
+                "instance_role": cluster["instance_role"],
+            }
+        )
+    return ret

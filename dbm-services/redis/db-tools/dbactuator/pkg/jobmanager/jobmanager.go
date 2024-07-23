@@ -199,6 +199,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomproxy.NewPredixyConfServersRewrite().Name()] = atomproxy.NewPredixyConfServersRewrite
 		m.atomJobMapper[atomproxy.NewProxyVersionUpgrade().Name()] = atomproxy.NewProxyVersionUpgrade
 		m.atomJobMapper[atomredis.NewRedisMaxMemoryDynamicalSet().Name()] = atomredis.NewRedisMaxMemoryDynamicalSet
+		m.atomJobMapper[atomredis.NewRedisConfigSet().Name()] = atomredis.NewRedisConfigSet
 		m.atomJobMapper[atomsys.NewChangePassword().Name()] = atomsys.NewChangePassword
 		// 老备份系统
 		// m.atomJobMapper[atomredis.NewRedisDataRecover().Name()] = atomredis.NewRedisDataRecover

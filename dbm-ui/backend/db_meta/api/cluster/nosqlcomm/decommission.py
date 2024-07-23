@@ -114,11 +114,12 @@ def decommission_backends(cluster: Cluster, backends: List[Dict], is_all: bool =
         machines = []
         for storage_obj in storage_objs:
             logger.info("cluster storage instance {} for cluster {}".format(storage_obj, cluster.immute_domain))
-            cluster.storageinstance_set.remove(storage_obj)
 
             machines.append(storage_obj.machine)
             logger.info("remove storage instance {} ".format(storage_obj))
             storage_obj.delete()
+
+            cluster.storageinstance_set.remove(storage_obj)
 
         # 需要检查， 是否该机器上所有实例都已经清理干净，
         for machine in machines:

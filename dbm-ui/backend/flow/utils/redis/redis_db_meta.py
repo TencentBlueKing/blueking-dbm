@@ -909,6 +909,207 @@ class RedisDBMeta(object):
         )
         clb_entry.save()
 
+    @transaction.atomic
+    def cluster_add_slave_update_meta(self):
+        """
+        集群添加从节点
+        cluster['params']=[
+        {
+            "cluster_id":50,
+            "replication_pairs":[
+                {
+                    "master":{
+                        "ip":"a.a.a.a",
+                        "port":30000
+                    },
+                    "new_slave":{
+                        "ip":"b.b.b.b",
+                        "port":30000
+                    },
+                },
+                {
+                    "master":{
+                        "ip":"a.a.a.a",
+                        "port":30001
+                    },
+                    "new_slave":{
+                        "ip":"b.b.b.b",
+                        "port":30001
+                    },
+                }
+            ]
+        }]
+        """
+        for param in self.cluster["params"]:
+            cluster = Cluster.objects.get(id=param["cluster_id"])
+            for replication_pair in param["replication_pairs"]:
+                master_ip = replication_pair["master"]["ip"]
+                master_port = replication_pair["master"]["port"]
+                new_slave_ip = replication_pair["new_slave"]["ip"]
+                new_slave_port = replication_pair["new_slave"]["port"]
+
+                master_obj = cluster.storageinstance_set.get(machine__ip=master_ip, port=master_port)
+                old_slave_obj = None
+                if master_obj.as_ejector and master_obj.as_ejector.first():
+                    old_slave_obj = master_obj.as_ejector.get().receiver
+                new_slave_obj = StorageInstance.objects.get(
+                    machine__ip=new_slave_ip,
+                    port=new_slave_port,
+                    machine__bk_cloud_id=cluster.bk_cloud_id,
+                    bk_biz_id=cluster.bk_biz_id,
+                )
+
+                # 更新 StorageInstance
+                logger.info("update new slave {} role & cluster_type".format(new_slave_obj.ip_port))
+                new_slave_obj.instance_role = InstanceRole.REDIS_SLAVE
+                new_slave_obj.instance_inner_role = InstanceInnerRole.SLAVE
+                new_slave_obj.cluster_type = cluster.cluster_type
+                new_slave_obj.save(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
+
+                # 更新 machine
+                new_slave_machine = new_slave_obj.machine
+                logger.info(
+                    "update new slave machine {} cluster_type {}".format(new_slave_machine.ip, cluster.cluster_type)
+                )
+                new_slave_machine.cluster_type = cluster.cluster_type
+                new_slave_machine.save(update_fields=["cluster_type"])
+
+                # 更新 StorageInstanceTuple
+                logger.info(
+                    "update StorageInstanceTuple master {} slave {}".format(master_obj.ip_port, new_slave_obj.ip_port)
+                )
+                StorageInstanceTuple.objects.filter(ejector=master_obj).update(
+                    ejector=master_obj, receiver=new_slave_obj
+                )
+
+                # 更新 cluster.storageinstance_set
+                logger.info(
+                    "cluster {} storageinstance_set add new slave {}".format(
+                        cluster.immute_domain, new_slave_obj.ip_port
+                    )
+                )
+                cluster.storageinstance_set.add(new_slave_obj)
+                if old_slave_obj and old_slave_obj.ip_port != new_slave_obj.ip_port:
+                    cluster.storageinstance_set.remove(old_slave_obj)
+
+                if cluster.cluster_type == ClusterType.TendisRedisInstance:
+                    # 更新 cluster.clusterentry_set 和域名信息
+                    slave_domain = ""
+                    for entry_obj in cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY):
+                        slave_domain = entry_obj.entry
+                        entry_obj.storageinstance_set.add(new_slave_obj)
+                        if old_slave_obj and old_slave_obj.ip_port != new_slave_obj.ip_port:
+                            entry_obj.storageinstance_set.remove(old_slave_obj)
+                    if slave_domain != "":
+                        # 更新slave域名信息
+                        dns_manage = DnsManage(bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id)
+                        exists_insts = []
+                        for row in dns_manage.get_domain(domain_name=slave_domain):
+                            exists_insts.append("{}#{}".format(row["ip"], row["port"]))
+                        # 先删除
+                        if exists_insts:
+                            logger.info("domain {} remove instances {}".format(slave_domain, exists_insts))
+                            dns_manage.remove_domain_ip(domain=slave_domain, del_instance_list=exists_insts)
+                        # 再添加
+                        new_insts = [f"{new_slave_obj.machine.ip}#{new_slave_obj.port}"]
+                        logger.info("domain {} add instances {}".format(slave_domain, new_insts))
+                        dns_manage.create_domain(add_domain_name=slave_domain, instance_list=new_insts)
+
+                # 更新 nodes. 域名对应的 cluster_entry信息
+                cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+                if cluster_entry and cluster_entry.entry.startswith("nodes."):
+                    cluster_entry.storageinstance_set.add(new_slave_obj)
+                # 更新模块信息
+                is_increment = False
+                if cluster.cluster_type == ClusterType.TendisRedisInstance:
+                    is_increment = True
+                RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+                    [new_slave_obj], is_increment=is_increment
+                )
+
+    @transaction.atomic
+    def switch_dns_for_redis_instance_version_upgrade(self):
+        cluster_ids = self.cluster["cluster_ids"]
+        for cluster_id in cluster_ids:
+            cluster = Cluster.objects.get(id=cluster_id)
+            old_master_obj = cluster.storageinstance_set.get(instance_role=InstanceRole.REDIS_MASTER.value)
+            old_slave_obj = old_master_obj.as_ejector.get().receiver
+            new_slave_obj = old_master_obj
+            new_master_obj = old_slave_obj
+
+            master_domain = ""
+            for entry_obj in cluster.clusterentry_set.filter(role=ClusterEntryRole.MASTER_ENTRY):
+                master_domain = entry_obj.entry
+            slave_domain = ""
+            for entry_obj in cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY):
+                slave_domain = entry_obj.entry
+            # 更新域名信息
+            dns_manage = DnsManage(bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id)
+
+            old_master_instance = "{}#{}".format(old_master_obj.machine.ip, old_master_obj.port)
+            old_slave_instance = "{}#{}".format(old_slave_obj.machine.ip, old_slave_obj.port)
+            new_master_instance = "{}#{}".format(new_master_obj.machine.ip, new_master_obj.port)
+            new_slave_instance = "{}#{}".format(new_slave_obj.machine.ip, new_slave_obj.port)
+
+            logger.info(
+                "master_domain {} update from {} to {}".format(master_domain, old_master_instance, new_master_instance)
+            )
+            dns_manage.update_domain(
+                old_instance=old_master_instance, new_instance=new_master_instance, update_domain_name=master_domain
+            )
+
+            logger.info(
+                "slave_domain {} update from {} to {}".format(slave_domain, old_slave_instance, new_slave_instance)
+            )
+            dns_manage.update_domain(
+                old_instance=old_slave_instance, new_instance=new_slave_instance, update_domain_name=slave_domain
+            )
+
+    @transaction.atomic
+    def update_meta_for_redis_instance_version_upgrade(self):
+        cluster_ids = self.cluster["cluster_ids"]
+        for cluster_id in cluster_ids:
+            cluster = Cluster.objects.get(id=cluster_id)
+            old_master_obj = cluster.storageinstance_set.get(instance_role=InstanceRole.REDIS_MASTER.value)
+            old_slave_obj = old_master_obj.as_ejector.get().receiver
+
+            new_slave_obj = old_master_obj
+            new_master_obj = old_slave_obj
+
+            logger.info("new_master {} update role ro redis_master".format(new_master_obj.ip_port))
+            new_master_obj.instance_role = InstanceRole.REDIS_MASTER
+            new_master_obj.instance_inner_role = InstanceInnerRole.MASTER
+            new_master_obj.save(update_fields=["instance_role", "instance_inner_role"])
+
+            logger.info("new_slave {} update role ro redis_slave".format(new_slave_obj.ip_port))
+            new_slave_obj.instance_role = InstanceRole.REDIS_SLAVE
+            new_slave_obj.instance_inner_role = InstanceInnerRole.SLAVE
+            new_slave_obj.save(update_fields=["instance_role", "instance_inner_role"])
+
+            StorageInstanceTuple.objects.filter(ejector=old_master_obj, receiver=old_slave_obj).update(
+                ejector=new_master_obj, receiver=new_slave_obj
+            )
+
+            # cluster.storageinstance_set.all() 不用变, master/slave instance 都在
+
+            # cluster.clusterentry_set 更新
+            for entry_obj in cluster.clusterentry_set.filter(role=ClusterEntryRole.MASTER_ENTRY):
+                entry_obj.storageinstance_set.add(new_master_obj)
+                entry_obj.storageinstance_set.remove(new_slave_obj)
+                logger.info(
+                    "cluster_master_entry {} add {},remove {}".format(entry_obj, new_master_obj, new_slave_obj)
+                )
+
+            for entry_obj in cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY):
+                entry_obj.storageinstance_set.add(new_slave_obj)
+                entry_obj.storageinstance_set.remove(new_master_obj)
+                logger.info("cluster_slave_entry {} add {},remove {}".format(entry_obj, new_slave_obj, new_master_obj))
+
+            # 修改模块
+            RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(
+                [new_master_obj, new_slave_obj], is_increment=False
+            )
+
     def add_polairs_domain(self):
         """
         增加polairs记录
@@ -1260,11 +1461,11 @@ class RedisDBMeta(object):
         """
         更新集群版本(major_version)
         """
-        cluster = Cluster.objects.get(
-            bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
-        )
-        cluster.major_version = self.cluster["db_version"]
-        cluster.save(update_fields=["major_version"])
+        with atomic():
+            for cluster_id in self.cluster["cluster_ids"]:
+                cluster = Cluster.objects.get(id=cluster_id)
+                cluster.major_version = self.cluster["db_version"]
+                cluster.save(update_fields=["major_version"])
         return True
 
     @transaction.atomic
