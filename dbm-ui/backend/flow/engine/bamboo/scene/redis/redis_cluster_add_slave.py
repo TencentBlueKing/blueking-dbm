@@ -33,7 +33,11 @@ from backend.flow.plugins.components.collections.redis.get_redis_payload import 
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
-from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
+from backend.flow.utils.redis.redis_proxy_util import (
+    get_cache_backup_mode,
+    get_cluster_info_by_ip,
+    get_twemproxy_cluster_server_shards,
+)
 
 logger = logging.getLogger("flow")
 
@@ -72,18 +76,18 @@ class RedisClusterAddSlaveFlow(object):
             cluster_masters = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
 
         master_ports, slave_ports = defaultdict(list), defaultdict(list)
-        ins_pair_map, slave_ins_map = defaultdict(), defaultdict()
-        master_slave_map, slave_master_map = defaultdict(), defaultdict()
+        master_ins_to_slave_ins, slave_ins_to_master_ins = defaultdict(), defaultdict()
+        master_ip_to_slave_ip, slave_ip_to_master_ip = defaultdict(), defaultdict()
 
         for master_obj in cluster_masters:
             master_ports[master_obj.machine.ip].append(master_obj.port)
             if master_obj.as_ejector and master_obj.as_ejector.first():
                 my_slave_obj = master_obj.as_ejector.get().receiver
                 slave_ports[my_slave_obj.machine.ip].append(my_slave_obj.port)
-                ins_pair_map[
+                master_ins_to_slave_ins[
                     "{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)
                 ] = "{}{}{}".format(my_slave_obj.machine.ip, IP_PORT_DIVIDER, my_slave_obj.port)
-                ifslave = master_slave_map.get(master_obj.machine.ip)
+                ifslave = master_ip_to_slave_ip.get(master_obj.machine.ip)
                 if ifslave and ifslave != my_slave_obj.machine.ip:
                     raise Exception(
                         "unsupport mutil slave with cluster {} 4:{}".format(
@@ -91,13 +95,13 @@ class RedisClusterAddSlaveFlow(object):
                         )
                     )
                 else:
-                    master_slave_map[master_obj.machine.ip] = my_slave_obj.machine.ip
+                    master_ip_to_slave_ip[master_obj.machine.ip] = my_slave_obj.machine.ip
 
-                slave_ins_map[
+                slave_ins_to_master_ins[
                     "{}{}{}".format(my_slave_obj.machine.ip, IP_PORT_DIVIDER, my_slave_obj.port)
                 ] = "{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)
 
-                ifmaster = slave_master_map.get(my_slave_obj.machine.ip)
+                ifmaster = slave_ip_to_master_ip.get(my_slave_obj.machine.ip)
                 if ifmaster and ifmaster != master_obj.machine.ip:
                     raise Exception(
                         "unsupport mutil master for cluster {}:{}".format(
@@ -105,7 +109,7 @@ class RedisClusterAddSlaveFlow(object):
                         )
                     )
                 else:
-                    slave_master_map[my_slave_obj.machine.ip] = master_obj.machine.ip
+                    slave_ip_to_master_ip[my_slave_obj.machine.ip] = master_obj.machine.ip
         proxy_port = 0
         proxy_ips = []
         if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
@@ -123,13 +127,13 @@ class RedisClusterAddSlaveFlow(object):
             "cluster_id": cluster.id,
             "slave_ports": dict(slave_ports),
             "master_ports": dict(master_ports),
-            "ins_pair_map": dict(ins_pair_map),
-            "slave_ins_map": dict(slave_ins_map),
-            "slave_master_map": dict(slave_master_map),
-            "master_slave_map": dict(master_slave_map),
+            "master_ins_to_slave_ins": dict(master_ins_to_slave_ins),
+            "slave_ins_to_master_ins": dict(slave_ins_to_master_ins),
+            "slave_ip_to_master_ip": dict(slave_ip_to_master_ip),
+            "master_ip_to_slave_ip": dict(master_ip_to_slave_ip),
             "proxy_port": proxy_port,
             "proxy_ips": proxy_ips,
-            "db_version": cluster.major_version,
+            "major_version": cluster.major_version,
         }
 
     def add_slave_flow(self):
@@ -152,8 +156,9 @@ class RedisClusterAddSlaveFlow(object):
             cluster_id = cluster_ids[0]
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             cluster_kwargs = deepcopy(act_kwargs)
-            cluster_info = self.get_cluster_info(bk_biz_id, cluster_id)
+            cluster_info = RedisClusterAddSlaveFlow.get_cluster_info(bk_biz_id, cluster_id)
             cluster_kwargs.cluster.update(cluster_info)
+            cluster_kwargs.cluster["db_version"] = cluster_info["major_version"]
             cluster_kwargs.cluster["created_by"] = self.data["created_by"]
 
             newslave_to_master = {}
@@ -163,7 +168,7 @@ class RedisClusterAddSlaveFlow(object):
             for host_pair in input_item["pairs"]:
                 master_ip = host_pair["redis_master"]["ip"]
                 master_ips.append(master_ip)
-                old_slave_ip = cluster_info["master_slave_map"].get(master_ip)
+                old_slave_ip = cluster_info["master_ip_to_slave_ip"].get(master_ip)
                 if old_slave_ip:
                     old_slave_ips.append(old_slave_ip)
                 for new_slave_item in host_pair["redis_slave"]:
@@ -223,33 +228,35 @@ class RedisClusterAddSlaveFlow(object):
             sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
 
             # 新节点加入集群 ################################################################################
-            cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.redis_redo_slaves.__name__
-            cluster_kwargs.cluster["old_slaves"] = []
-            cluster_kwargs.cluster["created_by"] = self.data["created_by"]
-            cluster_kwargs.cluster["tendiss"] = []
-            child_pipelines = []
+            cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.cluster_add_slave_update_meta.__name__
+            cluster_kwargs.cluster["params"] = []
             for host_pair in input_item["pairs"]:
                 master_ip = host_pair["redis_master"]["ip"]
-                old_slave_ip = cluster_info["master_slave_map"].get(master_ip)
-                if old_slave_ip:
-                    old_slave_ports = cluster_info["slave_ports"][old_slave_ip]
-                    cluster_kwargs.cluster["old_slaves"].append({"ip": old_slave_ip, "ports": old_slave_ports})
-                for new_slave_item in host_pair["redis_slave"]:
-                    for port in cluster_info["master_ports"][master_ip]:
-                        cluster_kwargs.cluster["tendiss"].append(
-                            {
-                                "ejector": {
-                                    "ip": master_ip,
-                                    "port": port,
-                                },
-                                "receiver": {"ip": new_slave_item["ip"], "port": port},
-                            }
-                        )
+                # 兼容主从版本多集群的情况
+                master_meta_data = get_cluster_info_by_ip(master_ip)
+                for cluster_item in master_meta_data["clusters"]:
+                    param_item = {
+                        "cluster_id": cluster_item["cluster_id"],
+                        "replication_pairs": [],
+                    }
+                    for new_slave_item in host_pair["redis_slave"]:
+                        for master_port in cluster_item["ports"]:
+                            param_item["replication_pairs"].append(
+                                {
+                                    "master": {"ip": master_ip, "port": master_port},
+                                    "new_slave": {
+                                        "ip": new_slave_item["ip"],
+                                        "port": master_port,
+                                    },
+                                }
+                            )
+                    cluster_kwargs.cluster["params"].append(param_item)
             sub_pipeline.add_act(
-                act_name=_("Redis-新节点加入集群"),
+                act_name=_("元数据更新"),
                 act_component_code=RedisDBMetaComponent.code,
                 kwargs=asdict(cluster_kwargs),
             )
+
             # 更新集群nodes域名
             nodes_dns_sub = ClusterNodesDnsManagerAtomJob(
                 root_id=self.root_id,
@@ -270,7 +277,7 @@ class RedisClusterAddSlaveFlow(object):
             child_pipelines = []
             for host_pair in input_item["pairs"]:
                 master_ip = host_pair["redis_master"]["ip"]
-                old_slave_ip = cluster_info["master_slave_map"].get(master_ip)
+                old_slave_ip = cluster_info["master_ip_to_slave_ip"].get(master_ip)
                 if old_slave_ip:
                     old_slave_ports = cluster_info["slave_ports"][old_slave_ip]
                     shutdown_builder = RedisBatchShutdownAtomJob(
