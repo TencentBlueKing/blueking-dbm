@@ -455,6 +455,7 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     PREDIXY_CONFIG_SERVERS_REWRITE = EnumField("predixy_config_servers_rewrite", _("predixy_config_servers_rewrite"))
     MAXMEMORY_DYNAMICALLY_SET = EnumField("maxmemory_dynamically_set", _("maxmemory_dynamically_set"))
     CLIENT_CONNS_KILL = EnumField("client_conns_kill", _("client_conns_kill"))
+    CONFIG_SET = EnumField("config_set", _("config_set"))
 
 
 class MongoDBActuatorActionEnum(str, StructuredEnum):

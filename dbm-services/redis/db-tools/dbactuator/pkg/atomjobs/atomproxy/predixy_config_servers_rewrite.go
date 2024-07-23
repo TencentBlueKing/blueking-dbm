@@ -30,8 +30,9 @@ func (p PredixyConfServersRewriteParams) Addr() string {
 
 // PredixyConfServersRewrite predixy config servers rewrite
 type PredixyConfServersRewrite struct {
-	runtime *jobruntime.JobGenericRuntime
-	params  PredixyConfServersRewriteParams
+	runtime     *jobruntime.JobGenericRuntime
+	params      PredixyConfServersRewriteParams
+	predixyConn *myredis.RedisClient
 }
 
 // 无实际作用,仅确保实现了 jobruntime.JobRunner 接口
@@ -75,6 +76,69 @@ func (job *PredixyConfServersRewrite) Name() string {
 
 // Run Command Run
 func (job *PredixyConfServersRewrite) Run() (err error) {
+	var password string
+	password, err = myredis.GetProxyPasswdFromConfFlie(job.params.PredixyPort, consts.MetaRolePredixy)
+	if err != nil {
+		return nil
+	}
+	job.runtime.Logger.Info("PredixyConfServersRewrite Run")
+	err = job.newConn(password)
+	if err != nil {
+		return
+	}
+	defer job.disConn()
+
+	supported, err := job.IsSupportedConfigRewriteCmd(password)
+	if err != nil {
+		return
+	}
+	if !supported {
+		err = job.UpdateLocalConfigFile()
+		return
+	}
+	err = job.ConfigRewriteConfig()
+	return
+}
+func (job *PredixyConfServersRewrite) newConn(password string) (err error) {
+	job.predixyConn, err = myredis.NewRedisClientWithTimeout(job.params.Addr(), password, 0,
+		consts.TendisTypeRedisInstance, 5*time.Second)
+	if err != nil {
+		return err
+	}
+	return
+}
+func (job *PredixyConfServersRewrite) disConn() {
+	job.predixyConn.Close()
+}
+
+// IsSupportedConfigRewriteCmd 通过版本判断是否支持config rewrite命令
+func (job *PredixyConfServersRewrite) IsSupportedConfigRewriteCmd(password string) (supported bool, err error) {
+	runTimeVer, err := myredis.GetPredixyRunTimeVersion(job.params.PredixyIP, job.params.PredixyPort, password)
+	if err != nil {
+		return false, err
+	}
+	runtimeBaseVer, _, err := util.VersionParse(runTimeVer)
+	if err != nil {
+		return false, err
+	}
+	// 1.4.2版本以下不支持 config rewrite命令
+	if runtimeBaseVer < 001004002 {
+		return false, nil
+	}
+	return true, nil
+}
+
+// ConfigRewriteConfig 高版本开始支持config rewrite命令
+func (job *PredixyConfServersRewrite) ConfigRewriteConfig() (err error) {
+	_, err = job.predixyConn.ConfigRewrite()
+	if err != nil {
+		return
+	}
+	return nil
+}
+
+// UpdateLocalConfigFile predixy 低版本只能更新本地配置文件
+func (job *PredixyConfServersRewrite) UpdateLocalConfigFile() (err error) {
 	var confFile, password string
 	var sedCmd string
 	confFile, err = myredis.GetPredixyLocalConfFile(job.params.PredixyPort)
@@ -137,7 +201,7 @@ func (job *PredixyConfServersRewrite) Run() (err error) {
 		}
 	}
 	mylog.Logger.Info("PredixyConfServersRewrite Run success")
-	return
+	return nil
 }
 
 // Retry times
