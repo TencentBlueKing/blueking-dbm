@@ -22,7 +22,7 @@
     </div>
     <div class="action-item">
       <TableEditDateTime
-        v-if="localBackupType === BackupTypes.REMOTE_AND_TIME"
+        v-if="localBackupType === BackupTypes.TIME"
         ref="localRollbackTimeRef"
         v-model="localRollbackTime"
         :disabled="editDisabled"
@@ -55,6 +55,8 @@
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
+  import { BackupTypes, selectList } from '../const';
+
   import RecordSelector from './RecordSelector.vue';
 
   import type { BackupLogRecord } from '@/services/source/fixpointRollback';
@@ -86,24 +88,14 @@
       message: t('回档时间不能为空'),
     },
   ];
-  enum BackupTypes {
-    REMOTE_AND_BACKUPID = 'REMOTE_AND_BACKUPID',
-    REMOTE_AND_TIME = 'REMOTE_AND_TIME',
-  }
-  const targetList = [
-    {
-      id: BackupTypes.REMOTE_AND_BACKUPID,
-      name: t('备份记录'),
-    },
-    {
-      id: BackupTypes.REMOTE_AND_TIME,
-      name: t('回档到指定时间'),
-    },
-  ];
+  const targetList = selectList.mode.map((item) => ({
+    id: item.value,
+    name: item.label,
+  }));
 
   const localRollbackTimeRef = ref();
   const localBackupFileRef = ref();
-  const localBackupType = ref(BackupTypes.REMOTE_AND_BACKUPID);
+  const localBackupType = ref(BackupTypes.BACKUPID);
   const localRollbackTime = ref('');
 
   const editDisabled = computed(() => !props.clusterId || !props.backupSource);
@@ -117,9 +109,9 @@
     (newVal) => {
       if (newVal) {
         localRollbackTime.value = newVal;
-        localBackupType.value = BackupTypes.REMOTE_AND_TIME;
+        localBackupType.value = BackupTypes.TIME;
       } else {
-        localBackupType.value = BackupTypes.REMOTE_AND_BACKUPID;
+        localBackupType.value = BackupTypes.BACKUPID;
       }
     },
     {
@@ -131,7 +123,7 @@
     () => props.backupid,
     (newVal) => {
       if (newVal) {
-        localBackupType.value = BackupTypes.REMOTE_AND_BACKUPID;
+        localBackupType.value = BackupTypes.BACKUPID;
       }
     },
     {
@@ -141,12 +133,14 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (localBackupType.value === BackupTypes.REMOTE_AND_BACKUPID) {
+      if (localBackupType.value === BackupTypes.BACKUPID) {
         return localBackupFileRef.value.getValue().then((data: BackupLogRecord) => ({
+          rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
           backupinfo: data,
         }));
       }
       return localRollbackTimeRef.value.getValue().then(() => ({
+        rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
         rollback_time: formatDateToUTC(localRollbackTime.value),
       }));
     },
@@ -157,8 +151,15 @@
     display: flex;
 
     .action-item {
-      flex: 0 0 50%;
       overflow: hidden;
+
+      &:first-child {
+        flex: 1;
+      }
+
+      &:last-child {
+        flex: 2;
+      }
     }
   }
 

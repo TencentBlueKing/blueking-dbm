@@ -518,6 +518,7 @@ export interface MySQLRollbackDetails {
     };
     rollback_ip: string;
     rollback_time: string;
+    rollback_type: string;
     tables: string[];
     tables_ignore: string[];
     backupinfo: {

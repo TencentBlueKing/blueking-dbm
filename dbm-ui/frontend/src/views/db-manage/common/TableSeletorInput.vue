@@ -55,7 +55,7 @@
     </div>
     <BkPopover
       v-if="!isFocused"
-      :content="t('选择集群')"
+      :content="tooltipContent"
       placement="top"
       :popover-delay="0">
       <div
@@ -82,38 +82,40 @@
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    placeholder?: string,
-    rules?: Rules,
-    disabled?: boolean,
-    readonly?: boolean,
+    placeholder?: string;
+    rules?: Rules;
+    disabled?: boolean;
+    readonly?: boolean;
+    tooltipContent?: string;
   }
 
   interface Emits {
-    (e: 'submit', value: string): void,
-    (e: 'input', value: string): void,
-    (e: 'click-seletor'): void,
+    (e: 'submit', value: string): void;
+    (e: 'input', value: string): void;
+    (e: 'click-seletor'): void;
   }
 
   interface Exposes {
     getValue: () => Promise<string>;
-    focus: () => void
+    focus: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '请输入',
+    placeholder: '请输入或选择',
     rules: undefined,
     multiInput: true,
     disabled: false,
     readonly: false,
+    tooltipContent: '选择集群',
   });
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const modelValue = defineModel<string>({
     default: '',
   });
-
-  const { t } = useI18n();
 
   const inputRef = ref();
   const isFocused = ref(false);
@@ -134,27 +136,28 @@
     };
   });
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
-  watch(modelValue, (value) => {
-    if (value) {
-      setTimeout(() => {
-        checkOverflow();
-      });
-    }
-    nextTick(() => {
-      if (localValue.value !== value) {
-        localValue.value = value;
-        inputRef.value.innerText = localValue.value;
-        window.changeConfirm = true;
+  watch(
+    modelValue,
+    (value) => {
+      if (value) {
+        setTimeout(() => {
+          checkOverflow();
+        });
       }
-    });
-  }, {
-    immediate: true,
-  });
+      nextTick(() => {
+        if (localValue.value !== value) {
+          localValue.value = value;
+          inputRef.value.innerText = localValue.value;
+          window.changeConfirm = true;
+        }
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const checkOverflow = () => {
     isOverflow.value = inputRef.value.clientWidth < inputRef.value.scrollWidth;
@@ -194,11 +197,10 @@
     }
     isFocused.value = false;
     checkOverflow();
-    validator(localValue.value)
-      .then(() => {
-        window.changeConfirm = true;
-        emits('submit', localValue.value);
-      });
+    validator(localValue.value).then(() => {
+      window.changeConfirm = true;
+      emits('submit', localValue.value);
+    });
   };
 
   // enter键提交
@@ -213,14 +215,13 @@
     }
     if (event.which === 13 || event.key === 'Enter') {
       event.preventDefault();
-      validator(localValue.value)
-        .then((result) => {
-          if (result) {
-            isFocused.value = false;
-            window.changeConfirm = true;
-            emits('submit', localValue.value);
-          }
-        });
+      validator(localValue.value).then((result) => {
+        if (result) {
+          isFocused.value = false;
+          window.changeConfirm = true;
+          emits('submit', localValue.value);
+        }
+      });
     }
   };
 
@@ -230,7 +231,10 @@
     paste = encodeMult(paste);
 
     const selection = window.getSelection();
-    if (!selection || !selection.rangeCount) return false;
+
+    if (!selection || !selection.rangeCount) {
+      return false;
+    }
     selection.deleteFromDocument();
     selection.getRangeAt(0).insertNode(document.createTextNode(paste));
     localValue.value = paste;
@@ -367,7 +371,7 @@
     .input-error {
       position: absolute;
       top: 50%;
-      left: 50%;
+      right: 10px;
       z-index: 99;
       padding-bottom: 3px;
       font-size: 14px;

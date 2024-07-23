@@ -223,9 +223,12 @@
     }
     selection.deleteFromDocument();
     selection.getRangeAt(0).insertNode(document.createTextNode(paste));
+    localValue.value = localValue.value ? `${localValue.value}\n${paste}` : paste;
     event.preventDefault();
-    window.changeConfirm = true;
-    modelValue.value = props.multiInput ? `${localValue.value}${paste}` : paste;
+    if (!props.multiInput) {
+      window.changeConfirm = true;
+      modelValue.value = paste.replace(/^\s+|\s+$/g, '');
+    }
   };
 
   defineExpose<Exposes>({

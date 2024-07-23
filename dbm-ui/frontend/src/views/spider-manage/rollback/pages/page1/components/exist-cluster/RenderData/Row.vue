@@ -17,11 +17,13 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
+          :cluster-type="ClusterTypes.TENDBCLUSTER"
           :model-value="localClusterData"
-          @change="handleClusterChange" />
+          @change="handleClusterChange"
+          @input-create="handleCreate" />
       </td>
       <td style="padding: 0">
-        <RenderTargetCluster
+        <RenderClusterInputSelect
           ref="targetClustersRef"
           :data="data.targetClusters"
           :source-cluster-id="localClusterData!.id" />
@@ -29,6 +31,7 @@
       <td style="padding: 0">
         <RenderBackup
           ref="backupSourceRef"
+          :list="selectList.backupSource"
           :model-value="localBackupSource"
           @change="handleBackupSourceChange" />
       </td>
@@ -44,6 +47,7 @@
         <RenderDbName
           ref="databasesRef"
           :cluster-id="localClusterData!.id"
+          disabled-model-value-init
           :model-value="data.databases" />
       </td>
       <td style="padding: 0">
@@ -57,6 +61,7 @@
         <RenderTableName
           ref="tablesRef"
           :cluster-id="localClusterData!.id"
+          disabled-model-value-init
           :model-value="data.tables" />
       </td>
       <td style="padding: 0">
@@ -66,11 +71,19 @@
           :model-value="data.tablesIgnore"
           :required="false" />
       </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
+  import { ClusterTypes } from '@common/const';
+
   import { random } from '@utils';
+
+  import { BackupSources, BackupTypes, selectList } from '../../common/const';
 
   export interface IDataRow {
     rowKey: string;
@@ -81,8 +94,8 @@
       cloudName?: string;
     };
     targetClusters: string;
-    backupSource: string;
-    rollbackupType: string;
+    backupSource: BackupSources;
+    rollbackType: BackupTypes;
     backupid?: string;
     rollbackTime?: string;
     databases: string[];
@@ -99,8 +112,8 @@
       domain: '',
     },
     targetClusters: data.targetClusters || '',
-    backupSource: data.backupSource || 'remote',
-    rollbackupType: data.rollbackupType || 'REMOTE_AND_TIME',
+    backupSource: data.backupSource || BackupSources.REMOTE,
+    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
     backupid: data.backupid || '',
     rollbackTime: data.rollbackTime || '',
     databases: data.databases || ['*'],
@@ -110,15 +123,25 @@
   });
 </script>
 <script setup lang="ts">
+  import { ref, watch } from 'vue';
+
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
+  import RenderMode from '@views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
+  import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
-  import RenderMode from '@views/spider-manage/rollback/pages/page1/components/common/render-mode/Index.vue';
-  import RenderTargetCluster from '@views/spider-manage/rollback/pages/page1/components/common/render-target-clusters/Index.vue';
-  import RenderBackup from '@views/spider-manage/rollback/pages/page1/components/common/RenderBackup.vue';
+  import RenderClusterInputSelect from '@views/mysql/rollback/pages/page1/components/common/RenderClusterInputSelect.vue';
 
   interface Props {
     data: IDataRow;
+    removeable: boolean;
+  }
+
+  interface Emits {
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
   interface Exposes {
@@ -126,6 +149,8 @@
   }
 
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const clusterRef = ref();
   const targetClustersRef = ref();
@@ -139,15 +164,39 @@
     id: 0,
     domain: '',
   });
-  const localRollbackuoType = ref('');
-  const localBackupSource = ref('remote');
+  const localBackupSource = ref(BackupSources.REMOTE);
 
   const handleBackupSourceChange = (value: string) => {
-    localBackupSource.value = value;
+    localBackupSource.value = value as BackupSources;
   };
 
   const handleClusterChange = (data?: IDataRow['clusterData']) => {
     localClusterData.value = data;
+  };
+
+  const handleCreate = (list: Array<string>) => {
+    emits(
+      'add',
+      list.map((domain) =>
+        createRowData({
+          clusterData: {
+            id: 0,
+            domain,
+          },
+        }),
+      ),
+    );
+  };
+
+  const handleAppend = () => {
+    emits('add', [createRowData()]);
+  };
+
+  const handleRemove = () => {
+    if (props.removeable) {
+      return;
+    }
+    emits('remove');
   };
 
   watch(
@@ -156,10 +205,10 @@
       if (props.data.clusterData) {
         localClusterData.value = props.data.clusterData;
       }
-      localRollbackuoType.value = props.data.rollbackupType;
     },
     {
       immediate: true,
+      deep: true,
     },
   );
 

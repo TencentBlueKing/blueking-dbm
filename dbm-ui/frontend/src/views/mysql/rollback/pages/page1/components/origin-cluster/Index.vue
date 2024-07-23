@@ -75,7 +75,7 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
     onSuccess(cloneData) {
-      tableData.value = cloneData.tableDataList;
+      tableData.value = cloneData.tableDataList as IDataRow[];
       window.changeConfirm = true;
     },
   });
@@ -155,14 +155,15 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
+      .then((infos) =>
         createTicket({
-          rollback_cluster_type: 'BUILD_INTO_METACLUSTER',
+          bk_biz_id: currentBizId,
+          ticket_type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
           remark: '',
           details: {
-            infos: data,
+            rollback_cluster_type: 'BUILD_INTO_METACLUSTER',
+            infos,
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           window.changeConfirm = false;
           router.push({

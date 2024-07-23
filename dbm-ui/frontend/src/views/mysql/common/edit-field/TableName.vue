@@ -37,6 +37,7 @@
       validator: (value: string[]) => boolean;
       message: string;
     }[];
+    disabledModelValueInit?: boolean;
   }
 
   interface Emits {
@@ -55,6 +56,7 @@
     required: true,
     single: false,
     rules: undefined,
+    disabledModelValueInit: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -107,6 +109,9 @@
   watch(
     () => props.clusterId,
     () => {
+      if (props.disabledModelValueInit) {
+        return;
+      }
       localValue.value = [];
     },
   );

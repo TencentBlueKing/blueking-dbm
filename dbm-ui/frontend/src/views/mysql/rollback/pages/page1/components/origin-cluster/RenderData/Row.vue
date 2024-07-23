@@ -42,6 +42,8 @@
 <script lang="ts">
   import { random } from '@utils';
 
+  import { BackupSources, BackupTypes } from '../../common/const';
+
   export interface IDataRow {
     rowKey: string;
     clusterData?: {
@@ -50,8 +52,14 @@
       cloudId?: number;
       cloudName?: string;
     };
-    rollbackIp?: string;
-    backupSource: string;
+    rollbackHost?: {
+      ip: string;
+      bk_host_id: number;
+      bk_cloud_id: number;
+      bk_biz_id: number;
+    };
+    backupSource: BackupSources;
+    rollbackType: BackupTypes;
     backupid?: string;
     rollbackTime?: string;
     databases?: string[];
@@ -67,8 +75,14 @@
       id: 0,
       domain: '',
     },
-    rollbackIp: data.rollbackIp,
-    backupSource: data.backupSource || 'remote',
+    rollbackHost: data.rollbackHost || {
+      ip: '',
+      bk_host_id: 0,
+      bk_cloud_id: 0,
+      bk_biz_id: 0,
+    },
+    backupSource: data.backupSource || BackupSources.REMOTE,
+    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
     backupid: data.backupid || '',
     rollbackTime: data.rollbackTime || '',
   });
@@ -78,10 +92,9 @@
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderMode from '@views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
   import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
-
-  import RenderMode from '@/views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
 
   interface Props {
     data: IDataRow;
@@ -108,14 +121,14 @@
     id: 0,
     domain: '',
   });
-  const localBackupSource = ref('');
+  const localBackupSource = ref(BackupSources.REMOTE);
 
   const handleClusterChange = (data: IDataRow['clusterData']) => {
     localClusterData.value = data;
   };
 
   const handleBackupSourceChange = (value: string) => {
-    localBackupSource.value = value;
+    localBackupSource.value = value as BackupSources;
   };
 
   const handleCreate = (list: Array<string>) => {

@@ -110,15 +110,15 @@
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
+      .then((infos) =>
         createTicket({
+          bk_biz_id: currentBizId,
           ticket_type: 'TENDBCLUSTER_ROLLBACK_CLUSTER',
           remark: '',
           details: {
             rollback_cluster_type: 'BUILD_INTO_NEW_CLUSTER',
-            ...data[0],
+            infos,
           },
-          bk_biz_id: currentBizId,
         }).then((data) => {
           window.changeConfirm = false;
           router.push({
