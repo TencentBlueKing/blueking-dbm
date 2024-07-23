@@ -158,7 +158,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	if err != nil {
 		logger.Log.Error("load backup failed: ", err, errStr)
 		// 尝试读取 myloader.log 里 CRITICAL 关键字
-		_, errStrDetail, _ := cmutil.ExecCommand(false, "", "grep", "-E", "'CRITICAL'",
+		errStrDetail, _, _ := cmutil.ExecCommand(false, "", "grep", "-E", "CRITICAL",
 			logfile, "| tail -5 >&2")
 		if len(strings.TrimSpace(errStr)) > 0 {
 			logger.Log.Info("tail 5 error from %s", logfile)

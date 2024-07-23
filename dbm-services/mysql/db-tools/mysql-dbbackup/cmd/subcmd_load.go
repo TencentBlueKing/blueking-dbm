@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -24,13 +26,16 @@ var loadCmd = &cobra.Command{
 		defer func() {
 			cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", cst.DbbackupGoInstallPath)
 		}()
-		if err = logger.InitLog("dbbackup_load.log"); err != nil {
-			return err
-		}
+
 		var cnf = config.BackupConfig{}
 		if err = initConfig(cnfFile, &cnf); err != nil {
 			return err
 		}
+		loadLogFile := fmt.Sprintf("dbbackup_load_%d.log", cnf.Public.MysqlPort)
+		if err = logger.InitLog(loadLogFile); err != nil {
+			return err
+		}
+
 		err = loadData(&cnf)
 		if err != nil {
 			logger.Log.Error("Load Dbbackup: Failure")
