@@ -31,7 +31,6 @@ from backend.db_services.mysql.fixpoint_rollback.serializers import (
     BackupLogRollbackTimeTendbResponseSerializer,
     BackupLogSerializer,
     BackupLogTendbResponseSerializer,
-    QueryBackupLogJobSerializer,
     QueryFixpointLogResponseSerializer,
     QueryFixpointLogSerializer,
 )
@@ -77,30 +76,6 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         return Response(logs)
 
     @common_swagger_auto_schema(
-        operation_summary=_("通过下发脚本到机器获取集群备份记录"),
-        query_serializer=BackupLogSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["GET"], detail=False, serializer_class=BackupLogSerializer)
-    def execute_backup_log_script(self, requests, *args, **kwargs):
-        validated_data = self.params_validate(self.get_serializer_class())
-        logs = FixPointRollbackHandler(validated_data["cluster_id"]).execute_backup_log_script()
-        return Response(logs)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("根据job id查询任务执行状态和执行结果"),
-        query_serializer=QueryBackupLogJobSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(methods=["GET"], detail=False, serializer_class=QueryBackupLogJobSerializer)
-    def query_backup_log_job(self, requests, *args, **kwargs):
-        validated_data = self.params_validate(self.get_serializer_class())
-        resp = FixPointRollbackHandler(validated_data["cluster_id"]).query_backup_log_from_job(
-            job_instance_id=validated_data["job_instance_id"]
-        )
-        return Response(resp)
-
-    @common_swagger_auto_schema(
         operation_summary=_("查询小于回档时间点最近的备份记录"),
         query_serializer=BackupLogRollbackTimeSerializer(),
         responses={
@@ -115,7 +90,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         return Response(
             FixPointRollbackHandler(validated_data["cluster_id"]).query_latest_backup_log(
                 rollback_time=str2datetime(validated_data["rollback_time"]),
-                job_instance_id=validated_data.get("job_instance_id", None),
+                backup_source=validated_data.get("backup_source"),
             )
         )
 

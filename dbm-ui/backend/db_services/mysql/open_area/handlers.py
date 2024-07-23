@@ -44,10 +44,18 @@ class OpenAreaHandler:
         return ""
 
     @classmethod
-    def __check_table_list(cls, real_tables, source_db, check_tables):
-        """检查表是否合法"""
-        if cls.ALL_TABLE_FLAG in check_tables:
-            return real_tables[source_db], ""
+    def __check_table_list(cls, real_tables, source_db, check_tables, check_type):
+        """
+        检查表是否合法,并根据模糊匹配解析具体表结构
+        1. schema全选，传到flow为[]
+        2. data全选，传到flow为["*"]
+        3. 模糊匹配或者指定部分表，需要解析具体的表结构，并和集群表结构对比
+        """
+        if cls.ALL_TABLE_FLAG in check_tables and check_type == "data":
+            return [cls.ALL_TABLE_FLAG], ""
+
+        if cls.ALL_TABLE_FLAG in check_tables and check_type == "schema":
+            return [], ""
 
         error_msg = ""
         match_tables = []
@@ -98,11 +106,11 @@ class OpenAreaHandler:
             err_db_msg = cls.__check_db_list(info["source_db"], real_dbs)
             # 校验schema_tblist是否合法
             info["schema_tblist"], err_schema_tb_msg = cls.__check_table_list(
-                real_tables, info["source_db"], info["schema_tblist"]
+                real_tables, info["source_db"], info["schema_tblist"], "schema"
             )
             # 校验data_tblist是否合法
             info["data_tblist"], err_data_tb_msg = cls.__check_table_list(
-                real_tables, info["source_db"], info["data_tblist"]
+                real_tables, info["source_db"], info["data_tblist"], "data"
             )
             err_msg_list = [err_db_msg, err_schema_tb_msg, err_data_tb_msg]
             info["error_msg"] = "\n".join([msg for msg in err_msg_list if msg])
