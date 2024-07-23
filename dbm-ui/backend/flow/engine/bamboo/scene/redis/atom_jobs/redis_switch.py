@@ -27,6 +27,8 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
+from .redis_dbmon import ClusterDbmonInstallAtomJob
+
 logger = logging.getLogger("flow")
 
 
@@ -151,7 +153,7 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
     ]:
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_twemproxy_backends_4_scene.__name__
         sub_pipeline.add_act(
-            act_name=_("Redis-{}-检查切换状态").format(exec_ip),
+            act_name=_("{}-检查切换状态").format(exec_ip),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -173,8 +175,18 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                 }
             )
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendis_switch_4_scene.__name__
-    sub_pipeline.add_act(
-        act_name=_("Redis-元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs)
+    sub_pipeline.add_act(act_name=_("元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs))
+
+    sub_pipeline.add_sub_pipeline(
+        ClusterDbmonInstallAtomJob(
+            root_id,
+            data,
+            act_kwargs,
+            {
+                "cluster_domain": act_kwargs.cluster["immute_domain"],
+                "is_stop": False,
+            },
+        )
     )
 
-    return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-实例切换").format(act_kwargs.cluster["immute_domain"]))
+    return sub_pipeline.build_sub_process(sub_name=_("{}-实例切换").format(act_kwargs.cluster["immute_domain"]))
