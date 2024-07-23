@@ -24,15 +24,19 @@ initJob:
 
 saas:
   api:
+    enabled: true
     resources: {}
     replicaCount: 1
     gunicornWorker: 8
   celeryBeat:
+    enabled: true
     resources: {}
     replicaCount: 1
   celeryWorker:
+    enabled: true
     resources: {}
     replicaCount: 1
   pipelineWorker:
+    enabled: true
     resources: {}
     replicaCount: 1
