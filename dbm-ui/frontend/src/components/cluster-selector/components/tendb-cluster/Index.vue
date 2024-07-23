@@ -124,7 +124,7 @@
 
   const columns = computed(() => [
     {
-      width: 60,
+      minWidth: 60,
       label: () => props.multiple && (
         <bk-checkbox
           key={`${pagination.current}_${activeTab.value}`}
@@ -170,6 +170,7 @@
     {
       label: t('访问入口'),
       field: 'cluster_name',
+      minWidth: 250,
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
         <TextOverflowLayout class="cluster-name-box">
@@ -205,7 +206,7 @@
     {
       label: t('状态'),
       field: 'status',
-      width: 100,
+      minWidth: 120,
       filter: {
         list: [
           {
@@ -228,12 +229,13 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
+      minWidth: 140,
       showOverflowTooltip: true,
     },
     {
       label: t('管控区域'),
       field: 'bk_cloud_id',
-      width: 140,
+      minWidth: 140,
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,
