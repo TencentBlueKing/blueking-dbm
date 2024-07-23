@@ -36,6 +36,7 @@
       <RenderMode
         ref="modeRef"
         :backup-source="localBackupSource"
+        :backupid="data.backupid"
         :cluster-id="localClusterData!.id"
         :rollback-time="data.rollbackTime" />
     </td>
@@ -89,7 +90,7 @@
     targetClusters?: string;
     backupSource: BackupSources;
     rollbackType: BackupTypes;
-    backupid?: number | string;
+    backupid?: string;
     rollbackTime?: string;
     databases: string[];
     databasesIgnore?: string[];
