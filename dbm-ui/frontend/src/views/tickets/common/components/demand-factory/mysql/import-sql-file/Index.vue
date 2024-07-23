@@ -354,7 +354,7 @@
       file_path_list: filePathList,
     }).then((result) => {
       fileContentMap.value = result.reduce((result, fileInfo) => {
-        const fileName = fileInfo.path.split('/').pop() as string;
+        const fileName = isForceSql.value ? fileInfo.path : fileInfo.path.split('/').pop() as string;
         return Object.assign(result, {
           [fileName]: fileInfo.content,
         });
