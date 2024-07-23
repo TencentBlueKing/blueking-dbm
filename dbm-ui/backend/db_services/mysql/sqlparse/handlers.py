@@ -21,6 +21,8 @@ from backend.utils.md5 import count_md5
 
 logger = logging.getLogger("root")
 
+LIMIT = 1000
+
 
 class SQLParseHandler:
     def __init__(self):
@@ -101,13 +103,8 @@ class SQLParseHandler:
         # 默认select语句要有limit
         need_keywords = need_keywords or ["LIMIT"]
 
-        # 一次性只解析一条sql语句
-        parsed_sqls = sqlparse.parse(sql)
-        if len(parsed_sqls) > 1:
-            raise SQLParseBaseException(_("请保证一次只解析一条select语句"))
-
-        # 允许show databases, show tables, desc, use语句
         def parse_show_desc_tokens(tokens):
+            """允许show databases, show tables, desc, use语句"""
             identifiers = [item.value.upper() for item in tokens if isinstance(item, sqlparse.sql.Identifier)]
             keyword = [token.value for token in tokens if token.is_keyword] or [""]
             if keyword[0].upper() in ["DESC", "DESCRIBE", "USE"]:
@@ -118,16 +115,8 @@ class SQLParseHandler:
                 return True
             return False
 
-        if parse_show_desc_tokens(parsed_sqls[0].tokens):
-            return
-
-        # 判断解析表结构，不允许查询系统表
-        dbs = [table.split(".")[0] for table in self.parse_sql(sql)["table_name"].split(",")]
-        if dbs and set(dbs).intersection(set(SYSTEM_DBS)):
-            raise SQLParseBaseException(_("不允许查询以下系统库表:{}").format(SYSTEM_DBS))
-
-        # 解析是否为合法的select语句和包含对应的keyword
-        def parse_select_tokens(tokens):
+        def parse_select_tokens(statement, tokens):
+            """解析是否为合法的select语句和包含对应的keyword"""
             is_select: bool = False
             keywords: list = []
             for token in tokens:
@@ -136,10 +125,29 @@ class SQLParseHandler:
                     is_select = True
                 elif token.ttype is sqlparse.tokens.Keyword:
                     keywords.append(token.value.upper())
+                    # 如果是limit命令，上限为1000
+                    if token.value.upper() == "LIMIT":
+                        limit = statement.token_next(statement.token_index(token))[1]
+                        if not limit or not limit.value.isdigit() or int(limit.value) > LIMIT:
+                            raise SQLParseBaseException(_("LIMIT限制为空或者超过1000"))
 
             is_contain_keywords = set(keywords).issuperset(set(need_keywords))
             return is_select, is_contain_keywords
 
-        valid_select = all(parse_select_tokens(parsed_sqls[0].tokens))
+        # 一次性只解析一条sql语句
+        parsed_sqls = sqlparse.parse(sql)
+        if len(parsed_sqls) > 1:
+            raise SQLParseBaseException(_("请保证一次只解析一条select语句"))
+
+        # 允许特定查询语句
+        if parse_show_desc_tokens(parsed_sqls[0].tokens):
+            return
+
+        # 判断解析表结构，不允许查询系统表
+        dbs = [table.split(".")[0] for table in self.parse_sql(sql)["table_name"].split(",")]
+        if dbs and set(dbs).intersection(set(SYSTEM_DBS)):
+            raise SQLParseBaseException(_("不允许查询以下系统库表:{}").format(SYSTEM_DBS))
+
+        valid_select = all(parse_select_tokens(parsed_sqls[0], parsed_sqls[0].tokens))
         if not valid_select:
             raise SQLParseBaseException(_("SQL语句不为查询语句，或者不包含{}命令").format(need_keywords))

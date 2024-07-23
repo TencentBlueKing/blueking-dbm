@@ -615,7 +615,7 @@ class ItsmTicketNodeEnum(str, StructuredEnum):
 
 class FlowMsgType(str, StructuredEnum):
     DONE = EnumField(_("完成"), _("完成"))
-    TODO = EnumField(_("代办"), _("代办"))
+    TODO = EnumField(_("待办"), _("待办"))
 
 
 class FlowMsgStatus(str, StructuredEnum):

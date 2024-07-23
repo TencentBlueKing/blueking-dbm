@@ -82,7 +82,7 @@ class GenerateDropStageDBSqlService(BaseService):
             ticket_type=ticket_type,
             creator=global_data["created_by"],
             bk_biz_id=bk_biz_id,
-            remark=_("清档自动发起的变更SQL单据"),
+            remark=_("清档自动发起的变更SQL单据\n关联单据：{}").format(ticket.url),
             details=details,
         )
 
