@@ -14,7 +14,7 @@ from mock.mock import patch
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.tests.mock_data.components.cc import CCApiMock
-from backend.tests.mock_data.components.gse import GseApiMock
+from backend.tests.mock_data.components.nodeman import NodemanApiMock
 
 pytestmark = pytest.mark.django_db
 
@@ -23,7 +23,7 @@ class TestInstanceHandler:
     @patch("backend.db_services.ipchooser.handlers.host_handler.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock())
     @patch("backend.db_services.ipchooser.handlers.base.CCApi", CCApiMock())
-    @patch("backend.db_services.ipchooser.query.resource.GseApi", GseApiMock())
+    @patch("backend.db_services.ipchooser.query.resource.BKNodeManApi", NodemanApiMock())
     def test_find_related_clusters_by_cluster_id(self, bk_biz_id, dbha_cluster):
         assert (
             len(
