@@ -152,7 +152,7 @@
   import { useRequest } from 'vue-request';
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
-  import { updatePolicy } from '@services/monitor';
+  import { updatePolicy } from '@services/source/monitor';
 
   import { useBeforeClose } from '@hooks';
 

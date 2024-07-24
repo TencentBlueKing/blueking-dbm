@@ -33,7 +33,7 @@
 
   import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
   import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
-  import { getPermissionRules } from '@services/permission';
+  import { getPermissionRules } from '@services/source/permission';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 

@@ -93,33 +93,27 @@
   import type { TableProps } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkInstances } from '@services/clusters';
+  import { checkInstances } from '@services/source/clusters';
   import type { InstanceInfos } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    type ClusterTypeInfos,
-    clusterTypeInfos,
-  } from '@common/const';
+  import { type ClusterTypeInfos, clusterTypeInfos } from '@common/const';
   import { ClusterTypes } from '@common/const';
   import { ipPort } from '@common/regex';
 
-  import type {
-    ClusterTypeOpts,
-    InstanceSelectorValues,
-  } from '../common/types';
+  import type { ClusterTypeOpts, InstanceSelectorValues } from '../common/types';
 
   import RenderManualHost from './RenderManualHost.vue';
 
   interface Props {
-    role?: string,
-    lastValues: InstanceSelectorValues,
-    tableSettings: TableProps['settings']
+    role?: string;
+    lastValues: InstanceSelectorValues;
+    tableSettings: TableProps['settings'];
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -173,10 +167,11 @@
   /**
    * 处理分隔内容，过滤空内容
    */
-  const getValues = () => manualInputValues.value
-    .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
-    .split(' ')
-    .filter(value => value);
+  const getValues = () =>
+    manualInputValues.value
+      .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
+      .split(' ')
+      .filter((value) => value);
 
   /**
    * 解析输入内容
@@ -210,9 +205,9 @@
         const item = lines[i];
         const infos = checkInstancesResult[i];
         const remove = lines.splice(i, 1);
-        const isExisted = checkInstancesResult.find(existItem => (
-          existItem.instance_address === item && (!props.role || props.role === existItem.role)
-        ));
+        const isExisted = checkInstancesResult.find(
+          (existItem) => existItem.instance_address === item && (!props.role || props.role === existItem.role),
+        );
         if (!isExisted) {
           newLines.push(...remove);
         } else {
@@ -232,7 +227,9 @@
       for (const item of tableData.value) {
         const type = item.cluster_type as ClusterTypeOpts;
         const list = lastValues[type];
-        const isExisted = list.find(i => `${i.instance_address}_${i.bk_cloud_id}` === `${item.instance_address}_${item.bk_cloud_id}`);
+        const isExisted = list.find(
+          (i) => `${i.instance_address}_${i.bk_cloud_id}` === `${item.instance_address}_${item.bk_cloud_id}`,
+        );
         if (!isExisted) {
           lastValues[type].push({
             bk_host_id: item.bk_host_id,

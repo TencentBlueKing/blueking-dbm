@@ -19,7 +19,7 @@
       :columns="columns"
       :data="state.accessData" />
   </div>
-  <div 
+  <div
     v-else
     class="ticket-details__list">
     <span>{{ t('Excel文件') }}：</span>
@@ -45,8 +45,8 @@
 
   import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { queryAccountRules } from '@services/permission';
-  import { getHostInAuthorize } from '@services/ticket';
+  import { queryAccountRules } from '@services/source/permission';
+  import { getHostInAuthorize } from '@services/source/ticket';
 
   import {
     AccountTypes,

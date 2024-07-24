@@ -141,7 +141,11 @@
   import { useRequest } from 'vue-request';
 
   import type PartitionModel from '@services/model/partition/partition';
-  import { create as createParitition, edit as editPartition, verifyPartitionField } from '@services/partitionManage';
+  import {
+    create as createParitition,
+    edit as editPartition,
+    verifyPartitionField,
+  } from '@services/source/partitionManage';
   import { getSpiderList } from '@services/source/spider';
 
   import { dbSysExclude } from '@common/const';

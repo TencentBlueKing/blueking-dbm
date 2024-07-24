@@ -63,7 +63,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { precheckPermissionClone } from '@services/permission';
+  import { precheckPermissionClone } from '@services/source/permission';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';

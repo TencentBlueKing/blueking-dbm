@@ -151,7 +151,7 @@
 
   import type { MySQLDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities } from '@services/source/ticket';
 
   import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
 

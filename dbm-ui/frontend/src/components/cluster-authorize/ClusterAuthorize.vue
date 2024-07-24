@@ -207,10 +207,10 @@
   import MongodbModel from '@services/model/mongodb/mongodb';
   import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
   import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
-  import { getPermissionRules, preCheckAuthorizeRules } from '@services/permission';
   import { checkHost } from '@services/source/ipchooser';
   import { getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { preCheckMongodbAuthorizeRules } from '@services/source/mongodbPermissionAuthorize';
+  import { getPermissionRules, preCheckAuthorizeRules } from '@services/source/permission';
   import { getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
   import { preCheckSqlserverAuthorizeRules } from '@services/source/sqlserverPermissionAuthorize';
   import { createTicket } from '@services/source/ticket';

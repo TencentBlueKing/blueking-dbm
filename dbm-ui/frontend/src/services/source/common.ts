@@ -13,8 +13,8 @@
 
 import pinyin from 'tiny-pinyin';
 
-import http from './http';
-import type { BizItem, Permission } from './types';
+import http from '../http';
+import type { BizItem, Permission } from '../types';
 
 /**
  * 校验资源权限参数

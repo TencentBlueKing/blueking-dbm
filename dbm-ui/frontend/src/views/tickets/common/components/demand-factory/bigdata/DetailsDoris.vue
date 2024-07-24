@@ -26,8 +26,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getTicketHostNodes } from '@services/source/ticket';
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities, getTicketHostNodes } from '@services/source/ticket';
   import type { TicketDetails } from '@services/types/ticket';
 
   import { useSystemEnviron } from '@stores';

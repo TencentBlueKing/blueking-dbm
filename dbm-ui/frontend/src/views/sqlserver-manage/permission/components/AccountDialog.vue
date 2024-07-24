@@ -97,7 +97,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getPasswordPolicy, getRandomPassword, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
+  import {
+    getPasswordPolicy,
+    getRandomPassword,
+    getRSAPublicKeys,
+    verifyPasswordStrength,
+  } from '@services/source/permission';
   import { createSqlserverAccount } from '@services/source/sqlserverPermissionAccount';
 
   import { AccountTypes } from '@common/const';

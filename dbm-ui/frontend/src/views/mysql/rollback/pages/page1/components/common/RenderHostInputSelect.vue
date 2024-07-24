@@ -40,6 +40,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { checkHost } from '@services/source/ipchooser';
   import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
@@ -53,7 +54,6 @@
   import type { IDataRow } from '../render-data/Index.vue';
 
   import { batchSplitRegex, ipv4 } from '@/common/regex';
-  import { checkHost } from '@/services/source/ipchooser';
 
   export interface HostDataItem {
     bk_host_id: number;

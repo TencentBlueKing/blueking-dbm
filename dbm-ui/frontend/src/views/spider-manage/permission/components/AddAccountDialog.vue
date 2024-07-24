@@ -101,7 +101,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
+  import {
+    createAccount,
+    getPasswordPolicy,
+    getRSAPublicKeys,
+    verifyPasswordStrength,
+  } from '@services/source/permission';
 
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';

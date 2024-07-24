@@ -102,3 +102,23 @@ export function checkInstance<
 >(params: { instance_addresses: string[]; bk_biz_id: number }) {
   return http.post<T[]>(`${path}/check_instances/`, params);
 }
+
+// 查询全集群信息
+export function queryAllTypeCluster(params: {
+  bk_biz_id: number;
+  cluster_types?: string;
+  immute_domain?: string;
+  phase?: string;
+}) {
+  return http.get<
+    {
+      bk_cloud_id: number;
+      cluster_type: string;
+      id: number;
+      immute_domain: string;
+      major_version: string;
+      name: string;
+      region: string;
+    }[]
+  >(`${path}/simple_query_cluster/`, params);
+}
