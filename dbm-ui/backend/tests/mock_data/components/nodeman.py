@@ -10,10 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 
 
-class GseApiMock(object):
+class NodemanApiMock(object):
     """
     gse 的 mock 接口
     """
 
-    def get_agent_status(self, *args, **kwargs):
+    def ipchooser_host_details(self, *args, **kwargs):
         return {}
