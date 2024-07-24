@@ -51,7 +51,7 @@ var MycnfCloneItemsDefault = []string{
 	"net_buffer_length",
 	"interactive_timeout",
 	"wait_timeout",
-	"relay_log_uncompress",
+	//"relay_log_uncompress",
 	"table_open_cache",
 	"table_definition_cache",
 	"long_query_time",

@@ -118,19 +118,27 @@ type ExtraFields struct {
 	EncryptEnable         bool  `json:"encrypt_enable" db:"encrypt_enable"`
 	// StorageEngine 物理备份使用
 	StorageEngine string `json:"storage_engine" db:"storage_engine"`
+	TimeZone      string `json:"time_zone" db:"time_zone"`
 	// BackupCharset 逻辑备份使用
 	BackupCharset string `json:"backup_charset" db:"backup_charset"`
-	TimeZone      string `json:"time_zone" db:"time_zone"`
+	SqlMode       string `json:"sql_mode" db:"time_zone"`
+	// BackupTool command name xtrabackup / mydumper / mysqldump
+	BackupTool string `json:"backup_tool" db:"time_zone"`
 }
 
 // JudgeIsFullBackup 是否是带所有数据的全备
 // 这里比较难判断逻辑备份 Regex 正则是否只包含系统库，所以优先判断如果是库表备份，认为false
 func (i *IndexContent) JudgeIsFullBackup(cnf *config.Public) bool {
-	if i.DataSchemaGrant == cst.BackupSchema || strings.Contains(cnf.BackupDir, "backupDatabaseTable_") {
+	if cnf.IsFullBackup() < 0 {
+		return false
+	} else if cnf.IsFullBackup() > 0 {
+		return true
+	} // == 0: unknown
+	if !cnf.IfBackupAll() || strings.Contains(cnf.BackupDir, "backupDatabaseTable_") {
 		i.IsFullBackup = false
 		return i.IsFullBackup
 	}
-	if i.BackupType == cst.BackupPhysical {
+	if cnf.IfBackupAll() && i.BackupType == cst.BackupPhysical {
 		i.IsFullBackup = true
 	}
 	i.IsFullBackup = true
@@ -176,7 +184,6 @@ func (r *BackupLogReport) BuildMetaInfo(cnf *config.Public, metaInfo *IndexConte
 	if r.EncryptedKey != "" {
 		metaInfo.EncryptEnable = true
 	}
-	metaInfo.JudgeIsFullBackup(cnf)
 
 	metaInfo.reData = regexp.MustCompile(ReData)
 	metaInfo.reSchema = regexp.MustCompile(ReSchema)

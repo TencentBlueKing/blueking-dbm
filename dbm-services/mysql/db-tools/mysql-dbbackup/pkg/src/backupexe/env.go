@@ -35,6 +35,7 @@ var (
 	// CmdQpress qpress command path, need call SetEnv to init
 	CmdQpress  = ""
 	XbcryptBin = ""
+	BackupTool = ""
 )
 
 // ParseXtrabackupVersion

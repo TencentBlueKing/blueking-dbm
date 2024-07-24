@@ -1,9 +1,21 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package backupexe
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -77,10 +89,16 @@ func (l *LogicalLoaderMysqldump) preExecute() error {
 			}
 		}
 
+		ctx := context.Background()
+		dbConn, _ := l.dbConn.Conn(ctx)
+		defer dbConn.Close()
+		if !l.cnf.LogicalLoad.EnableBinlog {
+			dbConn.ExecContext(ctx, "set session sql_log_bin=off")
+		}
 		for _, dbName := range dblistNew {
 			dropDbSql := fmt.Sprintf("DROP DATABASE IF EXISTS `%s`", dbName)
 			logger.Log.Warn("DBListDropIfExists sql:", dropDbSql)
-			if _, err := l.dbConn.Exec(dropDbSql); err != nil {
+			if _, err := dbConn.ExecContext(ctx, dropDbSql); err != nil {
 				return errors.Wrap(err, "DBListDropIfExists err")
 			}
 		}
@@ -124,16 +142,25 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 	if l.cnf.LogicalLoadMysqldump.BinPath != "" {
 		binPath = l.cnf.LogicalLoadMysqldump.BinPath
 	} else {
-		binPath = filepath.Join(l.dbbackupHome, "bin/mysql")
+		binPath = filepath.Join(l.dbbackupHome, "/bin/mysql")
+		if !cmutil.FileExists(binPath) {
+			binPath, err = exec.LookPath("mysql")
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	args := []string{
-		"-h" + l.cnf.LogicalLoadMysqldump.MysqlHost,
-		"-P" + strconv.Itoa(l.cnf.LogicalLoadMysqldump.MysqlPort),
-		"-u" + l.cnf.LogicalLoadMysqldump.MysqlUser,
-		"-p" + l.cnf.LogicalLoadMysqldump.MysqlPasswd,
+		"-h" + l.cnf.LogicalLoad.MysqlHost,
+		"-P" + strconv.Itoa(l.cnf.LogicalLoad.MysqlPort),
+		"-u" + l.cnf.LogicalLoad.MysqlUser,
+		"-p" + l.cnf.LogicalLoad.MysqlPasswd,
 		"--max_allowed_packet=1073741824 ",
-		fmt.Sprintf("--default-character-set=%s", l.cnf.LogicalLoadMysqldump.MysqlCharset),
+		fmt.Sprintf("--default-character-set=%s", l.cnf.LogicalLoad.MysqlCharset),
+	}
+	if !l.cnf.LogicalLoad.EnableBinlog {
+		args = append(args, "--init-command", "'set session sql_log_bin=off'")
 	}
 
 	// ExtraOpt is to freely add command line arguments
@@ -143,9 +170,17 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 		}...)
 	}
 
-	args = append(args, []string{
-		"<", fmt.Sprintf(`'%s'`, l.cnf.LogicalLoadMysqldump.MysqlLoadFilePath),
-	}...)
+	sqlFiles, err := filepath.Glob(filepath.Join(l.cnf.LogicalLoad.MysqlLoadDir, "*_logical.sql"))
+	if err != nil {
+		return errors.WithMessagef(err, "get sql file from %s", l.cnf.LogicalLoad.MysqlLoadDir)
+	} else if len(sqlFiles) == 0 {
+		return errors.WithMessagef(err, "no sql file found from %s", l.cnf.LogicalLoad.MysqlLoadDir)
+	} else {
+		logger.Log.Info("found sql files:", sqlFiles)
+	}
+	// 取第一个
+	dumpedSqlFile := sqlFiles[0]
+	args = append(args, "<", dumpedSqlFile)
 
 	pwd, _ := os.Getwd()
 	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("mysqldump_load_%d.log", int(time.Now().Weekday())))

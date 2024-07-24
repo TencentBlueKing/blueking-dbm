@@ -229,6 +229,21 @@ func ShowMysqlSlaveStatus(db *sql.DB) (masterHost string, masterPort int, err er
 	return masterHost, masterPort, nil
 }
 
+func StartSlaveThreads(ioThread, sqlThread bool, db *sql.DB) error {
+	var err error
+	if ioThread {
+		if _, err = db.Exec("START SLAVE io_thread"); err != nil {
+			return err
+		}
+	}
+	if sqlThread {
+		if _, err = db.Exec("START SLAVE sql_thread"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // IsPrimaryCtl check tc_is_primary
 func IsPrimaryCtl(dbw *DbWorker) (bool, error) {
 	sqlStr := fmt.Sprintf(`tdbctl get primary`)

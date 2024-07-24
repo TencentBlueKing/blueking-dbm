@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -37,10 +36,14 @@ func init() {
 	// rootCmd.PersistentFlags().StringVarP(&cnfFile, "config", "c", "", "config file")
 	// _ = rootCmd.MarkPersistentFlagRequired("config")
 
+	// overwrite -h option
+	rootCmd.PersistentFlags().BoolP("help", "", false, "help for this command")
 	rootCmd.AddCommand(dumpCmd)
 	rootCmd.AddCommand(loadCmd)
 	rootCmd.AddCommand(spiderCmd)
 	rootCmd.AddCommand(migrateOldCmd)
+	rootCmd.AddCommand(dumpLogicalCmd)
+
 }
 
 // initConfig parse the configuration file of dbbackup to init a cfg
@@ -65,14 +68,14 @@ func initConfig(confFile string, v interface{}) error {
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatalf("read config failed: %v", err)
 	}
-
-	viper.AutomaticEnv() // read in environment variables that match
-	replacer := strings.NewReplacer(".", "_")
-	viper.SetEnvKeyReplacer(replacer)
-	if err := viper.MergeInConfig(); err != nil {
-		log.Fatal(err)
-	}
-
+	/*
+		viper.AutomaticEnv() // read in environment variables that match
+		replacer := strings.NewReplacer(".", "_")
+		viper.SetEnvKeyReplacer(replacer)
+		if err := viper.MergeInConfig(); err != nil {
+			log.Fatal(err)
+		}
+	*/
 	err := viper.Unmarshal(v)
 	if err != nil {
 		log.Fatalf("parse config failed: %v", err)

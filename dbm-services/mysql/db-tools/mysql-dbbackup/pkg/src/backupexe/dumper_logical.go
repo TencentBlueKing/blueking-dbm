@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package backupexe
 
 import (
@@ -13,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -36,7 +47,7 @@ func (l *LogicalDumper) initConfig(mysqlVerStr string) error {
 	} else {
 		l.dbbackupHome = filepath.Dir(cmdPath)
 	}
-
+	BackupTool = cst.ToolMydumper
 	return nil
 }
 
@@ -59,6 +70,7 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 		fmt.Sprintf("--threads=%d", l.cnf.LogicalBackup.Threads),
 		"--trx-consistency-only",
 		"--long-query-retry-interval=10",
+		// "--disk-limits=1GB:5GB",
 	}
 
 	if !l.cnf.LogicalBackup.DisableCompress {
@@ -69,25 +81,73 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 			fmt.Sprintf("--defaults-file=%s", l.cnf.LogicalBackup.DefaultsFile),
 		}...)
 	}
-	if l.cnf.LogicalBackup.Regex != "" {
-		args = append(args, []string{
-			"-x", fmt.Sprintf(`'%s'`, l.cnf.LogicalBackup.Regex),
-		}...)
-	}
-	if l.cnf.Public.IfBackupSchema() && !l.cnf.Public.IfBackupData() {
-		args = append(args, []string{
-			"--no-data", "--events", "--routines", "--triggers",
-		}...)
-	} else if !l.cnf.Public.IfBackupSchema() && l.cnf.Public.IfBackupData() {
-		args = append(args, []string{
-			"--no-schemas", "--no-views",
-		}...)
-	} else if l.cnf.Public.IfBackupSchema() && l.cnf.Public.IfBackupData() {
-		args = append(args, []string{
-			"--events", "--routines", "--triggers",
-		}...)
+	if l.cnf.LogicalBackup.GetFilterType() == config.FilterTypeForm {
+		tables := l.cnf.LogicalBackup.Tables
+		databases := l.cnf.LogicalBackup.Databases
+		excludeDatabases := l.cnf.LogicalBackup.ExcludeDatabases
+		excludeTables := l.cnf.LogicalBackup.ExcludeTables
+		if tables == "" {
+			tables = "*"
+		}
+		if databases == "" {
+			databases = "*"
+		}
+		if excludeTables == "" && excludeDatabases != "" {
+			excludeTables = "*"
+		}
+		dbList := strings.Split(databases, ",")
+		tbList := strings.Split(tables, ",")
+		dbListExclude := strings.Split(excludeDatabases, ",")
+		tbListExclude := strings.Split(excludeTables, ",")
+		filter, err := db_table_filter.BuildMydumperRegex(dbList, tbList, dbListExclude, tbListExclude)
+		if err != nil {
+			return err
+		}
+		regexStr := filter.TableFilterRegex()
+		args = append(args, []string{"-x", fmt.Sprintf(`'%s'`, regexStr)}...)
+		logger.Log.Error("mydumper regex: ", regexStr)
+	} else if l.cnf.LogicalBackup.Regex != "" { // l.cnf.LogicalBackup.GetFilterType() == "regex"
+		args = append(args, []string{"-x", fmt.Sprintf(`'%s'`, l.cnf.LogicalBackup.Regex)}...)
+	} else { // if l.cnf.LogicalBackup.GetFilterType() == config.FilterTypeTablesList
+		return errors.Errorf("unsupport filter type '%s' yet", l.cnf.LogicalBackup.GetFilterType())
 	}
 
+	if l.cnf.Public.DataSchemaGrant == "" {
+		if l.cnf.LogicalBackup.NoData {
+			args = append(args, "--no-data")
+		}
+		if l.cnf.LogicalBackup.NoSchemas {
+			args = append(args, "--no-schemas")
+		}
+		if l.cnf.LogicalBackup.Events {
+			args = append(args, "--events")
+		}
+		if l.cnf.LogicalBackup.Routines {
+			args = append(args, "--routines")
+		}
+		if l.cnf.LogicalBackup.Triggers {
+			args = append(args, "--triggers")
+		}
+		if l.cnf.LogicalBackup.InsertMode == "replace" {
+			args = append(args, "--replace")
+		} else if l.cnf.LogicalBackup.InsertMode == "insert_ignore" {
+			args = append(args, "--insert-ignore")
+		}
+	} else {
+		if l.cnf.Public.IfBackupSchema() && !l.cnf.Public.IfBackupData() {
+			args = append(args, []string{
+				"--no-data", "--events", "--routines", "--triggers",
+			}...)
+		} else if !l.cnf.Public.IfBackupSchema() && l.cnf.Public.IfBackupData() {
+			args = append(args, []string{
+				"--no-schemas", "--no-views",
+			}...)
+		} else if l.cnf.Public.IfBackupSchema() && l.cnf.Public.IfBackupData() {
+			args = append(args, []string{
+				"--events", "--routines", "--triggers",
+			}...)
+		}
+	}
 	// ToDo extropt
 
 	var cmd *exec.Cmd
@@ -124,13 +184,11 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 
 	cmd.Stdout = outFile
 	cmd.Stderr = outFile
-
 	err = cmd.Run()
 	if err != nil {
 		logger.Log.Error("run logical backup failed: ", err)
 		return err
 	}
-
 	return nil
 }
 
@@ -169,5 +227,6 @@ func (l *LogicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbarep
 			MasterPort: cast.ToInt(metadata.SlaveStatus["Master_Port"]),
 		}
 	}
+	metaInfo.JudgeIsFullBackup(&cnf.Public)
 	return &metaInfo, nil
 }
