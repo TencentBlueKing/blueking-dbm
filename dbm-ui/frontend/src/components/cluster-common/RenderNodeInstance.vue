@@ -182,20 +182,22 @@
     isShowMore.value = true;
     nextTick(() => {
       tableRef.value.fetchData({
-        bk_biz_id: currentBizId,
         cluster_id: props.clusterId,
         role: props.role,
+      }, {
+        bk_biz_id: currentBizId,
       });
     });
   };
 
   const handleSearch = () => {
     tableRef.value.fetchData({
-      bk_biz_id: currentBizId,
       cluster_id: props.clusterId,
       role: props.role,
       instance_address: search.value,
       offset: 0,
+    },{
+      bk_biz_id: currentBizId,
     });
   };
 

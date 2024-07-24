@@ -362,12 +362,14 @@
   const fetchData = (loading?: boolean) => {
     tableRef.value!.fetchData(
       {
+        ...getSearchSelectorParams(searchValue.value),
+      },
+      {
         db_type: DBTypes.SQLSERVER,
         bk_biz_id: globalBizsStore.currentBizId,
         type: ClusterTypes.SQLSERVER_HA,
-        ...getSearchSelectorParams(searchValue.value),
+        ...sortValue
       },
-      sortValue,
       loading
     );
     isInit = false;

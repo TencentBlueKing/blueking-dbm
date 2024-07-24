@@ -143,24 +143,14 @@
 
   const handleActive = (data: UnwrapRef<typeof instanceList>[number]) => {
     activeKey.value = data.id;
-    const dataList: IDataRow[] = [];
-    const rows = convertDataRows(data.details);
-    dataList.push(...rows);
-    tableData.value = dataList;
-    checkOverflow();
-  };
-
-  const convertDataRows = (details: Record<string, string[]>) =>
-    Object.entries(details).reduce(
-      (pre, [key, value]) => [
-        ...pre,
-        {
+    tableData.value = Object.entries(data.details).map(
+      ([key, value]) => ({
           db_name: key,
           table_name: value ? value.join(' , ') : '--',
-        },
-      ],
-      [] as IDataRow[],
+        })
     );
+    checkOverflow();
+  };
 </script>
 <style lang="less">
   .inspection-instance-detail {

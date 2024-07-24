@@ -78,16 +78,17 @@
   let isInit = true;
 
   const fetchData = (loading?:boolean) => {
-    const params = {
+    tableRef.value!.fetchData({
       ...getSearchSelectorParams(searchValue.value),
+    }, {
       cluster_type: [
         ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
         ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
         ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      ].join(',')
-    }
-    tableRef.value.fetchData(params, { ...sortValue }, loading);
+      ].join(','),
+      ...sortValue
+    }, loading);
     isInit = false;
   };
 

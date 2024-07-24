@@ -293,6 +293,7 @@
                   ref="specBackendRef"
                   v-model="state.formdata.details.resource_spec.backend_group"
                   :biz-id="state.formdata.bk_biz_id"
+                  :city-code="state.formdata.details.city_code"
                   :cloud-id="state.formdata.details.bk_cloud_id"
                   :cluster-type="typeInfos.cluster_type"
                   :machine-type="typeInfos.backend_machine_type" />
@@ -916,8 +917,8 @@
 <style lang="less">
   .recommend-architecture-sideslider {
     .bk-modal-content {
-      overflow-y: auto;
       max-height: calc(100vh - 51px);
+      overflow-y: auto;
     }
   }
 </style>

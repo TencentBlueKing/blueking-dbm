@@ -75,12 +75,11 @@
 
   const instanceData = defineModel<{instanceAddress: string, clusterId: number, clusterType: string}>('instanceData');
 
-  const fetchData = (loading?:boolean) => {
-    const params = {
+  const fetchData = (loading?: boolean) => {
+    tableRef.value.fetchData({
       ...getSearchSelectorParams(searchValue.value),
-      cluster_type: ClusterTypes.REDIS_INSTANCE,
-    }
-    tableRef.value.fetchData(params, { ...sortValue }, loading);
+    },
+    { cluster_type: ClusterTypes.REDIS_INSTANCE, ...sortValue }, loading);
     isInit = false;
   };
 

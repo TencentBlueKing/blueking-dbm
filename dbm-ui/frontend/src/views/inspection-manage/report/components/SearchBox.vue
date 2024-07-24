@@ -1,7 +1,7 @@
 <template>
   <div class="inspection-search-box">
     <BkForm form-type="vertical">
-      <BkFormItem :label="t('日期')">
+      <BkFormItem :label="t('巡检时间')">
         <BkDatePicker
           clearable
           :model-value="[formData.create_at__gte, formData.create_at__lte]"
@@ -23,13 +23,13 @@
         <BkSelect v-model="formData.status">
           <BkOption
             :label="t('正常')"
-            :value="1" />
+            value="1" />
           <BkOption
             :label="t('异常')"
-            :value="0" />
+            value="0" />
           <BkOption
             :label="t('未知')"
-            :value="-1" />
+            value="-1" />
         </BkSelect>
       </BkFormItem>
     </BkForm>
@@ -64,10 +64,8 @@
   const emits = defineEmits<Emits>();
 
   const genDefaultData = () => ({
-    create_at__gte: dayjs().startOf('day')
-      .format('YYYY-MM-DD HH:mm:ss'),
-    create_at__lte: dayjs().endOf('day')
-      .format('YYYY-MM-DD HH:mm:ss'),
+    create_at__gte: dayjs().startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+    create_at__lte: dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss'),
     cluster: '',
     status: '',
   });

@@ -1081,11 +1081,10 @@
   };
 
   const fetchData = (loading?: boolean) => {
-    const params = {
+    tableRef.value!.fetchData({
       ...getSearchSelectorParams(searchValue.value),
+    }, {
       cluster_type: ClusterTypes.REDIS_INSTANCE,
-    }
-    tableRef.value!.fetchData(params, {
       ...sortValue,
     }, loading);
     isInit = false;

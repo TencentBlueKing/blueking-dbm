@@ -20,7 +20,7 @@
     :placeholder="t('请选择城市')"
     @change="handleChange">
     <BkOption
-      v-for="item in data"
+      v-for="item in renderData"
       :key="item.city_code"
       :label="item.city_name"
       :value="item.city_code" />
@@ -31,6 +31,13 @@
   import { useRequest } from 'vue-request';
 
   import { getInfrasCities } from '@services/source/infras';
+
+  interface IDataItem {
+    city_code: string;
+    city_name: string;
+    inventory: number;
+    inventory_tag: string;
+  }
 
   interface Props {
     defaultValue?: string;
@@ -49,6 +56,9 @@
   const { loading, data } = useRequest(getInfrasCities, {
     initialData: [],
   });
+
+  // 下拉项过滤“无限制”
+  const renderData = computed(() => (data.value as IDataItem[]).filter((item) => item.city_code !== 'default') || []);
 
   const handleChange = (value: string) => {
     emits('change', value);
