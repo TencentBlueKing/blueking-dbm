@@ -357,7 +357,7 @@ class Services:
                 "search_key": custom_name,
                 "page": 1,
                 "page_size": 10,
-                "bk_biz_id": 3,
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
             }
         )
         if res.get("total") > 0:
