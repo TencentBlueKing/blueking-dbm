@@ -38,6 +38,7 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
     DO:
     1. 修改新实例角色为slave,并且创建tuple关系
     2. 新实例加入到 集群表 (storageinstance_cluster)
+    3. 兼容 主从版本（单机多实例，cc模式)
     """
 
     logger.info("user request redo slaves cluster {} , link info {}".format(cluster.immute_domain, tendisss))
@@ -92,8 +93,10 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
         cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
         if cluster_entry and cluster_entry.entry.startswith("nodes."):
             cluster_entry.storageinstance_set.add(*receiver_objs)
-
-        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
+        is_increment = False
+        if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
+            is_increment = True
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs, is_increment=is_increment)
         logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, receiver_objs))
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
@@ -236,8 +239,11 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
                 new_ejector_obj.instance_inner_role = InstanceInnerRole.MASTER.value
                 new_ejector_obj.save(update_fields=["instance_role", "instance_inner_role"])
 
-        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(ejector_objs)
-        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs)
+        is_increment = False
+        if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
+            is_increment = True
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(ejector_objs, is_increment=is_increment)
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs, is_increment=is_increment)
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
         raise e
