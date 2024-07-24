@@ -8,7 +8,7 @@ metadata:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
-  replicas: 1
+  replicas: {{ .Values.saas.celeryWorker.replicaCount | default 1}}
   {{- end }}
   selector:
     matchLabels:
