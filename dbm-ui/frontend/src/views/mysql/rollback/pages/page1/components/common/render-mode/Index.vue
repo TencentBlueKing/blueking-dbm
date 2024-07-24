@@ -50,6 +50,8 @@
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import type { BackupLogRecord } from '@services/source/fixpointRollback';
+
   import { useTimeZoneFormat } from '@hooks';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
@@ -58,8 +60,6 @@
   import { BackupTypes, selectList } from '../const';
 
   import RecordSelector from './RecordSelector.vue';
-
-  import type { BackupLogRecord } from '@/services/source/fixpointRollback';
 
   interface Props {
     clusterId: number;

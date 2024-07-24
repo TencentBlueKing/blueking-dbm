@@ -86,7 +86,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { modifyAdminPassword } from '@services/permission';
+  import { modifyAdminPassword } from '@services/source/permission';
 
   import { useCopy } from '@hooks';
 

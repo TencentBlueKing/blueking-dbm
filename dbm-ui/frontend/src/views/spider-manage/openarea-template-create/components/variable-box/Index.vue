@@ -42,8 +42,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { updateVariable } from '@services/openarea';
-  import { getBizSettingList } from '@services/system-setting';
+  import { updateVariable } from '@services/source/openarea';
+  import { getBizSettingList } from '@services/source/system-setting';
 
   import { useGlobalBizs } from '@stores';
 

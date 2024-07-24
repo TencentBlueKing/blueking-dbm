@@ -100,7 +100,12 @@
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
+  import {
+    createAccount,
+    getPasswordPolicy,
+    getRSAPublicKeys,
+    verifyPasswordStrength,
+  } from '@services/source/permission';
 
   import { useGlobalBizs } from '@stores';
 
@@ -127,7 +132,7 @@
 
 <script setup lang="ts">
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -150,16 +155,20 @@
   const userPlaceholder = t('由字母_数字_下划线_点_减号_字符组成以字母或数字开头');
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
   const rules = {
-    user: [{
-      trigger: 'change',
-      message: userPlaceholder,
-      validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9-_.]*$/g.test(value),
-    }],
-    password: [{
-      trigger: 'blur',
-      message: t('密码不满足要求'),
-      validator: debounceVerifyPassword,
-    }],
+    user: [
+      {
+        trigger: 'change',
+        message: userPlaceholder,
+        validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9-_.]*$/g.test(value),
+      },
+    ],
+    password: [
+      {
+        trigger: 'blur',
+        message: t('密码不满足要求'),
+        validator: debounceVerifyPassword,
+      },
+    ],
   };
 
   watch(isShow, (show: boolean) => {
@@ -175,10 +184,9 @@
    * 获取公钥
    */
   function fetchRSAPublicKeys() {
-    getRSAPublicKeys({ names: ['password'] })
-      .then((res) => {
-        state.publicKey = res[0]?.content || '';
-      });
+    getRSAPublicKeys({ names: ['password'] }).then((res) => {
+      state.publicKey = res[0]?.content || '';
+    });
   }
 
   /**
@@ -195,17 +203,22 @@
     instance: null as Instance | null,
     isShow: false,
     strength: [] as StrengthItem[],
-    keys: Object.keys(PASSWORD_POLICY).filter(key => !key.includes('follow_')),
-    followKeys: Object.keys(PASSWORD_POLICY).filter(key => key.includes('follow_')),
+    keys: Object.keys(PASSWORD_POLICY).filter((key) => !key.includes('follow_')),
+    followKeys: Object.keys(PASSWORD_POLICY).filter((key) => key.includes('follow_')),
     validate: {} as PasswordStrength,
   });
   const passwordRef = ref();
   const passwordItemRef = ref();
 
   /** 校验密码 */
-  watch(() => state.formdata.password, (psw) => {
-    psw && debounceVerifyPassword();
-  });
+  watch(
+    () => state.formdata.password,
+    (psw) => {
+      if (psw) {
+        debounceVerifyPassword();
+      }
+    },
+  );
 
   /**
    * 远程校验密码是否符合要求
@@ -213,92 +226,92 @@
   function verifyPassword() {
     return verifyPasswordStrength({
       password: getEncyptPassword(),
-    })
-      .then((res) => {
-        passwordState.validate = res;
-        return res.is_strength;
-      });
+    }).then((res) => {
+      passwordState.validate = res;
+      return res.is_strength;
+    });
   }
 
   /**
    * 获取密码安全策略
    */
   function fetchPasswordPolicy() {
-    getPasswordPolicy()
-      .then((res) => {
-        const {
-          min_length: minLength,
-          max_length: maxLength,
-          include_rule: includeRule,
-          exclude_continuous_rule: excludeContinuousRule,
-        } = res.rule;
-        passwordState.strength = [{
+    getPasswordPolicy().then((res) => {
+      const {
+        min_length: minLength,
+        max_length: maxLength,
+        include_rule: includeRule,
+        exclude_continuous_rule: excludeContinuousRule,
+      } = res.rule;
+      passwordState.strength = [
+        {
           keys: ['min_length_valid', 'max_length_valid'],
           text: t('密码长度为_min_max', [minLength, maxLength]),
-        }];
-        // 常规提示
-        for (const key of passwordState.keys) {
-          if (includeRule[key as keyof IncludeRule]) {
-            passwordState.strength.push({
-              keys: [`${key}_valid`],
-              text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
-            });
-          }
-        }
-
-        // 重复提示
-        if (excludeContinuousRule.repeats) {
+        },
+      ];
+      // 常规提示
+      for (const key of passwordState.keys) {
+        if (includeRule[key as keyof IncludeRule]) {
           passwordState.strength.push({
-            keys: ['repeats_valid'],
-            text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
+            keys: [`${key}_valid`],
+            text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
           });
         }
+      }
 
-        // 特殊提示（键盘序、字符序、数字序等）
-        const special = passwordState.followKeys.reduce((values: StrengthItem[], key: string) => {
-          const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
-          if (excludeContinuousRule[valueKey]) {
-            values.push({
-              keys: [`${key}_valid`],
-              text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
-            });
-          }
-          return values;
-        }, []);
-        if (special.length > 0) {
-          const keys: string[] = [];
-          const texts: string[] = [];
-          for (const item of special) {
-            keys.push(...item.keys);
-            texts.push(item.text);
-          }
-          passwordState.strength.push({
-            keys,
-            text: texts.join('、'),
-          });
-        }
+      // 重复提示
+      if (excludeContinuousRule.repeats) {
+        passwordState.strength.push({
+          keys: ['repeats_valid'],
+          text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
+        });
+      }
 
-        // 设置 tips
-        const template = document.getElementById('passwordStrength');
-        const content = template?.querySelector?.('.password-strength');
-        if (passwordRef.value?.$el && content) {
-          const el = passwordRef.value.$el as HTMLDivElement;
-          passwordState.instance?.destroy();
-          passwordState.instance = dbTippy(el, {
-            trigger: 'manual',
-            theme: 'light',
-            content,
-            arrow: true,
-            placement: 'right-start',
-            interactive: true,
-            allowHTML: true,
-            hideOnClick: false,
-            zIndex: 9999,
-            onDestroy: () => template?.append?.(content),
-            appendTo: () => document.body,
+      // 特殊提示（键盘序、字符序、数字序等）
+      const special = passwordState.followKeys.reduce((values: StrengthItem[], key: string) => {
+        const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
+        if (excludeContinuousRule[valueKey]) {
+          values.push({
+            keys: [`${key}_valid`],
+            text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
           });
         }
-      });
+        return values;
+      }, []);
+      if (special.length > 0) {
+        const keys: string[] = [];
+        const texts: string[] = [];
+        for (const item of special) {
+          keys.push(...item.keys);
+          texts.push(item.text);
+        }
+        passwordState.strength.push({
+          keys,
+          text: texts.join('、'),
+        });
+      }
+
+      // 设置 tips
+      const template = document.getElementById('passwordStrength');
+      const content = template?.querySelector?.('.password-strength');
+      if (passwordRef.value?.$el && content) {
+        const el = passwordRef.value.$el as HTMLDivElement;
+        passwordState.instance?.destroy();
+        passwordState.instance = dbTippy(el, {
+          trigger: 'manual',
+          theme: 'light',
+          content,
+          arrow: true,
+          placement: 'right-start',
+          interactive: true,
+          allowHTML: true,
+          hideOnClick: false,
+          zIndex: 9999,
+          onDestroy: () => template?.append?.(content),
+          appendTo: () => document.body,
+        });
+      }
+    });
   }
 
   /**

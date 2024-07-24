@@ -53,7 +53,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { queryAllTypeCluster } from '@services/dbbase';
+  import { queryAllTypeCluster } from '@services/source/dbbase';
 
   import { useUrlSearch } from '@hooks';
 
