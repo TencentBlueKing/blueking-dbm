@@ -72,7 +72,7 @@
     dryRun,
     enablePartition,
     getList,
-  } from '@services/partitionManage';
+  } from '@services/source/partitionManage';
 
   import { ClusterTypes } from '@common/const';
 

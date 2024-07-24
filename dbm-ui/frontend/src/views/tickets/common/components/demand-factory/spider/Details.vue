@@ -103,7 +103,7 @@
   import { useRequest } from 'vue-request';
 
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities } from '@services/source/infras';
   import type { TicketDetails } from '@services/types/ticket';
 
   import { useAffinity } from '../../../hooks/useAffinity';

@@ -81,11 +81,11 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { precheckPermissionClone } from '@services/permission';
   import {
     checkHost,
     getHostTopoInfos,
   } from '@services/source/ipchooser';
+  import { precheckPermissionClone } from '@services/source/permission';
   import { createTicket } from '@services/source/ticket';
 
   import { useTableMaxHeight, useTicketCloneInfo } from '@hooks';

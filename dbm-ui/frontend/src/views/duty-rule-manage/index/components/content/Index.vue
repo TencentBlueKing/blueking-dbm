@@ -55,7 +55,7 @@
     getPriorityDistinct,
     queryDutyRuleList,
     updatePartialDutyRule,
-  } from '@services/monitor';
+  } from '@services/source/monitor';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import MiniTag from '@components/mini-tag/index.vue';

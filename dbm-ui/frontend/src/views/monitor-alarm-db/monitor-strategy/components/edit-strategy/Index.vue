@@ -175,10 +175,7 @@
   import { useRequest } from 'vue-request';
 
   import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
-  import {
-    clonePolicy,
-    updatePolicy,
-  } from '@services/monitor';
+  import { clonePolicy, updatePolicy } from '@services/source/monitor';
 
   import { useGlobalBizs } from '@stores';
 
@@ -189,26 +186,26 @@
   import MonitorTarget from './monitor-target/Index.vue';
 
   interface Props {
-    data: MonitorPolicyModel,
-    bizsMap: Record<string, string>,
-    dbType: string,
-    alarmGroupList: SelectItem<string>[],
-    alarmGroupNameMap: Record<string, string>,
-    moduleList: SelectItem<string>[],
-    clusterList: SelectItem<string>[],
-    defaultNotifyId: number,
-    pageStatus?: string,
+    data: MonitorPolicyModel;
+    bizsMap: Record<string, string>;
+    dbType: string;
+    alarmGroupList: SelectItem<string>[];
+    alarmGroupNameMap: Record<string, string>;
+    moduleList: SelectItem<string>[];
+    clusterList: SelectItem<string>[];
+    defaultNotifyId: number;
+    pageStatus?: string;
     existedNames?: string[];
   }
 
   interface Emits {
-    (e: 'success'): void,
-    (e: 'cancel'): void,
+    (e: 'success'): void;
+    (e: 'cancel'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     pageStatus: 'edit',
-    existedNames: () => ([]),
+    existedNames: () => [],
   });
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>();
@@ -216,9 +213,9 @@
   let rawFormData = '';
 
   const generateRule = (data: MonitorPolicyModel, level: number) => {
-    const arr = data.test_rules.filter(item => item.level === level);
+    const arr = data.test_rules.filter((item) => item.level === level);
     return arr.length > 0 ? arr[0] : undefined;
-  }
+  };
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
@@ -296,7 +293,7 @@
         validator: async (value: string) => {
           if (!isEditPage.value) {
             // TODO: 以后看情况是否增加接口支持，暂时先用当前页做冲突检测
-            return props.existedNames.every(item => item !== value);
+            return props.existedNames.every((item) => item !== value);
           }
           return true;
         },
@@ -328,36 +325,43 @@
     },
   });
 
-  watch(formModel, (data) => {
-    if (isReadonlyPage.value) {
-      return;
-    }
-    if (rawFormData === '' && data.notifyRules !== undefined) {
-      rawFormData = JSON.stringify(data);
-      return;
-    }
-    if (rawFormData !== '' && rawFormData !== JSON.stringify(data)) {
-      window.changeConfirm = true;
-    }
-  }, {
-    deep: true,
-  });
-
-  watch(() => props.data, (data) => {
-    if (data.id) {
-      formModel.strategyName = data.name;
-      formModel.notifyRules = _.cloneDeep(data.notify_rules);
+  watch(
+    formModel,
+    () => {
       if (isReadonlyPage.value) {
-        // 内置策略，展示默认的告警组
-        formModel.notifyTarget = [props.defaultNotifyId];
-      } else {
-        formModel.notifyTarget = data.notify_groups.filter(id => id in props.alarmGroupNameMap);
+        return;
       }
-    }
-  });
+      if (rawFormData === '' && formModel.notifyRules !== undefined) {
+        rawFormData = JSON.stringify(formModel);
+        return;
+      }
+      if (rawFormData !== '' && rawFormData !== JSON.stringify(formModel)) {
+        window.changeConfirm = true;
+      }
+    },
+    {
+      deep: true,
+    },
+  );
+
+  watch(
+    () => props.data,
+    (data) => {
+      if (data.id) {
+        formModel.strategyName = data.name;
+        formModel.notifyRules = _.cloneDeep(data.notify_rules);
+        if (isReadonlyPage.value) {
+          // 内置策略，展示默认的告警组
+          formModel.notifyTarget = [props.defaultNotifyId];
+        } else {
+          formModel.notifyTarget = data.notify_groups.filter((id) => id in props.alarmGroupNameMap);
+        }
+      }
+    },
+  );
 
   const handleDeleteNotifyTargetItem = (id: number) => {
-    const index = formModel.notifyTarget.findIndex(item => item === id);
+    const index = formModel.notifyTarget.findIndex((item) => item === id);
     formModel.notifyTarget.splice(index, 1);
   };
 
@@ -389,7 +393,7 @@
     const reqParams = {
       targets,
       custom_conditions,
-      test_rules: testRules.filter(item => item && item.config.length !== 0),
+      test_rules: testRules.filter((item) => item && item.config.length !== 0),
       notify_rules: formModel.notifyRules,
       notify_groups: formModel.notifyTarget,
     };
@@ -410,7 +414,7 @@
   const handleClose = () => {
     emits('cancel');
     isShow.value = false;
-  }
+  };
 </script>
 
 <style lang="less" scoped>

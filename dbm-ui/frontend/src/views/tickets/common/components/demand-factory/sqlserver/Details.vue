@@ -21,7 +21,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities } from '@services/source/ticket';
   import type { TicketDetails } from '@services/types/ticket';
 
   import { ClusterTypes, TicketTypes } from '@common/const';

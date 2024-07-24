@@ -19,7 +19,7 @@ import TendbInstanceModel from '@services/model/spider/tendbInstance';
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase, ResourceItem, ResourceTopo } from '../types';
+import type { ListBase, ResourceInstance, ResourceItem, ResourceTopo } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -235,3 +235,46 @@ export function getSpiderMachineList(params: {
     results: data.results.map((item) => new SpiderMachineModel(item)),
   }));
 }
+
+/**
+ * 获取 spider 集群详情
+ * @param id 集群 ID
+ */
+export const getSpiderDetails = (params: { id: number }) =>
+  http.get<TendbClusterModel>(`${getRootPath()}/${params.id}/`);
+
+/**
+ * 获取 spider 实例列表
+ */
+export function getSpiderInstances(params: Record<string, any>) {
+  return http.get<ListBase<TendbInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((res) => ({
+    ...res,
+    results: res.results.map((data) => new TendbInstanceModel(data)),
+  }));
+}
+
+/**
+ * 获取 spider 实例详情
+ */
+export const getSpiderInstanceDetails = (params: { instance_address: string; cluster_id: number }) =>
+  http.get<TendbInstanceModel>(`${getRootPath()}/retrieve_instance/`, params);
+
+export const getList = function (params: Record<string, any>) {
+  return http.get<ListBase<SpiderModel[]>>(`${getRootPath()}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item: SpiderModel) => new SpiderModel(item)),
+  }));
+};
+
+export const getDetail = function (params: { id: number }) {
+  return http.get<SpiderModel>(`${getRootPath()}/${params.id}/`).then((data) => new SpiderModel(data));
+};
+
+/**
+ * 获取集群实例列表
+ */
+export const listSpiderResourceInstances = (params: { bk_biz_id: number } & Record<string, any>) =>
+  http.get<ListBase<ResourceInstance[]>>(
+    `/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/list_instances/`,
+    params,
+  );

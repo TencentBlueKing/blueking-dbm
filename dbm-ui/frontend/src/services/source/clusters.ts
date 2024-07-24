@@ -11,8 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import http from './http';
-import type { HostNode, ListBase, ResourceInstance, ResourceItem } from './types';
+import http from '../http';
+import type { HostNode, ListBase, ResourceInstance, ResourceItem, ResourceTopo } from '../types';
 import type {
   ClusterPassword,
   ClusterPasswordParams,
@@ -24,11 +24,10 @@ import type {
   MySQLClusterInfos,
   ResourceParams,
   ResourcesResult,
-  ResourceTopo,
   ResourceTopoParams,
   TableFieldsItem,
   TableFieldsParams,
-} from './types/clusters';
+} from '../types/clusters';
 
 /**
  * 查询表格信息

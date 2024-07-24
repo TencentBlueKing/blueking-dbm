@@ -41,7 +41,7 @@
   import { useRequest } from 'vue-request';
 
   import type TendbInstanceModel from '@services/model/spider/tendbInstance';
-  import { getSpiderInstanceDetails } from '@services/spider';
+  import { getSpiderInstanceDetails } from '@services/source/spider';
 
   import BaseInfo from './components/BaseInfo.vue';
   import ParamsConfig from './components/ParamsConfig.vue';

@@ -84,7 +84,7 @@
 
   import type { MysqlOpenAreaDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getDetail } from '@services/openarea';
+  import { getDetail } from '@services/source/openarea';
 
   import { TicketTypes } from '@common/const';
 

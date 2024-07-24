@@ -217,7 +217,7 @@
     modifyAccountRule,
     preCheckAddAccountRule,
     queryAccountRules,
-  } from '@services/permission';
+  } from '@services/source/permission';
   import type {
     AccountRule,
     PermissionRuleAccount,
@@ -533,14 +533,14 @@
           margin-left: 0;
 
           .sensitive-tip {
+            height: 16px;
+            padding: 0 4px;
+            font-size: 10px;
+            line-height: 16px;
+            color: #fe9c00;
+            text-align: center;
             background: #fff3e1;
             border-radius: 2px;
-            font-size: 10px;
-            color: #fe9c00;
-            height: 16px;
-            line-height: 16px;
-            text-align: center;
-            padding: 0 4px;
           }
         }
       }

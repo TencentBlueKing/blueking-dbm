@@ -123,7 +123,7 @@
   import InfoBox from 'bkui-vue/lib/info-box';
   import { useI18n } from 'vue-i18n';
 
-  import { getPasswordPolicy, updatePasswordPolicy } from '@services/permission';
+  import { getPasswordPolicy, updatePasswordPolicy } from '@services/source/permission';
 
   const initData = () => ({
     max_length: 32,
