@@ -49,6 +49,26 @@ def mysql_version_parse(mysql_version: str) -> int:
     return total
 
 
+def major_version_parse(mysql_version: str):
+    re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?"
+    result = re.findall(re_pattern, mysql_version)
+
+    if len(result) == 0:
+        return 0
+
+    billion, thousand, single = result[0]
+
+    major_version = 0
+
+    if billion != "":
+        major_version += int(billion) * 1000000
+
+    if thousand != "":
+        major_version += int(thousand) * 1000
+
+    return major_version, single
+
+
 # 解析tmysql 版本号码
 # mysql-5.6.24-linux-x86_64-tmysql-2.1.5-gcs
 # 解析 tmysql-2.1.5 成数字 2.1.5  => 2 * 1000000 + 1 * 1000 + 5
@@ -135,9 +155,9 @@ def get_online_mysql_version(ip: str, port: int, bk_cloud_id: int):
     }
 
     resp = DRSApi.rpc(body)
-    logger.info(f"query version resp: {resp}")
+    logger.info(f"query version resp: {resp[0]}")
 
     if not resp or len(resp) == 0:
         return ""
 
-    return resp[0].get("version")
+    return resp[0]["cmd_results"][0]["table_data"][0].get("version")
