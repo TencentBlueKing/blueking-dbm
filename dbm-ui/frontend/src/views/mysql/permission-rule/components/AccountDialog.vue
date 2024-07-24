@@ -131,7 +131,7 @@
     getRandomPassword,
     getRSAPublicKeys,
     verifyPasswordStrength,
-  } from '@services/permission';
+  } from '@services/source/permission';
 
   import { useCopy } from '@hooks';
 

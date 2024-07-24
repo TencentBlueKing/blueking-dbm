@@ -23,7 +23,20 @@ import { locale, t } from '@locales/index';
 
 import http, { type IRequestPayload } from '../http';
 import type { HostNode, ListBase } from '../types';
-import type { ClusterOperateRecord, FlowItem, FlowItemTodo, TicketType } from '../types/ticket';
+import type {
+  CapSepcs,
+  CapSpecsParams,
+  CitiyItem,
+  ClusterOperateRecord,
+  CreateAbbrParams,
+  CreateModuleDeployInfo,
+  CreateModuleParams,
+  CreateModuleResult,
+  FlowItem,
+  FlowItemTodo,
+  HostSpec,
+  TicketType,
+} from '../types/ticket';
 
 const path = '/apis/tickets';
 
@@ -285,6 +298,67 @@ export function updateTicketFlowConfig(params: { ticket_types: string[]; configs
     ticket_types: string[];
   }>(`${path}/update_ticket_flow_config/`, params);
 }
+
+/**
+ * 查询服务器资源的城市信息
+ */
+export const getInfrasCities = () => http.get<CitiyItem[]>('/apis/infras/cities/');
+
+/**
+ * 服务器规格列表
+ */
+export const getInfrasHostSpecs = () => http.get<HostSpec[]>('/apis/infras/cities/host_specs/');
+
+/**
+ * redis 容量列表
+ */
+export const getCapSpecs = (params: CapSpecsParams & { cityCode: string }) =>
+  http.post<CapSepcs[]>('/apis/infras/cities/cap_specs/', params);
+
+/**
+ * 创建业务英文缩写
+ */
+export const createAppAbbr = (params: CreateAbbrParams & { id: number }) =>
+  http.post<CreateAbbrParams>(`/apis/cmdb/${params.id}/set_db_app_abbr/`, params);
+
+/**
+ * 创建模块
+ */
+export const createModules = (params: CreateModuleParams & { id: number }) =>
+  http.post<CreateModuleResult>(`/apis/cmdb/${params.id}/create_module/`, params);
+
+/**
+ * 保存模块配置
+ */
+export const saveModulesDeployInfo = (params: CreateModuleDeployInfo) =>
+  http.post<CreateModuleDeployInfo>('/apis/configs/save_module_deploy_info/', params);
+
+/**
+ * 查询访问源列表
+ */
+export const getHostInAuthorize = (params: {
+  bk_biz_id: string;
+  ticket_id: number;
+  limit?: number;
+  offset?: number;
+  keyword?: string;
+}) =>
+  http
+    .get<{
+      hosts: HostNode[];
+      ip_whitelist: { ip: string }[];
+    }>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/authorize/get_host_in_authorize/`, params)
+    .then((res) => {
+      const list = [...res.hosts];
+
+      for (const item of res.ip_whitelist) {
+        list.push({
+          bk_host_innerip: item.ip,
+        } as HostNode);
+      }
+
+      return list;
+    });
 
 /**
  * 单据流程终止

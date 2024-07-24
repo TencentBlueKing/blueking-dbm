@@ -118,7 +118,7 @@
   import {
     deleteAccount,
     getPermissionRules,
-  } from '@services/permission';
+  } from '@services/source/permission';
   import type { PermissionRuleInfo } from '@services/types/permission';
 
   import {
@@ -521,9 +521,9 @@
     }
 
     .operation-box {
-      justify-content: space-between;
-      padding-bottom: 16px;
       display: flex;
+      padding-bottom: 16px;
+      justify-content: space-between;
       align-items: center;
     }
 
@@ -559,12 +559,12 @@
         }
 
         .cell-row {
+          height: calc(var(--row-height) - 4px);
           padding: 0 16px;
           overflow: hidden;
+          line-height: calc(var(--row-height) - 4px);
           text-overflow: ellipsis;
           white-space: nowrap;
-          height: calc(var(--row-height) - 4px);
-          line-height: calc(var(--row-height) - 4px);
 
           & ~ .cell-row {
             border-top: 1px solid #dcdee5;

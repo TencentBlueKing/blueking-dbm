@@ -79,8 +79,8 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
-  import { precheckPermissionClone } from '@services/permission';
   import { checkMysqlInstances } from '@services/source/instances';
+  import { precheckPermissionClone } from '@services/source/permission';
   import { createTicket } from '@services/source/ticket';
   import type { InstanceInfos } from '@services/types/clusters';
 

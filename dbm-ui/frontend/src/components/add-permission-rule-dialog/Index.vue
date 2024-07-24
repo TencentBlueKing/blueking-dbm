@@ -72,7 +72,7 @@
   import { useI18n } from 'vue-i18n';
 
   import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
-  import { getPermissionRules } from '@services/permission';
+  import { getPermissionRules } from '@services/source/permission';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 

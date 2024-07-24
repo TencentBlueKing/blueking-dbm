@@ -56,7 +56,7 @@
   import {
     dryRun,
     execute,
-  } from '@services/partitionManage';
+  } from '@services/source/partitionManage';
 
   import { useTicketMessage } from '@hooks';
 

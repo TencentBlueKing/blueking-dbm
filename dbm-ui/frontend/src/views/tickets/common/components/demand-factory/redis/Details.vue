@@ -163,8 +163,7 @@
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import type { RedisDetails } from '@services/model/ticket/details/redis';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketHostNodes } from '@services/source/ticket';
-  import { getInfrasCities } from '@services/ticket';
+  import { getInfrasCities, getTicketHostNodes } from '@services/source/ticket';
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 

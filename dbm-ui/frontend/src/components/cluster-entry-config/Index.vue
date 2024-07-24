@@ -51,12 +51,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { updateClusterEntryConfig } from '@services/clusters';
   import EsModel from '@services/model/es/es';
   import HdfsModel from '@services/model/hdfs/hdfs';
   import KafkaModel from '@services/model/kafka/kafka';
   import PulsarModel from '@services/model/pulsar/pulsar';
   import SpiderModel from '@services/model/spider/spider';
+  import { updateClusterEntryConfig } from '@services/source/clusters';
   import type { ResourceItem, ResourceRedisItem } from '@services/types';
 
   import { messageError, messageSuccess } from '@utils';

@@ -64,7 +64,7 @@
   import { useI18n } from 'vue-i18n';
 
   import AdminPasswordModel from '@services/model/admin-password/admin-password';
-  import { queryAdminPassword } from '@services/permission';
+  import { queryAdminPassword } from '@services/source/permission';
 
   import {
     useCopy,

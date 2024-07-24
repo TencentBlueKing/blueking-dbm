@@ -120,8 +120,8 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
-  import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/openarea';
-  import { getPermissionRules } from '@services/permission';
+  import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/source/openarea';
+  import { getPermissionRules } from '@services/source/permission';
   import { getTendbhaList } from '@services/source/tendbha';
   import { getTendbsingleList } from '@services/source/tendbsingle';
 
@@ -444,9 +444,9 @@
     }
 
     .current-cluster-operate {
+      display: flex;
       margin-top: 12px;
       font-size: 14px;
-      display: flex;
       align-items: center;
 
       .delete-icon {
