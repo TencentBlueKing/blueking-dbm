@@ -75,7 +75,7 @@ func (p *PhysicalDumper) initConfig(mysqlVerStr string) error {
 	if err := p.innodbCmd.ChooseXtrabackupTool(p.mysqlVersion, p.isOfficial); err != nil {
 		return err
 	}
-
+	BackupTool = cst.ToolXtrabackup
 	return nil
 }
 
@@ -291,6 +291,7 @@ func (p *PhysicalDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbare
 			metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
 		}
 	}
+	metaInfo.JudgeIsFullBackup(&cnf.Public)
 	if err = os.Remove(tmpFileName); err != nil {
 		return &metaInfo, err
 	}

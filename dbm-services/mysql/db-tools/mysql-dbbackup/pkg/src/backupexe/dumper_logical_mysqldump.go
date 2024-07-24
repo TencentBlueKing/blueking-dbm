@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package backupexe
 
 import (
@@ -18,6 +28,7 @@ import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/mysqlconn"
 )
 
 // LogicalDumperMysqldump logical dumper using mysqldump tool
@@ -37,8 +48,73 @@ func (l *LogicalDumperMysqldump) initConfig(mysqlVerStr string) error {
 	} else {
 		l.dbbackupHome = filepath.Dir(cmdPath)
 	}
-
+	BackupTool = cst.ToolMysqldump
 	return nil
+}
+
+func (l *LogicalDumperMysqldump) buildArgsTableFilter() (args []string, err error) {
+	dbList := strings.Split(l.cnf.LogicalBackup.Databases, ",")
+	tbList := strings.Split(l.cnf.LogicalBackup.Tables, ",")
+	dbListExclude := strings.Split(l.cnf.LogicalBackup.ExcludeDatabases, ",")
+	tbListExclude := strings.Split(l.cnf.LogicalBackup.ExcludeTables, ",")
+
+	if len(l.cnf.LogicalBackup.ExcludeDatabases) > 0 || len(l.cnf.LogicalBackup.ExcludeTables) > 0 {
+		return nil, errors.Errorf("mysqldump exclude option is not allowed, exclude-databases=%s, exclude-tables=%s",
+			dbListExclude, tbListExclude)
+	}
+	if len(l.cnf.LogicalBackup.Databases) > 0 && len(dbList) >= 2 {
+		if len(l.cnf.LogicalBackup.Tables) > 0 {
+			return nil, errors.Errorf("mysqldump --tables cannot be used with multi databases")
+		}
+		args = append(args, "--databases")
+		args = append(args, dbList...)
+	} else if len(l.cnf.LogicalBackup.Databases) > 0 && len(dbList) == 1 {
+		args = append(args, l.cnf.LogicalBackup.Databases)
+		args = append(args, tbList...)
+	}
+	return args, nil
+}
+
+func (l *LogicalDumperMysqldump) buildArgsObjectFilter() (args []string) {
+	if l.cnf.Public.DataSchemaGrant == "" {
+		if l.cnf.LogicalBackup.NoData {
+			args = append(args, "--no-data")
+		}
+		if l.cnf.LogicalBackup.NoSchemas {
+			args = append(args, "--no-create-info --no-create-db") // -t -n
+		}
+		if l.cnf.LogicalBackup.Events {
+			args = append(args, "-E") // --events
+		}
+		if l.cnf.LogicalBackup.Routines {
+			args = append(args, "-R") // --routines
+		}
+		if l.cnf.LogicalBackup.Triggers {
+			args = append(args, "--triggers")
+		} else {
+			args = append(args, "--skip-triggers")
+		}
+		if l.cnf.LogicalBackup.InsertMode == "replace" {
+			args = append(args, "--replace")
+		} else if l.cnf.LogicalBackup.InsertMode == "insert_ignore" {
+			args = append(args, "--insert-ignore")
+		}
+	} else {
+		if l.cnf.Public.IfBackupSchema() && !l.cnf.Public.IfBackupData() {
+			args = append(args, []string{
+				"--no-data", "--events", "--routines", "--triggers",
+			}...)
+		} else if !l.cnf.Public.IfBackupSchema() && l.cnf.Public.IfBackupData() {
+			args = append(args, []string{
+				"--no-create-info", "--no-create-db",
+			}...)
+		} else if l.cnf.Public.IfBackupSchema() && l.cnf.Public.IfBackupData() {
+			args = append(args, []string{
+				"--events", "--routines", "--triggers",
+			}...)
+		}
+	}
+	return args
 }
 
 // Execute excute dumping backup with logical backup tool[mysqldump]
@@ -68,22 +144,37 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		"-P", strconv.Itoa(l.cnf.Public.MysqlPort),
 		"-u" + l.cnf.Public.MysqlUser,
 		"-p" + l.cnf.Public.MysqlPasswd,
+		"--skip-opt", "--create-options", "--extended-insert", "--quick",
 		"--single-transaction", "--master-data=2",
-		"-r", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName(), l.cnf.Public.TargetName()+".sql"),
-		// --max-allowed-packet=1G
+		"--max-allowed-packet=1G", "--no-autocommit",
+		"--set-gtid-purged=off",
+		//"--default-character-set  //
 	}
-	/*
-		if l.cnf.Public.MysqlRole == cst.RoleSlave {
-			args = append(args, []string{
-				"--dump-slave=2",
-			}...)
-		}
-	*/
+	if l.cnf.Public.MysqlRole == cst.RoleSlave {
+		args = append(args, []string{
+			"--dump-slave=2", // will stop slave sql_thread
+		}...)
+		defer StartSlaveSqlThread(l.cnf)
+	}
+
+	// use LogicalDump option
+	args = append(args, l.buildArgsObjectFilter()...)
+
 	if l.cnf.LogicalBackupMysqldump.ExtraOpt != "" {
 		args = append(args, []string{
 			fmt.Sprintf(`%s`, l.cnf.LogicalBackupMysqldump.ExtraOpt),
 		}...)
 	}
+
+	if l.cnf.LogicalBackup.GetFilterType() == config.FilterTypeForm {
+		if filterArgs, err := l.buildArgsTableFilter(); err != nil {
+			return err
+		} else {
+			args = append(args, filterArgs...)
+		}
+	}
+	args = append(args, "-r",
+		filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName(), l.cnf.Public.TargetName()+".sql"))
 
 	var cmd *exec.Cmd
 	if enableTimeOut {
@@ -116,7 +207,6 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 	defer func() {
 		_ = outFile.Close()
 	}()
-
 	cmd.Stdout = outFile
 	cmd.Stderr = outFile
 
@@ -166,5 +256,18 @@ func (l *LogicalDumperMysqldump) PrepareBackupMetaInfo(cnf *config.BackupConfig)
 			//MasterPort: cast.ToInt(metadata.SlaveStatus["Master_Port"]),
 		}
 	}
+	metaInfo.JudgeIsFullBackup(&cnf.Public)
 	return &metaInfo, nil
+}
+
+func StartSlaveSqlThread(cnf *config.BackupConfig) error {
+	db, err := mysqlconn.InitConn(&cnf.Public)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		_ = db.Close()
+	}()
+	logger.Log.Infof("start slave sql_thread for %d", cnf.Public.MysqlPort)
+	return mysqlconn.StartSlaveThreads(false, true, db)
 }

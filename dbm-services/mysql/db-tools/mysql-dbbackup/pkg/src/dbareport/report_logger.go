@@ -1,3 +1,13 @@
+/*
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package dbareport
 
 import (
@@ -17,10 +27,16 @@ type ReportLogger struct {
 }
 
 // reportLogger 全局可调用的 log reporter
-var reportLogger *ReportLogger
+var reportLogger = &ReportLogger{}
 
 // InitReporter TODO
 func InitReporter(reportDir string) (err error) {
+	if reportDir == "" {
+		logger.Log.Warnf("do not report backup result to reportDir=%s", reportDir)
+		reportLogger.Files = reportlog.Reporter{Disable: true}
+		reportLogger.Result = reportlog.Reporter{Disable: true}
+		return nil
+	}
 	reportLogger, err = NewLogReporter(reportDir)
 	return err
 }
@@ -40,7 +56,6 @@ func NewLogReporter(reportDir string) (*ReportLogger, error) {
 	resultReport, err := reportlog.NewReporter(reportDir, "backup_result.log", &logOpt)
 	if err != nil {
 		logger.Log.Warn("fail to init resultReporter:%s", err.Error())
-		//resultReport.Disable = true
 		return nil, errors.WithMessage(err, "fail to init resultReporter")
 	}
 	filesReport, err := reportlog.NewReporter(filepath.Join(reportDir, "result"), "dbareport_result.log", &logOpt)

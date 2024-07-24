@@ -36,13 +36,13 @@ func init() {
 	dumpCmd.Flags().String("backup-type", cst.BackupLogical, "overwrite Public.BackupType")
 	dumpCmd.Flags().Int("shard-value", -1, "overwrite Public.ShardValue")
 	dumpCmd.Flags().Bool("nocheck-diskspace", false, "overwrite Public.NoCheckDiskSpace")
-	dumpCmd.Flags().String("file-tag", "", "overwrite BackupClient.FileTag")
+	dumpCmd.Flags().String("backup-file-tag", "", "overwrite BackupClient.FileTag")
 	_ = viper.BindPFlag("Public.BackupId", dumpCmd.Flags().Lookup("backup-id"))
 	_ = viper.BindPFlag("Public.BillId", dumpCmd.Flags().Lookup("bill-id"))
 	_ = viper.BindPFlag("Public.BackupType", dumpCmd.Flags().Lookup("backup-type"))
 	_ = viper.BindPFlag("Public.ShardValue", dumpCmd.Flags().Lookup("shard-value"))
 	_ = viper.BindPFlag("Public.NoCheckDiskSpace", dumpCmd.Flags().Lookup("nocheck-diskspace"))
-	_ = viper.BindPFlag("BackupClient.FileTag", dumpCmd.Flags().Lookup("file-tag"))
+	_ = viper.BindPFlag("BackupClient.FileTag", dumpCmd.Flags().Lookup("backup-file-tag"))
 
 	//dumpCmd.Flags().SetAnnotation("backup-type", "Public.BackupType", []string{"logical", "physical"})
 
@@ -103,6 +103,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 
 	var errList []error
 	for _, f := range cnfFiles {
+		config.SetDefaults()
 		var cnf = config.BackupConfig{}
 		if err := initConfig(f, &cnf); err != nil {
 			errList = append(errList, errors.WithMessage(err, f))
@@ -115,12 +116,6 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 				cnf.Public.IOLimitMasterFactor*float64(cnf.Public.IOLimitMBPerSec)))
 			cnf.PhysicalBackup.Throttle = int(math.Max(1,
 				cnf.Public.IOLimitMasterFactor*float64(cnf.PhysicalBackup.Throttle)))
-		}
-		if cnf.PhysicalBackup.MaxMyisamTables == 0 {
-			cnf.PhysicalBackup.MaxMyisamTables = 10
-		}
-		if cnf.Public.UseMysqldump == "" {
-			cnf.Public.UseMysqldump = cst.LogicalMysqldumpNo
 		}
 
 		err := backupData(&cnf)

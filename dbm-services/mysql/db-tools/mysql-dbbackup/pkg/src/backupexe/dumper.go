@@ -28,28 +28,27 @@ func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 	if err = precheck.CheckBackupType(cnf); err != nil {
 		return nil, err
 	}
-
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
-		if cnf.Public.UseMysqldump == cst.LogicalMysqldumpAuto {
+		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpAuto {
 			if glibcVer, err := util.GetGlibcVersion(); err != nil {
 				logger.Log.Warn("failed to glibc version, err:", err)
 			} else if glibcVer < "2.14" {
 				// mydumper need glibc version >= 2.14
 				logger.Log.Infof("UseMysqldump auto with glibc version %s < 2.14, use mysqldump", glibcVer)
-				cnf.Public.UseMysqldump = cst.LogicalMysqldumpYes
+				cnf.LogicalBackup.UseMysqldump = cst.LogicalMysqldumpYes
 			} else {
 				logger.Log.Infof("UseMysqldump auto with glibc version %s >= 2.14, use mydumper", glibcVer)
-				cnf.Public.UseMysqldump = cst.LogicalMysqldumpNo
+				cnf.LogicalBackup.UseMysqldump = cst.LogicalMysqldumpNo
 			}
 		}
-		if cnf.Public.UseMysqldump == cst.LogicalMysqldumpNo {
+		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpNo {
 			if err := validate.GoValidateStruct(cnf.LogicalBackup, false, false); err != nil {
 				return nil, err
 			}
 			dumper = &LogicalDumper{
 				cnf: cnf,
 			}
-		} else if cnf.Public.UseMysqldump == cst.LogicalMysqldumpYes {
+		} else if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpYes {
 			if err := validate.GoValidateStruct(cnf.LogicalBackupMysqldump, false, false); err != nil {
 				return nil, err
 			}
@@ -57,7 +56,11 @@ func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 				cnf: cnf,
 			}
 		} else {
-			return nil, errors.Errorf("unknown Public.UseMysqldump %s", cnf.Public.UseMysqldump)
+			return nil, errors.Errorf("unknown LogicalBackup.UseMysqldump %s", cnf.LogicalBackup.UseMysqldump)
+		}
+
+		if err := cnf.LogicalBackup.ValidateFilter(); err != nil {
+			return nil, err
 		}
 	} else if strings.ToLower(cnf.Public.BackupType) == cst.BackupPhysical {
 		if err := validate.GoValidateStruct(cnf.PhysicalBackup, false, false); err != nil {

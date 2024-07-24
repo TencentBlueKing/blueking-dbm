@@ -9,6 +9,7 @@
 package backupexe
 
 import (
+	"fmt"
 	"strings"
 
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -62,5 +63,7 @@ func ExecuteBackup(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("xxxx BackupTool", BackupTool)
+	metaInfo.BackupTool = BackupTool
 	return metaInfo, nil
 }

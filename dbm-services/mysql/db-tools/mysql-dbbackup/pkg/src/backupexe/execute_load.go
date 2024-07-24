@@ -15,9 +15,6 @@ func ExecuteLoad(cnf *config.BackupConfig) error {
 	if cnf.PhysicalLoad.IndexFilePath != "" {
 		pathNum++
 	}
-	if cnf.LogicalLoadMysqldump.IndexFilePath != "" {
-		pathNum++
-	}
 
 	if pathNum >= 2 {
 		err := errors.New("Setting multiple IndexFilePath values is not allowed")
@@ -25,15 +22,10 @@ func ExecuteLoad(cnf *config.BackupConfig) error {
 	}
 
 	var indexPath string
-	useMysqldump := false
 	if cnf.LogicalLoad.IndexFilePath != "" {
 		indexPath = cnf.LogicalLoad.IndexFilePath
-		useMysqldump = false
 	} else if cnf.PhysicalLoad.IndexFilePath != "" {
 		indexPath = cnf.PhysicalLoad.IndexFilePath
-	} else if cnf.LogicalLoadMysqldump.IndexFilePath != "" {
-		indexPath = cnf.LogicalLoadMysqldump.IndexFilePath
-		useMysqldump = true
 	}
 	if indexPath == "" { // required
 		return errors.New("loadbackup need IndexFilePath")
@@ -48,7 +40,7 @@ func ExecuteLoad(cnf *config.BackupConfig) error {
 		return envErr
 	}
 
-	loader, err := BuildLoader(cnf, indexFileContent.BackupType, useMysqldump)
+	loader, err := BuildLoader(cnf, indexFileContent.BackupType, indexFileContent.BackupTool)
 	if err != nil {
 		return err
 	}
