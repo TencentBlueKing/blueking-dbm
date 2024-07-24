@@ -11,20 +11,6 @@
 // Package service service
 package service
 
-// BaseParam basic parameters for requesting simulated execution
-type BaseParam struct {
-	Uid           string               `json:"uid"`
-	NodeId        string               `json:"node_id"`
-	RootId        string               `json:"root_id"`
-	VersionId     string               `json:"version_id"`
-	TaskId        string               `json:"task_id"  binding:"required"`
-	MySQLVersion  string               `json:"mysql_version"  binding:"required"`
-	MySQLCharSet  string               `json:"mysql_charset"  binding:"required"`
-	Path          string               `json:"path"  binding:"required"`
-	SchemaSQLFile string               `json:"schema_sql_file"  binding:"required"`
-	ExcuteObjects []ExcuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
-}
-
 // SpiderSimulationExecParam tendbcluster request param
 type SpiderSimulationExecParam struct {
 	BaseParam
