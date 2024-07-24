@@ -181,7 +181,7 @@
     modifyAdminPassword,
     queryAdminPassword,
     verifyPasswordStrength,
-  } from '@services/permission';
+  } from '@services/source/permission';
 
   import { type ClusterTypes,DBTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';

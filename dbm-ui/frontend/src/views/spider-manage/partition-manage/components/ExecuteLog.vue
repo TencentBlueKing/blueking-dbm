@@ -23,7 +23,7 @@
 
   import type PartitionModel from '@services/model/partition/partition';
   import type PartitionLogModel from '@services/model/partition/partition-log';
-  import { queryLog } from '@services/partitionManage';
+  import { queryLog } from '@services/source/partitionManage';
 
   import { ClusterTypes } from '@common/const';
 

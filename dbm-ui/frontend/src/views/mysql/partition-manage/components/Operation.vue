@@ -142,7 +142,11 @@
   import { useRequest } from 'vue-request';
 
   import type PartitionModel from '@services/model/partition/partition';
-  import { create as createParitition, edit as editPartition, verifyPartitionField } from '@services/partitionManage';
+  import {
+    create as createParitition,
+    edit as editPartition,
+    verifyPartitionField,
+  } from '@services/source/partitionManage';
   import { getTendbhaList } from '@services/source/tendbha';
 
   import { useGlobalBizs } from '@stores';

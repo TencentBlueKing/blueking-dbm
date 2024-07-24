@@ -53,12 +53,9 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import { getPermissionRules } from '@services/permission';
+  import { getPermissionRules } from '@services/source/permission';
 
-  import {
-    AccountTypes,
-    ClusterTypes,
-  } from '@common/const';
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
 

@@ -50,7 +50,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getDeviceClassList } from '@services/system-setting';
+  import { getDeviceClassList } from '@services/source/system-setting';
 
   const { t } = useI18n();
 

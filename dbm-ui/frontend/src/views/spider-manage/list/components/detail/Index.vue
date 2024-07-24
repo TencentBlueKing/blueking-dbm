@@ -62,16 +62,17 @@
 
   import type TendbClusterModel from '@services/model/spider/tendbCluster';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
-  import { getSpiderDetails } from '@services/spider';
+  import { getSpiderDetails } from '@services/source/spider';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
-  import { checkDbConsole } from '@utils';
 
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
+
+  import { checkDbConsole } from '@utils';
 
   import BaseInfo from './components/BaseInfo.vue';
 

@@ -16,7 +16,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import { getPreview } from '@services/openarea';
+  import { getPreview } from '@services/source/openarea';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';

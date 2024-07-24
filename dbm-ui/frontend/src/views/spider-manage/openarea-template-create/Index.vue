@@ -118,8 +118,8 @@
 
   import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
   import SpiderModel from '@services/model/spider/tendbCluster';
-  import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/openarea';
-  import { getPermissionRules } from '@services/permission';
+  import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/source/openarea';
+  import { getPermissionRules } from '@services/source/permission';
 
   import { useBeforeClose } from '@hooks';
 
@@ -418,9 +418,9 @@
     }
 
     .current-cluster-operate {
+      display: flex;
       margin-top: 12px;
       font-size: 14px;
-      display: flex;
       align-items: center;
 
       .delete-icon {

@@ -3,8 +3,8 @@ import PartitionLogModel from '@services/model/partition/partition-log';
 
 import { useGlobalBizs } from '@stores';
 
-import http from './http';
-import type { ListBase } from './types';
+import http from '../http';
+import type { ListBase } from '../types';
 
 // 分区列表
 export const getList = function (params: Record<string, any>) {
