@@ -849,10 +849,14 @@
 
   let isInit = true;
   const fetchData = (loading?: boolean) => {
-    tableRef.value!.fetchData({
+    tableRef.value!.fetchData(
+    {
       ...getSearchSelectorParams(searchValue.value),
+    },
+    {
       cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
-    }, {...sortValue}, loading);
+      ...sortValue
+    }, loading);
     isInit = false;
   };
 

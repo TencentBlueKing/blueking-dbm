@@ -110,8 +110,8 @@
         class="operations-right mb-16"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
-        :parse-url="false"
         :model-value="searchValue"
+        :parse-url="false"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         :validate-values="validateSearchValues"
@@ -1191,19 +1191,21 @@
   };
 
   const fetchData = (loading?:boolean) => {
-    const params = {
-      cluster_type: [
-        ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-        ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-        ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-        ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      ].join(','),
-      ...getSearchSelectorParams(searchValue.value),
-
-    }
-    tableRef.value!.fetchData(params, {
-      ...sortValue,
-    }, loading);
+    tableRef.value!.fetchData(
+      {
+        ...getSearchSelectorParams(searchValue.value)
+      },
+      {
+        cluster_type: [
+          ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
+          ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+          ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+          ClusterTypes.PREDIXY_REDIS_CLUSTER,
+        ].join(','),
+        ...sortValue,
+      },
+      loading
+    );
     isInit = false;
   };
 

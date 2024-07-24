@@ -79,6 +79,7 @@
     machineType: string,
     bizId: number | string,
     cloudId: number | string,
+    cityCode: string;
   }
 
   const props = defineProps<Props>();
@@ -161,6 +162,7 @@
   watch([
     () => props.bizId,
     () => props.cloudId,
+    () => props.cityCode,
     specs,
   ], () => {
     if (
@@ -255,6 +257,7 @@
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
       spec_ids: specs.value.map(item => item.spec_id),
+      city: props.cityCode
     }).then((data) => {
       countMap.value = data
     });
