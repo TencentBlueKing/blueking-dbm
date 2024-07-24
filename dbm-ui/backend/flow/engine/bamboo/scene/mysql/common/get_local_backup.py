@@ -91,7 +91,7 @@ def get_local_backup(instances: list, cluster: Cluster, end_time: str = None):
     #  为了兼容 backup_time和backup_consistent_time是一样的
     if end_time:
         end_time = str2datetime(end_time).astimezone(timezone.utc).isoformat()
-        cond = f"backup_consistent_time<\"CONVERT_TZ('{end_time}',@@time_zone,'+00:00')\""
+        cond = f"backup_consistent_time< CONVERT_TZ('{end_time}',@@time_zone,'+00:00') "
         query_cmds = cmds.format(cond=cond, limit="limit 1")
     else:
         query_cmds = cmds.format(cond="true", limit="limit 1")
