@@ -21,10 +21,8 @@ from backend import env
 from backend.bk_web.constants import CACHE_1D
 from backend.components import CCApi
 from backend.components.bknodeman.client import BKNodeManApi
-from backend.components.gse.client import GseApi
 from backend.utils.batch_request import batch_request
 from backend.utils.cache import func_cache_decorator
-
 from .. import constants, exceptions, types
 from ..constants import IDLE_HOST_MODULE
 
@@ -236,64 +234,11 @@ class ResourceQueryHelper:
             logger.error("query_agent_one_status exception: %s", e)
 
     @staticmethod
-    def query_agent_one_status(cc_hosts, fill_key="status"):
-        """查询agent1.0状态"""
-
-        index = 0
-        hosts, host_map = [], {}
-        for cc_host in cc_hosts:
-            ip, bk_cloud_id = cc_host["bk_host_innerip"], cc_host["bk_cloud_id"]
-            hosts.append({"ip": ip, "bk_cloud_id": bk_cloud_id})
-
-            host_map[f"{bk_cloud_id}:{ip}"] = index
-            index += 1
-
-        try:
-            status_map = GseApi.get_agent_status({"hosts": hosts})
-
-            for ip_cloud, detail in status_map.items():
-                # agent在线状态，0为不在线，1为在线
-                cc_hosts[host_map[ip_cloud]][fill_key] = detail["bk_agent_alive"]
-        except KeyError as e:
-            logger.error("query_agent_one_status exception: %s", e)
-
-    @staticmethod
-    def query_agent_two_status(cc_hosts, fill_key="status"):
-        """查询agent2.0状态"""
-        index = 0
-        agent_id_list, host_map = [], {}
-        for cc_host in cc_hosts:
-            # bk_agent_id不存在(agent1.0)的情况下可以使用bk_cloud_id和bk_host_innerip来兼容查询
-            bk_agent_id = cc_host.get("bk_agent_id") or f'{cc_host["bk_cloud_id"]}:{cc_host["bk_host_innerip"]}'
-            agent_id_list.append(bk_agent_id)
-            host_map[bk_agent_id] = index
-            index += 1
-
-        try:
-            status_list = GseApi.list_agent_state({"agent_id_list": agent_id_list})
-
-            for status in status_list:
-                # Agent当前运行状态码, -1:未知 0:初始安装 1:启动中 2:运行中 3:有损状态 4:繁忙状态 5:升级中 6:停止中 7:解除安装
-                cc_hosts[host_map[status["bk_agent_id"]]][fill_key] = 1 if status["status_code"] == 2 else 0
-        except KeyError as e:
-            logger.error("query_agent_two_status exception: %s", e)
-
-    @staticmethod
     def fill_agent_status(cc_hosts, fill_key="status"):
+        # 填充 Agent 状态
         if not cc_hosts:
             return
-
-        if not BKNodeManApi.is_esb():
-            ResourceQueryHelper.query_agent_status_from_nodeman(cc_hosts, fill_key)
-            return
-
-        if env.GSE_AGENT_VERSION == "1.0":
-            ResourceQueryHelper.query_agent_one_status(cc_hosts, fill_key)
-            return
-
-        if env.GSE_AGENT_VERSION == "2.0":
-            ResourceQueryHelper.query_agent_two_status(cc_hosts, fill_key)
-            return
+        ResourceQueryHelper.query_agent_status_from_nodeman(cc_hosts, fill_key)
 
     @staticmethod
     def fill_cloud_name(cc_hosts):
