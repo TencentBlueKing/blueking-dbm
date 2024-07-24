@@ -164,27 +164,17 @@ class ImportSQLFlow(object):
         backend_ip = template_cluster["backend_ip"]
         backend_port = template_cluster["port"]
         bk_cloud_id = template_cluster["bk_cloud_id"]
-        backend_charset = self.__get_backend_charset(backend_ip, backend_port, bk_cloud_id)
+        origin_mysql_var_map = query_mysql_variables(host=backend_ip, port=backend_port, bk_cloud_id=bk_cloud_id)
+        backend_charset = origin_mysql_var_map.get("character_set_client")
+        start_mysqld_configs = {}
         logger.info(f"backend_charset: {backend_charset}")
+        for var in ["sql_mode", "lower_case_table_names", "log_bin_trust_function_creators"]:
+            if origin_mysql_var_map.__contains__(var):
+                start_mysqld_configs[var] = origin_mysql_var_map.get(var)
 
         semantic_check_pipeline = Builder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=[templ_cluster_id]
         )
-        for db_module_id, clusterList in cluster_module_map.items():
-            # 声明子流程
-            sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-            template_cluster = self.__get_master_instance_info(cluster=clusterList[0])
-            cluster_type = template_cluster["cluster_type"]
-            template_db_version = self.__get_version_and_charset(db_module_id=db_module_id, cluster_type=cluster_type)
-            backend_ip = template_cluster["backend_ip"]
-            backend_port = template_cluster["port"]
-            bk_cloud_id = template_cluster["bk_cloud_id"]
-            origin_mysql_var_map = query_mysql_variables(host=backend_ip, port=backend_port, bk_cloud_id=bk_cloud_id)
-            backend_charset = origin_mysql_var_map.get("character_set_client")
-            start_mysqld_configs = {}
-            for var in ["sql_mode", "lower_case_table_names", "log_bin_trust_function_creators"]:
-                if origin_mysql_var_map.__contains__(var):
-                    start_mysqld_configs[var] = origin_mysql_var_map.get(var)
 
         semantic_check_pipeline.add_act(
             act_name=_("给模板集群下发db-actuator"),
@@ -225,7 +215,7 @@ class ImportSQLFlow(object):
                     "task_id": self.root_id,
                     "schema_sql_file": self.semantic_dump_schema_file_name,
                     "execute_objects": self.data["execute_objects"],
-                     "mysql_start_config": start_mysqld_configs,
+                    "mysql_start_config": start_mysqld_configs,
                 },
             },
         )
