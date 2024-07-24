@@ -220,12 +220,7 @@ class MySQLMigrateClusterFlow(object):
                         src_port=master_model.port,
                         master_slave_hosts=[self.data["new_slave_ip"], self.data["new_master_ip"]],
                         dest_port=master_model.port,
-                        var_list=[
-                            "collation_server",
-                            "collation_database",
-                            "collation_connection",
-                            "lower_case_table_names",
-                        ],
+                        var_list=["collation_server", "lower_case_table_names"],
                     )
                 )
                 sync_mycnf_sub_pipeline_list.append(
