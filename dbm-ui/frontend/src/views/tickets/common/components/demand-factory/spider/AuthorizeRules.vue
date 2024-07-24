@@ -92,10 +92,10 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { queryAccountRules } from '@services/permission';
-  import { getHostInAuthorize } from '@services/ticket';
+  import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
+  import { queryAccountRules } from '@services/source/permission';
+  import { getHostInAuthorize } from '@services/source/ticket';
   import type {
-    MysqlAuthorizationDetails,
     TicketDetails,
   } from '@services/types/ticket';
 

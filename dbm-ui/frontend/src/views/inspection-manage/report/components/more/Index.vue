@@ -4,7 +4,7 @@
     :service="getDbmonHeartbeat" />
 </template>
 <script setup lang="tsx">
-  import { getDbmonHeartbeat } from '@services/report';
+  import { getDbmonHeartbeat } from '@services/source/report';
 
   import RenderDynamicTable from '../render-dynamic-table/Index.vue';
 

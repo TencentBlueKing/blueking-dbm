@@ -51,34 +51,34 @@
     getRandomPassword,
     getRSAPublicKeys,
     verifyPasswordStrength,
-  } from '@services/permission';
+  } from '@services/source/permission';
 
   import { dbTippy } from '@common/tippy';
 
   interface StrengthItem {
-    keys: string[],
-    text: string
+    keys: string[];
+    text: string;
   }
   type PasswordPolicyKeys = keyof typeof PASSWORD_POLICY;
-  type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>
-  type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>
+  type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
+  type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
 
   interface Props {
-    property: string
+    property: string;
   }
 
-  defineProps<Props>()
+  defineProps<Props>();
   const modelValue = defineModel({
     required: true,
-    default: ''
-  })
+    default: '',
+  });
 
   const { t } = useI18n();
 
-  const verifyPassword = () => verifyPasswordStrength({
-    password: getEncyptPassword(),
-  })
-    .then((verifyResult) => {
+  const verifyPassword = () =>
+    verifyPasswordStrength({
+      password: getEncyptPassword(),
+    }).then((verifyResult) => {
       passwordValidate.value = verifyResult;
       return verifyResult.is_strength;
     });
@@ -145,10 +145,12 @@
         exclude_continuous_rule: excludeContinuousRule,
       } = passwordPolicyRes.rule;
 
-      passwordStrength.value = [{
-        keys: ['min_length_valid', 'max_length_valid'],
-        text: t('密码长度为_min_max', [minLength, maxLength]),
-      }];
+      passwordStrength.value = [
+        {
+          keys: ['min_length_valid', 'max_length_valid'],
+          text: t('密码长度为_min_max', [minLength, maxLength]),
+        },
+      ];
 
       for (const passwordKey of passwordKeys) {
         if (includeRule[passwordKey as keyof PasswordPolicy['rule']['include_rule']]) {
@@ -167,7 +169,10 @@
       }
 
       const special = passwordFollowKeys.reduce((values: StrengthItem[], passwordFollowKey: string) => {
-        const valueKey = passwordFollowKey.replace('follow_', '') as keyof PasswordPolicy['rule']['exclude_continuous_rule'];
+        const valueKey = passwordFollowKey.replace(
+          'follow_',
+          '',
+        ) as keyof PasswordPolicy['rule']['exclude_continuous_rule'];
         if (excludeContinuousRule[valueKey]) {
           values.push({
             keys: [`${passwordFollowKey}_valid`],
@@ -213,9 +218,7 @@
     },
   });
 
-  const {
-    run: getRandomPasswordRun,
-  } = useRequest(getRandomPassword, {
+  const { run: getRandomPasswordRun } = useRequest(getRandomPassword, {
     manual: true,
     onSuccess(randomPasswordRes) {
       modelValue.value = randomPasswordRes.password;
@@ -230,7 +233,7 @@
 
   const randomlyGenerate = () => {
     getRandomPasswordRun({
-      security_type: 'redis_password'
+      security_type: 'redis_password',
     });
   };
 

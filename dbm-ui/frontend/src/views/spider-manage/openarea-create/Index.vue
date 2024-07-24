@@ -23,7 +23,7 @@
             <span>
               <I18nT
                 keypath="(源集群：c，共克隆 n 个 DB)"
-                style="color: #63656e; font-size: 12px"
+                style="font-size: 12px; color: #63656e"
                 tag="span">
                 <span>{{ openareaTemplateData.source_cluster.immute_domain }}</span>
                 <span style="font-weight: 700">{{ openareaTemplateData.config_rules.length }}</span>
@@ -99,7 +99,7 @@
   import { useRoute, useRouter } from 'vue-router';
 
   import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
-  import { getDetail, getPreview } from '@services/openarea';
+  import { getDetail, getPreview } from '@services/source/openarea';
 
   import PreviewData from './components/PreviewData.vue';
   import TargetCluster from './components/target-cluster/Index.vue';
@@ -195,8 +195,8 @@
     }
 
     .template-name {
-      font-weight: 700;
       font-size: 12px;
+      font-weight: 700;
     }
   }
 </style>
