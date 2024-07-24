@@ -129,7 +129,7 @@
             ip: value,
             instance_role: 'redis_master',
             bk_cloud_id: props.cloudId as number,
-            region: props.cityName,
+            bk_city_name: props.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
           }).then((data) => {
             const redisMachineList = data.results;
@@ -338,7 +338,7 @@
           getTableList: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            region: props.cityName,
+            bk_city_name: props.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
           }),
           disabledRowConfig: {
@@ -352,7 +352,7 @@
           getTableList: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            region: props.cityName,
+            bk_city_name: props.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
           }),
           disabledRowConfig: {
@@ -364,7 +364,7 @@
           checkInstances: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            region: props.cityName,
+            bk_city_name: props.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
           })
         }
@@ -482,8 +482,8 @@
     }
 
     :deep(.required-mark) {
-      color: #ea3636;
       margin: 0 2px 0 6px;
+      color: #ea3636;
     }
 
     :deep(.cluster_name) {

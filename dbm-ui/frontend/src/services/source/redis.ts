@@ -213,7 +213,7 @@ export function getRedisMachineList(params: {
   bk_host_id?: number;
   ip?: string;
   cluster_ids?: string;
-  region?: string;
+  bk_city_name?: string;
   machine_type?: string;
   bk_os_name?: string;
   bk_cloud_id?: number;
