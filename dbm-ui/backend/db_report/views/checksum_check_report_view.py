@@ -75,7 +75,7 @@ class ChecksumCheckReportViewSet(ReportBaseViewSet):
         },
         {
             "name": "create_at",
-            "display_name": _("时间"),
+            "display_name": _("巡检时间"),
             "format": ReportFieldFormat.TEXT.value,
         },
     ]

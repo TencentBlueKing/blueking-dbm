@@ -770,6 +770,10 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 Q(storageinstance__cluster__in=query_params.get("cluster_ids", "").split(","))
                 | Q(proxyinstance__cluster__in=query_params.get("cluster_ids", "").split(","))
             ),
+            "cluster_status": (
+                Q(storageinstance__cluster__status=query_params.get("cluster_status"))
+                | Q(proxyinstance__cluster__status=query_params.get("cluster_status"))
+            ),
             "creator": Q(creator__icontains=query_params.get("creator")),
         }
         filter_params_map = {**inner_filter_params_map, **filter_params_map}
