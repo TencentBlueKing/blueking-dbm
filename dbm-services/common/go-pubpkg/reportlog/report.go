@@ -38,12 +38,6 @@ func defaultLoggerOpt() *LoggerOption {
 	}
 }
 
-// Println TODO
-func (r *Reporter) Println(v interface{}) {
-	bs, _ := json.Marshal(v)
-	r.log.Println(string(bs))
-}
-
 // NewReporter init reporter for logFile path
 func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, error) {
 	logFilePath := filepath.Join(reportDir, filename)
@@ -95,6 +89,14 @@ func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, e
 
 // Print TODO
 func (r *Reporter) Print(v interface{}) {
+	bs, _ := json.Marshal(v)
+	if !r.Disable {
+		r.log.Println(string(bs))
+	}
+}
+
+// Println TODO
+func (r *Reporter) Println(v interface{}) {
 	bs, _ := json.Marshal(v)
 	if !r.Disable {
 		r.log.Println(string(bs))

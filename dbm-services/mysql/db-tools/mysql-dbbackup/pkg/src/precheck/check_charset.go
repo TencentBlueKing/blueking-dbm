@@ -60,7 +60,7 @@ func CheckCharset(cnf *config.Public, dbh *sql.DB) error {
 					confCharset, serverCharset[0], serverCharset[0])
 			}
 		} else {
-			tableNum := common.GetTableNum(cnf.MysqlPort)
+			tableNum := common.GetTableNum(cnf.MysqlPort) // todo
 			if tableNum > 1000 {
 				cnf.MysqlCharset = superCharset
 				logger.Log.Warn("too much table, tableNum is %d,check server charset failed,"+

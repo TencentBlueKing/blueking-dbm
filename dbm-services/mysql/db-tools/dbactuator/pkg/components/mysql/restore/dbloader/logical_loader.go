@@ -39,7 +39,7 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		MysqlPort:     p.TgtInstance.Port,
 		MysqlUser:     p.TgtInstance.User,
 		MysqlPasswd:   p.TgtInstance.Pwd,
-		MysqlCharset:  l.IndexObj.BackupCharset,
+		MysqlCharset:  l.IndexObj.BackupCharset, // 尽量用备份原始备份里面的字符集
 		MysqlLoadDir:  p.LoaderDir,
 		IndexFilePath: p.IndexFilePath,
 		Threads:       cpuCores,
@@ -132,7 +132,7 @@ func (l *LogicalLoader) buildFilter() error {
 		if len(opt.Databases)+len(opt.Tables)+len(opt.IgnoreDatabases)+len(opt.IgnoreTables) == 0 {
 			// schema/data 一起全部导入, recover-binlog quick_mode只能false
 			logger.Info("no filter: import schema and data together, recover-binlog need quick_mode=false")
-			l.doDr = true
+			l.doDr = true // todo 待优化，如果导出的文件里面只有少数 databases，即使全导入也不是 doDr 模式
 		}
 		if len(opt.Databases) > 0 && len(opt.Tables) > 0 && opt.Databases[0] == "*" && opt.Tables[0] == "*" &&
 			len(opt.IgnoreDatabases)+len(opt.IgnoreTables) == 0 {
