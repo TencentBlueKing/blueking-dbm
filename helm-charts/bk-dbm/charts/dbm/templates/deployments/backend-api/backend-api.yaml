@@ -54,7 +54,7 @@ spec:
             periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 5}}
             successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
-            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 1}}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 3}}
           readinessProbe:
             httpGet:
               path: {{ .Values.readinessProbe.path | default "/ping"}}
@@ -63,7 +63,7 @@ spec:
             periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 30}}
             timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 5}}
             successThreshold: {{ .Values.readinessProbe.successThreshold | default 1}}
-            failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 1}}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 3}}
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.saas.api.resources | nindent 12 }}
