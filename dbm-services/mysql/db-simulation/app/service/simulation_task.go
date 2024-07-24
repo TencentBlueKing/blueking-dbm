@@ -41,13 +41,13 @@ type BaseParam struct {
 	//nolint
 	VersionId string `json:"version_id"`
 	//nolint
-	TaskId            string             `json:"task_id"  binding:"required"`
-	MySQLVersion      string             `json:"mysql_version"  binding:"required"`
-	MySQLCharSet      string             `json:"mysql_charset"  binding:"required"`
-	MySQLStartConfigs map[string]string  `json:"mysql_start_config"`
-	Path              string             `json:"path"  binding:"required"`
-	SchemaSQLFile     string             `json:"schema_sql_file"  binding:"required"`
-	ExcuteObjects     []ExcuteSQLFileObj `json:"execute_objects"  binding:"gt=0,dive,required"`
+	TaskId            string               `json:"task_id"  binding:"required"`
+	MySQLVersion      string               `json:"mysql_version"  binding:"required"`
+	MySQLCharSet      string               `json:"mysql_charset"  binding:"required"`
+	MySQLStartConfigs map[string]string    `json:"mysql_start_config"`
+	Path              string               `json:"path"  binding:"required"`
+	SchemaSQLFile     string               `json:"schema_sql_file"  binding:"required"`
+	ExcuteObjects     []ExcuteSQLFileObjV2 `json:"execute_objects"  binding:"gt=0,dive,required"`
 }
 
 // BuildStartArgs mysql pod start args
@@ -63,21 +63,6 @@ func (b BaseParam) BuildStartArgs() []string {
 	return args
 }
 
-// SpiderSimulationExecParam TODO
-type SpiderSimulationExecParam struct {
-	BaseParam
-	SpiderVersion string `json:"spider_version"`
-}
-
-// SimulationTask 模拟执行任务定义
-type SimulationTask struct {
-	RequestId string
-	PodName   string
-	*BaseParam
-	*DbPodSets
-	TaskRuntimCtx
-}
-
 // GetSpiderImg 获取spider节点的镜像
 func (in SpiderSimulationExecParam) GetSpiderImg() string {
 	return config.GAppConfig.Image.SpiderImg
@@ -86,6 +71,11 @@ func (in SpiderSimulationExecParam) GetSpiderImg() string {
 // GetTdbctlImg 获取tdbctl的镜像配置
 func (in SpiderSimulationExecParam) GetTdbctlImg() string {
 	return config.GAppConfig.Image.TdbCtlImg
+}
+
+// parseDbParamRe ConvertDbParamToRegular 解析DbNames参数成正则参数
+func (e *ExcuteSQLFileObj) parseDbParamRe() (s []string) {
+	return changeToMatch(e.DbNames)
 }
 
 // parseIgnoreDbParamRe  解析IgnoreDbNames参数成正则参数
@@ -276,7 +266,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 		sstdout, sstderr, err = t.executeMultFilesObject(e, containerName, xlogger)
 		if err != nil {
 			//nolint
-			errs = append(errs, fmt.Errorf("%s:%w\n", e.SQLFile, err))
+			errs = append(errs, err)
 			sstderrs = append(sstderrs, sstderr)
 		}
 	}
