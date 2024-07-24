@@ -121,7 +121,7 @@
       ip: inputHostList.join(','),
       instance_role: 'redis_master',
       bk_cloud_id: props.cloudId as number,
-      region: props.cityName,
+      bk_city_name: props.cityName,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
     });
     const inputHostMap = inputHostList.reduce(
@@ -252,12 +252,12 @@
       }
 
       .batch-edit-domain-error {
+        margin-bottom: 16px;
         // position: absolute;
         // bottom: -4px;
         // left: 0;
         font-size: @font-size-mini;
         color: @danger-color;
-        margin-bottom: 16px;
       }
     }
 
