@@ -16,12 +16,7 @@ from django.utils.translation import ugettext as _
 from django_celery_beat.schedulers import ModelEntry
 
 from backend.components import DBPrivManagerApi
-from backend.configuration.constants import (
-    DB_ADMIN_USER_MAP,
-    DBM_PASSWORD_SECURITY_NAME,
-    MYSQL_ADMIN_USER,
-    AdminPasswordRole,
-)
+from backend.configuration.constants import DB_ADMIN_USER_MAP, DBM_PASSWORD_SECURITY_NAME, AdminPasswordRole
 from backend.configuration.exceptions import PasswordPolicyBaseException
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
@@ -75,7 +70,7 @@ class DBPasswordHandler(object):
         return check_result
 
     @classmethod
-    def query_mysql_admin_password(
+    def query_admin_password(
         cls,
         limit: int,
         offset: int,
@@ -83,6 +78,7 @@ class DBPasswordHandler(object):
         instances: List[str] = None,
         begin_time: str = None,
         end_time: str = None,
+        db_type: str = None,
     ):
         """
         获取mysql的admin密码
@@ -96,6 +92,11 @@ class DBPasswordHandler(object):
         instances = instances or []
         # 获取过滤条件
         instance_list = []
+
+        # 判断db类型是否在映射字典中
+        if db_type not in DB_ADMIN_USER_MAP:
+            raise PasswordPolicyBaseException(_("目前暂未支持{}类型的查询").format(db_type))
+
         for address in instances:
             split_len = len(address.split(":"))
             if split_len == 1:
@@ -110,8 +111,7 @@ class DBPasswordHandler(object):
                 instance_list.append({"ip": ip, "port": int(port), "bk_cloud_id": bk_cloud_id})
             else:
                 raise PasswordPolicyBaseException(_("请保证查询的实例输入格式合法，格式为[CLOUD_ID:]IP:PORT"))
-
-        filters = {"limit": limit, "offset": offset, "username": MYSQL_ADMIN_USER}
+        filters = {"limit": limit, "offset": offset, "username": DB_ADMIN_USER_MAP[db_type]}
         if instance_list:
             filters.update(instances=instance_list)
         if begin_time:
@@ -122,14 +122,14 @@ class DBPasswordHandler(object):
             filters.update(bk_biz_id=bk_biz_id)
 
         # 获取密码生效实例结果
-        mysql_admin_password_data = DBPrivManagerApi.get_mysql_admin_password(params=filters)
-        mysql_admin_password_data["results"] = mysql_admin_password_data.pop("items")
+        admin_password_data = DBPrivManagerApi.get_mysql_admin_password(params=filters)
+        admin_password_data["results"] = admin_password_data.pop("items")
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
-        for data in mysql_admin_password_data["results"]:
+        for data in admin_password_data["results"]:
             data["password"] = base64_decode(data["password"])
             data["bk_cloud_name"] = cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"]
 
-        return mysql_admin_password_data
+        return admin_password_data
 
     @classmethod
     def modify_admin_password(cls, operator: str, password: str, lock_hour: int, instance_list: List[Dict]):

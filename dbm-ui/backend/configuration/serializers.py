@@ -89,7 +89,7 @@ class ModifyMySQLPasswordRandomCycleSerializer(serializers.Serializer):
     crontab = CrontabSerializer(help_text=_("crontab表达式"))
 
 
-class GetMySQLAdminPasswordSerializer(serializers.Serializer):
+class GetAdminPasswordSerializer(serializers.Serializer):
     limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10)
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
 
@@ -97,6 +97,7 @@ class GetMySQLAdminPasswordSerializer(serializers.Serializer):
     begin_time = DBTimezoneField(help_text=_("开始时间"), required=False)
     end_time = DBTimezoneField(help_text=_("结束时间"), required=False)
     instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--cloud:ip:port)"), required=False)
+    db_type = serializers.ChoiceField(help_text=_("db类型"), choices=DBType.get_choices(), required=False, default="")
 
 
 class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):
