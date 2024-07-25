@@ -22,8 +22,8 @@ from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DBM_PASSWORD_SECURITY_NAME
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.configuration.serializers import (
+    GetAdminPasswordSerializer,
     GetMySQLAdminPasswordResponseSerializer,
-    GetMySQLAdminPasswordSerializer,
     GetRandomPasswordSerializer,
     ModifyAdminPasswordSerializer,
     ModifyMySQLPasswordRandomCycleSerializer,
@@ -128,17 +128,17 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
         return Response({"crontab": crontab_exec})
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询mysql生效实例密码(admin)"),
-        request_body=GetMySQLAdminPasswordSerializer(),
+        operation_summary=_("查询生效实例密码(admin)"),
+        request_body=GetAdminPasswordSerializer(),
         responses={status.HTTP_200_OK: GetMySQLAdminPasswordResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["POST"], detail=False, serializer_class=GetMySQLAdminPasswordSerializer, pagination_class=None)
-    def query_mysql_admin_password(self, request, *args, **kwargs):
+    @action(methods=["POST"], detail=False, serializer_class=GetAdminPasswordSerializer, pagination_class=None)
+    def query_admin_password(self, request, *args, **kwargs):
         validated_data = self.params_validate(self.get_serializer_class())
         if validated_data.get("instances"):
             validated_data["instances"] = validated_data["instances"].split(",")
-        return Response(DBPasswordHandler.query_mysql_admin_password(**validated_data))
+        return Response(DBPasswordHandler.query_admin_password(**validated_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("修改db实例密码(admin)"),
