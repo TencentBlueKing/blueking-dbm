@@ -12,25 +12,20 @@
 -->
 
 <template>
-  <div class="mongo-permission">
-    <BkLoading
-      :loading="loading"
-      style="height: 100%">
-      <DbOriginalTable
-        class="mongo-permission-table"
-        :columns="columns"
-        :data="tableList"
-        row-hover="auto"
-        @clear-search="handleClearSearch" />
-    </BkLoading>
-  </div>
+  <DbTable
+    ref="tableRef"
+    class="mongo-permission-table"
+    :columns="columns"
+    :data-source="dataSource"
+    :max-height="700"
+    row-hover="auto"
+    @clear-search="handleClearSearch" />
 </template>
 
 <script setup lang="tsx" generic="T extends MongodbPermissonAccountModel | SqlserverPermissionAccountModel">
   import _ from 'lodash';
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
   import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
@@ -39,9 +34,10 @@
 
   import { AccountTypes } from '@common/const';
 
+  import DbTable from '@components/db-table/index.vue';
+
   interface Props {
     accountType: string,
-    selectMode?: boolean,
     selectedList?: T[]
   }
 
@@ -74,14 +70,14 @@
     rule: T['rules'][number]
   }>>({});
   const expandMap = ref<Record<number, boolean>>({});
+  const tableRef = ref<InstanceType<typeof DbTable>>()
 
-  const columns = computed(() => {
-    const baseColumns = [
-      {
-        label: t('账号名称'),
-        field: 'user',
-        showOverflowTooltip: false,
-        render: ({ data }: { data: T }) => (
+  const columns = [
+    {
+      label: t('账号名称'),
+      field: 'user',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: T }) => (
           <div
             class="mongo-permission-cell"
             onClick={ () => handleToggleExpand(data) }>
@@ -109,23 +105,19 @@
             }
           </div>
         ),
-      },
-      {
-        label: t('访问DB'),
-        field: 'access_db',
-        showOverflowTooltip: true,
-        render: ({ data, index }: { data: T, index: number }) => {
-          if (data.rules.length === 0) {
-            return (
+    },
+    {
+      label: t('访问DB'),
+      field: 'access_db',
+      showOverflowTooltip: true,
+      render: ({ data, index }: { data: T, index: number }) => {
+        if (data.rules.length === 0) {
+          return (
             <div class="mongo-permission-cell access-db">
-              {
-                props.selectMode && (
-                  <bk-checkbox
-                    disabled={true}
-                    label={true}
-                  />
-                )
-              }
+              <bk-checkbox
+                disabled={true}
+                label={true}
+              />
               <span>{ t('暂无规则') }，</span>
               <bk-button
                 theme="primary"
@@ -135,122 +127,80 @@
                 { t('立即新建') }
               </bk-button>
             </div>
-            );
-          }
+          );
+        }
 
-          return (
-            renderList(data).map((rule, ruleIndex) => (
+        return (
+          renderList(data).map((rule, ruleIndex) => (
               <div
                 class="mongo-permission-cell access-db"
                 onClick={() => handleChange(index, ruleIndex)}>
-                {
-                  props.selectMode && (
-                    <bk-checkbox
-                      model-value={Boolean(selectedDomainMap.value[rule.rule_id])}
-                      label={true}
-                      onChange={() => handleChange(index, ruleIndex)}
-                    />
-                  )
-                }
+                <bk-checkbox
+                  model-value={Boolean(selectedDomainMap.value[rule.rule_id])}
+                  label={true}
+                  onChange={() => handleChange(index, ruleIndex)}
+                />
                 <bk-tag>{ rule.access_db }</bk-tag>
               </div>
-            ))
-          );
-        },
+          ))
+        );
       },
-      {
-        label: t('权限'),
-        field: 'privilege',
-        showOverflowTooltip: false,
-        render: ({ data, index }: { data: T, index: number }) => {
-          if (data.rules.length > 0) {
-            return renderList(data).map((rule, ruleIndex) => {
-              const { privilege } = rule;
-
-              return (
-                <div
-                  class="mongo-permission-cell"
-                  onClick={() => handleChange(index, ruleIndex)}>
-                  {
-                    privilege ? privilege.replace(/,/g, '，') : '--'
-                  }
-                </div>
-              );
-            });
-          }
-
-          return <div class="mongo-permission-cell">--</div>;
-        },
-      },
-    ];
-    const operationColumn = {
-      label: t('操作'),
-      width: 100,
-      render: ({ data, index }: { data: T, index: number }) => (
-        renderList(data).map((rule, ruleIndex) => (
-          <div class="mongo-permission-cell">
-            <bk-button
-              theme="primary"
-              text
-              onClick={ () => handleDelete(index, ruleIndex) }>
-              { t('删除') }
-            </bk-button>
-          </div>
-        ))
-      ),
-    };
-
-    if (props.selectMode) {
-      return baseColumns;
-    }
-
-    return [...baseColumns, operationColumn];
-  });
-
-  const tableList = computed(() => {
-    if (props.selectMode) {
-      return ruleList.value?.results || [];
-    }
-    return _.cloneDeep(props.selectedList);
-  });
-
-  const apiMap: Record<string, (params: any) => Promise<any>> = {
-    [AccountTypes.MONGODB]: getMongodbPermissionRules,
-    [AccountTypes.SQLSERVER]: getSqlserverPermissionRules
-  }
-
-  const {
-    data: ruleList,
-    run: getPermissionRulesRun,
-    loading,
-  } = useRequest(apiMap[props.accountType], {
-    manual: true,
-    onSuccess() {
-      expandMap.value = {};
     },
-  });
+    {
+      label: t('权限'),
+      field: 'privilege',
+      showOverflowTooltip: false,
+      render: ({ data, index }: { data: T, index: number }) => {
+        if (data.rules.length > 0) {
+          return renderList(data).map((rule, ruleIndex) => {
+            const { privilege } = rule;
+
+            return (
+              <div
+                class="mongo-permission-cell"
+                onClick={() => handleChange(index, ruleIndex)}>
+                {
+                  privilege ? privilege.replace(/,/g, '，') : '--'
+                }
+              </div>
+            );
+          });
+        }
+
+        return <div class="mongo-permission-cell">--</div>;
+      },
+    },
+  ];
+
+  const dataSource = computed(() => {
+    const apiMap: Record<string, (params: any) => Promise<any>> = {
+      [AccountTypes.MONGODB]: getMongodbPermissionRules,
+      [AccountTypes.SQLSERVER]: getSqlserverPermissionRules
+    }
+
+    return apiMap[props.accountType]
+  })
 
   watch(() => props.selectedList, (newDataList) => {
-    if (props.selectMode) {
-      const newDataListCopy = _.cloneDeep(newDataList);
-      selectedMap.value = newDataListCopy.reduce((prevSelectedMap, dataItem) => {
-        const ruleMap = dataItem.rules
-          .reduce((prevRuleMap, ruleItem) => Object.assign({}, prevRuleMap, {
-            [ruleItem.rule_id]: Object.assign({}, dataItem, { rule: ruleItem }),
-          }), {} as typeof selectedMap.value);
-        return Object.assign({}, prevSelectedMap, ruleMap);
-      }, {});
-      emits('change', selectedMap.value);
-    }
+    const newDataListCopy = _.cloneDeep(newDataList);
+    selectedMap.value = newDataListCopy.reduce((prevSelectedMap, dataItem) => {
+      const ruleMap = dataItem.rules
+        .reduce((prevRuleMap, ruleItem) => Object.assign({}, prevRuleMap, {
+          [ruleItem.rule_id]: Object.assign({}, dataItem, { rule: ruleItem }),
+        }), {} as typeof selectedMap.value);
+      return Object.assign({}, prevSelectedMap, ruleMap);
+    }, {});
+    emits('change', selectedMap.value);
   }, {
     immediate: true,
   });
 
   const getList = (searchSelectorParams: Record<string, string> = {}) => {
-    getPermissionRulesRun({
+    tableRef.value!.fetchData({
       ...searchSelectorParams,
+    }, {
       account_type: props.accountType,
-    });
+    })
   };
 
   const handleClearSearch = () => {
@@ -282,10 +232,7 @@
     .reduce((result, selectKey) => Object.assign({}, result, { [selectKey]: true }), {} as Record<number, boolean>));
 
   const handleChange = (dataIndex: number, ruleIndex: number) => {
-    if (!props.selectMode) {
-      return;
-    }
-    const rowItem = ruleList.value!.results[dataIndex];
+    const rowItem = tableRef.value!.getData<T>()[dataIndex]
     const ruleItem = rowItem.rules[ruleIndex];
     const isChecked = !!(selectedMap.value[ruleItem.rule_id]);
     const selectedMapMemo = { ...selectedMap.value };
@@ -298,86 +245,63 @@
     emits('change', selectedMapMemo);
   };
 
-  const handleDelete = (index: number, ruleIndex: number) => {
-    const dataListCopy = _.cloneDeep(props.selectedList);
-    dataListCopy[index].rules.splice(ruleIndex, 1);
-
-    if (dataListCopy[index].rules.length === 0) {
-      dataListCopy.splice(index, 1);
-    }
-    emits('delete', dataListCopy);
-  };
-
   defineExpose<Expose>({
     searchData(searchSelectorParams: Record<string, string> = {}) {
-      if (props.selectMode) {
-        getList(searchSelectorParams);
-      }
+      getList(searchSelectorParams);
     },
   });
 </script>
 
 <style lang="less" scoped>
-  .mongo-permission {
-    height: calc(100% - 48px);
+  :deep(.mongo-permission-cell) {
+    position: relative;
+    padding: 0 15px;
+    overflow: hidden;
+    line-height: calc(var(--row-height) - 1px);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-bottom: 1px solid @border-disable;
+  }
 
-    .mongo-permission-operations {
-      display: flex;
-      padding-bottom: 16px;
-      justify-content: space-between;
-      align-items: center;
-    }
+  :deep(.access-db) {
+    display: flex;
+    align-items: center;
+    height: 42px;
+  }
 
-    :deep(.mongo-permission-cell) {
-      position: relative;
-      padding: 0 15px;
-      overflow: hidden;
-      line-height: calc(var(--row-height) - 1px);
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      border-bottom: 1px solid @border-disable;
-    }
+  :deep(.mongo-permission-cell:last-child) {
+    border-bottom: 0;
+  }
 
-    :deep(.access-db) {
-      display: flex;
-      align-items: center;
-      height: 42px;
-    }
+  :deep(.user-icon) {
+    position: absolute;
+    top: 50%;
+    left: 15px;
+    transform: translateY(-50%) rotate(-90deg);
+    transition: all 0.2s;
+  }
 
-    :deep(.mongo-permission-cell:last-child) {
-      border-bottom: 0;
-    }
+  :deep(.user-icon-expand) {
+    transform: translateY(-50%) rotate(0);
+  }
 
-    :deep(.user-icon) {
-      position: absolute;
-      top: 50%;
-      left: 15px;
-      transform: translateY(-50%) rotate(-90deg);
-      transition: all 0.2s;
-    }
+  :deep(.user-name) {
+    display: flex;
+    height: 100%;
+    padding-left: 24px;
+    font-weight: 700;
+    color: #63656e;
+    cursor: pointer;
+    align-items: center;
+  }
 
-    :deep(.user-icon-expand) {
-      transform: translateY(-50%) rotate(0);
-    }
-
-    :deep(.user-name) {
-      display: flex;
-      height: 100%;
-      padding-left: 24px;
-      font-weight: 700;
-      color: #63656e;
-      cursor: pointer;
-      align-items: center;
-    }
-
-    :deep(.user-name-text) {
-      margin-right: 16px;
-      font-weight: bold;
-    }
+  :deep(.user-name-text) {
+    margin-right: 16px;
+    font-weight: bold;
   }
 
   :deep(.mongo-permission-table) {
-    height: 100% !important;
+    // height: 100% !important;
     transition: all 0.5s;
 
     td {

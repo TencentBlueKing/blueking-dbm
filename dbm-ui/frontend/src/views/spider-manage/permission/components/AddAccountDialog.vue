@@ -101,33 +101,29 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    createAccount,
-    getPasswordPolicy,
-    getRSAPublicKeys,
-    verifyPasswordStrength,
-  } from '@services/permission';
+  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
 
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
-  import {
-    PASSWORD_POLICY,
-    type PasswordPolicyKeys,
-  } from '../common/consts';
-  import type { StrengthItem } from '../common/types';
+  import { PASSWORD_POLICY, type PasswordPolicyKeys } from '../common/consts';
 
   import { useGlobalBizs } from '@/stores';
 
   interface Emits {
-    (e: 'success'): void,
+    (e: 'success'): void;
+  }
+
+  interface StrengthItem {
+    keys: string[];
+    text: string;
   }
 
   type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
-  type IncludeRule = PasswordPolicy['rule']['include_rule']
-  type ExcludeContinuousRule = PasswordPolicy['rule']['exclude_continuous_rule']
+  type IncludeRule = PasswordPolicy['rule']['include_rule'];
+  type ExcludeContinuousRule = PasswordPolicy['rule']['exclude_continuous_rule'];
   type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
-  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info']
+  type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info'];
 
   const emits = defineEmits<Emits>();
   const isShow = defineModel<boolean>({
@@ -162,10 +158,10 @@
   const passwordRef = ref();
   const passwordItemRef = ref();
 
-  const verifyPassword = () => verifyPasswordStrength({
-    password: getEncyptPassword(),
-  })
-    .then((res) => {
+  const verifyPassword = () =>
+    verifyPasswordStrength({
+      password: getEncyptPassword(),
+    }).then((res) => {
       validate.value = res;
       return res.is_strength;
     });
@@ -198,23 +194,25 @@
     }
   });
 
-  const fetchRSAPublicKeys = () =>  {
-    getRSAPublicKeys({ names: ['password'] })
-      .then((res) => {
-        publicKey = res[0]?.content || '';
-      });
+  const fetchRSAPublicKeys = () => {
+    getRSAPublicKeys({ names: ['password'] }).then((res) => {
+      publicKey = res[0]?.content || '';
+    });
   };
 
-  const getEncyptPassword = () =>  {
+  const getEncyptPassword = () => {
     const encypt = new JSEncrypt();
     encypt.setPublicKey(publicKey);
     const encyptPassword = encypt.encrypt(formData.password);
     return typeof encyptPassword === 'string' ? encyptPassword : '';
   };
 
-  watch(() => formData.password, (psw) => {
-    psw && debounceVerifyPassword();
-  });
+  watch(
+    () => formData.password,
+    (psw) => {
+      psw && debounceVerifyPassword();
+    },
+  );
 
   const { run: fetchPasswordPolicy } = useRequest(getPasswordPolicy, {
     manual: true,
@@ -226,10 +224,12 @@
         exclude_continuous_rule: excludeContinuousRule,
       } = res.rule;
 
-      strength.value = [{
-        keys: ['min_length_valid', 'max_length_valid'],
-        text: t('密码长度为_min_max', [minLength, maxLength]),
-      }];
+      strength.value = [
+        {
+          keys: ['min_length_valid', 'max_length_valid'],
+          text: t('密码长度为_min_max', [minLength, maxLength]),
+        },
+      ];
 
       // 常规提示
       for (const key of keys) {
@@ -297,7 +297,6 @@
     },
   });
 
-
   const handlePasswordFocus = () => {
     instance?.show();
     passwordItemRef.value?.clearValidate();
@@ -308,7 +307,7 @@
   };
 
   const getStrenthStatus = (item: StrengthItem) => {
-    if (!validate || Object.keys(validate).length === 0) {
+    if (!validate.value || Object.keys(validate).length === 0) {
       return '';
     }
 
@@ -319,9 +318,7 @@
     return `status-${isPass ? 'success' : 'failed'}`;
   };
 
-  const {
-    run: createAccountRun,
-  } = useRequest(createAccount, {
+  const { run: createAccountRun } = useRequest(createAccount, {
     manual: true,
     onSuccess() {
       Message({
