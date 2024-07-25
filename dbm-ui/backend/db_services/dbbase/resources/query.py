@@ -504,7 +504,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
                 cluster_operate_records_map=cluster_operate_records_map,
                 cloud_info=cloud_info,
                 biz_info=biz_info,
-                cluster_stats_map=Cluster.get_cluster_stats(cls.cluster_types),
+                cluster_stats_map=Cluster.get_cluster_stats(bk_biz_id, cls.cluster_types),
                 **kwargs,
             )
             clusters.append(cluster_info)

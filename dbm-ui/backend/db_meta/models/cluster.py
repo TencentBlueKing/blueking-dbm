@@ -377,10 +377,10 @@ class Cluster(AuditedModel):
             return ctl_address
 
     @classmethod
-    def get_cluster_stats(cls, cluster_types) -> dict:
+    def get_cluster_stats(cls, bk_biz_id, cluster_types) -> dict:
         cluster_stats = {}
         for cluster_type in cluster_types:
-            cluster_stats.update(json.loads(cache.get(f"{CACHE_CLUSTER_STATS}_{cluster_type}", "{}")))
+            cluster_stats.update(json.loads(cache.get(f"{CACHE_CLUSTER_STATS}_{bk_biz_id}_{cluster_type}", "{}")))
 
         return cluster_stats
 
