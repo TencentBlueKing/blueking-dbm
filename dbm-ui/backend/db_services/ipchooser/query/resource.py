@@ -23,6 +23,7 @@ from backend.components import CCApi
 from backend.components.bknodeman.client import BKNodeManApi
 from backend.utils.batch_request import batch_request
 from backend.utils.cache import func_cache_decorator
+
 from .. import constants, exceptions, types
 from ..constants import IDLE_HOST_MODULE
 
