@@ -119,6 +119,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-download-line:before {
 	content: "\e1f2";
 }
+.db-icon-invisible1:before {
+	content: "\e1ff";
+}
 .db-icon-variable-manage:before {
 	content: "\e1f7";
 }
@@ -640,4 +643,13 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-cluster-standardize:before {
 	content: "\e1f9";
+}
+.db-icon-fill-1:before {
+	content: "\e1fc";
+}
+.db-icon-kelong:before {
+	content: "\e1fe";
+}
+.db-icon-yuandezhongjian:before {
+	content: "\e1fd";
 }
