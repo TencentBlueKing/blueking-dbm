@@ -21,6 +21,12 @@
         @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0">
+      <RenderText
+        :data="data.srcClusterTypeName"
+        :is-loading="data.isLoading"
+        :placeholder="t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
       <RenderTargetBusiness
         ref="targetBusinessRef"
         :data="data.targetBusines"
@@ -53,8 +59,9 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
   import RedisModel from '@services/model/redis/redis';
-
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderSourceCluster from '@views/redis/common/edit-field/ClusterName.vue';
@@ -72,6 +79,7 @@
     rowKey: string;
     isLoading: boolean;
     srcCluster: string;
+    srcClusterTypeName: string;
     srcClusterId: number;
     targetClusterId: number;
     includeKey: string[];
@@ -84,6 +92,7 @@
     rowKey: random(),
     isLoading: false,
     srcCluster: '',
+    srcClusterTypeName: '',
     srcClusterId: 0,
     targetClusterId: 0,
     includeKey: ['*'],
@@ -113,6 +122,8 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const sourceClusterRef = ref<InstanceType<typeof RenderSourceCluster>>();
   const targetBusinessRef = ref<InstanceType<typeof RenderTargetBusiness>>();

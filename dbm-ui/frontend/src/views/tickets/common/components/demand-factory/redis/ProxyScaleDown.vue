@@ -49,12 +49,17 @@
 
   const { t } = useI18n();
 
-  const { infos } = props.ticketDetails.details;
+  const { clusters, infos } = props.ticketDetails.details;
   const tableData = ref<RowData[]>([]);
   const columns = [
     {
       label: t('目标集群'),
       field: 'clusterName',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('架构版本'),
+      field: 'clusterTypeName',
       showOverflowTooltip: true,
     },
     {
@@ -117,6 +122,7 @@
         return {
           clusterName: clusterMap[item.cluster_id].clusterName,
           clusterType: clusterMap[item.cluster_id].clusterType,
+          clusterTypeName: clusters[item.cluster_id].cluster_type_name,
           nodeType: 'Proxy',
           sepc: {
             id: clusterMap[item.cluster_id].specId,

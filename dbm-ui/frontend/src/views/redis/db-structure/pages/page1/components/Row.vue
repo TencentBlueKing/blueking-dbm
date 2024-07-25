@@ -21,6 +21,12 @@
         @input-finish="handleInputFinish" />
     </td>
     <td style="padding: 0">
+      <RenderText
+        :data="data.clusterTypeName"
+        :is-loading="data.isLoading"
+        :placeholder="t('选择集群后自动生成')" />
+    </td>
+    <td style="padding: 0">
       <RenderInstance
         ref="instanceRef"
         :cluster-type="data.clusterType"
@@ -54,8 +60,9 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
   import RedisModel from '@services/model/redis/redis';
-
+  import RenderText from '@components/render-table/columns/text-plain/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
@@ -75,6 +82,7 @@
     clusterId: number;
     bkCloudId: number;
     clusterType: string;
+    clusterTypeName: string;
     instances?: string[];
     spec?: SpecInfo;
     hostNum?: string;
@@ -100,6 +108,7 @@
     isLoading: false,
     cluster: '',
     clusterType: '',
+    clusterTypeName: '',
     clusterId: 0,
     bkCloudId: 0,
   });
@@ -126,6 +135,8 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
   const instanceRef = ref<InstanceType<typeof RenderInstance>>();

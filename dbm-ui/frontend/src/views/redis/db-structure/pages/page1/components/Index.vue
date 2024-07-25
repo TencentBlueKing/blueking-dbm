@@ -18,10 +18,10 @@
         <RenderTableHeadColumn
           :min-width="140"
           :width="240">
-          <span>{{ $t('待构造的集群') }}</span>
+          <span>{{ t('待构造的集群') }}</span>
           <template #append>
             <BkPopover
-              :content="$t('批量添加')"
+              :content="t('批量添加')"
               theme="dark">
               <span
                 class="batch-edit-btn"
@@ -32,36 +32,42 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :min-width="120"
+          :required="false"
+          :width="200">
+          <span>{{ t('架构版本') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
           :max-width="200"
           :min-width="120"
           :width="200">
-          <span>{{ $t('待构造的实例') }}</span>
+          <span>{{ t('待构造的实例') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="130"
           :required="false"
           :width="240">
           <BkPopover
-            :content="$t('默认使用部署时选定的规格，将从资源池自动匹配机器')"
+            :content="t('默认使用部署时选定的规格，将从资源池自动匹配机器')"
             theme="dark">
-            <span class="spec-title">{{ $t('规格需求') }}</span>
+            <span class="spec-title">{{ t('规格需求') }}</span>
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :width="120">
-          <span>{{ $t('构造主机数量') }}</span>
+          <span>{{ t('构造主机数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="160"
           :width="220">
-          <span>{{ $t('构造到指定时间') }}</span>
+          <span>{{ t('构造到指定时间') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
           :required="false"
           :width="100">
-          {{ $t('操作') }}
+          {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
@@ -74,12 +80,15 @@
 <script setup lang="ts">
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Emits {
     (e: 'showBatchSelector'): void;
   }
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const handleShowMasterBatchSelector = () => {
     emits('showBatchSelector');
