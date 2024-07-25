@@ -211,6 +211,7 @@
   import type { JSX } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
 
+  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
   import { createAccountRule, getPermissionRules, modifyAccountRule, preCheckAddAccountRule, queryAccountRules } from '@services/permission';
   import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
 
@@ -222,11 +223,9 @@
 
   type AuthItemKey = keyof typeof dbOperations;
 
-  type IRule = ServiceReturnType<typeof getPermissionRules>['results'][number]['rules'][number];
-
   interface Props {
     accountId?: number;
-    ruleObj?: IRule;
+    ruleObj?: MysqlPermissonAccountModel['rules'][number];
   }
 
   interface Emits {
@@ -235,6 +234,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     accountId: -1,
+    ruleObj: undefined
   });
 
   const emits = defineEmits<Emits>();
@@ -321,7 +321,7 @@
         editModeDisabledPrivileges.value = props.ruleObj!.privilege.split(',');
         const dbOperationsMap = Object.entries(dbOperations).reduce((resultMap, [key, values]) => {
           values.forEach(value => {
-            resultMap[value] = key;
+            Object.assign(resultMap, { [value]: key})
           });
           return resultMap;
         }, {} as Record<string, string>);
@@ -391,8 +391,10 @@
   const getAccount = () => {
     state.isLoading = true;
     getPermissionRules({
+      offset: 0,
+      limit: -1,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      account_type: 'mysql',
+      account_type: AccountTypes.MYSQL,
     })
       .then((res) => {
         state.accounts = res.results.map(item => item.account);

@@ -258,6 +258,8 @@
     if (show) {
       formdata.value.account_id = props.accountId ?? -1;
       getPermissionRulesRun({
+        offset: 0,
+        limit: -1,
         account_type: AccountTypes.MONGODB,
       });
     }

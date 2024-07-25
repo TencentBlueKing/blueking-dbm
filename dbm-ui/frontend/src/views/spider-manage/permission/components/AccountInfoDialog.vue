@@ -41,11 +41,19 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { AccountColumn, PermissionTableRow } from '../common/types';
+  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
+  import type { PermissionRuleAccount } from '@services/types/permission';
+
   import { useDeleteAccount } from '../hooks/useDeleteAccount';
 
+  interface AccountColumn {
+    label: string;
+    key: keyof PermissionRuleAccount;
+    value?: string;
+  }
+
   interface Props {
-    info: PermissionTableRow;
+    info: MysqlPermissonAccountModel;
   }
 
   interface Emits {

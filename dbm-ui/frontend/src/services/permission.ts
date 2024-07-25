@@ -12,6 +12,7 @@
  */
 
 import AdminPasswordModel from '@services/model/admin-password/admin-password';
+import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
 
 import type { AccountTypesValues, ClusterTypes, DBTypes } from '@common/const';
 
@@ -140,33 +141,14 @@ export const verifyPasswordStrength = (params: { password: string }) =>
  * 查询账号规则列表
  */
 export const getPermissionRules = (params: PermissionRulesParams, payload = {} as IRequestPayload) =>
-  http.get<{
-    count: number;
-    results: {
-      account: {
-        account_id: number;
-        bk_biz_id: number;
-        create_time: string;
-        creator: string;
-        user: string;
-      };
-      permission: {
-        mysql_account_delete: boolean;
-        mysql_add_account_rule: boolean;
-        tendbcluster_account_delete: boolean;
-        tendbcluster_add_account_rule: boolean;
-      };
-      rules: {
-        access_db: string;
-        account_id: number;
-        bk_biz_id: number;
-        create_time: string;
-        creator: string;
-        privilege: string;
-        rule_id: number;
-      }[];
-    }[];
-  }>(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params, payload);
+  http
+    .get<
+      ListBase<MysqlPermissonAccountModel[]>
+    >(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params, payload)
+    .then((res) => ({
+      ...res,
+      results: res.results.map((item) => new MysqlPermissonAccountModel(item)),
+    }));
 /**
  * 创建账户
  */

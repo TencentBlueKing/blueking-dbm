@@ -1,5 +1,5 @@
 <template>
-  <div class="permission-rules">
+  <div class="sqlserver-permission-rules">
     <BkAlert
       class="permission-info-alert"
       closable
@@ -19,7 +19,7 @@
         </p>
       </template>
     </BkAlert>
-    <div class="permission-rules-operations">
+    <div class="operation-box">
       <AuthButton
         action-id="sqlserver_account_create"
         theme="primary"
@@ -27,27 +27,28 @@
         {{ t('新建账号') }}
       </AuthButton>
       <DbSearchSelect
-        v-model="searchData"
+        v-model="tableSearch"
         :data="filters"
         :placeholder="t('账号名称_DB名称_权限名称')"
         style="width: 500px"
         unique-select
         @change="handleSearch" />
     </div>
-    <BkLoading :loading="isLoading">
-      <DbOriginalTable
-        class="permission-rules-table"
-        :columns="columns"
-        :data="sqlserverPermissionRulesData?.results || []"
-        :max-height="tableMaxHeight"
-        :row-class="setRowClass"
-        @refresh="fetchAccountRuleList" />
-    </BkLoading>
+    <DbTable
+      ref="tableRef"
+      class="rules-table"
+      :columns="columns"
+      :data-source="getSqlserverPermissionRules"
+      releate-url-query
+      :row-class="setRowClass"
+      row-hover="auto"
+      @clear-search="handleClearSearch"
+      @refresh="fetchData" />
   </div>
   <!-- 创建账户 -->
   <AccountDialog
     v-model="accountDialogIsShow"
-    @success="fetchAccountRuleList" />
+    @success="fetchData" />
   <!-- 账号信息 dialog -->
   <BkDialog
     v-model:is-show="accountInformationShow"
@@ -84,9 +85,8 @@
   <CreateRuleSlider
     v-model="ruleShow"
     :account-id="ruleAccountId"
-    :account-map-list="accountMapList"
     :db-operations="dbOperations"
-    @success="fetchAccountRuleList" />
+    @success="fetchData" />
   <!-- 集群授权 -->
   <ClusterAuthorize
     v-model="authorizeShow"
@@ -106,13 +106,11 @@
     getSqlserverPermissionRules,
   } from '@services/source/sqlserverPermissionAccount';
 
-  import {
-    useTableMaxHeight,
-  } from '@hooks';
-
-  import { AccountTypes, ClusterTypes, OccupiedInnerHeight } from '@common/const';
+  import { AccountTypes, ClusterTypes } from '@common/const';
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import DbTable from '@components/db-table/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams , messageSuccess } from '@utils';
 
@@ -120,7 +118,6 @@
   import CreateRuleSlider from './components/CreateRule.vue';
 
   const { t } = useI18n();
-  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION);
 
   const columns = [
     {
@@ -128,45 +125,50 @@
       field: 'user',
       showOverflowTooltip: false,
       render: ({ data }: { data: SqlserverPermissionAccountModel }) => (
-        <div
-          class="permission-rules-cell"
-          onClick={ () => handleToggleExpand(data) }>
-            {
-              data.rules.length > 1 && (
-                <Db-Icon
-                  type='down-shape'
+        <TextOverflowLayout>
+          {{
+            prepend: () => data.rules.length > 1 && (
+              <div
+                class="row-expand-btn"
+                onClick={() => handleToggleExpand(data)}>
+                <db-icon
+                  type="down-shape"
                   class={{
-                    'user-icon': true,
-                    'user-icon-expand': !rowExpandMap.value[data.account.account_id],
+                    'expand-flag': true,
+                    'is-expand': !rowExpandMap.value[data.account.account_id],
                   }} />
-              )
-            }
-            <div class="user-name">
+              </div>
+            ),
+            default: () => (
               <bk-button
                 text
                 theme="primary"
-                class="user-name-text"
                 onClick={() => handleViewAccount(data)}>
-                  {data.account.user}
+                {data.account.user}
               </bk-button>
-              {
-                data.isNew && (
-                  <bk-tag
-                    size="small"
-                    theme="success"
-                    class="ml-4">
-                    NEW
-                  </bk-tag>
-                )
-              }
-              <bk-button
-                class="add-rule ml-8"
-                size="small"
-                onClick={() => handleShowCreateRule(data)}>
-                 {t('新建规则')}
-              </bk-button>
-            </div>
-        </div>
+            ),
+            append: () => (
+              <>
+                {
+                  data.isNew && (
+                    <bk-tag
+                      size="small"
+                      theme="success"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
+                <bk-button
+                  class="add-rule-btn"
+                  size="small"
+                  onClick={() => handleShowCreateRule(data)}>
+                  {t('新建规则')}
+                </bk-button>
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
@@ -175,7 +177,7 @@
       render: ({ data }: { data: SqlserverPermissionAccountModel }) => {
         if (!data.rules.length) {
           return (
-            <div class="permission-rules-cell">
+            <div class="cell-row">
               <span>{ t('暂无规则') }，</span>
               <bk-button
                  theme="primary"
@@ -189,7 +191,7 @@
         }
         return (
           getRenderList(data).map(rule => (
-            <div class="permission-rules-cell">
+            <div class="cell-row">
               <bk-tag>{ rule.access_db || '--' }</bk-tag>
             </div>
           ))
@@ -202,7 +204,7 @@
       render: ({ data }: { data: SqlserverPermissionAccountModel }) => (
         getRenderList(data).map(rule => (
           <div
-            class="permission-rules-cell"
+            class="cell-row"
             v-overflow-tips>
               { (rule.privilege && rule.privilege.replace(/,/g, '，')) || '--' }
           </div>
@@ -215,7 +217,7 @@
       render: ({ data }: { data: SqlserverPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return (
-          <div class="permission-rules-cell">
+          <div class="cell-row">
             <bk-button
               theme="primary"
               text
@@ -228,7 +230,7 @@
 
         return (
           getRenderList(data).map(item => (
-            <div class="permission-rules-cell">
+            <div class="cell-row">
               <bk-button
                 theme="primary"
                 text
@@ -268,12 +270,13 @@
 
   const dbOperations = ['db_datawriter', 'db_datareader'];
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
   const accountInformationData = ref();
   const accountInformationShow = ref(false);
   const ruleShow = ref(false);
   const ruleAccountId = ref();
-  const accountMapList = ref<SqlserverPermissionAccountModel['account'][]>([]);
-  const searchData = ref([]);
+  // const accountMapList = ref<SqlserverPermissionAccountModel['account'][]>([]);
+  const tableSearch = ref([]);
   const accountDialogIsShow = ref(false);
   const authorizeShow = ref(false);
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
@@ -295,6 +298,7 @@
       name: t('权限'),
       id: 'privilege',
       multiple: true,
+      logical: '&',
       children: [...dbOperations, 'db_owner'].map((id: string) => ({
         id: id.toLowerCase(),
         name: id,
@@ -302,36 +306,44 @@
     },
   ]);
 
-  const {
-    data: sqlserverPermissionRulesData,
-    loading: isLoading,
-    run: runAccountRulesList,
-  } = useRequest(getSqlserverPermissionRules, {
-    manual: true,
-    onSuccess(sqlserverPermissionRules) {
-      accountMapList.value = sqlserverPermissionRules.results.map(item => item.account);
-    },
-  });
+  // const {
+  //   data: sqlserverPermissionRulesData,
+  //   loading: isLoading,
+  //   run: runAccountRulesList,
+  // } = useRequest(getSqlserverPermissionRules, {
+  //   manual: true,
+  //   onSuccess(sqlserverPermissionRules) {
+  //     accountMapList.value = sqlserverPermissionRules.results.map(item => item.account);
+  //   },
+  // });
 
   const { run: runDeleteAccount } = useRequest(deleteSqlserverAccount, {
     manual: true,
     onSuccess() {
       messageSuccess(t('成功删除账号'));
       accountInformationShow.value = false;
-      fetchAccountRuleList();
+      fetchData();
     },
   });
 
-  const fetchAccountRuleList = () => {
-    runAccountRulesList({
-      ...getSearchSelectorParams(searchData.value),
-      account_type: AccountTypes.SQLSERVER
-    });
+  const fetchData = () => {
+    tableRef.value!.fetchData(
+      {
+        ...getSearchSelectorParams(tableSearch.value),
+      },
+      {
+        account_type: AccountTypes.SQLSERVER,
+      }
+    )
   }
-  fetchAccountRuleList()
 
   const handleSearch = () => {
-    fetchAccountRuleList();
+    fetchData();
+  };
+
+  const handleClearSearch = () => {
+    tableSearch.value = [];
+    fetchData();
   };
 
   // 设置行样式
@@ -389,94 +401,92 @@
       Object.assign({}, data, { rules: [rule] }),
     ];
   };
+
+  onMounted(() => {
+    fetchData()
+  })
 </script>
 
 <style lang="less" scoped>
-  @import '@styles/mixins.less';
-
-  .permission-rules {
+  .sqlserver-permission-rules {
     .permission-info-alert {
       margin-bottom: 16px;
 
-      :deep(.label) {
+      .label {
         font-weight: 700;
       }
     }
 
-    .permission-rules-operations {
-      justify-content: space-between;
+    .operation-box {
+      display: flex;
       padding-bottom: 16px;
-      .flex-center();
-    }
-
-    :deep(.user-name) {
-      height: 100%;
-      padding-left: 24px;
-      cursor: pointer;
+      justify-content: space-between;
       align-items: center;
-      .flex-center();
-
-      .user-name-text {
-        font-weight: bold;
-      }
-
-      .add-rule {
-        display: none;
-      }
     }
 
-    :deep(.permission-rules-cell) {
-      position: relative;
-      padding: 0 15px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      border-bottom: 1px solid @border-disable;
+    :deep(.db-table) {
+      .rules-table {
+        .cell {
+          padding: 0 !important;
+        }
 
-      &:last-child {
-        border-bottom: 0;
-      }
-    }
+        tr {
+          &:hover {
+            .add-rule-btn {
+              display: inline-flex;
+              margin-left: 8px;
+            }
+          }
 
-    :deep(.user-icon) {
-      position: absolute;
-      top: 50%;
-      left: 15px;
-      transform: translateY(-50%) rotate(-90deg);
-      transition: all 0.2s;
-    }
-
-    :deep(.user-icon-expand) {
-      transform: translateY(-50%) rotate(0);
-    }
-
-    .permission-rules-table {
-      transition: all 0.5s;
-
-      :deep(.bk-table-body table tbody tr) {
-        &:hover {
-          .add-rule {
-            display: flex;
+          &.is-new {
+            td {
+              background-color: #f3fcf5 !important;
+            }
           }
         }
 
-        &.is-new {
-          td {
-            background-color: #f3fcf5 !important;
-          }
+        th {
+          padding: 0 16px;
         }
 
         td {
-          .cell {
-            padding: 0 !important;
-          }
-
           &:first-child {
-            .cell,
-            .permission-rules-cell {
-              height: 100% !important;
+            padding: 0 16px;
+          }
+        }
+
+        .cell-row {
+          height: calc(var(--row-height) - 4px);
+          padding: 0 16px;
+          overflow: hidden;
+          line-height: calc(var(--row-height) - 4px);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+
+          & ~ .cell-row {
+            border-top: 1px solid #dcdee5;
+          }
+        }
+
+        .row-expand-btn {
+          display: flex;
+          padding-right: 8px;
+          cursor: pointer;
+          align-items: center;
+          justify-content: center;
+
+          .expand-flag {
+            transform: rotate(-90deg);
+            transition: all 0.1s;
+
+            &.is-expand {
+              transform: rotate(0);
             }
           }
+        }
+
+        .add-rule-btn {
+          display: none;
         }
       }
     }
