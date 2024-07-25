@@ -46,11 +46,9 @@ type SyntaxHandler struct{}
 
 // CheckSQLStringParam sql string 语法检查参数
 type CheckSQLStringParam struct {
-	ClusterType string `json:"cluster_type" binding:"required"`
-	// 兼容过度参数
-	Version  string   `json:"version"`
-	Versions []string `json:"versions"`
-	Sqls     []string `json:"sqls" binding:"gt=0,dive,required"`
+	ClusterType string   `json:"cluster_type" binding:"required"`
+	Versions    []string `json:"versions"`
+	Sqls        []string `json:"sqls" binding:"gt=0,dive,required"`
 }
 
 // SyntaxCheckSQL 语法检查入参SQL string
@@ -114,12 +112,10 @@ func SyntaxCheckSQL(r *gin.Context) {
 
 // CheckFileParam 语法检查请求参数
 type CheckFileParam struct {
-	ClusterType string `json:"cluster_type"`
-	Path        string `json:"path" binding:"required"`
-	// 兼容过度参数
-	Version  string   `json:"version"`
-	Versions []string `json:"versions"`
-	Files    []string `json:"files" binding:"gt=0,dive,required"`
+	ClusterType string   `json:"cluster_type"`
+	Path        string   `json:"path" binding:"required"`
+	Versions    []string `json:"versions"`
+	Files       []string `json:"files" binding:"gt=0,dive,required"`
 }
 
 // SyntaxCheckFile 运行语法检查
