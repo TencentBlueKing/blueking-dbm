@@ -1,9 +1,9 @@
 package mysqlprocesslist
 
 import (
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"log/slog"
 	"strings"
-	"time"
 
 	"github.com/dlclark/regexp2"
 )
@@ -17,8 +17,21 @@ import (
 perl 版监控的一些逻辑
 1. 会抓取 FLUSH TABLE WITH READ LOCK 操作然后干掉, 不应该这样
 2. Status 包含 lock 时, 忽略掉 Status == 'System lock' && Command =~ 'LOAD DATA' | '^BINLOG'
-3. 接上面, 夜间锁表评估更加宽容, Time < 300 不告警
+3. 接上面, 夜间锁表评估更加宽容, Time < 300 不告警 --- 废弃策略
+
+1. 锁表信息统一改为 锁状态>5s 触发
+2. 上报自定义指标
+3. 由监控平台策略决定是否需要发告警
+4. db, user 等信息全部加入到维度里面, 方便做告警策略
 */
+
+var lockThreshold int64
+var nameMySQLLockMetric string
+
+func init() {
+	lockThreshold = 5
+	nameMySQLLockMetric = strings.Replace(nameMySQLLock, "-", "_", -1)
+}
 
 func mysqlLock() (string, error) {
 	processList, err := loadSnapShot()
@@ -26,7 +39,7 @@ func mysqlLock() (string, error) {
 		return "", err
 	}
 
-	var locks []string
+	//var locks []string
 	for _, p := range processList {
 		pstr, err := p.JsonString()
 		if err != nil {
@@ -43,23 +56,57 @@ func mysqlLock() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		slog.Debug("mysql lock check process", slog.Bool("has long wait for table flush", hasLongWait))
+		if hasLongWait {
+			utils.SendMonitorMetrics(nameMySQLLockMetric, p.Time.Int64, map[string]interface{}{
+				"lock_user":    p.User.String,
+				"lock_id":      p.Id.Int64,
+				"lock_db":      p.Db.String,
+				"lock_command": p.Command.String,
+				"lock_info":    p.Info.String,
+				"lock_host":    p.Host.String,
+			})
+			slog.Debug("mysql lock check process", slog.Bool("has long wait for table flush", hasLongWait))
+			continue
+		}
 
 		hasNormal, err := hasNormalLock(p)
 		if err != nil {
 			return "", err
 		}
-		slog.Debug("mysql lock check process", slog.Bool("has normal lock", hasNormal))
-
-		if hasLongWait || hasNormal {
-			locks = append(locks, pstr)
+		if hasNormal {
+			utils.SendMonitorMetrics(nameMySQLLockMetric, p.Time.Int64, map[string]interface{}{
+				"lock_user":    p.User.String,
+				"lock_id":      p.Id.Int64,
+				"lock_db":      p.Db.String,
+				"lock_command": p.Command.String,
+				"lock_info":    p.Info.String,
+				"lock_host":    p.Host.String,
+			})
+			slog.Debug("mysql lock check process", slog.Bool("has normal lock", hasNormal))
+			continue
 		}
+		//hasLongWait, err := hasLongWaitingForTableFlush(p)
+		//if err != nil {
+		//	return "", err
+		//}
+		//slog.Debug("mysql lock check process", slog.Bool("has long wait for table flush", hasLongWait))
+		//
+		//hasNormal, err := hasNormalLock(p)
+		//if err != nil {
+		//	return "", err
+		//}
+		//slog.Debug("mysql lock check process", slog.Bool("has normal lock", hasNormal))
+		//
+		//if hasLongWait || hasNormal {
+		//	locks = append(locks, pstr)
+		//}
 	}
-	return strings.Join(locks, ","), nil
+	return "", nil
+	//return strings.Join(locks, ","), nil
 }
 
 func hasLongWaitingForTableFlush(p *mysqlProcess) (bool, error) {
-	return p.Time.Int64 > 60 &&
+	return p.Time.Int64 > lockThreshold /*60*/ &&
 			strings.Contains(strings.ToLower(p.State.String), "waiting for table flush"),
 		nil
 }
@@ -100,15 +147,17 @@ func hasNormalLock(p *mysqlProcess) (bool, error) {
 		return false, nil
 	}
 
-	now := time.Now()
-	if now.Hour() >= 21 && now.Hour() < 9 {
-		if p.Time.Int64 > 300 {
-			return true, nil
-		}
-	} else {
-		if p.Time.Int64 > 5 {
-			return true, nil
-		}
-	}
-	return false, nil
+	return p.Time.Int64 > lockThreshold, nil
+
+	//now := time.Now()
+	//if now.Hour() >= 21 && now.Hour() < 9 {
+	//	if p.Time.Int64 > 300 {
+	//		return true, nil
+	//	}
+	//} else {
+	//	if p.Time.Int64 > 5 {
+	//		return true, nil
+	//	}
+	//}
+	//return false, nil
 }

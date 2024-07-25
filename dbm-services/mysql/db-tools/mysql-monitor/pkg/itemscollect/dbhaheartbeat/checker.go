@@ -3,8 +3,10 @@ package dbhaheartbeat
 import (
 	"context"
 	"database/sql"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 	"fmt"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -20,9 +22,14 @@ import (
 */
 
 var name = "dbha-heartbeat"
+var beatName string
 
 type Checker struct {
 	db *sqlx.DB
+}
+
+func init() {
+	beatName = strings.Replace(name, "-", "_", -1)
 }
 
 func (c *Checker) Run() (msg string, err error) {
@@ -32,7 +39,7 @@ func (c *Checker) Run() (msg string, err error) {
 	var res sql.NullTime
 	err = c.db.QueryRowxContext(
 		ctx,
-		`SELECT MAX(ck_time) FROM infodba_schema.check_heartbeat`,
+		`SELECT MAX(ck_time) FROM infodba_schema.check_heartbeat WHERE uid = @@server_id`,
 	).Scan(&res)
 
 	if v, err := res.Value(); err != nil {
@@ -45,9 +52,14 @@ func (c *Checker) Run() (msg string, err error) {
 		slog.Info("dbha-heartbeat",
 			slog.Time("latest heartbeat", res.Time))
 
-		// 最近2分钟没有新的心跳
-		if res.Time.Add(2 * time.Minute).Before(time.Now()) {
-			return fmt.Sprintf("last heartbeat time: %s", res.Time.In(time.Local)), nil
+		//// 最近2分钟没有新的心跳
+		//if res.Time.Add(2 * time.Minute).Before(time.Now()) {
+		//	return fmt.Sprintf("last heartbeat time: %s", res.Time.In(time.Local)), nil
+		//}
+
+		// 2 分钟内有探测则发送保持心跳
+		if res.Time.Add(2 * time.Minute).After(time.Now()) {
+			utils.SendMonitorMetrics(beatName, 1, nil)
 		}
 	}
 
