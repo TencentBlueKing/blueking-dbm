@@ -27,6 +27,7 @@
       </div>
       <UpdateResult
         v-else-if="submitted"
+        :password="formData.password"
         :submit-length="submitLength"
         :submit-res="submitRes"
         :submit-role-map="submitRoleMap"
@@ -177,12 +178,12 @@
     getPasswordPolicy,
     getRandomPassword,
     getRSAPublicKeys,
-    modifyMysqlAdminPassword,
-    queryMysqlAdminPassword,
+    modifyAdminPassword,
+    queryAdminPassword,
     verifyPasswordStrength,
   } from '@services/permission';
 
-  import type { ClusterTypes } from '@common/const';
+  import { type ClusterTypes,DBTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import type {
@@ -457,9 +458,9 @@
 
   const {
     loading: submitting,
-    run: modifyMysqlAdminPasswordRun,
+    run: modifyAdminPasswordRun,
     data: submitRes,
-  } = useRequest(modifyMysqlAdminPassword, {
+  } = useRequest(modifyAdminPassword, {
     manual: true,
     onSuccess() {
       submitted.value = true;
@@ -468,8 +469,8 @@
   });
 
   const {
-    run: queryMysqlAdminPasswordRun,
-  } = useRequest(queryMysqlAdminPassword, {
+    run: queryAdminPasswordRun,
+  } = useRequest(queryAdminPassword, {
     manual: true,
     onSuccess(adminPasswordList) {
       const instanceMap: Record<string, boolean> = {};
@@ -549,7 +550,8 @@
     const instanceList = Object.values(instanceValues)
       .reduce((instanceListPrev, instanceValuesItem) => [...instanceListPrev, ...instanceValuesItem], []);
 
-    queryMysqlAdminPasswordRun({
+    queryAdminPasswordRun({
+      db_type: DBTypes.MYSQL,
       instances: instanceList.map(instanceItem => formatInstance({
         cloudId: instanceItem.bk_cloud_id,
         ip: instanceItem.ip,
@@ -606,7 +608,7 @@
 
     submitLength.value = instanceListParam.length;
     submitRoleMap.value = roleMap;
-    modifyMysqlAdminPasswordRun(params);
+    modifyAdminPasswordRun(params);
   };
 
   const handleReset = () => {
@@ -643,9 +645,9 @@
   }
 
   .password-temporary-modify {
+    margin-bottom: 32px;
     background-color: #fff;
     border-radius: 2px;
-    margin-bottom: 32px;
 
     .submitting-mask {
       padding: 90px 0 138px;
@@ -676,8 +678,8 @@
 
     .password-form {
       padding: 32px 0 24px;
-      box-shadow: 0 3px 4px 0 #0000000a;
       border-radius: 2px;
+      box-shadow: 0 3px 4px 0 #0000000a;
 
       :deep(.password-form-instance) {
         display: flex;
