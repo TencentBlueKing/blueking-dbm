@@ -23,6 +23,7 @@ export function generateRedisDataCopyCloneData(ticketData: TicketModel<RedisData
     rowKey: random(),
     isLoading: false,
     srcCluster: clusters[item.src_cluster].immute_domain,
+    srcClusterTypeName: clusters[item.src_cluster].cluster_type_name,
     srcClusterId: item.src_cluster,
     clusterType: item.src_cluster_type,
     targetCluster: clusters[item.dst_cluster].immute_domain,
