@@ -48,6 +48,7 @@ declare interface Window {
   };
   PROJECT_CONFIG: {
     BIZ_ID: number;
+    TICKET_DETAIL_REQUEST_CONTROLLER: AbortController;
   };
   BKApp: App<Element>;
 }
