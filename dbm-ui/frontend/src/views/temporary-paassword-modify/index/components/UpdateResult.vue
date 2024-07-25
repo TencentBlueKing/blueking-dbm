@@ -23,6 +23,28 @@
         <span class="title-error">{{ errorListLength }}</span>
       </I18nT>
     </template>
+    <div class="password-display">
+      {{ t('当前密码') }} : {{ passwordDisplay }}
+      <BkButton
+        class="ml-8"
+        text
+        theme="primary"
+        @click="handleShowPassword">
+        <DbIcon
+          v-if="!isShowPassword"
+          type="bk-dbm-icon db-icon-visible1" />
+        <DbIcon
+          v-else
+          type="bk-dbm-icon db-icon-invisible1" />
+      </BkButton>
+      <BkButton
+        class="ml-4"
+        text
+        theme="primary"
+        @click="handleCopyPassword">
+        <DbIcon type="copy" />
+      </BkButton>
+    </div>
     <template #action>
       <div>
         <BkButton
@@ -64,7 +86,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { modifyMysqlAdminPassword } from '@services/permission';
+  import { modifyAdminPassword } from '@services/permission';
 
   import { useCopy } from '@hooks';
 
@@ -72,7 +94,7 @@
 
   import RenderSuccess from '@components/ticket-success/Index.vue';
 
-  type ModifyMysqlAdminPassword = ServiceReturnType<typeof modifyMysqlAdminPassword>;
+  type ModifyAdminPassword = ServiceReturnType<typeof modifyAdminPassword>;
 
   interface RetryItem {
     ip: string;
@@ -83,9 +105,10 @@
   }
 
   interface Props {
-    submitRes?: ModifyMysqlAdminPassword;
+    submitRes?: ModifyAdminPassword;
     submitLength: number;
     submitRoleMap: Record<string, string>;
+    password: string;
   }
 
   interface Emits {
@@ -98,7 +121,9 @@
 
   const { t } = useI18n();
   const copy = useCopy();
+  const isShowPassword = ref(false);
 
+  const passwordDisplay = computed(() => (isShowPassword.value ? props.password : '********'));
   const errorList = computed(() =>
     (props?.submitRes?.fail || []).reduce((errorPrev, errorItem) => {
       const { bk_cloud_id, cluster_type } = errorItem;
@@ -120,6 +145,14 @@
   const errorListLength = computed(() => errorList.value.length);
   const successListLength = computed(() => props.submitLength - errorListLength.value);
 
+  const handleShowPassword = () => {
+    isShowPassword.value = !isShowPassword.value;
+  };
+
+  const handleCopyPassword = () => {
+    copy(props.password);
+  };
+
   const handleCopy = () => {
     const copyList = errorList.value.map((errorItem) => `${errorItem.ip}:${errorItem.port}`);
     copy(copyList.join('\n'));
@@ -138,6 +171,19 @@
   .password-temporary-modify-success {
     padding: 60px 0;
     background-color: #fff;
+
+    .password-display {
+      height: 40px;
+      line-height: 40px;
+    }
+
+    :deep(.operation-steps) {
+      display: none;
+    }
+
+    :deep(.action) {
+      margin-top: 16px;
+    }
 
     .title-success {
       font-weight: bold;

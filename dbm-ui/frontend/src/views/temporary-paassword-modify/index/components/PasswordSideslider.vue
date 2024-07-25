@@ -44,7 +44,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="queryMysqlAdminPassword"
+        :data-source="queryAdminPassword"
         :max-height="tableMaxHeight"
         :pagination-extra="{
           small: true,
@@ -63,8 +63,8 @@
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
-  import MysqlAdminPasswordModel from '@services/model/admin-password/mysql-admin-password';
-  import { queryMysqlAdminPassword } from '@services/permission';
+  import AdminPasswordModel from '@services/model/admin-password/admin-password';
+  import { queryAdminPassword } from '@services/permission';
 
   import {
     useCopy,
@@ -103,7 +103,7 @@
       label: t('实例'),
       field: 'instance',
       width: 150,
-      render: ({ row }: { row: MysqlAdminPasswordModel }) => {
+      render: ({ row }: { row: AdminPasswordModel }) => {
         const instance = `${row.ip}:${row.port}`;
         return (
           <TextOverflowLayout>
@@ -138,7 +138,7 @@
       field: 'password',
       width: 200,
       showOverflowTooltip: true,
-      render: ({ row }: { row: MysqlAdminPasswordModel }) => (
+      render: ({ row }: { row: AdminPasswordModel }) => (
         <TextOverflowLayout key={Number(passwordShow.value)}>
           {{
             default: () => (
@@ -168,7 +168,7 @@
       label: t('DB类型'),
       field: 'component',
       width: 100,
-      render: ({ row }: { row: MysqlAdminPasswordModel }) => (
+      render: ({ row }: { row: AdminPasswordModel }) => (
         <>
           <db-icon type="mysql row-type"/>
           <span class='ml-4'>{ row.component }</span>
@@ -181,7 +181,7 @@
       minWidth: 240,
       sort: true,
       showOverflowTooltip: true,
-      render: ({ row }: { row: MysqlAdminPasswordModel }) => {
+      render: ({ row }: { row: AdminPasswordModel }) => {
         const { lock_until: lockUntil, lockUntilDisplay } = row;
         const lockUntilDate = dayjs(lockUntil).format('YYYY-MM-DD');
         const currentDate = dayjs().format('YYYY-MM-DD');
@@ -210,7 +210,7 @@
 
   const tableRef = ref();
   const passwordShow = ref(false);
-  const selected = shallowRef<MysqlAdminPasswordModel[]>([]);
+  const selected = shallowRef<AdminPasswordModel[]>([]);
 
   const searchParams = reactive({
     time: ['', ''] as [string, string],
@@ -249,7 +249,7 @@
     tableRef.value?.fetchData({}, params);
   };
 
-  const handleSelection = (data: MysqlAdminPasswordModel, list: MysqlAdminPasswordModel[]) => {
+  const handleSelection = (data: AdminPasswordModel, list: AdminPasswordModel[]) => {
     selected.value = list;
   };
 
