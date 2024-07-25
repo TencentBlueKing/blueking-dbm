@@ -88,6 +88,11 @@
       showOverflowTooltip: true,
     },
     {
+      label: t('架构版本'),
+      field: 'clusterTypeName',
+      showOverflowTooltip: true,
+    },
+    {
       label: t('原集群类型'),
       field: 'srcClusterType',
       showOverflowTooltip: true,
@@ -177,6 +182,7 @@
         return ({
           clusterName: currentCluster.master_domain,
           srcClusterType: clusterTypeMap[clusters[item.src_cluster].cluster_type],
+          clusterTypeName: clusters[item.src_cluster].cluster_type_name,
           currentSepc: `${currentCluster.cluster_capacity}G_${specConfig.qps.max}/s（${item.current_shard_num} 分片）`,
           deployPlan: targetSepcPlan.length > 0 ? targetSepcPlan[0].spec_name : '',
           targetClusterType: clusterTypeMap[item.target_cluster_type],

@@ -131,6 +131,7 @@
       isLoading: false,
       cluster: item.master_domain,
       clusterType: item.cluster_type,
+      clusterTypeName: item.cluster_type_name,
       clusterId: item.id,
       bkCloudId: item.bk_cloud_id,
       instances,

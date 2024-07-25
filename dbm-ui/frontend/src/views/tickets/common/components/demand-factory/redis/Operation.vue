@@ -83,6 +83,11 @@
      ),
     },
     {
+      label: t('架构版本'),
+      field: 'cluster_type_name',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
       label: t('包含Key'),
       field: 'white_regex',
       render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,

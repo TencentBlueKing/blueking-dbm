@@ -147,7 +147,7 @@
     [ClusterTypes.REDIS]: [
       {
         id: 'createSlaveIdleHosts',
-        name: t('主库故障主机'),
+        name: t('待重建的主机'),
         topoConfig: {
           getTopoList: listClustersCreateSlaveProxy,
           countFunc: (item: RedisModel) => item.redisSlaveFaults,
@@ -159,6 +159,11 @@
             cluster_status: 'abnormal',
             limit: -1,
           }),
+          firsrColumn: {
+            label: 'IP',
+            role: 'redis_slave',
+            field: 'ip',
+          },
           isRemotePagination: false,
           columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
           statusFilter: (data: RedisHostModel) => !data.isSlaveFailover,

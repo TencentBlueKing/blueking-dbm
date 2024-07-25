@@ -3166,5 +3166,10 @@
     "除use dbname外，必须有结束符; 或": "除use dbname外，必须有结束符; 或 {n}",
     "不允许访问系统库，如": "不允许访问系统库，如 {n}",
     "目标主库主机不存在": "目标主库主机不存在",
+    "支持所有架构类型": "支持所有架构类型",
+    "通用": "通用",
+    "通用维护": "通用维护",
+    "仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型": "仅支持 TendisCache，TendisSSD，Tendisplus，RedisCluster 类型",
+    "待重建的主机": "待重建的主机",
     "这行勿动！新增翻译请在上一行添加！": ""
 }
