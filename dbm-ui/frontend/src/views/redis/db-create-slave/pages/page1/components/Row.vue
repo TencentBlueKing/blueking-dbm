@@ -25,10 +25,9 @@
       v-if="data.cluster?.isGeneral || data.cluster?.isStart"
       :rowspan="data.cluster?.rowSpan"
       style="padding: 0">
-      <RenderText
+      <RenderCluster
         :data="data.cluster.domain"
-        :is-loading="data.isLoading"
-        :placeholder="t('输入主机后自动生成')" />
+        :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
       <RenderSpec
@@ -64,7 +63,7 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
-
+  import RenderCluster from '@views/redis/common/edit-field/RenderCluster.vue';
   import RenderHost from '@views/redis/common/edit-field/HostName.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 

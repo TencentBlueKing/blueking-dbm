@@ -83,6 +83,11 @@
       showOverflowTooltip: true,
     },
     {
+      label: t('架构版本'),
+      field: 'clusterTypeName',
+      showOverflowTooltip: true,
+    },
+    {
       label: t('当前集群容量/QPS'),
       field: 'currentSepc',
       showOverflowTooltip: true,
@@ -156,6 +161,7 @@
         return ({
           clusterName: currentCluster.master_domain,
           clusterType: currentCluster.cluster_spec.spec_cluster_type,
+          clusterTypeName: currentCluster.cluster_type_name,
           currentSepc: `${currentCluster.cluster_capacity}G_${specConfig.qps.max}/s（${item.current_shard_num} 分片）`,
           deployPlan: `${item.cluster_shard_num} 分片`,
           dbVersion: item.db_version,

@@ -42,6 +42,7 @@ export async function generateRedisDataStructureCloneData(ticketData: TicketMode
         isLoading: false,
         cluster: currentClusterInfo.master_domain,
         clusterType: currentClusterInfo.cluster_type,
+        clusterTypeName: currentClusterInfo.cluster_type_name,
         clusterId: item.cluster_id,
         bkCloudId: item.bk_cloud_id,
         hostNum: `${item.resource_spec.redis.count}`,

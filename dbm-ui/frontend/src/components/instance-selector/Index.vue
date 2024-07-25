@@ -142,7 +142,7 @@
       },
       {
         label: t('管控区域'),
-        field: 'cloud_area',
+        field: 'bk_cloud_id',
       },
       {
         label: t('Agent状态'),

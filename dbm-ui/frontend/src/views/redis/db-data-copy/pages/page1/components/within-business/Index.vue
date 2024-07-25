@@ -32,6 +32,12 @@
           </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
+          :min-width="120"
+          :required="false"
+          :width="200">
+          <span>{{ t('架构版本') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
           :min-width="130"
           :width="300">
           <span>{{ t('目标集群') }}</span>
@@ -171,6 +177,7 @@
         rowKey: item.src_cluster,
         isLoading: false,
         srcCluster: item.src_cluster,
+        srcClusterTypeName: '',
         srcClusterId: item.src_cluster_id,
         targetClusterId: item.dst_cluster_id,
         includeKey: item.key_white_regex === '' ? [] : item.key_white_regex.split('\n'),
@@ -203,6 +210,7 @@
     rowKey: item.master_domain,
     isLoading: false,
     srcCluster: item.master_domain,
+    srcClusterTypeName: item.cluster_type_name,
     srcClusterId: item.id,
     targetCluster: '',
     targetClusterId: 0,

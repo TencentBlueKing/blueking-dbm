@@ -18,10 +18,10 @@
         <RenderTableHeadColumn
           :min-width="150"
           :width="280">
-          <span>{{ $t('目标主库主机') }}</span>
+          <span>{{ t('待重建的主机') }}</span>
           <template #append>
             <BkPopover
-              :content="$t('批量添加')"
+              :content="t('批量添加')"
               theme="dark">
               <span
                 class="batch-edit-btn"
@@ -35,17 +35,17 @@
           :min-width="180"
           :required="false"
           :width="280">
-          <span>{{ $t('所属集群') }}</span>
+          <span>{{ t('所属集群') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="150"
           :required="false"
           :width="300">
           <BkPopover
-            :content="$t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')"
+            :content="t('默认使用部署方案中选定的规格，将从资源池自动匹配机器')"
             placement="top"
             theme="dark">
-            <span class="spec-title">{{ $t('规格需求') }}</span>
+            <span class="spec-title">{{ t('规格需求') }}</span>
           </BkPopover>
         </RenderTableHeadColumn>
         <!-- <RenderTableHeadColumn
@@ -54,25 +54,25 @@
           :required="false"
           :row-width="slotProps.rowWidth"
           :width="190">
-          <span>{{ $t('当前从库主机') }}</span>
+          <span>{{ t('当前从库主机') }}</span>
         </RenderTableHeadColumn> -->
         <RenderTableHeadColumn
           :min-width="130"
           :required="false"
           :width="190">
-          <span>{{ $t('故障从库实例数量') }}</span>
+          <span>{{ t('故障从库实例数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="130"
           :required="false"
           :width="190">
-          <span>{{ $t('当前从库实例数量') }}</span>
+          <span>{{ t('当前从库实例数量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
           :required="false"
           :width="100">
-          {{ $t('操作') }}
+          {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
@@ -85,12 +85,15 @@
 <script setup lang="ts">
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
+  import { useI18n } from 'vue-i18n';
 
   interface Emits {
     (e: 'showMasterBatchSelector'): void;
   }
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');
