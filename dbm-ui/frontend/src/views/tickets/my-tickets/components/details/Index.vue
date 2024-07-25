@@ -63,6 +63,9 @@
     </PermissionCatch>
   </BkLoading>
 </template>
+<script lang="tsx">
+  let myTicketsDetailTimer = 0;
+</script>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
@@ -79,8 +82,7 @@
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
-  import { useTimeoutPoll } from '@vueuse/core';
-
+  // import { useTimeoutPoll } from '@vueuse/core';
   import DemandInfo from './components/Demand.vue';
   import FlowInfo from './components/flow/Index.vue';
 
@@ -107,12 +109,19 @@
       .then((ticketData) => {
         state.ticketData = ticketData;
         emits('updateActiveTicket', ticketData);
-        // 设置轮询
-        if (currentScope?.active) {
-          !isActive.value && ['PENDING', 'RUNNING'].includes(state.ticketData?.status) && resume();
-        } else {
-          pause();
+
+        if (currentScope?.active && ['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {
+          myTicketsDetailTimer = setTimeout(() => {
+            fetchTicketDetails(id, isPoll);
+          }, 10000)
         }
+
+        // 设置轮询
+        // if (currentScope?.active) {
+        //   !isActive.value && ['PENDING', 'RUNNING'].includes(state.ticketData?.status) && resume();
+        // } else {
+        //   pause();
+        // }
       })
       .catch(() => {
         state.ticketData = null;
@@ -136,11 +145,13 @@
   });
 
   // 轮询
-  const { isActive, resume, pause } = useTimeoutPoll(() => {
-    if (props.data) {
-      fetchTicketDetails(props.data.id, true);
-    }
-  }, 10000);
+  // const { isActive, resume, pause } = useTimeoutPoll(() => {
+  //   if (props.data) {
+  //     fetchTicketDetails(props.data.id, true);
+  //   }
+  // }, 10000);
+
+  // resume();
 
   /**
    * 基础信息配置
@@ -199,6 +210,7 @@
 
   watch(() => props.data?.id, (id) => {
     if (id) {
+      clearTimeout(myTicketsDetailTimer);
       fetchTicketDetails(id);
     }
   }, { immediate: true });
@@ -244,6 +256,7 @@
   });
 
   onBeforeUnmount(() => {
+    clearTimeout(myTicketsDetailTimer);
     window.removeEventListener('keydown', exitFullscreen);
   });
 </script>
