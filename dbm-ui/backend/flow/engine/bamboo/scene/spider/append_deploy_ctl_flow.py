@@ -210,6 +210,9 @@ class AppendDeployCTLFlow(object):
                     mysql_ports.append(remote.port)
             # 赋值给全局参数
             self.data["spider_ip_list"] = [{"ip": value} for value in list(set([c.machine.ip for c in spiders]))]
+            self.data["tdbctl_ip_list"] = [
+                {"ip": value} for value in list(set([c.machine.ip for c in master_spiders]))
+            ]
             self.data["spider_port"] = leader_spider.port
             self.data["mysql_ip_list"] = [{"ip": value} for value in list(set([c.machine.ip for c in backends]))]
             self.data["mysql_ports"] = mysql_ports
@@ -287,7 +290,10 @@ class AppendDeployCTLFlow(object):
                 act_component_code=AddSystemUserInClusterComponent.code,
                 kwargs=asdict(
                     AddSpiderSystemUserKwargs(
-                        ctl_master_ip=primary_ctl_ip, user=self.tdbctl_user, passwd=self.tdbctl_pass
+                        ctl_master_ip=primary_ctl_ip,
+                        user=self.tdbctl_user,
+                        passwd=self.tdbctl_pass,
+                        is_apppend_deploy=True,
                     )
                 ),
             )
