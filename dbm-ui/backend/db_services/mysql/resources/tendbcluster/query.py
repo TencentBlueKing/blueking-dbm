@@ -140,15 +140,14 @@ class ListRetrieveResource(query.ListRetrieveResource):
         machine_pair_cnt = len(machine_list) / 2
         # 获取集群规格
         spec_id = cluster.storages[0].machine.spec_id
-        cluster_spec = kwargs["remote_spec_map"].get(spec_id)
+        spec = kwargs["remote_spec_map"].get(spec_id)
 
         cluster_extra_info = {
-            "cluster_spec": model_to_dict(cluster_spec),
-            "cluster_capacity": cluster_spec.capacity * machine_pair_cnt,
+            "cluster_spec": model_to_dict(spec) if spec else {},
+            "cluster_capacity": spec.capacity * machine_pair_cnt if spec else 0,
             "spider_master": spider[TenDBClusterSpiderRole.SPIDER_MASTER],
             "spider_slave": spider[TenDBClusterSpiderRole.SPIDER_SLAVE],
             "spider_mnt": spider[TenDBClusterSpiderRole.SPIDER_MNT],
-            # TODO: 待补充当前集群使用容量，需要监控采集的支持
             "cluster_shard_num": len(remote_db),
             "remote_shard_num": len(remote_db) / machine_pair_cnt,
             "machine_pair_cnt": machine_pair_cnt,
