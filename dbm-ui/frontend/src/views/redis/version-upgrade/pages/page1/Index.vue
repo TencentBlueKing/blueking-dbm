@@ -37,7 +37,6 @@
         v-model:is-show="isShowClusterSelector"
         :cluster-types="[ClusterTypes.REDIS]"
         :selected="selectedClusters"
-        :tab-list-config="tabListConfig"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -69,7 +68,6 @@
   import { useRouter } from 'vue-router';
 
   import RedisModel from '@services/model/redis/redis';
-  import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -139,21 +137,6 @@
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
-
-  const tabListConfig = {
-    [ClusterTypes.REDIS]: {
-      getResourceList: (params: ServiceParameters<typeof getRedisList>) =>
-        getRedisList({
-          cluster_type: [
-            ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-            ClusterTypes.PREDIXY_REDIS_CLUSTER,
-            ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-            ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-          ].join(','),
-          ...params,
-        }),
-    },
-  };
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
