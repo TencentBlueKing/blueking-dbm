@@ -54,10 +54,16 @@
           property="file_tag"
           required>
           <BkRadioGroup v-model="formData.file_tag">
-            <BkRadio label="MYSQL_FULL_BACKUP">
-              {{ t('30天') }}
+            <BkRadio label="DBFILE1M">
+              {{ t('1个月') }}
             </BkRadio>
-            <BkRadio label="LONGDAY_DBFILE_3Y">
+            <BkRadio label="DBFILE6M">
+              {{ t('6个月') }}
+            </BkRadio>
+            <BkRadio label="DBFILE1Y">
+              {{ t('1年') }}
+            </BkRadio>
+            <BkRadio label="DBFILE3Y">
               {{ t('3年') }}
             </BkRadio>
           </BkRadioGroup>
@@ -111,7 +117,7 @@
 
   const createDefaultData = () => ({
     backup_type: 'logical',
-    file_tag: 'MYSQL_FULL_BACKUP',
+    file_tag: 'DBFILE1M',
   });
 
   const { t } = useI18n();

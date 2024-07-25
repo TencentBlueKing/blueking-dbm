@@ -89,9 +89,16 @@
     },
   ];
 
+  const fileTagMap: Record<string, string> = {
+    DBFILE1M: t('1个月'),
+    DBFILE6M: t('6个月'),
+    DBFILE1Y: t('1年'),
+    DBFILE3Y: t('3年'),
+  }
+
   const dataList = computed(() => {
-    const infosData = props.ticketDetails?.details?.infos || {};
-    const clusters = props.ticketDetails?.details?.clusters || {};
+    const infosData = props.ticketDetails.details.infos || {};
+    const clusters = props.ticketDetails.details.clusters || {};
     return infosData?.clusters?.reduce((results, item) => {
       const clusterData = clusters[item.cluster_id];
       results.push(Object.assign({
@@ -106,7 +113,7 @@
 
   // 备份选项
   const backupOptions = computed(() => {
-    if (props.ticketDetails?.details?.infos?.online) {
+    if (props.ticketDetails.details.infos.online) {
       return t('在线备份');
     }
     return t('停机备份');
@@ -114,7 +121,7 @@
 
   // 备份类型
   const backupType = computed(() => {
-    if (props.ticketDetails?.details?.infos?.backup_type === 'logical') {
+    if (props.ticketDetails.details.infos.backup_type === 'logical') {
       return t('逻辑备份');
     }
     return t('物理备份');
@@ -122,10 +129,15 @@
 
   // 备份保存时间
   const backupTime = computed(() => {
-    if (props.ticketDetails?.details?.infos?.file_tag === 'MYSQL_FULL_BACKUP') {
+    const fileTag = props.ticketDetails.details.infos.file_tag;
+    if (!fileTagMap[fileTag]) {
+      // 兼容旧单据
+      if (fileTag === 'LONGDAY_DBFILE_3Y') {
+        return t('3年');
+      }
       return t('30天');
     }
-    return t('3年');
+    return fileTagMap[fileTag];
   });
 </script>
 
