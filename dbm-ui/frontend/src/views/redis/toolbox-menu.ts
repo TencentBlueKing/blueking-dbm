@@ -56,6 +56,12 @@ export default [
             parentId: 'common-manage',
             dbConsoleValue: 'redis.toolbox.dbReplace',
           },
+          {
+            name: t('版本升级'),
+            id: 'RedisVersionUpgrade',
+            parentId: 'common-manage',
+            dbConsoleValue: 'redis.toolbox.versionUpgrade',
+          },
         ],
       },
       {
@@ -143,12 +149,6 @@ export default [
             id: 'RedisClusterTypeUpdate',
             parentId: 'cluster-manage',
             dbConsoleValue: 'redis.toolbox.clusterTypeChange',
-          },
-          {
-            name: t('版本升级'),
-            id: 'RedisVersionUpgrade',
-            parentId: 'common-manage',
-            dbConsoleValue: 'redis.toolbox.versionUpgrade',
           },
         ],
       },

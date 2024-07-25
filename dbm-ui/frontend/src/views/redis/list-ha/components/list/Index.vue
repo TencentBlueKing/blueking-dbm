@@ -426,13 +426,13 @@
                 label: t('域名')
               },
               {
-                field: 'masterDomainDisplayName',
+                field: 'redisInstanceMasterDomainDisplayName',
                 label: t('域名:端口')
               }
             ]
           }
         >
-          {t('访问入口')}
+          {t('主访问入口')}
         </RenderHeadCopy>
       ),
       render: ({ data }: { data: RedisModel }) => (
@@ -446,7 +446,7 @@
                 text
                 theme="primary"
                 onClick={() => handleToDetails(data.id)}>
-                {data.masterDomainDisplayName}
+                {data.redisInstanceMasterDomainDisplayName}
               </auth-button>
             ),
             append: () => (
@@ -455,11 +455,11 @@
                   <RenderCellCopy copyItems={
                     [
                       {
-                        value: data.domain,
+                        value: data.master_domain,
                         label: t('域名')
                       },
                       {
-                        value: data.domainDisplayName,
+                        value: data.redisInstanceMasterDomainDisplayName,
                         label: t('域名:端口')
                       }
                     ]
@@ -599,16 +599,47 @@
       minWidth: 200,
       width: 220,
       showOverflowTooltip: false,
+      renderHead: () => (
+        <RenderHeadCopy
+          hasSelected={hasSelected.value}
+          onHandleCopySelected={handleCopySelected}
+          onHandleCopyAll={handleCopyAll}
+          config={
+            [
+              {
+                field: 'slave_domain',
+                label: t('域名')
+              },
+              {
+                field: 'redisInstanceSlaveDomainDisplayName',
+                label: t('域名:端口')
+              }
+            ]
+          }
+        >
+          {t('从访问入口')}
+        </RenderHeadCopy>
+      ),
       render: ({ data }: { data: RedisModel }) => (
         <TextOverflowLayout>
           {{
-            default: () => data.slaveDomainDisplayName || '--',
+            default: () => data.redisInstanceSlaveDomainDisplayName || '--',
             append: () => (
               <>
-                <db-icon
-                  v-bk-tooltips={t('复制从访问入口')}
-                  type="copy"
-                  onClick={() => copy(data.slaveDomainDisplayName)} />
+                {data.slave_domain && (
+                  <RenderCellCopy copyItems={
+                    [
+                      {
+                        value: data.slave_domain,
+                        label: t('域名')
+                      },
+                      {
+                        value: data.redisInstanceSlaveDomainDisplayName,
+                        label: t('域名:端口')
+                      }
+                    ]
+                  } />
+                )}
                 <auth-button
                   v-db-console="redis.haClusterManage.modifyEntryConfiguration"
                   v-bk-tooltips={t('修改入口配置')}

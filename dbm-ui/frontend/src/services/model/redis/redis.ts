@@ -90,6 +90,7 @@ export default class Redis {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
   cluster_alias: string;
   cluster_capacity: number;
   cluster_entry: {
@@ -182,6 +183,7 @@ export default class Redis {
     this.bk_biz_name = payload.bk_biz_name;
     this.cluster_name = payload.cluster_name;
     this.bk_cloud_id = payload.bk_cloud_id;
+    this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.db_module_id = payload.db_module_id;
     this.cluster_stats = payload.cluster_stats || {};
@@ -283,8 +285,14 @@ export default class Redis {
     return displayName;
   }
 
-  get slaveDomainDisplayName() {
-    const port = this.redis_slave[0]?.port;
+  get redisInstanceMasterDomainDisplayName() {
+    const port = this.cluster_access_port;
+    const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;
+    return displayName;
+  }
+
+  get redisInstanceSlaveDomainDisplayName() {
+    const port = this.cluster_access_port;
     const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
     return this.slave_domain ? displayName : '--';
   }
