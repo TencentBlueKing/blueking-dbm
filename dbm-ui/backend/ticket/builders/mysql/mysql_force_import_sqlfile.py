@@ -57,7 +57,7 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
             real_sql_files = [os.path.split(file["sql_path"])[1] for file in upload_sql_files]
             # 更新sql执行体结构
             execute.update(sql_files=real_sql_files, line_id=index)
-            execute_sql_files.extend(sql_files)
+            execute_sql_files.extend(real_sql_files)
 
         self.ticket.update_details(execute_sql_files=execute_sql_files)
         super().patch_ticket_detail()

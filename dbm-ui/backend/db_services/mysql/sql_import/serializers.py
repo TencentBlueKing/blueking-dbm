@@ -34,6 +34,7 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
     cluster_type = serializers.ChoiceField(
         help_text=_("集群类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
     )
+    versions = serializers.ListField(help_text=_("版本列表"), child=serializers.CharField(), default=[], required=False)
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_REQUEST_DATA}
@@ -68,6 +69,7 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
         dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
         ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField())
         sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
+        import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
 
     class SQLImportModeSerializer(serializers.Serializer):
         mode = serializers.ChoiceField(help_text=_("单据执行模式"), choices=SQLExecuteTicketMode.get_choices())
@@ -91,7 +93,6 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
     execute_objects = serializers.ListSerializer(help_text=_("sql执行体信息"), child=ExecuteSQLObjectSerializer())
     ticket_type = serializers.ChoiceField(help_text=_("单据类型"), choices=TicketType.get_choices())
     ticket_mode = SQLImportModeSerializer()
-    import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
     backup = serializers.ListSerializer(help_text=_("备份信息"), child=SQLImportBackUpSerializer(), required=False)
     cluster_type = serializers.ChoiceField(
         help_text=_("集群类型，默认为mysql"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
@@ -204,10 +205,6 @@ class QuerySemanticDataSerializer(serializers.Serializer):
 
 
 class QuerySemanticDataResponseSerializer(serializers.Serializer):
-    semantic_data = serializers.DictField(help_text=_("语义执行数据"))
-    import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
-    sql_data_ready = serializers.BooleanField(help_text=_("sql数据是否成功录入到pipeline"))
-
     class Meta:
         swagger_schema_fields = {"example": mock_data.SEMANTIC_SQL_FILES}
 

@@ -94,7 +94,7 @@ class OpenAreaViewSet(viewsets.AuditedModelViewSet):
             cluster.id: cluster.simple_desc for cluster in Cluster.objects.filter(id__in=source_cluster_ids)
         }
         for data in resp.data["results"]:
-            data["source_cluster"] = cluster_id__info[data["source_cluster_id"]]
+            data["source_cluster"] = cluster_id__info.get(data["source_cluster_id"])
 
         return resp
 

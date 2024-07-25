@@ -49,11 +49,11 @@ class StoragePermission(ResourceActionPermission):
         # 版本文件 对应 PACKAGE_MANAGE，业务文件 对应 DB_MANAGE
         try:
             if is_all_pkg.pop():
-                self.actions = ActionEnum.PACKAGE_MANAGE
+                self.actions = [ActionEnum.PACKAGE_MANAGE]
                 db_types = set([path.split("/")[0] for path in file_path_list])
                 return [db_types]
             else:
-                self.actions = ActionEnum.DB_MANAGE
+                self.actions = [ActionEnum.DB_MANAGE]
                 bk_biz_ids = set([int(path.split("/")[2]) for path in file_path_list])
                 return [bk_biz_ids]
         except Exception:
