@@ -179,7 +179,10 @@ class ImportSQLFlow(object):
             origin_mysql_var_map = query_mysql_variables(host=backend_ip, port=backend_port, bk_cloud_id=bk_cloud_id)
             backend_charset = origin_mysql_var_map.get("character_set_client")
             start_mysqld_configs = {}
-            for var in ["sql_mode", "lower_case_table_names", "log_bin_trust_function_creators"]:
+            for var in [
+                "sql_mode",
+                "log_bin_trust_function_creators",
+            ]:
                 if origin_mysql_var_map.__contains__(var):
                     start_mysqld_configs[var] = origin_mysql_var_map.get(var)
 
