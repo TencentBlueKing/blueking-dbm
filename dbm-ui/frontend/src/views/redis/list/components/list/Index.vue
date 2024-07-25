@@ -1069,7 +1069,7 @@
                                 permission={data.permission.redis_open_close}
                                 style="width: 100%;height: 32px;"
                                 text
-                                disabled={data.isStarting}
+                                disabled={data.isStarting || data.operationDisabled}
                                 onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_OPEN, data)}>
                                 { t('启用') }
                               </auth-button>
