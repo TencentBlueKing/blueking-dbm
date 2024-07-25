@@ -31,14 +31,12 @@
           {{ t('去创建新的权限') }}
         </BkButton>
       </div>
-
       <DbTable
         ref="tableRef"
         :cell-class="cellClassCallback"
         :columns="columns"
         :data-source="getPermissionRules"
         :max-height="700"
-        :remote-pagination="false"
         :settings="settings"
         @clear-search="handleClearSearch" />
     </div>
@@ -73,13 +71,12 @@
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
+  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
   import { getPermissionRules } from '@services/permission';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
-
-  type IColumnData = ServiceReturnType<typeof getPermissionRules>['results'][0]
 
   interface Props {
     clusterId: number,
@@ -149,7 +146,7 @@
       field: 'user',
       width: 220,
       showOverflowTooltip: false,
-      render: ({ data }: { data: IColumnData }) => (
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
         <div class="account-box">
           {
             data.rules.length > 1
@@ -171,7 +168,7 @@
       field: 'access_db',
       showOverflowTooltip: true,
       sort: true,
-      render: ({ data }: { data: IColumnData }) => {
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
         if (data.rules.length === 0) {
           return (
             <div class="inner-row">
@@ -207,7 +204,7 @@
       field: 'privilege',
       showOverflowTooltip: false,
       sort: true,
-      render: ({ data }: { data: IColumnData }) => {
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
         if (data.rules.length === 0) {
           return <div class="inner-row">--</div>;
         }
@@ -251,6 +248,7 @@
   const cellClassCallback = (data: any) => (data.field ? `cell-${data.field}` : '');
 
   const handleSearchChange = (valueList: ISearchValue[]) => {
+    ruleCheckedMap.value = {}
     const params = getSearchSelectorParams(valueList);
     tableRef.value.fetchData({
       cluster_id: props.clusterId,

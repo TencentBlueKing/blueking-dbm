@@ -156,6 +156,12 @@
               <span class="ml-6">{{ t('全部清空') }}</span>
             </BkButton>
           </div>
+          <!-- <AccountRulesTable
+            v-if="selectedList.length > 0"
+            :account-type="accountType"
+            class="mt-16"
+            :selected-list="selectedList"
+            @delete="handleRowDelete" /> -->
           <AccountRulesTable
             v-if="selectedList.length > 0"
             :account-type="accountType"
@@ -219,7 +225,8 @@
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
+  import AccountRulesTable from './accout-rules-preview-table/Index.vue';
+  // import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
   import AccountRulesSelector from './accouter-rules-selector/Index.vue';
 
   export default {
@@ -539,6 +546,8 @@
     };
 
     apiMap[props.accountType]({
+      offset: 0,
+      limit: -1,
       bk_biz_id: bizId,
       account_type: props.accountType,
     })

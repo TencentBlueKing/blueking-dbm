@@ -22,7 +22,7 @@
           filterable
           :input-search="false">
           <BkOption
-            v-for="item of accountMapList"
+            v-for="item of accoutList"
             :key="item.account_id"
             :label="item.user"
             :value="item.account_id" />
@@ -115,8 +115,11 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
-  import { addSqlserverAccountRule, querySqlserverAccountRules } from '@services/source/sqlserverPermissionAccount';
+  import {
+    addSqlserverAccountRule,
+    getSqlserverPermissionRules,
+    querySqlserverAccountRules,
+  } from '@services/source/sqlserverPermissionAccount';
 
   import DbForm from '@components/db-form/index.vue';
 
@@ -126,7 +129,7 @@
 
   interface Props {
     accountId: number;
-    accountMapList: SqlserverPermissionAccountModel['account'][];
+    // accountMapList: SqlserverPermissionAccountModel['account'][];
     dbOperations: string[];
   }
 
@@ -168,7 +171,7 @@
   const verifyAccountRules = () => {
     existDBs.value = [];
 
-    const userInfo = props.accountMapList.find((item) => item.account_id === formData.account_id);
+    const userInfo = accoutList.value.find((item) => item.account_id === formData.account_id);
     const dbs = formData.access_db
       .replace(/\n|;/g, ',')
       .split(',')
@@ -215,6 +218,16 @@
   const formData = reactive(initFormdata());
 
   const allChecked = computed(() => formData.privilege.length === props.dbOperations.length);
+  const accoutList = computed(() =>
+    (sqlPermissonRules.value?.results || []).map((permissionItem) => ({
+      account_id: permissionItem.account.account_id,
+      user: permissionItem.account.user,
+    })),
+  );
+
+  const { data: sqlPermissonRules, run: getPermissionRulesRun } = useRequest(getSqlserverPermissionRules, {
+    manual: true,
+  });
 
   const { loading: isSubmitting, run: addSqlserverAccountRuleRun } = useRequest(addSqlserverAccountRule, {
     manual: true,
@@ -237,7 +250,14 @@
    * 初始化
    */
   watch(isShow, () => {
-    formData.account_id = props.accountId;
+    if (isShow.value) {
+      formData.account_id = props.accountId;
+      getPermissionRulesRun({
+        offset: 0,
+        limit: -1,
+        account_type: AccountTypes.SQLSERVER,
+      });
+    }
   });
 
   /**
