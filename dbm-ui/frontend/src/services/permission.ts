@@ -11,9 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import MysqlAdminPasswordModel from '@services/model/admin-password/mysql-admin-password';
+import AdminPasswordModel from '@services/model/admin-password/admin-password';
 
-import type { AccountTypesValues, ClusterTypes } from '@common/const';
+import type { AccountTypesValues, ClusterTypes, DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from './http';
 import type { ListBase } from './types';
@@ -39,7 +39,7 @@ interface RamdomCycle {
   };
 }
 
-interface MysqlAdminPasswordResultItem {
+interface AdminPasswordResultItem {
   bk_cloud_id: number;
   cluster_type: ClusterTypes;
   instances: {
@@ -86,7 +86,7 @@ export const getRandomPassword = (params?: { security_type: 'password' | 'redis_
 /**
  * 修改实例密码(admin)
  */
-export const modifyMysqlAdminPassword = (params: {
+export const modifyAdminPassword = (params: {
   lock_hour: number;
   password: string;
   instance_list: {
@@ -98,26 +98,25 @@ export const modifyMysqlAdminPassword = (params: {
   }[];
 }) =>
   http.post<{
-    success: MysqlAdminPasswordResultItem[] | null;
-    fail: MysqlAdminPasswordResultItem[] | null;
+    success: AdminPasswordResultItem[] | null;
+    fail: AdminPasswordResultItem[] | null;
   }>('/apis/conf/password_policy/modify_admin_password/', params);
 
 /**
- * 查询mysql生效实例密码(admin)
+ * 查询生效实例密码(admin)
  */
-export const queryMysqlAdminPassword = (params: {
+export const queryAdminPassword = (params: {
   limit?: number;
   offset?: number;
   begin_time?: string;
   end_time?: string;
   instances?: string;
+  db_type: DBTypes;
 }) =>
-  http
-    .post<ListBase<MysqlAdminPasswordModel[]>>('/apis/conf/password_policy/query_mysql_admin_password/', params)
-    .then((res) => ({
-      ...res,
-      results: res.results.map((item) => new MysqlAdminPasswordModel(item)),
-    }));
+  http.post<ListBase<AdminPasswordModel[]>>('/apis/conf/password_policy/query_admin_password/', params).then((res) => ({
+    ...res,
+    results: res.results.map((item) => new AdminPasswordModel(item)),
+  }));
 
 /**
  * 获取公钥列表
