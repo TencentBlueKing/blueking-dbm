@@ -31,6 +31,7 @@ class AddSystemUserInClusterService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         user = kwargs["user"]
         password = kwargs["passwd"]
+        is_apppend_deploy = kwargs.get("is_apppend_deploy")
 
         # 远程授权
         params = {
@@ -55,11 +56,18 @@ class AddSystemUserInClusterService(BaseService):
                 return False
 
         #  新集群部署，对所有的新的ctl节点授权
-        for ctl_ip in global_data["spider_ip_list"]:
-            params["address"] = f'{ctl_ip["ip"]}{IP_PORT_DIVIDER}{global_data["ctl_port"]}'
-            params["role"] = PrivRole.TDBCTL.value
-            if not self.__add_priv(params=params):
-                return False
+        if is_apppend_deploy:
+            for ctl_ip in global_data["tdbctl_ip_list"]:
+                params["address"] = f'{ctl_ip["ip"]}{IP_PORT_DIVIDER}{global_data["ctl_port"]}'
+                params["role"] = PrivRole.TDBCTL.value
+                if not self.__add_priv(params=params):
+                    return False
+        else:
+            for ctl_ip in global_data["spider_ip_list"]:
+                params["address"] = f'{ctl_ip["ip"]}{IP_PORT_DIVIDER}{global_data["ctl_port"]}'
+                params["role"] = PrivRole.TDBCTL.value
+                if not self.__add_priv(params=params):
+                    return False
 
         # 新集群部署，对所有的新remote节点授权
         for mysql_ip in global_data["mysql_ip_list"]:
