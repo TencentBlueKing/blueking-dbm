@@ -95,14 +95,14 @@
   type TopoConfigType = Required<PanelListType[number]>['topoConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
-    tableSetting: TableSetting,
-    firsrColumn?: TableConfigType['firsrColumn'],
-    roleFilterList?: TableConfigType['roleFilterList'],
-    isRemotePagination?: TableConfigType['isRemotePagination'],
-    disabledRowConfig?: TableConfigType['disabledRowConfig'],
-    topoAlertContent?: TopoConfigType['topoAlertContent'],
-    filterClusterId?: TopoConfigType['filterClusterId'], // 过滤的集群ID，单集群模式
+    lastValues: InstanceSelectorValues<T>;
+    tableSetting: TableSetting;
+    firsrColumn?: TableConfigType['firsrColumn'];
+    roleFilterList?: TableConfigType['roleFilterList'];
+    isRemotePagination?: TableConfigType['isRemotePagination'];
+    disabledRowConfig?: TableConfigType['disabledRowConfig'];
+    topoAlertContent?: TopoConfigType['topoAlertContent'];
+    filterClusterId?: TopoConfigType['filterClusterId']; // 过滤的集群ID，单集群模式
     // eslint-disable-next-line vue/no-unused-properties
     getTopoList: NonNullable<TopoConfigType['getTopoList']>;
     // eslint-disable-next-line vue/no-unused-properties
@@ -110,10 +110,12 @@
     statusFilter?: TableConfigType['statusFilter'];
     // eslint-disable-next-line vue/no-unused-properties
     countFunc?: TopoConfigType['countFunc'];
+    // eslint-disable-next-line vue/no-unused-properties
+    totalCountFunc?: TopoConfigType['totalCountFunc'];
   }
 
   interface Emits {
-    (e: 'change', value: Props['lastValues']): void
+    (e: 'change', value: Props['lastValues']): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -125,6 +127,7 @@
     topoAlertContent: undefined,
     roleFilterList: undefined,
     filterClusterId: undefined,
+    totalCountFunc: undefined,
   });
   const emits = defineEmits<Emits>();
 

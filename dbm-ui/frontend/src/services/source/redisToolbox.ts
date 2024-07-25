@@ -12,7 +12,6 @@
  */
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
-import RedisHostModel from '@services/model/redis/redis-host';
 
 import type { ListBase } from '../types';
 
@@ -32,30 +31,6 @@ interface MachineInstancePairItem {
 }
 
 /**
- * 查询集群下的主机列表
- */
-export function queryClusterHostList(obj: { cluster_id?: number; ip?: string; instance?: string }) {
-  const params = {
-    ...obj,
-  };
-  if (obj.instance) {
-    params.ip = obj.instance;
-    delete params.instance;
-  }
-  return http.get<ListBase<RedisHostModel[]>>(`${getRootPath()}/query_cluster_ips/`, params).then((data) => ({
-    ...data,
-    results: data.results.map((item) => new RedisHostModel(item)),
-  }));
-}
-
-/**
- * 根据masterIP查询集群、实例和slave
- */
-// export function queryMasterSlaveByIp(params: { ips: string[] }) {
-//   return http.post<MasterSlaveByIp[]>(`${getRootPath()}/query_master_slave_by_ip/`, params);
-// }
-
-/**
  * 根据cluster_id查询主从关系对
  */
 export function queryMasterSlavePairs(params: { cluster_id: number }) {
@@ -66,31 +41,6 @@ export function queryMasterSlavePairs(params: { cluster_id: number }) {
     }[]
   >(`${getRootPath()}/query_master_slave_pairs/`, params);
 }
-
-// 查询集群下的主机列表
-export const getRedisHostList = async (obj: {
-  bk_biz_id: number;
-  offset: number;
-  limit: number;
-  role?: string;
-  cluster_id?: number;
-  instance?: string;
-  ip?: string;
-}) => {
-  const params = {
-    ...obj,
-  };
-  if (obj.instance) {
-    params.ip = obj.instance;
-    delete params.instance;
-  }
-  return http
-    .get<ListBase<RedisHostModel[]>>(`/apis/redis/bizs/${obj.bk_biz_id}/toolbox/query_cluster_ips/`, params)
-    .then((data) => ({
-      ...data,
-      results: data.results.map((item) => new RedisHostModel(item)),
-    }));
-};
 
 // 获取集群列表(重建从库)
 export const listClustersCreateSlaveProxy = async (params: { bk_biz_id: number }) =>
