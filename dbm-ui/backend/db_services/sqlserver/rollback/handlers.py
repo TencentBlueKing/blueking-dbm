@@ -115,7 +115,7 @@ class SQLServerRollbackHandler(object):
                 "role": logs[0]["role"],
             }
             backup_logs.append(backup_log_info)
-
+        backup_logs = sorted(backup_logs, key=lambda x: x["start_time"], reverse=True)
         return backup_logs
 
     def query_latest_backup_log(self, rollback_time: datetime):
