@@ -254,14 +254,6 @@
     ipMemo[ip] = true;
     sortTableByCluster();
     updateSlaveMasterMap();
-
-    // data.related_clusters.forEach(clusterInfo => {
-    //   selected.value.idleHosts.push(Object.assign(data, {
-    //     cluster_id: clusterInfo.id,
-    //     cluster_domain: clusterInfo.immute_domain,
-    //     role: ''
-    //   }));
-    // })
   };
 
   // 追加一个集群
@@ -278,7 +270,7 @@
     delete ipMemo[removeIp];
     let masterIp = '';
     // slave 与 master 删除联动
-    if (removeItem.role === 'slave') {
+    if (removeItem.role === 'redis_slave') {
       masterIp = slaveMasterMap[removeItem.ip];
       if (masterIp) {
         // 看看表中有没有对应的master
@@ -335,9 +327,9 @@
           ip: item.ip,
           spec_id: item.spec?.id ?? 0,
         };
-        if (item.role === 'slave') {
+        if (item.role === 'redis_slave') {
           infoItem.redis_slave.push(specObj);
-        } else if (item.role === 'master') {
+        } else if (item.role === 'redis_master') {
           infoItem.redis_master.push(specObj);
           const deleteSlaveIp = slaveMasterMap[item.ip];
 
