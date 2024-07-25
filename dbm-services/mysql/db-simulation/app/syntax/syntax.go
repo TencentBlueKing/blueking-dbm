@@ -76,8 +76,14 @@ type TmysqlParse struct {
 // AddFileResult add file syntax check result
 func (t *TmysqlParse) AddFileResult(fileName string, result *CheckInfo, failedInfos []FailedInfo) {
 	t.mu.Lock()
-	t.result[fileName] = result
-	t.result[fileName].SyntaxFailInfos = failedInfos
+	if _, ok := t.result[fileName]; !ok {
+		t.result[fileName] = result
+		t.result[fileName].SyntaxFailInfos = failedInfos
+	} else {
+		t.result[fileName].SyntaxFailInfos = append(t.result[fileName].SyntaxFailInfos, failedInfos...)
+	}
+	t.result[fileName].BanWarnings = result.BanWarnings
+	t.result[fileName].RiskWarnings = result.RiskWarnings
 	t.mu.Unlock()
 }
 
@@ -138,13 +144,16 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 	// 暂时屏蔽 观察过程文件
 	defer tf.delTempDir()
 
+	var errs []error
 	for _, version := range versions {
 		if err = tf.doSingleVersion(dbtype, version); err != nil {
-			return tf.result, err
+			logger.Error("when do [%s],syntax check,failed:%s", version, err.Error())
+			errs = append(errs, err)
+			// return tf.result, err
 		}
 	}
 
-	return tf.result, nil
+	return tf.result, errors.Join(errs...)
 }
 
 func (tf *TmysqlParseFile) doSingleVersion(dbtype string, mysqlVersion string) (err error) {
