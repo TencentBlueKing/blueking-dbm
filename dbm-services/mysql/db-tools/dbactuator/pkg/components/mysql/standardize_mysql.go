@@ -115,6 +115,7 @@ func (c *StandardizeMySQLComp) DropOldAccounts() error {
 		c.GeneralParam.RuntimeAccountParam.DbBackupUser,
 		c.Params.SuperAccount.User,
 		c.Params.DBHAAccount.User,
+		c.Params.PartitionYWAccount.User,
 	}
 	logger.Info("accounts: %s will be drop", accountsToDrop)
 
