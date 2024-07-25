@@ -35,7 +35,7 @@
     <div class="ticket-details__item">
       <span class="ticket-details__item-label">{{ t('备份保存时间') }}：</span>
       <span class="ticket-details__item-value">
-        {{ infos.file_tag === 'LONGDAY_DBFILE_3Y' ? t('3年') : t('30天') }}
+        {{ backupTime }}
       </span>
     </div>
   </div>
@@ -61,9 +61,15 @@
 
   const { t } = useI18n();
 
-  // eslint-disable-next-line vue/no-setup-props-destructure
   const { infos } = props.ticketDetails.details;
-  const tableData = ref<RowData[]>([]);
+
+  const fileTagMap: Record<string, string> = {
+    DBFILE1M: t('1个月'),
+    DBFILE6M: t('6个月'),
+    DBFILE1Y: t('1年'),
+    DBFILE3Y: t('3年'),
+  };
+
   const columns = [
     {
       label: t('目标集群'),
@@ -76,6 +82,21 @@
       showOverflowTooltip: true,
     },
   ];
+
+  const tableData = ref<RowData[]>([]);
+
+  // 备份保存时间
+  const backupTime = computed(() => {
+    const fileTag = props.ticketDetails.details.infos.file_tag;
+    if (!fileTagMap[fileTag]) {
+      // 兼容旧单据
+      if (fileTag === 'LONGDAY_DBFILE_3Y') {
+        return t('3年');
+      }
+      return t('30天');
+    }
+    return fileTagMap[fileTag];
+  });
 
   const { loading } = useRequest(getSpiderListByBizId, {
     defaultParams: [

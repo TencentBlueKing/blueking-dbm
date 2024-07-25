@@ -54,10 +54,16 @@
           property="file_tag"
           required>
           <BkRadioGroup v-model="formData.file_tag">
-            <BkRadio label="MYSQL_FULL_BACKUP">
-              {{ t('30天') }}
+            <BkRadio label="DBFILE1M">
+              {{ t('1个月') }}
             </BkRadio>
-            <BkRadio label="LONGDAY_DBFILE_3Y">
+            <BkRadio label="DBFILE6M">
+              {{ t('6个月') }}
+            </BkRadio>
+            <BkRadio label="DBFILE1Y">
+              {{ t('1年') }}
+            </BkRadio>
+            <BkRadio label="DBFILE3Y">
               {{ t('3年') }}
             </BkRadio>
           </BkRadioGroup>
@@ -111,7 +117,7 @@
 
   const createDefaultData = () => ({
     backup_type: 'logical',
-    file_tag: 'MYSQL_FULL_BACKUP',
+    file_tag: 'DBFILE1M',
   });
 
   const { t } = useI18n();
@@ -122,18 +128,13 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_HA_FULL_BACKUP,
     onSuccess(cloneData) {
-      const {
-        backupType,
-        tableDataList,
-        fileTag,
-      } = cloneData
+      const { backupType, tableDataList, fileTag } = cloneData;
       tableData.value = tableDataList;
       formData.backup_type = backupType;
       formData.file_tag = fileTag;
       window.changeConfirm = true;
     },
   });
-
 
   const formRef = ref();
   const rowRefs = ref();
@@ -142,7 +143,7 @@
   const formData = reactive(createDefaultData());
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
