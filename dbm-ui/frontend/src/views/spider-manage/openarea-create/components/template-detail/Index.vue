@@ -31,6 +31,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
   import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
   import { getPermissionRules } from '@services/permission';
 
@@ -40,8 +41,6 @@
     data: OpenareaTemplateModel
   }
 
-  type IColumnData = ServiceReturnType<typeof getPermissionRules>['results'][0]
-
   const props = defineProps<Props>();
 
   const { t } = useI18n();
@@ -49,7 +48,7 @@
   const permissionTableloading = ref(false);
   const activeIndex =  ref(['clone-rule', 'permission-rule']);
   const rowFlodMap = ref<Record<string, boolean>>({});
-  const permissionTableData = ref<IColumnData[]>([]);
+  const permissionTableData = ref<MysqlPermissonAccountModel[]>([]);
 
   const permissionTableColumns = computed(() => [
     {
@@ -57,7 +56,7 @@
       field: 'user',
       width: 220,
       showOverflowTooltip: false,
-      render: ({ data }: { data: IColumnData }) => (
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
         <div class="account-box">
           {
             data.rules.length > 1
@@ -78,7 +77,7 @@
       width: 300,
       field: 'access_db',
       showOverflowTooltip: true,
-      render: ({ data }: { data: IColumnData }) => {
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
         const renderRules = rowFlodMap.value[data.account.user] ? data.rules.slice(0, 1) : data.rules;
         return renderRules.map(item => (
           <div class="inner-row">
@@ -93,7 +92,7 @@
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: false,
-      render: ({ data }: { data: IColumnData }) => {
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
         if (data.rules.length === 0) {
           return <div class="inner-row">--</div>;
         }
@@ -141,6 +140,8 @@
     if (ruleIds.length > 0) {
       permissionTableloading.value = true;
       const rulesResult = await getPermissionRules({
+        offset: 0,
+        limit: -1,
         rule_ids: ruleIds.join(','),
         account_type: 'tendbcluster',
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

@@ -13,7 +13,7 @@
 
 <template>
   <div class="mongo-permission">
-    <div class="mongo-permission-operations">
+    <div class="operation-box">
       <BkButton
         theme="primary"
         @click="handleAddAcount">
@@ -25,19 +25,21 @@
         :placeholder="t('请输入账号名称/DB名称/权限名称')"
         style="width: 500px"
         unique-select
-        @change="getList" />
+        @change="fetchData" />
     </div>
-    <DbOriginalTable
+    <DbTable
       ref="tableRef"
-      class="mongo-permission-table"
+      class="rules-table"
       :columns="columns"
-      :data="ruleList?.results || []"
+      :data-source="getMongodbPermissionRules"
+      releate-url-query
       :row-class="setRowClass"
       row-hover="auto"
-      @clear-search="handleClearSearch" />
+      @clear-search="handleClearSearch"
+      @refresh="fetchData" />
     <CreateAccountDialog
       v-model="addAccountDialogShow"
-      @success="getList" />
+      @success="fetchData" />
     <AccountInfoDialog
       v-model="accountInfoDialogShow"
       :info="accountInfoDialogInfo"
@@ -45,7 +47,7 @@
     <CreateRule
       v-model="createRuleShow"
       :account-id="createRuleAccountId"
-      @success="getList" />
+      @success="fetchData" />
     <ClusterAuthorize
       v-model="authorizeShow"
       :account-type="AccountTypes.MONGODB"
@@ -56,7 +58,6 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
   import { getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
@@ -69,6 +70,7 @@
 
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import DbTable from '@components/db-table/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
@@ -82,7 +84,7 @@
   const { deleteAccountReq } = useDeleteAccount();
 
   const renderList = (row: MongodbPermissonAccountModel) => (
-    expandMap.value[row.account.account_id]
+    rowExpandMap.value[row.account.account_id]
       ? row.rules.slice(0, 1)
       : row.rules
   );
@@ -99,6 +101,7 @@
       name: t('权限'),
       id: 'privilege',
       multiple: true,
+      logical: '&',
       children: [
         ...dbOperations.mongo_user.map(id => ({
           id: id.toLowerCase(),
@@ -118,42 +121,50 @@
       field: 'user',
       showOverflowTooltip: false,
       render: ({ data }: { data: MongodbPermissonAccountModel }) => (
-        <div
-          class="mongo-permission-cell"
-          onClick={ () => handleToggleExpand(data) }>
-          {
-            data.rules.length > 1 && (
-              <db-icon
-                type="down-shape"
-                class={{
-                  'user-icon': true,
-                  'user-icon-expand': !expandMap.value[data.account.account_id],
-                }} />
-            )
-          }
-          <div class="user-name">
-            <bk-button
+        <TextOverflowLayout>
+          {{
+            prepend: () => data.rules.length > 1 && (
+              <div
+                class="row-expand-btn"
+                onClick={() => handleToggleExpand(data)}>
+                <db-icon
+                  type="down-shape"
+                  class={{
+                    'expand-flag': true,
+                    'is-expand': !rowExpandMap.value[data.account.account_id],
+                  }} />
+              </div>
+            ),
+            default: () => (
+              <bk-button
               text
               theme="primary"
-              class="user-name-text text-overflow"
               onClick={ (event: Event) => handleViewAccount(data, event) }>
               { data.account.user }
             </bk-button>
-            {
-              data.isNew && (
-                <span
-                  class="glob-new-tag ml-6"
-                  data-text="NEW" />
-              )
-            }
-            <bk-button
-              class="add-rule-button ml-6"
-              size="small"
-              onClick={ (event: Event) => handleShowCreateRule(data, event) }>
-              { t('添加授权规则') }
-            </bk-button>
-          </div>
-        </div>
+            ),
+            append: () => (
+              <>
+                {
+                  data.isNew && (
+                    <bk-tag
+                      size="small"
+                      theme="success"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
+                }
+                <bk-button
+                  class="add-rule-btn"
+                  size="small"
+                  onClick={ (event: Event) => handleShowCreateRule(data, event) }>
+                  { t('添加授权规则') }
+                </bk-button>
+              </>
+            ),
+          }}
+        </TextOverflowLayout>
       ),
     },
     {
@@ -163,7 +174,7 @@
       render: ({ data }: { data: MongodbPermissonAccountModel }) => {
         if (data.rules.length === 0) {
           return (
-            <div class="mongo-permission-cell">
+            <div class="cell-row">
               <span>{ t('暂无规则') }，</span>
               <bk-button
                 theme="primary"
@@ -178,7 +189,7 @@
 
         return (
           renderList(data).map(rule => (
-            <div class="mongo-permission-cell">
+            <div class="cell-row">
               <bk-tag>{ rule.access_db }</bk-tag>
             </div>
           ))
@@ -196,7 +207,7 @@
 
             return (
               <div
-                class="mongo-permission-cell"
+                class="cell-row"
                 v-overflow-tips>
                 {
                   privilege ? privilege.replace(/,/g, '，') : '--'
@@ -206,7 +217,7 @@
           });
         }
 
-        return <div class="mongo-permission-cell">--</div>;
+        return <div class="cell-row">--</div>;
       },
     },
     {
@@ -215,7 +226,7 @@
       render: ({ data }: { data: MongodbPermissonAccountModel }) => {
         if (data.rules.length === 0) {
           return (
-            <div class="mongo-permission-cell">
+            <div class="cell-row">
               <bk-button
                 theme="primary"
                 text
@@ -228,7 +239,7 @@
 
         return (
           renderList(data).map(item => (
-            <div class="mongo-permission-cell">
+            <div class="cell-row">
               <bk-button
                 theme="primary"
                 text
@@ -250,33 +261,25 @@
   const authorizeShow = ref(false);
   const createRuleShow = ref(false);
   const createRuleAccountId = ref(-1);
-  const expandMap = ref<Record<number, boolean>>({});
+  const rowExpandMap = ref<Record<number, boolean>>({});
   const selectedList = shallowRef<MongodbPermissonAccountModel[]>([]);
-
-  const {
-    data: ruleList,
-    run: getMongodbPermissionRulesRun,
-  } = useRequest((params: ServiceParameters<typeof getMongodbPermissionRules>) => getMongodbPermissionRules(params, {
-    permission: 'page'
-  }), {
-    manual: true,
-    onSuccess() {
-      expandMap.value = {};
-    },
-  });
 
   const setRowClass = (row: MongodbPermissonAccountModel) => (row.isNew ? 'is-new' : '');
 
-  const getList = () => {
-    getMongodbPermissionRulesRun({
-      ...getSearchSelectorParams(tableSearch.value),
-      account_type: AccountTypes.MONGODB,
-    });
+  const fetchData = () => {
+    tableRef.value!.fetchData(
+      {
+        ...getSearchSelectorParams(tableSearch.value),
+      },
+      {
+        account_type: AccountTypes.MONGODB,
+      }
+    )
   };
 
   const handleClearSearch = () => {
     tableSearch.value = [];
-    getList();
+    fetchData();
   };
 
   const handleToggleExpand = (data: MongodbPermissonAccountModel) => {
@@ -284,7 +287,7 @@
     if (data.rules.length <= 1) {
       return;
     }
-    expandMap.value[data.account.account_id] = !expandMap.value[data.account.account_id];
+    rowExpandMap.value[data.account.account_id] = !rowExpandMap.value[data.account.account_id];
   };
 
   const handleAddAcount = () => {
@@ -300,7 +303,7 @@
 
   const handleDeleteAccountSuccess = () => {
     accountInfoDialogShow.value = false;
-    getList();
+    fetchData();
   };
 
   const handleShowCreateRule = (row: MongodbPermissonAccountModel, event: Event) => {
@@ -325,85 +328,85 @@
       Object.assign({}, row, { rules: [rule] }),
     ];
   };
+
+  onMounted(() => {
+    fetchData()
+  })
 </script>
 
 <style lang="less" scoped>
   .mongo-permission {
-    .mongo-permission-operations {
-      display: flex;
-      padding-bottom: 16px;
+    .operation-box {
       justify-content: space-between;
-      align-items: center;
-    }
-
-    :deep(.mongo-permission-cell) {
-      position: relative;
-      padding: 0 15px;
-      overflow: hidden;
-      line-height: calc(var(--row-height) - 1px);
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      border-bottom: 1px solid @border-disable;
-    }
-
-    :deep(.mongo-permission-cell:last-child) {
-      border-bottom: 0;
-    }
-
-    :deep(.user-icon) {
-      position: absolute;
-      top: 50%;
-      left: 15px;
-      transform: translateY(-50%) rotate(-90deg);
-      transition: all 0.2s;
-    }
-
-    :deep(.user-icon-expand) {
-      transform: translateY(-50%) rotate(0);
-    }
-
-    :deep(.user-name) {
+      padding-bottom: 16px;
       display: flex;
-      height: 100%;
-      padding-left: 24px;
-      cursor: pointer;
       align-items: center;
-
-      .add-rule-button {
-        display: none;
-      }
     }
 
-    :deep(.user-name-text) {
-      font-weight: bold;
-    }
-  }
+    :deep(.db-table) {
+      .rules-table {
+        .cell {
+          padding: 0 !important;
+        }
 
-  :deep(.mongo-permission-table) {
-    transition: all 0.5s;
+        tr {
+          &:hover {
+            .add-rule-btn {
+              display: inline-flex;
+              margin-left: 8px;
+            }
+          }
 
-    tr:hover {
-      .add-rule-button {
-        display: flex;
-      }
-    }
+          &.is-new {
+            td {
+              background-color: #f3fcf5 !important;
+            }
+          }
+        }
 
-    .is-new {
-      td {
-        background-color: #f3fcf5 !important;
-      }
-    }
+        th {
+          padding: 0 16px;
+        }
 
-    td {
-      .cell {
-        padding: 0 !important;
-      }
-    }
+        td {
+          &:first-child {
+            padding: 0 16px;
+          }
+        }
 
-    td:first-child {
-      .cell,
-      .mongo-permission-cell {
-        height: 100% !important;
+        .cell-row {
+          padding: 0 16px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          height: calc(var(--row-height) - 4px);
+          line-height: calc(var(--row-height) - 4px);
+
+          & ~ .cell-row {
+            border-top: 1px solid #dcdee5;
+          }
+        }
+
+        .row-expand-btn {
+          display: flex;
+          padding-right: 8px;
+          cursor: pointer;
+          align-items: center;
+          justify-content: center;
+
+          .expand-flag {
+            transform: rotate(-90deg);
+            transition: all 0.1s;
+
+            &.is-expand {
+              transform: rotate(0);
+            }
+          }
+        }
+
+        .add-rule-btn {
+          display: none;
+        }
       }
     }
   }

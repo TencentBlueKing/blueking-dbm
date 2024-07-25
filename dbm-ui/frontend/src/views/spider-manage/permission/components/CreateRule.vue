@@ -210,6 +210,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
   import {
     createAccountRule,
     getPermissionRules,
@@ -232,11 +233,10 @@
 
   type AuthItemKey = keyof typeof dbOperations;
 
-  type IRule = ServiceReturnType<typeof getPermissionRules>['results'][number]['rules'][number];
 
   interface Props {
     accountId: number,
-    ruleObj?: IRule;
+    ruleObj?: MysqlPermissonAccountModel['rules'][number];
   }
 
   interface Emits {
@@ -245,6 +245,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     accountId: -1,
+    ruleObj: undefined
   });
 
   const emits = defineEmits<Emits>();
@@ -362,7 +363,7 @@
         editModeDisabledPrivileges.value = props.ruleObj!.privilege.split(',');
         const dbOperationsMap = Object.entries(dbOperations).reduce((resultMap, [key, values]) => {
           values.forEach(value => {
-            resultMap[value] = key;
+            Object.assign(resultMap, { [value]: key });
           });
           return resultMap;
         }, {} as Record<string, string>);
@@ -395,6 +396,8 @@
   const getAccount = () => {
     isLoading.value = true;
     getPermissionRules({
+      offset: 0,
+      limit: -1,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       account_type: TENDBCLUSTER,
     })

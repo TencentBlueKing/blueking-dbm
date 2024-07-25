@@ -21,20 +21,22 @@
     :title="t('选择账号权限')"
     :width="1300"
     @closed="isShow = false">
-    <DbSearchSelect
-      v-model="tableSearch"
-      class="mb-16"
-      :data="filters"
-      :placeholder="t('请输入账号或DB名')"
-      style="width: 520px"
-      unique-select
-      @change="handleSearchSelectChange" />
-    <AccountRulesTable
-      ref="accountRulesTableRef"
-      :account-type="accountType"
-      select-mode
-      :selected-list="selectedList"
-      @change="handleChange" />
+    <div style="height: 730px">
+      <DbSearchSelect
+        v-model="tableSearch"
+        class="mb-16"
+        :data="filters"
+        :placeholder="t('请输入账号或DB名')"
+        style="width: 520px"
+        unique-select
+        @change="handleSearchSelectChange" />
+      <AccountRulesTable
+        ref="accountRulesTableRef"
+        :account-type="accountType"
+        select-mode
+        :selected-list="selectedList"
+        @change="handleChange" />
+    </div>
     <template #footer>
       <div class="footer-wrapper">
         <div class="selected-text">
@@ -117,6 +119,7 @@
   });
 
   const handleSearchSelectChange = () => {
+    emits('change', []);
     accountRulesTableRef.value!.searchData(getSearchSelectorParams(tableSearch.value));
   };
 

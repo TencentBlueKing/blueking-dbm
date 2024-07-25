@@ -37,24 +37,23 @@
           {{ t('新建账号') }}
         </AuthButton>
         <DbSearchSelect
-          v-model="state.search"
+          v-model="tableSearch"
           :data="filters"
           :placeholder="t('账号名称_DB名称_权限名称')"
           style="width: 500px"
           unique-select
           @change="handleSearchChange" />
       </div>
-      <BkLoading :loading="state.isLoading">
-        <DbOriginalTable
-          :columns="columns"
-          :data="state.data"
-          :is-anomalies="state.isAnomalies"
-          :is-searching="state.search.length > 0"
-          :max-height="tableMaxHeight"
-          :row-class="setRowClass"
-          @clear-search="handleClearSearch"
-          @refresh="fetchData" />
-      </BkLoading>
+      <DbTable
+        ref="tableRef"
+        class="rules-table"
+        :columns="columns"
+        :data-source="getPermissionRules"
+        releate-url-query
+        :row-class="setRowClass"
+        row-hover="auto"
+        @clear-search="handleClearSearch"
+        @refresh="fetchData" />
     </div>
     <!-- 创建账户 -->
     <AccountDialog
@@ -89,7 +88,7 @@
           class="account-details-item">
           <span class="account-details-label">{{ column.label }}：</span>
           <span class="account-details-value">
-            {{ column.value ?? accountDetailDialog.rowData?.account[column.key as keyof IPermissioRule['account']] }}
+            {{ column.value ?? accountDetailDialog.rowData?.account[column.key as keyof MysqlPermissonAccountModel['account']] }}
           </span>
         </div>
         <div
@@ -111,11 +110,11 @@
   </PermissionCatch>
 </template>
 <script setup lang="tsx">
-  import { InfoBox,Message  } from 'bkui-vue';
-  import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
+  import { InfoBox, Message } from 'bkui-vue';
   import { differenceInHours } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
+  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
   import {
     deleteAccount,
     getPermissionRules,
@@ -123,19 +122,18 @@
   import type { PermissionRuleInfo } from '@services/types/permission';
 
   import {
-    useTableMaxHeight,
     useTicketCloneInfo,
   } from '@hooks';
 
   import {
     AccountTypes,
     ClusterTypes,
-    OccupiedInnerHeight,
     TicketTypes,
   } from '@common/const';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue'
   import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import DbTable from '@components/db-table/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
@@ -143,8 +141,6 @@
   import { dbOperations } from './common/const';
   import AccountDialog from './components/AccountDialog.vue';
   import CreateRuleSlider from './components/CreateRule.vue';
-
-  type IPermissioRule = ServiceReturnType<typeof getPermissionRules>['results'][number]
 
   const { t } = useI18n();
 
@@ -170,6 +166,8 @@
     },
   });
 
+  const tableRef = ref<InstanceType<typeof DbTable>>();
+  const tableSearch = ref([]);
   const clusterAuthorizeRef = ref<InstanceType<typeof ClusterAuthorize>>();
 
   /**
@@ -188,6 +186,7 @@
       name: t('权限'),
       id: 'privilege',
       multiple: true,
+      logical: '&',
       children: [
         ...dbOperations.dml.map(id => ({ id: id.toLowerCase(), name: id })),
         ...dbOperations.ddl.map(id => ({ id: id.toLowerCase(), name: id })),
@@ -197,7 +196,7 @@
   ];
 
   // 判断是否为新账号规则
-  const isNewUser = (row: IPermissioRule) => {
+  const isNewUser = (row: MysqlPermissonAccountModel) => {
     const createTime = row.account.create_time;
     if (!createTime) return '';
 
@@ -206,12 +205,6 @@
     return differenceInHours(today, createDay) <= 24;
   };
 
-  const state = reactive({
-    isAnomalies: false,
-    isLoading: false,
-    search: [] as ISearchValue[],
-    data: [] as IPermissioRule[],
-  });
   /**
    * 集群授权
    */
@@ -227,7 +220,7 @@
   // 账号信息查看
   const accountDetailDialog = reactive({
     isShow: false,
-    rowData: {} as IPermissioRule,
+    rowData: {} as MysqlPermissonAccountModel,
   });
   /**
    * 添加授权规则功能
@@ -235,19 +228,17 @@
   const ruleState = reactive({
     isShow: false,
     accountId: -1,
-    rowData: {} as IPermissioRule['rules'][number],
+    rowData: {} as MysqlPermissonAccountModel['rules'][number],
   });
 
   const rowExpandMap = shallowRef<Record<number, boolean>>({});
-
-  const tableMaxHeight = useTableMaxHeight(OccupiedInnerHeight.NOT_PAGINATION_WITH_TIP);
 
   const columns = [
     {
       label: t('账号名称'),
       field: 'user',
       showOverflowTooltip: false,
-      render: ({ data }: { data: IPermissioRule }) => (
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
         <TextOverflowLayout>
           {{
             prepend: () => data.rules.length > 1 && (
@@ -273,11 +264,14 @@
             append: () => (
               <>
                 {
-                isNewUser(data) && (
-                  <span
-                    class="glob-new-tag mr-4"
-                    data-text="NEW" />
-                )
+                  isNewUser(data) && (
+                    <bk-tag
+                      size="small"
+                      theme="success"
+                      class="ml-4">
+                      NEW
+                    </bk-tag>
+                  )
                 }
                 <auth-button
                   action-id="mysql_add_account_rule"
@@ -297,10 +291,10 @@
     {
       label: t('访问的DB名'),
       field: 'access_db',
-      render: ({ data }: { data: IPermissioRule }) => {
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
         if (data.rules.length === 0) {
           return (
-            <>
+            <div class="cell-row">
               <span>{t('暂无规则')}，</span>
               <auth-button
                 action-id="mysql_add_account_rule"
@@ -312,7 +306,7 @@
                 onClick={(event: PointerEvent) => handleShowCreateRule(data, event)}>
                 {t('立即新建')}
               </auth-button>
-            </>
+            </div>
           );
         }
 
@@ -330,7 +324,7 @@
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: false,
-      render: ({ data }: { data: IPermissioRule }) => (
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
           return (
@@ -345,8 +339,8 @@
     },
     {
       label: t('操作'),
-      width: 80,
-      render: ({ data }: { data: IPermissioRule }) => {
+      width: 100,
+      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
         if (data.rules.length === 0) {
           return (
             <div class="cell-row">
@@ -406,25 +400,18 @@
     },
   ];
   // 设置行样式
-  const setRowClass = (row: IPermissioRule) => (isNewUser(row) ? 'is-new' : '');
+  const setRowClass = (row: MysqlPermissonAccountModel) => (isNewUser(row) ? 'is-new' : '');
 
   const fetchData = () => {
-    getPermissionRules({
-      ...getSearchSelectorParams(state.search),
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      account_type: 'mysql',
-    }, {
-      permission: 'page'
-    })
-      .then((res) => {
-        state.data = res.results.map(item => Object.assign({ isExpand: true }, item));
-      })
-      .catch(() => {
-        state.data = [];
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
+    tableRef.value!.fetchData(
+      {
+        ...getSearchSelectorParams(tableSearch.value),
+      },
+      {
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        account_type: 'mysql',
+      }
+    )
   };
 
   const handleSearchChange = () => {
@@ -432,19 +419,19 @@
   };
 
   const handleClearSearch = () => {
-    state.search = [];
+    tableSearch.value = [];
     fetchData();
   };
   /**
    * 展开/收起渲染列表
    */
-  const getRenderList = (data: IPermissioRule) => (!rowExpandMap.value[data.account.account_id]
+  const getRenderList = (data: MysqlPermissonAccountModel) => (!rowExpandMap.value[data.account.account_id]
     ? data.rules : data.rules.slice(0, 1));
 
   /**
    * 列表项展开/收起
    */
-  const handleToggleExpand = (data: IPermissioRule) => {
+  const handleToggleExpand = (data: MysqlPermissonAccountModel) => {
     // 长度小于等于 2 则没有展开收起功能
     if (data.rules.length <= 1) {
       return;
@@ -460,7 +447,7 @@
   };
 
 
-  const handleViewAccount = (row: IPermissioRule, e: MouseEvent) => {
+  const handleViewAccount = (row: MysqlPermissonAccountModel, e: MouseEvent) => {
     e?.stopPropagation();
     accountDetailDialog.rowData = row;
     accountDetailDialog.isShow = true;
@@ -469,7 +456,7 @@
   /**
    * 删除账号
    */
-  const handleDeleteAccount = (row: IPermissioRule) => {
+  const handleDeleteAccount = (row: MysqlPermissonAccountModel) => {
     InfoBox({
       type: 'warning',
       title: t('确认删除该账号'),
@@ -495,14 +482,14 @@
   };
 
 
-  const handleShowCreateRule = (row: IPermissioRule, e: PointerEvent) => {
+  const handleShowCreateRule = (row: MysqlPermissonAccountModel, e: PointerEvent) => {
     e.stopPropagation();
-    ruleState.rowData = {} as IPermissioRule['rules'][number];
+    ruleState.rowData = {} as MysqlPermissonAccountModel['rules'][number];
     ruleState.accountId = row.account.account_id;
     ruleState.isShow = true;
   };
 
-  const handleShowEditRule = (e: PointerEvent, row: IPermissioRule, index: number) => {
+  const handleShowEditRule = (e: PointerEvent, row: MysqlPermissonAccountModel, index: number) => {
     e.stopPropagation();
     ruleState.accountId = row.account.account_id;
     ruleState.rowData = row.rules[index];
@@ -510,45 +497,20 @@
   };
 
 
-  const handleShowAuthorize = (row: IPermissioRule, rule: PermissionRuleInfo, e: PointerEvent) => {
+  const handleShowAuthorize = (row: MysqlPermissonAccountModel, rule: PermissionRuleInfo, e: PointerEvent) => {
     e.stopPropagation();
     authorizeState.isShow = true;
     authorizeState.user = row.account.user;
     authorizeState.dbs = [rule.access_db];
   };
+
+  onMounted(() => {
+    fetchData()
+  })
 </script>
-<style lang="less">
-  @import '@styles/mixins.less';
 
+<style lang="less" scoped>
   .permission-rules-page {
-    .bk-table {
-      .cell {
-        padding: 0 !important;
-      }
-
-      tr {
-        &:hover {
-          .add-rule-btn {
-            display: inline-flex;
-            margin-left: 8px;
-          }
-        }
-
-        &.is-new {
-          td {
-            background-color: #f3fcf5 !important;
-          }
-        }
-      }
-
-      th,
-      td {
-        &:first-child {
-          padding: 0 16px;
-        }
-      }
-    }
-
     .permission-info-alert {
       margin-bottom: 16px;
 
@@ -560,37 +522,75 @@
     .operation-box {
       justify-content: space-between;
       padding-bottom: 16px;
-      .flex-center();
-    }
-
-    .cell-row {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      & ~ .cell-row {
-        border-top: 1px solid #dcdee5;
-      }
-    }
-
-    .row-expand-btn {
       display: flex;
-      padding-right: 8px;
-      cursor: pointer;
       align-items: center;
-      justify-content: center;
+    }
 
-      .expand-flag {
-        transform: rotate(-90deg);
-        transition: all 0.1s;
+    :deep(.db-table) {
+      .rules-table {
+        .cell {
+          padding: 0 !important;
+        }
 
-        &.is-expand {
-          transform: rotate(0);
+        tr {
+          &:hover {
+            .add-rule-btn {
+              display: inline-flex;
+              margin-left: 8px;
+            }
+          }
+
+          &.is-new {
+            td {
+              background-color: #f3fcf5 !important;
+            }
+          }
+        }
+
+        th {
+          padding: 0 16px;
+        }
+
+        td {
+          &:first-child {
+            padding: 0 16px;
+          }
+        }
+
+        .cell-row {
+          padding: 0 16px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          height: calc(var(--row-height) - 4px);
+          line-height: calc(var(--row-height) - 4px);
+
+          & ~ .cell-row {
+            border-top: 1px solid #dcdee5;
+          }
+        }
+
+        .row-expand-btn {
+          display: flex;
+          padding-right: 8px;
+          cursor: pointer;
+          align-items: center;
+          justify-content: center;
+
+          .expand-flag {
+            transform: rotate(-90deg);
+            transition: all 0.1s;
+
+            &.is-expand {
+              transform: rotate(0);
+            }
+          }
+        }
+
+        .add-rule-btn {
+          display: none;
         }
       }
-    }
-
-    .add-rule-btn {
-      display: none;
     }
   }
 
