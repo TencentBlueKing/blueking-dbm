@@ -66,14 +66,6 @@ export const queryMasterSlavePairs = (params: { cluster_id: number }) => {
   >(`/apis/redis/bizs/${currentBizId}/toolbox/query_master_slave_pairs/`, params);
 };
 
-// 查询集群下的主机列表
-export const queryClusterHostList = async (params: { cluster_id?: number; ip?: string }) => {
-  const { currentBizId } = useGlobalBizs();
-  return http
-    .post<RedisHostModel[]>(`/apis/redis/bizs/${currentBizId}/toolbox/query_cluster_ips/`, params)
-    .then((data) => data.map((item) => new RedisHostModel(item)));
-};
-
 // 查询集群下的主机列表(主从切换)
 export const listClusterHostsMasterFailoverProxy = async (obj: {
   bk_biz_id: number;

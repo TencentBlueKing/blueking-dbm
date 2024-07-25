@@ -62,12 +62,12 @@ export function useTableData<T>(
     };
     if (role?.value) {
       Object.assign(params, {
-        role: role.value,
+        instance_role: role.value,
       });
     }
     if (clusterId?.value && clusterId.value !== currentBizId) {
       Object.assign(params, {
-        cluster_id: clusterId.value,
+        cluster_ids: clusterId.value,
       });
     }
     return currentInstance.proxy
