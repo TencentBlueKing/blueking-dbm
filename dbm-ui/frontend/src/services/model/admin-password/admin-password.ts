@@ -13,7 +13,7 @@
 
 import dayjs from 'dayjs';
 
-export default class MysqlAdminPassword {
+export default class AdminPassword {
   bk_cloud_id: number;
   bk_cloud_name: string;
   component: string;
@@ -25,7 +25,7 @@ export default class MysqlAdminPassword {
   update_time: string;
   username: string;
 
-  constructor(payload = {} as MysqlAdminPassword) {
+  constructor(payload = {} as AdminPassword) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.component = payload.component;

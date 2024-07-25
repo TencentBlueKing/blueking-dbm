@@ -39,7 +39,7 @@
         <div>{{ item.name }}</div>
       </div>
     </div>
-    <div style="margin-top: 32px">
+    <div class="action">
       <slot name="action" />
     </div>
   </div>
@@ -64,6 +64,10 @@
     display: block;
     padding-top: 180px;
     text-align: center;
+
+    .action {
+      margin-top: 32px;
+    }
 
     .operation-steps {
       display: flex;
