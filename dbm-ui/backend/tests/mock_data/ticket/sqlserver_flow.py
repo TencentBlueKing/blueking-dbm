@@ -228,7 +228,7 @@ SQLSERVER_BACKUP_TICKET_DATA = {
     "ticket_type": TicketType.SQLSERVER_BACKUP_DBS,
     "details": {
         "backup_place": "master",
-        "file_tag": "MSSQL_FULL_BACKUP",
+        "file_tag": "DBFILE1M",
         "backup_type": "full_backup",
         "infos": [{"cluster_id": CLUSTER_ID, "backup_dbs": ["test_database"]}],
     },

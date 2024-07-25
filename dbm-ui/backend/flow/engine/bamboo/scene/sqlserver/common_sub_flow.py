@@ -417,7 +417,7 @@ def sync_dbs_for_cluster_sub_flow(
                 job_timeout=3 * 3600,
                 custom_params={
                     "port": master_instance.port,
-                    "file_tag": SqlserverBackupFileTagEnum.MSSQL_FULL_BACKUP.value,
+                    "file_tag": SqlserverBackupFileTagEnum.DBFILE1M.value,
                     "backup_type": SqlserverBackupMode.FULL_BACKUP.value,
                 },
             )
