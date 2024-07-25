@@ -72,12 +72,10 @@
 
   import { getRedisMachineList } from '@services/source/redis';
   import {
-    getRedisHostList,
     listClustersCreateSlaveProxy,
     queryMasterSlavePairs,
   } from '@services/source/redisToolbox';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -114,7 +112,7 @@
   }
 
   type RedisModel = ServiceReturnType<typeof listClustersCreateSlaveProxy>[number]
-  type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number]
+  type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number]
 
 
   const { currentBizId } = useGlobalBizs();
@@ -154,9 +152,9 @@
           topoAlertContent: <bk-alert closable style="margin-bottom: 12px;" theme="info" title={t('仅支持从库有故障的集群新建从库')} />,
         },
         tableConfig: {
-          getTableList: (params: any) => getRedisHostList({
+          getTableList: (params: any) => getRedisMachineList({
             ...params,
-            cluster_status: 'abnormal',
+            instance_status: 'unavailable',
             limit: -1,
           }),
           firsrColumn: {
@@ -167,17 +165,17 @@
           isRemotePagination: false,
           columnsChecked: ['ip', 'role', 'cloud_area', 'status', 'host_name'],
           statusFilter: (data: RedisHostModel) => !data.isSlaveFailover,
-          disabledRowConfig: {
-            handler: (data: RedisHostModel) => data.running_slave !== 0,
-            tip: t('已存在正常运行的从库'),
-          },
+          // disabledRowConfig: {
+          //   handler: (data: RedisHostModel) => data.running_slave !== 0,
+          //   tip: t('已存在正常运行的从库'),
+          // },
         },
       },
       {
         tableConfig: {
-          getTableList: (params: any) => getRedisHostList({
+          getTableList: (params: any) => getRedisMachineList({
             ...params,
-            cluster_status: 'abnormal',
+            instance_status: 'unavailable',
             limit: -1,
           }),
           isRemotePagination: false,
@@ -225,6 +223,7 @@
 
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues<IValue>) => {
+    console.log('select>>>',data);
     selected.value = data;
     const newList: IDataRow[] = [];
     const ips = data.createSlaveIdleHosts.map(item => item.ip);
@@ -259,8 +258,8 @@
           spec: machineIpMap[item.ip].spec_config,
           targetNum: 1,
           slaveHost: {
-            faults: machineIpMap[item.ip].unavailable_slave,
-            total: machineIpMap[item.ip].total_slave,
+            faults: machineIpMap[item.ip].related_instances.filter(item => item.status === 'unavailable').length,
+            total: machineIpMap[item.ip].related_instances.length,
           },
         });
         ipMemo[ip] = true;
@@ -316,26 +315,18 @@
         spec: data.spec_config,
         targetNum: 1,
         slaveHost: {
-          faults: data.unavailable_slave,
-          total: data.total_slave,
+          faults: data.related_instances.filter(item => item.status === 'unavailable').length,
+          total: data.related_instances.length,
         },
       };
       tableData.value[index] = obj;
       ipMemo[ip]  = true;
       sortTableByCluster();
-      // selected.value.createSlaveIdleHosts.push(Object.assign(data, {
-      //   cluster_id: obj.clusterId,
-      //   cluster_domain: data.cluster?.immute_domain,
-      //   port: 0,
-      //   instance_address: '',
-      //   cluster_type: '',
-      //   bk_cloud_name: '',
-      // } as unknown as IValue));
     } else {
       tableData.value[index].ip = '';
       Message({
         theme: 'warning',
-        message: t('已存在salve，无法创建从库'),
+        message: t('无异常slave实例，无法重建'),
       });
     }
   };
@@ -402,11 +393,17 @@
 
   // 提交
   const handleSubmit = async () => {
-    await Promise.all(rowRefs.value.map((item: {
-      getValue: () => void
-    }) => item.getValue()));
+    try {
+      isSubmitting.value = true;
+      await Promise.all(rowRefs.value.map((item: {
+        getValue: () => void
+      }) => item.getValue()));
+    } finally {
+      isSubmitting.value = false;
+    }
+
     const infos = generateRequestParam();
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+    const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
       details: {
@@ -419,7 +416,6 @@
       title: t('确认新建n台从库主机？', { n: totalNum.value }),
       width: 480,
       onConfirm: () => {
-        isSubmitting.value = true;
         createTicket(params).then((data) => {
           window.changeConfirm = false;
           router.push({
@@ -432,10 +428,8 @@
             },
           });
         })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      } });
+      }
+    });
   };
 
   // 重置

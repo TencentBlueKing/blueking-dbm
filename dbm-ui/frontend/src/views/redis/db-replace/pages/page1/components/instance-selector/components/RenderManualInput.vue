@@ -102,24 +102,24 @@
 
   import type { InstanceSelectorValues } from '../Index.vue';
 
-  import  type { PanelTypes }  from './PanelTab.vue';
+  import type { PanelTypes } from './PanelTab.vue';
   import RenderManualHost from './RenderManualHost.vue';
 
   import type { TableProps } from '@/types/bkui-vue';
 
   export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
-    spec_config: RedisClusterNodeByIpModel['spec_config']
+    spec_config: RedisClusterNodeByIpModel['spec_config'];
   }
 
   interface Props {
-    validTab: Exclude<PanelTypes, 'manualInput'>,
-    lastValues: InstanceSelectorValues,
-    tableSettings: TableProps['settings'],
-    role?: string,
+    validTab: Exclude<PanelTypes, 'manualInput'>;
+    lastValues: InstanceSelectorValues;
+    tableSettings: TableProps['settings'];
+    role?: string;
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void
+    (e: 'change', value: InstanceSelectorValues): void;
   }
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -173,10 +173,11 @@
   /**
    * 处理分隔内容，过滤空内容
    */
-  const getValues = () => inputState.values
-    .replace(/\s+|[;,|]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
-    .split(' ')
-    .filter(value => value);
+  const getValues = () =>
+    inputState.values
+      .replace(/\s+|[;,|]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
+      .split(' ')
+      .filter((value) => value);
 
   /**
    * 解析输入内容
@@ -226,7 +227,7 @@
     const currentTab = props.validTab;
     for (const item of inputState.tableData) {
       const list = lastValues[currentTab];
-      const isExisted = list.find(i => i.ip === item.ip);
+      const isExisted = list.find((i) => i.ip === item.ip);
       if (!isExisted) {
         item.cluster_domain = item.master_domain;
         lastValues[currentTab].push(item);
@@ -264,6 +265,8 @@
       margin-bottom: 8px;
 
       textarea {
+        height: 100%;
+
         &::selection {
           background-color: #fdd;
         }
