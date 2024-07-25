@@ -92,6 +92,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
   import { createTicket } from '@services/source/ticket';
 
   // import { useTicketCloneInfo } from '@hooks';
@@ -176,17 +177,37 @@
 
   // 批量选择
   const handelClusterChange = async (selected: Record<string, TendbhaModel[]>) => {
-    selectedClusters.value = selected;
+    // selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBHA];
+    const clusterIdList = list.map((listItem) => listItem.id);
+    const relatedClusterResult = await findRelatedClustersByClusterIds({
+      cluster_ids: clusterIdList,
+      bk_biz_id: currentBizId,
+    });
+    const relatedClusterMap = relatedClusterResult.reduce(
+      (prev, item) =>
+        Object.assign(prev, {
+          [item.cluster_info.master_domain]: item.related_clusters.map((item) => item.master_domain),
+        }),
+      {} as Record<string, string[]>,
+    );
+    const relatedClusterSet = new Set<string>();
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
-      if (!domainMemo[domain]) {
+      if (!domainMemo[domain] && !relatedClusterSet.has(domain)) {
         const row = generateTableRow(item);
         result.push(row);
         domainMemo[domain] = true;
+        relatedClusterMap[domain].forEach((mapItem) => relatedClusterSet.add(mapItem));
+      }
+      if (domainMemo[domain]) {
+        relatedClusterMap[domain].forEach((mapItem) => relatedClusterSet.add(mapItem));
       }
       return result;
     }, [] as IDataRow[]);
+
+    selectedClusters.value[ClusterTypes.TENDBHA] = list.filter((item) => domainMemo[item.master_domain]);
+
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
