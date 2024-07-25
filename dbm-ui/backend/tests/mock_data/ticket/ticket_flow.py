@@ -201,11 +201,11 @@ SQL_IMPORT_DATA = {
                 "sql_files": ["bar.sql", "foo.sql"],
                 "dbnames": ["db_log%"],
                 "ignore_dbnames": ["db1", "db2"],
+                "import_mode": "file",
             }
         ],
         "ticket_mode": {"mode": "auto"},
         "backup": [],
-        "import_mode": "file",
         "highrisk_warnings": "",
         "bk_biz_id": BK_BIZ_ID,
         "created_by": "admin",

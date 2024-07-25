@@ -13,12 +13,7 @@ from django.db.transaction import atomic
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
-from backend.db_services.mysql.sql_import.constants import (
-    BKREPO_SQLFILE_PATH,
-    SQLCharset,
-    SQLExecuteTicketMode,
-    SQLImportMode,
-)
+from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH, SQLCharset, SQLExecuteTicketMode
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import TicketType
@@ -59,18 +54,15 @@ class GenerateDropStageDBSqlService(BaseService):
         ticket = Ticket.objects.get(id=global_data["uid"])
         bk_biz_id, cluster_ids = global_data["bk_biz_id"], fetch_cluster_ids(global_data["infos"])
 
+        drop_sql_content = ";".join(ticket.details["drop_stage_db_cmds"])
         details = {
             "bk_biz_id": bk_biz_id,
             "cluster_ids": cluster_ids,
             "backup": [],
-            "path": BKREPO_SQLFILE_PATH,
+            "path": BKREPO_SQLFILE_PATH.format(biz=bk_biz_id),
             "charset": SQLCharset.DEFAULT.value,
-            # 执行模式为手动执行
-            "import_mode": SQLImportMode.MANUAL.value,
             "ticket_mode": {"mode": SQLExecuteTicketMode.MANUAL.value},
-            "execute_sql_content": ";".join(ticket.details["drop_stage_db_cmds"]),
-            # 执行的DB就选择test库
-            "execute_db_infos": [{"dbnames": ["test"], "ignore_dbnames": []}],
+            "execute_objects": [{"dbnames": ["test"], "ignore_dbnames": [], "sql_content": drop_sql_content}],
         }
 
         if ticket.ticket_type == TicketType.TENDBCLUSTER_TRUNCATE_DATABASE:

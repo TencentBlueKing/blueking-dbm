@@ -255,7 +255,7 @@ class MysqlOpenAreaFlow(object):
                         exec_ip=exec_ip_list,
                         file_target_path=self.work_dir,
                         file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                            path=BKREPO_SQLFILE_PATH,
+                            path=BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
                             filelist=[self.schema_tar_file_name, self.schema_md5sum_file_name],
                         ),
                     )
@@ -331,7 +331,7 @@ class MysqlOpenAreaFlow(object):
             act_component_code=UploadFileServiceComponent.code,
             kwargs=asdict(
                 UploadFile(
-                    path=os.path.join(BKREPO_SQLFILE_PATH, self.file_name),
+                    path=os.path.join(BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]), self.file_name),
                     content=json.dumps(source_cluster_data["open_area_param"]),
                 )
             ),
@@ -346,7 +346,7 @@ class MysqlOpenAreaFlow(object):
                     exec_ip=source_cluster_data["ip"],
                     file_target_path=self.work_dir,
                     file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                        path=BKREPO_SQLFILE_PATH, filelist=[self.file_name]
+                        path=BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]), filelist=[self.file_name]
                     ),
                 )
             ),
@@ -379,7 +379,8 @@ class MysqlOpenAreaFlow(object):
                         exec_ip=exec_ip_list,
                         file_target_path=self.work_dir,
                         file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                            path=BKREPO_SQLFILE_PATH, filelist=[self.data_tar_file_name, self.data_md5sum_file_name]
+                            path=BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
+                            filelist=[self.data_tar_file_name, self.data_md5sum_file_name],
                         ),
                     )
                 ),
