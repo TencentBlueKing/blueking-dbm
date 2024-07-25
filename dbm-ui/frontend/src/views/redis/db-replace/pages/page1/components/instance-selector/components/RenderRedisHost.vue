@@ -44,11 +44,8 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import RedisHostModel from '@services/model/redis/redis-host';
-  import {
-    queryClusterHostList,
-    queryMasterSlavePairs,
-  } from '@services/source/redisToolbox';
+  import { getRedisMachineList } from '@services/source/redis';
+  import { queryMasterSlavePairs } from '@services/source/redisToolbox';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
@@ -69,6 +66,10 @@
   import { activePanelInjectionKey } from './PanelTab.vue';
 
   import type { TableProps } from '@/types/bkui-vue';
+
+  type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number] & {
+    isShowTip: boolean;
+  };
 
   interface TableItem {
     data: RedisHostModel
@@ -92,13 +93,11 @@
 
   export  interface ChoosedItem {
     bk_host_id: number;
-    cluster_id: number;
     bk_cloud_id: number;
     ip: string;
     role: string;
     cluster_domain: string;
     spec_config: SpecInfo;
-    instance_count?: number;
     slaveHost?: {
       faults: number;
       total: number;
@@ -183,7 +182,7 @@
         />
       )),
       render: ({ index, data }: {index: number, data: RedisHostModel}) => {
-        if (data.role === 'master' && showMasterTip.value) {
+        if (data.instance_role === 'redis_master' && showMasterTip.value) {
           return <bk-popover
             is-show={data.isShowTip}
             popover-delay={0}
@@ -242,7 +241,7 @@
     },
     {
       label: t('角色类型'),
-      field: 'role',
+      field: 'instance_role',
       showOverflowTooltip: true,
       // filter: {
       //   list: [
@@ -252,7 +251,7 @@
       //   ],
       //   checked: columnCheckedMap.value.role,
       // },
-      render: ({ data } : TableItem) => <span>{firstLetterToUpper(data.role)}</span>,
+      render: ({ data } : TableItem) => <span>{firstLetterToUpper(data.instance_role)}</span>,
     },
     {
       label: t('实例状态'),
@@ -356,16 +355,18 @@
       let params = {};
       if (props.node?.id !== currentBizId) {
         params = {
-          cluster_id: props.node?.id,
+          cluster_ids: props.node?.id,
           limit: pagination.limit,
           offset: (pagination.current - 1) * pagination.limit,
           extra: 1,
           ...getSearchSelectorParams(searchValue.value),
         };
       }
-      queryClusterHostList(params)
+      getRedisMachineList(params)
         .then((data) => {
-          tableData.value = data.results;
+          tableData.value = data.results.map(item => Object.assign(item, {
+            isShowTip: false,
+          }));
           pagination.count = data.count;
           isAnomalies.value = false;
         })
@@ -396,13 +397,11 @@
 
   const formatValue = (data: RedisHostModel) => ({
     bk_host_id: data.bk_host_id,
-    cluster_id: data.cluster_id,
     bk_cloud_id: data?.host_info?.cloud_id || 0,
     ip: data.ip || '',
-    role: data.role,
+    role: data.instance_role,
     cluster_domain: props.node?.clusterDomain ?? '',
     spec_config: data.spec_config,
-    instance_count: data.instance_count,
     slaveHost: {
       faults: data.unavailable_slave,
       total: data.total_slave,
@@ -427,7 +426,7 @@
     if (checked) {
       lastCheckMap[data.ip] = formatValue(data);
       // master 与 slave 关联选择
-      if (data.role === 'master') {
+      if (data.instance_role === 'redis_master') {
         const slaveIp = masterSlaveMap[data.ip];
         const slaveNode = tableData.value.filter(item => item.ip === slaveIp)[0];
         lastCheckMap[slaveIp] = formatValue(slaveNode);

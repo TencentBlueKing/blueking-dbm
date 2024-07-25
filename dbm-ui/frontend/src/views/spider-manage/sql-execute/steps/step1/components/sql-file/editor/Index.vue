@@ -15,7 +15,7 @@
   <div
     ref="rootRef"
     class="sql-execute-editor"
-    :class="{'is-full-screen': isFullscreen}">
+    :class="{ 'is-full-screen': isFullscreen }">
     <div class="editor-layout-header">
       <span>{{ title }}</span>
       <div class="editro-action-box">
@@ -150,7 +150,7 @@
       minimap: {
         enabled: false,
       },
-      wordWrap: 'bounded',
+      wordWrap: 'on',
       scrollbar: {
         alwaysConsumeMouseWheel: false,
       },

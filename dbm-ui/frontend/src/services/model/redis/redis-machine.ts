@@ -158,7 +158,15 @@ export default class RedisMachine {
   }
 
   get isSlaveFailover() {
-    return this.instance_role === 'redis_master' && this.unavailable_slave > 0;
+    return this.instance_role === 'redis_slave' && this.related_instances.some((item) => item.status === 'unavailable');
+  }
+
+  get isMasterFailover() {
+    return this.instance_role === 'redis_master' && this.unavailable_master > 0;
+  }
+
+  get isMaster() {
+    return this.instance_role === 'redis_master';
   }
 
   get isUnvailable() {

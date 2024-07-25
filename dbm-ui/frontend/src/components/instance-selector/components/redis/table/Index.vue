@@ -203,7 +203,7 @@
     },
     {
       label: t('角色'),
-      field: 'role',
+      field: 'instance_role',
       showOverflowTooltip: true,
       filter: props.roleFilterList,
     },

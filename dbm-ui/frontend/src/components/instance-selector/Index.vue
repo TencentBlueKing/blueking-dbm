@@ -188,7 +188,6 @@
     queryClusters as queryMysqlCluster,
   } from '@services/source/mysqlCluster';
   import { getRedisClusterList, getRedisMachineList } from '@services/source/redis';
-  import { getRedisHostList } from '@services/source/redisToolbox';
   import { getSpiderInstanceList, getSpiderMachineList } from '@services/source/spider';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
@@ -253,7 +252,7 @@
   type PanelListItem = PanelListType[number];
 
   type RedisModel = ServiceReturnType<typeof getRedisClusterList>[number];
-  type RedisHostModel = ServiceReturnType<typeof getRedisHostList>['results'][number];
+  type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number];
 
   interface Props {
     clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost')[];
@@ -284,9 +283,14 @@
         topoConfig: {
           getTopoList: getRedisClusterList,
           countFunc: (item: RedisModel) => item.redisMasterCount,
+          totalCountFunc: (dataList: RedisModel[]) => {
+            const ipSet = new Set<string>();
+            dataList.forEach((dataItem) => dataItem.redis_master.forEach((masterItem) => ipSet.add(masterItem.ip)));
+            return ipSet.size;
+          },
         },
         tableConfig: {
-          getTableList: getRedisHostList,
+          getTableList: getRedisMachineList,
           firsrColumn: {
             label: 'master Ip',
             role: 'redis_master',
@@ -306,7 +310,7 @@
         id: 'manualInput',
         name: t('手动输入'),
         tableConfig: {
-          getTableList: getRedisHostList,
+          getTableList: getRedisMachineList,
           firsrColumn: {
             label: 'master Ip',
             role: 'redis_master',
