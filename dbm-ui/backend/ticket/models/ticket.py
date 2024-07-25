@@ -166,6 +166,7 @@ class Ticket(AuditedModel):
         remark: str,
         details: Dict[str, Any],
         auto_execute: bool = True,
+        send_msg_config: dict = None,
     ) -> "Ticket":
         """
         自动创建单据
@@ -175,11 +176,13 @@ class Ticket(AuditedModel):
         :param remark: 备注
         :param details: 单据参数details
         :param auto_execute: 是否自动初始化执行单据
+        :param send_msg_config: 消息发送类配置
         """
 
         from backend.ticket.builders import BuilderFactory
 
         with transaction.atomic():
+            send_msg_config = send_msg_config or {}
             ticket = Ticket.objects.create(
                 group=BuilderFactory.get_builder_cls(ticket_type).group,
                 creator=creator,
@@ -188,6 +191,7 @@ class Ticket(AuditedModel):
                 ticket_type=ticket_type,
                 remark=remark,
                 details=details,
+                send_msg_config=send_msg_config,
             )
             logger.info(_("正在自动创建单据，单据详情: {}").format(ticket.__dict__))
             builder = BuilderFactory.create_builder(ticket)

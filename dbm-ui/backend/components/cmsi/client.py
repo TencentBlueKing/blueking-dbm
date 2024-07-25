@@ -28,6 +28,8 @@ class _CmsiApi(BaseApi):
         VOICE = EnumField("voice", _("语音"))
         RTX = EnumField("rtx", _("企业微信"))
         WECOM_ROBOT = EnumField("wecom_robot", _("企业微信机器人"))
+        # 未知发送类型，配置此type一般用于跳过消息发送
+        UNKNOWN = EnumField("unknown", _("未知"))
 
     def __init__(self):
         self.send_msg = self.generate_data_api(

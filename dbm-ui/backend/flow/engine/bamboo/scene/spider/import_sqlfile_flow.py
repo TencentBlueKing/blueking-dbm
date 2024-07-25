@@ -273,4 +273,4 @@ class ImportSQLFlow(object):
         file_list = []
         for obj in self.data["execute_objects"]:
             file_list.append(obj["sql_file"])
-        return file_list
+        return list(set(file_list))

@@ -872,8 +872,10 @@ MysqlVersionToDBBackupForMap = {
 
 
 class MySQLBackupFileTagEnum(str, StructuredEnum):
-    MYSQL_FULL_BACKUP = EnumField("MYSQL_FULL_BACKUP", _("全备-保留25天"))
-    LONGDAY_DBFILE_3Y = EnumField("LONGDAY_DBFILE_3Y", _("长久存储-保留三年"))
+    DBFILE1M = EnumField("DBFILE1M", _("备份1个月"))
+    DBFILE6M = EnumField("DBFILE6M", _("备份6个月"))
+    DBFILE1Y = EnumField("DBFILE1Y", _("备份1年"))
+    DBFILE3Y = EnumField("DBFILE3Y", _("备份3年"))
 
 
 class MongoDBBackupFileTagEnum(str, StructuredEnum):
