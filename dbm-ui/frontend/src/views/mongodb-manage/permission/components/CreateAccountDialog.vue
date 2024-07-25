@@ -65,12 +65,28 @@
             @focus="handlePasswordFocus" />
           <BkButton
             class="password-generate-button"
+            :disabled="isLoading"
             outline
             theme="primary"
-            @click="randomlyGenerate">
+            @click="handleAutoGeneration">
             {{ t('随机生成') }}
           </BkButton>
         </div>
+        <span style="color: #ff9c01">
+          {{ t('密码创建后平台将不会显露_,_请谨慎复制_,_') }}
+        </span>
+        <BkButton
+          v-bk-tooltips="{
+            content: t('请设置密码'),
+            disabled: formData.password,
+          }"
+          class="copy-password-button"
+          :disabled="!formData.password"
+          text
+          theme="primary"
+          @click="handleCopyPassword">
+          {{ t('复制密码') }}
+        </BkButton>
       </BkFormItem>
     </BkForm>
     <template #footer>
@@ -94,7 +110,7 @@
       class="mongo-account-pop">
       <p>{{ t('格式为：(库名).（名称）_如 admin.linda') }}</p>
       <p class="mongo-account-pop-text">
-        {{ t('由 1～32 位字母、数字、下划线(_)、点(.)、减号(-)字符组成以字母或数字开头') }}
+        {{ t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头') }}
       </p>
     </div>
   </div>
@@ -156,6 +172,7 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const copy = useCopy();
 
   let instance: Instance | null = null;
   let publicKey = '';
@@ -193,7 +210,7 @@
     user: [
       {
         trigger: 'change',
-        message: t('由 1～32 位字母、数字、下划线(_)、点(.)、减号(-)字符组成以字母或数字开头'),
+        message: t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头'),
         validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,31}$/g.test(value),
       },
       {
@@ -331,8 +348,18 @@
     },
   );
 
-  const randomlyGenerate = () => {
+  /**
+   * 自动生成密码
+   */
+  const handleAutoGeneration = () => {
     getRandomPasswordRun();
+  };
+
+  /**
+   * 复制密码
+   */
+  const handleCopyPassword = () => {
+    copy(formData.password);
   };
 
   const fetchRSAPublicKeys = () => {

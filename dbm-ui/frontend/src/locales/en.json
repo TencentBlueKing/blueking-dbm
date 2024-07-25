@@ -632,7 +632,7 @@
   "暂无规则": "No rules yet",
   "权限设置": "privilege settings",
   "添加授权规则": "Add grant rules",
-  "由字母_数字_下划线_点_减号_字符组成以字母或数字开头": "Consists of letters, numbers, underscore (_), dot (.), minus sign (-) characters and begins with a letter or number",
+  "由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头": "Consists of letters, numbers, underscore (_), dot (.), minus sign (-) characters and begins with a letter or number",
   "确认删除该账号": "Confirm to delete this account?",
   "立即新建": "Create now",
   "访问DB不能为空": "Access DB cannot be empty",
@@ -1597,6 +1597,5 @@
   "规格名称不能为空": "Specification name cannot be empty",
   "主机资源不足_等待管理员users补货_补货完成后可以前往place重试": "Host resources are insufficient. Wait for the administrator ({users}) to replenish the inventory. After the replenishment is complete, you can go to \"{place}\" and try again",
   "可用主机数": "Number of available hosts",
-  "这行勿动！新增翻译请在上一行添加！": "",
-  "由字母_数字_下划线_点_减号_字符组成以字母或数字开头": ""
+  "这行勿动！新增翻译请在上一行添加！": ""
 }

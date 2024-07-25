@@ -18,14 +18,14 @@
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
-    :title="$t('新建账号')"
+    :title="t('新建账号')"
     :width="480"
     @closed="handleClose">
     <BkAlert
       class="mb-16"
       closable
       theme="warning"
-      :title="$t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
+      :title="t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
       v-if="isShow"
       ref="accountRef"
@@ -34,7 +34,7 @@
       :model="state.formdata"
       :rules="rules">
       <BkFormItem
-        :label="$t('账户名')"
+        :label="t('账户名')"
         property="user"
         required>
         <BkInput
@@ -49,16 +49,42 @@
       </BkFormItem>
       <BkFormItem
         ref="passwordItemRef"
-        :label="$t('密码')"
+        :label="t('密码')"
         property="password"
         required>
-        <BkInput
-          ref="passwordRef"
-          v-model="state.formdata.password"
-          :placeholder="$t('请输入')"
-          type="password"
-          @blur="handlePasswordBlur"
-          @focus="handlePasswordFocus" />
+        <div class="password-item">
+          <BkInput
+            ref="passwordRef"
+            v-model="state.formdata.password"
+            class="password-input"
+            :placeholder="t('请输入')"
+            type="password"
+            @blur="handlePasswordBlur"
+            @focus="handlePasswordFocus" />
+          <BkButton
+            class="password-generate-button"
+            :disabled="state.isLoading"
+            outline
+            theme="primary"
+            @click="handleAutoGeneration">
+            {{ t('随机生成') }}
+          </BkButton>
+        </div>
+        <span style="color: #ff9c01">
+          {{ t('密码创建后平台将不会显露_,_请谨慎复制_,_') }}
+        </span>
+        <BkButton
+          v-bk-tooltips="{
+            content: t('请设置密码'),
+            disabled: state.formdata.password,
+          }"
+          class="copy-password-button"
+          :disabled="!state.formdata.password"
+          text
+          theme="primary"
+          @click="handleCopyPassword">
+          {{ t('复制密码') }}
+        </BkButton>
       </BkFormItem>
     </BkForm>
     <template #footer>
@@ -67,12 +93,12 @@
         :loading="state.isLoading"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         :disabled="state.isLoading"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -99,13 +125,17 @@
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import {
     createAccount,
     getPasswordPolicy,
+    getRandomPassword,
     getRSAPublicKeys,
     verifyPasswordStrength,
   } from '@services/source/permission';
+
+  import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -143,6 +173,13 @@
 
   const { t } = useI18n();
   const globalbizsStore = useGlobalBizs();
+  const copy = useCopy();
+  const { run: getRandomPasswordRun } = useRequest(getRandomPassword, {
+    manual: true,
+    onSuccess(randomPasswordRes) {
+      state.formdata.password = randomPasswordRes.password;
+    },
+  });
 
   const state = reactive({
     formdata: {
@@ -152,7 +189,7 @@
     isLoading: false,
     publicKey: '',
   });
-  const userPlaceholder = t('由字母_数字_下划线_点_减号_字符组成以字母或数字开头');
+  const userPlaceholder = t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头');
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
   const rules = {
     user: [
@@ -190,6 +227,20 @@
   }
 
   /**
+   * 自动生成密码
+   */
+  const handleAutoGeneration = () => {
+    getRandomPasswordRun();
+  };
+
+  /**
+   * 复制密码
+   */
+  const handleCopyPassword = () => {
+    copy(state.formdata.password);
+  };
+
+  /**
    * 获取加密密码
    */
   function getEncyptPassword() {
@@ -199,12 +250,27 @@
     return typeof encyptPassword === 'string' ? encyptPassword : '';
   }
 
+  /**
+   * 拆分是否带有follow_前缀的keys
+   */
+  const keyArr = Object.keys(PASSWORD_POLICY).reduce(
+    (acc, key) => {
+      if (key.includes('follow_')) {
+        acc.included.push(key);
+      } else {
+        acc.excluded.push(key);
+      }
+      return acc;
+    },
+    { included: [], excluded: [] } as { included: string[]; excluded: string[] },
+  );
+
   const passwordState = reactive({
     instance: null as Instance | null,
     isShow: false,
     strength: [] as StrengthItem[],
-    keys: Object.keys(PASSWORD_POLICY).filter((key) => !key.includes('follow_')),
-    followKeys: Object.keys(PASSWORD_POLICY).filter((key) => key.includes('follow_')),
+    keys: keyArr.excluded,
+    followKeys: keyArr.included,
     validate: {} as PasswordStrength,
   });
   const passwordRef = ref();
@@ -214,9 +280,7 @@
   watch(
     () => state.formdata.password,
     (psw) => {
-      if (psw) {
-        debounceVerifyPassword();
-      }
+      psw && debounceVerifyPassword();
     },
   );
 
@@ -394,8 +458,22 @@
   @import '@styles/mixins.less';
 
   .account-dialog {
-    .bk-button {
-      width: 64px;
+    .password-item {
+      display: flex;
+
+      .password-input {
+        border-right: none;
+        border-radius: 2px 0 0 2px;
+        flex: 1;
+      }
+
+      .password-generate-button {
+        border-radius: 0 2px 2px 0;
+      }
+    }
+
+    .copy-password-button {
+      --disable-color: #c4c6cc;
     }
   }
 

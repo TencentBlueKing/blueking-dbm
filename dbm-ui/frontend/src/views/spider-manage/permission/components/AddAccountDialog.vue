@@ -52,13 +52,39 @@
         :label="t('密码')"
         property="password"
         required>
-        <BkInput
-          ref="passwordRef"
-          v-model="formData.password"
-          :placeholder="t('请输入')"
-          type="password"
-          @blur="handlePasswordBlur"
-          @focus="handlePasswordFocus" />
+        <div class="password-item">
+          <BkInput
+            ref="passwordRef"
+            v-model="formData.password"
+            class="password-input"
+            :placeholder="t('请输入')"
+            type="password"
+            @blur="handlePasswordBlur"
+            @focus="handlePasswordFocus" />
+          <BkButton
+            class="password-generate-button"
+            :disabled="isLoading"
+            outline
+            theme="primary"
+            @click="handleAutoGeneration">
+            {{ t('随机生成') }}
+          </BkButton>
+        </div>
+        <span style="color: #ff9c01">
+          {{ t('密码创建后平台将不会显露_,_请谨慎复制_,_') }}
+        </span>
+        <BkButton
+          v-bk-tooltips="{
+            content: t('请设置密码'),
+            disabled: formData.password,
+          }"
+          class="copy-password-button"
+          :disabled="!formData.password"
+          text
+          theme="primary"
+          @click="handleCopyPassword">
+          {{ t('复制密码') }}
+        </BkButton>
       </BkFormItem>
     </BkForm>
     <template #footer>
@@ -104,16 +130,19 @@
   import {
     createAccount,
     getPasswordPolicy,
+    getRandomPassword,
     getRSAPublicKeys,
     verifyPasswordStrength,
   } from '@services/source/permission';
+
+  import { useCopy } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
 
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import { PASSWORD_POLICY, type PasswordPolicyKeys } from '../common/consts';
-
-  import { useGlobalBizs } from '@/stores';
 
   interface Emits {
     (e: 'success'): void;
@@ -138,6 +167,14 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const copy = useCopy();
+  const { run: getRandomPasswordRun } = useRequest(getRandomPassword, {
+    manual: true,
+    onSuccess(randomPasswordRes) {
+      formData.password = randomPasswordRes.password;
+    },
+  });
+
   const { TENDBCLUSTER } = AccountTypes;
   let instance: Instance | null = null;
   let publicKey = '';
@@ -171,7 +208,7 @@
       return res.is_strength;
     });
 
-  const userPlaceholder = t('Spider账号规则');
+  const userPlaceholder = t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头');
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
   const rules = {
     user: [
@@ -203,6 +240,20 @@
     getRSAPublicKeys({ names: ['password'] }).then((res) => {
       publicKey = res[0]?.content || '';
     });
+  };
+
+  /**
+   * 自动生成密码
+   */
+  const handleAutoGeneration = () => {
+    getRandomPasswordRun();
+  };
+
+  /**
+   * 复制密码
+   */
+  const handleCopyPassword = () => {
+    copy(formData.password);
   };
 
   const getEncyptPassword = () => {
@@ -371,6 +422,26 @@
 
 <style lang="less" scoped>
   @import '@styles/mixins.less';
+
+  .account-dialog {
+    .password-item {
+      display: flex;
+
+      .password-input {
+        border-right: none;
+        border-radius: 2px 0 0 2px;
+        flex: 1;
+      }
+
+      .password-generate-button {
+        border-radius: 0 2px 2px 0;
+      }
+    }
+
+    .copy-password-button {
+      --disable-color: #c4c6cc;
+    }
+  }
 
   .password-strength {
     padding-top: 4px;
