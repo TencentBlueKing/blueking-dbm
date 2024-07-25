@@ -14,6 +14,7 @@
       theme="warning"
       :title="t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
+      v-if="accountDialogIsShow"
       ref="accountRef"
       class="mb-36"
       form-type="vertical"
@@ -35,18 +36,17 @@
       </BkFormItem>
       <BkFormItem
         ref="passwordItemRef"
-        class="password-item"
         :label="t('密码')"
         property="password"
         required>
-        <div class="password-input">
+        <div class="password-item">
           <BkInput
             ref="passwordRef"
             v-model="formData.password"
             class="password-input"
             :placeholder="t('请输入')"
             type="password"
-            @blur="passwordInstance?.hide()"
+            @blur="handlePasswordBlur"
             @focus="handlePasswordFocus" />
           <BkButton
             class="password-generate-button"
@@ -54,9 +54,24 @@
             outline
             theme="primary"
             @click="handleAutoGeneration">
-            {{ t('自动生成') }}
+            {{ t('随机生成') }}
           </BkButton>
         </div>
+        <span style="color: #ff9c01">
+          {{ t('密码创建后平台将不会显露_,_请谨慎复制_,_') }}
+        </span>
+        <BkButton
+          v-bk-tooltips="{
+            content: t('请设置密码'),
+            disabled: formData.password,
+          }"
+          class="copy-password-button"
+          :disabled="!formData.password"
+          text
+          theme="primary"
+          @click="handleCopyPassword">
+          {{ t('复制密码') }}
+        </BkButton>
       </BkFormItem>
     </BkForm>
     <template #footer>
@@ -105,6 +120,8 @@
   } from '@services/source/permission';
   import { createSqlserverAccount } from '@services/source/sqlserverPermissionAccount';
 
+  import { useCopy } from '@hooks';
+
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
@@ -131,6 +148,7 @@
   });
 
   const { t } = useI18n();
+  const copy = useCopy();
 
   const passwordStrength = ref<StrengthItem[]>([]);
   const passwordRef = ref();
@@ -149,7 +167,7 @@
     user: '',
   });
 
-  const userPlaceholder = t('由字母_数字_下划线_点_减号_字符组成以字母或数字开头');
+  const userPlaceholder = t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头');
 
   /**
    * 远程校验密码是否符合要求
@@ -345,6 +363,13 @@
   };
 
   /**
+   * 复制密码
+   */
+  const handleCopyPassword = () => {
+    copy(formData.password);
+  };
+
+  /**
    * 获取加密密码
    */
   const getEncryptPassword = () => {
@@ -387,11 +412,21 @@
     passwordStrength.value = [];
   };
 
+  /**
+   * 密码框获取焦点
+   */
   const handlePasswordFocus = () => {
     passwordInstance.value?.show();
     // 清除校验信息
     passwordItemRef.value?.clearValidate();
   };
+
+  /**
+   * 密码框失去焦点
+   */
+  function handlePasswordBlur() {
+    passwordInstance.value!.hide();
+  }
 
   /**
    * 获取密码安全策略
@@ -418,6 +453,8 @@
 
   .account-dialog {
     .password-item {
+      display: flex;
+
       .password-input {
         border-right: none;
         border-radius: 2px 0 0 2px;
@@ -427,6 +464,10 @@
       .password-generate-button {
         border-radius: 0 2px 2px 0;
       }
+    }
+
+    .copy-password-button {
+      --disable-color: #c4c6cc;
     }
   }
 
