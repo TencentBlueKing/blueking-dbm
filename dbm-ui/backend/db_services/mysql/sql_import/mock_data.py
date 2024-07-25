@@ -37,10 +37,10 @@ SQL_SEMANTIC_CHECK_REQUEST_DATA = {
             "sql_files": ["bar.sql", "foo.sql"],
             "dbnames": ["db_log%"],
             "ignore_dbnames": ["db1", "db2"],
+            "import_mode": "file",
         }
     ],
     "ticket_mode": {"mode": "timer", "trigger_time": "2022-11-11 08:18:18.314432"},
-    "import_mode": "file",
     "backup": [
         {"backup_on": "master", "db_patterns": ["db1%", "db2%"], "table_patterns": ["tb_role%", "tb_mail%", "*"]}
     ],
@@ -64,30 +64,26 @@ REVOKE_SEMANTIC_CHECK_REQUEST_DATA = {"root_id": 278179279321}
 REVOKE_SEMANTIC_CHECK_RESPONSE_DATA = {"result": True, "message": None, "data": None}
 
 SEMANTIC_SQL_FILES = {
-    "semantic_data": {
-        "created_by": "admin",
-        "bk_biz_id": 3,
-        "ticket_type": "TENDBCLUSTER_SEMANTIC_CHECK",
-        "charset": "default",
-        "path": "mysql/sqlfile",
-        "cluster_ids": [63],
-        "highrisk_warnings": "",
-        "ticket_mode": {"mode": "manual", "trigger_time": ""},
-        "import_mode": "file",
-        "backup": [],
-        "uid": "202308306822cd",
-        "blueking_language": "en",
-        "execute_objects": [
-            {
-                "sql_files": ["bar.sql", "foo.sql"],
-                "dbnames": ["db_log%"],
-                "ignore_dbnames": ["db1", "db2"],
-            }
-        ],
-        "execute_sql_files": ["bar.sql", "foo.sql"],
-    },
-    "import_mode": "file",
-    "sql_data_ready": True,
+    "created_by": "admin",
+    "bk_biz_id": 3,
+    "ticket_type": "TENDBCLUSTER_SEMANTIC_CHECK",
+    "charset": "default",
+    "path": "mysql/sqlfile",
+    "cluster_ids": [63],
+    "highrisk_warnings": "",
+    "ticket_mode": {"mode": "manual", "trigger_time": ""},
+    "backup": [],
+    "uid": "202308306822cd",
+    "blueking_language": "en",
+    "execute_objects": [
+        {
+            "sql_files": ["bar.sql", "foo.sql"],
+            "dbnames": ["db_log%"],
+            "ignore_dbnames": ["db1", "db2"],
+            "import_mode": "file",
+        }
+    ],
+    "execute_sql_files": ["bar.sql", "foo.sql"],
 }
 
 SEMANTIC_CHECK_RESULT_LOGS = [

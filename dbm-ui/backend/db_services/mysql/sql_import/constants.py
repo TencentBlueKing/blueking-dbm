@@ -16,6 +16,7 @@ BKREPO_SQLFILE_PATH = "mysql/sqlfile/{biz}"
 BKREPO_DBCONSOLE_DUMPFILE_PATH = "dbconsole/dump/{biz}"
 
 CACHE_SEMANTIC_TASK_FIELD = "{user}_{cluster_type}_semantic_check_task"
+CACHE_SEMANTIC_DATA_FIELD = "{root_id}_semantic_data"
 SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME = 7 * 24 * 60 * 60
 
 # 最大预览SQL文件大小200MB

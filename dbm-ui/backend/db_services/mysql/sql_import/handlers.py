@@ -25,10 +25,10 @@ from backend.configuration.models import BizSettings
 from backend.core.storages.storage import get_storage
 from backend.db_services.mysql.sql_import.constants import (
     BKREPO_SQLFILE_PATH,
+    CACHE_SEMANTIC_DATA_FIELD,
     CACHE_SEMANTIC_TASK_FIELD,
     MAX_PREVIEW_SQL_FILE_SIZE,
     SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME,
-    SQLImportMode,
 )
 from backend.db_services.mysql.sql_import.exceptions import SQLImportBaseException
 from backend.db_services.taskflow.handlers import TaskFlowHandler
@@ -40,6 +40,7 @@ from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.mysql.semantic_check import SemanticCheckComponent
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketFlowStatus
 from backend.utils.basic import generate_root_id
+from backend.utils.cache import cache, data_cache
 from backend.utils.redis import RedisConn
 
 
@@ -105,13 +106,18 @@ class SQLHandler(object):
         return sql_file_info_list
 
     def grammar_check(
-        self, sql_content: str = None, sql_filenames: List[str] = None, sql_files: List[InMemoryUploadedFile] = None
+        self,
+        sql_content: str = None,
+        sql_filenames: List[str] = None,
+        sql_files: List[InMemoryUploadedFile] = None,
+        versions: list = None,
     ) -> Optional[Dict]:
         """
         sql 语法检查
         @param sql_content: sql内容
         @param sql_filenames: sql文件名(在制品库的路径，说明已经在制品库上传好了。目前是适配sql执行插件形式.)
         @param sql_files: sql文件
+        @param versions 版本列表
         """
         if sql_filenames:
             sql_file_info_list = [{"sql_path": filename} for filename in sql_filenames]
@@ -123,8 +129,9 @@ class SQLHandler(object):
         dir_name = os.path.split(sql_file_info_list[0]["sql_path"])[0]
 
         # 获取检查信息
+        versions = versions or []
         check_info = SQLSimulationApi.grammar_check(
-            params={"path": dir_name, "files": file_name_list, "cluster_type": self.cluster_type}
+            params={"path": dir_name, "files": file_name_list, "cluster_type": self.cluster_type, "versions": versions}
         )
 
         # 填充sql内容。
@@ -149,7 +156,6 @@ class SQLHandler(object):
         execute_objects: List[Dict[str, Union[int, List[str]]]],
         ticket_type: str,
         ticket_mode: Dict,
-        import_mode: SQLImportMode,
         backup: List[Dict],
         is_auto_commit: bool = True,
     ) -> Dict:
@@ -160,7 +166,6 @@ class SQLHandler(object):
         @param execute_objects: 执行的结构体
         @param ticket_type: 单据类型
         @param ticket_mode: sql导入单据的触发类型
-        @param import_mode: sql文件导入类型
         @param backup: 备份信息（和备份单据一样）
         @param is_auto_commit: 是否自动提单
         """
@@ -180,7 +185,6 @@ class SQLHandler(object):
             "cluster_ids": cluster_ids,
             "execute_objects": execute_objects,
             "ticket_mode": ticket_mode,
-            "import_mode": import_mode,
             "backup": backup,
             "is_auto_commit": is_auto_commit,
         }
@@ -197,9 +201,10 @@ class SQLHandler(object):
         key = CACHE_SEMANTIC_TASK_FIELD.format(user=self.context["user"], cluster_type=self.cluster_type)
         RedisConn.zadd(key, {root_id: now})
         RedisConn.set(root_id, StateType.CREATED)
-
         expired_task_ids = RedisConn.zrangebyscore(key, "-inf", now - SQL_SEMANTIC_CHECK_DATA_EXPIRE_TIME)
         self.delete_user_semantic_tasks(task_ids=expired_task_ids)
+        # 缓存语义数据, 60s过期
+        data_cache(key=CACHE_SEMANTIC_DATA_FIELD.format(root_id=root_id), data=ticket_data, cache_time=60)
 
         return {"root_id": root_id}
 
@@ -228,17 +233,18 @@ class SQLHandler(object):
         根据语义执行id查询语义执行的数据
         @param root_id: 语义任务执行ID
         """
-
         first_act_node_id = FlowNode.objects.filter(root_id=root_id).first().node_id
         try:
             details = BambooEngine(root_id=root_id).get_node_input_data(node_id=first_act_node_id).data["global_data"]
         except KeyError:
-            return {"sql_files": "", "import_mode": "", "sql_data_ready": False}
+            details = cache.get(CACHE_SEMANTIC_DATA_FIELD.format(root_id=root_id))
 
-        import_mode = details["import_mode"]
+        if not details:
+            return {}
+
         execute_sql_files = list(itertools.chain(*[detail["sql_files"] for detail in details["execute_objects"]]))
         details["execute_sql_files"] = list(set(execute_sql_files))
-        return {"semantic_data": details, "import_mode": import_mode, "sql_data_ready": True}
+        return details
 
     def _get_user_semantic_tasks(self, cluster_type, code) -> List[Dict]:
         # 获取缓存的任务ID
@@ -358,8 +364,6 @@ class SQLHandler(object):
         taskflow_handler = TaskFlowHandler(root_id)
         # 获取节点执行日志，如果流程还未启动则直接返回空
         semantic_data = self.query_semantic_data(root_id)
-        if not semantic_data["sql_data_ready"]:
-            return []
 
         # 获取语义执行的version id
         versions = taskflow_handler.get_node_histories(node_id)
