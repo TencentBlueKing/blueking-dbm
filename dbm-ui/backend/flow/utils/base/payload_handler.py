@@ -226,7 +226,7 @@ class PayloadHandler(object):
         return {
             "access_hosts": [],
             "user": partition_yw["username"],
-            "pwd": partition_yw["password"],
+            "pwd": base64.b64decode(partition_yw["password"]).decode("utf-8"),
         }
 
     @staticmethod
