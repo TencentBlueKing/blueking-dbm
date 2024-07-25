@@ -23,6 +23,7 @@
       v-model="localDomain"
       :multi-input="false"
       :rules="rules"
+      @error-message-change="handleErrorMessageChange"
       @submit="handleEditSubmit" />
     <div
       v-show="!isShowEdit"
@@ -214,6 +215,10 @@
   // 提交编辑
   const handleEditSubmit = () => {
     isShowEdit.value = false;
+  };
+
+  const handleErrorMessageChange = (value: string) => {
+    isShowEdit.value = !!value;
   };
 
   onBeforeUnmount(() => {

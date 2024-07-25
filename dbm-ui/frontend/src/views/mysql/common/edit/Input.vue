@@ -70,6 +70,7 @@
     (e: 'submit', value: string): void;
     (e: 'multiInput', value: Array<string>): void;
     (e: 'overflow-change', value: boolean): void;
+    (e: 'error-message-change', value: string): void;
   }
 
   interface Exposes {
@@ -131,6 +132,10 @@
       immediate: true,
     },
   );
+
+  watch(errorMessage, () => {
+    emits('error-message-change', errorMessage.value);
+  });
 
   const processMultiInputLocalValue = () => {
     if (!props.multiInput) {
