@@ -17,16 +17,9 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          :cluster-type="ClusterTypes.TENDBCLUSTER"
           :model-value="localClusterData"
           @change="handleClusterChange"
           @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderClusterInputSelect
-          ref="targetClustersRef"
-          :data="data.targetClusters"
-          :source-cluster-id="localClusterData!.id" />
       </td>
       <td style="padding: 0">
         <RenderBackup
@@ -43,34 +36,6 @@
           :cluster-id="localClusterData!.id"
           :rollback-time="data.rollbackTime" />
       </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="databasesRef"
-          :cluster-id="localClusterData!.id"
-          disabled-model-value-init
-          :model-value="data.databases" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="databasesIgnoreRef"
-          :cluster-id="localClusterData!.id"
-          :model-value="data.databasesIgnore"
-          :required="false" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablesRef"
-          :cluster-id="localClusterData!.id"
-          disabled-model-value-init
-          :model-value="data.tables" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablesIgnoreRef"
-          :cluster-id="localClusterData!.id"
-          :model-value="data.tablesIgnore"
-          :required="false" />
-      </td>
       <OperateColumn
         :removeable="removeable"
         @add="handleAppend"
@@ -78,61 +43,17 @@
     </tr>
   </tbody>
 </template>
-<script lang="ts">
-  import { ClusterTypes } from '@common/const';
-
-  import { random } from '@utils';
-
-  import { BackupSources, BackupTypes, selectList } from '../../common/const';
-
-  export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-      cloudId?: number;
-      cloudName?: string;
-    };
-    targetClusters: string;
-    backupSource: BackupSources;
-    rollbackType: BackupTypes;
-    backupid?: string;
-    rollbackTime?: string;
-    databases: string[];
-    databasesIgnore?: string[];
-    tables: string[];
-    tablesIgnore?: string[];
-  }
-
-  // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    clusterData: data.clusterData || {
-      id: 0,
-      domain: '',
-    },
-    targetClusters: data.targetClusters || '',
-    backupSource: data.backupSource || BackupSources.REMOTE,
-    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
-    backupid: data.backupid || '',
-    rollbackTime: data.rollbackTime || '',
-    databases: data.databases || ['*'],
-    databasesIgnore: data.databasesIgnore,
-    tables: data.tables || ['*'],
-    tablesIgnore: data.tablesIgnore,
-  });
-</script>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
-  import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
   import RenderMode from '@views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
   import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
-  import RenderClusterInputSelect from '@views/mysql/rollback/pages/page1/components/common/RenderClusterInputSelect.vue';
+
+  import { createRowData, type IDataRow } from '../../../Index.vue';
+  import { BackupSources, selectList } from '../../common/const';
 
   interface Props {
     data: IDataRow;
@@ -152,13 +73,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const targetClustersRef = ref();
-  const modeRef = ref();
-  const databasesRef = ref();
-  const databasesIgnoreRef = ref();
-  const tablesRef = ref();
-  const tablesIgnoreRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const backupSourceRef = ref<InstanceType<typeof RenderBackup>>();
+  const modeRef = ref<InstanceType<typeof RenderMode>>();
 
   const localClusterData = ref<IDataRow['clusterData']>({
     id: 0,
@@ -208,39 +125,25 @@
     },
     {
       immediate: true,
-      deep: true,
     },
   );
 
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value.getValue(),
-        targetClustersRef.value.getValue(),
-        modeRef.value.getValue(),
-        databasesRef.value.getValue('databases'),
-        tablesRef.value.getValue('tables'),
-        databasesIgnoreRef.value.getValue('databases_ignore'),
-        tablesIgnoreRef.value.getValue('tables_ignore'),
-      ]).then(
-        ([
-          clusterData,
-          targetClustersData,
-          modeData,
-          databasesData,
-          tablesData,
-          databasesIgnoreData,
-          tablesIgnoreData,
-        ]) => ({
-          ...clusterData,
-          ...targetClustersData,
-          ...modeData,
-          ...databasesData,
-          ...tablesData,
-          ...databasesIgnoreData,
-          ...tablesIgnoreData,
-        }),
-      );
+        clusterRef.value!.getValue(),
+        backupSourceRef.value!.getValue(),
+        modeRef.value!.getValue(),
+      ]).then(([clusterData, targetClustersData, modeData]) => ({
+        ...clusterData,
+        ...targetClustersData,
+        ...modeData,
+        target_cluster_id: clusterData.cluster_id,
+        databases: ['*'],
+        databases_ignore: [],
+        tables: ['*'],
+        tables_ignore: [],
+      }));
     },
   });
 </script>

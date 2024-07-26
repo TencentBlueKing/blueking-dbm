@@ -21,10 +21,17 @@
         @input-create="handleCreate" />
     </td>
     <td style="padding: 0">
-      <RenderClusterInputSelect
-        ref="targetClustersRef"
-        :data="data.targetClusters"
-        :source-cluster-id="localClusterData!.id" />
+      <RenderHostSource
+        ref="hostSourceRef"
+        :model-value="localHostSource"
+        @change="handleHostSourceChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderHostInputSelect
+        ref="hostRef"
+        :cluster-data="localClusterData"
+        :host-data="[{ ...(data.rollbackHost as HostDataItem) }]"
+        single />
     </td>
     <td style="padding: 0">
       <RenderBackup
@@ -74,48 +81,6 @@
       @remove="handleRemove" />
   </tr>
 </template>
-<script lang="ts">
-  import { random } from '@utils';
-
-  import { BackupSources, BackupTypes } from '../../common/const';
-
-  export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-      cloudId?: number;
-      cloudName?: string;
-    };
-    targetClusters?: string;
-    backupSource: BackupSources;
-    rollbackType: BackupTypes;
-    backupid?: string;
-    rollbackTime?: string;
-    databases: string[];
-    databasesIgnore?: string[];
-    tables: string[];
-    tablesIgnore?: string[];
-  }
-
-  // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    clusterData: data.clusterData || {
-      id: 0,
-      domain: '',
-    },
-    targetClusters: data.targetClusters || '',
-    backupSource: data.backupSource || BackupSources.REMOTE,
-    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
-    backupid: data.backupid || '',
-    rollbackTime: data.rollbackTime || '',
-    databases: data.databases || ['*'],
-    databasesIgnore: data.databasesIgnore,
-    tables: data.tables || ['*'],
-    tablesIgnore: data.tablesIgnore,
-  });
-</script>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
@@ -126,7 +91,13 @@
   import RenderMode from '@views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
   import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
-  import RenderClusterInputSelect from '@views/mysql/rollback/pages/page1/components/common/RenderClusterInputSelect.vue';
+  import RenderHostInputSelect, {
+    type HostDataItem,
+  } from '@views/mysql/rollback/pages/page1/components/common/RenderHostInputSelect.vue';
+  import RenderHostSource from '@views/mysql/rollback/pages/page1/components/common/RenderHostSource.vue';
+
+  import { createRowData, type IDataRow } from '../../../Index.vue';
+  import { BackupSources } from '../../common/const';
 
   interface Props {
     data: IDataRow;
@@ -145,15 +116,17 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const targetClustersRef = ref();
-  const backupSourceRef = ref();
-  const modeRef = ref();
-  const databasesRef = ref();
-  const databasesIgnoreRef = ref();
-  const tablesRef = ref();
-  const tablesIgnoreRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const hostSourceRef = ref<InstanceType<typeof RenderHostSource>>();
+  const hostRef = ref<InstanceType<typeof RenderHostInputSelect>>();
+  const backupSourceRef = ref<InstanceType<typeof RenderBackup>>();
+  const modeRef = ref<InstanceType<typeof RenderMode>>();
+  const databasesRef = ref<InstanceType<typeof RenderDbName>>();
+  const databasesIgnoreRef = ref<InstanceType<typeof RenderDbName>>();
+  const tablesRef = ref<InstanceType<typeof RenderTableName>>();
+  const tablesIgnoreRef = ref<InstanceType<typeof RenderTableName>>();
 
+  const localHostSource = ref('idle');
   const localClusterData = ref<IDataRow['clusterData']>({
     id: 0,
     domain: '',
@@ -162,6 +135,10 @@
 
   const handleClusterChange = (data: IDataRow['clusterData']) => {
     localClusterData.value = data;
+  };
+
+  const handleHostSourceChange = (value: string) => {
+    localHostSource.value = value;
   };
 
   const handleBackupSourceChange = (value: string) => {
@@ -203,25 +180,24 @@
     },
     {
       immediate: true,
-      deep: true,
     },
   );
 
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value.getValue(),
-        targetClustersRef.value.getValue(),
-        backupSourceRef.value.getValue(),
-        modeRef.value.getValue(),
-        databasesRef.value.getValue('databases'),
-        tablesRef.value.getValue('tables'),
-        databasesIgnoreRef.value.getValue('databases_ignore'),
-        tablesIgnoreRef.value.getValue('tables_ignore'),
+        clusterRef.value!.getValue(),
+        hostRef.value!.getValue(),
+        backupSourceRef.value!.getValue(),
+        modeRef.value!.getValue(),
+        databasesRef.value!.getValue('databases'),
+        tablesRef.value!.getValue('tables'),
+        databasesIgnoreRef.value!.getValue('databases_ignore'),
+        tablesIgnoreRef.value!.getValue('tables_ignore'),
       ]).then(
         ([
           clusterData,
-          tagetClusterData,
+          hostData,
           backupSourceData,
           modeData,
           databasesData,
@@ -230,7 +206,7 @@
           tablesIgnoreData,
         ]) => ({
           ...clusterData,
-          ...tagetClusterData,
+          rollback_host: { ...hostData.hosts[0] },
           ...backupSourceData,
           ...modeData,
           ...databasesData,

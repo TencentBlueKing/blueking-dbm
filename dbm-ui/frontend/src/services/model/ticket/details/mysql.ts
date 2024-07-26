@@ -500,27 +500,37 @@ export interface MySQLRestoreLocalSlaveDetails {
 }
 
 /**
+ * MySql 定点回档类型
+ */
+export enum RollbackClusterTypes {
+  BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
+  BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
+  BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+}
+
+/**
  * MySql 定点回档
  */
 export interface MySQLRollbackDetails {
   clusters: DetailClusters;
   infos: {
     backup_source: string;
-    backupid: string;
     cluster_id: number;
     databases: string[];
     databases_ignore: string[];
-    rollback_host: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
-    rollback_ip: string;
-    rollback_time: string;
-    rollback_type: string;
     tables: string[];
     tables_ignore: string[];
+    rollback_host:
+      | {
+          bk_biz_id: number;
+          bk_cloud_id: number;
+          bk_host_id: number;
+          ip: string;
+        }
+      | boolean;
+    target_cluster_id: number | boolean;
+    rollback_type?: string;
+    rollback_time: string;
     backupinfo: {
       backup_id: string;
       mysql_host: string;
@@ -532,6 +542,7 @@ export interface MySQLRollbackDetails {
       master_port: number;
     };
   }[];
+  rollback_cluster_type: RollbackClusterTypes;
 }
 
 /**

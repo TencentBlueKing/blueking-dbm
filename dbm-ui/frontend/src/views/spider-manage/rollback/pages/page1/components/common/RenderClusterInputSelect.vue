@@ -21,7 +21,7 @@
   </div>
   <ClusterSelector
     v-model:is-show="isShowSelector"
-    :cluster-types="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]"
+    :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
     :tab-list-config="tabListConfig"
     @change="handelClusterChange" />
@@ -29,7 +29,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type TendbhaModel from '@services/model/mysql/tendbha';
+  import TendbhaModel from '@services/model/mysql/tendbha';
+  import type TendbClusterModel from '@services/model/spider/tendbCluster';
   import { queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
@@ -41,8 +42,6 @@
 
   import TableSeletorInput from '@views/db-manage/common/TableSeletorInput.vue';
 
-  import type TendbsingleModel from '@/services/model/mysql/tendbsingle';
-
   interface Props {
     sourceClusterId: number;
     targetClusterId?: number;
@@ -53,8 +52,6 @@
       target_cluster_id: number;
     }>;
   }
-
-  type SelectedClusters = Array<TendbhaModel | TendbsingleModel>;
 
   const props = withDefaults(defineProps<Props>(), {
     sourceClusterId: 0,
@@ -69,27 +66,16 @@
   const editRef = ref<InstanceType<typeof TableSeletorInput>>();
   const localValue = ref();
   const localClusterIds = ref<number[]>([props.targetClusterId]);
-  const selectedClusters = shallowRef<{ [key: string]: SelectedClusters }>({
-    [ClusterTypes.TENDBHA]: [],
-    [ClusterTypes.TENDBSINGLE]: [],
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbClusterModel> }>({
+    [ClusterTypes.TENDBCLUSTER]: [],
   });
 
   const tabListConfig = {
-    [ClusterTypes.TENDBHA]: {
+    [ClusterTypes.TENDBCLUSTER]: {
       showPreviewResultTitle: true,
       disabledRowConfig: [
         {
           handler: (data: TendbhaModel) => data.id === props.sourceClusterId,
-          tip: t('不能选择源集群'),
-        },
-      ],
-      multiple: false,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      showPreviewResultTitle: true,
-      disabledRowConfig: [
-        {
-          handler: (data: TendbsingleModel) => data.id === props.sourceClusterId,
           tip: t('不能选择源集群'),
         },
       ],
@@ -157,9 +143,9 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: { [key: string]: SelectedClusters }) => {
+  const handelClusterChange = (selected: { [key: string]: TendbClusterModel[] }) => {
     selectedClusters.value = selected;
-    const list = Object.keys(selected).reduce((list: SelectedClusters, key) => list.concat(...selected[key]), []);
+    const list = Object.keys(selected).reduce((list: TendbClusterModel[], key) => list.concat(...selected[key]), []);
     localValue.value = list.map((item) => item.master_domain).join(',');
     localClusterIds.value = list.map((item) => item.id);
     window.changeConfirm = true;

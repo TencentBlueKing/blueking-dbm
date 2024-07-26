@@ -245,7 +245,10 @@
 
   defineExpose<Exposes>({
     // 获取值
-    getValue() {
+    getValue(isSubmit = true) {
+      if (!isSubmit) {
+        return Promise.resolve(localValue.value);
+      }
       return validator(localValue.value).then(() => localValue.value);
     },
     // 编辑框获取焦点

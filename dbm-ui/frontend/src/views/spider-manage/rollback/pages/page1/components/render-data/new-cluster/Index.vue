@@ -15,8 +15,8 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn
-        :min-width="270"
-        :width="280">
+        :min-width="170"
+        :width="180">
         {{ t('待回档集群') }}
         <template #append>
           <span
@@ -27,9 +27,19 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="180"
-        :width="180">
-        {{ t('目标集群') }}
+        :min-width="140"
+        :width="160">
+        {{ t('主机来源') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="140"
+        :width="160">
+        {{ t('存储层主机') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="150"
+        :width="170">
+        {{ t('接入层主机') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :min-width="100"
@@ -196,12 +206,6 @@
         </template>
         {{ t('忽略表名') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        fixed="right"
-        :required="false"
-        :width="90">
-        {{ t('操作') }}
-      </RenderTableHeadColumn>
       <template #data>
         <slot />
       </template>
@@ -215,9 +219,8 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import type { IDataRow } from '../../../Index.vue';
   import { BackupTypes, selectList } from '../../common/const';
-
-  import type { IDataRow } from './Row.vue';
 
   interface Emits {
     (e: 'batchSelectCluster'): void;

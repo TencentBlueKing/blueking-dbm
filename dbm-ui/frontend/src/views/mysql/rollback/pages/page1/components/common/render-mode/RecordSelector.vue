@@ -177,7 +177,7 @@
   }
   const tabOptions = [
     {
-      label: t('手动选择'),
+      label: t('备份记录'),
       name: OperateType.MANUAL,
     },
     {
@@ -202,6 +202,7 @@
           rollback_time: value,
         }).then((data) => {
           if (!data) {
+            localValue.value = '';
             return false;
           }
           logRecordList.value.push(data as BackupLogRecord);
@@ -246,7 +247,7 @@
     const item = _.find(logRecordList.value, (i) => i.backup_id === localValue.value) as BackupLogRecord;
     return !item
       ? ''
-      : `${item.mysql_role} ${dayjs(item.backup_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`;
+      : `${item.mysql_role ? `${item.mysql_role} ` : ' '}${dayjs(item.backup_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`;
   });
 
   const fetchLogData = () => {
@@ -258,7 +259,7 @@
     }).then((dataList) => {
       logRecordOptions.value = dataList.map((item) => ({
         id: item.backup_id,
-        name: `${item.mysql_role} ${dayjs(item.backup_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
+        name: `${item.mysql_role ? `${item.mysql_role} ` : ' '} ${dayjs(item.backup_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
       }));
       logRecordList.value = dataList;
     });
@@ -359,7 +360,9 @@
     (newVal) => {
       if (newVal) {
         validator(newVal);
-        recordType.value = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
+        const currentRecordType = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
+        hanldeChangeTab(currentRecordType);
+        localValue.value = newVal;
       }
     },
     {

@@ -128,9 +128,8 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import type { IDataRow } from '../../../Index.vue';
   import { BackupTypes, selectList } from '../../common/const';
-
-  import type { IDataRow } from './Row.vue';
 
   interface Emits {
     (e: 'batchSelectCluster'): void;

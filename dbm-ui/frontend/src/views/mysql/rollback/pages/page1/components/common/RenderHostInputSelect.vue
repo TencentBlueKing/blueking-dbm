@@ -48,41 +48,38 @@
 
   import TableSeletorInput from '@views/db-manage/common/TableSeletorInput.vue';
 
-  import type { IDataRow } from '../../components/new-cluster/RenderData/Row.vue';
+  import type { IDataRow } from '../../Index.vue';
 
   import { batchSplitRegex, ipv4 } from '@/common/regex';
   import { checkHost } from '@/services/source/ipchooser';
   import { useGlobalBizs } from '@/stores';
 
+  export interface HostDataItem {
+    bk_host_id: number;
+    ip: string;
+    bk_cloud_id: number;
+    bk_biz_id: number;
+  }
+
   interface Props {
     clusterData: IDataRow['clusterData'];
     single?: boolean;
+    hostData?: HostDataItem[];
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      hosts: {
-        bk_host_id: number;
-        ip: string;
-        bk_cloud_id: number;
-        bk_biz_id: number;
-      }[];
+      hosts: HostDataItem[];
     }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     single: false,
+    hostData: undefined,
   });
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
-
-  const editRef = ref();
-  const isShowIpSelector = ref(false);
-  const localValue = ref();
-  const localHostList = shallowRef<HostDetails[]>([]);
-
-  const placeholder = computed(() => (props.single ? t('请输入或选择 (1台)') : t('请输入或选择')));
 
   const rules = [
     {
@@ -109,19 +106,38 @@
     },
   ];
 
+  const editRef = ref();
+  const isShowIpSelector = ref(false);
+  const localValue = ref();
+  const localHostList = shallowRef<HostDetails[]>([]);
+
+  const placeholder = computed(() => (props.single ? t('请输入或选择 (1台)') : t('请输入或选择')));
+
   const handleShowIpSelector = () => {
     isShowIpSelector.value = true;
   };
 
   // 批量选择
-  const handleHostChange = (hostList: HostDetails[]) => {
-    localValue.value = hostList.map((item) => item.ip).join(',');
+  const handleHostChange = (hostList: HostDetails[], isSubmit = true) => {
+    localValue.value = hostList.map((item) => item?.ip).join(',');
     localHostList.value = hostList;
     window.changeConfirm = true;
     setTimeout(() => {
-      editRef.value.getValue();
+      editRef.value.getValue(isSubmit);
     });
   };
+
+  watch(
+    () => props.hostData,
+    (data) => {
+      if (data?.length) {
+        handleHostChange(data as unknown as HostDetails[], false);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {

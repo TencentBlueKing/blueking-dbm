@@ -40,54 +40,6 @@
       @remove="handleRemove" />
   </tr>
 </template>
-<script lang="ts">
-  import { random } from '@utils';
-
-  import { BackupSources, BackupTypes } from '../../common/const';
-
-  export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-      cloudId?: number;
-      cloudName?: string;
-    };
-    rollbackHost?: {
-      ip: string;
-      bk_host_id: number;
-      bk_cloud_id: number;
-      bk_biz_id: number;
-    };
-    backupSource: BackupSources;
-    rollbackType: BackupTypes;
-    backupid?: string;
-    rollbackTime?: string;
-    databases?: string[];
-    databasesIgnore?: string[];
-    tables?: string[];
-    tablesIgnore?: string[];
-  }
-
-  // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    clusterData: data.clusterData || {
-      id: 0,
-      domain: '',
-    },
-    rollbackHost: data.rollbackHost || {
-      ip: '',
-      bk_host_id: 0,
-      bk_cloud_id: 0,
-      bk_biz_id: 0,
-    },
-    backupSource: data.backupSource || BackupSources.REMOTE,
-    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
-    backupid: data.backupid || '',
-    rollbackTime: data.rollbackTime || '',
-  });
-</script>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
@@ -96,6 +48,9 @@
   import RenderMode from '@views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
   import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
+
+  import { createRowData, type IDataRow } from '../../../Index.vue';
+  import { BackupSources } from '../../common/const';
 
   interface Props {
     data: IDataRow;
@@ -114,9 +69,9 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const backupSourceRef = ref();
-  const modeRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const backupSourceRef = ref<InstanceType<typeof RenderBackup>>();
+  const modeRef = ref<InstanceType<typeof RenderMode>>();
 
   const localClusterData = ref<IDataRow['clusterData']>({
     id: 0,
@@ -167,21 +122,24 @@
     },
     {
       immediate: true,
-      deep: true,
     },
   );
 
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value.getValue(),
-        backupSourceRef.value.getValue(),
-        modeRef.value.getValue(),
+        clusterRef.value!.getValue(),
+        backupSourceRef.value!.getValue(),
+        modeRef.value!.getValue(),
       ]).then(([clusterData, backupSourceData, modeData]) => ({
         ...clusterData,
         ...backupSourceData,
         ...modeData,
         target_cluster_id: clusterData.cluster_id,
+        databases: ['*'],
+        databases_ignore: [],
+        tables: ['*'],
+        tables_ignore: [],
       }));
     },
   });

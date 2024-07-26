@@ -27,6 +27,11 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :min-width="140"
+        :width="160">
+        {{ t('目标集群') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
         :min-width="100"
         :width="120">
         <template #append>
@@ -110,6 +115,88 @@
         {{ t('回档类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :min-width="100"
+        :width="120">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit.databases"
+            :placeholder="t('请输入,如需输入多个用回车换行')"
+            :title="t('回档DB')"
+            type="textarea"
+            @change="(value) => handleBatchEdit('databases', value, true)">
+            <span
+              v-bk-tooltips="t('批量编辑')"
+              class="batch-edit-btn"
+              @click="handleShowBatchEdit('databases')">
+              <DbIcon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </template>
+        {{ t('回档DB') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="100"
+        :required="false"
+        :width="120">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit.databasesIgnore"
+            :placeholder="t('请输入,如需输入多个用回车换行')"
+            :title="t('忽略DB')"
+            type="textarea"
+            @change="(value) => handleBatchEdit('databasesIgnore', value, true)">
+            <span
+              v-bk-tooltips="t('批量编辑')"
+              class="batch-edit-btn"
+              @click="handleShowBatchEdit('databasesIgnore')">
+              <DbIcon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </template>
+        {{ t('忽略DB') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="100"
+        :width="120">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit.tables"
+            :placeholder="t('请输入,如需输入多个用回车换行')"
+            :title="t('回档表名')"
+            type="textarea"
+            @change="(value) => handleBatchEdit('tables', value, true)">
+            <span
+              v-bk-tooltips="t('批量编辑')"
+              class="batch-edit-btn"
+              @click="handleShowBatchEdit('tables')">
+              <DbIcon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </template>
+        {{ t('回档表名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="100"
+        :required="false"
+        :width="120">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit.tablesIgnore"
+            :placeholder="t('请输入,如需输入多个用回车换行')"
+            :title="t('忽略表名')"
+            type="textarea"
+            @change="(value) => handleBatchEdit('tablesIgnore', value, true)">
+            <span
+              v-bk-tooltips="t('批量编辑')"
+              class="batch-edit-btn"
+              @click="handleShowBatchEdit('tablesIgnore')">
+              <DbIcon type="bulk-edit" />
+            </span>
+          </BatchEditColumn>
+        </template>
+        {{ t('忽略表名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
         fixed="right"
         :required="false"
         :width="90">
@@ -128,9 +215,8 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import type { IDataRow } from '../../../Index.vue';
   import { BackupTypes, selectList } from '../../common/const';
-
-  import type { IDataRow } from './Row.vue';
 
   interface Emits {
     (e: 'batchSelectCluster'): void;

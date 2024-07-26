@@ -69,7 +69,7 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<{
+    getValue: () => Promise<{
       backupinfo?: BackupLogRecord;
       rollback_time?: string;
     }>;
@@ -93,8 +93,8 @@
     name: item.label,
   }));
 
-  const localRollbackTimeRef = ref();
-  const localBackupFileRef = ref();
+  const localRollbackTimeRef = ref<InstanceType<typeof TableEditDateTime>>();
+  const localBackupFileRef = ref<InstanceType<typeof RecordSelector>>();
   const localBackupType = ref(BackupTypes.BACKUPID);
   const localRollbackTime = ref('');
 
@@ -134,12 +134,12 @@
   defineExpose<Exposes>({
     getValue() {
       if (localBackupType.value === BackupTypes.BACKUPID) {
-        return localBackupFileRef.value.getValue().then((data: BackupLogRecord) => ({
+        return localBackupFileRef.value!.getValue().then((data: BackupLogRecord) => ({
           rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
           backupinfo: data,
         }));
       }
-      return localRollbackTimeRef.value.getValue().then(() => ({
+      return localRollbackTimeRef.value!.getValue().then(() => ({
         rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
         rollback_time: formatDateToUTC(localRollbackTime.value),
       }));
