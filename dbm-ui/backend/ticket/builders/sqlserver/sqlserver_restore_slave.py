@@ -8,11 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from django.db.models import F, Prefetch
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
@@ -25,6 +25,7 @@ from backend.ticket.builders.sqlserver.base import (
 )
 from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
+from backend.utils.basic import get_target_items_from_details
 
 
 class SQLServerRestoreSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer):
@@ -57,6 +58,44 @@ class SQLServerRestoreSlaveFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBuilder):
+    def format(self):
+        slave_hosts = get_target_items_from_details(self.ticket.details, match_keys=["bk_host_id"])
+        # 根据从库host_id获取对应主库的host_id
+        slave_master_mapping = (
+            Machine.objects.prefetch_related(
+                "storageinstance_set",
+                Prefetch("storageinstance_set__as_ejector"),
+                Prefetch("storageinstance_set__as_receiver"),
+            )
+            .filter(storageinstance__as_ejector__receiver__machine__bk_host_id__in=slave_hosts)
+            .values(
+                slave_host_id=F("storageinstance__as_ejector__receiver__machine__bk_host_id"),
+                master_host_id=F("bk_host_id"),
+            )
+            .distinct()
+        )
+
+        # 提取master
+        master_hosts = [entry["master_host_id"] for entry in slave_master_mapping]
+        # 处理映射 {slave_host_id:master_host_id}
+        formatted_dict = {item["slave_host_id"]: item["master_host_id"] for item in slave_master_mapping}
+
+        id__machine = {
+            machine.bk_host_id: machine
+            for machine in Machine.objects.prefetch_related("bk_city__logical_city").filter(
+                bk_host_id__in=master_hosts
+            )
+        }
+        for info in self.ticket.details["infos"]:
+            # 申请新的slave, 需要和当前集群中的master处于不同机房;
+            master_machine = id__machine[formatted_dict[info["old_slave_host"]["bk_host_id"]]]
+            info["resource_spec"]["sqlserver_ha"]["location_spec"] = {
+                "city": master_machine.bk_city.logical_city.name,
+                "sub_zone_ids": [master_machine.bk_sub_zone_id],
+                "include_or_exclue": False,
+            }
+        self.ticket.save(update_fields=["details"])
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:

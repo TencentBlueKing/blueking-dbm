@@ -17,7 +17,7 @@ from django.conf import settings
 from rest_framework.test import APIClient
 
 from backend.db_meta.enums.cluster_type import ClusterType
-from backend.db_meta.models import AppCache, Cluster, Machine, Spec, StorageInstance
+from backend.db_meta.models import AppCache, Cluster, Machine, Spec, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.db_module import DBModule
 from backend.tests.mock_data import constant
 from backend.tests.mock_data.components.drs import DRSApiMock
@@ -198,9 +198,11 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
         cluster_single = Cluster.objects.get(cluster_type=ClusterType.SqlserverSingle.value)
         cluster_ha = Cluster.objects.get(cluster_type=ClusterType.SqlserverHA.value)
         storage_instance_single = StorageInstance.objects.get(cluster_type=ClusterType.SqlserverSingle.value)
-        storage_instance_ha = StorageInstance.objects.get(cluster_type=ClusterType.SqlserverHA.value, machine_id=2)
+        storage_instances = StorageInstance.objects.filter(cluster_type=ClusterType.SqlserverHA.value)
+        StorageInstanceTuple.objects.create(ejector=storage_instances[0], receiver=storage_instances[1])
         storage_instance_single.cluster.add(cluster_single)
-        storage_instance_ha.cluster.add(cluster_ha)
+        for storageinstance in storage_instances:
+            storageinstance.cluster.add(cluster_ha)
 
         super().setup()
         self.mocks[-1].return_value = DBCONFIG_DATA
