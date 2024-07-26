@@ -309,7 +309,9 @@ func (i *InstallNewDbBackupComp) InitRenderData() (err error) {
 			},
 			BackupClient: config.BackupClient{},
 			LogicalBackup: config.LogicalBackup{
-				Regex: regexStr,
+				TableFilter: config.TableFilter{
+					Regex: regexStr,
+				},
 			},
 			PhysicalBackup: config.PhysicalBackup{
 				DefaultsFile: util.GetMyCnfFileName(port),

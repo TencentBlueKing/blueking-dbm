@@ -29,7 +29,7 @@ func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 		return nil, err
 	}
 	if strings.ToLower(cnf.Public.BackupType) == cst.BackupLogical {
-		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpAuto {
+		if cnf.LogicalBackup.UseMysqldump == cst.LogicalMysqldumpAuto || cnf.LogicalBackup.UseMysqldump == "" {
 			if glibcVer, err := util.GetGlibcVersion(); err != nil {
 				logger.Log.Warn("failed to glibc version, err:", err)
 			} else if glibcVer < "2.14" {

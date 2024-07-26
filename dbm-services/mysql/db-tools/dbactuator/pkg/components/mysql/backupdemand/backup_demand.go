@@ -49,6 +49,8 @@ type Param struct {
 	BackupType string   `json:"backup_type" validate:"required"`
 	BackupGSD  []string `json:"backup_gsd" validate:"required"` // [grant, schema, data]
 	// Regex database or tables to backup, only logical. set to empty if it's full backup
+	// BackupFileTag file tag for backup system to file expires
+	BackupFileTag   string `json:"backup_file_tag"`
 	Regex           string `json:"regex"`
 	BackupId        string `json:"backup_id" validate:"required"`
 	BillId          string `json:"bill_id" validate:"required"`
@@ -138,6 +140,9 @@ func (c *Component) GenerateBackupConfig() error {
 		backupConfig.Public.BackupId = c.Params.BackupId
 		backupConfig.Public.DataSchemaGrant = strings.Join(c.Params.BackupGSD, ",")
 		backupConfig.Public.ShardValue = c.Params.ShardID
+		if backupConfig.BackupClient.Enable && c.Params.BackupFileTag != "" {
+			backupConfig.BackupClient.FileTag = c.Params.BackupFileTag
+		}
 
 		backupConfig.LogicalBackup.Regex = ""
 		if c.Params.BackupType == "logical" {

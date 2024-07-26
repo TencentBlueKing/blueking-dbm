@@ -22,6 +22,9 @@ import (
 )
 
 func init() {
+	dumpLogicalCmd.Flags().StringP("config", "c", "",
+		"config file to backup, other options will overwrite this config file temporary")
+
 	// Objects Filter Options
 	dumpLogicalCmd.Flags().StringP("regex", "x", "", "Regular expression for 'db.table' matching")
 	dumpLogicalCmd.Flags().StringP("databases", "B", "", "Database to dump, default all")
@@ -39,7 +42,6 @@ func init() {
 	//dumpLogicalCmd.Flags().String("where", "", "Dump only selected records")
 
 	// logical common options bind
-	dumpLogicalCmd.Flags().String("data-schema-grant", "", "all|schema|data|grant, overwrite Public.DataSchemaGrant")
 	dumpLogicalCmd.Flags().BoolP("no-data", "d", false, "tables to dump, comma separated")
 	dumpLogicalCmd.Flags().BoolP("no-schemas", "m", false, "Do not dump table data")
 	//dumpLogicalCmd.Flags().BoolP("no-views", "W", false, "Do not dump VIEWs")
@@ -47,7 +49,6 @@ func init() {
 	dumpLogicalCmd.Flags().BoolP("events", "E", false, "Dump stored procedures and functions. "+
 		"By default, it do not dump stored procedures nor functions")
 	dumpLogicalCmd.Flags().BoolP("routines", "R", false, "Dump events. By default, it do not dump events")
-	viper.BindPFlag("Public.DataSchemaGrant", dumpLogicalCmd.Flags().Lookup("data-schema-grant"))
 	viper.BindPFlag("LogicalBackup.NoData", dumpLogicalCmd.Flags().Lookup("no-data"))
 	viper.BindPFlag("LogicalBackup.NoSchemas", dumpLogicalCmd.Flags().Lookup("no-schemas"))
 	//viper.BindPFlag("LogicalBackup.NoViews", dumpLogicalCmd.Flags().Lookup("no-views"))
@@ -55,36 +56,15 @@ func init() {
 	viper.BindPFlag("LogicalBackup.Events", dumpLogicalCmd.Flags().Lookup("events"))
 	viper.BindPFlag("LogicalBackup.Routines", dumpLogicalCmd.Flags().Lookup("routines"))
 
-	// Connection Options
-	dumpLogicalCmd.Flags().StringP("host", "h", "", "The host to connect to, overwrite Public.MysqlHost")
-	dumpLogicalCmd.Flags().IntP("port", "P", 3306, "TCP/IP port to connect to, overwrite Public.MysqlPort")
-	dumpLogicalCmd.Flags().StringP("user", "u", "", "Username with the necessary privileges, "+
-		"overwrite Public.MysqlUser")
-	dumpLogicalCmd.Flags().StringP("password", "p", "", "User password, overwrite Public.MysqlPasswd")
-	//dumpLogicalCmd.Flags().StringP("socket", "S", "", "UNIX domain socket file to use for connection")
-	viper.BindPFlag("Public.MysqlHost", dumpLogicalCmd.Flags().Lookup("host"))
-	viper.BindPFlag("Public.MysqlPort", dumpLogicalCmd.Flags().Lookup("port"))
-	viper.BindPFlag("Public.MysqlUser", dumpLogicalCmd.Flags().Lookup("user"))
-	viper.BindPFlag("Public.MysqlPasswd", dumpLogicalCmd.Flags().Lookup("password"))
-
-	dumpLogicalCmd.Flags().Bool("backup-client", false, "enable backup-client, overwrite BackupClient.Enable")
-	dumpLogicalCmd.Flags().String("backup-dir", "/data/dbbak", "backup root path to save, overwrite Public.BackupDir")
-	dumpLogicalCmd.Flags().String("cluster-domain", "", "cluster domain to report, overwrite Public.ClusterAddress")
-	dumpLogicalCmd.Flags().String("use-mysqldump", "", "no, yes, auto, overwrite LogicalBackup.UseMysqldump")
+	dumpLogicalCmd.Flags().String("use-mysqldump", "no", "no, yes, auto, overwrite LogicalBackup.UseMysqldump")
 	dumpLogicalCmd.Flags().Int("threads", 4, "threads for mydumper")
 
-	viper.BindPFlag("BackupClient.Enable", dumpLogicalCmd.Flags().Lookup("backup-client"))
-	viper.BindPFlag("Public.BackupDir", dumpLogicalCmd.Flags().Lookup("backup-dir"))
-	viper.BindPFlag("Public.ClusterAddress", dumpLogicalCmd.Flags().Lookup("cluster-domain"))
 	viper.BindPFlag("LogicalBackup.UseMysqldump", dumpLogicalCmd.Flags().Lookup("use-mysqldump"))
 	viper.BindPFlag("LogicalBackup.Threads", dumpLogicalCmd.Flags().Lookup("threads"))
-
-	dumpLogicalCmd.Flags().StringP("config", "c", "",
-		"config file to backup, other options will overwrite this config file temporary")
 }
 
 var dumpLogicalCmd = &cobra.Command{
-	Use:   "dumplogical",
+	Use:   "logical",
 	Short: "logical dump using mydumper or mysqldump",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -104,7 +84,7 @@ var dumpLogicalCmd = &cobra.Command{
 				logger.Log.Error("Create Dbbackup: fail to parse ", configFile)
 				return errors.WithMessagef(err, "fail to parse %s", configFile)
 			}
-			if cnf.LogicalBackup.IsFormFilterType() {
+			if cnf.LogicalBackup.GetFilterType() == config.FilterTypeForm {
 				logger.Log.Info("set Regex/TablesList to empty for form filter type ", configFile)
 				cnf.LogicalBackup.Regex = ""
 				cnf.LogicalBackup.TablesList = ""

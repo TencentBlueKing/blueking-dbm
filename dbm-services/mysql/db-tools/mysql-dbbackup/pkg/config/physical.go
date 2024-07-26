@@ -21,13 +21,3 @@ type PhysicalBackup struct {
 	// 只有在 master 上进行物理备份数据时，才执行检查
 	MaxMyisamTables int `int:"MaxMyisamTables"`
 }
-
-// PhysicalLoad the config of physical loading
-type PhysicalLoad struct {
-	MysqlLoadDir  string `ini:"MysqlLoadDir" validate:"required"`
-	Threads       int    `ini:"Threads"`
-	CopyBack      bool   `ini:"CopyBack"` // use copy-back or move-back
-	IndexFilePath string `ini:"IndexFilePath" validate:"required,file"`
-	DefaultsFile  string `ini:"DefaultsFile" validate:"required"`
-	ExtraOpt      string `ini:"ExtraOpt"` // other xtrabackup recover options string to be appended
-}

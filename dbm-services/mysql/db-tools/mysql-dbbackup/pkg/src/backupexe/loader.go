@@ -21,6 +21,10 @@ type Loader interface {
 func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string) (loader Loader, err error) {
 	if strings.ToLower(backupType) == cst.BackupLogical {
 		if backupTool == cst.ToolMysqldump {
+			// mysqldump 共用 LogicalLoad 参数
+			if err := validate.GoValidateStruct(cnf.LogicalLoad, false, false); err != nil {
+				return nil, err
+			}
 			if err := validate.GoValidateStruct(cnf.LogicalLoadMysqldump, false, false); err != nil {
 				return nil, err
 			}
@@ -34,6 +38,9 @@ func BuildLoader(cnf *config.BackupConfig, backupType string, backupTool string)
 			loader = &LogicalLoader{
 				cnf: cnf,
 			}
+		}
+		if err := cnf.LogicalLoad.ValidateFilter(); err != nil {
+			return nil, err
 		}
 	} else if strings.ToLower(backupType) == cst.BackupPhysical {
 		if err := validate.GoValidateStruct(cnf.PhysicalLoad, false, false); err != nil {

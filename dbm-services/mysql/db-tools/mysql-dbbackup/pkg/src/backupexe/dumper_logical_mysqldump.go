@@ -12,6 +12,7 @@ package backupexe
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,6 +37,7 @@ type LogicalDumperMysqldump struct {
 	cnf          *config.BackupConfig
 	dbbackupHome string
 	backupInfo   dbareport.IndexContent // for mysqldump backup
+	dbConn       *sql.DB
 }
 
 // initConfig initializes the configuration for the logical dumper[mysqldump]
@@ -58,19 +60,39 @@ func (l *LogicalDumperMysqldump) buildArgsTableFilter() (args []string, err erro
 	dbListExclude := strings.Split(l.cnf.LogicalBackup.ExcludeDatabases, ",")
 	tbListExclude := strings.Split(l.cnf.LogicalBackup.ExcludeTables, ",")
 
-	if len(l.cnf.LogicalBackup.ExcludeDatabases) > 0 || len(l.cnf.LogicalBackup.ExcludeTables) > 0 {
-		return nil, errors.Errorf("mysqldump exclude option is not allowed, exclude-databases=%s, exclude-tables=%s",
-			dbListExclude, tbListExclude)
-	}
 	if len(l.cnf.LogicalBackup.Databases) > 0 && len(dbList) >= 2 {
-		if len(l.cnf.LogicalBackup.Tables) > 0 {
+		if len(l.cnf.LogicalBackup.Tables) == 0 { // 仅有 databases
+			args = append(args, "--databases")
+			args = append(args, dbList...)
+		} else {
 			return nil, errors.Errorf("mysqldump --tables cannot be used with multi databases")
 		}
-		args = append(args, "--databases")
-		args = append(args, dbList...)
-	} else if len(l.cnf.LogicalBackup.Databases) > 0 && len(dbList) == 1 {
+	} else if len(l.cnf.LogicalBackup.Databases) > 0 && len(dbList) == 1 { // 只有一个 db，可以指定 table
 		args = append(args, l.cnf.LogicalBackup.Databases)
 		args = append(args, tbList...)
+	} else if len(l.cnf.LogicalBackup.ExcludeDatabases) > 0 {
+		if len(l.cnf.LogicalBackup.ExcludeTables) == 0 {
+			logger.Log.Info("get database list from db to exclude:")
+			l.dbConn, err = mysqlconn.InitConn(&l.cnf.Public)
+			if err != nil {
+				return nil, err
+			}
+			defer func() {
+				_ = l.dbConn.Close()
+			}()
+			if allDatabases, err := mysqlconn.GetDatabases("", l.dbConn); err != nil {
+				return nil, err
+			} else {
+				dbListExclude = append(dbListExclude, "information_schema", "performance_schema")
+				for _, d := range dbListExclude {
+					allDatabases = cmutil.StringsRemove(allDatabases, d)
+				}
+				args = append(args, "--databases", strings.Join(allDatabases, " "))
+			}
+		} else {
+			return nil, errors.Errorf("mysqldump exclude is not allowed, exclude-databases=%s, exclude-tables=%s",
+				dbListExclude, tbListExclude)
+		}
 	}
 	return args, nil
 }
@@ -165,13 +187,15 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 			fmt.Sprintf(`%s`, l.cnf.LogicalBackupMysqldump.ExtraOpt),
 		}...)
 	}
-
-	if l.cnf.LogicalBackup.GetFilterType() == config.FilterTypeForm {
+	filterType := l.cnf.LogicalBackup.GetFilterType()
+	if filterType == config.FilterTypeForm {
 		if filterArgs, err := l.buildArgsTableFilter(); err != nil {
 			return err
 		} else {
 			args = append(args, filterArgs...)
 		}
+	} else if filterType == config.FilterTypeEmpty {
+		return errors.New("please give --databases / --exclude-databases to dump")
 	}
 	args = append(args, "-r",
 		filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName(), l.cnf.Public.TargetName()+".sql"))

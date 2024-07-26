@@ -8,27 +8,20 @@
 2. `--use-mysqldump = yes` 也可以强制使用 mysqldump 导出 
 
 ```
-./dbbackup dumplogical --help
+./dbbackup dumpbackup logical --help
 logical dump using mydumper or mysqldump
 
 Usage:
-  dbbackup dumplogical [flags]
+  dbbackup dumpbackup logical [flags]
 
 Flags:
-      --backup-client              enable backup-client, overwrite BackupClient.Enable
-      --backup-dir string          backup root path to save, overwrite Public.BackupDir (default "/data/dbbak")
-      --cluster-domain string      cluster domain to report, overwrite Public.ClusterAddress
   -c, --config string              config file to backup, other options will overwrite this config file temporary
-      --data-schema-grant string   all|schema|data|grant, overwrite Public.DataSchemaGrant
   -B, --databases string           Database to dump, default all
   -E, --events                     Dump stored procedures and functions. By default, it do not dump stored procedures nor functions
       --exclude-databases string   databases to dump, comma separated, default empty
       --exclude-tables string      tables to dump, comma separated, default empty
-  -h, --host string                The host to connect to, overwrite Public.MysqlHost
   -d, --no-data                    tables to dump, comma separated
   -m, --no-schemas                 Do not dump table data
-  -p, --password string            User password, overwrite Public.MysqlPasswd
-  -P, --port int                   TCP/IP port to connect to, overwrite Public.MysqlPort (default 3306)
   -x, --regex string               Regular expression for 'db.table' matching
   -R, --routines                   Dump events. By default, it do not dump events
       --tables string              tables to dump, comma separated, default all
@@ -36,10 +29,22 @@ Flags:
       --threads int                threads for mydumper (default 4)
   -G, --triggers                   Dump triggers. By default, it do not dump triggers
       --use-mysqldump string       no, yes, auto, overwrite LogicalBackup.UseMysqldump
-  -u, --user string                Username with the necessary privileges, overwrite Public.MysqlUser
 
 Global Flags:
-      --help   help for this command
+      --backup-client              enable backup-client, overwrite BackupClient.Enable
+      --backup-dir string          backup root path to save, overwrite Public.BackupDir (default "/data/dbbak")
+      --backup-file-tag string     overwrite BackupClient.FileTag
+      --backup-id string           overwrite Public.BackupId
+      --bill-id string             overwrite Public.BillId
+      --cluster-domain string      cluster domain to report, overwrite Public.ClusterAddress
+      --data-schema-grant string   all|schema|data|grant, overwrite Public.DataSchemaGrant
+      --help                       help for this command
+  -h, --host string                The host to connect to, overwrite Public.MysqlHost
+      --nocheck-diskspace          overwrite Public.NoCheckDiskSpace
+  -p, --password string            User password, overwrite Public.MysqlPasswd
+  -P, --port int                   TCP/IP port to connect to, overwrite Public.MysqlPort (default 3306)
+      --shard-value int            overwrite Public.ShardValue (default -1)
+  -u, --user string                Username with the necessary privileges, overwrite Public.MysqlUser
 ```
 
 ### 参数说明
@@ -76,14 +81,14 @@ Global Flags:
 ### 示例
 ```
 # 导出 db1,db2 两个库的表结构
-./dbbackup dumplogical -h x.x.x.x -u x -p y -P 3306 \
+./dbbackup dumpbackup logical -h x.x.x.x -u x -p y -P 3306 \
  --data-schema-grant=schema \
  --backup-dir /data/dbbak \
  --cluster-domain=xx.xx \
  --databases db1,db2
 
 # 导出 db1 库中 table1,table2 的表结构和数据
-./dbbackup dumplogical -h x.x.x.x -u x -p y -P 3306 \
+./dbbackup dumpbackup logical -h x.x.x.x -u x -p y -P 3306 \
  --data-schema-grant=all \
  --backup-dir /data/dbbak \
  --cluster-domain=xx.xx \

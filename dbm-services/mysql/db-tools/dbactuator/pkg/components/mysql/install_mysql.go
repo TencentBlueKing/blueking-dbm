@@ -696,10 +696,11 @@ func (i *InstallMySQLComp) Startup() (err error) {
 
 // generateDefaultMysqlAccount TODO
 /**
- * @description:  生成初始化默认mysql 账户sql
- * @receiver {string} realVersion: mysql 实际版本
- * @return {*}
- */
+* @description:  生成初始化默认mysql 账户sql
+* @receiver {string} realVersion: mysql 实际版本
+* @return {*}
+注意这里修改，考虑可能需要同步改动 generateDefaultSpiderAccount
+*/
 func (i *InstallMySQLComp) generateDefaultMysqlAccount(realVersion string) (initAccountsql []string) {
 	initAccountsql = append(initAccountsql, i.Params.SuperAccount.GetSuperUserAccount(realVersion)...)
 	initAccountsql = append(initAccountsql, i.Params.DBHAAccount.GetDBHAAccount(realVersion)...)
@@ -940,7 +941,6 @@ func (i *InstallMySQLComp) InitDefaultPrivAndSchemaWithResetMaster() (err error)
 		default:
 			// 默认按照mysql的初始化权限的方式
 			initAccountSqls = i.generateDefaultMysqlAccount(version)
-
 		}
 		// 初始化数据库之后，reset master，标记binlog重头开始，避免同步干扰
 		// 新安装db, avoid == false, 表示需要做 reset
@@ -1121,6 +1121,7 @@ func (i *InstallMySQLComp) generateDefaultSpiderAccount(realVersion string) (ini
 	privPairs = append(privPairs, runp.MySQLMonitorAccessAllAccount.GetAccountPrivs())
 	privPairs = append(privPairs, runp.MySQLMonitorAccount.GetAccountPrivs(i.Params.Host))
 	privPairs = append(privPairs, runp.MySQLYwAccount.GetAccountPrivs())
+	privPairs = append(privPairs, runp.MySQLDbBackupAccount.GetAccountPrivs(realVersion, i.Params.Host))
 	for _, v := range privPairs {
 		initAccountsql = append(initAccountsql, v.GenerateInitSql(realVersion)...)
 	}

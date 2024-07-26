@@ -115,6 +115,17 @@ func GetStorageEngine(dbh *sql.DB) (string, error) {
 	return version[0], nil
 }
 
+// GetDatabases show databases like
+// like == ” means all
+func GetDatabases(like string, dbh *sql.DB) ([]string, error) {
+	sqlStr := fmt.Sprintf("show databases like %s", mysqlcomm.UnsafeEqual(like, "'"))
+	if like == "" {
+		sqlStr = "show databases"
+	}
+	databases, err := MysqlSingleColumnQuery(sqlStr, dbh)
+	return databases, err
+}
+
 // TestEngineTablesNum 判断指定的标引擎数量，是否超过允许值
 // 注意，这里是为了避免 count information_schema.tables 全表，导致打开所有表
 // 比如 MyISAM, 10, 返回 true 表示 myisam 表的数量超过 10个，false表示少于 10个
