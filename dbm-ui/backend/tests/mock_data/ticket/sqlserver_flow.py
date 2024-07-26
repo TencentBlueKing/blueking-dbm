@@ -376,7 +376,7 @@ SQLSERVER_RESTORE_SLAVE_SOURCE_TICKET_DATA = {
             {
                 "resource_spec": {"sqlserver_ha": {"spec_id": 102, "count": 1}},
                 "cluster_ids": [CLUSTER_ID + 1],
-                "old_slave_host": {"ip": "1.1.1.3", "bk_cloud_id": 0, "bk_host_id": 2},
+                "old_slave_host": {"ip": "1.1.1.4", "bk_cloud_id": 0, "bk_host_id": 3},
             }
         ],
     },
@@ -605,6 +605,7 @@ SQLSERVER_SPEC_DATA = [
 # SQLSERVER SINGLE实例数据
 SQLSERVER_STORAGE_INSTANCE_DATA = [
     {
+        "id": 1,
         "creator": BK_USERNAME,
         "create_at": "2024-03-14 01:36:51.626234",
         "updater": "",
@@ -626,6 +627,7 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "instance_inner_role": "orphan",
     },
     {
+        "id": 2,
         "creator": BK_USERNAME,
         "create_at": "2024-03-14 01:36:51.626234",
         "updater": "",
@@ -647,6 +649,7 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "instance_inner_role": "master",
     },
     {
+        "id": 3,
         "creator": BK_USERNAME,
         "create_at": "2024-03-14 01:36:51.626234",
         "updater": "",
@@ -668,6 +671,16 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "instance_inner_role": "slave",
     },
 ]
+
+# 构建storageinstancetuple数据
+SQLSERVER_STORAGEINSTANCETUPLE_DATA = {
+    "creator": BK_USERNAME,
+    "create_at": "2024-03-13 11:14:48.433116",
+    "updater": "",
+    "update_at": "2024-03-13 11:14:48.433116",
+    "ejector": 2,
+    "receiver": 3,
+}
 
 # SQLSERVER 集群机器信息
 SQLSERVER_MACHINE_DATA = [
