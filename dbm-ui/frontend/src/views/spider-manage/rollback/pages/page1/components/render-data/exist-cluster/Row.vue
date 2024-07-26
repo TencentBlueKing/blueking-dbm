@@ -175,7 +175,6 @@
       return Promise.all([
         clusterRef.value!.getValue(),
         targetClustersRef.value!.getValue(),
-        backupSourceRef.value!.getValue(),
         modeRef.value!.getValue(),
         databasesRef.value!.getValue('databases'),
         tablesRef.value!.getValue('tables'),
