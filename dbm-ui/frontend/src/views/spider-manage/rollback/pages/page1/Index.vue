@@ -237,11 +237,13 @@
           },
         });
         results.push(row);
-        domainMemo[domain] = true;
+        if (rollbackClusterType.value !== RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER) {
+          domainMemo[domain] = true;
+        }
       }
       return results;
     }, [] as IDataRow[]);
-    if (checkListEmpty(tableData.value)) {
+    if (rollbackClusterType.value === RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER || checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
       tableData.value = [...tableData.value, ...newList];

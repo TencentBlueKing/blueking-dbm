@@ -14,17 +14,18 @@ export default class FixpointLog {
   target_cluster: {
     cluster_id: number;
     nodes: {
-      backend_group: {
-        master: {
-          ip: string;
-        };
-        slave: {
-          ip: string;
-        };
-      }[];
-      spider: {
+      remote_hosts: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
         ip: string;
       }[];
+      spider_host: {
+        bk_biz_id: number;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        ip: string;
+      };
     };
     operations: {
       cluster_id: number;
@@ -55,14 +56,11 @@ export default class FixpointLog {
 
   get ipText() {
     const ipSet = new Set();
-    this.target_cluster.nodes.backend_group.forEach((item) => {
-      ipSet.add(item.master.ip);
-      ipSet.add(item.slave.ip);
-    });
-    this.target_cluster.nodes.spider.forEach((item) => {
+    this.target_cluster.nodes.remote_hosts.forEach((item) => {
+      ipSet.add(item.ip);
       ipSet.add(item.ip);
     });
-
+    ipSet.add(this.target_cluster.nodes.spider_host.ip);
     return [...ipSet].join(' , ');
   }
 

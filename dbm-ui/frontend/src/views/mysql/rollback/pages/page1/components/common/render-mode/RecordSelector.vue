@@ -55,7 +55,10 @@
           <div
             v-for="item in tabOptions"
             :key="item.name"
-            v-bk-tooltips="t('自动匹配指定日期前的最新全库备份')"
+            v-bk-tooltips="{
+              content: item.hoverText,
+              disabled: !item.hoverText,
+            }"
             class="tab-header-item"
             :class="{ 'is-active': recordType === item.name }"
             @click="hanldeChangeTab(item.name)">
@@ -177,12 +180,13 @@
   }
   const tabOptions = [
     {
-      label: t('备份记录'),
+      label: t('指定备份记录'),
       name: OperateType.MANUAL,
     },
     {
       label: t('指定时间自动匹配'),
       name: OperateType.MATCH,
+      hoverText: t('自动匹配指定日期前的最新全库备份'),
     },
   ];
   const rules: Rules = [

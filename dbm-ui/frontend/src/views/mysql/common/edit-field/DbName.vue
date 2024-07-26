@@ -175,7 +175,6 @@
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
-    console.log('from tag change = ', value);
     emits('update:modelValue', value);
     emits('change', value);
   };
