@@ -59,7 +59,7 @@
     name: item.label,
   }));
 
-  const editSelectRef = ref();
+  const editSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const localValue = ref(BackupSources.REMOTE);
 
   watch(
@@ -79,7 +79,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value.getValue().then(() => ({
+      return editSelectRef.value!.getValue().then(() => ({
         backup_source: localValue.value,
       }));
     },

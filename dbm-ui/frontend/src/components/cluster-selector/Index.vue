@@ -262,6 +262,7 @@
       getResourceList: getTendbhaList,
       tableContent: TendbhaTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     tendbhaSlave: {
       id: 'tendbhaSlave',
@@ -276,6 +277,22 @@
       getResourceList: getTendbhaSalveList,
       tableContent: TendbhaTable,
       resultContent: ResultPreview,
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.TENDBSINGLE]: {
+      id: ClusterTypes.TENDBSINGLE,
+      name: t('单节点集群'),
+      disabledRowConfig: [
+        {
+          handler: (data: T) => data.isOffline,
+          tip: t('集群已禁用'),
+        },
+      ],
+      multiple: true,
+      getResourceList: getTendbsingleList,
+      tableContent: TendbSingleTable,
+      resultContent: ResultPreview,
+      showPreviewResultTitle: true,
     },
     [ClusterTypes.MONGO_REPLICA_SET]: {
       id: ClusterTypes.MONGO_REPLICA_SET,
@@ -334,20 +351,6 @@
       tableContent: SqlserverHaTable,
       resultContent: ResultPreview,
       showPreviewResultTitle: true,
-    },
-    [ClusterTypes.TENDBSINGLE]: {
-      id: ClusterTypes.TENDBSINGLE,
-      name: t('单节点'),
-      disabledRowConfig: [
-        {
-          handler: (data: T) => data.isOffline,
-          tip: t('集群已禁用'),
-        },
-      ],
-      multiple: true,
-      getResourceList: getTendbsingleList,
-      tableContent: TendbSingleTable,
-      resultContent: ResultPreview,
     },
   };
 

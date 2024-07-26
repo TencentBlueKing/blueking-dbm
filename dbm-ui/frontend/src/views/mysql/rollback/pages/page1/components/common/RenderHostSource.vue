@@ -72,7 +72,7 @@
     },
   ];
 
-  const editSelectRef = ref();
+  const editSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const localValue = ref('');
   const list = ref([
     {
@@ -117,7 +117,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value.getValue().then(() => ({
+      return editSelectRef.value!.getValue().then(() => ({
         host_source: localValue.value,
       }));
     },

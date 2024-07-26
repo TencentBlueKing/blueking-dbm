@@ -24,6 +24,19 @@
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+  interface Props {
+    modelValue?: IDataRow['clusterData'];
+    placeholder?: string;
+  }
+  interface Emits {
+    (e: 'inputCreate', value: Array<string>): void;
+    (e: 'change', data: Props['modelValue']): void;
+  }
+  interface Exposes {
+    getValue: () => Promise<{
+      cluster_id: number;
+    }>;
+  }
 </script>
 <script setup lang="ts">
   import { onBeforeUnmount, ref, watch } from 'vue';
@@ -33,31 +46,13 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
-
   import TableEditInput from '@views/mysql/common/edit/Input.vue';
 
   import { random } from '@utils';
 
-  import type { IDataRow } from '../../components/new-cluster/RenderData/Row.vue';
-
-  interface Props {
-    clusterType?: ClusterTypes;
-    modelValue?: IDataRow['clusterData'];
-    placeholder?: string;
-  }
-
-  interface Emits {
-    (e: 'inputCreate', value: Array<string>): void;
-    (e: 'change', data: Props['modelValue']): void;
-  }
-
-  interface Exposes {
-    getValue: () => Array<number>;
-  }
+  import type { IDataRow } from '../../Index.vue';
 
   const props = withDefaults(defineProps<Props>(), {
-    clusterType: ClusterTypes.TENDBHA,
     modelValue: undefined,
     placeholder: '请输入集群_使用换行分割一次可输入多个',
   });
@@ -69,7 +64,7 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const editRef = ref();
+  const editRef = ref<InstanceType<typeof TableEditInput>>();
 
   const localClusterId = ref(0);
   const localDomain = ref('');
@@ -90,19 +85,25 @@
           cluster_filters: [
             {
               immute_domain: domain,
-              cluster_type: props.clusterType,
             },
           ],
           bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.length > 0) {
-            const { id, master_domain: domain, bk_cloud_id: cloudId, bk_cloud_name: cloudName } = data[0];
+            const {
+              id,
+              master_domain: domain,
+              bk_cloud_id: cloudId,
+              bk_cloud_name: cloudName,
+              cluster_type: clusterType,
+            } = data[0];
             localClusterId.value = id;
             emits('change', {
               id,
               domain,
               cloudId,
               cloudName,
+              clusterType,
             });
             clusterIdMemo[instanceKey] = {
               [id]: true,
@@ -114,6 +115,7 @@
             domain: '',
             cloudId: undefined,
             cloudName: undefined,
+            clusterType: '',
           });
           return false;
         }),
@@ -164,7 +166,7 @@
       };
       // 用户输入未完成验证
       if (editRef.value) {
-        return editRef.value.getValue().then(() => result);
+        return editRef.value!.getValue().then(() => result);
       }
       // 用户输入错误
       if (!localClusterId.value) {

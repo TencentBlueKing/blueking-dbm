@@ -47,6 +47,7 @@ import {
   generateRedisRollbackDataCloneData,
   generateRedisScaleUpdownCloneData,
 } from './redis';
+import { generateSpiderRollbackCloneData } from './tendbcluster/rollback';
 
 export const generateCloneDataHandlerMap = {
   [TicketTypes.REDIS_CLUSTER_APPLY]: generateRedisApplyCloneData,
@@ -76,7 +77,6 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: generateMysqlDbTableBackupCloneData, // Mysql 库表备份
   [TicketTypes.MYSQL_HA_RENAME_DATABASE]: generateMysqlDbRenameCloneData, // MySQL 高可用DB重命名
   [TicketTypes.MYSQL_HA_FULL_BACKUP]: generateMysqlDbBackupCloneData, // Mysql 全库备份
-  [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: generateMysqlRollbackCloneData, // MySQL 定点构造
   [TicketTypes.MYSQL_FLASHBACK]: generateMysqlFlashbackCloneData, // MySQL 闪回
   [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: generateMysqlRestoreLocalSlaveCloneData, // MySQL 重建从库-原地重建
   [TicketTypes.MYSQL_RESTORE_SLAVE]: generateMysqlRestoreSlaveCloneData, // MySQL 重建从库-原地重建
@@ -92,6 +92,8 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_PROXY_UPGRADE]: generateMysqlVersionProxyUpgradeCloneData, // MySQL Proxy 升级
   [TicketTypes.MYSQL_LOCAL_UPGRADE]: generateMysqlVersionLocalUpgradeCloneData, // MySQL 原地升级
   [TicketTypes.MYSQL_MIGRATE_UPGRADE]: generateMysqlVersionMigrateUpgradeCloneData, // MySQL 迁移升级
+  [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: generateMysqlRollbackCloneData, // MySQL 定点构造
+  [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: generateSpiderRollbackCloneData, // Tendbcluster 定点构造
   [TicketTypes.TENDBCLUSTER_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Spider 开区
   [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: generateRedisRedisVersionUpgradeCloneData, // Redis 版本升级
 };

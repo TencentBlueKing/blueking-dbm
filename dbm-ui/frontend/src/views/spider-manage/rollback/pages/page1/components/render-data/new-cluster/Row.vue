@@ -17,7 +17,6 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          :cluster-type="ClusterTypes.TENDBCLUSTER"
           :model-value="localClusterData"
           :placeholder="t('请输入集群')"
           @change="handleClusterChange" />
@@ -32,13 +31,15 @@
         <!-- 存储层 -->
         <RenderHostInputSelect
           ref="remoteHostRef"
-          :cluster-data="localClusterData" />
+          :cluster-data="localClusterData"
+          :host-data="localHostData.remote" />
       </td>
       <td style="padding: 0">
         <!-- 接入层 -->
         <RenderHostInputSelect
           ref="spiderHostRef"
           :cluster-data="localClusterData"
+          :host-data="localHostData.spider"
           single />
       </td>
       <td style="padding: 0">
@@ -87,74 +88,8 @@
     </tr>
   </tbody>
 </template>
-<script lang="ts">
-  import { ClusterTypes } from '@common/const';
-
-  import { random } from '@utils';
-
-  import { BackupSources, BackupTypes, selectList } from '../../common/const';
-
-  export interface IDataRow {
-    rowKey: string;
-    clusterData?: {
-      id: number;
-      domain: string;
-      cloudId?: number;
-      cloudName?: string;
-    };
-    rollbackHost: {
-      // 接入层
-      spiderHost?: {
-        ip: string;
-        bk_host_id: number;
-        bk_cloud_id: number;
-        bk_biz_id: number;
-      };
-      // 存储层
-      remoteHosts?: {
-        ip: string;
-        bk_host_id: number;
-        bk_cloud_id: number;
-        bk_biz_id: number;
-      }[];
-    };
-    backupSource: BackupSources;
-    rollbackType: BackupTypes;
-    backupid?: string;
-    rollbackTime?: string;
-    databases: string[];
-    databasesIgnore?: string[];
-    tables: string[];
-    tablesIgnore?: string[];
-  }
-
-  // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    clusterData: data.clusterData || {
-      id: 0,
-      domain: '',
-    },
-    rollbackHost: data.rollbackHost || {
-      spiderHost: {
-        ip: '',
-        bk_host_id: 0,
-        bk_cloud_id: 0,
-        bk_biz_id: 0,
-      },
-      remoteHosts: [],
-    },
-    backupSource: data.backupSource || BackupSources.REMOTE,
-    rollbackType: data.rollbackType || BackupTypes.BACKUPID,
-    backupid: data.backupid || '',
-    rollbackTime: data.rollbackTime || '',
-    databases: data.databases || ['*'],
-    databasesIgnore: data.databasesIgnore,
-    tables: data.tables || ['*'],
-    tablesIgnore: data.tablesIgnore,
-  });
-</script>
 <script setup lang="ts">
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
@@ -162,11 +97,21 @@
   import RenderMode from '@views/mysql/rollback/pages/page1/components/common/render-mode/Index.vue';
   import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
-  import RenderHostInputSelect from '@views/mysql/rollback/pages/page1/components/common/RenderHostInputSelect.vue';
+  import RenderHostInputSelect, {
+    type HostDataItem,
+  } from '@views/mysql/rollback/pages/page1/components/common/RenderHostInputSelect.vue';
   import RenderHostSource from '@views/mysql/rollback/pages/page1/components/common/RenderHostSource.vue';
+
+  import type { IDataRow } from '../../../Index.vue';
+  import { BackupSources, selectList } from '../../common/const';
 
   interface Props {
     data: IDataRow;
+  }
+
+  interface Emits {
+    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'remove'): void;
   }
 
   interface Exposes {
@@ -175,22 +120,30 @@
 
   const props = defineProps<Props>();
 
+  defineEmits<Emits>();
+
   const { t } = useI18n();
 
-  const clusterRef = ref();
-  const hostSourceRef = ref();
-  const spiderHostRef = ref();
-  const remoteHostRef = ref();
-  const modeRef = ref();
-  const databasesRef = ref();
-  const databasesIgnoreRef = ref();
-  const tablesRef = ref();
-  const tablesIgnoreRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const hostSourceRef = ref<InstanceType<typeof RenderHostSource>>();
+  const spiderHostRef = ref<InstanceType<typeof RenderHostInputSelect>>();
+  const remoteHostRef = ref<InstanceType<typeof RenderHostInputSelect>>();
+  const backupSourceRef = ref<InstanceType<typeof RenderBackup>>();
+  const modeRef = ref<InstanceType<typeof RenderMode>>();
+  const databasesRef = ref<InstanceType<typeof RenderDbName>>();
+  const databasesIgnoreRef = ref<InstanceType<typeof RenderDbName>>();
+  const tablesRef = ref<InstanceType<typeof RenderTableName>>();
+  const tablesIgnoreRef = ref<InstanceType<typeof RenderTableName>>();
+
+  const localHostSource = ref('idle');
   const localClusterData = ref<IDataRow['clusterData']>({
     id: 0,
     domain: '',
   });
-  const localHostSource = ref('idle');
+  const localHostData = reactive({
+    remote: [] as HostDataItem[],
+    spider: [] as HostDataItem[],
+  });
   const localBackupSource = ref(BackupSources.REMOTE);
 
   const handleClusterChange = (data: IDataRow['clusterData']) => {
@@ -211,25 +164,28 @@
       if (props.data.clusterData) {
         localClusterData.value = props.data.clusterData;
       }
+      if (props.data.rollbackHost) {
+        localHostData.remote = props.data.rollbackHost.remote_hosts as HostDataItem[];
+        localHostData.spider = [{ ...props.data.rollbackHost.spider_host }] as HostDataItem[];
+      }
       localBackupSource.value = props.data.backupSource;
     },
     {
       immediate: true,
-      deep: true,
     },
   );
 
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value.getValue(),
-        remoteHostRef.value.getValue(),
-        spiderHostRef.value.getValue(),
-        modeRef.value.getValue(),
-        databasesRef.value.getValue('databases'),
-        tablesRef.value.getValue('tables'),
-        databasesIgnoreRef.value.getValue('databases_ignore'),
-        tablesIgnoreRef.value.getValue('tables_ignore'),
+        clusterRef.value!.getValue(),
+        remoteHostRef.value!.getValue(),
+        spiderHostRef.value!.getValue(),
+        modeRef.value!.getValue(),
+        databasesRef.value!.getValue('databases'),
+        tablesRef.value!.getValue('tables'),
+        databasesIgnoreRef.value!.getValue('databases_ignore'),
+        tablesIgnoreRef.value!.getValue('tables_ignore'),
       ]).then(
         ([
           clusterData,

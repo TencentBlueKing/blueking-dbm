@@ -27,8 +27,8 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="140"
-        :width="160">
+        :min-width="180"
+        :width="180">
         {{ t('目标集群') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
@@ -215,9 +215,8 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import type { IDataRow } from '../../../Index.vue';
   import { BackupTypes, selectList } from '../../common/const';
-
-  import type { IDataRow } from './Row.vue';
 
   interface Emits {
     (e: 'batchSelectCluster'): void;
