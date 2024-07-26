@@ -215,11 +215,11 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  import type { IDataRow } from '../../../Index.vue';
   import { BackupTypes, selectList } from '../../common/const';
+  import type { IDataRow } from '../Index.vue';
 
   interface Emits {
-    (e: 'batchSelectCluster'): void;
+    (e: 'showSelector'): void;
     (e: 'batchEdit', obj: Record<string, any>): void;
   }
 
@@ -259,7 +259,7 @@
   };
 
   const handleShowBatchSelector = () => {
-    emits('batchSelectCluster');
+    emits('showSelector');
   };
 
   const handleBatchEdit = (key: keyof IDataRow, value: string, isArray = false) => {

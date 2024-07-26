@@ -49,8 +49,8 @@
   import RenderBackup from '@views/mysql/rollback/pages/page1/components/common/RenderBackup.vue';
   import RenderCluster from '@views/mysql/rollback/pages/page1/components/common/RenderCluster.vue';
 
-  import { createRowData, type IDataRow } from '../../../Index.vue';
   import { BackupSources } from '../../common/const';
+  import { createRowData, type IDataRow } from '../Index.vue';
 
   interface Props {
     data: IDataRow;
@@ -122,6 +122,7 @@
     },
     {
       immediate: true,
+      deep: true,
     },
   );
 

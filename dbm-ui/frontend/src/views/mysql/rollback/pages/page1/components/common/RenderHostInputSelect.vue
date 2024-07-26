@@ -42,17 +42,18 @@
 
   import type { HostDetails } from '@services/types';
 
+  import { useGlobalBizs } from '@stores';
+
   import { OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import TableSeletorInput from '@views/db-manage/common/TableSeletorInput.vue';
 
-  import type { IDataRow } from '../../Index.vue';
+  import type { IDataRow } from '../render-data/Index.vue';
 
   import { batchSplitRegex, ipv4 } from '@/common/regex';
   import { checkHost } from '@/services/source/ipchooser';
-  import { useGlobalBizs } from '@/stores';
 
   export interface HostDataItem {
     bk_host_id: number;
@@ -64,7 +65,7 @@
   interface Props {
     clusterData: IDataRow['clusterData'];
     single?: boolean;
-    hostData?: HostDataItem[];
+    hostData: HostDataItem[];
   }
 
   interface Exposes {
@@ -118,21 +119,27 @@
   };
 
   // 批量选择
-  const handleHostChange = (hostList: HostDetails[], isSubmit = true) => {
-    localValue.value = hostList.map((item) => item?.ip).join(',');
-    localHostList.value = hostList;
+  const handleHostChange = (hostList: HostDetails[]) => {
+    dataEcho(hostList);
     window.changeConfirm = true;
     setTimeout(() => {
-      editRef.value.getValue(isSubmit);
+      editRef.value.getValue();
     });
+  };
+
+  const dataEcho = (data: HostDetails[]) => {
+    localValue.value = data.map((item) => item?.ip).join(',');
+    localHostList.value = data;
   };
 
   watch(
     () => props.hostData,
     (data) => {
-      if (data?.length) {
-        handleHostChange(data as unknown as HostDetails[], false);
+      const fristHost = data?.[0];
+      if (!fristHost?.ip) {
+        return;
       }
+      dataEcho(data as unknown as HostDetails[]);
     },
     {
       immediate: true,

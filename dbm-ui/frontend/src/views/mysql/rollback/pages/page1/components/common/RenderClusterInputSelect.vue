@@ -30,6 +30,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type TendbhaModel from '@services/model/mysql/tendbha';
+  import type TendbsingleModel from '@services/model/mysql/tendbsingle';
   import { queryClusters } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
@@ -40,8 +41,6 @@
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   import TableSeletorInput from '@views/db-manage/common/TableSeletorInput.vue';
-
-  import type TendbsingleModel from '@/services/model/mysql/tendbsingle';
 
   interface Props {
     sourceClusterId: number;

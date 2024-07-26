@@ -15,7 +15,7 @@
   <TableEditSelect
     ref="editSelectRef"
     :list="targetList"
-    :model-value="modelValue"
+    :model-value="localValue"
     :placeholder="t('请选择')"
     :rules="rules"
     @change="(value) => handleChange(value as BackupSources)" />
