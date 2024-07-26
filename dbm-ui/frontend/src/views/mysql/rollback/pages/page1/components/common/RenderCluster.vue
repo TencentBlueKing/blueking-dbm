@@ -50,7 +50,7 @@
 
   import { random } from '@utils';
 
-  import type { IDataRow } from '../../Index.vue';
+  import type { IDataRow } from '../render-data/Index.vue';
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,

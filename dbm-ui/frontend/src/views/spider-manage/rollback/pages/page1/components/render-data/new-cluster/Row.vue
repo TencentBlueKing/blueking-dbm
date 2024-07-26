@@ -102,8 +102,8 @@
   } from '@views/mysql/rollback/pages/page1/components/common/RenderHostInputSelect.vue';
   import RenderHostSource from '@views/mysql/rollback/pages/page1/components/common/RenderHostSource.vue';
 
-  import type { IDataRow } from '../../../Index.vue';
   import { BackupSources, selectList } from '../../common/const';
+  import type { IDataRow } from '../Index.vue';
 
   interface Props {
     data: IDataRow;
@@ -172,6 +172,7 @@
     },
     {
       immediate: true,
+      deep: true,
     },
   );
 
