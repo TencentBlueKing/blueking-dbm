@@ -150,7 +150,7 @@ func (h *DbWorker) Queryx(data interface{}, query string, args ...interface{}) e
 
 // Queryxs execute query use sqlx return Single column
 func (h *DbWorker) Queryxs(data interface{}, query string) error {
-	logger.Info("Queryxs:%s", query)
+	// logger.Info("Queryxs:%s", query)
 	db := sqlx.NewDb(h.Db, "mysql")
 	udb := db.Unsafe()
 	if err := udb.Get(data, query); err != nil {
@@ -1031,13 +1031,15 @@ func (slaveConn *DbWorker) ReplicateDelayCheck(allowDelaySec int, behindExecBinL
 		return fmt.Errorf("the total delay binlog size %d 超过了最大允许值 %d", total, behindExecBinLogbyte)
 	}
 	var delaySec, beatSec int
-	c := fmt.Sprintf("select delay_sec, timestampdiff(SECOND, master_time, now()) beat_sec "+
-		"from %s.master_slave_heartbeat  WHERE slave_server_id=@@server_id", INFODBA_SCHEMA)
+	// 可能有多条记录，min 取心跳最小的
+	c := fmt.Sprintf("SELECT delay_sec, min(timestampdiff(SECOND, master_time, now())) beat_sec "+
+		"FROM %s.master_slave_heartbeat "+
+		"WHERE slave_server_id=@@server_id and slave_server_id!=master_server_id", INFODBA_SCHEMA)
 	if err = slaveConn.Db.QueryRow(c).Scan(&delaySec, &beatSec); err != nil {
 		logger.Error("查询slave delay sec: %s", err.Error())
 		return err
 	}
-	if beatSec > 600 {
+	if beatSec > 600 { // 10分钟没有 master_slave_heartbeat 心跳
 		return fmt.Errorf("超过 %ds 没有延迟检测信号", beatSec)
 	}
 	if delaySec > allowDelaySec {

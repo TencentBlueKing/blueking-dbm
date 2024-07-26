@@ -1598,6 +1598,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "bill_id": str(self.ticket_data["uid"]),
                     "custom_backup_dir": self.ticket_data.get("custom_backup_dir", ""),
                     "shard_id": self.ticket_data.get("shard_id", 0),
+                    "backup_file_tag": self.ticket_data.get("file_tag", ""),
                 },
             },
         }

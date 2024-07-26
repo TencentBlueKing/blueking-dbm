@@ -1,41 +1,12 @@
 package backupexe
 
 import (
-	"github.com/pkg/errors"
-
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 )
 
 // ExecuteLoad execute load backup command
-func ExecuteLoad(cnf *config.BackupConfig) error {
-	pathNum := 0
-	if cnf.LogicalLoad.IndexFilePath != "" {
-		pathNum++
-	}
-	if cnf.PhysicalLoad.IndexFilePath != "" {
-		pathNum++
-	}
-
-	if pathNum >= 2 {
-		err := errors.New("Setting multiple IndexFilePath values is not allowed")
-		return err
-	}
-
-	var indexPath string
-	if cnf.LogicalLoad.IndexFilePath != "" {
-		indexPath = cnf.LogicalLoad.IndexFilePath
-	} else if cnf.PhysicalLoad.IndexFilePath != "" {
-		indexPath = cnf.PhysicalLoad.IndexFilePath
-	}
-	if indexPath == "" { // required
-		return errors.New("loadbackup need IndexFilePath")
-	}
-
-	indexFileContent, err := ParseJsonFile(indexPath)
-	if err != nil {
-		return err
-	}
-
+func ExecuteLoad(cnf *config.BackupConfig, indexFileContent *dbareport.IndexContent) error {
 	if envErr := SetEnv(indexFileContent.BackupType, indexFileContent.MysqlVersion); envErr != nil {
 		return envErr
 	}

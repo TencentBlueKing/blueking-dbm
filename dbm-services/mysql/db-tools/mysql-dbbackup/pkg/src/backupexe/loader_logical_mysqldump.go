@@ -35,11 +35,14 @@ type LogicalLoaderMysqldump struct {
 	cnf          *config.BackupConfig
 	dbbackupHome string
 	dbConn       *sql.DB
-	initConnect  string
+	// initConnect load 之前会保留 init_connect 参数，load完成后会恢复
+	initConnect string
+	// metaInfo 获取备份里面字符集信息
+	metaInfo *dbareport.IndexContent
 }
 
 // initConfig initializes the configuration for the logical loader[mysql]
-func (l *LogicalLoaderMysqldump) initConfig(_ *dbareport.IndexContent) error {
+func (l *LogicalLoaderMysqldump) initConfig(metaInfo *dbareport.IndexContent) error {
 	if l.cnf == nil {
 		return errors.New("logical loader params is nil")
 	}
@@ -48,7 +51,19 @@ func (l *LogicalLoaderMysqldump) initConfig(_ *dbareport.IndexContent) error {
 	} else {
 		l.dbbackupHome = filepath.Dir(cmdPath)
 	}
-
+	if l.cnf.LogicalLoad.GetFilterType() != config.FilterTypeEmpty {
+		return errors.New("data sql1 files dumped by mysqldump cannot be filter databases or tables")
+	}
+	if (l.cnf.LogicalLoad.Databases != "" || l.cnf.LogicalLoad.Tables != "" ||
+		l.cnf.LogicalLoad.ExcludeDatabases != "" || l.cnf.LogicalLoad.ExcludeTables != "") ||
+		l.cnf.LogicalLoad.Regex != "" ||
+		l.cnf.LogicalLoad.TablesList != "" {
+		return errors.New("data sql2 files dumped by mysqldump cannot be filter databases or tables")
+	}
+	l.metaInfo = metaInfo
+	if l.cnf.LogicalLoad.MysqlCharset == "" {
+		l.cnf.LogicalLoad.MysqlCharset = metaInfo.BackupCharset
+	}
 	return nil
 }
 
@@ -191,8 +206,18 @@ func (l *LogicalLoaderMysqldump) Execute() (err error) {
 
 	outStr, errStr, err := cmutil.ExecCommand(true, "", binPath, args...)
 	if err != nil {
-		logger.Log.Error("load backup failed: ", err, errStr)
-		return errors.Wrap(err, errStr)
+		logger.Log.Error("mysqldump load backup failed: ", err, errStr)
+		// 尝试读取 mysqldump_load.log 里 CRITICAL 关键字
+		grepError := []string{"grep", "-E", "ERROR", logfile, "|", "tail", "-5"}
+		errStrPrefix := fmt.Sprintf("tail 5 error from %s", logfile)
+		errStrDetail, _, _ := cmutil.ExecCommand(true, "", grepError[0], grepError[1:]...)
+		if len(strings.TrimSpace(errStr)) > 0 {
+			logger.Log.Info(errStrPrefix)
+			logger.Log.Error(errStrDetail)
+		} else {
+			logger.Log.Warn("can not find more detail error message from ", logfile)
+		}
+		return errors.WithMessagef(err, fmt.Sprintf("%s: %s\n%s", errStr, errStrPrefix, errStrDetail))
 	}
 	logger.Log.Info("load backup success: ", outStr)
 	return nil

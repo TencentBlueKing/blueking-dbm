@@ -23,7 +23,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -81,35 +80,10 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 			fmt.Sprintf("--defaults-file=%s", l.cnf.LogicalBackup.DefaultsFile),
 		}...)
 	}
-	if l.cnf.LogicalBackup.GetFilterType() == config.FilterTypeForm {
-		tables := l.cnf.LogicalBackup.Tables
-		databases := l.cnf.LogicalBackup.Databases
-		excludeDatabases := l.cnf.LogicalBackup.ExcludeDatabases
-		excludeTables := l.cnf.LogicalBackup.ExcludeTables
-		if tables == "" {
-			tables = "*"
-		}
-		if databases == "" {
-			databases = "*"
-		}
-		if excludeTables == "" && excludeDatabases != "" {
-			excludeTables = "*"
-		}
-		dbList := strings.Split(databases, ",")
-		tbList := strings.Split(tables, ",")
-		dbListExclude := strings.Split(excludeDatabases, ",")
-		tbListExclude := strings.Split(excludeTables, ",")
-		filter, err := db_table_filter.BuildMydumperRegex(dbList, tbList, dbListExclude, tbListExclude)
-		if err != nil {
-			return err
-		}
-		regexStr := filter.TableFilterRegex()
-		args = append(args, []string{"-x", fmt.Sprintf(`'%s'`, regexStr)}...)
-		logger.Log.Error("mydumper regex: ", regexStr)
-	} else if l.cnf.LogicalBackup.Regex != "" { // l.cnf.LogicalBackup.GetFilterType() == "regex"
-		args = append(args, []string{"-x", fmt.Sprintf(`'%s'`, l.cnf.LogicalBackup.Regex)}...)
-	} else { // if l.cnf.LogicalBackup.GetFilterType() == config.FilterTypeTablesList
-		return errors.Errorf("unsupport filter type '%s' yet", l.cnf.LogicalBackup.GetFilterType())
+	if tableFilter, err := l.cnf.LogicalBackup.BuildArgsTableFilterForMydumper(); err != nil {
+		return err
+	} else {
+		args = append(args, tableFilter...)
 	}
 
 	if l.cnf.Public.DataSchemaGrant == "" {

@@ -42,6 +42,8 @@ var allPriv = []string{"ALL PRIVILEGES"}
 var ywUserPriv = []string{"SELECT", "CREATE", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT"}
 var backupUserPriv = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",
 	"TRIGGER", "EVENT", "SUPER"}
+
+// performance_schema.log_status
 var backupUserPriv80 = []string{"SELECT", "RELOAD", "PROCESS", "SHOW DATABASES", "REPLICATION CLIENT", "SHOW VIEW",
 	"TRIGGER", "EVENT", "SUPER", "BACKUP_ADMIN"} // SUPER is deprecated
 var replUserPriv = []string{"REPLICATION SLAVE", "REPLICATION CLIENT"}
@@ -222,7 +224,7 @@ type MySQLDbBackupAccount struct {
 func (m MySQLDbBackupAccount) GetAccountPrivs(ver string, grantHosts ...string) MySQLAccountPrivs {
 	var isMysql80 = cmutil.MySQLVersionParse(ver) >= cmutil.MySQLVersionParse("8.0") &&
 		!strings.Contains(ver, "tspider")
-	logger.Info("mysql version", ver, ", is >=8.0 : ", isMysql80)
+	logger.Info("mysql version %s >=8.0: %v", ver, isMysql80)
 	privPairs := []PrivPari{
 		{Object: "*.*", Privs: backupUserPriv},
 		{

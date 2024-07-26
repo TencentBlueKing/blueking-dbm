@@ -26,7 +26,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		_, _ = os.Stderr.WriteString(err.Error() + "\n")
+		// todo try to kill child process(mydumper / myloader / xtrabackup)
 		os.Exit(1)
 	}
 }

@@ -22,7 +22,6 @@ func SetDefaults() {
 	viper.SetDefault("Public.TarSizeThreshold", 8192)
 	viper.SetDefault("Public.IOLimitMBPerSec", 300)
 	viper.SetDefault("Public.IOLimitMasterFactor", 0.5)
-	viper.SetDefault("LogicalBackup.UseMysqldump", cst.LogicalMysqldumpAuto)
 	viper.SetDefault("Public.BackupDir", "/data/dbbak")
 	viper.SetDefault("Public.MysqlCharset", "binary")
 	viper.SetDefault("Public.BackupTimeOut", "09:00:01")
@@ -31,4 +30,5 @@ func SetDefaults() {
 	viper.SetDefault("PhysicalBackup.DisableSlaveMultiThread", false)
 	viper.SetDefault("LogicalBackup.Threads", 4)
 	viper.SetDefault("LogicalBackup.InsertMode", "insert")
+	viper.SetDefault("LogicalBackup.UseMysqldump", cst.LogicalMysqldumpAuto)
 }

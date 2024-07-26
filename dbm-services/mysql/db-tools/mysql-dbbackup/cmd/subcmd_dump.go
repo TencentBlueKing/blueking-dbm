@@ -31,24 +31,46 @@ import (
 )
 
 func init() {
-	dumpCmd.Flags().String("backup-id", "", "overwrite Public.BackupId")
-	dumpCmd.Flags().String("bill-id", "", "overwrite Public.BillId")
-	dumpCmd.Flags().String("backup-type", cst.BackupLogical, "overwrite Public.BackupType")
-	dumpCmd.Flags().Int("shard-value", -1, "overwrite Public.ShardValue")
-	dumpCmd.Flags().Bool("nocheck-diskspace", false, "overwrite Public.NoCheckDiskSpace")
-	dumpCmd.Flags().String("backup-file-tag", "", "overwrite BackupClient.FileTag")
-	_ = viper.BindPFlag("Public.BackupId", dumpCmd.Flags().Lookup("backup-id"))
-	_ = viper.BindPFlag("Public.BillId", dumpCmd.Flags().Lookup("bill-id"))
+	dumpCmd.Flags().String("backup-type", cst.BackupTypeAuto, "overwrite Public.BackupType")
 	_ = viper.BindPFlag("Public.BackupType", dumpCmd.Flags().Lookup("backup-type"))
-	_ = viper.BindPFlag("Public.ShardValue", dumpCmd.Flags().Lookup("shard-value"))
-	_ = viper.BindPFlag("Public.NoCheckDiskSpace", dumpCmd.Flags().Lookup("nocheck-diskspace"))
-	_ = viper.BindPFlag("BackupClient.FileTag", dumpCmd.Flags().Lookup("backup-file-tag"))
 
-	//dumpCmd.Flags().SetAnnotation("backup-type", "Public.BackupType", []string{"logical", "physical"})
+	dumpCmd.PersistentFlags().String("backup-id", "", "overwrite Public.BackupId")
+	dumpCmd.PersistentFlags().String("bill-id", "", "overwrite Public.BillId")
+	dumpCmd.PersistentFlags().Int("shard-value", -1, "overwrite Public.ShardValue")
+	dumpCmd.PersistentFlags().Bool("nocheck-diskspace", false, "overwrite Public.NoCheckDiskSpace")
+	dumpCmd.PersistentFlags().Bool("backup-client", false, "enable backup-client, overwrite BackupClient.Enable")
+	dumpCmd.PersistentFlags().String("backup-file-tag", "", "overwrite BackupClient.FileTag")
+	_ = viper.BindPFlag("Public.BackupId", dumpCmd.PersistentFlags().Lookup("backup-id"))
+	_ = viper.BindPFlag("Public.BillId", dumpCmd.PersistentFlags().Lookup("bill-id"))
+	_ = viper.BindPFlag("Public.ShardValue", dumpCmd.PersistentFlags().Lookup("shard-value"))
+	_ = viper.BindPFlag("Public.NoCheckDiskSpace", dumpCmd.PersistentFlags().Lookup("nocheck-diskspace"))
+	_ = viper.BindPFlag("BackupClient.Enable", dumpCmd.PersistentFlags().Lookup("backup-client"))
+	_ = viper.BindPFlag("BackupClient.FileTag", dumpCmd.PersistentFlags().Lookup("backup-file-tag"))
 
-	dumpCmd.Flags().StringSliceP("config", "c",
+	dumpCmd.PersistentFlags().String("data-schema-grant", "", "all|schema|data|grant, overwrite Public.DataSchemaGrant")
+	dumpCmd.PersistentFlags().String("backup-dir", "/data/dbbak", "backup root path to save, overwrite Public.BackupDir")
+	dumpCmd.PersistentFlags().String("cluster-domain", "", "cluster domain to report, overwrite Public.ClusterAddress")
+	viper.BindPFlag("Public.DataSchemaGrant", dumpCmd.PersistentFlags().Lookup("data-schema-grant"))
+	viper.BindPFlag("Public.BackupDir", dumpCmd.PersistentFlags().Lookup("backup-dir"))
+	viper.BindPFlag("Public.ClusterAddress", dumpCmd.PersistentFlags().Lookup("cluster-domain"))
+	//dumpCmd.PersistentFlags().SetAnnotation("backup-type", "Public.BackupType", []string{"logical", "physical"})
+
+	// Connection Options
+	dumpCmd.PersistentFlags().StringP("host", "h", "", "The host to connect to, overwrite Public.MysqlHost")
+	dumpCmd.PersistentFlags().IntP("port", "P", 3306, "TCP/IP port to connect to, overwrite Public.MysqlPort")
+	dumpCmd.PersistentFlags().StringP("user", "u", "", "Username with the necessary privileges, "+
+		"overwrite Public.MysqlUser")
+	dumpCmd.PersistentFlags().StringP("password", "p", "", "User password, overwrite Public.MysqlPasswd")
+	viper.BindPFlag("Public.MysqlHost", dumpCmd.PersistentFlags().Lookup("host"))
+	viper.BindPFlag("Public.MysqlPort", dumpCmd.PersistentFlags().Lookup("port"))
+	viper.BindPFlag("Public.MysqlUser", dumpCmd.PersistentFlags().Lookup("user"))
+	viper.BindPFlag("Public.MysqlPasswd", dumpCmd.PersistentFlags().Lookup("password"))
+
+	dumpCmd.PersistentFlags().StringSliceP("config", "c",
 		[]string{}, "config files to backup, comma separated. (required)")
 	_ = dumpCmd.MarkFlagRequired("config")
+
+	dumpCmd.AddCommand(dumpLogicalCmd)
 }
 
 var dumpCmd = &cobra.Command{
@@ -91,7 +113,7 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	if err = logger.InitLog("dbbackup_dump.log"); err != nil {
 		return err
 	}
-	cnfFiles, _ := cmd.Flags().GetStringSlice("config")
+	cnfFiles, _ := cmd.PersistentFlags().GetStringSlice("config") // PersistentFlags global flags
 	if len(cnfFiles) == 0 {
 		if cnfFiles, err = filepath.Glob("dbbackup.*.ini"); err != nil {
 			return err

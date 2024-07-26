@@ -44,8 +44,11 @@ func (l *LogicalLoader) CreateConfigFile() error {
 		IndexFilePath: p.IndexFilePath,
 		Threads:       cpuCores,
 		EnableBinlog:  p.EnableBinlog,
-		Regex:         l.myloaderRegex,
+		TableFilter: config.TableFilter{
+			Regex: l.myloaderRegex,
+		},
 	}
+
 	if loaderConfig.MysqlCharset == "" {
 		loaderConfig.MysqlCharset = "binary"
 	}
