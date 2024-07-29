@@ -149,8 +149,10 @@ func (config *PartitionConfig) GetDbTableInfo(fromCron bool, host Host) (ptlist 
 			// (1)兼容【分区字段为空】的历史问题，对于某些特殊的分区类型，旧系统已经不在页面上支持，所以旧系统有意将分区字段留空，
 			// 		使其无法在页面编辑，避免改变了其他所属分区类别，因此无法核对比较，但不影响新增和删除分区。
 			// (2)兼容web业务的特殊定制类型，分区字段类型为int，但是系统记录为timestamp，因此无法核对比较，但不影响新增和删除分区。
+			// (3)兼容minigame业务的特殊定制类型，分区类型为0，但是实际定义与分区类型存在差异，因此无法核对比较，但不影响新增和删除分区。
 			webCustomization := config.BkBizId == 159 && config.PartitionColumn == "Fcreate_time"
-			if config.PartitionColumn != "" && !webCustomization {
+			minigameCustomization := config.BkBizId == 121 && config.ImmuteDomain == "gamedb.game-record.minigame.db"
+			if config.PartitionColumn != "" && !webCustomization && !minigameCustomization {
 				// 分区表至少会有一个分区
 				for _, v := range output.CmdResults[0].TableData {
 					// 如果发现分区字段、分区间隔与规则不符合，需要重新做分区，页面调整了分区规则
@@ -460,7 +462,7 @@ func (m *ConfigDetail) GetAddPartitionSql(host Host) (string, error) {
 		wantedDesc = "partition_description as WANTED_DESC,"
 		wantedName = fmt.Sprintf(`DATE_FORMAT(from_days(PARTITION_DESCRIPTION-%d),'%%Y%%m%%d')  as WANTED_NAME`, diff)
 		wantedDescIfOld = fmt.Sprintf(`(TO_DAYS(now())+%d) as WANTED_DESC,`, diff)
-		wantedNameIfOld = "DATE_FORMAT(now(),'%Y%m%d')  as wanted_name"
+		wantedNameIfOld = "DATE_FORMAT(now(),'%Y%m%d')  as WANTED_NAME"
 	case 1:
 		descKey = "in"
 		fx = "TO_DAYS(now())"
@@ -540,9 +542,9 @@ func (m *ConfigDetail) GetAddPartitionSql(host Host) (string, error) {
 		slog.Warn(fmt.Sprintf(
 			"%s.%s is a partitioned table, but existed partitions are too old, do not contain today's data.", m.DbName,
 			m.TbName))
-	}
-	name = output.CmdResults[0].TableData[0]["WANTED_NAME"].(string)
-	if len(output.CmdResults[0].TableData) != 0 {
+		name = output.CmdResults[0].TableData[0]["WANTED_NAME"].(string)
+	} else {
+		name = output.CmdResults[0].TableData[0]["WANTED_NAME"].(string)
 		current := strings.TrimPrefix(output.CmdResults[0].TableData[0]["PARTITION_NAME"].(string), "p")
 		formatDate, err := time.Parse("20060102", name)
 		if err != nil {

@@ -31,7 +31,8 @@ def mysql_check_partition():
     mysql巡检分区执行日志
     """
     try:
-        logs = DBPartitionApi.check_log()
+        para = {"days": 1}
+        logs = DBPartitionApi.check_log(para)
     except Exception as e:  # pylint: disable=broad-except
         logger.error(_("分区服务check_log接口异常: {}").format(e))
         return

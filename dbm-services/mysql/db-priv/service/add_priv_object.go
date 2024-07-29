@@ -20,19 +20,6 @@ type PrivTaskPara struct {
 	TargetInstances []string         `json:"target_instances"`
 }
 
-/*
-// Instance GetClusterInfo 函数返回的结构体
-type Instance struct {
-	Proxies     []Proxy   `json:"proxies"`
-	Storages    []Storage `json:"storages"`
-	ClusterType string    `json:"cluster_type"`
-	BkBizId     int64     `json:"bk_biz_id"`
-	DbModuleId  int64     `json:"db_module_id"`
-	BindTo      string    `json:"bind_to"`
-	BkCloudId   int64     `json:"bk_cloud_id"`
-}
-*/
-
 // Instance GetCluster 函数返回的结构体
 type Instance struct {
 	Proxies      []Proxy   `json:"proxies"`
