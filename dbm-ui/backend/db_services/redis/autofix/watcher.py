@@ -19,6 +19,7 @@ from django.utils.crypto import get_random_string
 from backend.components.hadb.client import HADBApi
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
+from backend.db_meta.enums import ClusterType
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.utils.time import datetime2timestamp
 
@@ -69,19 +70,17 @@ def watcher_get_by_hosts() -> (int, dict):
             if not cluster:
                 logger.info("will ignore got none cluster info by ip {}".format(switch_ip))
                 continue
-            elif len(cluster) > 1:
-                logger.info("will ignore got two+ cluster info by ip {} : {}".format(switch_ip, cluster))
-                continue
-            one_cluster = cluster[0]
-
+            one_cluster, all_ports = cluster[0], []
+            for cls_obj in cluster:
+                all_ports.extend(cls_obj["cs_ports"])
             switch_hosts[switch_ip] = RedisSwitchHost(
                 bk_biz_id=one_cluster["bk_biz_id"],
                 cluster_id=one_cluster["cluster_id"],
-                immute_domain=one_cluster["cluster"],
+                immute_domain=";".join([cls_obj["cluster"] for cls_obj in cluster]),
                 cluster_type=one_cluster["cluster_type"],
                 instance_type=one_cluster["instance_role"],
                 bk_host_id=one_cluster["bk_host_id"],
-                cluster_ports=one_cluster["cs_ports"],
+                cluster_ports=all_ports,
                 ip=switch_ip,
                 switch_ports=[],
                 sw_max_id=0,
@@ -89,6 +88,7 @@ def watcher_get_by_hosts() -> (int, dict):
                 ignore_fix=False,
                 sw_result={},
             )
+
         current_host = switch_hosts[switch_ip]
         current_host.switch_ports.append(switch_inst["port"])
         if not current_host.sw_result.get(switch_inst["status"]):
@@ -208,6 +208,8 @@ def save_swithed_host_by_cluster(batch_small: int, switch_hosts: Dict):
     for swiched_host in switch_hosts.values():
         if swiched_host.sw_max_id < batch_small and not swiched_host.ignore_fix:
             cluster = swiched_host.immute_domain
+            if swiched_host.cluster_type == ClusterType.TendisRedisInstance.value:
+                cluster = swiched_host.ip  # 主从集群 ； 用机器来聚合
             if not switched_cluster.get(cluster):
                 switched_cluster[cluster] = {
                     "bk_biz_id": swiched_host.bk_biz_id,
