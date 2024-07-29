@@ -19,7 +19,7 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.40
+  version: 0.1.41
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.13
@@ -56,5 +56,5 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:211cbc86c01848d761b86c87dd7b06d4420f47d14b27597bdbf5a879d8afe11b
-generated: "2024-07-23T20:18:54.846506+08:00"
+digest: sha256:8579111c843172c7a673000c2ea5670af11a1ce2246cedb4dce2be50f7882143
+generated: "2024-07-29T20:45:35.237228+08:00"
