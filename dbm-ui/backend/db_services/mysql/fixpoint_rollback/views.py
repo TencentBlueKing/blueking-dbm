@@ -106,12 +106,10 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         limit, offset = validated_data["limit"], validated_data["offset"]
 
         # 查询目前定点回档临时集群
-        temp_clusters = Cluster.objects.filter(
-            cluster_type=ClusterType.TenDBCluster, tag__name=SystemTagEnum.TEMPORARY
-        )
-        temp_clusters_count = temp_clusters.count()
+        tmp_clusters = Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster, tag__name=SystemTagEnum.TEMPORARY)
+        tmp_clusters_count = tmp_clusters.count()
         # 查询定点回档记录
-        temp_clusters = temp_clusters[offset : limit + offset]
+        temp_clusters = tmp_clusters[offset : limit + offset]
         temp_cluster_ids = [cluster.id for cluster in temp_clusters]
         records = ClusterOperateRecord.objects.select_related("ticket").filter(
             cluster_id__in=temp_cluster_ids, ticket__ticket_type=TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER
@@ -119,7 +117,8 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         # 填充定点回档实例记录
         fixpoint_logs: List[Dict[str, Any]] = []
         for record in records:
-            ticket_data = record.ticket.details
+            ticket_data = record.ticket.details["infos"][0]
+            clusters = record.ticket.details["clusters"]
             target_cluster = Cluster.objects.get(id=record.cluster_id)
             fixpoint_logs.append(
                 {
@@ -127,10 +126,10 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
                     "databases_ignore": ticket_data["databases_ignore"],
                     "tables": ticket_data["tables"],
                     "tables_ignore": ticket_data["tables_ignore"],
-                    "source_cluster": ticket_data["clusters"][str(ticket_data["cluster_id"])],
+                    "source_cluster": clusters[str(ticket_data["cluster_id"])],
                     "target_cluster": {
                         "cluster_id": record.cluster_id,
-                        "nodes": ticket_data["nodes"],
+                        "nodes": ticket_data["rollback_host"],
                         "status": target_cluster.status,
                         "phase": target_cluster.phase,
                         "operations": ClusterOperateRecord.objects.get_cluster_operations(record.cluster_id),
@@ -142,4 +141,4 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
                 }
             )
 
-        return Response({"count": temp_clusters_count, "results": fixpoint_logs})
+        return Response({"count": tmp_clusters_count, "results": fixpoint_logs})
