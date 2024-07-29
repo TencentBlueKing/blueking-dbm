@@ -2,8 +2,10 @@ package atomredis
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -108,6 +110,40 @@ func (job *RedisInstall) Name() string {
 
 // Run 执行
 func (job *RedisInstall) Run() (err error) {
+	// 增加文件锁
+	lockFileName := fmt.Sprintf("%s/%s", consts.PackageSavePath, "redis_install.lock")
+	fl := util.NewFileLock(lockFileName)
+	runTimes := 0
+	startTime := time.Now()
+	dur := 30 * time.Minute
+	timer := time.NewTimer(dur)
+
+	sleepTime := time.Duration(rand.Intn(10)+1) * time.Second
+	time.Sleep(sleepTime)
+	// 如果持续半个小时都没拿到锁就认为任务失败了
+	for {
+		err := fl.TryFileLock()
+		if err == nil {
+			job.runtime.Logger.Info("get file lock:%s success, will install redis port %+v",
+				lockFileName, job.params.Ports)
+			break
+		}
+
+		select {
+		case <-timer.C:
+			return errors.New("the task has been executed for more than 30 minutes")
+		default:
+			runTimes++
+			sleepTime := time.Duration(rand.Intn(5)+5) * time.Second
+			job.runtime.Logger.Info("job ports %+v get file lock err:%+v. run %d times and takes %v. "+
+				"will sleep %d second",
+				job.params.Ports, lockFileName, err, runTimes, time.Since(startTime), int(sleepTime)/1000000000)
+
+			time.Sleep(sleepTime)
+		}
+	}
+	defer fl.ReleaseFileLock()
+
 	err = job.UntarMedia()
 	if err != nil {
 		return
