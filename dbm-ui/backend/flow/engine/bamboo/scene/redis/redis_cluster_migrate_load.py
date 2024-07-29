@@ -828,7 +828,7 @@ class RedisInsMigrateLoadFlow(object):
                             "bk_biz_id": self.data["bk_biz_id"],
                             "bk_cloud_id": self.data["bk_cloud_id"],
                             "server_ip": slave_ip,
-                            "server_ports": ins["backends"]["master"]["port"],
+                            "server_ports": [ins["backends"]["master"]["port"]],
                             "cluster_domain": ins["clusterinfo"]["immute_domain"],
                             "cluster_type": ins["clusterinfo"]["cluster_type"],
                             "meta_role": InstanceRole.REDIS_SLAVE.value,
