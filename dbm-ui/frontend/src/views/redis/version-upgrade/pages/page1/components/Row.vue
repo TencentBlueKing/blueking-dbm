@@ -28,6 +28,7 @@
     </td>
     <td style="padding: 0">
       <RenderNodeType
+        :cluster-type="data.clusterType"
         :data="data.nodeType"
         @change="handleNodeTypeChange" />
     </td>
