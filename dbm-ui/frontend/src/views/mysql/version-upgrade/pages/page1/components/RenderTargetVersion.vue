@@ -411,13 +411,11 @@
         const currentVersion = versionItem.version.match(versionRegex)![0];
         packageSelectList.value = packageList.reduce((prevList, versionItem) => {
           if (versionItem.name.includes(currentVersion)) {
-            return [
-              ...prevList,
-              {
-                id: versionItem.id,
-                name: versionItem.name,
-              },
-            ];
+            prevList.push({
+              id: versionItem.id,
+              name: versionItem.name,
+            });
+            return prevList;
           }
           return prevList;
         }, [] as IListItem[]);
