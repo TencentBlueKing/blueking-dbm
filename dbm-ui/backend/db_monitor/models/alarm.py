@@ -80,7 +80,11 @@ class NoticeGroup(AuditedModel):
         if kwargs:
             qs = qs.filter(**kwargs)
 
-        return list(qs.values_list("monitor_group_id", flat=True))
+        # 根据 group_ids 排序 返回 monitor_group_id 列表
+        id_monitor_group_id_map = {
+            item["id"]: item["monitor_group_id"] for item in qs.values("id", "monitor_group_id")
+        }
+        return [id_monitor_group_id_map[group_id] for group_id in group_ids]
 
     @classmethod
     def get_groups(cls, bk_biz_id, id_name="monitor_group_id") -> dict:
@@ -813,11 +817,9 @@ class MonitorPolicy(AuditedModel):
         super().save(force_insert, force_update, using, update_fields)
 
     def delete(self, using=None, keep_parents=False):
-        # if self.bk_biz_id == PLAT_BIZ_ID:
-        #     raise BuiltInNotAllowDeleteException
-
+        """删除策略的同时，同步删除监控策略"""
         if self.monitor_policy_id:
-            bkm_delete_alarm_strategy(self.bk_biz_id, self.monitor_policy_id)
+            bkm_delete_alarm_strategy(self.monitor_policy_id)
 
         super().delete(using, keep_parents)
 
