@@ -101,4 +101,6 @@ def is_support_redis_auotfix(cluster_type: str) -> bool:
         ClusterType.TendisTwemproxyRedisInstance.value,
         ClusterType.TwemproxyTendisSSDInstance.value,
         ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisRedisInstance.value,
+        ClusterType.TendisRedisCluster.value,
     ]

@@ -42,11 +42,13 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     RedisMakeSyncAtomJob,
     StorageRepLink,
 )
+from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.exec_shell_script import ExecuteShellReloadMetaComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_ticket import RedisTicketComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import get_cache_backup_mode, get_twemproxy_cluster_server_shards
@@ -66,7 +68,7 @@ class RedisClusterAutoFixSceneFlow(object):
         "ticket_type":"REDIS_CLUSTER_AUTOFIX",
         "infos": [
             {
-            "cluster_id": 1,
+            "cluster_ids": [1,2],
             "proxy": [
                    {"ip": "1.1.1.a","spec_id": 17,
                   "target": {"bk_cloud_id": 0,"bk_host_id": 216,"status": 1,"ip": "2.2.2.b"}
@@ -131,6 +133,11 @@ class RedisClusterAutoFixSceneFlow(object):
         else:
             servers = redis_master_set + redis_slave_set
 
+        proxy_port, proxy_ips = 0, []
+        if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+            proxy_port = cluster.proxyinstance_set.first().port
+            proxy_ips = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
+
         return {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": str(cluster.bk_biz_id),
@@ -141,8 +148,8 @@ class RedisClusterAutoFixSceneFlow(object):
             "slave_ports": dict(slave_ports),
             "slave_ins_map": dict(slave_ins_map),
             "slave_master_map": dict(slave_master_map),
-            "proxy_port": cluster.proxyinstance_set.first().port,
-            "proxy_ips": [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()],
+            "proxy_port": proxy_port,
+            "proxy_ips": proxy_ips,
             "db_version": cluster.major_version,
             "backend_servers": servers,
         }
@@ -192,21 +199,22 @@ class RedisClusterAutoFixSceneFlow(object):
         redis_pipeline, act_kwargs = self.__init_builder(_("REDIS-故障自愈"))
         sub_pipelines = []
         for cluster_fix in self.data["infos"]:
-            cluster_kwargs = deepcopy(act_kwargs)
-            cluster_info = self.get_cluster_info(self.data["bk_biz_id"], cluster_fix["cluster_id"])
-            flow_data = self.data
-            for k, v in cluster_info.items():
-                cluster_kwargs.cluster[k] = v
-            cluster_kwargs.cluster["created_by"] = self.data["created_by"]
-            flow_data["fix_info"] = cluster_fix
-            redis_pipeline.add_act(
-                act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
-                act_component_code=GetRedisActPayloadComponent.code,
-                kwargs=asdict(cluster_kwargs),
-            )
-            sub_pipelines.append(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
+            for cluster_id in cluster_fix["cluster_ids"]:
+                cluster_kwargs = (deepcopy(act_kwargs),)
+                cluster_info = self.get_cluster_info(self.data["bk_biz_id"], cluster_id)
+                flow_data = self.data
+                for k, v in cluster_info.items():
+                    cluster_kwargs.cluster[k] = v
+                cluster_kwargs.cluster["created_by"] = self.data["created_by"]
+                flow_data["fix_info"] = cluster_fix
+                redis_pipeline.add_act(
+                    act_name=_("初始化配置-{}".format(cluster_info["immute_domain"])),
+                    act_component_code=GetRedisActPayloadComponent.code,
+                    kwargs=asdict(cluster_kwargs),
+                )
+                sub_pipelines.append(self.cluster_fix(flow_data, cluster_kwargs, cluster_fix))
 
-        redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
+            redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         return redis_pipeline.run_pipeline()
 
     # 组装&控制 集群替换流程
@@ -357,6 +365,8 @@ class RedisClusterAutoFixSceneFlow(object):
         for fix_link in slave_fix_detail:
             old_slave, new_slave = fix_link["ip"], fix_link["target"]["ip"]
             new_ins_port = DEFAULT_REDIS_START_PORT
+            if sub_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+                new_ins_port = min(sub_kwargs.cluster["slave_ports"][old_slave])
             old_ports = sub_kwargs.cluster["slave_ports"][old_slave]
             old_ports.sort()  # 升序
             for port in old_ports:
@@ -493,6 +503,19 @@ class RedisClusterAutoFixSceneFlow(object):
             )
         # predixy类型的集群需要刷新配置文件 ######################################################## 完毕 ###
 
+        # 主从版本需要 刷新bkdbmon ########################################################
+        if sub_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+            for fix_link in slave_fix_detail:
+                new_slave = fix_link["target"]["ip"]
+                sub_kwargs.exec_ip = new_slave
+                sub_kwargs.cluster["ip"] = new_slave
+                sub_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+                sub_pipeline.add_act(
+                    act_name=_("{}-刷新监控").format(new_slave),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(sub_kwargs),
+                )
+
         # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
         old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
         sub_pipeline.add_act(
@@ -523,17 +546,18 @@ class RedisClusterAutoFixSceneFlow(object):
 
     def precheck_for_instance_fix(self):
         for cluster_fix in self.data["infos"]:
-            try:
-                cluster = Cluster.objects.get(id=cluster_fix["cluster_id"], bk_biz_id=self.data["bk_biz_id"])
-            except Cluster.DoesNotExist as e:
-                raise Exception("redis cluster does not exist,{}", e)
-            # check proxy
-            for proxy in cluster_fix.get("proxy", []):
-                if not cluster.proxyinstance_set.filter(machine__ip=proxy["ip"]):
-                    raise Exception("proxy {} does not exist in cluster {}", proxy["ip"], cluster.immute_domain)
-            # check slave
-            for slave in cluster_fix.get("redis_slave", []):
-                if not cluster.storageinstance_set.filter(
-                    machine__ip=slave["ip"], instance_role=InstanceRole.REDIS_SLAVE.value
-                ):
-                    raise Exception("slave {} does not exist in cluster {}", slave["ip"], cluster.immute_domain)
+            for cluster_id in cluster_fix["cluster_ids"]:
+                try:
+                    cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=self.data["bk_biz_id"])
+                except Cluster.DoesNotExist as e:
+                    raise Exception("redis cluster does not exist,{}", e)
+                # check proxy
+                for proxy in cluster_fix.get("proxy", []):
+                    if not cluster.proxyinstance_set.filter(machine__ip=proxy["ip"]):
+                        raise Exception("proxy {} does not exist in cluster {}", proxy["ip"], cluster.immute_domain)
+                # check slave
+                for slave in cluster_fix.get("redis_slave", []):
+                    if not cluster.storageinstance_set.filter(
+                        machine__ip=slave["ip"], instance_role=InstanceRole.REDIS_SLAVE.value
+                    ):
+                        raise Exception("slave {} does not exist in cluster {}", slave["ip"], cluster.immute_domain)

@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import datetime
 import json
 import logging
+import traceback
 
 from django.db.models import QuerySet
 from django.utils import timezone
@@ -19,7 +20,8 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
-from backend.db_meta.enums import MachineType
+from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
+from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.redis.util import is_support_redis_auotfix
@@ -51,7 +53,7 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             continue
 
         fault_machines = json.loads(cluster.fault_machines)
-        redis_proxies, redis_slaves = [], []
+        redis_proxies, redis_slaves, cluster_ids = [], [], [cluster.cluster_id]
         for fault_machine in fault_machines:
             fault_ip = fault_machine["ip"]
             fault_obj = Machine.objects.filter(ip=fault_ip, bk_biz_id=cluster.bk_biz_id).get()
@@ -59,6 +61,10 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
             if fault_machine["instance_type"] in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
                 redis_proxies.append(fault_info)
             else:
+                if fault_obj.cluster_type == ClusterType.TendisRedisInstance.value:
+                    clusters = query_cluster_by_hosts(hosts=[fault_ip])
+                    cluster_ids = [cls_obj["cluster_id"] for cls_obj in clusters]
+                    cluster.immute_domain = ";".join([cls_obj["cluster"] for cls_obj in clusters])
                 redis_slaves.append(fault_info)
 
         logger.info(
@@ -66,24 +72,31 @@ def generate_autofix_ticket(fault_clusters: QuerySet):
                 cluster.immute_domain, redis_proxies, redis_slaves
             )
         )
-        create_ticket(cluster, redis_proxies, redis_slaves)
+        create_ticket(cluster, cluster_ids, redis_proxies, redis_slaves)
 
 
-def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: list):
+def create_ticket(cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: list, redis_slaves: list):
     details = {
         "ip_source": IpSource.RESOURCE_POOL.value,
         "infos": [
             {
-                "cluster_id": cluster.cluster_id,
+                "cluster_ids": cluster_ids,
                 "immute_domain": cluster.immute_domain,
                 "bk_cloud_id": cluster.bk_cloud_id,
+                "bk_biz_id": cluster.bk_biz_id,
                 "proxy": redis_proxies,
                 "redis_slave": redis_slaves,
             }
         ],
     }
     logger.info("create ticket for cluster {} , details : {}".format(cluster.immute_domain, details))
-    redisDBA = DBAdministrator.objects.get(bk_biz_id=cluster.bk_biz_id, db_type=DBType.Redis.value)
+
+    try:
+        redisDBA = DBAdministrator.objects.get(bk_biz_id=cluster.bk_biz_id, db_type=DBType.Redis.value)
+    except DBAdministrator.DoesNotExist:
+        # 如果不存在，则取默认值
+        redisDBA = DBAdministrator.objects.get(bk_biz_id=0, db_type=DBType.Redis.value)
+
     ticket = Ticket.objects.create(
         creator=redisDBA.users[0],
         bk_biz_id=cluster.bk_biz_id,
@@ -95,15 +108,25 @@ def create_ticket(cluster: RedisAutofixCore, redis_proxies: list, redis_slaves: 
         is_reviewed=True,
     )
 
-    # 初始化builder类
-    builder = BuilderFactory.create_builder(ticket)
-    builder.patch_ticket_detail()
-    builder.init_ticket_flows()
-
     cluster.ticket_id = ticket.id
     cluster.status_version = get_random_string(12)
-    cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
     cluster.deal_status = AutofixStatus.AF_WFLOW.value
-    cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
 
-    TicketFlowManager(ticket=ticket).run_next_flow()
+    # 初始化builder类
+    try:
+        builder = BuilderFactory.create_builder(ticket)
+        builder.patch_ticket_detail()
+        builder.init_ticket_flows()
+        TicketFlowManager(ticket=ticket).run_next_flow()
+    except Exception as e:
+        cluster.deal_status = AutofixStatus.AF_FAIL.value
+        cluster.status_version = str(e)
+        logger.error(
+            "create ticket for cluster {} failed, details : {}::{}".format(
+                cluster.immute_domain, details, traceback.format_exc()
+            )
+        )
+
+    logger.info("create ticket for cluster {} failed, details : {}".format(cluster.immute_domain, details))
+    cluster.update_at = datetime2str(datetime.datetime.now(timezone.utc))
+    cluster.save(update_fields=["ticket_id", "status_version", "deal_status", "update_at"])
