@@ -31,7 +31,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, Downloa
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.spider.spider_db_meta import SpiderDBMeta
 from backend.flow.utils.spider.tendb_cluster_info import get_rollback_clusters_info
-from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.utils.time import str2datetime
 
 logger = logging.getLogger("flow")
@@ -57,7 +56,9 @@ class TenDBRollBackDataFlow(object):
         tendb rollback data
         增加单据临时ADMIN账号的添加和删除逻辑
         """
-        cluster_ids = fetch_cluster_ids(self.ticket_data["infos"])
+        cluster_ids = [i["source_cluster_id"] for i in self.ticket_data["infos"]]
+        cluster_desc = [i["target_cluster_id"] for i in self.ticket_data["infos"]]
+        cluster_ids.extend(cluster_desc)
         tendb_rollback_pipeline_all = Builder(
             root_id=self.root_id,
             data=copy.deepcopy(self.ticket_data),
@@ -70,7 +71,7 @@ class TenDBRollBackDataFlow(object):
             target_cluster = Cluster.objects.get(id=self.data["target_cluster_id"])
             self.data["uid"] = self.ticket_data["uid"]
             self.data["created_by"] = self.ticket_data["created_by"]
-            self.data["bk_biz_id"] = self.ticket_data["bk_biz_id"]
+            self.data["bk_biz_id"] = source_cluster.bk_biz_id
             self.data["bk_cloud_id"] = source_cluster.bk_cloud_id
             self.data["module"] = source_cluster.db_module_id
             self.data["ticket_type"] = self.ticket_data["ticket_type"]
