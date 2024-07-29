@@ -46,15 +46,14 @@
         :label="t('升级类型')"
         property="updateType"
         required>
-        <CardCheckbox
+        <!-- <CardCheckbox
           v-model="formData.updateType"
           :desc="t('适用于小版本升级，如 5.6.1 ->  5.6.2 ')"
           icon="rebuild"
           :title="t('原地升级')"
-          true-value="local" />
+          true-value="local" /> -->
         <CardCheckbox
           v-model="formData.updateType"
-          class="ml-8"
           :desc="t('适用于大版本升级，如 5.6.0 ->  5.7.0')"
           :disabled="formData.roleType === 'singleStorageLayer'"
           :disabled-tooltips="t('单节点仅支持原地升级')"
@@ -145,10 +144,10 @@
       label: t('主从 - 存储层'),
       value: 'haStorageLayer',
     },
-    {
-      label: t('单节点'),
-      value: 'singleStorageLayer',
-    },
+    // {
+    //   label: t('单节点'),
+    //   value: 'singleStorageLayer',
+    // },
   ];
 
   const backupSource = ref('');
@@ -176,7 +175,8 @@
   watch(
     () => formData.roleType,
     () => {
-      formData.updateType = 'local';
+      // formData.updateType = 'local';
+      formData.updateType = 'remote';
     },
   );
 
