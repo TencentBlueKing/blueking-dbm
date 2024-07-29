@@ -124,7 +124,7 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 		slog.Error("query pending execute  check table failed", slog.String("error", err.Error()))
 		return
 	}
-	if count < 10 {
+	if count < 50 {
 		query, args, err := sqlx.In(
 			"insert ignore into tscc_pending_execute_tbl select TABLE_SCHEMA,TABLE_NAME,CREATE_TIME from information_schema.tables where TABLE_SCHEMA not in (?) ", ignoreDbs)
 		if err != nil {
@@ -136,40 +136,35 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 			return msg, err
 		}
 	}
-	finish := time.After(2 * time.Hour)
-	errChan := make(chan struct{}, 1)
-	stopsignal := 0
-	var errCnt int
-	for {
-		select {
-		case <-finish:
-			stopsignal = 1
-			// return "", nil
-		case <-errChan:
-			errCnt++
-			if errCnt >= 100 {
-				return "there are too many exceptions quit ", nil
-			}
-		default:
-			if stopsignal == 1 {
-				slog.Info("the run time has been used up,bye ~")
-				return "", nil
-			}
+	timer := time.NewTimer(2 * time.Hour)
+	errChan := make(chan error, 10)
+	stopChan := make(chan struct{})
+	go func() {
+		for {
 			var tblRows []TsccPendingExecuteTbl
+			var subErrCnt int
 			err = c.ctldb.Select(&tblRows, "select  * from  tscc_pending_execute_tbl limit 500")
 			if err != nil {
 				slog.Error("failed to query the table to be verified", slog.String("error", err.Error()))
+				errChan <- err
 				return
 			}
 			if len(tblRows) < 1 {
-				return "done", nil
+				stopChan <- struct{}{}
+				return
 			}
 			for _, tblRow := range tblRows {
 				var result SchemaCheckResults
 				c.ctldb.Exec("set tc_admin = 1;")
-				err = c.ctldb.Select(&result, fmt.Sprintf("tdbctl check `%s`.`%s`;", tblRow.Db, tblRow.Tbl))
+				err = c.ctldb.Select(&result, fmt.Sprintf("tdbctl check table `%s`.`%s`;", tblRow.Db, tblRow.Tbl))
 				if err != nil {
-					errChan <- struct{}{}
+					errChan <- err
+					subErrCnt++
+					if subErrCnt == len(tblRows) {
+						stopChan <- struct{}{}
+						slog.Error("the batch tabls check table schema all failed")
+						return
+					}
 					slog.Error("exec tdbctl check table failed", slog.String("error", err.Error()))
 					continue
 				}
@@ -181,6 +176,26 @@ func (c *tableSchemaConsistencyCheck) Run() (msg string, err error) {
 				time.Sleep(200 * time.Millisecond)
 			}
 		}
+	}()
+	go func() {
+		totalErrCnt := 0
+		for err := range errChan {
+			slog.Error("check table failed", slog.String("error", err.Error()))
+			totalErrCnt++
+			if totalErrCnt >= 100 {
+				stopChan <- struct{}{}
+			}
+		}
+	}()
+	select {
+	case <-timer.C:
+		slog.Info("check table timeout")
+		timer.Stop()
+		return "check table timeout", nil
+	case <-stopChan:
+		timer.Stop()
+		slog.Info("stop check table")
+		return
 	}
 }
 
