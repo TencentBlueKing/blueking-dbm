@@ -96,6 +96,8 @@ class TenDBRollBackDataFlow(object):
                     raise TendbGetBackupInfoFailedException(
                         message=_("获取实例 {} 的备份信息失败".format(self.data["source_cluster_id"]))
                     )
+            # 将shard id 转换为int类型。TODO: 字段入库后，后端存储是json字段，会自动把key为int --> str。
+            backup_info["remote_node"] = {int(shard_id): info for shard_id, info in backup_info["remote_node"].items()}
 
             # 下发 actuator
             tendb_rollback_pipeline.add_act(

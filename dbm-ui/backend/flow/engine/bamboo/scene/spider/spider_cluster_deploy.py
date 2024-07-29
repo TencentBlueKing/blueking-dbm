@@ -634,7 +634,6 @@ class TenDBClusterApplyFlow(object):
             sub_flow=build_surrounding_apps_sub_flow(
                 bk_cloud_id=int(self.data["bk_cloud_id"]),
                 master_ip_list=list(set([info.instance_tuple.master_ip for info in shard_infos])),
-                slave_ip_list=list(set([info.instance_tuple.slave_ip for info in shard_infos])),
                 root_id=self.root_id,
                 parent_global_data=copy.deepcopy(self.data),
                 is_init=True,

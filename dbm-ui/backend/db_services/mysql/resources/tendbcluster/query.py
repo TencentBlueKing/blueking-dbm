@@ -143,8 +143,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
         spec = kwargs["remote_spec_map"].get(spec_id)
 
         cluster_extra_info = {
-            "cluster_spec": model_to_dict(spec) if spec else {},
-            "cluster_capacity": spec.capacity * machine_pair_cnt if spec else 0,
+            "cluster_spec": model_to_dict(spec) if spec else None,
+            "cluster_capacity": spec.capacity * machine_pair_cnt if spec else None,
             "spider_master": spider[TenDBClusterSpiderRole.SPIDER_MASTER],
             "spider_slave": spider[TenDBClusterSpiderRole.SPIDER_SLAVE],
             "spider_mnt": spider[TenDBClusterSpiderRole.SPIDER_MNT],

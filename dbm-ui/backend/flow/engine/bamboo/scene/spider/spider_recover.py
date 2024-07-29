@@ -131,7 +131,12 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
     """
     sub_pipeline_all = SubBuilder(root_id=root_id, data=ticket_data)
     sub_pipeline_all_list = []
+    instance_check_list = []
     for node in [cluster["new_master"], cluster["new_slave"]]:
+        if node["instance"] in instance_check_list:
+            continue
+
+        instance_check_list.append(node["instance"])
         cluster["rollback_ip"] = node["ip"]
         cluster["rollback_port"] = node["port"]
         backup_info = cluster["backupinfo"]
