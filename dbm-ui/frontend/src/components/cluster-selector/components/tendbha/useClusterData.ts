@@ -36,29 +36,35 @@ export function useClusterData<T>(searchSelectValue: Ref<ISearchValue[]>) {
     current: 1,
     count: 0,
     limit: 10,
+    limitList: [10, 20, 50, 100, 500],
     small: true,
   });
 
-  watch(searchSelectValue, () => {
-    setTimeout(() => {
-      handleChangePage(1);
-    });
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    searchSelectValue,
+    () => {
+      setTimeout(() => {
+        handleChangePage(1);
+      });
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
   /**
    * 获取列表
    */
   const fetchResources = async () => {
     isLoading.value = true;
-    return currentInstance.proxy.getResourceList({
-      bk_biz_id: globalBizsStore.currentBizId,
-      limit: pagination.limit,
-      offset: pagination.limit * (pagination.current - 1),
-      ...getSearchSelectorParams(searchSelectValue.value),
-    })
+    return currentInstance.proxy
+      .getResourceList({
+        bk_biz_id: globalBizsStore.currentBizId,
+        limit: pagination.limit,
+        offset: pagination.limit * (pagination.current - 1),
+        ...getSearchSelectorParams(searchSelectValue.value),
+      })
       .then((res) => {
         pagination.count = res.count;
         tableData.value = res.results;

@@ -40,7 +40,9 @@
             content: t('如忽略_有连接的情况下也会执行'),
             theme: 'dark',
           }"
-          class="ml-6 force-switch" >{{ t('忽略业务连接') }}</span>
+          class="ml-6 force-switch"
+          >{{ t('忽略业务连接') }}</span
+        >
       </div>
     </div>
     <template #action>
@@ -85,13 +87,10 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector, { type TabItem }  from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabItem } from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, {
-    createRowData,
-    type IDataRow,
-  } from './components/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -109,21 +108,23 @@
   const isIgnoreBusinessAccess = ref(false);
   const rowRefs = ref();
   const isShowClusterSelector = ref(false);
-  const isSubmitting  = ref(false);
+  const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
   const bkCloudId = ref<number>();
 
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.clusterName)).length);
-  const selectedClusters = shallowRef<{[key: string]: Array<MongoDBModel>}>({
+  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterName)).length);
+  const selectedClusters = shallowRef<{ [key: string]: Array<MongoDBModel> }>({
     [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
   });
 
   const tabListConfig = {
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
-      disabledRowConfig: {
-        handler: (data: MongoDBModel) => data.mongos.length < 3,
-        tip: t('Proxy数量不足，至少 3 台'),
-      },
+      disabledRowConfig: [
+        {
+          handler: (data: MongoDBModel) => data.mongos.length < 3,
+          tip: t('Proxy数量不足，至少 3 台'),
+        },
+      ],
     },
   } as unknown as Record<ClusterTypes, TabItem>;
   // 集群域名是否已存在表格的映射表
@@ -147,7 +148,7 @@
       ...item.mongos[0].spec_config,
       count: item.shard_node_count,
     },
-    reduceIpList: item.mongos.map(item => ({
+    reduceIpList: item.mongos.map((item) => ({
       label: item.ip,
       value: item.ip,
       disabled: false,
@@ -156,7 +157,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = (selected: {[key: string]: Array<MongoDBModel>}) => {
+  const handelClusterChange = (selected: { [key: string]: Array<MongoDBModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.MONGO_SHARED_CLUSTER];
     const newList: IDataRow[] = [];
@@ -212,14 +213,14 @@
     tableData.value.splice(index, 1);
     delete domainMemo[clusterName];
     const clustersArr = selectedClusters.value[ClusterTypes.MONGO_SHARED_CLUSTER];
-    selectedClusters.value[ClusterTypes.MONGO_SHARED_CLUSTER] = clustersArr.filter(item => item.master_domain !== clusterName);
+    selectedClusters.value[ClusterTypes.MONGO_SHARED_CLUSTER] = clustersArr.filter(
+      (item) => item.master_domain !== clusterName,
+    );
   };
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all(rowRefs.value.map((item: {
-      getValue: () => Promise<any>
-    }) => item.getValue()));
+    const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
     const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.MONGODB_REDUCE_MONGOS,
@@ -234,22 +235,23 @@
       width: 400,
       onConfirm: () => {
         isSubmitting.value = true;
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MongoProxyScaleDown',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
+        createTicket(params)
+          .then((data) => {
+            window.changeConfirm = false;
+            router.push({
+              name: 'MongoProxyScaleDown',
+              params: {
+                page: 'success',
+              },
+              query: {
+                ticketId: data.id,
+              },
+            });
+          })
           .finally(() => {
             isSubmitting.value = false;
           });
-      }
+      },
     });
   };
 

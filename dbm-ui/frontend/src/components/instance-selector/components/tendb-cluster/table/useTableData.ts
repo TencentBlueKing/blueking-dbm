@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { type ComponentInternalInstance } from 'vue';
 
@@ -50,8 +50,7 @@ export function useTableData<T>(
     });
   });
 
-  const fetchResources = async () => {
-    isLoading.value = true;
+  const generateParams = () => {
     const params = {
       bk_biz_id: currentBizId,
       limit: pagination.limit,
@@ -69,6 +68,12 @@ export function useTableData<T>(
         cluster_id: clusterId.value,
       });
     }
+    return params;
+  };
+
+  const fetchResources = async () => {
+    isLoading.value = true;
+    const params = generateParams();
     return currentInstance.proxy
       .getTableList(params)
       .then((data) => {
@@ -101,6 +106,7 @@ export function useTableData<T>(
     isLoading,
     data: tableData,
     pagination,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,
