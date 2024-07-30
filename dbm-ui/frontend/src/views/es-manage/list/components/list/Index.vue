@@ -58,8 +58,8 @@
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
+      background-color="#F5F7FA"
       class="es-manage-sideslider"
-      backgroundColor="#F5F7FA"
       :title="t('xx扩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterExpansion
@@ -69,8 +69,8 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
+      background-color="#F5F7FA"
       class="es-manage-sideslider"
-      backgroundColor="#F5F7FA"
       :title="t('xx缩容【name】', { title: 'ES', name: operationData?.cluster_name })"
       :width="960">
       <ClusterShrink
@@ -396,7 +396,6 @@
       label: t('集群名称'),
       width: 200,
       minWidth: 200,
-      fixed: 'left',
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -785,16 +784,14 @@
     })),
     checked: [
       'domain',
-      'cluster_name',
-      'bk_cloud_id',
+      'status',
+      'cluster_stats',
       'major_version',
       'region',
-      'status',
       'es_master',
       'es_client',
       'es_datanode_hot',
       'es_datanode_cold',
-      'cluster_time_zone',
     ],
     trigger: 'manual' as const,
   };

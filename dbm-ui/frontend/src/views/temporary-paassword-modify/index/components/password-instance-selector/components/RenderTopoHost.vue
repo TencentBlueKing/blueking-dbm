@@ -26,7 +26,7 @@
       <DbOriginalTable
         :columns="columns"
         :data="tableData"
-        :height="505"
+        :height="530"
         :is-anomalies="isAnomalies"
         :is-searching="!!searchKey"
         :pagination="pagination"
@@ -151,21 +151,39 @@
     count: 0,
     current: 1,
     limit: 10,
-    limitList: [10, 20, 50, 100],
+    limitList: [10, 20, 50, 100, 500],
     align: 'right',
     layout: ['total', 'limit', 'list'],
   });
 
   const columns = computed(() => [
     {
-      minWidth: 60,
+      minWidth: 70,
       fixed: 'left',
       label: () => (
-        <bk-checkbox
-          label={ true }
-          model-value={ isSelectedAll.value }
-          onChange={ handleSelectPageAll }
-        />
+        <div style="display:flex;align-items:center">
+          <bk-checkbox
+            label={ true }
+            model-value={ isSelectedAll.value }
+            onChange={ handleSelectPageAll }
+          />
+          <bk-popover
+            placement="bottom-start"
+            theme="light db-table-select-menu"
+            arrow={ false }
+            trigger='hover'
+            v-slots={{
+              default: () => <db-icon class="select-menu-flag" type="down-big" />,
+              content: () => (
+                <div class="db-table-select-plan">
+                  <div
+                    class="item"
+                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
+                </div>
+              ),
+            }}>
+          </bk-popover>
+        </div>
       ),
       render: ({ data }: {data: ResourceInstance}) => (
         <bk-checkbox
@@ -290,8 +308,7 @@
     }
   );
 
-  const fetchData = () => {
-    isTableDataLoading.value = true;
+  const generateParams = () => {
     const instanceType = props.panelTabActive === 'tendbcluster' ? 'spider' : props.panelTabActive;
     const params = {
       db_type: 'mysql',
@@ -320,6 +337,12 @@
       });
     }
 
+    return params;
+  }
+
+  const fetchData = () => {
+    isTableDataLoading.value = true;
+    const params = generateParams();
     apiMap[props.panelTabActive](params)
       .then((data) => {
         tableData.value = data.results;
@@ -351,6 +374,20 @@
   };
 
   const tableSettings = getSettings(props.role);
+
+  // 跨页全选
+  const handleWholeSelect = () => {
+    isTableDataLoading.value = true;
+    const params = generateParams();
+    params.limit = -1;
+    params.offset = 0;
+
+    apiMap[props.panelTabActive](params).then((data) => {
+      data.results.forEach((dataItem: ResourceInstance) => {
+        handleTableSelectOne(true, dataItem);
+      });
+    }).finally(() => isTableDataLoading.value = false);
+  };
 
   const handleSelectPageAll = (checked: boolean) => {
     const lastCheckMap = { ...checkedMap.value };

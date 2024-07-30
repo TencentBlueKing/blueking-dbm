@@ -294,7 +294,8 @@
       label: t('访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 200,
+      width: 280,
+      minWidth: 280,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -377,7 +378,6 @@
       label: t('集群名称'),
       field: 'cluster_name',
       minWidth: 200,
-      fixed: 'left',
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -633,7 +633,15 @@
       field: item.field ,
       disabled: ['master_domain'].includes(item.field as string),
     })),
-    checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id'),
+    checked: [
+      'master_domain',
+      'status',
+      'cluster_stats',
+      'storages',
+      'db_module_id',
+      'major_version',
+      'region',
+    ],
     showLineHeight: false,
     trigger: 'manual' as const,
   };

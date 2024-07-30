@@ -55,7 +55,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { makeMap } from '@utils';
+  import { getSearchSelectorParams,makeMap } from '@utils';
 
   import type { TabItem } from '../../Index.vue';
   import SerachBar from '../common/SearchBar.vue';
@@ -66,8 +66,7 @@
   interface Props {
     activeTab: ClusterTypes,
     selected: Record<string, (SqlServerSingleClusterModel | SqlServerHaClusterModel)[]>,
-    // eslint-disable-next-line vue/no-unused-properties
-    getResourceList: TabItem['getResourceList'],
+    getResourceList: NonNullable<TabItem['getResourceList']>,
     disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>,
     columnStatusFilter?: TabItem['columnStatusFilter'],
     customColums?: TabItem['customColums'],
@@ -112,15 +111,33 @@
     {
       minWidth: 60,
       label: () => (
-        <bk-checkbox
-          key={`${pagination.current}_${activeTab.value}`}
-          model-value={isSelectedAll.value}
-          indeterminate={isIndeterminate.value}
-          disabled={mainSelectDisable.value}
-          label={true}
-          onClick={(e: Event) => e.stopPropagation()}
-          onChange={handleSelecteAll}
-        />
+        <div style="display:flex;align-items:center">
+          <bk-checkbox
+            key={`${pagination.current}_${activeTab.value}`}
+            model-value={isSelectedAll.value}
+            indeterminate={isIndeterminate.value}
+            disabled={mainSelectDisable.value}
+            label={true}
+            onClick={(e: Event) => e.stopPropagation()}
+            onChange={handleSelecteAll}
+          />
+          <bk-popover
+            placement="bottom-start"
+            theme="light db-table-select-menu"
+            arrow={ false }
+            trigger='hover'
+            v-slots={{
+              default: () => <db-icon class="select-menu-flag" type="down-big" />,
+              content: () => (
+                <div class="db-table-select-plan">
+                  <div
+                    class="item"
+                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
+                </div>
+              ),
+            }}>
+          </bk-popover>
+        </div>
       ),
       render: ({ data }: { data: ResourceItem }) => {
         const disabledRowConfig = props.disabledRowConfig.find(item => item.handler(data));
@@ -297,6 +314,23 @@
       checkSelectedAll();
     }
   });
+
+  // 跨页全选
+  const handleWholeSelect = () => {
+    isLoading.value = true;
+    props.getResourceList({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      offset: 0,
+      limit: -1,
+      ...getSearchSelectorParams(searchValue.value),
+    }).then((data) => {
+      data.results.forEach((dataItem) => {
+        if (!props.disabledRowConfig.find(item => item.handler(dataItem))) {
+          handleSelecteRow(dataItem, true);
+        }
+      });
+    }).finally(() => isLoading.value = false);
+  };
 
   /**
    * 全选当页数据
