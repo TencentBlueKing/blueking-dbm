@@ -108,7 +108,8 @@ class FixPointRollbackHandler:
         return False
 
     def _check_backup_log_task_id(self, log) -> bool:
-        task_ids = [str(file["task_id"]) for file in log["file_list"]]
+        # task_id 不存在或者-1 时，是较老的备份程序产生的，不符合预期，这里做兼容处理
+        task_ids = [str(file.get("task_id", "-1")) for file in log["file_list"]]
         return "-1" not in task_ids
 
     def _format_job_backup_log(self, raw_backup_logs: List[str]) -> List[Dict[str, Any]]:
