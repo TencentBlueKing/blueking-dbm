@@ -12,17 +12,23 @@ import json
 
 from django.db import connection
 
+from backend.components import DRSApi
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
+from backend.db_meta.exceptions import InstanceNotExistException
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.cluster.handlers import ClusterServiceHandler
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.redis.resources.constants import SQL_QUERY_COUNT_INSTANCES, SQL_QUERY_INSTANCES
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
+from backend.exceptions import ApiResultError
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_proxy_util import (
     get_cluster_proxy_version,
     get_cluster_proxy_version_for_upgrade,
     get_cluster_redis_version,
+    get_cluster_remote_address,
     get_cluster_storage_versions_for_upgrade,
 )
 from backend.utils.basic import dictfetchall
@@ -129,3 +135,32 @@ class ToolboxHandler(ClusterServiceHandler):
             return get_cluster_storage_versions_for_upgrade(cluster_id)
         else:
             return get_cluster_proxy_version_for_upgrade(cluster_id)
+
+    @classmethod
+    def webconsole_rpc(cls, cluster_id: int, cmd: str, db_num: int = 0):
+        """
+        执行webconsole命令，只支持select语句
+        @param cluster_id: 集群ID
+        @param cmd: 执行命令
+        @param db_num: 数据库编号
+        @param
+        """
+        cluster = Cluster.objects.get(id=cluster_id)
+        # 获取访问密码
+        password = PayloadHandler.redis_get_cluster_password(cluster=cluster)["redis_proxy_password"]
+        # 获取rpc结果
+        try:
+            remote_address = get_cluster_remote_address(cluster_id=cluster.id)
+            rpc_results = DRSApi.redis_rpc(
+                {
+                    "bk_cloud_id": cluster.bk_cloud_id,
+                    "addresses": [remote_address],
+                    "command": cmd,
+                    "db_num": db_num,
+                    "password": password,
+                }
+            )
+        except (ApiResultError, InstanceNotExistException) as err:
+            return {"query": "", "error_msg": err.message}
+
+        return {"query": rpc_results[0]["result"], "error_msg": ""}

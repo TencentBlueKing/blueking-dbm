@@ -838,6 +838,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    REDIS_WEBCONSOLE = ActionMeta(
+        id="redis_webconsole",
+        name=_("Redis Webconsole执行"),
+        name_en="redis_webconsole",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.REDIS],
+        group=_("Redis"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     REDIS_ACCESS_ENTRY_VIEW = ActionMeta(
         id="redis_access_entry_view",
         name=_("Redis 获取访问方式"),

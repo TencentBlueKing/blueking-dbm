@@ -23,6 +23,7 @@ from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
+from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_package.models import Package
@@ -960,3 +961,27 @@ def get_cluster_info_by_ip(ip: str) -> Dict[str, Any]:
             }
         )
     return ret
+
+
+def get_cluster_remote_address(cluster_id: int) -> str:
+    """
+    获取集群的drs访问地址
+    1. 集群中随便找一个running 状态的 proxy ip:port 就行
+    2. 如果是主从版本
+    - 如果有running 的slave，则用slave ip:port
+    - 如果没有，则running的master，用master ip:port
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    if cluster.cluster_type == ClusterType.RedisInstance:
+        storages = cluster.storageinstance_set.filter(status=InstanceStatus.RUNNING)
+        inst = (
+            storages.filter(instance_role=InstanceRole.REDIS_SLAVE).first()
+            or storages.filter(instance_role=InstanceRole.REDIS_MASTER).first()
+        )
+    else:
+        inst = cluster.proxyinstance_set.filter(status=InstanceStatus.RUNNING).first()
+
+    if not inst:
+        raise InstanceNotExistException(_("集群{}不存在DRS可访问的实例").format(cluster.immute_domain))
+
+    return f"{inst.machine.ip}:{inst.port}"

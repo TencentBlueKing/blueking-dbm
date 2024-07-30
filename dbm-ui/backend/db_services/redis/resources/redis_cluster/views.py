@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import base64
 
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
@@ -17,13 +16,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import DBConfigApi, DBPrivManagerApi
-from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.resources import serializers, viewsets
 from backend.db_services.redis.resources import constants
-from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigTypeEnum, MySQLPrivComponent, UserName
+from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 
@@ -138,37 +135,11 @@ class RedisClusterViewSet(viewsets.ResourceViewSet):
     def get_password(self, request, bk_biz_id: int, cluster_id: int):
         """获取集群密码（proxy）"""
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
-
-        query_params = {
-            "instances": [{"ip": str(cluster.id), "port": 0, "bk_cloud_id": cluster.bk_cloud_id}],
-            "users": [
-                {"username": UserName.REDIS_DEFAULT.value, "component": MySQLPrivComponent.REDIS_PROXY.value},
-            ],
-        }
-
-        # todo: 兼容未接入密码服务的集群，迁移后移除
-        resp = DBPrivManagerApi.get_password(query_params)
-        if resp.get("count") > 0:
-            password = base64.b64decode(resp["items"][0]["password"]).decode("utf-8")
-        else:
-            resp = DBConfigApi.query_conf_item(
-                params={
-                    "bk_biz_id": str(bk_biz_id),
-                    "level_name": LevelName.CLUSTER,
-                    "level_value": cluster.immute_domain,
-                    "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
-                    "conf_file": cluster.proxy_version,
-                    "conf_type": ConfigTypeEnum.ProxyConf,
-                    "namespace": cluster.cluster_type,
-                    "format": FormatType.MAP,
-                }
-            )
-            password = resp["content"].get("password")
-
+        redis_password_map = PayloadHandler.redis_get_cluster_password(cluster=cluster)
         return Response(
             {
                 "cluster_name": cluster.name,
                 "domain": f"{cluster.immute_domain}:{cluster.access_port}",
-                "password": password,
+                "password": redis_password_map["redis_proxy_password"],
             }
         )

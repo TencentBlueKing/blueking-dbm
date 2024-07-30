@@ -267,12 +267,11 @@ class RemoteServiceHandler:
             cluster_databases_infos.append({"cluster_id": info["cluster_id"], "databases": databases})
         return cluster_databases_infos
 
-    def webconsole_rpc(self, cluster_id: int, cmd: str, cluster: Cluster = None):
+    def webconsole_rpc(self, cluster_id: int, cmd: str):
         """
         执行webconsole命令，只支持select语句
         @param cluster_id: 集群ID
-        @param sql: 执行命令
-        @param cluster: 集群实例
+        @param cmd: 执行命令
         """
 
         # 校验select语句
@@ -282,7 +281,7 @@ class RemoteServiceHandler:
             return {"query": [], "error_msg": e.message}
 
         # 获取远程执行地址
-        cluster = cluster or Cluster.objects.get(id=cluster_id)
+        cluster = Cluster.objects.get(id=cluster_id)
         bk_cloud_id = cluster.bk_cloud_id
         __, remote_address = self._get_cluster_address(cluster_id__role_map={}, cluster_id=cluster.id)
 

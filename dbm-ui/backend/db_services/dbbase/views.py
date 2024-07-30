@@ -253,9 +253,13 @@ class DBBaseViewSet(viewsets.SystemViewSet):
     def webconsole(self, request):
         data = self.params_validate(self.get_serializer_class())
         cluster = Cluster.objects.get(id=data["cluster_id"])
+        db_type = ClusterType.cluster_type_to_db_type(cluster.cluster_type)
         # mysql / tendbcluster
-        if ClusterType.cluster_type_to_db_type(cluster.cluster_type) in [DBType.MySQL, DBType.TenDBCluster]:
+        if db_type in [DBType.MySQL, DBType.TenDBCluster]:
             from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 
             return Response(RemoteServiceHandler(bk_biz_id=cluster.bk_biz_id).webconsole_rpc(**data))
-        # TODO: redis / mongo / sqlserver待补充
+        elif db_type in ClusterType.redis_cluster_types():
+            from backend.db_services.redis.toolbox.handlers import ToolboxHandler
+
+            return Response(ToolboxHandler.webconsole_rpc(**data))
