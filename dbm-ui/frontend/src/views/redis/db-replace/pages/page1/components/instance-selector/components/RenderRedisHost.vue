@@ -49,8 +49,6 @@
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ClusterTypes, LocalStorageKeys } from '@common/const';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -68,7 +66,7 @@
   import type { TableProps } from '@/types/bkui-vue';
 
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number] & {
-    isShowTip: boolean;
+    isShowTip?: boolean;
   };
 
   interface TableItem {
@@ -111,7 +109,6 @@
   });
   const emits = defineEmits<Emits>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const {
@@ -172,14 +169,32 @@
 
   const columns = computed(() => [
     {
-      width: 60,
+      width: 70,
       fixed: 'left',
       label: () => (isSingleSelect.value ? '' : (
-        <bk-checkbox
-          indeterminate={isIndeterminate.value}
-          model-value={isSelectedAll.value}
-          onChange={handleSelectPageAll}
-        />
+        <div style="display:flex;align-items:center">
+          <bk-checkbox
+            indeterminate={isIndeterminate.value}
+            model-value={isSelectedAll.value}
+            onChange={handleSelectPageAll}
+          />
+          <bk-popover
+            placement="bottom-start"
+            theme="light db-table-select-menu"
+            arrow={ false }
+            trigger='hover'
+            v-slots={{
+              default: () => <db-icon class="select-menu-flag ml-10" type="down-big" />,
+              content: () => (
+                <div class="db-table-select-plan">
+                  <div
+                    class="item"
+                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
+                </div>
+              ),
+            }}>
+          </bk-popover>
+        </div>
       )),
       render: ({ index, data }: {index: number, data: RedisHostModel}) => {
         if (data.instance_role === 'redis_master' && showMasterTip.value) {
@@ -349,19 +364,30 @@
     localStorage.setItem(LocalStorageKeys.REDIS_DB_REPLACE_MASTER_TIP, '1');
   };
 
+  const generateParams = () => ({
+    cluster_ids: String(props.node!.id),
+    limit: pagination.limit,
+    offset: (pagination.current - 1) * pagination.limit,
+    extra: 1,
+    ...getSearchSelectorParams(searchValue.value),
+  })
+
+  // 跨页全选
+  const handleWholeSelect = () => {
+    isTableDataLoading.value = true;
+    const params = generateParams();
+    params.limit = -1;
+    getRedisMachineList(params).then((data) => {
+      data.results.forEach((dataItem) => {
+        handleTableSelectOne(true, dataItem);
+      });
+    }).finally(() => isTableDataLoading.value = false);
+  };
+
   const fetchData = () => {
     if (props.node) {
       isTableDataLoading.value = true;
-      let params = {};
-      if (props.node?.id !== currentBizId) {
-        params = {
-          cluster_ids: props.node?.id,
-          limit: pagination.limit,
-          offset: (pagination.current - 1) * pagination.limit,
-          extra: 1,
-          ...getSearchSelectorParams(searchValue.value),
-        };
-      }
+      const params = generateParams();
       getRedisMachineList(params)
         .then((data) => {
           tableData.value = data.results.map(item => Object.assign(item, {

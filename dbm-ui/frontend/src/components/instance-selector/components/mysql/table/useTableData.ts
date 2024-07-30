@@ -51,8 +51,7 @@ export function useTableData<T>(
     });
   });
 
-  const fetchResources = async () => {
-    isLoading.value = true;
+  const generateParams = () => {
     const params = {
       bk_biz_id: currentBizId,
       limit: pagination.limit,
@@ -70,6 +69,12 @@ export function useTableData<T>(
         cluster_id: clusterId.value,
       });
     }
+    return params;
+  };
+
+  const fetchResources = async () => {
+    isLoading.value = true;
+    const params = generateParams();
     return currentInstance.proxy
       .getTableList(params)
       .then((data) => {
@@ -102,6 +107,7 @@ export function useTableData<T>(
     isLoading,
     data: tableData,
     pagination,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,

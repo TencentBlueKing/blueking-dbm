@@ -318,8 +318,8 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 200,
-      minWidth: 200,
+      width: 280,
+      minWidth: 280,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -391,9 +391,8 @@
     },
     {
       label: t('集群名称'),
-      width: 150,
-      minWidth: 150,
-      fixed: 'left',
+      width: 200,
+      minWidth: 200,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -736,15 +735,13 @@
       disabled: ['domain'].includes(item.field as string),
     })),
     checked: [
-      'cluster_name',
-      'bk_cloud_id',
       'domain',
+      'status',
+      'cluster_stats',
       'major_version',
       'region',
-      'status',
       'zookeeper',
       'broker',
-      'cluster_time_zone',
     ],
     trigger: 'manual' as const,
   };

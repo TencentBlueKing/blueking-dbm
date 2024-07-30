@@ -360,8 +360,8 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 200,
-      minWidth: 200,
+      width: 280,
+      minWidth: 280,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -435,7 +435,6 @@
       label: t('集群名称'),
       field: 'cluster_name',
       minWidth: 200,
-      fixed: 'left',
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -1146,7 +1145,19 @@
       field: item.field as string,
       disabled: ['master_domain'].includes(item.field as string),
     })),
-    checked: (columns.value || []).map(item => item.field).filter(key => !!key && key !== 'id') as string[],
+    checked: [
+      'master_domain',
+      'slave_domain',
+      'status',
+      'cluster_stats',
+      'spider_master',
+      'spider_slave',
+      'spider_mnt',
+      'remote_db',
+      'remote_dr',
+      'major_version',
+      'region',
+    ],
     showLineHeight: false,
     trigger: 'manual' as const,
   };

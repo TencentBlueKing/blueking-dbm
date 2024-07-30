@@ -396,7 +396,6 @@
       label: t('集群名称'),
       width: 200,
       minWidth: 200,
-      fixed: 'left',
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -789,16 +788,14 @@
     })),
     checked: [
       'domain',
-      'cluster_name',
-      'bk_cloud_id',
+      'status',
+      'cluster_stats',
       'major_version',
       'region',
-      'status',
       'es_master',
       'es_client',
       'es_datanode_hot',
       'es_datanode_cold',
-      'cluster_time_zone',
     ],
     trigger: 'manual' as const,
   };
