@@ -18,15 +18,19 @@
     @mouseleave="handleControlShowEdit(false)">
     <div
       class="content-box"
-      :class="{'is-empty': !clusterData, 'is-error': Boolean(errorMessage)}">
+      :class="{ 'is-empty': !clusterData, 'is-error': Boolean(errorMessage) }">
       <span
         v-if="!localHostIp"
-        class="placehold">{{ t('请选择主机') }}</span>
+        class="placehold"
+        >{{ t('请选择主机') }}</span
+      >
       <span
         v-else
         ref="contentRef"
         v-overflow-tips
-        class="content-text">{{ localHostIp }}</span>
+        class="content-text"
+        >{{ localHostIp }}</span
+      >
       <BkPopover
         v-if="clusterData && showEditIcon"
         :content="t('从业务拓扑选择')"
@@ -35,8 +39,7 @@
         <div
           class="edit-btn"
           @click="handleShowIpSelector">
-          <div
-            class="edit-btn-inner">
+          <div class="edit-btn-inner">
             <DbIcon
               class="select-icon"
               type="host-select" />
@@ -54,7 +57,7 @@
   </div>
   <InstanceSelector
     v-model:is-show="isShowIpSelector"
-    :cluster-types="[ClusterTypes.MONGOCLUSTER]"
+    :cluster-types="['mongoCluster']"
     :selected="selected"
     :tab-list-config="tabListConfig"
     @change="handleInstanceSelectChange" />
@@ -74,11 +77,11 @@
   import useValidtor from '@components/render-table/hooks/useValidtor';
 
   interface Props {
-    clusterData?: MongoDBModel
+    clusterData?: MongoDBModel;
   }
 
   interface Exposes {
-    getValue: () => Promise<{ backup_host: string }>
+    getValue: () => Promise<{ backup_host: string }>;
   }
 
   const props = defineProps<Props>();
@@ -90,7 +93,7 @@
   const showEditIcon = ref(false);
   const localHostIp = ref<string>('');
 
-  const selected = shallowRef({ [ClusterTypes.MONGOCLUSTER]: [] } as InstanceSelectorValues<MongodbInstanceModel>);
+  const selected = shallowRef({ mongoCluster: [] } as InstanceSelectorValues<MongodbInstanceModel>);
 
   const rules = [
     {
@@ -99,23 +102,23 @@
     },
   ];
 
-  const tabListConfig = computed(() => ({
-    [ClusterTypes.MONGOCLUSTER]: [
-      {
-        topoConfig: {
-          filterClusterId: props.clusterData?.id,
-        },
-        tableConfig: {
-          multiple: false,
-        },
-      },
-    ],
-  }) as unknown as Record<ClusterTypes, PanelListType>);
+  const tabListConfig = computed(
+    () =>
+      ({
+        mongoCluster: [
+          {
+            topoConfig: {
+              filterClusterId: props.clusterData?.id,
+            },
+            tableConfig: {
+              multiple: false,
+            },
+          },
+        ],
+      }) as unknown as Record<ClusterTypes, PanelListType>,
+  );
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(rules);
+  const { message: errorMessage, validator } = useValidtor(rules);
 
   const handleControlShowEdit = (isShow: boolean) => {
     showEditIcon.value = isShow;
@@ -127,139 +130,133 @@
 
   // 批量选择
   const handleInstanceSelectChange = (data: InstanceSelectorValues<MongodbInstanceModel>) => {
-    localHostIp.value = data[ClusterTypes.MONGOCLUSTER][0].ip;
-    selected.value[ClusterTypes.MONGOCLUSTER] = data[ClusterTypes.MONGOCLUSTER];
+    localHostIp.value = data.mongoCluster[0].ip;
+    selected.value.mongoCluster = data.mongoCluster;
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localHostIp.value)
-        .then(() => Promise.resolve({
+      return validator(localHostIp.value).then(() =>
+        Promise.resolve({
           backup_host: localHostIp.value,
-        }));
+        }),
+      );
     },
   });
 </script>
 <style lang="less" scoped>
-.render-host-box {
-  position: relative;
-  display: flex;
-  width: 100%;
-  overflow: hidden;
-  align-items: center;
-
-  .content-box {
+  .render-host-box {
     position: relative;
     display: flex;
     width: 100%;
-    height: 42px;
-    align-items: center;
-    padding: 0 25px 0 17px;
     overflow: hidden;
-    border: solid transparent 1px;
+    align-items: center;
 
-    &:hover {
-      cursor: pointer;
-      border-color: #a3c5fd;
-
-      .edit-btn-inner {
-        background-color: #F0F1F5;
-      }
-    }
-
-    .placehold {
-      color: #C4C6CC;
-    }
-
-    .content-text {
-      flex: 1;
+    .content-box {
+      position: relative;
+      display: flex;
+      width: 100%;
+      height: 42px;
+      align-items: center;
+      padding: 0 25px 0 17px;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .edit-btn{
-      position: absolute;
-      right: 5px;
-      z-index: 999;
-      display: flex;
-      width: 24px;
-      height: 40px;
-      align-items: center;
-
-      .edit-btn-inner {
-        display: flex;
-        width: 24px;
-        height: 24px;
-        cursor: pointer;
-        border-radius: 2px;
-        align-items: center;
-        justify-content: center;
-
-        .select-icon {
-          font-size: 16px;
-          color: #979BA5;
-        }
-
-        &:hover {
-          background: #F0F1F5;
-
-          .select-icon {
-            color: #3A84FF;
-          }
-
-        }
-      }
-    }
-
-    .input-error {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      padding-right: 35px;
-      font-size: 14px;
-      color: #ea3636;
-      align-items: center;
-      justify-content: flex-end;
-    }
-  }
-
-  .is-empty {
-    background-color: #fafbfd;
-    border: none;
-
-    :hover {
-      border: none;
-    }
-  }
-
-  .is-error {
-    background-color: #fff1f1;
-
-  }
-
-
-  .host-input{
-    flex: 1;
-
-    :deep(.inner-input) {
-      padding-right: 24px;
-      background-color: #fff;
       border: solid transparent 1px;
 
       &:hover {
-        background-color: #fafbfd;
+        cursor: pointer;
         border-color: #a3c5fd;
+
+        .edit-btn-inner {
+          background-color: #f0f1f5;
+        }
       }
 
+      .placehold {
+        color: #c4c6cc;
+      }
 
+      .content-text {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .edit-btn {
+        position: absolute;
+        right: 5px;
+        z-index: 999;
+        display: flex;
+        width: 24px;
+        height: 40px;
+        align-items: center;
+
+        .edit-btn-inner {
+          display: flex;
+          width: 24px;
+          height: 24px;
+          cursor: pointer;
+          border-radius: 2px;
+          align-items: center;
+          justify-content: center;
+
+          .select-icon {
+            font-size: 16px;
+            color: #979ba5;
+          }
+
+          &:hover {
+            background: #f0f1f5;
+
+            .select-icon {
+              color: #3a84ff;
+            }
+          }
+        }
+      }
+
+      .input-error {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        padding-right: 35px;
+        font-size: 14px;
+        color: #ea3636;
+        align-items: center;
+        justify-content: flex-end;
+      }
     }
 
-    &:hover {
-      cursor: pointer;
+    .is-empty {
+      background-color: #fafbfd;
+      border: none;
+
+      :hover {
+        border: none;
+      }
+    }
+
+    .is-error {
+      background-color: #fff1f1;
+    }
+
+    .host-input {
+      flex: 1;
+
+      :deep(.inner-input) {
+        padding-right: 24px;
+        background-color: #fff;
+        border: solid transparent 1px;
+
+        &:hover {
+          background-color: #fafbfd;
+          border-color: #a3c5fd;
+        }
+      }
+
+      &:hover {
+        cursor: pointer;
+      }
     }
   }
-
-
-}
 </style>

@@ -62,13 +62,8 @@
     clusterId?: number,
     isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
-    // eslint-disable-next-line vue/no-unused-properties
-    roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
-    // eslint-disable-next-line vue/no-unused-properties
-    getTableList?: TableConfigType['getTableList'],
-    // eslint-disable-next-line vue/no-unused-properties
-    statusFilter?: TableConfigType['statusFilter'],
+    getTableList: NonNullable<TableConfigType['getTableList']>,
   }
 
   interface Emits {
@@ -78,11 +73,8 @@
   const props = withDefaults(defineProps<Props>(), {
     clusterId: undefined,
     firsrColumn: undefined,
-    statusFilter: undefined,
     isRemotePagination: true,
     disabledRowConfig: undefined,
-    roleFilterList: undefined,
-    getTableList: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -123,6 +115,7 @@
     data: tableData,
     pagination,
     searchValue,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,
@@ -137,16 +130,33 @@
 
   const columns = [
     {
-      width: 54,
-      minWidth: 54,
+      minWidth: 70,
       fixed: 'left',
       label: () => (
-        <bk-checkbox
-          label={true}
-          model-value={isSelectedAll.value}
-          disabled={mainSelectDisable.value}
-          onChange={handleSelectPageAll}
-        />
+        <div style="display:flex;align-items:center">
+          <bk-checkbox
+            label={true}
+            model-value={isSelectedAll.value}
+            disabled={mainSelectDisable.value}
+            onChange={handleSelectPageAll}
+          />
+          <bk-popover
+            placement="bottom-start"
+            theme="light db-table-select-menu"
+            arrow={ false }
+            trigger='hover'
+            v-slots={{
+              default: () => <db-icon class="select-menu-flag" type="down-big" />,
+              content: () => (
+                <div class="db-table-select-plan">
+                  <div
+                    class="item"
+                    onClick={handleWholeSelect}>{t('跨页全选')}</div>
+                </div>
+              ),
+            }}>
+          </bk-popover>
+        </div>
       ),
       render: ({ data }: DataRow) => {
         if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
@@ -270,6 +280,20 @@
         [activePanel.value]: result,
       });
     }
+  };
+
+  // 跨页全选
+  const handleWholeSelect = () => {
+    isLoading.value = true;
+    const params = generateParams();
+    params.limit = -1;
+    props.getTableList(params).then((data) => {
+      data.results.forEach((dataItem: T) => {
+        if (!props.disabledRowConfig?.handler(dataItem)) {
+          handleTableSelectOne(true, dataItem);
+        }
+      });
+    }).finally(() => isLoading.value = false);
   };
 
   const handleSelectPageAll = (checked: boolean) => {

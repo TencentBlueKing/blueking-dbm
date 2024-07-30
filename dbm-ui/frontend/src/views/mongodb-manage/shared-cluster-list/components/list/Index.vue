@@ -140,6 +140,7 @@
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
@@ -344,7 +345,8 @@
     {
       label: t('主域名'),
       field: 'master_domain',
-      minWidth: 300,
+      width: 280,
+      minWidth: 280,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -663,8 +665,9 @@
       'cluster_name',
       'master_domain',
       'status',
+      'cluster_stats',
       'major_version',
-      'bk_cloud_name',
+      'region',
       'mongo_config',
       'mongos',
       'mongodb',

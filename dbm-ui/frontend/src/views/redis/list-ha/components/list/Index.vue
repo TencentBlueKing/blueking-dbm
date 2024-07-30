@@ -411,8 +411,8 @@
     {
       label: t('主访问入口'),
       field: 'master_domain',
-      width: 300,
-      minWidth: 300,
+      width: 280,
+      minWidth: 280,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -486,7 +486,6 @@
       label: t('集群名称'),
       field: 'name',
       minWidth: 200,
-      fixed: 'left',
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -1007,17 +1006,14 @@
       disabled: item.field === 'master_domain'
     })),
     checked: [
-      'bk_cloud_id',
-      'name',
       'master_domain',
-      'slave_domain',
-      'creator',
-      'create_at',
-      'major_version',
-      'region',
-      'cluster_time_zone',
+      'status',
+      'cluster_stats',
       ClusterNodeKeys.REDIS_MASTER,
       ClusterNodeKeys.REDIS_SLAVE,
+      'cluster_type_name',
+      'major_version',
+      'region',
     ],
     showLineHeight: false,
     trigger: 'manual' as const,

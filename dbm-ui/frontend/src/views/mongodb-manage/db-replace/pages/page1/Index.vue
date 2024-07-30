@@ -54,7 +54,7 @@
     </template>
     <InstanceSelector
       v-model:is-show="isShowMasterInstanceSelector"
-      :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
+      :cluster-types="['mongoCluster']"
       :selected="selected"
       @change="handleInstanceSelectChange" />
   </SmartAction>
@@ -71,7 +71,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { TicketTypes } from '@common/const';
 
   import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
 
@@ -86,9 +86,7 @@
   const isSubmitting = ref(false);
 
   const tableData = ref([createRowData()]);
-  const selected = shallowRef({
-    [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
-  } as InstanceSelectorValues<MongodbInstanceModel>);
+  const selected = shallowRef({ mongoCluster: [] } as InstanceSelectorValues<MongodbInstanceModel>);
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.ip)).length);
 
@@ -135,7 +133,7 @@
   const handleInstanceSelectChange = (data: InstanceSelectorValues<MongodbInstanceModel>) => {
     selected.value = data;
     const newList: IDataRow[] = [];
-    data[ClusterTypes.MONGO_SHARED_CLUSTER].forEach((item) => {
+    data.mongoCluster.forEach((item) => {
       const { ip } = item;
       if (!ipMemo[ip]) {
         newList.push(generateRowDateFromRequest(item));
@@ -190,8 +188,8 @@
     tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
     sortTableByCluster();
-    const ipsArr = selected.value[ClusterTypes.MONGO_SHARED_CLUSTER];
-    selected.value[ClusterTypes.MONGO_SHARED_CLUSTER] = ipsArr.filter((item) => item.ip !== removeIp);
+    const ipsArr = selected.value.mongoCluster;
+    selected.value.mongoCluster = ipsArr.filter(item => item.ip !== removeIp);
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -274,7 +272,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selected.value[ClusterTypes.MONGO_SHARED_CLUSTER] = [];
+    selected.value.mongoCluster = [];
     ipMemo = {};
     window.changeConfirm = false;
   };

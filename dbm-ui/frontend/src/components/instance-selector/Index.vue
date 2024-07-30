@@ -240,6 +240,7 @@
         handler: (data: any) => boolean;
         tip?: string;
       };
+      multiple?: boolean;
       getTableList?: (params: any) => Promise<any>;
       statusFilter?: (data: any) => boolean;
     };
@@ -263,7 +264,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbhaHost' | 'TendbClusterHost')[];
+    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
   }
@@ -457,9 +458,9 @@
         content: ManualInputContent,
       },
     ],
-    [ClusterTypes.MONGOCLUSTER]: [
+    mongoCluster: [
       {
-        id: 'mongocluster',
+        id: 'mongoCluster',
         name: t('主库主机'),
         topoConfig: {
           getTopoList: getMongoTopoList,

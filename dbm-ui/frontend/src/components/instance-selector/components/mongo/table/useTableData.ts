@@ -45,8 +45,7 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
     });
   });
 
-  const fetchResources = async () => {
-    isLoading.value = true;
+  const generateParams = () => {
     const params = {
       bk_biz_id: currentBizId,
       instance_address: searchValue.value,
@@ -59,6 +58,12 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
         cluster_id: clusterId.value,
       });
     }
+    return params;
+  };
+
+  const fetchResources = async () => {
+    isLoading.value = true;
+    const params = generateParams();
     return currentInstance.proxy
       .getTableList(params)
       .then((data) => {
@@ -92,6 +97,7 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
     data: tableData,
     pagination,
     searchValue,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,

@@ -40,7 +40,9 @@
             content: t('如忽略_有连接的情况下也会执行'),
             theme: 'dark',
           }"
-          class="ml-6 force-switch" >{{ t('忽略业务连接') }}</span>
+          class="ml-6 force-switch"
+          >{{ t('忽略业务连接') }}</span
+        >
       </div>
     </div>
     <template #action>
@@ -120,10 +122,10 @@
 
   const tabListConfig = {
     [ClusterTypes.MONGO_SHARED_CLUSTER]: {
-      disabledRowConfig: {
+      disabledRowConfig: [{
         handler: (data: MongoDBModel) => data.mongos.length < 3,
         tip: t('Proxy数量不足，至少 3 台'),
-      },
+      }],
     },
   } as unknown as Record<ClusterTypes, TabItem>;
   // 集群域名是否已存在表格的映射表
