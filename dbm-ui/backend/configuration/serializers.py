@@ -97,7 +97,9 @@ class GetAdminPasswordSerializer(serializers.Serializer):
     begin_time = DBTimezoneField(help_text=_("开始时间"), required=False)
     end_time = DBTimezoneField(help_text=_("结束时间"), required=False)
     instances = serializers.CharField(help_text=_("过滤的实例列表(通过,分割，实例格式为--cloud:ip:port)"), required=False)
-    db_type = serializers.ChoiceField(help_text=_("db类型"), choices=DBType.get_choices(), required=False, default="")
+    db_type = serializers.ChoiceField(
+        help_text=_("db类型"), choices=DBType.get_choices(), required=False, default=DBType.MySQL.value
+    )
 
 
 class GetMySQLAdminPasswordResponseSerializer(serializers.Serializer):
