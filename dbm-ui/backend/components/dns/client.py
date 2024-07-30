@@ -50,6 +50,11 @@ class _DnsApi(BaseApi):
             url="/api/v1/dns/domain/all",
             description=_("获取所有ip、域名关系"),
         )
+        self.update_domain_belong_app = self.generate_data_api(
+            method="POST",
+            url="/api/v1/dns/domain/app",
+            description=_("更新域名所属业务关系"),
+        )
 
 
 DnsApi = _DnsApi()

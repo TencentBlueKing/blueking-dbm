@@ -11,10 +11,11 @@ specific language governing permissions and limitations under the License.
 
 from rest_framework.routers import DefaultRouter
 
-from backend.db_services.mysql.toolbox.views import ToolboxViewSet
+from backend.db_services.mysql.toolbox.views import TendbhaTransferToOtherBizViewSet, ToolboxViewSet
 
 router = DefaultRouter(trailing_slash=True)
 router.register(r"toolbox", ToolboxViewSet, basename="toolbox")
+router.register(r"toolbox", TendbhaTransferToOtherBizViewSet, basename="toolbox")
 
 urlpatterns = []
 urlpatterns += router.urls
