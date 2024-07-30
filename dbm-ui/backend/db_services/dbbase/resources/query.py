@@ -603,13 +603,19 @@ class ListRetrieveResource(BaseListRetrieveResource):
         for param in filter_params_map:
             if query_params.get(param):
                 query_filters &= filter_params_map[param]
+
         instance_queryset = cls._filter_instance_qs(query_filters, query_params)
+        count = instance_queryset.count()
+        limit = count if limit == -1 else limit
+
+        if count == 0:
+            return ResourceList(count=0, data=[])
 
         # 将实例的查询结果序列化为实例字典信息
         paginated_instances = cls._filter_instance_hook(
             bk_biz_id, query_params, instance_queryset[offset : offset + limit], **kwargs
         )
-        return ResourceList(count=instance_queryset.count(), data=paginated_instances)
+        return ResourceList(count=count, data=paginated_instances)
 
     @classmethod
     def _filter_instance_hook(cls, bk_biz_id, query_params, instances, **kwargs):
