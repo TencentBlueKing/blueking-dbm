@@ -2877,6 +2877,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "redis_webconsole",
+                "name": "Redis Webconsole执行",
+                "name_en": "redis_webconsole",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群管理",
+                "description": "Redis Webconsole执行",
+                "description_en": "redis_webconsole"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "redis_access_entry_view",
                 "name": "Redis 获取访问方式",
                 "name_en": "redis_access_entry_view",
@@ -6041,6 +6072,93 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_local_upgrade",
+                "name": "MySQL 原地升级",
+                "name_en": "MYSQL_LOCAL_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "版本升级",
+                "description": "MySQL 原地升级",
+                "description_en": "MYSQL_LOCAL_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_migrate_upgrade",
+                "name": "MySQL 迁移升级",
+                "name_en": "MYSQL_MIGRATE_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "版本升级",
+                "description": "MySQL 迁移升级",
+                "description_en": "MYSQL_MIGRATE_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_proxy_upgrade",
+                "name": "MySQL Proxy升级",
+                "name_en": "MYSQL_PROXY_UPGRADE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "版本升级",
+                "description": "MySQL Proxy升级",
+                "description_en": "MYSQL_PROXY_UPGRADE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "tendbcluster_checksum",
                 "name": "TenDB Cluster 数据校验修复",
                 "name_en": "TENDBCLUSTER_CHECKSUM",
@@ -7869,7 +7987,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "redis_cluster_add_slave",
-                "name": "Redis 新增slave节点",
+                "name": "Redis 重建从库",
                 "name_en": "REDIS_CLUSTER_ADD_SLAVE",
                 "type": "execute",
                 "related_resource_types": [
@@ -7890,7 +8008,7 @@
                 "hidden": false,
                 "group": "Redis",
                 "subgroup": "集群维护",
-                "description": "Redis 新增slave节点",
+                "description": "Redis 重建从库",
                 "description_en": "REDIS_CLUSTER_ADD_SLAVE"
             }
         },
@@ -9916,6 +10034,21 @@
                                     "id": "mysql_rollback_cluster"
                                 }
                             ]
+                        },
+                        {
+                            "name": "版本升级",
+                            "name_en": "版本升级",
+                            "actions": [
+                                {
+                                    "id": "mysql_local_upgrade"
+                                },
+                                {
+                                    "id": "mysql_migrate_upgrade"
+                                },
+                                {
+                                    "id": "mysql_proxy_upgrade"
+                                }
+                            ]
                         }
                     ]
                 },
@@ -10147,6 +10280,9 @@
                             "actions": [
                                 {
                                     "id": "redis_view"
+                                },
+                                {
+                                    "id": "redis_webconsole"
                                 },
                                 {
                                     "id": "redis_access_entry_view"
@@ -11025,6 +11161,9 @@
                             "id": "redis_view"
                         },
                         {
+                            "id": "redis_webconsole"
+                        },
+                        {
                             "id": "redis_access_entry_view"
                         },
                         {
@@ -11278,6 +11417,15 @@
                         },
                         {
                             "id": "mysql_dump_data"
+                        },
+                        {
+                            "id": "mysql_local_upgrade"
+                        },
+                        {
+                            "id": "mysql_migrate_upgrade"
+                        },
+                        {
+                            "id": "mysql_proxy_upgrade"
                         },
                         {
                             "id": "tendbcluster_checksum"
@@ -11797,6 +11945,18 @@
                             {
                                 "id": "mysql_dump_data",
                                 "required": true
+                            },
+                            {
+                                "id": "mysql_local_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_migrate_upgrade",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_proxy_upgrade",
+                                "required": true
                             }
                         ]
                     },
@@ -12006,6 +12166,10 @@
                         "actions": [
                             {
                                 "id": "redis_view",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_webconsole",
                                 "required": true
                             },
                             {

@@ -383,7 +383,7 @@ class ResourceHandler(object):
     """资源池接口的处理函数"""
 
     @classmethod
-    def spec_resource_count(cls, bk_biz_id: int, bk_cloud_id: int, spec_ids: List[int]):
+    def spec_resource_count(cls, bk_biz_id: int, bk_cloud_id: int, spec_ids: List[int], city: str):
         specs = Spec.objects.filter(spec_id__in=spec_ids)
         if not specs.exists():
             return {}
@@ -394,7 +394,13 @@ class ResourceHandler(object):
         resource_type = ClusterType.cluster_type_to_db_type(spec_cluster_type[0])
         # 构造申请参数
         spec_count_details = [
-            spec.get_group_apply_params(group_mark=str(spec.spec_id), count=1, group_count=1, bk_cloud_id=bk_cloud_id)
+            spec.get_group_apply_params(
+                group_mark=str(spec.spec_id),
+                count=1,
+                group_count=1,
+                bk_cloud_id=bk_cloud_id,
+                location_spec={"city": city, "sub_zone_ids": []},
+            )
             for spec in specs
         ]
         spec_count_details = list(itertools.chain(*spec_count_details))

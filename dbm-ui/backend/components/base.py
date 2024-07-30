@@ -80,6 +80,10 @@ class DataResponse(object):
     def errors(self):
         return self.response.get("errors", None)
 
+    @property
+    def error_msg(self):
+        return self.response.get("error_msg", None)
+
 
 class DataAPI(object):
     """Single API for DATA"""
@@ -179,17 +183,16 @@ class DataAPI(object):
             response = self._send_request(params, headers, use_admin=use_admin)
             if raw:
                 return response.response
-
             # 统一处理返回内容，根据平台既定规则，断定成功与否
             if raise_exception and not response.is_success():
+                err_msg = response.error_msg or response.message
                 raise ApiResultError(
-                    self.get_error_message(response.message, response.request_id),
+                    self.get_error_message(err_msg, response.request_id),
                     code=response.code,
                     errors=response.errors,
                     data=response.data,
                     permission=response.permission,
                 )
-
             return response.data
         except (requests.exceptions.Timeout, ConnectTimeoutError):
             # 网络超时导致，尝试重试并增加超时时间
@@ -212,7 +215,7 @@ class DataAPI(object):
             logger.exception(f"{error_message}, url => {self.url}, params => {params}, headers => {headers}")
 
             if isinstance(error, ApiResultError):
-                raise ApiResultError(error)
+                raise error
             elif isinstance(error, (DataAPIException, requests.exceptions.RequestException)):
                 raise ApiRequestError(error)
             elif isinstance(error, Exception):
