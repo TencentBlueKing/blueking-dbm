@@ -243,7 +243,7 @@
     count: 0,
     current: 1,
     limit: 10,
-    limitList: [10, 20, 50, 100],
+    limitList: [10, 20, 50, 100, 500],
     align: 'right',
     layout: ['total', 'limit', 'list'],
     ...props.paginationExtra,

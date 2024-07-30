@@ -123,6 +123,7 @@
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+  import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
@@ -264,7 +265,8 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      minWidth: 300,
+      width: 280,
+      minWidth: 280,
       fixed: 'left',
       showOverflowTooltip: false,
       render: ({ data }: { data: MongodbModel }) => {
@@ -353,6 +355,7 @@
     {
       label: t('域名'),
       field: 'master_domain',
+      width: 280,
       minWidth: 300,
       renderHead: () => (
         <RenderHeadCopy
@@ -597,8 +600,9 @@
       'cluster_name',
       'master_domain',
       'status',
+      'cluster_stats',
       'major_version',
-      'bk_cloud_name',
+      'region',
       'mongodb',
     ],
     showLineHeight: false,

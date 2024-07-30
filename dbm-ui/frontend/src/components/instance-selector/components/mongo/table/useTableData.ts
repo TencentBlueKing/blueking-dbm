@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { type ComponentInternalInstance } from 'vue';
 
@@ -22,8 +22,8 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
     proxy: {
-      getTableList: (params: any) => Promise<any>
-    }
+      getTableList: (params: any) => Promise<any>;
+    };
   };
 
   const isLoading = ref(false);
@@ -45,8 +45,7 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
     });
   });
 
-  const fetchResources = async () => {
-    isLoading.value = true;
+  const generateParams = () => {
     const params = {
       bk_biz_id: currentBizId,
       instance_address: searchValue.value,
@@ -59,7 +58,14 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
         cluster_id: clusterId.value,
       });
     }
-    return currentInstance.proxy.getTableList(params)
+    return params;
+  };
+
+  const fetchResources = async () => {
+    isLoading.value = true;
+    const params = generateParams();
+    return currentInstance.proxy
+      .getTableList(params)
       .then((data) => {
         const ret = data;
         tableData.value = ret.results;
@@ -91,6 +97,7 @@ export function useTableData<T>(clusterId?: Ref<number | undefined>) {
     data: tableData,
     pagination,
     searchValue,
+    generateParams,
     fetchResources,
     handleChangePage,
     handeChangeLimit,
