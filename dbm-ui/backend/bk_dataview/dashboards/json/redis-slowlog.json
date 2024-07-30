@@ -864,6 +864,14 @@
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
     "TwemproxyTendisSSDInstance",
+    "PredixyRedisCluster",
+    "PredixyTendisplusCluster",
+    "TwemproxyTendisplusInstance",
+    "RedisInstance",
+    "TendisSSDInstance",
+    "TendisplusInstance",
+    "RedisCluster",
+    "TendisplusCluster",
     "慢查询"
   ],
   "templating": {
