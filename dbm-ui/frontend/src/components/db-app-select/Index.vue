@@ -126,6 +126,10 @@
 </script>
 <style lang="less">
   .bk-app-select-menu[data-theme='dark'] {
+    .bk-app-select-menu-filter input {
+      color: #c4c6cc;
+    }
+
     .not-permission {
       * {
         color: #70737a !important;

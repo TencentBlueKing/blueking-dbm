@@ -210,4 +210,17 @@ export default [
       },
     ],
   },
+  {
+    name: t('数据查询'),
+    id: 'spider_data_query',
+    icon: 'db-icon-search',
+    children: [
+      {
+        name: 'Webconsole',
+        id: 'SpiderWebconsole',
+        parentId: 'spider_data_query',
+        dbConsoleValue: 'tendbCluster.toolbox.webconsole',
+      },
+    ],
+  },
 ];
