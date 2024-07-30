@@ -32,7 +32,7 @@ from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
-from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DIRTY_MODULE, RESOURCE_MODULE
+from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DEFAULT_CLOUD, DIRTY_MODULE, RESOURCE_MODULE
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.dbm_init.json_files.format import JsonConfigFormat
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError
@@ -398,6 +398,13 @@ class Services:
                 "token": res["access_token"],
             }
         )
+
+        # 上报地址
+        proxies = BKMonitorV3Api.proxy_host_info({"bk_biz_id": env.DBA_APP_BK_BIZ_ID})
+        for proxy in proxies:
+            if proxy["bk_cloud_id"] == DEFAULT_CLOUD:
+                DBM_REPORT_INITIAL_VALUE["proxy"] = f'http://{proxy["ip"]}:{proxy["port"]}/v2/push/'
+                break
 
         logger.info("init_custom_metric_and_event: %s", DBM_REPORT_INITIAL_VALUE)
         SystemSettings.objects.update_or_create(
