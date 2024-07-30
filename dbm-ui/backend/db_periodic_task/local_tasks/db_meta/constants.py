@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 
-UNIFY_QUERY_PARAMS = params = {
+UNIFY_QUERY_PARAMS = {
     "bk_biz_id": 3,
     "query_configs": [
         {
@@ -38,12 +38,12 @@ QUERY_TEMPLATE = {
         "range": 5,
         "used": """sum by (cluster_domain) (
             sum_over_time(
-                bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{instance_role="redis_master,%s"}[1m]
+                bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{instance_role="redis_master",%s}[1m]
             ))""",
         "total": """sum by (cluster_domain) (
             avg by (cluster_domain, bk_target_ip) (
                 avg_over_time(
-                    bkmonitor:dbm_system:mem:total{instance_role="redis_master"}[1m]
+                    bkmonitor:dbm_system:mem:total{instance_role="redis_master",%s}[1m]
                 )
             ))""",
     },
@@ -89,13 +89,13 @@ QUERY_TEMPLATE = {
         "used": """sum by (cluster_domain) (
             avg by (cluster_domain, ip) (
                 avg_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="remote_master",%s}[1m]
-                ) * 1024))""",
+                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_used_mb{instance_role="remote_master",%s}[5m]
+                ) * 1024 * 1024))""",
         "total": """sum by (cluster_domain) (
             avg by (cluster_domain, ip) (
                 avg_over_time(
-                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="remote_master",%s}[1m]
-                ) * 1024))""",
+                    bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="remote_master",%s}[5m]
+                ) * 1024 * 1024))""",
     },
     # es采集器本身存在容量统计指标（elasticsearch_filesystem_data_size_bytes、elasticsearch_indices_store_size_bytes）
     # 但数据节点只注册了一个，这里暂时用磁盘容量计算
@@ -123,7 +123,7 @@ QUERY_TEMPLATE = {
         "used": """sum by (cluster_domain) (
             sum_over_time(
                 bkmonitor:dbm_system:disk:used{
-                    device_type=~"ext.?|xfs",instance_role="broker",mount_point!~"^(/|/usr/local),%s$"
+                    device_type=~"ext.?|xfs",instance_role="broker",mount_point!~"^(/|/usr/local)$",%s
                 }[1m]
             ))""",
         "total": """sum by (cluster_domain) (

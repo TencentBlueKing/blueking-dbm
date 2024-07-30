@@ -58,7 +58,7 @@ def query_cap(bk_biz_id, cluster_type, cap_key="used"):
     params["start_time"] = int(start_time.timestamp())
     params["end_time"] = int(end_time.timestamp())
 
-    params["query_configs"][0]["promql"] = query_template[cap_key] % f'bk_biz_id="{bk_biz_id}"'
+    params["query_configs"][0]["promql"] = query_template[cap_key] % f'appid="{bk_biz_id}"'
     series = BKMonitorV3Api.unify_query(params)["series"]
 
     cluster_bytes = {}
