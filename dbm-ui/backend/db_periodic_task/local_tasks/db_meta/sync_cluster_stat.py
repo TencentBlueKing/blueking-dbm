@@ -126,7 +126,7 @@ def sync_cluster_stat_by_cluster_type(bk_biz_id, cluster_type):
     cache.set(f"{CACHE_CLUSTER_STATS}_{bk_biz_id}_{cluster_type}", json.dumps(cluster_stats))
 
 
-@register_periodic_task(run_every=crontab(hour="*/1"))
+@register_periodic_task(run_every=crontab(hour="*/1", minute=0))
 def sync_cluster_stat_from_monitor():
     """
     同步各集群容量状态
