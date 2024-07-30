@@ -201,6 +201,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_LOCAL_UPGRADE = TicketEnumField("MYSQL_LOCAL_UPGRADE", _("MySQL 原地升级"), _("版本升级"))
     MYSQL_MIGRATE_UPGRADE = TicketEnumField("MYSQL_MIGRATE_UPGRADE", _("MySQL 迁移升级"), _("版本升级"))
     MYSQL_PROXY_UPGRADE = TicketEnumField("MYSQL_PROXY_UPGRADE", _("MySQL Proxy升级"), _("版本升级"))
+    MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False)# noqa
 
     # SPIDER(TenDB Cluster)
     TENDBCLUSTER_OPEN_AREA = TicketEnumField("TENDBCLUSTER_OPEN_AREA", _("TenDB Cluster 开区"), _("克隆开区"), register_iam=False)  # noqa
@@ -245,7 +246,6 @@ class TicketType(str, StructuredEnum):
     TENDBSINGLE_STANDARDIZE = TicketEnumField("TENDBSINGLE_STANDARDIZE", _("TenDB Single 集群标准化"), register_iam=False)  # noqa
     TENDBCLUSTER_DATA_MIGRATE = TicketEnumField("TENDBCLUSTER_DATA_MIGRATE", _("TenDB Cluster 数据迁移"), _("数据处理"))
     TENDBCLUSTER_DUMP_DATA = TicketEnumField("TENDBCLUSTER_DUMP_DATA", _("TenDB Cluster 数据导出"), _("数据处理"))
-
     # Tbinlogdumper
     TBINLOGDUMPER_INSTALL = TicketEnumField("TBINLOGDUMPER_INSTALL", _("TBINLOGDUMPER 上架"), register_iam=False)
     TBINLOGDUMPER_REDUCE_NODES = TicketEnumField("TBINLOGDUMPER_REDUCE_NODES", _("TBINLOGDUMPER 下架"), register_iam=False)  # noqa

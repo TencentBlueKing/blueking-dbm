@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
+from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRules
@@ -657,3 +658,10 @@ class MySQLController(BaseController):
         """
         flow = DownloadFileFlow(root_id=self.root_id, data=self.ticket_data)
         flow.download_file_flow()
+
+    def tranfer_biz_scene(self):
+        """
+        转移集群到其他业务
+        """
+        flow = TransferMySQLClusterToOtherBizFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.transfer_to_other_biz_flow()
