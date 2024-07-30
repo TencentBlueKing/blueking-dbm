@@ -43,7 +43,7 @@ class ListRedisResourceSLZ(ListResourceSLZ):
 
 
 class ListSQLServerResourceSLZ(ListResourceSLZ):
-    db_module_id = serializers.IntegerField(required=False)
+    pass
 
 
 class ListMongoDBResourceSLZ(ListResourceSLZ):
