@@ -110,8 +110,8 @@
         class="operations-right mb-16"
         :data="searchSelectData"
         :get-menu-list="getMenuList"
-        :parse-url="false"
         :model-value="searchValue"
+        :parse-url="false"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         :validate-values="validateSearchValues"
@@ -470,8 +470,8 @@
     {
       label: t('访问入口'),
       field: 'master_domain',
-      width: 300,
-      minWidth: 300,
+      width: 280,
+      minWidth: 280,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -564,7 +564,6 @@
       label: t('集群名称'),
       field: 'cluster_name',
       minWidth: 200,
-      fixed: 'left',
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -1113,17 +1112,15 @@
       disabled: ['master_domain'].includes(item.field as string),
     })),
     checked: [
-      'bk_cloud_id',
-      'name',
       'master_domain',
-      'creator',
-      'create_at',
-      'major_version',
-      'region',
-      'cluster_time_zone',
+      'status',
+      'cluster_stats',
       ClusterNodeKeys.PROXY,
       ClusterNodeKeys.REDIS_MASTER,
       ClusterNodeKeys.REDIS_SLAVE,
+      'cluster_type_name',
+      'major_version',
+      'region',
     ],
     showLineHeight: false,
     trigger: 'manual' as const,

@@ -55,8 +55,8 @@
     </div>
     <DbSideslider
       v-model:is-show="isShowExpandsion"
+      background-color="#F5F7FA"
       class="pulsar-manage-sideslider"
-      backgroundColor="#F5F7FA"
       quick-close
       :title="t('xx扩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
       :width="960">
@@ -67,8 +67,8 @@
     </DbSideslider>
     <DbSideslider
       v-model:is-show="isShowShrink"
+      background-color="#F5F7FA"
       class="pulsar-manage-sideslider"
-      backgroundColor="#F5F7FA"
       quick-close
       :title="t('xx缩容【name】', { title: 'Pulsar', name: operationData?.cluster_name })"
       :width="960">
@@ -250,8 +250,8 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      width: 200,
-      minWidth: 200,
+      width: 280,
+      minWidth: 280,
       fixed: 'left',
       showOverflowTooltip: false,
       renderHead: () => (
@@ -325,9 +325,8 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      width: 150,
-      minWidth: 150,
-      fixed: 'left',
+      width: 200,
+      minWidth: 200,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -751,14 +750,14 @@
       disabled: ['domain'].includes(item.field as string),
     })),
     checked: [
-      'cluster_name',
       'domain',
       'major_version',
+      'region',
       'status',
+      'cluster_stats',
       'pulsar_bookkeeper',
       'pulsar_zookeeper',
       'pulsar_broker',
-      'cluster_time_zone',
     ],
     trigger: 'manual' as const,
   };
