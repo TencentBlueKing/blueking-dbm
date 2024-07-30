@@ -26,10 +26,10 @@ if env.RUN_VER == "open":
 else:
     from blueapps.patch.settings_paas_services import *  # pylint: disable=wildcard-import
 
-
 # django 3.2 默认的 default_auto_field 是 BigAutoField，django_celery_beat 在 2.2.1 版本已处理此问题
 # 受限于 celery 和 bamboo 的版本，这里暂时这样手动设置 default_auto_field 来处理此问题
 from django_celery_beat.apps import AppConfig
+
 AppConfig.default_auto_field = "django.db.models.AutoField"
 
 pymysql.install_as_MySQLdb()
@@ -92,7 +92,7 @@ INSTALLED_APPS += (
     "bk_audit.contrib.bk_audit",
     # apm
     "blueapps.opentelemetry.instrument_app",
-    #apigw
+    # apigw
     "apigw_manager.apigw",
     # DB重连
     "backend.django_dbconn_retry",
@@ -126,7 +126,6 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.dumper",
     "backend.dbm_init",
 )
-
 
 MIDDLEWARE = (
     # 跨域中间件
@@ -240,6 +239,8 @@ CACHES = {
             "REDIS_CLIENT_CLASS": "redis.client.StrictRedis",
             "REDIS_CLIENT_KWARGS": {"decode_responses": True},
             "SERIALIZER": "backend.utils.redis.JSONSerializer",
+            "MAX_ENTRIES": 100000,
+            "CULL_FREQUENCY": 10
         },
     },
     "login_db": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "account_cache"},
@@ -278,14 +279,12 @@ BK_AUDIT_SETTINGS = {
 ENABLE_OTEL_TRACE = env.ENABLE_OTEL_TRACE
 BK_APP_OTEL_INSTRUMENT_DB_API = env.BK_APP_OTEL_INSTRUMENT_DB_API  # 是否开启 DB 访问 trace（开启后 span 数量会明显增多）
 
-
 # BAMBOO PIPELINE 配置
 AUTO_UPDATE_COMPONENT_MODELS = False
 ENABLE_CLEAN_EXPIRED_BAMBOO_TASK = env.ENABLE_CLEAN_EXPIRED_BAMBOO_TASK  # 是否开启清理
 ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE = env.ENABLE_CLEAN_EXPIRED_FLOW_INSTANCE  # 是否清理dbm的流程树/流程节点
 BAMBOO_TASK_VALIDITY_DAY = env.BAMBOO_TASK_VALIDITY_DAY  # 流程任务合法时间(旧于这个日期的数据会被删除)
 BAMBOO_TASK_EXPIRE_ONE_BATCH_NUM = 100  # 一批淘汰的最大任务数。一般来说，此数量级应该>=淘汰时间内产生的任务数
-
 
 # APIGW 蓝鲸网关配置
 BK_APIGW_STATIC_VERSION = env.BK_APIGW_STATIC_VERSION
@@ -419,7 +418,7 @@ def get_logging_config(log_dir: str, log_level: str = "ERROR") -> Dict:
         "formatters": {
             "verbose": {
                 "format": "%(levelname)s [%(asctime)s] [%(request_id)s] %(name)s %(pathname)s %(lineno)d %(funcName)s "
-                "%(process)d %(thread)d \n \t %(message)s \n",
+                          "%(process)d %(thread)d \n \t %(message)s \n",
                 # noqa
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
@@ -575,7 +574,6 @@ GRAFANA = {
     },
     "BACKEND_CLASS": "backend.bk_dataview.grafana.backends.api.APIHandler",
 }
-
 
 # 全局启用 pyinstrument，或者在url后面加上?profile=1
 # PYINSTRUMENT_PROFILE_DIR = os.path.join(STATIC_ROOT, 'assets/perf')
