@@ -161,6 +161,7 @@ export default class Redis {
     redis_plugin_dns_bind_clb: boolean;
     redis_purge: boolean;
     redis_view: boolean;
+    redis_webconsole: boolean;
   };
   phase: string;
   proxy: Node[];

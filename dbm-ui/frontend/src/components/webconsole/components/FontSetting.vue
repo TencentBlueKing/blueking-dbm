@@ -16,10 +16,10 @@
           v-for="(item, index) in fontSizeList"
           :key="index"
           class="font-item"
-          :class="{ 'font-item-active': item.fontSize === currentFontSize }"
-          @click="() => handleChangeFontSize(index)">
+          :class="{ 'font-item-active': item.fontSize === modelValue.fontSize }"
+          @click="() => handleChangeFontSize(item)">
           <DbIcon
-            :style="{ 'font-size': item }"
+            :style="item"
             type="aa" />
         </div>
       </div>
@@ -29,21 +29,25 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
+  interface FontSetting {
+    fontSize: string;
+    lineHeight: string;
+  }
+
   interface Emits {
-    (
-      e: 'fontSizeChange',
-      value: {
-        fontSize: string;
-        lineHeight: string;
-      },
-    ): void;
+    (e: 'change', value: FontSetting): void;
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const currentFontSize = ref('12px');
+  const modelValue = defineModel<FontSetting>({
+    default: {
+      fontSize: '12px',
+      lineHeight: '20px',
+    },
+  });
 
   const fontSizeList = [
     {
@@ -60,10 +64,9 @@
     },
   ];
 
-  const handleChangeFontSize = (index: number) => {
-    const currentFont = fontSizeList[index];
-    currentFontSize.value = currentFont.fontSize;
-    emits('fontSizeChange', currentFont);
+  const handleChangeFontSize = (item: FontSetting) => {
+    modelValue.value = item;
+    emits('change', item);
   };
 </script>
 <style lang="less">
@@ -73,25 +76,25 @@
     .font-change-main {
       display: flex;
       padding: 2px;
+      cursor: pointer;
       background: #2e2e2e;
       border: 1px solid #3d3d3d;
-      box-shadow: 0 2px 6px 0 #0000001f;
       border-radius: 2px;
-      cursor: pointer;
+      box-shadow: 0 2px 6px 0 #0000001f;
 
       .font-item {
+        display: flex;
         width: 28px;
         height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
         color: #979ba5;
+        align-items: end;
+        justify-content: center;
       }
 
       .font-item-active {
+        color: #dcdee5;
         background: #424242;
         border-radius: 1px;
-        color: #dcdee5;
       }
     }
   }

@@ -3,67 +3,41 @@
     ref="rootRef"
     class="webconsole-main">
     <div class="top-main">
-      <div class="tabs-main">
-        <div
-          v-for="(clusterId, index) in selectedClusters"
-          :key="clusterId"
-          class="tab-item"
-          :class="{ 'item-selected': clusterId === activeClusterId }"
-          @click="() => handleActiveTab(clusterId)">
-          <div class="active-bar"></div>
-          <div class="tab-item-content">
-            <span
-              v-overflow-tips
-              class="cluster-name"
-              >{{ clustersMap[clusterId]?.immute_domain }}</span
-            >
-            <div
-              class="icon-main"
-              @click.stop="() => handleCloseTab(index)">
-              <DbIcon
-                class="hover-close-icon-1"
-                type="close" />
-              <DbIcon
-                class="hover-close-icon-2"
-                type="close-circle-shape" />
-            </div>
-          </div>
-        </div>
-        <div
-          ref="addTabRef"
-          class="add-icon-main">
-          <DbIcon
-            class="add-icon"
-            type="increase"
-            @mouseenter="handleShowClustersPanel" />
-        </div>
-      </div>
-      <div class="top-operate-main">
-        <ClearScreen @clear-current-screen="handleClickClearScreen" />
-        <ExportData @export="handleClickExport" />
-        <UseHelp
-          v-model:showUseageHelp="showUseageHelp"
-          @toggle-show-help="handleToggleHelp" />
-        <div class="operate-item-last">
-          <FontChange @font-size-change="handleChangeFontSize" />
-          <FullScreen
-            v-model:isFullScreen="isFullScreen"
-            @toggle-full-screen="handleClickFullScreen" />
-        </div>
+      <ClusterTabs
+        ref="clusterTabsRef"
+        :before-close="handleBeforeClose"
+        :db-type="dbType"
+        @change="handleChangeCurrentCluster"
+        @remove-tab="handleClickClearScreen" />
+      <RawSwitcher
+        v-if="dbType === DBTypes.REDIS"
+        v-model="isRaw"
+        :db-type="dbType" />
+      <ClearScreen @change="handleClickClearScreen" />
+      <ExportData @export="handleClickExport" />
+      <UsageHelp
+        v-model="showUsageHelp"
+        @change="handleToggleHelp" />
+      <div class="operate-item-last">
+        <FontSetting
+          v-model="currentFontConfig"
+          @change="handleChangeFontSize" />
+        <FullScreen
+          v-model="isFullScreen"
+          @change="handleClickFullScreen" />
       </div>
     </div>
     <div class="content-main">
-      <div
-        v-show="showUseageHelp"
-        class="using-help-wrap">
-        <UseingHelpPanel @hide="handleHideUseingHelp" />
-      </div>
-      <ConsolePanel
-        v-if="activeClusterId > 0"
-        ref="consolePanelRef"
-        :cluster-info="clustersMap[activeClusterId]"
-        :cluster-type="clusterType"
-        :font-config="currentFontConfig" />
+      <KeepAlive>
+        <ConsolePanel
+          v-if="clusterInfo"
+          :key="clusterInfo.id"
+          ref="consolePanelRef"
+          v-model="clusterInfo"
+          :db-type="dbType"
+          :raw="isRaw"
+          :style="currentFontConfig" />
+      </KeepAlive>
       <div class="placeholder-main">
         <DbIcon
           class="warn-icon"
@@ -77,203 +51,91 @@
         </BkButton>
       </div>
     </div>
-    <div style="display: none">
-      <div
-        ref="popRef"
-        class="webconsole-select-clusters"
-        :style="{ height: clustersPanelHeight }">
-        <div class="title">{{ t('连接的集群') }}</div>
-        <BkSelect
-          ref="clutersRef"
-          class="clusters-select"
-          filterable
-          :model-value="currentCluster"
-          multiple
-          :popover-options="{ disableTeleport: true }"
-          @change="handleClusterSelectChange">
-          <template #trigger>
-            <span></span>
-          </template>
-          <BkOption
-            v-for="(item, index) in clusterList"
-            :key="index"
-            :name="item.immute_domain"
-            :value="item.id" />
-        </BkSelect>
-      </div>
-    </div>
   </div>
 </template>
 <script lang="ts" setup>
+  import { InfoBox } from 'bkui-vue';
   import screenfull from 'screenfull';
-  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import { queryAllTypeCluster } from '@services/source/dbbase';
 
-  import { messageWarn } from '@utils';
+  import { DBTypes } from '@common/const';
 
   import ClearScreen from './components/ClearScreen.vue';
+  import ClusterTabs from './components/ClusterTabs.vue';
   import ConsolePanel from './components/console-panel/Index.vue';
   import ExportData from './components/ExportData.vue';
-  import FontChange from './components/FontChange.vue';
+  import FontSetting from './components/FontSetting.vue';
   import FullScreen from './components/FullScreen.vue';
-  import UseHelp from './components/UseHelp.vue';
-  import UseingHelpPanel from './components/UseingHelpPanel.vue';
+  import RawSwitcher from './components/RawSwitcher.vue';
+  import UsageHelp from './components/usage-help/Index.vue';
 
-  export interface Props {
-    clusterType?: 'mysql' | 'tendbcluster' | 'redis';
+  interface Props {
+    dbType?: DBTypes;
   }
 
-  export type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
+  type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
 
   const props = withDefaults(defineProps<Props>(), {
-    clusterType: 'mysql',
+    dbType: DBTypes.MYSQL,
   });
 
   const { t } = useI18n();
-  const route = useRoute();
 
   const rootRef = ref();
+  const clusterTabsRef = ref();
   const consolePanelRef = ref<InstanceType<typeof ConsolePanel>>();
-  const clutersRef = ref();
-  const currentCluster = ref<number[]>([]);
-  const selectedClusters = ref<number[]>([]);
-  const activeClusterId = ref(0);
-  const showUseageHelp = ref(false);
-  const addTabRef = ref();
-  const popRef = ref();
+  const clusterInfo = ref<ClusterItem>();
   const currentFontConfig = ref({
     fontSize: '12px',
     lineHeight: '20px',
   });
+  const isRaw = ref(props.dbType === DBTypes.REDIS ? false : undefined);
   const isFullScreen = ref(false);
-  const clustersMap = ref<Record<number, ClusterItem>>({});
+  const showUsageHelp = ref(false);
 
-  const clustersPanelHeight = computed(() => {
-    if (!clusterList.value) {
-      return '120px';
-    }
-
-    if (clusterList.value.length >= 6) {
-      return `300px`;
-    }
-    const height = 300 - (6 - clusterList.value.length) * 32;
-    return `${height}px`;
-  });
-
-  const routeClusterId = route.query.clusterId;
-
-  const queryClusterTypesMap = {
-    mysql: 'tendbha,tendbsingle',
-    tendbcluster: 'tendbcluster',
-    redis: 'redis',
-  };
-  let clustersRaw: ClusterItem[] = [];
-  let tippyIns: Instance | undefined;
-
-  const { data: clusterList } = useRequest(queryAllTypeCluster, {
-    defaultParams: [
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_types: queryClusterTypesMap[props.clusterType],
-        phase: 'online',
-      },
-    ],
-    onSuccess(data) {
-      clustersMap.value = data.reduce(
-        (results, item) => {
-          Object.assign(results, {
-            [item.id]: item,
-          });
-          return results;
-        },
-        {} as Record<number, ClusterItem>,
-      );
-      clustersRaw = data;
-
-      if (routeClusterId) {
-        const clusterId = Number(routeClusterId);
-        setTimeout(() => {
-          handleClusterSelectChange([clusterId]);
+  const handleBeforeClose = (clusterId: number) =>
+    new Promise<boolean>((resolve, reject) => {
+      const isInputed = consolePanelRef.value!.isInputed(clusterId);
+      if (isInputed) {
+        InfoBox({
+          title: t('确认关闭当前窗口？'),
+          content: t('关闭后，内容将不会再在保存，请谨慎操作！'),
+          headerAlign: 'center',
+          footerAlign: 'center',
+          confirmText: t('关闭'),
+          cancelText: t('取消'),
+          onConfirm() {
+            resolve(true);
+          },
+          onCancel() {
+            reject(false);
+          },
         });
+      } else {
+        resolve(true);
       }
-    },
-  });
-
-  const handleShowClustersSelect = () => {
-    tippyIns?.show();
-  };
-
-  const handleCloseTab = (index: number) => {
-    const currentClusterId = selectedClusters.value[index];
-    consolePanelRef.value!.clearCurrentScreen(currentClusterId);
-    selectedClusters.value.splice(index, 1);
-    const clusterCount = selectedClusters.value.length;
-    if (currentClusterId === activeClusterId.value) {
-      // 关闭当前打开tab
-      activeClusterId.value = clusterCount === 0 ? 0 : selectedClusters.value[clusterCount - 1];
-    }
-    currentCluster.value = [];
-    updateClusterSelect();
-  };
-
-  const handleActiveTab = (id: number) => {
-    activeClusterId.value = id;
-  };
+    });
 
   const handleShowClustersPanel = () => {
-    handleShowClustersSelect();
-    setTimeout(() => {
-      clutersRef.value.showPopover();
-    });
+    clusterTabsRef.value!.showClustersPanel();
   };
 
-  const handleClusterSelectChange = (ids: number[]) => {
-    if (ids.length === 0) {
-      return;
-    }
-
-    if (selectedClusters.value.length === 8) {
-      messageWarn(t('页签数量已达上限，请先关闭部分标'));
-      currentCluster.value = [];
-      return;
-    }
-
-    let id = 0;
-    if (ids.length > 1) {
-      id = ids.pop()!;
-      selectedClusters.value.push(id);
-      currentCluster.value = [id];
-    } else {
-      currentCluster.value = ids;
-      [id] = ids;
-      selectedClusters.value.push(id);
-    }
-
-    if (activeClusterId.value === 0) {
-      activeClusterId.value = id;
-    }
-
-    updateClusterSelect();
-    tippyIns?.hide();
+  const handleClickClearScreen = (clusterId?: number) => {
+    consolePanelRef.value!.clearCurrentScreen(clusterId as number);
   };
 
-  const updateClusterSelect = () => {
-    clusterList.value = clustersRaw.filter((item) => !selectedClusters.value.includes(item.id));
+  const handleClickExport = () => {
+    consolePanelRef.value!.export();
   };
 
-  const handleClickClearScreen = () => {
-    consolePanelRef.value!.clearCurrentScreen();
+  const handleChangeCurrentCluster = (data: ClusterItem) => {
+    clusterInfo.value = data;
   };
 
   const handleToggleHelp = () => {
-    showUseageHelp.value = !showUseageHelp.value;
-  };
-
-  const handleHideUseingHelp = () => {
-    showUseageHelp.value = false;
+    showUsageHelp.value = !showUsageHelp.value;
   };
 
   const handleChangeFontSize = (item: { fontSize: string; lineHeight: string }) => {
@@ -285,303 +147,136 @@
     isFullScreen.value = !isFullScreen.value;
   };
 
-  const handleClickExport = () => {
-    consolePanelRef.value!.export();
-  };
-
   const checkFullScreen = () => {
     isFullScreen.value = screenfull.isFullscreen;
   };
 
   onMounted(() => {
     screenfull.on('change', checkFullScreen);
-
-    tippyIns = tippy(addTabRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom-start',
-      appendTo: rootRef.value,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
-      arrow: true,
-      offset: [0, 0],
-      zIndex: 999999,
-      hideOnClick: true,
-    });
   });
 
   onBeforeUnmount(() => {
     screenfull.off('change', checkFullScreen);
-
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
   });
 </script>
 <style lang="less">
-  .tippy-content {
-    padding: 0 !important;
-
-    .clusters-select {
-      .bk-select-popover {
-        border: none;
-        box-shadow: none;
-      }
-    }
-
-    .webconsole-select-clusters {
-      width: 388px;
-      background: #ffffff;
-      border: 1px solid #dcdee5;
-      box-shadow: 0 2px 6px 0 #0000001a;
-      border-radius: 2px;
-
-      .title {
-        height: 40px;
-        line-height: 40px;
-        font-weight: 700;
-        color: #313238;
-        margin: 4px 8px 0;
-        border-bottom: 1px solid #eaebf0;
-      }
-    }
-  }
-
   .webconsole-main {
+    display: flex;
     width: 100%;
     height: 100%;
     background: #1a1a1a;
-    display: flex;
     flex-direction: column;
+    transform: translate(0, 0);
 
     .top-main {
+      display: flex;
       width: 100%;
       height: 40px;
+      font-size: 12px;
+      color: #c4c6cc;
       background: #2e2e2e;
       box-shadow: 0 2px 4px 0 #00000029;
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
 
-      .tabs-main {
-        flex: 1;
+      .operate-item {
+        position: relative;
         display: flex;
-        overflow: hidden;
+        height: 40px;
+        padding: 0 7px;
+        align-items: center;
 
-        .tab-item {
-          position: relative;
-          align-items: center;
-          min-width: 60px;
-          width: 200px;
-          height: 40px;
-          background: #2e2e2e;
-          box-shadow: 0 2px 4px 0 #00000029;
-          line-height: 40px;
-          text-align: center;
-          color: #c4c6cc;
-          cursor: pointer;
-
-          &::after {
-            position: absolute;
-            top: 12px;
-            right: 0;
-            width: 1px;
-            height: 16px;
-            background: #63656e;
-            content: '';
-          }
-
-          &.item-selected {
-            background: #242424;
-
-            .active-bar {
-              background: #3a84ff;
-            }
-          }
-
-          .active-bar {
-            width: 100%;
-            height: 3px;
-          }
-
-          .tab-item-content {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            padding: 0 15px 0 24px;
-
-            .cluster-name {
-              flex: 1;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-
-            .icon-main {
-              width: 35px;
-              display: flex;
-              justify-content: flex-end;
-
-              &:hover {
-                .hover-close-icon-2 {
-                  display: block;
-                }
-
-                .hover-close-icon-1 {
-                  display: none;
-                }
-              }
-
-              .hover-close-icon-1 {
-                color: #979ba5;
-                font-size: 20px;
-              }
-
-              .hover-close-icon-2 {
-                display: none;
-                color: #63656e;
-                font-size: 24px;
-              }
-            }
-          }
+        &::after {
+          position: absolute;
+          top: 12px;
+          right: 0;
+          width: 1px;
+          height: 16px;
+          background: #45464d;
+          content: '';
         }
 
-        .add-icon-main {
+        .operate-item-inner {
           display: flex;
-          align-items: center;
-          margin-left: 13px;
+          height: 28px;
+          padding: 0 6px;
           cursor: pointer;
-          position: relative;
+          align-items: center;
+          justify-content: center;
 
           &:hover {
-            .add-icon {
-              color: #eaebf0;
-            }
+            background: #424242;
+            border-radius: 2px;
           }
 
-          .add-icon {
-            font-size: 15px;
-            color: #c4c6cc;
+          .operate-icon {
+            font-size: 16px;
           }
 
-          .clusters-select {
-            .bk-select-popover {
-              border: none;
-              box-shadow: none;
-            }
+          .operate-title {
+            margin-left: 5px;
           }
         }
       }
 
-      .top-operate-main {
-        color: #c4c6cc;
+      .operate-item-last {
         display: flex;
-        min-width: 300px;
+        height: 40px;
+        padding: 0 6px;
+        cursor: pointer;
+        align-items: center;
 
-        .operate-item {
-          position: relative;
-          height: 40px;
-          padding: 0 7px;
+        .operate-icon {
           display: flex;
+          height: 40px;
+          font-size: 16px;
           align-items: center;
 
-          &::after {
-            position: absolute;
-            top: 12px;
-            right: 0;
-            width: 1px;
-            height: 16px;
-            background: #45464d;
-            content: '';
-          }
-
-          .operate-item-inner {
-            padding: 0 6px;
-            height: 28px;
+          .operate-icon-inner {
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            width: 28px;
+            height: 28px;
 
             &:hover {
               background: #424242;
               border-radius: 2px;
             }
-
-            .operate-icon {
-              font-size: 16px;
-            }
-
-            .operate-title {
-              margin-left: 5px;
-            }
           }
         }
+      }
 
-        .operate-item-last {
-          height: 40px;
-          display: flex;
-          align-items: center;
-          padding: 0 6px;
-          cursor: pointer;
-          // gap: 15px;
+      .use-help-selected {
+        color: #699df4;
+        background: #242424;
+      }
 
-          .operate-icon {
-            height: 40px;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-
-            .operate-icon-inner {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 28px;
-              height: 28px;
-
-              &:hover {
-                background: #424242;
-                border-radius: 2px;
-              }
-            }
-          }
-        }
-
-        .use-help-selected {
-          background: #242424;
-          color: #699df4;
-        }
+      .using-help-wrap {
+        position: fixed;
+        top: 40px;
+        z-index: 99;
+        width: 100%;
+        height: calc(100% - 40px);
+        background: transparent;
       }
     }
 
     .content-main {
-      flex: 1;
-      overflow: hidden;
       position: relative;
-
-      .using-help-wrap {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        background: transparent;
-      }
+      overflow: hidden;
+      flex: 1;
 
       .placeholder-main {
+        display: flex;
         width: 100%;
         height: 100%;
-        display: flex;
+        font-size: 14px;
+        color: #c4c6cc;
         justify-content: center;
         align-items: center;
-        color: #c4c6cc;
-        font-size: 14px;
 
         .warn-icon {
-          margin-right: 8px;
           margin-top: 3px;
+          margin-right: 8px;
         }
       }
     }
