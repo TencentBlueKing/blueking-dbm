@@ -14,6 +14,7 @@ import (
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/commoncmd"
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/crontabcmd"
+	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/doriscmd"
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/escmd"
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/hdfscmd"
 	"dbm-services/bigdata/db-tools/dbactuator/internal/subcmd/influxdbcmd"
@@ -154,6 +155,12 @@ func NewDbActuatorCommand() *cobra.Command {
 			Message: "vm operation sets",
 			Commands: []*cobra.Command{
 				vmcmd.VMCommand(),
+			},
+		},
+		{
+			Message: "doris operation sets",
+			Commands: []*cobra.Command{
+				doriscmd.DorisCommand(),
 			},
 		},
 	}
