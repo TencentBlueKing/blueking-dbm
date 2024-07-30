@@ -454,7 +454,7 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 240 : 320;
+      return isCN.value ? 290 : 370;
     }
     return 60;
   });
@@ -858,6 +858,21 @@
       render: ({ data }: ColumnRenderData) => {
         const getOperations = (theme = 'primary') => {
           const baseOperations = [
+            <OperationBtnStatusTips
+              v-db-console="redis.clusterManage.webconsole"
+              data={data}>
+              <auth-button
+                action-id="redis_webconsole"
+                resource={data.id}
+                permission={data.permission.redis_webconsole}
+                disabled={data.operationDisabled}
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={() => handleGoWebconsole(data.id)}>
+                Webconsole
+              </auth-button>
+            </OperationBtnStatusTips>,
             <OperationBtnStatusTips
               v-db-console="redis.clusterManage.backup"
               data={data}
@@ -1313,6 +1328,15 @@
     deleteKeyState.isShow = true;
     deleteKeyState.data = _.cloneDeep(data);
   };
+
+  const handleGoWebconsole = (clusterId: number) => {
+    router.push({
+      name: 'RedisWebconsole',
+      query: {
+        clusterId
+      }
+    });
+  }
 
   const handleShowBackup = (data: RedisModel[] = []) => {
     if (

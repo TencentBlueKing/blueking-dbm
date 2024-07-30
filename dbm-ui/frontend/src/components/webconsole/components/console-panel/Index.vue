@@ -6,19 +6,19 @@
       fontSize: fontConfig.fontSize,
       lineHeight: fontConfig.lineHeight,
     }">
+    <div class="input-line">{{ t('连接的集群：') }} {{ clusterInfo.immute_domain }}</div>
     <template
       v-for="(item, index) in panelRecords"
       :key="index">
       <div
         v-if="item.type !== 'normal'"
         class="input-line">
-        <span v-if="item.type === 'command'"> </span>
         <span :class="{ 'error-text': item.type === 'error' }">{{ item.message }}</span>
       </div>
       <template v-else>
-        <RenderMysqlMessage
-          v-if="clusterType === 'mysql'"
-          :data="item.message as Record<string, string>[]" />
+        <Component
+          :is="consoleConfig?.renderMessage"
+          :data="item.message" />
       </template>
     </template>
     <div v-show="loading">Waiting...</div>
@@ -29,6 +29,7 @@
         :disabled="loading"
         :style="{ height: realHeight }"
         :value="command"
+        @blur="handleInputBlur"
         @input="handleInputChange"
         @keyup.down="handleClickDownBtn"
         @keyup.enter.stop="handleClickSendCommand"
@@ -39,14 +40,21 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
 
   import { queryWebconsole } from '@services/source/dbbase';
+
+  import { DBTypes } from '@common/const';
 
   import { downloadText } from '@utils';
 
   import type { ClusterItem, Props as MainProps } from '../../Index.vue';
 
   import RenderMysqlMessage from './RenderMysqlMessage.vue';
+  import RenderRedisMessage, {
+    getDbOwnParams as getRedisOwnParams,
+    getInputPlaceholder as getRedisPlaceholder,
+  } from './RenderRedisMessage.vue';
 
   interface Props {
     clusterInfo: ClusterItem;
@@ -54,12 +62,16 @@
       fontSize: string;
       lineHeight: string;
     };
-    clusterType: MainProps['clusterType'];
+    dbType: MainProps['dbType'];
+    operableParams: {
+      raw?: boolean;
+    };
   }
 
   interface Expose {
     clearCurrentScreen: (id?: number) => void;
     export: () => void;
+    isInputed: (clusterId: number) => boolean;
   }
 
   interface PanelLine {
@@ -67,7 +79,24 @@
     type: 'success' | 'error' | 'normal' | 'command';
   }
 
+  interface ConsoleParams {
+    cluster_id: number;
+    cmd?: string;
+    [key: string]: unknown;
+  }
+
+  interface ConsoleConfig {
+    // 渲染组件
+    renderMessage: any;
+    // cmd前缀
+    getInputPlaceholder?: (clusterId: number, domain: string) => string;
+    // db独有参数
+    getDbOwnParmas?: (clusterId: number, cmd: string) => Record<string, unknown>;
+  }
+
   const props = defineProps<Props>();
+
+  const { t } = useI18n();
 
   const command = ref('');
   const panelRecords = ref<PanelLine[]>([]);
@@ -77,18 +106,56 @@
   const realHeight = ref('52px');
 
   const clusterId = computed(() => props.clusterInfo.id);
+  const consoleConfig = computed(() => configMap[props.dbType as DBTypes]);
 
   const commandsInput: Record<number, string[]> = {};
+  const noExecuteCommand: Record<number, string> = {};
   const panelsInput: Record<number, PanelLine[]> = {};
   let currentCommandIndex = 0;
   let inputPlaceholder = '';
+  let recentOnceInput = '';
+  let baseParams: ConsoleParams;
+  const configMap: { [key in DBTypes]?: ConsoleConfig } = {
+    [DBTypes.MYSQL]: {
+      renderMessage: RenderMysqlMessage,
+    },
+    [DBTypes.TENDBCLUSTER]: {
+      renderMessage: RenderMysqlMessage,
+    },
+    [DBTypes.REDIS]: {
+      renderMessage: RenderRedisMessage,
+      getInputPlaceholder: getRedisPlaceholder,
+      getDbOwnParmas: getRedisOwnParams,
+    },
+  };
+
+  watch(
+    () => props.operableParams,
+    () => {
+      baseParams = {
+        ...baseParams,
+        ...props.operableParams,
+      };
+    },
+    {
+      deep: true,
+      immediate: true,
+    },
+  );
 
   watch(
     clusterId,
     () => {
       if (clusterId.value) {
-        inputPlaceholder = `${props.clusterInfo.immute_domain} > `;
-        command.value = inputPlaceholder;
+        const domain = props.clusterInfo.immute_domain;
+        inputPlaceholder = consoleConfig.value?.getInputPlaceholder
+          ? consoleConfig.value?.getInputPlaceholder(clusterId.value, domain)
+          : `${domain} > `;
+        baseParams = {
+          ...baseParams,
+          cluster_id: clusterId.value,
+        };
+        command.value = noExecuteCommand[clusterId.value] ?? inputPlaceholder;
 
         if (!commandsInput[clusterId.value]) {
           commandsInput[clusterId.value] = [];
@@ -106,6 +173,7 @@
 
         setTimeout(() => {
           inputRef.value.focus();
+          checkCursorPosition();
         });
       }
     },
@@ -116,25 +184,25 @@
 
   // 回车输入指令
   const handleClickSendCommand = async (e: any) => {
-    const cmd = e.target.value.trim() as string;
-    if (cmd.length <= inputPlaceholder.length + 1) {
-      command.value = inputPlaceholder;
-      return;
-    }
-
-    loading.value = true;
-    commandsInput[clusterId.value].push(cmd);
-    currentCommandIndex = commandsInput[clusterId.value].length;
+    let cmd = e.target.value.trim() as string;
+    const isInputed = cmd.length > inputPlaceholder.length;
     const commandLine = {
-      message: cmd,
+      message: isInputed ? cmd : inputPlaceholder,
       type: 'command' as const,
     };
+    commandsInput[clusterId.value].push(cmd);
+    currentCommandIndex = commandsInput[clusterId.value].length;
     panelsInput[clusterId.value].push(commandLine);
     panelRecords.value.push(commandLine);
     command.value = inputPlaceholder;
+    if (!isInputed) {
+      return;
+    }
+    loading.value = true;
+    cmd = cmd.substring(inputPlaceholder.length);
     const executeResult = await queryWebconsole({
-      cluster_id: props.clusterInfo.id,
-      cmd: cmd.substring(inputPlaceholder.length),
+      ...baseParams,
+      cmd,
     }).finally(() => {
       loading.value = false;
       setTimeout(() => {
@@ -158,6 +226,14 @@
       };
       panelsInput[clusterId.value].push(normalLine);
       panelRecords.value.push(normalLine);
+
+      if (consoleConfig.value?.getDbOwnParmas) {
+        baseParams = Object.assign(baseParams, consoleConfig.value.getDbOwnParmas(clusterId.value, cmd));
+        if (consoleConfig.value?.getInputPlaceholder) {
+          inputPlaceholder = consoleConfig.value.getInputPlaceholder(clusterId.value, props.clusterInfo.immute_domain);
+          command.value = inputPlaceholder;
+        }
+      }
     }
 
     setTimeout(() => {
@@ -172,24 +248,41 @@
     });
   };
 
+  // 恢复最近一次输入并矫正光标
+  const resetRecentOnceInput = () => {
+    recentOnceInput = command.value;
+    command.value = '';
+    nextTick(() => {
+      command.value = recentOnceInput;
+    });
+    setTimeout(() => {
+      const cursorIndex = inputPlaceholder.length;
+      inputRef.value.setSelectionRange(cursorIndex, cursorIndex);
+    });
+  };
+
   // 输入
   const handleInputChange = (e: any) => {
-    if (inputRef.value.selectionStart <= inputPlaceholder.length) {
+    if (inputRef.value.selectionStart === inputPlaceholder.length - 1) {
+      resetRecentOnceInput();
+      return;
+    }
+    if (inputRef.value.selectionStart < inputPlaceholder.length) {
       initInput();
       return;
     }
-    const { value } = e.target;
-    if (value.length <= inputPlaceholder.length) {
-      initInput();
-      return;
-    }
-
-    command.value = value;
-
+    command.value = e.target.value as string;
     setTimeout(() => {
       const { scrollHeight } = inputRef.value;
       realHeight.value = `${scrollHeight}px`;
     });
+  };
+
+  // 当前tab有未执行的command暂存，切换回来回显
+  const handleInputBlur = () => {
+    if (command.value.length > inputPlaceholder.length) {
+      noExecuteCommand[clusterId.value] = command.value;
+    }
   };
 
   // 键盘 ↑ 键
@@ -265,32 +358,39 @@
       const fileName = `${props.clusterInfo.immute_domain}.txt`;
       downloadText(fileName, exportTxt);
     },
+    isInputed(clusterId: number) {
+      return (
+        commandsInput[clusterId]?.some((cmd) => cmd.length > inputPlaceholder.length) ||
+        noExecuteCommand[clusterId]?.substring(inputPlaceholder.length).length > 0
+      );
+    },
   });
 </script>
 <style lang="less">
   .console-panel-main {
     width: 100%;
     height: 100%;
+    padding: 14px 24px;
     overflow-y: auto;
     font-size: 12px;
-    padding: 14px 24px;
     color: #dcdee5;
 
     .input-line {
       display: flex;
       font-weight: 400;
-      color: #94f5a4;
       line-height: 24px;
+      color: #94f5a4;
       word-break: break-all;
 
       .input-main {
+        height: auto;
+        padding: 0;
+        overflow-y: hidden;
+        background: #1a1a1a;
         border: none;
         outline: none;
-        background: #1a1a1a;
-        flex: 1;
         resize: none;
-        height: auto;
-        overflow-y: hidden;
+        flex: 1;
       }
 
       .error-text {

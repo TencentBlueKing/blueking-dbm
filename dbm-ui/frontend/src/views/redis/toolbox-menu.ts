@@ -108,6 +108,19 @@ export default [
           },
         ],
       },
+      {
+        name: t('数据查询'),
+        id: 'redis_data_query',
+        icon: 'db-icon-search',
+        children: [
+          {
+            name: 'Webconsole',
+            id: 'RedisWebconsole',
+            parentId: 'redis_data_query',
+            dbConsoleValue: 'redis.toolbox.webconsole',
+          },
+        ],
+      },
     ],
   },
   {

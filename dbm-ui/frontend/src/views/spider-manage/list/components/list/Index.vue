@@ -897,6 +897,20 @@
           const operations = [
             <OperationBtnStatusTips data={data}>
               <auth-button
+                v-db-console="tendbCluster.clusterManage.webconsole"
+                action-id="tendbcluster_webconsole"
+                resource={data.id}
+                permission={data.permission.tendbcluster_webconsole}
+                disabled={data.operationDisabled}
+                text
+                theme="primary"
+                class="mr-8"
+                onClick={() => handleGoWebconsole(data.id)}>
+                Webconsole
+              </auth-button>
+            </OperationBtnStatusTips>,
+            <OperationBtnStatusTips data={data}>
+              <auth-button
                 text
                 class="mr-8"
                 theme={theme}
@@ -1241,6 +1255,15 @@
     isShowCapacityChange.value = true;
     operationData.value = data;
   };
+
+  const handleGoWebconsole = (clusterId: number) => {
+    router.push({
+      name: 'SpiderWebconsole',
+      query: {
+        clusterId
+      }
+    });
+  }
 
   // 下架运维节点
   const handleRemoveMNT = (data: TendbClusterModel) => {
