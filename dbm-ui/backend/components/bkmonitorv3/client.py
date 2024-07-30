@@ -169,6 +169,11 @@ class _BKMonitorV3Api(BaseApi):
             url="time_series_unify_query/",
             description=_("统一查询时序数据"),
         )
+        self.proxy_host_info = self.generate_data_api(
+            method="GET",
+            url="proxy_host_info/",
+            description=_("获取自定义上报的 proxy 主机信息"),
+        )
 
 
 BKMonitorV3Api = _BKMonitorV3Api()
