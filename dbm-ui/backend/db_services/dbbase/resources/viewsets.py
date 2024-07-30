@@ -13,6 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.viewsets import SystemViewSet
+from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission
 from backend.iam_app.handlers.permission import Permission
@@ -108,6 +109,25 @@ class ResourceViewSet(SystemViewSet):
         """查询机器列表"""
         query_params = self.params_validate(self.list_machine_slz)
         data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_machines, query_params)
+        return self.get_paginated_response(data)
+
+    @action(methods=["GET"], detail=False, url_path="list_alwayson")
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        action_filed=lambda d: d["view_class"].list_perm_actions,
+    )
+    def list_alwayson(self, request, bk_biz_id: int):
+        """查询alwayson模块集群列表"""
+        query_params = self.params_validate(self.query_serializer_class)
+        alwayson_ids = SqlserverClusterSyncMode.objects.filter(sync_mode="always_on").values_list(
+            "cluster_id", flat=True
+        )
+        # 如果不存在alwayson_ids 直接返回空列表
+        if not alwayson_ids.exists():
+            return Response([])
+        query_params["cluster_ids"] = list(alwayson_ids)
+        data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_clusters, query_params)
         return self.get_paginated_response(data)
 
     @action(methods=["GET"], detail=False, url_path="get_table_fields")
