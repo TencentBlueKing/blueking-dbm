@@ -36,13 +36,13 @@
 <style lang="less">
   .render-mysql-message {
     width: 100%;
-    color: #dcdee5;
+    margin: 5px 0;
+    overflow: auto;
     font-weight: 400;
     line-height: 24px;
-    overflow: auto;
+    color: #dcdee5;
     border: 1px solid transparent;
     border-left: none;
-    margin: 5px 0;
     .dott-line();
 
     .dott-line {
@@ -53,28 +53,26 @@
 
     table {
       width: 100%;
-      // word-break:break-all;
       word-wrap: break-word;
 
       thead {
         border: 1px solid transparent;
-        border-right: none;
         border-top: none;
+        border-right: none;
         .dott-line();
       }
 
       tbody {
-        // border-bottom: 1px solid transparent;
         border-left: 1px solid transparent;
         .dott-line();
       }
 
       td,
       th {
-        font-weight: normal;
         max-width: 500px;
-        text-align: left;
         padding-left: 8px;
+        font-weight: normal;
+        text-align: left;
       }
     }
   }

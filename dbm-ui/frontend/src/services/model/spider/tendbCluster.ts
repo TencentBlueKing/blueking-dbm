@@ -126,6 +126,7 @@ export default class TendbCluster {
     tendbcluster_spider_reduce_nodes: boolean;
     tendbcluster_view: boolean;
     tendb_spider_slave_destroy: boolean;
+    tendbcluster_webconsole: boolean;
     access_entry_edit: boolean;
   };
   phase: 'online' | 'offline';

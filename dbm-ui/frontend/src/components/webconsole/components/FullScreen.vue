@@ -5,23 +5,23 @@
       @click="handleClickFullScreen">
       <DbIcon
         class="operate-icon"
-        :type="isFullScreen ? 'un-full-screen' : 'full-screen'" />
+        :type="modelValue ? 'un-full-screen' : 'full-screen'" />
     </div>
   </div>
 </template>
 <script lang="ts" setup>
   interface Emits {
-    (e: 'toggleFullScreen'): void;
+    (e: 'change'): void;
   }
 
   const emits = defineEmits<Emits>();
 
-  const isFullScreen = defineModel<boolean>('isFullScreen', {
+  const modelValue = defineModel<boolean>({
     default: false,
   });
 
   const handleClickFullScreen = () => {
-    isFullScreen.value = !isFullScreen.value;
-    emits('toggleFullScreen');
+    modelValue.value = !modelValue.value;
+    emits('change');
   };
 </script>
