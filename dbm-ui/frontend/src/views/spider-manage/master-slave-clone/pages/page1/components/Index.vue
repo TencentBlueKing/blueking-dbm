@@ -14,7 +14,9 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn :min-width="150">
+      <RenderTableHeadColumn
+        :min-width="140"
+        :width="150">
         {{ t('目标主库主机') }}
         <template #append>
           <span
@@ -24,24 +26,39 @@
           </span>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :min-width="150"
+        :required="false"
+        :width="200">
         {{ t('主库主机关联实例') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :min-width="180"
+        :required="false"
+        :width="200">
         {{ t('目标从库主机') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :min-width="150"
+        :required="false"
+        :width="200">
         {{ t('从库主机关联实例') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
+      <RenderTableHeadColumn
+        :min-width="150"
+        :required="false"
+        :width="200">
         {{ t('所属集群') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="200"
+        :width="250">
         {{ t('新实例') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        fixed="right"
         :required="false"
-        :width="90">
+        :width="100">
         {{ t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
