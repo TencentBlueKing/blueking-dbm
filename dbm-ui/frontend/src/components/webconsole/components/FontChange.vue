@@ -73,25 +73,25 @@
     .font-change-main {
       display: flex;
       padding: 2px;
+      cursor: pointer;
       background: #2e2e2e;
       border: 1px solid #3d3d3d;
-      box-shadow: 0 2px 6px 0 #0000001f;
       border-radius: 2px;
-      cursor: pointer;
+      box-shadow: 0 2px 6px 0 #0000001f;
 
       .font-item {
+        display: flex;
         width: 28px;
         height: 28px;
-        display: flex;
+        color: #979ba5;
         align-items: center;
         justify-content: center;
-        color: #979ba5;
       }
 
       .font-item-active {
+        color: #dcdee5;
         background: #424242;
         border-radius: 1px;
-        color: #dcdee5;
       }
     }
   }

@@ -1,12 +1,12 @@
 <template>
   <BkResizeLayout
     class="webconsole-useing-help"
-    immediate
     initial-divide="50%"
     :max="900"
     :min="400"
     placement="right"
-    style="height: 100%">
+    style="height: 100%"
+    :trigger-width="20">
     <template #aside>
       <div class="aside-main">
         <div style="font-weight: 700">## {{ t('使用帮助') }}</div>
@@ -51,22 +51,22 @@
 
     .bk-resize-layout-aside {
       border: none;
+
+      .bk-resize-trigger:hover {
+        border-left: 2px solid #3a84ff;
+      }
     }
 
     .aside-main {
       width: 100%;
       height: 100%;
-      background: #282829;
-      border: 2px solid transparent;
-      color: #c4c6cc;
+      padding: 16px;
       font-size: 12px;
       line-height: 23px;
-      padding: 16px;
+      color: #c4c6cc;
+      background: #282829;
+      border: 2px solid transparent;
       box-sizing: border-box;
-
-      &:hover {
-        border-color: blue;
-      }
     }
 
     .empty-main {
