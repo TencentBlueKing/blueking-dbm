@@ -31,6 +31,7 @@ apply_list = [
     TicketType.MYSQL_SINGLE_APPLY.value,
     TicketType.MYSQL_HA_APPLY.value,
     TicketType.TENDBCLUSTER_APPLY.value,
+    TicketType.TENDBCLUSTER_APPEND_DEPLOY_CTL.value,
 ]
 
 logger = logging.getLogger("flow")
