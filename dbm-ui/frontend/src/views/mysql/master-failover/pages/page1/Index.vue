@@ -123,12 +123,7 @@
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_MASTER_FAIL_OVER,
     onSuccess(cloneData) {
-      const {
-        isCheckDelay,
-        isCheckProcess,
-        isVerifyChecksum,
-        tableDataList,
-      } = cloneData;
+      const { isCheckDelay, isCheckProcess, isVerifyChecksum, tableDataList } = cloneData;
       tableData.value = tableDataList;
       formData.is_check_process = isCheckProcess;
       formData.is_verify_checksum = isVerifyChecksum;
@@ -136,7 +131,6 @@
       window.changeConfirm = true;
     },
   });
-
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
@@ -184,7 +178,7 @@
   // Master 批量选择
   const handelMasterProxyChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
     selectedIps.value = data;
-    const newList = [] as IDataRow [];
+    const newList = [] as IDataRow[];
     data.tendbha.forEach((proxyData) => {
       const { bk_host_id, bk_cloud_id, instance_address: instanceAddress } = proxyData;
       const [ip] = instanceAddress.split(':');
@@ -220,7 +214,7 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selectedIps.value[ClusterTypes.TENDBHA];
-      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.ip !== ip);
+      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.ip !== ip);
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
