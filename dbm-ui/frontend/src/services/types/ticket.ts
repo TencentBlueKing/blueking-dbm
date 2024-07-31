@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
-
 import { TicketTypes } from '@common/const';
 
 import type { IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
@@ -142,24 +140,28 @@ export interface TicketDetails<T> {
  * 单据流程信息
  */
 export interface FlowItem {
-  id: number;
-  status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'REVOKED' | 'TERMINATED';
-  url: string;
-  start_time: string;
+  cost_time: number;
+  context: {
+    expire_time?: number;
+  };
+  details: {
+    ticket_data: MySQLImportSQLFileDetails;
+  };
+  err_code: number;
+  err_msg: string;
   end_time: string;
   flow_type: string;
   flow_type_display: string;
   flow_obj_id: string;
   flow_expire_time?: number;
-  ticket: number;
+  id: number;
+  status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'REVOKED' | 'TERMINATED';
+  start_time: string;
   summary: string;
-  cost_time: number;
-  err_code: number;
-  err_msg: string;
+  ticket: number;
   todos: FlowItemTodo[];
-  details: {
-    ticket_data: MySQLImportSQLFileDetails;
-  };
+  update_at: string;
+  url: string;
 }
 
 /**

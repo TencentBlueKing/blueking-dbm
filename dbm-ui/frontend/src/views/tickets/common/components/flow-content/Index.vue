@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <template v-if="content.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
+  <template v-if="content.todos.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
     <ManualConfirm
       v-for="item in content.todos"
       :key="item.id"
@@ -21,10 +21,11 @@
       @processed="handleEmitFetchData" />
   </template>
   <template
-    v-else-if="content?.todos?.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
+    v-else-if="content.todos.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
     <FlowContentTodo
       v-for="item of content.todos"
       :key="item.id"
+      :content="content"
       :data="item"
       href-target="_blank" />
   </template>
@@ -185,14 +186,12 @@
     </div>
   </template>
   <!-- 系统自动终止 -->
-  <template v-if="content.err_code === 3 && content.status === 'FAILED'">
-    <div style="color: #ea3636; padding-top: 8px">
-      <div>
-        {{ t('单据超过n状态未变化，系统自动终止', { n: systemTimeoutCountDisplay }) }}
-      </div>
-      <div style="margin-top: 5px">
-        {{ utcDisplayTime(ticketData.update_at) }}
-      </div>
+  <template v-if="content.err_code === 3 && content.context.expire_time && content.todos.length === 0">
+    <div style="color: #ea3636; margin-top: 8px">
+      {{ t('单据超过n状态未变化，系统自动终止', { n: displayExpiredTime }) }}
+    </div>
+    <div class="flow-time">
+      {{ utcDisplayTime(content.update_at) }}
     </div>
   </template>
 </template>
@@ -256,20 +255,18 @@
     return content.status === 'RUNNING' && content.flow_type === 'PAUSE';
   });
 
-  const systemTimeoutCountDisplay = computed(() => {
-    const expireHours = props.content.flow_expire_time;
-    if (!expireHours) {
+  const displayExpiredTime = computed(() => {
+    const expireTime = props.content.context.expire_time;
+    if (!expireTime) {
       return '';
     }
 
-    if (expireHours <= 72) {
-      return ` ${expireHours} ${t('小时')}`
+    if (expireTime * 24 > 72) {
+      return `${expireTime} ${t('天')}`;
     }
 
-    return ` ${Math.floor(expireHours / 24)} ${t('天')}`
-  })
-
-  // const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
+    return `${expireTime * 24} ${t('小时')}`;
+  });
 
   const handleConfirmTerminal = (item: FlowItem) => {
     btnState.terminateLoading = true;
