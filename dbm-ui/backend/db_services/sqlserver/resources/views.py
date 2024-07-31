@@ -13,18 +13,22 @@ from collections import defaultdict
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.db_module import DBModule
+from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
+from backend.db_services.dbbase.resources import viewsets
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
 from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.db_services.sqlserver.resources import constants
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.permission import Permission
 
 
 @method_decorator(
@@ -83,3 +87,24 @@ class ResourceTreeViewSet(SystemViewSet):
             for db_module in db_module_qset
         ]
         return Response(tree)
+
+
+class BaseSQLServerViewset(viewsets.ResourceViewSet):
+    @action(methods=["GET"], detail=False, url_path="list_alwayson")
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        action_filed=lambda d: d["view_class"].list_perm_actions,
+    )
+    def list_alwayson(self, request, bk_biz_id: int):
+        """查询alwayson模块集群列表"""
+        query_params = self.params_validate(self.query_serializer_class)
+        alwayson_ids = SqlserverClusterSyncMode.objects.filter(sync_mode="always_on").values_list(
+            "cluster_id", flat=True
+        )
+        # 如果不存在alwayson_ids 直接返回空列表
+        if not alwayson_ids.exists():
+            return Response([])
+        query_params["cluster_ids"] = list(alwayson_ids)
+        data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_clusters, query_params)
+        return self.get_paginated_response(data)
