@@ -45,7 +45,7 @@ class PasswordPolicyViewSet(viewsets.SystemViewSet):
     action_permission_map = {
         ("get_password_policy", "verify_password_strength", "get_random_password", "query_random_cycle"): [],
         ("modify_admin_password",): [ModifyClusterPasswordPermission()],
-        ("query_mysql_admin_password",): [QueryClusterPasswordPermission()],
+        ("query_admin_password",): [QueryClusterPasswordPermission()],
         ("update_password_policy", "modify_random_cycle"): [
             ResourceActionPermission([ActionEnum.PASSWORD_POLICY_SET])
         ],

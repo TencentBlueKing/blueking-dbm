@@ -15,7 +15,6 @@ from typing import List
 from django.db.models import Q
 
 from backend.components.mysql_partition.client import DBPartitionApi
-from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, StorageInstance
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
@@ -146,10 +145,10 @@ class QueryClusterPasswordPermission(MoreResourceActionPermission):
     @staticmethod
     def instance_ids_getters(request, view):
         data = request.data or request.query_params
-        # 目前仅支持mysql的admin密码查询鉴权
-        if view.action == "query_mysql_admin_password":
+        # admin密码查询鉴权
+        if view.action == "query_admin_password":
             if "bk_biz_id" in data:
-                return [(data["bk_biz_id"], DBType.MySQL.value)]
+                return [(data["bk_biz_id"], data.get("db_type", "mysql"))]
             elif "instances" in data:
                 instance = data["instances"].split(",")[0]
                 bk_cloud_id, ip, __ = instance.split(":")

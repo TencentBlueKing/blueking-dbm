@@ -108,6 +108,9 @@ class FilterAccountRulesSerializer(serializers.Serializer):
     access_db = serializers.CharField(help_text=_("访问DB"), required=False)
     privilege = serializers.CharField(help_text=_("规则列表"), required=False)
 
+    limit = serializers.IntegerField(required=False, default=10)
+    offset = serializers.IntegerField(required=False, default=0)
+
 
 class QueryAccountRulesSerializer(serializers.Serializer):
     user = serializers.CharField(help_text=_("账号名称"))

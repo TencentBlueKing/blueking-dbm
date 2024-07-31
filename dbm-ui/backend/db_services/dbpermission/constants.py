@@ -118,3 +118,6 @@ EXCEL_DIVIDER = ","
 
 # 账号名称最大长度
 MAX_ACCOUNT_LENGTH = 31
+
+
+DPRIV_PARAMETER_MAP = {"account_type": "cluster_type", "rule_ids": "ids", "privilege": "privs", "access_db": "dbname"}

@@ -19,7 +19,7 @@ from iam.resource.utils import FancyDict
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_services.dbpermission.constants import AccountType
+from backend.db_services.dbpermission.constants import DPRIV_PARAMETER_MAP, AccountType
 from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.dbpermission.db_account.signals import create_account_signal
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
@@ -59,6 +59,10 @@ class AccountHandler(object):
         """格式化账号权限列表信息"""
         for account_rules in account_rules_list["items"]:
             account_rules["account"]["account_id"] = account_rules["account"].pop("id")
+
+            # 检查 rules 是否为 None
+            if account_rules.get("rules") is None:
+                account_rules["rules"] = []
 
             for rule in account_rules["rules"]:
                 rule["rule_id"] = rule.pop("id")
@@ -143,16 +147,22 @@ class AccountHandler(object):
         """查询某个账号下的权限"""
 
         account_rules_list = DBPrivManagerApi.list_account_rules(
-            {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type}
+            {
+                "bk_biz_id": self.bk_biz_id,
+                "cluster_type": self.account_type,
+                "user": account_rule.user,
+                "no_rule_user": True,
+            }
         )
+
+        if not account_rules_list["items"]:
+            return {"count": 0, "results": []}
+
         account_rules_list = self._format_account_rules(account_rules_list)
 
         # 根据账号名和准许db过滤规则
         filter_account_rules_list: List[Dict[str, Any]] = []
         for account_rules in account_rules_list["items"]:
-            if account_rule.user != account_rules["account"]["user"]:
-                continue
-
             filter_rules = []
             for rule in account_rules["rules"]:
                 if not account_rule.access_dbs or (rule["access_db"] in account_rule.access_dbs):
@@ -165,46 +175,26 @@ class AccountHandler(object):
     def list_account_rules(self, rule_filter: AccountRuleMeta) -> Dict:
         """列举规则清单"""
 
-        # 如果是通过id过滤的，则不管集群类型
+        # 使用字典推导式排除值为None的键值对，并替换指定的键，同时确保新字典中的值不为None
+        params = {DPRIV_PARAMETER_MAP.get(k, k): v for k, v in rule_filter.to_dict().items() if v is not None}
+
+        # 判断无过滤条件 或者过滤条件只有user 则展示无规则用户
+        no_filter = "user" not in params and "dbname" not in params and "privs" not in params
+        filter_only_user = "user" in params and "dbname" not in params and "privs" not in params
+
+        if (rule_filter.offset == 0 and no_filter) or filter_only_user:
+            params["no_rule_user"] = True
+
+        # 开区查询rule_id 不展示无规则用户
         if rule_filter.rule_ids:
-            rules_list = DBPrivManagerApi.list_account_rules(
-                {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type, "ids": rule_filter.rule_ids}
-            )
-        else:
-            rules_list = DBPrivManagerApi.list_account_rules(
-                {"bk_biz_id": self.bk_biz_id, "cluster_type": self.account_type}
-            )
+            params["no_rule_user"] = False
 
+        params["bk_biz_id"] = self.bk_biz_id
+        rules_list = DBPrivManagerApi.list_account_rules(params)
+        if not rules_list["items"]:
+            return {"count": 0, "results": []}
         account_rules_list = self._format_account_rules(rules_list)
-        # 不存在过滤条件则直接返回
-        if not (rule_filter.user or rule_filter.access_db or rule_filter.privilege):
-            return {"count": len(account_rules_list["items"]), "results": account_rules_list["items"]}
-
-        # 根据条件过滤规则
-        filter_account_rules_list: List[Dict[str, Any]] = []
-        for account_rules in account_rules_list["items"]:
-            # 按照账号名称筛选(模糊匹配)
-            if rule_filter.user and (rule_filter.user not in account_rules["account"]["user"]):
-                continue
-
-            filter_rules = []
-            for rule in account_rules["rules"]:
-                # 按照访问DB筛选(模糊匹配)
-                if rule_filter.access_db and (rule_filter.access_db not in rule["access_db"]):
-                    continue
-
-                # 按照访问权限筛选
-                if rule_filter.privilege:
-                    if not set(rule_filter.privilege.split(",")).issubset(set(rule["privilege"].split(","))):
-                        continue
-
-                filter_rules.append(rule)
-
-            # 只添加符合过滤条件的账号
-            if filter_rules or not (rule_filter.access_db or rule_filter.privilege):
-                filter_account_rules_list.append({"account": account_rules["account"], "rules": filter_rules})
-
-        return {"count": len(filter_account_rules_list), "results": filter_account_rules_list}
+        return {"count": account_rules_list["count"], "results": account_rules_list["items"]}
 
     def modify_account_rule(self, account_rule: AccountRuleMeta) -> Optional[Any]:
         """
