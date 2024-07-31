@@ -126,7 +126,7 @@ class DorisApplyFlow(DorisBaseFlow):
             kwargs=asdict(act_kwargs),
         )
 
-        act_kwargs.get_doris_payload_func = DorisActPayload.get_install_doris_payload.__name__
+        act_kwargs.get_doris_payload_func = DorisActPayload.get_check_start_payload.__name__
         doris_pipeline.add_act(
             act_name=_("检查Master FE {}是否正常启动".format(doris_deploy_data["master_fe_ip"])),
             act_component_code=ExecuteDorisActuatorScriptComponent.code,
