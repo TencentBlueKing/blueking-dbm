@@ -22,6 +22,7 @@ func (h *Handler) Routes() []*gin.RouteInfo {
 		{Method: http.MethodPost, Path: "/domain", HandlerFunc: h.UpdateDns},
 		{Method: http.MethodPost, Path: "/domain/batch", HandlerFunc: h.UpdateBatchDns},
 		{Method: http.MethodPost, Path: "/config", HandlerFunc: h.UpdateConfig},
+		{Method: http.MethodPost, Path: "/domain/app", HandlerFunc: h.UpdateDomainApp},
 
 		{Method: http.MethodGet, Path: "/domain", HandlerFunc: h.GetDns},
 		{Method: http.MethodGet, Path: "/domain/all", HandlerFunc: h.GetAllDns},

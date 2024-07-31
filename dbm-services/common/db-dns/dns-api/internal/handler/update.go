@@ -1,10 +1,14 @@
 package handler
 
 import (
+	"bk-dnsapi/internal/domain/entity"
 	"bk-dnsapi/internal/domain/repo/domain"
 	"bk-dnsapi/pkg/tools"
 	"fmt"
 	"runtime/debug"
+	"strings"
+
+	"github.com/pkg/errors"
 
 	"bk-dnsapi/pkg/logger"
 
@@ -185,6 +189,61 @@ func (h *Handler) UpdateConfig(c *gin.Context) {
 	rowsAffected, err := domain.DnsConfigResource().Update(updateParam.Paraname, map[string]interface{}{
 		"paravalue":  updateParam.Paravalue,
 		"pararemark": updateParam.Pararemark})
+	SendResponse(c, err, Data{
+		Detail:  nil,
+		RowsNum: rowsAffected,
+	})
+}
+
+type DnsBaseUpdateAppParam struct {
+	BkCloudId  int64  `json:"bk_cloud_id"`
+	DomainName string `json:"domain_name,required"`
+	App        string `json:"app"`
+	NewApp     string `json:"new_app"`
+}
+
+// UpdateDomainApp 更新域名记录的app
+func (h *Handler) UpdateDomainApp(c *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
+			SendResponse(c,
+				fmt.Errorf("panic error:%v", r),
+				Data{})
+		}
+	}()
+
+	var updateParam DnsBaseUpdateAppParam
+	err := c.BindJSON(&updateParam)
+	if err != nil {
+		SendResponse(c, err, Data{})
+		return
+	}
+	if !strings.HasSuffix(updateParam.DomainName, ".") {
+		updateParam.DomainName += "."
+	}
+
+	// 先根据域名、app、bkID查询一遍
+	queryParams := map[string]interface{}{
+		"domain_name": updateParam.DomainName,
+		"app":         updateParam.App,
+		"bk_cloud_id": updateParam.BkCloudId,
+	}
+	logger.Info(fmt.Sprintf("update before query once. params[%+v]", queryParams))
+	rs, err := domain.DnsDomainResource().Get(queryParams, new(entity.TbDnsBase).Columns())
+	if err != nil {
+		SendResponse(c, err, Data{})
+		return
+	}
+	if len(rs) == 0 {
+		SendResponse(c, errors.New("query domain record is 0. please check params"), Data{})
+		return
+	}
+
+	// 更新
+	logger.Info(fmt.Sprintf("update will exec. params[%+v]", updateParam))
+	rowsAffected, err := domain.DnsDomainResource().UpdateFieldsByDomain(updateParam.DomainName, updateParam.BkCloudId,
+		map[string]interface{}{"app": updateParam.NewApp})
 	SendResponse(c, err, Data{
 		Detail:  nil,
 		RowsNum: rowsAffected,

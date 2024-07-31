@@ -4,13 +4,13 @@ import (
 	"bk-dnsapi/pkg/config"
 	"bk-dnsapi/pkg/logger"
 	"bk-dnsapi/pkg/logger/zap"
+	"dbm-services/common/go-pubpkg/apm/metric"
+	"dbm-services/common/go-pubpkg/apm/trace"
 	"log"
 	"strings"
 
 	"bk-dnsapi/internal/dao"
 	"bk-dnsapi/internal/handler"
-	"dbm-services/common/go-pubpkg/apm/metric"
-	"dbm-services/common/go-pubpkg/apm/trace"
 
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
