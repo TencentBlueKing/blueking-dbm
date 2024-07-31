@@ -32,6 +32,7 @@ from backend.flow.plugins.components.collections.mysql.semantic_check import Sem
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_version_parse import major_version_parse
 from backend.flow.utils.spider.spider_bk_config import get_spider_version_and_charset
 from backend.ticket.constants import TicketType
 
@@ -250,7 +251,7 @@ class ImportSQLFlow(object):
         for remotedb in remotedb_list:
             version.add(remotedb.version)
         if len(version) > 1:
-            raise Exception(_("存在多个版本{version}"))
+            raise Exception(_("backend remote 存在多个版本:{}").format(version))
         return version.pop()
 
     def __get_spider_version(self, cluster_id: int) -> str:
@@ -261,12 +262,15 @@ class ImportSQLFlow(object):
         ).all()
         if not proxy_list:
             raise Exception(_("查询spider version 失败"))
-        logger.info(f"get backend info: {proxy_list}")
+        logger.info(f"get spider list: {proxy_list}")
         version = set()
-        for remotedb in proxy_list:
-            version.add(remotedb.version)
-        if len(version) > 1:
-            raise Exception(_("存在多个版本{version}"))
+        major_version_set = set()
+        for spider in proxy_list:
+            major_version, sub_version = major_version_parse(spider.version)
+            major_version_set.add(major_version)
+            version.add(spider.version)
+        if len(major_version_set) > 1:
+            raise Exception(_("spider中存在多个大版本不一致的情况:{},请找DBA处理下").format(version))
         return version.pop()
 
     def __get_sql_file_name_list(self) -> list:
