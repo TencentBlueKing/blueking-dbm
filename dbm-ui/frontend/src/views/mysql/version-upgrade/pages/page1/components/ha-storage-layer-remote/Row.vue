@@ -60,9 +60,9 @@
 
   import RenderCluster from '../RenderClusterWithRelateCluster.vue';
   import RenderCurrentVersion from '../RenderCurrentVersion.vue';
-  import RenderTargetVersion from '../RenderTargetVersion.vue';
 
   import RenderMasterSlaveHost from './RenderMasterSlaveHost.vue';
+  import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IHostData {
     bk_biz_id: number;

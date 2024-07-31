@@ -75,7 +75,7 @@
   .capacity-box {
     padding: 9px 16px;
     overflow: hidden;
-    line-height: 24px;
+    line-height: 26px;
     color: #63656e;
     text-overflow: ellipsis;
     white-space: nowrap;

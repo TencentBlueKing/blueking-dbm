@@ -8,7 +8,9 @@
     </div>
     <div class="content-item">
       <div class="item-title">{{ t('版本包文件') }}：</div>
-      <div class="item-content">
+      <div
+        v-overflow-tips
+        class="item-content">
         {{ data.package }}
       </div>
     </div>
