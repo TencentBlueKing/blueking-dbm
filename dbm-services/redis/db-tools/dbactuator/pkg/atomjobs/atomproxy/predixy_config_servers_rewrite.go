@@ -76,12 +76,12 @@ func (job *PredixyConfServersRewrite) Name() string {
 
 // Run Command Run
 func (job *PredixyConfServersRewrite) Run() (err error) {
+	job.runtime.Logger.Info("PredixyConfServersRewrite Run")
 	var password string
-	password, err = myredis.GetProxyPasswdFromConfFlie(job.params.PredixyPort, consts.MetaRolePredixy)
+	password, err = myredis.GetPredixyAdminPasswdFromConfFlie(job.params.PredixyPort)
 	if err != nil {
 		return nil
 	}
-	job.runtime.Logger.Info("PredixyConfServersRewrite Run")
 	err = job.newConn(password)
 	if err != nil {
 		return
@@ -92,6 +92,7 @@ func (job *PredixyConfServersRewrite) Run() (err error) {
 	if err != nil {
 		return
 	}
+	job.runtime.Logger.Info("IsSupportedConfigRewriteCmd supported:%v", supported)
 	if !supported {
 		err = job.UpdateLocalConfigFile()
 		return
@@ -122,7 +123,11 @@ func (job *PredixyConfServersRewrite) IsSupportedConfigRewriteCmd(password strin
 		return false, err
 	}
 	// 1.4.2版本以下不支持 config rewrite命令
-	if runtimeBaseVer < 001004002 {
+	job.runtime.Logger.Info(fmt.Sprintf("predixy run time runTimeVersion:%s runTimeBaseVersion:%d",
+		runTimeVer, runtimeBaseVer))
+	if runtimeBaseVer < 1004002 {
+		job.runtime.Logger.Info(fmt.Sprintf("runTimeBaseVersion:%d < 1004002,return false",
+			runtimeBaseVer))
 		return false, nil
 	}
 	return true, nil

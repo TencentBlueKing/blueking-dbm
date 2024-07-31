@@ -116,6 +116,29 @@ func GetProxyPasswdFromConfFlie(port int, role string) (password string, err err
 	return
 }
 
+// GetPredixyAdminPasswdFromConfFlie 从配置文件中获取本地predixy实例admin密码
+func GetPredixyAdminPasswdFromConfFlie(port int) (adminPasswd string, err error) {
+	var grepCmd, confFile string
+	confFile, err = GetPredixyLocalConfFile(port)
+	if err != nil {
+		return
+	}
+	grepCmd = fmt.Sprintf(`grep -Pi -B 2 "Mode\s*?admin" %s|grep -iw "auth"|awk '{print $2}'`, confFile)
+	adminPasswd, err = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
+	if err != nil {
+		return
+	}
+	if adminPasswd == "" {
+		err = fmt.Errorf("get predixy admin password  empty record,confFile:%s", confFile)
+		return
+	}
+	adminPasswd = strings.TrimPrefix(adminPasswd, "\"")
+	adminPasswd = strings.TrimSuffix(adminPasswd, "\"")
+	adminPasswd = strings.TrimPrefix(adminPasswd, "'")
+	adminPasswd = strings.TrimSuffix(adminPasswd, "'")
+	return
+}
+
 type connTestItem struct {
 	IP       string
 	Port     int
