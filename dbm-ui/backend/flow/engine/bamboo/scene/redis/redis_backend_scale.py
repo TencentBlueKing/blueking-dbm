@@ -26,6 +26,7 @@ from backend.flow.consts import (
     DEFAULT_MASTER_DIFF_TIME,
     DEFAULT_REDIS_START_PORT,
     DnsOpType,
+    RedisCapacityUpdateType,
     SyncType,
 )
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -38,6 +39,10 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     RedisClusterSwitchAtomJob,
     RedisMakeSyncAtomJob,
 )
+from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate_sub import (
+    redis_migrate_slots_4_contraction,
+    redis_rebalance_slots_4_expansion,
+)
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
@@ -46,6 +51,7 @@ from backend.flow.plugins.components.collections.redis.redis_db_meta import Redi
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_proxy_util import get_cluster_info_by_cluster_id
 
 logger = logging.getLogger("flow")
 
@@ -79,7 +85,7 @@ class RedisBackendScaleFlow(object):
             raise Exception("[{}] is used.".format(m))
 
     @staticmethod
-    def __get_cluster_info(bk_biz_id: int, cluster_id: int, version: str) -> dict:
+    def get_cluster_info(bk_biz_id: int, cluster_id: int, version: str) -> dict:
         """
         获取集群现有信息
         1. master对应的端口 {"x.x.x.1":[30000,30001]...}
@@ -131,7 +137,7 @@ class RedisBackendScaleFlow(object):
         }
 
     def __init_builder(self, operate_name: str, info: dict):
-        cluster_info = self.__get_cluster_info(self.data["bk_biz_id"], info["cluster_id"], info["db_version"])
+        cluster_info = self.get_cluster_info(self.data["bk_biz_id"], info["cluster_id"], info["db_version"])
         sync_type = SyncType.SYNC_MMS  # ssd sync from master
         if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
             sync_type = SyncType.SYNC_SMS
@@ -265,6 +271,33 @@ class RedisBackendScaleFlow(object):
             shutdown_ignore_ips_map[k] = list(set(v))
         return dict(shutdown_ignore_ips_map)
 
+    def tendisplus_shards_update_and_keep_machine_flow(self, info) -> SubBuilder:
+        """
+        tendisplus集群 分片数变化了,原地变更 流程
+        """
+        new_cluster_info = get_cluster_info_by_cluster_id(cluster_id=info["cluster_id"])
+        new_info = {
+            "cluster_id": new_cluster_info["cluster_id"],
+            "bk_cloud_id": new_cluster_info["bk_cloud_id"],
+            "current_group_num": len(new_cluster_info["master_ips"]),
+            "target_group_num": info["group_num"],
+            "resource_spec": {"redis": new_cluster_info["redis_spec_config"]},
+        }
+        new_ip_group = []
+        for group_info in info["backend_group"]:
+            new_ip_group.append({"master": group_info["master"]["ip"], "slave": group_info["slave"]["ip"]})
+        new_info["new_ip_group"] = new_ip_group
+        logger.info("tendisplus_shards_update_and_keep_machine_flow new_info:{}".format(new_info))
+        sub_pipeline = None
+        if new_info["target_group_num"] > new_info["current_group_num"]:
+            # 扩容
+            sub_pipeline = redis_rebalance_slots_4_expansion(self.root_id, self.data, None, new_info)
+        elif new_info["target_group_num"] < new_info["current_group_num"]:
+            # 缩容
+            new_info["is_delete_node"] = True
+            sub_pipeline = redis_migrate_slots_4_contraction(self.root_id, self.data, None, new_info)
+        return sub_pipeline
+
     def redis_backend_scale_flow(self):
         """
         redis 扩缩容流程：
@@ -274,6 +307,16 @@ class RedisBackendScaleFlow(object):
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
         sub_pipelines = []
         for info in self.data["infos"]:
+            cluster_info = self.get_cluster_info(self.data["bk_biz_id"], info["cluster_id"], info["db_version"])
+            if (
+                cluster_info["cluster_shard_num"] != info["shard_num"]
+                and cluster_info["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster
+                and info["update_mode"] == RedisCapacityUpdateType.KEEP_CURRENT_MACHINES
+            ):
+                # 对于tendisplus集群，分片数变化了,且为原地变更,需要单独处理
+                sub_pipeline = self.tendisplus_shards_update_and_keep_machine_flow(info)
+                sub_pipelines.append(sub_pipeline)
+                continue
             sub_pipeline, act_kwargs = self.__init_builder(_("Redis集群扩缩容"), info)
             # 容量变更流程，分片数不变。这个地方不管前端传什么值，直接覆盖！！
             info["shard_num"] = act_kwargs.cluster["cluster_shard_num"]

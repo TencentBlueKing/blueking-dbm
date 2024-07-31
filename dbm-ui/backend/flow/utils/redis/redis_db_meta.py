@@ -910,6 +910,179 @@ class RedisDBMeta(object):
         clb_entry.save()
 
     @transaction.atomic
+    def tendisplus_add_instance_pairs(self):
+        """
+        tendisplus集群添加实例对
+        self.cluster["params"] =
+        {
+            "cluster_id":51,
+            "replication_pairs":[
+                {
+                    "master":{
+                        "ip":"a.a.a.a.",
+                        "port":30000
+                    },
+                    "slave":{
+                        "ip":"b.b.b.b",
+                        "port":30000
+                    },
+                }
+            ]
+        }
+        """
+        params = self.cluster["params"]
+        cluster = Cluster.objects.get(id=params["cluster_id"])
+        dns_manage = DnsManage(bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id)
+        all_instances = []
+        for replication_pair in params["replication_pairs"]:
+            master_ip = replication_pair["master"]["ip"]
+            master_port = replication_pair["master"]["port"]
+            slave_ip = replication_pair["slave"]["ip"]
+            slave_port = replication_pair["slave"]["port"]
+            master_obj = StorageInstance.objects.get(
+                machine__ip=master_ip,
+                port=master_port,
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+            )
+            slave_obj = StorageInstance.objects.get(
+                machine__ip=slave_ip,
+                port=slave_port,
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+            )
+            all_instances.append(master_obj)
+            all_instances.append(slave_obj)
+            master_instance = "{}#{}".format(master_obj.machine.ip, master_obj.port)
+            slave_instance = "{}#{}".format(slave_obj.machine.ip, slave_obj.port)
+            # 更新 StorageInstance
+            logger.info("update master {} role & cluster_type".format(master_obj.ip_port))
+            master_obj.instance_role = InstanceRole.REDIS_MASTER
+            master_obj.instance_inner_role = InstanceInnerRole.MASTER
+            master_obj.cluster_type = cluster.cluster_type
+            master_obj.save(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
+            logger.info("update slave {} role & cluster_type".format(slave_obj.ip_port))
+            slave_obj.instance_role = InstanceRole.REDIS_SLAVE
+            slave_obj.instance_inner_role = InstanceInnerRole.SLAVE
+            slave_obj.cluster_type = cluster.cluster_type
+            slave_obj.save(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
+            # 更新 StorageInstanceTuple
+            inst_tuple = StorageInstanceTuple.objects.filter(ejector=master_obj, receiver=slave_obj)
+            if not inst_tuple:
+                logger.info(
+                    "create StorageInstanceTuple ejector {} receiver {}".format(master_obj.ip_port, slave_obj.ip_port)
+                )
+                StorageInstanceTuple.objects.create(ejector=master_obj, receiver=slave_obj)
+            # proxy 添加 master_obj
+            logger.info(
+                "cluster {} proxyinstances add {} {}".format(
+                    cluster.immute_domain, master_obj.ip_port, slave_obj.ip_port
+                )
+            )
+            for proxy_inst in cluster.proxyinstance_set.all():
+                proxy_inst.storageinstance.add(master_obj)
+            # 更新cluster.storageinstance_set
+            cluster.storageinstance_set.add(master_obj)
+            cluster.storageinstance_set.add(slave_obj)
+            # 更新 nodes. 域名 以及 对应的 cluster_entry信息
+            cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+            if (
+                cluster_entry
+                and cluster_entry.entry.startswith("nodes.")
+                and master_obj.port == DEFAULT_REDIS_START_PORT
+            ):
+                logger.info(
+                    "cluster {} cluster_entry {} add {} {}".format(
+                        cluster.immute_domain, cluster_entry.entry, master_obj.ip_port, slave_obj.ip_port
+                    )
+                )
+                cluster_entry.storageinstance_set.add(master_obj)
+                cluster_entry.storageinstance_set.add(slave_obj)
+                logger.info(
+                    "nodes.domain {} update dns add {} {}".format(cluster_entry.entry, master_instance, slave_instance)
+                )
+                dns_manage.create_domain(
+                    add_domain_name=cluster_entry.entry, instance_list=[master_instance, slave_instance]
+                )
+        # 更新所有实例的模块信息
+        logger.info("cluster {} all instances {} update module".format(cluster.immute_domain, all_instances))
+        RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(all_instances)
+
+    @transaction.atomic
+    def tendisplus_remove_instance_pair(self):
+        """
+        tendisplus集群删除实例对
+        self.cluster["params"] =
+        {
+            "cluster_id":51,
+            "replication_pairs":[
+                {
+                    "master":{
+                        "ip":"a.a.a.a.",
+                        "port":30000
+                    },
+                    "slave":{
+                        "ip":"b.b.b.b",
+                        "port":30000
+                    },
+                }
+            ]
+        }
+        """
+        params = self.cluster["params"]
+        cluster = Cluster.objects.get(id=params["cluster_id"])
+        dns_manage = DnsManage(bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id)
+        for replication_pair in params["replication_pairs"]:
+            master_ip = replication_pair["master"]["ip"]
+            master_port = replication_pair["master"]["port"]
+            slave_ip = replication_pair["slave"]["ip"]
+            slave_port = replication_pair["slave"]["port"]
+            master_obj = StorageInstance.objects.get(
+                machine__ip=master_ip,
+                port=master_port,
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+            )
+            slave_obj = StorageInstance.objects.get(
+                machine__ip=slave_ip,
+                port=slave_port,
+                machine__bk_cloud_id=cluster.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+            )
+            master_instance = "{}#{}".format(master_obj.machine.ip, master_obj.port)
+            slave_instance = "{}#{}".format(slave_obj.machine.ip, slave_obj.port)
+            # 删除StorageInstanceTuple关系
+            inst_tuple = StorageInstanceTuple.objects.filter(ejector=master_obj, receiver=slave_obj)
+            if inst_tuple:
+                logger.info(
+                    "delete StorageInstanceTuple ejector {} receiver {}".format(master_obj.ip_port, slave_obj.ip_port)
+                )
+                inst_tuple.delete()
+            # 删除proxy实例关系
+            logger.info("cluster {} proxyinstances remove master {}".format(cluster.immute_domain, master_obj.ip_port))
+            for proxy_inst in cluster.proxyinstance_set.all():
+                proxy_inst.storageinstance.remove(master_obj)
+            # 删除cluster.storageinstance_set关系
+            cluster.storageinstance_set.remove(master_obj)
+            cluster.storageinstance_set.remove(slave_obj)
+            # 删除nodes.节点域名
+            cluster_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.NODE_ENTRY.value).first()
+            if (
+                cluster_entry
+                and cluster_entry.entry.startswith("nodes.")
+                and master_obj.port == DEFAULT_REDIS_START_PORT
+            ):
+                logger.info(
+                    "cluster {} cluster_entry {} remove {} {}".format(
+                        cluster.immute_domain, cluster_entry.entry, master_instance, slave_instance
+                    )
+                )
+                cluster_entry.storageinstance_set.remove(master_obj)
+                cluster_entry.storageinstance_set.remove(slave_obj)
+                dns_manage.recycle_domain_record(del_instance_list=[master_instance, slave_instance])
+        # 模块信息等下架时候再更新
+
+    @transaction.atomic
     def cluster_add_slave_update_meta(self):
         """
         集群添加从节点

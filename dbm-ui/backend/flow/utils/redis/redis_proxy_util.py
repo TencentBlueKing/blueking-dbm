@@ -666,7 +666,7 @@ def get_cluster_capacity_info(cluster_id: int) -> Tuple[str, int, str, int, int]
 
 
 def get_cluster_capacity_update_required_info(
-    cluster_id: int, new_storage_version: str, new_spec_id: str, new_machine_group_count: int, new_shards_num: int
+    cluster_id: int, new_storage_version: str, new_spec_id: str, new_machine_group_num: int, new_shards_num: int
 ) -> Tuple[str, int, int, str]:
     """
     获取集群容量变更所需信息
@@ -680,13 +680,13 @@ def get_cluster_capacity_update_required_info(
     返回:
     - capacity_update_type: 容量变更类型,原地变更(keep_current_machines)、替换变更(all_machines_replace)
     - require_spec_id 真实申请机器规格id
-    - require_machine_group_count  真实需要申请的自己组数
+    - require_machine_group_num 真实需要申请的自己组数
     - err_msg 错误信息
     """
     # 默认替换变更,机器全部重新申请
     capacity_update_type = RedisCapacityUpdateType.ALL_MACHINES_REPLACE.value
     require_spec_id = new_spec_id
-    require_machine_group_count = new_machine_group_count
+    require_machine_group_num = new_machine_group_num
     err_msg = ""
 
     cluster = Cluster.objects.get(id=cluster_id)
@@ -694,7 +694,7 @@ def get_cluster_capacity_update_required_info(
     storage_machine = cluster.storageinstance_set.first().machine
     if storage_machine.spec_id != new_spec_id:
         # 规格变了,替换变更
-        return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+        return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
 
     # master_insts 代表当前集群分片数
     master_insts = cluster.storageinstance_set.filter(
@@ -709,19 +709,19 @@ def get_cluster_capacity_update_required_info(
         # 不是TendisPlus集群,分片数和以前保持一致
         new_shards_num = len(master_insts)
 
-    if new_shards_num % new_machine_group_count != 0:
+    if new_shards_num % new_machine_group_num != 0:
         # 分片数不能被机器组数整除,说明用户填入的分片数有问题
         err_msg = _("分片数 不能被 机器组数 整除")
         require_spec_id = 0
-        require_machine_group_count = 0
-        return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+        require_machine_group_num = 0
+        return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
 
-    if len(master_insts) == new_shards_num and len(master_machines) == new_machine_group_count:
+    if len(master_insts) == new_shards_num and len(master_machines) == new_machine_group_num:
         # 集群机器规格、分片数、机器组数都没变,只是版本变了
         require_spec_id = 0
-        require_machine_group_count = 0
+        require_machine_group_num = 0
         err_msg = _("集群机器规格、分片数、机器组数都没变,只是版本变了.请使用 版本升级 单据")
-        return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+        return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
 
     is_cluster_version_need_upgrade = False
     major_version_names = get_storage_versions_by_cluster_type(cluster.cluster_type)
@@ -739,70 +739,70 @@ def get_cluster_capacity_update_required_info(
 
     if is_cluster_version_need_upgrade:
         if new_shards_num == len(master_insts):
-            return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+            return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
         else:
             err_msg = _("集群版本变更时,分片数不能变,请先使用 版本升级 单据")
             require_spec_id = 0
-            require_machine_group_count = 0
-            return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+            require_machine_group_num = 0
+            return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
 
     # 执行到这里,说明用户填入的版本号和当前集群版本号一致,规格id也一致
-    if len(master_insts) == new_shards_num and len(master_machines) == new_machine_group_count:
+    if len(master_insts) == new_shards_num and len(master_machines) == new_machine_group_num:
         # 集群规格没变、版本没变、分片数没变、机器组数没变, 无需变更
         err_msg = _("当前集群规格、版本、分片数、机器组数均已满足,无需变更")
         require_spec_id = 0
-        require_machine_group_count = 0
-        return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+        require_machine_group_num = 0
+        return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
 
-    if is_redis_cluster_protocal(cluster_type=cluster.cluster_type) and new_machine_group_count < 3:
+    if is_redis_cluster_protocal(cluster_type=cluster.cluster_type) and new_machine_group_num < 3:
         # redis 集群协议类型,机器组数不能小于3
         err_msg = _("redis 集群协议类型,机器组数不能小于3")
         require_spec_id = 0
-        require_machine_group_count = 0
-        return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+        require_machine_group_num = 0
+        return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
 
     if new_shards_num == len(master_insts):
         # 无论什么集群类型,集群分片数没变,走这个逻辑
-        if new_machine_group_count > len(master_machines):
+        if new_machine_group_num > len(master_machines):
             # 机器数 变多,原地变更,通过实例部分迁移方式完成
             capacity_update_type = RedisCapacityUpdateType.KEEP_CURRENT_MACHINES.value
-            require_machine_group_count = new_machine_group_count - len(master_machines)
-            return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
-        elif new_machine_group_count < len(master_machines):
+            require_machine_group_num = new_machine_group_num - len(master_machines)
+            return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
+        elif new_machine_group_num < len(master_machines):
             # 机器数 变少,替换变更,全部替换机器
             capacity_update_type = RedisCapacityUpdateType.ALL_MACHINES_REPLACE.value
-            require_machine_group_count = new_machine_group_count
-            return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+            require_machine_group_num = new_machine_group_num
+            return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
 
     if is_tendisplus_instance_type(cluster_type=cluster.cluster_type):
         # tendisplus集群
         if new_shards_num > len(master_insts):
             # tendislus集群,分片数变多
-            if new_machine_group_count <= len(master_machines):
+            if new_machine_group_num <= len(master_machines):
                 # 机器数不变 or 变少，报错
                 require_spec_id = 0
-                require_machine_group_count = 0
+                require_machine_group_num = 0
                 err_msg = _("tendisplus集群 分片数变多,不允许机器数不变 or 变少。如果有需要,请使用 集群分片数变更 单据")
-                return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+                return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
             else:
                 # 机器数变多
                 capacity_update_type = RedisCapacityUpdateType.KEEP_CURRENT_MACHINES.value
-                require_machine_group_count = new_machine_group_count - len(master_machines)
-                return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+                require_machine_group_num = new_machine_group_num - len(master_machines)
+                return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
         elif new_shards_num < len(master_insts):
             # tendislus集群,分片数变少
-            if new_machine_group_count > len(master_machines):
+            if new_machine_group_num > len(master_machines):
                 # 机器数 变多，报错
                 require_spec_id = 0
-                require_machine_group_count = 0
+                require_machine_group_num = 0
                 err_msg = _("tendisplus集群 分片数变少,不允许机器数 变多。如果有需要,请使用 集群分片数变更 单据")
-                return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+                return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
             else:
                 # 机器数不变 or 变少,不需要申请机器
                 capacity_update_type = RedisCapacityUpdateType.KEEP_CURRENT_MACHINES.value
-                require_machine_group_count = 0
+                require_machine_group_num = 0
                 require_spec_id = 0
-                return capacity_update_type, require_spec_id, require_machine_group_count, err_msg
+                return capacity_update_type, require_spec_id, require_machine_group_num, err_msg
 
 
 def get_cluster_info_by_cluster_id(cluster_id):
@@ -819,6 +819,9 @@ def get_cluster_info_by_cluster_id(cluster_id):
     master_ip_to_slave_ip, slave_ip_to_master_ip = defaultdict(), defaultdict()
     master_slave_ins_pairs = []
     redis_ips = set()
+    master_ips = set()
+    slave_ips = set()
+    redis_spec_config = {}
 
     # 获取redis的databases
     one_master = cluster.storageinstance_set.filter(
@@ -842,9 +845,12 @@ def get_cluster_info_by_cluster_id(cluster_id):
     for master_obj in cluster_masters:
         master_ports[master_obj.machine.ip].append(master_obj.port)
         redis_ips.add(master_obj.machine.ip)
+        master_ips.add(master_obj.machine.ip)
+        redis_spec_config = master_obj.machine.spec_config
         if master_obj.as_ejector and master_obj.as_ejector.first():
             my_slave_obj = master_obj.as_ejector.get().receiver
             redis_ips.add(my_slave_obj.machine.ip)
+            slave_ips.add(my_slave_obj.machine.ip)
             slave_ports[my_slave_obj.machine.ip].append(my_slave_obj.port)
             master_ins_to_slave_ins[
                 "{}{}{}".format(master_obj.machine.ip, IP_PORT_DIVIDER, master_obj.port)
@@ -902,6 +908,9 @@ def get_cluster_info_by_cluster_id(cluster_id):
         "proxy_ips": proxy_ips,
         "major_version": cluster.major_version,
         "redis_ips": list(redis_ips),
+        "master_ips": list(master_ips),
+        "slave_ips": list(slave_ips),
+        "redis_spec_config": redis_spec_config,
         "redis_password": passwd_ret.get("redis_password"),
         "redis_proxy_password": passwd_ret.get("redis_proxy_password"),
         "redis_proxy_admin_password": passwd_ret.get("redis_proxy_admin_password"),
