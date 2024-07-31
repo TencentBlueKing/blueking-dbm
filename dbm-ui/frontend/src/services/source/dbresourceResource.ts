@@ -160,7 +160,7 @@ export function getSpecResourceCount(params: {
   resource_type?: string;
   bk_cloud_id: number;
   spec_ids: number[];
-  city: string;
+  city?: string;
 }) {
   return http.post<Record<number, number>>(`${path}/spec_resource_count/`, params);
 }
