@@ -26,7 +26,7 @@ class ToolboxHandler:
     """mysql工具箱查询接口封装"""
 
     def __init__(self):
-        self.avaliable_pkg_list = []
+        self.available_pkg_list = []
 
     #  select version()
     #  tmysql:  select version();==> 5.7.20-tmysql-3.4.2-log
@@ -81,9 +81,9 @@ class ToolboxHandler:
                         if pkg_major_vesion_num == major_version_num:
                             tmysql_pkg_sub_version_num = tmysql_version_parse(pkg.name)
                             if tmysql_pkg_sub_version_num > tmysql_sub_version_num:
-                                self.avaliable_pkg_list.append(pkg)
+                                self.available_pkg_list.append(pkg)
                             if pkg_sub_version_num > sub_version_num:
-                                self.avaliable_pkg_list.append(pkg)
+                                self.available_pkg_list.append(pkg)
 
             elif refer_pkg_type == "txsql":
                 if re.match(pkgname_txsql_re_pattern, pkg.name):
@@ -107,11 +107,14 @@ class ToolboxHandler:
                     pkg_sub_version_num,
                 )
 
-        response = {
-            "count": len(self.avaliable_pkg_list),
-            "results": [{"pkg_name": item.name, "pkg_id": item.id} for item in self.avaliable_pkg_list],
-        }
-        return response
+        return [
+            {
+                "version": item.version,
+                "pkg_name": item.name,
+                "pkg_id": item.id,
+            }
+            for item in self.available_pkg_list
+        ]
 
     def filter_available_packages(
         self,
@@ -126,14 +129,14 @@ class ToolboxHandler:
         根据包类型、版本号和是否要求更高主版本来过滤包列表
         """
         if higher_major_version and just_cross_one_major_version(current_version_num, refer_version_num):
-            self.avaliable_pkg_list.append(pkg)
+            self.available_pkg_list.append(pkg)
         else:
             if (
                 (not higher_major_version)
                 and (current_version_num == refer_version_num)
                 and (current_sub_version_num > refer_sub_version_num)
             ):
-                self.avaliable_pkg_list.append(pkg)
+                self.available_pkg_list.append(pkg)
 
 
 def convert_mysql8_version_num(major_version: int) -> int:
