@@ -111,7 +111,7 @@
     charset: 'default',
     cluster_ids: [] as number[],
     import_mode: 'manual',
-    execute_sql_files: [],
+    execute_sql_files: [] as string[],
     execute_db_infos: [] as TargetDbRow[],
     backup: [] as BackupRow[],
     ticket_mode: {
@@ -206,7 +206,7 @@
 
     formRef.value
       .validate()
-      .then(() => {
+      .then(() =>
         semanticCheck({
           ...formData,
           cluster_type: 'mysql',
@@ -222,8 +222,8 @@
               nodeId: data.node_id,
             },
           });
-        });
-      })
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

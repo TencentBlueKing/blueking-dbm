@@ -179,7 +179,7 @@
   import ToolboxTable from '@components/mysql-toolbox/ToolboxTable.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
-  import { generateId, messageError } from '@utils';
+  import { generateId } from '@utils';
 
   import type { InputItem } from './common/types';
   import BatchInput from './components/BatchInput.vue';
@@ -1035,25 +1035,17 @@
             })),
           },
         };
-        createTicket(params)
+        return createTicket(params)
           .then((res) => {
             ticketId.value = res.id;
             tableData.value = [getTableItem()];
             formdata.data_repair.is_repair = true;
             formdata.timing = getCurrentDate();
             formdata.runtime_hour = 48;
-            nextTick(() => {
-              window.changeConfirm = false;
-            });
+            window.changeConfirm = false;
           })
-          .catch(e => {
-            messageError(e.message);
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
       })
-      .catch(() => {
+      .finally(() => {
         isSubmitting.value = false;
       });
   }

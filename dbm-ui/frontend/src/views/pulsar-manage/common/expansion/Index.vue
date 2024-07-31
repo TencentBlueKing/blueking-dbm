@@ -303,7 +303,7 @@
           headerAlign: 'center',
           contentAlign: 'center',
           footerAlign: 'center',
-          onClosed: () => reject(),
+          onCancel: () => reject(),
           onConfirm: () => {
             const hostData = {};
 

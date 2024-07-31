@@ -211,20 +211,20 @@
   };
 
   const handleSubmit = () => {
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue())).then((data) => {
-      isSubmitting.value = true;
-      createTicket({
-        bk_biz_id: currentBizId,
-        ticket_type: 'TENDBCLUSTER_FULL_BACKUP',
-        remark: '',
-        details: {
-          infos: {
-            ...formData,
-            clusters: data,
+    isSubmitting.value = true;
+    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
+      .then((data) =>
+        createTicket({
+          bk_biz_id: currentBizId,
+          ticket_type: 'TENDBCLUSTER_FULL_BACKUP',
+          remark: '',
+          details: {
+            infos: {
+              ...formData,
+              clusters: data,
+            },
           },
-        },
-      })
-        .then((data) => {
+        }).then((data) => {
           window.changeConfirm = false;
           router.push({
             name: 'spiderDbBackup',
@@ -235,11 +235,11 @@
               ticketId: data.id,
             },
           });
-        })
-        .finally(() => {
-          isSubmitting.value = false;
-        });
-    });
+        }),
+      )
+      .finally(() => {
+        isSubmitting.value = false;
+      });
   };
 
   const handleReset = () => {
