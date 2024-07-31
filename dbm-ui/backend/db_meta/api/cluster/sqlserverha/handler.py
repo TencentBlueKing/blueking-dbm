@@ -155,14 +155,14 @@ class SqlserverHAClusterHandler(ClusterHandler):
             # 对换主从实例的角色信息
             new_master_storage_objs.instance_role = InstanceRole.BACKEND_MASTER
             new_master_storage_objs.instance_inner_role = InstanceInnerRole.MASTER
-            new_master_storage_objs.save(update_fields=["instance_role", "instance_inner_role"])
+            new_master_storage_objs.save()
 
             old_master_storage_objs.instance_role = InstanceRole.BACKEND_SLAVE
             old_master_storage_objs.instance_inner_role = InstanceInnerRole.SLAVE
             if is_force:
                 # 如果是强制切换，旧master状态改成异常
                 old_master_storage_objs.status = InstanceStatus.UNAVAILABLE
-            old_master_storage_objs.save(update_fields=["instance_role", "instance_inner_role"])
+            old_master_storage_objs.save()
 
             # 修改db-meta主从的映射关系
             StorageInstanceTuple.objects.filter(
