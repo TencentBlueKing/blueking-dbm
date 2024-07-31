@@ -582,16 +582,17 @@
   }
 
   function handleSubmit() {
+    isSubmitting.value = true;
     toolboxTableRef.value.validate()
       .then(() => {
         const clusterTypes = _.uniq(tableData.value.map(item => item.cluster_type));
         // 限制只能提同一种类型的集群，否则提示
         if (clusterTypes.length > 1) {
           messageError('只允许提交一种集群类型');
-          return;
+          return Promise.reject();
         }
 
-        isSubmitting.value = true;
+
         const params = {
           ticket_type: clusterTypes[0] === ClusterTypes.TENDBHA
             ? TicketTypes.MYSQL_HA_RENAME_DATABASE : TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
@@ -606,7 +607,7 @@
           },
         };
 
-        createTicket(params)
+        return createTicket(params)
           .then((res) => {
             ticketId.value = res.id;
             tableData.value = [getTableItem()];
@@ -614,9 +615,9 @@
               window.changeConfirm = false;
             });
           })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
+        ;
+      }).finally(() => {
+        isSubmitting.value = false;
       });
   }
 
