@@ -127,7 +127,8 @@
     ClusterTypes.SQLSERVER_SINGLE,
     ClusterTypes.SQLSERVER_HA,
   ];
-  const clusterType = computed(() => (route.params.clusterType as string) ?? ClusterTypes.TENDBSINGLE);
+
+  const clusterType = computed(() => (route.params.clusterType as string) || ClusterTypes.TENDBSINGLE);
   const hasModules = computed(() => hasModuleClusters.includes(clusterType.value));
 
   /**
