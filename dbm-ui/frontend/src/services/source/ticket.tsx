@@ -144,6 +144,8 @@ export function createTicket(formData: Record<string, any>) {
         });
       }
 
+      messageError(e.message);
+
       return Promise.reject(e);
     });
 }
