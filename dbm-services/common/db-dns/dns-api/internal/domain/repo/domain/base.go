@@ -17,6 +17,7 @@ type DnsDomainBaseRepo interface {
 	Delete(tableName, app, domainName string, bkCloudId int64, ins []string) (rowsAffected int64, err error)
 	Update(d *entity.TbDnsBase, newIP string, newPort int) (rowsAffected int64, err error)
 	UpdateDomainBatch(bs []UpdateBatchDnsBase) (rowsAffected int64, err error)
+	UpdateFieldsByDomain(app string, bkCloudId int64, value map[string]interface{}) (rowsAffected int64, err error)
 }
 
 // DnsDomainBaseImpl dns_base方法实现
@@ -190,4 +191,12 @@ func (base *DnsDomainBaseImpl) UpdateDomainBatch(bs []UpdateBatchDnsBase) (rowsA
 		return 0, err
 	}
 	return
+}
+
+// UpdateFieldsByDomain 根据域名和bkID更新对应字段
+func (base *DnsDomainBaseImpl) UpdateFieldsByDomain(name string, bkCloudId int64, values map[string]interface{}) (
+	rowsAffected int64, err error) {
+	var c entity.TbDnsBase
+	r := dao.DnsDB.Model(&c).Where("domain_name = ? and bk_cloud_id = ? ", name, bkCloudId).Update(values)
+	return r.RowsAffected, r.Error
 }
