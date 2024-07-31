@@ -178,6 +178,10 @@ class AccountHandler(object):
         # 使用字典推导式排除值为None的键值对，并替换指定的键，同时确保新字典中的值不为None
         params = {DPRIV_PARAMETER_MAP.get(k, k): v for k, v in rule_filter.to_dict().items() if v is not None}
 
+        # 处理权限字段字符串分割为列表
+        if "privs" in params:
+            params["privs"] = params["privs"].split(",")
+
         # 判断无过滤条件 或者过滤条件只有user 则展示无规则用户
         no_filter = "user" not in params and "dbname" not in params and "privs" not in params
         filter_only_user = "user" in params and "dbname" not in params and "privs" not in params

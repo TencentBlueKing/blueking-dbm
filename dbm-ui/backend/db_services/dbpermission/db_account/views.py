@@ -27,6 +27,7 @@ from backend.db_services.dbpermission.db_account.serializers import (
     FilterAccountRulesSerializer,
     ListAccountRulesSerializer,
     ModifyMySQLAccountRuleSerializer,
+    PageAccountRulesSerializer,
     QueryAccountRulesSerializer,
     UpdateAccountPasswordSerializer,
 )
@@ -133,7 +134,7 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         responses={status.HTTP_200_OK: ListAccountRulesSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=FilterAccountRulesSerializer)
+    @action(methods=["GET"], detail=False, serializer_class=PageAccountRulesSerializer)
     @Permission.decorator_permission_field(
         id_field=lambda d: d["account"]["account_id"],
         data_field=lambda d: d["results"],
