@@ -28,7 +28,26 @@
         <div class="content-item">
           <div class="item-title">{{ t('数据库版本') }}：</div>
           <div class="item-content">
-            <span>{{ data.currentVersion }}</span>
+            <TableEditSelect
+              ref="versionSelectRef"
+              is-plain
+              :list="versionSelectList"
+              :model-value="localVersion"
+              :placeholder="t('请选择')"
+              :pop-width="240"
+              :rules="versionRules"
+              @change="(value) => handleVersionChange(value as string)">
+              <template #default="{ item }">
+                <span>{{ item.name }}</span>
+                <!-- <BkTag
+                  v-if="item.name.split('-')[1] === data.currentVersion.split('-')[1]"
+                  class="ml-4"
+                  size="small"
+                  theme="info">
+                  {{ t('当前版本') }}
+                </BkTag> -->
+              </template>
+            </TableEditSelect>
           </div>
         </div>
         <div class="content-item">
@@ -71,7 +90,57 @@
         <div class="content-item">
           <div class="item-title">{{ t('绑定模块') }}：</div>
           <div class="item-content">
-            <span>{{ data.moduleName }}</span>
+            <TableEditSelect
+              ref="moduleSelectRef"
+              is-plain
+              :list="moduleSelectList"
+              :model-value="localModule"
+              :placeholder="t('请选择')"
+              :pop-width="240"
+              :rules="moduleRules"
+              @change="(value) => handleModuleChange(value as number)">
+              <template #default="{ item }: { item: IListItem | ServiceReturnType<typeof getModules>[number] }">
+                <AuthTemplate
+                  action-id="dbconfig_view"
+                  :biz-id="item.bk_biz_id"
+                  :permission="item.permission.dbconfig_view"
+                  resource="mysql"
+                  style="flex: 1">
+                  <template #default="{ permission }">
+                    <div
+                      class="module-select-item"
+                      :class="{ 'not-permission': !permission }"
+                      data-id="dbconfig_view">
+                      {{ item.name }}
+                    </div>
+                  </template>
+                </AuthTemplate>
+              </template>
+              <template #footer>
+                <div class="module-select-footer">
+                  <AuthButton
+                    action-id="dbconfig_edit"
+                    :biz-id="bizId"
+                    class="plus-button"
+                    resource="mysql"
+                    text
+                    @click="handleCreateModule">
+                    <DbIcon
+                      class="footer-icon mr-4"
+                      type="plus-8" />
+                    {{ t('跳转新建模块') }}
+                  </AuthButton>
+                  <BkButton
+                    class="refresh-button"
+                    text
+                    @click="handleRefreshModule">
+                    <DbIcon
+                      class="footer-icon"
+                      type="refresh-2" />
+                  </BkButton>
+                </div>
+              </template>
+            </TableEditSelect>
           </div>
         </div>
       </div>
@@ -84,6 +153,8 @@
 
   import { getModules } from '@services/source/cmdb';
   import { queryMysqlHigherVersionPkgList } from '@services/source/mysqlToolbox';
+
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import TableEditSelect, { type IListItem } from '@views/mysql/common/edit/Select.vue';
 
@@ -110,6 +181,7 @@
       new_db_module_id: number;
       display_info: {
         target_version: string;
+        target_module_name: string;
       };
     }>;
   }
@@ -123,17 +195,31 @@
   });
   const emits = defineEmits<Emits>();
 
+  const route = useRoute();
+  const router = useRouter();
   const { t } = useI18n();
 
+  const versionSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const packageSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const moduleSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const localVersion = ref<string>('');
   const localPackage = ref<number | ''>('');
   const localModule = ref<number | ''>('');
+  const versionSelectList = ref<IListItem[]>([]);
   const packageSelectList = ref<IListItem[]>([]);
+  const moduleSelectList = ref<IListItem[]>([]);
   const charset = ref('');
 
+  let versionMap = {} as Record<string, ServiceReturnType<typeof queryMysqlHigherVersionPkgList>>;
+
   const bizId = window.PROJECT_CONFIG.BIZ_ID;
+
+  const versionRules = [
+    {
+      validator: (value: string) => Boolean(value),
+      message: t('数据库版本不能为空'),
+    },
+  ];
 
   const packageRules = [
     {
@@ -142,12 +228,30 @@
     },
   ];
 
+  const moduleRules = [
+    {
+      validator: (value: string) => Boolean(value),
+      message: t('绑定模块不能为空'),
+    },
+  ];
+
   const { run: queryMysqlHigherVersionPkgListRun } = useRequest(queryMysqlHigherVersionPkgList, {
     manual: true,
     onSuccess(versions) {
-      packageSelectList.value = versions.map((packageItem) => ({
-        id: packageItem.pkg_id,
-        name: packageItem.pkg_name,
+      versionMap = versions.reduce(
+        (prevMap, versionItem) => {
+          if (versionItem.version in prevMap) {
+            prevMap[versionItem.version].push(versionItem);
+            return prevMap;
+          }
+          return Object.assign(prevMap, { [versionItem.version]: [versionItem] });
+        },
+        {} as Record<string, ServiceReturnType<typeof queryMysqlHigherVersionPkgList>>,
+      );
+
+      versionSelectList.value = Object.keys(versionMap).map((version) => ({
+        id: version,
+        name: version,
       }));
     },
   });
@@ -155,7 +259,7 @@
   const { run: fetchModules } = useRequest(getModules, {
     manual: true,
     onSuccess(modules) {
-      // const moduleList: IListItem[] = [];
+      const moduleList: IListItem[] = [];
       const { moduleName } = props.data!;
       const currentModule = modules.find((moduleItem) => moduleItem.name === moduleName);
       if (currentModule) {
@@ -165,25 +269,25 @@
         charset.value = currentCharset;
         emits('module-change', currentCharset);
 
-        // modules.forEach((moduleItem) => {
-        //   let moduleItemCharset = '';
-        //   let moduleItemDbVersion = '';
-        //   moduleItem.db_module_info.conf_items.forEach((confItem) => {
-        //     if (confItem.conf_name === 'charset') {
-        //       moduleItemCharset = confItem.conf_value;
-        //     } else if (confItem.conf_name === 'db_version') {
-        //       moduleItemDbVersion = confItem.conf_value;
-        //     }
-        //   });
-        //   if (moduleItemCharset === currentCharset && moduleItemDbVersion === localVersion.value) {
-        //     moduleList.push({
-        //       ...moduleItem,
-        //       id: moduleItem.db_module_id,
-        //       name: moduleItem.name,
-        //     });
-        //   }
-        // });
-        // moduleSelectList.value = moduleList;
+        modules.forEach((moduleItem) => {
+          let moduleItemCharset = '';
+          let moduleItemDbVersion = '';
+          moduleItem.db_module_info.conf_items.forEach((confItem) => {
+            if (confItem.conf_name === 'charset') {
+              moduleItemCharset = confItem.conf_value;
+            } else if (confItem.conf_name === 'db_version') {
+              moduleItemDbVersion = confItem.conf_value;
+            }
+          });
+          if (moduleItemCharset === currentCharset && moduleItemDbVersion === localVersion.value) {
+            moduleList.push({
+              ...moduleItem,
+              id: moduleItem.db_module_id,
+              name: moduleItem.name,
+            });
+          }
+        });
+        moduleSelectList.value = moduleList;
       }
     },
   });
@@ -194,7 +298,7 @@
       if (props.data?.clusterId) {
         queryMysqlHigherVersionPkgListRun({
           cluster_id: props.data.clusterId,
-          higher_major_version: false,
+          higher_major_version: true,
         });
       }
     },
@@ -239,6 +343,15 @@
     },
   );
 
+  watch(localVersion, () => {
+    if (localVersion.value) {
+      packageSelectList.value = (versionMap[localVersion.value] || []).map((versionItem) => ({
+        id: versionItem.pkg_id,
+        name: versionItem.pkg_name,
+      }));
+    }
+  });
+
   const fetchModuleList = () => {
     if (props.data) {
       fetchModules({
@@ -260,8 +373,38 @@
     },
   );
 
+  const handleVersionChange = (value: string) => {
+    localVersion.value = value;
+    fetchModuleList();
+  };
+
   const handlePackageChange = (value: number) => {
     localPackage.value = value;
+  };
+
+  const handleModuleChange = (value: number) => {
+    localModule.value = value;
+  };
+
+  const handleCreateModule = () => {
+    const url = router.resolve({
+      name: 'SelfServiceCreateDbModule',
+      params: {
+        type:
+          props.data!.clusterType === ClusterTypes.TENDBSINGLE
+            ? TicketTypes.MYSQL_SINGLE_APPLY
+            : TicketTypes.MYSQL_HA_APPLY,
+        bk_biz_id: bizId,
+      },
+      query: {
+        from: route.name as string,
+      },
+    });
+    window.open(url.href, '_blank');
+  };
+
+  const handleRefreshModule = () => {
+    fetchModuleList();
   };
 
   defineExpose<Exposes>({
@@ -271,6 +414,7 @@
         new_db_module_id: localModule.value as number,
         display_info: {
           target_version: localVersion.value,
+          target_module_name: moduleSelectList.value.find((item) => item.id === localModule.value)?.name || '',
         },
       }));
     },

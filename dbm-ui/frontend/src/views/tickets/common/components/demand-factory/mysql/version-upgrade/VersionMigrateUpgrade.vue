@@ -63,6 +63,7 @@
     {
       label: t('集群ID'),
       field: 'cluster_id',
+      width: 100,
       render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
     },
     {
