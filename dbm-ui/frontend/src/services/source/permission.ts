@@ -112,7 +112,7 @@ export const queryAdminPassword = (params: {
   begin_time?: string;
   end_time?: string;
   instances?: string;
-  db_type: DBTypes;
+  db_type?: DBTypes;
 }) =>
   http.post<ListBase<AdminPasswordModel[]>>('/apis/conf/password_policy/query_admin_password/', params).then((res) => ({
     ...res,

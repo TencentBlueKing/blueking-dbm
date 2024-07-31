@@ -31,6 +31,7 @@
       <template #main>
         <PanelTab
           v-model="panelTabActive"
+          :disabled="!isEmpty && unqiuePanelValue"
           :panel-list="panelList"
           @change="handleChangePanel" />
         <Component
@@ -267,6 +268,7 @@
     clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
+    unqiuePanelValue?: boolean;
   }
 
   interface Emits {
@@ -277,6 +279,7 @@
   const props = withDefaults(defineProps<Props>(), {
     tabListConfig: undefined,
     selected: undefined,
+    unqiuePanelValue: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -747,7 +750,7 @@
   });
 
   const isEmpty = computed(() => Object.values(lastValues).every((values) => values.length < 1));
-  const renderCom = computed(() => activePanelObj.value?.content);
+  const renderCom = computed(() => (activePanelObj.value ? activePanelObj.value.content : 'div'));
 
   watch(
     () => props.clusterTypes,
