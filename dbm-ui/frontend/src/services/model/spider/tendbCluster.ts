@@ -271,6 +271,10 @@ export default class TendbCluster {
     return Boolean(this.operations.find((item) => item.ticket_type === TendbCluster.TENDBCLUSTER_ENABLE));
   }
 
+  get isTemporary() {
+    return Object.keys(this.temporary_info).length > 0;
+  }
+
   get masterDomainDisplayName() {
     const port = this.spider_master[0]?.port;
     const displayName = port ? `${this.master_domain}:${port}` : this.master_domain;

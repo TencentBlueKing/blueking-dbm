@@ -103,6 +103,7 @@
   }
 
   interface Exposes {
+    validator: (field: keyof IDataRow) => void;
     getValue: () => Promise<any>;
   }
 
@@ -172,6 +173,24 @@
   );
 
   defineExpose<Exposes>({
+    validator(field: keyof IDataRow) {
+      switch (field) {
+        case 'databases':
+          databasesRef.value!.getValue('databases');
+          break;
+        case 'tables':
+          tablesRef.value!.getValue('tables');
+          break;
+        case 'databasesIgnore':
+          databasesIgnoreRef.value!.getValue('databases_ignore');
+          break;
+        case 'tablesIgnore':
+          tablesIgnoreRef.value!.getValue('tables_ignore');
+          break;
+        default:
+          break;
+      }
+    },
     getValue() {
       return Promise.all([
         clusterRef.value!.getValue(),

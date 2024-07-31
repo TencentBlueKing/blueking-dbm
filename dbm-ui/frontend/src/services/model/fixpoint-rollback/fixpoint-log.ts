@@ -56,11 +56,15 @@ export default class FixpointLog {
 
   get ipText() {
     const ipSet = new Set();
-    this.target_cluster.nodes.remote_hosts.forEach((item) => {
-      ipSet.add(item.ip);
-      ipSet.add(item.ip);
-    });
-    ipSet.add(this.target_cluster.nodes.spider_host.ip);
+    if (this.target_cluster.nodes.remote_hosts) {
+      this.target_cluster.nodes.remote_hosts.forEach((item) => {
+        ipSet.add(item.ip);
+        ipSet.add(item.ip);
+      });
+    }
+    if (this.target_cluster.nodes.spider_host) {
+      ipSet.add(this.target_cluster.nodes.spider_host.ip);
+    }
     return [...ipSet].join(' , ');
   }
 

@@ -2,7 +2,6 @@ import { t } from '@locales/index';
 
 export enum BackupSources {
   REMOTE = 'remote',
-  LOCAL = 'local',
 }
 export enum BackupTypes {
   BACKUPID = 'BACKUPID',

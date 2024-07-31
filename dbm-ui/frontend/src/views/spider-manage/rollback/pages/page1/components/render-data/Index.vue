@@ -36,6 +36,7 @@
     </template>
   </SmartAction>
   <ClusterSelector
+    v-if="isShowSelector"
     v-model:is-show="isShowSelector"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selectedClusters"
@@ -48,6 +49,8 @@
   import { random } from '@utils';
 
   import { BackupSources, BackupTypes } from '../common/const';
+
+  import { getTendbClusterList } from '@/services/source/spider';
 
   export interface IDataRow {
     rowKey: string;
@@ -171,6 +174,16 @@
     [ClusterTypes.TENDBCLUSTER]: {
       // 仅有构造到新集群为单选
       multiple: props.rollbackClusterType !== RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER,
+      getResourceList: getTendbClusterList,
+      disabledRowConfig:
+        props.rollbackClusterType !== RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER
+          ? [
+              {
+                handler: (data: TendbClusterModel) => data.isTemporary,
+                tip: t('不能选择临时集群'),
+              },
+            ]
+          : [],
     },
   }));
 
@@ -195,6 +208,12 @@
     tableData.value.forEach((row) => {
       Object.assign(row, { ...obj });
     });
+    const field = Object.keys(obj)[0] as keyof IDataRow;
+    if (['databases', 'tables', 'databasesIgnore', 'tablesIgnore'].includes(field)) {
+      nextTick(() => {
+        Promise.all(rowRefs.value.map((item: { validator: (field: keyof IDataRow) => void }) => item.validator(field)));
+      });
+    }
   };
 
   // 批量选择

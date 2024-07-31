@@ -1,3 +1,5 @@
+import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
+
 import { t } from '@locales/index';
 
 export enum BackupSources {
@@ -29,4 +31,18 @@ export const selectList = {
       label: t('回档到指定时间'),
     },
   ],
+};
+export const rollbackInfos = {
+  [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: {
+    value: RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER,
+    label: t('构造到新集群'),
+  },
+  [RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER]: {
+    value: RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER,
+    label: t('构造到已有集群'),
+  },
+  [RollbackClusterTypes.BUILD_INTO_METACLUSTER]: {
+    value: RollbackClusterTypes.BUILD_INTO_METACLUSTER,
+    label: t('构造到原集群'),
+  },
 };
