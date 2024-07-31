@@ -224,7 +224,7 @@
           headerAlign: 'center',
           contentAlign: 'center',
           footerAlign: 'center',
-          onClosed: () => reject(),
+          onCancel: () => reject(),
           onConfirm: () => {
             const fomatHost = (nodeList: TNodeInfo['nodeList'] = []) => nodeList.map(hostItem => ({
               ip: hostItem.ip,

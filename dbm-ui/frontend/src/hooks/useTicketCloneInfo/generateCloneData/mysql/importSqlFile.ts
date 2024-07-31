@@ -25,7 +25,7 @@ export function generateMysqlImportSqlFileCloneData(ticketData: TicketModel<MySQ
     ticket_mode: details.ticket_mode,
     import_mode: details.import_mode,
     cluster_ids: details.cluster_ids,
-    execute_sql_files: details.execute_sql_files,
+    execute_sql_files: details.execute_sql_files as string[],
     path: details.path,
     execute_db_infos: details.execute_objects.slice(0, dbInfosCount).map((item) => ({
       ...item,

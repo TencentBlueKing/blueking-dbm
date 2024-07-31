@@ -69,7 +69,6 @@
   import SpiderModel from '@services/model/spider/spider';
   import { getSpiderList } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useGlobalBizs } from '@stores';
 
@@ -201,11 +200,13 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
+    isSubmitting.value = true;
     const infos = await Promise.all<InfoItem[]>(
       rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
     );
+    isSubmitting.value = false;
 
-    const params: SubmitTicket<TicketTypes, InfoItem[]> & { remark: string } = {
+    const params = {
       remark: '',
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
@@ -217,25 +218,19 @@
     InfoBox({
       title: t('确认部署 n 个集群的只读接入层？', { n: totalNum.value }),
       width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'SpiderProxySlaveApply',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
+      onConfirm: () =>
+        createTicket(params).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'SpiderProxySlaveApply',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
           });
-      },
+        }),
     });
   };
 

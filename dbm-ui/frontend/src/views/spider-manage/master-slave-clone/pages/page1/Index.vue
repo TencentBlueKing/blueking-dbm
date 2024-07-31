@@ -217,7 +217,10 @@
 
   // 提交
   const handleSubmit = async () => {
+    isSubmitting.value = true;
     const rowDataList = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
+    isSubmitting.value = false;
+
     const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
@@ -245,25 +248,19 @@
     InfoBox({
       title: t('确认迁移n主从实例？', { n: totalNum.value }),
       width: 500,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'spiderMasterSlaveClone',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
+      onConfirm: () =>
+        createTicket(params).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'spiderMasterSlaveClone',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
           });
-      },
+        }),
     });
   };
 
