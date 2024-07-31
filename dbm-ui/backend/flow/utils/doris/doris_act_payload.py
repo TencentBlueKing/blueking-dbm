@@ -298,11 +298,14 @@ class DorisActPayload(object):
         }
 
     def get_check_start_payload(self, **kwargs) -> dict:
+        extend_dict = {
+            "master_fe_ip": self.ticket_data["master_fe_ip"],
+        }
         return {
             "db_type": DBActuatorTypeEnum.Doris.value,
             "action": DorisActuatorActionEnum.CheckProcessStart.value,
             "payload": {
                 "general": {},
-                "extend": self.get_common_extend(**kwargs),
+                "extend": dict(**(self.get_common_extend(**kwargs)), **extend_dict),
             },
         }
