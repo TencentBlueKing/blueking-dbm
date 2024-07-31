@@ -26,13 +26,12 @@ class ToolboxViewSet(viewsets.SystemViewSet):
     default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
-        operation_summary=_("查询可以用的升级包"),
+        operation_summary=_("查询 MySQL 可以用的升级包"),
         request_body=QueryPkgListByCompareVersionSerializer(),
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=QueryPkgListByCompareVersionSerializer)
-    def query_higer_version_pkg_list(self, request, **kwargs):
+    def query_higher_version_pkg_list(self, request, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        refer_cluster_id, higher_major_version = data["refer_cluster_id"], data["higher_major_version"]
-        print(refer_cluster_id)
-        return Response(ToolboxHandler().query_higher_version_pkg_list(refer_cluster_id, higher_major_version))
+        cluster_id, higher_major_version = data["cluster_id"], data["higher_major_version"]
+        return Response(ToolboxHandler().query_higher_version_pkg_list(cluster_id, higher_major_version))
