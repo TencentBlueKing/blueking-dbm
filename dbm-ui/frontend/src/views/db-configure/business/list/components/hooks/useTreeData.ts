@@ -201,15 +201,25 @@ export const useTreeData = (treeState: TreeState) => {
 
   function createModule() {
     if (clusterType?.value) {
-      const type =
-        clusterType.value === ClusterTypes.TENDBSINGLE ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
-      router.push({
-        name: 'SelfServiceCreateDbModule',
-        params: {
-          type,
-          bk_biz_id: globalBizsStore.currentBizId,
-        },
-      });
+      const mysqlTypes = [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA] as string[];
+      if (mysqlTypes.includes(clusterType.value)) {
+        const type =
+          clusterType.value === ClusterTypes.TENDBSINGLE ? TicketTypes.MYSQL_SINGLE_APPLY : TicketTypes.MYSQL_HA_APPLY;
+        router.push({
+          name: 'SelfServiceCreateDbModule',
+          params: {
+            type,
+            bk_biz_id: globalBizsStore.currentBizId,
+          },
+        });
+      } else {
+        router.push({
+          name: 'createSpiderModule',
+          params: {
+            bizId: globalBizsStore.currentBizId,
+          },
+        });
+      }
     }
   }
 
