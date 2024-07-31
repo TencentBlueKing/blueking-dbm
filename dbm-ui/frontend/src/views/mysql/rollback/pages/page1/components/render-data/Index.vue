@@ -194,6 +194,12 @@
     tableData.value.forEach((row) => {
       Object.assign(row, { ...obj });
     });
+    const field = Object.keys(obj)[0] as keyof IDataRow;
+    if (['databases', 'tables', 'databasesIgnore', 'tablesIgnore'].includes(field)) {
+      nextTick(() => {
+        Promise.all(rowRefs.value.map((item: { validator: (field: keyof IDataRow) => void }) => item.validator(field)));
+      });
+    }
   };
 
   // 批量选择

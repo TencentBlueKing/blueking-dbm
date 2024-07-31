@@ -51,6 +51,8 @@
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
+  import { rollbackInfos } from '@views/mysql/rollback/pages/page1/components/common/const';
+
   import RenderData, { createRowData, type IDataRow } from './components/render-data/Index.vue';
 
   const { t } = useI18n();
@@ -64,21 +66,6 @@
       window.changeConfirm = true;
     },
   });
-
-  const rollbackInfos = {
-    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: {
-      value: RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER,
-      label: t('构造到新集群'),
-    },
-    [RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER]: {
-      value: RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER,
-      label: t('构造到已有集群'),
-    },
-    [RollbackClusterTypes.BUILD_INTO_METACLUSTER]: {
-      value: RollbackClusterTypes.BUILD_INTO_METACLUSTER,
-      label: t('构造到原集群'),
-    },
-  };
 
   const renderDataRef = ref<InstanceType<typeof RenderData>>();
   const rollbackClusterType = ref<RollbackClusterTypes>(RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER);

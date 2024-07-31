@@ -98,6 +98,7 @@
           ip_list: list,
         }).then((data) => {
           if (data.length === list.length) {
+            dataEcho(data);
             return true;
           }
           return false;

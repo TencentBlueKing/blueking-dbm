@@ -264,7 +264,7 @@
 
   const handleBatchEdit = (key: keyof IDataRow, value: string, isArray = false) => {
     emits('batchEdit', {
-      [key]: isArray ? value.split('\n') : value,
+      [key]: isArray && value ? value.split('\n') : value,
     });
   };
 </script>
