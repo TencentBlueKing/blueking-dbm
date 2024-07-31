@@ -271,7 +271,7 @@
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
         domainMemo[domain] = true;
-        return [...result, generateRowDateFromRequest({...item, exact_domain: item.master_domain})];
+        return [...result, generateRowDateFromRequest({ ...item, exact_domain: item.master_domain })];
       }
       return result;
     }, [] as IDataRow[]);
@@ -348,16 +348,23 @@
   };
 
   const handleSubmit = async () => {
-    const infos = await Promise.all(rowRefs.value!.map((item: { getValue: () => Promise<{
-      cluster_id: number;
-      backup_dbs: string[]
-    }> }) => item.getValue()));
+    isSubmitting.value = true;
+    const infos = await Promise.all(
+      rowRefs.value!.map(
+        (item: {
+          getValue: () => Promise<{
+            cluster_id: number;
+            backup_dbs: string[];
+          }>;
+        }) => item.getValue(),
+      ),
+    );
+    isSubmitting.value = false;
 
     InfoBox({
       title: t('确认提交n个数据库备份任务', { n: totalNum.value }),
       width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
+      onConfirm: () =>
         createTicket({
           bk_biz_id: currentBizId,
           ticket_type: TicketTypes.SQLSERVER_BACKUP_DBS,
@@ -365,23 +372,18 @@
             ...formData,
             infos,
           },
-        })
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'SqlServerDbBackup',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'SqlServerDbBackup',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
           });
-      },
+        }),
     });
   };
 
