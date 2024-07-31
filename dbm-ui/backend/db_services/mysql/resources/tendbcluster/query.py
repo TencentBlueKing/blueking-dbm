@@ -254,6 +254,21 @@ class ListRetrieveResource(query.ListRetrieveResource):
         return super()._to_instance_representation(instance, cluster_entry_map, db_module_names_map, **kwargs)
 
     @classmethod
+    def _list_machines(
+        cls,
+        bk_biz_id: int,
+        query_params: Dict,
+        limit: int,
+        offset: int,
+        filter_params_map: Dict[str, Q] = None,
+        **kwargs,
+    ) -> ResourceList:
+        filter_params_map = {
+            "spider_role": Q(proxyinstance__tendbclusterspiderext__spider_role=query_params.get("spider_role"))
+        }
+        return super()._list_machines(bk_biz_id, query_params, limit, offset, filter_params_map, **kwargs)
+
+    @classmethod
     def get_topo_graph(cls, bk_biz_id: int, cluster_id: int) -> dict:
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()

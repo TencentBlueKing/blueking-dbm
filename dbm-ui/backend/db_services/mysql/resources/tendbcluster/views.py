@@ -55,7 +55,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 @method_decorator(
     name="list_machines",
     decorator=common_swagger_auto_schema(
-        query_serializer=serializers.ListMachineSLZ(),
+        query_serializer=serializers.ListTendbClusterMachineResourceSLZ(),
         responses={status.HTTP_200_OK: yasg_slz.PaginatedMachineResourceSLZ()},
         tags=[constants.RESOURCE_TAG],
     ),
@@ -78,19 +78,20 @@ class SpiderViewSet(viewsets.ResourceViewSet):
 
     query_class = ListRetrieveResource
     query_serializer_class = serializers.ListMySQLResourceSLZ
+    list_machine_slz = serializers.ListTendbClusterMachineResourceSLZ
     db_type = DBType.TenDBCluster
 
     list_perm_actions = [
         ActionEnum.TENDBCLUSTER_VIEW,
         ActionEnum.TENDBCLUSTER_SPIDER_SLAVE_DESTROY,
         ActionEnum.TENDBCLUSTER_ENABLE_DISABLE,
+        ActionEnum.TENDBCLUSTER_WEBCONSOLE,
         ActionEnum.TENDBCLUSTER_DESTROY,
         ActionEnum.TENDBCLUSTER_SPIDER_ADD_NODES,
         ActionEnum.TENDBCLUSTER_SPIDER_REDUCE_NODES,
         ActionEnum.TENDBCLUSTER_SPIDER_MNT_DESTROY,
         ActionEnum.TENDBCLUSTER_NODE_REBALANCE,
         ActionEnum.TENDBCLUSTER_DUMP_DATA,
-        ActionEnum.TENDBCLUSTER_WEBCONSOLE,
     ]
     list_instance_perm_actions = [ActionEnum.TENDBCLUSTER_VIEW]
     list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]

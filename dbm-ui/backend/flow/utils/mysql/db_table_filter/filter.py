@@ -42,7 +42,7 @@ class DbTableFilter(object):
             raise DbTableFilterValidateException(msg=_("include patterns 不能为空"))
 
         if not (
-            (self.exclude_table_patterns and self.exclude_table_patterns)
+            (self.exclude_db_patterns and self.exclude_table_patterns)
             or (not self.exclude_db_patterns and not self.exclude_table_patterns)
         ):
             raise DbTableFilterValidateException(msg=_("exclude patterns 要么同时为空, 要么都不为空"))
