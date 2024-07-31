@@ -41,6 +41,10 @@ class AccountRuleMeta(AccountMeta):
     # 用于过滤筛选的准入db列表
     access_dbs: list = None
 
+    # 用于权限规则分页
+    offset: int = None
+    limit: int = None
+
     def __post_init__(self):
         if self.rule_ids and isinstance(self.rule_ids, str):
             self.rule_ids = list(map(int, self.rule_ids.split(",")))
