@@ -21,6 +21,7 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.core.storages.handlers import StorageHandler
 from backend.core.storages.storage import get_storage
 from backend.db_package.constants import DB_PACKAGE_TAG, INSTALL_PACKAGE_LIST, PARSE_FILE_EXT, PackageType
 from backend.db_package.exceptions import PackageNotExistException
@@ -166,6 +167,9 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
         tags=[DB_PACKAGE_TAG],
     )
     def destroy(self, request, *args, **kwargs):
+        # 删除制品库文件
+        StorageHandler().delete_file(self.get_object().path)
+        # 删除本地记录
         super().destroy(request, *args, **kwargs)
         return Response()
 

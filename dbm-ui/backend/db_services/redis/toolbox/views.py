@@ -13,8 +13,8 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.db_services.dbbase.cluster.views import ClusterViewSet as BaseClusterViewSet
 from backend.db_services.mysql.cluster.serializers import (
     GetMachineInstancePairResponseSerializer,
     GetMachineInstancePairSerializer,
@@ -31,7 +31,7 @@ from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 SWAGGER_TAG = "db_services/redis/toolbox"
 
 
-class ToolboxViewSet(viewsets.SystemViewSet):
+class ToolboxViewSet(BaseClusterViewSet):
     action_permission_map = {}
     default_permission_class = [DBManagePermission()]
 

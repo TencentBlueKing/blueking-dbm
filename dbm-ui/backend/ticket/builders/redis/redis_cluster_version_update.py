@@ -20,7 +20,7 @@ from backend.ticket.constants import TicketType
 
 class RedisVersionUpdateDetailSerializer(serializers.Serializer):
     class UpdateInfoSerializer(serializers.Serializer):
-        cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+        cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
         node_type = serializers.ChoiceField(help_text=_("节点类型"), choices=RedisVerUpdateNodeType.get_choices())
         current_versions = serializers.ListField(help_text=_("当前版本列表"), child=serializers.CharField())
         target_version = serializers.CharField(help_text=_("目标版本"))
