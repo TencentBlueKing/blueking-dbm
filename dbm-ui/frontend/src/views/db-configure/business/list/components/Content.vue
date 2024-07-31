@@ -120,8 +120,9 @@
   const { treeRef, treeSearchConfig, treePrefixIcon, handleSelectedTreeNode, createModule, fetchBusinessTopoTree } =
     useTreeData(treeState);
   // 可创建模块
-  const clusterType = computed(() => route.params.clusterType as string);
-  const hasModuleClusters: string[] = [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA];
+
+  const clusterType = computed(() => (route.params.clusterType as string) || ClusterTypes.TENDBSINGLE);
+  const hasModuleClusters: string[] = [ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA, ClusterTypes.TENDBCLUSTER];
   const hasModules = computed(() => hasModuleClusters.includes(clusterType.value));
 
   /**
