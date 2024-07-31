@@ -12,8 +12,8 @@ from rest_framework import serializers
 
 
 class QueryPkgListByCompareVersionSerializer(serializers.Serializer):
-    refer_cluster_id = serializers.IntegerField()
+    cluster_id = serializers.IntegerField()
     higher_major_version = serializers.BooleanField(default=False)
 
     class Meta:
-        swagger_schema_fields = {"refer_cluster_id": 123, "higher_major_version": False}
+        swagger_schema_fields = {"cluster_id": 123, "higher_major_version": False}
