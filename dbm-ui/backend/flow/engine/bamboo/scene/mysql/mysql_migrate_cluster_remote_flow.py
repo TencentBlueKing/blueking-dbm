@@ -446,7 +446,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     {
                         "bk_biz_id": str(self.data["bk_biz_id"]),
                         "level_name": LevelName.MODULE,
-                        "level_value": db_module_id,
+                        "level_value": str(db_module_id),
                         "conf_file": "deploy_info",
                         "conf_type": "deploy",
                         "namespace": ClusterType.TenDBHA.value,
