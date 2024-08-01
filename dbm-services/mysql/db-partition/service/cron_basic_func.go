@@ -475,7 +475,7 @@ func DownLoadFilesCreateTicketByMachine(cloudMachineList map[int][]string, machi
 					slog.Error("msg", msg, err)
 					return
 				}
-				time.Sleep(60 * time.Second)
+				time.Sleep(120 * time.Second)
 				// 创建执行分区单据
 				err = CreatePartitionTicket(files, clusterType, "mixed", vdate)
 				if err != nil {
@@ -542,7 +542,7 @@ func DownLoadFilesCreateTicketByCluster(clusterIps map[string][]string, machineF
 				}
 				clusterFiles = append(clusterFiles, files...)
 			}
-			time.Sleep(60 * time.Second)
+			time.Sleep(120 * time.Second)
 			// 创建执行分区单据
 			err = CreatePartitionTicket(clusterFiles, clusterType, domain, vdate)
 			if err != nil {

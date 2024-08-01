@@ -1,6 +1,7 @@
 package restore
 
 import (
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"fmt"
 	"io"
 	"os"
@@ -802,7 +803,7 @@ func (r *RecoverBinlog) Start() error {
 			`cd %s; %s %s | %s >>%s 2>%s`,
 			r.BinlogDir, r.binlogCli, binlogFiles, r.mysqlCli, outFile, errFile,
 		)
-		logger.Info(mysqlutil.ClearSensitiveInformation(mysqlutil.RemovePassword(cmd)))
+		logger.Info(mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
 		stdoutStr, err := mysqlutil.ExecCommandMySQLShell(cmd)
 		if err != nil {
 			if strings.TrimSpace(stdoutStr) == "" {

@@ -1,23 +1,25 @@
 package service
 
 import (
+	"dbm-services/common/go-pubpkg/errno"
+	"dbm-services/mysql/priv-service/util"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strings"
 	"sync"
-
-	"dbm-services/common/go-pubpkg/errno"
 
 	"github.com/asaskevich/govalidator"
 )
 
 // ReplaceHostInMysqlGrants 替换mysql授权语句中的host
-func ReplaceHostInMysqlGrants(userGrants []UserGrant, sourceIp string, targetIp []string) []UserGrant {
+func ReplaceHostInMysqlGrants(userGrants []UserGrant, targetIp []string) []UserGrant {
 	newUserGrants := NewUserGrants{}
 	wg := sync.WaitGroup{}
 
 	regForCreateUser := regexp.MustCompile(`(?i)^\s*CREATE USER `) // CREATE USER变为CREATE USER IF NOT EXISTS
-
+	regForConnLog := regexp.MustCompile("`test`.`conn_log`")       // `test`.`conn_log`变为 infodba_schema.conn_log
+	regHost := regexp.MustCompile("(?U)@['`].*['`]")               // 非贪婪模式
 	for _, row := range userGrants {
 		wg.Add(1)
 		go func(row UserGrant) {
@@ -28,8 +30,11 @@ func ReplaceHostInMysqlGrants(userGrants []UserGrant, sourceIp string, targetIp 
 				if regForCreateUser.MatchString(grant) {
 					grant = regForCreateUser.ReplaceAllString(grant, `CREATE USER /*!50706 IF NOT EXISTS */ `)
 				}
+				if regForConnLog.MatchString(grant) {
+					grant = regForConnLog.ReplaceAllString(grant, `infodba_schema.conn_log`)
+				}
 				for _, ip := range targetIp {
-					grantTmp = strings.ReplaceAll(grant, sourceIp, ip)
+					grantTmp = regHost.ReplaceAllString(grant, fmt.Sprintf("@'%s'", ip))
 					tmp = append(tmp, grantTmp)
 				}
 			}
@@ -44,12 +49,13 @@ func ReplaceHostInMysqlGrants(userGrants []UserGrant, sourceIp string, targetIp 
 }
 
 // ReplaceHostInProxyGrants 替换proxy新增白名单语句中的host
-func ReplaceHostInProxyGrants(grants []string, sourceIp string, targetIp []string) []string {
+func ReplaceHostInProxyGrants(grants []string, targetIp []string) []string {
 	var newGrants []string
 	var grantTmp string
+	re := regexp.MustCompile("(?U)@.*'")
 	for _, item := range grants {
 		for _, ip := range targetIp {
-			grantTmp = strings.ReplaceAll(item, sourceIp, ip)
+			grantTmp = re.ReplaceAllString(item, fmt.Sprintf("@%s'", ip))
 			newGrants = append(newGrants, grantTmp)
 		}
 	}
@@ -57,9 +63,11 @@ func ReplaceHostInProxyGrants(grants []string, sourceIp string, targetIp []strin
 }
 
 // GetProxyPrivilege 获取proxy白名单
-func GetProxyPrivilege(address string, host string, bkCloudId int64, specifiedUser string) ([]string, error) {
+func GetProxyPrivilege(address string, hosts []string, bkCloudId int64, specifiedUser string) ([]string, error) {
 	var grants []string
+	var reStr string
 	sql := "select * from user;"
+	monitorReg := regexp.MustCompile("MONITOR@.*")
 	var queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30, bkCloudId}
 	output, err := OneAddressExecuteProxySql(queryRequest)
 	if err != nil {
@@ -68,7 +76,7 @@ func GetProxyPrivilege(address string, host string, bkCloudId int64, specifiedUs
 			err.Error()))
 	}
 	usersResult := output.CmdResults[0].TableData
-	if host == "" {
+	if len(hosts) == 0 {
 		// 实例间克隆
 		for _, user := range usersResult {
 			addUserSQL := fmt.Sprintf("refresh_users('%s','+')", user["user@ip"].(string))
@@ -76,14 +84,19 @@ func GetProxyPrivilege(address string, host string, bkCloudId int64, specifiedUs
 		}
 	} else {
 		// 客户端克隆
-		re := regexp.MustCompile(fmt.Sprintf(".*@%s$", strings.ReplaceAll(host, ".", "\\.")))
-		// 客户端克隆并且指定了user
-		if specifiedUser != "" {
-			re = regexp.MustCompile(fmt.Sprintf("^%s@%s$", specifiedUser, strings.ReplaceAll(host, ".", "\\.")))
+		for _, h := range hosts {
+			reStr = fmt.Sprintf("%s|.*@%s$", reStr, strings.ReplaceAll(h, ".", "\\."))
+			// 客户端克隆并且指定了user
+			if specifiedUser != "" {
+				reStr = fmt.Sprintf("%s|^%s@%s$", reStr, specifiedUser, strings.ReplaceAll(h, ".", "\\."))
+			}
 		}
+		reStr = strings.TrimPrefix(reStr, "|")
+		slog.Info("msg", "reStr", reStr)
+		re := regexp.MustCompile(reStr)
 		for _, user := range usersResult {
 			tmpUser := user["user@ip"].(string)
-			if re.MatchString(tmpUser) {
+			if re.MatchString(tmpUser) && !monitorReg.MatchString(tmpUser) {
 				addUserSQL := fmt.Sprintf("refresh_users('%s','+')", tmpUser)
 				grants = append(grants, addUserSQL)
 			}
@@ -94,30 +107,18 @@ func GetProxyPrivilege(address string, host string, bkCloudId int64, specifiedUs
 
 // ImportProxyPrivileges 导入proxy白名单
 func ImportProxyPrivileges(grants []string, address string, bkCloudId int64) error {
-	var errMsg Err
-	wg := sync.WaitGroup{}
-	tokenBucket := make(chan int, 10)
-
-	for _, item := range grants {
-		wg.Add(1)
-		tokenBucket <- 0
-		go func(item string) {
-			defer func() {
-				<-tokenBucket
-				wg.Done()
-			}()
-			queryRequest := QueryRequest{[]string{address}, []string{item}, true, 30, bkCloudId}
-			_, err := OneAddressExecuteProxySql(queryRequest)
-			if err != nil {
-				AddError(&errMsg, address, err)
-				return
-			}
-		}(item)
+	var errs []string
+	// nginx默认上传传文件的大小限制是1M，为避免413 Request Entity Too Large报错，切分
+	tmp := util.SplitArray(grants, 2000)
+	for _, vsqls := range tmp {
+		queryRequest := QueryRequest{[]string{address}, vsqls, true, 30, bkCloudId}
+		_, err := OneAddressExecuteProxySql(queryRequest)
+		if err != nil {
+			errs = append(errs, err.Error())
+		}
 	}
-	wg.Wait()
-	close(tokenBucket)
-	if len(errMsg.errs) > 0 {
-		return errno.ClonePrivilegesFail.Add(strings.Join(errMsg.errs, "\n"))
+	if len(errs) > 0 {
+		return errno.ClonePrivilegesFail.Add(strings.Join(errs, "\n"))
 	}
 	return nil
 }

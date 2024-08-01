@@ -52,12 +52,13 @@ func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) 
 	userPriv = strings.Trim(userPriv, ",")
 	managerPriv = strings.Trim(managerPriv, ",")
 	allTypePriv = strings.Trim(allTypePriv, ",")
+	vtime := time.Now()
 
 	tx := DB.Self.Begin()
 	for _, db := range dbs {
 		accountRule = TbAccountRules{BkBizId: m.BkBizId, ClusterType: *m.ClusterType, AccountId: m.AccountId, Dbname: db,
 			Priv:       allTypePriv,
-			DmlDdlPriv: userPriv, GlobalPriv: managerPriv, Creator: m.Operator, CreateTime: time.Now()}
+			DmlDdlPriv: userPriv, GlobalPriv: managerPriv, Creator: m.Operator, CreateTime: vtime, UpdateTime: vtime}
 		err = tx.Debug().Model(&TbAccountRules{}).Create(&accountRule).Error
 		if err != nil {
 			tx.Rollback()
@@ -68,7 +69,7 @@ func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) 
 	if err != nil {
 		return err
 	}
-	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()}
+	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: vtime}
 	AddPrivLog(log)
 
 	return nil

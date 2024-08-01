@@ -53,7 +53,14 @@ func (m *PrivService) CloneClientPriv(c *gin.Context) {
 		return
 	}
 
-	err = input.CloneClientPriv(string(body), ticket)
-	SendResponse(c, err, nil)
+	privs, err := input.CloneClientPriv(string(body), ticket)
+	if err != nil {
+		SendResponse(c, err, nil)
+		return
+	}
+	SendResponse(c, err, ListResponse{
+		Count: len(privs),
+		Items: privs,
+	})
 	return
 }

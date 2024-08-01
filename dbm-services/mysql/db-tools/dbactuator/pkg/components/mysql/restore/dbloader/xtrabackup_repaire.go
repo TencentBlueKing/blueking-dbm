@@ -29,7 +29,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
@@ -47,7 +46,7 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 			adminAccount := components.MySQLAdminAccount{AdminUser: userAdmin, AdminPwd: password}.
 				GetAccountPrivs(x.TgtInstance.Host)
 			grantSql := adminAccount.GenerateInitSql(version)
-			logger.Info("recreate admin user '%s': %s", userAdmin, mysqlutil.ClearIdentifyByInSQLs(grantSql))
+			logger.Info("recreate admin user '%s': %s", userAdmin, mysqlcomm.ClearIdentifyByInSQLs(grantSql))
 			if _, err = x.dbWorker.ExecMore(grantSql); err != nil {
 				return err
 			}
@@ -97,7 +96,7 @@ func (x *Xtrabackup) RepairUserAdmin(userAdmin, password string, version string)
 	}
 	sqlList = append(sqlList, "FLUSH PRIVILEGES;")
 
-	logger.Info("RepairUserAdmin %s: %v", userAdmin, mysqlutil.ClearIdentifyByInSQLs(sqlList))
+	logger.Info("RepairUserAdmin %s: %v", userAdmin, mysqlcomm.ClearIdentifyByInSQLs(sqlList))
 	if _, err := x.dbWorker.ExecMore(sqlList); err != nil {
 		return err
 	}

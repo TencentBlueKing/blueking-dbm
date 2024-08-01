@@ -11,13 +11,13 @@
 package spiderctl
 
 import (
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"errors"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
 //  scene 1
@@ -470,12 +470,12 @@ func (s *SpiderClusterBackendMigrateCutoverComp) switchSpt() (err error) {
 	for _, pair := range s.cutOverPairs {
 		masterSvrName := pair.MasterSvr.ServerName
 		alterSql := pair.DestMaster.getSwitchRouterSql(masterSvrName)
-		logger.Info("will execute  master spt switch sql:%s", mysqlutil.CleanSvrPassword(alterSql))
+		logger.Info("will execute  master spt switch sql:%s", mysqlcomm.CleanSvrPassword(alterSql))
 		alterSqls = append(alterSqls, alterSql)
 		if s.existRemoteSlave {
 			slaveSvrName := pair.SlaveSvr.ServerName
 			alterSql := pair.DestSlave.getSwitchRouterSql(slaveSvrName)
-			logger.Info("will execute slave spt switch sql:%s", mysqlutil.CleanSvrPassword(alterSql))
+			logger.Info("will execute slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(alterSql))
 			alterSqls = append(alterSqls, alterSql)
 		}
 	}

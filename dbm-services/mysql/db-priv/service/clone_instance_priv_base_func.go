@@ -60,20 +60,21 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	}
 	selectUser := `select user,host from mysql.user where 1=1 `
 	if host != "" {
-		selectUser += fmt.Sprintf(` and host in ("%s") `, host)
+		selectUser += fmt.Sprintf(` and host in ('%s') `, host)
 	}
 	if user != "" {
-		selectUser += fmt.Sprintf(` and user in ("%s") `, user)
+		selectUser += fmt.Sprintf(` and user in ('%s') `, user)
 	}
-	flush := UserGrant{"", []string{flushPriv, setBinlogOff}}
+	// 根据目标ip模糊匹配查询或者客户端克隆，避免匹配到内部用户
+	if raw {
+		selectUser += " and user !='MONITOR' "
+	}
+	slog.Info("msg", "selectUser", selectUser)
 	queryRequestOuter := QueryRequest{[]string{address}, []string{selectUser},
 		true, 30, bkCloudId}
 	repsOuter, errOuter = OneAddressExecuteSql(queryRequestOuter)
 	if errOuter != nil {
 		return nil, errOuter
-	}
-	if !raw {
-		resultTemp.userGrants = append([]UserGrant{flush}, resultTemp.userGrants...)
 	}
 	for _, row := range repsOuter.CmdResults[0].TableData {
 		if row["user"] == "" || row["host"] == "" {
@@ -110,8 +111,8 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	case err := <-errorChan:
 		return nil, err
 	}
-	if !raw {
-		resultTemp.userGrants = append(resultTemp.userGrants, flush)
+	if len(resultTemp.userGrants) == 0 {
+		return nil, nil
 	}
 	return resultTemp.userGrants, nil
 }
@@ -264,12 +265,11 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8, mysql8 bool) error {
 	var err error
 	var tmp []string
-	regForCreateUser := regexp.MustCompile(
-		`(?i)^\s*CREATE USER `,
-	) // CREATE USER变为CREATE USER IF NOT EXISTS
+	regForCreateUser := regexp.MustCompile(`(?i)^\s*CREATE USER `) // CREATE USER变为CREATE USER IF NOT EXISTS
 	regForPasswordExpired := regexp.MustCompile(
 		`(?i)\s*REQUIRE NONE PASSWORD EXPIRE DEFAULT ACCOUNT UNLOCK`,
 	) // 5.7->5.6去掉
+	regForConnLog := regexp.MustCompile("`test`.`conn_log`") // `test`.`conn_log`变为 infodba_schema.conn_log
 
 	switch {
 	case mysql80Tomysql57:
@@ -281,6 +281,12 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 		for _, str := range *grants {
 			if regForPasswordExpired.MatchString(str) {
 				str = regForPasswordExpired.ReplaceAllString(str, ``)
+			}
+			if regForCreateUser.MatchString(str) {
+				str = regForCreateUser.ReplaceAllString(str, `CREATE USER /*!50706 IF NOT EXISTS */ `)
+			}
+			if regForConnLog.MatchString(str) {
+				str = regForConnLog.ReplaceAllString(str, `infodba_schema.conn_log`)
 			}
 			tmp = append(tmp, str)
 		}
@@ -297,6 +303,9 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 			if regForCreateUser.MatchString(str) {
 				str = regForCreateUser.ReplaceAllString(str, `CREATE USER /*!50706 IF NOT EXISTS */ `)
 			}
+			if regForConnLog.MatchString(str) {
+				str = regForConnLog.ReplaceAllString(str, `infodba_schema.conn_log`)
+			}
 			tmp = append(tmp, str)
 		}
 		*grants = tmp
@@ -307,9 +316,8 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 // PrivMysql8 剔除txsql 8.0包含的动态权限
 func PrivMysql8(grants *[]string) {
 	var tmp []string
-	regForCreateUser := regexp.MustCompile(
-		`(?i)^\s*CREATE USER `,
-	) // CREATE USER变为CREATE USER IF NOT EXISTS
+	regForCreateUser := regexp.MustCompile(`(?i)^\s*CREATE USER `) // CREATE USER变为CREATE USER IF NOT EXISTS
+	regForConnLog := regexp.MustCompile("`test`.`conn_log`")       // `test`.`conn_log`变为 infodba_schema.conn_log
 	// 8.0.30-txsql 包含的动态权限，但是开源版本不支持
 	var onlyForTxsql = []string{"READ_MASK"}
 	for _, item := range *grants {
@@ -327,6 +335,9 @@ func PrivMysql8(grants *[]string) {
 		if regForCreateUser.MatchString(item) {
 			item = regForCreateUser.ReplaceAllString(item, `CREATE USER /*!50706 IF NOT EXISTS */ `)
 		}
+		if regForConnLog.MatchString(item) {
+			item = regForConnLog.ReplaceAllString(item, `infodba_schema.conn_log`)
+		}
 		tmp = append(tmp, item)
 	}
 	*grants = tmp
@@ -335,14 +346,15 @@ func PrivMysql8(grants *[]string) {
 // PrivMysql5ToMysql8 Mysql5授权语句向Mysql8兼容
 func PrivMysql5ToMysql8(grants *[]string) error {
 	var tmp []string
-	regForCreateUser := regexp.MustCompile(
-		`(?i)^\s*CREATE USER `,
-	) // CREATE USER变为CREATE USER IF NOT EXISTS
+	regForCreateUser := regexp.MustCompile(`(?i)^\s*CREATE USER `) // CREATE USER变为CREATE USER IF NOT EXISTS
+	regForConnLog := regexp.MustCompile("`test`.`conn_log`")       // `test`.`conn_log`变为 infodba_schema.conn_log
 	regForPlainText := regexp.MustCompile(`(?i)\s+IDENTIFIED\s+BY\s+`)
-
 	for _, item := range *grants {
 		if regForCreateUser.MatchString(item) {
 			item = regForCreateUser.ReplaceAllString(item, `CREATE USER /*!50706 IF NOT EXISTS */ `)
+		}
+		if regForConnLog.MatchString(item) {
+			item = regForConnLog.ReplaceAllString(item, `infodba_schema.conn_log`)
 		}
 		if regForPlainText.MatchString(item) {
 			sqlParser := parser.New()
@@ -417,12 +429,11 @@ func PrivMysql80ToMysql57(grants *[]string) error {
 	regForPasswordOption := regexp.MustCompile(
 		`(?i)\s*PASSWORD HISTORY DEFAULT PASSWORD REUSE INTERVAL DEFAULT PASSWORD REQUIRE CURRENT DEFAULT`,
 	) // 5.8->5.7去掉
-	regForCreateUser := regexp.MustCompile(
-		`(?i)^\s*CREATE USER `,
-	) // CREATE USER变为CREATE USER IF NOT EXISTS
+	regForCreateUser := regexp.MustCompile(`(?i)^\s*CREATE USER `) // CREATE USER变为CREATE USER IF NOT EXISTS
 	regForPasswordPlugin := regexp.MustCompile(
 		`'caching_sha2_password'`,
 	) // 排除8.0使用caching_sha2_password作为密码验证方式
+	regForConnLog := regexp.MustCompile("`test`.`conn_log`") // `test`.`conn_log`变为 infodba_schema.conn_log
 
 	for _, item := range *grants {
 		if regForPasswordOption.MatchString(item) {
@@ -473,6 +484,9 @@ func PrivMysql80ToMysql57(grants *[]string) error {
 		}
 		if regForCreateUser.MatchString(item) {
 			item = regForCreateUser.ReplaceAllString(item, `CREATE USER /*!50706 IF NOT EXISTS */ `)
+		}
+		if regForConnLog.MatchString(item) {
+			item = regForConnLog.ReplaceAllString(item, `infodba_schema.conn_log`)
 		}
 		tmp = append(tmp, item)
 	}
@@ -553,19 +567,23 @@ func CheckGrantInMySqlVersion(userGrants []UserGrant, address string, bkCloudId 
 }
 
 // ImportMysqlPrivileges 执行mysql权限
-func ImportMysqlPrivileges(userGrants []UserGrant, address string, bkCloudId int64) error {
-	type Err struct {
-		mu   sync.RWMutex
-		errs []string
+func ImportMysqlPrivileges(grants []string, address string, bkCloudId int64) error {
+	var errs []string
+	prepare := []string{flushPriv, setBinlogOff}
+	// nginx默认上传传文件的大小限制是1M，为避免413 Request Entity Too Large报错，切分
+	tmp := util.SplitArray(grants, 2000)
+	for _, vsqls := range tmp {
+		vsqls = append(prepare, vsqls...)
+		vsqls = append(vsqls, prepare...)
+		slog.Info("msg", "vsqls", vsqls)
+		queryRequest := QueryRequest{[]string{address}, vsqls, true, 60, bkCloudId}
+		_, err := OneAddressExecuteSql(queryRequest)
+		if err != nil {
+			errs = append(errs, err.Error())
+		}
 	}
-	var grants []string
-	for _, row := range userGrants {
-		grants = append(grants, row.Grants...)
-	}
-	queryRequest := QueryRequest{[]string{address}, grants, true, 60, bkCloudId}
-	_, err := OneAddressExecuteSql(queryRequest)
-	if err != nil {
-		return err
+	if len(errs) > 0 {
+		return fmt.Errorf(strings.Join(errs, "\n"))
 	}
 	return nil
 }

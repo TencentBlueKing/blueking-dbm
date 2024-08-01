@@ -79,7 +79,11 @@ func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string, ticket string
 				return err
 			}
 		}
-		err = ImportMysqlPrivileges(userGrants, m.Target.Address, *m.BkCloudId)
+		var grants []string
+		for _, sql := range userGrants {
+			grants = append(grants, sql.Grants...)
+		}
+		err = ImportMysqlPrivileges(grants, m.Target.Address, *m.BkCloudId)
 		if err != nil {
 			return err
 		}
@@ -93,7 +97,7 @@ func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string, ticket string
 		if err != nil {
 			return errno.ClonePrivilegesFail.Add(err.Error())
 		}
-		proxyGrants, err := GetProxyPrivilege(m.Source.Address, "", *m.BkCloudId, "")
+		proxyGrants, err := GetProxyPrivilege(m.Source.Address, nil, *m.BkCloudId, "")
 		if err != nil {
 			return err
 		} else if len(proxyGrants) == 0 {

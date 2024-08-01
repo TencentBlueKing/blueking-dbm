@@ -26,6 +26,7 @@ data:
   LISTEN_ADDRESS: "{{ .Values.dbpartition.envs.LISTEN_ADDRESS }}"
   DB_META_SERVICE: "{{ .Values.dbpartition.envs.DB_META_SERVICE }}"
   LOG_LEVEL: "{{ .Values.dbpartition.envs.LOG_LEVEL }}"
+  MONITOR: "{{ .Values.dbpartition.envs.MONITOR }}"
   # pt-online-schema-change
   PT_CRITICAL_LOAD_THREADS_RUNNING: "{{ .Values.dbpartition.envs.PT_CRITICAL_LOAD_THREADS_RUNNING }}"
   PT_LOCK_WAIT_TIMEOUT: "{{ .Values.dbpartition.envs.PT_LOCK_WAIT_TIMEOUT }}"
