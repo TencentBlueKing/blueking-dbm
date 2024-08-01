@@ -178,16 +178,17 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendis_switch_4_scene.__name__
     sub_pipeline.add_act(act_name=_("元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs))
 
-    sub_pipeline.add_sub_pipeline(
-        ClusterDbmonInstallAtomJob(
-            root_id,
-            data,
-            act_kwargs,
-            {
-                "cluster_domain": act_kwargs.cluster["immute_domain"],
-                "is_stop": False,
-            },
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+        sub_pipeline.add_sub_pipeline(
+            ClusterDbmonInstallAtomJob(
+                root_id,
+                data,
+                act_kwargs,
+                {
+                    "cluster_domain": act_kwargs.cluster["immute_domain"],
+                    "is_stop": False,
+                },
+            )
         )
-    )
 
     return sub_pipeline.build_sub_process(sub_name=_("{}-实例切换").format(act_kwargs.cluster["immute_domain"]))

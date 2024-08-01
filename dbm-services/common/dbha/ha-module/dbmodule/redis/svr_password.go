@@ -522,8 +522,8 @@ func GetInstancePassByClusterId(dbType string, clusterID int,
 			if getComponentName(dbType) == pw.Component {
 				instPassword = pwVal
 			}
-			passwdCache.Add(fmt.Sprintf("%d-%s", clusterID, getComponentName(dbType)), pwVal, GetPassExpireTime())
-			log.Logger.Infof("reset password 2 cache ClusterID:%d-%s,DbType:%s", clusterID, getComponentName(dbType), dbType)
+			passwdCache.Add(fmt.Sprintf("%d-%s", clusterID, pw.Component), pwVal, GetPassExpireTime())
+			log.Logger.Infof("reset password 2 cache ClusterID:%d-%s,:%s by:%s", clusterID, pw.Component, pwVal, dbType)
 		}
 	}
 	return instPassword, nil

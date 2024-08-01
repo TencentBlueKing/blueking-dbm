@@ -17,7 +17,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -69,6 +69,11 @@ class RedisClusterInstanceShutdownSceneFlow(object):
                 slave_obj = slave_tuple.receiver
                 slave_ports[slave_obj.machine.ip].append(slave_obj.port)
 
+        proxy_port, proxy_ips = 0, []
+        if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+            proxy_port = cluster.proxyinstance_set.first().port
+            proxy_ips = [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()]
+
         return {
             "immute_domain": cluster.immute_domain,
             "bk_biz_id": str(cluster.bk_biz_id),
@@ -77,8 +82,8 @@ class RedisClusterInstanceShutdownSceneFlow(object):
             "cluster_name": cluster.name,
             "cluster_id": cluster.id,
             "slave_ports": dict(slave_ports),
-            "proxy_port": cluster.proxyinstance_set.first().port,
-            "proxy_ips": [proxy_obj.machine.ip for proxy_obj in cluster.proxyinstance_set.all()],
+            "proxy_port": proxy_port,
+            "proxy_ips": proxy_ips,
             "db_version": cluster.major_version,
         }
 

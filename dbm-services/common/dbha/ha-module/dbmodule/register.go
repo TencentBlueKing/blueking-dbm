@@ -79,9 +79,9 @@ func init() {
 
 	//DetectPredixyRedisCluster used
 	DBCallbackMap[constvar.DetectPredixyRedisCluster] = Callback{
-		FetchDBCallback:              redis.TendisplusClusterNewIns,
-		DeserializeCallback:          redis.TendisplusClusterDeserialize,
-		GetSwitchInstanceInformation: redis.TendisplusClusterNewSwitchIns,
+		FetchDBCallback:              redis.RedisClusterNewIns,
+		DeserializeCallback:          redis.RedisClusterDeserialize,
+		GetSwitchInstanceInformation: redis.RedisClusterNewSwitchIns,
 	}
 
 	DBCallbackMap[constvar.Riak] = Callback{
