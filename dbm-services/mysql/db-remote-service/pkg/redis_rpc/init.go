@@ -530,5 +530,7 @@ func init() {
 			KeyStep: 0}
 		RedisCommandTable["failover"] = &RedisCmdMeta{Name: "failover", Arity: -1, Sflags: adminFlag, FirstKey: 0, LastKey: 0,
 			KeyStep: 0}
+		RedisCommandTable["select"] = &RedisCmdMeta{Name: "select", Arity: 1, Sflags: readOnlyFlag, FirstKey: 0, LastKey: 0,
+			KeyStep: 0}
 	})
 }
