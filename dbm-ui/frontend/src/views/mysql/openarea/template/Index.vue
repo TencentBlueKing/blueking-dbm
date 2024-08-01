@@ -13,7 +13,7 @@
         {{ t('新建') }}
       </AuthButton>
       <BkInput
-        v-model="serachKey"
+        v-model="searchKey"
         class="search-box"
         clearable
         :placeholder="t('请输入模板关键字')" />
@@ -46,7 +46,7 @@
   const route = useRoute();
 
   const tableRef = ref();
-  const serachKey = useDebouncedRef('');
+  const searchKey = useDebouncedRef(route.query.config_name as string);
 
   // 单据克隆
   useTicketCloneInfo({
@@ -143,12 +143,20 @@
     },
   ];
 
-  watch(serachKey, () => {
-    tableRef.value.fetchData({
-      config_name: serachKey.value,
-      cluster_type: 'tendbha,tendbsingle',
-    });
-  });
+  watch(
+    searchKey,
+    () => {
+      nextTick(() => {
+        tableRef.value.fetchData({
+          config_name: searchKey.value,
+          cluster_type: 'tendbha,tendbsingle',
+        });
+      })
+    },
+    {
+      immediate: true
+    }
+  );
 
   const fetchData = () => {
     tableRef.value.fetchData({
