@@ -24,7 +24,8 @@
       <td style="padding: 0">
         <RenderTruncateDataType
           ref="truncateDataTypeRef"
-          :model-value="data.truncateDataType" />
+          :model-value="data.truncateDataType"
+          @change="handleTruncateDataTypeChange" />
       </td>
       <td style="padding: 0">
         <RenderDbName
@@ -38,19 +39,22 @@
           ref="ignoreDbsRef"
           :cluster-id="localClusterId"
           :model-value="data.ignoreDbs"
-          :required="false" />
+          :required="false"
+          @change="handleIgnoreDbsChange" />
       </td>
       <td style="padding: 0">
         <RenderTableName
           ref="tablePatternsRef"
           :cluster-id="localClusterId"
-          :model-value="data.tablePatterns" />
+          :disabled="isDropDatabase"
+          :model-value="tablePatterns" />
       </td>
       <td style="padding: 0">
         <RenderTableName
           ref="ignoreTablesRef"
           :cluster-id="localClusterId"
-          :model-value="data.ignoreTables"
+          :disabled="isDropDatabase"
+          :model-value="ignoreTables"
           :required="false" />
       </td>
       <OperateColumn
@@ -119,8 +123,12 @@
   const ignoreDbsRef = ref();
   const tablePatternsRef = ref();
   const ignoreTablesRef = ref();
-
   const localClusterId = ref(0);
+  const currentTruncateDataType = ref('');
+  const tablePatterns = ref<string[]>([]);
+  const ignoreTables = ref<string[]>([]);
+
+  const isDropDatabase = computed(() => currentTruncateDataType.value === 'drop_database');
 
   watch(
     () => props.data,
@@ -128,6 +136,8 @@
       if (props.data.clusterData) {
         localClusterId.value = props.data.clusterData.id;
       }
+      tablePatterns.value = props.data.tablePatterns ?? [];
+      ignoreTables.value = props.data.ignoreTables ?? [];
     },
     {
       immediate: true,
@@ -136,6 +146,22 @@
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
+  };
+
+  const handleTruncateDataTypeChange = (value: string) => {
+    currentTruncateDataType.value = value;
+    if (value === 'drop_database') {
+      tablePatterns.value = ['*'];
+    }
+  };
+
+  const handleIgnoreDbsChange = (value: string[]) => {
+    if (isDropDatabase.value && value.length > 0) {
+      ignoreTables.value = ['*'];
+      return;
+    }
+
+    ignoreTables.value = [];
   };
 
   const handleCreate = (list: Array<string>) => {

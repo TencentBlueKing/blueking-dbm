@@ -16,9 +16,15 @@
     <td style="padding: 0">
       <RenderHost
         ref="hostRef"
-        :data="data.ip"
+        :data="data.slaveIp"
         :inputed="inputedIps"
         @input-finish="handleInputFinish" />
+    </td>
+    <td style="padding: 0">
+      <RenderText
+        :data="data.masterIp"
+        :is-loading="data.isLoading"
+        :placeholder="t('输入主机后自动生成')" />
     </td>
     <!-- 跨行合并 -->
     <td
@@ -63,8 +69,9 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
-  import RenderCluster from '@views/redis/common/edit-field/RenderCluster.vue';
+
   import RenderHost from '@views/redis/common/edit-field/HostName.vue';
+  import RenderCluster from '@views/redis/common/edit-field/RenderCluster.vue';
   import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
@@ -74,7 +81,8 @@
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
-    ip: string;
+    slaveIp: string;
+    masterIp: string;
     clusterIds: number[];
     bkCloudId: number;
     bkHostId: number;
@@ -96,7 +104,8 @@
   export const createRowData = (data?: IDataRow) => ({
     rowKey: random(),
     isLoading: false,
-    ip: data?.ip ?? '',
+    slaveIp: data?.slaveIp ?? '',
+    masterIp: data?.masterIp ?? '',
     clusterIds: [] as number[],
     bkCloudId: 0,
     bkHostId: 0,

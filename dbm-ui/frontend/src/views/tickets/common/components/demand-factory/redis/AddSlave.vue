@@ -48,6 +48,11 @@
 
   const columns = [
     {
+      label: t('待重建从库主机'),
+      field: 'slaveIp',
+      showOverflowTooltip: true,
+    },
+    {
       label: t('目标主库主机'),
       field: 'hostIp',
       showOverflowTooltip: true,
@@ -73,6 +78,7 @@
     item.pairs.forEach((pair) => {
       const specInfo = specs[pair.redis_slave.spec_id];
       const obj = {
+        slaveIp: pair.redis_slave.old_slave_ip,
         hostIp: pair.redis_master.ip,
         clusterName: item.cluster_id
           ? clusters[item.cluster_id].immute_domain // 兼容旧单据

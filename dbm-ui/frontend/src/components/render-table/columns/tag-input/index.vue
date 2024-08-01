@@ -25,6 +25,7 @@
           allow-auto-match
           allow-create
           :clearable="false"
+          v-bind="$attrs"
           collapse-tags
           has-delete-icon
           :max-data="single ? 1 : -1"

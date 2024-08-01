@@ -18,7 +18,7 @@
         <RenderTableHeadColumn
           :min-width="150"
           :width="280">
-          <span>{{ t('待重建的主机') }}</span>
+          <span>{{ t('待重建从库主机') }}</span>
           <template #append>
             <BkPopover
               :content="t('批量添加')"
@@ -30,6 +30,12 @@
               </span>
             </BkPopover>
           </template>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="150"
+          :required="false"
+          :width="200">
+          <span>{{ t('关联主库主机') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="180"
@@ -83,9 +89,10 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
-  import { useI18n } from 'vue-i18n';
 
   interface Emits {
     (e: 'showMasterBatchSelector'): void;
