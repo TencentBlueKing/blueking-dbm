@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <div
-    v-show="isShowTicketClone"
-    class="ticket-clone-main">
+  <div v-show="isShowTicketClone">
     <BkButton
       class="mr-8"
       disabled
@@ -147,17 +145,3 @@
     console.log('接口未准备好');
   };
 </script>
-<style lang="less" scoped>
-  .ticket-clone-main {
-    // position: absolute;
-    // bottom: 0;
-    // display: flex;
-    // width: 100%;
-    // height: 52px;
-    // padding-left: 30px;
-    // background: #fff;
-    // border: 1px solid #eaebf0;
-    // box-shadow: inset 0 1px 0 0 #dcdee5;
-    // align-items: center;
-  }
-</style>
