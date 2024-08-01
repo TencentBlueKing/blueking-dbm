@@ -214,9 +214,9 @@ class RedisClusterMSSSceneFlow(object):
         # 重新下发介质 ###################################################################################
         trans_files = GetFileList(db_type=DBType.Redis)
         act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(act_kwargs.cluster["cluster_type"])
-        act_kwargs.exec_ip = master_ips + slave_ips
+        act_kwargs.exec_ip = slave_ips  # 去掉 master下发 ，故障场景，master可能已经挂了
         redis_pipeline.add_act(
-            act_name=_("{}-下发介质包").format(master_ips + slave_ips),
+            act_name=_("{}-下发介质包").format(slave_ips),
             act_component_code=TransFileComponent.code,
             kwargs=asdict(act_kwargs),
         )
@@ -264,17 +264,17 @@ class RedisClusterMSSSceneFlow(object):
                 {
                     "app": app,
                     "app_name": app_name,
-                    "bk_biz_id": str(act_kwargs.cluster["bk_biz_id"]),
-                    "bk_cloud_id": int(act_kwargs.cluster["bk_cloud_id"]),
+                    "bk_biz_id": str(sub_kwargs.cluster["bk_biz_id"]),
+                    "bk_cloud_id": int(sub_kwargs.cluster["bk_cloud_id"]),
                     "server_ip": slave_ip,
                     "server_ports": [s_obj.port for s_obj in StorageInstance.objects.filter(machine__ip=slave_ip)],
                     "meta_role": InstanceRole.REDIS_MASTER.value,
-                    "cluster_name": act_kwargs.cluster["cluster_name"],
-                    "cluster_type": act_kwargs.cluster["cluster_type"],
-                    "cluster_domain": act_kwargs.cluster["immute_domain"],
+                    "cluster_name": sub_kwargs.cluster["cluster_name"],
+                    "cluster_type": sub_kwargs.cluster["cluster_type"],
+                    "cluster_domain": sub_kwargs.cluster["immute_domain"],
                     "server_shards": twemproxy_server_shards.get(slave_ip, {}),
                     "cache_backup_mode": get_cache_backup_mode(
-                        act_kwargs.cluster["bk_biz_id"], act_kwargs.cluster["cluster_id"]
+                        sub_kwargs.cluster["bk_biz_id"], sub_kwargs.cluster["cluster_id"]
                     ),
                 }
             ]

@@ -200,7 +200,7 @@ class RedisClusterAutoFixSceneFlow(object):
         sub_pipelines = []
         for cluster_fix in self.data["infos"]:
             for cluster_id in cluster_fix["cluster_ids"]:
-                cluster_kwargs = (deepcopy(act_kwargs),)
+                cluster_kwargs = deepcopy(act_kwargs)
                 cluster_info = self.get_cluster_info(self.data["bk_biz_id"], cluster_id)
                 flow_data = self.data
                 for k, v in cluster_info.items():
@@ -364,7 +364,7 @@ class RedisClusterAutoFixSceneFlow(object):
 
         for fix_link in slave_fix_detail:
             old_slave, new_slave = fix_link["ip"], fix_link["target"]["ip"]
-            new_ins_port = DEFAULT_REDIS_START_PORT
+            new_ins_port, start_port = DEFAULT_REDIS_START_PORT, DEFAULT_REDIS_START_PORT
             if sub_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
                 new_ins_port = min(sub_kwargs.cluster["slave_ports"][old_slave])
             old_ports = sub_kwargs.cluster["slave_ports"][old_slave]
@@ -398,7 +398,7 @@ class RedisClusterAutoFixSceneFlow(object):
             params = {
                 "ip": new_slave,
                 "meta_role": InstanceRole.REDIS_SLAVE.value,
-                "start_port": DEFAULT_REDIS_START_PORT,
+                "start_port": start_port,
                 "ports": sub_kwargs.cluster["slave_ports"][old_slave],
                 "instance_numb": len(sub_kwargs.cluster["slave_ports"][old_slave]),
                 "spec_id": slave_fix_info["slave_spec"].get("id", 0),
