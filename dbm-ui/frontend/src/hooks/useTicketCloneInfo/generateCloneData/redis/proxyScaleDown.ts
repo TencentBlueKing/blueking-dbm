@@ -77,12 +77,7 @@ export async function generateRedisProxyScaleDownCloneData(ticketData: TicketMod
       bkCloudId: clusterListMap[clusterId].bk_cloud_id,
       nodeType: 'Proxy',
       cluster_type_name: clusterListMap[clusterId].cluster_type_name,
-      spec: {
-        ...clusterListMap[clusterId].proxy[0].spec_config,
-        name: clusterListMap[clusterId].cluster_spec.spec_name,
-        id: clusterListMap[clusterId].cluster_spec.spec_id,
-        count: clusterListMap[clusterId].proxy.length,
-      },
+      proxyList: clusterListMap[clusterId].proxy,
       selectedNodeList: (item.proxy_reduced_hosts || []).map((proxyHost) => formatValue(instanceListMap[proxyHost.ip])),
       // targetNum: `${clusterListMap[clusterId].proxy.length}`,
       targetNum: `${clusterListMap[clusterId].proxy.length - (item.target_proxy_count || 0)}`,

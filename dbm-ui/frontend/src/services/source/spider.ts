@@ -227,6 +227,7 @@ export function getSpiderMachineList(params: {
   bk_cloud_id?: number;
   bk_agent_id?: string;
   instance_role?: string;
+  spider_role?: string;
   creator?: string;
 }) {
   return http.get<ListBase<SpiderMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({

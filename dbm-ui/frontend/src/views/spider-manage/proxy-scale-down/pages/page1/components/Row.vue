@@ -28,17 +28,18 @@
         :is-loading="data.isLoading"
         @change="handleChangeNodeType" />
     </td>
-    <td style="padding: 0">
+    <!-- <td style="padding: 0">
       <RenderSpec
         :data="currentSepc"
         :is-loading="data.isLoading" />
-    </td>
+    </td> -->
     <td style="padding: 0">
       <RenderRoleHostSelect
         ref="hostRef"
-        :cluster-type="ClusterTypes.TENDBCLUSTER"
+        cluster-type="TendbClusterHost"
         :count="nodeCount"
         :data="data"
+        :instance-ip-list="instaceIpList"
         :is-loading="data.isLoading"
         :tab-list-config="tabListConfig"
         @num-change="handleHostNumChange"
@@ -63,6 +64,7 @@
   import { useI18n } from 'vue-i18n';
 
   import SpiderModel from '@services/model/spider/spider';
+  import { getSpiderMachineList } from '@services/source/spider';
 
   import { ClusterTypes } from '@common/const';
 
@@ -71,7 +73,7 @@
   import RenderRoleHostSelect, { HostSelectType } from '@components/render-table/columns/role-host-select/Index.vue';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
-  import RenderSpec from '@views/spider-manage/common/edit-field/RenderSpec.vue';
+  // import RenderSpec from '@views/spider-manage/common/edit-field/RenderSpec.vue';
   import type { SpecInfo } from '@views/spider-manage/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
@@ -154,32 +156,43 @@
   const currentType = ref('');
   const currentHostSelectType = ref('');
   const localTargerNum = ref('');
+  const instaceIpList = shallowRef<string[]>([]);
 
   const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
 
   const tabListConfig = computed(() => {
     const isMater = props.data?.nodeType === NodeType.MASTER;
     return {
-      [ClusterTypes.TENDBCLUSTER]: [
+      TendbClusterHost: [
         {
           name: t('主机选择'),
           topoConfig: {
             filterClusterId: props.data!.clusterId,
           },
           tableConfig: {
+            getTableList: (params: ServiceReturnType<typeof getSpiderMachineList>) =>
+              getSpiderMachineList({
+                ...params,
+                spider_role: isMater ? 'spider_master' : 'spider_slave',
+              }),
             firsrColumn: {
               label: isMater ? t('Master 主机') : t('Slave 主机'),
               field: 'ip',
-              role: isMater ? 'spider_master' : 'spider_slave',
+              role: '',
             },
           },
         },
         {
           tableConfig: {
+            getTableList: (params: ServiceReturnType<typeof getSpiderMachineList>) =>
+              getSpiderMachineList({
+                ...params,
+                spider_role: isMater ? 'spider_master' : 'spider_slave',
+              }),
             firsrColumn: {
               label: isMater ? t('Master 主机') : t('Slave 主机'),
               field: 'ip',
-              role: isMater ? 'spider_master' : 'spider_slave',
+              role: '',
             },
           },
         },
@@ -200,12 +213,16 @@
   const handleChangeNodeType = (choosedLabel: string) => {
     currentType.value = choosedLabel;
     let count = 0;
+    let ipList: string[] = [];
     if (choosedLabel === 'spider_master') {
       count = props.data.masterCount;
+      ipList = props.data.spiderMasterList.map((masterItem) => masterItem.ip);
     } else {
       count = props.data.slaveCount;
+      ipList = props.data.spiderSlaveList.map((slaveItem) => slaveItem.ip);
     }
     nodeCount.value = count;
+    instaceIpList.value = ipList;
     if (currentSepc.value) {
       currentSepc.value.count = count;
     }

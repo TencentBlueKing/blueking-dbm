@@ -33,16 +33,17 @@
         :placeholder="$t('输入集群后自动生成')" />
     </td>
     <td style="padding: 0">
-      <RenderSpec
-        :data="data.spec"
+      <RenderSpecList
+        :data-list="proxySpecList"
         :is-loading="data.isLoading" />
     </td>
     <td style="padding: 0">
       <RenderRoleHostSelect
         ref="hostRef"
         :cluster-type="ClusterTypes.REDIS"
-        :count="data.spec?.count"
+        :count="roleHostCount"
         :data="data"
+        :instance-ip-list="proxyIpList"
         :is-loading="data.isLoading"
         :selected-node-list="data.selectedNodeList"
         :tab-list-config="tabListConfig"
@@ -52,7 +53,7 @@
     <td style="padding: 0">
       <RenderTargetNumber
         ref="targetNumberRef"
-        :count="data.spec?.count"
+        :count="roleHostCount"
         :data="localTargerNum"
         :disabled="!data.cluster || currentHostSelectType === HostSelectType.MANUAL"
         :is-loading="data.isLoading" />
@@ -73,21 +74,20 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
-  import { getRedisClusterList, getRedisInstances } from '@services/source/redis';
+  import { getRedisClusterList } from '@services/source/redis';
 
   import { ClusterTypes } from '@common/const';
 
   import type { IValue, PanelListType } from '@components/instance-selector/Index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderRoleHostSelect, { HostSelectType } from '@components/render-table/columns/role-host-select/Index.vue';
-  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
-  import type { SpecInfo } from '@views/redis/common/spec-panel/Index.vue';
 
   import { random } from '@utils';
 
+  import RenderSpecList from './RenderSpecList.vue';
   import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
@@ -99,8 +99,8 @@
     bkCloudId: number;
     nodeType: string;
     cluster_type_name: string;
+    proxyList: RedisModel['proxy'];
     switchMode?: string;
-    spec?: SpecInfo;
     hostSelectType?: string;
     selectedNodeList?: IValue[];
     targetNum?: string;
@@ -128,6 +128,7 @@
     bkCloudId: 0,
     nodeType: '',
     cluster_type_name: '',
+    proxyList: [],
   });
 </script>
 <script setup lang="ts">
@@ -177,7 +178,6 @@
                 }),
             },
             tableConfig: {
-              getTableList: getRedisInstances,
               firsrColumn: {
                 label: t('Proxy 主机'),
                 field: 'ip',
@@ -187,7 +187,6 @@
           },
           {
             tableConfig: {
-              getTableList: getRedisInstances,
               firsrColumn: {
                 label: t('Proxy 主机'),
                 field: 'ip',
@@ -198,6 +197,10 @@
         ],
       }) as unknown as Record<ClusterTypes, PanelListType>,
   );
+
+  const proxyIpList = computed(() => props.data.proxyList.map((proxyItem) => proxyItem.ip));
+  const proxySpecList = computed(() => props.data.proxyList.map((proxyItem) => proxyItem.spec_config));
+  const roleHostCount = computed(() => props.data.proxyList.length);
 
   watch(
     () => props.data.targetNum,
