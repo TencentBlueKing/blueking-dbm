@@ -343,6 +343,7 @@
           property={`${index}.ignore_dbs`}>
           <bk-tag-input
             v-model={data.ignore_dbs}
+            allow-auto-match
             allow-create
             clearable={false}
             paste-fn={tagInputPasteFn}
@@ -350,6 +351,7 @@
             collapse-tags
             placeholder={t('请输入')}
             onClick={handleShowTips}
+            onChange={(value: string[]) => handleChangeIgnoreDbs(index, value)}
             v-clickoutside={handleHideTips}
           />
         </bk-form-item>
@@ -368,6 +370,7 @@
           <bk-tag-input
             v-model={data.ignore_tables}
             disabled={data.truncate_data_type === 'drop_database'}
+            allow-auto-match
             allow-create
             clearable={false}
             paste-fn={tagInputPasteFn}
@@ -483,13 +486,25 @@
     // 清档类型为删除数据库，则不需要填写表相关内容，并设置为 *
     if (value === 'drop_database') {
       data.table_patterns = ['*'];
-      data.ignore_tables = ['*'];
       const tableRef = formItemRefs.get(`${data.uniqueId}_table_patterns_${index}`);
-      const ignoreRef = formItemRefs.get(`${data.uniqueId}_ignore_tables_${index}`);
-      tableRef && tableRef.clearValidate();
-      ignoreRef && ignoreRef.clearValidate();
+      if (tableRef) {
+        tableRef.clearValidate();
+      }
     } else {
       data.table_patterns = [];
+    }
+  }
+
+  const handleChangeIgnoreDbs = (index: number, value: string[]) => {
+    const data = tableData.value[index];
+    // 删除整库时  如果用户填了忽略DB名，则忽略表名是*。 如果没填，忽略表名应该是空
+    if (data.truncate_data_type === 'drop_database' && value.length > 0) {
+      data.ignore_tables = ['*'];
+      const ignoreRef = formItemRefs.get(`${data.uniqueId}_ignore_tables_${index}`);
+      if (ignoreRef) {
+        ignoreRef.clearValidate();
+      }
+    } else {
       data.ignore_tables = [];
     }
   }

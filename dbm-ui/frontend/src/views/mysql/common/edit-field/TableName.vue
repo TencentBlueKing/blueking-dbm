@@ -14,6 +14,7 @@
 <template>
   <TableTagInput
     ref="tagRef"
+    :disabled="disabled"
     :model-value="localValue"
     :placeholder="placeholder ? placeholder : t('请输入表名称，支持通配符“%”，含通配符的仅支持单个')"
     :rules="rules"
@@ -29,9 +30,10 @@
 
   interface Props {
     modelValue?: string[];
-    clusterId?: number;
-    required?: boolean;
+    clusterId: number;
     placeholder?: string;
+    disabled?: boolean;
+    required?: boolean;
     single?: boolean;
     rules?: {
       validator: (value: string[]) => boolean;
@@ -57,6 +59,7 @@
     single: false,
     rules: undefined,
     disabledModelValueInit: false,
+    disabled: false,
   });
 
   const emits = defineEmits<Emits>();
