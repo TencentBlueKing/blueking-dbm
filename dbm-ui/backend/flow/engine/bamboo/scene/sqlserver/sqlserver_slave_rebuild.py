@@ -135,18 +135,6 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 ),
             )
 
-            # 先做克隆周边配置
-            sub_pipeline.add_sub_pipeline(
-                sub_flow=clone_configs_sub_flow(
-                    uid=self.data["uid"],
-                    root_id=self.root_id,
-                    source_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
-                    source_port=master.port,
-                    target_host=Host(**info["slave_host"]),
-                    target_port=sub_flow_context["port"],
-                )
-            )
-
             # 在slave清理业务数据库
             if len(sub_flow_context["clean_dbs"]) > 0:
                 sub_pipeline.add_act(
@@ -171,6 +159,18 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         sync_dbs=list(set(sub_flow_context["clean_dbs"]) - set(get_sync_filter_dbs(cluster.id))),
                     )
                 )
+
+            # 先做克隆周边配置
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=clone_configs_sub_flow(
+                    uid=self.data["uid"],
+                    root_id=self.root_id,
+                    source_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                    source_port=master.port,
+                    target_host=Host(**info["slave_host"]),
+                    target_port=sub_flow_context["port"],
+                )
+            )
 
             # 从域名修复的逻辑
             entry_list = rebuild_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
@@ -306,18 +306,6 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                     ),
                 )
 
-                # 先做克隆周边配置
-                cluster_sub_pipeline.add_sub_pipeline(
-                    sub_flow=clone_configs_sub_flow(
-                        uid=self.data["uid"],
-                        root_id=self.root_id,
-                        source_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
-                        source_port=master.port,
-                        target_host=Host(**info["new_slave_host"]),
-                        target_port=old_slave.port,
-                    )
-                )
-
                 # 如果是AlwaysOn集群，新机器加入到集群的AlwaysOn可用组
                 if (
                     SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
@@ -376,6 +364,18 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                             sync_dbs=sync_dbs,
                         )
                     )
+
+                # 先做克隆周边配置
+                cluster_sub_pipeline.add_sub_pipeline(
+                    sub_flow=clone_configs_sub_flow(
+                        uid=self.data["uid"],
+                        root_id=self.root_id,
+                        source_host=Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                        source_port=master.port,
+                        target_host=Host(**info["new_slave_host"]),
+                        target_port=old_slave.port,
+                    )
+                )
 
                 # 并发替换从域名映射
                 entry_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
