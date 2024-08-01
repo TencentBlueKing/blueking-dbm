@@ -11,8 +11,11 @@ specific language governing permissions and limitations under the License.
 import logging
 import re
 
+from django.utils.translation import ugettext as _
+
 from backend.components.db_remote_service.client import DRSApi
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_services.mysql.remote_service.exceptions import RemoteServiceBaseException
 
 logger = logging.getLogger("flow")
 
@@ -156,6 +159,9 @@ def get_online_mysql_version(ip: str, port: int, bk_cloud_id: int):
 
     resp = DRSApi.rpc(body)
     logger.info(f"query version resp: {resp[0]}")
+
+    if resp[0]["error_msg"]:
+        raise RemoteServiceBaseException(_("DRS调用失败，错误信息: {}").format(resp[0]["error_msg"]))
 
     if not resp or len(resp) == 0:
         return ""
