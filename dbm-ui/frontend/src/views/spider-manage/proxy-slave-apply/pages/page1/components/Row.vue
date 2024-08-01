@@ -21,9 +21,9 @@
     <td style="padding: 0">
       <RenderSpec
         ref="sepcRef"
-        :data="data.spec"
-        :is-loading="data.isLoading"
-        :select-list="specList" />
+        :cloud-id="data.cloudId"
+        :cluster-type="data.clusterType"
+        :data="data.spec" />
     </td>
     <td style="padding: 0">
       <RenderTargetNumber
@@ -39,19 +39,15 @@
   </tr>
 </template>
 <script lang="ts">
-  import { getSpecResourceCount } from '@services/source/dbresourceResource';
-  import { getResourceSpecList } from '@services/source/dbresourceSpec';
-
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
+  import type { SpecInfo } from '@views/spider-manage/common/spec-panel-select/components/Panel.vue';
+  import RenderSpec from '@views/spider-manage/common/spec-panel-select/Index.vue';
 
   import { random } from '@utils';
 
-  import RenderSpec from './RenderSpec.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
-  import type { SpecInfo } from './SpecPanel.vue';
-  import type { IListItem } from './SpecSelect.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -108,49 +104,6 @@
 
   const sepcRef = ref();
   const numRef = ref();
-
-  const specList = ref<IListItem[]>([]);
-
-  watch(
-    () => props.data,
-    (data) => {
-      if (data?.clusterType) {
-        const type = data.clusterType;
-        setTimeout(() => querySpecList(type));
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  // 查询集群对应的规格列表
-  const querySpecList = async (type: string) => {
-    const ret = await getResourceSpecList({
-      spec_cluster_type: type,
-      spec_machine_type: 'spider',
-      limit: -1,
-      offset: 0,
-    });
-    const retArr = ret.results;
-    const res = await getSpecResourceCount({
-      bk_biz_id: Number(props.data.bizId),
-      bk_cloud_id: Number(props.data.cloudId),
-      spec_ids: retArr.map((item) => item.spec_id),
-    });
-    specList.value = retArr.map((item) => ({
-      id: item.spec_id,
-      name: item.spec_name,
-      specData: {
-        name: item.spec_name,
-        cpu: item.cpu,
-        id: item.spec_id,
-        mem: item.mem,
-        count: res[item.spec_id],
-        storage_spec: item.storage_spec,
-      },
-    }));
-  };
 
   const handleInputFinish = (value: string) => {
     emits('onClusterInputFinish', value);

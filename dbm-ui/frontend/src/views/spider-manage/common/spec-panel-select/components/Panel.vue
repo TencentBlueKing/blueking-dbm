@@ -20,48 +20,48 @@
     width="558">
     <slot name="hover" />
     <template #content>
-      <div class="panel">
-        <div class="title">{{ data.name }} {{ $t('规格') }}</div>
+      <div class="spec-panel">
+        <div class="title">{{ data.name }} {{ t('规格') }}</div>
         <div class="item">
-          <div class="item__title">CPU：</div>
-          <div class="item__content">
+          <div class="item-title">CPU：</div>
+          <div class="item-content">
             {{
               data.cpu.min === data.cpu.max
-                ? $t('n核', { n: data.cpu.min })
-                : $t('((n-m))核', { n: data.cpu.min, m: data.cpu.max })
+                ? t('n核', { n: data.cpu.min })
+                : t('((n-m))核', { n: data.cpu.min, m: data.cpu.max })
             }}
           </div>
         </div>
         <div class="item">
-          <div class="item__title">{{ $t('内存') }}：</div>
-          <div class="item__content">
+          <div class="item-title">{{ t('内存') }}：</div>
+          <div class="item-content">
             {{ data.mem.min === data.mem.max ? data.mem.min : `(${data.mem.min}~${data.mem.max})` }} G
           </div>
         </div>
         <div class="item">
-          <div class="item__title">{{ $t('磁盘') }}：</div>
-          <div class="item__content">
+          <div class="item-title">{{ t('磁盘') }}：</div>
+          <div class="item-content">
             <div class="table">
               <div class="head">
-                <div class="head_one">
-                  {{ $t('挂载点') }}
+                <div class="head-mount-point">
+                  {{ t('挂载点') }}
                 </div>
-                <div class="head_two">
-                  {{ $t('最小容量(G)') }}
+                <div class="head-size">
+                  {{ t('最小容量(G)') }}
                 </div>
-                <div class="head_three">
-                  {{ $t('磁盘类别') }}
+                <div class="head-type">
+                  {{ t('磁盘类别') }}
                 </div>
               </div>
               <div class="row">
-                <div class="row_one">
-                  {{ data.storage_spec[0].mount_point }}
+                <div class="row-mount-point">
+                  {{ data.storage_spec[0]?.mount_point }}
                 </div>
-                <div class="row_two">
-                  {{ data.storage_spec[0].size }}
+                <div class="row-size">
+                  {{ data.storage_spec[0]?.size }}
                 </div>
-                <div class="row_three">
-                  {{ data.storage_spec[0].type }}
+                <div class="row-type">
+                  {{ data.storage_spec[0]?.type }}
                 </div>
               </div>
             </div>
@@ -72,6 +72,8 @@
   </BkPopover>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   export interface SpecInfo {
     name: string;
     cpu: {
@@ -117,14 +119,16 @@
       ],
     }),
   });
+
+  const { t } = useI18n();
 </script>
 <style lang="less" scoped>
-  .panel {
+  .spec-panel {
     display: flex;
-    width: 558px;
+    width: 560px;
     height: 220px;
     padding: 16px;
-    margin-top: -7px;
+    margin-top: -14px;
     margin-left: -14px;
     background: #fff;
     border: 1px solid #dcdee5;
@@ -147,7 +151,7 @@
       height: 32px;
       align-items: center;
 
-      &__title {
+      .item-title {
         width: 72px;
         height: 20px;
         margin-right: 5px;
@@ -157,7 +161,7 @@
         text-align: right;
       }
 
-      &__content {
+      .item-content {
         height: 20px;
         font-size: 12px;
         letter-spacing: 0;
@@ -168,7 +172,7 @@
           width: 100%;
           flex-direction: column;
 
-          .cell_common {
+          .cell-common {
             width: 200px;
             height: 42px;
             padding: 11px 16px;
@@ -183,21 +187,21 @@
             background: #f0f1f5;
             border: 1px solid #dcdee5;
 
-            &_one {
-              .cell_common();
+            .head-mount-point {
+              .cell-common();
 
               border-bottom: none;
             }
 
-            &_two {
-              .cell_common();
+            .head-size {
+              .cell-common();
 
               width: 120px;
               border-bottom: none;
             }
 
-            &_three {
-              .cell_common();
+            .head-type {
+              .cell-common();
 
               width: 120px;
               border-bottom: none;
@@ -210,18 +214,18 @@
             border: 1px solid #dcdee5;
             border-top: none;
 
-            &_one {
-              .cell_common();
+            .row-mount-point {
+              .cell-common();
             }
 
-            &_two {
-              .cell_common();
+            .row-size {
+              .cell-common();
 
               width: 120px;
             }
 
-            &_three {
-              .cell_common();
+            .row-type {
+              .cell-common();
 
               width: 120px;
             }

@@ -64,7 +64,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -95,9 +94,6 @@
 
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
-  const totalNum = computed(() =>
-    tableData.value.length > 0 ? new Set(tableData.value.map((item) => item.cluster)).size : 0,
-  );
   const canSubmit = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length > 0);
 
   const tabListConfig = {
@@ -244,40 +240,35 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    isSubmitting.value = true;
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-
-    isSubmitting.value = false;
-
-    const params = {
-      remark: '',
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
-      details: {
-        ip_source: 'resource_pool',
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认对n个集群扩容接入层？', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () =>
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'SpiderProxyScaleUp',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        remark: '',
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES,
+        details: {
+          ip_source: 'resource_pool',
+          infos,
+        },
+      };
+      createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'SpiderProxyScaleUp',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

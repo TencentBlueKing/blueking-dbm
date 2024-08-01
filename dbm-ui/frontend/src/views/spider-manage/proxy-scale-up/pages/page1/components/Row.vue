@@ -28,17 +28,24 @@
     </td>
     <td style="padding: 0">
       <RenderSpec
-        :data="currentSepc"
-        :is-loading="data.isLoading" />
+        ref="specRef"
+        :cloud-id="data.bkCloudId"
+        :cluster-type="data.clusterType"
+        :data="data.spec" />
+    </td>
+    <td style="padding: 0">
+      <RenderHostType
+        ref="hostTypeRef"
+        @change="handleHostTypeChange"
+        @ip-list-change="handleIpListChange" />
     </td>
     <td style="padding: 0">
       <RenderTargetNumber
         ref="numRef"
         :data="data.targetNum"
-        :disabled="!data.cluster"
+        :disabled="!data.cluster || hostType === 'manual'"
         :is-loading="data.isLoading"
-        :max="targetMax"
-        :min="targetMin" />
+        :max="targetMax" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -52,11 +59,12 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
-  import RenderSpec from '@views/spider-manage/common/edit-field/RenderSpec.vue';
-  import type { SpecInfo } from '@views/spider-manage/common/spec-panel/Index.vue';
+  import type { SpecInfo } from '@views/spider-manage/common/spec-panel-select/components/Panel.vue';
+  import RenderSpec from '@views/spider-manage/common/spec-panel-select/Index.vue';
 
   import { random } from '@utils';
 
+  import RenderHostType from './RenderHostType.vue';
   import RenderNodeType from './RenderNodeType.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
@@ -84,7 +92,7 @@
       spider_ip_list: {
         count: number;
         spec_id: number;
-      } & Partial<SpecInfo>;
+      };
     };
   }
 
@@ -127,28 +135,25 @@
 
   const emits = defineEmits<Emits>();
 
-  const nodeTypeRef = ref();
-  const numRef = ref();
-  const targetMin = ref(1);
-  const currentSepc = ref(props.data.spec);
+  const nodeTypeRef = ref<InstanceType<typeof RenderNodeType>>();
+  const numRef = ref<InstanceType<typeof RenderTargetNumber>>();
+  const hostTypeRef = ref<InstanceType<typeof RenderHostType>>();
+  const specRef = ref<InstanceType<typeof RenderSpec>>();
+  const hostType = ref('auto');
 
   const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
   const targetMax = computed(() => 37 - props.data.mntCount);
 
   const handleChangeNodeType = (choosedLabel: string) => {
-    let count = 0;
-    if (choosedLabel === 'spider_master') {
-      currentSepc.value = props.data.spiderMasterList[0].spec_config;
-      count = props.data.masterCount;
-    } else {
-      currentSepc.value = props.data.spiderSlaveList[0].spec_config;
-      count = props.data.slaveCount;
-    }
-    targetMin.value = count;
-    if (currentSepc.value) {
-      currentSepc.value.count = count;
-    }
     emits('nodeTypeChoosed', choosedLabel);
+  };
+
+  const handleIpListChange = (ipList: string[]) => {
+    console.log('iplist>>>', ipList);
+  };
+
+  const handleHostTypeChange = (type: string) => {
+    hostType.value = type;
   };
 
   const handleInputFinish = (value: string) => {
@@ -168,16 +173,19 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([nodeTypeRef.value.getValue(), numRef.value.getValue()]).then((data) => {
-        const [nodetype, targetNum] = data;
+      return await Promise.all([
+        nodeTypeRef.value!.getValue(),
+        numRef.value!.getValue(),
+        specRef.value!.getValue(),
+      ]).then((data) => {
+        const [nodetype, targetNum, specInfo] = data;
         return {
           cluster_id: props.data.clusterId,
           ...nodetype,
           resource_spec: {
             spider_ip_list: {
-              ...props.data.spec,
               ...targetNum,
-              spec_id: currentSepc.value?.id ?? 0,
+              ...specInfo,
             },
           },
         };
