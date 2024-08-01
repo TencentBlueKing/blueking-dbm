@@ -228,7 +228,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -368,7 +368,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -550,7 +550,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -660,7 +660,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "table",
@@ -772,7 +772,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -915,7 +915,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -1117,7 +1117,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -1271,7 +1271,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1405,7 +1405,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -1558,7 +1558,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -1709,7 +1709,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2146,7 +2146,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "table",
@@ -2297,7 +2297,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2437,7 +2437,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2615,7 +2615,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2767,7 +2767,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -2919,7 +2919,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3102,7 +3102,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3253,7 +3253,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3403,7 +3403,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3545,7 +3545,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3600,7 +3600,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3619,7 +3619,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3723,7 +3723,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -3860,7 +3860,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [
             {
@@ -4016,7 +4016,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4154,7 +4154,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4285,7 +4285,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4445,7 +4445,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4659,7 +4659,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -4867,7 +4867,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5008,7 +5008,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5139,7 +5139,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5280,7 +5280,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5459,7 +5459,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
@@ -5510,7 +5510,7 @@
     {
       "datasource": {
         "type": "bkmonitor-timeseries-datasource",
-        "uid": "HVlyYOe4z"
+        "uid": "bkmonitor_timeseries"
       },
       "fieldConfig": {
         "defaults": {
@@ -5591,7 +5591,7 @@
           "cluster": [],
           "datasource": {
             "type": "bkmonitor-timeseries-datasource",
-            "uid": "HVlyYOe4z"
+            "uid": "bkmonitor_timeseries"
           },
           "expressionList": [],
           "format": "time_series",
