@@ -24,13 +24,16 @@ from backend.db_meta.models import Cluster, StorageInstanceTuple
 from backend.flow.consts import DBA_SYSTEM_USER
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.build_database_table_filter_regex import (
     DatabaseTableFilterRegexBuilderComponent,
 )
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.filter_database_table_from_regex import (
     FilterDatabaseTableFromRegexComponent,
+)
+from backend.flow.plugins.components.collections.mysql.generate_drop_stage_db_sql import (
+    GenerateDropStageDBSqlComponent,
+    GenerateDropStageDBSqlService,
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.mysql.truncate_data_create_stage_database import (
@@ -50,9 +53,6 @@ from backend.flow.plugins.components.collections.spider.clear_database_on_remote
 )
 from backend.flow.plugins.components.collections.spider.create_database_like_via_ctl import (
     CreateDatabaseLikeViaCtlComponent,
-)
-from backend.flow.plugins.components.collections.spider.truncate_database_drop_stage_db_via_ctl import (
-    TruncateDatabaseDropStageDBViaCtlComponent,
 )
 from backend.flow.plugins.components.collections.spider.truncate_database_old_new_map_adapter_service import (
     TruncateDatabaseOldNewMapAdapterComponent,
@@ -109,7 +109,9 @@ class SpiderTruncateDatabaseFlow(object):
         if dup_cluster_ids:
             raise DBMetaException(message="duplicate clusters found: {}".format(dup_cluster_ids))
 
-        truncate_database_pipeline = Builder(
+        # 目前bamboo-engine存在bug，不能正常给trans_data初始化值，先用流程套子流程方式来避开这个问题
+        pipeline = Builder(root_id=self.root_id, data=self.data)
+        truncate_database_pipeline = SubBuilder(
             root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
         )
         cluster_pipes = []
@@ -305,19 +307,28 @@ class SpiderTruncateDatabaseFlow(object):
                 kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
             )
 
-            # 清档动作完成
-            # 等待人工确认删除备份库
-            cluster_pipe.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             cluster_pipe.add_act(
-                act_name=_("删除备份库"),
-                act_component_code=TruncateDatabaseDropStageDBViaCtlComponent.code,
-                kwargs=asdict(BKCloudIdKwargs(bk_cloud_id=cluster_obj.bk_cloud_id)),
+                act_name=_("生成删除备份库sql"),
+                act_component_code=GenerateDropStageDBSqlComponent.code,
+                kwargs={
+                    "bk_cloud_id": cluster_obj.bk_cloud_id,
+                    "cluster_type": cluster_obj.cluster_type,
+                    "cluster": cluster_obj.simple_desc,
+                    "trans_func": GenerateDropStageDBSqlService.write_drop_sql.__name__,
+                },
             )
 
             cluster_pipes.append(cluster_pipe.build_sub_process(sub_name=_("{} 清档".format(cluster_obj.immute_domain))))
 
         truncate_database_pipeline.add_parallel_sub_pipeline(sub_flow_list=cluster_pipes)
-        logger.info(_("构造清档流程成功"))
-        truncate_database_pipeline.run_pipeline(
-            init_trans_data_class=MySQLTruncateDataContext(), is_drop_random_user=True
+
+        truncate_database_pipeline.add_act(
+            act_name=_("生成删除备份库变更SQL单据"),
+            act_component_code=GenerateDropStageDBSqlComponent.code,
+            kwargs={"trans_func": GenerateDropStageDBSqlService.generate_dropsql_ticket.__name__},
         )
+
+        pipeline.add_sub_pipeline(sub_flow=truncate_database_pipeline.build_sub_process(sub_name=_("集群清档")))
+
+        logger.info(_("构造清档流程成功"))
+        pipeline.run_pipeline(init_trans_data_class=MySQLTruncateDataContext(), is_drop_random_user=True)
