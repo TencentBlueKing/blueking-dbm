@@ -32,19 +32,19 @@
 
   interface Props {
     data?: IDataRow['targetNum'];
-    min?: number;
     max?: number;
     isLoading?: boolean;
     disabled?: boolean;
   }
 
   interface Exposes {
-    getValue: () => Promise<number>;
+    getValue: () => Promise<{
+      count: number;
+    }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    min: 0,
     max: 1,
     isLoading: false,
     disabled: false,
@@ -66,8 +66,8 @@
       message: t('格式有误，请输入数字'),
     },
     {
-      validator: (value: string) => Number(value) > props.min,
-      message: t('必须大于当前台数'),
+      validator: (value: string) => Number(value) > 0,
+      message: t('必须大于0'),
     },
     {
       validator: (value: string) => Number(value) <= props.max,
@@ -77,7 +77,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => ({ count: Number(localValue.value) - props.min }));
+      return editRef.value.getValue().then(() => ({ count: Number(localValue.value) }));
     },
   });
 </script>

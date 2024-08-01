@@ -21,17 +21,6 @@
       'is-disabled': disabled,
       'is-seleced': !!localValue,
     }">
-    <!-- <div class="select-result-text">
-      <span>{{ renderText }}</span>
-    </div>
-    <DbIcon
-      v-if="localValue"
-      class="remove-btn"
-      type="delete-fill"
-      @click.self="handleRemove" />
-    <DbIcon
-      class="focused-flag"
-      type="down-big" /> -->
     <div
       v-if="errorMessage"
       class="select-error">
@@ -66,6 +55,10 @@
               }"
               @click="handleSelect(item)">
               <span>{{ item.name }}</span>
+              <MiniTag
+                v-if="item.isCurrent"
+                :content="t('当前规格')"
+                theme="info" />
               <span
                 class="spec-display-count"
                 :class="{ 'count-active': item.id === localValue }">
@@ -79,20 +72,24 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import { useDebouncedRef } from '@hooks';
 
-  import useValidtor, { type Rules } from '@views/redis/common/edit/hooks/useValidtor';
+  import MiniTag from '@components/mini-tag/index.vue';
+  import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
   import { encodeRegexp } from '@utils';
 
-  import type { SpecInfo } from './SpecPanel.vue';
-  import SpecPanel from './SpecPanel.vue';
+  import type { SpecInfo } from './Panel.vue';
+  import SpecPanel from './Panel.vue';
 
   type IKey = string | number;
 
   export interface IListItem {
     id: number;
     name: string;
+    isCurrent: boolean;
     specData: SpecInfo;
   }
 
@@ -121,6 +118,8 @@
   const modelValue = defineModel<IKey>({
     default: '',
   });
+
+  const { t } = useI18n();
 
   const localValue = ref<IKey>('');
   const isShowPop = ref(false);
@@ -264,34 +263,26 @@
 
 <style lang="less">
   .bk-select-popover {
-    .bk-select-content-wrapper {
-      .bk-select-content {
-        .bk-select-dropdown {
-          .bk-select-option {
-            .tendb-slave-apply-option-item {
-              display: flex;
-              width: 100%;
-              justify-content: space-between;
-              align-items: center;
+    .tendb-slave-apply-option-item {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      align-items: center;
 
-              .spec-display-count {
-                height: 16px;
-                min-width: 20px;
-                font-size: 12px;
-                line-height: 16px;
-                color: @gray-color;
-                text-align: center;
-                background-color: #f0f1f5;
-                border-radius: 2px;
-              }
+      .spec-display-count {
+        height: 16px;
+        min-width: 20px;
+        font-size: 12px;
+        line-height: 16px;
+        color: @gray-color;
+        text-align: center;
+        background-color: #f0f1f5;
+        border-radius: 2px;
+      }
 
-              .count-active {
-                color: white;
-                background-color: #a3c5fd;
-              }
-            }
-          }
-        }
+      .count-active {
+        color: white;
+        background-color: #a3c5fd;
       }
     }
   }
