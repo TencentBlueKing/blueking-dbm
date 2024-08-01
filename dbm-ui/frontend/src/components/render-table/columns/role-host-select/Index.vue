@@ -80,10 +80,11 @@
       clusterId: number;
       hostSelectType?: string;
     };
-    clusterType: ClusterTypes;
+    clusterType: ClusterTypes | 'TendbClusterHost';
     tabListConfig: ComponentProps<typeof InstanceSelector>['tabListConfig'];
     selectedNodeList?: IValue[];
     count?: number;
+    instanceIpList: string[];
   }
 
   interface Emits {
@@ -174,7 +175,23 @@
 
   const handleInstancesChange = (selectedValues: InstanceSelectorValues<IValue>) => {
     selected.value = selectedValues;
-    emits('num-change', selected.value[props.clusterType].length);
+    const selectedList = selected.value[props.clusterType];
+    const { length } = selectedList;
+    let count = 0;
+    if (length > 0) {
+      const selectedIpMap = selectedList.reduce(
+        (prevMap, selectedItem) => Object.assign(prevMap, { [selectedItem.ip]: false }),
+        {} as Record<string, boolean>,
+      );
+      count = props.instanceIpList.reduce((prevCount, instanceIp) => {
+        if (!(instanceIp in selectedIpMap) || selectedIpMap[instanceIp]) {
+          return prevCount;
+        }
+        selectedIpMap[instanceIp] = true;
+        return prevCount + 1;
+      }, 0);
+    }
+    emits('num-change', count);
   };
 
   const handleInstancesCancel = () => {

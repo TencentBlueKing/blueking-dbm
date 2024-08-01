@@ -62,12 +62,12 @@
       field: 'nodeType',
       showOverflowTooltip: true,
     },
-    {
-      label: t('当前规格'),
-      field: 'sepc',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
-    },
+    // {
+    //   label: t('当前规格'),
+    //   field: 'sepc',
+    //   showOverflowTooltip: true,
+    //   render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
+    // },
     {
       label: t('主机选择方式'),
       field: 'hostSelectType',
