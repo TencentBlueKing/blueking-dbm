@@ -13,9 +13,25 @@ import (
 type RedisRPCEmbed struct {
 }
 
+// WebConsoleMode webconsole mode, using redis-cli to execute command
+const WebConsoleMode = "webconsole"
+
 // NewRedisRPCEmbed TODO
 func NewRedisRPCEmbed() *RedisRPCEmbed {
 	return &RedisRPCEmbed{}
+}
+
+// IsAdminCommand 是否为admin类的指令
+// 也许应该放开cluster nodes, info 之类.
+func (r *RedisRPCEmbed) IsAdminCommand(cmdArgs []string) bool {
+	if len(cmdArgs) == 0 {
+		return false
+	}
+	cmd := strings.ToLower(cmdArgs[0])
+	if _, ok := RedisCommandTable[cmd]; !ok {
+		return false
+	}
+	return strings.Contains(RedisCommandTable[cmd].Sflags, adminFlag)
 }
 
 // IsQueryCommand redis 解析命令
@@ -73,6 +89,12 @@ func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 	}
 	slog.Info("RedisRPCEmbed request data", slog.String("param", param.StringWithoutPasswd()))
 
+	// WebConsoleMode 使用 DoCommandForWebConsole
+	if param.ClientType == WebConsoleMode {
+		r.DoCommandForWebConsole(c, &param)
+		return
+	}
+
 	// 格式化并检查命令
 	formatCmd, err := FormatName(param.Command)
 	if err != nil {
@@ -100,7 +122,7 @@ func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 	var maxLen int
 	password := param.Password
 	for _, address := range param.Addresses {
-		valueSize, isString, err := GetValueSize(address, password, formatCmd)
+		valueSize, isString, err := GetValueSize(address, password, formatCmd, param.DbNum)
 		if isString {
 			maxLen = 1 * 1024 * 1024
 		} else {
@@ -118,8 +140,9 @@ func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 			return
 		}
 
-		// ret, err := DoRedisCmd(address, password, formatCmd, strconv.Itoa(param.DbNum), true)
-		ret, err := DoRedisCmdNew(address, password, formatCmd, param.DbNum)
+		var ret string
+		ret, err = DoRedisCmdNew(address, password, formatCmd, param.DbNum)
+
 		if err != nil {
 			slog.Error("RedisRPCEmbed execute command", err,
 				slog.String("address", address),

@@ -23,6 +23,12 @@ import (
 // MAX TODO
 const MAX = 1 * 1024 * 1024
 
+// MaxMemberSize 允许查询的最大成员数量
+const MaxMemberSize = 1000
+
+// MaxStringLength 允许查询的最大String长度
+const MaxStringLength = 1 * 1024 * 1024
+
 var ctx = context.Background()
 
 // RedisQueryParams redis请求参数
@@ -31,6 +37,10 @@ type RedisQueryParams struct {
 	DbNum     int      `json:"db_num"`
 	Password  string   `json:"password"`
 	Command   string   `json:"command"`
+	// ClientType webconsole or 其它任何值。 当这个值为webconsole时，调用redis-cli执行命令.
+	ClientType string `json:"client_type"`
+	// Raw 只对ClientType为webconsole时生效. 为redis-cli添加--raw参数 raw模式下，能返回中文. 默认为false
+	Raw bool `json:"raw,omitempty"`
 }
 
 // StringWithoutPasswd 打印参数，不打印密码
@@ -77,7 +87,7 @@ func FormatName(msg string) (string, error) {
 	return stringMsg, nil
 }
 
-// DoRedisCmd 执行redis命令
+// DoRedisCmd 执行redis命令 by redis-cli
 func DoRedisCmd(address, redisPass, cmdline, dbNum string, raw bool) (string, error) {
 	splitList := strings.Split(address, ":")
 	redisHost, redisPort := splitList[0], splitList[1]
@@ -126,7 +136,7 @@ func DoRedisCmd(address, redisPass, cmdline, dbNum string, raw bool) (string, er
 	return string(out), nil
 }
 
-// DoRedisCmdNew 执行redis命令
+// DoRedisCmdNew 执行redis命令 by go driver
 func DoRedisCmdNew(address, redisPass, cmd string, dbNum int) (ret string, err error) {
 	var strBuilder strings.Builder
 	cli, err := NewRedisClientWithTimeout(address, redisPass, dbNum, time.Second*2)
@@ -193,27 +203,25 @@ func TcpClient01(addr01, cmd string) (ret string, err error) {
 
 // GetValueSize 分析cmdLine，返回它的valueSize
 // 返回值说明，出现各种 error 以及非 read 指令，返回 -1；对于非受限的 read 指令，返回0；对于受限的 read 指令，返回其value_size
-func GetValueSize(address, pass string, cmdLine string) (int, bool, error) {
+func GetValueSize(address, pass string, cmdLine string, dbNum int) (int, bool, error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr:     address,
 		Password: pass,
-		DB:       0, // use default DB
+		DB:       dbNum, // use default DB
 	})
 
 	// 检测是否连接到redis数据库
 	pong, err := rdb.Ping(ctx).Result()
 	if err != nil {
-		return -1, false, fmt.Errorf("connect redis failed" + err.Error())
+		return -1, false, errors.Wrap(err, "connect redis failed")
 	}
 	if pong != "PONG" {
 		return -1, false, fmt.Errorf("connect redis failed")
-	} else {
-		fmt.Printf("connect redis %s  succeed\n", address)
 	}
-
 	return getValue(rdb, cmdLine)
 }
 
+// getValue 是否超过了最大允许长度，错误内容。 超过返回Error
 func getValue(rdb *redis.Client, cmdLine string) (int, bool, error) {
 	stringMsg := strings.TrimSpace(cmdLine)
 	inputs := strings.Fields(stringMsg)
@@ -225,7 +233,11 @@ func getValue(rdb *redis.Client, cmdLine string) (int, bool, error) {
 		return -1, false, err
 	}
 	if len(keys) == 0 {
-		return 0, true, nil
+		if commandLc == "scan" {
+			return PrecheckScanCmd(rdb, commandLc, inputs)
+		} else {
+			return 0, true, nil
+		}
 	}
 	key := keys[0]
 
@@ -235,7 +247,7 @@ func getValue(rdb *redis.Client, cmdLine string) (int, bool, error) {
 		if err != nil {
 			return -1, true, fmt.Errorf("check your redis command, strlen cmd error: " + err.Error())
 		}
-		return int(len), true, checkLength(int(len))
+		return int(len), true, checkStringLength(int(len))
 	} else if commandLc == "mget" { // 有多个key
 		if len(inputs) < 2 {
 			return -1, true, fmt.Errorf("incomplete argvs")
@@ -248,7 +260,7 @@ func getValue(rdb *redis.Client, cmdLine string) (int, bool, error) {
 			}
 			totalLen += int(len)
 		}
-		return totalLen, true, checkLength(totalLen)
+		return totalLen, true, checkStringLength(totalLen)
 	} else if commandLc == "hgetall" || commandLc == "hkeys" || commandLc == "hvals" {
 		return PrecheckHashKeysCmd(rdb, commandLc, inputs)
 	} else if commandLc == "lrange" {
@@ -258,7 +270,7 @@ func getValue(rdb *redis.Client, cmdLine string) (int, bool, error) {
 	} else if commandLc == "zrangebyscore" || commandLc == "zrevrangebyscore" || commandLc == "zrangebylex" ||
 		commandLc == "zrevrangebylex" {
 		return PrecheckZsetKeysCmd(rdb, commandLc, inputs)
-	} else if commandLc == "scan" || commandLc == "hscan" || commandLc == "sscan" || commandLc == "zscan" {
+	} else if commandLc == "hscan" || commandLc == "sscan" || commandLc == "zscan" {
 		return PrecheckScanCmd(rdb, commandLc, inputs)
 	}
 	// 非受限的 read 指令
@@ -308,9 +320,18 @@ func treatSRandMemberCount(count int, set_len int) int {
 	}
 }
 
+func checkStringLength(len int) error {
+	if len > MaxStringLength {
+		return fmt.Errorf("value length %d is too big, it must be less than 1M", len)
+	} else {
+		return nil
+	}
+}
+
 func checkLength(len int) error {
-	if len > MAX {
-		return fmt.Errorf("length of value more than 10M")
+	if len > MaxMemberSize {
+		return fmt.Errorf("there are too many member returned, it must be less than 1000. e.g" +
+			"[hzs]scan $cursor [match pattern] count 1000")
 	} else {
 		return nil
 	}
@@ -462,6 +483,6 @@ func PrecheckScanCmd(rdb *redis.Client, commandLc string, inputs []string) (int,
 	if haveCount {
 		return count, false, checkLength(count)
 	} else {
-		return -1, false, fmt.Errorf("you must haveCount count argv")
+		return -1, false, fmt.Errorf("require count arg")
 	}
 }
