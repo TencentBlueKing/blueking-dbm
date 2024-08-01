@@ -48,6 +48,7 @@ class ToolboxHandler:
         refer_version = get_online_mysql_version(
             ip=instance.machine.ip, port=instance.port, bk_cloud_id=cluster.bk_cloud_id
         )
+
         tmysql_re_pattern = r"tmysql-([\d]+).?([\d]+)?.?([\d]+)?"
         txsql_re_pattern = r"([\d]+).?([\d]+)?.?([\d]+)?-txsql"
         pkgname_txsql_re_pattern = r"txsql-([\d]+).?([\d]+)?.?([\d]+)?"
@@ -55,17 +56,19 @@ class ToolboxHandler:
         major_version_num, sub_version_num = major_version_parse(refer_version)
         tmysql_sub_version_num = 0
         refer_pkg_type = "mysql"
-        if re.match(tmysql_re_pattern, refer_version):
+
+        if re.search(tmysql_re_pattern, refer_version):
             tmysql_sub_version_num = tmysql_version_parse(refer_version)
             refer_pkg_type = "tmysql"
-        elif re.match(txsql_re_pattern, refer_version):
+        elif re.search(txsql_re_pattern, refer_version):
             refer_pkg_type = "txsql"
 
         for pkg in all_pkg_list:
             pkg_major_vesion_num, pkg_sub_version_num = major_version_parse(pkg.name)
             pkg_major_vesion_num = convert_mysql8_version_num(pkg_major_vesion_num)
             if refer_pkg_type == "tmysql":
-                if re.match(tmysql_re_pattern, pkg.name):
+                # tmysql 可用用mysql 官方社区版本的介质
+                if re.search(tmysql_re_pattern, pkg.name) or (not re.search(pkgname_txsql_re_pattern, pkg.name)):
                     # higger_major_version：需要更高的主版本，无需比较子版本
                     if higher_major_version:
                         self.filter_available_packages(
@@ -86,7 +89,7 @@ class ToolboxHandler:
                                 self.available_pkg_list.append(pkg)
 
             elif refer_pkg_type == "txsql":
-                if re.match(pkgname_txsql_re_pattern, pkg.name):
+                if re.search(pkgname_txsql_re_pattern, pkg.name):
                     self.filter_available_packages(
                         pkg,
                         higher_major_version,
@@ -98,14 +101,15 @@ class ToolboxHandler:
 
             # 统一当做社区版本来处理
             else:
-                self.filter_available_packages(
-                    pkg,
-                    higher_major_version,
-                    major_version_num,
-                    pkg_major_vesion_num,
-                    sub_version_num,
-                    pkg_sub_version_num,
-                )
+                if (not re.search(pkgname_txsql_re_pattern, pkg.name)) and (re.search(tmysql_re_pattern, pkg.name)):
+                    self.filter_available_packages(
+                        pkg,
+                        higher_major_version,
+                        major_version_num,
+                        pkg_major_vesion_num,
+                        sub_version_num,
+                        pkg_sub_version_num,
+                    )
 
         return [
             {

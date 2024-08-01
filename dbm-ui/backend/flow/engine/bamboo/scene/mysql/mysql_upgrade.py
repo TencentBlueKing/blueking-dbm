@@ -21,7 +21,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, 
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, StorageInstance
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import InstanceStatus, MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
@@ -101,7 +101,20 @@ class MySQMigrateUpgradeFlow(MySQLMigrateClusterRemoteFlow, MySQLMigrateClusterF
                 db_module_id=info["new_db_module_id"],
                 cluster_type=cluster_class.cluster_type,
             )
+            # 判断是否存在一组多从的情况
+            slave = cluster_class.storageinstance_set.filter(
+                instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
+            ).first()
 
+            if slave is None:
+                raise DBMetaException(message=_("查询集群{}stanb_by slave实例为None").format(cluster_class.immute_domain))
+
+            mysql_storage_slave = cluster_class.storageinstance_set.filter(
+                instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
+            )
+            other_slave = [y.machine.ip for y in mysql_storage_slave.exclude(machine__ip=slave.machine.ip)]
+            if len(other_slave) > 0:
+                raise DBMetaException(message=_("请先升级{}stanb_by的其他slave实例").format(cluster_class.immute_domain))
             if new_charset != origin_chaset:
                 raise DBMetaException(
                     message=_("{}升级前后字符集不一致,原字符集：{},新模块的字符集{}").format(

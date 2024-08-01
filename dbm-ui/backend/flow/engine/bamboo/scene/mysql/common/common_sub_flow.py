@@ -583,7 +583,7 @@ def install_mysql_in_cluster_sub_flow(
                             bk_cloud_id=cluster.bk_cloud_id,
                             exec_ip=new_mysql_list,
                             file_list=GetFileList(db_type=DBType.MySQL).mysql_upgrade_package(
-                                pkg_id=pkg_id,
+                                pkg_id=pkg_id, db_version=data["db_version"]
                             ),
                         )
                     ),

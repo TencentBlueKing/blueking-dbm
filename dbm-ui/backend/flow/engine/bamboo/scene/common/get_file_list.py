@@ -164,14 +164,30 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{proxy_pkg.path}",
         ]
 
-    def mysql_upgrade_package(self, pkg_id: int) -> list:
+    def mysql_upgrade_package(self, pkg_id: int, db_version: str) -> list:
         """
         mysql 升级需要的安装包列表
         """
+        if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+            db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
+        else:
+            db_backup_pkg_type = MediumEnum.DbBackup
         mysql_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL)
+        db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
+        checksum_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLChecksum)
+        dba_toolkit = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLToolKit)
+        rotate_binlog = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLRotateBinlog)
+        mysql_crond_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLCrond)
+        mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{db_backup_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{checksum_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{dba_toolkit.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{rotate_binlog.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_crond_pkg.path}",
+            f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{mysql_monitor_pkg.path}",
         ]
 
     def riak_install_package(self, db_version: str) -> list:
