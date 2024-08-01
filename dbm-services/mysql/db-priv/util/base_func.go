@@ -122,3 +122,24 @@ func StringsRemove(ss []string, s string) []string {
 	}
 	return ns
 }
+
+// SplitArray 切分数组为指定长度的子数组集合
+func SplitArray(arr []string, length int) [][]string {
+	var tmp [][]string
+	mod := len(arr) % length
+	k := len(arr) / length
+	var round int
+	if mod == 0 {
+		round = k
+	} else {
+		round = k + 1
+	}
+	for i := 0; i < round; i++ {
+		if i != k {
+			tmp = append(tmp, arr[i*length:(i+1)*length])
+		} else {
+			tmp = append(tmp, arr[i*length:])
+		}
+	}
+	return tmp
+}

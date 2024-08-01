@@ -14,6 +14,7 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"fmt"
 	"os"
 	"path"
@@ -26,7 +27,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
 // SpiderClusterBackendSwitchComp TODO
@@ -454,11 +454,11 @@ func (r *SpiderClusterBackendSwitchComp) CutOver() (err error) {
 func (r *SpiderClusterBackendSwitchComp) getSwitchSqls() (err error) {
 	for _, ins_pair := range r.realSwitchSvrPairs {
 		primarySwitchSql := ins_pair.Slave.GetAlterNodeSql(ins_pair.MptName)
-		logger.Info("primary spt switch sql:%s", mysqlutil.CleanSvrPassword(primarySwitchSql))
+		logger.Info("primary spt switch sql:%s", mysqlcomm.CleanSvrPassword(primarySwitchSql))
 		r.primaryShardSwitchSqls = append(r.primaryShardSwitchSqls, primarySwitchSql)
 		if !r.Params.Force {
 			slaveSwitchSql := ins_pair.Master.GetAlterNodeSql(ins_pair.SptName)
-			logger.Info("slave spt switch sql:%s", mysqlutil.CleanSvrPassword(slaveSwitchSql))
+			logger.Info("slave spt switch sql:%s", mysqlcomm.CleanSvrPassword(slaveSwitchSql))
 			r.slaveShardSwitchSqls = append(r.slaveShardSwitchSqls, slaveSwitchSql)
 		}
 	}

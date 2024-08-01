@@ -3,6 +3,7 @@ package mysqlutil
 
 import (
 	"bytes"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"fmt"
 	"os/exec"
 	"regexp"
@@ -26,7 +27,7 @@ func ExecCommandMySQLShell(param string) (stdoutStr string, err error) {
 	reg := regexp.MustCompile(`(?U)\n?.*Using a password on the command line interface can be insecure.`)
 	errStr = strings.TrimSpace(reg.ReplaceAllString(errStr, ""))
 	if len(errStr) > 0 {
-		err = fmt.Errorf("execute command(%s) has stderr:%s", ClearSensitiveInformation(param), errStr)
+		err = fmt.Errorf("execute command(%s) has stderr:%s", mysqlcomm.ClearSensitiveInformation(param), errStr)
 		return errStr, err
 	}
 	return stdout.String(), nil

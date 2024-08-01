@@ -60,7 +60,7 @@ func (m *GetPrivPara) GetUserList() ([]string, int, error) {
 					proxy := instance.Proxies[0]
 					address := fmt.Sprintf("%s:%d", proxy.IP, proxy.AdminPort)
 					// 获取proxy中的账号
-					_, users, err = ProxyWhiteList(address, instance.BkCloudId, m.Ips, nil, "")
+					_, users, _, err = ProxyWhiteList(address, instance.BkCloudId, m.Ips, nil, "")
 					if err != nil {
 						AddError(&errMsg, address, err)
 						return
@@ -106,7 +106,7 @@ func (m *GetPrivPara) GetUserList() ([]string, int, error) {
 }
 
 // GetPriv 获取权限
-func (m *GetPrivPara) GetPriv() ([]RelatedIp, int, []GrantInfo, []string, []string, error) {
+func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo, []string, []string, error) {
 	var (
 		all    []GrantInfo
 		count  int
@@ -114,10 +114,10 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, int, []GrantInfo, []string, []stri
 	)
 	errCheck := m.CheckPara()
 	if errCheck != nil {
-		return nil, count, nil, nil, nil, errCheck
+		return nil, nil, count, nil, nil, nil, errCheck
 	}
 	if len(m.Users) == 0 {
-		return nil, count, nil, nil, nil, errno.ErrUserIsEmpty
+		return nil, nil, count, nil, nil, nil, errno.ErrUserIsEmpty
 	}
 	users := strings.Join(m.Users, "','")
 	client := util.NewClientByHosts(viper.GetString("dbmeta"))
@@ -174,7 +174,7 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, int, []GrantInfo, []string, []stri
 					}
 					address := fmt.Sprintf("%s:%d", proxy.IP, proxy.AdminPort)
 					// 在proxy查询查询user@ip
-					result, _, err = ProxyWhiteList(address, instance.BkCloudId, m.Ips, m.Users, item)
+					result, _, _, err = ProxyWhiteList(address, instance.BkCloudId, m.Ips, m.Users, item)
 					if err != nil {
 						AddError(&errMsg, address, err)
 						return
@@ -228,11 +228,18 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, int, []GrantInfo, []string, []stri
 	}
 	wg.Wait()
 	if len(errMsg.errs) > 0 {
-		return nil, count, nil, nil, nil, errno.QueryPrivilegesFail.Add("\n" + strings.Join(errMsg.errs, "\n"))
+		return nil, nil, count, nil, nil, nil, errno.QueryPrivilegesFail.Add("\n" + strings.Join(errMsg.errs, "\n"))
 	}
 	// 以访问源的ip等维度聚合展示
-	formatted, hasPriv, noPriv := FormatRelatedIp(all, m.Ips)
-	return formatted, len(formatted), all, hasPriv, noPriv, nil
+	if m.Format == "ip" {
+		formatted, hasPriv, noPriv := FormatRelatedIp(all, m.Ips)
+		return formatted, nil, len(formatted), all, hasPriv, noPriv, nil
+	} else if m.Format == "cluster" {
+		formatted, hasPriv, noPriv := FormatRelatedCluster(all, m.Ips, m.ImmuteDomains)
+		return nil, formatted, len(formatted), all, hasPriv, noPriv, nil
+	} else {
+		return nil, nil, 0, nil, nil, nil, fmt.Errorf("not supported display format")
+	}
 }
 
 // CombineUserWithGrant 将账号与权限信息关联
@@ -324,15 +331,17 @@ func SplitGrantSql(grants []UserGrant, dbs []string, tendbhaMasterDomain bool) m
 
 // ProxyWhiteList 查询出proxy上与指定账号、指定ip所匹配的账号
 func ProxyWhiteList(address string, bkCloudId int64, hosts []string, usersInput []string,
-	immuteDomain string) ([]GrantInfo, []string, error) {
+	immuteDomain string) ([]GrantInfo, []string, []string, error) {
 	var UniqMap = make(map[string]struct{})
+	var UniqMapHost = make(map[string]struct{})
 	var users []string
+	var matchHosts []string
 	sql := "select * from user;"
 	var infos []GrantInfo
 	var queryRequest = QueryRequest{[]string{address}, []string{sql}, true, 30, bkCloudId}
 	output, err := OneAddressExecuteProxySql(queryRequest)
 	if err != nil {
-		return infos, users, fmt.Errorf(
+		return infos, users, matchHosts, fmt.Errorf(
 			"execute (%s) in bk_cloud_id (%d) instance (%s) get an error:%s", sql, bkCloudId, address,
 			err.Error())
 	}
@@ -374,17 +383,22 @@ func ProxyWhiteList(address string, bkCloudId int64, hosts []string, usersInput 
 						UniqMap[user] = struct{}{}
 						users = append(users, user)
 					}
+					if _, isExists := UniqMapHost[host]; isExists == false {
+						UniqMapHost[host] = struct{}{}
+						matchHosts = append(matchHosts, host)
+					}
 				}
 			}
 		}
 	}
-	return infos, users, nil
+	return infos, users, matchHosts, nil
 }
 
 // MysqlUserList 在mysql中查询与输入用户名、以及ip相配的账号信息，查询到user@host列表
 func MysqlUserList(address string, bkCloudId int64, hosts []string, usersInput []string,
 	immuteDomain string) ([]GrantInfo, []string, string, error) {
 	var UniqMap = make(map[string]struct{})
+	var UniqMapHost = make(map[string]struct{})
 	var users []string
 	var infos []GrantInfo
 	var matchHosts []string
@@ -431,6 +445,10 @@ func MysqlUserList(address string, bkCloudId int64, hosts []string, usersInput [
 					if _, isExists := UniqMap[user]; isExists == false {
 						UniqMap[user] = struct{}{}
 						users = append(users, user)
+					}
+					if _, isExists := UniqMapHost[host]; isExists == false {
+						UniqMapHost[host] = struct{}{}
+						matchHosts = append(matchHosts, host)
 					}
 				}
 			}
@@ -524,12 +542,117 @@ func FormatRelatedIp(source []GrantInfo, ips []string) ([]RelatedIp, []string, [
 			}
 		}
 	}
+	// 以ip的维度展示
 	for _, ip := range ips {
 		if v, isExists := UniqIp[ip]; isExists == false {
 			noPriv = append(noPriv, ip)
 		} else {
 			hasPriv = append(hasPriv, ip)
 			result = append(result, RelatedIp{ip, v})
+		}
+	}
+	return result, hasPriv, noPriv
+}
+
+// FormatRelatedCluster 权限结果格式化，以域名、用户、匹配的访问源、匹配的DB等维度依次聚合展示
+func FormatRelatedCluster(source []GrantInfo, ips []string, domains []string) ([]RelatedDomain2, []string, []string) {
+	var hasPriv, noPriv []string
+	var result []RelatedDomain2
+	var UniqDomain = make(map[string][]RelatedUser2)
+	var UniqDomainUser = make(map[string][]RelatedMatchIp2)
+	var UniqDomainUserMatchIp = make(map[string][]RelatedMatchDb2)
+	var UniqDomainUserMatchIpMatchDbPriv = make(map[string][]RelatedIpDb)
+	var UniqDomainUserMatchIpMatchDbPrivTemp = make(map[string][]RelatedIpDb)
+	var uniqIp = make(map[string]struct{})
+	wg := sync.WaitGroup{}
+	tokenBucket := make(chan int, 20)
+	for _, grant := range source {
+		wg.Add(1)
+		tokenBucket <- 0
+		go func(grant GrantInfo) {
+			defer func() {
+				<-tokenBucket
+				wg.Done()
+			}()
+			// 对所有的权限归类，记录每个权限细则的信息：域名、用户、命中ip、命中的db、权限细则
+			for _, priv := range grant.Privs {
+				DomainUserMatchIpMatchDbPriv := fmt.Sprintf("%s|%s|%s|%s|%s", grant.ImmuteDomain,
+					grant.User, grant.MatchIp, priv.MatchDb, priv.Priv)
+				DomainUserMatchIp := fmt.Sprintf("%s|%s|%s", grant.ImmuteDomain, grant.User, grant.MatchIp)
+				DomainUser := fmt.Sprintf("%s|%s", grant.ImmuteDomain, grant.User)
+				vDomain := grant.ImmuteDomain
+				UniqDomainUserMatchIpMatchDbPrivTemp[DomainUserMatchIpMatchDbPriv] =
+					append(UniqDomainUserMatchIpMatchDbPrivTemp[DomainUserMatchIpMatchDbPriv],
+						RelatedIpDb{grant.Ip, priv.Db})
+				UniqDomainUserMatchIp[DomainUserMatchIp] = nil
+				UniqDomainUser[DomainUser] = nil
+				UniqDomain[vDomain] = nil
+			}
+		}(grant)
+	}
+	wg.Wait()
+	close(tokenBucket)
+	// 同一个权限规则，对应的ip与db整合展示、去重
+	for k, v := range UniqDomainUserMatchIpMatchDbPrivTemp {
+		var uniqIpForUserHost = make(map[string]struct{})
+		var uniqDbForUserHost = make(map[string]struct{})
+		var ipsTmp, dbsTmp []string
+		for _, ipDb := range v {
+			if _, isExists := uniqIp[ipDb.Ip]; isExists == false {
+				uniqIp[ipDb.Ip] = struct{}{}
+				hasPriv = append(hasPriv, ipDb.Ip)
+			}
+			if _, isExists := uniqIpForUserHost[ipDb.Ip]; isExists == false {
+				uniqIpForUserHost[ipDb.Ip] = struct{}{}
+				ipsTmp = append(ipsTmp, ipDb.Ip)
+			}
+			if _, isExists := uniqDbForUserHost[ipDb.Db]; isExists == false {
+				uniqDbForUserHost[ipDb.Db] = struct{}{}
+				dbsTmp = append(dbsTmp, ipDb.Db)
+			}
+		}
+		UniqDomainUserMatchIpMatchDbPriv[k] = []RelatedIpDb{{strings.Join(ipsTmp, ","),
+			strings.Join(dbsTmp, ",")}}
+	}
+	// 找到未匹配到权限的ip
+	for _, v := range ips {
+		if !util.HasElem(v, hasPriv) {
+			noPriv = append(noPriv, v)
+		}
+	}
+	for matchip := range UniqDomainUserMatchIp {
+		for k, v := range UniqDomainUserMatchIpMatchDbPriv {
+			if strings.Contains(k, matchip) {
+				splits := strings.Split(k, "|")
+				matchDB := splits[3]
+				priv := splits[4]
+				UniqDomainUserMatchIp[matchip] = append(UniqDomainUserMatchIp[matchip],
+					RelatedMatchDb2{matchDB, priv, v})
+			}
+		}
+	}
+	for user := range UniqDomainUser {
+		for k, v := range UniqDomainUserMatchIp {
+			if strings.Contains(k, user) {
+				matchip := strings.Split(k, "|")[2]
+				UniqDomainUser[user] = append(UniqDomainUser[user],
+					RelatedMatchIp2{matchip, v})
+			}
+		}
+	}
+	for domain := range UniqDomain {
+		for k, v := range UniqDomainUser {
+			if strings.Contains(k, domain) {
+				user := strings.Split(k, "|")[1]
+				UniqDomain[domain] = append(UniqDomain[domain],
+					RelatedUser2{user, v})
+			}
+		}
+	}
+	// 以集群维度展示
+	for _, domain := range domains {
+		if v, isExists := UniqDomain[domain]; isExists == true {
+			result = append(result, RelatedDomain2{domain, v})
 		}
 	}
 	return result, hasPriv, noPriv

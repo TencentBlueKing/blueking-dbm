@@ -47,8 +47,23 @@ type Resource struct {
 	resources []OneCluster
 }
 
+// ClusterGrants 并行时共同维护数组
+type ClusterGrants struct {
+	mu        sync.RWMutex
+	resources []ClusterGrantSql
+}
+
 // StringList 字符串列表
 type StringList struct {
 	mu sync.RWMutex
 	l  []string
+}
+
+type ClusterGrantSql struct {
+	ImmuteDomain string             `json:"immute_domain"`
+	Sqls         []InstanceGrantSql `json:"sqls"`
+}
+type InstanceGrantSql struct {
+	Ins    string   `json:"instance"`
+	Grants []string `json:"grants"`
 }

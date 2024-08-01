@@ -122,11 +122,15 @@ func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt i
 	checkFailSet := ConfigIdLogSet{}
 	wg := sync.WaitGroup{}
 	limit := rate.Every(time.Millisecond * 200) // QPS：5
-	burst := 10                                 // 桶容量 10
+	burst := 5                                  // 桶容量 5
 	limiter := rate.NewLimiter(limit, burst)
+	tokenBucket := make(chan int, 10) // 最大并行度
+
 	for _, config := range configs {
 		wg.Add(1)
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		tokenBucket <- 0
+
+		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 		go func(config *PartitionConfig) {
 			err := limiter.Wait(context.Background())
 			if err != nil {
@@ -136,7 +140,7 @@ func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt i
 				return
 			}
 			CheckOnePartitionConfig(ctx, cancel, *config, &wg, &sqlSet, &nothingToDoSet, &checkFailSet, dbtype, splitCnt,
-				fromCron, host)
+				fromCron, host, &tokenBucket)
 		}(config)
 	}
 	wg.Wait()
@@ -154,16 +158,16 @@ func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt i
 // CheckOnePartitionConfig 检查一个分区规则是否需要执行，生成分区语句
 func CheckOnePartitionConfig(ctx context.Context, cancel context.CancelFunc, config PartitionConfig,
 	wg *sync.WaitGroup, sqlSet *PartitionSqlSet, nothingToDoSet *ConfigIdLogSet, checkFailSet *ConfigIdLogSet,
-	dbtype string, splitCnt int, fromCron bool, host Host) {
+	dbtype string, splitCnt int, fromCron bool, host Host, tokenBucket *chan int) {
 	fmt.Printf("do CheckOnePartitionConfig")
 	var addSql, dropSql []string
 	var err error
 	var initSql []InitSql
 	defer func() {
+		<-*tokenBucket
 		wg.Done()
 		cancel()
 	}()
-
 	finish := make(chan int, 1)
 	go func() {
 		defer func() {

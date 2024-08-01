@@ -1,6 +1,7 @@
 package restore
 
 import (
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,7 +14,6 @@ import (
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 
 	"github.com/pkg/errors"
@@ -149,7 +149,7 @@ func (m *MLoadParam) MLoadData() error {
 			m.mloadScript += " " + m.filterOpts
 		}
 
-		logger.Info("MLoad script:%s", mysqlutil.RemovePassword(m.mloadScript))
+		logger.Info("MLoad script:%s", mysqlcomm.RemovePassword(m.mloadScript))
 		cmd := &osutil.FileOutputCmd{
 			Cmd: exec.Cmd{
 				Path: "/bin/bash",
@@ -181,7 +181,7 @@ func (m *MLoadParam) MLoadData() error {
 					if _, _, err2 := m.checkMLoadComplete(logFile); err2 != nil {
 						return errors.Wrap(err, err2.Error())
 					}
-					return fmt.Errorf("MLoad导入失败, 命令:%s, 错误:%w", mysqlutil.RemovePassword(m.mloadScript), err)
+					return fmt.Errorf("MLoad导入失败, 命令:%s, 错误:%w", mysqlcomm.RemovePassword(m.mloadScript), err)
 				}
 				stop = true
 			case <-ticker.C:

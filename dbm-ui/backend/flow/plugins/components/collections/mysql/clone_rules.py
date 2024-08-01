@@ -89,7 +89,7 @@ class CloneRules(BaseService):
                 record.status = int(resp["code"]) == 0
                 clone_success_count += record.status
                 record.error = resp["message"]
-                self.log_info(f"{resp['message']}\n")
+                self.log_info(f"{resp}\n")
 
             except Exception as e:  # pylint: disable=broad-except
                 error_message = _("「权限克隆异常」{}").format(getattr(e, "message", e))

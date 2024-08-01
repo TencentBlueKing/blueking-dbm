@@ -28,6 +28,8 @@ func InitEnv() {
 	viper.BindEnv("dbm_ticket_service", "DBM_TICKET_SERVICE")
 	viper.BindEnv("bk_app_code", "BK_APP_CODE")
 	viper.BindEnv("bk_app_secret", "BK_APP_SECRET")
+	// 开启分区服务的蓝鲸监控
+	viper.BindEnv("monitor", "MONITOR")
 
 	// pt-osc参数
 	viper.BindEnv("pt.max_load.threads_running", "PT_MAX_LOAD_THREADS_RUNNING")

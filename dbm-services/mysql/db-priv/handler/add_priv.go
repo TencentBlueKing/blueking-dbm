@@ -109,19 +109,20 @@ func (m *PrivService) GetPriv(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-	formatted, count, download, hasPriv, noPriv, err := input.GetPriv()
+	formattedForIp, formattedForCluster, count, download, hasPriv, noPriv, err := input.GetPriv()
 	if err != nil {
 		slog.Error(err.Error())
 		SendResponse(c, err, nil)
 		return
 	}
 	data := struct {
-		Formatted []service.RelatedIp `json:"privs"`
-		Count     int                 `json:"count"`
-		Download  []service.GrantInfo `json:"download"`
-		HasPriv   []string            `json:"has_priv"`
-		NoPriv    []string            `json:"no_priv"`
-	}{formatted, count, download, hasPriv, noPriv}
+		FormattedForIp      []service.RelatedIp      `json:"privs_for_ip"`
+		FormattedForCluster []service.RelatedDomain2 `json:"privs_for_cluster"`
+		Count               int                      `json:"count"`
+		Download            []service.GrantInfo      `json:"download"`
+		HasPriv             []string                 `json:"has_priv"`
+		NoPriv              []string                 `json:"no_priv"`
+	}{formattedForIp, formattedForCluster, count, download, hasPriv, noPriv}
 	SendResponse(c, err, data)
 	return
 }

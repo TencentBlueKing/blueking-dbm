@@ -14,6 +14,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"fmt"
 	"io"
 	"os"
@@ -116,7 +117,7 @@ func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientOne(sqlfile string, db string, 
 func (e ExecuteSqlAtLocal) ExcuteCommand(command string, report bool) (err error) {
 	var stderrBuf bytes.Buffer
 	var errStdout, errStderr error
-	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
+	logger.Info("The Command Is %s", mysqlcomm.ClearSensitiveInformation(command))
 	cmd := exec.Command("/bin/bash", "-c", command)
 	stdoutIn, _ := cmd.StdoutPipe()
 	stderrIn, _ := cmd.StderrPipe()
@@ -172,7 +173,7 @@ func (e ExecuteSqlAtLocal) ExcutePartitionByMySQLClient(
 	dbw *sql.DB, partitionsql string,
 	lock *sync.Mutex,
 ) (err error) {
-	logger.Info("The partitionsql is %s", ClearSensitiveInformation(partitionsql))
+	logger.Info("The partitionsql is %s", mysqlcomm.ClearSensitiveInformation(partitionsql))
 	err = util.Retry(
 		util.RetryConfig{Times: 2, DelayTime: 2 * time.Second}, func() error {
 			var myerr error
@@ -209,7 +210,7 @@ func (e ExecuteSqlAtLocal) ExcuteInitPartition(command string) (err error) {
 func (e ExecuteSqlAtLocal) MyExcuteCommand(command string) (err error) {
 	var stderrBuf bytes.Buffer
 	// var errStdout, errStderr error
-	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
+	logger.Info("The Command Is %s", mysqlcomm.ClearSensitiveInformation(command))
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Hour)
 	defer cancel()
 	// command = fmt.Sprintf("sleep 3 && %s", command)
@@ -254,7 +255,7 @@ func (e ExecuteSqlAtLocal) MyExcuteSqlByMySQLClientOne(sqlfile string, db string
 func (e ExecuteSqlAtLocal) ExcuteCommandIgnoreStdo(command string) (err error) {
 	var stderrBuf bytes.Buffer
 	var errStdout, errStderr error
-	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
+	logger.Info("The Command Is %s", mysqlcomm.ClearSensitiveInformation(command))
 	cmd := exec.Command("/bin/bash", "-c", command)
 	// stdoutIn, _ := cmd.StdoutPipe()
 	stderrIn, _ := cmd.StderrPipe()

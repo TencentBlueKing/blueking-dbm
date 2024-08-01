@@ -128,6 +128,9 @@ func GetMonitorSetting() (Setting, error) {
 
 // InitMonitor 多次尝试获取监控配置，更新配置；获取失败退出
 func InitMonitor() {
+	if !viper.GetBool("monitor") {
+		return
+	}
 	i := 1
 	for ; i <= 10; i++ {
 		setting, err := GetMonitorSetting()

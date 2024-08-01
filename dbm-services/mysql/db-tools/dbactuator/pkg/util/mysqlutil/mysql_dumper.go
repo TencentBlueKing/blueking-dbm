@@ -11,6 +11,7 @@
 package mysqlutil
 
 import (
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"errors"
 	"fmt"
 	"os"
@@ -104,7 +105,7 @@ func (m MySQLDumper) Dump() (err error) {
 			outputFile := path.Join(dump.DumpDir, fmt.Sprintf("%s.sql", db))
 			errFile := path.Join(dump.DumpDir, fmt.Sprintf("%s.err", db))
 			dumpCmd := dump.getDumpCmd(outputFile, errFile, "")
-			logger.Info("mysqldump cmd:%s", RemovePassword(dumpCmd))
+			logger.Info("mysqldump cmd:%s", mysqlcomm.RemovePassword(dumpCmd))
 			output, err := osutil.StandardShellCommand(false, dumpCmd)
 			if err != nil {
 				errContent, _ := os.ReadFile(errFile)
@@ -176,7 +177,7 @@ func (m *MySQLDumperTogether) Dump() (err error) {
 		dumpOption = m.getTMySQLDumpOption()
 	}
 	dumpCmd := m.getDumpCmd(outputFile, errFile, dumpOption)
-	logger.Info("mysqldump cmd:%s", ClearSensitiveInformation(dumpCmd))
+	logger.Info("mysqldump cmd:%s", mysqlcomm.ClearSensitiveInformation(dumpCmd))
 	output, err := osutil.StandardShellCommand(false, dumpCmd)
 	if err != nil {
 		return fmt.Errorf("execte %s get an error:%s,%w", dumpCmd, output, err)
@@ -559,7 +560,7 @@ func (m *OpenAreaDumperTogether) OpenAreaDump() (err error) {
 		dumpOption = m.getTMySQLDumpOption()
 	}
 	dumpCmd := m.getOpenAreaDumpCmd(strings.Join(m.DbNames, " "), outputFile, errFile, dumpOption)
-	logger.Info("mysqldump cmd:%s", ClearSensitiveInformation(dumpCmd))
+	logger.Info("mysqldump cmd:%s", mysqlcomm.ClearSensitiveInformation(dumpCmd))
 	output, err := osutil.StandardShellCommand(false, dumpCmd)
 	if err != nil {
 		return fmt.Errorf("execte %s get an error:%s,%w", dumpCmd, output, err)

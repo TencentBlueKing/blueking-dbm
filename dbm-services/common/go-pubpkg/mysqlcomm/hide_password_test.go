@@ -8,16 +8,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package mysqlutil_test
+package mysqlcomm
 
 import (
 	"testing"
-
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 )
 
 func TestClearSensitiveInformatio(t *testing.T) {
 	t.Log("start ...")
 	textString := "mysqldump  \t\t-h1.1.1.1  \t\t-P26000  \t\t-uxasasda  \t\t-p{xasx}  \t\t--skip-opt  \t\t--create-options   \t"
-	t.Log(mysqlutil.ClearSensitiveInformation(textString))
+	t.Log(ClearSensitiveInformation(textString))
 }
