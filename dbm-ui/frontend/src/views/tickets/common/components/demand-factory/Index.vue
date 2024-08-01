@@ -72,7 +72,7 @@
   import MySQLMasterFailOver from './mysql/MasterFailOver.vue';
   import MySQLMasterSlaveSwitch from './mysql/MasterSlaveSwitch.vue';
   import MySQLMigrateCluster from './mysql/MigrateCluster.vue';
-  import MysqlOpenArea from './mysql/OpenArea.vue';
+  import MysqlOpenArea from './mysql/openarea/Index.vue';
   import MysqlParition from './mysql/Partition.vue';
   import MySQLProxyAdd from './mysql/ProxyAdd.vue';
   import MySQLProxySwitch from './mysql/ProxySwitch.vue';

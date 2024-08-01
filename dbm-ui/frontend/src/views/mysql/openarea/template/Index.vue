@@ -150,6 +150,12 @@
     });
   });
 
+  watch(route, () => {
+    serachKey.value = route.query.config_name as string
+  },{
+    immediate: true,
+  })
+
   const fetchData = () => {
     tableRef.value.fetchData({
       cluster_type: 'tendbha,tendbsingle',
