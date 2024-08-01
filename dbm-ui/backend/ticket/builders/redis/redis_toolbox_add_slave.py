@@ -35,12 +35,12 @@ class RedisAddSlaveDetailSerializer(SkipToRepresentationMixin, serializers.Seria
             cluster = Cluster.objects.get(id=attr["cluster_ids"][0])
             for pair in attr["pairs"]:
                 redis_master = pair["redis_master"]["bk_host_id"]
-                if StorageInstanceTuple.objects.filter(
+                if not StorageInstanceTuple.objects.filter(
                     ejector__machine__bk_host_id=redis_master,
                     receiver__instance_role=InstanceRole.REDIS_SLAVE,
-                    receiver__status=InstanceStatus.RUNNING,
+                    receiver__status=InstanceStatus.UNAVAILABLE,
                 ).exists():
-                    raise serializers.ValidationError(_("集群{}已存在可用的从库主机，不允许一主多从").format(cluster.immute_domain))
+                    raise serializers.ValidationError(_("集群{}不存在异常的从库主机").format(cluster.immute_domain))
             return attr
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
