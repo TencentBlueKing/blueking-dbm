@@ -110,9 +110,10 @@ class SpiderTruncateDatabaseFlow(object):
             raise DBMetaException(message="duplicate clusters found: {}".format(dup_cluster_ids))
 
         # 目前bamboo-engine存在bug，不能正常给trans_data初始化值，先用流程套子流程方式来避开这个问题
-        pipeline = Builder(root_id=self.root_id, data=self.data)
+        pipeline = Builder(root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids)))
         truncate_database_pipeline = SubBuilder(
-            root_id=self.root_id, data=self.data, need_random_pass_cluster_ids=list(set(cluster_ids))
+            root_id=self.root_id,
+            data=self.data,
         )
         cluster_pipes = []
 
