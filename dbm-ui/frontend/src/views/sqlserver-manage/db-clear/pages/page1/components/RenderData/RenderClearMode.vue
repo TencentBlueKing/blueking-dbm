@@ -37,6 +37,7 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
   const rules = [
     {
       validator: (value: string) => Boolean(value),

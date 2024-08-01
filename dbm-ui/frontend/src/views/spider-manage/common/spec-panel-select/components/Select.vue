@@ -57,7 +57,7 @@
               <span>{{ item.name }}</span>
               <MiniTag
                 v-if="item.isCurrent"
-                :content="t('当前版本')"
+                :content="t('当前规格')"
                 theme="info" />
               <span
                 class="spec-display-count"
