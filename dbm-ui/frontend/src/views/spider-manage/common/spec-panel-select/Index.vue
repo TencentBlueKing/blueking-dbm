@@ -19,7 +19,7 @@
         v-model="localValue"
         :disabled="!localValue"
         :list="selectList"
-        :placeholder="$t('输入集群后自动生成')"
+        :placeholder="t('输入集群后自动生成')"
         :rules="rules"
         @change="(value) => handleChange(value as number)" />
     </div>
@@ -28,22 +28,34 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { IDataRow } from './Row.vue';
-  import TableEditSelect, { type IListItem } from './SpecSelect.vue';
+  import { getSpecResourceCount } from '@services/source/dbresourceResource';
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
+
+  import type { SpecInfo } from './components/Panel.vue';
+  import TableEditSelect, { type IListItem } from './components/Select.vue';
 
   interface Props {
-    selectList: IListItem[];
-    data?: IDataRow['spec'];
-    isLoading?: boolean;
+    cloudId?: number;
+    clusterType?: string;
+    data?: SpecInfo;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: () => Promise<{
+      spec_id: number;
+    }>;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    cloudId: 0,
+    clusterType: '',
+    data: undefined,
+  });
+
   const selectRef = ref();
   const localValue = ref();
+  const isLoading = ref(false);
+  const selectList = ref<IListItem[]>([]);
 
   const { t } = useI18n();
 
@@ -56,9 +68,41 @@
 
   watch(
     () => props.data?.id,
-    (id) => {
+    async (id) => {
       if (id !== undefined) {
         localValue.value = id;
+        if (props.clusterType) {
+          isLoading.value = true;
+          try {
+            const listResult = await getResourceSpecList({
+              spec_cluster_type: props.clusterType,
+              spec_machine_type: 'spider',
+              limit: -1,
+              offset: 0,
+            });
+            const specList = listResult.results;
+            const countResult = await getSpecResourceCount({
+              bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+              bk_cloud_id: props.cloudId,
+              spec_ids: specList.map((item) => item.spec_id),
+            });
+            selectList.value = specList.map((item) => ({
+              id: item.spec_id,
+              name: item.spec_name,
+              isCurrent: item.spec_id === props.data?.id,
+              specData: {
+                name: item.spec_name,
+                cpu: item.cpu,
+                id: item.spec_id,
+                mem: item.mem,
+                count: countResult[item.spec_id],
+                storage_spec: item.storage_spec,
+              },
+            }));
+          } finally {
+            isLoading.value = false;
+          }
+        }
       }
     },
     {
