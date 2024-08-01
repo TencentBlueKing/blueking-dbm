@@ -107,6 +107,10 @@ func (d *InitSqlServerAct) Run() (err error) {
 			Func:    d.BaseService.PreCheckForInitSqlserver,
 		},
 		{
+			FunName: "生成expoter文件",
+			Func:    d.BaseService.CreateExporterConf,
+		},
+		{
 			FunName: "分配实例BUFFER",
 			Func:    d.BaseService.InitInstanceBuffer,
 		},
