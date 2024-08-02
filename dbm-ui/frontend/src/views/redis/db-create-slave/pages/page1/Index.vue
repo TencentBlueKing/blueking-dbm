@@ -65,7 +65,7 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox, Message } from 'bkui-vue';
+  import {  Message } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -107,13 +107,14 @@
       redis_slave: {
         spec_id: number,
         count: number,
+        old_slave_ip: string;
       }
     }[]
   }
 
   type RedisModel = ServiceReturnType<typeof listClustersCreateSlaveProxy>[number]
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number]
-
+  type MachineInstancePairItem = ServiceReturnType<typeof queryMasterSlavePairs>[number]['masters']
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -135,11 +136,11 @@
 
   const selected = shallowRef({ createSlaveIdleHosts: [] } as InstanceSelectorValues<IValue>);
 
-  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.ip)).length);
-  const inputedIps = computed(() => tableData.value.map(item => item.ip));
+  const totalNum = computed(() => tableData.value.filter(item => Boolean(item.slaveIp)).length);
+  const inputedIps = computed(() => tableData.value.map(item => item.slaveIp));
 
   // slave -> master
-  const slaveMasterMap: Record<string, string> = {};
+  const slaveMasterMap: Record<string, MachineInstancePairItem> = {};
 
   const tabListConfig = {
     [ClusterTypes.REDIS]: [
@@ -195,19 +196,19 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.ip;
+    return !firstRow.slaveIp;
   };
 
   // 更新slave -> master 映射表
-  const updateSlaveMasterMap = async () => {
-    const clusterIds = [...new Set(_.flatMap(tableData.value.map(item => item.clusterIds)))];
+  const updateSlaveMasterMap = async (ids?: number[]) => {
+    const clusterIds = ids ? ids : [...new Set(_.flatMap(tableData.value.map(item => item.clusterIds)))];
     const retArr = await Promise.all(clusterIds.map(id => queryMasterSlavePairs({
       cluster_id: id,
-    }).catch(() => null)));
+    })));
     retArr.forEach((pairs) => {
       if (pairs !== null) {
         pairs.forEach((item) => {
-          slaveMasterMap[item.slave_ip] = item.master_ip;
+          slaveMasterMap[item.slave_ip] = item.masters;
         });
       }
     });
@@ -223,7 +224,6 @@
 
   // 批量选择
   const handelMasterProxyChange = async (data: InstanceSelectorValues<IValue>) => {
-    console.log('select>>>',data);
     selected.value = data;
     const newList: IDataRow[] = [];
     const ips = data.createSlaveIdleHosts.map(item => item.ip);
@@ -239,16 +239,21 @@
       return results;
     }, {} as Record<string, ServiceReturnType<typeof getRedisMachineList>['results'][number]>);
 
+    const clusterIds = [...new Set(_.flatMap(Object.values(machineIpMap).map(item => item.related_clusters.map(cluster => cluster.id))))];
+
+    await updateSlaveMasterMap(clusterIds);
+
     data.createSlaveIdleHosts.forEach((item) => {
       const { ip } = item;
       if (!ipMemo[ip] && machineIpMap[ip].isSlaveFailover) {
         newList.push({
           rowKey: ip,
           isLoading: false,
-          ip,
+          slaveIp: ip,
+          masterIp: slaveMasterMap[item.ip].ip,
           clusterIds: machineIpMap[item.ip].related_clusters.map(item => item.id),
-          bkCloudId: item.bk_cloud_id,
-          bkHostId: item.bk_host_id,
+          bkCloudId: slaveMasterMap[item.ip].bk_cloud_id,
+          bkHostId: slaveMasterMap[item.ip].bk_host_id,
           cluster: {
             domain: machineIpMap[item.ip].related_clusters.map(item => item.immute_domain).join(','),
             isStart: false,
@@ -273,20 +278,20 @@
       tableData.value = [...tableData.value, ...newList];
     }
     sortTableByCluster();
-    updateSlaveMasterMap();
+    // updateSlaveMasterMap();
     window.changeConfirm = true;
   };
 
   // 输入IP后查询详细信息
   const handleChangeHostIp = async (index: number, ip: string) => {
     if (!ip) {
-      const { ip } = tableData.value[index];
-      ipMemo[ip] = false;
-      tableData.value[index].ip = '';
+      const { slaveIp } = tableData.value[index];
+      ipMemo[slaveIp] = false;
+      tableData.value[index].slaveIp = '';
       return;
     }
     tableData.value[index].isLoading = true;
-    tableData.value[index].ip = ip;
+    tableData.value[index].slaveIp = ip;
     const listResult = await getRedisMachineList({
       ip,
       add_role_count: true,
@@ -297,15 +302,21 @@
     if (listResult.results.length === 0) {
       return;
     }
+
     const data = listResult.results[0];
+
+    const clusterIds = data.related_clusters.map(item => item.id);
+
+    await updateSlaveMasterMap(clusterIds);
     if (data.isSlaveFailover) {
       const obj = {
         rowKey: tableData.value[index].rowKey,
         isLoading: false,
-        ip,
-        clusterIds: data.related_clusters.map(item => item.id),
-        bkCloudId: data.bk_cloud_id,
-        bkHostId: data.bk_host_id,
+        slaveIp: ip,
+        masterIp: slaveMasterMap[ip].ip,
+        clusterIds,
+        bkCloudId: slaveMasterMap[ip].bk_cloud_id,
+        bkHostId: slaveMasterMap[ip].bk_host_id,
         cluster: {
           domain: data.related_clusters.map(item => item.immute_domain).join(','),
           isStart: false,
@@ -323,7 +334,7 @@
       ipMemo[ip]  = true;
       sortTableByCluster();
     } else {
-      tableData.value[index].ip = '';
+      tableData.value[index].slaveIp = '';
       Message({
         theme: 'warning',
         message: t('无异常slave实例，无法重建'),
@@ -340,7 +351,7 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const removeItem = tableData.value[index];
-    const removeIp = removeItem.ip;
+    const removeIp = removeItem.slaveIp;
     tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
     sortTableByCluster();
@@ -352,7 +363,7 @@
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
     tableData.value.forEach((item) => {
-      if (item.ip) {
+      if (item.slaveIp) {
         const clusterName = item.cluster.domain;
         if (!clusterMap[clusterName]) {
           clusterMap[clusterName] = [item];
@@ -374,13 +385,14 @@
         sameArr.forEach((item) => {
           const pair = {
             redis_master: {
-              ip: item.ip,
+              ip: item.masterIp,
               bk_cloud_id: sameArr[0].bkCloudId,
               bk_host_id: sameArr[0].bkHostId,
             },
             redis_slave: {
               spec_id: specId,
               count: 1,
+              old_slave_ip: item.slaveIp,
             },
           };
           infoItem.pairs.push(pair);
@@ -395,41 +407,32 @@
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
-      await Promise.all(rowRefs.value.map((item: {
-        getValue: () => void
-      }) => item.getValue()));
+      await Promise.all(rowRefs.value.map((item: { getValue: () => void }) => item.getValue()));
+
+      const infos = generateRequestParam();
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
+        details: {
+          ip_source: 'resource_pool',
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisDBCreateSlave',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      })
     } finally {
       isSubmitting.value = false;
     }
-
-    const infos = generateRequestParam();
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
-      details: {
-        ip_source: 'resource_pool',
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认新建n台从库主机？', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () => {
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisDBCreateSlave',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        })
-      }
-    });
   };
 
   // 重置

@@ -16,7 +16,7 @@
     ref="editSelectRef"
     :list="list"
     :model-value="modelValue"
-    :placeholder="$t('请选择')"
+    :placeholder="t('请选择')"
     :rules="rules"
     @change="(value) => handleChange(value as string)" />
 </template>
@@ -30,11 +30,17 @@
     modelValue: string;
   }
 
+  interface Emits {
+    (e: 'change', value: string): void;
+  }
+
   interface Exposes {
     getValue: () => Promise<Record<string, string>>;
   }
 
   const props = defineProps<Props>();
+
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
   const rules = [
@@ -73,6 +79,7 @@
   );
   const handleChange = (value: string) => {
     localValue.value = value;
+    emits('change', value);
   };
 
   defineExpose<Exposes>({
