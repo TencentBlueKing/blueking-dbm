@@ -11,6 +11,8 @@ func ListEntry() (res []cron.Entry) {
 	for _, entry := range cronJob.Entries() {
 		if _, ok := entry.Job.(*config.ExternalJob); ok {
 			res = append(res, entry)
+		} else if _, ok := entry.Job.(*config.ScheduleJob); ok {
+			res = append(res, entry)
 		}
 	}
 	return res

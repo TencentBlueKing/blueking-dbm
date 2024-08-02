@@ -22,42 +22,41 @@ import (
 )
 
 // versionCmd represents the version command
-var disableJobCmd = &cobra.Command{
-	Use:   "disable-job",
-	Short: "disable crond entry",
-	Long:  `disable crond entry`,
+var enableJobCmd = &cobra.Command{
+	Use:   "enable-job",
+	Short: "enable crond entry",
+	Long:  `enable crond entry`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// var jobEntry api.JobDefine
 		var jobNames []string
 		permanent, _ := cmd.Flags().GetBool("permanent")
 		if jobName, _ := cmd.Flags().GetString("name"); jobName != "" {
 			jobNames = append(jobNames, jobName)
-			return disableEntry(cmd, jobNames, permanent)
+			return enableEntry(cmd, jobNames, permanent)
 		} else if nameMatch, _ := cmd.Flags().GetString("name-match"); nameMatch != "" {
-			entries := listEntries(cmd, api.JobStatusEnabled)
+			entries := listEntries(cmd, api.JobStatusDisabled)
 			if len(entries) == 0 {
 				return errors.Errorf("no job match %s", nameMatch)
 			}
 			for _, entry := range entries {
 				jobNames = append(jobNames, entry.Job.Name)
 			}
-			return disableEntry(cmd, jobNames, permanent)
+			return enableEntry(cmd, jobNames, permanent)
 		}
 		return nil
 	},
 }
 
 func init() {
-	disableJobCmd.Flags().StringP("name", "n", "", "full job name")
-	disableJobCmd.Flags().StringP("name-match", "m", "", "name-match using regex")
-	disableJobCmd.Flags().Bool("permanent", false, "permanent disable to config file, default false")
-	disableJobCmd.MarkFlagsOneRequired("name", "name-match")
-	disableJobCmd.MarkFlagsMutuallyExclusive("name", "name-match")
-	rootCmd.AddCommand(disableJobCmd)
+	enableJobCmd.Flags().StringP("name", "n", "", "full job name")
+	enableJobCmd.Flags().StringP("name-match", "m", "", "name-match using regex")
+	enableJobCmd.Flags().Bool("permanent", false, "permanent enable to config file, default false")
+	enableJobCmd.MarkFlagsOneRequired("name", "name-match")
+	enableJobCmd.MarkFlagsMutuallyExclusive("name", "name-match")
+	rootCmd.AddCommand(enableJobCmd)
 }
 
-func disableEntry(cmd *cobra.Command, jobNames []string, permanent bool) error {
-	// init config to get listen ip:port
+// enableEntry resume
+func enableEntry(cmd *cobra.Command, jobNames []string, permanent bool) error {
 	var err error
 	apiUrl := ""
 	configFile, _ := cmd.Flags().GetString("config")
@@ -66,9 +65,8 @@ func disableEntry(cmd *cobra.Command, jobNames []string, permanent bool) error {
 		os.Exit(1)
 	}
 	manager := api.NewManager(apiUrl)
-	//logger.Info("removing job_item to crond: %+v", jobItem)
 	for _, name := range jobNames {
-		_, err = manager.DisableByName(name, permanent)
+		_, err = manager.Resume(name, permanent)
 		if err != nil {
 			return err
 		}

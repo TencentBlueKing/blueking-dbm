@@ -12,9 +12,10 @@ import (
 	"github.com/spf13/viper"
 )
 
-// DisabledJobs TODO
+// DisabledJobs store *config.ExternalJob by name
 var DisabledJobs sync.Map
 
+// cronJob all active cronjob entries
 var cronJob *cron.Cron
 
 func init() {

@@ -6,8 +6,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Disable TODO
-func (m *Manager) Disable(name string, permanent bool) (int, error) {
+// DisableByName TODO
+func (m *Manager) DisableByName(name string, permanent bool) (int, error) {
 	body := struct {
 		Name      string `json:"name"`
 		Permanent bool   `json:"permanent"`
@@ -26,7 +26,7 @@ func (m *Manager) Disable(name string, permanent bool) (int, error) {
 	}{}
 	err = json.Unmarshal(resp, &res)
 	if err != nil {
-		return 0, errors.Wrap(err, "manager unmarshal /delete response")
+		return 0, errors.Wrap(err, "manager unmarshal /disable response")
 	}
 
 	return res.EntryId, nil

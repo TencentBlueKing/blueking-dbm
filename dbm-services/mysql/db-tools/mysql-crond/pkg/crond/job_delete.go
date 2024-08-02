@@ -9,7 +9,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// Delete TODO
+// Delete delete job from active job-list or disabled job-list
 func Delete(name string, permanent bool) (int, error) {
 	existEntry := findEntry(name)
 	if existEntry != nil {
@@ -41,7 +41,7 @@ func deleteActivate(entry *cron.Entry, permanent bool) (int, error) {
 			return 0, err
 		}
 	}
-	slog.Info("delete activity success", slog.String("name", j.Name))
+	slog.Info("delete active job success", slog.String("name", j.Name), slog.Bool("permanent", permanent))
 	return 0, nil
 }
 

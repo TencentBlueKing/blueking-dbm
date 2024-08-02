@@ -37,8 +37,7 @@ func addActivate(j *config.ExternalJob, permanent bool) (int, error) {
 	}
 	slog.Info(
 		"add job",
-		slog.String("name", j.Name),
-		slog.Int("entry id", int(entryID)),
+		slog.String("name", j.Name), slog.Bool("permanent", permanent), slog.Int("entry id", int(entryID)),
 	)
 
 	if permanent {
@@ -55,7 +54,7 @@ func addActivate(j *config.ExternalJob, permanent bool) (int, error) {
 func addDisabled(j *config.ExternalJob, permanent bool) (int, error) {
 	DisabledJobs.Store(j.Name, j)
 	slog.Info(
-		"add disabled job",
+		"add job disabled",
 		slog.String("name", j.Name),
 	)
 

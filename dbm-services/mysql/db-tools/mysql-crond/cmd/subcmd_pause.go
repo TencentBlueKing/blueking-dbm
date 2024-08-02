@@ -11,10 +11,11 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"dbm-services/mysql/db-tools/mysql-crond/api"
@@ -22,39 +23,42 @@ import (
 )
 
 // versionCmd represents the version command
-var delJobCmd = &cobra.Command{
-	Use:   "delJob",
-	Short: "del crond entry",
-	Long:  `del crond entry`,
+var pauseJobCmd = &cobra.Command{
+	Use:   "pause-job",
+	Short: "pause crond entry",
+	Long:  `pause crond entry`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var jobEntry api.JobDefine
-		if body, _ := cmd.Flags().GetString("body"); body != "" {
-			if err := json.Unmarshal([]byte(body), &jobEntry); err != nil {
-				return err
+		var jobNames []string
+		dura, _ := cmd.Flags().GetDuration("duration")
+		if jobName, _ := cmd.Flags().GetString("name"); jobName != "" {
+			jobNames = append(jobNames, jobName)
+			return pauseEntry(cmd, jobNames, dura)
+		} else if nameMatch, _ := cmd.Flags().GetString("name-match"); nameMatch != "" {
+			entries := listEntries(cmd, api.JobStatusEnabled)
+			if len(entries) == 0 {
+				return errors.Errorf("no job match %s", nameMatch)
 			}
+			for _, entry := range entries {
+				jobNames = append(jobNames, entry.Job.Name)
+			}
+			return pauseEntry(cmd, jobNames, dura)
 		} else {
-			jobName, _ := cmd.Flags().GetString("name")
-			jobEntry = api.JobDefine{
-				Name: jobName,
-			}
+
 		}
-		return delEntry(cmd, jobEntry)
+		return nil
 	},
 }
 
 func init() {
-	/*
-		delJobCmd.Flags().StringP("config", "c", "", "config file")
-		_ = viper.BindPFlag("del-config", delJobCmd.Flags().Lookup("config"))
-	*/
-	delJobCmd.Flags().StringP("name", "n", "", "name")
-	delJobCmd.Flags().Bool("permanent", false, "permanent delete,  default false")
-	_ = delJobCmd.MarkFlagRequired("name")
-
-	rootCmd.AddCommand(delJobCmd)
+	pauseJobCmd.Flags().StringP("name", "n", "", "full job name")
+	pauseJobCmd.Flags().StringP("name-match", "m", "", "name-match using regex")
+	pauseJobCmd.Flags().DurationP("duration", "r", 1*time.Hour, "pause job duration， default 1h")
+	pauseJobCmd.MarkFlagsOneRequired("name", "name-match")
+	pauseJobCmd.MarkFlagsMutuallyExclusive("name", "name-match")
+	rootCmd.AddCommand(pauseJobCmd)
 }
 
-func delEntry(cmd *cobra.Command, entry api.JobDefine) error {
+func pauseEntry(cmd *cobra.Command, jobNames []string, dura time.Duration) error {
 	// init config to get listen ip:port
 	var err error
 	apiUrl := ""
@@ -64,10 +68,11 @@ func delEntry(cmd *cobra.Command, entry api.JobDefine) error {
 		os.Exit(1)
 	}
 	manager := api.NewManager(apiUrl)
-	//logger.Info("removing job_item to crond: %+v", jobItem)
-	_, err = manager.Delete(entry.Name, true)
-	if err != nil {
-		return err
+	for _, name := range jobNames {
+		_, err = manager.Pause(name, dura)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

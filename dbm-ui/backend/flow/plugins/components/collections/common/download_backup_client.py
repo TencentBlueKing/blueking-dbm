@@ -15,7 +15,6 @@ from pipeline.component_framework.component import Component
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType
 from backend.components.mysql_backup.client import MysqlBackupApi
-from backend.flow.consts import BACKUP_TAG
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("flow")
@@ -63,7 +62,7 @@ class DownloadBackupClientService(BaseService):
                 {"bk_cloud_id": int(kwargs["bk_cloud_id"]), "bk_biz_id": int(kwargs["bk_biz_id"]), "ip": ip}
                 for ip in kwargs["download_host_list"]
             ],
-            "file_tag": BACKUP_TAG,
+            "file_tag": "",  # not set tag by client
             "cos_info_render": {
                 "auth_path": f"/home/{kwargs['backup_os_user']}/.cosinfo.toml",
                 "os_user": kwargs["backup_os_user"],

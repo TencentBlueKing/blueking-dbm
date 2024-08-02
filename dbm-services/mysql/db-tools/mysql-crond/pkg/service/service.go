@@ -8,6 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
+	"github.com/robfig/cron"
+
+	"dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/crond"
 
@@ -55,23 +59,41 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 	)
 
 	r.GET(
-		"/entries", func(context *gin.Context) {
-			context.JSON(
-				http.StatusOK, gin.H{
-					"entries": crond.ListEntry(),
-				},
-			)
+		"/entries", func(ctx *gin.Context) {
+			name := ctx.Query("name")
+			nameMatch := ctx.Query("name-match") // ctx.Request.URL.Query().Get
+			status := ctx.Query("status")        // enabled,disabled
+			var entries []*api.SimpleEntry
+			var err error
+			if name != "" { // handle param: name
+				entry := crond.FindEntryByName(name)
+				entries = append(entries, entry)
+				ctx.JSON(http.StatusOK, gin.H{"entries": entries})
+				return
+			}
+			entries, err = crond.FindEntryByNameLike(nameMatch, status) // handle param: name-match
+			if err != nil {
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
+				return
+			} else {
+				ctx.JSON(
+					http.StatusOK, gin.H{
+						"entries": entries,
+					},
+				)
+			}
 		},
 	)
 	r.POST(
-		"/disable", func(context *gin.Context) {
+		"/disable", func(ctx *gin.Context) {
 			body := struct {
 				Name      string `json:"name" binding:"required"`
 				Permanent *bool  `json:"permanent" binding:"required"`
 			}{}
-			err := context.BindJSON(&body)
+			err := ctx.BindJSON(&body)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusBadRequest, err)
+				ctx.AbortWithStatusJSON(http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
 				return
 			}
 
@@ -81,11 +103,11 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}()
 			entryID, err := crond.Disable(body.Name, *body.Permanent)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusInternalServerError, err)
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
 				return
 			}
 
-			context.JSON(
+			ctx.JSON(
 				http.StatusOK, gin.H{
 					"entry_id": entryID,
 				},
@@ -93,14 +115,56 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 		},
 	)
 	r.POST(
-		"/pause", func(context *gin.Context) {
+		"/schedule/change", func(ctx *gin.Context) {
+			body := struct {
+				Name      string `json:"name" binding:"required"`
+				Schedule  string `json:"schedule" binding:"required"`
+				Permanent *bool  `json:"permanent" binding:"required"`
+			}{}
+			err := ctx.BindJSON(&body)
+			if err != nil {
+				ctx.AbortWithStatusJSON(http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
+				return
+			}
+
+			m.Lock()
+			defer func() {
+				m.Unlock()
+			}()
+			newJob := &config.ExternalJob{
+				Name:     body.Name,
+				Schedule: body.Schedule,
+			}
+			if _, err := cron.Parse(newJob.Schedule); err != nil {
+				ctx.AbortWithStatusJSON(http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest,
+						errors.Wrapf(err, "invalid schedule format %s", newJob.Schedule)))
+				return
+			}
+
+			entryID, err := crond.ScheduleChange(newJob, *body.Permanent)
+			if err != nil {
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
+				return
+			}
+			ctx.JSON(
+				http.StatusOK, gin.H{
+					"entry_id": entryID,
+				},
+			)
+		},
+	)
+	r.POST(
+		"/pause", func(ctx *gin.Context) {
 			body := struct {
 				Name     string        `json:"name" binding:"required"`
 				Duration time.Duration `json:"duration" binding:"required"`
 			}{}
-			err := context.BindJSON(&body)
+			err := ctx.BindJSON(&body)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusBadRequest, err)
+				ctx.AbortWithStatusJSON(http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
 				return
 			}
 
@@ -110,11 +174,10 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}()
 			entryID, err := crond.Pause(body.Name, body.Duration)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusInternalServerError, err)
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
 				return
 			}
-
-			context.JSON(
+			ctx.JSON(
 				http.StatusOK, gin.H{
 					"entry_id": entryID,
 				},
@@ -122,14 +185,15 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 		},
 	)
 	r.POST(
-		"/create_or_replace", func(context *gin.Context) {
+		"/create_or_replace", func(ctx *gin.Context) {
 			body := struct {
 				Job       *config.ExternalJob `json:"job" binding:"required"`
 				Permanent *bool               `json:"permanent" binding:"required"`
 			}{}
-			err := context.BindJSON(&body)
+			err := ctx.BindJSON(&body)
 			if err != nil {
-				context.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+				ctx.AbortWithStatusJSON(http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
 				return
 			}
 			m.Lock()
@@ -139,11 +203,10 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			body.Job.SetupChannel( /*config.RuntimeConfig.Ip*/ )
 			entryID, err := crond.CreateOrReplace(body.Job, *body.Permanent)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusInternalServerError, err)
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
 				return
 			}
-
-			context.JSON(
+			ctx.JSON(
 				http.StatusOK, gin.H{
 					"entry_id": entryID,
 				},
@@ -151,14 +214,15 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 		},
 	)
 	r.POST(
-		"/resume", func(context *gin.Context) {
+		"/resume", func(ctx *gin.Context) {
 			body := struct {
 				Name      string `json:"name" binding:"required"`
 				Permanent *bool  `json:"permanent" binding:"required"`
 			}{}
-			err := context.BindJSON(&body)
+			err := ctx.BindJSON(&body)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusBadRequest, err)
+				ctx.AbortWithStatusJSON(http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
 				return
 			}
 
@@ -168,11 +232,11 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}()
 			entryID, err := crond.Resume(body.Name, *body.Permanent)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusInternalServerError, err)
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
 				return
 			}
 
-			context.JSON(
+			ctx.JSON(
 				http.StatusOK, gin.H{
 					"entry_id": entryID,
 				},
@@ -189,14 +253,15 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 		},
 	)
 	r.POST(
-		"/delete", func(context *gin.Context) {
+		"/delete", func(ctx *gin.Context) {
 			body := struct {
 				Name      string `json:"name" binding:"required"`
 				Permanent *bool  `json:"permanent" binding:"required"`
 			}{}
-			err := context.BindJSON(&body)
+			err := ctx.BindJSON(&body)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusBadRequest, err)
+				ctx.AbortWithStatusJSON(http.StatusBadRequest,
+					api.NewErrorResp(http.StatusBadRequest, errors.Wrap(err, "request param")))
 				return
 			}
 
@@ -206,11 +271,11 @@ func Start(version string, buildStamp string, gitHash string, quit chan struct{}
 			}()
 			entryID, err := crond.Delete(body.Name, *body.Permanent)
 			if err != nil {
-				_ = context.AbortWithError(http.StatusInternalServerError, err)
+				ctx.AbortWithStatusJSON(http.StatusInternalServerError, api.NewErrorResp(500, err))
 				return
 			}
 
-			context.JSON(
+			ctx.JSON(
 				http.StatusOK, gin.H{
 					"entry_id": entryID,
 				},
