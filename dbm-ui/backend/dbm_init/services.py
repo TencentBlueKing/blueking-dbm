@@ -130,6 +130,8 @@ class Services:
                     bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_mysql.__name__)
                 elif "redis" in filename:
                     bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_redis.__name__)
+                elif "mssql" in filename:
+                    bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_mssql.__name__)
                 else:
                     logger.warning(f"格式化函数{log_name}不存在(如果无需格式化json可忽略)")
 
