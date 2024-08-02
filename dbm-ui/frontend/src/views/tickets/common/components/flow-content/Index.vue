@@ -126,6 +126,10 @@
           }">
           {{ content.summary }}
         </span>
+        <template v-if="content.err_msg">
+          <span>，{{ t('处理人') }}: </span>
+          <span>{{ ticketData.updater }}</span>
+        </template>
       </template>
       <template v-if="content.summary">
         ，{{ t('耗时') }}：
