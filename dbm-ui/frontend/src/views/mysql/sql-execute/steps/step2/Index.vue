@@ -13,70 +13,26 @@
 
 <template>
   <div class="mysql-sql-execute-log-page">
-    <div>
-      <Component :is="renderStatusCom" />
-    </div>
-    <div class="log-layout">
-      <div
-        v-if="isShowFileList"
-        class="layout-left">
-        <RenderFileList
-          v-model="selectFileName"
-          :list="fileDataList" />
-      </div>
-      <div
-        class="layout-right"
-        style="width: 690px">
-        <div class="log-header">
-          <div>{{ $t('执行日志') }}</div>
-          <div
-            v-if="currentSelectFileData?.isPending"
-            class="log-status">
-            <DbIcon
-              class="rotate-loading"
-              svg
-              type="sync-pending" />
-            <span style="padding-left: 4px; font-size: 12px">{{ $t('执行中') }}</span>
-          </div>
-          <div
-            v-if="currentSelectFileData?.isFailed"
-            class="log-status">
-            <DbIcon
-              style="color: #ea3636"
-              svg
-              type="delete-fill" />
-            <span style="padding-left: 4px; font-size: 12px">{{ $t('执行失败') }}</span>
-          </div>
-          <div
-            v-if="currentSelectFileData?.isWaiting"
-            class="log-status">
-            <span style="padding-left: 4px; font-size: 12px">{{ $t('待执行') }}</span>
-          </div>
-        </div>
-        <div style="height: calc(100vh - 476px)">
-          <RenderLog :data="renderLog" />
-        </div>
-      </div>
-    </div>
+    <Component :is="renderStatusCom" />
     <div class="sql-execute-more-action-box">
       <template v-if="flowStatus === 'failed'">
         <BkButton @click="handleGoEdit">
-          {{ $t('返回修改') }}
+          {{ t('返回修改') }}
         </BkButton>
         <BkButton
           class="ml8 w-88"
           :loading="isSubmiting"
           theme="primary"
           @click="handleSubmitTicket">
-          {{ $t('继续提交') }}
+          {{ t('继续提交') }}
         </BkButton>
         <DbPopconfirm
           class="ml8"
           :confirm-handler="handleDeleteUserSemanticTasks"
-          :content="$t('返回修改会中断当前操作_请谨慎操作')"
-          :title="$t('确认终止')">
+          :content="t('返回修改会中断当前操作_请谨慎操作')"
+          :title="t('确认终止')">
           <BkButton :loading="isDeleteing">
-            {{ $t('废弃') }}
+            {{ t('废弃') }}
           </BkButton>
         </DbPopconfirm>
       </template>
@@ -84,59 +40,121 @@
         <DbPopconfirm
           class="ml8"
           :confirm-handler="handleRevokeSemanticCheck"
-          :content="$t('返回修改会中断当前操作_请谨慎操作')"
-          :title="$t('确认终止')">
+          :content="t('返回修改会中断当前操作_请谨慎操作')"
+          :title="t('确认终止')">
           <BkButton :loading="isRevokeing">
-            {{ $t('终止执行') }}
+            {{ t('终止执行') }}
           </BkButton>
         </DbPopconfirm>
         <BkButton
           class="ml8"
           @click="handleLastStep">
-          {{ $t('返回继续提单') }}
+          {{ t('返回继续提单') }}
         </BkButton>
       </template>
+    </div>
+    <div
+      v-if="flowStatus !== 'pending'"
+      class="mt-16"
+      style="padding: 0 45px">
+      <BkTable :data="semanticExecuteResult">
+        <BKTableColumn
+          field="dbnames"
+          :label="t('变更的 DB')"
+          :width="200">
+          <template #default="{ data }">
+            <BkTag
+              v-for="(tag, index) in data.dbnames"
+              :key="index">
+              {{ tag }}
+            </BkTag>
+          </template>
+        </BKTableColumn>
+        <BKTableColumn
+          field="ignore_dbnames"
+          :label="t('忽略的 DB')"
+          :width="200">
+          <template #default="{ data }">
+            <template v-if="data.ignore_dbnames.length > 0">
+              <BkTag
+                v-for="(tag, index) in data.ignore_dbnames"
+                :key="index">
+                {{ tag }}
+              </BkTag>
+            </template>
+            <span v-else>--</span>
+          </template>
+        </BKTableColumn>
+        <BKTableColumn
+          field="status"
+          :label="t('SQL 文件执行结果')"
+          :width="200">
+          <template #default="{ data }">
+            <span v-if="data.status === 'Failed'">
+              <DbIcon
+                svg
+                type="sync-failed" />
+              {{ t('失败') }}
+            </span>
+            <span v-else-if="data.status === 'Success'">
+              <DbIcon
+                svg
+                type="sync-failed" />
+              {{ t('失败') }}
+            </span>
+            <span v-else>
+              <DbIcon
+                svg
+                type="sync-default" />
+              {{ t('待执行') }}
+            </span>
+          </template>
+        </BKTableColumn>
+        <BKTableColumn :label="t('失败原因')">
+          <template #default="{ data }">
+            <div style="font-size: 12px; font-weight: bold; color: #ea3636; line-height: 22px">
+              {{ data.file_name }}
+            </div>
+            <div style="color: #63656e; line-height: 20px; margin-top: 4px">{{ data.err_msg }}</div>
+          </template>
+        </BKTableColumn>
+      </BkTable>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import { deleteUserSemanticTasks, querySemanticData, revokeSemanticCheck } from '@services/source/sqlImport';
+  import {
+    deleteUserSemanticTasks,
+    getSemanticExecuteResult,
+    querySemanticData,
+    revokeSemanticCheck,
+  } from '@services/source/sqlImport';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
-  import RenderFileList, { type IFileItem } from './components/render-file-list/Index.vue';
   import StatusFailed from './components/render-status/Failed.vue';
   import StatusPending from './components/render-status/Pending.vue';
   import StatusSuccess from './components/render-status/Success.vue';
-  import RenderLog from './components/RenderLog.vue';
   import useFlowStatus from './hooks/useFlowStatus';
-  import useLog from './hooks/useLog';
 
   const router = useRouter();
   const route = useRoute();
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const { rootId, nodeId } = route.query as { rootId: string; nodeId: string };
+  const { rootId } = route.query as { rootId: string; nodeId: string };
 
-  const selectFileName = ref('');
-  const fileImportMode = ref('');
   const ticketMode = ref('');
-  const fileNameList = ref<string[]>([]);
   const isSubmiting = ref(false);
-  const isRevokeing = ref(false);
-  const isDeleteing = ref(false);
-  const renderLog = shallowRef<any[]>([]);
 
   // 执行状态
   const { flowStatus, ticketId: flowTicketId } = useFlowStatus(rootId);
-
-  // 执行日志
-  const { wholeLogList, fileLogMap } = useLog(rootId, nodeId);
 
   // 执行状态
   const renderStatusCom = computed(() => {
@@ -149,36 +167,48 @@
     return statusComMap[flowStatus.value as keyof typeof statusComMap];
   });
 
-  const fileDataList = computed<IFileItem[]>(() => fileNameList.value.map(name => ({
-    name,
-    isPending: fileLogMap.value[name]?.status === 'RUNNING',
-    isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
-    isFailed: fileLogMap.value[name]?.status === 'FAILED',
-    isWaiting: fileLogMap.value[name]?.status === 'PENDING',
-  })));
+  const { data: semanticExecuteResult, run: runGetSemanticExecuteResult } = useRequest(getSemanticExecuteResult, {
+    manual: true,
+  });
 
-  const currentSelectFileData = computed(() =>
-    _.find(fileDataList.value, (item) => item.name === selectFileName.value),
-  );
-  // 本地文件需要显示文件列表
-  const isShowFileList = computed(() => fileImportMode.value === 'file');
+  useRequest(querySemanticData, {
+    defaultParams: [
+      {
+        root_id: rootId,
+      },
+    ],
+    onSuccess(data) {
+      ticketMode.value = data.ticket_mode.mode;
+    },
+  });
 
+  const { loading: isRevokeing, run: runRevokeSemanticCheck } = useRequest(revokeSemanticCheck, {
+    manual: true,
+    onSuccess() {
+      router.push({
+        name: 'MySQLExecute',
+      });
+    },
+  });
 
-  watch([fileImportMode, selectFileName, fileLogMap], () => {
-    if (fileImportMode.value === 'file') {
-      // SQL 文件显示对应文件执行日志
-      // 若没有任何一个文件的执行日志，则显示启动的完整的日志
-      renderLog.value = fileLogMap.value[selectFileName.value]?.match_logs || wholeLogList.value;
-    } else {
-      // 手动输入显示所有文件
-      renderLog.value = wholeLogList.value;
-    }
+  const { loading: isDeleteing, run: runDeleteUserSemanticTasks } = useRequest(deleteUserSemanticTasks, {
+    manual: true,
+    onSuccess() {
+      router.push({
+        name: 'MySQLExecute',
+      });
+    },
   });
 
   // 执行成功自动跳转
   watch(
     flowStatus,
     () => {
+      if (flowStatus.value !== 'pending') {
+        runGetSemanticExecuteResult({
+          root_id: rootId,
+        });
+      }
       if (flowStatus.value === 'successed') {
         router.push({
           name: 'MySQLExecute',
@@ -196,28 +226,6 @@
       immediate: true,
     },
   );
-
-  const fetchSemanticData = () => {
-    querySemanticData({
-      bk_biz_id: currentBizId,
-      root_id: rootId,
-    }).then((data) => {
-      // 任务没成功轮询
-      if (!data.sql_data_ready) {
-        setTimeout(() => {
-          fetchSemanticData();
-        }, 2000);
-        return;
-      }
-      fileImportMode.value = data.import_mode;
-      fileNameList.value = data.semantic_data.execute_sql_files.map((item) => item.replace(/[^_]+_/, ''));
-      ticketMode.value = data.semantic_data.ticket_mode.mode;
-      // 默认选中第一个问题件
-      [selectFileName.value] = fileNameList.value;
-    });
-  };
-
-  fetchSemanticData();
 
   // 提交单据
   const handleSubmitTicket = () => {
@@ -261,36 +269,16 @@
 
   // 终止语义检测
   const handleRevokeSemanticCheck = () => {
-    isRevokeing.value = true;
-    return revokeSemanticCheck({
-      bk_biz_id: currentBizId,
+    runRevokeSemanticCheck({
       root_id: rootId,
-    })
-      .then(() => {
-        router.push({
-          name: 'MySQLExecute',
-        });
-      })
-      .finally(() => {
-        isRevokeing.value = false;
-      });
+    });
   };
 
   const handleDeleteUserSemanticTasks = () => {
-    isDeleteing.value = true;
-    return deleteUserSemanticTasks({
-      bk_biz_id: currentBizId,
+    runDeleteUserSemanticTasks({
       task_ids: [rootId],
       cluster_type: 'mysql',
-    })
-      .then(() => {
-        router.push({
-          name: 'MySQLExecute',
-        });
-      })
-      .finally(() => {
-        isDeleteing.value = false;
-      });
+    });
   };
 
   // 返回继续提单

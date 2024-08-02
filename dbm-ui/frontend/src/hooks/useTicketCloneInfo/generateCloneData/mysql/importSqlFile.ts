@@ -13,23 +13,16 @@
 import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
 
-import { random } from '@utils';
-
 // Mysql SQL变更执行
 export function generateMysqlImportSqlFileCloneData(ticketData: TicketModel<MySQLImportSQLFileDetails>) {
   const { details } = ticketData;
-  const dbInfosCount = details.execute_objects.length / details.execute_sql_files.length;
   return Promise.resolve({
     backup: details.backup,
     charset: details.charset,
-    ticket_mode: details.ticket_mode,
-    import_mode: details.import_mode,
     cluster_ids: details.cluster_ids,
-    execute_sql_files: details.execute_sql_files,
+    execute_objects: details.execute_objects,
+    ticket_mode: details.ticket_mode,
+    execute_sql_files: details.execute_sql_files as string[],
     path: details.path,
-    execute_db_infos: details.execute_objects.slice(0, dbInfosCount).map((item) => ({
-      ...item,
-      rowKey: random(),
-    })),
   });
 }

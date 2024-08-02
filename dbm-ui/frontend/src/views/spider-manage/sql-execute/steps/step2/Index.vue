@@ -154,13 +154,15 @@
     return statusComMap[flowStatus.value as keyof typeof statusComMap];
   });
 
-  const fileDataList = computed<IFileItem[]>(() => fileNameList.value.map(name => ({
-    name,
-    isPending: fileLogMap.value[name]?.status === 'RUNNING',
-    isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
-    isFailed: fileLogMap.value[name]?.status === 'FAILED',
-    isWaiting: fileLogMap.value[name]?.status === 'PENDING',
-  })));
+  const fileDataList = computed<IFileItem[]>(() =>
+    fileNameList.value.map((name) => ({
+      name,
+      isPending: fileLogMap.value[name]?.status === 'RUNNING',
+      isSuccessed: fileLogMap.value[name]?.status === 'SUCCEEDED',
+      isFailed: fileLogMap.value[name]?.status === 'FAILED',
+      isWaiting: fileLogMap.value[name]?.status === 'PENDING',
+    })),
+  );
 
   const currentSelectFileData = computed(() =>
     _.find(fileDataList.value, (item) => item.name === selectFileName.value),
@@ -203,21 +205,21 @@
 
   const fetchSemanticData = () => {
     querySemanticData({
-      bk_biz_id: currentBizId,
       root_id: rootId,
-    }).then((data) => {
+    }).then((semanticData) => {
       // 任务没成功轮询
-      if (!data.sql_data_ready) {
-        setTimeout(() => {
-          fetchSemanticData();
-        }, 2000);
-        return;
-      }
-      fileImportMode.value = data.import_mode;
-      fileNameList.value = data.semantic_data.execute_sql_files.map((item) => item.replace(/[^_]+_/, ''));
-      ticketMode.value = data.semantic_data.ticket_mode.mode;
-      // 默认选中第一个问题件
-      [selectFileName.value] = fileNameList.value;
+      // if (!data.sql_data_ready) {
+      //   setTimeout(() => {
+      //     fetchSemanticData();
+      //   }, 2000);
+      //   return;
+      // }
+      // fileImportMode.value = data.import_mode;
+      // fileNameList.value = data.semantic_data.execute_sql_files.map((item) => item.replace(/[^_]+_/, ''));
+      // ticketMode.value = semanticData.ticket_mode.mode;
+      // // 默认选中第一个问题件
+      // [selectFileName.value] = fileNameList.value;
+      console.log('semanticData = ', semanticData);
     });
   };
 
@@ -267,7 +269,6 @@
   const handleRevokeSemanticCheck = () => {
     isRevokeing.value = true;
     return revokeSemanticCheck({
-      bk_biz_id: currentBizId,
       root_id: rootId,
     }).finally(() => {
       isRevokeing.value = false;
@@ -277,7 +278,6 @@
   const handleDeleteUserSemanticTasks = () => {
     isDeleteing.value = true;
     return deleteUserSemanticTasks({
-      bk_biz_id: currentBizId,
       task_ids: [rootId],
       cluster_type: 'tendbcluster',
     })

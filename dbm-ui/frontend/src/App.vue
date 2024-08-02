@@ -62,7 +62,7 @@
 
   import { useSQLTaskNotify } from '@hooks';
 
-  import { useFunController,useUserProfile } from '@stores';
+  import { useFunController, useUserProfile } from '@stores';
 
   import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';

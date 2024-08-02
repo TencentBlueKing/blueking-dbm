@@ -16,7 +16,7 @@
     <div
       ref="textRef"
       v-bk-tooltips="{
-        content: data || placeholder,
+        content: data || placeholder || '',
         disabled: !isOverflow,
       }"
       class="render-text-box"

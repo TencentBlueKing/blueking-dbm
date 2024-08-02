@@ -36,7 +36,7 @@
           <span
             class="tip-number"
             style="color: #3a84ff">
-            {{ ticketDetails.details.execute_sql_files.length }}
+            {{ uploadFileList.length }}
           </span>
           <span
             class="tip-number"
@@ -110,8 +110,7 @@
       <div class="editor-layout-left">
         <RenderFileList
           v-model="selectFileName"
-          :data="uploadFileList"
-          @sort="handleFileSortChange" />
+          :data="uploadFileList" />
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
@@ -130,6 +129,7 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
 
   import type { MySQLForceImportSQLFileExecuteSqlFiles,MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
@@ -147,12 +147,6 @@
 
   interface Props {
     ticketDetails: TicketModel<MySQLImportSQLFileDetails>
-  }
-
-  interface RowData {
-    immute_domain: string,
-    cluster_type: string,
-    status: string,
   }
 
   const props = defineProps<Props>();
@@ -173,13 +167,12 @@
   const selectFileName = ref('');
 
   const fileContentMap = shallowRef<Record<string, string>>({});
-  const uploadFileList = shallowRef<Array<string>>([]);
   const isShow = ref(false);
 
   const clusterState = reactive({
     clusterType: '',
     tableProps: {
-      data: [] as RowData[],
+      data: [] as ValueOf<MySQLImportSQLFileDetails['clusters']>[],
       pagination: useDefaultPagination(),
       columns: [
         {
@@ -190,7 +183,13 @@
         },
         {
           label: t('类型'),
+          width: 220,
           field: 'cluster_type',
+          render: ({ cell }: { cell: string }) => <span>{cell}</span>,
+        },
+        {
+          label: t('版本'),
+          field: 'major_version',
           render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
         },
         {
@@ -209,6 +208,8 @@
     },
   });
 
+
+  const uploadFileList = computed(() => isForceSql.value ? (props.ticketDetails.details.execute_sql_files as MySQLForceImportSQLFileExecuteSqlFiles[]).map(item => item.sql_path) : _.flatten(props.ticketDetails.details.execute_objects.map(item => item.sql_files)))
   const highRiskNum = computed(() => props.ticketDetails.details.grammar_check_info ? Object.values(props.ticketDetails.details.grammar_check_info)
     .reduce((results, item) => {
       if (item.highrisk_warnings) {
@@ -250,6 +251,20 @@
           }}>
           {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
         </div>
+      ),
+    },
+    {
+      label: t('执行的 SQL'),
+      field: 'sql_files',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
+        cell.map((item, index) => (
+          <div style="line-height: 20px;" key={index}>
+            <bk-button text theme="primary" onClick={() => handleSelectFile(item)}>
+              {item}
+            </bk-button>
+          </div>
+        ))
       ),
     },
   ];
@@ -342,10 +357,8 @@
   // 查看日志详情
   const handleClickFile = () => {
     isShow.value = true;
-    const uploadSQLFileList = isForceSql.value ? (props.ticketDetails.details.execute_sql_files as MySQLForceImportSQLFileExecuteSqlFiles[]).map(item => item.sql_path) : props.ticketDetails.details.execute_sql_files as string[];
-    uploadFileList.value = uploadSQLFileList;
 
-    const filePathList = uploadSQLFileList.reduce((result, item) => {
+    const filePathList = uploadFileList.value.reduce((result, item) => {
       result.push(isForceSql.value ? item : `${props.ticketDetails.details.path}/${item}`);
       return result;
     }, [] as string[]);
@@ -360,33 +373,25 @@
         });
       }, {} as Record<string, string>);
 
-      [selectFileName.value] = uploadSQLFileList;
+      [selectFileName.value] = uploadFileList.value;
     });
   };
+
+  const handleSelectFile = (filename: string) => {
+    selectFileName.value = filename;
+    isShow.value = true;
+  }
 
   const handleClose = () => {
     isShow.value = false;
   };
 
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileList.value = list;
-  };
-
   // 目标集群
   onBeforeMount(() => {
-    const { clusters, cluster_ids: clusterIds } = props.ticketDetails.details;
-    clusterState.tableProps.pagination.count = clusterIds.length;
-    clusterState.tableProps.data = clusterIds.reduce((results, id) => {
-      const clusterType = clusters[id].cluster_type;
-      clusterState.clusterType = clusterType === 'tendbha' ? t('主从') : t('单节点');
-      const type = clusterType === 'tendbcluster' ? 'spider' : clusterType;
-      results.push({
-        immute_domain: clusters[id].immute_domain,
-        cluster_type: type,
-        status: clusters[id].status
-      });
-      return results;
-    }, [] as RowData[]);
+    const { clusters } = props.ticketDetails.details
+    clusterState.tableProps.data = Object.values(clusters);
+    clusterState.tableProps.pagination.count = clusterState.tableProps.data.length;
+    clusterState.clusterType = clusterState.tableProps.data[0].cluster_type_name
   });
 </script>
 

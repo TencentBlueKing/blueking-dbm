@@ -20,7 +20,7 @@
             keypath="共n个文件，含有m个高危语句"
             tag="div">
             <span style="font-weight: 700; color: #63656e">
-              {{ ticketData.details.execute_sql_files.length }}
+              {{ executeSqlFileList.length }}
             </span>
             <span style="font-weight: 700; color: #ea3636">
               {{ totalWarnCount }}
@@ -36,8 +36,10 @@
                 style="color: #3a84ff"
                 type="file" />
               <span>
-                <span style="color: #3a84ff">{{ fileName.replace(/[^_]+_/, '') }}</span
-                >，
+                <span style="color: #3a84ff">
+                  {{ fileName?.replace(/[^_]+_/, '') }}
+                </span>
+                ，
                 <span v-if="ticketData.details.grammar_check_info[fileName].highrisk_warnings?.length > 0">
                   <I18nT
                     keypath="含有n个高危语句"
@@ -71,14 +73,14 @@
         <p>
           <span
             v-if="counts.fail === 0"
-            style="color: #2dcb56"
-            >{{ t('执行成功') }}</span
-          >
+            style="color: #2dcb56">
+            {{ t('执行成功') }}
+          </span>
           <span
             v-else
-            style="color: #ea3636"
-            >{{ t('执行失败') }}</span
-          >
+            style="color: #ea3636">
+            {{ t('执行失败') }}
+          </span>
           , {{ t('共执行') }}
           <span class="sql-count">{{ sqlFileTotal }}</span>
           {{ t('个SQL文件_成功') }}
@@ -150,13 +152,15 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { semanticCheckResultLogs } from '@services/source/sqlImport';
   import { batchFetchFile } from '@services/source/storage';
-  import type { FlowItem, MySQLImportSQLFileDetails } from '@services/types/ticket';
+  import type { FlowItem } from '@services/types/ticket';
 
   import RenderFileContent from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/RenderFileContent.vue';
   import RenderFileList from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/SqlFileList.vue';
@@ -195,13 +199,15 @@
     fail: 0,
   });
 
-  const isShowMore = computed(() => props.ticketData.details.execute_sql_files.length > 6);
+  const executeSqlFileList = computed(() => _.flatten(props.ticketData.details.execute_objects.map(item => item.sql_files)))
+
+  const isShowMore = computed(() => executeSqlFileList.value.length > 6);
 
   const sqlFileNames = computed(() => {
     if (isShowMore.value && !isShowCollapse.value) {
-      return props.ticketData.details.execute_sql_files.slice(0, 6);
+      return executeSqlFileList.value.slice(0, 6);
     }
-    return props.ticketData.details.execute_sql_files;
+    return executeSqlFileList.value;
   });
 
   const totalWarnCount = computed(() => Object.values(props.ticketData.details.grammar_check_info)
@@ -226,7 +232,7 @@
     icon: () => <FlowIcon data={flow} />,
   })));
 
-  const sqlFileTotal = computed(() => props.ticketData.details.execute_sql_files?.length || 0);
+  const sqlFileTotal = computed(() => executeSqlFileList.value?.length || 0);
   const rootId = computed(() => props.ticketData.details.root_id);
   const nodeId = computed(() => props.ticketData.details.semantic_node_id);
 
@@ -282,7 +288,7 @@
   };
 
   onMounted(() => {
-    const uploadSQLFileList = props.ticketData.details.execute_sql_files;
+    const uploadSQLFileList = executeSqlFileList.value;
     uploadFileList.value = uploadSQLFileList;
 
     const filePathList = uploadSQLFileList.reduce((result, item) => {
@@ -299,7 +305,7 @@
           [fileName]: fileInfo.content,
         });
       }, {} as Record<string, string>);
-      // [selectFileName.value] = uploadSQLFileList;
+      [selectFileName.value] = uploadSQLFileList;
     });
   });
 </script>
