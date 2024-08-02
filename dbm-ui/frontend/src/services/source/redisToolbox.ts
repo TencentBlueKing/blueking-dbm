@@ -37,7 +37,9 @@ export function queryMasterSlavePairs(params: { cluster_id: number }) {
   return http.post<
     {
       master_ip: string;
+      masters: MachineInstancePairItem;
       slave_ip: string;
+      slaves: MachineInstancePairItem;
     }[]
   >(`${getRootPath()}/query_master_slave_pairs/`, params);
 }

@@ -52,6 +52,7 @@
         selectable
         :settings="settings"
         show-overflow-tips
+        virtual-enabled
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
