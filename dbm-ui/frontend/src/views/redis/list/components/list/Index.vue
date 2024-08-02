@@ -130,7 +130,6 @@
           :row-class="getRowClass"
           selectable
           :settings="settings"
-          virtual-enabled
           @clear-search="clearSearchValue"
           @column-filter="columnFilterChange"
           @column-sort="columnSortChange"
