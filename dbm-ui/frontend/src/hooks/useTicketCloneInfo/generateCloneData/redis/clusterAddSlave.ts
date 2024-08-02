@@ -19,7 +19,8 @@ import { random } from '@utils';
 // Redis 重建从库
 export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketModel<RedisAddSlaveDetails>) {
   const { infos } = ticketData.details;
-  const ips: string[] = [];
+  const masterIps: string[] = [];
+  const masterSlaveIpMap: Record<string, string> = {};
   const IpInfoMap: Record<
     string,
     {
@@ -31,7 +32,8 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
   infos.forEach((item) => {
     item.pairs.forEach((pair) => {
       const masterIp = pair.redis_master.ip;
-      ips.push(masterIp);
+      masterSlaveIpMap[masterIp] = pair.redis_slave.old_slave_ip;
+      masterIps.push(masterIp);
       IpInfoMap[masterIp] = {
         cluster_ids: item.cluster_ids,
         bk_cloud_id: pair.redis_master.bk_cloud_id,
@@ -40,7 +42,7 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
     });
   });
   const listResult = await getRedisMachineList({
-    ip: ips.join(','),
+    ip: masterIps.join(','),
     add_role_count: true,
   });
   const machineIpMap = listResult.results.reduce(
@@ -53,9 +55,11 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
     {} as Record<string, ServiceReturnType<typeof getRedisMachineList>['results'][number]>,
   );
 
-  return ips.map((ip) => ({
+  return masterIps.map((ip) => ({
     rowKey: random(),
     isLoading: false,
+    slaveIp: masterSlaveIpMap[ip],
+    masterIp: ip,
     ip,
     clusterIds: IpInfoMap[ip].cluster_ids,
     bkCloudId: IpInfoMap[ip].bk_cloud_id,

@@ -42,6 +42,7 @@ export interface RedisAddSlaveDetails {
       redis_slave: {
         spec_id: number;
         count: number;
+        old_slave_ip: string;
       };
     }[];
   }[];
