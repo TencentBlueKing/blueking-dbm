@@ -21,7 +21,7 @@ import { random } from '@utils';
 export async function generateRedisRedisVersionUpgradeCloneData(ticketData: TicketModel<RedisVersionUpgrade>) {
   const { infos } = ticketData.details;
   const clusterListResult = await getRedisList({
-    cluster_ids: infos.map((item) => item.cluster_id).join(','),
+    cluster_ids: infos.map((item) => item.cluster_ids[0]).join(','),
   });
   const clusterListMap = clusterListResult.results.reduce(
     (obj, item) => {
@@ -34,12 +34,12 @@ export async function generateRedisRedisVersionUpgradeCloneData(ticketData: Tick
   );
 
   const tableDataList = infos.map((infoItem) => {
-    const clusterItem = clusterListMap[infoItem.cluster_id];
+    const clusterItem = clusterListMap[infoItem.cluster_ids[0]];
     return {
       rowKey: random(),
       isLoading: false,
       cluster: clusterItem.master_domain,
-      clusterId: infoItem.cluster_id,
+      clusterId: infoItem.cluster_ids[0],
       nodeType: infoItem.node_type,
       clusterType: clusterItem.cluster_spec.spec_cluster_type,
       targetVersion: infoItem.target_version,

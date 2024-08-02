@@ -390,7 +390,7 @@ export interface RedisStructureDeleteDetails {
 export interface RedisVersionUpgrade {
   clusters: DetailClusters;
   infos: {
-    cluster_id: number;
+    cluster_ids: number[];
     current_versions: string[];
     node_type: string;
     target_version: string;
