@@ -78,7 +78,7 @@
   import MySQLRename from './mysql/Rename.vue';
   import MySQLRestoreLocalSlave from './mysql/RestoreLocalSlave.vue';
   import MySQLRestoreSlave from './mysql/RestoreSlave.vue';
-  import MySQLRollbackCluster from './mysql/RollbackCluster.vue';
+  import MySQLRollback from './mysql/rollback/Index.vue';
   import MySQLAddSlave from './mysql/SlaveAdd.vue';
   import MySQLTableBackup from './mysql/TableBackup.vue';
   import MySQLVerisonLocalUpgrade from './mysql/version-upgrade/VersionLocalUpgrade.vue';
@@ -119,7 +119,7 @@
   import SpiderNodeRebalance from './spider/NodeRebalance.vue';
   import SpiderReduceNodes from './spider/ReduceNodes.vue';
   import SpiderRenameDatabase from './spider/RenameDatabase.vue';
-  import SpiderRollback from './spider/Rollback.vue';
+  import SpiderRollback from './spider/rollback/Index.vue';
   import SpiderSlaveApply from './spider/SlaveApply.vue';
   import SpiderSlaveDestroy from './spider/SlaveDestroy.vue';
   import SpiderSlaveRebuild from './spider/SlaveRebuild.vue';
@@ -298,7 +298,7 @@
     [TicketTypes.MYSQL_PROXY_ADD]: MySQLProxyAdd,
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: MySQLMasterFailOver,
     [TicketTypes.MYSQL_FLASHBACK]: MySQLFlashback,
-    [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: MySQLRollbackCluster,
+    [TicketTypes.MYSQL_ROLLBACK_CLUSTER]: MySQLRollback,
     [TicketTypes.MYSQL_RESTORE_SLAVE]: MySQLRestoreSlave,
     [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: MySQLRestoreLocalSlave,
     [TicketTypes.MYSQL_HA_FULL_BACKUP]: MySQLFullBackup,
