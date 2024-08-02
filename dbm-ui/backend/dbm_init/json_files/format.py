@@ -12,6 +12,7 @@ from typing import Dict
 from urllib.parse import urljoin
 
 from backend import env
+from backend.components import CCApi
 from backend.configuration.constants import DBType
 from backend.db_meta.models import AppMonitorTopo
 from backend.utils.basic import distinct_dict_list
@@ -52,7 +53,6 @@ class JsonConfigFormat:
 
     @classmethod
     def custom_modify(cls, params: Dict, custom_modify_method_name: str) -> Dict:
-
         # 针对一些复杂的数据结构，需自定义方法来修改请求参数
         modify_method = getattr(cls, custom_modify_method_name, None)
         if modify_method:
@@ -68,6 +68,32 @@ class JsonConfigFormat:
                 {"bk_obj_id": "set", "bk_inst_id": topo.bk_set_id, "bk_biz_id": topo.bk_biz_id}
                 for topo in AppMonitorTopo.objects.exclude(bk_biz_id=env.DBA_APP_BK_BIZ_ID)
             ]
+        )
+        return {
+            "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
+            "target_nodes": distinct_dict_list(target_nodes),
+        }
+
+    @classmethod
+    def format_dbm_win_dbactuator(cls):
+        """windows 机器采集格式化目标，目前需要支持空闲机，资源池和 sqlserver set"""
+        target_nodes = [
+            {
+                "bk_biz_id": bk_set["bk_biz_id"],
+                "bk_inst_id": bk_set["bk_set_id"],
+                "bk_obj_id": "set",
+            }
+            for bk_set in AppMonitorTopo.get_set_by_dbtype(DBType.Sqlserver.value)
+            + AppMonitorTopo.get_set_by_dbtype(DBType.Cloud.value)
+        ]
+        # 空闲机
+        internal_set_info = CCApi.get_biz_internal_module({"bk_biz_id": env.DBA_APP_BK_BIZ_ID}, use_admin=True)
+        target_nodes.append(
+            {
+                "bk_biz_id": internal_set_info["bk_biz_id"],
+                "bk_inst_id": internal_set_info["bk_set_id"],
+                "bk_obj_id": "set",
+            }
         )
         return {
             "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
@@ -91,6 +117,10 @@ class JsonConfigFormat:
     @classmethod
     def format_redis(cls):
         return cls.get_db_set_ctx(DBType.Redis.value)
+
+    @classmethod
+    def format_mssql(cls):
+        return cls.get_db_set_ctx(DBType.Sqlserver.value)
 
     @classmethod
     def custom_modify_mysql_slowlog(cls, params):

@@ -14,6 +14,7 @@ from django.test import TestCase
 
 from backend.dbm_init.services import Services
 from backend.tests.mock_data.components.bklog import BKLogApiMock
+from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.itsm import ItsmApiMock
 
 
@@ -24,6 +25,7 @@ class TestAutoCreateServices(TestCase):
         self.assertEqual(service_id, 94)
 
     @patch("backend.dbm_init.services.BKLogApi", BKLogApiMock)
+    @patch("backend.dbm_init.json_files.format.CCApi", CCApiMock)
     def test_auto_create_bklog_service(self):
         is_success = Services.auto_create_bklog_service()
         self.assertEqual(is_success, True)

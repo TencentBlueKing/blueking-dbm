@@ -215,7 +215,7 @@ class TaskFlowHandler:
             end_time=end_time,
         )
         dbm_dbactuator_logs = self.bklog_esquery_search(
-            indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator",
+            indices=f"{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_dbactuator,{env.DBA_APP_BK_BIZ_ID}_bklog.dbm_win_dbactuator,",
             query_string=f"{self.root_id} AND {node_id} AND {version_id}",
             start_time=start_time,
             end_time=end_time,
