@@ -98,6 +98,14 @@ class KafkaActPayload(object):
         kafka_config = copy.deepcopy(self.kafka_config)
         if not self.ticket_data.get("no_security"):
             self.ticket_data["no_security"] = 0
+        if not self.ticket_data.get("retention_bytes"):
+            self.ticket_data["retention_bytes"] = -1
+        # 根据 ticket_type 选择 kafka_configs
+        if self.ticket_data["ticket_type"] == "KAFKA_APPLY":
+            selected_kafka_config = kafka_config
+        else:
+            selected_kafka_config = self.ticket_data["kafka_config"]
+
         return {
             "db_type": DBActuatorTypeEnum.Kafka.value,
             "action": action,
@@ -107,17 +115,18 @@ class KafkaActPayload(object):
                     "host": host,
                     "zookeeper_ip": self.zookeeper_ip,
                     "version": self.ticket_data["db_version"],
-                    "kafka_configs": kafka_config,
+                    "kafka_configs": selected_kafka_config,
                     "port": self.ticket_data["port"],
                     "jmx_port": int(kafka_config["jmx_port"]),
-                    "retention": self.ticket_data["retention_hours"],
-                    "replication": self.ticket_data["replication_num"],
-                    "partition": self.ticket_data["partition_num"],
-                    "factor": self.ticket_data["factor"],
+                    "retention": int(self.ticket_data["retention_hours"]),
+                    "replication": int(self.ticket_data["replication_num"]),
+                    "partition": int(self.ticket_data["partition_num"]),
+                    "factor": int(self.ticket_data["factor"]),
                     "cluster_name": self.ticket_data["cluster_name"],
                     "username": self.ticket_data["username"],
                     "password": self.ticket_data["password"],
-                    "no_security": self.ticket_data["no_security"],
+                    "no_security": int(self.ticket_data["no_security"]),
+                    "retention_bytes": int(self.ticket_data["retention_bytes"]),
                 },
             },
         }

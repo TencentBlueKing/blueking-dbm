@@ -15,7 +15,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
 from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import LevelName, OpType, ReqType
+from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, OpType, ReqType
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.flow.consts import ConfigTypeEnum, LevelInfoEnum, MySQLPrivComponent, NameSpaceEnum
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -32,6 +32,18 @@ class KafkaConfigService(BaseService):
     def _execute(self, data, parent_data) -> bool:
         global_data = data.get_one_of_inputs("global_data")
 
+        content = DBConfigApi.query_conf_item(
+            {
+                "bk_biz_id": str(global_data["bk_biz_id"]),
+                "level_name": LevelName.APP,
+                "level_value": str(global_data["bk_biz_id"]),
+                "conf_file": global_data["db_version"],
+                "conf_type": ConfType.DBCONF,
+                "namespace": NameSpaceEnum.Kafka,
+                "format": FormatType.MAP,
+            }
+        )
+        # 公共配置项
         config_map = {
             "retention_hours": str(global_data["retention_hours"]),
             "partition_num": str(global_data["partition_num"]),
@@ -40,6 +52,21 @@ class KafkaConfigService(BaseService):
             "zookeeper_conf": global_data["zookeeper_conf"],
             "no_security": str(global_data["no_security"]),
         }
+
+        # 兼容旧的配置项
+        if "log.retention.hours" in content["content"]:
+            config_map.update(
+                {
+                    "log.retention.hours": str(global_data["retention_hours"]),
+                    "num.partitions": str(global_data["partition_num"]),
+                    "default.replication.factor": str(global_data["factor"]),
+                    "offsets.topic.replication.factor": str(global_data["factor"]),
+                    "transaction.state.log.replication.factor": str(global_data["factor"]),
+                    "transaction.state.log.min.isr": str(global_data["factor"]),
+                    "log.retention.bytes": str(global_data["retention_bytes"]),
+                    "zookeeper.connect": str(global_data["zookeeper_connect"]),
+                }
+            )
 
         conf_items = []
         for conf_name, conf_value in config_map.items():
