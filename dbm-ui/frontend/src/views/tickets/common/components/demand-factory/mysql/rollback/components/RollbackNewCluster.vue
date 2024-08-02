@@ -15,7 +15,7 @@
   <DbOriginalTable
     class="details-rollback__table"
     :columns="columns"
-    :data="dataList" />
+    :data="tableData" />
 </template>
 
 <script setup lang="tsx">
@@ -23,6 +23,9 @@
 
   import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
+
+  import { type BackupSources, selectList } from '@views/mysql/rollback/pages/page1/components/common/const';
+  import type { IDataRow } from '@views/mysql/rollback/pages/page1/components/render-data/Index.vue';
 
   import { utcDisplayTime } from '@utils';
 
@@ -34,32 +37,41 @@
 
   const { t } = useI18n();
 
-  // MySql 定点回档
   const columns = [
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      width: 220,
+      render: ({ cell }: { cell: string }) => <span>{ cell || '--' }</span>,
+    },
+    {
+      label: t('主机来源'),
+      field: '',
+      width: 100,
+      render: () => <span>{ t('业务空闲机') }</span>,
     },
     {
       label: t('回档新主机'),
-      field: 'rollback_ip',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      field: 'rollback_host',
+      width: 120,
+      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) => <span>{ (data.rollback_host as IDataRow['rollbackHost'])?.ip || '--' }</span>,
     },
     {
       label: t('备份源'),
       field: 'backup_source',
-      render: ({ cell }: { cell: string }) => <span>{cell === 'remote' ? t('远程备份') : t('本地备份')}</span>,
+      width: 100,
+      render: ({ cell }: { cell: BackupSources }) => <span>{ selectList.backupSource.find(item => item.value === cell)?.label || '--' }</span>,
     },
     {
       label: t('回档类型'),
       field: '',
-      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) =>  {
+      width: 280,
+      render: ({ data }: { data: MySQLRollbackDetails['infos'][0] }) => {
         if (data.rollback_time) {
-          return <span>{t('回档到指定时间')} - {utcDisplayTime(data.rollback_time)}</span>;
+          return <span>{ t('回档到指定时间') } - { utcDisplayTime(data.rollback_time) }</span>;
         }
-        if (data?.backupinfo?.backup_time && data?.backupinfo?.mysql_role) {
-          return <span>{t('备份记录')} - {data?.backupinfo?.mysql_role} {data?.backupinfo?.backup_time}</span>;
+        if (data.backupinfo?.backup_time && data.backupinfo?.mysql_role) {
+          return <span>{ t('备份记录') } - { data.backupinfo?.mysql_role } { data.backupinfo?.backup_time }</span>;
         }
         return '--';
       },
@@ -69,60 +81,64 @@
       field: 'databases',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.map(item => <bk-tag>{item}</bk-tag>)}
-      </div>
-    ),
+        <div
+          class="text-overflow"
+          v-overflow-tips={{
+            content: cell,
+          }}>
+            { cell.map(item => <bk-tag>{ item }</bk-tag>) }
+        </div>
+      ),
     },
     {
       label: t('忽略DB名'),
       field: 'databases_ignore',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
+        <div
+          class="text-overflow"
+          v-overflow-tips={{
+            content: cell,
+          }}>
+            { cell.length > 0 ? cell.map(item => <bk-tag>{ item }</bk-tag>) : '--' }
+        </div>
+      ),
     },
     {
       label: t('回档表名'),
       field: 'tables',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.map(item => <bk-tag>{item}</bk-tag>)}
-      </div>
-    ),
-    }, {
+        <div
+          class="text-overflow"
+          v-overflow-tips={{
+            content: cell,
+          }}>
+            { cell.map(item => <bk-tag>{ item }</bk-tag>) }
+        </div>
+      ),
+    },
+    {
       label: t('忽略表名'),
       field: 'tables_ignore',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
+        <div
+          class="text-overflow"
+          v-overflow-tips={{
+            content: cell,
+          }}>
+            { cell.length > 0 ? cell.map(item => <bk-tag>{ item }</bk-tag>) : '--' }
+        </div>
+      ),
     },
   ];
 
-  const dataList = computed(() => {
+  const tableData = computed(()=>{
     const { clusters, infos } = props.ticketDetails.details;
-    return infos.map(item => ({
+    return (infos || []).map(item => ({
       ...item,
-      rollback_ip: item.rollback_host.ip,
-      cluster_name: clusters[item.cluster_id].immute_domain,
+      cluster_name: clusters[item.cluster_id].immute_domain
     }));
-  });
+  })
 </script>
-
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>

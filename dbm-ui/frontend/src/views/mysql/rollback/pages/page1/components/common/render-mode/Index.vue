@@ -17,55 +17,60 @@
       <TableEditSelect
         v-model="localBackupType"
         :disabled="editDisabled"
-        :list="targetList" />
+        :list="targetList"
+        @change="hanldeBackupTypeChange" />
     </div>
     <div class="action-item">
       <TableEditDateTime
-        v-if="localBackupType === 'REMOTE_AND_TIME'"
+        v-if="localBackupType === BackupTypes.TIME"
         ref="localRollbackTimeRef"
         v-model="localRollbackTime"
         :disabled="editDisabled"
         :disabled-date="disableDate"
         :rules="timerRules"
         type="datetime" />
+
       <div
         v-else
         class="local-backup-select">
         <DbIcon
           class="file-flag"
           type="wenjian" />
-        <TableEditSelect
-          ref="localBackupidRef"
-          v-model="localBackupid"
-          :disabled="editDisabled"
-          :list="logRecordList"
-          :rules="rules"
-          style="flex: 1" />
+        <RecordSelector
+          ref="localBackupFileRef"
+          :backup-source="backupSource"
+          :backupid="backupid"
+          :cluster-id="clusterId"
+          :disabled="editDisabled" />
       </div>
     </div>
   </div>
 </template>
-<script setup lang="ts">
-  import _ from 'lodash';
+<script setup lang="tsx">
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { queryBackupLogFromBklog } from '@services/source/fixpointRollback';
+  import type { BackupLogRecord } from '@services/source/fixpointRollback';
 
   import { useTimeZoneFormat } from '@hooks';
 
   import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
   import TableEditSelect from '@views/mysql/common/edit/Select.vue';
 
+  import { BackupTypes, selectList } from '../const';
+
+  import RecordSelector from './RecordSelector.vue';
+
   interface Props {
     clusterId: number;
+    backupid?: string;
+    backupSource?: string;
     rollbackTime?: string;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<{
-      backupinfo?: any;
+    getValue: () => Promise<{
+      backupinfo?: BackupLogRecord;
       rollback_time?: string;
     }>;
   }
@@ -83,72 +88,43 @@
       message: t('回档时间不能为空'),
     },
   ];
+  const targetList = selectList.mode.map((item) => ({
+    id: item.value,
+    name: item.label,
+  }));
 
-  const rules = [
-    {
-      validator: (value: string) => !!value,
-      message: t('备份记录不能为空'),
-    },
-  ];
-
-  const targetList = [
-    {
-      id: 'REMOTE_AND_BACKUPID',
-      name: t('备份记录'),
-    },
-    {
-      id: 'REMOTE_AND_TIME',
-      name: t('回档到指定时间'),
-    },
-  ];
-
-  const localRollbackTimeRef = ref();
-  const localBackupidRef = ref();
-  const localBackupType = ref('REMOTE_AND_TIME');
-  const localBackupid = ref('');
+  const localRollbackTimeRef = ref<InstanceType<typeof TableEditDateTime>>();
+  const localBackupFileRef = ref<InstanceType<typeof RecordSelector>>();
+  const localBackupType = ref(BackupTypes.BACKUPID);
   const localRollbackTime = ref('');
 
-  const logRecordList = shallowRef<Array<{ id: string; name: string }>>([]);
+  const editDisabled = computed(() => !props.clusterId || !props.backupSource);
 
-  const editDisabled = computed(() => !props.clusterId);
-
-  let logRecordListMemo: { backup_id: string; backup_time: string }[] = [];
-
-  const { run: fetchBackupLogFromBklog } = useRequest(queryBackupLogFromBklog, {
-    manual: true,
-    onSuccess(data) {
-      logRecordList.value = data.map((item) => ({
-        id: item.backup_id,
-        name: item.backup_time,
-      }));
-      logRecordListMemo = data;
-    },
-  });
-
-  const fetchLogData = () => {
-    if (!props.clusterId) {
-      return;
-    }
-    logRecordList.value = [];
-    logRecordListMemo = [];
-
-    fetchBackupLogFromBklog({
-      cluster_id: props.clusterId,
-    });
+  const hanldeBackupTypeChange = () => {
+    localRollbackTime.value = '';
   };
 
   watch(
-    () => props.clusterId,
-    () => {
-      localBackupid.value = '';
-      localRollbackTime.value = '';
-
-      if (props.rollbackTime) {
-        localRollbackTime.value = props.rollbackTime;
-        localBackupType.value = 'REMOTE_AND_TIME';
+    () => props.rollbackTime,
+    (newVal) => {
+      if (newVal) {
+        localRollbackTime.value = newVal;
+        localBackupType.value = BackupTypes.TIME;
+      } else {
+        localBackupType.value = BackupTypes.BACKUPID;
       }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-      fetchLogData();
+  watch(
+    () => props.backupid,
+    (newVal) => {
+      if (newVal) {
+        localBackupType.value = BackupTypes.BACKUPID;
+      }
     },
     {
       immediate: true,
@@ -157,17 +133,14 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (localBackupType.value === 'REMOTE_AND_BACKUPID') {
-        return localBackupidRef.value.getValue().then(() => {
-          const backupInfo = _.find(logRecordListMemo, (item) => item.backup_id === localBackupid.value);
-          return {
-            rollback_type: 'REMOTE_AND_BACKUPID',
-            backupinfo: backupInfo,
-          };
-        });
+      if (localBackupType.value === BackupTypes.BACKUPID) {
+        return localBackupFileRef.value!.getValue().then((data: BackupLogRecord) => ({
+          rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
+          backupinfo: data,
+        }));
       }
-      return localRollbackTimeRef.value.getValue().then(() => ({
-        rollback_type: 'REMOTE_AND_TIME',
+      return localRollbackTimeRef.value!.getValue().then(() => ({
+        rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
         rollback_time: formatDateToUTC(localRollbackTime.value),
       }));
     },
@@ -178,15 +151,23 @@
     display: flex;
 
     .action-item {
-      flex: 0 0 50%;
       overflow: hidden;
+
+      &:first-child {
+        flex: 1;
+      }
+
+      &:last-child {
+        flex: 2;
+      }
     }
   }
 
   .local-backup-select {
     position: relative;
 
-    :deep(.table-edit-select) {
+    :deep(.table-edit-select),
+    :deep(.rollback-mode-select) {
       .select-result-text {
         padding-left: 14px;
       }

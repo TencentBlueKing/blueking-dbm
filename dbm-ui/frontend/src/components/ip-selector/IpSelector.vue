@@ -140,34 +140,34 @@
   };
 
   type IPSelectorResultKey = keyof IPSelectorResult;
-</script>
 
-<script setup lang="tsx">
   interface Props {
-    bizId: number | string,
-    buttonText?: string,
-    searchPlaceholder?: string,
-    tableProps?: TablePropTypes,
-    data?: HostDetails[],
-    title?: string,
-    showView?: boolean,
-    required?: boolean,
-    isCloudAreaRestrictions?: boolean,
-    cloudInfo?: {id?: number | string, name?: string},
-    disableDialogSubmitMethod?: (hostList: Array<any>) => string | boolean
-    disableHostMethod?: (...args: any) => string | boolean,
-    serviceMode?: 'all' | 'idle_only',
-    panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>,
-    disableTips?: string,
-    singleHostSelect?: boolean,
-    osTypes?: OSTypes[]
+    bizId: number | string;
+    buttonText?: string;
+    searchPlaceholder?: string;
+    tableProps?: TablePropTypes;
+    data?: HostDetails[];
+    title?: string;
+    showView?: boolean;
+    required?: boolean;
+    isCloudAreaRestrictions?: boolean;
+    cloudInfo?: { id?: number | string; name?: string };
+    disableDialogSubmitMethod?: (hostList: Array<any>) => string | boolean;
+    disableHostMethod?: (...args: any) => string | boolean;
+    serviceMode?: 'all' | 'idle_only';
+    panelList?: Array<'staticTopo' | 'manualInput' | 'dbmWhitelist'>;
+    disableTips?: string;
+    singleHostSelect?: boolean;
+    osTypes?: OSTypes[];
   }
 
   interface Emits {
-    (e: 'change', value: typeof selectorState['tableData']): void
-    (e: 'changeWhitelist', value: IPSelectorResult['dbm_whitelist']): void
+    (e: 'change', value: (typeof selectorState)['tableData']): void;
+    (e: 'changeWhitelist', value: IPSelectorResult['dbm_whitelist']): void;
   }
+</script>
 
+<script setup lang="tsx">
   const props = withDefaults(defineProps<Props>(), {
     buttonText: t('添加服务器'),
     searchPlaceholder: '',

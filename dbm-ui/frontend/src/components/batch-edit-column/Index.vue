@@ -9,23 +9,28 @@
     <template #content>
       <div class="batch-edit-column-select">
         <div class="main-title">{{ t('批量编辑') }}{{ title }}</div>
-        <div
-          class="title-spot edit-title"
-          style="font-weight: normal">
-          {{ title }} <span class="required" />
+        <slot
+          v-if="slots.content"
+          name="content" />
+        <div v-else>
+          <div
+            class="title-spot edit-title"
+            style="font-weight: normal">
+            {{ title }} <span class="required" />
+          </div>
+          <BkSelect
+            v-if="type === 'select'"
+            v-model="localValue"
+            :clearable="false"
+            filterable
+            :list="dataList" />
+          <BkInput
+            v-else-if="type === 'textarea'"
+            v-model="localValue"
+            :placeholder="placeholder"
+            :rows="5"
+            type="textarea" />
         </div>
-        <BkSelect
-          v-if="type === 'select'"
-          v-model="localValue"
-          :clearable="false"
-          filterable
-          :list="dataList" />
-        <BkInput
-          v-else-if="type === 'textarea'"
-          v-model="localValue"
-          :placeholder="placeholder"
-          :rows="5"
-          type="textarea" />
       </div>
     </template>
   </BkPopConfirm>
@@ -59,6 +64,7 @@
   const isShow = defineModel<boolean>({
     default: false,
   });
+  const slots = useSlots();
 
   const { t } = useI18n();
 
@@ -79,11 +85,13 @@
         width: 60px;
       }
     }
+
     .main-title {
+      margin-bottom: 20px;
       font-size: 16px;
       color: #313238;
-      margin-bottom: 20px;
     }
+
     .edit-title {
       margin-bottom: 6px;
     }
