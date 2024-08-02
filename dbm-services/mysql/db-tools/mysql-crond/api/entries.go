@@ -2,7 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"net/http"
+	"net/url"
 	"strings"
+	"time"
 
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
 
@@ -11,15 +14,16 @@ import (
 
 // SimpleEntry TODO
 type SimpleEntry struct {
-	ID  int                `json:"ID"`
-	Job config.ExternalJob `json:"Job"`
+	ID   int                `json:"ID"`
+	Job  config.ExternalJob `json:"Job"`
+	Next time.Time          `json:"NextTime"`
 }
 
 // Entries TODO
-func (m *Manager) Entries() ([]*SimpleEntry, error) {
-	resp, err := m.do("/entries", "GET", nil)
+func (m *Manager) Entries(param url.Values) ([]*SimpleEntry, error) {
+	resp, err := m.do("/entries", http.MethodGet, param)
 	if err != nil {
-		return nil, errors.Wrap(err, "manager call /entries")
+		return nil, errors.Wrapf(err, "manager call %s", m.apiUrl)
 	}
 
 	var res struct {
@@ -27,7 +31,7 @@ func (m *Manager) Entries() ([]*SimpleEntry, error) {
 	}
 	err = json.Unmarshal(resp, &res)
 	if err != nil {
-		return nil, errors.Wrap(err, "manager unmarshal /entries response")
+		return nil, errors.Wrapf(err, "manager unmarshal %s response", m.apiUrl)
 	}
 
 	return res.Entries, nil

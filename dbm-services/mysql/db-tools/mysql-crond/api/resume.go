@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Resume TODO
+// Resume enable job
 func (m *Manager) Resume(name string, permanent bool) (int, error) {
 	body := struct {
 		Name      string `json:"name"`

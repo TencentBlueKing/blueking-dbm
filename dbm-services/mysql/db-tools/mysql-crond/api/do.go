@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (m *Manager) do(action string, method string, payLoad interface{}) ([]byte, error) {
-	apiUrl, err := url.JoinPath(m.apiUrl, action)
+func (m *Manager) do(endpoint string, method string, payLoad interface{}) ([]byte, error) {
+	apiUrl, err := url.JoinPath(m.apiUrl, endpoint)
 	if err != nil {
 		return nil, errors.Wrap(err, "join api url")
 	}
@@ -22,11 +22,22 @@ func (m *Manager) do(action string, method string, payLoad interface{}) ([]byte,
 		return nil, errors.Wrap(err, "marshal payload")
 	}
 
-	req, err := http.NewRequest(
-		strings.ToUpper(method),
-		apiUrl,
-		bytes.NewReader(body),
-	)
+	var req *http.Request
+	if method == http.MethodGet {
+		req, err = http.NewRequest(method, apiUrl, nil)
+		if payLoad != nil {
+			if queryParam, ok := payLoad.(url.Values); ok {
+				req.URL.RawQuery = queryParam.Encode()
+			}
+		}
+	} else {
+		req, err = http.NewRequest(
+			strings.ToUpper(method),
+			apiUrl,
+			bytes.NewReader(body),
+		)
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "new request")
 	}

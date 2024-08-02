@@ -11,7 +11,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -22,50 +21,42 @@ import (
 )
 
 // versionCmd represents the version command
-var delJobCmd = &cobra.Command{
-	Use:   "delJob",
-	Short: "del crond entry",
-	Long:  `del crond entry`,
+var changeJobCmd = &cobra.Command{
+	Use:   "change-job",
+	Short: "change job schedule time ",
+	Long:  `change job schedule time `,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		var jobEntry api.JobDefine
-		if body, _ := cmd.Flags().GetString("body"); body != "" {
-			if err := json.Unmarshal([]byte(body), &jobEntry); err != nil {
-				return err
-			}
-		} else {
-			jobName, _ := cmd.Flags().GetString("name")
-			jobEntry = api.JobDefine{
-				Name: jobName,
-			}
+
+		if jobName, _ := cmd.Flags().GetString("name"); jobName != "" {
+			return changeEntry(cmd, jobName)
 		}
-		return delEntry(cmd, jobEntry)
+		return nil
 	},
 }
 
 func init() {
-	/*
-		delJobCmd.Flags().StringP("config", "c", "", "config file")
-		_ = viper.BindPFlag("del-config", delJobCmd.Flags().Lookup("config"))
-	*/
-	delJobCmd.Flags().StringP("name", "n", "", "name")
-	delJobCmd.Flags().Bool("permanent", false, "permanent delete,  default false")
-	_ = delJobCmd.MarkFlagRequired("name")
-
-	rootCmd.AddCommand(delJobCmd)
+	changeJobCmd.Flags().StringP("name", "n", "", "full job name")
+	changeJobCmd.Flags().StringP("schedule", "s", "", "schedule format like crontab")
+	changeJobCmd.Flags().Bool("permanent", false, "permanent schedule to config file, default false")
+	changeJobCmd.MarkFlagRequired("name")
+	changeJobCmd.MarkFlagRequired("schedule")
+	changeJobCmd.MarkFlagRequired("permanent")
+	rootCmd.AddCommand(changeJobCmd)
 }
 
-func delEntry(cmd *cobra.Command, entry api.JobDefine) error {
+func changeEntry(cmd *cobra.Command, jobName string) error {
 	// init config to get listen ip:port
 	var err error
 	apiUrl := ""
+	schedule, _ := cmd.Flags().GetString("schedule")
+	permanent, _ := cmd.Flags().GetBool("permanent")
 	configFile, _ := cmd.Flags().GetString("config")
 	if apiUrl, err = config.GetApiUrlFromConfig(configFile); err != nil {
 		fmt.Fprintln(os.Stderr, "read config error", err.Error())
 		os.Exit(1)
 	}
 	manager := api.NewManager(apiUrl)
-	//logger.Info("removing job_item to crond: %+v", jobItem)
-	_, err = manager.Delete(entry.Name, true)
+	_, err = manager.ScheduleChange(jobName, schedule, permanent)
 	if err != nil {
 		return err
 	}

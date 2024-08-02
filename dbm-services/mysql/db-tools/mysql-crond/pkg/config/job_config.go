@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/robfig/cron/v3"
 	"gopkg.in/yaml.v2"
 )
 
@@ -30,7 +31,9 @@ type ExternalJob struct {
 	Schedule string   `yaml:"schedule" json:"schedule" binding:"required" validate:"required"`
 	Creator  string   `yaml:"creator" json:"creator" binding:"required" validate:"required"`
 	WorkDir  string   `yaml:"work_dir" json:"work_dir"`
-	ch       chan struct{}
+	// JobID 这个 id 主要用于追溯哪个 cron job (如果有) 调起本 external job
+	JobID cron.EntryID `yaml:"-" json:"-"`
+	ch    chan struct{}
 }
 
 func (j *ExternalJob) run() {

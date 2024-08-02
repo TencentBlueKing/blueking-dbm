@@ -13,7 +13,6 @@ import (
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/service"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -25,7 +24,8 @@ var rootCmd = &cobra.Command{
 	Use:   "mysql-crond",
 	Short: "mysql-crond",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		err := config.InitConfig(viper.GetString("config"))
+		configFile, _ := cmd.PersistentFlags().GetString("config")
+		err := config.InitConfig(configFile)
 		if err != nil {
 			slog.Error("start crond", slog.String("error", err.Error()))
 			return err

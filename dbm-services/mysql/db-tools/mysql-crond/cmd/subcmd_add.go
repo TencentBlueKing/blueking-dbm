@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"dbm-services/mysql/db-tools/mysql-crond/api"
 	"dbm-services/mysql/db-tools/mysql-crond/pkg/config"
@@ -41,15 +40,11 @@ var addJobCmd = &cobra.Command{
 				Enable:   jobEnable,
 			}
 		}
-		return addEntry(jobEntry)
+		return addEntry(cmd, jobEntry)
 	},
 }
 
 func init() {
-	addJobCmd.PersistentFlags().StringP("config", "c", "", "config file")
-	_ = addJobCmd.MarkPersistentFlagRequired("config")
-	_ = viper.BindPFlag("add-config", addJobCmd.PersistentFlags().Lookup("config"))
-
 	addJobCmd.Flags().StringP("name", "n", "", "name")
 	addJobCmd.Flags().StringP("command", "m", "", "command")
 	addJobCmd.Flags().StringSliceP("args", "a", []string{}, "args, comma separate")
@@ -64,11 +59,12 @@ func init() {
 	rootCmd.AddCommand(addJobCmd)
 }
 
-func addEntry(entry api.JobDefine) error {
+func addEntry(cmd *cobra.Command, entry api.JobDefine) error {
 	// init config to get listen ip:port
 	var err error
 	apiUrl := ""
-	if apiUrl, err = config.GetApiUrlFromConfig(viper.GetString("add-config")); err != nil {
+	configFile, _ := cmd.Flags().GetString("config")
+	if apiUrl, err = config.GetApiUrlFromConfig(configFile); err != nil {
 		fmt.Fprintln(os.Stderr, "read config error", err.Error())
 		os.Exit(1)
 	}
