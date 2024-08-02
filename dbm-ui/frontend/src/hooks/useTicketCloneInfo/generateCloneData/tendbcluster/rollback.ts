@@ -15,8 +15,8 @@ import TicketModel from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
-// MySQL 定点构造
-export function generateMysqlRollbackCloneData(ticketData: TicketModel<MySQLRollbackDetails>) {
+// Spider 定点构造
+export function generateSpiderRollbackCloneData(ticketData: TicketModel<MySQLRollbackDetails>) {
   const { clusters, infos, rollback_cluster_type } = ticketData.details;
   const tableDataList = infos.map((item) => ({
     rowKey: random(),
@@ -24,11 +24,12 @@ export function generateMysqlRollbackCloneData(ticketData: TicketModel<MySQLRoll
       id: item.cluster_id,
       domain: clusters[item.cluster_id].immute_domain,
       cloudId: clusters[item.cluster_id].bk_cloud_id,
+      cloudName: clusters[item.cluster_id].bk_cloud_name,
     },
     targetClusterId: item.target_cluster_id,
     rollbackHost: item.rollback_host,
-    backupSource: item.backup_source,
-    rollbackType: `${item.backup_source?.toLocaleUpperCase()}_AND_${item.backupinfo.backup_id ? 'BACKUPID' : 'TIME'}`,
+    backupSource: 'remote',
+    rollbackType: item.rollback_type,
     backupid: item.backupinfo.backup_id,
     rollbackTime: item.rollback_time,
     databases: item.databases,

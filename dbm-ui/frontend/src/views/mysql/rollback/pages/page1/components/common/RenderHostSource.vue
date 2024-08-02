@@ -16,15 +16,24 @@
     ref="editSelectRef"
     :list="list"
     :model-value="modelValue"
-    :placeholder="$t('请选择')"
+    :placeholder="t('请选择')"
     :rules="rules"
-    @change="(value) => handleChange(value as string)" />
+    @change="(value) => handleChange(value as string)">
+    <template #option="{ optionItem }">
+      <div :style="{ ...centerStyle, justifyContent: 'space-between' }">
+        <span>{{ optionItem.name }}</span>
+        <span :style="{ ...centerStyle, ...numberStyle }">{{ optionItem.count }}</span>
+      </div>
+    </template>
+  </TableEditSelect>
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import { getHostTopo } from '@services/source/ipchooser';
+
+  import TableEditSelect from '@views/spider-manage/common/edit/Select.vue';
 
   interface Props {
     modelValue: string;
@@ -42,26 +51,36 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const centerStyle = {
+    display: 'flex',
+    alignItems: 'center',
+  };
+  const numberStyle = {
+    width: '23px',
+    height: '17px',
+    background: '#EAEBF0',
+    borderRadius: '2px',
+    justifyContent: 'center',
+  };
+
+  const bizId = window.PROJECT_CONFIG.BIZ_ID;
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('备份源不能为空'),
+      message: t('主机来源不能为空'),
     },
   ];
 
-  const list = [
-    {
-      id: 'remote',
-      name: t('远程备份'),
-    },
-    {
-      id: 'local',
-      name: t('本地备份'),
-    },
-  ];
-
-  const editSelectRef = ref();
+  const editSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const localValue = ref('');
+  const list = ref([
+    {
+      id: 'idle',
+      name: t('业务空闲机'),
+      count: 0,
+    },
+  ]);
 
   watch(
     () => props.modelValue,
@@ -73,6 +92,24 @@
     },
   );
 
+  const getHostsCount = () => {
+    getHostTopo({
+      mode: 'idle_only',
+      all_scope: true,
+      scope_list: [
+        {
+          scope_id: bizId,
+          scope_type: 'biz',
+        },
+      ],
+    }).then((data) => {
+      if (data) {
+        const [first] = list.value;
+        first.count = data[0].count || 0;
+      }
+    });
+  };
+  getHostsCount();
   const handleChange = (value: string) => {
     localValue.value = value;
     emits('change', localValue.value);
@@ -80,8 +117,8 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value.getValue().then(() => ({
-        backup_source: localValue.value,
+      return editSelectRef.value!.getValue().then(() => ({
+        host_source: localValue.value,
       }));
     },
   });

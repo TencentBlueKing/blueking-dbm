@@ -24,8 +24,9 @@
       ref="inputRef"
       class="inner-input"
       :class="{
-        ['is-error']: Boolean(errorMessage),
-        ['is-single']: !isFocused,
+        'is-error': Boolean(errorMessage),
+        'is-single': !isFocused,
+        'is-empty': isEmpty,
       }"
       contenteditable="true"
       :spellcheck="false"
@@ -35,6 +36,11 @@
       @input="handleInput"
       @keydown="handleKeydown"
       @paste="handlePaste" />
+    <div
+      v-if="localValue && !isFocused && isOverflow"
+      class="count-tag">
+      <MiniTag :content="countText" />
+    </div>
     <div
       v-if="!localValue"
       class="input-placeholder">
@@ -47,30 +53,46 @@
         v-bk-tooltips="errorMessage"
         type="exclamation-fill" />
     </div>
+    <BkPopover
+      v-if="!isFocused"
+      :content="tooltipContent"
+      placement="top"
+      :popover-delay="0">
+      <div
+        class="edit-btn"
+        @click="handleClickSeletor">
+        <div class="edit-btn-inner">
+          <DbIcon
+            class="select-icon"
+            type="host-select" />
+        </div>
+      </div>
+    </BkPopover>
   </div>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
+
+  import MiniTag from '@components/mini-tag/index.vue';
+  import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
   import { encodeMult } from '@utils';
 
-  import useValidtor, { type Rules } from './hooks/useValidtor';
+  import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
     placeholder?: string;
-    textarea?: boolean;
     rules?: Rules;
-    // 多个输入
-    multiInput?: boolean;
     disabled?: boolean;
     readonly?: boolean;
+    tooltipContent?: string;
   }
 
   interface Emits {
     (e: 'submit', value: string): void;
-    (e: 'multiInput', value: Array<string>): void;
-    (e: 'overflow-change', value: boolean): void;
-    (e: 'error-message-change', value: string): void;
+    (e: 'input', value: string): void;
+    (e: 'click-seletor'): void;
   }
 
   interface Exposes {
@@ -79,15 +101,17 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    placeholder: '请输入',
-    textarea: false,
+    placeholder: '请输入或选择',
     rules: undefined,
-    multiInput: false,
+    multiInput: true,
     disabled: false,
     readonly: false,
+    tooltipContent: '选择集群',
   });
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const modelValue = defineModel<string>({
     default: '',
@@ -96,13 +120,16 @@
   const inputRef = ref();
   const isFocused = ref(false);
   const localValue = ref('');
+  const isOverflow = ref(false);
 
+  const countText = computed(() => t('共n个', [localValue.value.split(',').length]));
+  const isEmpty = computed(() => !modelValue.value);
   const inputStyles = computed<any>(() => {
     if (isFocused.value) {
       return {};
     }
     return {
-      height: '42px',
+      height: '40px',
       overflow: 'hidden',
       'text-overflow': 'ellipsis',
       'white-space': 'nowrap',
@@ -114,6 +141,11 @@
   watch(
     modelValue,
     (value) => {
+      if (value) {
+        setTimeout(() => {
+          checkOverflow();
+        });
+      }
       nextTick(() => {
         if (localValue.value !== value) {
           localValue.value = value;
@@ -121,38 +153,20 @@
           window.changeConfirm = true;
         }
       });
-      if (value) {
-        setTimeout(() => {
-          const isOverflow = inputRef.value.clientWidth < inputRef.value.scrollWidth;
-          emits('overflow-change', isOverflow);
-        });
-      }
     },
     {
       immediate: true,
     },
   );
 
-  watch(errorMessage, () => {
-    emits('error-message-change', errorMessage.value);
-  });
+  const checkOverflow = () => {
+    isOverflow.value = inputRef.value.clientWidth < inputRef.value.scrollWidth;
+  };
 
-  const processMultiInputLocalValue = () => {
-    if (!props.multiInput) {
-      return localValue.value;
-    }
-    if (!_.trim(localValue.value)) {
-      return localValue.value;
-    }
-    const [currentValue, ...appendList] = localValue.value.split('\n');
-    const validateAppendList = _.uniq(_.filter(appendList, (item) => _.trim(item))) as Array<string>;
-    if (validateAppendList.length > 0) {
-      emits('multiInput', validateAppendList);
-    }
-    localValue.value = currentValue;
-    inputRef.value.innerText = localValue.value;
-    window.changeConfirm = true;
-    modelValue.value = currentValue;
+  useResizeObserver(inputRef, checkOverflow);
+
+  const handleClickSeletor = () => {
+    emits('click-seletor');
   };
 
   // 获取焦点
@@ -169,12 +183,12 @@
     nextTick(() => {
       const target = event.target as HTMLElement;
       localValue.value = _.trim(target.outerText);
-      if (!props.multiInput) {
-        window.changeConfirm = true;
-        modelValue.value = localValue.value;
-      }
+      emits('input', localValue.value);
+      window.changeConfirm = true;
+      modelValue.value = localValue.value;
     });
   };
+
   // 失去焦点
   const handleBlur = (event: FocusEvent) => {
     if (props.disabled) {
@@ -182,15 +196,13 @@
       return;
     }
     isFocused.value = false;
-    processMultiInputLocalValue();
-    if (!localValue.value) {
-      return;
-    }
+    checkOverflow();
     validator(localValue.value).then(() => {
       window.changeConfirm = true;
       emits('submit', localValue.value);
     });
   };
+
   // enter键提交
   const handleKeydown = (event: KeyboardEvent) => {
     if (props.disabled) {
@@ -202,17 +214,14 @@
       return;
     }
     if (event.which === 13 || event.key === 'Enter') {
-      if (!props.textarea && !props.multiInput) {
-        event.preventDefault();
-        validator(localValue.value).then((result) => {
-          if (result) {
-            isFocused.value = false;
-            window.changeConfirm = true;
-            emits('submit', localValue.value);
-          }
-        });
-        return;
-      }
+      event.preventDefault();
+      validator(localValue.value).then((result) => {
+        if (result) {
+          isFocused.value = false;
+          window.changeConfirm = true;
+          emits('submit', localValue.value);
+        }
+      });
     }
   };
 
@@ -228,17 +237,18 @@
     }
     selection.deleteFromDocument();
     selection.getRangeAt(0).insertNode(document.createTextNode(paste));
-    localValue.value = localValue.value ? `${localValue.value}\n${paste}` : paste;
+    localValue.value = paste;
     event.preventDefault();
-    if (!props.multiInput) {
-      window.changeConfirm = true;
-      modelValue.value = paste.replace(/^\s+|\s+$/g, '');
-    }
+    window.changeConfirm = true;
+    modelValue.value = paste;
   };
 
   defineExpose<Exposes>({
     // 获取值
-    getValue() {
+    getValue(isSubmit = true) {
+      if (!isSubmit) {
+        return Promise.resolve(localValue.value);
+      }
       return validator(localValue.value).then(() => localValue.value);
     },
     // 编辑框获取焦点
@@ -251,16 +261,31 @@
     },
   });
 </script>
-<style lang="less">
+<style lang="less" scoped>
   .table-edit-input {
     position: relative;
     display: block;
+    width: 100%;
     height: 42px;
     cursor: pointer;
     background: #fff;
 
+    &:hover {
+      .count-tag {
+        display: none;
+      }
+
+      .edit-btn {
+        z-index: 999;
+      }
+    }
+
     &.is-focused {
       z-index: 99;
+
+      .inner-input {
+        padding-right: 25px;
+      }
     }
 
     &.is-disabled {
@@ -277,6 +302,10 @@
 
       .inner-input {
         pointer-events: none;
+      }
+
+      .is-empty {
+        pointer-events: none;
         background-color: #fafbfd;
       }
     }
@@ -292,18 +321,18 @@
       top: 0;
       right: 0;
       left: 0;
-      width: 100%;
       max-height: 300px;
       min-height: 42px;
-      padding: 8px 16px;
-      overflow: auto;
+      padding: 10px 16px;
+      overflow-y: auto;
       font-size: 12px;
-      line-height: 22px;
+      line-height: 20px;
       color: #63656e;
       word-break: break-all;
       background: inherit;
       border: 1px solid transparent;
       outline: none;
+      box-sizing: border-box;
 
       &:hover {
         background-color: #fafbfd;
@@ -344,14 +373,69 @@
 
     .input-error {
       position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      padding-right: 10px;
+      top: 50%;
+      right: 10px;
+      z-index: 99;
+      padding-bottom: 3px;
       font-size: 14px;
       color: #ea3636;
+      transform: translate(-50%, -50%);
+    }
+
+    .count-tag {
+      position: absolute;
+      right: 16px;
+      display: block;
+    }
+
+    .edit-btn {
+      position: absolute;
+      top: 0;
+      right: 5px;
+      z-index: -1;
+      display: flex;
+      width: 24px;
+      height: 40px;
       align-items: center;
+
+      .edit-btn-inner {
+        display: flex;
+        width: 24px;
+        height: 24px;
+        cursor: pointer;
+        border-radius: 2px;
+        align-items: center;
+        justify-content: center;
+
+        .select-icon {
+          font-size: 16px;
+          color: #979ba5;
+        }
+
+        &:hover {
+          background: #f0f1f5;
+
+          .select-icon {
+            color: #3a84ff;
+          }
+        }
+      }
+    }
+
+    .down-icon-main {
+      position: absolute;
+      top: 0;
+      right: 0;
+      display: flex;
+      width: 30px;
+      height: 40px;
+      align-items: center;
+      justify-content: center;
+
+      .down-icon {
+        font-size: 16px;
+        background-color: #fff;
+      }
     }
   }
 </style>
