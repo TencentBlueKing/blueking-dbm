@@ -58,6 +58,7 @@ class KafkaApplyFlow(object):
         # 写入cluster_type，转模块会使用
         self.data["cluster_type"] = ClusterType.Kafka.value
         self.data["zookeeper_conf"] = self.__get_zookeeper_conf()
+        self.data["zookeeper_connect"] = self.__get_zookeeper_connect()
         broker_num = len(self.data["nodes"]["broker"])
         if broker_num >= DEFAULT_FACTOR:
             self.data["factor"] = DEFAULT_FACTOR
@@ -82,6 +83,10 @@ class KafkaApplyFlow(object):
         return "\n".join(
             [ZK_CONF.format(i=i, zk_ip=zookeeper["ip"]) for i, zookeeper in enumerate(self.data["nodes"]["zookeeper"])]
         )
+
+    def __get_zookeeper_connect(self) -> str:
+        zookeeper_ips = [f'{zookeeper["ip"]}:2181' for zookeeper in self.data["nodes"]["zookeeper"]]
+        return ",".join(zookeeper_ips) + "/"
 
     def deploy_kafka_flow(self):
         """

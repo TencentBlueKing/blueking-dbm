@@ -41,4 +41,12 @@ const (
 	RollbackFile = DefaultKafkaEnv + "/rollback.json"
 	// KafkaConfigFile kafka broker配置文件
 	KafkaConfigFile = DefaultKafkaDir + "/config/server.properties"
+	// KafkaTmpConfig 配置文件路径
+	KafkaTmpConfig = "/tmp/server.properties"
+	// KafkaZKPort zk默认端口
+	KafkaZKPort = 2181
+	// KafkaMaxHeap 最大堆内存单位MB
+	KafkaMaxHeap = 30720
+	// Kafka64GB 单位MB
+	Kafka64GB = 61440
 )

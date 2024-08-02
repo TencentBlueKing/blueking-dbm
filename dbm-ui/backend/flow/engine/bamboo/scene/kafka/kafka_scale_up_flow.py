@@ -16,7 +16,7 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import ConfType, FormatType, LevelName
+from backend.components.dbconfig.constants import ConfType, FormatType, LevelName, ReqType
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
@@ -69,7 +69,7 @@ class KafkaScaleUpFlow(object):
         # 写入cluster_type，转模块会使用
         self.data["cluster_type"] = ClusterType.Kafka.value
 
-        data = DBConfigApi.query_conf_item(
+        content = DBConfigApi.query_conf_item(
             {
                 "bk_biz_id": str(self.data["bk_biz_id"]),
                 "level_name": LevelName.CLUSTER,
@@ -79,10 +79,12 @@ class KafkaScaleUpFlow(object):
                 "conf_type": ConfType.DBCONF,
                 "namespace": NameSpaceEnum.Kafka,
                 "format": FormatType.MAP,
+                "method": ReqType.GENERATE_AND_PUBLISH,
             }
         )
 
-        kafka_config = data["content"]
+        kafka_config = content["content"]
+        self.data["kafka_config"] = kafka_config
         self.data["retention_hours"] = int(kafka_config["retention_hours"])
         self.data["replication_num"] = int(kafka_config["replication_num"])
         self.data["partition_num"] = int(kafka_config["partition_num"])

@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -34,26 +35,27 @@ type InstallKafkaComp struct {
 
 // InstallKafkaParams TODO
 type InstallKafkaParams struct {
-	KafkaConfigs  map[string]string `json:"kafka_configs" `  // elasticsearch.yml
-	Version       string            `json:"version" `        // 版本号eg: 7.10.2
-	Port          int               `json:"port" `           // 连接端口
-	JmxPort       int               `json:"jmx_port" `       // 连接端口
-	Retention     int               `json:"retention" `      // 保存时间
-	Replication   int               `json:"replication" `    // 默认副本数
-	Partition     int               `json:"partition" `      // 默认分区数
-	Factor        int               `json:"factor" `         // __consumer_offsets副本数
-	ZookeeperIP   string            `json:"zookeeper_ip" `   // zookeeper ip, eg: ip1,ip2,ip3
-	ZookeeperConf string            `json:"zookeeper_conf" ` // zookeeper ip, eg: ip1,ip2,ip3
-	MyID          int               `json:"my_id" `          // 默认副本数
-	JvmMem        string            `json:"jvm_mem"`         //  eg: 10g
-	Host          string            `json:"host" `
-	ClusterName   string            `json:"cluster_name" ` // 集群名
-	Username      string            `json:"username" `
-	Password      string            `json:"password" `
-	BkBizID       int               `json:"bk_biz_id"`
-	DbType        string            `json:"db_type"`
-	ServiceType   string            `json:"service_type"`
-	NoSecurity    int               `json:"no_security"` // 兼容现有,0:有鉴权,1:无鉴权
+	KafkaConfigs   json.RawMessage `json:"kafka_configs" `  // server.properties
+	Version        string          `json:"version" `        // 版本号eg
+	Port           int             `json:"port" `           // 连接端口
+	JmxPort        int             `json:"jmx_port" `       // 连接端口
+	Retention      int             `json:"retention" `      // 保存时间
+	Replication    int             `json:"replication" `    // 默认副本数
+	Partition      int             `json:"partition" `      // 默认分区数
+	Factor         int             `json:"factor" `         // __consumer_offsets副本数
+	ZookeeperIP    string          `json:"zookeeper_ip" `   // zookeeper ip, eg: ip1,ip2,ip3
+	ZookeeperConf  string          `json:"zookeeper_conf" ` // zookeeper ip, eg: ip1,ip2,ip3
+	MyID           int             `json:"my_id" `          // 默认副本数
+	JvmMem         string          `json:"jvm_mem"`         //  eg: 10g
+	Host           string          `json:"host" `
+	ClusterName    string          `json:"cluster_name" ` // 集群名
+	Username       string          `json:"username" `
+	Password       string          `json:"password" `
+	BkBizID        int             `json:"bk_biz_id"`
+	DbType         string          `json:"db_type"`
+	ServiceType    string          `json:"service_type"`
+	NoSecurity     int             `json:"no_security"`     // 兼容现有,0:有鉴权,1:无鉴权
+	RetentionBytes int             `json:"retention_bytes"` // log.retention.bytes 默认-1
 }
 
 // InitDirs TODO
@@ -511,7 +513,13 @@ func (i *InstallKafkaComp) InstallBroker() error {
 		username       = i.Params.Username
 		password       = i.Params.Password
 		noSecurity     = i.Params.NoSecurity
+		brokerConfig   = i.Params.KafkaConfigs
+		retentionBytes = i.Params.RetentionBytes
 	)
+
+	if retentionBytes == 0 {
+		retentionBytes = -1
+	}
 
 	// ln -s /data/kafkaenv/kafka-$version /data/kafkaenv/kafka
 	kafkaLink := fmt.Sprintf("%s/kafka", cst.DefaultKafkaEnv)
@@ -552,12 +560,44 @@ func (i *InstallKafkaComp) InstallBroker() error {
 	}
 
 	zookeeperIPList := strings.Split(zookeeperIP, ",")
-	extraCmd = fmt.Sprintf(kafkaConfig, retentionHours, replicationNum, partitionNum, processors, factor, processors,
-		processors, kafkaDataDir, listeners, listeners, zookeeperIPList[0], zookeeperIPList[1], zookeeperIPList[2],
-		kafkaLink+"/config/server.properties")
-	if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
-		logger.Error("%s execute failed, %v", extraCmd, err)
-		return err
+	ipWithPorts := make([]string, len(zookeeperIPList))
+	for i, ip := range zookeeperIPList {
+		ipWithPorts[i] = fmt.Sprintf("%s:%d", ip, cst.KafkaZKPort)
+	}
+	zookeeperConnect := strings.Join(ipWithPorts, ",") + "/"
+
+	// 兼容老的配置文件方式
+	if !strings.Contains(string(brokerConfig), "log.retention.hours") {
+		extraCmd = fmt.Sprintf(kafkaConfig, retentionHours, replicationNum, partitionNum, processors, factor, processors,
+			processors, kafkaDataDir, listeners, listeners, zookeeperIPList[0], zookeeperIPList[1], zookeeperIPList[2],
+			kafkaLink+"/config/server.properties")
+		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+			logger.Error("%s execute failed, %v", extraCmd, err)
+			return err
+		}
+	} else {
+		templateData := kafkautil.TemplateData{
+			NumNetWorkThreads:        processors,
+			LogRetentionHours:        retentionHours,
+			DefaultReplicationFactor: factor,
+			NumPartitions:            partitionNum,
+			NumIOThreads:             processors * 2,
+			NumReplicaFetchers:       processors,
+			LogDirs:                  kafkaDataDir,
+			Listeners:                listeners,
+			ZookeeperConnect:         zookeeperConnect,
+			LogRetentionBytes:        retentionBytes,
+		}
+		if err := kafkautil.CreateServerPropertiesFile(brokerConfig, templateData, cst.KafkaTmpConfig); err != nil {
+			return err
+		}
+		// copy to server.properties
+		extraCmd = fmt.Sprintf("cp %s %s", cst.KafkaTmpConfig, cst.KafkaConfigFile)
+		logger.Info("Exec cmd [%s]", extraCmd)
+		if _, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
+			logger.Error("%s execute failed, %v", extraCmd, err)
+			return err
+		}
 	}
 
 	//  not enabled security
@@ -670,8 +710,8 @@ func configJVM(kafkaLink string) (err error) {
 		return fmt.Errorf("获取实例内存失败, err: %w", err)
 	}
 	jvmSize := instMem
-	if jvmSize > 30720 {
-		jvmSize = 30720
+	if jvmSize > uint64(cst.Kafka64GB) {
+		jvmSize = uint64(cst.KafkaMaxHeap)
 	} else {
 		jvmSize = jvmSize / 2
 	}
