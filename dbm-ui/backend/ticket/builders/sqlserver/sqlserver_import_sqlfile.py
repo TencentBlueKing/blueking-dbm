@@ -53,7 +53,7 @@ class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
         help_text=_("备份保存时间"),
         choices=SqlserverBackupFileTagEnum.get_choices(),
         required=False,
-        default=SqlserverBackupFileTagEnum.DBFILE1M,
+        default=SqlserverBackupFileTagEnum.MSSQL_FULL_BACKUP,
     )
     backup_type = serializers.ChoiceField(
         help_text=_("备份方式"), choices=SqlserverBackupMode.get_choices(), required=False

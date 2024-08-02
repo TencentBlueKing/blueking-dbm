@@ -152,7 +152,7 @@ class SqlserverDTSFlow(BaseFlow):
                         job_timeout=3 * 3600,
                         custom_params={
                             "port": master_instance.port,
-                            "file_tag": SqlserverBackupFileTagEnum.DBFILE1M.value,
+                            "file_tag": SqlserverBackupFileTagEnum.MSSQL_FULL_BACKUP.value,
                             "backup_type": SqlserverBackupMode.FULL_BACKUP.value,
                         },
                     )
