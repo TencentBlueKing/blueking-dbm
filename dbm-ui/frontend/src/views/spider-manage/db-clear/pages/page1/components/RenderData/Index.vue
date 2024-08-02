@@ -18,7 +18,7 @@
         <RenderTableHeadColumn
           :min-width="120"
           :width="150">
-          {{ t('集群') }}
+          {{ t('目标集群') }}
           <template #append>
             <span
               class="batch-edit-btn"
@@ -49,18 +49,18 @@
         <RenderTableHeadColumn
           :min-width="100"
           :width="190">
-          {{ t('指定DB名') }}
+          {{ t('目标DB名') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="100"
+          :width="190">
+          {{ t('目标表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :required="false"
           :width="190">
           {{ t('忽略DB名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
-          :width="190">
-          {{ t('指定表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
@@ -89,9 +89,9 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'batchSelectCluster'): void,
-    (e: 'batchEditTruncateType', value: string): void,
+  interface Emits {
+    (e: 'batchSelectCluster'): void;
+    (e: 'batchEditTruncateType', value: string): void;
   }
 
   const emits = defineEmits<Emits>();
