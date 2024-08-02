@@ -22,19 +22,19 @@ AND a.name not in('syspolicy_purge_history')
 // GET_CREATE_JOB_SQL 拼接创建JOB的SQL
 const GET_CREATE_JOB_SQL = `
 DECLARE @i_enabled  TINYINT
-DECLARE @sql VARCHAR(MAX)
-DECLARE @i_job_name                    VARCHAR(1000)
+DECLARE @sql NVARCHAR(MAX)
+DECLARE @i_job_name                    NVARCHAR(1000)
 DECLARE @i_notify_level_eventlog    INT
 DECLARE @i_notify_level_email        INT
 DECLARE @i_notify_level_netsend        INT
 DECLARE @i_notify_level_page        INT
 DECLARE @i_delete_level                INT
-DECLARE @i_description                VARCHAR(1000)
-DECLARE @i_category_name            VARCHAR(1000)
-DECLARE @i_owner_login_name            VARCHAR(1000)
+DECLARE @i_description                NVARCHAR(1000)
+DECLARE @i_category_name            NVARCHAR(1000)
+DECLARE @i_owner_login_name            NVARCHAR(1000)
 DECLARE @i_category_class            INT
 DECLARE @i_start_step_id              INT                                
-DECLARE @i_step_name                 VARCHAR(1000)      
+DECLARE @i_step_name                 NVARCHAR(1000)      
 DECLARE @i_step_id                     INT                
 DECLARE @i_cmdexec_success_code        INT             
 DECLARE @i_on_success_action         INT                
@@ -44,11 +44,11 @@ DECLARE @i_on_fail_step_id             INT
 DECLARE @i_retry_attempts             BIGINT            
 DECLARE @i_retry_interval             INT                
 DECLARE @i_os_run_priority            INT                
-DECLARE @i_subsystem                 VARCHAR(1000)      
-DECLARE @i_command                    VARCHAR(8000)
-DECLARE @i_database_name            VARCHAR(100)              
+DECLARE @i_subsystem                 NVARCHAR(1000)      
+DECLARE @i_command                    NVARCHAR(4000)
+DECLARE @i_database_name            NVARCHAR(100)              
 DECLARE @i_flags                    INT     
-DECLARE @i_class VARCHAR(10) ,@i_type VARCHAR(10)
+DECLARE @i_class NVARCHAR(10) ,@i_type NVARCHAR(10)
 DECLARE @c_jobid UNIQUEIDENTIFIER ,@c_categoryid INT
 DECLARE @loop_stepid                INT
 DECLARE @m_stepid                    INT        
@@ -56,7 +56,7 @@ DECLARE @loop_scheduleid            INT
 DECLARE @m_scheduleid                INT                 
 DECLARE @i_schedule_enabled            TINYINT
 DECLARE @i_freq_type                INT
-DECLARE @i_schedule_name            VARCHAR(1000)    
+DECLARE @i_schedule_name            NVARCHAR(1000)    
 DECLARE @i_freq_interval            INT    
 DECLARE @i_freq_subday_type            INT
 DECLARE @i_freq_subday_interval        INT
@@ -66,7 +66,7 @@ DECLARE @i_active_start_date        BIGINT
 DECLARE @i_active_end_date            BIGINT    
 DECLARE @i_active_start_time        BIGINT    
 DECLARE @i_active_end_time            BIGINT    
-DECLARE @i_schedule_uid                VARCHAR(1000)
+DECLARE @i_schedule_uid                NVARCHAR(1000)
 SET @i_class    =    'JOB'
 SET @i_type        =    'LOCAL'
 SET @c_jobid='%s'
@@ -86,12 +86,15 @@ SELECT  @i_job_name = a.name ,
         FROM msdb.dbo.sysjobs a ,msdb.dbo.syscategories c
         WHERE a.category_id=c.category_id AND a.job_id=@c_jobid AND a.category_id = @c_categoryid
         
-SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF NOT EXISTS (SELECT job_id FROM msdb.dbo.sysjobs_view WHERE name = N'''+@i_job_name+''')'
+SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF EXISTS (SELECT job_id FROM msdb.dbo.sysjobs_view WHERE name = N'''+@i_job_name+''')'
+SET @sql=@sql+CHAR(13)+CHAR(10) + 'BEGIN'
+SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC msdb.dbo.sp_delete_job @job_name=N'''+@i_job_name+''', @delete_unused_schedule=1'
+SET @sql=@sql+CHAR(13)+CHAR(10) + 'END'
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'BEGIN'
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'BEGIN TRANSACTION' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'DECLARE @ReturnCode INT' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'SELECT @ReturnCode = 0'
-SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'''+ @i_category_name +''' AND category_class='+ CAST(@i_category_class AS VARCHAR) +' )' 
+SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF NOT EXISTS (SELECT name FROM msdb.dbo.syscategories WHERE name=N'''+ @i_category_name +''' AND category_class='+ CAST(@i_category_class AS NVARCHAR) +' )' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'BEGIN' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC @ReturnCode = msdb.dbo.sp_add_category @class=N'''+ @i_class +''', @type=N'''+ @i_type +''', @name=N'''+ @i_category_name +'''' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback'
@@ -100,12 +103,12 @@ SET @sql=@sql+CHAR(13)+CHAR(10) + 'END'
 SET @sql=@sql+CHAR(13)+CHAR(10) + ''
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'DECLARE @jobId BINARY(16)' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC @ReturnCode =  msdb.dbo.sp_add_job @job_name=N'''+ @i_job_name +''','  
-SET @sql=@sql+CHAR(13)+CHAR(10) + '        @enabled='+ CAST(@i_enabled AS VARCHAR) +',' 
-SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_eventlog='+ CAST(@i_notify_level_eventlog AS VARCHAR) +','
-SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_email='+ CAST(@i_notify_level_email AS VARCHAR) +',' 
-SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_netsend='+ CAST(@i_notify_level_netsend AS VARCHAR) +',' 
-SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_page='+ CAST(@i_notify_level_page AS VARCHAR) +',' 
-SET @sql=@sql+CHAR(13)+CHAR(10) + '        @delete_level='+ CAST(@i_delete_level AS VARCHAR) +',' 
+SET @sql=@sql+CHAR(13)+CHAR(10) + '        @enabled='+ CAST(@i_enabled AS NVARCHAR) +',' 
+SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_eventlog='+ CAST(@i_notify_level_eventlog AS NVARCHAR) +','
+SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_email='+ CAST(@i_notify_level_email AS NVARCHAR) +',' 
+SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_netsend='+ CAST(@i_notify_level_netsend AS NVARCHAR) +',' 
+SET @sql=@sql+CHAR(13)+CHAR(10) + '        @notify_level_page='+ CAST(@i_notify_level_page AS NVARCHAR) +',' 
+SET @sql=@sql+CHAR(13)+CHAR(10) + '        @delete_level='+ CAST(@i_delete_level AS NVARCHAR) +',' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + '        @description=N'''+ ISNULL(@i_description, 'No description available.') +''',' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + '        @category_name=N'''+ @i_category_name +''',' 
 SET @sql=@sql+CHAR(13)+CHAR(10) + '        @owner_login_name=N'''+ @i_owner_login_name +''', @job_id = @jobId OUTPUT' 
@@ -134,25 +137,25 @@ BEGIN
                 WHERE a.job_id = b.job_id AND step_id = @loop_stepid AND a.job_id = @c_jobid 
     
         SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC @ReturnCode = msdb.dbo.sp_add_jobstep @job_id=@jobId, @step_name=N'''+ @i_step_name +''',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @step_id='+ CAST(@i_step_id AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @cmdexec_success_code='+ CAST(@i_cmdexec_success_code AS VARCHAR) +','  
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @on_success_action='+ CAST(@i_on_success_action AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @on_success_step_id='+ CAST(@i_on_success_step_id AS VARCHAR) +','  
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @on_fail_action='+ CAST(@i_on_fail_action AS VARCHAR) +','  
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @on_fail_step_id='+ CAST(@i_on_fail_step_id AS VARCHAR) +','  
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @retry_attempts='+ CAST(@i_retry_attempts AS VARCHAR) +','  
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @retry_interval='+ CAST(@i_retry_interval AS VARCHAR) +','  
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @os_run_priority='+ CAST(@i_os_run_priority AS VARCHAR) +', @subsystem=N'''+ @i_subsystem +''','  
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @step_id='+ CAST(@i_step_id AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @cmdexec_success_code='+ CAST(@i_cmdexec_success_code AS NVARCHAR) +','  
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @on_success_action='+ CAST(@i_on_success_action AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @on_success_step_id='+ CAST(@i_on_success_step_id AS NVARCHAR) +','  
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @on_fail_action='+ CAST(@i_on_fail_action AS NVARCHAR) +','  
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @on_fail_step_id='+ CAST(@i_on_fail_step_id AS NVARCHAR) +','  
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @retry_attempts='+ CAST(@i_retry_attempts AS NVARCHAR) +','  
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @retry_interval='+ CAST(@i_retry_interval AS NVARCHAR) +','  
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @os_run_priority='+ CAST(@i_os_run_priority AS NVARCHAR) +', @subsystem=N'''+ @i_subsystem +''','  
         SET @sql=@sql+CHAR(13)+CHAR(10) + ISNULL('        @command=N''' + REPLACE(@i_command ,'''' ,'''''') + ''',' ,'')  
         SET @sql=@sql+CHAR(13)+CHAR(10) + ISNULL('        @database_name=N'''+ @i_database_name +''',' ,'') 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @flags='+ CAST(@i_flags AS VARCHAR) 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @flags='+ CAST(@i_flags AS NVARCHAR) 
         SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback' 
         
         SET @loop_stepid = ( SELECT TOP 1 step_id FROM msdb.dbo.sysjobsteps WHERE job_id = @c_jobid AND step_id > @loop_stepid ORDER BY step_id )
     END
 END
 
-SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = '+ CAST(@i_start_step_id AS VARCHAR)  
+SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC @ReturnCode = msdb.dbo.sp_update_job @job_id = @jobId, @start_step_id = '+ CAST(@i_start_step_id AS NVARCHAR)  
 SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback'  
 IF EXISTS ( SELECT TOP 1 1 FROM msdb.dbo.sysschedules c ,msdb.dbo.sysjobschedules d WHERE c.schedule_id = d.schedule_id AND job_id = @c_jobid )
 BEGIN
@@ -179,17 +182,17 @@ BEGIN
                 WHERE d.job_id = @c_jobid AND c.schedule_id = @loop_scheduleid  
 
         SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'''+ @i_schedule_name +''',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @enabled='+ CAST(@i_schedule_enabled AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_type='+ CAST(@i_freq_type AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_interval='+ CAST(@i_freq_interval AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_subday_type='+ CAST(@i_freq_subday_type AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_subday_interval='+ CAST(@i_freq_subday_interval AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_relative_interval='+ CAST(@i_freq_relative_interval AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_recurrence_factor='+ CAST(@i_freq_recurrence_factor AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @active_start_date='+ CAST(@i_active_start_date AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @active_end_date='+ CAST(@i_active_end_date AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @active_start_time='+ CAST(@i_active_start_time AS VARCHAR) +',' 
-        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @active_end_time='+ CAST(@i_active_end_time AS VARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @enabled='+ CAST(@i_schedule_enabled AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_type='+ CAST(@i_freq_type AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_interval='+ CAST(@i_freq_interval AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_subday_type='+ CAST(@i_freq_subday_type AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_subday_interval='+ CAST(@i_freq_subday_interval AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_relative_interval='+ CAST(@i_freq_relative_interval AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @freq_recurrence_factor='+ CAST(@i_freq_recurrence_factor AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @active_start_date='+ CAST(@i_active_start_date AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @active_end_date='+ CAST(@i_active_end_date AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @active_start_time='+ CAST(@i_active_start_time AS NVARCHAR) +',' 
+        SET @sql=@sql+CHAR(13)+CHAR(10) + '        @active_end_time='+ CAST(@i_active_end_time AS NVARCHAR) +',' 
         SET @sql=@sql+CHAR(13)+CHAR(10) + '        @schedule_uid=N'''+ @i_schedule_uid +'''' 
         SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF (@@ERROR <> 0 OR @ReturnCode <> 0) GOTO QuitWithRollback' 
         

@@ -32,7 +32,7 @@ DECLARE @lazyschemavalidation BIT
 DECLARE @querytimeout BIGINT 
 DECLARE @useremotecollation BIT 
 DECLARE @remoteproctransactionpromotion BIT
-DECLARE @sql VARCHAR(max)
+DECLARE @sql NVARCHAR(max)
 SET @sql=''
 DECLARE LinkserverNameCur CURSOR
 FOR
@@ -77,7 +77,13 @@ WHILE @@FETCH_STATUS = 0
 
     SET @sql=@sql+CHAR(13)+CHAR(10) + 'USE [master]'
     
-    SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF NOT EXISTS (SELECT srv.name FROM sys.servers srv WHERE srv.server_id != 0 AND srv.name = N'''+@servername+''')'
+    SET @sql=@sql+CHAR(13)+CHAR(10) + 'IF EXISTS (SELECT srv.name FROM sys.servers srv WHERE srv.server_id != 0 AND srv.name = N'''+@servername+''')'
+
+    SET @sql=@sql+CHAR(13)+CHAR(10) + 'BEGIN'
+
+    SET @sql=@sql+CHAR(13)+CHAR(10) + 'EXEC master.dbo.sp_dropserver @server=N'''+@servername+''', @droplogins=''droplogins'''
+
+    SET @sql=@sql+CHAR(13)+CHAR(10) + 'END'
     
     SET @sql=@sql+CHAR(13)+CHAR(10) + 'BEGIN'
     
