@@ -147,6 +147,21 @@ class Command(BaseCommand):
             strategy_template["notice"]["options"]["assign_mode"] = ["by_rule"]
             strategy_template["labels"] = sorted(set(strategy_template["labels"]))
 
+            # 替换通知模板，插入通知人
+            for index, notice_tpl in enumerate(strategy_template["notice"]["config"]["template"]):
+                if "通知人" not in notice_tpl["message_tmpl"]:
+                    strategy_template["notice"]["config"]["template"][index]["message_tmpl"] = (
+                        notice_tpl["message_tmpl"]
+                        .replace(
+                            "{{content.detail}}\n{{content.related_info}}",
+                            "{{content.detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+                        )
+                        .replace(
+                            "{{content.assign_detail}}\n{{content.related_info}}",
+                            "{{content.assign_detail}}\n通知人:{{alarm.receivers}}\n{{content.related_info}}",
+                        )
+                    )
+
             data_type_label = ""
             custom_agg_conditions = []
             for item in strategy_template["items"]:
