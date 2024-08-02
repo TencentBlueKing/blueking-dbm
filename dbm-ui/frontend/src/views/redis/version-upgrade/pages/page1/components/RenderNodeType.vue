@@ -23,16 +23,19 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import { RedisClusterTypes } from '@services/model/redis/redis';
+
   import TableEditSelect from '@views/redis/common/edit/Select.vue';
 
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['nodeType']
+    data?: IDataRow['nodeType'];
+    clusterType?: IDataRow['clusterType'];
   }
 
   interface Emits {
-    (e: 'change', value: string): void
+    (e: 'change', value: string): void;
   }
 
   const props = defineProps<Props>();
@@ -41,18 +44,7 @@
   const { t } = useI18n();
 
   const selectRef = ref<InstanceType<typeof TableEditSelect>>();
-  const localValue = ref(props.data ? props.data : 'Proxy');
-
-  const selectList = [
-    {
-      value: 'Proxy',
-      label: 'Proxy',
-    },
-    {
-      value: 'Backend',
-      label: 'Backend',
-    },
-  ];
+  const localValue = ref('');
 
   const rules = [
     {
@@ -60,6 +52,35 @@
       message: t('请先输入集群'),
     },
   ];
+
+  const selectList = computed(() => {
+    const nodeTypeList = [
+      {
+        value: 'Backend',
+        label: 'Backend',
+      },
+    ];
+
+    if (props.clusterType !== RedisClusterTypes.RedisInstance) {
+      nodeTypeList.push({
+        value: 'Proxy',
+        label: 'Proxy',
+      });
+    }
+
+    return nodeTypeList;
+  });
+
+  watch(
+    () => props.data,
+    () => {
+      const defaultNodeType = props.clusterType === RedisClusterTypes.RedisInstance ? 'Backend' : 'Proxy';
+      localValue.value = props.data ? props.data : defaultNodeType;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string) => {
     emits('change', value);

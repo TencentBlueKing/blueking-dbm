@@ -16,9 +16,8 @@
     <td style="padding: 0">
       <RenderTargetCluster
         ref="clusterRef"
-        :data="data.cluster"
-        :inputed="inputedClusters"
-        @input-finish="handleInputFinish" />
+        :data="data"
+        @id-change="handleClusterIdChange" />
     </td>
     <td style="padding: 0">
       <RenderText
@@ -28,6 +27,7 @@
     </td>
     <td style="padding: 0">
       <RenderNodeType
+        :cluster-type="data.clusterType"
         :data="data.nodeType"
         @change="handleNodeTypeChange" />
     </td>
@@ -56,10 +56,9 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
-  import RenderTargetCluster from '@views/redis/common/edit-field/ClusterName.vue';
-
   import { random } from '@utils';
 
+  import RenderTargetCluster from './RenderCluster.vue';
   import RenderCurrentVersion from './RenderCurrentVersion.vue';
   import RenderNodeType from './RenderNodeType.vue';
   import RenderTargetVersion from './RenderTargetVersion.vue';
@@ -75,7 +74,7 @@
   }
 
   export interface InfoItem {
-    cluster_id: number;
+    cluster_ids: number[];
     node_type: string;
     current_versions: string[];
     target_version: string;
@@ -94,24 +93,21 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
-    inputedClusters?: string[];
+    // inputedClusters?: string[];
   }
 
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
     (e: 'nodeTypeChange', value: string): void;
-    (e: 'clusterInputFinish', value: RedisModel): void;
+    (e: 'clusterInputFinish', value: RedisModel | null): void;
   }
 
   interface Exposes {
     getValue: () => Promise<InfoItem>;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    inputedClusters: () => [],
-  });
-
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -128,7 +124,7 @@
     emits('nodeTypeChange', value);
   };
 
-  const handleInputFinish = (value: RedisModel) => {
+  const handleClusterIdChange = (value: RedisModel | null) => {
     emits('clusterInputFinish', value);
   };
 
@@ -144,14 +140,15 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      await clusterRef.value!.getValue(true);
-      return await targetVersionRef.value!.getValue().then((targetVersion) => ({
-        cluster_id: props.data.clusterId,
-        node_type: props.data.nodeType,
-        current_versions: currentVersionList.value,
-        target_version: targetVersion,
-      }));
+    getValue() {
+      return Promise.all([clusterRef.value!.getValue(), targetVersionRef.value!.getValue()]).then(
+        ([clusterIds, targetVersion]) => ({
+          cluster_ids: clusterIds,
+          node_type: props.data.nodeType,
+          current_versions: currentVersionList.value,
+          target_version: targetVersion,
+        }),
+      );
     },
   });
 </script>

@@ -26,10 +26,9 @@
           :key="item.rowKey"
           ref="rowRefs"
           :data="item"
-          :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @cluster-input-finish="(rowInfo: RedisModel) => handleChangeCluster(index, rowInfo)"
+          @cluster-input-finish="(rowInfo: RedisModel | null) => handleChangeCluster(index, rowInfo)"
           @node-type-change="(type: string) => handleNodeTypeChange(index, type)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -67,7 +66,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import RedisModel from '@services/model/redis/redis';
+  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import { findRelatedClustersByClusterIds } from '@services/source/redisToolbox';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -103,7 +103,7 @@
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
-  const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
+  // const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
 
   // const patchEditVersionListParams = computed(() => {
   //   const tableDataList = tableData.value
@@ -163,22 +163,44 @@
     cluster: item.master_domain,
     clusterId: item.id,
     clusterType: item.cluster_spec.spec_cluster_type,
-    nodeType: 'Proxy',
+    nodeType: item.cluster_spec.spec_cluster_type === RedisClusterTypes.RedisInstance ? 'Backend' : 'Proxy',
   });
 
   // 批量选择
   const handelClusterChange = async (selected: { [key: string]: Array<RedisModel> }) => {
-    selectedClusters.value = selected;
+    // selectedClusters.value = selected;
     const list = selected[ClusterTypes.REDIS];
+    const clusterIdList = list.reduce<number[]>((prevList, listItem) => {
+      prevList.push(listItem.id);
+      return prevList;
+    }, []);
+    const relatedClusterResult = await findRelatedClustersByClusterIds({
+      cluster_ids: clusterIdList,
+    });
+    const relatedClusterMap = relatedClusterResult.reduce<Record<string, string[]>>(
+      (prev, item) =>
+        Object.assign(prev, {
+          [item.cluster_info.master_domain]: item.related_clusters.map((item) => item.master_domain),
+        }),
+      {},
+    );
+    const relatedClusterSet = new Set<string>();
     const newList: IDataRow[] = [];
-    for (const item of list) {
+    list.forEach((item) => {
       const domain = item.master_domain;
-      if (!domainMemo[domain]) {
+      if (!domainMemo[domain] && !relatedClusterSet.has(domain)) {
         const row = generateRowDateFromRequest(item);
         newList.push(row);
         domainMemo[domain] = true;
+        relatedClusterMap[domain].forEach((mapItem) => relatedClusterSet.add(mapItem));
       }
-    }
+      if (domainMemo[domain]) {
+        relatedClusterMap[domain].forEach((mapItem) => relatedClusterSet.add(mapItem));
+      }
+    });
+
+    selectedClusters.value[ClusterTypes.REDIS] = list.filter((item) => domainMemo[item.master_domain]);
+
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
     } else {
@@ -188,8 +210,8 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = (index: number, rowInfo: RedisModel) => {
-    const domain = rowInfo.master_domain;
+  const handleChangeCluster = (index: number, rowInfo: RedisModel | null) => {
+    const domain = rowInfo?.master_domain;
     if (!domain) {
       const { cluster } = tableData.value[index];
       domainMemo[cluster] = false;
