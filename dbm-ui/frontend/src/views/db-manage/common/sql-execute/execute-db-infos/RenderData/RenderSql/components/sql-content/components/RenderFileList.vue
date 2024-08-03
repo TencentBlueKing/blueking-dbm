@@ -78,7 +78,7 @@
                   </div>
                   <div class="drag-flag">
                     <DbIcon
-                      style="font-size: 10px; color: #fff"
+                      style="font-size: 14px; color: #fff"
                       type="drag" />
                   </div>
                   <div

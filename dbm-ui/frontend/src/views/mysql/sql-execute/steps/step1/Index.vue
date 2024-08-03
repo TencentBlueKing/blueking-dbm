@@ -15,7 +15,7 @@
   <BkLoading :loading="isEditLoading || isEditTicketLoading">
     <SmartAction>
       <div class="mysql-sql-execute-page">
-        <TaskTips />
+        <TaskTips :db-type="DBTypes.MYSQL" />
         <DbForm
           :key="resetFormKey"
           ref="formRef"
