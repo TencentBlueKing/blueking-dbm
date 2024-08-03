@@ -115,7 +115,11 @@
             <div style="font-size: 12px; font-weight: bold; color: #ea3636; line-height: 22px">
               {{ data.file_name }}
             </div>
-            <div style="color: #63656e; line-height: 20px; margin-top: 4px">{{ data.err_msg }}</div>
+            <MultLineText
+              :line="3"
+              style="color: #63656e; line-height: 20px; margin-top: 4px">
+              {{ data.err_msg }}
+            </MultLineText>
           </template>
         </BKTableColumn>
       </BkTable>
@@ -137,6 +141,8 @@
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
+
+  import MultLineText from '@components/mult-line-text/Index.vue';
 
   import StatusFailed from './components/render-status/Failed.vue';
   import StatusPending from './components/render-status/Pending.vue';

@@ -32,7 +32,9 @@
         </BkButton>
         <span style="margin-left: 12px; font-size: 12px; color: #8a8f99">
           {{
-            t('仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件')
+            t(
+              '仅支持_sql文件_文件名不能包含空格_上传后_SQL执行顺序默认为从上至下_可拖动文件位置_变换文件的执行顺序文件',
+            )
           }}
         </span>
       </div>
@@ -74,12 +76,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-    onActivated,
-    onDeactivated,
-    ref,
-  } from 'vue';
+  import { computed, onActivated, onDeactivated, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { grammarCheck } from '@services/source/sqlImport';
@@ -87,18 +84,15 @@
 
   import { getSQLFilename } from '@utils';
 
-  import { updateFilePath } from '../../../Index.vue';
+  import { updateFilePath } from '../../../Index.bak.vue';
   import Editor from '../editor/Index.vue';
 
   import CheckError from './components/CheckError.vue';
   import CheckSuccess from './components/CheckSuccess.vue';
-  import RenderFileList, {
-    createFileData,
-    type IFileData,
-  } from './components/FileList.vue';
+  import RenderFileList, { createFileData, type IFileData } from './components/FileList.vue';
 
   interface Props {
-    modelValue: string[]
+    modelValue: string[];
   }
 
   interface Emits {
@@ -130,10 +124,7 @@
         }
         const uploadFileDataList = Object.values(uploadFileDataMap.value);
         for (let i = 0; i < uploadFileDataList.length; i++) {
-          const {
-            isUploadFailed,
-            isCheckFailded,
-          } = uploadFileDataList[i];
+          const { isUploadFailed, isCheckFailded } = uploadFileDataList[i];
           if (isUploadFailed) {
             return false;
           }
@@ -149,8 +140,8 @@
   ];
 
   // 文件结果
-  const getResultValue = () => uploadFileNameList.value
-    .map(localFileName => uploadFileDataMap.value[localFileName].realFilePath);
+  const getResultValue = () =>
+    uploadFileNameList.value.map((localFileName) => uploadFileDataMap.value[localFileName].realFilePath);
 
   // 获取文件内容
   const fetchFileContent = (fileName: string) => {
@@ -174,63 +165,73 @@
   let isInnerChange = false;
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (isInnerChange) {
-      isInnerChange = false;
-      return;
-    }
-    if (props.modelValue.length < 1) {
-      return;
-    }
-    const localFileNameList = [] as string[];
-    const filePathMap = {} as Record<string, string>;
+  watch(
+    () => props.modelValue,
+    () => {
+      if (isInnerChange) {
+        isInnerChange = false;
+        return;
+      }
+      if (props.modelValue.length < 1) {
+        return;
+      }
+      const localFileNameList = [] as string[];
+      const filePathMap = {} as Record<string, string>;
 
-    props.modelValue.forEach((filePath: string) => {
-      // 本地 SQL 文件上传后会拼接随机数前缀，需要解析正确的文件名
-      const localFileName = getSQLFilename(filePath);
-      localFileNameList.push(localFileName);
-      filePathMap[localFileName] = filePath;
-    });
+      props.modelValue.forEach((filePath: string) => {
+        // 本地 SQL 文件上传后会拼接随机数前缀，需要解析正确的文件名
+        const localFileName = getSQLFilename(filePath);
+        localFileNameList.push(localFileName);
+        filePathMap[localFileName] = filePath;
+      });
 
-    uploadFileNameList.value = localFileNameList;
+      uploadFileNameList.value = localFileNameList;
 
-    uploadFileDataMap.value = uploadFileNameList.value.reduce((result, localFileName) => ({
-      ...result,
-      [localFileName]: createFileData({
-        isSuccess: true,
-        isCheckFailded: false,
-        realFilePath: filePathMap[localFileName],
-      }),
-    }), {} as Record<string, IFileData>);
+      uploadFileDataMap.value = uploadFileNameList.value.reduce(
+        (result, localFileName) => ({
+          ...result,
+          [localFileName]: createFileData({
+            isSuccess: true,
+            isCheckFailded: false,
+            realFilePath: filePathMap[localFileName],
+          }),
+        }),
+        {} as Record<string, IFileData>,
+      );
 
-    // 默认选中第一个文件
-    [selectFileName.value] = uploadFileNameList.value;
-    if (props.modelValue.length > 0) {
+      // 默认选中第一个文件
+      [selectFileName.value] = uploadFileNameList.value;
+      if (props.modelValue.length > 0) {
+        fetchFileContent(uploadFileDataMap.value[selectFileName.value].realFilePath);
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    selectFileName,
+    () => {
+      // 编辑状态不需要 SQL 文件检测，需要异步获取文件内容
+      if (
+        !selectFileName.value ||
+        uploadFileDataMap.value[selectFileName.value].content ||
+        uploadFileDataMap.value[selectFileName.value].grammarCheck
+      ) {
+        return;
+      }
       fetchFileContent(uploadFileDataMap.value[selectFileName.value].realFilePath);
-    }
-  }, {
-    immediate: true,
-  });
-
-  watch(selectFileName, () => {
-    // 编辑状态不需要 SQL 文件检测，需要异步获取文件内容
-    if (!selectFileName.value
-      || uploadFileDataMap.value[selectFileName.value].content
-      || uploadFileDataMap.value[selectFileName.value].grammarCheck) {
-      return;
-    }
-    fetchFileContent(uploadFileDataMap.value[selectFileName.value].realFilePath);
-  }, {
-    immediate: true,
-  });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const triggerChange = () => {
     const uploadFileDataList = Object.values(uploadFileDataMap.value);
     for (let i = 0; i < uploadFileDataList.length; i++) {
-      const {
-        isUploadFailed,
-        isCheckFailded,
-      } = uploadFileDataList[i];
+      const { isUploadFailed, isCheckFailded } = uploadFileDataList[i];
       if (isUploadFailed || isCheckFailded) {
         emits('grammar-check', false, false);
         return;
@@ -248,16 +249,13 @@
 
   // 开始上传本地文件
   const handleStartUpdate = (event: Event) => {
-    const {
-      files = [],
-    } = event.target as HTMLInputElement;
+    const { files = [] } = event.target as HTMLInputElement;
     if (!files) {
       return;
     }
     const fileNameList: Array<string> = [];
     const currentFileDataMap = {} as Record<string, IFileData>;
     const params = new FormData();
-
 
     Array.from(files).forEach((curFile) => {
       fileNameList.push(curFile.name);
@@ -279,7 +277,6 @@
           isUploading: false,
           uploadErrorMessage: t('文件上传失败——文件大小超过限制（最大为1GB）'),
           grammarCheck: undefined,
-
         };
         return;
       }
@@ -296,7 +293,6 @@
       const [firstFileName] = fileNameList;
       selectFileName.value = firstFileName;
     }
-
 
     grammarCheck(params)
       .then((data) => {
@@ -353,8 +349,7 @@
     delete lastUploadFileDataMap[fileName];
     uploadFileDataMap.value = lastUploadFileDataMap;
 
-    if (fileName === selectFileName.value
-      && fileList.length > 0) {
+    if (fileName === selectFileName.value && fileList.length > 0) {
       [selectFileName.value] = fileList;
     }
     triggerChange();

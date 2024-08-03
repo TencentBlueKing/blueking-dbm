@@ -15,7 +15,8 @@
   <BkResizeLayout
     :border="false"
     class="sql-execute-file-manual-input"
-    :initial-divide="300">
+    :initial-divide="300"
+    :min="240">
     <template #aside>
       <RenderFileList
         v-if="isKeepAliveActive"

@@ -1,6 +1,6 @@
 <template>
-  <BkSideslider
-    :is-show="isShow"
+  <DbSideslider
+    v-model:is-show="isShow"
     :title="t('SQL 内容')"
     :width="1100">
     <div style="padding: 20px 25px 0">
@@ -53,7 +53,7 @@
         {{ t('取消') }}
       </BkButton>
     </template>
-  </BkSideslider>
+  </DbSideslider>
 </template>
 <script setup lang="ts">
   import { ref } from 'vue';
@@ -120,7 +120,6 @@
 
   // 语法检测状态
   const handleGrammarCheck = (doCheck: boolean, checkResult: boolean) => {
-    console.log('handleGrammarCheck = ', doCheck, checkResult);
     hasGrammarCheck.value = doCheck;
     grammarCheckResult.value = checkResult;
   };

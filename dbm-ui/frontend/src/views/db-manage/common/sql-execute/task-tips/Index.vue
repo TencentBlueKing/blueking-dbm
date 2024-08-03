@@ -86,9 +86,17 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { DBTypes } from '@common/const';
+
   import { useTaskCount } from '@views/mysql/common/hooks/useTaskCount';
 
-  const { rootRef, popRef, taskList, taskCount, handleRevokeTask, handleGoTaskLog } = useTaskCount('mysql');
+  interface Props {
+    dbType: DBTypes.MYSQL | DBTypes.TENDBCLUSTER;
+  }
+
+  const props = defineProps<Props>();
+
+  const { rootRef, popRef, taskList, taskCount, handleRevokeTask, handleGoTaskLog } = useTaskCount(props.dbType);
 </script>
 <style lang="less">
   .sql-execute-task-tips {

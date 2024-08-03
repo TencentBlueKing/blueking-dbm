@@ -20,7 +20,6 @@ export * from './useDebouncedRef';
 export * from './useDefaultPagination';
 export * from './useEventBus';
 export * from './useFormItem';
-export * from './useFullscreenStyle';
 export * from './useIsWidthOverflow';
 export * from './useLinkQueryColumnSerach';
 export * from './useListeners';

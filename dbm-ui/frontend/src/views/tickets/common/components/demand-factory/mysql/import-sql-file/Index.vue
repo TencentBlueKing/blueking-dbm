@@ -131,6 +131,7 @@
 <script setup lang="tsx">
   import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request'
 
   import type { MySQLForceImportSQLFileExecuteSqlFiles,MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
@@ -141,6 +142,8 @@
   import { TicketTypes } from '@common/const';
 
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
+
+  import { getSQLFilename} from '@utils'
 
   import RenderFileContent from './components/RenderFileContent.vue';
   import RenderFileList from './components/SqlFileList.vue';
@@ -261,7 +264,10 @@
         cell.map((item, index) => (
           <div style="line-height: 20px;" key={index}>
             <bk-button text theme="primary" onClick={() => handleSelectFile(item)}>
-              {item}
+              <db-icon
+                style="color: #3a84ff; margin-right: 4px"
+                type="file" />
+              {getSQLFilename(item)}
             </bk-button>
           </div>
         ))
@@ -354,30 +360,41 @@
     return list;
   });
 
-  // 查看日志详情
-  const handleClickFile = () => {
-    isShow.value = true;
-
-    const filePathList = uploadFileList.value.reduce((result, item) => {
+  const {run: runBatchFetchFile} = useRequest(() => {
+    const filePathList = uploadFileList.value.reduce<string[]>((result, item) => {
       result.push(isForceSql.value ? item : `${props.ticketDetails.details.path}/${item}`);
       return result;
-    }, [] as string[]);
+    }, []);
 
-    batchFetchFile({
+    return batchFetchFile({
       file_path_list: filePathList,
-    }).then((result) => {
-      fileContentMap.value = result.reduce((result, fileInfo) => {
+    })
+  }, {
+    manual: true,
+    onSuccess(result) {
+      fileContentMap.value = result.reduce<Record<string, string>>((result, fileInfo) => {
         const fileName = isForceSql.value ? fileInfo.path : fileInfo.path.split('/').pop() as string;
         return Object.assign(result, {
           [fileName]: fileInfo.content,
         });
-      }, {} as Record<string, string>);
+      }, {});
+    }
+  })
 
-      [selectFileName.value] = uploadFileList.value;
-    });
+  // 查看日志详情
+  const handleClickFile = () => {
+    if (_.isEmpty(fileContentMap.value)){
+      runBatchFetchFile();
+    }
+    isShow.value = true;
+    [selectFileName.value] = uploadFileList.value;
   };
 
   const handleSelectFile = (filename: string) => {
+    if (_.isEmpty(fileContentMap.value)){
+      runBatchFetchFile();
+    }
+
     selectFileName.value = filename;
     isShow.value = true;
   }

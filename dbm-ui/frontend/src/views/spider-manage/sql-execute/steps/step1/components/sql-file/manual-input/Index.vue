@@ -64,7 +64,7 @@
   import { grammarCheck } from '@services/source/sqlImport';
   import { getFileContent } from '@services/source/storage';
 
-  import { updateFilePath } from '../../../Index.vue';
+  import { updateFilePath } from '../../../Index.bak.vue';
   import Editor from '../editor/Index.vue';
 
   import SyntaxChecking from './components/SyntaxChecking.vue';

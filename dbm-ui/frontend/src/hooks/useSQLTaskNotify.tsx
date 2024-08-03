@@ -38,11 +38,6 @@ export const useSQLTaskNotify = () => {
   };
 
   const { cancel: cancelRequest } = useRequest(getUserSemanticTasks, {
-    defaultParams: [
-      {
-        bk_biz_id: 0,
-      },
-    ],
     pollingInterval: 10000,
     debounceInterval: 10000,
     onSuccess(data) {

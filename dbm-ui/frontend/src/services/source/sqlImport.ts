@@ -18,14 +18,11 @@ export function deleteUserSemanticTasks(params: { task_ids: string[]; cluster_ty
 /**
  * 获取用户语义检查任务列表
  */
-export function getUserSemanticTasks(params: { bk_biz_id: number; cluster_type?: string }) {
-  const realParams = { ...params } as Record<string, any>;
-  delete realParams.bk_biz_id;
-
+export function getUserSemanticTasks(params: { cluster_type?: string }) {
   return http
     .get<
       UserSemanticTaskModel[]
-    >(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_user_semantic_tasks/`, realParams)
+    >(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_user_semantic_tasks/`, params)
     .then((data) => data.map((item) => new UserSemanticTaskModel(item)));
 }
 
