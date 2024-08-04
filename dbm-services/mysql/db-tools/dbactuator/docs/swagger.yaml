@@ -1010,6 +1010,9 @@ definitions:
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfChangeParam:
     properties:
+      host:
+        description: TgtInstance native.InsObject `json:"tgt_instance" validate:"required"`
+        type: string
       items:
         additionalProperties:
           $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.ConfItemOp'
@@ -1021,6 +1024,10 @@ definitions:
         - 1
         - 2
         type: integer
+      ports:
+        items:
+          type: integer
+        type: array
       restart:
         description: '指定是否 允许重启, -1:不重启, 1: 重启, 2:根据 items need_restart 自动判断是否重启'
         enum:
@@ -1028,13 +1035,10 @@ definitions:
         - 1
         - 2
         type: integer
-      tgt_instance:
-        $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject'
     required:
     - items
     - persistent
     - restart
-    - tgt_instance
     type: object
   dbm-services_mysql_db-tools_dbactuator_pkg_components_mysql.MycnfCloneComp:
     properties:
