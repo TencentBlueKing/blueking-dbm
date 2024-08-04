@@ -2287,10 +2287,13 @@
             "required": [
                 "items",
                 "persistent",
-                "restart",
-                "tgt_instance"
+                "restart"
             ],
             "properties": {
+                "host": {
+                    "description": "TgtInstance native.InsObject `json:\"tgt_instance\" validate:\"required\"`",
+                    "type": "string"
+                },
                 "items": {
                     "type": "object",
                     "additionalProperties": {
@@ -2306,6 +2309,12 @@
                         2
                     ]
                 },
+                "ports": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
                 "restart": {
                     "description": "指定是否 允许重启, -1:不重启, 1: 重启, 2:根据 items need_restart 自动判断是否重启",
                     "type": "integer",
@@ -2314,9 +2323,6 @@
                         1,
                         2
                     ]
-                },
-                "tgt_instance": {
-                    "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_native.InsObject"
                 }
             }
         },

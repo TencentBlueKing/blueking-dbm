@@ -49,20 +49,21 @@ type OpenAreaImportSchemaParam struct {
 
 // OneOpenAreaImportSchema TODO
 type OneOpenAreaImportSchema struct {
-	Schema string   `json:"schema"` // 指定dump的库
-	NewDB  string   `json:"newdb"`
+	Schema string   `json:"schema"` // 指定dump的库的名称
+	NewDB  string   `json:"newdb"`  // 开区的新库的名称
 	DbList []string `json:"db_list"`
 }
 
 // OpenAreaImportSchemaRunTimeCtx TODO
 type OpenAreaImportSchemaRunTimeCtx struct {
-	charset     string // 当前实例的字符集
-	workDir     string
-	tarFilePath string
-	md5FilePath string
-	dumpDir     string
-	conn        *native.DbWorker
-	socket      string
+	charset       string // 当前实例的字符集
+	workDir       string
+	tarFilePath   string
+	md5FilePath   string
+	dumpDir       string
+	conn          *native.DbWorker
+	socket        string
+	decompressDir string
 }
 
 // Example TODO
@@ -124,7 +125,14 @@ func (c *OpenAreaImportSchemaComp) Init() (err error) {
 	c.tarFilePath = path.Join(c.workDir, tarFileName)
 	md5FileName := fmt.Sprintf("%s.md5sum", c.Params.DumpDirName)
 	c.md5FilePath = path.Join(c.workDir, md5FileName)
-	c.dumpDir = path.Join(c.workDir, c.Params.DumpDirName)
+	// 避免并发时共用文件导致导入错误，同一机器上的不同实例使用自己的解压目录
+	c.decompressDir = path.Join(c.workDir, fmt.Sprintf("%s_%d", c.Params.Host, c.Params.Port))
+	err = os.MkdirAll(c.decompressDir, 0755)
+	if err != nil {
+		logger.Error("解压目录创建失败：%s", err.Error())
+		return err
+	}
+	c.dumpDir = path.Join(c.decompressDir, c.Params.DumpDirName)
 	return
 }
 
@@ -161,7 +169,7 @@ func (c *OpenAreaImportSchemaComp) DecompressDumpDir() (err error) {
 		return errors.New(msg)
 	}
 	logger.Info("get tar file sucess!")
-	decopressCmd := fmt.Sprintf("tar -zxf %s -C %s", c.tarFilePath, c.workDir)
+	decopressCmd := fmt.Sprintf("tar -zxf %s -C %s", c.tarFilePath, c.decompressDir)
 	output, err := osutil.ExecShellCommand(false, decopressCmd)
 	if err != nil {
 		logger.Error("execute(%s) get an error:%s,%s", decopressCmd, output, err.Error())
@@ -186,7 +194,7 @@ func (c *OpenAreaImportSchemaComp) EraseAutoIncrement() (err error) {
 			return err
 		}
 		newSchemaContent := reg.ReplaceAllString(string(schemaContent), "")
-		newSchemaFilePath := fmt.Sprintf("%s.new", schemaFilePath)
+		newSchemaFilePath := fmt.Sprintf("%s.%s.new", schemaFilePath, oneSchemaInfo.NewDB)
 
 		f, err := os.Create(newSchemaFilePath)
 		if err != nil {
@@ -236,8 +244,8 @@ func (c *OpenAreaImportSchemaComp) CreateDatabase() (err error) {
 
 // OpenAreaImportSchema TODO
 func (c *OpenAreaImportSchemaComp) OpenAreaImportSchema() (err error) {
-	for _, oneShemaInfo := range c.Params.OpenAreaParam {
-		schemaName := fmt.Sprintf("%s.sql.new", oneShemaInfo.Schema)
+	for _, oneSchemaInfo := range c.Params.OpenAreaParam {
+		schemaName := fmt.Sprintf("%s.sql.%s.new", oneSchemaInfo.Schema, oneSchemaInfo.NewDB)
 		err = mysqlutil.ExecuteSqlAtLocal{
 			IsForce:          false,
 			Charset:          c.charset,
@@ -248,7 +256,7 @@ func (c *OpenAreaImportSchemaComp) OpenAreaImportSchema() (err error) {
 			WorkDir:          c.dumpDir,
 			User:             c.GeneralParam.RuntimeAccountParam.AdminUser,
 			Password:         c.GeneralParam.RuntimeAccountParam.AdminPwd,
-		}.MyExcuteSqlByMySQLClientOne(schemaName, oneShemaInfo.NewDB)
+		}.MyExcuteSqlByMySQLClientOne(schemaName, oneSchemaInfo.NewDB)
 		if err != nil {
 			logger.Error("执行%s文件失败！", schemaName)
 			return err
