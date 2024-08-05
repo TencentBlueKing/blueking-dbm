@@ -112,6 +112,15 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     backup_flow_builder = MysqlSqlImportBackUpFlowParamBuilder
     import_flow_builder = MysqlSqlImportFlowParamBuilder
 
+    @property
+    def need_itsm(self):
+        # 非高危的SQL变更单据，不需要审批节点
+        grammar_check_info = self.ticket.details["grammar_check_info"].values()
+        high_risk = [check["highrisk_warnings"] for check in grammar_check_info if check["highrisk_warnings"]]
+        if not high_risk:
+            return False
+        return super().need_itsm
+
     @classmethod
     def patch_sqlimport_ticket_detail(cls, ticket, cluster_type):
         # 移除语义执行缓存
