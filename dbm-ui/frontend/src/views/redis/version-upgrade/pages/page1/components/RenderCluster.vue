@@ -70,7 +70,7 @@
   }
 
   interface Emits {
-    (e: 'idChange', value: RedisModel | null): void;
+    (e: 'input-finish', value: RedisModel): void;
   }
 
   interface Exposes {
@@ -105,7 +105,6 @@
         if (value) {
           return true;
         }
-        emits('idChange', null);
         return false;
       },
       message: t('目标集群不能为空'),
@@ -123,11 +122,10 @@
           if (results.length > 0) {
             localClusterId.value = results[0].id;
             if (!isSkipInputFinish) {
-              emits('idChange', results[0]);
+              emits('input-finish', results[0]);
             }
             return true;
           }
-          emits('idChange', null);
           return false;
         }),
       message: t('目标集群不存在'),

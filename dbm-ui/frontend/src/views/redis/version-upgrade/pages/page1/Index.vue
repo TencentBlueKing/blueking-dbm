@@ -209,14 +209,14 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = (index: number, rowInfo: RedisModel | null) => {
-    const domain = rowInfo?.master_domain;
-    if (!domain) {
-      const { cluster } = tableData.value[index];
-      domainMemo[cluster] = false;
-      tableData.value[index].cluster = '';
-      return;
-    }
+  const handleChangeCluster = (index: number, rowInfo: RedisModel) => {
+    const domain = rowInfo.master_domain;
+    // if (!domain) {
+    //   const { cluster } = tableData.value[index];
+    //   domainMemo[cluster] = false;
+    //   tableData.value[index].cluster = '';
+    //   return;
+    // }
 
     const row = generateRowDateFromRequest(rowInfo);
     tableData.value[index] = row;
