@@ -267,7 +267,7 @@ class RemoteServiceHandler:
             cluster_databases_infos.append({"cluster_id": info["cluster_id"], "databases": databases})
         return cluster_databases_infos
 
-    def webconsole_rpc(self, cluster_id: int, cmd: str):
+    def webconsole_rpc(self, cluster_id: int, cmd: str, **kwargs):
         """
         执行webconsole命令，只支持select语句
         @param cluster_id: 集群ID

@@ -26,6 +26,24 @@ location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
 }
 """
 
+doris_conf_tpl = """
+location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
+    rewrite /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}}/(.*) /$1 break;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_pass {{service_url}};
+    client_max_body_size 100m;
+    proxy_connect_timeout 120;
+    proxy_send_timeout 120;
+    proxy_read_timeout 120;
+    proxy_buffer_size 4k;
+    proxy_buffers 32 4k;
+    proxy_busy_buffers_size 64k;
+}
+"""
+
 hdfs_conf_tpl = """
 location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {
     rewrite /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}}/(.*) /$1 break;

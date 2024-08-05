@@ -104,14 +104,17 @@ class SQLParseHandler:
         need_keywords = need_keywords or ["LIMIT"]
 
         def parse_show_desc_tokens(tokens):
-            """允许show databases, show tables, desc, use语句"""
-            identifiers = [item.value.upper() for item in tokens if isinstance(item, sqlparse.sql.Identifier)]
+            """允许特殊SQL语句"""
             keyword = [token.value for token in tokens if token.is_keyword] or [""]
+            ids = [item.value.upper() for item in tokens if isinstance(item, sqlparse.sql.Identifier)]
+            # 允许desc，describe，use语句
             if keyword[0].upper() in ["DESC", "DESCRIBE", "USE"]:
                 return True
-            if keyword[0].upper() == "SHOW" and identifiers == ["DATABASES"]:
+            # 允许show databases，show processlist、show slave status
+            if keyword[0].upper() == "SHOW" and ids[0] in ["DATABASES", "PROCESSLIST", "SLAVE STATUS"]:
                 return True
-            if len(keyword) > 1 and keyword[0].upper() == "SHOW" and keyword[1].upper() == "TABLES":
+            # 允许show tables，show create
+            if len(keyword) > 1 and keyword[0].upper() == "SHOW" and keyword[1].upper() in ["TABLES", "CREATE"]:
                 return True
             return False
 
