@@ -17,7 +17,7 @@
       <RenderTargetCluster
         ref="clusterRef"
         :data="data"
-        @id-change="handleClusterIdChange" />
+        @input-finish="handleClusterInputFinish" />
     </td>
     <td style="padding: 0">
       <RenderText
@@ -124,7 +124,7 @@
     emits('nodeTypeChange', value);
   };
 
-  const handleClusterIdChange = (value: RedisModel | null) => {
+  const handleClusterInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
   };
 
