@@ -631,10 +631,276 @@ class TestSQLParseHandler:
         print(SQLParseHandler().parse_sql(sql))
         assert SQLParseHandler().parse_sql(sql) == {
             "command": "SELECT",
-            "query_string": 'SELECT --Locais Disponíveis para Abertura de Ordens de corte COALESCE(a."Chave", b."Chave") AS "Chave", COALESCE(a."Unidade", b."Unidade") AS "Unidade", COALESCE(a."Fazenda", b."Fazenda") AS "Fazenda", COALESCE(a."Talhao", b."Talhao") AS "Talhao", COALESCE(a."Participacao", b."Participacao") AS "Participacao", CASE WHEN a."Condicao" = \'Disponível Parcial (Moagem)\' AND b."Condicao" = \'Disponível Parcial (Mudas)\' THEN \'Disponível (Safra+Mudas)\' ELSE COALESCE(a."Condicao", b."Condicao") END AS "Condicao", COALESCE(a."Estagio", b."Estagio") AS "Estagio", COALESCE(a."Variedade", b."Variedade") AS "Variedade", COALESCE(a."Ciclo Maturacao", b."Ciclo Maturacao") AS "Ciclo Maturacao", COALESCE(a."Propriedade", b."Propriedade") AS "Propriedade", COALESCE(a."Proprietario", b."Proprietario") AS "Proprietario", COALESCE(a."No. Corte", b."No. Corte") AS "No. Corte", (CASE WHEN a."Area" IS NULL THEN 0 ELSE a."Area" END + CASE WHEN b."Area" IS NULL THEN 0 ELSE b."Area" END) AS "Area", CASE WHEN a."Condicao" = \'Disponível Parcial (Moagem)\' AND b."Condicao" = \'Disponível Parcial (Mudas)\' THEN ((CASE WHEN a."Area" IS NULL THEN 0 ELSE a."Area" END + CASE WHEN b."Area" IS NULL THEN 0 ELSE b."Area" END) * a."TCH") ELSE a."Toneladas" END AS "Toneladas", a."TCH", COALESCE(a."Distancia", b."Distancia") AS "Distancia" FROM (SELECT --Disponibilidade (Moagem) A.*, a."Area" * b."TCH" AS "Toneladas", b."TCH" AS "TCH", c."Dist. Terra" + c."Dist. Asfalto" AS "Distancia" FROM ((SELECT --ÁREAS DISPONÍVEIS PARA ABERTURA DE ORDEM CORTE DE SAFRA a."Fazenda" * 1000 + a."Talhao" AS "Chave", CASE WHEN a."Unidade" = 15 THEN \'USF\' ELSE \'URD\' END AS "Unidade", a."Fazenda", a."Talhao", a."Participacao", CASE WHEN a."Ocorrencia Cadastro" = \'C\' THEN \'Disponível Total (Moagem)\' ELSE \'Disponível Parcial (Moagem)\' END AS "Condicao", a."Estagio", a."Variedade", a."Ciclo Maturacao", a."Propriedade", a."Proprietario", a."No. Corte", (a."Area" - (CASE WHEN b."Area Fechada" IS NULL THEN 0 ELSE b."Area Fechada" END)) AS "Area" FROM (SELECT --ULTIMA ESTIMATIVA DO TALHAO A OBJ.CD_UNID_IND AS "Unidade", OBJ.CD_UPNIVEL1 AS "Fazenda", OBJ.CD_UPNIVEL3 AS "Talhao", OBJ.CD_UPNIVEL1 || \' - \' || F.DE_UPNIVEL1 AS "Propriedade", G.DE_FORNEC AS "Proprietario", CASE WHEN UP3.CD_TP_PROPR IN (1, 2, 3, 11) THEN \'Parceria\' WHEN UP3.CD_TP_PROPR IN (5, 8) THEN \'Fornecedor\' WHEN UP3.CD_TP_PROPR = 6 THEN \'Fornecedor\' WHEN UP3.CD_TP_PROPR = 14 THEN \'Parceria\' ELSE \'Verificar\' END AS "Participacao", C.FG_OCORREN AS "Ocorrencia Cadastro", C.DT_OCORREN AS "Data Ocorrencia", B.DA_ESTAGIO AS "Estagio", B.NO_CORTE AS "No. Corte", D.DE_VARIED AS "Variedade", E.DE_MATURAC AS "Ciclo Maturacao", (OBJ.QT_AREA_PROD * 1) AS "Area", (OBJ.QT_CANA_ENTR / 1000) AS "Toneladas" FROM PIMSCS.HISTPREPRO OBJ, PIMSCS.ESTAGIOS B, PIMSCS.UPNIVEL3 UP3, PIMSCS.SAFRUPNIV3 C, PIMSCS.VARIEDADES D, PIMSCS.TIPO_MATURAC E, PIMSCS.UPNIVEL1 F, PIMSCS.FORNECS G WHERE OBJ.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ.CD_UNID_IND IN (15, 19) AND OBJ.CD_ESTAGIO = B.CD_ESTAGIO AND OBJ.CD_UPNIVEL1 = UP3.CD_UPNIVEL1 AND OBJ.CD_UPNIVEL3 = UP3.CD_UPNIVEL3 AND OBJ.CD_SAFRA = UP3.CD_SAFRA AND OBJ.CD_UPNIVEL1 = C.CD_UPNIVEL1 AND OBJ.CD_UPNIVEL3 = C.CD_UPNIVEL3 AND OBJ.CD_SAFRA = C.CD_SAFRA AND UP3.CD_VARIED = D.CD_VARIED AND E.FG_MATURAC = D.FG_MATURAC AND OBJ.CD_UPNIVEL1 = F.CD_UPNIVEL1 AND F.CD_FORNEC = G.CD_FORNEC AND C.DT_OCORREN = (SELECT MAX(D.DT_OCORREN) FROM PIMSCS.SAFRUPNIV3 D WHERE D.CD_UPNIVEL1 = C.CD_UPNIVEL1 AND D.CD_UPNIVEL3 = C.CD_UPNIVEL3 AND D.CD_SAFRA = C.CD_SAFRA) AND OBJ.CD_HIST = (SELECT OBJ2.CD_HIST FROM PIMSCS.HISTPREPRO OBJ2 WHERE OBJ2.CD_UPNIVEL1 = OBJ.CD_UPNIVEL1 AND OBJ2.CD_UPNIVEL3 = OBJ.CD_UPNIVEL3 AND OBJ2.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ2.CD_HIST NOT IN (\'E\', \'S\') AND OBJ2.CD_EMPRESA IN (15, 19) AND OBJ2.DT_HISTORICO = (SELECT MAX(OBJ3.DT_HISTORICO) FROM PIMSCS.HISTPREPRO OBJ3 WHERE OBJ3.CD_UPNIVEL1 = OBJ.CD_UPNIVEL1 AND OBJ3.CD_UPNIVEL3 = OBJ.CD_UPNIVEL3 AND OBJ3.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ3.CD_HIST NOT IN (\'E\', \'S\') AND OBJ3.CD_EMPRESA IN (15, 19)))) A, (SELECT --ÁREA DE ORDEM DE CORTE DE SAFRA FECHADA B QD.CD_UPNIVEL1 AS "Fazenda", QD.CD_UPNIVEL3 AS "Talhao", SUM(QD.QT_AREA) AS "Area Fechada" FROM PIMSCS.QUEIMA_HE QH, PIMSCS.QUEIMA_DE QD WHERE QH.NO_QUEIMA = QD.NO_QUEIMA AND QD.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) GROUP BY QD.CD_UPNIVEL1, QD.CD_UPNIVEL3) B WHERE a."Fazenda" = b."Fazenda"(+) AND a."Talhao" = b."Talhao"(+) AND a."Ocorrencia Cadastro" <> \'F\' AND (a."Area" - (CASE WHEN b."Area Fechada" IS NULL THEN 0 ELSE b."Area Fechada" END)) > 0)) A LEFT JOIN (SELECT --Ultima Estimativa do Talhão A.CD_HIST "Cod. Historico", CASE WHEN A.CD_UNID_IND = 15 THEN \'USF\' ELSE \'URD\' END AS "Unidade", A.CD_UPNIVEL1 AS "Zona", A.CD_UPNIVEL3 AS "Talhao", A.DT_HISTORICO AS "Data", A.QT_AREA_PROD AS "Area", (A.QT_CANA_ENTR / 1000) AS "Toneladas", A.QT_TCH AS "TCH" FROM PIMSCS.HISTPREPRO A WHERE A.CD_UNID_IND IN (15, 19) AND A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND A.CD_HIST NOT IN (\'E\', \'S\') AND A.QT_AREA_PROD <> 0 AND A.DT_HISTORICO = (SELECT MAX(A2.DT_HISTORICO) FROM PIMSCS.HISTPREPRO A2 WHERE A.CD_SAFRA = A2.CD_SAFRA AND A.CD_UPNIVEL2 = A2.CD_UPNIVEL1 AND A.CD_UPNIVEL3 = A2.CD_UPNIVEL3 AND A2.CD_HIST NOT IN (\'E\', \'S\'))) B ON a."Fazenda" = b."Zona" AND a."Talhao" = b."Talhao" LEFT JOIN (SELECT --Distancia Cadastrada A.CD_UPNIVEL1 AS "Zona", A.CD_UPNIVEL3 AS "Talhao", MAX(A.DS_TERRA) AS "Dist. Terra", MAX(A.DS_ASFALTO) AS "Dist. Asfalto" FROM PIMSCS.UPNIVEL3 A LEFT JOIN PIMSCS.SAFRUPNIV3 B ON A.CD_SAFRA = B.CD_SAFRA AND A.CD_UPNIVEL1 = B.CD_UPNIVEL1 AND A.CD_UPNIVEL3 = B.CD_UPNIVEL3 WHERE A.CD_UNID_IND IN (15, 19) AND A.CD_OCUP = 1 AND A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND B.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND B.FG_OCORREN <> \'I\' AND B.DT_OCORREN = (SELECT MAX(B2.DT_OCORREN) FROM PIMSCS.SAFRUPNIV3 B2 WHERE B.CD_SAFRA = B2.CD_SAFRA AND B.CD_UPNIVEL1 = B2.CD_UPNIVEL1 AND B.CD_UPNIVEL3 = B2.CD_UPNIVEL3) GROUP BY A.CD_UPNIVEL1, A.CD_UPNIVEL3) C ON a."Fazenda" = c."Zona" AND a."Talhao" = c."Talhao") A FULL JOIN (SELECT --Disponibilidade (Mudas) A.*, a."Area" * b."TCH" AS "Toneladas", b."TCH" AS "TCH", c."Dist. Terra" + c."Dist. Asfalto" AS "Distancia" FROM ((SELECT --ÁREAS DISPONÍVEIS PARA ABERTURA DE ORDEM CORTE DE SAFRA a."Fazenda" * 1000 + a."Talhao" AS "Chave", CASE WHEN a."Unidade" = 15 THEN \'USF\' ELSE \'URD\' END AS "Unidade", a."Fazenda", a."Talhao", a."Participacao", CASE WHEN a."Ocorrencia Cadastro" = \'C\' THEN \'Disponível Total (Mudas)\' ELSE \'Disponível Parcial (Mudas)\' END AS "Condicao", a."Estagio", a."Variedade", a."Ciclo Maturacao", a."Propriedade", a."Proprietario", a."No. Corte", (a."Area" - (CASE WHEN b."Area Fechada" IS NULL THEN 0 ELSE b."Area Fechada" END)) AS "Area" FROM (SELECT --ULTIMA ESTIMATIVA DO TALHAO A OBJ.CD_UNID_IND AS "Unidade", OBJ.CD_UPNIVEL1 AS "Fazenda", OBJ.CD_UPNIVEL3 AS "Talhao", OBJ.CD_UPNIVEL1 || \' - \' || F.DE_UPNIVEL1 AS "Propriedade", G.DE_FORNEC AS "Proprietario", CASE WHEN UP3.CD_TP_PROPR IN (1, 2, 3, 11) THEN \'Parceria\' WHEN UP3.CD_TP_PROPR IN (5, 8) THEN \'Fornecedor\' WHEN UP3.CD_TP_PROPR = 6 THEN \'Fornecedor\' WHEN UP3.CD_TP_PROPR = 14 THEN \'Parceria\' ELSE \'Verificar\' END AS "Participacao", C.FG_OCORREN AS "Ocorrencia Cadastro", C.DT_OCORREN AS "Data Ocorrencia", B.DA_ESTAGIO AS "Estagio", B.NO_CORTE AS "No. Corte", D.DE_VARIED AS "Variedade", E.DE_MATURAC AS "Ciclo Maturacao", (OBJ.QT_AREA_PROD * 1) AS "Area", (OBJ.QT_CANA_ENTR / 1000) AS "Toneladas" FROM PIMSCS.HISTPREPRO OBJ, PIMSCS.ESTAGIOS B, PIMSCS.UPNIVEL3 UP3, PIMSCS.SAFRUPNIV3 C, PIMSCS.VARIEDADES D, PIMSCS.TIPO_MATURAC E, PIMSCS.UPNIVEL1 F, PIMSCS.FORNECS G WHERE OBJ.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ.CD_UNID_IND IN (15, 19) AND OBJ.CD_ESTAGIO = B.CD_ESTAGIO AND OBJ.CD_UPNIVEL1 = UP3.CD_UPNIVEL1 AND OBJ.CD_UPNIVEL3 = UP3.CD_UPNIVEL3 AND OBJ.CD_SAFRA = UP3.CD_SAFRA AND OBJ.CD_UPNIVEL1 = C.CD_UPNIVEL1 AND OBJ.CD_UPNIVEL3 = C.CD_UPNIVEL3 AND OBJ.CD_SAFRA = C.CD_SAFRA AND UP3.CD_VARIED = D.CD_VARIED AND E.FG_MATURAC = D.FG_MATURAC AND OBJ.CD_UPNIVEL1 = F.CD_UPNIVEL1 AND F.CD_FORNEC = G.CD_FORNEC AND C.DT_OCORREN = (SELECT MAX(D.DT_OCORREN) FROM PIMSCS.SAFRUPNIV3 D WHERE D.CD_UPNIVEL1 = C.CD_UPNIVEL1 AND D.CD_UPNIVEL3 = C.CD_UPNIVEL3 AND D.CD_SAFRA = C.CD_SAFRA) AND OBJ.CD_HIST = (SELECT OBJ2.CD_HIST FROM PIMSCS.HISTPREPRO OBJ2 WHERE OBJ2.CD_UPNIVEL1 = OBJ.CD_UPNIVEL1 AND OBJ2.CD_UPNIVEL3 = OBJ.CD_UPNIVEL3 AND OBJ2.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ2.CD_HIST = \'S\' AND OBJ2.CD_EMPRESA IN (15, 19) AND OBJ2.DT_HISTORICO = (SELECT MAX(OBJ3.DT_HISTORICO) FROM PIMSCS.HISTPREPRO OBJ3 WHERE OBJ3.CD_UPNIVEL1 = OBJ.CD_UPNIVEL1 AND OBJ3.CD_UPNIVEL3 = OBJ.CD_UPNIVEL3 AND OBJ3.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ3.CD_HIST = \'S\' AND OBJ3.CD_EMPRESA IN (15, 19)))) A, (SELECT --ÁREA DE ORDEM DE CORTE DE MUDAS FECHADA B A.CD_UPNIVEL1 AS "Fazenda", A.CD_UPNIVEL3 AS "Talhao", SUM(A.QT_AREA) AS "Area Fechada" FROM PIMSCS.OCORTEMD_DE A JOIN PIMSCS.OCORTEMD_HE B ON A.NO_ORDEM = B.NO_ORDEM WHERE A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND B.FG_SITUACAO = \'F\' GROUP BY A.CD_UPNIVEL1, A.CD_UPNIVEL3) B WHERE a."Fazenda" = b."Fazenda"(+) AND a."Talhao" = b."Talhao"(+) AND a."Ocorrencia Cadastro" <> \'F\' AND (a."Area" - (CASE WHEN b."Area Fechada" IS NULL THEN 0 ELSE b."Area Fechada" END)) > 0)) A LEFT JOIN (SELECT --Ultima Estimativa do Talhão A.CD_HIST "Cod. Historico", CASE WHEN A.CD_UNID_IND = 15 THEN \'USF\' ELSE \'URD\' END AS "Unidade", A.CD_UPNIVEL1 AS "Zona", A.CD_UPNIVEL3 AS "Talhao", A.DT_HISTORICO AS "Data", A.QT_AREA_PROD AS "Area", (A.QT_CANA_ENTR / 1000) AS "Toneladas", A.QT_TCH AS "TCH" FROM PIMSCS.HISTPREPRO A WHERE A.CD_UNID_IND IN (15, 19) AND A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND A.CD_HIST = \'S\' AND A.QT_AREA_PROD <> 0 AND A.DT_HISTORICO = (SELECT MAX(A2.DT_HISTORICO) FROM PIMSCS.HISTPREPRO A2 WHERE A.CD_SAFRA = A2.CD_SAFRA AND A.CD_UPNIVEL2 = A2.CD_UPNIVEL1 AND A.CD_UPNIVEL3 = A2.CD_UPNIVEL3 AND A2.CD_HIST = \'S\')) B ON a."Fazenda" = b."Zona" AND a."Talhao" = b."Talhao" LEFT JOIN (SELECT --Distancia Cadastrada A.CD_UPNIVEL1 AS "Zona", A.CD_UPNIVEL3 AS "Talhao", MAX(A.DS_TERRA) AS "Dist. Terra", MAX(A.DS_ASFALTO) AS "Dist. Asfalto" FROM PIMSCS.UPNIVEL3 A LEFT JOIN PIMSCS.SAFRUPNIV3 B ON A.CD_SAFRA = B.CD_SAFRA AND A.CD_UPNIVEL1 = B.CD_UPNIVEL1 AND A.CD_UPNIVEL3 = B.CD_UPNIVEL3 WHERE A.CD_UNID_IND IN (15, 19) AND A.CD_OCUP = 1 AND A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND B.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND B.FG_OCORREN <> \'I\' AND B.DT_OCORREN = (SELECT MAX(B2.DT_OCORREN) FROM PIMSCS.SAFRUPNIV3 B2 WHERE B.CD_SAFRA = B2.CD_SAFRA AND B.CD_UPNIVEL1 = B2.CD_UPNIVEL1 AND B.CD_UPNIVEL3 = B2.CD_UPNIVEL3) GROUP BY A.CD_UPNIVEL1, A.CD_UPNIVEL3) C ON a."Fazenda" = c."Zona" AND a."Talhao" = c."Talhao") B ON a."Chave" = b."Chave"',  # noqa
-            "query_digest_text": "SELECT --Locais Disponíveis para Abertura de Ordens de corte COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , CASE WHEN a . '?' = '?' AND b . '?' = '?' THEN '?' ELSE COALESCE ( a . '?' , b . '?' ) END AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , ( CASE WHEN a . '?' IS NULL THEN ? ELSE a . '?' END + CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) AS '?' , CASE WHEN a . '?' = '?' AND b . '?' = '?' THEN ( ( CASE WHEN a . '?' IS NULL THEN ? ELSE a . '?' END + CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) * a . '?' ) ELSE a . '?' END AS '?' , a . '?' , COALESCE ( a . '?' , b . '?' ) AS '?' FROM ( SELECT --Disponibilidade (Moagem) A . * , a . '?' * b . '?' AS '?' , b . '?' AS '?' , c . '?' + c . '?' AS '?' FROM ( ( SELECT --ÁREAS DISPONÍVEIS PARA ABERTURA DE ORDEM CORTE DE SAFRA a . '?' * ? + a . '?' AS '?' , CASE WHEN a . '?' = ? THEN '?' ELSE '?' END AS '?' , a . '?' , a . '?' , a . '?' , CASE WHEN a . '?' = '?' THEN '?' ELSE '?' END AS '?' , a . '?' , a . '?' , a . '?' , a . '?' , a . '?' , a . '?' , ( a . '?' - ( CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) ) AS '?' FROM ( SELECT --ULTIMA ESTIMATIVA DO TALHAO A OBJ . CD_UNID_IND AS '?' , OBJ . CD_UPNIVEL1 AS '?' , OBJ . CD_UPNIVEL3 AS '?' , OBJ . CD_UPNIVEL1 || '?' || F . DE_UPNIVEL1 AS '?' , G . DE_FORNEC AS '?' , CASE WHEN UP3 . CD_TP_PROPR IN ( ? , ? , ? , ? ) THEN '?' WHEN UP3 . CD_TP_PROPR IN ( ? , ? ) THEN '?' WHEN UP3 . CD_TP_PROPR = ? THEN '?' WHEN UP3 . CD_TP_PROPR = ? THEN '?' ELSE '?' END AS '?' , C . FG_OCORREN AS '?' , C . DT_OCORREN AS '?' , B . DA_ESTAGIO AS '?' , B . NO_CORTE AS '?' , D . DE_VARIED AS '?' , E . DE_MATURAC AS '?' , ( OBJ . QT_AREA_PROD * ? ) AS '?' , ( OBJ . QT_CANA_ENTR / ? ) AS '?' FROM PIMSCS . HISTPREPRO OBJ , PIMSCS . ESTAGIOS B , PIMSCS . UPNIVEL3 UP3 , PIMSCS . SAFRUPNIV3 C , PIMSCS . VARIEDADES D , PIMSCS . TIPO_MATURAC E , PIMSCS . UPNIVEL1 F , PIMSCS . FORNECS G WHERE OBJ . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ . CD_UNID_IND IN ( ? , ? ) AND OBJ . CD_ESTAGIO = B . CD_ESTAGIO AND OBJ . CD_UPNIVEL1 = UP3 . CD_UPNIVEL1 AND OBJ . CD_UPNIVEL3 = UP3 . CD_UPNIVEL3 AND OBJ . CD_SAFRA = UP3 . CD_SAFRA AND OBJ . CD_UPNIVEL1 = C . CD_UPNIVEL1 AND OBJ . CD_UPNIVEL3 = C . CD_UPNIVEL3 AND OBJ . CD_SAFRA = C . CD_SAFRA AND UP3 . CD_VARIED = D . CD_VARIED AND E . FG_MATURAC = D . FG_MATURAC AND OBJ . CD_UPNIVEL1 = F . CD_UPNIVEL1 AND F . CD_FORNEC = G . CD_FORNEC AND C . DT_OCORREN = ( SELECT MAX ( D . DT_OCORREN ) FROM PIMSCS . SAFRUPNIV3 D WHERE D . CD_UPNIVEL1 = C . CD_UPNIVEL1 AND D . CD_UPNIVEL3 = C . CD_UPNIVEL3 AND D . CD_SAFRA = C . CD_SAFRA ) AND OBJ . CD_HIST = ( SELECT OBJ2 . CD_HIST FROM PIMSCS . HISTPREPRO OBJ2 WHERE OBJ2 . CD_UPNIVEL1 = OBJ . CD_UPNIVEL1 AND OBJ2 . CD_UPNIVEL3 = OBJ . CD_UPNIVEL3 AND OBJ2 . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ2 . CD_HIST NOT IN ( '?' , '?' ) AND OBJ2 . CD_EMPRESA IN ( ? , ? ) AND OBJ2 . DT_HISTORICO = ( SELECT MAX ( OBJ3 . DT_HISTORICO ) FROM PIMSCS . HISTPREPRO OBJ3 WHERE OBJ3 . CD_UPNIVEL1 = OBJ . CD_UPNIVEL1 AND OBJ3 . CD_UPNIVEL3 = OBJ . CD_UPNIVEL3 AND OBJ3 . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ3 . CD_HIST NOT IN ( '?' , '?' ) AND OBJ3 . CD_EMPRESA IN ( ? , ? ) ) ) ) A , ( SELECT --ÁREA DE ORDEM DE CORTE DE SAFRA FECHADA B QD . CD_UPNIVEL1 AS '?' , QD . CD_UPNIVEL3 AS '?' , SUM ( QD . QT_AREA ) AS '?' FROM PIMSCS . QUEIMA_HE QH , PIMSCS . QUEIMA_DE QD WHERE QH . NO_QUEIMA = QD . NO_QUEIMA AND QD . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) GROUP BY QD . CD_UPNIVEL1 , QD . CD_UPNIVEL3 ) B WHERE a . '?' = b . '?' ( + ) AND a . '?' = b . '?' ( + ) AND a . '?' <> '?' AND ( a . '?' - ( CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) ) > ? ) ) A LEFT JOIN ( SELECT --Ultima Estimativa do Talhão A . CD_HIST '?' , CASE WHEN A . CD_UNID_IND = ? THEN '?' ELSE '?' END AS '?' , A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , A . DT_HISTORICO AS '?' , A . QT_AREA_PROD AS '?' , ( A . QT_CANA_ENTR / ? ) AS '?' , A . QT_TCH AS '?' FROM PIMSCS . HISTPREPRO A WHERE A . CD_UNID_IND IN ( ? , ? ) AND A . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND A . CD_HIST NOT IN ( '?' , '?' ) AND A . QT_AREA_PROD <> ? AND A . DT_HISTORICO = ( SELECT MAX ( A2 . DT_HISTORICO ) FROM PIMSCS . HISTPREPRO A2 WHERE A . CD_SAFRA = A2 . CD_SAFRA AND A . CD_UPNIVEL2 = A2 . CD_UPNIVEL1 AND A . CD_UPNIVEL3 = A2 . CD_UPNIVEL3 AND A2 . CD_HIST NOT IN ( '?' , '?' ) ) ) B ON a . '?' = b . '?' AND a . '?' = b . '?' LEFT JOIN ( SELECT --Distancia Cadastrada A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , MAX ( A . DS_TERRA ) AS '?' , MAX ( A . DS_ASFALTO ) AS '?' FROM PIMSCS . UPNIVEL3 A LEFT JOIN PIMSCS . SAFRUPNIV3 B ON A . CD_SAFRA = B . CD_SAFRA AND A . CD_UPNIVEL1 = B . CD_UPNIVEL1 AND A . CD_UPNIVEL3 = B . CD_UPNIVEL3 WHERE A . CD_UNID_IND IN ( ? , ? ) AND A . CD_OCUP = ? AND A . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND B . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND B . FG_OCORREN <> '?' AND B . DT_OCORREN = ( SELECT MAX ( B2 . DT_OCORREN ) FROM PIMSCS . SAFRUPNIV3 B2 WHERE B . CD_SAFRA = B2 . CD_SAFRA AND B . CD_UPNIVEL1 = B2 . CD_UPNIVEL1 AND B . CD_UPNIVEL3 = B2 . CD_UPNIVEL3 ) GROUP BY A . CD_UPNIVEL1 , A . CD_UPNIVEL3 ) C ON a . '?' = c . '?' AND a . '?' = c . '?' ) A FULL JOIN ( SELECT --Disponibilidade (Mudas) A . * , a . '?' * b . '?' AS '?' , b . '?' AS '?' , c . '?' + c . '?' AS '?' FROM ( ( SELECT --ÁREAS DISPONÍVEIS PARA ABERTURA DE ORDEM CORTE DE SAFRA a . '?' * ? + a . '?' AS '?' , CASE WHEN a . '?' = ? THEN '?' ELSE '?' END AS '?' , a . '?' , a . '?' , a . '?' , CASE WHEN a . '?' = '?' THEN '?' ELSE '?' END AS '?' , a . '?' , a . '?' , a . '?' , a . '?' , a . '?' , a . '?' , ( a . '?' - ( CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) ) AS '?' FROM ( SELECT --ULTIMA ESTIMATIVA DO TALHAO A OBJ . CD_UNID_IND AS '?' , OBJ . CD_UPNIVEL1 AS '?' , OBJ . CD_UPNIVEL3 AS '?' , OBJ . CD_UPNIVEL1 || '?' || F . DE_UPNIVEL1 AS '?' , G . DE_FORNEC AS '?' , CASE WHEN UP3 . CD_TP_PROPR IN ( ? , ? , ? , ? ) THEN '?' WHEN UP3 . CD_TP_PROPR IN ( ? , ? ) THEN '?' WHEN UP3 . CD_TP_PROPR = ? THEN '?' WHEN UP3 . CD_TP_PROPR = ? THEN '?' ELSE '?' END AS '?' , C . FG_OCORREN AS '?' , C . DT_OCORREN AS '?' , B . DA_ESTAGIO AS '?' , B . NO_CORTE AS '?' , D . DE_VARIED AS '?' , E . DE_MATURAC AS '?' , ( OBJ . QT_AREA_PROD * ? ) AS '?' , ( OBJ . QT_CANA_ENTR / ? ) AS '?' FROM PIMSCS . HISTPREPRO OBJ , PIMSCS . ESTAGIOS B , PIMSCS . UPNIVEL3 UP3 , PIMSCS . SAFRUPNIV3 C , PIMSCS . VARIEDADES D , PIMSCS . TIPO_MATURAC E , PIMSCS . UPNIVEL1 F , PIMSCS . FORNECS G WHERE OBJ . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ . CD_UNID_IND IN ( ? , ? ) AND OBJ . CD_ESTAGIO = B . CD_ESTAGIO AND OBJ . CD_UPNIVEL1 = UP3 . CD_UPNIVEL1 AND OBJ . CD_UPNIVEL3 = UP3 . CD_UPNIVEL3 AND OBJ . CD_SAFRA = UP3 . CD_SAFRA AND OBJ . CD_UPNIVEL1 = C . CD_UPNIVEL1 AND OBJ . CD_UPNIVEL3 = C . CD_UPNIVEL3 AND OBJ . CD_SAFRA = C . CD_SAFRA AND UP3 . CD_VARIED = D . CD_VARIED AND E . FG_MATURAC = D . FG_MATURAC AND OBJ . CD_UPNIVEL1 = F . CD_UPNIVEL1 AND F . CD_FORNEC = G . CD_FORNEC AND C . DT_OCORREN = ( SELECT MAX ( D . DT_OCORREN ) FROM PIMSCS . SAFRUPNIV3 D WHERE D . CD_UPNIVEL1 = C . CD_UPNIVEL1 AND D . CD_UPNIVEL3 = C . CD_UPNIVEL3 AND D . CD_SAFRA = C . CD_SAFRA ) AND OBJ . CD_HIST = ( SELECT OBJ2 . CD_HIST FROM PIMSCS . HISTPREPRO OBJ2 WHERE OBJ2 . CD_UPNIVEL1 = OBJ . CD_UPNIVEL1 AND OBJ2 . CD_UPNIVEL3 = OBJ . CD_UPNIVEL3 AND OBJ2 . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ2 . CD_HIST = '?' AND OBJ2 . CD_EMPRESA IN ( ? , ? ) AND OBJ2 . DT_HISTORICO = ( SELECT MAX ( OBJ3 . DT_HISTORICO ) FROM PIMSCS . HISTPREPRO OBJ3 WHERE OBJ3 . CD_UPNIVEL1 = OBJ . CD_UPNIVEL1 AND OBJ3 . CD_UPNIVEL3 = OBJ . CD_UPNIVEL3 AND OBJ3 . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ3 . CD_HIST = '?' AND OBJ3 . CD_EMPRESA IN ( ? , ? ) ) ) ) A , ( SELECT --ÁREA DE ORDEM DE CORTE DE MUDAS FECHADA B A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , SUM ( A . QT_AREA ) AS '?' FROM PIMSCS . OCORTEMD_DE A JOIN PIMSCS . OCORTEMD_HE B ON A . NO_ORDEM = B . NO_ORDEM WHERE A . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND B . FG_SITUACAO = '?' GROUP BY A . CD_UPNIVEL1 , A . CD_UPNIVEL3 ) B WHERE a . '?' = b . '?' ( + ) AND a . '?' = b . '?' ( + ) AND a . '?' <> '?' AND ( a . '?' - ( CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) ) > ? ) ) A LEFT JOIN ( SELECT --Ultima Estimativa do Talhão A . CD_HIST '?' , CASE WHEN A . CD_UNID_IND = ? THEN '?' ELSE '?' END AS '?' , A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , A . DT_HISTORICO AS '?' , A . QT_AREA_PROD AS '?' , ( A . QT_CANA_ENTR / ? ) AS '?' , A . QT_TCH AS '?' FROM PIMSCS . HISTPREPRO A WHERE A . CD_UNID_IND IN ( ? , ? ) AND A . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND A . CD_HIST = '?' AND A . QT_AREA_PROD <> ? AND A . DT_HISTORICO = ( SELECT MAX ( A2 . DT_HISTORICO ) FROM PIMSCS . HISTPREPRO A2 WHERE A . CD_SAFRA = A2 . CD_SAFRA AND A . CD_UPNIVEL2 = A2 . CD_UPNIVEL1 AND A . CD_UPNIVEL3 = A2 . CD_UPNIVEL3 AND A2 . CD_HIST = '?' ) ) B ON a . '?' = b . '?' AND a . '?' = b . '?' LEFT JOIN ( SELECT --Distancia Cadastrada A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , MAX ( A . DS_TERRA ) AS '?' , MAX ( A . DS_ASFALTO ) AS '?' FROM PIMSCS . UPNIVEL3 A LEFT JOIN PIMSCS . SAFRUPNIV3 B ON A . CD_SAFRA = B . CD_SAFRA AND A . CD_UPNIVEL1 = B . CD_UPNIVEL1 AND A . CD_UPNIVEL3 = B . CD_UPNIVEL3 WHERE A . CD_UNID_IND IN ( ? , ? ) AND A . CD_OCUP = ? AND A . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND B . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND B . FG_OCORREN <> '?' AND B . DT_OCORREN = ( SELECT MAX ( B2 . DT_OCORREN ) FROM PIMSCS . SAFRUPNIV3 B2 WHERE B . CD_SAFRA = B2 . CD_SAFRA AND B . CD_UPNIVEL1 = B2 . CD_UPNIVEL1 AND B . CD_UPNIVEL3 = B2 . CD_UPNIVEL3 ) GROUP BY A . CD_UPNIVEL1 , A . CD_UPNIVEL3 ) C ON a . '?' = c . '?' AND a . '?' = c . '?' ) B ON a . '?' = b . '?'",  # noqa
+            "query_string": 'SELECT --Locais Disponíveis para Abertura de Ordens de corte COALESCE(a."Chave", '
+            'b."Chave") AS "Chave", COALESCE(a."Unidade", b."Unidade") AS "Unidade", '
+            'COALESCE(a."Fazenda", b."Fazenda") AS "Fazenda", COALESCE(a."Talhao", b."Talhao") AS '
+            '"Talhao", COALESCE(a."Participacao", b."Participacao") AS "Participacao", '
+            'CASE WHEN a."Condicao" = \'Disponível Parcial (Moagem)\' AND b."Condicao" = \'Disponível '
+            "Parcial (Mudas)' THEN 'Disponível (Safra+Mudas)' ELSE COALESCE(a.\"Condicao\", "
+            'b."Condicao") END AS "Condicao", COALESCE(a."Estagio", b."Estagio") AS "Estagio", '
+            'COALESCE(a."Variedade", b."Variedade") AS "Variedade", COALESCE(a."Ciclo Maturacao", '
+            'b."Ciclo Maturacao") AS "Ciclo Maturacao", COALESCE(a."Propriedade", b."Propriedade") AS '
+            '"Propriedade", COALESCE(a."Proprietario", b."Proprietario") AS "Proprietario", '
+            'COALESCE(a."No. Corte", b."No. Corte") AS "No. Corte", (CASE WHEN a."Area" IS NULL THEN '
+            '0 ELSE a."Area" END + CASE WHEN b."Area" IS NULL THEN 0 ELSE b."Area" END) AS "Area", '
+            'CASE WHEN a."Condicao" = \'Disponível Parcial (Moagem)\' AND b."Condicao" = \'Disponível '
+            'Parcial (Mudas)\' THEN ((CASE WHEN a."Area" IS NULL THEN 0 ELSE a."Area" END + CASE WHEN '
+            'b."Area" IS NULL THEN 0 ELSE b."Area" END) * a."TCH") ELSE a."Toneladas" END AS '
+            '"Toneladas", a."TCH", COALESCE(a."Distancia", b."Distancia") AS "Distancia" FROM (SELECT '
+            '--Disponibilidade (Moagem) A.*, a."Area" * b."TCH" AS "Toneladas", b."TCH" AS "TCH", '
+            'c."Dist. Terra" + c."Dist. Asfalto" AS "Distancia" FROM ((SELECT --ÁREAS DISPONÍVEIS '
+            'PARA ABERTURA DE ORDEM CORTE DE SAFRA a."Fazenda" * 1000 + a."Talhao" AS "Chave", '
+            'CASE WHEN a."Unidade" = 15 THEN \'USF\' ELSE \'URD\' END AS "Unidade", a."Fazenda", '
+            'a."Talhao", a."Participacao", CASE WHEN a."Ocorrencia Cadastro" = \'C\' THEN '
+            "'Disponível Total (Moagem)' ELSE 'Disponível Parcial (Moagem)' END AS \"Condicao\", "
+            'a."Estagio", a."Variedade", a."Ciclo Maturacao", a."Propriedade", a."Proprietario", '
+            'a."No. Corte", (a."Area" - (CASE WHEN b."Area Fechada" IS NULL THEN 0 ELSE b."Area '
+            'Fechada" END)) AS "Area" FROM (SELECT --ULTIMA ESTIMATIVA DO TALHAO A OBJ.CD_UNID_IND AS '
+            '"Unidade", OBJ.CD_UPNIVEL1 AS "Fazenda", OBJ.CD_UPNIVEL3 AS "Talhao", OBJ.CD_UPNIVEL1 || '
+            '\' - \' || F.DE_UPNIVEL1 AS "Propriedade", G.DE_FORNEC AS "Proprietario", '
+            "CASE WHEN UP3.CD_TP_PROPR IN (1, 2, 3, 11) THEN 'Parceria' WHEN UP3.CD_TP_PROPR IN (5, "
+            "8) THEN 'Fornecedor' WHEN UP3.CD_TP_PROPR = 6 THEN 'Fornecedor' WHEN UP3.CD_TP_PROPR "
+            "= 14 THEN 'Parceria' ELSE 'Verificar' END AS \"Participacao\", C.FG_OCORREN AS "
+            '"Ocorrencia Cadastro", C.DT_OCORREN AS "Data Ocorrencia", B.DA_ESTAGIO AS "Estagio", '
+            'B.NO_CORTE AS "No. Corte", D.DE_VARIED AS "Variedade", E.DE_MATURAC AS "Ciclo '
+            'Maturacao", (OBJ.QT_AREA_PROD * 1) AS "Area", (OBJ.QT_CANA_ENTR / 1000) AS "Toneladas" '
+            "FROM PIMSCS.HISTPREPRO OBJ, PIMSCS.ESTAGIOS B, PIMSCS.UPNIVEL3 UP3, PIMSCS.SAFRUPNIV3 C, "
+            "PIMSCS.VARIEDADES D, PIMSCS.TIPO_MATURAC E, PIMSCS.UPNIVEL1 F, PIMSCS.FORNECS G WHERE "
+            "OBJ.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ.CD_UNID_IND IN (15, "
+            "19) AND OBJ.CD_ESTAGIO = B.CD_ESTAGIO AND OBJ.CD_UPNIVEL1 = UP3.CD_UPNIVEL1 AND "
+            "OBJ.CD_UPNIVEL3 = UP3.CD_UPNIVEL3 AND OBJ.CD_SAFRA = UP3.CD_SAFRA AND OBJ.CD_UPNIVEL1 = "
+            "C.CD_UPNIVEL1 AND OBJ.CD_UPNIVEL3 = C.CD_UPNIVEL3 AND OBJ.CD_SAFRA = C.CD_SAFRA AND "
+            "UP3.CD_VARIED = D.CD_VARIED AND E.FG_MATURAC = D.FG_MATURAC AND OBJ.CD_UPNIVEL1 = "
+            "F.CD_UPNIVEL1 AND F.CD_FORNEC = G.CD_FORNEC AND C.DT_OCORREN = (SELECT MAX(D.DT_OCORREN) "
+            "FROM PIMSCS.SAFRUPNIV3 D WHERE D.CD_UPNIVEL1 = C.CD_UPNIVEL1 AND D.CD_UPNIVEL3 = "
+            "C.CD_UPNIVEL3 AND D.CD_SAFRA = C.CD_SAFRA) AND OBJ.CD_HIST = (SELECT OBJ2.CD_HIST FROM "
+            "PIMSCS.HISTPREPRO OBJ2 WHERE OBJ2.CD_UPNIVEL1 = OBJ.CD_UPNIVEL1 AND OBJ2.CD_UPNIVEL3 = "
+            "OBJ.CD_UPNIVEL3 AND OBJ2.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND "
+            "OBJ2.CD_HIST NOT IN ('E', 'S') AND OBJ2.CD_EMPRESA IN (15, 19) AND OBJ2.DT_HISTORICO "
+            "= (SELECT MAX(OBJ3.DT_HISTORICO) FROM PIMSCS.HISTPREPRO OBJ3 WHERE OBJ3.CD_UPNIVEL1 = "
+            "OBJ.CD_UPNIVEL1 AND OBJ3.CD_UPNIVEL3 = OBJ.CD_UPNIVEL3 AND OBJ3.CD_SAFRA = (SELECT MAX("
+            "CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ3.CD_HIST NOT IN ('E', 'S') AND "
+            "OBJ3.CD_EMPRESA IN (15, 19)))) A, (SELECT --ÁREA DE ORDEM DE CORTE DE SAFRA FECHADA B "
+            'QD.CD_UPNIVEL1 AS "Fazenda", QD.CD_UPNIVEL3 AS "Talhao", SUM(QD.QT_AREA) AS "Area '
+            'Fechada" FROM PIMSCS.QUEIMA_HE QH, PIMSCS.QUEIMA_DE QD WHERE QH.NO_QUEIMA = QD.NO_QUEIMA '
+            "AND QD.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) GROUP BY QD.CD_UPNIVEL1, "
+            'QD.CD_UPNIVEL3) B WHERE a."Fazenda" = b."Fazenda"(+) AND a."Talhao" = b."Talhao"(+) AND '
+            'a."Ocorrencia Cadastro" <> \'F\' AND (a."Area" - (CASE WHEN b."Area Fechada" IS NULL '
+            'THEN 0 ELSE b."Area Fechada" END)) > 0)) A LEFT JOIN (SELECT --Ultima Estimativa do '
+            "Talhão A.CD_HIST \"Cod. Historico\", CASE WHEN A.CD_UNID_IND = 15 THEN 'USF' ELSE "
+            '\'URD\' END AS "Unidade", A.CD_UPNIVEL1 AS "Zona", A.CD_UPNIVEL3 AS "Talhao", '
+            'A.DT_HISTORICO AS "Data", A.QT_AREA_PROD AS "Area", (A.QT_CANA_ENTR / 1000) AS '
+            '"Toneladas", A.QT_TCH AS "TCH" FROM PIMSCS.HISTPREPRO A WHERE A.CD_UNID_IND IN (15, '
+            "19) AND A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND A.CD_HIST NOT IN "
+            "('E', 'S') AND A.QT_AREA_PROD <> 0 AND A.DT_HISTORICO = (SELECT MAX(A2.DT_HISTORICO) "
+            "FROM PIMSCS.HISTPREPRO A2 WHERE A.CD_SAFRA = A2.CD_SAFRA AND A.CD_UPNIVEL2 = "
+            "A2.CD_UPNIVEL1 AND A.CD_UPNIVEL3 = A2.CD_UPNIVEL3 AND A2.CD_HIST NOT IN ('E', "
+            '\'S\'))) B ON a."Fazenda" = b."Zona" AND a."Talhao" = b."Talhao" LEFT JOIN (SELECT '
+            '--Distancia Cadastrada A.CD_UPNIVEL1 AS "Zona", A.CD_UPNIVEL3 AS "Talhao", '
+            'MAX(A.DS_TERRA) AS "Dist. Terra", MAX(A.DS_ASFALTO) AS "Dist. Asfalto" FROM '
+            "PIMSCS.UPNIVEL3 A LEFT JOIN PIMSCS.SAFRUPNIV3 B ON A.CD_SAFRA = B.CD_SAFRA AND "
+            "A.CD_UPNIVEL1 = B.CD_UPNIVEL1 AND A.CD_UPNIVEL3 = B.CD_UPNIVEL3 WHERE A.CD_UNID_IND IN ("
+            "15, 19) AND A.CD_OCUP = 1 AND A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) "
+            "AND B.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND B.FG_OCORREN <> 'I' "
+            "AND B.DT_OCORREN = (SELECT MAX(B2.DT_OCORREN) FROM PIMSCS.SAFRUPNIV3 B2 WHERE B.CD_SAFRA "
+            "= B2.CD_SAFRA AND B.CD_UPNIVEL1 = B2.CD_UPNIVEL1 AND B.CD_UPNIVEL3 = B2.CD_UPNIVEL3) "
+            'GROUP BY A.CD_UPNIVEL1, A.CD_UPNIVEL3) C ON a."Fazenda" = c."Zona" AND a."Talhao" = '
+            'c."Talhao") A FULL JOIN (SELECT --Disponibilidade (Mudas) A.*, a."Area" * b."TCH" AS '
+            '"Toneladas", b."TCH" AS "TCH", c."Dist. Terra" + c."Dist. Asfalto" AS "Distancia" FROM ('
+            '(SELECT --ÁREAS DISPONÍVEIS PARA ABERTURA DE ORDEM CORTE DE SAFRA a."Fazenda" * 1000 + '
+            'a."Talhao" AS "Chave", CASE WHEN a."Unidade" = 15 THEN \'USF\' ELSE \'URD\' END AS '
+            '"Unidade", a."Fazenda", a."Talhao", a."Participacao", CASE WHEN a."Ocorrencia Cadastro" '
+            "= 'C' THEN 'Disponível Total (Mudas)' ELSE 'Disponível Parcial (Mudas)' END AS "
+            '"Condicao", a."Estagio", a."Variedade", a."Ciclo Maturacao", a."Propriedade", '
+            'a."Proprietario", a."No. Corte", (a."Area" - (CASE WHEN b."Area Fechada" IS NULL THEN 0 '
+            'ELSE b."Area Fechada" END)) AS "Area" FROM (SELECT --ULTIMA ESTIMATIVA DO TALHAO A '
+            'OBJ.CD_UNID_IND AS "Unidade", OBJ.CD_UPNIVEL1 AS "Fazenda", OBJ.CD_UPNIVEL3 AS "Talhao", '
+            "OBJ.CD_UPNIVEL1 || ' - ' || F.DE_UPNIVEL1 AS \"Propriedade\", G.DE_FORNEC AS "
+            "\"Proprietario\", CASE WHEN UP3.CD_TP_PROPR IN (1, 2, 3, 11) THEN 'Parceria' WHEN "
+            "UP3.CD_TP_PROPR IN (5, 8) THEN 'Fornecedor' WHEN UP3.CD_TP_PROPR = 6 THEN "
+            "'Fornecedor' WHEN UP3.CD_TP_PROPR = 14 THEN 'Parceria' ELSE 'Verificar' END AS "
+            '"Participacao", C.FG_OCORREN AS "Ocorrencia Cadastro", C.DT_OCORREN AS "Data '
+            'Ocorrencia", B.DA_ESTAGIO AS "Estagio", B.NO_CORTE AS "No. Corte", D.DE_VARIED AS '
+            '"Variedade", E.DE_MATURAC AS "Ciclo Maturacao", (OBJ.QT_AREA_PROD * 1) AS "Area", '
+            '(OBJ.QT_CANA_ENTR / 1000) AS "Toneladas" FROM PIMSCS.HISTPREPRO OBJ, PIMSCS.ESTAGIOS B, '
+            "PIMSCS.UPNIVEL3 UP3, PIMSCS.SAFRUPNIV3 C, PIMSCS.VARIEDADES D, PIMSCS.TIPO_MATURAC E, "
+            "PIMSCS.UPNIVEL1 F, PIMSCS.FORNECS G WHERE OBJ.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM "
+            "PIMSCS.HISTPREPRO) AND OBJ.CD_UNID_IND IN (15, 19) AND OBJ.CD_ESTAGIO = B.CD_ESTAGIO AND "
+            "OBJ.CD_UPNIVEL1 = UP3.CD_UPNIVEL1 AND OBJ.CD_UPNIVEL3 = UP3.CD_UPNIVEL3 AND OBJ.CD_SAFRA "
+            "= UP3.CD_SAFRA AND OBJ.CD_UPNIVEL1 = C.CD_UPNIVEL1 AND OBJ.CD_UPNIVEL3 = C.CD_UPNIVEL3 "
+            "AND OBJ.CD_SAFRA = C.CD_SAFRA AND UP3.CD_VARIED = D.CD_VARIED AND E.FG_MATURAC = "
+            "D.FG_MATURAC AND OBJ.CD_UPNIVEL1 = F.CD_UPNIVEL1 AND F.CD_FORNEC = G.CD_FORNEC AND "
+            "C.DT_OCORREN = (SELECT MAX(D.DT_OCORREN) FROM PIMSCS.SAFRUPNIV3 D WHERE D.CD_UPNIVEL1 = "
+            "C.CD_UPNIVEL1 AND D.CD_UPNIVEL3 = C.CD_UPNIVEL3 AND D.CD_SAFRA = C.CD_SAFRA) AND "
+            "OBJ.CD_HIST = (SELECT OBJ2.CD_HIST FROM PIMSCS.HISTPREPRO OBJ2 WHERE OBJ2.CD_UPNIVEL1 = "
+            "OBJ.CD_UPNIVEL1 AND OBJ2.CD_UPNIVEL3 = OBJ.CD_UPNIVEL3 AND OBJ2.CD_SAFRA = (SELECT MAX("
+            "CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ2.CD_HIST = 'S' AND OBJ2.CD_EMPRESA IN (15, "
+            "19) AND OBJ2.DT_HISTORICO = (SELECT MAX(OBJ3.DT_HISTORICO) FROM PIMSCS.HISTPREPRO OBJ3 "
+            "WHERE OBJ3.CD_UPNIVEL1 = OBJ.CD_UPNIVEL1 AND OBJ3.CD_UPNIVEL3 = OBJ.CD_UPNIVEL3 AND "
+            "OBJ3.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND OBJ3.CD_HIST = 'S' "
+            "AND OBJ3.CD_EMPRESA IN (15, 19)))) A, (SELECT --ÁREA DE ORDEM DE CORTE DE MUDAS FECHADA "
+            'B A.CD_UPNIVEL1 AS "Fazenda", A.CD_UPNIVEL3 AS "Talhao", SUM(A.QT_AREA) AS "Area '
+            'Fechada" FROM PIMSCS.OCORTEMD_DE A JOIN PIMSCS.OCORTEMD_HE B ON A.NO_ORDEM = B.NO_ORDEM '
+            "WHERE A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND B.FG_SITUACAO = "
+            '\'F\' GROUP BY A.CD_UPNIVEL1, A.CD_UPNIVEL3) B WHERE a."Fazenda" = b."Fazenda"(+) AND '
+            'a."Talhao" = b."Talhao"(+) AND a."Ocorrencia Cadastro" <> \'F\' AND (a."Area" - (CASE '
+            'WHEN b."Area Fechada" IS NULL THEN 0 ELSE b."Area Fechada" END)) > 0)) A LEFT JOIN ('
+            'SELECT --Ultima Estimativa do Talhão A.CD_HIST "Cod. Historico", CASE WHEN A.CD_UNID_IND '
+            "= 15 THEN 'USF' ELSE 'URD' END AS \"Unidade\", A.CD_UPNIVEL1 AS \"Zona\", A.CD_UPNIVEL3 "
+            'AS "Talhao", A.DT_HISTORICO AS "Data", A.QT_AREA_PROD AS "Area", (A.QT_CANA_ENTR / 1000) '
+            'AS "Toneladas", A.QT_TCH AS "TCH" FROM PIMSCS.HISTPREPRO A WHERE A.CD_UNID_IND IN (15, '
+            "19) AND A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND A.CD_HIST = 'S' "
+            "AND A.QT_AREA_PROD <> 0 AND A.DT_HISTORICO = (SELECT MAX(A2.DT_HISTORICO) FROM "
+            "PIMSCS.HISTPREPRO A2 WHERE A.CD_SAFRA = A2.CD_SAFRA AND A.CD_UPNIVEL2 = A2.CD_UPNIVEL1 "
+            'AND A.CD_UPNIVEL3 = A2.CD_UPNIVEL3 AND A2.CD_HIST = \'S\')) B ON a."Fazenda" = b."Zona" '
+            'AND a."Talhao" = b."Talhao" LEFT JOIN (SELECT --Distancia Cadastrada A.CD_UPNIVEL1 AS '
+            '"Zona", A.CD_UPNIVEL3 AS "Talhao", MAX(A.DS_TERRA) AS "Dist. Terra", MAX(A.DS_ASFALTO) '
+            'AS "Dist. Asfalto" FROM PIMSCS.UPNIVEL3 A LEFT JOIN PIMSCS.SAFRUPNIV3 B ON A.CD_SAFRA = '
+            "B.CD_SAFRA AND A.CD_UPNIVEL1 = B.CD_UPNIVEL1 AND A.CD_UPNIVEL3 = B.CD_UPNIVEL3 WHERE "
+            "A.CD_UNID_IND IN (15, 19) AND A.CD_OCUP = 1 AND A.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM "
+            "PIMSCS.HISTPREPRO) AND B.CD_SAFRA = (SELECT MAX(CD_SAFRA) FROM PIMSCS.HISTPREPRO) AND "
+            "B.FG_OCORREN <> 'I' AND B.DT_OCORREN = (SELECT MAX(B2.DT_OCORREN) FROM "
+            "PIMSCS.SAFRUPNIV3 B2 WHERE B.CD_SAFRA = B2.CD_SAFRA AND B.CD_UPNIVEL1 = B2.CD_UPNIVEL1 "
+            "AND B.CD_UPNIVEL3 = B2.CD_UPNIVEL3) GROUP BY A.CD_UPNIVEL1, A.CD_UPNIVEL3) C ON "
+            'a."Fazenda" = c."Zona" AND a."Talhao" = c."Talhao") B ON a."Chave" = b."Chave"',
+            # noqa
+            "query_digest_text": "SELECT --Locais Disponíveis para Abertura de Ordens de corte COALESCE ( a . '?' , "
+            "b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , "
+            "b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , "
+            "b . '?' ) AS '?' , CASE WHEN a . '?' = '?' AND b . '?' = '?' THEN '?' ELSE COALESCE "
+            "( a . '?' , b . '?' ) END AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , "
+            "COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , "
+            "COALESCE ( a . '?' , b . '?' ) AS '?' , COALESCE ( a . '?' , b . '?' ) AS '?' , "
+            "COALESCE ( a . '?' , b . '?' ) AS '?' , ( CASE WHEN a . '?' IS NULL THEN ? ELSE a . "
+            "'?' END + CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) AS '?' , CASE WHEN a "
+            ". '?' = '?' AND b . '?' = '?' THEN ( ( CASE WHEN a . '?' IS NULL THEN ? ELSE a . "
+            "'?' END + CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) * a . '?' ) ELSE a . "
+            "'?' END AS '?' , a . '?' , COALESCE ( a . '?' , b . '?' ) AS '?' FROM ( SELECT "
+            "--Disponibilidade (Moagem) A . * , a . '?' * b . '?' AS '?' , b . '?' AS '?' , "
+            "c . '?' + c . '?' AS '?' FROM ( ( SELECT --ÁREAS DISPONÍVEIS PARA ABERTURA DE ORDEM "
+            "CORTE DE SAFRA a . '?' * ? + a . '?' AS '?' , CASE WHEN a . '?' = ? THEN '?' ELSE "
+            "'?' END AS '?' , a . '?' , a . '?' , a . '?' , CASE WHEN a . '?' = '?' THEN '?' "
+            "ELSE '?' END AS '?' , a . '?' , a . '?' , a . '?' , a . '?' , a . '?' , a . '?' , "
+            "( a . '?' - ( CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) ) AS '?' FROM ( "
+            "SELECT --ULTIMA ESTIMATIVA DO TALHAO A OBJ . CD_UNID_IND AS '?' , OBJ . CD_UPNIVEL1 "
+            "AS '?' , OBJ . CD_UPNIVEL3 AS '?' , OBJ . CD_UPNIVEL1 || '?' || F . DE_UPNIVEL1 AS "
+            "'?' , G . DE_FORNEC AS '?' , CASE WHEN UP3 . CD_TP_PROPR IN ( ? , ? , ? , "
+            "? ) THEN '?' WHEN UP3 . CD_TP_PROPR IN ( ? , ? ) THEN '?' WHEN UP3 . CD_TP_PROPR = "
+            "? THEN '?' WHEN UP3 . CD_TP_PROPR = ? THEN '?' ELSE '?' END AS '?' , C . FG_OCORREN "
+            "AS '?' , C . DT_OCORREN AS '?' , B . DA_ESTAGIO AS '?' , B . NO_CORTE AS '?' , "
+            "D . DE_VARIED AS '?' , E . DE_MATURAC AS '?' , ( OBJ . QT_AREA_PROD * ? ) AS '?' , "
+            "( OBJ . QT_CANA_ENTR / ? ) AS '?' FROM PIMSCS . HISTPREPRO OBJ , PIMSCS . ESTAGIOS "
+            "B , PIMSCS . UPNIVEL3 UP3 , PIMSCS . SAFRUPNIV3 C , PIMSCS . VARIEDADES D , "
+            "PIMSCS . TIPO_MATURAC E , PIMSCS . UPNIVEL1 F , PIMSCS . FORNECS G WHERE OBJ . "
+            "CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ . "
+            "CD_UNID_IND IN ( ? , ? ) AND OBJ . CD_ESTAGIO = B . CD_ESTAGIO AND OBJ . "
+            "CD_UPNIVEL1 = UP3 . CD_UPNIVEL1 AND OBJ . CD_UPNIVEL3 = UP3 . CD_UPNIVEL3 AND OBJ . "
+            "CD_SAFRA = UP3 . CD_SAFRA AND OBJ . CD_UPNIVEL1 = C . CD_UPNIVEL1 AND OBJ . "
+            "CD_UPNIVEL3 = C . CD_UPNIVEL3 AND OBJ . CD_SAFRA = C . CD_SAFRA AND UP3 . CD_VARIED "
+            "= D . CD_VARIED AND E . FG_MATURAC = D . FG_MATURAC AND OBJ . CD_UPNIVEL1 = F . "
+            "CD_UPNIVEL1 AND F . CD_FORNEC = G . CD_FORNEC AND C . DT_OCORREN = ( SELECT MAX ( D "
+            ". DT_OCORREN ) FROM PIMSCS . SAFRUPNIV3 D WHERE D . CD_UPNIVEL1 = C . CD_UPNIVEL1 "
+            "AND D . CD_UPNIVEL3 = C . CD_UPNIVEL3 AND D . CD_SAFRA = C . CD_SAFRA ) AND OBJ . "
+            "CD_HIST = ( SELECT OBJ2 . CD_HIST FROM PIMSCS . HISTPREPRO OBJ2 WHERE OBJ2 . "
+            "CD_UPNIVEL1 = OBJ . CD_UPNIVEL1 AND OBJ2 . CD_UPNIVEL3 = OBJ . CD_UPNIVEL3 AND OBJ2 "
+            ". CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ2 . "
+            "CD_HIST NOT IN ( '?' , '?' ) AND OBJ2 . CD_EMPRESA IN ( ? , ? ) AND OBJ2 . "
+            "DT_HISTORICO = ( SELECT MAX ( OBJ3 . DT_HISTORICO ) FROM PIMSCS . HISTPREPRO OBJ3 "
+            "WHERE OBJ3 . CD_UPNIVEL1 = OBJ . CD_UPNIVEL1 AND OBJ3 . CD_UPNIVEL3 = OBJ . "
+            "CD_UPNIVEL3 AND OBJ3 . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . "
+            "HISTPREPRO ) AND OBJ3 . CD_HIST NOT IN ( '?' , '?' ) AND OBJ3 . CD_EMPRESA IN ( ? , "
+            "? ) ) ) ) A , ( SELECT --ÁREA DE ORDEM DE CORTE DE SAFRA FECHADA B QD . CD_UPNIVEL1 "
+            "AS '?' , QD . CD_UPNIVEL3 AS '?' , SUM ( QD . QT_AREA ) AS '?' FROM PIMSCS . "
+            "QUEIMA_HE QH , PIMSCS . QUEIMA_DE QD WHERE QH . NO_QUEIMA = QD . NO_QUEIMA AND QD . "
+            "CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) GROUP BY QD . "
+            "CD_UPNIVEL1 , QD . CD_UPNIVEL3 ) B WHERE a . '?' = b . '?' ( + ) AND a . '?' = b . "
+            "'?' ( + ) AND a . '?' <> '?' AND ( a . '?' - ( CASE WHEN b . '?' IS NULL THEN ? "
+            "ELSE b . '?' END ) ) > ? ) ) A LEFT JOIN ( SELECT --Ultima Estimativa do Talhão A . "
+            "CD_HIST '?' , CASE WHEN A . CD_UNID_IND = ? THEN '?' ELSE '?' END AS '?' , "
+            "A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , A . DT_HISTORICO AS '?' , "
+            "A . QT_AREA_PROD AS '?' , ( A . QT_CANA_ENTR / ? ) AS '?' , A . QT_TCH AS '?' FROM "
+            "PIMSCS . HISTPREPRO A WHERE A . CD_UNID_IND IN ( ? , ? ) AND A . CD_SAFRA = ( "
+            "SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND A . CD_HIST NOT IN ( '?' , "
+            "'?' ) AND A . QT_AREA_PROD <> ? AND A . DT_HISTORICO = ( SELECT MAX ( A2 . "
+            "DT_HISTORICO ) FROM PIMSCS . HISTPREPRO A2 WHERE A . CD_SAFRA = A2 . CD_SAFRA AND A "
+            ". CD_UPNIVEL2 = A2 . CD_UPNIVEL1 AND A . CD_UPNIVEL3 = A2 . CD_UPNIVEL3 AND A2 . "
+            "CD_HIST NOT IN ( '?' , '?' ) ) ) B ON a . '?' = b . '?' AND a . '?' = b . '?' LEFT "
+            "JOIN ( SELECT --Distancia Cadastrada A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS "
+            "'?' , MAX ( A . DS_TERRA ) AS '?' , MAX ( A . DS_ASFALTO ) AS '?' FROM PIMSCS . "
+            "UPNIVEL3 A LEFT JOIN PIMSCS . SAFRUPNIV3 B ON A . CD_SAFRA = B . CD_SAFRA AND A . "
+            "CD_UPNIVEL1 = B . CD_UPNIVEL1 AND A . CD_UPNIVEL3 = B . CD_UPNIVEL3 WHERE A . "
+            "CD_UNID_IND IN ( ? , ? ) AND A . CD_OCUP = ? AND A . CD_SAFRA = ( SELECT MAX ( "
+            "CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND B . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) "
+            "FROM PIMSCS . HISTPREPRO ) AND B . FG_OCORREN <> '?' AND B . DT_OCORREN = ( SELECT "
+            "MAX ( B2 . DT_OCORREN ) FROM PIMSCS . SAFRUPNIV3 B2 WHERE B . CD_SAFRA = B2 . "
+            "CD_SAFRA AND B . CD_UPNIVEL1 = B2 . CD_UPNIVEL1 AND B . CD_UPNIVEL3 = B2 . "
+            "CD_UPNIVEL3 ) GROUP BY A . CD_UPNIVEL1 , A . CD_UPNIVEL3 ) C ON a . '?' = c . '?' "
+            "AND a . '?' = c . '?' ) A FULL JOIN ( SELECT --Disponibilidade (Mudas) A . * , "
+            "a . '?' * b . '?' AS '?' , b . '?' AS '?' , c . '?' + c . '?' AS '?' FROM ( ( "
+            "SELECT --ÁREAS DISPONÍVEIS PARA ABERTURA DE ORDEM CORTE DE SAFRA a . '?' * ? + a . "
+            "'?' AS '?' , CASE WHEN a . '?' = ? THEN '?' ELSE '?' END AS '?' , a . '?' , "
+            "a . '?' , a . '?' , CASE WHEN a . '?' = '?' THEN '?' ELSE '?' END AS '?' , "
+            "a . '?' , a . '?' , a . '?' , a . '?' , a . '?' , a . '?' , ( a . '?' - ( CASE WHEN "
+            "b . '?' IS NULL THEN ? ELSE b . '?' END ) ) AS '?' FROM ( SELECT --ULTIMA "
+            "ESTIMATIVA DO TALHAO A OBJ . CD_UNID_IND AS '?' , OBJ . CD_UPNIVEL1 AS '?' , "
+            "OBJ . CD_UPNIVEL3 AS '?' , OBJ . CD_UPNIVEL1 || '?' || F . DE_UPNIVEL1 AS '?' , "
+            "G . DE_FORNEC AS '?' , CASE WHEN UP3 . CD_TP_PROPR IN ( ? , ? , ? , ? ) THEN '?' "
+            "WHEN UP3 . CD_TP_PROPR IN ( ? , ? ) THEN '?' WHEN UP3 . CD_TP_PROPR = ? THEN '?' "
+            "WHEN UP3 . CD_TP_PROPR = ? THEN '?' ELSE '?' END AS '?' , C . FG_OCORREN AS '?' , "
+            "C . DT_OCORREN AS '?' , B . DA_ESTAGIO AS '?' , B . NO_CORTE AS '?' , D . DE_VARIED "
+            "AS '?' , E . DE_MATURAC AS '?' , ( OBJ . QT_AREA_PROD * ? ) AS '?' , "
+            "( OBJ . QT_CANA_ENTR / ? ) AS '?' FROM PIMSCS . HISTPREPRO OBJ , PIMSCS . ESTAGIOS "
+            "B , PIMSCS . UPNIVEL3 UP3 , PIMSCS . SAFRUPNIV3 C , PIMSCS . VARIEDADES D , "
+            "PIMSCS . TIPO_MATURAC E , PIMSCS . UPNIVEL1 F , PIMSCS . FORNECS G WHERE OBJ . "
+            "CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ . "
+            "CD_UNID_IND IN ( ? , ? ) AND OBJ . CD_ESTAGIO = B . CD_ESTAGIO AND OBJ . "
+            "CD_UPNIVEL1 = UP3 . CD_UPNIVEL1 AND OBJ . CD_UPNIVEL3 = UP3 . CD_UPNIVEL3 AND OBJ . "
+            "CD_SAFRA = UP3 . CD_SAFRA AND OBJ . CD_UPNIVEL1 = C . CD_UPNIVEL1 AND OBJ . "
+            "CD_UPNIVEL3 = C . CD_UPNIVEL3 AND OBJ . CD_SAFRA = C . CD_SAFRA AND UP3 . CD_VARIED "
+            "= D . CD_VARIED AND E . FG_MATURAC = D . FG_MATURAC AND OBJ . CD_UPNIVEL1 = F . "
+            "CD_UPNIVEL1 AND F . CD_FORNEC = G . CD_FORNEC AND C . DT_OCORREN = ( SELECT MAX ( D "
+            ". DT_OCORREN ) FROM PIMSCS . SAFRUPNIV3 D WHERE D . CD_UPNIVEL1 = C . CD_UPNIVEL1 "
+            "AND D . CD_UPNIVEL3 = C . CD_UPNIVEL3 AND D . CD_SAFRA = C . CD_SAFRA ) AND OBJ . "
+            "CD_HIST = ( SELECT OBJ2 . CD_HIST FROM PIMSCS . HISTPREPRO OBJ2 WHERE OBJ2 . "
+            "CD_UPNIVEL1 = OBJ . CD_UPNIVEL1 AND OBJ2 . CD_UPNIVEL3 = OBJ . CD_UPNIVEL3 AND OBJ2 "
+            ". CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ2 . "
+            "CD_HIST = '?' AND OBJ2 . CD_EMPRESA IN ( ? , ? ) AND OBJ2 . DT_HISTORICO = ( SELECT "
+            "MAX ( OBJ3 . DT_HISTORICO ) FROM PIMSCS . HISTPREPRO OBJ3 WHERE OBJ3 . CD_UPNIVEL1 "
+            "= OBJ . CD_UPNIVEL1 AND OBJ3 . CD_UPNIVEL3 = OBJ . CD_UPNIVEL3 AND OBJ3 . CD_SAFRA "
+            "= ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND OBJ3 . CD_HIST = '?' AND "
+            "OBJ3 . CD_EMPRESA IN ( ? , ? ) ) ) ) A , ( SELECT --ÁREA DE ORDEM DE CORTE DE MUDAS "
+            "FECHADA B A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , SUM ( A . QT_AREA ) AS "
+            "'?' FROM PIMSCS . OCORTEMD_DE A JOIN PIMSCS . OCORTEMD_HE B ON A . NO_ORDEM = B . "
+            "NO_ORDEM WHERE A . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) "
+            "AND B . FG_SITUACAO = '?' GROUP BY A . CD_UPNIVEL1 , A . CD_UPNIVEL3 ) B WHERE a . "
+            "'?' = b . '?' ( + ) AND a . '?' = b . '?' ( + ) AND a . '?' <> '?' AND ( a . '?' - "
+            "( CASE WHEN b . '?' IS NULL THEN ? ELSE b . '?' END ) ) > ? ) ) A LEFT JOIN ( "
+            "SELECT --Ultima Estimativa do Talhão A . CD_HIST '?' , CASE WHEN A . CD_UNID_IND = "
+            "? THEN '?' ELSE '?' END AS '?' , A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , "
+            "A . DT_HISTORICO AS '?' , A . QT_AREA_PROD AS '?' , ( A . QT_CANA_ENTR / ? ) AS '?' "
+            ", A . QT_TCH AS '?' FROM PIMSCS . HISTPREPRO A WHERE A . CD_UNID_IND IN ( ? , "
+            "? ) AND A . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND A . "
+            "CD_HIST = '?' AND A . QT_AREA_PROD <> ? AND A . DT_HISTORICO = ( SELECT MAX ( A2 . "
+            "DT_HISTORICO ) FROM PIMSCS . HISTPREPRO A2 WHERE A . CD_SAFRA = A2 . CD_SAFRA AND A "
+            ". CD_UPNIVEL2 = A2 . CD_UPNIVEL1 AND A . CD_UPNIVEL3 = A2 . CD_UPNIVEL3 AND A2 . "
+            "CD_HIST = '?' ) ) B ON a . '?' = b . '?' AND a . '?' = b . '?' LEFT JOIN ( SELECT "
+            "--Distancia Cadastrada A . CD_UPNIVEL1 AS '?' , A . CD_UPNIVEL3 AS '?' , "
+            "MAX ( A . DS_TERRA ) AS '?' , MAX ( A . DS_ASFALTO ) AS '?' FROM PIMSCS . UPNIVEL3 "
+            "A LEFT JOIN PIMSCS . SAFRUPNIV3 B ON A . CD_SAFRA = B . CD_SAFRA AND A . "
+            "CD_UPNIVEL1 = B . CD_UPNIVEL1 AND A . CD_UPNIVEL3 = B . CD_UPNIVEL3 WHERE A . "
+            "CD_UNID_IND IN ( ? , ? ) AND A . CD_OCUP = ? AND A . CD_SAFRA = ( SELECT MAX ( "
+            "CD_SAFRA ) FROM PIMSCS . HISTPREPRO ) AND B . CD_SAFRA = ( SELECT MAX ( CD_SAFRA ) "
+            "FROM PIMSCS . HISTPREPRO ) AND B . FG_OCORREN <> '?' AND B . DT_OCORREN = ( SELECT "
+            "MAX ( B2 . DT_OCORREN ) FROM PIMSCS . SAFRUPNIV3 B2 WHERE B . CD_SAFRA = B2 . "
+            "CD_SAFRA AND B . CD_UPNIVEL1 = B2 . CD_UPNIVEL1 AND B . CD_UPNIVEL3 = B2 . "
+            "CD_UPNIVEL3 ) GROUP BY A . CD_UPNIVEL1 , A . CD_UPNIVEL3 ) C ON a . '?' = c . '?' "
+            "AND a . '?' = c . '?' ) B ON a . '?' = b . '?'",
+            # noqa
             "query_digest_md5": "d128d643be71089fbe56ac23ed28f44f",
-            "table_name": "PIMSCS.ESTAGIOS,PIMSCS.FORNECS,PIMSCS.HISTPREPRO,PIMSCS.OCORTEMD_DE,PIMSCS.OCORTEMD_HE,PIMSCS.QUEIMA_DE,PIMSCS.QUEIMA_HE,PIMSCS.SAFRUPNIV3,PIMSCS.TIPO_MATURAC,PIMSCS.UPNIVEL1,PIMSCS.UPNIVEL3,PIMSCS.VARIEDADES",  # noqa
+            "table_name": "PIMSCS.ESTAGIOS,PIMSCS.FORNECS,PIMSCS.HISTPREPRO,PIMSCS.OCORTEMD_DE,PIMSCS.OCORTEMD_HE,"
+            "PIMSCS.QUEIMA_DE,PIMSCS.QUEIMA_HE,PIMSCS.SAFRUPNIV3,PIMSCS.TIPO_MATURAC,PIMSCS.UPNIVEL1,"
+            "PIMSCS.UPNIVEL3,PIMSCS.VARIEDADES",
+            # noqa
             "query_length": 11057,
         }
 
@@ -687,7 +953,7 @@ class TestSQLParseHandler:
         assert SQLParseHandler().parse_select_statement(desc_sql) is None
 
         invalid_show_sql = """
-        SHOW SLAVE STATUS
+        SHOW VARIABLES;
         """
         with pytest.raises(SQLParseBaseException):
             SQLParseHandler().parse_select_statement(invalid_show_sql)
@@ -696,3 +962,18 @@ class TestSQLParseHandler:
         SHOW TABLES FORM DBM;
         """
         assert SQLParseHandler().parse_select_statement(show_tables_sql) is None
+
+        show_processlist_sql = """
+        SHOW PROCESSLIST;
+        """
+        assert SQLParseHandler().parse_select_statement(show_processlist_sql) is None
+
+        show_slave_sql = """
+        SHOW SLAVE STATUS;
+        """
+        assert SQLParseHandler().parse_select_statement(show_slave_sql) is None
+
+        show_create_table_sql = """
+        SHOW CREATE TABLE TEST_DB;
+        """
+        assert SQLParseHandler().parse_select_statement(show_create_table_sql) is None

@@ -170,6 +170,7 @@ class WebConsoleSerializer(serializers.Serializer):
     cmd = serializers.CharField(help_text=_("sql语句"))
     # redis 额外参数
     db_num = serializers.IntegerField(help_text=_("数据库编号"), required=False)
+    raw = serializers.BooleanField(help_text=_("源编码"), required=False)
 
 
 class WebConsoleResponseSerializer(serializers.Serializer):
