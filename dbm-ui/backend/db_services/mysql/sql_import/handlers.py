@@ -386,9 +386,14 @@ class SQLHandler(object):
         flow_tree = FlowTree.objects.get(root_id=root_id).tree
         taskflow_handler = TaskFlowHandler(root_id)
 
-        # 获取语义执行的版本ID，查询执行结果
+        # 获取语义执行的版本ID
         node_id = taskflow_handler.get_node_id_by_component(flow_tree, component_code=SemanticCheckComponent.code)[0]
         version_id = FlowNode.objects.get(node_id=node_id).version_id
+        # 没有version id，证明没有执行到此步骤，直接返回空
+        if not version_id:
+            return []
+
+        # 查询执行结果
         results = SQLSimulationApi.query_semantic_result(params={"root_id": root_id, "version_id": version_id})
 
         # 拼接执行的变更DB

@@ -13,6 +13,7 @@ from typing import Optional
 
 from django.utils.translation import gettext as _
 
+from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.models import FlowTree, StateType
 from backend.ticket import constants
 from backend.ticket.constants import TicketFlowStatus
@@ -84,11 +85,12 @@ class DescribeTaskFlow(DeliveryFlow):
 
     @property
     def _summary(self) -> str:
-        return _(
-            "{}执行{}".format(
-                self.pre_flow_tree.get_ticket_type_display(), StateType.get_choice_label(self.pre_flow_tree.status)
-            )
-        )
+        if self.pre_flow_tree.status in FAILED_STATES:
+            return _("失败后继续提交")
+        elif self.pre_flow_tree.status in SUCCEED_STATES:
+            return _("执行成功")
+        else:
+            return _("执行{}".format(StateType.get_choice_label(self.pre_flow_tree.status)))
 
     @property
     def _url(self) -> str:

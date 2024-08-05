@@ -20,8 +20,9 @@ from backend.core.storages.serializers import (
     BatchDownloadFileSerializer,
     CreateTokenSerializer,
     CreateTokenSerializerResponseSerializer,
+    DirDownloadSerializer,
     FileSerializer,
-    TemporaryDownloadSerializer, DirDownloadSerializer,
+    TemporaryDownloadSerializer,
 )
 from backend.iam_app.handlers.drf_perm.storage import StoragePermission
 
@@ -93,4 +94,4 @@ class StorageViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=DirDownloadSerializer, pagination_class=None)
     def download_dirs(self, requests, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        return Response(StorageHandler().download_dirs(**data))
+        return Response(StorageHandler().download_dirs(data["file_path_list"], data["force_download"]))

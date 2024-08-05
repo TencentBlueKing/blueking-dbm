@@ -115,10 +115,10 @@ class StorageHandler(object):
             "path": path,
         }
 
-    def download_dirs(self, paths: list, force_download: bool):
+    def download_dirs(self, file_path_list: list, force_download: bool):
         """
         指定目录下载，返回下载链接
-        :param paths: 下载目录列表
+        :param file_path_list: 下载目录列表
         :param force_download: 是否强制下载
         """
-        return {path: self.storage.download_url(path, force_download) for path in paths}
+        return {path: self.storage.download_url(path, force_download) for path in file_path_list}
