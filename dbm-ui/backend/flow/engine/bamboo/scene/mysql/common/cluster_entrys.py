@@ -32,11 +32,12 @@ def get_tendb_ha_entry(cluster_id: int) -> Dict:
     standby_ins_dns = standby_ins.bind_entry.filter(
         cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
     )
-    if len(standby_ins_dns) != 1:
+    if len(standby_ins_dns) == 0:
         standby_ins_dns = master.bind_entry.filter(
             cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
         )
-    if len(standby_ins_dns) == 1:
+    if len(standby_ins_dns) > 1:
+        # todo 问题 standby 可能有多个域名
         entry_map["slave_domain"] = standby_ins_dns[0].entry
 
     for slave in slave_ins:
@@ -47,8 +48,8 @@ def get_tendb_ha_entry(cluster_id: int) -> Dict:
         entry_map[slave.machine.ip].extend(slave_end_list)
 
     if standby_ins.machine.ip not in entry_map:
-        entry_map[standby_ins.machine.ip] = [standby_ins_dns[0].entry]
+        entry_map[standby_ins.machine.ip] = [one.entry for one in standby_ins_dns]
     else:
-        entry_map[standby_ins.machine.ip].append(standby_ins_dns[0].entry)
+        entry_map[standby_ins.machine.ip].extend([one.entry for one in standby_ins_dns])
 
     return entry_map
