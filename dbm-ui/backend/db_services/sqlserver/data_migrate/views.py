@@ -76,8 +76,8 @@ class SQLServerDataMigrateViewSet(viewsets.SystemViewSet):
         # 完善迁移记录信息
         filter_migrate_records: List[Dict] = []
         for record in migrate_records:
-            source_domain = cluster_id__cluster_domain[record["source_cluster_id"]]
-            target_domain = cluster_id__cluster_domain[record["target_cluster_id"]]
+            source_domain = cluster_id__cluster_domain.get(record["source_cluster_id"], "")
+            target_domain = cluster_id__cluster_domain.get(record["target_cluster_id"], "")
             # 过滤集群域名
             if data["cluster_name"] not in source_domain and data["cluster_name"] not in target_domain:
                 continue
