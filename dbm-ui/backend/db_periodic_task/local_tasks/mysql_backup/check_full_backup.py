@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 
 from django.db.models import Q
 from django.utils import timezone
@@ -28,14 +28,18 @@ logger = logging.getLogger("root")
 def get_query_date_time(date_str: str):
     # date_str 为空时，取当前时间的前一天为查询区间，不为空时需要是 2024-05-20 这样的格式，指定查询这一天 00:00:01-23:59:59 的数据
     # 指定时间，一般用于手动触发使用
-    date_object = datetime.utcnow()
-    if date_str != "":
+    if date_str == "":
+        date_object = datetime.now() - timedelta(days=1)  # 当前时区
+        start_of_day = datetime.combine(date_object, time.min).astimezone(timezone.utc)
+        end_of_day = datetime.combine(date_object, time.max).astimezone(timezone.utc)
+        return start_of_day, end_of_day
+    else:
         date_object = datetime.strptime(date_str, "%Y-%m-%d").date()
-    start_time = datetime(date_object.year, date_object.month, date_object.day).astimezone(timezone.utc)
-    end_time = datetime(date_object.year, date_object.month, date_object.day, 23, 59, 59).astimezone(timezone.utc)
-    start_time = start_time - timedelta(days=1)
-    end_time = end_time - timedelta(days=1)
-    return start_time, end_time
+        start_of_day = datetime(date_object.year, date_object.month, date_object.day).astimezone(timezone.utc)
+        end_of_day = datetime(date_object.year, date_object.month, date_object.day, 23, 59, 59).astimezone(
+            timezone.utc
+        )
+        return start_of_day, end_of_day
 
 
 def check_full_backup(date_str: str):

@@ -24,9 +24,9 @@ DataSchemaGrant = all
 可选值有 `all`, `schema`, `data`, `grant`， 也可以组合使用 `schema,grant`, `all` 相当于别称`schema,data,grant`
 
 ### 3. 备份空间不足，但人为评估磁盘应该能放得下
-可发起一次备份加上选项 `--nocheck-diskspace`
+如果评估压缩率比较高，或者空洞率比较高，逻辑备份空间够用，可发起一次备份加上选项 `--nocheck-diskspace`
 ```
-./dbbackup dumpbackup -c dbbackup.3306.ini --nocheck-diskspace
+./dbbackup dumpbackup -c dbbackup.3306.ini --backup-type logical  --nocheck-diskspace
 ```
 每次备份之后，都会往 `infodba_schema.local_backup_report` 里记录一条备份信息，下一次备份时遇到空间不足，会从这里读取上次备份的文件大小来判断空间。
 不建议将 `Public.NoCheckDiskSpace` 持久化到配置文件
@@ -73,3 +73,8 @@ IOLimitMBPerSec = 300
 参数 `Public.IOLimitMasterFactor = 0.5` 可进一步限制在 master 上备份的限速，表示的是限速因子，比如 0.5 表示实际限速为 `IOLimitMBPerSec * 0.5`, `Throttle * 0.5`
 
 ### 6. 关于 tendbcluster 集群备份，请参考 [spider](spiderbackup.md)
+
+### 常见备份失败处理
+
+1. log copying being too slow
+it looks like InnoDB log has wrapped around before xtrabackup could process all records due to either log copying being too slow, or  log files being too small.
