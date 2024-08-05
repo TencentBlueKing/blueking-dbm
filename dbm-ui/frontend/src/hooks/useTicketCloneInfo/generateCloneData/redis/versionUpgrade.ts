@@ -41,7 +41,7 @@ export async function generateRedisRedisVersionUpgradeCloneData(ticketData: Tick
       cluster: clusterItem.master_domain,
       clusterId: infoItem.cluster_ids[0],
       nodeType: infoItem.node_type,
-      clusterType: clusterItem.cluster_spec.spec_cluster_type,
+      clusterType: clusterItem.cluster_type_name,
       targetVersion: infoItem.target_version,
     };
   });

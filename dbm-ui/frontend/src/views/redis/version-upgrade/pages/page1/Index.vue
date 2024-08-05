@@ -162,7 +162,7 @@
     isLoading: false,
     cluster: item.master_domain,
     clusterId: item.id,
-    clusterType: item.cluster_spec.spec_cluster_type,
+    clusterType: item.cluster_type_name,
     nodeType: item.cluster_spec.spec_cluster_type === RedisClusterTypes.RedisInstance ? 'Backend' : 'Proxy',
   });
 
