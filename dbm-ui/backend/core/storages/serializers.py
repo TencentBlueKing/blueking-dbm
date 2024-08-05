@@ -41,5 +41,5 @@ class CreateTokenSerializerResponseSerializer(serializers.Serializer):
 
 
 class DirDownloadSerializer(serializers.Serializer):
-    paths = serializers.ListField(help_text=_("目标目录列表"), child=serializers.CharField(), min_length=1)
+    file_path_list = serializers.ListField(help_text=_("目标目录列表"), child=serializers.CharField(), min_length=1)
     force_download = serializers.BooleanField(help_text=_("是否下载"), required=False, default=True)

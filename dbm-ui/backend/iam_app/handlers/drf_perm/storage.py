@@ -57,4 +57,4 @@ class StoragePermission(ResourceActionPermission):
                 bk_biz_ids = set([int(path.split("/")[2]) for path in file_path_list])
                 return [bk_biz_ids]
         except Exception:
-            raise PermissionDeniedError(_("文件操作路径{}不合法").format(file_path_list))
+            raise PermissionDeniedError(_("文件操作路径{}不合法，请联系管理员").format(file_path_list))

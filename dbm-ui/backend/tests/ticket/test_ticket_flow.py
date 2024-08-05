@@ -164,8 +164,7 @@ class TestTicketFlow:
 
         assert flows[0].flow_type == FlowType.DELIVERY
         assert flows[1].flow_type == FlowType.DESCRIBE_TASK
-        assert flows[2].flow_type == FlowType.BK_ITSM
-        assert flows[3].flow_type == FlowType.INNER_FLOW
+        assert flows[2].flow_type == FlowType.INNER_FLOW
 
     @patch.object(TicketViewSet, "permission_classes")
     @patch.object(InnerFlow, "_run")

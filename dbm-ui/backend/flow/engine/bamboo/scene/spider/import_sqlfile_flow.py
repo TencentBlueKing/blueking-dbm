@@ -212,7 +212,7 @@ class ImportSQLFlow(object):
             kwargs={
                 "ticket_data": {
                     "is_auto_commit": self.data["is_auto_commit"],
-                    "remark": _("语义检查出发的自动创建单据"),
+                    "remark": "",
                     "ticket_type": TicketType.TENDBCLUSTER_IMPORT_SQLFILE,
                     "details": {"root_id": self.root_id},
                 }

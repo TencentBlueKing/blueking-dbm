@@ -59,7 +59,7 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
             execute.update(sql_files=real_sql_files, line_id=index)
             execute_sql_files.extend(real_sql_files)
 
-        self.ticket.update_details(execute_sql_files=execute_sql_files)
+        self.ticket.update_details(execute_sql_files=list(set(execute_sql_files)), path=upload_sql_path)
         super().patch_ticket_detail()
 
     def init_ticket_flows(self):
