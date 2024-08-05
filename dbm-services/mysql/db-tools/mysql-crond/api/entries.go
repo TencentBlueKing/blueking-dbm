@@ -19,8 +19,26 @@ type SimpleEntry struct {
 	Next time.Time          `json:"NextTime"`
 }
 
-// Entries TODO
-func (m *Manager) Entries(param url.Values) ([]*SimpleEntry, error) {
+// Entries entries list
+func (m *Manager) Entries() ([]*SimpleEntry, error) {
+	resp, err := m.do("/entries", http.MethodGet, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "manager call %s", m.apiUrl)
+	}
+
+	var res struct {
+		Entries []*SimpleEntry `json:"entries"`
+	}
+	err = json.Unmarshal(resp, &res)
+	if err != nil {
+		return nil, errors.Wrapf(err, "manager unmarshal %s response", m.apiUrl)
+	}
+
+	return res.Entries, nil
+}
+
+// EntriesWithParam TODO
+func (m *Manager) EntriesWithParam(param url.Values) ([]*SimpleEntry, error) {
 	resp, err := m.do("/entries", http.MethodGet, param)
 	if err != nil {
 		return nil, errors.Wrapf(err, "manager call %s", m.apiUrl)
