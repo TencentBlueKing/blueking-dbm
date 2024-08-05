@@ -63,7 +63,7 @@ func listEntries(cmd *cobra.Command, status string) []*api.SimpleEntry {
 		queryParam.Add("name-match", nameMatch)
 	}
 	manager := api.NewManager(apiUrl)
-	entries, err := manager.Entries(queryParam)
+	entries, err := manager.EntriesWithParam(queryParam)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "fail to list entries", err.Error())
 		os.Exit(1)
