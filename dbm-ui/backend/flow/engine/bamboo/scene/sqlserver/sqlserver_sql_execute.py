@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging.config
 from dataclasses import asdict
+from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
@@ -45,14 +46,23 @@ class SqlserverSQLExecuteFlow(BaseFlow):
     兼容跨云集群的执行
     """
 
+    def __init__(self, root_id: str, data: Optional[Dict]):
+        super().__init__(root_id, data)
+        self.sql_target_path = f"{DEFAULT_SQLSERVER_PATH}\\SqlFile_{data['uid']}\\"
+
     def __get_sql_files(self) -> list:
         """
         拼接待下发的SQL文件列表
         """
         file_list = []
         for obj in self.data["execute_objects"]:
+            if not obj["sql_file"]:
+                raise Exception("param execute_objects error: sql_file is null")
+
             file_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.data['path']}/{obj['sql_file']}")
-        return file_list
+
+        # 做一下去重返回
+        return list(filter(None, list(set(file_list))))
 
     def run_flow(self):
         """
@@ -68,8 +78,44 @@ class SqlserverSQLExecuteFlow(BaseFlow):
 
         clusters = Cluster.objects.filter(id__in=self.data["cluster_ids"])
 
-        if len(clusters) == 0:
+        if len(clusters) == 0 or len(clusters) != len(self.data["cluster_ids"]):
             raise Exception(f"cluster not found: cluster_ids[{self.data['cluster_ids']}]")
+
+        # 合并下发需要变更的文件，不同的bk_cloud_id需要分组处理
+        target_hosts = [
+            Host(
+                ip=c.storageinstance_set.get(
+                    instance_role__in=[InstanceRole.ORPHAN, InstanceRole.BACKEND_MASTER]
+                ).machine.ip,
+                bk_cloud_id=c.bk_cloud_id,
+            )
+            for c in clusters
+        ]
+        act_lists = [
+            {
+                "act_name": _("下发db-actuator介质"),
+                "act_component_code": TransFileInWindowsComponent.code,
+                "kwargs": asdict(
+                    DownloadMediaKwargs(
+                        target_hosts=target_hosts,
+                        file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
+                    )
+                ),
+            },
+            {
+                "act_name": _("下发SQL文件"),
+                "act_component_code": TransFileInWindowsComponent.code,
+                "kwargs": asdict(
+                    DownloadMediaKwargs(
+                        target_hosts=target_hosts,
+                        file_list=self.__get_sql_files(),
+                        file_target_path=self.sql_target_path,
+                    )
+                ),
+            },
+        ]
+
+        main_pipeline.add_parallel_acts(acts_list=act_lists)
 
         for cluster in clusters:
             # 获取当前cluster的主节点,每个集群有且只有一个master/orphan 实例
@@ -79,9 +125,7 @@ class SqlserverSQLExecuteFlow(BaseFlow):
 
             # 拼接全局上下文
             sub_flow_context = copy.deepcopy(self.data)
-            sub_flow_context[
-                "sql_target_path"
-            ] = f"{DEFAULT_SQLSERVER_PATH}\\SqlFile_{self.data['uid']}_{cluster.name}\\"
+            sub_flow_context["sql_target_path"] = self.sql_target_path
             sub_flow_context["ports"] = [master_instance.port]
             sub_flow_context["charset_no"] = SQlCmdFileFormatNOMap[self.data["charset"]]
 
@@ -98,33 +142,6 @@ class SqlserverSQLExecuteFlow(BaseFlow):
                         sid=create_sqlserver_login_sid(),
                     ),
                 ),
-            )
-
-            # 下发相关文件
-            sub_pipeline.add_parallel_acts(
-                acts_list=[
-                    {
-                        "act_name": _("下发执行器"),
-                        "act_component_code": TransFileInWindowsComponent.code,
-                        "kwargs": asdict(
-                            DownloadMediaKwargs(
-                                target_hosts=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                                file_list=GetFileList(db_type=DBType.Sqlserver).get_db_actuator_package(),
-                            )
-                        ),
-                    },
-                    {
-                        "act_name": _("下发SQL文件"),
-                        "act_component_code": TransFileInWindowsComponent.code,
-                        "kwargs": asdict(
-                            DownloadMediaKwargs(
-                                target_hosts=[Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
-                                file_list=self.__get_sql_files(),
-                                file_target_path=sub_flow_context["sql_target_path"],
-                            )
-                        ),
-                    },
-                ]
             )
 
             # 执行SQL文件,默认3小时超时
