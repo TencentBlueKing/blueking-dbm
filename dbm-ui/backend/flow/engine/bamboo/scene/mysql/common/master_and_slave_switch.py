@@ -200,6 +200,7 @@ def master_and_slave_switch(root_id: str, ticket_data: dict, cluster: Cluster, c
     old_slave = cluster.storageinstance_set.get(machine__ip=cluster_info["old_slave_ip"])
     slave_dns_list = old_slave.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
     cluster_info["slave_dns_list"] = [i.entry for i in slave_dns_list]
+    #  todo 域名映射应该映射老ip对应的所有域名
     for slave_domain in cluster_info["slave_dns_list"]:
         acts_list.append(
             {
