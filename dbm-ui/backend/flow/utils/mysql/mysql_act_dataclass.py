@@ -382,6 +382,31 @@ class DownloadBackupFileKwargs:
     login_passwd: str = BACKUP_DOWNLOAD_USER_PWD
 
 
+@dataclass()
+class ExecuteRdsKwargs:
+    """
+    定义MySQL执行rds语句
+    """
+
+    bk_cloud_id: int
+    instance_ip: str
+    instance_port: int
+    sqls: list
+
+
+@dataclass()
+class CrondMonitorKwargs:
+    """
+    定义MySQL屏蔽和启用crond监控
+    """
+
+    bk_cloud_id: int
+    exec_ips: list
+    port: int
+    minutes: int = 1440
+    enable: bool = False
+
+
 @dataclass
 class CheckClientConnKwargs:
     """

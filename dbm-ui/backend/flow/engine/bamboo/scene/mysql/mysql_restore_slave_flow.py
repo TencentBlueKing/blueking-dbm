@@ -37,15 +37,19 @@ from backend.flow.plugins.components.collections.mysql.clear_machine import MySQ
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
+from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_ports, get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     ClearMachineKwargs,
+    CrondMonitorKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
     ExecActuatorKwargs,
+    ExecuteRdsKwargs,
     InstanceUserCloneKwargs,
     UpdateDnsRecordKwargs,
 )
@@ -455,6 +459,32 @@ class MySQLRestoreSlaveFlow(object):
                 ),
             )
 
+            #  屏蔽
+            tendb_migrate_pipeline.add_act(
+                act_name=_("屏蔽监控 {}").format(target_slave.ip_port),
+                act_component_code=MysqlCrondMonitorControlComponent.code,
+                kwargs=asdict(
+                    CrondMonitorKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        exec_ips=[target_slave.machine.ip],
+                        port=target_slave.port,
+                    )
+                ),
+            )
+
+            tendb_migrate_pipeline.add_act(
+                act_name=_("从库reset slave {}").format(target_slave.ip_port),
+                act_component_code=MySQLExecuteRdsComponent.code,
+                kwargs=asdict(
+                    ExecuteRdsKwargs(
+                        bk_cloud_id=cluster_model.bk_cloud_id,
+                        instance_ip=target_slave.machine.ip,
+                        instance_port=target_slave.port,
+                        sqls=["stop slave", "reset slave all"],
+                    )
+                ),
+            )
+
             exec_act_kwargs = ExecActuatorKwargs(
                 bk_cloud_id=cluster_model.bk_cloud_id,
                 cluster_type=cluster_model.cluster_type,
@@ -463,23 +493,10 @@ class MySQLRestoreSlaveFlow(object):
             )
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_clean_mysql_payload.__name__
             tendb_migrate_pipeline.add_act(
-                act_name=_("slave重建之清理从库{}").format(exec_act_kwargs.exec_ip),
+                act_name=_("slave重建之清理从库{}").format(target_slave.ip_port),
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
-
-            # 创建repl账号
-            # cluster["target_ip"] = master.machine.ip
-            # cluster["target_port"] = master.port
-            # cluster["repl_ip"] = target_slave.machine.ip
-            # exec_act_kwargs.cluster = copy.deepcopy(cluster)
-            # exec_act_kwargs.exec_ip = master.machine.ip
-            # exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_grant_remotedb_repl_user.__name__
-            # tendb_migrate_pipeline.add_act(
-            #     act_name=_("新增repl帐户{}".format(exec_act_kwargs.exec_ip)),
-            #     act_component_code=ExecuteDBActuatorScriptComponent.code,
-            #     kwargs=asdict(exec_act_kwargs),
-            # )
 
             inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
             tendb_migrate_pipeline.add_sub_pipeline(
