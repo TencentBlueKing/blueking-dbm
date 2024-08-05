@@ -43,12 +43,12 @@
           :width="150">
           <span>{{ $t('缩容节点类型') }}</span>
         </RenderTableHeadColumn>
-        <RenderTableHeadColumn
+        <!-- <RenderTableHeadColumn
           :min-width="130"
           :required="false"
           :width="240">
           <span>{{ $t('缩容规格') }}</span>
-        </RenderTableHeadColumn>
+        </RenderTableHeadColumn> -->
         <RenderTableHeadColumn
           :min-width="100"
           :width="300">
