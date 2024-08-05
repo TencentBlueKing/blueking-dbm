@@ -94,3 +94,16 @@ export function queryMachineInstancePair(params: {
     instances?: Record<string, MachineInstancePairItem>;
   }>(`${getRootPath()}/query_machine_instance_pair/`, params);
 }
+
+/**
+ * 通过集群查询同机关联集群
+ */
+export function findRelatedClustersByClusterIds(params: { cluster_ids: number[] }) {
+  return http.post<
+    Array<{
+      cluster_id: number;
+      cluster_info: RedisModel;
+      related_clusters: Array<RedisModel>;
+    }>
+  >(`${getRootPath()}/find_related_clusters_by_cluster_ids/`, params);
+}
