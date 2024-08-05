@@ -60,7 +60,7 @@ func main() {
 	switch dbhaType {
 	case constvar.Agent:
 		// new agent for each db type
-		for _, clusterType := range conf.AgentConf.ActiveDBType {
+		for _, clusterType := range conf.AgentConf.ActiveClusterType {
 			go func(clusterType string) {
 				Agent, err := agent.NewMonitorAgent(conf, clusterType)
 				if err != nil {

@@ -27,7 +27,7 @@ func (ins *PredixyDetectInstance) Detection() error {
 
 	if err != nil && ins.Status == constvar.RedisAuthFailed {
 		log.Logger.Debugf("predixy check auth failed. %s#%d|%s:%s %+v",
-			ins.Ip, ins.Port, ins.GetType(), ins.Pass, err)
+			ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
 		return err
 	}
 
@@ -56,7 +56,7 @@ func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
 	if ins.Pass == "" {
-		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetType()))
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetDBType()))
 	}
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()

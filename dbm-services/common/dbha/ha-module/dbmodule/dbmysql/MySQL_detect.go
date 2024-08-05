@@ -50,8 +50,9 @@ type MySQLDetectInstanceInfoFromCmDB struct {
 	Port        int
 	App         string
 	ClusterType string
-	MetaType    string
-	Cluster     string
+	//machine type in cmdb, url:dbm-ui/backend/db_meta/enums/machine_type.py
+	MetaType string
+	Cluster  string
 }
 
 // AgentNewMySQLDetectInstance convert CmDBInstanceUrl response info to MySQLDetectInstance
@@ -61,7 +62,7 @@ func AgentNewMySQLDetectInstance(ins *MySQLDetectInstanceInfoFromCmDB, conf *con
 			Ip:             ins.Ip,
 			Port:           ins.Port,
 			App:            ins.App,
-			DBType:         types.DBType(fmt.Sprintf("%s:%s", ins.ClusterType, ins.MetaType)),
+			DBType:         types.DBType(ins.MetaType),
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
@@ -106,11 +107,6 @@ func GMNewMySQLDetectInstance(ins *MySQLDetectResponse, conf *config.Config) *My
 		Pass:    conf.DBConf.MySQL.Pass,
 		Timeout: conf.DBConf.MySQL.Timeout,
 	}
-}
-
-// GetType return dbType
-func (m *MySQLDetectInstance) GetType() types.DBType {
-	return m.DBType
 }
 
 // GetDetectType return dbType
@@ -216,7 +212,7 @@ func (m *MySQLDetectInstance) CheckMySQL(errChan chan error) {
 
 	//DB user should with super privileges
 	if err := m.realDB.Exec("set sql_log_bin=0").Error; err != nil {
-		log.Logger.Warnf("set binlog_format to statement failed. ip:%s, port:%d, err:%s",
+		log.Logger.Warnf("set sql_log_bin failed. ip:%s, port:%d, err:%s",
 			m.Ip, m.Port, err.Error())
 		errChan <- err
 		return

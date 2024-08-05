@@ -108,15 +108,21 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 					}
 				case constvar.SSHCheckFailed, constvar.SSHAuthFailed:
 					{
+						content := fmt.Sprintf("double check failed: ssh check failed. sshcheck err:%s", err)
 						gmm.HaDBClient.ReportHaLog(
 							gmIP,
 							doubleCheckInstance.db.GetApp(),
 							ip,
 							port,
 							"gmm",
-							fmt.Sprintf("double check failed: ssh check failed. sshcheck err:%s", err),
+							content,
 						)
-						content := fmt.Sprintf("double check failed: ssh check failed. sshcheck err:%s", err)
+						// ssh auth failed, report event also
+						if doubleCheckInstance.db.GetStatus() == constvar.SSHAuthFailed {
+							monitor.MonitorSendDetect(
+								doubleCheckInstance.db, constvar.DBHAEventDoubleCheckSSH, content,
+							)
+						}
 						monitor.MonitorSendDetect(
 							doubleCheckInstance.db, constvar.DBHAEventDoubleCheckSSH, content,
 						)
@@ -146,7 +152,7 @@ func (gmm *GMM) Process(instance DoubleCheckInstanceInfo) {
 				default:
 					log.Logger.Fatalf("unknown check status:%s", doubleCheckInstance.db.GetStatus())
 				}
-				gmm.gdm.InstanceSwitchDone(ip, port, string(doubleCheckInstance.db.GetType()))
+				gmm.gdm.InstanceSwitchDone(ip, port, string(doubleCheckInstance.db.GetDBType()))
 			}(instance)
 		}
 	default:

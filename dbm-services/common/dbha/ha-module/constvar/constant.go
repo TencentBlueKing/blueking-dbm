@@ -32,7 +32,7 @@ const (
 	RedisCluster = "TwemproxyRedisInstance"
 	// TendisplusCluster cluster with predixy component
 	TendisplusCluster = "PredixyTendisplusCluster"
-	// TwemproxyTendisSSDInstance cluster with tendisssd component
+	// TendisSSDCluster cluster with tendisssd component
 	TendisSSDCluster = "TwemproxyTendisSSDInstance"
 )
 
@@ -82,14 +82,14 @@ const (
 	TenDBClusterProxySlave = "spider_slave"
 )
 
-// detect type in config.yaml
+// detect cluster type in config.yaml
 const (
 	// DetectTenDBHA detect TenDBHA
 	DetectTenDBHA = "tendbha"
 	// DetectTenDBCluster detect TenDBCluster
 	DetectTenDBCluster = "tendbcluster"
 
-	// RedisInstance ("RedisInstance", "RedisCache主从版"),
+	// DetectRedisInstance ("RedisInstance", "RedisCache主从版"),
 	DetectRedisInstance = "RedisInstance"
 	// DetectPredixyRedisCluster EnumField("PredixyRedisCluster", _("Redis集群"))
 	DetectPredixyRedisCluster = "PredixyRedisCluster"

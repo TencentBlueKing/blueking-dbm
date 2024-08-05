@@ -50,7 +50,7 @@ type LogConfig struct {
 // AgentConfig configure for agent component
 type AgentConfig struct {
 	// active type list for db detect, valid type in constant.go
-	ActiveDBType []string `yaml:"active_db_type"`
+	ActiveClusterType []string `yaml:"active_db_type"`
 	// instance city for detect, value 0 allowed, so required tag could not assign
 	CityID int `yaml:"city_id"`
 	// instance campus for detect

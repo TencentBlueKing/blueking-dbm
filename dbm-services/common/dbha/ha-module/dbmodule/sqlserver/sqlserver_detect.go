@@ -59,11 +59,6 @@ type SqlserverDetectInstance struct {
 	dbMutex sync.Mutex // Mutex for protecting realDB
 }
 
-// GetType return dbType
-func (s *SqlserverDetectInstance) GetType() types.DBType {
-	return s.DBType
-}
-
 // GetDetectType return dbType
 func (s *SqlserverDetectInstance) GetDetectType() string {
 	return s.ClusterType
@@ -194,7 +189,7 @@ func AgentNewSqlserverDetectInstance(ins *SqlserverDetectInstanceInfoFromCmDB, c
 			Ip:             ins.Ip,
 			Port:           ins.Port,
 			App:            ins.App,
-			DBType:         types.DBType(fmt.Sprintf("%s:%s", ins.ClusterType, ins.MetaType)),
+			DBType:         types.DBType(ins.MetaType),
 			ReporterTime:   time.Unix(0, 0),
 			ReportInterval: conf.AgentConf.ReportInterval + rand.Intn(20),
 			Status:         constvar.DBCheckSuccess,
