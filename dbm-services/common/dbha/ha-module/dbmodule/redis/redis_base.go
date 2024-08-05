@@ -82,11 +82,6 @@ func (ins *RedisDetectBase) CheckSSH() error {
 	return nil
 }
 
-// GetType return dbType
-func (ins *RedisDetectBase) GetType() types.DBType {
-	return ins.DBType
-}
-
 // GetDetectType return clusterType
 func (ins *RedisDetectBase) GetDetectType() string {
 	return ins.ClusterType

@@ -34,6 +34,7 @@ type DetectMonitor struct {
 	MachineType string
 	Status      string
 	Cluster     string
+	ClusterType string
 }
 
 // GlobalMonitor HA global monitor struct
@@ -114,6 +115,7 @@ func MonitorSend(content string, info MonitorInfo) error {
 		addDimension["status"] = info.Detect.Status
 		addDimension["cluster"] = info.Detect.Cluster
 		addDimension["machine_type"] = info.Detect.MachineType
+		addDimension["cluster_type"] = info.Detect.ClusterType
 	} else if info.MonitorInfoType == constvar.MonitorInfoGlobal {
 		addDimension["cloud_id"] = info.Global.CloudId
 		addDimension["server_ip"] = info.Global.ServerIp
@@ -192,9 +194,10 @@ func GetMonitorInfoByDetect(ins dbutil.DataBaseDetect, eventName string) Monitor
 			ServerIp:    addr,
 			ServerPort:  port,
 			Bzid:        ins.GetApp(),
-			MachineType: string(ins.GetType()),
+			MachineType: string(ins.GetDBType()),
 			Status:      string(ins.GetStatus()),
 			Cluster:     ins.GetCluster(),
+			ClusterType: ins.GetClusterType(),
 		},
 	}
 }

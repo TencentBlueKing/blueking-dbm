@@ -121,18 +121,18 @@ func (a *MonitorAgent) DoDetectSingle(ins dbutil.DataBaseDetect) {
 	err := ins.Detection()
 	if err != nil {
 		log.Logger.Warnf("Detect db instance failed. ins:[%s:%d],dbType:%s status:%s,DeteckErr=%s",
-			ip, port, ins.GetType(), ins.GetStatus(), err.Error())
+			ip, port, ins.GetDBType(), ins.GetStatus(), err.Error())
 	}
 
 	a.reportMonitor(ins, err)
 	if ins.NeedReporter() {
 		// reporter detect result to hadb
 		err = a.HaDBClient.ReportDBStatus(ins.GetApp(), a.MonIp, ip, port,
-			string(ins.GetType()), string(ins.GetStatus()))
+			string(ins.GetDBType()), string(ins.GetStatus()))
 		if err != nil {
 			log.Logger.Errorf(
 				"reporter hadb instance status failed. err:%s, ip:%s, port:%d, db_type:%s, status:%s",
-				err.Error(), ip, port, ins.GetType(), ins.GetStatus())
+				err.Error(), ip, port, ins.GetDBType(), ins.GetStatus())
 		}
 		err = a.ReporterGM(ins)
 		if err != nil {
@@ -192,7 +192,7 @@ func (a *MonitorAgent) FetchDBInstance() error {
 		ClusterTypes:   []string{a.DetectType},
 	}
 
-	rawInfo, err := a.CmDBClient.GetDBInstanceInfo(req)
+	rawInfo, err := a.CmDBClient.GetDBInstanceInfoByClusterType(req)
 	if err != nil {
 		log.Logger.Errorf("get instance info from cmdb failed. err:%s", err.Error())
 		return err
@@ -305,7 +305,7 @@ func (a *MonitorAgent) ReporterGM(reporterInstance dbutil.DataBaseDetect) error 
 		}
 		err = gmIns.ReportInstance(reporterInstance.GetDetectType(), jsonInfo)
 		if err != nil {
-			log.Logger.Warnf("reporter gm failed. gm_ip:%s, gm_port:%d, err:%s", ip, port, err.Error())
+			log.Logger.Warnf("reporter gm failed. gm_ip:%s, gm_port:%d, err:%s", gmIns.Ip, gmIns.Port, err.Error())
 			gmIns.IsConnection = false
 			err = a.RepairGM(gmIns)
 			if err != nil {
@@ -313,7 +313,7 @@ func (a *MonitorAgent) ReporterGM(reporterInstance dbutil.DataBaseDetect) error 
 				return err
 			}
 		} else {
-			log.Logger.Debugf("reporter gm success. gm info:%s#%d", ip, port)
+			log.Logger.Debugf("%s#%d reporter gm success. gm info:%s#%d", ip, port, gmIns.Ip, gmIns.Port)
 			if err = a.reporterBindGM(fmt.Sprintf("%s#%d", gmIns.Ip, gmIns.Port)); err != nil {
 				log.Logger.Warnf("update agent's bind gm info failed:%s", err.Error())
 			}
@@ -452,7 +452,7 @@ func (a *MonitorAgent) reporterBindGM(gmInfo string) error {
 	return err
 }
 
-// reportMonitor report monitor
+// reportMonitor report onitor
 func (a *MonitorAgent) reportMonitor(ins dbutil.DataBaseDetect, err error) {
 	var errInfo string
 	if err != nil {

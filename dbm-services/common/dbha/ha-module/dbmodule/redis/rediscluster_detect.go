@@ -28,7 +28,7 @@ func (ins *RedisClusterDetectInstance) Detection() error {
 
 	if err != nil && ins.Status == constvar.RedisAuthFailed {
 		log.Logger.Debugf("redisC check auth failed. %s#%d|%s:%s %+v",
-			ins.Ip, ins.Port, ins.GetType(), ins.Pass, err)
+			ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
 		return err
 	}
 
@@ -57,7 +57,7 @@ func (ins *RedisClusterDetectInstance) DoTendisDetection() error {
 	r := &client.RedisClient{}
 	addr := fmt.Sprintf("%s:%d", ins.Ip, ins.Port)
 	if ins.Pass == "" {
-		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetType()))
+		ins.Pass = GetPassByClusterID(ins.GetClusterId(), string(ins.GetDBType()))
 	}
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
@@ -144,14 +144,14 @@ func (ins *RedisClusterDetectInstance) ShowDetectionInfo() string {
 	return str
 }
 
-// NewTendisplusDetectInstance create tendisplus detect ins,	used by FetchDBCallback
+// NewRedisClusterDetectInstance create tendisplus detect ins,	used by FetchDBCallback
 func NewRedisClusterDetectInstance(ins *RedisDetectInfoFromCmDB, conf *config.Config) *RedisClusterDetectInstance {
 	return &RedisClusterDetectInstance{
 		RedisDetectBase: *GetDetectBaseByInfo(ins, constvar.PredixyRedisCluster, conf),
 	}
 }
 
-// NewTendisplusDetectInstanceFromRsp create tendisplus detect ins,	used by gm/DeserializeCallback
+// NewRedisClusterDetectInstanceFromRsp create tendisplus detect ins,	used by gm/DeserializeCallback
 func NewRedisClusterDetectInstanceFromRsp(ins *RedisDetectResponse, conf *config.Config) *RedisClusterDetectInstance {
 	return &RedisClusterDetectInstance{
 		RedisDetectBase: *GetDetectBaseByRsp(ins, constvar.PredixyRedisCluster, conf),

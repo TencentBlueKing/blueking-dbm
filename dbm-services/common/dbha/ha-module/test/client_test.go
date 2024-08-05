@@ -43,7 +43,7 @@ func TestGetInstanceByCity(t *testing.T) {
 	dbs, err := dbmodule.DBCallbackMap[constvar.DetectTenDBHA].FetchDBCallback(rawList, GlobalConfig)
 	for _, info := range dbs {
 		ip, port := info.GetAddress()
-		fmt.Printf("%s, %d, %s, %s, %s\n", ip, port, info.GetType(), info.GetStatus(), info.GetApp())
+		fmt.Printf("%s, %d, %s, %s, %s\n", ip, port, info.GetDBType(), info.GetStatus(), info.GetApp())
 	}
 }
 

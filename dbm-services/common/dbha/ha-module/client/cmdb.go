@@ -209,8 +209,8 @@ func (c *CmDBClient) GetDBInstanceInfoByCity(cityID int) ([]interface{}, error) 
 	return res, nil
 }
 
-// GetDBInstanceInfo detect running, available status instance
-func (c *CmDBClient) GetDBInstanceInfo(requestInfo DBInstanceInfoRequest) ([]interface{}, error) {
+// GetDBInstanceInfoByClusterType detect running, available status instance
+func (c *CmDBClient) GetDBInstanceInfoByClusterType(requestInfo DBInstanceInfoRequest) ([]interface{}, error) {
 	req := DBInstanceInfoRequest{
 		DBCloudToken:   c.Conf.BKConf.BkToken,
 		BKCloudID:      c.CloudId,
@@ -220,6 +220,8 @@ func (c *CmDBClient) GetDBInstanceInfo(requestInfo DBInstanceInfoRequest) ([]int
 		HashValue:      requestInfo.HashValue,
 		ClusterTypes:   requestInfo.ClusterTypes,
 	}
+
+	log.Logger.Debugf("GetDBInstanceInfo param:%#v", req)
 
 	response, err := c.DoNew(
 		http.MethodPost, c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.CmDBInstanceUrl, ""), req, nil)

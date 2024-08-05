@@ -56,13 +56,14 @@ type DataBaseDetect interface {
 	Serialization() ([]byte, error)
 
 	NeedReporter() bool
-	GetType() types.DBType
+	GetDBType() types.DBType
 	// GetDetectType agent send detect type to gm, gm use this key to find callback func
 	GetDetectType() string
 	GetStatus() types.CheckStatus
 	GetAddress() (string, int)
 	GetApp() string
 	GetCluster() string
+	GetClusterType() string
 	GetClusterId() int
 	UpdateReporterTime()
 }
@@ -205,13 +206,13 @@ func (b *BaseDetectDB) GetAddress() (ip string, port int) {
 	return b.Ip, b.Port
 }
 
-// GetType return dbType
-func (b *BaseDetectDB) GetType() types.DBType {
+// GetDBType return dbType
+func (b *BaseDetectDB) GetDBType() types.DBType {
 	return b.DBType
 }
 
 // GetDetectType return detect type
-// prefer to use cluster name, but consider compatibility with currently dbType
+// prefer to use cluster type name, but consider compatibility with currently dbType
 func (b *BaseDetectDB) GetDetectType() string {
 	return string(b.DBType)
 }
@@ -234,6 +235,11 @@ func (b *BaseDetectDB) GetCluster() string {
 // GetClusterId return cluster id
 func (b *BaseDetectDB) GetClusterId() int {
 	return b.ClusterId
+}
+
+// GetClusterType return cluster type
+func (b *BaseDetectDB) GetClusterType() string {
+	return b.ClusterType
 }
 
 // UpdateReporterTime update report info
