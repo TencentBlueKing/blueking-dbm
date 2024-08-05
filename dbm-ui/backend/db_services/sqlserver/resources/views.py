@@ -13,7 +13,6 @@ from collections import defaultdict
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
-from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -90,21 +89,30 @@ class ResourceTreeViewSet(SystemViewSet):
 
 
 class BaseSQLServerViewset(viewsets.ResourceViewSet):
-    @action(methods=["GET"], detail=False, url_path="list_alwayson")
     @Permission.decorator_permission_field(
         id_field=lambda d: d["id"],
         data_field=lambda d: d["results"],
         action_filed=lambda d: d["view_class"].list_perm_actions,
     )
-    def list_alwayson(self, request, bk_biz_id: int):
-        """查询alwayson模块集群列表"""
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: d["view_class"]._external_perm_param_field(d),
+        action_filed=lambda d: d["view_class"].list_external_perm_actions,
+    )
+    def list(self, request, bk_biz_id: int):
+        """查询集群列表"""
         query_params = self.params_validate(self.query_serializer_class)
-        alwayson_ids = SqlserverClusterSyncMode.objects.filter(sync_mode="always_on").values_list(
-            "cluster_id", flat=True
-        )
-        # 如果不存在alwayson_ids 直接返回空列表
-        if not alwayson_ids.exists():
-            return Response([])
-        query_params["cluster_ids"] = list(alwayson_ids)
+
+        # 处理筛选sqlserver db模块主从方式符合的集群
+        if "sys_mode" in query_params:
+            alwayson_ids = list(
+                SqlserverClusterSyncMode.objects.filter(sync_mode=query_params["sys_mode"]).values_list(
+                    "cluster_id", flat=True
+                )
+            )
+            # 如果不存在alwayson_ids 直接返回空列表
+            if not alwayson_ids:
+                return Response([])
+            query_params["cluster_ids"] = alwayson_ids
+
         data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_clusters, query_params)
         return self.get_paginated_response(data)
