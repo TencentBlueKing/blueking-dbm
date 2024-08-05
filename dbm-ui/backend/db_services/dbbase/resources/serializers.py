@@ -14,6 +14,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterStatus, ClusterType, InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER
+from backend.flow.consts import SqlserverSyncMode
 
 
 class ListResourceSLZ(serializers.Serializer):
@@ -43,7 +44,7 @@ class ListRedisResourceSLZ(ListResourceSLZ):
 
 
 class ListSQLServerResourceSLZ(ListResourceSLZ):
-    pass
+    sys_mode = serializers.ChoiceField(help_text=_("模块类型"), choices=SqlserverSyncMode.get_choices(), required=False)
 
 
 class ListMongoDBResourceSLZ(ListResourceSLZ):
