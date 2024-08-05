@@ -32,11 +32,11 @@
         :is-loading="data.isLoading"
         :placeholder="$t('输入集群后自动生成')" />
     </td>
-    <td style="padding: 0">
+    <!-- <td style="padding: 0">
       <RenderSpecList
         :data-list="proxySpecList"
         :is-loading="data.isLoading" />
-    </td>
+    </td> -->
     <td style="padding: 0">
       <RenderRoleHostSelect
         ref="hostRef"
@@ -87,7 +87,7 @@
 
   import { random } from '@utils';
 
-  import RenderSpecList from './RenderSpecList.vue';
+  // import RenderSpecList from './RenderSpecList.vue';
   import RenderSwitchMode, { OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
@@ -199,7 +199,7 @@
   );
 
   const proxyIpList = computed(() => props.data.proxyList.map((proxyItem) => proxyItem.ip));
-  const proxySpecList = computed(() => props.data.proxyList.map((proxyItem) => proxyItem.spec_config));
+  // const proxySpecList = computed(() => props.data.proxyList.map((proxyItem) => proxyItem.spec_config));
   const roleHostCount = computed(() => props.data.proxyList.length);
 
   watch(

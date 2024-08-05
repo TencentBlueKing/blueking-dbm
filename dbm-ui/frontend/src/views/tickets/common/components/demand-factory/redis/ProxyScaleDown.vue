@@ -69,17 +69,17 @@
       label: t('缩容节点类型'),
       field: 'nodeType',
     },
-    {
-      label: t('当前规格'),
-      field: 'sepc',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => data.spec.map(specItem => (
-        <div style="line-height: 26px">
-          <span>{ specItem.name }</span>
-          <span class="ml-4">({specItem.count}{t('台')}) </span>
-        </div>
-      )),
-    },
+    // {
+    //   label: t('当前规格'),
+    //   field: 'sepc',
+    //   showOverflowTooltip: true,
+    //   render: ({ data }: {data: RowData}) => data.spec.map(specItem => (
+    //     <div style="line-height: 26px">
+    //       <span>{ specItem.name }</span>
+    //       <span class="ml-4">({specItem.count}{t('台')}) </span>
+    //     </div>
+    //   )),
+    // },
     {
       label: t('主机选择方式'),
       field: 'hostSelectType',
