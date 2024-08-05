@@ -31,6 +31,7 @@
         ref="specRef"
         :cloud-id="data.bkCloudId"
         :cluster-type="data.clusterType"
+        :current-spec-ids="currentSpecIds"
         :data="data.spec" />
     </td>
     <td style="padding: 0">
@@ -65,7 +66,7 @@
   import { random } from '@utils';
 
   import RenderHostType from './RenderHostType.vue';
-  import RenderNodeType from './RenderNodeType.vue';
+  import RenderNodeType, { NodeType } from './RenderNodeType.vue';
   import RenderTargetNumber from './RenderTargetNumber.vue';
 
   export interface IDataRow {
@@ -140,12 +141,19 @@
   const hostTypeRef = ref<InstanceType<typeof RenderHostType>>();
   const specRef = ref<InstanceType<typeof RenderSpec>>();
   const hostType = ref('auto');
+  const currentSpecIds = shallowRef<number[]>(
+    props.data.spiderMasterList.map((masterItem) => masterItem.spec_config.id),
+  );
 
   const counts = computed(() => ({ master: props.data.masterCount, slave: props.data.slaveCount }));
   const targetMax = computed(() => 37 - props.data.mntCount);
 
   const handleChangeNodeType = (choosedLabel: string) => {
     emits('nodeTypeChoosed', choosedLabel);
+
+    const { spiderMasterList, spiderSlaveList } = props.data;
+    const nodeList = choosedLabel === NodeType.MASTER ? spiderMasterList : spiderMasterList;
+    currentSpecIds.value = nodeList.map((nodeItem) => nodeItem.spec_config.id);
   };
 
   const handleIpListChange = (ipList: string[]) => {
