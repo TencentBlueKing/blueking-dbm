@@ -14,6 +14,7 @@
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
+    class="data-copy-transfer-slider"
     :is-show="isShow"
     render-directive="if"
     :width="960"
@@ -276,16 +277,16 @@
       width: 220,
       showOverflowTooltip: true,
       render: ({ index, data }: {index: number, data: RedisDSTJobTaskModel}) => (
-          <div style="display:flex;align-items:center;">
-            <bk-checkbox
-              label={false}
-              model-value={data.checked}
-              disabled={!data.isFailedStatus}
-              onChange={() => handleSelectOne(index)}
+        <div style="display:flex;align-items:center;">
+          <bk-checkbox
+            label={false}
+            model-value={data.checked}
+            disabled={!data.isFailedStatus}
+            onChange={() => handleSelectOne(index)}
           />
           <span class="ml-8">{data.src_ip}:{data.src_port}</span>
-          </div>
-        ),
+        </div>
+      ),
     },
     {
       label: 'DtsServer',
@@ -498,6 +499,8 @@
           margin-left: 5px;
           color: @title-color;
           flex: 1;
+          overflow-y: auto;
+          max-height: 300px;
 
           :deep(.bk-tag) {
             &:hover {
@@ -546,5 +549,12 @@
   .first-column {
     display: flex;
     align-items: center;
+  }
+
+  .data-copy-transfer-slider {
+    :deep(.bk-modal-content) {
+      max-height: calc(100vh - 52px);
+      overflow-y: auto;
+    }
   }
 </style>

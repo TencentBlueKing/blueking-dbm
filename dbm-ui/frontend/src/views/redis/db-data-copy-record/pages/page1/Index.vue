@@ -279,7 +279,7 @@
       label: t('包含 key'),
       field: 'key_white_regex',
       showOverflowTooltip: false,
-      width: 120,
+      minWidth: 250,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_white_regex) {
           const tags = data.key_white_regex.split('\n');
@@ -292,7 +292,7 @@
       label: t('排除 key'),
       field: 'key_black_regex',
       showOverflowTooltip: true,
-      width: 120,
+      minWidth: 250,
       render: ({ data }: {data: RedisDSTHistoryJobModel}) => {
         if (data.key_black_regex) {
           const tags = data.key_black_regex.split('\n');
