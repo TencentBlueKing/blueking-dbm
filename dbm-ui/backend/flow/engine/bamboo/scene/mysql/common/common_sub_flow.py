@@ -79,6 +79,7 @@ def build_surrounding_apps_sub_flow(  # noqa
     is_install_checksum: bool = True,
     is_install_rotate_binlog: bool = True,
     collect_sysinfo: bool = False,
+    db_backup_pkg_type: MediumEnum = None,
 ):
     """
     定义重建备、数据检验程序、rotate_binlog程序等组件的子流程，面向整机操作
@@ -96,6 +97,7 @@ def build_surrounding_apps_sub_flow(  # noqa
     @param is_install_checksum: 是否安装checksum
     @param is_install_rotate_binlog: 是否安装rotate_binlog
     @param collect_sysinfo: 是否收集机器信息
+    @param db_backup_pkg_type: 备份文件类型
     """
     if not master_ip_list:
         master_ip_list = []
@@ -107,22 +109,20 @@ def build_surrounding_apps_sub_flow(  # noqa
     if len(master_ip_list) == 0 and len(slave_ip_list) == 0 and len(proxy_ip_list) == 0:
         raise Exception(_("执行ip信息为空"))
 
-    db_backup_pkg_type = None
-
     sub_pipeline = SubBuilder(root_id=root_id, data=parent_global_data)
 
     if not is_init:
         # 如果是重建模式，理论上需要重新下发周边的介质包，保证介质包最新版本
         # 适配切换类单据场景
         # 通过ip所在cluster，获取db_dbbackup版本
-        if is_install_monitor:
-            if env.MYSQL_BACKUP_PKG_MAP_ENABLE:
+        if is_install_backup:
+            if env.MYSQL_BACKUP_PKG_MAP_ENABLE and not db_backup_pkg_type:
                 tmep_inst = StorageInstance.objects.filter(
                     machine__ip__in=list(filter(None, list(set(master_ip_list + slave_ip_list))))
                 ).first()
                 db_version = tmep_inst.cluster.get().major_version
                 db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
-            else:
+            if not db_backup_pkg_type:
                 db_backup_pkg_type = MediumEnum.DbBackup
 
         sub_pipeline.add_act(
@@ -162,6 +162,8 @@ def build_surrounding_apps_sub_flow(  # noqa
                 is_install_backup=is_install_backup,
                 is_install_monitor=is_install_monitor,
                 is_install_checksum=is_install_checksum,
+                is_install_rotate_binlog=is_install_rotate_binlog,
+                db_backup_pkg_type=db_backup_pkg_type,
             )
         )
     if isinstance(slave_ip_list, list) and len(list(filter(None, list(set(slave_ip_list))))) != 0:
@@ -174,6 +176,8 @@ def build_surrounding_apps_sub_flow(  # noqa
                 is_install_backup=is_install_backup,
                 is_install_monitor=is_install_monitor,
                 is_install_checksum=is_install_checksum,
+                is_install_rotate_binlog=is_install_rotate_binlog,
+                db_backup_pkg_type=db_backup_pkg_type,
             )
         )
     if isinstance(proxy_ip_list, list) and len(list(filter(None, list(set(proxy_ip_list))))) != 0:
@@ -215,6 +219,7 @@ def build_surrounding_apps_for_master(
     is_install_monitor: bool = True,
     is_install_checksum: bool = True,
     is_install_rotate_binlog: bool = True,
+    db_backup_pkg_type: MediumEnum = None,
 ):
     acts_list = []
     for master_ip in list(set(master_ip_list)):
@@ -263,6 +268,7 @@ def build_surrounding_apps_for_master(
                             get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
                             cluster_type=cluster_type,
                             run_as_system_user=DBA_ROOT_USER,
+                            cluster={"db_backup_pkg_type": db_backup_pkg_type},
                         )
                     ),
                 }
@@ -314,6 +320,7 @@ def build_surrounding_apps_for_slave(
     is_install_monitor: bool = True,
     is_install_checksum: bool = True,
     is_install_rotate_binlog: bool = True,
+    db_backup_pkg_type: MediumEnum = None,
 ):
     acts_list = []
     for slave_ip in list(set(slave_ip_list)):
@@ -362,6 +369,7 @@ def build_surrounding_apps_for_slave(
                             get_mysql_payload_func=MysqlActPayload.get_install_db_backup_payload.__name__,
                             cluster_type=cluster_type,
                             run_as_system_user=DBA_ROOT_USER,
+                            cluster={"db_backup_pkg_type": db_backup_pkg_type},
                         )
                     ),
                 },

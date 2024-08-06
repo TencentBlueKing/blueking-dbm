@@ -555,11 +555,16 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         cluster_type = ins_list[0].cluster.get().cluster_type
 
         # 获取backup程序包的名称, spider默认给DbBackup
-        if env.MYSQL_BACKUP_PKG_MAP_ENABLE and machine.machine_type != MachineType.SPIDER.value:
+        if self.cluster.get("db_backup_pkg_type"):
+            db_backup_pkg_type = self.cluster["db_backup_pkg_type"]
+
+        elif machine.machine_type != MachineType.SPIDER.value:
             db_version = ins_list[0].cluster.get().major_version
             db_backup_pkg_type = MysqlVersionToDBBackupForMap[db_version]
         else:
+            logger.warning("db_backup_pkg_type is null, default dbbackup")
             db_backup_pkg_type = MediumEnum.DbBackup
+
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
 
         return {
@@ -1828,10 +1833,15 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             raise DBMetaException(message=_("不支持的机器类型: {}".format(machine.machine_type)))
 
         # 获取backup程序包的名称
-        if env.MYSQL_BACKUP_PKG_MAP_ENABLE and machine.machine_type != MachineType.SPIDER.value:
+        if self.cluster.get("db_backup_pkg_type"):
+            db_backup_pkg_type = self.cluster["db_backup_pkg_type"]
+
+        elif machine.machine_type != MachineType.SPIDER.value:
             db_backup_pkg_type = MysqlVersionToDBBackupForMap[self.ticket_data["db_version"]]
         else:
+            logger.warning("db_backup_pkg_type is null, default dbbackup")
             db_backup_pkg_type = MediumEnum.DbBackup
+
         db_backup_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=db_backup_pkg_type)
 
         return {
