@@ -36,6 +36,7 @@ type ClusterNodeData struct {
 	SlotsMap       map[int]bool   `json:"slots_map"`       // convenient to know whether certain slots belong to the node
 	MigratingSlots map[int]string `json:"migrating_slots"` // key:slot,value:dst redis ID
 	ImportingSlots map[int]string `json:"importing_slots"` // key:slot.value:src redis ID
+	RawLine        string         `json:"raw_line"`        // raw line from cluster nodes command
 
 	balance    int `json:"-"` // (扩缩容)迁移slot时使用
 	endSlotIdx int `json:"-"`
@@ -161,10 +162,11 @@ func DecodeClusterNodes(input string) ([]*ClusterNodeData, error) {
 		if len(values) < 8 {
 			// last line is always empty
 			// not enough values in line split, skip line
-			mylog.Logger.Info(fmt.Sprintf("not enough values in line split, ignoring line: '%s'", line))
+			mylog.Logger.Debug(fmt.Sprintf("not enough values in line split, ignoring line: '%s'", line))
 			continue
 		} else {
 			node := NewDefaultNode()
+			node.RawLine = line
 
 			node.NodeID = values[0]
 			// remove trailing port for cluster internal protocol
