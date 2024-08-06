@@ -14,7 +14,6 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.components.base import DataAPI
 from backend.components.exception import DataAPIException
-from backend.components.utils.params import add_esb_info_before_request
 from backend.db_proxy.models import DBCloudProxy
 
 
@@ -68,7 +67,6 @@ class ExternalProxyAPI(DataAPI):
         # 添加自定义headers
         headers = headers or {}
         headers.update({"IS-EXTERNAL": "true"})
-        params = add_esb_info_before_request(params)
 
         return self._send(params, headers, use_admin)
 
