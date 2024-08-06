@@ -68,11 +68,12 @@ class ItsmFlow(BaseTicketFlow):
             # 异常时根据状态取默认的概览
             status_summary_map = {
                 TicketStatus.RUNNING.value: _("审批中"),
-                TicketStatus.REVOKED.value: _("已撤销"),
                 TicketStatus.SUCCEEDED.value: _("已通过"),
+                TicketStatus.REVOKED.value: _("已撤销"),
                 TicketStatus.FAILED.value: _("被拒绝"),
+                TicketStatus.TERMINATED.value: _("已终止"),
             }
-            return status_summary_map.get(self._status, "")
+            return status_summary_map.get(self.status, "")
 
     @property
     def _status(self) -> str:
