@@ -22,7 +22,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.flow.consts import MediumEnum
+from backend.flow.consts import MediumEnum, MysqlVersionToDBBackupForMap
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
@@ -430,6 +430,7 @@ class MySQLMigrateClusterFlow(object):
                     is_init=True,
                     collect_sysinfo=True,
                     cluster_type=ClusterType.TenDBHA.value,
+                    db_backup_pkg_type=MysqlVersionToDBBackupForMap[self.data["db_version"]],
                 )
             )
             # 人工确认切换迁移实例
@@ -445,6 +446,7 @@ class MySQLMigrateClusterFlow(object):
                     parent_global_data=copy.deepcopy(self.data),
                     is_init=True,
                     cluster_type=ClusterType.TenDBHA.value,
+                    db_backup_pkg_type=MysqlVersionToDBBackupForMap[self.data["db_version"]],
                 )
             )
             # 如果是做升级版本的话 则更新集群模块id

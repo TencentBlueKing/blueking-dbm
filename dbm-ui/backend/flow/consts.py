@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
+from backend import env
 from backend.configuration.constants import SQLSERVER_ADMIN_USER
 from backend.db_meta.enums import MachineType
 from backend.db_services.version.constants import SqlserverVersion
@@ -867,11 +868,11 @@ class MySQLBackupTypeEnum(str, StructuredEnum):
 
 # 定义根据mysql大版本获取对应的db-backup-pkg-type
 MysqlVersionToDBBackupForMap = {
-    "MySQL-5.5": MediumEnum.DbBackupTXSQL,
-    "MySQL-5.6": MediumEnum.DbBackupTXSQL,
-    "MySQL-5.7": MediumEnum.DbBackupTXSQL,
+    "MySQL-5.5": MediumEnum.DbBackupTXSQL if env.MYSQL_BACKUP_PKG_MAP_ENABLE else MediumEnum.DbBackup,
+    "MySQL-5.6": MediumEnum.DbBackupTXSQL if env.MYSQL_BACKUP_PKG_MAP_ENABLE else MediumEnum.DbBackup,
+    "MySQL-5.7": MediumEnum.DbBackupTXSQL if env.MYSQL_BACKUP_PKG_MAP_ENABLE else MediumEnum.DbBackup,
     "MySQL-8.0": MediumEnum.DbBackup,
-    "TXSQL-8.0": MediumEnum.DbBackupTXSQL,
+    "TXSQL-8.0": MediumEnum.DbBackupTXSQL if env.MYSQL_BACKUP_PKG_MAP_ENABLE else MediumEnum.DbBackup,
     "MySQL-5.7-community": MediumEnum.DbBackup,
     "Spider-1": MediumEnum.DbBackup,
     "Spider-3": MediumEnum.DbBackup,
