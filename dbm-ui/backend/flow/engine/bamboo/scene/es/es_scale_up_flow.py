@@ -92,9 +92,9 @@ class EsScaleUpFlow(EsFlow):
 
         # 原有机器下发dbactuator
         act_kwargs.file_list = trans_files.es_disable()
-        act_kwargs.exec_ip = self.get_all_node_ips_in_dbmeta()
+        act_kwargs.exec_ip = self.master_ips
         es_pipeline.add_act(
-            act_name=_("下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("原有机器下发dbactuator"), act_component_code=TransFileComponent.code, kwargs=asdict(act_kwargs)
         )
 
         # 打包证书
