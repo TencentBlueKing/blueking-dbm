@@ -21,11 +21,6 @@
     :title="t('新建账号')"
     :width="480"
     @closed="handleClose">
-    <BkAlert
-      class="mb-16"
-      closable
-      theme="warning"
-      :title="t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
       v-if="isShow"
       ref="accountRef"
@@ -48,6 +43,9 @@
             v-model="formData.user"
             :placeholder="t('格式为：(库名).（名称）_如 admin.linda')" />
         </BkPopover>
+        <p style="color: #ff9c01">
+          {{ t('账号创建后，不支持修改。') }}
+        </p>
       </BkFormItem>
       <BkFormItem
         ref="passwordItemRef"
@@ -72,21 +70,24 @@
             {{ t('随机生成') }}
           </BkButton>
         </div>
-        <span style="color: #ff9c01">
+        <p style="color: #ff9c01">
           {{ t('密码创建后平台将不会显露_,_请谨慎复制_,_') }}
-        </span>
-        <BkButton
-          v-bk-tooltips="{
-            content: t('请设置密码'),
-            disabled: formData.password,
-          }"
-          class="copy-password-button"
-          :disabled="!formData.password"
-          text
-          theme="primary"
-          @click="handleCopyPassword">
-          {{ t('复制密码') }}
-        </BkButton>
+          <BkButton
+            v-bk-tooltips="{
+              content: t('请设置密码'),
+              disabled: formData.password,
+            }"
+            class="copy-password-button"
+            :disabled="!formData.password"
+            text
+            theme="primary"
+            @click="handleCopyPassword">
+            {{ t('复制密码') }}
+          </BkButton>
+        </p>
+        <p style="color: #ff9c01">
+          {{ t('平台不会保存密码，请自行保管好。') }}
+        </p>
       </BkFormItem>
     </BkForm>
     <template #footer>
@@ -144,6 +145,8 @@
     getRSAPublicKeys,
     verifyPasswordStrength,
   } from '@services/source/permission';
+
+  import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
