@@ -12,6 +12,7 @@ import hashlib
 import json
 import logging
 import os.path
+import sys
 import time
 from typing import Any, Callable, Dict, List
 from urllib import parse
@@ -27,7 +28,6 @@ from backend import env
 from backend.components.constants import CLIENT_CRT_PATH, SSL_KEY, SSLEnum
 from backend.components.domains import ESB_PREFIX
 from backend.components.exception import DataAPIException
-from backend.components.utils.params import add_esb_info_before_request, remove_auth_args
 from backend.configuration.models.system import SystemSettings
 from backend.exceptions import ApiError, ApiRequestError, ApiResultError, AppBaseException
 from backend.utils.local import local
@@ -221,6 +221,19 @@ class DataAPI(object):
             elif isinstance(error, Exception):
                 raise DataAPIException(error_message=error_message)
 
+    @staticmethod
+    def is_backend_request():
+        is_backend = False
+        for argv in sys.argv:
+            # celery 进程，都认为是后台任务
+            if "celery" in argv:
+                is_backend = True
+                break
+            # 本地开发 runserver 进程，认为是后台任务
+            if "manage.py" in argv and "runserver" not in sys.argv:
+                is_backend = True
+        return is_backend
+
     def get_error_message(self, error_message, request_id=None):
         url_path = ""
         try:
@@ -240,12 +253,6 @@ class DataAPI(object):
         if not self.freeze_params:
             if self.before_request is not None:
                 params = self.before_request(params)
-
-            params = add_esb_info_before_request(params)
-            # 使用管理员账户请求时，设置用户名为管理员用户名，移除bk_token等认证信息
-            if use_admin:
-                params["bk_username"] = env.DEFAULT_USERNAME
-                params = remove_auth_args(params)
 
         # 是否有默认返回，调试阶段可用
         if self.default_return_value is not None:
@@ -393,7 +400,7 @@ class DataAPI(object):
         """
         cache.set(cache_key, data, self.cache_time)
 
-    def _set_session_headers(self, session, headers: Dict, params: Dict):
+    def _set_session_headers(self, session, local_request, headers: Dict, params: Dict, use_admin: bool = False):
         """
         设置session的headers
         @param headers: 用户自定义headers
@@ -409,12 +416,25 @@ class DataAPI(object):
         # 增加鉴权信息
         if not isinstance(params, dict):
             return
+        bkapi_auth_headers = {
+            "bk_app_code": params.pop("bk_app_code", env.APP_CODE),
+            "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
+        }
+        if use_admin or self.is_backend_request():
+            # 使用管理员/平台身份调用接口
+            bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
+        elif local_request and local_request.COOKIES:
+            # 根据不同环境，传递认证信息
+            oath_cookies_params = getattr(settings, "OAUTH_COOKIES_PARAMS", {"bk_token": "bk_token"})
+            for key, value in oath_cookies_params.items():
+                if value in local_request.COOKIES:
+                    bkapi_auth_headers.update({key: local_request.COOKIES[value]})
         session.headers.update(
             {
                 "X-Bkapi-Authorization": json.dumps(
                     {
-                        "bk_app_code": params.pop("bk_app_code", ""),
-                        "bk_app_secret": params.pop("bk_app_secret", ""),
+                        "bk_app_code": params.pop("bk_app_code", env.APP_CODE),
+                        "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
                         "bk_username": params.pop("bk_username", env.DEFAULT_USERNAME),
                     }
                 ),
@@ -424,17 +444,12 @@ class DataAPI(object):
         if self.method_override is not None:
             session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
 
-    def _set_session_cookies(self, session, cookies: Dict = None, use_admin: bool = False):
+    def _set_session_cookies(self, session, local_request, cookies: Dict = None, use_admin: bool = False):
         """
         设置session的cookies
         @param cookies: 用户自定义cookies
         @param use_admin: 是否以admin请求
         """
-        try:
-            local_request = local.request
-        except AppBaseException:
-            local_request = None
-
         if local_request and local_request.COOKIES and not use_admin:
             session.cookies.update(local_request.COOKIES)
 
@@ -448,8 +463,13 @@ class DataAPI(object):
         @return: requests response
         """
         session = requests.session()
-        self._set_session_headers(session, headers, params)
-        self._set_session_cookies(session, use_admin=use_admin)
+        try:
+            local_request = local.request
+        except AppBaseException:
+            local_request = None
+
+        self._set_session_headers(session, local_request, headers, params, use_admin=use_admin)
+        self._set_session_cookies(session, local_request, use_admin=use_admin)
 
         url = self.build_actual_url(params)
         non_file_data, file_data = self._split_file_data(params)
