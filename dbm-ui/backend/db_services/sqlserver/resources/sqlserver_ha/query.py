@@ -17,12 +17,12 @@ from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.cluster import Cluster
-from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.register import register_resource_decorator
+from backend.db_services.sqlserver.resources.query import SqlserverListRetrieveResource
 
 
 @register_resource_decorator()
-class ListRetrieveResource(query.ListRetrieveResource):
+class ListRetrieveResource(SqlserverListRetrieveResource):
     """查看 sqlserver ha 架构的资源"""
 
     cluster_types = [ClusterType.SqlserverHA]
@@ -61,6 +61,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         masters = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.MASTER]
         slaves = [m.simple_desc for m in cluster.storages if m.instance_inner_role == InstanceInnerRole.SLAVE]
         cluster_role_info = {"masters": masters, "slaves": slaves}
+        sync_mode_info = {"sync_mode": cls.db_sync_mode_map.get(cluster.id, "")}
         cluster_info = super()._to_cluster_representation(
             cluster,
             cluster_entry,
@@ -72,5 +73,5 @@ class ListRetrieveResource(query.ListRetrieveResource):
             cluster_stats_map,
             **kwargs
         )
-        cluster_info.update(cluster_role_info)
+        cluster_info.update({**cluster_role_info, **sync_mode_info})
         return cluster_info
