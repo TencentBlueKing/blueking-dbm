@@ -59,11 +59,11 @@ spec:
             httpGet:
               path: {{ .Values.livenessProbe.path | default "/ping"}}
               port: http
-            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 5}}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 10}}
             periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
             timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 5}}
             successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
-            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 1}}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 5}}
           readinessProbe:
             httpGet:
               path: {{ .Values.readinessProbe.path | default "/ping"}}

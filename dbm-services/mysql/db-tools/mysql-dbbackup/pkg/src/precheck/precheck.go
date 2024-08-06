@@ -32,11 +32,12 @@ func BeforeDump(cnf *config.BackupConfig) error {
 	defer func() {
 		_ = dbh.Close()
 	}()
-	// check myisam tables
-	if err = CheckEngineTables(cnf, dbh); err != nil {
-		return err
-	}
-
+	/*
+		// check myisam tables
+		if err = CheckEngineTables(cnf, dbh); err != nil {
+			return err
+		}
+	*/
 	// check server charset
 	if err := CheckCharset(cnfPublic, dbh); err != nil {
 		logger.Log.Errorf("failed to get Mysqlcharset for %d", cnfPublic.MysqlPort)
