@@ -1,3 +1,4 @@
+// Package redisnodesreport TODO
 package redisnodesreport
 
 import (
@@ -72,9 +73,9 @@ func (job *Job) getReporter() {
 
 // ClusterNodesSchema TODO
 type ClusterNodesSchema struct {
-	BkBizID      string    `json:"bk_biz_id" gorm:"column:bk_biz_id;not null;default:''"`
-	ImmuteDomain string    `json:"immute_domain" gorm:"primaryKey;column:immute_domain;not null;default:''"`
-	ServerIP     string    `json:"server_ip" gorm:"primaryKey;not null;default:''"`
+	BkBizID      string    `json:"bk_biz_id" gorm:"type:varchar(64);column:bk_biz_id;not null;default:''"`
+	ImmuteDomain string    `json:"immute_domain" gorm:"type:varchar(128);primaryKey;column:immute_domain;not null;default:''"`
+	ServerIP     string    `json:"server_ip" gorm:"type:varchar(128);primaryKey;not null;default:''"`
 	ServerPort   int       `json:"server_port" gorm:"primaryKey;not null;default:0"`
 	NodesData    string    `json:"nodes_data" gorm:"not null;default:'';type:text"`
 	UpdatedAt    time.Time `json:"update_at" gorm:"autoUpdateTime"`
@@ -192,7 +193,7 @@ func (rn *redisNodeTask) getRedisCli() {
 		return
 	}
 	rn.redisCli, rn.Err = myredis.NewRedisClientWithTimeout(rn.Addr(), rn.Password, 0,
-		consts.TendisTypeRedisInstance, 3*time.Second)
+		consts.TendisTypeRedisInstance, 10*time.Second)
 }
 
 func (rn *redisNodeTask) closeRedisCli() {

@@ -13,6 +13,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/pkg/dbmonheartbeat"
+	"dbm-services/redis/db-tools/dbmon/pkg/failednodehandle"
 	"dbm-services/redis/db-tools/dbmon/pkg/httpapi"
 	"dbm-services/redis/db-tools/dbmon/pkg/keylifecycle"
 	"dbm-services/redis/db-tools/dbmon/pkg/mongojob"
@@ -191,6 +192,15 @@ Buildstamp:%s`, version, githash, buildstamp),
 				return
 			}
 			mylog.Logger.Info(fmt.Sprintf("create cron GRedisMaxmemorySetJob success,entryID:%d", entryID))
+			// 清理cluster nodes中failed节点
+			entryID, err = c.AddJob("@every 1m",
+				cron.NewChain(cron.SkipIfStillRunning(mylog.GlobCronLogger)).Then(
+					failednodehandle.GetGlobFailedNodeHandleJob(config.GlobalConf)))
+			if err != nil {
+				fmt.Printf("redis failed_node_handle addjob fail,entryID:%d,err:%v\n", entryID, err)
+				return
+			}
+			mylog.Logger.Info(fmt.Sprintf("create cron GetGlobFailedNodeHandleJob success,entryID:%d", entryID))
 		} else if hasMongo {
 
 			// Login 登录检查和拉起

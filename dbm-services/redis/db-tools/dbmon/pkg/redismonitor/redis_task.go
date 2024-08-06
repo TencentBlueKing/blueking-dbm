@@ -484,6 +484,7 @@ func (task *RedisMonitorTask) CheckClusterState() {
 	var clusterEnabled bool
 	var clusterInfo *myredis.CmdClusterInfo
 	var msg string
+	var selfNode *myredis.ClusterNodeData
 	for _, cli01 := range task.redisClis {
 		cliItem := cli01
 		task.eventSender.SetInstance(cliItem.Addr)
@@ -492,6 +493,16 @@ func (task *RedisMonitorTask) CheckClusterState() {
 			return
 		}
 		if !clusterEnabled {
+			continue
+		}
+		// 检查'我'是否是master,且负责 slots
+		// 如果不是master,或者没有负责 slots,则不检查 cluster state
+		// 避免造成过多告警
+		selfNode, task.Err = cliItem.GetMyself()
+		if task.Err != nil {
+			return
+		}
+		if selfNode.Role != consts.RedisMasterRole || len(selfNode.Slots) == 0 {
 			continue
 		}
 		clusterInfo, task.Err = cliItem.ClusterInfo()
