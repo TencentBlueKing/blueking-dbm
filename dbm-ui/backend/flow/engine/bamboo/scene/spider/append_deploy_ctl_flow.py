@@ -86,6 +86,8 @@ class AppendDeployCTLFlow(object):
         info = {
             "spider_instances": [],
             "spider_slave_instances": [],
+            "mnt_spider_instances": [],
+            "mnt_spider_slave_instances": [],
             "mysql_instance_tuples": [],
             "ctl_instances": [],
             "tdbctl_user": self.tdbctl_user,
@@ -96,8 +98,17 @@ class AppendDeployCTLFlow(object):
         master_spiders = cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
         )
+
         slave_spiders = cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value
+        )
+
+        mnt_spiders = cluster.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT.value
+        )
+
+        mnt_slave_spiders = cluster.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE_MNT.value
         )
 
         for master_spider in master_spiders:
@@ -110,6 +121,12 @@ class AppendDeployCTLFlow(object):
         # create slave spiders
         for slave_spider in slave_spiders:
             info["spider_slave_instances"].append({"host": slave_spider.machine.ip, "port": slave_spider.port})
+
+        for mnt_spider in mnt_spiders:
+            info["mnt_spider_instances"].append({"host": mnt_spider.machine.ip, "port": mnt_spider.port})
+
+        for mnt_spider in mnt_slave_spiders:
+            info["mnt_spider_slave_instances"].append({"host": mnt_spider.machine.ip, "port": mnt_spider.port})
 
         shards = cluster.tendbclusterstorageset_set.filter()
         for shard in shards:
@@ -293,7 +310,7 @@ class AppendDeployCTLFlow(object):
                         ctl_master_ip=primary_ctl_ip,
                         user=self.tdbctl_user,
                         passwd=self.tdbctl_pass,
-                        is_apppend_deploy=True,
+                        is_append_deploy=True,
                     )
                 ),
             )
@@ -317,6 +334,8 @@ class AppendDeployCTLFlow(object):
                 "use_mydumper": self.use_mydumper,
                 "drop_before": self.drop_before,
                 "threads": self.threads,
+                "tdbctl_user": self.tdbctl_user,
+                "tdbctl_pass": self.tdbctl_pass,
             }
             exec_act_kwargs.exec_ip = primary_ctl_ip
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_import_schema_to_tdbctl_payload.__name__

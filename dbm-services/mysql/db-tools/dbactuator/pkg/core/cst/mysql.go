@@ -56,12 +56,17 @@ const (
 	// MysqlRotateBinlogInstallPath rotate binlog
 	MysqlRotateBinlogInstallPath = "/home/mysql/mysql-rotatebinlog"
 	// DBAReportBase 上报根目录
-	DBAReportBase           = "/home/mysql/dbareport"
+	DBAReportBase = "/home/mysql/dbareport"
+	// BackupClientInstallPath TODO
 	BackupClientInstallPath = "/usr/local/backup_client"
-	BackupClientReportDir   = "/data/backup_stm"
-	BackupClientAuthPath    = "/home/mysql/.cosinfo"
+	// BackupClientReportDir TODO
+	BackupClientReportDir = "/data/backup_stm"
+	// BackupClientAuthPath TODO
+	BackupClientAuthPath = "/home/mysql/.cosinfo"
+	// DumperDefaultDir TODO
 	// tbinlogdumper 相关目录
-	DumperDefaultDir    = "/data/idip_cache"
+	DumperDefaultDir = "/data/idip_cache"
+	// DumperDefaultBakDir TODO
 	DumperDefaultBakDir = "/data/idip_cache/dbbak"
 )
 
@@ -88,6 +93,7 @@ const (
 	// RoleSpiderMnt tendbcluster maintain node
 	RoleSpiderMnt = "spider_mnt"
 
+	// RoleTdbctl TODO
 	RoleTdbctl = "spider_tdbctl"
 
 	// RoleBackendMaster tendbha remote master
@@ -97,8 +103,10 @@ const (
 )
 
 const (
+	// TendbCluster TODO
 	TendbCluster = "tendbcluster"
-	TendbHA      = "tendbha"
+	// TendbHA TODO
+	TendbHA = "tendbha"
 )
 
 // backup .info 中的 BackupRole

@@ -31,7 +31,7 @@ class AddSystemUserInClusterService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         user = kwargs["user"]
         password = kwargs["passwd"]
-        is_apppend_deploy = kwargs.get("is_apppend_deploy")
+        is_append_deploy = kwargs.get("is_append_deploy")
 
         # 远程授权
         params = {
@@ -56,7 +56,7 @@ class AddSystemUserInClusterService(BaseService):
                 return False
 
         #  新集群部署，对所有的新的ctl节点授权
-        if is_apppend_deploy:
+        if is_append_deploy:
             for ctl_ip in global_data["tdbctl_ip_list"]:
                 params["address"] = f'{ctl_ip["ip"]}{IP_PORT_DIVIDER}{global_data["ctl_port"]}'
                 params["role"] = PrivRole.TDBCTL.value
