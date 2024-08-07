@@ -324,7 +324,7 @@
     },
     [ClusterTypes.SQLSERVER_SINGLE]: {
       id: ClusterTypes.SQLSERVER_SINGLE,
-      name: t('单节点集群'),
+      name: t('SqlServer 单节点'),
       disabledRowConfig: [
         {
           handler: (data: T) => data.isOffline,
@@ -339,7 +339,7 @@
     },
     [ClusterTypes.SQLSERVER_HA]: {
       id: ClusterTypes.SQLSERVER_HA,
-      name: t('主从集群'),
+      name: t('SqlServer 主从'),
       disabledRowConfig: [
         {
           handler: (data: T) => data.isOffline,

@@ -82,7 +82,7 @@
           style="margin-top: 16px">
           <BkFormItem
             class="mb-0"
-            :label="t('数据库全局权限(owner)')">
+            :label="t('数据库所有者权限(owner)')">
             <BkCheckbox
               :model-value="checkAllPrivileges"
               @change="(value: boolean) => handleSelectAllPrivileges(value)">

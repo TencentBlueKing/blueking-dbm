@@ -227,7 +227,7 @@
   // 创建模块
   const newModule = () => {
     const params = {
-      id: bizId.value,
+      biz_id: bizId.value,
       db_module_name: formdata.module_name,
       cluster_type: 'tendbcluster',
     };

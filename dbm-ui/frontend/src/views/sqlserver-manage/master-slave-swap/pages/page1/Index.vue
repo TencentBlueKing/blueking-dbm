@@ -33,6 +33,7 @@
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.SQLSERVER_HA]"
+        :tab-list-config="tabListConfig"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -41,6 +42,7 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
+        <DbIcon type="invisible1" />
         {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
@@ -62,13 +64,18 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -81,6 +88,20 @@
     const [firstRow] = list;
     return !firstRow.masterData && !firstRow.slaveData && !firstRow.clusterData;
   };
+
+  const tabListConfig = {
+    [ClusterTypes.SQLSERVER_HA as string]: [
+      {
+        tableConfig: {
+          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
+            getSqlServerInstanceList({
+              ...params,
+              role: 'backend_master',
+            }),
+        },
+      },
+    ],
+  } as Record<string, PanelListType>;
 
   const router = useRouter();
   const { t } = useI18n();

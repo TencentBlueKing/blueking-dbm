@@ -50,6 +50,7 @@
       v-model:is-show="isShowInstanceSelecotr"
       :cluster-types="[ClusterTypes.SQLSERVER_HA]"
       :selected="selected"
+      :tab-list-config="tabListConfig"
       @change="handleInstancesChange" />
   </SmartAction>
 </template>
@@ -58,13 +59,18 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -72,6 +78,21 @@
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  const tabListConfig = {
+    [ClusterTypes.SQLSERVER_HA as string]: [
+      {
+        name: t('从库实例'),
+        tableConfig: {
+          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
+            getSqlServerInstanceList({
+              ...params,
+              role: 'backend_slave',
+            }),
+        },
+      },
+    ],
+  } as Record<string, PanelListType>;
 
   const isShowInstanceSelecotr = ref(false);
   const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);

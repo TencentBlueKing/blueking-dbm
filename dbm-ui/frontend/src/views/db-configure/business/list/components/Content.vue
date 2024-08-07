@@ -99,7 +99,9 @@
   </ApplyPermissionCatch>
 </template>
 <script setup lang="ts">
-  import { clusterTypeInfos, ClusterTypes, ConfLevels } from '@common/const';
+  import { useRoute, useRouter } from 'vue-router';
+
+  import { clusterTypeInfos, ClusterTypes, ConfLevels, TicketTypes } from '@common/const';
 
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
@@ -111,25 +113,29 @@
   import type { TreeData, TreeState } from './types';
 
   const route = useRoute();
+  const router = useRouter();
+
   const treeState = reactive<TreeState>({
     isAnomalies: false,
     loading: false,
     search: '',
     data: [],
   });
-  const { treeRef, treeSearchConfig, treePrefixIcon, handleSelectedTreeNode, createModule, fetchBusinessTopoTree } =
+  const { treeRef, treeSearchConfig, treePrefixIcon, handleSelectedTreeNode, fetchBusinessTopoTree } =
     useTreeData(treeState);
-  // 可创建模块
-  const hasModuleClusters: string[] = [
-    ClusterTypes.TENDBSINGLE,
-    ClusterTypes.TENDBHA,
-    ClusterTypes.TENDBCLUSTER,
-    ClusterTypes.SQLSERVER_SINGLE,
-    ClusterTypes.SQLSERVER_HA,
-  ];
 
-  const clusterType = computed(() => (route.params.clusterType as string) || ClusterTypes.TENDBSINGLE);
-  const hasModules = computed(() => hasModuleClusters.includes(clusterType.value));
+  const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
+
+  const hasModules = computed(() => {
+    const hasModuleClusters = [
+      ClusterTypes.TENDBSINGLE,
+      ClusterTypes.TENDBHA,
+      ClusterTypes.TENDBCLUSTER,
+      ClusterTypes.SQLSERVER_HA,
+      ClusterTypes.SQLSERVER_SINGLE,
+    ];
+    return hasModuleClusters.includes(clusterType.value);
+  });
 
   /**
    * content component
@@ -173,6 +179,40 @@
       return '模';
     }
     return '集';
+  };
+
+  const createModule = () => {
+    const ticketTypeMap = {
+      [ClusterTypes.TENDBSINGLE]: TicketTypes.MYSQL_SINGLE_APPLY,
+      [ClusterTypes.TENDBHA]: TicketTypes.MYSQL_HA_APPLY,
+      [ClusterTypes.SQLSERVER_SINGLE]: TicketTypes.SQLSERVER_SINGLE_APPLY,
+      [ClusterTypes.SQLSERVER_HA]: TicketTypes.SQLSERVER_HA_APPLY,
+    } as Record<ClusterTypes, TicketTypes>;
+
+    if ([ClusterTypes.TENDBSINGLE, ClusterTypes.TENDBHA].includes(clusterType.value)) {
+      router.push({
+        name: 'SelfServiceCreateDbModule',
+        params: {
+          type: ticketTypeMap[clusterType.value],
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        },
+      });
+    } else if ([ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(clusterType.value)) {
+      router.push({
+        name: 'SqlServerCreateDbModule',
+        params: {
+          ticketType: ticketTypeMap[clusterType.value],
+          bizId: window.PROJECT_CONFIG.BIZ_ID,
+        },
+      });
+    } else {
+      router.push({
+        name: 'createSpiderModule',
+        params: {
+          bizId: window.PROJECT_CONFIG.BIZ_ID,
+        },
+      });
+    }
   };
 
   const handleClearSearch = () => {

@@ -16,33 +16,33 @@
     ref="rootRef"
     class="table-edit-tag-input"
     :class="{ 'table-edit-tag-input-scroll': isFocus }">
-    <span @click="handleShowTips">
+    <div
+      class="table-edit-tag"
+      :class="{ ['is-error']: Boolean(errorMessage) }"
+      @click="handleShowTips">
+      <BkTagInput
+        v-model="localValue"
+        allow-auto-match
+        allow-create
+        :clearable="false"
+        v-bind="$attrs"
+        collapse-tags
+        :disabled="disabled"
+        has-delete-icon
+        :max-data="single ? 1 : -1"
+        :paste-fn="tagInputPasteFn"
+        :placeholder="placeholder"
+        @blur="handleBlur"
+        @change="handleChange"
+        @focus="handleFocus" />
       <div
-        class="table-edit-tag"
-        :class="{ ['is-error']: Boolean(errorMessage) }">
-        <BkTagInput
-          v-model="localValue"
-          allow-auto-match
-          allow-create
-          :clearable="false"
-          v-bind="$attrs"
-          collapse-tags
-          has-delete-icon
-          :max-data="single ? 1 : -1"
-          :paste-fn="tagInputPasteFn"
-          :placeholder="placeholder"
-          @blur="handleBlur"
-          @change="handleChange"
-          @focus="handleFocus" />
-        <div
-          v-if="errorMessage"
-          class="input-error">
-          <DbIcon
-            v-bk-tooltips="errorMessage"
-            type="exclamation-fill" />
-        </div>
+        v-if="errorMessage"
+        class="input-error">
+        <DbIcon
+          v-bk-tooltips="errorMessage"
+          type="exclamation-fill" />
       </div>
-    </span>
+    </div>
     <div style="display: none">
       <div
         ref="popRef"
@@ -70,6 +70,7 @@
     modelValue?: string[];
     single?: boolean;
     rules?: Rules;
+    disabled: boolean;
   }
 
   interface Emits {
@@ -86,6 +87,7 @@
     modelValue: undefined,
     single: false,
     rules: undefined,
+    disabled: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -93,7 +95,7 @@
   const rootRef = ref();
   const popRef = ref();
   const localValue = ref(props.modelValue);
-  const isFocus = ref(false);
+  const isFocus = ref(true);
 
   let tippyIns: Instance | undefined;
 
@@ -135,7 +137,7 @@
   };
 
   const handleBlur = () => {
-    isFocus.value = false;
+    // isFocus.value = false;
   };
 
   onMounted(() => {
@@ -210,6 +212,7 @@
 <style lang="less">
   .table-edit-tag {
     position: relative;
+    min-height: 42px;
 
     &.is-error {
       .bk-tag-input {
@@ -256,6 +259,7 @@
       top: 0;
       right: 0;
       bottom: 0;
+      z-index: 100;
       display: flex;
       padding-right: 10px;
       font-size: 14px;

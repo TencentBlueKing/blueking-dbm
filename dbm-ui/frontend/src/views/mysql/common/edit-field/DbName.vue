@@ -14,6 +14,7 @@
 <template>
   <TableTagInput
     ref="tagRef"
+    :disabled="(checkExist || checkNotExist) && !clusterId"
     :model-value="localValue"
     :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
     :rules="rules"
@@ -113,6 +114,10 @@
           if (!props.clusterId) {
             return false;
           }
+          // % 通配符不需要校验存在
+          if (/%$/.test(value[0]) || value[0] === '*') {
+            return true;
+          }
           const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
           if (clearDbList.length < 1) {
             return true;
@@ -121,7 +126,7 @@
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_id: props.clusterId,
             db_list: value,
-          }).then((data) => !data[value[0]]);
+          }).then((data) => _.every(Object.values(data), (item) => !item));
         },
         message: t('DB 不存在'),
       },
@@ -141,7 +146,7 @@
             bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
             cluster_id: props.clusterId,
             db_list: value,
-          }).then((data) => data[value[0]]);
+          }).then((data) => _.every(Object.values(data), (item) => item));
         },
         message: t('DB 不存在'),
       },

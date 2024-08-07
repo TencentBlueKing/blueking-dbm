@@ -18,19 +18,14 @@
     :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
     :rules="rules" />
 </template>
-<script lang="ts">
-  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
-</script>
 <script setup lang="ts">
-  import { onBeforeUnmount, ref, watch } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
   import { filterClusters } from '@services/source/dbbase';
 
   import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
-
-  import { random } from '@utils';
 
   import type { IDataRow } from './Row.vue';
 
@@ -50,9 +45,6 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-
-  const instanceKey = `render_cluster_${random()}`;
-  clusterIdMemo[instanceKey] = {};
 
   const editRef = ref();
 
@@ -85,31 +77,6 @@
         }),
       message: t('目标集群不存在'),
     },
-    {
-      validator: () => {
-        const currentClusterSelectMap = clusterIdMemo[instanceKey];
-        const otherClusterMemoMap = { ...clusterIdMemo };
-        delete otherClusterMemoMap[instanceKey];
-
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
-        }
-        emits('idChange', localClusterId.value);
-        return true;
-      },
-      message: t('目标集群重复'),
-    },
   ];
 
   // 同步外部值
@@ -128,24 +95,6 @@
       immediate: true,
     },
   );
-
-  // 获取关联集群
-  watch(
-    localClusterId,
-    () => {
-      if (!localClusterId.value) {
-        return;
-      }
-      clusterIdMemo[instanceKey][localClusterId.value] = true;
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  onBeforeUnmount(() => {
-    delete clusterIdMemo[instanceKey];
-  });
 
   defineExpose<Exposes>({
     getValue() {

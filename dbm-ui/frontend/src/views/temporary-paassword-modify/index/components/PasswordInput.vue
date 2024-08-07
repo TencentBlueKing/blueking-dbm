@@ -56,7 +56,7 @@
   const encypt = new JSEncrypt();
 
   type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
-  type PasswordStrength = ServiceReturnType<typeof getPasswordPolicy>;
+  type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
 
   interface StrengthItem {
     keys: string[];

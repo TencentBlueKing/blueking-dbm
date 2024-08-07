@@ -75,33 +75,23 @@
   export interface IDataRow {
     rowKey: string;
     isLoading: boolean;
-    domain: string;
-    clusterId: number;
-    clusterType: string;
-    backupDbs: string[];
-    ignoreDbs: string[];
+    domain?: string;
+    clusterId?: number;
+    clusterType?: string;
+    backupDbs?: string[];
+    ignoreDbs?: string[];
   }
 
   // 创建表格数据
-  export const createRowData = (params?: {
-    domain: string;
-    clusterId: number;
-    clusterType: string;
-    backupDbs: string[];
-    ignoreDbs: string[];
-  }): IDataRow =>
-    Object.assign(
-      {
-        rowKey: random(),
-        isLoading: false,
-        domain: '',
-        clusterId: 0,
-        clusterType: '',
-        backupDbs: [],
-        ignoreDbs: [],
-      },
-      params,
-    );
+  export const createRowData = (data = {} as Partial<IDataRow>) => ({
+    rowKey: random(),
+    isLoading: false,
+    domain: data.domain || '',
+    clusterId: data.clusterId,
+    clusterType: data.clusterType,
+    backupDbs: data.backupDbs || [],
+    ignoreDbs: data.ignoreDbs || [],
+  });
 </script>
 
 <script setup lang="ts">
@@ -133,18 +123,21 @@
   const domainRef = ref<InstanceType<typeof RenderDomain>>();
   const backupDbsRef = ref<InstanceType<typeof RenderDbName>>();
   const ignoreDbsRef = ref<InstanceType<typeof RenderDbName>>();
-  const backupDbs = ref(props.data.backupDbs);
-  const ignoreDbs = ref(props.data.ignoreDbs);
+  const backupDbs = ref(props.data.backupDbs || []);
+  const ignoreDbs = ref(props.data.ignoreDbs || []);
 
   const { data: finalDbs, run: getSqlserverDbsRun } = useRequest(getSqlserverDbs, {
     manual: true,
   });
 
-  const getFinalDbsNew = (backupDbs: string[], ignoreDbs: string[]) => {
+  const getFinalDbsNew = () => {
+    if (!props.data.clusterId) {
+      return;
+    }
     getSqlserverDbsRun({
       cluster_id: props.data.clusterId,
-      db_list: backupDbs,
-      ignore_db_list: ignoreDbs,
+      db_list: backupDbs.value,
+      ignore_db_list: ignoreDbs.value,
     });
   };
 
@@ -154,13 +147,13 @@
 
   const handleBackupDbsChange = (value: string[]) => {
     backupDbs.value = value;
-    getFinalDbsNew(value, ignoreDbs.value);
+    getFinalDbsNew();
     emits('inputBackupDbsFinish', value);
   };
 
   const handleIgnoreDbsChange = (value: string[]) => {
     ignoreDbs.value = value;
-    getFinalDbsNew(backupDbs.value, value);
+    getFinalDbsNew();
     emits('inputIgnoreDbsFinish', value);
   };
 

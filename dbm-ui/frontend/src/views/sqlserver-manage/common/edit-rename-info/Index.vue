@@ -28,9 +28,9 @@
         :key="updateRefreshKey"
         ref="dbListRef"
         v-model="localRenameInfoList"
-        :cluster-id="clusterId"
         :db-ignore-name="localDbIgnoreName"
-        :db-name="localDbName" />
+        :db-name="localDbName"
+        :target-cluster-id="targetClusterId" />
     </div>
   </div>
 </template>
@@ -51,6 +51,7 @@
 
   interface Props {
     clusterId: number;
+    targetClusterId: number;
     dbName: string[];
     dbIgnoreName: string[];
     renameInfoList: IValue[];
@@ -77,21 +78,18 @@
 
   let isInnerChange = false;
   watch(
-    () => [props.clusterId, props.dbName, props.dbIgnoreName],
+    () => [props.clusterId, props.dbName, props.dbIgnoreName, props.renameInfoList],
     () => {
       if (isInnerChange) {
         isInnerChange = false;
         return;
       }
-      console.log('from edit = ', props);
+
       localDbName.value = props.dbName;
       localDbIgnoreName.value = props.dbIgnoreName;
       // 使用上一次编辑的值
-      if (props.renameInfoList.length > 0) {
-        localRenameInfoList.value = [...props.renameInfoList];
-        updateRefreshKey.value = Date.now();
-        return;
-      }
+      localRenameInfoList.value = [...props.renameInfoList];
+      updateRefreshKey.value = Date.now();
     },
     {
       immediate: true,

@@ -60,8 +60,8 @@ interface CreateModuleResult {
 /**
  * 创建数据库模块
  */
-export function createModules(params: { db_module_name: string; cluster_type: string; id: number }) {
-  return http.post<CreateModuleResult>(`${path}/${params.id}/create_module/`, params);
+export function createModules(params: { db_module_name: string; cluster_type: string; biz_id: number }) {
+  return http.post<CreateModuleResult>(`${path}/${params.biz_id}/create_module/`, params);
 }
 
 interface UserGroup {

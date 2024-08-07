@@ -38,12 +38,13 @@
       <BkTag class="ml-8">{{ clusterData?.domain }}</BkTag>
     </template>
     <EditName
-      v-if="clusterData"
+      v-if="clusterData && dstClusterData"
       ref="editNameRef"
       :cluster-id="clusterData.id"
       :db-ignore-name="dbIgnoreName"
       :db-name="dbName"
-      :rename-info-list="localRenameInfoList" />
+      :rename-info-list="localRenameInfoList"
+      :target-cluster-id="dstClusterData.id" />
     <template #footer>
       <BkButton
         class="w-88"
@@ -61,6 +62,7 @@
 </template>
 <script setup lang="ts">
   import { computed, ref, shallowRef, watch } from 'vue';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -72,6 +74,10 @@
 
   interface Props {
     clusterData?: {
+      id: number;
+      domain: string;
+    };
+    dstClusterData?: {
       id: number;
       domain: string;
     };
@@ -93,7 +99,7 @@
 
   const { t } = useI18n();
 
-  const elementRef = ref<InstanceType<typeof TableEditElement>>();
+  const elementRef = ref<ComponentExposed<typeof TableEditElement>>();
   const editNameRef = ref<InstanceType<typeof EditName>>();
   const localRenameInfoList = shallowRef<
     {
@@ -106,10 +112,10 @@
   const hasEditDbName = ref(false);
 
   const disabledTips = computed(() => {
-    if (props.clusterData && dbName.value.length > 0) {
+    if (props.clusterData && props.dstClusterData && dbName.value.length > 0) {
       return '';
     }
-    return t('请先设置集群、构造 DB');
+    return t('请先设置集群、目标集群、构造 DB');
   });
 
   const rules = [
@@ -120,6 +126,13 @@
     {
       validator: () => hasEditDbName.value,
       message: t('构造后 DB 名待有冲突更新'),
+    },
+    {
+      validator: () => {
+        const dbNameList = dbName.value.filter((item) => !/\*/.test(item) && !/%/.test(item));
+        return dbNameList.length > localRenameInfoList.value.length;
+      },
+      message: t('迁移后 DB 和迁移 DB 数量不匹配'),
     },
   ];
 
@@ -134,11 +147,16 @@
     },
   });
 
+  let isInnerChange = false;
   watch(
     () => [props.clusterData, dbName.value, dbIgnoreName.value],
     () => {
-      console.log('from render renae = ', props.clusterData, props, dbName.value, dbIgnoreName.value);
-      if (!props.clusterData || dbName.value.length < 1) {
+      if (isInnerChange) {
+        isInnerChange = false;
+        return;
+      }
+      if (!props.clusterData || !props.dstClusterData || dbName.value.length < 1) {
+        localRenameInfoList.value = [];
         return;
       }
       fetchSqlserverDbs({
@@ -163,6 +181,7 @@
       dbName.value = result.dbName;
       dbIgnoreName.value = result.dbIgnoreName;
       localRenameInfoList.value = result.renameInfoList;
+      isInnerChange = true;
     });
   };
 
