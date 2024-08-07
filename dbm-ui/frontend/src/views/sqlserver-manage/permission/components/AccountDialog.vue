@@ -56,7 +56,7 @@
           </BkButton>
         </div>
         <p style="color: #ff9c01">
-          {{ t('密码创建后平台将不会显露_,_请谨慎复制_,_') }}
+          {{ t('平台不会保存密码，请自行保管好。') }}
           <BkButton
             v-bk-tooltips="{
               content: t('请设置密码'),
@@ -69,9 +69,6 @@
             @click="handleCopyPassword">
             {{ t('复制密码') }}
           </BkButton>
-        </p>
-        <p style="color: #ff9c01">
-          {{ t('平台不会保存密码，请自行保管好。') }}
         </p>
       </BkFormItem>
     </BkForm>
