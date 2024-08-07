@@ -13,6 +13,7 @@ from collections import defaultdict
 from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -22,7 +23,7 @@ from backend.db_meta.models.db_module import DBModule
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
 from backend.db_services.dbbase.resources import viewsets
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
-from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
+from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ, SqlserverListInstanceSerializer
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.db_services.sqlserver.resources import constants
@@ -111,8 +112,32 @@ class BaseSQLServerViewset(viewsets.ResourceViewSet):
             )
             # 如果不存在alwayson_ids 直接返回空列表
             if not alwayson_ids:
-                return Response([])
+                return self.get_paginated_response([])
             query_params["cluster_ids"] = alwayson_ids
 
         data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_clusters, query_params)
+        return self.get_paginated_response(data)
+
+    @action(methods=["GET"], detail=False, url_path="list_instances")
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["cluster_id"],
+        data_field=lambda d: d["results"],
+        action_filed=lambda d: d["view_class"].list_instance_perm_actions,
+    )
+    def list_instances(self, request, bk_biz_id: int):
+        """查询实例列表"""
+        query_params = self.params_validate(SqlserverListInstanceSerializer)
+
+        # 过滤模块实例
+        if "db_module_id" in query_params:
+            module_ids = query_params["db_module_id"].split(",")
+            cluster_name_list = list(
+                Cluster.objects.filter(storageinstance__db_module_id__in=module_ids).values_list("name", flat=True)
+            )
+            # 如果不存在cluster_name_list 直接返回空列表
+            if not cluster_name_list:
+                return self.get_paginated_response([])
+            query_params["name"] = ",".join(cluster_name_list)
+
+        data = self.paginator.paginate_list(request, bk_biz_id, self.query_class.list_instances, query_params)
         return self.get_paginated_response(data)
