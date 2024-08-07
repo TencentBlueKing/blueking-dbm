@@ -45,6 +45,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate_sub import (
 )
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
+from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_config import RedisConfigComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
@@ -57,6 +58,8 @@ logger = logging.getLogger("flow")
 
 
 class RedisBackendScaleFlow(object):
+    """后端新机器扩容"""
+
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
         @param root_id : 任务流程定义的root_id
@@ -65,7 +68,17 @@ class RedisBackendScaleFlow(object):
         self.root_id = root_id
         self.data = data
 
-    def __pre_check(self, bk_biz_id, cluster_id, master_ips, slave_ips, new_shard_num, group_num):
+    def __pre_check(
+        self,
+        bk_biz_id,
+        cluster_id,
+        master_ips,
+        slave_ips,
+        new_shard_num,
+        group_num,
+        old_master_group_num,
+        is_local_scale,
+    ):
         cluster = Cluster.objects.get(id=cluster_id, bk_biz_id=bk_biz_id)
         old_shard_num = len(cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value))
         ips = master_ips + slave_ips
@@ -73,8 +86,14 @@ class RedisBackendScaleFlow(object):
             raise Exception("have ip address has been used multiple times.")
         if len(master_ips) != len(slave_ips):
             raise Exception("master machine len != slave machine len.")
-        if len(master_ips) != group_num:
-            raise Exception("machine len != group_num.")
+        # 如果是本地扩容，老机器组数+新机器组数 = 传入组数
+        if is_local_scale:
+            if len(master_ips) + old_master_group_num != group_num:
+                raise Exception("(old machine add new machine) num != group_num.")
+        # 如果是机器替换扩容，新机器组数 = 传入组数
+        else:
+            if len(master_ips) != group_num:
+                raise Exception("new machine num != group_num.")
         if old_shard_num != new_shard_num:
             raise Exception("old_shard_num {} != new_shard_num {}.".format(old_shard_num, new_shard_num))
         # 2024-05 要求可以不用整除，允许机器上的实例有多有少
@@ -137,7 +156,7 @@ class RedisBackendScaleFlow(object):
         }
 
     def __init_builder(self, operate_name: str, info: dict):
-        cluster_info = self.get_cluster_info(self.data["bk_biz_id"], info["cluster_id"], info["db_version"])
+        cluster_info = self.get_cluster_info(self.data["bk_biz_id"], info["cluster_id"], info.get("db_version", ""))
         sync_type = SyncType.SYNC_MMS  # ssd sync from master
         if cluster_info["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
             sync_type = SyncType.SYNC_SMS
@@ -155,6 +174,7 @@ class RedisBackendScaleFlow(object):
             **cluster_info,
             "operate": operate_name,
             "sync_type": sync_type,
+            "is_local_scale": info["update_mode"] == RedisCapacityUpdateType.KEEP_CURRENT_MACHINES.value,
         }
         act_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]
         logger.info("+===+++++===current tick_data info+++++===++++ :: {}".format(act_kwargs))
@@ -168,20 +188,42 @@ class RedisBackendScaleFlow(object):
         """
         计算新老实例对应关系
         可能一对多，也可能多对一
+        20250806 需要兼容本地扩缩容场景：多余的实例数，可能是在老机器上
+        - master_ips: 新机器master列表
+        - slave_ips: 新机器slave列表
+        - ins_num: 单台机器部署的最小实例数（有可能+1）
+        - superfluous_ins_num: 整除后余下来的实例数
         """
         sync_relations = []
         new_port_offset = 0
         new_host_index = 0
+        if act_kwargs.cluster.get("is_local_scale", False):
+            # 本地扩缩容，计算新老机器，需要安装多余实例的机器数
+            superfluous_ins_num_new = superfluous_ins_num - len(act_kwargs.cluster["old_master_list"])
+            superfluous_ins_num_old = superfluous_ins_num
+        else:
+            superfluous_ins_num_new = superfluous_ins_num
+            superfluous_ins_num_old = 0
+
         # 当前新机器需要安装的实例数
-        current_ins_num = ins_num + 1 if new_host_index < superfluous_ins_num else ins_num
+        current_ins_num = ins_num + 1 if new_host_index < superfluous_ins_num_new else ins_num
         sync_type = act_kwargs.cluster["sync_type"]
         for old_master, old_master_ports in act_kwargs.cluster["master_ip_ports_map"].items():
             # old_master 或者 new_master变化了就需要append后初始化
             ins_link = []
             old_slave = ""
+            if act_kwargs.cluster.get("is_local_scale", False):
+                # 本地扩缩容，计算老机器需要保留的实例数
+                old_port_index = ins_num
+                if superfluous_ins_num_old > 0:
+                    old_port_index += 1
+                    superfluous_ins_num_old -= 1
+            else:
+                # 整机扩缩容，默认老机器是所有实例迁走
+                old_port_index = 0
 
             old_master_ports.sort()
-            for old_master_port in old_master_ports:
+            for old_master_port in old_master_ports[old_port_index:]:
                 # 获取老slave的ip和端口。这里端口不一定跟老master一致
                 old_master_ins = "{}:{}".format(old_master, old_master_port)
                 old_slave_ins = act_kwargs.cluster["ins_pair_map"][old_master_ins]
@@ -220,7 +262,7 @@ class RedisBackendScaleFlow(object):
                     ins_link = []
                     new_port_offset = 0
                     new_host_index += 1
-                    current_ins_num = ins_num + 1 if new_host_index < superfluous_ins_num else ins_num
+                    current_ins_num = ins_num + 1 if new_host_index < superfluous_ins_num_new else ins_num
 
             # 遍历完老机器上的端口，如果ins_link里有数据，此时需要先处理一下
             if ins_link:
@@ -238,13 +280,24 @@ class RedisBackendScaleFlow(object):
                 )
         return sync_relations
 
-    def generate_shutdown_ins(self, act_kwargs) -> dict:
+    def generate_shutdown_ins(self, act_kwargs, ins_num, superfluous_ins_num) -> dict:
         """
         master和slave机器上的端口可能不一致，需要计算slave上的ports
+        计算老机器需要下架的实例列表。
+        - 本地扩容，下架部分老实例
+        - 整体扩容，下架全部实例
         """
         shutdown_ip_ports_map = defaultdict(list)
         for old_master, old_master_ports in act_kwargs.cluster["master_ip_ports_map"].items():
-            for old_master_port in old_master_ports:
+            if act_kwargs.cluster.get("is_local_scale", False):
+                old_port_index = ins_num
+                if superfluous_ins_num > 0:
+                    superfluous_ins_num -= 1
+                    old_port_index += 1
+            else:
+                old_port_index = 0
+
+            for old_master_port in old_master_ports[old_port_index:]:
                 old_master_ins = "{}:{}".format(old_master, old_master_port)
                 old_slave_ins = act_kwargs.cluster["ins_pair_map"][old_master_ins]
                 old_slave = old_slave_ins.split(IP_PORT_DIVIDER)[0]
@@ -298,6 +351,52 @@ class RedisBackendScaleFlow(object):
             sub_pipeline = redis_migrate_slots_4_contraction(self.root_id, self.data, None, new_info)
         return sub_pipeline
 
+    # 抽离获取redis安装子流程列表，减小主函数圈复杂度
+    def get_redis_install_sub_pipelines(
+        self, act_kwargs, new_master_ips, new_slave_ips, new_ports, superfluous_ins_num, ins_num, spec_id, spec_config
+    ) -> list:
+        redis_install_sub_pipelines = []
+        superfluous_ins_num_new = superfluous_ins_num
+        if act_kwargs.cluster.get("is_local_scale", False):
+            superfluous_ins_num_new = superfluous_ins_num - len(act_kwargs.cluster["old_master_list"])
+        params = {
+            "meta_role": InstanceRole.REDIS_MASTER.value,
+            "start_port": DEFAULT_REDIS_START_PORT,
+            "spec_id": spec_id,
+            "spec_config": spec_config,
+        }
+        # 靠前机器中，每个安装一个多余的实例
+        cursor = superfluous_ins_num_new
+        for ip in new_master_ips:
+            params["ip"] = ip
+            if cursor > 0:
+                cursor = cursor - 1
+                params["ports"] = new_ports + [DEFAULT_REDIS_START_PORT + ins_num]
+                params["instance_numb"] = ins_num + 1
+            else:
+                params["ports"] = new_ports
+                params["instance_numb"] = ins_num
+            redis_install_sub_pipelines.append(RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params))
+
+        params = {
+            "meta_role": InstanceRole.REDIS_SLAVE.value,
+            "start_port": DEFAULT_REDIS_START_PORT,
+            "spec_id": spec_id,
+            "spec_config": spec_config,
+        }
+        cursor = superfluous_ins_num_new
+        for ip in new_slave_ips:
+            params["ip"] = ip
+            if cursor > 0:
+                cursor = cursor - 1
+                params["ports"] = new_ports + [DEFAULT_REDIS_START_PORT + ins_num]
+                params["instance_numb"] = ins_num + 1
+            else:
+                params["ports"] = new_ports
+                params["instance_numb"] = ins_num
+            redis_install_sub_pipelines.append(RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params))
+        return redis_install_sub_pipelines
+
     def redis_backend_scale_flow(self):
         """
         redis 扩缩容流程：
@@ -339,49 +438,20 @@ class RedisBackendScaleFlow(object):
                 new_slave_ips,
                 info["shard_num"],
                 info["group_num"],
+                len(act_kwargs.cluster["old_master_list"]),
+                act_kwargs.cluster.get("is_local_scale", False),
             )
             # 安装实例
-            redis_install_sub_pipelines = []
-            params = {
-                "meta_role": InstanceRole.REDIS_MASTER.value,
-                "start_port": DEFAULT_REDIS_START_PORT,
-                "spec_id": info["resource_spec"]["master"]["id"],
-                "spec_config": info["resource_spec"]["master"],
-            }
-            # 靠前机器中，每个安装一个多余的实例
-            cursor = superfluous_ins_num
-            for ip in new_master_ips:
-                params["ip"] = ip
-                if cursor > 0:
-                    cursor = cursor - 1
-                    params["ports"] = new_ports + [DEFAULT_REDIS_START_PORT + ins_num]
-                    params["instance_numb"] = ins_num + 1
-                else:
-                    params["ports"] = new_ports
-                    params["instance_numb"] = ins_num
-                redis_install_sub_pipelines.append(
-                    RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
-                )
-
-            params = {
-                "meta_role": InstanceRole.REDIS_SLAVE.value,
-                "start_port": DEFAULT_REDIS_START_PORT,
-                "spec_id": info["resource_spec"]["slave"]["id"],
-                "spec_config": info["resource_spec"]["slave"],
-            }
-            cursor = superfluous_ins_num
-            for ip in new_slave_ips:
-                params["ip"] = ip
-                if cursor > 0:
-                    cursor = cursor - 1
-                    params["ports"] = new_ports + [DEFAULT_REDIS_START_PORT + ins_num]
-                    params["instance_numb"] = ins_num + 1
-                else:
-                    params["ports"] = new_ports
-                    params["instance_numb"] = ins_num
-                redis_install_sub_pipelines.append(
-                    RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params)
-                )
+            redis_install_sub_pipelines = self.get_redis_install_sub_pipelines(
+                act_kwargs,
+                new_master_ips,
+                new_slave_ips,
+                new_ports,
+                superfluous_ins_num,
+                ins_num,
+                info["resource_spec"]["slave"]["id"],
+                info["resource_spec"]["slave"],
+            )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_install_sub_pipelines)
 
             # 计算同步参数
@@ -487,7 +557,7 @@ class RedisBackendScaleFlow(object):
             # 下架老实例
             redis_shutdown_sub_pipelines = []
             act_kwargs.cluster["created_by"] = self.data["created_by"]
-            shutdown_ip_ports = self.generate_shutdown_ins(act_kwargs)
+            shutdown_ip_ports = self.generate_shutdown_ins(act_kwargs, ins_num, superfluous_ins_num)
             shutdown_ignore_ips = self.generate_shutdown_ignore_ips(act_kwargs)
             for ip, ports in shutdown_ip_ports.items():
                 params = {"ip": ip, "ports": ports, "ignore_ips": shutdown_ignore_ips[ip], "force_shutdown": False}
@@ -497,6 +567,22 @@ class RedisBackendScaleFlow(object):
 
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_shutdown_sub_pipelines)
 
+            # 老机器重装bk-dbmon：上一步下架老实例时，会将dbmon给完全卸载。所以这里需要重装一下
+            # 新机器重装dbmon来更新shard server挪到切换子流程里去做
+            if act_kwargs.cluster.get("is_local_scale", False):
+                acts_list = []
+                for ip, ports in shutdown_ip_ports.items():
+                    act_kwargs.exec_ip = ip
+                    act_kwargs.cluster["ip"] = ip
+                    act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+                    acts_list.append(
+                        {
+                            "act_name": _("{}-重装bkdbmon").format(ip),
+                            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                            "kwargs": asdict(act_kwargs),
+                        }
+                    )
+                sub_pipeline.add_parallel_acts(acts_list)
             # 更新 dbconfig 中版本信息
             act_kwargs.cluster["cluster_domain"] = act_kwargs.cluster["immute_domain"]
             act_kwargs.cluster["current_version"] = act_kwargs.cluster["origin_db_version"]

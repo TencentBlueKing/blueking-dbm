@@ -90,7 +90,7 @@ class JsonConfigFormat:
         internal_set_info = CCApi.get_biz_internal_module({"bk_biz_id": env.DBA_APP_BK_BIZ_ID}, use_admin=True)
         target_nodes.append(
             {
-                "bk_biz_id": internal_set_info["bk_biz_id"],
+                "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
                 "bk_inst_id": internal_set_info["bk_set_id"],
                 "bk_obj_id": "set",
             }
