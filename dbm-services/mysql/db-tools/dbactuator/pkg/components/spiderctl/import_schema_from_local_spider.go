@@ -44,20 +44,24 @@ type ImportSchemaFromLocalSpiderParam struct {
 	Stream      bool   `json:"stream"`                                             // mydumper stream myloader stream
 	DropBefore  bool   `json:"drop_before"`                                        // 强制覆盖原来的表结构
 	Threads     int    `json:"threads"`                                            // 可配置最大并发 for mydumper myloader
+	TdbctlUser  string `json:"tdbctl_user" validate:"required"`
+	TdbctlPass  string `json:"tdbctl_pass" validate:"required"`
 }
 
 type importSchemaFromLocalSpiderRuntime struct {
-	spiderconn   *native.DbWorker
-	tdbctlConn   *native.DbWorker
-	version      string
-	charset      string
-	dumpDbs      []string
-	tmpDumpDir   string
-	tmpDumpFile  string
-	tdbctlSocket string
-	adminUser    string
-	adminPwd     string
-	maxThreads   int
+	spiderconn      *native.DbWorker
+	tdbctlConn      *native.DbWorker
+	version         string
+	charset         string
+	dumpDbs         []string
+	tmpDumpDir      string
+	tmpDumpFile     string
+	tdbctlSocket    string
+	adminUser       string
+	adminPwd        string
+	maxThreads      int
+	spiderAdminUser string
+	spiderAdminPwd  string
 }
 
 // Example subcommand example input
@@ -74,6 +78,8 @@ func (i *ImportSchemaFromLocalSpiderComp) Example() interface{} {
 
 // Init prepare run env
 func (c *ImportSchemaFromLocalSpiderComp) Init() (err error) {
+	c.spiderAdminUser = c.Params.TdbctlUser
+	c.spiderAdminPwd = c.Params.TdbctlPass
 	c.adminUser = c.GeneralParam.RuntimeAccountParam.AdminUser
 	c.adminPwd = c.GeneralParam.RuntimeAccountParam.AdminPwd
 	c.tdbctlConn, err = native.InsObject{
@@ -86,11 +92,12 @@ func (c *ImportSchemaFromLocalSpiderComp) Init() (err error) {
 		logger.Error("Connect tdbctl %d failed:%s", c.Params.Port, err.Error())
 		return err
 	}
+
 	c.spiderconn, err = native.InsObject{
 		Host: c.Params.Host,
 		Port: c.Params.SpiderPort,
-		User: c.adminUser,
-		Pwd:  c.adminPwd,
+		User: c.spiderAdminUser,
+		Pwd:  c.spiderAdminPwd,
 	}.Conn()
 	if err != nil {
 		logger.Error("Connect spider %d failed:%s", c.Params.Port, err.Error())
@@ -179,8 +186,8 @@ func (c *ImportSchemaFromLocalSpiderComp) streamMigrate() (err error) {
 		Dumper: &mysqlutil.MyDumper{
 			Host:    c.Params.Host,
 			Port:    c.Params.SpiderPort,
-			User:    c.adminUser,
-			Pwd:     c.adminPwd,
+			User:    c.spiderAdminUser,
+			Pwd:     c.spiderAdminPwd,
 			Charset: c.charset,
 			Options: mysqlutil.MyDumperOptions{
 				Threads:   c.maxThreads,
@@ -220,8 +227,8 @@ func (c *ImportSchemaFromLocalSpiderComp) mydumperCommonMigrate() (err error) {
 	dumper := &mysqlutil.MyDumper{
 		Host:    c.Params.Host,
 		Port:    c.Params.SpiderPort,
-		User:    c.adminUser,
-		Pwd:     c.adminPwd,
+		User:    c.spiderAdminUser,
+		Pwd:     c.spiderAdminPwd,
 		Charset: c.charset,
 		DumpDir: c.tmpDumpDir,
 		Options: mysqlutil.MyDumperOptions{
@@ -294,8 +301,8 @@ func (c *ImportSchemaFromLocalSpiderComp) dumpSchema() (err error) {
 			DumpDir:         c.tmpDumpDir,
 			Ip:              c.Params.Host,
 			Port:            c.Params.SpiderPort,
-			DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
-			DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
+			DbBackupUser:    c.spiderAdminUser,
+			DbBackupPwd:     c.spiderAdminPwd,
 			DbNames:         c.dumpDbs,
 			DumpCmdFile:     path.Join(cst.MysqldInstallPath, "bin", "mysqldump"),
 			Charset:         c.charset,

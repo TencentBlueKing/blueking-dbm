@@ -353,6 +353,7 @@ class AddSpiderSystemUserKwargs:
     ctl_master_ip: str  # 中控集群的master ip
     user: str  # 内置账号名称
     passwd: str  # 内置账号密码
+    is_append_deploy: bool = False  # 是否是追加部署
 
 
 @dataclass()

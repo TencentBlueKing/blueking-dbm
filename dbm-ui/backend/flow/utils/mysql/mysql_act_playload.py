@@ -286,6 +286,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "stream": self.cluster["stream"],
                     "drop_before": self.cluster["drop_before"],
                     "threads": self.cluster["threads"],
+                    "tdbctl_user": self.cluster["tdbctl_user"],
+                    "tdbctl_pass": self.cluster["tdbctl_pass"],
                 },
             },
         }
@@ -1495,6 +1497,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "mysql_instance_tuples": self.cluster["mysql_instance_tuples"],
                     "spider_instances": self.cluster["spider_instances"],
                     "spider_slave_instances": self.cluster["spider_slave_instances"],
+                    "mnt_spider_instances": self.cluster["mnt_spider_instances"],
+                    "mnt_spider_slave_instances": self.cluster["mnt_spider_slave_instances"],
                     "ctl_instances": self.cluster["ctl_instances"],
                     "tdbctl_user": self.cluster["tdbctl_user"],
                     "tdbctl_pass": self.cluster["tdbctl_pass"],

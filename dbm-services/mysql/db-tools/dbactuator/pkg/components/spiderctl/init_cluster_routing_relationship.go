@@ -19,18 +19,20 @@ type InitClusterRoutingComp struct {
 
 // InitClusterRoutingParam TODO
 type InitClusterRoutingParam struct {
-	Host                 string          `json:"host" validate:"required,ip"`
-	Port                 int             `json:"port" validate:"required,lt=65536,gte=3306"`
-	MysqlInstanceTuples  []InstanceTuple `json:"mysql_instance_tuples" validate:"required"`
-	SpiderInstances      []Instance      `json:"spider_instances" validate:"required"`
-	CltInstances         []Instance      `json:"ctl_instances" validate:"required"`
-	TdbctlUser           string          `json:"tdbctl_user" validate:"required"`
-	TdbctlPass           string          `json:"tdbctl_pass" validate:"required"`
-	NotFlushAll          bool            `json:"not_flush_all"`
-	OnltInitCtl          bool            `json:"only_init_ctl"`
-	IsNoSlave            bool            `json:"is_no_slave"`
-	IsCtlAlone           bool            `json:"is_ctl_alone"`
-	SpiderSlaveInstances []Instance      `json:"spider_slave_instances"`
+	Host                    string          `json:"host" validate:"required,ip"`
+	Port                    int             `json:"port" validate:"required,lt=65536,gte=3306"`
+	MysqlInstanceTuples     []InstanceTuple `json:"mysql_instance_tuples" validate:"required"`
+	SpiderInstances         []Instance      `json:"spider_instances" validate:"required"`
+	MntSpiderInstances      []Instance      `json:"mnt_spider_instances"`
+	MntSpiderSlaveInstances []Instance      `json:"mnt_spider_slave_instances"`
+	CltInstances            []Instance      `json:"ctl_instances" validate:"required"`
+	TdbctlUser              string          `json:"tdbctl_user" validate:"required"`
+	TdbctlPass              string          `json:"tdbctl_pass" validate:"required"`
+	NotFlushAll             bool            `json:"not_flush_all"`
+	OnltInitCtl             bool            `json:"only_init_ctl"`
+	IsNoSlave               bool            `json:"is_no_slave"`
+	IsCtlAlone              bool            `json:"is_ctl_alone"`
+	SpiderSlaveInstances    []Instance      `json:"spider_slave_instances"`
 }
 
 // Instance TODO
@@ -156,7 +158,9 @@ func (i *InitClusterRoutingComp) getFlushRouterSqls() (execSQLs []string) {
 	execSQLs = append(execSQLs, i.getTdbctlRouterSqls()...)
 	return execSQLs
 }
+
 func (i *InitClusterRoutingComp) getSpiderRouterSqls() (execSQLs []string) {
+	// master spider routers
 	for _, inst := range i.Params.SpiderInstances {
 		execSQLs = append(
 			execSQLs,
@@ -166,7 +170,28 @@ func (i *InitClusterRoutingComp) getSpiderRouterSqls() (execSQLs []string) {
 			),
 		)
 	}
+	// slave spider routers
 	for _, inst := range i.Params.SpiderSlaveInstances {
+		execSQLs = append(
+			execSQLs,
+			fmt.Sprintf(
+				"tdbctl create node wrapper 'SPIDER_SLAVE' options(user '%s', password '%s', host '%s', port %d);",
+				i.Params.TdbctlUser, i.Params.TdbctlPass, inst.Host, inst.Port,
+			),
+		)
+	}
+	// mnt spider routers
+	for _, inst := range i.Params.MntSpiderInstances {
+		execSQLs = append(
+			execSQLs,
+			fmt.Sprintf(
+				"tdbctl create node wrapper 'SPIDER' options(user '%s', password '%s', host '%s', port %d);",
+				i.Params.TdbctlUser, i.Params.TdbctlPass, inst.Host, inst.Port,
+			),
+		)
+	}
+	// mnt slave spider routers
+	for _, inst := range i.Params.MntSpiderSlaveInstances {
 		execSQLs = append(
 			execSQLs,
 			fmt.Sprintf(
