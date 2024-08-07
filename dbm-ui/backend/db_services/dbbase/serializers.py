@@ -169,8 +169,8 @@ class WebConsoleSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     cmd = serializers.CharField(help_text=_("sql语句"))
     # redis 额外参数
-    db_num = serializers.IntegerField(help_text=_("数据库编号"), required=False)
-    raw = serializers.BooleanField(help_text=_("源编码"), required=False)
+    db_num = serializers.IntegerField(help_text=_("数据库编号(redis 额外参数)"), required=False)
+    raw = serializers.BooleanField(help_text=_("源编码(redis 额外参数)"), required=False)
 
 
 class WebConsoleResponseSerializer(serializers.Serializer):
