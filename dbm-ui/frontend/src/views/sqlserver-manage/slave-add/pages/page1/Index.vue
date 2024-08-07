@@ -32,8 +32,9 @@
       </RenderData>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
-        :cluster-types="[ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE]"
+        :cluster-types="[ClusterTypes.SQLSERVER_HA]"
         :selected="selectedClusters"
+        :tab-list-config="clusterSelectorTabConfig"
         @change="handelClusterChange" />
     </div>
     <template #action>
@@ -66,6 +67,7 @@
 
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import { getHaClusterList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -89,6 +91,18 @@
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  const clusterSelectorTabConfig = {
+    [ClusterTypes.SQLSERVER_HA]: {
+      id: ClusterTypes.SQLSERVER_HA,
+      name: t('SqlServer 主从'),
+      getResourceList: (params: ServiceParameters<typeof getHaClusterList>) =>
+        getHaClusterList({
+          ...params,
+          sys_mode: 'always_on',
+        }),
+    },
+  };
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>();
   const isShowBatchSelector = ref(false);

@@ -13,12 +13,16 @@
 
 <template>
   <div class="render-cluster-box">
-    <TableEditInput
-      ref="editRef"
-      :model-value="localDomain"
-      :placeholder="t('请输入集群')"
-      :rules="rules" />
+    <span v-bk-tooltips="disabledTips">
+      <TableEditInput
+        ref="editRef"
+        :disabled="!disabledTips.disabled"
+        :model-value="localDomain"
+        :placeholder="t('请输入集群')"
+        :rules="rules" />
+    </span>
     <DbIcon
+      v-if="disabledTips.disabled"
       class="cluster-btn"
       type="host-select"
       @click="handleShowClusterSelector" />
@@ -31,7 +35,7 @@
     @change="handelClusterChange" />
 </template>
 <script lang="ts">
-  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+  const clusterIdMemo: Record<string, number> = {};
 </script>
 <script setup lang="ts">
   import { onBeforeUnmount, ref, watch } from 'vue';
@@ -48,9 +52,17 @@
 
   import { random } from '@utils';
 
+  import type { IDataRow } from './Row.vue';
+
+  interface Props {
+    srcClusterData?: IDataRow['srcClusterData'];
+  }
+
   interface Exposes {
     getValue: (field: string) => Promise<Record<string, number>>;
   }
+
+  const props = defineProps<Props>();
 
   const modelValue = defineModel<{
     id: number;
@@ -58,8 +70,16 @@
     cloudId: null | number;
   }>();
 
-  const instanceKey = `render_cluster_${random()}`;
-  clusterIdMemo[instanceKey] = {};
+  const instanceKey = `render_dst_cluster_${random()}`;
+  clusterIdMemo[instanceKey] = 0;
+
+  const compareVersion = (dstVersion: string, srcVersion: string) => {
+    const versionMatchReg = /[^\d]*(\d+)$/;
+    const [, dstversionNum] = dstVersion.match(versionMatchReg) || ['', ''];
+    const [, srcVersionNum] = srcVersion.match(versionMatchReg) || ['', ''];
+
+    return dstversionNum <= srcVersionNum;
+  };
 
   const { t } = useI18n();
 
@@ -73,14 +93,32 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
 
+  const disabledTips = computed(() => {
+    if (!props.srcClusterData) {
+      return {
+        disabled: false,
+        content: t('请先选择源集群'),
+      };
+    }
+    return {
+      disabled: true,
+      content: '',
+    };
+  });
+
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
       id: ClusterTypes.SQLSERVER_HA,
       name: t('SqlServer 主从'),
       disabledRowConfig: [
         {
-          handler: (data: any) => data.isOffline,
+          handler: (data: SqlServerHaClusterModel) => data.isOffline,
           tip: t('集群已禁用'),
+        },
+        {
+          handler: (data: SqlServerHaClusterModel) =>
+            compareVersion(data.major_version, props.srcClusterData!.majorVersion),
+          tip: t('不允许高版本往低版本迁移'),
         },
       ],
       multiple: false,
@@ -90,8 +128,13 @@
       name: t('SqlServer 单节点'),
       disabledRowConfig: [
         {
-          handler: (data: any) => data.isOffline,
+          handler: (data: SqlServerSingleClusterModel) => data.isOffline,
           tip: t('集群已禁用'),
+        },
+        {
+          handler: (data: SqlServerSingleClusterModel) =>
+            compareVersion(data.major_version, props.srcClusterData!.majorVersion),
+          tip: t('不允许高版本往低版本迁移'),
         },
       ],
       multiple: false,
@@ -115,8 +158,10 @@
               cloudId: data[0].bk_cloud_id,
               domain: data[0].master_domain,
             };
+            clusterIdMemo[instanceKey] = data[0].id;
             return true;
           }
+          clusterIdMemo[instanceKey] = 0;
           modelValue.value = undefined;
           return false;
         }),
@@ -124,23 +169,10 @@
     },
     {
       validator: () => {
-        const currentClusterSelectMap = clusterIdMemo[instanceKey];
-        const otherClusterMemoMap = { ...clusterIdMemo };
-        delete otherClusterMemoMap[instanceKey];
-
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
+        const otherClusterIdMemo = { ...clusterIdMemo };
+        delete otherClusterIdMemo[instanceKey];
+        if (Object.values(otherClusterIdMemo).includes(modelValue.value!.id)) {
+          return false;
         }
         return true;
       },
@@ -153,8 +185,8 @@
     modelValue,
     () => {
       if (modelValue.value) {
-        clusterIdMemo[instanceKey][modelValue.value.id] = true;
         localDomain.value = modelValue.value.domain;
+        clusterIdMemo[instanceKey] = modelValue.value.id;
       } else {
         localDomain.value = '';
       }
@@ -177,6 +209,11 @@
       cloudId: clusterData.bk_cloud_id,
       domain: clusterData.master_domain,
     };
+    localDomain.value = clusterData.master_domain;
+    clusterIdMemo[instanceKey] = clusterData.id;
+    setTimeout(() => {
+      editRef.value!.getValue();
+    });
   };
 
   onBeforeUnmount(() => {

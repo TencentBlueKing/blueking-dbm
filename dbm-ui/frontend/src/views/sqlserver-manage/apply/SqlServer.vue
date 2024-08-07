@@ -181,7 +181,7 @@
                   :data="formData.details.nodes.backend"
                   :disable-dialog-submit-method="backendHost"
                   :disable-host-method="disableHostMethod"
-                  :disable-tips="formData.details.db_module_id ? '' : t('请选择模块')"
+                  :disable-tips="formData.details.db_module_id !== null ? '' : t('请选择模块')"
                   @change="handleBackendIpChange">
                   <template #desc>
                     {{ t('需n台', { n: hostNums }) }}
@@ -571,8 +571,6 @@
       },
       query: {
         from: String(route.name),
-        cluster_type: clusterType,
-        db_module_id: formData.details.db_module_id,
       },
     });
     window.open(url.href, '_blank');

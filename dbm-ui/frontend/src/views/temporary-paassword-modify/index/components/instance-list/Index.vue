@@ -62,7 +62,7 @@
   });
 
   const isShowInstanceSelector = shallowRef(false);
-  const instanceSelectorValue = shallowRef<Record<string, IValue[]>>({
+  const instanceSelectorValue = shallowRef({
     [ClusterTypes.TENDBSINGLE]: [] as TendbhaInstanceModel[],
     [ClusterTypes.TENDBHA]: [] as TendbhaInstanceModel[],
     [ClusterTypes.TENDBCLUSTER]: [] as TendbInstanceModel[],

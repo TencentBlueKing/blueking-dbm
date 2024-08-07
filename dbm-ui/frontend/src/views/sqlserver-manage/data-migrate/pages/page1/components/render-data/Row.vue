@@ -15,14 +15,15 @@
   <tbody>
     <tr>
       <td style="padding: 0">
-        <RenderCluster
+        <RenderSrcCluster
           ref="srcClusterRef"
           v-model="localSrcClusterData" />
       </td>
       <td style="padding: 0">
-        <RenderCluster
+        <RenderDstCluster
           ref="dstClusterRef"
-          v-model="localDstClusterData" />
+          v-model="localDstClusterData"
+          :src-cluster-data="localSrcClusterData" />
       </td>
       <td style="padding: 0">
         <RenderDbName
@@ -45,7 +46,8 @@
           ref="renameDbNameRef"
           v-model:db-ignore-name="localDbIgnoreName"
           v-model:db-name="localDbName"
-          :cluster-data="localSrcClusterData" />
+          :cluster-data="localSrcClusterData"
+          :dst-cluster-data="localDstClusterData" />
       </td>
       <td>
         <div class="action-box">
@@ -75,12 +77,13 @@
     srcClusterData?: {
       id: number;
       domain: string;
-      cloudId: number | null;
+      cloudId: number;
+      majorVersion: string;
     };
     dstClusterData?: {
       id: number;
       domain: string;
-      cloudId: number | null;
+      cloudId: number;
     };
     dbList?: string;
     ignoreDbList?: string;
@@ -101,9 +104,10 @@
   import { ref, watch } from 'vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
-  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
 
+  import RenderDstCluster from './RenderDstCluster.vue';
   import RenderRename from './RenderRename.vue';
+  import RenderSrcCluster from './RenderSrcCluster.vue';
 
   interface Props {
     data: IDataRow;
@@ -122,8 +126,8 @@
 
   const emits = defineEmits<Emits>();
 
-  const srcClusterRef = ref<InstanceType<typeof RenderCluster>>();
-  const dstClusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const srcClusterRef = ref<InstanceType<typeof RenderSrcCluster>>();
+  const dstClusterRef = ref<InstanceType<typeof RenderDstCluster>>();
   const dbNameRef = ref<InstanceType<typeof RenderDbName>>();
   const ignoreDbNameRef = ref<InstanceType<typeof RenderDbName>>();
   const renameDbNameRef = ref<InstanceType<typeof RenderRename>>();

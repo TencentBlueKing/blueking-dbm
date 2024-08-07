@@ -49,6 +49,8 @@
     <InstanceSelector
       v-model:is-show="isShowInstanceSelecotr"
       :cluster-types="[ClusterTypes.SQLSERVER_HA]"
+      :selected="instanceSelectValue"
+      :tab-list-config="tabListConfig"
       @change="handleInstancesChange" />
   </SmartAction>
 </template>
@@ -57,13 +59,19 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
+  import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, {
+    type InstanceSelectorValues,
+    type IValue,
+    type PanelListType,
+  } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -72,8 +80,28 @@
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
+  const tabListConfig = {
+    [ClusterTypes.SQLSERVER_HA]: [
+      {
+        name: t('从库主机'),
+        tableConfig: {
+          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
+            getSqlServerInstanceList({
+              ...params,
+              role: 'backend_slave',
+            }),
+        },
+      },
+    ],
+  } as Record<ClusterTypes, PanelListType>;
+
+  const ipMemo: Record<string, boolean> = {};
+
   const isShowInstanceSelecotr = ref(false);
   const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);
+  const instanceSelectValue = shallowRef<InstanceSelectorValues<SqlServerHaInstanceModel>>({
+    [ClusterTypes.SQLSERVER_HA]: [],
+  });
   const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
@@ -93,25 +121,29 @@
   };
 
   const handleInstancesChange = (selected: InstanceSelectorValues<IValue>) => {
-    const newList = selected[ClusterTypes.SQLSERVER_HA].map((instanceData) =>
-      createRowData({
-        oldSlave: {
-          bkCloudId: instanceData.bk_cloud_id,
-          bkCloudName: instanceData.bk_cloud_name,
-          bkHostId: instanceData.bk_host_id,
-          ip: instanceData.ip,
-          port: instanceData.port,
-          instanceAddress: instanceData.instance_address,
-          clusterId: instanceData.cluster_id,
-        },
-      }),
-    );
-
     if (checkListEmpty(tableData.value)) {
-      tableData.value = newList;
-    } else {
-      tableData.value = [...tableData.value, ...newList];
+      tableData.value = [];
     }
+
+    selected[ClusterTypes.SQLSERVER_HA].forEach((instanceData) => {
+      if (ipMemo[instanceData.ip]) {
+        return;
+      }
+      tableData.value.push(
+        createRowData({
+          oldSlave: {
+            bkCloudId: instanceData.bk_cloud_id,
+            bkCloudName: instanceData.bk_cloud_name,
+            bkHostId: instanceData.bk_host_id,
+            ip: instanceData.ip,
+            port: instanceData.port,
+            instanceAddress: instanceData.instance_address,
+            clusterId: instanceData.cluster_id,
+          },
+        }),
+      );
+      ipMemo[instanceData.ip] = true;
+    });
     window.changeConfirm = true;
   };
 
@@ -124,6 +156,12 @@
 
   // 删除一个行
   const handleRemove = (index: number) => {
+    const ip = tableData.value[index].oldSlave?.ip;
+    if (ip) {
+      delete ipMemo[ip];
+      const clustersArr = instanceSelectValue.value[ClusterTypes.SQLSERVER_HA];
+      instanceSelectValue.value[ClusterTypes.SQLSERVER_HA] = clustersArr.filter((item) => item.ip !== ip);
+    }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;

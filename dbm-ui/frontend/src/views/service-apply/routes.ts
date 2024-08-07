@@ -155,6 +155,7 @@ const routes: RouteRecordRaw[] = [
         },
         component: () => import('@views/service-apply/create-db-module/Index.vue'),
       },
+
       {
         name: 'SelfServiceBindDbModule',
         path: 'bind-db-module/:type/:bk_biz_id/:db_module_id',
@@ -181,7 +182,7 @@ const routes: RouteRecordRaw[] = [
       },
       {
         name: 'SqlServerCreateDbModule',
-        path: 'sqlserver-create-db-module/:type/:bk_biz_id/',
+        path: 'sqlserver-create-db-module/:ticketType/:bizId/',
         meta: {
           navName: t('新建模块'),
         },

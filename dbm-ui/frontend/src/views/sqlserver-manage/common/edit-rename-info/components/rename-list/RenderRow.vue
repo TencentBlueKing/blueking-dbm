@@ -42,7 +42,7 @@
   import type { IValue } from '../../Index.vue';
 
   interface Props {
-    clusterId: number;
+    targetClusterId: number;
     wholeDbList: IValue[];
     index: number;
   }
@@ -96,7 +96,7 @@
           return true;
         }
         return checkSqlserverDbExist({
-          cluster_id: props.clusterId,
+          cluster_id: props.targetClusterId,
           db_list: [value],
         }).then((data) => !Object.values(data)[0]);
       },
@@ -125,7 +125,7 @@
           return true;
         }
         return checkSqlserverDbExist({
-          cluster_id: props.clusterId,
+          cluster_id: props.targetClusterId,
           db_list: [value],
         }).then((data) => !Object.values(data)[0]);
       },

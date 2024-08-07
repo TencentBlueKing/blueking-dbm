@@ -43,13 +43,13 @@
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
-        <BkFormItem :label="t('迁移方式')">
+        <BkFormItem :label="t('DB名处理')">
           <BkRadioGroup v-model="formData.need_auto_rename">
-            <BkRadio label>
-              {{ t('迁移后，源DB不再使用： 系统会对源 DB 自动重命名处理') }}
-            </BkRadio>
             <BkRadio :label="false">
-              {{ t('增量备份迁移') }}
+              {{ t('迁移后源DB继续使用，DB名不变') }}
+            </BkRadio>
+            <BkRadio label>
+              {{ t('迁移后源DB不再使用，自动重命名') }}
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
@@ -110,7 +110,7 @@
 
   const formData = reactive({
     dts_mode: 'full',
-    need_auto_rename: true,
+    need_auto_rename: false,
   });
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
@@ -150,6 +150,7 @@
             id: item.id,
             domain: item.master_domain,
             cloudId: item.bk_cloud_id,
+            majorVersion: item.major_version,
           },
         });
         result.push(row);

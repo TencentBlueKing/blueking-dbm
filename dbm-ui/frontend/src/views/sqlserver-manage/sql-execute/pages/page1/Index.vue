@@ -140,7 +140,7 @@
 
     formRef.value
       .validate()
-      .then(() => {
+      .then(() =>
         createTicket({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           ticket_type: 'SQLSERVER_IMPORT_SQLFILE',
@@ -155,8 +155,8 @@
               page: 'success',
             },
           });
-        });
-      })
+        }),
+      )
       .finally(() => {
         isSubmitting.value = false;
       });

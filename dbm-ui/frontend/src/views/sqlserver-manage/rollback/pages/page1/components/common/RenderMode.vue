@@ -26,6 +26,7 @@
         v-model="resotreTime"
         :disabled="editDisabled"
         :disabled-date="disableDate"
+        ext-popover-cls="not-seconds-date-picker"
         :rules="timerRules"
         type="datetime" />
       <div

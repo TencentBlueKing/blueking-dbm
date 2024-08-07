@@ -58,6 +58,7 @@
 </template>
 <script setup lang="ts">
   import { computed, ref, shallowRef, watch } from 'vue';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -89,7 +90,7 @@
 
   const { t } = useI18n();
 
-  const elementRef = ref<InstanceType<typeof TableEditElement>>();
+  const elementRef = ref<ComponentExposed<typeof TableEditElement>>();
   const localDbList = shallowRef<string[]>([]);
   const isShowEditName = ref(false);
 
@@ -105,6 +106,14 @@
       validator: () => localDbList.value.length > 0,
       message: t('构造后 DB 名不能为空'),
     },
+    {
+      validator: () => {
+        const cleanDbsPatternList = cleanDbsPatterns.value.filter((item) => !/\*/.test(item) && !/%/.test(item));
+        console.log('from rule = ', cleanDbsPatternList, localDbList.value);
+        return cleanDbsPatternList.length > localDbList.value.length;
+      },
+      message: t('最终 DB 和指定 DB 数量不匹配'),
+    },
   ];
 
   const { loading: isLoading, run: fetchSqlserverDbs } = useRequest(getSqlserverDbs, {
@@ -117,7 +126,9 @@
   watch(
     () => [props.clusterData, cleanDbsPatterns.value, cleanIgnoreDbsPatterns.value],
     () => {
+      console.log('cleanDbsPatterns = ', cleanDbsPatterns.value);
       if (!props.clusterData || cleanDbsPatterns.value.length < 1) {
+        localDbList.value = [];
         return;
       }
       fetchSqlserverDbs({

@@ -108,7 +108,7 @@
   let isKeepAliveActive = false;
 
   const isContentLoading = ref(false);
-  const uploadRef = ref();
+  const uploadRef = ref<HTMLInputElement>();
   const selectFileName = ref('');
   const uploadFileNameList = shallowRef<Array<string>>([]);
   const uploadFileDataMap = shallowRef<Record<string, IFileData>>({});
@@ -244,7 +244,7 @@
 
   // 开始选择本地文件
   const handleSelectLocalFile = () => {
-    uploadRef.value.click();
+    uploadRef.value!.click();
   };
 
   // 开始上传本地文件
@@ -315,6 +315,7 @@
           };
         });
         uploadFileDataMap.value = lastUploadFileDataMap;
+        uploadRef.value!.value = '';
       });
   };
   // 文件排序

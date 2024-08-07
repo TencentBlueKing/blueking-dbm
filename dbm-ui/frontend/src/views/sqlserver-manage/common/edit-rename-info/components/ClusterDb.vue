@@ -56,6 +56,17 @@
   const localDBName = ref(props.dbName);
   const localDbIgnoreName = ref(props.dbIgnoreName);
 
+  watch(
+    () => [props.dbName, props.dbIgnoreName],
+    () => {
+      localDBName.value = [...props.dbName];
+      localDbIgnoreName.value = [...props.dbIgnoreName];
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const { run: fetchSqlserverDbs } = useRequest(getSqlserverDbs, {
     manual: true,
     onSuccess(data) {

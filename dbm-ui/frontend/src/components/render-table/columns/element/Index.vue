@@ -17,7 +17,15 @@
     :class="{
       'is-error': Boolean(errorMessage),
     }">
-    <slot />
+    <div ref="rootRef">
+      <slot />
+    </div>
+    <div
+      v-if="isShowPlaceholder"
+      class="placeholder"
+      style="color: #c4c6cc">
+      {{ placeholder }}
+    </div>
     <div
       v-if="errorMessage"
       class="input-error">
@@ -27,24 +35,55 @@
     </div>
   </div>
 </template>
-<script setup lang="ts">
+<script setup lang="ts" generic="T extends any">
+  import _ from 'lodash';
+  import { nextTick, onMounted, onUpdated, type VNode } from 'vue';
+
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
     rules?: Rules;
+    value?: any;
+    placeholder?: string;
   }
 
   interface Exposes {
-    getValue: () => Promise<T>;
+    getValue: () => Promise<boolean>;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    rules: undefined,
+    value: '',
+    placeholder: '请设置值',
+  });
+
+  defineSlots<{
+    default: () => VNode | VNode[];
+  }>();
 
   const { message: errorMessage, validator } = useValidtor(props.rules);
 
+  const rootRef = ref<HTMLElement>();
+
+  const isShowPlaceholder = ref(true);
+
+  const calcShowPlaceholder = () => {
+    nextTick(() => {
+      isShowPlaceholder.value = !_.trim(rootRef.value!.innerText);
+    });
+  };
+
+  onUpdated(() => {
+    calcShowPlaceholder();
+  });
+
+  onMounted(() => {
+    calcShowPlaceholder();
+  });
+
   defineExpose<Exposes>({
     getValue() {
-      return validator();
+      return validator(props.value);
     },
   });
 </script>
@@ -55,8 +94,7 @@
 
   .render-element {
     position: relative;
-    width: 100%;
-    height: 42px;
+    min-height: 42px;
     padding: 10px 16px;
     overflow: hidden;
     line-height: 20px;
@@ -74,6 +112,22 @@
       font-size: 14px;
       color: #ea3636;
       align-items: center;
+    }
+
+    .placeholder {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      left: 18px;
+      z-index: 1;
+      height: 20px;
+      overflow: hidden;
+      font-size: 12px;
+      line-height: 20px;
+      color: #c4c6cc;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      pointer-events: none;
     }
   }
 </style>

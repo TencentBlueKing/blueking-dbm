@@ -15,8 +15,8 @@
           v-for="(item, index) in modelValue"
           :key="index"
           ref="rowRefs"
-          :cluster-id="clusterId"
           :index="index"
+          :target-cluster-id="targetClusterId"
           :whole-db-list="modelValue"
           @change="(value) => handleChange(value, index)" />
       </template>
@@ -44,7 +44,7 @@
   import RenderRow from './RenderRow.vue';
 
   interface Props {
-    clusterId: number;
+    targetClusterId: number;
   }
 
   interface Expose {

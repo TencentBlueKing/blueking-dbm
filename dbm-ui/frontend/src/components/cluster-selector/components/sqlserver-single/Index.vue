@@ -111,8 +111,10 @@
 
   const columns = computed(() => [
     {
+      width: 60,
       minWidth: 60,
-      label: () => props.multiple && (
+      fixed: 'left',
+      label: () => (
         <div style="display:flex;align-items:center">
           <bk-checkbox
             key={`${pagination.current}_${activeTab.value}`}
@@ -174,7 +176,8 @@
     {
       label: t('访问入口'),
       field: 'cluster_name',
-      minWidth: 220,
+      width: 220,
+      fixed: 'left',
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
         <div class="cluster-name-box">
@@ -206,7 +209,7 @@
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 90,
+      width: 90,
       filter: {
         list: [
           {
@@ -229,13 +232,13 @@
     {
       label: t('集群名称'),
       field: 'cluster_name',
-      minWidth: 120,
+      width: 200,
       showOverflowTooltip: true,
     },
     {
       label: t('所属模块'),
       field: 'db_module_id',
-      minWidth: 100,
+      width: 150,
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.db_module_id,
@@ -246,13 +249,20 @@
     {
       label: t('管控区域'),
       field: 'bk_cloud_id',
-      minWidth: 100,
+      width: 120,
       showOverflowTooltip: true,
       filter: {
         list: columnAttrs.value.bk_cloud_id,
         checked: columnCheckedMap.value.bk_cloud_id,
       },
       render: ({ data }: { data: ResourceItem }) => <span>{data.bk_cloud_name}</span>,
+    },
+    {
+      label: t('版本'),
+      field: 'major_version',
+      width: 200,
+      showOverflowTooltip: true,
+      render: ({ data }: { data: ResourceItem }) => data.major_version || '--',
     },
   ]);
 

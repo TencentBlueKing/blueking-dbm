@@ -31,7 +31,7 @@
     @change="handelClusterChange" />
 </template>
 <script lang="ts">
-  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+  const clusterIdMemo: Record<string, number> = {};
 </script>
 <script setup lang="ts">
   import { onBeforeUnmount, ref, watch } from 'vue';
@@ -55,13 +55,14 @@
   const modelValue = defineModel<{
     id: number;
     domain: string;
-    cloudId: null | number;
+    cloudId: number;
+    majorVersion: string;
   }>();
 
-  const instanceKey = `render_cluster_${random()}`;
-  clusterIdMemo[instanceKey] = {};
-
   const { t } = useI18n();
+
+  const instanceKey = `render_src_cluster_${random()}`;
+  clusterIdMemo[instanceKey] = 0;
 
   const editRef = ref<InstanceType<typeof TableEditInput>>();
 
@@ -114,9 +115,12 @@
               id: data[0].id,
               cloudId: data[0].bk_cloud_id,
               domain: data[0].master_domain,
+              majorVersion: data[0].major_version,
             };
+            clusterIdMemo[instanceKey] = data[0].id;
             return true;
           }
+          clusterIdMemo[instanceKey] = 0;
           modelValue.value = undefined;
           return false;
         }),
@@ -124,23 +128,10 @@
     },
     {
       validator: () => {
-        const currentClusterSelectMap = clusterIdMemo[instanceKey];
-        const otherClusterMemoMap = { ...clusterIdMemo };
-        delete otherClusterMemoMap[instanceKey];
-
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
+        const otherClusterIdMemo = { ...clusterIdMemo };
+        delete otherClusterIdMemo[instanceKey];
+        if (Object.values(otherClusterIdMemo).includes(modelValue.value!.id)) {
+          return false;
         }
         return true;
       },
@@ -153,8 +144,8 @@
     modelValue,
     () => {
       if (modelValue.value) {
-        clusterIdMemo[instanceKey][modelValue.value.id] = true;
         localDomain.value = modelValue.value.domain;
+        clusterIdMemo[instanceKey] = modelValue.value.id;
       } else {
         localDomain.value = '';
       }
@@ -176,11 +167,19 @@
       id: clusterData.id,
       cloudId: clusterData.bk_cloud_id,
       domain: clusterData.master_domain,
+      majorVersion: clusterData.major_version,
     };
+    localDomain.value = clusterData.master_domain;
+    clusterIdMemo[instanceKey] = clusterData.id;
+    setTimeout(() => {
+      editRef.value!.getValue();
+    });
   };
 
   onBeforeUnmount(() => {
-    delete clusterIdMemo[instanceKey];
+    if (modelValue.value) {
+      delete clusterIdMemo[modelValue.value.id];
+    }
   });
 
   defineExpose<Exposes>({

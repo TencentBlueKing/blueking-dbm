@@ -70,8 +70,10 @@
             v-model="formData.file_tag"
             size="small">
             <template v-if="isBackupTypeFull">
-              <BkRadio label="LONGDAY_DBFILE_3Y"> 3 {{ t('年') }} </BkRadio>
-              <BkRadio label="MSSQL_FULL_BACKUP"> 30 {{ t('天') }} </BkRadio>
+              <BkRadio label="DBFILE1M"> {{ t('1 个月') }} </BkRadio>
+              <BkRadio label="DBFILE6M"> {{ t('6 个月') }} </BkRadio>
+              <BkRadio label="DBFILE1Y"> {{ t('1 年') }} </BkRadio>
+              <BkRadio label="DBFILE3Y"> {{ t('3 年') }} </BkRadio>
             </template>
             <template v-else>
               <BkRadio
@@ -129,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -179,15 +181,14 @@
   const createDefaultData = () => ({
     backup_type: 'full_backup',
     backup_place: 'master',
-    file_tag: 'LONGDAY_DBFILE_3Y',
+    file_tag: 'DBFILE1M',
   });
 
   const rowRefs = ref<InstanceType<typeof RenderRow>[]>();
   const isShowBatchSelector = ref(false);
-  // const isShowBatchEntry = ref(false);
   const isSubmitting = ref(false);
   const isShowFianlDbReviewer = ref(false);
-  const currentRowData = ref<IDataRow>();
+  const currentRowData = ref<Required<IDataRow>>();
   const tableData = ref<IDataRow[]>([createRowData()]);
   const formData = reactive(createDefaultData());
 
@@ -196,7 +197,6 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
 
-  const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.domain)).length);
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
 
   watch(
@@ -205,22 +205,6 @@
       formData.file_tag = isBackupTypeFull.value ? 'LONGDAY_DBFILE_3Y' : 'MSSQL_FULL_BACKUP';
     },
   );
-
-  // 显示批量录入
-  // const handleShowBatchEntry = () => {
-  //   isShowBatchEntry.value = true;
-  // };
-
-  // 批量录入
-  // const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
-  //   const newList = list.map((item) => createRowData(item));
-  //   if (checkListEmpty(tableData.value)) {
-  //     tableData.value = newList;
-  //   } else {
-  //     tableData.value = [...tableData.value, ...newList];
-  //   }
-  //   window.changeConfirm = true;
-  // };
 
   // 检测列表是否为空
   const checkListEmpty = (list: IDataRow[]) => {
@@ -280,9 +264,11 @@
   // 输入集群后查询集群信息并填充到table
   const handleClusterChange = async (index: number, domain: string) => {
     if (!domain) {
-      const { domain } = tableData.value[index];
-      domainMemo[domain] = false;
-      tableData.value[index].domain = '';
+      const { domain: lastestDomain } = tableData.value[index];
+      if (lastestDomain) {
+        domainMemo[lastestDomain] = false;
+        tableData.value[index].domain = '';
+      }
       return;
     }
     tableData.value[index].isLoading = true;
@@ -297,7 +283,7 @@
       return;
     }
     const item = result[0];
-    const row = generateRowDateFromRequest(item);
+    const row = createRowData({});
     tableData.value[index] = row;
     domainMemo[domain] = true;
     selectedClusters.value[item.cluster_type].push(item);
@@ -322,18 +308,20 @@
     tableData.value = dataList;
     if (domain) {
       delete domainMemo[domain];
+    }
+    if (clusterType) {
       const clustersArr = selectedClusters.value[clusterType];
       selectedClusters.value[clusterType] = clustersArr.filter((item) => item.master_domain !== domain);
     }
   };
 
   const handleShowFianlDbReviewer = (item: IDataRow) => {
-    currentRowData.value = item;
+    currentRowData.value = item as UnwrapRef<typeof currentRowData>;
     isShowFianlDbReviewer.value = true;
   };
 
   const handleDbChage = (backupDbs: string[], ignoreDbs: string[]) => {
-    Object.assign(currentRowData.value, {
+    Object.assign(currentRowData.value as IDataRow, {
       backupDbs,
       ignoreDbs,
     });
@@ -341,42 +329,30 @@
 
   const handleSubmit = async () => {
     isSubmitting.value = true;
-    const infos = await Promise.all(
-      rowRefs.value!.map(
-        (item: {
-          getValue: () => Promise<{
-            cluster_id: number;
-            backup_dbs: string[];
-          }>;
-        }) => item.getValue(),
-      ),
-    );
-    isSubmitting.value = false;
-
-    InfoBox({
-      title: t('确认提交n个数据库备份任务', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () =>
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.SQLSERVER_BACKUP_DBS,
-          details: {
-            ...formData,
-            infos,
+    try {
+      const infos = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
+      await createTicket({
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.SQLSERVER_BACKUP_DBS,
+        details: {
+          ...formData,
+          infos,
+        },
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'SqlServerDbBackup',
+          params: {
+            page: 'success',
           },
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'SqlServerDbBackup',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-    });
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = true;
+    }
   };
 
   const handleReset = () => {

@@ -13,22 +13,26 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <TableEditInput
+    <TableElement
       ref="editInputRef"
-      :model-value="renderText"
-      :placeholder="t('根据实例生成')"
-      readonly />
+      :placeholder="t('根据实例生成')">
+      <div
+        v-for="item in localRelateClusterList"
+        :key="item.master_domain">
+        {{ item.master_domain }}
+      </div>
+    </TableElement>
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import { computed, shallowRef } from 'vue';
+  import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { checkInstance } from '@services/source/dbbase';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableElement from '@components/render-table/columns/element/Index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -48,13 +52,6 @@
   const localRelateClusterList = shallowRef<
     ServiceReturnType<typeof checkInstance<SqlServerHaInstanceModel>>[number]['related_clusters']
   >([]);
-
-  const renderText = computed(() => {
-    if (localRelateClusterList.value?.length < 1) {
-      return '';
-    }
-    return localRelateClusterList.value.map((item) => item.master_domain).join('\n');
-  });
 
   const { loading: isLoading, run: fetchCheckInstances } = useRequest(checkInstance<SqlServerHaInstanceModel>, {
     manual: true,

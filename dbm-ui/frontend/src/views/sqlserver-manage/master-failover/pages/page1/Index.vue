@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
+        :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
       <RenderData
         class="mt16"
         @show-master-batch-selector="handleShowMasterBatchSelector">
@@ -30,21 +30,6 @@
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
-      <div class="item-block">
-        <BkCheckbox v-model="formData.is_check_process">
-          {{ t('检查业务来源的连接') }}
-        </BkCheckbox>
-      </div>
-      <div class="item-block">
-        <BkCheckbox v-model="formData.is_check_delay">
-          {{ t('检查主从同步延迟') }}
-        </BkCheckbox>
-      </div>
-      <div class="item-block">
-        <BkCheckbox v-model="formData.is_verify_checksum">
-          {{ t('检查主从数据校验结果') }}
-        </BkCheckbox>
-      </div>
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.SQLSERVER_HA]"
@@ -56,16 +41,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会情况当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会情况当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>
@@ -106,12 +91,6 @@
   const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-
-  const formData = reactive({
-    is_check_process: false,
-    is_verify_checksum: false,
-    is_check_delay: false,
-  });
 
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {
@@ -165,7 +144,6 @@
           ticket_type: 'SQLSERVER_MASTER_FAIL_OVER',
           remark: '',
           details: {
-            ...formData,
             infos: data,
           },
           bk_biz_id: currentBizId,
