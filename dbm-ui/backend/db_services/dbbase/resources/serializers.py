@@ -105,6 +105,10 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     ip = serializers.CharField(required=False)
 
 
+class SqlserverListInstanceSerializer(ListInstancesSerializer):
+    db_module_id = serializers.CharField(required=False, help_text=_("所属DB模块"))
+
+
 class MongoDBListInstancesSerializer(ListInstancesSerializer):
     exact_ip = serializers.CharField(help_text=_("精确IP查询"), required=False)
 
