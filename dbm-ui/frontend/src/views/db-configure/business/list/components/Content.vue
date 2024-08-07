@@ -34,7 +34,6 @@
             </div>
             <BkTree
               ref="treeRef"
-              class="db-scroll-y"
               :data="treeState.data"
               :indent="16"
               label="name"
@@ -203,7 +202,7 @@
     padding: 16px 0;
 
     .bk-tree {
-      height: calc(100% - 42px);
+      height: calc(100% - 42px) !important;
       font-size: 12px;
 
       :deep(.bk-node-prefix) {

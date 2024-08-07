@@ -30,7 +30,7 @@ export const getInitFormdata = () => ({
     retention_hours: 1,
     replication_num: 2,
     ack_quorum: 1,
-    port: 9200,
+    port: 6650,
     partition_num: 1,
     cluster_name: '',
     cluster_alias: '',
