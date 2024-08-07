@@ -43,6 +43,7 @@
               :prefix-icon="treePrefixIcon"
               :search="treeSearchConfig"
               :selected="treeState.selected"
+              virtual-render
               @node-click="handleSelectedTreeNode">
               <template #node="item">
                 <div class="content-tree-node">
