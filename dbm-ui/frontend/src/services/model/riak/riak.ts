@@ -242,6 +242,10 @@ export default class Riak {
     return this.phase === 'online';
   }
 
+  get isOffline() {
+    return this.phase === 'offline';
+  }
+
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === Riak.RIAK_CLUSTER_ENABLE));
   }
