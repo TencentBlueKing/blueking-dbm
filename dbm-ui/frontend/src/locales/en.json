@@ -642,7 +642,6 @@
   "请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔": "Please enter the DB name, you can use wildcards %, such as Data%, case-sensitive, separate multiples with commas, semicolons or newlines",
   "账号信息": "Account info",
   "账号创建成功": "Account created successfully",
-  "账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记": "After the account name is created, it does not support modification; after the password is created, the platform will not be revealed, please keep in mind.",
   "账号名称": "Account Name",
   "账号名称_DB名称_权限名称": "Account Name/DB Name/Privilege Name",
   "账户名": "Account name",
