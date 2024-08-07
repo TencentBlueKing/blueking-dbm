@@ -18,14 +18,9 @@
     :esc-close="false"
     :is-show="isShow"
     :quick-close="false"
-    :title="$t('新建账号')"
+    :title="t('新建账号')"
     :width="480"
     @closed="handleClose">
-    <BkAlert
-      class="mb-16"
-      closable
-      theme="warning"
-      :title="$t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
       v-if="isShow"
       ref="accountRef"
@@ -34,7 +29,7 @@
       :model="state.formdata"
       :rules="rules">
       <BkFormItem
-        :label="$t('账户名')"
+        :label="t('账户名')"
         property="user"
         required>
         <BkInput
@@ -46,19 +41,48 @@
             content: userPlaceholder,
           }"
           :placeholder="userPlaceholder" />
+        <p style="color: #ff9c01">
+          {{ t('账号创建后，不支持修改。') }}
+        </p>
       </BkFormItem>
       <BkFormItem
         ref="passwordItemRef"
-        :label="$t('密码')"
+        :label="t('密码')"
         property="password"
         required>
-        <BkInput
-          ref="passwordRef"
-          v-model="state.formdata.password"
-          :placeholder="$t('请输入')"
-          type="password"
-          @blur="handlePasswordBlur"
-          @focus="handlePasswordFocus" />
+        <div class="password-item">
+          <BkInput
+            ref="passwordRef"
+            v-model="state.formdata.password"
+            class="password-input"
+            :placeholder="t('请输入')"
+            type="password"
+            @blur="handlePasswordBlur"
+            @focus="handlePasswordFocus" />
+          <BkButton
+            class="password-generate-button"
+            :disabled="state.isLoading"
+            outline
+            theme="primary"
+            @click="handleAutoGeneration">
+            {{ t('随机生成') }}
+          </BkButton>
+        </div>
+        <p style="color: #ff9c01">
+          {{ t('平台不会保存密码，请自行保管好。') }}
+          <BkButton
+            v-bk-tooltips="{
+              content: t('请设置密码'),
+              disabled: state.formdata.password,
+            }"
+            class="copy-password-button"
+            :disabled="!state.formdata.password"
+            text
+            theme="primary"
+            @click="handleCopyPassword">
+            {{ t('复制密码') }}
+          </BkButton>
+        </p>
       </BkFormItem>
     </BkForm>
     <template #footer>
@@ -67,12 +91,12 @@
         :loading="state.isLoading"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         :disabled="state.isLoading"
         @click="handleClose">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -99,8 +123,17 @@
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
-  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
+  import {
+    createAccount,
+    getPasswordPolicy,
+    getRandomPassword,
+    getRSAPublicKeys,
+    verifyPasswordStrength,
+  } from '@services/permission';
+
+  import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
@@ -127,7 +160,7 @@
 
 <script setup lang="ts">
   interface Emits {
-    (e: 'success'): void
+    (e: 'success'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -138,7 +171,30 @@
 
   const { t } = useI18n();
   const globalbizsStore = useGlobalBizs();
+  const copy = useCopy();
 
+  /**
+   * 拆分是否带有follow_前缀的keys
+   */
+  const keyArr = Object.keys(PASSWORD_POLICY).reduce<{ included: string[]; excluded: string[] }>(
+    (acc, key) => {
+      if (key.includes('follow_')) {
+        acc.included.push(key);
+      } else {
+        acc.excluded.push(key);
+      }
+      return acc;
+    },
+    { included: [], excluded: [] },
+  );
+  const passwordState = reactive({
+    instance: null as Instance | null,
+    isShow: false,
+    strength: [] as StrengthItem[],
+    keys: keyArr.excluded,
+    followKeys: keyArr.included,
+    validate: {} as PasswordStrength,
+  });
   const state = reactive({
     formdata: {
       password: '',
@@ -147,20 +203,34 @@
     isLoading: false,
     publicKey: '',
   });
-  const userPlaceholder = t('由字母_数字_下划线_点_减号_字符组成以字母或数字开头');
+  const accountRef = ref();
+  const passwordRef = ref();
+  const passwordItemRef = ref();
+  const userPlaceholder = t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头');
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
   const rules = {
-    user: [{
-      trigger: 'change',
-      message: userPlaceholder,
-      validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9-_.]*$/g.test(value),
-    }],
-    password: [{
-      trigger: 'blur',
-      message: t('密码不满足要求'),
-      validator: debounceVerifyPassword,
-    }],
+    user: [
+      {
+        trigger: 'change',
+        message: userPlaceholder,
+        validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9-_.]*$/g.test(value),
+      },
+    ],
+    password: [
+      {
+        trigger: 'blur',
+        message: t('密码不满足要求'),
+        validator: debounceVerifyPassword,
+      },
+    ],
   };
+
+  const { run: getRandomPasswordRun } = useRequest(getRandomPassword, {
+    manual: true,
+    onSuccess(randomPasswordRes) {
+      state.formdata.password = randomPasswordRes.password;
+    },
+  });
 
   watch(isShow, (show: boolean) => {
     if (show) {
@@ -171,156 +241,162 @@
     }
   });
 
+  /** 校验密码 */
+  watch(
+    () => state.formdata.password,
+    (psw) => {
+      if (psw) {
+        debounceVerifyPassword();
+      }
+    },
+  );
+
   /**
    * 获取公钥
    */
-  function fetchRSAPublicKeys() {
-    getRSAPublicKeys({ names: ['password'] })
-      .then((res) => {
-        state.publicKey = res[0]?.content || '';
-      });
-  }
+  const fetchRSAPublicKeys = () => {
+    getRSAPublicKeys({ names: ['password'] }).then((RSAPublicKeysResult) => {
+      state.publicKey = RSAPublicKeysResult[0]?.content || '';
+    });
+  };
+
+  /**
+   * 自动生成密码
+   */
+  const handleAutoGeneration = () => {
+    getRandomPasswordRun();
+  };
+
+  /**
+   * 复制密码
+   */
+  const handleCopyPassword = () => {
+    copy(state.formdata.password);
+  };
 
   /**
    * 获取加密密码
    */
-  function getEncyptPassword() {
+  const getEncyptPassword = () => {
     const encypt = new JSEncrypt();
     encypt.setPublicKey(state.publicKey);
     const encyptPassword = encypt.encrypt(state.formdata.password);
     return typeof encyptPassword === 'string' ? encyptPassword : '';
-  }
-
-  const passwordState = reactive({
-    instance: null as Instance | null,
-    isShow: false,
-    strength: [] as StrengthItem[],
-    keys: Object.keys(PASSWORD_POLICY).filter(key => !key.includes('follow_')),
-    followKeys: Object.keys(PASSWORD_POLICY).filter(key => key.includes('follow_')),
-    validate: {} as PasswordStrength,
-  });
-  const passwordRef = ref();
-  const passwordItemRef = ref();
-
-  /** 校验密码 */
-  watch(() => state.formdata.password, (psw) => {
-    psw && debounceVerifyPassword();
-  });
+  };
 
   /**
    * 远程校验密码是否符合要求
    */
-  function verifyPassword() {
-    return verifyPasswordStrength({
+  const verifyPassword = () =>
+    verifyPasswordStrength({
       password: getEncyptPassword(),
-    })
-      .then((res) => {
-        passwordState.validate = res;
-        return res.is_strength;
-      });
-  }
+    }).then((passwordStrengthResult) => {
+      passwordState.validate = passwordStrengthResult;
+      return passwordStrengthResult.is_strength;
+    });
 
   /**
    * 获取密码安全策略
    */
-  function fetchPasswordPolicy() {
-    getPasswordPolicy()
-      .then((res) => {
-        const {
-          min_length: minLength,
-          max_length: maxLength,
-          include_rule: includeRule,
-          exclude_continuous_rule: excludeContinuousRule,
-        } = res.rule;
-        passwordState.strength = [{
+  const fetchPasswordPolicy = () => {
+    getPasswordPolicy().then((passwordPolicyResult) => {
+      const {
+        min_length: minLength,
+        max_length: maxLength,
+        include_rule: includeRule,
+        exclude_continuous_rule: excludeContinuousRule,
+      } = passwordPolicyResult.rule;
+      passwordState.strength = [
+        {
           keys: ['min_length_valid', 'max_length_valid'],
           text: t('密码长度为_min_max', [minLength, maxLength]),
-        }];
-        // 常规提示
-        for (const key of passwordState.keys) {
-          if (includeRule[key as keyof IncludeRule]) {
-            passwordState.strength.push({
-              keys: [`${key}_valid`],
-              text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
-            });
-          }
-        }
-
-        // 重复提示
-        if (excludeContinuousRule.repeats) {
+        },
+      ];
+      // 常规提示
+      for (const key of passwordState.keys) {
+        if (includeRule[key as keyof IncludeRule]) {
           passwordState.strength.push({
-            keys: ['repeats_valid'],
-            text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
+            keys: [`${key}_valid`],
+            text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
           });
         }
+      }
 
-        // 特殊提示（键盘序、字符序、数字序等）
-        const special = passwordState.followKeys.reduce((values: StrengthItem[], key: string) => {
-          const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
-          if (excludeContinuousRule[valueKey]) {
-            values.push({
-              keys: [`${key}_valid`],
-              text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
-            });
-          }
-          return values;
-        }, []);
-        if (special.length > 0) {
-          const keys: string[] = [];
-          const texts: string[] = [];
-          for (const item of special) {
-            keys.push(...item.keys);
-            texts.push(item.text);
-          }
-          passwordState.strength.push({
-            keys,
-            text: texts.join('、'),
-          });
-        }
+      // 重复提示
+      if (excludeContinuousRule.repeats) {
+        passwordState.strength.push({
+          keys: ['repeats_valid'],
+          text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
+        });
+      }
 
-        // 设置 tips
-        const template = document.getElementById('passwordStrength');
-        const content = template?.querySelector?.('.password-strength');
-        if (passwordRef.value?.$el && content) {
-          const el = passwordRef.value.$el as HTMLDivElement;
-          passwordState.instance?.destroy();
-          passwordState.instance = dbTippy(el, {
-            trigger: 'manual',
-            theme: 'light',
-            content,
-            arrow: true,
-            placement: 'right-start',
-            interactive: true,
-            allowHTML: true,
-            hideOnClick: false,
-            zIndex: 9999,
-            onDestroy: () => template?.append?.(content),
-            appendTo: () => document.body,
+      // 特殊提示（键盘序、字符序、数字序等）
+      const special = passwordState.followKeys.reduce<StrengthItem[]>((values: StrengthItem[], key: string) => {
+        const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
+        if (excludeContinuousRule[valueKey]) {
+          values.push({
+            keys: [`${key}_valid`],
+            text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
           });
         }
-      });
-  }
+        return values;
+      }, []);
+      if (special.length > 0) {
+        const keys: string[] = [];
+        const texts: string[] = [];
+        for (const item of special) {
+          keys.push(...item.keys);
+          texts.push(item.text);
+        }
+        passwordState.strength.push({
+          keys,
+          text: texts.join('、'),
+        });
+      }
+
+      // 设置 tips
+      const template = document.getElementById('passwordStrength');
+      const content = template?.querySelector?.('.password-strength');
+      if (passwordRef.value?.$el && content) {
+        const el = passwordRef.value.$el as HTMLDivElement;
+        passwordState.instance?.destroy();
+        passwordState.instance = dbTippy(el, {
+          trigger: 'manual',
+          theme: 'light',
+          content,
+          arrow: true,
+          placement: 'right-start',
+          interactive: true,
+          allowHTML: true,
+          hideOnClick: false,
+          zIndex: 9999,
+          onDestroy: () => template?.append?.(content),
+          appendTo: () => document.body,
+        });
+      }
+    });
+  };
 
   /**
    * 密码框获取焦点
    */
-  function handlePasswordFocus() {
+  const handlePasswordFocus = () => {
     passwordState.instance?.show();
     // 清除校验信息
     passwordItemRef.value?.clearValidate();
-  }
+  };
 
   /**
    * 密码框失去焦点
    */
-  function handlePasswordBlur() {
+  const handlePasswordBlur = () => {
     passwordState.instance?.hide();
-  }
+  };
 
   /**
    * 获取密码当前项是否校验
    */
-  function getStrenthStatus(item: StrengthItem) {
+  const getStrenthStatus = (item: StrengthItem) => {
     if (!passwordState.validate || Object.keys(passwordState.validate).length === 0) {
       return '';
     }
@@ -330,13 +406,12 @@
       return verifyInfo[key as keyof PasswordStrengthVerifyInfo];
     });
     return `password-strength__status--${isPass ? 'success' : 'failed'}`;
-  }
+  };
 
   /**
    * 提交表单数据
    */
-  const accountRef = ref();
-  async function handleSubmit() {
+  const handleSubmit = async () => {
     await accountRef.value.validate();
     state.isLoading = true;
     if (!state.publicKey) {
@@ -361,12 +436,12 @@
       .finally(() => {
         state.isLoading = false;
       });
-  }
+  };
 
   /**
    * 关闭 dialog
    */
-  function handleClose() {
+  const handleClose = () => {
     isShow.value = false;
     state.formdata.password = '';
     state.formdata.user = '';
@@ -374,15 +449,29 @@
     passwordState.instance = null;
     passwordState.validate = {} as PasswordStrength;
     passwordState.strength = [];
-  }
+  };
 </script>
 
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
   .account-dialog {
-    .bk-button {
-      width: 64px;
+    .password-item {
+      display: flex;
+
+      .password-input {
+        border-right: none;
+        border-radius: 2px 0 0 2px;
+        flex: 1;
+      }
+
+      .password-generate-button {
+        border-radius: 0 2px 2px 0;
+      }
+    }
+
+    .copy-password-button {
+      --disable-color: #c4c6cc;
     }
   }
 
