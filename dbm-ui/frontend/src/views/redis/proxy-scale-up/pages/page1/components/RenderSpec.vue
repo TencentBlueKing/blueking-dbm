@@ -33,7 +33,7 @@
 
   interface Props {
     selectList: IListItem[];
-    data?: IDataRow['spec'];
+    data?: IDataRow['rowModelData'];
     isLoading?: boolean;
   }
 
@@ -58,7 +58,11 @@
     () => props.data,
     (data) => {
       if (data) {
-        localValue.value = data.id;
+        const proxySpecList = data.proxy.map((proxyItem) => proxyItem.spec_config.id);
+        const proxySpecSet = new Set(proxySpecList);
+        if (proxySpecSet.size === 1) {
+          [localValue.value] = Array.from(proxySpecSet);
+        }
       }
     },
     {

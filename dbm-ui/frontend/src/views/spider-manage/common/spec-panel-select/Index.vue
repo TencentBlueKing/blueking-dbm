@@ -38,6 +38,7 @@
     cloudId?: number;
     clusterType?: string;
     data?: SpecInfo;
+    currentSpecIds?: number[];
   }
 
   interface Exposes {
@@ -50,12 +51,14 @@
     cloudId: 0,
     clusterType: '',
     data: undefined,
+    currentSpecIds: () => [],
   });
 
   const selectRef = ref();
   const localValue = ref();
   const isLoading = ref(false);
-  const selectList = ref<IListItem[]>([]);
+
+  const specList = shallowRef<IListItem[]>([]);
 
   const { t } = useI18n();
 
@@ -65,6 +68,10 @@
       message: t('请先输入集群'),
     },
   ];
+
+  const selectList = computed(() =>
+    specList.value.map((item) => Object.assign({}, item, { isCurrent: props.currentSpecIds.includes(item.id) })),
+  );
 
   watch(
     () => props.data?.id,
@@ -80,16 +87,16 @@
               limit: -1,
               offset: 0,
             });
-            const specList = listResult.results;
+            const specResultList = listResult.results;
             const countResult = await getSpecResourceCount({
               bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
               bk_cloud_id: props.cloudId,
-              spec_ids: specList.map((item) => item.spec_id),
+              spec_ids: specResultList.map((item) => item.spec_id),
             });
-            selectList.value = specList.map((item) => ({
+            specList.value = specResultList.map((item) => ({
               id: item.spec_id,
               name: item.spec_name,
-              isCurrent: item.spec_id === props.data?.id,
+              isCurrent: false,
               specData: {
                 name: item.spec_name,
                 cpu: item.cpu,

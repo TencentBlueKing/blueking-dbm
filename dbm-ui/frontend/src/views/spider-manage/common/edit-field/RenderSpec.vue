@@ -13,27 +13,30 @@
 
 <template>
   <BkLoading :loading="isLoading">
-    <SpecPanel
-      :data="data"
-      hide-qps
-      :is-show="isShowPopover">
-      <div
-        class="render-spec-box"
-        :class="{ 'default-display': !isDisplay }"
-        @mouseenter="handleMouseEnter"
-        @mouseleave="handleMouseLeave">
-        <span
-          v-if="!isDisplay"
-          style="color: #c4c6cc">
-          {{ $t('输入主机后自动生成') }}
-        </span>
-        <span
-          v-else
-          class="content">
-          {{ isDisplay ? `${data?.name} ${$t('((n))台', { n: data?.count })}` : '' }}
-        </span>
-      </div>
-    </SpecPanel>
+    <div
+      class="render-spec-box"
+      :class="{ 'default-display': !isDisplay }"
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave">
+      <span
+        v-if="!isDisplay"
+        style="color: #c4c6cc">
+        {{ $t('输入主机后自动生成') }}
+      </span>
+      <span
+        v-else
+        class="content">
+        {{ isDisplay ? `${data?.name} ${$t('((n))台', { n: data?.count })}` : '' }}
+        <SpecPanel
+          :data="data"
+          hide-qps
+          :is-show="isShowPopover">
+          <DbIcon
+            class="visible-icon ml-4"
+            type="visible1" />
+        </SpecPanel>
+      </span>
+    </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
@@ -94,14 +97,20 @@
     white-space: nowrap;
 
     .content {
-      padding-bottom: 2px;
+      // padding-bottom: 2px;
       cursor: pointer;
-      border-bottom: 1px dotted #979ba5;
+      // border-bottom: 1px dotted #979ba5;
     }
   }
 
   .default-display {
     cursor: not-allowed;
     background: #fafbfd;
+  }
+
+  .visible-icon {
+    color: #3a84ff;
+    cursor: pointer;
+    font-size: 16px;
   }
 </style>

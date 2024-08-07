@@ -266,12 +266,13 @@
     .tendb-slave-apply-option-item {
       display: flex;
       width: 100%;
-      justify-content: space-between;
+      // justify-content: space-between;
       align-items: center;
 
       .spec-display-count {
         height: 16px;
         min-width: 20px;
+        margin-left: auto;
         font-size: 12px;
         line-height: 16px;
         color: @gray-color;

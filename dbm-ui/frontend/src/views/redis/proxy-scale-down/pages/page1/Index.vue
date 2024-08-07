@@ -63,7 +63,6 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -128,8 +127,8 @@
         }),
       disabledRowConfig: [
         {
-          handler: (data: RedisModel) => data.proxy.length < 3,
-          tip: t('Proxy数量不足，至少 3 台'),
+          handler: (data: RedisModel) => data.proxy.length <= 2,
+          tip: t('数量不足，Proxy至少保留 2 台'),
         },
       ],
     },
@@ -151,15 +150,10 @@
     bkCloudId: item.bk_cloud_id,
     nodeType: 'Proxy',
     cluster_type_name: item.cluster_type_name,
-    spec: {
-      ...item.proxy[0].spec_config,
-      name: item.cluster_spec.spec_name,
-      id: item.cluster_spec.spec_id,
-      count: item.proxy.length,
-    },
-    targetNum: `${item.proxy.length}`,
+    proxyList: item.proxy,
+    // targetNum: `${item.proxy.length}`,
+    targetNum: '1',
   });
-
   // 批量选择
   const handelClusterChange = (selected: { [key: string]: Array<RedisModel> }) => {
     selectedClusters.value = selected;
@@ -205,40 +199,34 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
-      details: {
-        ip_source: 'resource_pool',
-        infos,
-      },
-    };
-    InfoBox({
-      title: t('确认对n个集群缩容接入层？', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisProxyScaleDown',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
+        details: {
+          ip_source: 'resource_pool',
+          infos,
+        },
+      };
+
+      const ticketResult = await createTicket(params);
+      window.changeConfirm = false;
+      router.push({
+        name: 'RedisProxyScaleDown',
+        params: {
+          page: 'success',
+        },
+        query: {
+          ticketId: ticketResult.id,
+        },
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置
