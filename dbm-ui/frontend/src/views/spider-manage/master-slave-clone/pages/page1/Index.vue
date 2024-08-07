@@ -104,7 +104,7 @@
   const backupSource = ref('local');
   const tableData = ref([createRowData()]);
 
-  const selected = shallowRef({ ['TendbClusterHost']: [] } as InstanceSelectorValues<IValue>);
+  const selected = shallowRef({ TendbClusterHost: [] } as InstanceSelectorValues<IValue>);
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterData.ip)).length);
 

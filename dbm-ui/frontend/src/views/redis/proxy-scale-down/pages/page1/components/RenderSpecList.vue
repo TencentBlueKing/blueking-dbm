@@ -15,34 +15,37 @@
   <BkLoading :loading="isLoading">
     <div
       class="render-spec-box"
-      :class="{ 'default-display': !data }">
+      :class="{ 'default-display': !dataList.length }">
       <span
-        v-if="!data"
+        v-if="!dataList.length"
         style="color: #c4c6cc">
         {{ placeholder || t('输入主机后自动生成') }}
       </span>
-      <span
-        v-else
-        class="content">
-        {{ data?.name ? `${data.name} ${isIgnoreCounts ? '' : t('((n))台', { n: data?.count })}` : '' }}
-        <SpecPanel
-          :data="data"
-          :hide-qps="hideQps">
-          <DbIcon
-            class="visible-icon ml-4"
-            type="visible1" />
-        </SpecPanel>
-      </span>
+      <template v-else>
+        <div
+          v-for="dataItem in renderList"
+          :key="dataItem.id"
+          class="content">
+          {{ `${dataItem.name} ${isIgnoreCounts ? '' : t('((n))台', { n: dataItem.count })}` }}
+          <SpecPanel
+            :data="dataItem"
+            :hide-qps="hideQps">
+            <DbIcon
+              class="visible-icon ml-4"
+              type="visible1" />
+          </SpecPanel>
+        </div>
+      </template>
     </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import SpecPanel from './Panel.vue';
+  import SpecPanel from '@components/render-table/columns/spec-display/Panel.vue';
 
   interface Props {
-    data?: {
+    dataList: {
       name: string;
       cpu: {
         max: number;
@@ -62,16 +65,14 @@
         size: number;
         type: string;
       }[];
-      count?: number;
-    };
+    }[];
     isLoading?: boolean;
     isIgnoreCounts?: boolean;
     placeholder?: string;
     hideQps?: boolean;
   }
 
-  withDefaults(defineProps<Props>(), {
-    data: undefined,
+  const props = withDefaults(defineProps<Props>(), {
     placeholder: undefined,
     isLoading: false,
     isIgnoreCounts: false,
@@ -79,10 +80,32 @@
   });
 
   const { t } = useI18n();
+
+  const renderList = computed(() => {
+    const proxySpecMap = props.dataList.reduce<
+      Record<number, NonNullable<Props['dataList']>[number] & { count: number }>
+    >((prevSpecMap, dataItem) => {
+      const specId = dataItem.id;
+      if (prevSpecMap[specId]) {
+        Object.assign(prevSpecMap[specId], {
+          ...prevSpecMap[specId],
+          count: prevSpecMap[specId].count + 1,
+        });
+        return prevSpecMap;
+      }
+      return Object.assign(prevSpecMap, {
+        [specId]: {
+          ...dataItem,
+          count: 1,
+        },
+      });
+    }, {});
+    return Object.values(proxySpecMap);
+  });
 </script>
 <style lang="less" scoped>
   .render-spec-box {
-    height: 42px;
+    // height: 42px;
     padding: 10px 16px;
     overflow: hidden;
     line-height: 20px;
@@ -103,8 +126,8 @@
   }
 
   .visible-icon {
+    font-size: 16px;
     color: #3a84ff;
     cursor: pointer;
-    font-size: 16px;
   }
 </style>

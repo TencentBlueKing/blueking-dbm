@@ -314,10 +314,13 @@
 
   watch(
     () => props.clusterId,
-    (newClusterId, oldClusterId) => {
-      if (newClusterId && oldClusterId) {
+    () => {
+      if (props.clusterId) {
         fetchResources();
       }
+    },
+    {
+      immediate: true,
     },
   );
 

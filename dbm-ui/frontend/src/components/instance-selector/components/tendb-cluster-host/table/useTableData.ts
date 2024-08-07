@@ -12,6 +12,7 @@
  */
 
 import { type ComponentInternalInstance } from 'vue';
+import { useRequest } from 'vue-request';
 
 import { useGlobalBizs } from '@stores';
 
@@ -26,7 +27,6 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     };
   };
 
-  const isLoading = ref(false);
   const tableData = shallowRef<T[]>([]);
   const isAnomalies = ref(false);
   const pagination = reactive({
@@ -38,6 +38,20 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
     layout: ['total', 'limit', 'list'],
   });
   const searchValue = ref('');
+
+  const { run: getTableListRun, loading: isLoading } = useRequest(currentInstance.proxy.getTableList, {
+    manual: true,
+    onSuccess(data) {
+      tableData.value = data.results;
+      pagination.count = data.count;
+      isAnomalies.value = false;
+    },
+    onError() {
+      tableData.value = [];
+      pagination.count = 0;
+      isAnomalies.value = true;
+    },
+  });
 
   watch(searchValue, () => {
     setTimeout(() => {
@@ -66,24 +80,8 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
   };
 
   const fetchResources = async () => {
-    isLoading.value = true;
     const params = generateParams();
-    return currentInstance.proxy
-      .getTableList(params)
-      .then((data) => {
-        const ret = data;
-        tableData.value = ret.results;
-        pagination.count = ret.count;
-        isAnomalies.value = false;
-      })
-      .catch(() => {
-        tableData.value = [];
-        pagination.count = 0;
-        isAnomalies.value = true;
-      })
-      .finally(() => {
-        isLoading.value = false;
-      });
+    return getTableListRun(params);
   };
 
   const handleChangePage = (value: number) => {

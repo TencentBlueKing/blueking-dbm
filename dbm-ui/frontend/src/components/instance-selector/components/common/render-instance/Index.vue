@@ -3,7 +3,7 @@
     <div
       v-for="item in displayList"
       :key="item.instance"
-      class="instance-item">
+      class="instance-renderer-item">
       <DbStatus :theme="item.theme" />
       <span>{{ item.instance }}</span>
     </div>
@@ -52,8 +52,10 @@
 
 <style lang="less" scoped>
   .instance-renderer {
-    .instance-item {
-      height: 20px;
+    padding: 6px 0;
+
+    .instance-renderer-item {
+      line-height: 18px;
     }
 
     .show-all-icon {

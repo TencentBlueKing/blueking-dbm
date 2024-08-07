@@ -35,7 +35,7 @@
     <td style="padding: 0">
       <RenderSpec
         ref="sepcRef"
-        :data="data.spec"
+        :data="data.rowModelData"
         :is-loading="data.isLoading"
         :select-list="specList" />
     </td>
@@ -185,7 +185,12 @@
       if (!rowData) {
         return;
       }
-      specList.value = await querySpecList(rowData);
+      const specListRaw = await querySpecList(rowData);
+      const proxySpecList = rowData.proxy.map((proxyItem) => proxyItem.spec_config.id);
+      const proxySpecSet = new Set(proxySpecList);
+      specList.value = specListRaw.map((specItem) =>
+        Object.assign(specItem, { isCurrent: proxySpecSet.has(specItem.specData.id) }),
+      );
       getSpecResourceCount({
         bk_biz_id: rowData.bk_biz_id,
         bk_cloud_id: rowData.bk_cloud_id,

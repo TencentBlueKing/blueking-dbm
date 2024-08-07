@@ -45,7 +45,7 @@
             <div class="reids-spec-selector-display-item">
               <div>{{ item.label }}</div>
               <BkTag
-                v-if="item.value === localValue"
+                v-if="item.isCurrent"
                 class="ml-6"
                 size="small"
                 theme="info">
@@ -71,6 +71,7 @@
     value: IKey;
     label: string;
     specData: SpecInfo;
+    isCurrent: boolean;
     count?: number;
   }
 </script>
