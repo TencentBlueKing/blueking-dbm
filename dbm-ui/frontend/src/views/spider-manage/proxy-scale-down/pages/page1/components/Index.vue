@@ -37,16 +37,21 @@
           :width="150">
           <span>{{ $t('缩容节点类型') }}</span>
         </RenderTableHeadColumn>
-        <RenderTableHeadColumn
+        <!-- <RenderTableHeadColumn
           :min-width="150"
           :required="false"
           :width="240">
           <span>{{ $t('当前规格') }}</span>
+        </RenderTableHeadColumn> -->
+        <RenderTableHeadColumn
+          :min-width="100"
+          :width="300">
+          <span>{{ $t('主机选择方式') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :width="300">
-          <span>{{ $t('缩容至(台)') }}</span>
+          <span>{{ $t('缩容数量(台)') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"

@@ -17,8 +17,8 @@
       ref="editRef"
       v-model="localValue"
       :disabled="disabled"
-      :max="Number.MAX_SAFE_INTEGER"
-      :placeholder="placeholder"
+      :max="max"
+      :min="1"
       :rules="rules"
       type="number" />
   </BkLoading>
@@ -33,18 +33,18 @@
   interface Props {
     data?: IDataRow['targetNum'];
     isLoading?: boolean;
-    max?: number;
+    count?: number;
     role?: string;
     disabled?: boolean;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: () => Promise<{ spider_reduced_to_count: string }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     data: '',
-    max: 1,
+    count: 0,
     role: 'spider_slave',
     isLoading: false,
     disabled: false,
@@ -52,10 +52,10 @@
 
   const { t } = useI18n();
 
-  const localValue = ref(props.data);
+  const localValue = ref('');
   const editRef = ref();
 
-  const placeholder = computed(() => (props.role === 'spider_master' ? t('至少2台') : t('请输入')));
+  // const placeholder = computed(() => (props.role === 'spider_master' ? t('至少2台') : t('请输入')));
 
   const nonInterger = /\D/g;
 
@@ -69,24 +69,41 @@
       message: t('格式有误，请输入数字'),
     },
     {
-      validator: (value: string) => {
+      validator: (value: number) => {
         if (props.role === 'spider_master') {
-          return Number(value) >= 2 && Number(value) < props.max;
+          return props.count - value >= 2;
         }
         return true;
       },
-      message: t('必须小于当前台数且大于等于n', { n: 2 }),
+      message: t('缩容后不能少于2台'),
     },
     {
-      validator: (value: string) => {
+      validator: (value: number) => {
         if (props.role === 'spider_slave') {
-          return Number(value) >= 1 && Number(value) < props.max;
+          return props.count - value >= 1;
         }
         return true;
       },
-      message: t('必须小于当前台数且大于等于n', { n: 1 }),
+      message: t('缩容后不能少于1台'),
     },
   ];
+
+  const max = computed(() => {
+    if (props.role === 'spider_master') {
+      return props.count - 2;
+    }
+    return props.count - 1;
+  });
+
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // watch(localValue, (value) => {
   //   if (props.role === 'spider_master') {
@@ -103,7 +120,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => ({ spider_reduced_to_count: Number(localValue.value) }));
+      return editRef.value.getValue().then(() => ({ spider_reduced_to_count: props.count - Number(localValue.value) }));
     },
   });
 </script>
