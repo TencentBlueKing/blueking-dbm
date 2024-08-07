@@ -21,11 +21,6 @@
     :title="t('新建账号')"
     :width="480"
     @closed="handleClose">
-    <BkAlert
-      class="mb-16"
-      closable
-      theme="warning"
-      :title="t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
       v-if="isShow"
       ref="accountRef"
@@ -46,19 +41,48 @@
             content: userPlaceholder,
           }"
           :placeholder="userPlaceholder" />
+        <p style="color: #ff9c01">
+          {{ t('账号创建后，不支持修改。') }}
+        </p>
       </BkFormItem>
       <BkFormItem
         ref="passwordItemRef"
         :label="t('密码')"
         property="password"
         required>
-        <BkInput
-          ref="passwordRef"
-          v-model="formData.password"
-          :placeholder="t('请输入')"
-          type="password"
-          @blur="handlePasswordBlur"
-          @focus="handlePasswordFocus" />
+        <div class="password-item">
+          <BkInput
+            ref="passwordRef"
+            v-model="formData.password"
+            class="password-input"
+            :placeholder="t('请输入')"
+            type="password"
+            @blur="handlePasswordBlur"
+            @focus="handlePasswordFocus" />
+          <BkButton
+            class="password-generate-button"
+            :disabled="isLoading"
+            outline
+            theme="primary"
+            @click="handleAutoGeneration">
+            {{ t('随机生成') }}
+          </BkButton>
+        </div>
+        <p style="color: #ff9c01">
+          {{ t('平台不会保存密码，请自行保管好。') }}
+          <BkButton
+            v-bk-tooltips="{
+              content: t('请设置密码'),
+              disabled: formData.password,
+            }"
+            class="copy-password-button"
+            :disabled="!formData.password"
+            text
+            theme="primary"
+            @click="handleCopyPassword">
+            {{ t('复制密码') }}
+          </BkButton>
+        </p>
       </BkFormItem>
     </BkForm>
     <template #footer>
@@ -101,14 +125,22 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { createAccount, getPasswordPolicy, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
+  import {
+    createAccount,
+    getPasswordPolicy,
+    getRandomPassword,
+    getRSAPublicKeys,
+    verifyPasswordStrength,
+  } from '@services/permission';
+
+  import { useCopy } from '@hooks';
+
+  import { useGlobalBizs } from '@stores';
 
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
   import { PASSWORD_POLICY, type PasswordPolicyKeys } from '../common/consts';
-
-  import { useGlobalBizs } from '@/stores';
 
   interface Emits {
     (e: 'success'): void;
@@ -133,6 +165,8 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const copy = useCopy();
+
   const { TENDBCLUSTER } = AccountTypes;
   let instance: Instance | null = null;
   let publicKey = '';
@@ -157,16 +191,17 @@
   const validate = ref({} as PasswordStrength);
   const passwordRef = ref();
   const passwordItemRef = ref();
+  const accountRef = ref();
 
   const verifyPassword = () =>
     verifyPasswordStrength({
       password: getEncyptPassword(),
-    }).then((res) => {
-      validate.value = res;
-      return res.is_strength;
+    }).then((passwordStrengthResult) => {
+      validate.value = passwordStrengthResult;
+      return passwordStrengthResult.is_strength;
     });
 
-  const userPlaceholder = t('Spider账号规则');
+  const userPlaceholder = t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头');
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
   const rules = {
     user: [
@@ -185,44 +220,22 @@
     ],
   };
 
-  watch(isShow, (show: boolean) => {
-    if (show) {
-      fetchRSAPublicKeys();
-      fetchPasswordPolicy();
-      validate.value = {} as PasswordStrength;
-      strength.value = [];
-    }
-  });
-
-  const fetchRSAPublicKeys = () => {
-    getRSAPublicKeys({ names: ['password'] }).then((res) => {
-      publicKey = res[0]?.content || '';
-    });
-  };
-
-  const getEncyptPassword = () => {
-    const encypt = new JSEncrypt();
-    encypt.setPublicKey(publicKey);
-    const encyptPassword = encypt.encrypt(formData.password);
-    return typeof encyptPassword === 'string' ? encyptPassword : '';
-  };
-
-  watch(
-    () => formData.password,
-    (psw) => {
-      psw && debounceVerifyPassword();
+  const { run: getRandomPasswordRun } = useRequest(getRandomPassword, {
+    manual: true,
+    onSuccess(randomPasswordRes) {
+      formData.password = randomPasswordRes.password;
     },
-  );
+  });
 
   const { run: fetchPasswordPolicy } = useRequest(getPasswordPolicy, {
     manual: true,
-    onSuccess(res) {
+    onSuccess(passwordPolicyResult) {
       const {
         min_length: minLength,
         max_length: maxLength,
         include_rule: includeRule,
         exclude_continuous_rule: excludeContinuousRule,
-      } = res.rule;
+      } = passwordPolicyResult.rule;
 
       strength.value = [
         {
@@ -250,7 +263,7 @@
       }
 
       // 特殊提示（键盘序、字符序、数字序等）
-      const special = followKeys.reduce((values, key: string) => {
+      const special = followKeys.reduce<StrengthItem[]>((values, key: string) => {
         const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
         if (excludeContinuousRule[valueKey]) {
           values.push({
@@ -259,7 +272,7 @@
           });
         }
         return values;
-      }, [] as StrengthItem[]);
+      }, []);
 
       if (special.length > 0) {
         const keys: string[] = [];
@@ -297,6 +310,64 @@
     },
   });
 
+  const { run: createAccountRun } = useRequest(createAccount, {
+    manual: true,
+    onSuccess() {
+      Message({
+        message: t('账号创建成功'),
+        theme: 'success',
+      });
+      emits('success');
+      handleClose();
+    },
+    onAfter() {
+      isLoading.value = false;
+    },
+  });
+
+  watch(isShow, (show: boolean) => {
+    if (show) {
+      fetchRSAPublicKeys();
+      fetchPasswordPolicy();
+      validate.value = {} as PasswordStrength;
+      strength.value = [];
+    }
+  });
+
+  watch(
+    () => formData.password,
+    (psw) => {
+      psw && debounceVerifyPassword();
+    },
+  );
+
+  const fetchRSAPublicKeys = () => {
+    getRSAPublicKeys({ names: ['password'] }).then((RSAPublicKeysResult) => {
+      publicKey = RSAPublicKeysResult[0]?.content || '';
+    });
+  };
+
+  /**
+   * 自动生成密码
+   */
+  const handleAutoGeneration = () => {
+    getRandomPasswordRun();
+  };
+
+  /**
+   * 复制密码
+   */
+  const handleCopyPassword = () => {
+    copy(formData.password);
+  };
+
+  const getEncyptPassword = () => {
+    const encypt = new JSEncrypt();
+    encypt.setPublicKey(publicKey);
+    const encyptPassword = encypt.encrypt(formData.password);
+    return typeof encyptPassword === 'string' ? encyptPassword : '';
+  };
+
   const handlePasswordFocus = () => {
     instance?.show();
     passwordItemRef.value?.clearValidate();
@@ -318,23 +389,7 @@
     return `status-${isPass ? 'success' : 'failed'}`;
   };
 
-  const { run: createAccountRun } = useRequest(createAccount, {
-    manual: true,
-    onSuccess() {
-      Message({
-        message: t('账号创建成功'),
-        theme: 'success',
-      });
-      emits('success');
-      handleClose();
-    },
-    onAfter() {
-      isLoading.value = false;
-    },
-  });
-
-  const accountRef = ref();
-  async function handleSubmit() {
+  const handleSubmit = async () => {
     await accountRef.value.validate();
 
     isLoading.value = true;
@@ -351,7 +406,7 @@
     };
 
     createAccountRun(params);
-  }
+  };
 
   const handleClose = () => {
     isShow.value = false;
@@ -366,6 +421,26 @@
 
 <style lang="less" scoped>
   @import '@styles/mixins.less';
+
+  .account-dialog {
+    .password-item {
+      display: flex;
+
+      .password-input {
+        border-right: none;
+        border-radius: 2px 0 0 2px;
+        flex: 1;
+      }
+
+      .password-generate-button {
+        border-radius: 0 2px 2px 0;
+      }
+    }
+
+    .copy-password-button {
+      --disable-color: #c4c6cc;
+    }
+  }
 
   .password-strength {
     padding-top: 4px;

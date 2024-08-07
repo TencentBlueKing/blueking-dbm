@@ -21,11 +21,6 @@
     :title="t('新建账号')"
     :width="480"
     @closed="handleClose">
-    <BkAlert
-      class="mb-16"
-      closable
-      theme="warning"
-      :title="t('账号名创建后_不支持修改_密码创建后平台将不会显露_请谨记')" />
     <BkForm
       v-if="isShow"
       ref="accountRef"
@@ -48,6 +43,9 @@
             v-model="formData.user"
             :placeholder="t('格式为：(库名).（名称）_如 admin.linda')" />
         </BkPopover>
+        <p style="color: #ff9c01">
+          {{ t('账号创建后，不支持修改。') }}
+        </p>
       </BkFormItem>
       <BkFormItem
         ref="passwordItemRef"
@@ -65,12 +63,28 @@
             @focus="handlePasswordFocus" />
           <BkButton
             class="password-generate-button"
+            :disabled="isLoading"
             outline
             theme="primary"
-            @click="randomlyGenerate">
+            @click="handleAutoGeneration">
             {{ t('随机生成') }}
           </BkButton>
         </div>
+        <p style="color: #ff9c01">
+          {{ t('平台不会保存密码，请自行保管好。') }}
+          <BkButton
+            v-bk-tooltips="{
+              content: t('请设置密码'),
+              disabled: formData.password,
+            }"
+            class="copy-password-button"
+            :disabled="!formData.password"
+            text
+            theme="primary"
+            @click="handleCopyPassword">
+            {{ t('复制密码') }}
+          </BkButton>
+        </p>
       </BkFormItem>
     </BkForm>
     <template #footer>
@@ -94,7 +108,7 @@
       class="mongo-account-pop">
       <p>{{ t('格式为：(库名).（名称）_如 admin.linda') }}</p>
       <p class="mongo-account-pop-text">
-        {{ t('由 1～32 位字母、数字、下划线(_)、点(.)、减号(-)字符组成以字母或数字开头') }}
+        {{ t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头') }}
       </p>
     </div>
   </div>
@@ -114,45 +128,35 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    Form,
-    Input,
-    Message,
-  } from 'bkui-vue';
+  import { Form, Input, Message } from 'bkui-vue';
   import JSEncrypt from 'jsencrypt';
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getPasswordPolicy,
-    getRandomPassword,
-    getRSAPublicKeys,
-    verifyPasswordStrength,
-  } from '@services/permission';
+  import { getPasswordPolicy, getRandomPassword, getRSAPublicKeys, verifyPasswordStrength } from '@services/permission';
   import { createMongodbAccount } from '@services/source/mongodbPermissionAccount';
+
+  import { useCopy } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
-  import {
-    PASSWORD_POLICY,
-    type PasswordPolicyKeys,
-  } from '../common/consts';
+  import { PASSWORD_POLICY, type PasswordPolicyKeys } from '../common/consts';
 
   type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
   type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
 
   interface StrengthItem {
-    keys: string[],
-    text: string
+    keys: string[];
+    text: string;
   }
 
   interface Emits {
-    (e: 'success'): void,
+    (e: 'success'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -163,6 +167,7 @@
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+  const copy = useCopy();
 
   let instance: Instance | null = null;
   let publicKey = '';
@@ -187,12 +192,12 @@
     user: '',
   });
 
-  const verifyPassword = () => verifyPasswordStrength({
-    password: getEncyptPassword(),
-  })
-    .then((res) => {
-      validate.value = res;
-      return res.is_strength;
+  const verifyPassword = () =>
+    verifyPasswordStrength({
+      password: getEncyptPassword(),
+    }).then((passwordStrengthResult) => {
+      validate.value = passwordStrengthResult;
+      return passwordStrengthResult.is_strength;
     });
 
   const debounceVerifyPassword = _.debounce(verifyPassword, 300);
@@ -200,7 +205,7 @@
     user: [
       {
         trigger: 'change',
-        message: t('由 1～32 位字母、数字、下划线(_)、点(.)、减号(-)字符组成以字母或数字开头'),
+        message: t('由_1_~_32_位字母_数字_下划线(_)_点(.)_减号(-)字符组成以字母或数字开头'),
         validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,31}$/g.test(value),
       },
       {
@@ -218,29 +223,29 @@
     ],
   };
 
-  const {
-    run: getRandomPasswordRun,
-  } = useRequest(getRandomPassword, {
+  const { run: getRandomPasswordRun } = useRequest(getRandomPassword, {
     manual: true,
-    onSuccess(randomPasswordRes) {
-      formData.password = randomPasswordRes.password;
+    onSuccess(randomPasswordResult) {
+      formData.password = randomPasswordResult.password;
     },
   });
 
   const { run: fetchPasswordPolicy } = useRequest(getPasswordPolicy, {
     manual: true,
-    onSuccess(res) {
+    onSuccess(passwordPolicyResult) {
       const {
         min_length: minLength,
         max_length: maxLength,
         include_rule: includeRule,
         exclude_continuous_rule: excludeContinuousRule,
-      } = res.rule;
+      } = passwordPolicyResult.rule;
 
-      strength.value = [{
-        keys: ['min_length_valid', 'max_length_valid'],
-        text: t('密码长度为_min_max', [minLength, maxLength]),
-      }];
+      strength.value = [
+        {
+          keys: ['min_length_valid', 'max_length_valid'],
+          text: t('密码长度为_min_max', [minLength, maxLength]),
+        },
+      ];
 
       // 常规提示
       for (const key of keys) {
@@ -261,7 +266,7 @@
       }
 
       // 特殊提示（键盘序、字符序、数字序等）
-      const special = followKeys.reduce((values, key: string) => {
+      const special = followKeys.reduce<StrengthItem[]>((values, key: string) => {
         const valueKey = key.replace('follow_', '') as keyof PasswordPolicy['rule']['exclude_continuous_rule'];
         if (excludeContinuousRule[valueKey]) {
           values.push({
@@ -270,7 +275,7 @@
           });
         }
         return values;
-      }, [] as StrengthItem[]);
+      }, []);
 
       if (special.length > 0) {
         const keys: string[] = [];
@@ -308,10 +313,7 @@
     },
   });
 
-  const {
-    run: createAccountRun,
-    loading: isLoading,
-  } = useRequest(createMongodbAccount, {
+  const { run: createAccountRun, loading: isLoading } = useRequest(createMongodbAccount, {
     manual: true,
     onSuccess() {
       Message({
@@ -332,24 +334,36 @@
     }
   });
 
-  watch(() => formData.password, (newPassword) => {
-    if (newPassword) {
-      debounceVerifyPassword();
-    }
-  });
+  watch(
+    () => formData.password,
+    (newPassword) => {
+      if (newPassword) {
+        debounceVerifyPassword();
+      }
+    },
+  );
 
-  const randomlyGenerate = () => {
+  /**
+   * 自动生成密码
+   */
+  const handleAutoGeneration = () => {
     getRandomPasswordRun();
   };
 
-  const fetchRSAPublicKeys = () =>  {
-    getRSAPublicKeys({ names: ['password'] })
-      .then((res) => {
-        publicKey = res[0]?.content || '';
-      });
+  /**
+   * 复制密码
+   */
+  const handleCopyPassword = () => {
+    copy(formData.password);
   };
 
-  const getEncyptPassword = () =>  {
+  const fetchRSAPublicKeys = () => {
+    getRSAPublicKeys({ names: ['password'] }).then((RSAPublicKeysResult) => {
+      publicKey = RSAPublicKeysResult[0]?.content || '';
+    });
+  };
+
+  const getEncyptPassword = () => {
     const encypt = new JSEncrypt();
     encypt.setPublicKey(publicKey);
     const encyptPassword = encypt.encrypt(formData.password);
@@ -366,7 +380,7 @@
   };
 
   const getStrenthStatus = (item: StrengthItem) => {
-    if (!validate || Object.keys(validate).length === 0) {
+    if (!validate.value || Object.keys(validate).length === 0) {
       return '';
     }
 
@@ -377,7 +391,7 @@
     return `status-${isPass ? 'success' : 'failed'}`;
   };
 
-  const handleSubmit = async () =>  {
+  const handleSubmit = async () => {
     await accountRef.value!.validate();
 
     const params = {
