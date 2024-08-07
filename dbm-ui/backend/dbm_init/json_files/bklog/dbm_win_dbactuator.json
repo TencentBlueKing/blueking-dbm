@@ -11,6 +11,7 @@
     "target_object_type": "HOST",
     "target_node_type": "TOPO",
     "target_nodes": [],
+    "environment": "windows",
     "params": {
         "paths": [
             "d:\\install\\dbactuator*\\logs\\*.log"

@@ -32,7 +32,6 @@ MOCK_FIND_HOST_BIZ_RELATIONS_RETURN = [
 ]
 
 MOCK_GET_BIZ_INTERNAL_MODULE_RETURN = {
-    "bk_biz_id": constant.BK_BIZ_ID,
     "bk_set_id": constant.BK_SET_ID,
     "bk_set_name": "空闲机池",
     "module": [
