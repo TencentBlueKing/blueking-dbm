@@ -53,7 +53,7 @@ class StorageHandler(object):
         # 如果文件只有一个，则返回的是文件本身
         if len(file_path_list) == 1:
             file_path = file_path_list[0]
-            encoding = chardet.detect(zip_content)["encoding"]
+            encoding = chardet.detect(zip_content[:100])["encoding"]
             zip_content = zip_content.decode(encoding, errors="replace")
             return [{"path": file_path, "content": zip_content, "url": self.storage.url(file_path)}]
 
