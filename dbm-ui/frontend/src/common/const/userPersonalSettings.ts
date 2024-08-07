@@ -50,6 +50,10 @@ export enum UserPersonalSettings {
   SQLSERVER_HA_TABLE_SETTINGS = 'SQLSERVER_HA_TABLE_SETTINGS',
   SQLSERVER_HA_INSTANCE_SETTINGS = 'SQLSERVER_HA_INSTANCE_SETTINGS',
 }
+// riak
+export enum UserPersonalSettings {
+  RIAK_TABLE_SETTINGS = 'RIAK_TABLE_SETTINGS',
+}
 // quicksearch
 export enum UserPersonalSettings {
   QUICK_SEARCH_CLUSTER_DOMAIN = 'QUICK_SEARCH_CLUSTER_DOMAIN',

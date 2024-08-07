@@ -46,10 +46,12 @@
       :data-source="getRiakList"
       :row-class="setRowClass"
       selectable
+      :settings="tableSetting"
       @clear-search="clearSearchValue"
       @column-filter="columnFilterChange"
       @column-sort="columnSortChange"
-      @selection="handleSelection" />
+      @selection="handleSelection"
+      @setting-change="updateTableSettings" />
     <DbSideslider
       v-if="detailData"
       v-model:is-show="addNodeShow"
@@ -74,6 +76,7 @@
 
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -90,12 +93,13 @@
     useCopy,
     useLinkQueryColumnSerach,
     useStretchLayout,
+    useTableSettings,
     useTicketMessage,
   } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes, UserPersonalSettings } from '@common/const';
 
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
@@ -117,11 +121,6 @@
 
   import AddNodes from '../components/AddNodes.vue';
   import DeleteNodes from '../components/DeleteNodes.vue';
-
-  import type {
-    SearchSelectData,
-    SearchSelectItem,
-  } from '@/types/bkui-vue';
 
   interface Emits {
     (e: 'detailOpenChange', data: boolean): void
@@ -235,7 +234,7 @@
       multiple: true,
       children: searchAttrs.value.time_zone,
     },
-  ] as SearchSelectData);
+  ] as ISearchItem[]);
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const deployTime = ref<[string, string]>(['', '']);
@@ -325,7 +324,7 @@
     },
     {
       label: t('所属DB模块'),
-      field: 'db_module_name',
+      field: 'db_module_id',
       width: 140,
       showOverflowTooltip: true,
       filter: {
@@ -426,6 +425,7 @@
     {
       label: t('操作'),
       width: 300,
+      fixed: 'right',
       render: ({ data }: { data: RiakModel }) => (
         data.isOnline
           ? <>
@@ -436,7 +436,7 @@
                   resource={data.id}
                   text
                   theme="primary"
-                  disabled={data.operationDisabled}
+                  disabled={data.isOffline}
                   onClick={() => handleAddNodes(data)}
                 >
                   { t('添加节点') }
@@ -450,7 +450,7 @@
                   text
                   class="ml-16"
                   theme="primary"
-                  disabled={data.operationDisabled}
+                  disabled={data.isOffline}
                   onClick={() => handleDeleteNodes(data)}
                 >
                   { t('删除节点') }
@@ -504,11 +504,35 @@
     },
   ]);
 
+  // 设置用户个人表头信息
+  const defaultSettings = {
+    fields: (columns.value || []).filter(item => item.field).map(item => ({
+      label: item.label as string,
+      field: item.field as string,
+      disabled: ['cluster_name'].includes(item.field as string),
+    })),
+    checked: [
+      'cluster_name',
+      'major_version',
+      'region',
+      'db_module_id',
+      'status',
+      'cluster_stats',
+      'riak_node',
+    ],
+    trigger: 'manual' as const,
+  };
+
+  const {
+    settings: tableSetting,
+    updateTableSettings,
+  } = useTableSettings(UserPersonalSettings.RIAK_TABLE_SETTINGS, defaultSettings);
+
   watch(isStretchLayoutOpen, (newVal) => {
     emits('detailOpenChange', newVal);
   });
 
-  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, serachData.value, searchValue.value);
     }
