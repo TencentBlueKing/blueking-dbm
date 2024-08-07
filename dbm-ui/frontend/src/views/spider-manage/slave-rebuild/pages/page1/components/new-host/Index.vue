@@ -104,10 +104,10 @@
   const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData()]);
 
-  const selected = shallowRef({ ['TendbClusterHost']: [] } as InstanceSelectorValues<IValue>);
+  const selected = shallowRef({ TendbClusterHost: [] } as InstanceSelectorValues<IValue>);
 
   const tabListConfig = {
-    ['TendbClusterHost']: [
+    TendbClusterHost: [
       {
         name: t('目标从库'),
         tableConfig: {

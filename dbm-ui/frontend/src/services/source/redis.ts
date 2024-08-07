@@ -199,7 +199,7 @@ export function exportRedisInstanceToExcel(params: { bk_host_ids?: number[] }) {
 }
 
 // 获取集群列表
-export const getRedisClusterList = async (params: { bk_biz_id: number }) =>
+export const getRedisClusterList = async (params: { bk_biz_id: number; domain?: string }) =>
   http
     .get<ListBase<RedisModel[]>>(`/apis/redis/bizs/${params.bk_biz_id}/redis_resources/`, params)
     .then((data) => data.results.map((item) => new RedisModel(item)));

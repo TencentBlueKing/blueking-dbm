@@ -77,7 +77,6 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -108,9 +107,6 @@
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
-  const totalNum = computed(() =>
-    tableData.value.length > 0 ? new Set(tableData.value.map((item) => item.cluster)).size : 0,
-  );
   const canSubmit = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length > 0);
 
   const tabListConfig = {
@@ -119,6 +115,10 @@
         {
           handler: (data: SpiderModel) => data.status !== 'normal',
           tip: t('集群异常'),
+        },
+        {
+          handler: (data: SpiderModel) => data.spider_master.length <= 2 && data.spider_slave.length <= 1,
+          tip: t('Master 至少保留 2 台 ，Slave 至少 保留 1台'),
         },
       ],
     },
@@ -253,39 +253,35 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    isSubmitting.value = true;
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-    isSubmitting.value = false;
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        bk_biz_id: currentBizId,
+        remark: '',
+        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
+        details: {
+          is_safe: !isIgnoreBusinessAccess.value,
+          infos,
+        },
+      };
 
-    const params = {
-      bk_biz_id: currentBizId,
-      remark: '',
-      ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
-      details: {
-        is_safe: !isIgnoreBusinessAccess.value,
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认对n个集群缩容接入层？', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () =>
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'SpiderProxyScaleDown',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-    });
+      const ticketResult = await createTicket(params);
+      window.changeConfirm = false;
+      router.push({
+        name: 'SpiderProxyScaleDown',
+        params: {
+          page: 'success',
+        },
+        query: {
+          ticketId: ticketResult.id,
+        },
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置
