@@ -79,7 +79,7 @@
     clusterId: number;
     bkCloudId: number;
     nodeType: string;
-    cluster_type_name: '';
+    cluster_type_name: string;
     spec?: SpecInfo;
     targetNum?: string;
     clusterType?: string;
