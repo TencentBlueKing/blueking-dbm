@@ -15,16 +15,19 @@ from typing import Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType
 from backend.db_meta.exceptions import ClusterNotExistException
 from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckClientConnKwargs,
     DBMetaOPKwargs,
     DeleteClusterDnsKwargs,
     DownloadMediaKwargs,
@@ -88,6 +91,22 @@ class SpiderClusterDisableFlow(object):
             sub_flow_context.update(cluster_info)
             # 开始流程编排
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
+
+            # 预检测
+            sub_pipeline.add_act(
+                act_name=_("检测Spider端连接情况"),
+                act_component_code=CheckClientConnComponent.code,
+                kwargs=asdict(
+                    CheckClientConnKwargs(
+                        bk_cloud_id=cluster_info["bk_cloud_id"],
+                        check_instances=[
+                            f"{i}{IP_PORT_DIVIDER}{cluster_info['spider_port']}"
+                            for i in cluster_info["spider_ip_list"]
+                        ],
+                    )
+                ),
+            )
+
             sub_pipeline.add_act(
                 act_name=_("删除集群域名"),
                 act_component_code=MySQLDnsManageComponent.code,

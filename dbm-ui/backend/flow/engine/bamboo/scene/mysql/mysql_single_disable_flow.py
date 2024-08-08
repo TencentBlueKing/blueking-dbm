@@ -16,9 +16,10 @@ from django.utils.translation import ugettext as _
 
 from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
+from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, DeleteClusterDnsKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import CheckClientConnKwargs, DBMetaOPKwargs, DeleteClusterDnsKwargs
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 
 logger = logging.getLogger("flow")
@@ -51,6 +52,18 @@ class MySQLSingleDisableFlow(object):
 
             # 按照集群维度声明子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+
+            # 预检测，检测proxy的连接情况
+            sub_pipeline.add_act(
+                act_name=_("检测实例连接情况"),
+                act_component_code=CheckClientConnComponent.code,
+                kwargs=asdict(
+                    CheckClientConnKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        check_instances=[cluster.storageinstance_set.get().ip_port],
+                    )
+                ),
+            )
 
             sub_pipeline.add_act(
                 act_name=_("回收集群域名"),

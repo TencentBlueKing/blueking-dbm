@@ -15,6 +15,7 @@ import (
 
 var proxyQueryParseCommands = []string{
 	"select",
+	"show",
 }
 
 var proxyExecuteParseCommands = []string{

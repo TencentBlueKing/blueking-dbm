@@ -411,10 +411,16 @@ class CrondMonitorKwargs:
 class CheckClientConnKwargs:
     """
     定义检测客户端连接的私有变量结构体
+    @attributes bk_cloud_id：云区域id
+    @attributes check_instances: 检测实例
+    @attributes is_filter_sleep: 是否过滤sleep状态的线程， 默认否
+    @attributes is_proxy: 检测实例是否都是mysql-proxy，默认否
     """
 
     bk_cloud_id: int
     check_instances: list
+    is_filter_sleep: bool = False
+    is_proxy: bool = False
 
 
 @dataclass

@@ -28,7 +28,6 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.core.translation.constants import Language
 from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, WriteContextOpType
-from backend.ticket.constants import TicketFlowStatus
 from backend.ticket.models import Flow
 from backend.utils.excel import ExcelHandler
 from backend.utils.redis import RedisConn
@@ -83,16 +82,15 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         translation.activate(blueking_language)
 
     @classmethod
-    def get_flow_output(cls, flow: Union[Flow, str]):
+    def get_flow_output(cls, flow: Union[Flow, str], is_read_cache: bool = False):
         """
         获取流程的缓存数据。只允许在流程成功结束后执行
         @param flow: 当前流程
+        @param is_read_cache: 是否直接读cache
         """
         if isinstance(flow, str):
             flow = Flow.objects.get(flow_obj_id=flow)
-        if flow.status != TicketFlowStatus.SUCCEEDED:
-            raise ValueError(_("流程{}不为成功态").format(flow.flow_obj_id))
-        if flow.details.get("__flow_output"):
+        if flow.details.get("__flow_output") and not is_read_cache:
             return flow.details.get("__flow_output")
 
         # 获取缓存数据
@@ -140,7 +138,6 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         # 只会设置为True，不会出现竞态
         if is_sensitive:
             RedisConn.set(flow_sensitive_key, 1)
-
         # 每次缓存都刷新过期时间。我们设置一个足够长的过期时间，如果这个任务失败很久不处理，那么数据就会自动清理
         RedisConn.expire(flow_cache_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
         RedisConn.expire(flow_sensitive_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
@@ -152,7 +149,7 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         :param key: 缓存键值
         """
         # 获取root_id缓存数据
-        flow_details = self.get_flow_output(root_id)
+        flow_details = self.get_flow_output(flow=root_id, is_read_cache=True)
 
         # 检查 flow_details 是否存在以及是否包含所需的 key
         if not flow_details or key not in flow_details["data"]:
