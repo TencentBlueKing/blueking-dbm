@@ -1451,8 +1451,10 @@ class MongoOplogSizePercent(float, StructuredEnum):
 
 
 class SqlserverBackupFileTagEnum(str, StructuredEnum):
-    MSSQL_FULL_BACKUP = EnumField("MSSQL_FULL_BACKUP", _("全备-保留30天"))
-    LONGDAY_DBFILE_3Y = EnumField("LONGDAY_DBFILE_3Y", _("长久存储-保留三年"))
+    DBFILE1M = EnumField("DBFILE1M", _("全备-保留1个月"))
+    DBFILE6M = EnumField("DBFILE6M", _("全备-保留6个月"))
+    DBFILE1Y = EnumField("DBFILE1Y", _("全备-保留1年"))
+    DBFILE3Y = EnumField("DBFILE3Y", _("全备-保留3年"))
     INCREMENT_BACKUP = EnumField("INCREMENT_BACKUP", _("增量备份-保留15天"))
 
 
