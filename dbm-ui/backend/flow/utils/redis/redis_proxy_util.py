@@ -259,8 +259,12 @@ def get_twemproxy_cluster_server_shards(bk_biz_id: int, cluster_id: int, other_t
             master_ipport = master_obj.machine.ip + IP_PORT_DIVIDER + str(master_obj.port)
             slave_ipport = slave_obj.machine.ip + IP_PORT_DIVIDER + str(slave_obj.port)
 
-            twemproxy_server_shards[master_obj.machine.ip][master_ipport] = ipport_to_segment[master_ipport]
-            twemproxy_server_shards[slave_obj.machine.ip][slave_ipport] = ipport_to_segment[master_ipport]
+            twemproxy_server_shards[master_obj.machine.ip][master_ipport] = ipport_to_segment.get(
+                master_ipport, "switched-0"
+            )
+            twemproxy_server_shards[slave_obj.machine.ip][slave_ipport] = ipport_to_segment.get(
+                master_ipport, "switched-0"
+            )
 
     for other_ipport, master_ipport in other_to_master.items():
         if master_ipport not in ipport_to_segment:
