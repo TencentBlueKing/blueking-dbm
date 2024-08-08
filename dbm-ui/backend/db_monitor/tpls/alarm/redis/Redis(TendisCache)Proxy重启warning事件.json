@@ -36,7 +36,7 @@
               "app_name",
               "cluster_domain",
               "cluster_type",
-              "target",
+              "bk_target_ip",
               "instance",
               "instance_role",
               "warn_level",
