@@ -620,7 +620,7 @@ func (m MysqlUpgradeComp) additionalActions(conn *native.DbWorker, port int) (er
 			logger.Error("create convert_innodb_row_format_for_%d.sql failed %s", port, err.Error())
 			return err
 		}
-		if err = actuator.ExcuteSqlByMySQLClientOne(changeRowFormatfile, " "); err != nil {
+		if err = actuator.ExcuteSqlByMySQLClientOne(changeRowFormatfile, " ", true); err != nil {
 			logger.Error("excute sql by mysql client one %d.sql failed %s", port, err.Error())
 			return err
 		}
@@ -641,7 +641,7 @@ func (m MysqlUpgradeComp) additionalActions(conn *native.DbWorker, port int) (er
 			logger.Error("create convert_innodb_row_format_for_%d.sql failed %s", port, err.Error())
 			return err
 		}
-		if err = actuator.ExcuteSqlByMySQLClientOne(tokudbRenameTablesql, " "); err != nil {
+		if err = actuator.ExcuteSqlByMySQLClientOne(tokudbRenameTablesql, " ", true); err != nil {
 			logger.Error("excute sql by mysql client one %d.sql failed %s", port, err.Error())
 			return err
 		}

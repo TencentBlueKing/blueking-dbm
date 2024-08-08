@@ -382,12 +382,15 @@ func (c *PtTableChecksumComp) transformExclude(
 		return nil
 	}
 
-	ptFilters.IgnoreTables, err = filter.GetExcludeTables(
+	res, err := filter.GetExcludeTables(
 		c.Params.MasterIp,
 		c.Params.MasterPort,
 		c.GeneralParam.RuntimeAccountParam.MonitorUser,
 		c.GeneralParam.RuntimeAccountParam.MonitorPwd,
 	)
+	for k, v := range res {
+		ptFilters.IgnoreTables = append(ptFilters.IgnoreTables, fmt.Sprintf("%s.%s", k, v))
+	}
 
 	return err
 }

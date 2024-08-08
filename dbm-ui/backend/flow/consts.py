@@ -381,7 +381,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     SemanticCheck = EnumField("semantic-check", _("semantic-check"))
     SemanticDumpSchema = EnumField("semantic-dumpschema", _("semantic-dumpschema"))
     MysqlDumpData = EnumField("dump", _("dump"))
-    TruncateDataBackupNaTable = EnumField("backup-truncate-database", _("backup-truncate-database"))
+    # TruncateDataBackupNaTable = EnumField("backup-truncate-database", _("backup-truncate-database"))
     RestartProxy = EnumField("restart", _("restart"))
     CleanMysql = EnumField("clean-mysql", _("clean-mysql"))
     DataBaseTableBackup = EnumField("backup-database-table", _("backup-database-table"))
@@ -418,6 +418,16 @@ class DBActuatorActionEnum(str, StructuredEnum):
     MysqlDataMigrateDump = EnumField("mysql_data_migrate_dump", _("Mysql数据迁移导出库"))
     MysqlDataMigrateImport = EnumField("mysql_data_migrate_import", _("Mysql数据迁移导入库"))
     MysqlChangeMycnf = EnumField("mycnf-change", _("修改MySQL配置"))
+    CreateStageViaCtl = EnumField("create-stage-via-ctl", _("TenDBCluster 清档在中控建立备份库表"))
+    TruncatePreDropStageOnRemote = EnumField("truncate-pre-drop-stage-on-remote", _("TenDBCluster 清档在remote预清理备份库"))
+    TruncateOnMySQL = EnumField("truncate-on-mysql", _("MySQL执行清档"))
+    TruncateOnCtl = EnumField("truncate-on-ctl", _("中控执行清档"))
+    RenameOnMySQL = EnumField("rename-on-mysql", _("MySQL执行DB重命名"))
+    TruncateCheckDBsInUsing = EnumField("truncate-dbs-in-using", _("清档检查库表是否在用"))
+    RenameCheckDBsInUsing = EnumField("rename-dbs-in-using", _("重命名检查库表是否在用"))
+    CreateToDBViaCtl = EnumField("create-to-db-via-ctl", _("重命名在中控建立目标库"))
+    RenamePreDropToOnRemote = EnumField("rename-pre-drop-to-on-remote", _("TenDBCluster 重命名在remote预清理目标库"))
+    RenameDropFromViaCtl = EnumField("rename-drop-from-via-ctl", _("TenDBCluster 重命名在中控删除源库"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

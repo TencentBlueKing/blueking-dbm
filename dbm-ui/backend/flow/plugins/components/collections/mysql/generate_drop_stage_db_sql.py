@@ -40,12 +40,13 @@ class GenerateDropStageDBSqlService(BaseService):
     def write_drop_sql(self, global_data, trans_data, kwargs):
         """往单据detail写入drop sql语句。TODO： 因为目前没有全局的共享上下文，只能写入DB了"""
 
-        old_new_map = trans_data.old_new_map
-        drop_stage_db_cmds = []
-        for old_db in old_new_map:
-            stage_db = old_new_map[old_db]
-            drop_stage_db_cmds.append("drop database if exists `{}`".format(stage_db))
+        # old_new_map = trans_data.old_new_map
+        # drop_stage_db_cmds = []
+        # for old_db in old_new_map:
+        #     stage_db = old_new_map[old_db]
+        #     drop_stage_db_cmds.append("drop database if exists `{}`".format(stage_db))
 
+        drop_stage_db_cmds = trans_data.drop_sqls
         self.log_info("[{}] drop stage db cmds: {}".format(kwargs["node_name"], drop_stage_db_cmds))
         # 原子更新：将drop sql语句插入ticket信息中，用后后续ticket flow上下文获取
         with atomic():
@@ -54,7 +55,8 @@ class GenerateDropStageDBSqlService(BaseService):
             drop_cmds.extend(drop_stage_db_cmds)
             ticket.update_details(drop_stage_db_cmds=drop_cmds)
 
-    def generate_dropsql_ticket(self, global_data, trans_data, kwargs):
+    @staticmethod
+    def generate_dropsql_ticket(global_data, trans_data, kwargs):
         """生成drop语句的变更SQL单据数据"""
         ticket = Ticket.objects.get(id=global_data["uid"])
         bk_biz_id, cluster_ids = global_data["bk_biz_id"], fetch_cluster_ids(global_data["infos"])

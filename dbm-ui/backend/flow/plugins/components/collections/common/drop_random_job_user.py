@@ -127,7 +127,7 @@ class DropTempUserForClusterService(BaseService):
                     self.log_info(f"The result [drop user if exists `{user}`] in {instance['ip_port']} is [success]")
 
         except Exception as e:  # pylint: disable=broad-except
-            self.log_error(f"drop user error in cluster [{cluster.name}]: {e}")
+            self.log_exception(f"drop user error in cluster [{cluster.name}]: {e}")
             return False
 
         if err_num > 0:

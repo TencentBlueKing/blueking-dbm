@@ -12,6 +12,8 @@
 package db_table_filter
 
 import (
+	"context"
+	"dbm-services/common/go-pubpkg/logger"
 	"fmt"
 	"strings"
 
@@ -20,12 +22,15 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+var impossibleTableName = "@@<<~%~empty db~%~>>@@"
+
 // DbTableFilter 库表过滤
 type DbTableFilter struct {
 	IncludeDbPatterns       []string
 	IncludeTablePatterns    []string
 	ExcludeDbPatterns       []string
 	ExcludeTablePatterns    []string
+	AdditionExcludePatterns []string // 隐式需要强制排除的库, 比如系统库之类的. 这些库的 ExcludeTable 强制为 *
 	dbFilterIncludeRegex    string
 	dbFilterExcludeRegex    string
 	tableFilterIncludeRegex string
@@ -43,6 +48,7 @@ func NewDbTableFilter(includeDbPatterns []string, includeTablePatterns []string,
 		IncludeTablePatterns:    cleanIt(includeTablePatterns),
 		ExcludeDbPatterns:       cleanIt(excludeDbPatterns),
 		ExcludeTablePatterns:    cleanIt(excludeTablePatterns),
+		AdditionExcludePatterns: []string{},
 		dbFilterIncludeRegex:    "",
 		dbFilterExcludeRegex:    "",
 		tableFilterIncludeRegex: "",
@@ -98,6 +104,11 @@ func (c *DbTableFilter) buildDbFilterRegex() {
 	for _, db := range c.ExcludeDbPatterns {
 		excludeParts = append(excludeParts, fmt.Sprintf(`%s$`, ReplaceGlob(db)))
 	}
+
+	for _, db := range c.AdditionExcludePatterns {
+		excludeParts = append(excludeParts, fmt.Sprintf(`%s$`, ReplaceGlob(db)))
+	}
+
 	c.dbFilterIncludeRegex = buildIncludeRegexp(includeParts)
 	c.dbFilterExcludeRegex = buildExcludeRegexp(excludeParts)
 }
@@ -122,6 +133,13 @@ func (c *DbTableFilter) buildTableFilterRegex() {
 			)
 		}
 	}
+
+	for _, db := range c.AdditionExcludePatterns {
+		excludeParts = append(
+			excludeParts,
+			fmt.Sprintf(`%s\.%s$`, ReplaceGlob(db), ReplaceGlob("*")),
+		)
+	}
 	/*
 		if mydumper {
 			// ignore infodba_schema.conn_log
@@ -144,7 +162,7 @@ func (c *DbTableFilter) DbFilterRegex() string {
 }
 
 // GetTables 过滤后的表
-func (c *DbTableFilter) GetTables(ip string, port int, user string, password string) ([]string, error) {
+func (c *DbTableFilter) GetTables(ip string, port int, user string, password string) (map[string][]string, error) {
 	return c.getTablesByRegexp(
 		ip,
 		port,
@@ -152,6 +170,10 @@ func (c *DbTableFilter) GetTables(ip string, port int, user string, password str
 		password,
 		c.TableFilterRegex(),
 	)
+}
+
+func (c *DbTableFilter) GetTablesByConn(conn *sqlx.Conn) (map[string][]string, error) {
+	return c.getTablesByRegexpConn(conn, c.TableFilterRegex())
 }
 
 // GetDbs 过滤后的库
@@ -163,6 +185,10 @@ func (c *DbTableFilter) GetDbs(ip string, port int, user string, password string
 		password,
 		c.DbFilterRegex(),
 	)
+}
+
+func (c *DbTableFilter) GetDbsByConn(conn *sqlx.Conn) ([]string, error) {
+	return c.getDbsByRegexpConn(conn, c.DbFilterRegex())
 }
 
 // GetExcludeDbs 排除的库
@@ -180,9 +206,9 @@ func (c *DbTableFilter) GetExcludeDbs(ip string, port int, user string, password
 }
 
 // GetExcludeTables 排除的表
-func (c *DbTableFilter) GetExcludeTables(ip string, port int, user string, password string) ([]string, error) {
+func (c *DbTableFilter) GetExcludeTables(ip string, port int, user string, password string) (map[string][]string, error) {
 	if c.tableFilterExcludeRegex == "" {
-		return []string{}, nil
+		return map[string][]string{}, nil
 	}
 	return c.getTablesByRegexp(
 		ip,
@@ -193,30 +219,14 @@ func (c *DbTableFilter) GetExcludeTables(ip string, port int, user string, passw
 	)
 }
 
-func (c *DbTableFilter) getDbsByRegexp(ip string, port int, user string, password string, reg string) (
-	[]string,
-	error,
-) {
-	dbh, err := sqlx.Connect(
-		"mysql",
-		fmt.Sprintf(`%s:%s@tcp(%s:%d)/`, user, password, ip, port),
-	)
+func (c *DbTableFilter) getDbsByRegexpConn(conn *sqlx.Conn, reg string) ([]string, error) {
+	rows, err := conn.QueryxContext(context.Background(), `SHOW DATABASES`)
 	if err != nil {
 		return nil, err
 	}
-
-	// close connect
 	defer func() {
-		if dbh != nil {
-			dbh.Close()
-		}
+		_ = rows.Close()
 	}()
-
-	rows, err := dbh.Queryx(`SHOW DATABASES`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
 
 	pattern, err := regexp2.Compile(reg, regexp2.None)
 	if err != nil {
@@ -243,7 +253,7 @@ func (c *DbTableFilter) getDbsByRegexp(ip string, port int, user string, passwor
 	return selectedDbs, nil
 }
 
-func (c *DbTableFilter) getTablesByRegexp(ip string, port int, user string, password string, reg string) (
+func (c *DbTableFilter) getDbsByRegexp(ip string, port int, user string, password string, reg string) (
 	[]string,
 	error,
 ) {
@@ -258,40 +268,120 @@ func (c *DbTableFilter) getTablesByRegexp(ip string, port int, user string, pass
 	// close connect
 	defer func() {
 		if dbh != nil {
-			dbh.Close()
+			_ = dbh.Close()
 		}
 	}()
 
-	rows, err := dbh.Queryx(
-		`SELECT CONCAT(table_schema, ".", table_name) AS fullname` +
-			` from INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE="BASE TABLE"`,
+	conn, err := dbh.Connx(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	return c.getDbsByRegexpConn(conn, reg)
+}
+
+func (c *DbTableFilter) getTablesByRegexp(ip string, port int, user string, password string, reg string) (
+	map[string][]string,
+	error,
+) {
+	dbh, err := sqlx.Connect(
+		"mysql",
+		fmt.Sprintf(`%s:%s@tcp(%s:%d)/`, user, password, ip, port),
 	)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	pattern, err := regexp2.Compile(reg, regexp2.None)
+	// close connect
+	defer func() {
+		if dbh != nil {
+			_ = dbh.Close()
+		}
+	}()
+
+	conn, err := dbh.Connx(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	return c.getTablesByRegexpConn(conn, reg)
+}
+
+func (c *DbTableFilter) getTablesByRegexpConn(conn *sqlx.Conn, reg string) (map[string][]string, error) {
+	var dbs []string
+	err := conn.SelectContext(context.Background(), &dbs, "SHOW DATABASES") //.Scan(&dbs)
 	if err != nil {
 		return nil, err
 	}
 
-	var selectedTables []string
-	for rows.Next() {
-		var fullname string
-		err := rows.Scan(&fullname)
+	var fullnames []string
+	for _, db := range dbs {
+		var tables []string
+		err := conn.SelectContext(
+			context.Background(),
+			&tables,
+			`SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES 
+                  		WHERE TABLE_TYPE = "BASE TABLE" AND TABLE_SCHEMA = ?`,
+			db,
+		) //.Scan(&tables)
 		if err != nil {
 			return nil, err
 		}
 
-		ok, err := pattern.MatchString(fullname)
+		if len(tables) == 0 {
+			// 空库写入一个绝对不可能的假表名
+			tables = []string{impossibleTableName}
+		}
+
+		for _, table := range tables {
+			fullnames = append(fullnames, fmt.Sprintf("%s.%s", db, table))
+		}
+	}
+	logger.Info("all table fullnames: %v", fullnames)
+
+	res := make(map[string][]string)
+	pattern, err := regexp2.Compile(reg, regexp2.None)
+	if err != nil {
+		return nil, err
+	}
+	for _, fullname := range fullnames {
+		isMatch, err := pattern.MatchString(fullname)
 		if err != nil {
 			return nil, err
 		}
-		if ok {
-			selectedTables = append(selectedTables, fullname)
+
+		// 空库写了个特别不可能的假表名
+		// 所以可以认为
+		// 1. 如果只有 include table, 只有是 * 才可能匹配
+		// 2. 如果有 include table 和 ignore table, include table 也必须是 * 才可能
+		// 2.1 ignore table 不是 * 根本没办法排除
+		// 2.2 ignore table 不是 * 会被匹配
+		// 这样, 当一个库是空库时就能正确返回
+		if isMatch {
+			logger.Info("%s match", fullname)
+
+			splitName := strings.Split(fullname, ".")
+			logger.Info("%s split to %v", fullname, splitName)
+
+			if _, ok := res[splitName[0]]; !ok {
+				res[splitName[0]] = make([]string, 0)
+			}
+
+			if splitName[1] != impossibleTableName {
+				res[splitName[0]] = append(res[splitName[0]], splitName[1])
+				logger.Info("append %s to res", splitName[1])
+			}
+		} else {
+			logger.Info("%s not match", fullname)
 		}
 	}
 
-	return selectedTables, nil
+	logger.Info("get target res: %v", res)
+	return res, nil
 }

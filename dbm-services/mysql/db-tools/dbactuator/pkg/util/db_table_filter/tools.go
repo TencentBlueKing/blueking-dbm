@@ -69,7 +69,7 @@ func globCheck(patterns []string) error {
 	for _, p := range patterns {
 		if containGlob(p) {
 			if len(patterns) > 1 {
-				return fmt.Errorf("%s: multi patterns not allowd if has glob", patterns)
+				return fmt.Errorf("%s: multi patterns not allowed if has glob", patterns)
 			}
 
 			m1, _ := r1.MatchString(p)

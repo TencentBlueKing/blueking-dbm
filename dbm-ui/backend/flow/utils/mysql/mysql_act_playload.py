@@ -20,6 +20,7 @@ from backend import env
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.models import SystemSettings
+from backend.constants import IP_PORT_DIVIDER
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
@@ -30,6 +31,8 @@ from backend.db_package.models import Package
 from backend.db_services.mysql.sql_import.constants import BKREPO_DBCONSOLE_DUMPFILE_PATH, BKREPO_SQLFILE_PATH
 from backend.flow.consts import (
     CHECKSUM_DB,
+    ROLLBACK_DB_TAIL,
+    STAGE_DB_HEADER,
     SYSTEM_DBS,
     TDBCTL_USER,
     CHECKSUM_TABlE_PREFIX,
@@ -593,23 +596,23 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    def get_dump_na_table_payload(self, **kwargs) -> dict:
-        """
-        导出非表对象
-        """
-        old_new_map = kwargs["trans_data"]["old_new_map"]
-        return {
-            "db_type": DBActuatorTypeEnum.MySQL.value,
-            "action": DBActuatorActionEnum.TruncateDataBackupNaTable.value,
-            "payload": {
-                "general": {"runtime_account": self.account},
-                "extend": {
-                    "host": self.ticket_data["ip"],
-                    "port": self.ticket_data["port"],
-                    "database_infos": [{"old": k, "new": old_new_map[k]} for k in old_new_map],
-                },
-            },
-        }
+    # def get_dump_na_table_payload(self, **kwargs) -> dict:
+    #     """
+    #     导出非表对象
+    #     """
+    #     old_new_map = kwargs["trans_data"]["old_new_map"]
+    #     return {
+    #         "db_type": DBActuatorTypeEnum.MySQL.value,
+    #         "action": DBActuatorActionEnum.TruncateDataBackupNaTable.value,
+    #         "payload": {
+    #             "general": {"runtime_account": self.account},
+    #             "extend": {
+    #                 "host": self.ticket_data["ip"],
+    #                 "port": self.ticket_data["port"],
+    #                 "database_infos": [{"old": k, "new": old_new_map[k]} for k in old_new_map],
+    #             },
+    #         },
+    #     }
 
     def get_import_sqlfile_payload(self, **kwargs) -> dict:
         """
@@ -2217,6 +2220,182 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "items": self.cluster["items"],
                     "persistent": 1,
                     "restart": 2,
+                },
+            },
+        }
+
+    def rename_create_to_db_via_ctl(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.CreateToDBViaCtl.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.ticket_data["ctl_primary"].split(IP_PORT_DIVIDER)[0],
+                    "port": int(self.ticket_data["ctl_primary"].split(IP_PORT_DIVIDER)[1]),
+                    "requests": self.ticket_data["requests"],
+                },
+            },
+        }
+
+    def rename_pre_drop_to_on_remote(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RenamePreDropToOnRemote.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["ip"],
+                    "port_shard_id_map": self.cluster["port_shard_id_map"],
+                    "requests": self.ticket_data["requests"],
+                },
+            },
+        }
+
+    def rename_on_mysql(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RenameOnMySQL.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["ip"],
+                    "port_shard_id_map": self.cluster["port_shard_id_map"],
+                    "requests": self.ticket_data["requests"],
+                    "has_shard": False,
+                },
+            },
+        }
+
+    def rename_on_remote(self, **kwargs) -> dict:
+        p = self.rename_on_mysql(**kwargs)
+        p["payload"]["extend"]["has_shard"] = True
+        return p
+
+    def rename_drop_from_via_ctl(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.RenameDropFromViaCtl.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.ticket_data["ctl_primary"].split(IP_PORT_DIVIDER)[0],
+                    "port": int(self.ticket_data["ctl_primary"].split(IP_PORT_DIVIDER)[1]),
+                    "requests": self.ticket_data["requests"],
+                },
+            },
+        }
+
+    def rename_check_dbs_in_using(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.RenameCheckDBsInUsing.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["ip"],
+                    "port": int(self.cluster["port"]),
+                    "dbs": self.cluster["dbs"],
+                },
+            },
+        }
+
+    def truncate_create_stage_via_ctl(self, **kwargs) -> dict:
+        """
+        在中控创建清档备份库表
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.SpiderCtl.value,
+            "action": DBActuatorActionEnum.CreateStageViaCtl.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.ticket_data["ctl_primary"].split(IP_PORT_DIVIDER)[0],
+                    "port": int(self.ticket_data["ctl_primary"].split(IP_PORT_DIVIDER)[1]),
+                    "flow_timestr": self.ticket_data["flow_timestr"],
+                    "stage_db_header": STAGE_DB_HEADER,
+                    "rollback_db_tail": ROLLBACK_DB_TAIL,
+                    "db_patterns": self.ticket_data["db_patterns"],
+                    "ignore_dbs": self.ticket_data["ignore_dbs"],
+                    "table_patterns": self.ticket_data["table_patterns"],
+                    "ignore_tables": self.ticket_data["ignore_tables"],
+                    "system_dbs": SYSTEM_DBS,
+                    "truncate_data_type": self.ticket_data["truncate_data_type"],
+                },
+            },
+        }
+
+    def truncate_check_dbs_in_using(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.TruncateCheckDBsInUsing.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["ip"],
+                    "port": int(self.cluster["port"]),
+                    "stage_db_header": STAGE_DB_HEADER,
+                    "rollback_db_tail": ROLLBACK_DB_TAIL,
+                    "db_patterns": self.ticket_data["db_patterns"],
+                    "ignore_dbs": self.ticket_data["ignore_dbs"],
+                    "table_patterns": self.ticket_data["table_patterns"],
+                    "ignore_tables": self.ticket_data["ignore_tables"],
+                    "system_dbs": SYSTEM_DBS,
+                },
+            },
+        }
+
+    def truncate_on_mysql(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.TruncateOnMySQL.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["ip"],
+                    "port_shard_id_map": self.cluster["port_shard_id_map"],
+                    "flow_timestr": self.ticket_data["flow_timestr"],
+                    "stage_db_header": STAGE_DB_HEADER,
+                    "rollback_db_tail": ROLLBACK_DB_TAIL,
+                    "db_patterns": self.ticket_data["db_patterns"],
+                    "ignore_dbs": self.ticket_data["ignore_dbs"],
+                    "table_patterns": self.ticket_data["table_patterns"],
+                    "ignore_tables": self.ticket_data["ignore_tables"],
+                    "system_dbs": SYSTEM_DBS,
+                    "has_shard": False,
+                    "truncate_data_type": self.ticket_data["truncate_data_type"],
+                },
+            },
+        }
+
+    def truncate_on_remote(self, **kwargs) -> dict:
+        p = self.truncate_on_mysql(**kwargs)
+        p["payload"]["extend"]["has_shard"] = True
+        return p
+
+    def truncate_on_ctl(self, **kwargs) -> dict:
+        p = self.truncate_create_stage_via_ctl(**kwargs)
+        p["action"] = DBActuatorActionEnum.TruncateOnCtl.value
+        return p
+
+    def truncate_pre_drop_stage_on_remote(self, **kwargs) -> dict:
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.TruncatePreDropStageOnRemote.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "host": self.cluster["ip"],
+                    "port_shard_id_map": self.cluster["port_shard_id_map"],
+                    "flow_timestr": self.ticket_data["flow_timestr"],
+                    "stage_db_header": STAGE_DB_HEADER,
+                    "rollback_db_tail": ROLLBACK_DB_TAIL,
+                    "db_patterns": self.ticket_data["db_patterns"],
+                    "ignore_dbs": self.ticket_data["ignore_dbs"],
+                    "table_patterns": self.ticket_data["table_patterns"],
+                    "ignore_tables": self.ticket_data["ignore_tables"],
+                    "system_dbs": SYSTEM_DBS,
+                    # "truncate_data_type": self.ticket_data["truncate_data_type"]
                 },
             },
         }

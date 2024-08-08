@@ -79,7 +79,16 @@ func (e ExecuteSqlAtLocal) CreateLoadSQLCommand() (command string) {
 // ExcuteSqlByMySQLClient TODO
 func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClient(sqlfile string, targetdbs []string) (err error) {
 	for _, db := range targetdbs {
-		if err = e.ExcuteSqlByMySQLClientOne(sqlfile, db); err != nil {
+		if err = e.ExcuteSqlByMySQLClientOne(sqlfile, db, true); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientWithOutReport(sqlfile string, targetdbs []string) (err error) {
+	for _, db := range targetdbs {
+		if err = e.ExcuteSqlByMySQLClientOne(sqlfile, db, false); err != nil {
 			return err
 		}
 	}
@@ -92,11 +101,11 @@ func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClient(sqlfile string, targetdbs []st
 //	@receiver sqlfile
 //	@receiver targetdbs
 //	@return err
-func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientOne(sqlfile string, db string) (err error) {
+func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientOne(sqlfile string, db string, report bool) (err error) {
 	command := e.CreateLoadSQLCommand()
 	command = command + " " + db + "<" + path.Join(e.WorkDir, sqlfile)
-	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.%s.err", sqlfile, db, time.Now().Format(cst.TimeLayoutDir)))
-	err = e.ExcuteCommand(command)
+	e.ErrFile = path.Join(e.WorkDir, fmt.Sprintf("%s.%s.err", sqlfile, db)) // 删除原有的时间戳方便调用方拼接
+	err = e.ExcuteCommand(command, report)
 	if err != nil {
 		return err
 	}
@@ -104,7 +113,7 @@ func (e ExecuteSqlAtLocal) ExcuteSqlByMySQLClientOne(sqlfile string, db string) 
 }
 
 // ExcuteCommand TODO
-func (e ExecuteSqlAtLocal) ExcuteCommand(command string) (err error) {
+func (e ExecuteSqlAtLocal) ExcuteCommand(command string, report bool) (err error) {
 	var stderrBuf bytes.Buffer
 	var errStdout, errStderr error
 	logger.Info("The Command Is %s", ClearSensitiveInformation(command))
@@ -121,7 +130,11 @@ func (e ExecuteSqlAtLocal) ExcuteCommand(command string) (err error) {
 	defer ef.Close()
 	defer ef.Sync()
 	stdout := io.MultiWriter(os.Stdout)
+
 	stderr := io.MultiWriter(os.Stderr, &stderrBuf, ef)
+	if !report {
+		stderr = io.MultiWriter(&stderrBuf, ef)
+	}
 
 	if err = cmd.Start(); err != nil {
 		logger.Error("start command failed:%s", err.Error())
@@ -137,6 +150,7 @@ func (e ExecuteSqlAtLocal) ExcuteCommand(command string) (err error) {
 	}()
 
 	_, errStderr = io.Copy(stderr, stderrIn)
+
 	wg.Wait()
 
 	if errStdout != nil || errStderr != nil {
