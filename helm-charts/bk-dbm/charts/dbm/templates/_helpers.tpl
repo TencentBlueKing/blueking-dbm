@@ -159,15 +159,14 @@ environment variables
 {{- end -}}
 
 {{- define "dbm.initContainersWaitForSaaS" -}}
-initContainers:
-  - name: check-saas-api
-    image: {{ include "dbm.migration.k8sWaitFor.image" . }}
-    imagePullPolicy: {{ .Values.image.pullPolicy }}
-    args:
-      - pod
-      - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
-    resources:
-      {{- toYaml .Values.initJob.resources | nindent 6 }}
+- name: check-saas-api
+  image: {{ include "dbm.migration.k8sWaitFor.image" . }}
+  imagePullPolicy: {{ .Values.image.pullPolicy }}
+  args:
+    - pod
+    - -lapp.kubernetes.io/component={{ include "dbm.saas-api.fullname" .}}
+  resources:
+    {{- toYaml .Values.initJob.resources | nindent 4 }}
 {{- end }}
 
 {{- define "dbm.initContainersWaitForMigrate" -}}
@@ -180,6 +179,17 @@ initContainers:
       - {{ include "dbm.migrateJobName" . }}
     resources:
       {{- toYaml .Values.initJob.resources | nindent 6 }}
+{{- end }}
+
+{{- define "dbm.initContainerMediumInstall" -}}
+{{- $root := first . -}}
+{{- $db_type := last . -}}
+- name: dbm-medium-install-{{ $db_type }}
+  image: "{{ $root.Values.global.imageRegistry | default $root.Values.dbmedium.installImage.registry }}/{{ $root.Values.dbmedium.installImage.repository }}-{{ $db_type }}:{{ $root.Values.dbmedium.installImage.tag | default $root.Chart.AppVersion }}"
+  imagePullPolicy: {{ $root.Values.dbmedium.installImage.pullPolicy }}
+  volumeMounts:
+    - mountPath: /install
+      name: medium-install
 {{- end }}
 
 {{- define "dbm.initMedium" -}}
@@ -200,6 +210,9 @@ initContainers:
     {{- end }}
   resources:
     {{- toYaml $root.Values.initJob.resources | nindent 4 }}
+  volumeMounts:
+    - mountPath: /install
+      name: medium-install
 {{- end }}
 
 {{- define "dbm.container_env" -}}

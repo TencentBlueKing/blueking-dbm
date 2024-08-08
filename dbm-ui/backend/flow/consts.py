@@ -255,6 +255,7 @@ class MediumEnum(str, StructuredEnum):
     DbBackup = EnumField("dbbackup", _("dbbackup"))
     DbBackupTXSQL = EnumField("dbbackup-txsql", _("dbbackup-txsql"))
     DBActuator = EnumField("actuator", _("actuator"))
+    Exporter = EnumField("exporter", _("exporter"))
     Latest = EnumField("latest", _("最新版本"))
     Twemproxy = EnumField("twemproxy", _("twemproxy"))
     Predixy = EnumField("predixy", _("predixy"))

@@ -174,9 +174,24 @@ dbm:
       repository: "build/blueking/dbmedium"
       pullPolicy: IfNotPresent
       tag: ""
+    installImage:
+      registry: "mirrors.tencent.com"
+      repository: "build/blueking/dbmedium-install"
+      pullPolicy: IfNotPresent
+      tag: ""
+    installEnable:
+      mysql: false
+      es: false
+      kafka: false
+      hdfs: false
+      pulsar: false
+      influxdb: false
+      redis: false
+      mongodb: false
+      riak: false
+      sqlserver: false
 
 # bk-dbconfig values
-
 dbconfig:
   extraEnvVarsCM: bk-dbconfig-db-env
   enabled: true
