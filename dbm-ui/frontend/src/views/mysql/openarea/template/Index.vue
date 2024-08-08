@@ -46,7 +46,7 @@
   const route = useRoute();
 
   const tableRef = ref();
-  const serachKey = useDebouncedRef('');
+  const serachKey = useDebouncedRef(route.query.config_name);
 
   // 单据克隆
   useTicketCloneInfo({
@@ -149,12 +149,6 @@
       cluster_type: 'tendbha,tendbsingle',
     });
   });
-
-  watch(route, () => {
-    serachKey.value = route.query.config_name as string
-  },{
-    immediate: true,
-  })
 
   const fetchData = () => {
     tableRef.value.fetchData({

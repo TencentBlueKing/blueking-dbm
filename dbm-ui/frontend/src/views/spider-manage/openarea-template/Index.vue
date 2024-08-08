@@ -49,7 +49,7 @@
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
-  const serachKey = useDebouncedRef('');
+  const serachKey = useDebouncedRef(route.query.config_name);
 
   // 单据克隆
   useTicketCloneInfo({
