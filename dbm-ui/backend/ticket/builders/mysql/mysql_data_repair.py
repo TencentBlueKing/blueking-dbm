@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.configuration.models import DBAdministrator
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MySQLDataRepairTriggerMode
@@ -41,9 +42,19 @@ class MySQLDataRepairFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_pt_table_sync_scene
 
 
+class MySQLPauseParamBuilder(builders.PauseParamBuilder):
+    """MySQL 数据校验暂停参数"""
+
+    def format(self):
+        # 数据修复目前都是自动发起，确认人加上业务主备DBA
+        dba = DBAdministrator.get_biz_db_type_admins(self.ticket.bk_biz_id, self.ticket.group)[:2]
+        self.params.update(operators=dba)
+
+
 @builders.BuilderFactory.register(TicketType.MYSQL_DATA_REPAIR)
 class MySQLDataRepairFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLDataRepairDetailSerializer
+    pause_node_builder = MySQLPauseParamBuilder
     inner_flow_builder = MySQLDataRepairFlowParamBuilder
     inner_flow_name = _("数据修复执行")
     default_need_itsm = False
