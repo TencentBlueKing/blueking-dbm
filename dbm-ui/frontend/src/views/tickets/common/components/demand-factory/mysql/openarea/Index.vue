@@ -28,14 +28,22 @@
       mode="collapse"
       :title="t('克隆的规则')">
       <template #desc>
-        {{ `( ${t('开区模板')} : ` }}
-        <BkButton
-          text
-          theme="primary"
-          @click="handleGoToolbox">
-          {{ templateDetails?.config_name }}
-        </BkButton>
-        )
+        <span>
+          <I18nT
+            keypath="(开区模板：t，源集群：c，共克隆 n 个 DB)"
+            style="font-size: 12px; color: #63656e"
+            tag="span">
+            <BkButton
+              class="template-name"
+              text
+              theme="primary"
+              @click="handleGoToolbox">
+              {{ templateDetails?.config_name }}
+            </BkButton>
+            <span>{{ templateDetails?.source_cluster.immute_domain }}</span>
+            <span style="font-weight: 700">{{ templateDetails?.config_rules.length }}</span>
+          </I18nT>
+        </span>
       </template>
       <CloneRule :config-rules="templateDetails?.config_rules" />
     </DbCard>
@@ -46,14 +54,22 @@
       mode="collapse"
       :title="t('权限规则')">
       <template #desc>
-        {{ `( ${t('开区模板')} : ` }}
-        <BkButton
-          text
-          theme="primary"
-          @click="handleGoToolbox">
-          {{ templateDetails?.config_name }}
-        </BkButton>
-        )
+        <span>
+          <I18nT
+            keypath="(开区模板：t，源集群：c，共克隆 n 个 DB)"
+            style="font-size: 12px; color: #63656e"
+            tag="span">
+            <BkButton
+              class="template-name"
+              text
+              theme="primary"
+              @click="handleGoToolbox">
+              {{ templateDetails?.config_name }}
+            </BkButton>
+            <span>{{ templateDetails?.source_cluster.immute_domain }}</span>
+            <span style="font-weight: 700">{{ templateDetails?.config_rules.length }}</span>
+          </I18nT>
+        </span>
       </template>
       <PermissionRule
         :cluster-type="templateDetails?.cluster_type"
@@ -70,6 +86,8 @@
   import type { MysqlOpenAreaDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { getDetail } from '@services/source/openarea';
+
+  import { TicketTypes } from '@common/const';
 
   import CloneRule from './components/CloneRule.vue';
   import PermissionRule from './components/PermissionRule.vue';
@@ -111,12 +129,17 @@
   );
 
   const handleGoToolbox = () => {
-    router.push({
-      name: 'MySQLOpenareaTemplate',
+    const ticketTypeRouteNameMap: Record<string, string> = {
+      [TicketTypes.MYSQL_OPEN_AREA]: 'MySQLOpenareaTemplate', // Mysql 新建开区
+      [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
+    };
+    const url = router.resolve({
+      name: ticketTypeRouteNameMap[props.ticketDetails.ticket_type],
       query: {
         config_name: templateDetails.value?.config_name,
       },
     });
+    window.open(url.href, '_blank');
   };
 </script>
 
@@ -136,6 +159,11 @@
       :deep(.db-card__icon) {
         transform: rotate(0);
       }
+    }
+
+    .template-name {
+      font-size: 12px;
+      font-weight: 700;
     }
   }
 </style>
