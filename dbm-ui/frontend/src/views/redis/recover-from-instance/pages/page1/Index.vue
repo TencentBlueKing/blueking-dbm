@@ -161,7 +161,6 @@
           id: 'prod_cluster',
         },
       ],
-      searchPlaceholder: t('访问入口_目标集群'),
     },
   };
 
