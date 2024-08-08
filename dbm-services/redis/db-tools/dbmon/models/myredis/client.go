@@ -90,22 +90,22 @@ func (db *RedisClient) newConn(timeout time.Duration) (err error) {
 		DB:              db.DB,
 		DialTimeout:     timeout,
 		ReadTimeout:     timeout,
-		MaxConnAge:      24 * time.Hour,
+		MaxConnAge:      10 * time.Minute,
 		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
 		MinRetryBackoff: 1 * time.Second, // 重试间隔
 		MaxRetryBackoff: 1 * time.Second,
-		PoolSize:        2,
+		PoolSize:        1,
 		OnConnect:       redisConnHook,
 	}
 	clusterOpt := &redis.ClusterOptions{
 		Addrs:           []string{db.Addr},
 		DialTimeout:     timeout,
 		ReadTimeout:     timeout,
-		MaxConnAge:      24 * time.Hour,
+		MaxConnAge:      10 * time.Minute,
 		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
 		MinRetryBackoff: 1 * time.Second, // 重试间隔
 		MaxRetryBackoff: 1 * time.Second,
-		PoolSize:        2,
+		PoolSize:        1,
 		OnConnect:       redisConnHook,
 	}
 	if db.Password != "" {

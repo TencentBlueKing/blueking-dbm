@@ -39,6 +39,7 @@ type Job struct {
 	oldAddrToUsedMemRow *RedisNodesUsedMemSchema
 	eventSender         *sendwarning.BkMonitorEventSender
 	sqdb                *gorm.DB
+	IsRunning           bool `json:"-"`
 	Err                 error
 }
 
@@ -64,6 +65,10 @@ func (job *Job) reInit() {
 
 // Run Command Run
 func (job *Job) Run() {
+	job.IsRunning = true
+	defer func() {
+		job.IsRunning = false
+	}()
 	if !job.Conf.RedisMaxmemorySet.Enable {
 		// 配置中,这个集群不启用动态设置 maxmemory
 		mylog.Logger.Info(fmt.Sprintf("redismaxmemory not enable"))

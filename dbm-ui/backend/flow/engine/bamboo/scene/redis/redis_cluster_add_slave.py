@@ -12,14 +12,14 @@ import logging.config
 from collections import defaultdict
 from copy import deepcopy
 from dataclasses import asdict
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
-from backend.db_meta.models import Cluster
+from backend.db_meta.models import Cluster, Machine
 from backend.db_meta.models.instance import StorageInstance
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -29,8 +29,10 @@ from backend.flow.engine.bamboo.scene.redis.atom_jobs.access_manager import Clus
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_install import RedisBatchInstallAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_makesync import RedisMakeSyncAtomJob
 from backend.flow.engine.bamboo.scene.redis.atom_jobs.redis_shutdown import RedisBatchShutdownAtomJob
+from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.get_redis_payload import GetRedisActPayloadComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
+from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import (
@@ -136,6 +138,244 @@ class RedisClusterAddSlaveFlow(object):
             "major_version": cluster.major_version,
         }
 
+    @staticmethod
+    def get_cluster_ids_from_info_item(info_item: Dict) -> List[int]:
+        # 兼容传入cluster_id 和 cluster_ids 两种方式
+        cluster_ids = []
+        if "cluster_ids" in info_item and info_item["cluster_ids"]:
+            cluster_ids = info_item["cluster_ids"]
+        else:
+            cluster_ids.append(info_item["cluster_id"])
+        return cluster_ids
+
+    @staticmethod
+    def is_redis_instances_with_diff_config(input_item: dict) -> bool:
+        """
+        是否是redis主从版本,且带有不同配置的redis实例
+        比如不同的密码、不同的databases、port不连续
+        """
+        cluster_ids = RedisClusterAddSlaveFlow.get_cluster_ids_from_info_item(input_item)
+        cluster = Cluster.objects.get(id=cluster_ids[0])
+        if cluster.cluster_type != ClusterType.TendisRedisInstance.value:
+            return False
+        # 主从实例是一台机器对应多个集群,而不是多台机器对应一个集群
+        # 所以判断一个master_ip上的情况即可
+        master_ip = input_item["pairs"][0]["redis_master"]["ip"]
+        master_meta_data = get_cluster_info_by_ip(master_ip)
+        # 判断 ports 是否连续,不连续返回True
+        sorted_master_ports = sorted(master_meta_data["ports"])
+        if sorted_master_ports[-1] != sorted_master_ports[0] + len(sorted_master_ports) - 1:
+            return True
+        # 判断databases or redis_password 是否一致
+        if len(master_meta_data["clusters"]) == 1:
+            return False
+        first_cluster_databases = master_meta_data["clusters"][0]["redis_databases"]
+        first_cluster_password = master_meta_data["clusters"][0]["redis_password"]
+        for cluster_item in master_meta_data["clusters"][1:]:
+            if cluster_item["redis_databases"] != first_cluster_databases:
+                return True
+            if cluster_item["redis_password"] != first_cluster_password:
+                return True
+        return False
+
+    def batch_install_pipelines(
+        self,
+        input_item: dict,
+        cluster_kwargs: ActKwargs,
+        cluster_info: dict,
+        twemproxy_server_shards: dict,
+        sub_pipeline: SubBuilder,
+    ) -> SubBuilder:
+        child_pipelines = []
+        cluster_ids = RedisClusterAddSlaveFlow.get_cluster_ids_from_info_item(input_item)
+        cluster_id = cluster_ids[0]
+        cluster = Cluster.objects.get(id=cluster_id)
+        if not self.is_redis_instances_with_diff_config(input_item):
+            # 是否是redis主架构,且带有不同配置的redis实例
+            # 如果不是,则走批量安装
+            for host_pair in input_item["pairs"]:
+                master_ip = host_pair["redis_master"]["ip"]
+                for new_slave_item in host_pair["redis_slave"]:
+                    install_builder = RedisBatchInstallAtomJob(
+                        root_id=self.root_id,
+                        ticket_data=self.data,
+                        sub_kwargs=cluster_kwargs,
+                        param={
+                            "ip": new_slave_item["ip"],
+                            "meta_role": InstanceRole.REDIS_SLAVE.value,
+                            "start_port": DEFAULT_REDIS_START_PORT,
+                            "ports": cluster_info["master_ports"][master_ip],
+                            "instance_numb": 0,
+                            "spec_id": input_item["resource_spec"][master_ip].get("id", 0),
+                            "spec_config": input_item["resource_spec"][master_ip],
+                            "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
+                            "cache_backup_mode": get_cache_backup_mode(cluster.bk_biz_id, cluster_id),
+                        },
+                    )
+                    child_pipelines.append(install_builder)
+            sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
+            return sub_pipeline
+        # 如果是redis主从架构,且带有不同配置的redis实例
+        # 则先下发截止、执行初始化,然后逐个安装
+        child_pipelines = []
+        for host_pair in input_item["pairs"]:
+            for new_slave_item in host_pair["redis_slave"]:
+                install_builder = RedisBatchInstallAtomJob(
+                    root_id=self.root_id,
+                    ticket_data=self.data,
+                    sub_kwargs=cluster_kwargs,
+                    param={
+                        "ip": new_slave_item["ip"],
+                        "instance_numb": 0,
+                        "ports": [],
+                    },
+                    dbmon_install=False,
+                    to_trans_files=True,
+                    to_install_puglins=True,
+                    to_install_redis=False,
+                )
+                child_pipelines.append(install_builder)
+        sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
+
+        # 逐个安装redis实例
+        install_kwargs = deepcopy(cluster_kwargs)
+        install_kwargs.cluster = {}
+        acts_list = []
+        machines, insts = [], []
+        for host_pair in input_item["pairs"]:
+            master_ip = host_pair["redis_master"]["ip"]
+            master_meta_data = get_cluster_info_by_ip(master_ip)
+            master_machine = Machine.objects.get(ip=master_ip)
+            for new_slave_item in host_pair["redis_slave"]:
+                new_slave_ip = new_slave_item["ip"]
+                machines.append(
+                    {
+                        "bk_biz_id": cluster.bk_biz_id,
+                        "ip": new_slave_ip,
+                        "machine_type": master_machine.machine_type,
+                        "spec_id": master_machine.spec_config["id"],
+                        "spec_config": master_machine.spec_config,
+                    }
+                )
+                for cluster_item in master_meta_data["clusters"]:
+                    install_kwargs.exec_ip = new_slave_ip
+                    insts.append(
+                        {
+                            "ip": new_slave_ip,
+                            "port": cluster_item["ports"][0],
+                            "instance_role": InstanceRole.REDIS_SLAVE.value,
+                        }
+                    )
+                    install_kwargs.cluster = {
+                        "exec_ip": new_slave_ip,
+                        "start_port": cluster_item["ports"][0],
+                        "inst_num": len(cluster_item["ports"]),
+                        "ports": cluster_item["ports"],  # 其实这里面也只会有一个port
+                        "cluster_type": cluster_item["cluster_type"],
+                        "db_version": cluster_item["major_version"],
+                        "domain_name": cluster_item["immute_domain"],
+                        "requirepass": cluster_item["redis_password"],
+                        "databases": cluster_item["redis_databases"],
+                        "maxmemory": 0,  # maxmemory由dbmon去设置吧
+                    }
+                    install_kwargs.get_redis_payload_func = RedisActPayload.get_install_redis_apply_payload.__name__
+                    acts_list.append(
+                        {
+                            "act_name": _("slave:{}:{} 实例安装").format(new_slave_ip, cluster_item["ports"][0]),
+                            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                            "kwargs": asdict(install_kwargs),
+                        }
+                    )
+        sub_pipeline.add_parallel_acts(acts_list)
+        # 写入元数据
+        meta_kwargs = deepcopy(cluster_kwargs)
+        meta_kwargs.cluster = {
+            "meta_func_name": RedisDBMeta.redisinstance_install_for_diff_config.__name__,
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "insts": insts,
+            "machines": machines,
+        }
+        sub_pipeline.add_act(
+            act_name=_("new_slave 写入元数据"),
+            act_component_code=RedisDBMetaComponent.code,
+            kwargs=asdict(meta_kwargs),
+        )
+        return sub_pipeline
+
+    def batch_make_sync_pipelines(
+        self,
+        input_item: dict,
+        cluster_kwargs: ActKwargs,
+        cluster_info: dict,
+        twemproxy_server_shards: dict,
+        sub_pipeline: SubBuilder,
+    ) -> SubBuilder:
+        child_pipelines = []
+        cluster_ids = RedisClusterAddSlaveFlow.get_cluster_ids_from_info_item(input_item)
+        cluster_id = cluster_ids[0]
+        cluster = Cluster.objects.get(id=cluster_id)
+        if not self.is_redis_instances_with_diff_config(input_item):
+            # 是否是redis主架构,且带有不同配置的redis实例
+            # 如果不是,则走批量建立数据同步关系
+            for host_pair in input_item["pairs"]:
+                master_ip = host_pair["redis_master"]["ip"]
+                for new_slave_item in host_pair["redis_slave"]:
+                    sync_param = {
+                        "sync_type": SyncType.SYNC_MS,
+                        "origin_1": master_ip,
+                        "sync_dst1": new_slave_item["ip"],
+                        "ins_link": [],
+                        "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
+                        "cache_backup_mode": get_cache_backup_mode(cluster.bk_biz_id, cluster.id),
+                    }
+                    for port in cluster_info["master_ports"][master_ip]:
+                        sync_param["ins_link"].append({"origin_1": str(port), "sync_dst1": str(port)})
+                    sync_builder = RedisMakeSyncAtomJob(
+                        root_id=self.root_id, ticket_data=self.data, sub_kwargs=cluster_kwargs, params=sync_param
+                    )
+                    child_pipelines.append(sync_builder)
+            sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
+            return sub_pipeline
+        # 如果是redis主从架构,且带有不同配置的redis实例
+        # 则逐个建立数据同步关系
+        sync_kwargs = deepcopy(cluster_kwargs)
+        sync_kwargs.cluster = {}
+        acts_list = []
+        for host_pair in input_item["pairs"]:
+            master_ip = host_pair["redis_master"]["ip"]
+            master_meta_data = get_cluster_info_by_ip(master_ip)
+            for new_slave_item in host_pair["redis_slave"]:
+                new_slave_ip = new_slave_item["ip"]
+                for cluster_item in master_meta_data["clusters"]:
+                    master_port = cluster_item["ports"][0]
+                    sync_kwargs.exec_ip = new_slave_ip
+                    sync_kwargs.cluster = {
+                        "cluster_type": cluster_item["cluster_type"],
+                        "immute_domain": cluster_item["immute_domain"],
+                        "ms_link": [
+                            {
+                                "master_ip": master_ip,
+                                "master_port": master_port,
+                                "slave_ip": new_slave_ip,
+                                "slave_port": master_port,
+                                "master_auth": cluster_item["redis_password"],
+                                "slave_password": cluster_item["redis_password"],
+                            }
+                        ],
+                    }
+                    sync_kwargs.get_redis_payload_func = RedisActPayload.get_redis_batch_replicate.__name__
+                    acts_list.append(
+                        {
+                            "act_name": _("同步关系 {}:{} -> {}:{}").format(
+                                master_ip, master_port, new_slave_ip, master_port
+                            ),
+                            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                            "kwargs": asdict(sync_kwargs),
+                        }
+                    )
+        sub_pipeline.add_parallel_acts(acts_list)
+        return sub_pipeline
+
     def add_slave_flow(self):
         redis_pipeline = Builder(root_id=self.root_id, data=self.data)
 
@@ -147,12 +387,7 @@ class RedisClusterAddSlaveFlow(object):
         bk_biz_id = self.data["bk_biz_id"]
         sub_pipelines = []
         for input_item in self.data["infos"]:
-            cluster_ids = []
-            if "cluster_ids" in input_item and input_item["cluster_ids"]:
-                cluster_ids = input_item["cluster_ids"]
-            else:
-                cluster_ids.append(input_item["cluster_id"])
-
+            cluster_ids = RedisClusterAddSlaveFlow.get_cluster_ids_from_info_item(input_item)
             cluster_id = cluster_ids[0]
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             cluster_kwargs = deepcopy(act_kwargs)
@@ -184,48 +419,23 @@ class RedisClusterAddSlaveFlow(object):
                 act_component_code=GetRedisActPayloadComponent.code,
                 kwargs=asdict(cluster_kwargs),
             )
-            child_pipelines = []
-            for host_pair in input_item["pairs"]:
-                master_ip = host_pair["redis_master"]["ip"]
-                for new_slave_item in host_pair["redis_slave"]:
-                    install_builder = RedisBatchInstallAtomJob(
-                        root_id=self.root_id,
-                        ticket_data=self.data,
-                        sub_kwargs=cluster_kwargs,
-                        param={
-                            "ip": new_slave_item["ip"],
-                            "meta_role": InstanceRole.REDIS_SLAVE.value,
-                            "start_port": DEFAULT_REDIS_START_PORT,
-                            "ports": cluster_info["master_ports"][master_ip],
-                            "instance_numb": 0,
-                            "spec_id": input_item["resource_spec"][master_ip].get("id", 0),
-                            "spec_config": input_item["resource_spec"][master_ip],
-                            "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
-                            "cache_backup_mode": get_cache_backup_mode(bk_biz_id, cluster_id),
-                        },
-                    )
-                    child_pipelines.append(install_builder)
-            sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
+            # new redis slave安装
+            sub_pipeline = self.batch_install_pipelines(
+                input_item=input_item,
+                cluster_kwargs=cluster_kwargs,
+                cluster_info=cluster_info,
+                twemproxy_server_shards=twemproxy_server_shards,
+                sub_pipeline=sub_pipeline,
+            )
 
-            child_pipelines = []
-            for host_pair in input_item["pairs"]:
-                master_ip = host_pair["redis_master"]["ip"]
-                for new_slave_item in host_pair["redis_slave"]:
-                    sync_param = {
-                        "sync_type": SyncType.SYNC_MS,
-                        "origin_1": master_ip,
-                        "sync_dst1": new_slave_item["ip"],
-                        "ins_link": [],
-                        "server_shards": twemproxy_server_shards.get(new_slave_item["ip"], {}),
-                        "cache_backup_mode": get_cache_backup_mode(bk_biz_id, cluster_id),
-                    }
-                    for port in cluster_info["master_ports"][master_ip]:
-                        sync_param["ins_link"].append({"origin_1": str(port), "sync_dst1": str(port)})
-                    sync_builder = RedisMakeSyncAtomJob(
-                        root_id=self.root_id, ticket_data=self.data, sub_kwargs=cluster_kwargs, params=sync_param
-                    )
-                    child_pipelines.append(sync_builder)
-            sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
+            # 建立数据同步关系
+            sub_pipeline = self.batch_make_sync_pipelines(
+                input_item=input_item,
+                cluster_kwargs=cluster_kwargs,
+                cluster_info=cluster_info,
+                twemproxy_server_shards=twemproxy_server_shards,
+                sub_pipeline=sub_pipeline,
+            )
 
             # 新节点加入集群 ################################################################################
             cluster_kwargs.cluster["meta_func_name"] = RedisDBMeta.cluster_add_slave_update_meta.__name__
@@ -295,10 +505,28 @@ class RedisClusterAddSlaveFlow(object):
             if child_pipelines:
                 sub_pipeline.add_parallel_sub_pipeline(child_pipelines)
 
+            # 重装dbmon
+            acts_list = []
+            for host_pair in input_item["pairs"]:
+                for new_slave_item in host_pair["redis_slave"]:
+                    new_slave_ip = new_slave_item["ip"]
+                    cluster_kwargs.exec_ip = new_slave_ip
+                    cluster_kwargs.cluster = {"ip": new_slave_ip, "is_stop": False}
+                    cluster_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+                    acts_list.append(
+                        {
+                            "act_name": _("{}-重装bkdbmon").format(new_slave_ip),
+                            "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                            "kwargs": asdict(cluster_kwargs),
+                        }
+                    )
+            sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
+            # 重写predixy配置
             predixy_conf_rewrite_bulider = ClusterPredixyConfigServersRewriteAtomJob(
                 self.root_id,
                 self.data,
-                act_kwargs,
+                cluster_kwargs,
                 {"cluster_domain": cluster_info["immute_domain"], "to_remove_servers": []},
             )
             if predixy_conf_rewrite_bulider:
@@ -318,11 +546,7 @@ class RedisClusterAddSlaveFlow(object):
         """
         bk_biz_id = self.data["bk_biz_id"]
         for input_item in self.data["infos"]:
-            cluster_ids = []
-            if "cluster_ids" in input_item and input_item["cluster_ids"]:
-                cluster_ids = input_item["cluster_ids"]
-            else:
-                cluster_ids.append(input_item["cluster_id"])
+            cluster_ids = RedisClusterAddSlaveFlow.get_cluster_ids_from_info_item(input_item)
 
             for cluster_id in cluster_ids:
                 try:

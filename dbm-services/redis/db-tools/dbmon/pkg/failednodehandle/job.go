@@ -153,6 +153,7 @@ func (rn *redisNodeTask) RunTask() {
 	var clusterEnabled bool
 	var ok bool
 	var nowIDMapToNodes map[string]*myredis.ClusterNodeData
+	var clusterInfo *myredis.CmdClusterInfo
 	rn.getRedisCli()
 	if rn.Err != nil {
 		return
@@ -165,6 +166,16 @@ func (rn *redisNodeTask) RunTask() {
 	if !clusterEnabled {
 		mylog.Logger.Debug(fmt.Sprintf("redis cluster not enabled,addr:%s", rn.Addr()))
 		// 非集群模式,跳过
+		return
+	}
+	clusterInfo, rn.Err = rn.redisCli.ClusterInfo()
+	if rn.Err != nil {
+		return
+	}
+	if clusterInfo != nil && clusterInfo.ClusterState != consts.ClusterStateOK {
+		// 如果集群状态不是ok,则跳过
+		mylog.Logger.Warn(fmt.Sprintf("redis cluster state not ok,skip failed nodes handle,addr:%s,state:%s",
+			rn.Addr(), clusterInfo.ClusterState))
 		return
 	}
 	nowIDMapToNodes, rn.Err = rn.redisCli.GetNodeIDMapToNodes()

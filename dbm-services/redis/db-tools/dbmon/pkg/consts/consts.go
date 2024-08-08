@@ -232,6 +232,16 @@ func IsRedisInstanceDbType(dbType string) bool {
 	return false
 }
 
+// IsTwemproxyDbType proxy是否是twemproxy类型
+func IsTwemproxyDbType(dbType string) bool {
+	if dbType == TendisTypeTwemproxyRedisInstance ||
+		dbType == TendisTypeTwemproxyTendisplusInstance ||
+		dbType == TendisTypeTwemproxyTendisSSDInstance {
+		return true
+	}
+	return false
+}
+
 // IsTendisplusInstanceDbType 存储端是否是tendisplus类型
 func IsTendisplusInstanceDbType(dbType string) bool {
 	if dbType == TendisTypePredixyTendisplusCluster ||

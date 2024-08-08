@@ -360,6 +360,24 @@ class RedisDBMeta(object):
             api.storage_instance.create(instances=ins, creator=self.ticket_data["created_by"], status=ins_status)
         return True
 
+    def redisinstance_install_for_diff_config(self) -> bool:
+        """
+        redis主从集群存在不同配置(如密码,databases)
+        insts: [
+            {"ip":xxx,"port":xxx,"instance_role":"redis_slave"},
+        ]
+        machines: [
+            {"bk_biz_id":xxx,"ip":xxx,"machine_type":xxx,"spec_id":xxx,"spec_config":xxx},
+        ]
+        """
+        bk_cloud_id = self.cluster.get("bk_cloud_id")
+        insts = self.cluster.get("insts")
+        machines = self.cluster.get("machines")
+        api.machine.get_or_create(machines=machines, creator=self.ticket_data["created_by"], bk_cloud_id=bk_cloud_id)
+        api.storage_instance.create(
+            instances=insts, creator=self.ticket_data["created_by"], status=InstanceStatus.RUNNING
+        )
+
     def replicaof_ins(self) -> bool:
         """
         单实例上架主从关系

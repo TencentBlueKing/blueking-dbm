@@ -17,6 +17,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/pkg/httpapi"
 	"dbm-services/redis/db-tools/dbmon/pkg/keylifecycle"
 	"dbm-services/redis/db-tools/dbmon/pkg/mongojob"
+	"dbm-services/redis/db-tools/dbmon/pkg/monitormemoryusage"
 	"dbm-services/redis/db-tools/dbmon/pkg/redisbinlogbackup"
 	"dbm-services/redis/db-tools/dbmon/pkg/redisfullbackup"
 	"dbm-services/redis/db-tools/dbmon/pkg/redisheartbeat"
@@ -221,6 +222,8 @@ Buildstamp:%s`, version, githash, buildstamp),
 		}
 		mylog.Logger.Info(fmt.Sprintf("start cron job,entryID:%d Listen:%s\n", entryID, config.GlobalConf.HttpAddress))
 		c.Start()
+		// 检测dbmon内存使用情况,超过500MB则退出
+		go monitormemoryusage.MonitorMemoryUsg()
 		go func() {
 			http.ListenAndServe("127.0.0.1:6600", nil)
 		}()
