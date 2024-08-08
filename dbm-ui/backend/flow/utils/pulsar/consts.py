@@ -27,6 +27,7 @@ class PulsarConfigEnum(str, StructuredEnum):
     Port = EnumField("port", _("broker服务端口"))
     ManagerUserName = EnumField("username", _("访问Pulsar Manager账户名"))
     ManagerPassword = EnumField("password", _("访问Pulsar Manager密码"))
+    BrokerServicePort = EnumField("brokerServicePort", _("broker服务端口"))
 
 
 PULSAR_ZOOKEEPER_SERVICE_PORT = 2181

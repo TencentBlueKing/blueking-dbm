@@ -47,6 +47,8 @@ class PulsarActPayload(object):
                     "method": ReqType.GENERATE_AND_PUBLISH,
                 }
             )
+            # 额外修改broker服务的端口号
+            data["content"][PulsarRoleEnum.Broker][PulsarConfigEnum.BrokerServicePort] = self.ticket_data["port"]
         else:
             # 已有集群的单据操作，通过集群域名获取个性化配置
             data = DBConfigApi.query_conf_item(
