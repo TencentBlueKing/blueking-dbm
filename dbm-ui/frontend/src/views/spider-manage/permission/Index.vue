@@ -56,7 +56,6 @@
         :access-dbs="authorizeDbs"
         :account-type="AccountTypes.TENDBCLUSTER"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
-        :tab-list="[ClusterTypes.TENDBCLUSTER]"
         :user="authorizeUser" />
     </div>
   </PermissionCatch>

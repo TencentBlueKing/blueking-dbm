@@ -116,7 +116,6 @@
     :account-type="AccountTypes.TENDBCLUSTER"
     :cluster-types="[ClusterTypes.TENDBCLUSTER]"
     :selected="selected"
-    :tab-list="[ClusterTypes.TENDBCLUSTER]"
     @success="handleClearSelected" />
   <ExcelAuthorize
     v-model:is-show="excelAuthorizeShow"
@@ -142,6 +141,7 @@
     useRouter,
   } from 'vue-router';
 
+  import type { ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
   import TendbClusterModel from '@services/model/spider/tendbCluster';
   import {
     getSpiderDetail,
