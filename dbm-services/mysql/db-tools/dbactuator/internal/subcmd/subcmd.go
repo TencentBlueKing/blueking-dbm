@@ -33,7 +33,7 @@ import (
 
 const (
 	// CmdBaseExampleStr TODO
-	CmdBaseExampleStr = "-u {uid} -n {node_id} -p {base64}"
+	CmdBaseExampleStr = "-U {uid} -N {node_id} -p {base64}"
 	// PayloadFormatRaw TODO
 	PayloadFormatRaw = "raw"
 )

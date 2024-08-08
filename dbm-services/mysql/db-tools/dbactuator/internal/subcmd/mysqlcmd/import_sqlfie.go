@@ -66,7 +66,8 @@ func (d *ExecSQLFileAct) Run() (err error) {
 		{
 			FunName: "Init",
 			Func:    d.Payload.Init,
-		}, {
+		},
+		{
 			FunName: "执行前预处理",
 			Func: func() error {
 				if d.Payload.Params.IsSpider {

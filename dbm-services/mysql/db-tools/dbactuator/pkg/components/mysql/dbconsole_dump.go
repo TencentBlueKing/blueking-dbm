@@ -168,9 +168,12 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 			return err
 		}
 
-		c.realIgnoreTables, err = dbTablefiler.GetExcludeTables(host, port, user, pwd)
+		res, err := dbTablefiler.GetExcludeTables(host, port, user, pwd)
 		if err != nil {
 			return err
+		}
+		for k, v := range res {
+			c.realIgnoreTables = append(c.realIgnoreTables, fmt.Sprintf("%s.%s", k, v))
 		}
 	}
 	logger.Info("special tables %v", c.realTables)
