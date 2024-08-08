@@ -67,7 +67,7 @@ class TimerFlow(BaseTicketFlow):
 
     @property
     def _status(self) -> str:
-        trigger_time = str2datetime(self.run_time)
+        trigger_time = str2datetime(self.trigger_time)
         if self.expired_flag is None:
             return constants.TicketStatus.PENDING.value
 
