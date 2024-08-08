@@ -17,6 +17,13 @@ spec:
       {{- end }}
       serviceAccountName: {{ include "dbm.serviceAccountName" . }}
       restartPolicy: Never
+      initContainers:
+        {{- include "dbm.initContainersWaitForSaaS" . | nindent 8 }}
+        {{- range $db_type, $enable := .Values.dbmedium.installEnable }}
+          {{- if $enable -}}
+            {{- include "dbm.initContainerMediumInstall" (list $ $db_type) | nindent 8 }}
+          {{- end }}
+        {{- end }}
       containers:
         {{- include "dbm.initMedium" (list . "mysql") | nindent 8 }}
         {{- include "dbm.initMedium" (list . "es") | nindent 8 }}
@@ -29,5 +36,7 @@ spec:
         {{- include "dbm.initMedium" (list . "riak") | nindent 8 }}
         {{- include "dbm.initMedium" (list . "sqlserver") | nindent 8 }}
         {{- include "dbm.initMedium" (list . "cloud") | nindent 8 }}
-      {{- include "dbm.initContainersWaitForSaaS" . | nindent 6 }}
+      volumes:
+        - name: medium-install
+          emptyDir: {}
 {{- end }}

@@ -243,7 +243,7 @@ class MediumHandler:
             lock_file.write(yaml.safe_dump(lock_info))
 
     @classmethod
-    def build_medium(cls, bkrepo_tmp_dir):
+    def build_medium(cls, bkrepo_tmp_dir, installation=False):
         # 加载lock文件，获取介质的版本信息
         medium_lock_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "medium.lock")
         with open(medium_lock_path, "r") as lock_file:
@@ -252,6 +252,9 @@ class MediumHandler:
         for db_type, mediums in lock_info.items():
             for medium in mediums:
                 for medium_type, medium_info in medium.items():
+                    # 如果介质和安装模式不匹配，忽略
+                    if medium_info.get("installation", False) != installation:
+                        continue
                     # 将编译好的介质复制到指定目录
                     target_medium_path = f"{bkrepo_tmp_dir}/{db_type}/{medium_type}/{medium_info['version']}"
                     result = subprocess.run(
