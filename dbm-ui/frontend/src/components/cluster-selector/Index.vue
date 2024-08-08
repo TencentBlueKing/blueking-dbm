@@ -94,7 +94,6 @@
             :disabled-row-config="activePanelObj.disabledRowConfig"
             :get-resource-list="activePanelObj.getResourceList"
             :multiple="activePanelObj.multiple"
-            :search-placeholder="activePanelObj.searchPlaceholder"
             :search-select-list="activePanelObj.searchSelectList"
             :selected="selectedArr"
             @change="handleSelectTable" />
@@ -181,8 +180,6 @@
     previewResultKey?: string;
     // 搜索栏下拉选项
     searchSelectList?: SearchSelectList;
-    // 搜索栏的placeholder
-    searchPlaceholder?: string;
     showPreviewResultTitle?: boolean;
     // 多选模式
     multiple?: boolean;

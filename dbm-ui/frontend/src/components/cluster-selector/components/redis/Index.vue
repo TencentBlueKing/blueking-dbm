@@ -81,6 +81,10 @@
 
   const emits = defineEmits<Emits>();
 
+  defineOptions({
+    inheritAttrs: false
+  })
+
   const { t } = useI18n();
 
   const {

@@ -28,7 +28,6 @@
     clusterType: ClusterTypes;
     searchAttrs: SearchAttrs;
     searchSelectList?: SearchSelectList;
-    // placeholder?: string
   }
 
   interface Emits {
@@ -37,7 +36,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     searchSelectList: undefined,
-    placeholder: '',
   });
 
   const emits = defineEmits<Emits>();
