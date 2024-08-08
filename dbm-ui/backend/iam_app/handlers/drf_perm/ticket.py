@@ -13,7 +13,6 @@ import logging
 from typing import List
 
 from django.utils.translation import ugettext as _
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 
 from backend.configuration.models import DBAdministrator
@@ -29,7 +28,7 @@ from backend.iam_app.handlers.drf_perm.base import (
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import TicketType
-from backend.ticket.exceptions import BatchApprovalWrongOperatorException
+from backend.ticket.exceptions import ApprovalWrongOperatorException
 from backend.ticket.models import Ticket
 from backend.utils.basic import get_target_items_from_details
 
@@ -154,35 +153,22 @@ def create_ticket_permission(ticket_type: TicketType) -> List[IAMPermission]:
 
 class BatchApprovalPermission(BasePermission):
     def has_permission(self, request, view):
-        try:
-            ticket_ids = request.data.get("ticket_ids")
-            # 获取当前审批人
-            current_approver = request.user.username
+        ticket_ids = request.data.get("ticket_ids")
+        user = request.user.username
+        tickets = Ticket.objects.filter(id__in=ticket_ids).values("bk_biz_id", "ticket_type", "group")
+        # 缓存approvers字典
+        approver_cache = {}
 
-            # 取出所有的Ticket对象
-            tickets = Ticket.objects.filter(id__in=ticket_ids).values("bk_biz_id", "ticket_type", "group")
-            if len(tickets) != len(ticket_ids):
-                raise ValueError("Some tickets do not exist")
-            # 缓存approvers字典
-            approver_cache = {}
-            for ticket in tickets:
-                # 获取所有有权限的审批人
-                db_type = ticket["group"]
-                cache_key = (ticket["bk_biz_id"], db_type)
-                # 检查缓存中是否已有结果
-                if cache_key not in approver_cache:
-                    # 缓存没有命中，则查询并存入缓存
-                    approver_cache[cache_key] = DBAdministrator.get_biz_db_type_admins(ticket["bk_biz_id"], db_type)
-                # 从缓存中获取审批人列表
-                approvers = approver_cache[cache_key]
-                if current_approver not in approvers:
-                    raise BatchApprovalWrongOperatorException(
-                        _("{}不在处理人: {}中，无法处理").format(current_approver, ",".join(approvers))
-                    )
-            return True
-        except (ValueError, BatchApprovalWrongOperatorException) as e:
-            raise PermissionDenied(detail=str(e))
-        except Exception as e:
-            # 捕获所有其他异常并记录
-            logger.error(f"Unexpected error: {str(e)}")
-            raise PermissionDenied(detail="Unexpected error occurred")
+        for ticket in tickets:
+            # 获取所有有权限的审批人
+            db_type = ticket["group"]
+            cache_key = (ticket["bk_biz_id"], db_type)
+            # 缓存没有命中，则查询并存入缓存
+            if cache_key not in approver_cache:
+                approver_cache[cache_key] = DBAdministrator.get_biz_db_type_admins(ticket["bk_biz_id"], db_type)
+            if user not in approver_cache[cache_key]:
+                raise ApprovalWrongOperatorException(
+                    _("{}不在处理人:{}中, 无权进行审批操作").format(user, approver_cache[cache_key])
+                )
+
+        return True

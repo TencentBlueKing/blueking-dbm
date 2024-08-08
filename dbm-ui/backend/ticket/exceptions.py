@@ -60,7 +60,7 @@ class TodoWrongOperatorException(TicketBaseException):
     MESSAGE_TPL = _("错误的todo处理人{username}")
 
 
-class BatchApprovalWrongOperatorException(TicketBaseException):
+class ApprovalWrongOperatorException(TicketBaseException):
     ERROR_CODE = "008"
-    MESSAGE = _("错误的批量审批处理人")
-    MESSAGE_TPL = _("错误的todo处理人{username}")
+    MESSAGE = _("审批处理异常")
+    MESSAGE_TPL = _("审批处理异常{username}")

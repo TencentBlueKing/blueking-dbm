@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 from typing import Dict, List
 
@@ -15,11 +16,21 @@ from django.db.models import Prefetch
 from django.utils.translation import ugettext as _
 
 from backend import env
-from backend.configuration.constants import PLAT_BIZ_ID
+from backend.components import ItsmApi
+from backend.configuration.constants import PLAT_BIZ_ID, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
-from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowTypeConfig, TicketFlowStatus, TicketType
+from backend.ticket.constants import (
+    FLOW_FINISHED_STATUS,
+    ITSM_FIELD_NAME__ITSM_KEY,
+    FlowType,
+    FlowTypeConfig,
+    OperateNodeActionType,
+    TicketFlowStatus,
+    TicketType,
+)
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.todos import ActionType, TodoActorFactory
@@ -175,6 +186,46 @@ class TicketHandler:
         TicketFlowsConfig.objects.bulk_create(created_configs)
 
     @classmethod
+    def get_itsm_fields(cls, sample_sn=None):
+        """获取单据审批需要的itsm字段"""
+        # 预先获取审批接口的field的审批意见和备注的key
+        approval_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_KEY)
+        remark_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY)
+
+        # 如果未入库，则获取任意一个ticket的信息来初始化key
+        if not approval_key or not remark_key:
+            ticket_info_response = ItsmApi.get_ticket_info(params={"sn": sample_sn})
+            for field in ticket_info_response["fields"]:
+                SystemSettings.insert_setting_value(key=ITSM_FIELD_NAME__ITSM_KEY[field["name"]], value=field["key"])
+
+        return {SystemSettingsEnum.ITSM_APPROVAL_KEY: approval_key, SystemSettingsEnum.ITSM_REMARK_KEY: remark_key}
+
+    @classmethod
+    def approve_itsm_ticket(cls, ticket_id, action, operator, **kwargs):
+        """审批 / 终止itsm中的单据"""
+        sn = Flow.objects.get(ticket_id=ticket_id, flow_type="BK_ITSM").flow_obj_id
+        itsm_info = ItsmApi.get_ticket_info(params={"sn": sn})
+
+        # 当前没有正在进行的步骤，退出
+        if not itsm_info["current_steps"]:
+            return
+        state_id = itsm_info["current_steps"][0]["state_id"]
+
+        # 审批单据
+        if action == OperateNodeActionType.TRANSITION:
+            is_approved = kwargs["is_approved"]
+            fields = [{"key": field, "value": json.dumps(is_approved)} for field in cls.get_itsm_fields(sn).values()]
+            params = {"sn": sn, "state_id": state_id, "action_type": action, "operator": operator, "fields": fields}
+            ItsmApi.operate_node(params, use_admin=True)
+        # 终止单据
+        elif action == OperateNodeActionType.TERMINATE:
+            action_message = _("{} 终止了此单据").format(operator)
+            params = {"sn": sn, "action_type": action, "operator": operator, "action_message": action_message}
+            ItsmApi.operate_ticket(params, use_admin=True)
+
+        return sn
+
+    @classmethod
     def operate_flow(cls, ticket_id, flow_id, func, *args, **kwargs):
         """进行flow操作，目前支持重试和终止"""
         ticket = Ticket.objects.get(pk=ticket_id)
@@ -208,6 +259,10 @@ class TicketHandler:
             todos = Todo.objects.filter(ticket=ticket, flow=first_running_flow)
             for todo in todos:
                 TodoActorFactory.actor(todo).process(operator, ActionType.TERMINATE, params={})
+
+            # 如果是处于审批阶段，需要关闭itsm单据
+            if first_running_flow.flow_type == FlowType.BK_ITSM:
+                cls.approve_itsm_ticket(ticket.id, OperateNodeActionType.TERMINATE, "admin", is_approved=False)
 
             # 用户终止 / 系统终止flow
             logger.info(_("操作人[{}]终止了单据[{}]").format(operator, ticket.id))

@@ -341,7 +341,7 @@ class ListTicketStatusSerializer(serializers.Serializer):
 
 
 class BatchApprovalSerializer(serializers.Serializer):
-    is_approved = serializers.CharField(help_text=_("是否通过"))
+    is_approved = serializers.BooleanField(help_text=_("是否通过"))
     ticket_ids = serializers.ListField(help_text=_("单据id集合"))
 
 

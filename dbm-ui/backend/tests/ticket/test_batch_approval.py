@@ -34,18 +34,26 @@ def set_empty_middleware():
         yield
 
 
-class TestBatchApproval(object):
-    @patch.object(TicketViewSet, "permission_classes", [AllowAny])
-    @patch.object(TicketViewSet, "get_permissions", lambda x: [])
-    @patch("backend.ticket.views.ItsmApi", ItsmApiMock)
-    @patch("backend.iam_app.handlers.permission.Permission", PermissionMock)
-    def test_batch_approval(self):
+@pytest.fixture(scope="module")
+def query_fixture(django_db_blocker):
+    with django_db_blocker.unblock():
         Ticket.objects.create(id=1, bk_biz_id=1)
         Ticket.objects.create(id=2, bk_biz_id=1)
         Ticket.objects.create(id=3, bk_biz_id=1)
         Flow.objects.create(ticket_id=1, flow_type="BK_ITSM", flow_obj_id="101")
         Flow.objects.create(ticket_id=2, flow_type="BK_ITSM", flow_obj_id="102")
         Flow.objects.create(ticket_id=3, flow_type="BK_ITSM", flow_obj_id="103")
+        yield
+        Ticket.objects.all().delete()
+        Flow.objects.all().delete()
+
+
+class TestBatchApproval(object):
+    @patch.object(TicketViewSet, "permission_classes", [AllowAny])
+    @patch.object(TicketViewSet, "get_permissions", lambda x: [])
+    @patch("backend.ticket.handler.ItsmApi", ItsmApiMock)
+    @patch("backend.iam_app.handlers.permission.Permission", PermissionMock)
+    def test_batch_approval(self, query_fixture, db):
         url = "/apis/tickets/batch_approval/"
         response = client.post(url, data=BATCH_APPROVAL_DATA)
-        assert len(response.data["result"]) == len(BATCH_APPROVAL_DATA["ticket_ids"])
+        assert response.status_code == 200

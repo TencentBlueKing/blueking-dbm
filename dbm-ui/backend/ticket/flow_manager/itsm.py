@@ -80,20 +80,21 @@ class ItsmFlow(BaseTicketFlow):
         # 把 ITSM 单据状态映射为本系统内的单据状态
         current_status = self.ticket_approval_result["current_status"]
         approve_result = self.ticket_approval_result["approve_result"]
-
+        # 进行中
         if current_status == ItsmTicketStatus.RUNNING:
-            self.flow_obj.update_status(TicketFlowStatus.RUNNING)
-            return TicketStatus.RUNNING
-
-        if current_status == ItsmTicketStatus.REVOKED:
-            self.flow_obj.update_status(TicketFlowStatus.REVOKED)
-            return TicketStatus.REVOKED
+            return self.flow_obj.update_status(TicketFlowStatus.RUNNING)
+        # 撤单
+        elif current_status == ItsmTicketStatus.REVOKED:
+            return self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
+        # 审批通过
         elif current_status == ItsmTicketStatus.FINISHED and approve_result:
-            self.flow_obj.update_status(TicketFlowStatus.SUCCEEDED)
-            return TicketStatus.SUCCEEDED
+            return self.flow_obj.update_status(TicketFlowStatus.SUCCEEDED)
+        # 审批拒绝
+        elif current_status == ItsmTicketStatus.FINISHED and not approve_result:
+            return self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
+        # 终止
         elif current_status == ItsmTicketStatus.TERMINATED:
-            self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
-            return TicketStatus.TERMINATED
+            return self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
 
     @property
     def _url(self) -> str:

@@ -25,9 +25,7 @@ from rest_framework.response import Response
 from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import PaginatedResponseSwaggerAutoSchema, common_swagger_auto_schema
-from backend.components import ItsmApi
-from backend.configuration.constants import SystemSettingsEnum
-from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.configuration.models import DBAdministrator
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -40,9 +38,7 @@ from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMi
 from backend.ticket.constants import (
     TODO_DONE_STATUS,
     CountType,
-    ItsmTicketNodeEnum,
     OperateNodeActionType,
-    TicketInfoActionType,
     TicketStatus,
     TicketType,
     TodoStatus,
@@ -51,7 +47,7 @@ from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
+from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.serializers import (
     BatchApprovalSerializer,
     BatchTodoOperateSerializer,
@@ -626,59 +622,15 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         sns: 单号集合
         is_approved: 是否审批通过
         """
-        validated_data = self.params_validate(self.get_serializer_class())
-        ticket_ids = validated_data["ticket_ids"]
-        sns = Flow.objects.filter(ticket_id__in=ticket_ids, flow_type="BK_ITSM").values_list("flow_obj_id", flat=True)
-        is_approved = validated_data["is_approved"]
-        operator = request.user.username
-        # 预先获取审批接口的field的审批意见和备注的key
-        approval_result_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY)
-        remark_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY)
-
-        if not approval_result_key or not remark_key:
-            # 获取任意一个ticket的信息来初始化key
-            sample_sn = sns[0]
-            ticket_info_response = ItsmApi.get_ticket_info(params={"sn": sample_sn})
-            fields = ticket_info_response["fields"]
-            for field in fields:
-                if field["name"] == ItsmTicketNodeEnum.ApprovalOption.value:
-                    approval_result_key = field["key"]
-                    SystemSettings.insert_setting_value(
-                        key=SystemSettingsEnum.ITSM_APPROVAL_OPTIONS_KEY, value=approval_result_key
-                    )
-                if field["name"] == ItsmTicketNodeEnum.Remark.value:
-                    remark_key = field["key"]
-                    SystemSettings.insert_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY, value=remark_key)
-
-        def process_ticket(sn):
-            ticket_info_response = ItsmApi.get_ticket_info(params={"sn": sn})
-            current_step = ticket_info_response["current_steps"][0]
-
-            if current_step["action_type"] == TicketInfoActionType.TRANSITION:
-                state_id = current_step["state_id"]
-                ItsmApi.operate_node(
-                    params={
-                        "sn": sn,
-                        "state_id": state_id,
-                        "action_type": OperateNodeActionType.TRANSITION.value,
-                        "operator": operator,
-                        "fields": [
-                            {"key": approval_result_key, "value": "true"},
-                            {"key": remark_key, "value": is_approved},
-                        ],
-                    }
-                )
-            else:
-                raise ValueError(_("单号{}的action_type不是审批类型").format(sn))
-
-        def request_func(**params):
-            sn = params["sn"]
-            process_ticket(sn)
-            return {"sn": sn, "result": "success"}
-
-        params_list = [{"sn": sn, "approve_action": is_approved} for sn in sns]
-        results = request_multi_thread(request_func, params_list, get_data=lambda x: x, in_order=True)
-        return Response({"result": results})
+        data = self.params_validate(self.get_serializer_class())
+        ticket_ids, is_approved = data["ticket_ids"], data["is_approved"]
+        user, itsm_action = request.user.username, OperateNodeActionType.TRANSITION
+        params_list = [
+            {"ticket_id": ticket, "action": itsm_action, "is_approved": is_approved, "operator": user}
+            for ticket in ticket_ids
+        ]
+        request_multi_thread(TicketHandler.approve_itsm_ticket, params_list)
+        return Response()
 
     @swagger_auto_schema(
         operation_summary=_("批量待办处理"),
