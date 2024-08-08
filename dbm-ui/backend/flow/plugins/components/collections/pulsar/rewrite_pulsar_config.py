@@ -48,6 +48,11 @@ class WriteBackPulsarConfigService(BaseService):
             conf_items = [
                 {"conf_name": PulsarConfigEnum.Port, "conf_value": str(global_data["port"]), "op_type": OpType.UPDATE},
                 {
+                    "conf_name": PulsarRoleEnum.Broker + "." + PulsarConfigEnum.BrokerServicePort,
+                    "conf_value": str(global_data["port"]),
+                    "op_type": OpType.UPDATE,
+                },
+                {
                     "conf_name": PulsarConfigEnum.NumPartitions,
                     "conf_value": str(global_data["partition_num"]),
                     "op_type": OpType.UPDATE,
