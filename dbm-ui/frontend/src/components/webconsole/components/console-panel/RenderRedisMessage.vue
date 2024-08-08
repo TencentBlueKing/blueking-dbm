@@ -9,22 +9,30 @@
   export interface Props {
     data: string;
   }
-  // 集群所选的数据库编号
+  // 集群所选的数据库索引
   export const clusterSelectedDbIndex: Record<number, number> = {};
 
+  // 设置当前集群id所选数据库索引
+  export const setDbIndexByClusterId = (clusterId: number, value = 0) => {
+    clusterSelectedDbIndex[clusterId] = value;
+  };
+
   // cmd前缀
-  export const getInputPlaceholder = (clusterId: number, domain: string) =>
-    clusterSelectedDbIndex[clusterId] ? `${domain}[${clusterSelectedDbIndex[clusterId]}] > ` : `${domain} > `;
+  export const getInputPlaceholder = (clusterId: number, domain: string) => {
+    if (!clusterSelectedDbIndex[clusterId]) {
+      setDbIndexByClusterId(clusterId);
+    }
+    return `${domain}[${clusterSelectedDbIndex[clusterId]}] > `;
+  };
 
   // db独有参数
   export const getDbOwnParams = (clusterId: number, cmd: string) => {
     if (cmd.includes('select')) {
-      clusterSelectedDbIndex[clusterId] = Number(cmd.substring('select '.length)) as number;
-      return {
-        db_num: clusterSelectedDbIndex[clusterId],
-      };
+      setDbIndexByClusterId(clusterId, Number(cmd.substring('select '.length)) as number);
     }
-    return {};
+    return {
+      db_num: clusterSelectedDbIndex[clusterId],
+    };
   };
 </script>
 <script setup lang="ts">
