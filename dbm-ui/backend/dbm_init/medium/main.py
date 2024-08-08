@@ -36,6 +36,7 @@ if __name__ == "__main__":
     elif args.type == "build":
         MediumHandler.build_medium(bkrepo_tmp_dir=path)
     elif args.type == "upload":
+        MediumHandler.build_medium(bkrepo_tmp_dir=path, installation=True)
         MediumHandler().upload_medium(path=args.db, bkrepo_tmp_dir=path)
     elif args.type == "sync":
         MediumHandler().sync_from_bkrepo(db_type=args.db)

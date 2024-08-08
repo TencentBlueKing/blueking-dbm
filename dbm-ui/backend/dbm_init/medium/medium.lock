@@ -36,6 +36,17 @@ es:
     commitId: 7fa118a30171a55154958a376a81ff1830e9c247
     name: dbactuator
     version: 1.0.4
+# ---安装包文件---
+- es:
+    buildPath: /install/es/espack-7.10.2.tar.gz
+    name: espack-7.10.2.tar.gz
+    version: 7.2.0
+    installation: true
+- exporter:
+    buildPath: /install/es/dbm_elasticsearch_exporter.tgz
+    name: dbm_elasticsearch_exporter.tgz
+    version: dbm_elasticsearch_exporter
+    installation: true
 hdfs:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
@@ -43,6 +54,17 @@ hdfs:
     commitId: 7fa118a30171a55154958a376a81ff1830e9c247
     name: dbactuator
     version: 1.0.4
+# ---安装包文件---
+- hdfs:
+    buildPath: /install/hdfs/hdfspack-2.6.0-cdh5.4.11-tendataV0.2.tar.gz
+    name: hdfspack-2.6.0-cdh5.4.11-tendataV0.2.tar.gz
+    version: 2.6.0-cdh5.4.11-tendataV0.2
+    installation: true
+- exporter:
+    buildPath: /install/hdfs/dbm_hdfs_exporter.tgz
+    name: dbm_hdfs_exporter.tgz
+    version: dbm_hdfs_exporter
+    installation: true
 influxdb:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
@@ -51,12 +73,29 @@ influxdb:
     name: dbactuator
     version: 1.0.4
 kafka:
+# ---介质文件---
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
     commitDate: '202406251536'
     commitId: 7fa118a30171a55154958a376a81ff1830e9c247
     name: dbactuator
     version: 1.0.4
+# ---安装包文件---
+- kafka:
+    buildPath: /install/kafka/kafkapack-2.4.0.tar.gz
+    name: kafkapack-2.4.0.tar.gz
+    version: 2.4.0
+    installation: true
+- exporter:
+    buildPath: /install/kafka/dbm_kafka_exporter.tgz
+    name: dbm_kafka_exporter.tgz
+    version: dbm_kafka_exporter
+    installation: true
+- exporter:
+    buildPath: /install/kafka/dbm_kafka_bkpull.tgz
+    name: dbm_kafka_bkpull.tgz
+    version: dbm_kafka_bkpull
+    installation: true
 mongodb:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/mongodb/db-tools/dbactuator/build/mongo-dbactuator
@@ -81,6 +120,7 @@ mongodb:
     name: mongotools.tar.gz
     version: 1.0.0
 mysql:
+# ----介质列表----
 - actuator:
     buildPath: /blueking-dbm/dbm-services/mysql/db-tools/dbactuator/build/dbactuator
     commitDate: '202406272009'
@@ -121,6 +161,37 @@ mysql:
     buildPath: /toolkit/dba-toolkit.tar.gz
     name: dba-toolkit.tar.gz
     version: 1.0.0
+# ----安装包列表----
+- mysql:
+    buildPath: /install/mysql/mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
+    name: mysql-5.7.20-linux-x86_64-tmysql-3.3-gcs.tar.gz
+    version: MySQL-5.7
+    installation: true
+- mysql:
+    buildPath: /install/mysql/mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
+    name: mysql-8.0.32-linux-glibc2.12-x86_64.tar.xz
+    version: MySQL-8.0
+    installation: true
+- mysql-proxy:
+    buildPath: /install/mysql/mysql-proxy-0.82.15.tar.gz
+    name: mysql-proxy-0.82.15.tar.gz
+    version: latest
+    installation: true
+- exporter:
+    buildPath: /install/mysql/dbm_tbinlogdumper_exporter.tgz
+    name: dbm_tbinlogdumper_exporter.tgz
+    version: dbm_tbinlogdumper_exporter
+    installation: true
+- exporter:
+    buildPath: /install/mysql/dbm_mysqlproxy_exporter.tgz
+    name: dbm_mysqlproxy_exporter.tgz
+    version: dbm_mysqlproxy_exporter
+    installation: true
+- exporter:
+    buildPath: /install/mysql/dbm_mysqld_exporter.tgz
+    name: dbm_mysqld_exporter.tgz
+    version: dbm_mysqld_exporter
+    installation: true
 pulsar:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/bigdata/db-tools/dbactuator/build/dbactuator
@@ -129,6 +200,7 @@ pulsar:
     name: dbactuator
     version: 1.0.4
 redis:
+# ---介质列表---
 - actuator:
     buildPath: /blueking-dbm/dbm-services/redis/db-tools/dbactuator/build/dbactuator_redis
     commitDate: '202406261537'
@@ -149,6 +221,37 @@ redis:
     buildPath: /toolkit/dbtools.tar.gz
     name: dbtools.tar.gz
     version: 1.0.0
+# ---安装包列表---
+- redis:
+    buildPath: /install/redis/redis-5.0.14.tar.gz
+    name: redis-5.0.14.tar.gz
+    version: Redis-5
+    installation: true
+- redis:
+    buildPath: /install/redis/redis-6.2.14.tar.gz
+    name: redis-6.2.14.tar.gz
+    version: Redis-6
+    installation: true
+- tendisplus:
+    buildPath: /install/redis/tendisplus-2.7.3-rocksdb-v8.5.3.tgz
+    name: tendisplus-2.7.3-rocksdb-v8.5.3.tgz
+    version: Tendisplus-2.7
+    installation: true
+- predixy:
+    buildPath: /install/redis/predixy-1.4.3.tar.gz
+    name: predixy-1.4.3.tar.gz
+    version: Predixy-latest
+    installation: true
+- exporter:
+    buildPath: /install/redis/dbm_predixy_exporter.tgz
+    name: dbm_predixy_exporter.tgz
+    version: dbm_predixy_exporter
+    installation: true
+- exporter:
+    buildPath: /install/redis/dbm_redis_exporter.tgz
+    name: dbm_redis_exporter.tgz
+    version: dbm_redis_exporter
+    installation: true
 riak:
 - actuator:
     buildPath: /blueking-dbm/dbm-services/riak/db-tools/dbactuator/build/dbactuator
