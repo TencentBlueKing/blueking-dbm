@@ -12,33 +12,35 @@
 -->
 
 <template>
-  <SearchBar
-    v-model="searchValue"
-    :cluster-type="activeTab"
-    :search-attrs="searchAttrs"
-    :search-select-list="searchSelectList"
-    @search-value-change="handleSearchValueChange" />
-  <BkLoading
-    :loading="isLoading"
-    :z-index="2">
-    <DbOriginalTable
-      class="table-box"
-      :columns="generatedColumns"
-      :data="tableData"
-      :is-anomalies="isAnomalies"
-      :is-searching="searchValue.length > 0"
-      :max-height="528"
-      :pagination="pagination.count < 10 ? false : pagination"
-      remote-pagination
-      :row-class="getRowClass"
-      row-style="cursor: pointer"
-      @clear-search="clearSearchValue"
-      @column-filter="columnFilterChange"
-      @page-limit-change="handleTableLimitChange"
-      @page-value-change="handleTablePageChange"
-      @refresh="fetchResources"
-      @row-click.stop.prevent="handleRowClick" />
-  </BkLoading>
+  <div>
+    <SearchBar
+      v-model="searchValue"
+      :cluster-type="activeTab"
+      :search-attrs="searchAttrs"
+      :search-select-list="searchSelectList"
+      @search-value-change="handleSearchValueChange" />
+    <BkLoading
+      :loading="isLoading"
+      :z-index="2">
+      <DbOriginalTable
+        class="table-box"
+        :columns="generatedColumns"
+        :data="tableData"
+        :is-anomalies="isAnomalies"
+        :is-searching="searchValue.length > 0"
+        :max-height="528"
+        :pagination="pagination.count < 10 ? false : pagination"
+        remote-pagination
+        :row-class="getRowClass"
+        row-style="cursor: pointer"
+        @clear-search="clearSearchValue"
+        @column-filter="columnFilterChange"
+        @page-limit-change="handleTableLimitChange"
+        @page-value-change="handleTablePageChange"
+        @refresh="fetchResources"
+        @row-click.stop.prevent="handleRowClick" />
+    </BkLoading>
+  </div>
 </template>
 <script setup lang="tsx">
   import { shallowRef } from 'vue';
