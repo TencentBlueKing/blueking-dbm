@@ -200,8 +200,7 @@ func (t *Task) bigKeySmartStat(server Instance) (string, string, int64, int64, e
 		mylog.Logger.Info(fmt.Sprintf("do stats keys %s: use Rdb: (config_rdb:%+v,mem_current:%+v) Mem:%+v",
 			server.Addr, t.conf.BigKeyConf.UseRdb, useFastRdbStat, osMem))
 
-		if !util.FileExists(fmt.Sprintf("%s/redis/%d/data/appendonly.aof", t.basicDir, server.Port)) &&
-			t.conf.BigKeyConf.UseRdb && useFastRdbStat {
+		if t.conf.BigKeyConf.UseRdb && useFastRdbStat {
 			// 如果RDB save 正在跑（不是我自己触发的，那么需要等等)
 			dbsize, step, err = t.bigKeyWithRdb4Cache(server, bkfile, kmfile)
 		} else {

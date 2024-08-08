@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging.config
+from copy import deepcopy
 from dataclasses import asdict
 from typing import List
 
@@ -26,8 +27,6 @@ from backend.flow.plugins.components.collections.redis.trans_flies import TransF
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
-
-from .redis_dbmon import ClusterDbmonInstallAtomJob
 
 logger = logging.getLogger("flow")
 
@@ -160,8 +159,11 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
         )
 
     # 修改元数据指向，并娜动CC模块
-    act_kwargs.cluster["sync_relation"] = []
+    act_kwargs.cluster["sync_relation"], new_ips = [], {}
     for sync_host in sync_params:
+        if not SyncType.SYNC_MS.value == act_kwargs.cluster["switch_condition"]["sync_type"]:
+            new_ips[sync_host["sync_dst1"]] = 1
+            new_ips[sync_host["sync_dst2"]] = 1
         for sync_port in sync_host["ins_link"]:
             act_kwargs.cluster["sync_relation"].append(
                 {
@@ -178,17 +180,25 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
     act_kwargs.cluster["meta_func_name"] = RedisDBMeta.tendis_switch_4_scene.__name__
     sub_pipeline.add_act(act_name=_("元数据切换"), act_component_code=RedisDBMetaComponent.code, kwargs=asdict(act_kwargs))
 
-    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
-        sub_pipeline.add_sub_pipeline(
-            ClusterDbmonInstallAtomJob(
-                root_id,
-                data,
-                act_kwargs,
-                {
-                    "cluster_domain": act_kwargs.cluster["immute_domain"],
-                    "is_stop": False,
-                },
-            )
+    # 刷新dbmon 【twemproxy架构、单实例均需要补充信息】
+    acts_list = []
+    for ip in new_ips.keys():
+        kwargs = deepcopy(act_kwargs)
+        kwargs.exec_ip = ip
+        kwargs.cluster = {
+            "cluster_domain": act_kwargs.cluster["immute_domain"],
+            "ip": ip,
+            "is_stop": False,
+        }
+        kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_new.__name__
+        acts_list.append(
+            {
+                "act_name": _("刷新-{}-dbmon").format(ip),
+                "act_component_code": ExecuteDBActuatorScriptComponent.code,
+                "kwargs": asdict(kwargs),
+            }
         )
+    if acts_list:
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("{}-实例切换").format(act_kwargs.cluster["immute_domain"]))
