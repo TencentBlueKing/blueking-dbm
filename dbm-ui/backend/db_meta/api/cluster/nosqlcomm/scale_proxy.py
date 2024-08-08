@@ -17,6 +17,7 @@ from typing import Dict, List
 from django.db import transaction
 
 from backend.db_meta.api import common
+from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
 from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, InstanceInnerRole
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.utils.cc_manage import CcManage
@@ -75,11 +76,10 @@ def add_proxies(cluster: Cluster, proxies: List[Dict]):
         master_objs = list(cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER))
         # 修改表  db_meta_proxyinstance_storageinstance
         for proxy_obj in proxy_objs:
-            proxy_obj.db_module_id = cluster.db_module_id
-            proxy_obj.cluster_type = cluster.cluster_type
             proxy_obj.storageinstance.add(*master_objs)
-            proxy_obj.save(update_fields=["db_module_id", "cluster_type"])
-        logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, master_objs))
+        # 更新集群类型
+        update_cluster_type(proxy_objs, cluster.cluster_type)
+        logger.info("cluster {} add proxyinstance {}".format(cluster.immute_domain, proxy_objs))
         RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(proxy_objs)
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())

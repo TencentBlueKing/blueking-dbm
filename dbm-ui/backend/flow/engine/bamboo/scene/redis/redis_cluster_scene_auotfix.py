@@ -367,6 +367,7 @@ class RedisClusterAutoFixSceneFlow(object):
             new_ins_port, start_port = DEFAULT_REDIS_START_PORT, DEFAULT_REDIS_START_PORT
             if sub_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
                 new_ins_port = min(sub_kwargs.cluster["slave_ports"][old_slave])
+                start_port = new_ins_port
             old_ports = sub_kwargs.cluster["slave_ports"][old_slave]
             old_ports.sort()  # 升序
             for port in old_ports:

@@ -16,6 +16,7 @@ from typing import Dict, List
 from django.db import transaction
 
 from backend.db_meta.api import common
+from backend.db_meta.api.cluster.nosqlcomm.create_cluster import update_cluster_type
 from backend.db_meta.enums import (
     ClusterEntryRole,
     ClusterType,
@@ -58,7 +59,12 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
         for rec_obj in receiver_objs:
             rec_obj.instance_role = InstanceRole.REDIS_SLAVE
             rec_obj.instance_inner_role = InstanceInnerRole.SLAVE
-            rec_obj.save(update_fields=["instance_role", "instance_inner_role"])
+            rec_obj.cluster_type = cluster.cluster_type
+            rec_obj.save(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
+            # update_cluster_type
+            machine_obj = rec_obj.machine
+            machine_obj.cluster_type = cluster.cluster_type
+            machine_obj.save(update_fields=["cluster_type"])
             logger.info(
                 "reset storageinstance role {}:{} {}".format(
                     rec_obj.machine.ip, rec_obj.port, InstanceRole.REDIS_SLAVE
@@ -79,11 +85,6 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
                 machine__bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
             )
-            receiver_obj.cluster_type = cluster.cluster_type
-            receiver_obj.save(update_fields=["cluster_type"])
-            master_machine = receiver_obj.machine
-            master_machine.cluster_type = cluster.cluster_type
-            master_machine.save(update_fields=["cluster_type"])
             StorageInstanceTuple.objects.create(ejector=ejector_obj, receiver=receiver_obj, creator=created_by)
             logger.info("create link info {} -> {}".format(ejector_obj, receiver_obj))
         # 修改表 db_meta_storageinstance_cluster
@@ -238,7 +239,7 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
                 new_ejector_obj.instance_role = InstanceRole.REDIS_MASTER.value
                 new_ejector_obj.instance_inner_role = InstanceInnerRole.MASTER.value
                 new_ejector_obj.save(update_fields=["instance_role", "instance_inner_role"])
-
+        update_cluster_type(ejector_objs, cluster.cluster_type)
         is_increment = False
         if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
             is_increment = True
