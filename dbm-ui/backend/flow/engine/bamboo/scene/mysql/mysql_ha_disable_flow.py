@@ -15,15 +15,18 @@ from typing import Dict, Optional
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
+    CheckClientConnKwargs,
     DBMetaOPKwargs,
     DeleteClusterDnsKwargs,
     DownloadMediaKwargs,
@@ -63,6 +66,7 @@ class MySQLHADisableFlow(object):
             "name": cluster.name,
             "proxy_port": proxy_info[0].port,
             "proxy_ip_list": [p.machine.ip for p in proxy_info],
+            "proxy_admin_port": proxy_info[0].admin_port,
         }
 
     def disable_mysql_ha_flow(self):
@@ -79,6 +83,21 @@ class MySQLHADisableFlow(object):
             cluster = self.__get_ha_cluster_info(cluster_id=cluster_id)
 
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+
+            # 预检测，检测proxy的连接情况
+            sub_pipeline.add_act(
+                act_name=_("检测Proxy端连接情况"),
+                act_component_code=CheckClientConnComponent.code,
+                kwargs=asdict(
+                    CheckClientConnKwargs(
+                        bk_cloud_id=cluster["bk_cloud_id"],
+                        check_instances=[
+                            f"{i}{IP_PORT_DIVIDER}{cluster['proxy_admin_port']}" for i in cluster["proxy_ip_list"]
+                        ],
+                        is_proxy=True,
+                    )
+                ),
+            )
 
             # 阶段1 回收集群相关域名
             sub_pipeline.add_act(

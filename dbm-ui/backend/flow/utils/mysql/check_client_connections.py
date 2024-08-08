@@ -13,13 +13,25 @@ from backend.flow.consts import MYSQL_SYS_USER, UserName
 from backend.flow.utils.mysql.get_mysql_sys_user import get_mysql_sys_users
 
 
-def check_client_connection(bk_cloud_id: int, instances: list, is_filter_sleep: bool = False):
+def check_client_connection(bk_cloud_id: int, instances: list, is_filter_sleep: bool = False, is_proxy: bool = False):
     """
     通过drs接口检测实例是否存在用户线程
     @param bk_cloud_id: 操作的云区域
     @param instances: 需要判断的实例列表，每个元素的str:{ip:port}
     @param is_filter_sleep: 本次检测是否过滤sleep状态的连接，默认不过滤
+    @param is_proxy: 本地检测的节点是否是mysql_proxy节点， 默认不是
     """
+    if is_proxy:
+        # proxy 查询
+        res = DRSApi.proxyrpc(
+            {
+                "addresses": instances,
+                "cmds": ["show processlist"],
+                "force": False,
+                "bk_cloud_id": bk_cloud_id,
+            }
+        )
+        return res
 
     # 获取内置账号名称
     admin_user_name_list = [
