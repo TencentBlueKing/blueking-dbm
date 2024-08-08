@@ -30,6 +30,7 @@ from backend.core.translation.constants import Language
 from backend.flow.consts import DEFAULT_FLOW_CACHE_EXPIRE_TIME, SUCCESS_LIST, WriteContextOpType
 from backend.ticket.constants import TicketFlowStatus
 from backend.ticket.models import Flow
+from backend.utils.excel import ExcelHandler
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("flow")
@@ -143,6 +144,39 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         # 每次缓存都刷新过期时间。我们设置一个足够长的过期时间，如果这个任务失败很久不处理，那么数据就会自动清理
         RedisConn.expire(flow_cache_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
         RedisConn.expire(flow_sensitive_key, DEFAULT_FLOW_CACHE_EXPIRE_TIME)
+
+    def excel_download(self, root_id: str, key: Union[int, str], match_header: bool = False):
+        """
+        根据root_id下载Excel文件
+        :param root_id: 流程id
+        :param key: 缓存键值
+        """
+        # 获取root_id缓存数据
+        flow_details = self.get_flow_output(root_id)
+
+        # 检查 flow_details 是否存在以及是否包含所需的 key
+        if not flow_details or key not in flow_details["data"]:
+            self.log_error(_("下载excel文件失败，未获取到{}相关的数据").format(key))
+            return False
+
+        flow_detail = flow_details["data"][key]
+
+        # 如果 flow_detail 是一个双重列表，则去掉一个列表
+        if isinstance(flow_detail[0], list):
+            flow_detail = flow_detail[0]
+
+        if not isinstance(flow_detail[0], dict):
+            self.log_error(_("下载excel文件失败，获取数据格式错误"))
+            return False
+
+        # 取第一个字典的键作为head
+        head_list = list(flow_detail[0].keys())
+
+        excel_name = f"{root_id}.xlsx"
+        # 将数据字典序列化为excel对象
+        wb = ExcelHandler.serialize(flow_detail, headers=head_list, match_header=match_header)
+        # 返回响应
+        return ExcelHandler.response(wb, excel_name)
 
     def execute(self, data, parent_data):
         self.active_language(data)

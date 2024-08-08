@@ -23,6 +23,7 @@ from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.db_services.taskflow.serializers import (
     BatchRetryNodesSerializer,
     CallbackNodeSerializer,
+    DownloadExcelSerializer,
     FlowTaskSerializer,
     NodeSerializer,
     VersionSerializer,
@@ -30,6 +31,7 @@ from backend.db_services.taskflow.serializers import (
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowTree
+from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
@@ -217,3 +219,18 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
         desc = {"info": validated_data.get("desc"), "operator": requests.user.username}
 
         return Response(TaskFlowHandler(root_id=root_id).callback_node(node_id=node_id, desc=desc).result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("流程Excel文件下载"),
+        query_serializer=DownloadExcelSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=DownloadExcelSerializer)
+    def excel_download(self, request):
+        # 获取root_id缓存数据
+        validated_data = self.params_validate(self.get_serializer_class())
+        results = BaseService().excel_download(**validated_data)
+        if not results:
+            return Response({"error": _("获取root_id缓存数据失败")})
+        # 返回响应
+        return results
