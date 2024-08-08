@@ -46,8 +46,10 @@ func (job *CheckJob) Run() {
 		} else {
 			mylog.Logger.Info("redisfullbackup end succ")
 		}
+		job.IsRunning = false
 	}()
 	job.Err = nil
+	job.IsRunning = true
 	job.GetRealBackupDir()
 	if job.Err != nil {
 		return

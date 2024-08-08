@@ -963,6 +963,7 @@ def get_cluster_info_by_ip(ip: str) -> Dict[str, Any]:
                 "cluster_type": cluster_meta["cluster_type"],
                 "major_version": cluster_meta["major_version"],
                 "redis_databases": cluster_meta["redis_databases"],
+                "redis_password": cluster_meta["redis_password"],
                 "cluster_city_name": cluster_meta["cluster_city_name"],
                 "ip": cluster["ip"],
                 "ports": cluster["cs_ports"],

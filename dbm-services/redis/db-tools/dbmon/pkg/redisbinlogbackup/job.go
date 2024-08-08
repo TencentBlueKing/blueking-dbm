@@ -33,6 +33,7 @@ type Job struct { // NOCC:golint/naming(其他:设计如此)
 	Reporter      report.Reporter       `json:"-"`
 	backupClient  backupsys.BackupClient
 	sqdb          *gorm.DB
+	IsRunning     bool  `json:"-"`
 	Err           error `json:"-"`
 }
 
@@ -55,8 +56,10 @@ func (job *Job) Run() {
 		} else {
 			mylog.Logger.Info("redisbinlogbackup end succ")
 		}
+		job.IsRunning = false
 	}()
 	job.Err = nil
+	job.IsRunning = true
 	job.GetRealBackupDir()
 	if job.Err != nil {
 		return

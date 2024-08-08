@@ -137,11 +137,11 @@ func (item *ImporterItem) RunTask(task *CmdsImporterTask) {
 		dstPort := list01[1]
 		if supPipeImport == true {
 			importCmd = append(importCmd, fmt.Sprintf(
-				"%s --no-auth-warning -h %s -p %s -a %s --pipe --pipe-timeout %d < %s 1>%s 2>%s",
+				"%s --no-auth-warning -h %s -p %s -a %q --pipe --pipe-timeout %d < %s 1>%s 2>%s",
 				item.RedisClient, dstIP, dstPort, item.DstPassword, importTimeout, item.SQLFile, item.LogFile, item.ErrFile))
 			grepStdoutCmd = fmt.Sprintf("grep -i 'errors' %s | { grep -v 'errors: 0' || true; } ", item.LogFile)
 		} else {
-			importCmd = append(importCmd, fmt.Sprintf("%s --no-auth-warning -h %s -p %s -a %s < %s 1>%s 2>%s",
+			importCmd = append(importCmd, fmt.Sprintf("%s --no-auth-warning -h %s -p %s -a %q < %s 1>%s 2>%s",
 				item.RedisClient, dstIP, dstPort, item.DstPassword, item.SQLFile, item.LogFile, item.ErrFile))
 			grepStdoutCmd = fmt.Sprintf("grep -i 'Err' %s | { grep -v 'invalid DB index' || true; }", item.LogFile)
 		}

@@ -83,6 +83,10 @@ func (task *RedisMonitorTask) RunMonitor() {
 	if task.Err != nil {
 		return
 	}
+	task.CheckTwemproxyRedisShardsOK()
+	if task.Err != nil {
+		return
+	}
 	return
 }
 
@@ -514,6 +518,54 @@ func (task *RedisMonitorTask) CheckClusterState() {
 			mylog.Logger.Warn(msg)
 			task.eventSender.SendWarning(consts.EventRedisClusterState, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
 			return
+		}
+	}
+}
+
+// CheckTwemproxyRedisShardsOK 检查 twemproxy redis的 server_shards 是否为空
+func (task *RedisMonitorTask) CheckTwemproxyRedisShardsOK() {
+	if !consts.IsTwemproxyDbType(task.ServerConf.ClusterType) {
+		return
+	}
+	var role, msg string
+	var infoRet map[string]string
+	// task.ServerConf.ServerShards
+	for _, cli01 := range task.redisClis {
+		cliItem := cli01
+		task.eventSender.SetInstance(cliItem.Addr)
+		// info server中的 uptime_in_days 大于 3
+		// 避免刚拉起的redis就开始告警
+		infoRet, task.Err = cliItem.Info("server")
+		if task.Err != nil {
+			return
+		}
+		if infoRet["uptime_in_days"] == "" {
+			continue
+		}
+		uptime, _ := strconv.Atoi(infoRet["uptime_in_days"])
+		if uptime < 3 {
+			continue
+		}
+		role, task.Err = cliItem.GetRole()
+		if task.Err != nil {
+			continue
+		}
+		// master检查 server_shards是否为空
+		if role == consts.RedisMasterRole {
+			if len(task.ServerConf.ServerShards) == 0 {
+				msg = fmt.Sprintf("redis(%s) dbmon server_shards is empty", cliItem.Addr)
+				mylog.Logger.Warn(msg)
+				task.eventSender.SendWarning(consts.EventRedisPersist, msg, consts.WarnLevelWarning, task.ServerConf.ServerIP)
+				return
+			}
+		} else {
+			// slave检查 server_shards[addr]是否存在
+			if _, ok := task.ServerConf.ServerShards[cliItem.Addr]; !ok {
+				msg = fmt.Sprintf("dbmon config file 'server_shards' not contains redis(%s)", cliItem.Addr)
+				mylog.Logger.Warn(msg)
+				task.eventSender.SendWarning(consts.EventRedisPersist, msg, consts.WarnLevelError, task.ServerConf.ServerIP)
+				return
+			}
 		}
 	}
 }
