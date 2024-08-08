@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"maps"
+	"regexp"
 	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
@@ -156,6 +157,7 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (re
 	}
 	ipLogContentMap := make(map[string]*ShellResCollection)
 	ipFailedLogMap := make(map[string]string)
+	jsonRe := regexp.MustCompile("{*.*}")
 	for os_type, ipList := range ipListOsMap {
 		if len(ipList) == 0 {
 			continue
@@ -169,7 +171,9 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (re
 			maps.Copy(ipFailedLogMap, ipFailedLogMapWin)
 			for _, d := range ipLogs.ScriptTaskLogs {
 				var dl PowerShellResCollection
-				if err = json.Unmarshal([]byte(d.LogContent), &dl); err != nil {
+				jsonBody := jsonRe.FindString(d.LogContent)
+				logger.Info("%s shell grab json body: %s", d.Ip, jsonBody)
+				if err = json.Unmarshal([]byte(jsonBody), &dl); err != nil {
 					logger.Error("unmarshal log content failed %s", err.Error())
 					continue
 				}
@@ -187,7 +191,9 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (re
 			maps.Copy(ipFailedLogMap, ipFailedLogMapLiunx)
 			for _, d := range ipLogs.ScriptTaskLogs {
 				var dl ShellResCollection
-				if err = json.Unmarshal([]byte(d.LogContent), &dl); err != nil {
+				jsonBody := jsonRe.FindString(d.LogContent)
+				logger.Info("%s shell grab json body: %s", d.Ip, jsonBody)
+				if err = json.Unmarshal([]byte(jsonBody), &dl); err != nil {
 					logger.Error("unmarshal log content failed %s", err.Error())
 					continue
 				}
