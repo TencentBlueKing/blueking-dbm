@@ -97,7 +97,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     PADDING_PROXY_CLUSTER_LIST = EnumField("PADDING_PROXY_CLUSTER_LIST", _("补全proxy的集群域名列表"))
     # ITSM配置
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
-    ITSM_APPROVAL_OPTIONS_KEY = EnumField("ITSM_APPROVAL_RESULT_KEY", _("ITSM审批意见key"))
+    ITSM_APPROVAL_KEY = EnumField("ITSM_APPROVAL_KEY", _("ITSM审批意见key"))
     ITSM_REMARK_KEY = EnumField("ITSM_REMARK_KEY", _("ITSM备注key"))
 
 

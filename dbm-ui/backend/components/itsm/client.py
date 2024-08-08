@@ -31,6 +31,7 @@ class _ItsmApi(BaseApi):
             description=_("单据状态查询"),
         )
         self.operate_node = self.generate_data_api(method="POST", url="operate_node/", description=_("处理单据节点"))
+        self.operate_ticket = self.generate_data_api(method="POST", url="operate_ticket/", description=_("处理单据"))
         self.get_ticket_info = self.generate_data_api(method="POST", url="get_ticket_info/", description=_("单据详情查询"))
         self.ticket_approval_result = self.generate_data_api(
             method="POST",

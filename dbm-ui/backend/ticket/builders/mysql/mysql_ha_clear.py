@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -37,11 +38,11 @@ class MySQLHaClearDetailSerializer(MySQLBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         """校验库表选择器信息是否正确"""
-        super().validate(attrs)
-
+        super().validate_cluster_can_access(attrs)
         # 库表选择器校验
         super().validate_database_table_selector(attrs)
-
+        # 校验集群类型只能是高可用
+        super().validated_cluster_type(attrs, cluster_type=ClusterType.TenDBHA)
         return attrs
 
 

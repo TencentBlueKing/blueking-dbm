@@ -72,11 +72,9 @@ class Flow(models.Model):
         return kwargs
 
     def update_status(self, status: TicketFlowStatus):
-        if self.status == status:
-            return
-
-        self.status = status
-        self.save(update_fields=["status", "update_at"])
+        if self.status != status:
+            self.status = status
+            self.save(update_fields=["status", "update_at"])
         return status
 
 

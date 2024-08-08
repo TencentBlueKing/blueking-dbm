@@ -319,6 +319,7 @@ class CommonValidate(object):
         3. 校验在同一个集群内，源DB名必须唯一，新DB名必须唯一，且源DB名不能出现在新DB名中
         4. 系统库不允许重命名
         5. 在一个单据中，同一个集群修改的时候 源库和目标库不允许重复，即不能出现： A 重命名为 B，然后A 又重命名为 C的情况
+        6. 源DB必须在集群中，新DB必须不在集群中
         @param infos: 重命名信息 [{"cluster_id": 1, "from_database": "abc", "to_database": "cde"}]
         @param cluster__databases: 集群与业务库的映射
         """
@@ -342,6 +343,10 @@ class CommonValidate(object):
                     raise serializers.ValidationError(_("数据库[{}]不存在于集群{}中").format(db_name, cluster_id))
 
             to_database_list = name_info["to_database"]
+            for db_name in to_database_list:
+                if db_name in cluster__db_name_map[cluster_id]:
+                    raise serializers.ValidationError(_("重命名数据库[{}]已存在于集群{}中").format(db_name, cluster_id))
+
             if len(set(from_database_list)) != len(from_database_list):
                 raise serializers.ValidationError(_("请保证集群{}中源数据库名{}的名字唯一").format(cluster_id, from_database_list))
 

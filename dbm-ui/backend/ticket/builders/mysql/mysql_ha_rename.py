@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
@@ -34,9 +35,7 @@ class MySQLHaRenameSerializer(MySQLBaseOperateDetailSerializer):
     infos = serializers.ListField(help_text=_("重命名数据库列表"), child=RenameDatabaseInfoSerializer())
     force = serializers.BooleanField(help_text=_("是否强制执行"), default=False)
 
-    def validate(self, attrs):
-        super().validate(attrs)
-
+    def validate_rename_db(self, attrs):
         # 集群与业务库的映射
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
         database_info = RemoteServiceHandler(self.context["bk_biz_id"]).show_databases(cluster_ids)
@@ -44,6 +43,12 @@ class MySQLHaRenameSerializer(MySQLBaseOperateDetailSerializer):
         # DB重命名校验
         CommonValidate.validate_mysql_db_rename(attrs["infos"], cluster__databases)
 
+    def validate(self, attrs):
+        super().validate_cluster_can_access(attrs)
+        # 集群类型校验
+        super().validated_cluster_type(attrs, cluster_type=ClusterType.TenDBHA)
+        # DB重命名校验
+        self.validate_rename_db(attrs)
         return attrs
 
 

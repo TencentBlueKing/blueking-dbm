@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, SystemSettingsEnum
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
 from backend.ticket.exceptions import TicketBaseException
@@ -620,6 +620,12 @@ class OperateNodeActionType(str, StructuredEnum):
 class ItsmTicketNodeEnum(str, StructuredEnum):
     ApprovalOption = EnumField("审批意见", "审批意见")
     Remark = EnumField("备注", "备注")
+
+
+ITSM_FIELD_NAME__ITSM_KEY = {
+    ItsmTicketNodeEnum.ApprovalOption.value: SystemSettingsEnum.ITSM_APPROVAL_KEY,
+    ItsmTicketNodeEnum.Remark.value: SystemSettingsEnum.ITSM_REMARK_KEY,
+}
 
 
 class FlowMsgType(str, StructuredEnum):
