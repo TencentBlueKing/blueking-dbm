@@ -78,7 +78,7 @@
     const [, dstversionNum] = dstVersion.match(versionMatchReg) || ['', ''];
     const [, srcVersionNum] = srcVersion.match(versionMatchReg) || ['', ''];
 
-    return dstversionNum <= srcVersionNum;
+    return srcVersionNum > dstversionNum;
   };
 
   const { t } = useI18n();
