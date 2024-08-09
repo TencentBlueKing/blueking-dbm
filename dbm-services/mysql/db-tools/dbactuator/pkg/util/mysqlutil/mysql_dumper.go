@@ -262,7 +262,7 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 		dumpOption += " --quick "
 	}
 	dumpCmd = fmt.Sprintf(
-		`%s -h%s -P%d  -u%s  -p%s --skip-opt --create-options --single-transaction --max-allowed-packet=1G -q --no-autocommit --default-character-set=%s %s`,
+		`%s -h%s -P%d  -u%s  -p%s --skip-opt --hex-blob --create-options --single-transaction --max-allowed-packet=1G -q --no-autocommit --default-character-set=%s %s`,
 		m.DumpCmdFile,
 		m.Ip,
 		m.Port,
