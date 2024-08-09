@@ -112,7 +112,7 @@
 
         if (currentScope?.active && ['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {
           myTicketsDetailTimer = setTimeout(() => {
-            fetchTicketDetails(id, isPoll);
+            fetchTicketDetails(id, true);
           }, 10000)
         }
 
