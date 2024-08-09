@@ -27,7 +27,7 @@
                 text
                 theme="primary"
                 @click="handleToApply">
-                {{ $t('请前往补货') }}
+                {{ t('请前往补货') }}
               </BkButton>
             </template>
           </div>
@@ -41,7 +41,8 @@
               :width="320">
               <BkButton
                 class="w-88 mr-8"
-                :loading="state.isLoading"
+                :disabled="state.isTerminateLoading"
+                :loading="state.isApproveLoading"
                 theme="primary"
                 @click="handleConfirmToggle(true)">
                 {{ getConfirmText(item) }}
@@ -53,17 +54,17 @@
                   </div>
                   <div class="todos-tips-content__buttons">
                     <BkButton
-                      :loading="state.isLoading"
+                      :loading="state.isApproveLoading"
                       size="small"
                       theme="primary"
                       @click="handleConfirm('APPROVE', item)">
                       {{ getConfirmText(item) }}
                     </BkButton>
                     <BkButton
-                      :disabled="state.isLoading"
+                      :disabled="state.isApproveLoading"
                       size="small"
                       @click="handleConfirmToggle(false)">
-                      {{ $t('取消') }}
+                      {{ t('取消') }}
                     </BkButton>
                   </div>
                 </div>
@@ -76,29 +77,30 @@
               :width="320">
               <BkButton
                 class="w-88 mr-8"
-                :loading="state.isLoading"
+                :disabled="state.isApproveLoading"
+                :loading="state.isTerminateLoading"
                 theme="danger"
                 @click="handleCancelToggle(true)">
-                {{ $t('终止单据') }}
+                {{ t('终止单据') }}
               </BkButton>
               <template #content>
                 <div class="todos-tips-content">
                   <div class="todos-tips-content__desc">
-                    {{ $t('是否确认终止单据') }}
+                    {{ t('是否确认终止单据') }}
                   </div>
                   <div class="todos-tips-content__buttons">
                     <BkButton
-                      :loading="state.isLoading"
+                      :loading="state.isTerminateLoading"
                       size="small"
                       theme="danger"
                       @click="handleConfirm('TERMINATE', item)">
-                      {{ $t('终止单据') }}
+                      {{ t('终止单据') }}
                     </BkButton>
                     <BkButton
-                      :disabled="state.isLoading"
+                      :disabled="state.isTerminateLoading"
                       size="small"
                       @click="handleCancelToggle(false)">
-                      {{ $t('取消') }}
+                      {{ t('取消') }}
                     </BkButton>
                   </div>
                 </div>
@@ -108,13 +110,13 @@
           <div
             v-else
             class="flow-todo__infos">
-            {{ item.done_by }} {{ $t('处理完成') }}， {{ $t('操作') }}：
+            {{ item.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：
             <span :class="String(item.status).toLowerCase()">
               {{ getOperation(item) }}
             </span>
-            ， {{ $t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
+            ， {{ t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
             <template v-if="item.url">
-              ，<a :href="item.url">{{ $t('查看详情') }} &gt;</a>
+              ，<a :href="item.url">{{ t('查看详情') }} &gt;</a>
             </template>
             <p
               v-if="item.done_at"
@@ -136,7 +138,7 @@
               <a
                 href="javascript:"
                 @click="handleShowResultFile(content.flow_obj_id)">
-                {{ $t('查看结果文件') }}
+                {{ t('查看结果文件') }}
               </a>
             </template>
           </template>
@@ -189,7 +191,8 @@
   const state = reactive({
     confirmTips: false,
     cancelTips: false,
-    isLoading: false,
+    isApproveLoading: false,
+    isTerminateLoading: false,
   });
 
   const fileState = reactive({
@@ -242,7 +245,11 @@
   function handleConfirm(action: 'APPROVE' | 'TERMINATE', item: FlowItemTodo) {
     state.confirmTips = false;
     state.cancelTips = false;
-    state.isLoading = true;
+    if (action === 'APPROVE') {
+      state.isApproveLoading = true;
+    } else {
+      state.isTerminateLoading = true;
+    }
     processTicketTodo({
       action,
       todo_id: item.id,
@@ -254,7 +261,11 @@
         menuStore.fetchTodosCount();
       })
       .finally(() => {
-        state.isLoading = false;
+        if (action === 'APPROVE') {
+          state.isApproveLoading = false;
+        } else {
+          state.isTerminateLoading = false;
+        }
       });
   }
 

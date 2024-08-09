@@ -34,7 +34,6 @@
             </div>
             <BkTree
               ref="treeRef"
-              class="db-scroll-y"
               :data="treeState.data"
               :indent="16"
               label="name"
@@ -44,6 +43,7 @@
               :prefix-icon="treePrefixIcon"
               :search="treeSearchConfig"
               :selected="treeState.selected"
+              virtual-render
               @node-click="handleSelectedTreeNode">
               <template #node="item">
                 <div class="content-tree-node">
@@ -197,7 +197,7 @@
     padding: 16px 0;
 
     .bk-tree {
-      height: calc(100% - 42px);
+      height: calc(100% - 42px) !important;
       font-size: 12px;
 
       :deep(.bk-node-prefix) {

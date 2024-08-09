@@ -48,6 +48,7 @@
               :width="320">
               <BkButton
                 class="w-88 mr-8"
+                :disabled="state.isTerminateLoading"
                 :loading="state.isApproveLoading"
                 theme="primary"
                 @click="handleConfirmToggle(true)">
@@ -83,6 +84,7 @@
               :width="320">
               <BkButton
                 class="w-88 mr-8"
+                :disabled="state.isApproveLoading"
                 :loading="state.isTerminateLoading"
                 theme="danger"
                 @click="handleCancelToggle(true)">
@@ -115,9 +117,10 @@
           <div
             v-else
             class="flow-todo__infos">
-            {{ item.done_by }} {{ t('处理完成') }}，
-            {{ t('操作') }}：<span :class="String(item.status).toLowerCase()">{{ getOperation(item) }}</span>，
-            {{ t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
+            {{ item.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：<span
+              :class="String(item.status).toLowerCase()"
+              >{{ getOperation(item) }}</span
+            >， {{ t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
             <template v-if="content.url">
               ，<a :href="content.url">{{ t('查看详情') }} &gt;</a>
             </template>
