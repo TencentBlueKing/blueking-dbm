@@ -82,10 +82,11 @@
       v-model:is-show="isShowPassword"
       render-directive="if"
       :title="t('获取访问方式')"
-      :width="500">
+      :width="570">
       <RenderPassword
         v-if="operationData"
-        :cluster-id="operationData.id" />
+        :cluster-id="operationData.id"
+        :db-type="DBTypes.KAFKA" />
       <template #footer>
         <BkButton @click="handleHidePassword">
           {{ t('关闭') }}
@@ -130,7 +131,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
