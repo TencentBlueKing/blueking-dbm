@@ -14,9 +14,11 @@
 <template>
   <div class="business-db-configure-list-page">
     <ClusterTab v-model="activeTab" />
-    <Content
-      v-if="activeTab"
-      :key="activeTab" />
+    <div class="content-main">
+      <Content
+        v-if="activeTab"
+        :key="activeTab" />
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -47,6 +49,13 @@
 </script>
 <style lang="less">
   .business-db-configure-list-page {
-    height: calc(100vh - 150px);
+    height: calc(100vh - 105px);
+    display: flex;
+    flex-direction: column;
+
+    .content-main {
+      flex: 1;
+      overflow: hidden;
+    }
   }
 </style>
