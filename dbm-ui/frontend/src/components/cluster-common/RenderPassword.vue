@@ -73,6 +73,34 @@
           @click="() => handleCopy('password')" />
       </span>
     </div>
+    <div
+      v-if="dbType"
+      class="item">
+      <span class="item-label">{{ t('安全认证') }}：</span>
+      <span class="item-value">
+        <p>security.protocol=SASL_PLAINTEXT</p>
+        <p>sasl.mechanism=SCRAM-SHA-512</p>
+        <p>
+          sasl,jaas.config=org.apache,{{ dbType }}.common.security,scram.ScramLoginModule required username={{
+            result.username
+          }}
+          password={{ scPasswordText }};
+          <span
+            class="password-btn"
+            @click="handleSCPasswordToggle">
+            <Unvisible v-if="isShowSCPassword" />
+            <Eye v-else />
+          </span>
+          <span
+            v-bk-tooltips="t('复制安全认证')"
+            class="copy-btn">
+            <DbIcon
+              type="copy"
+              @click="() => handleCopy('security_certification')" />
+          </span>
+        </p>
+      </span>
+    </div>
   </BkLoading>
 </template>
 
@@ -85,8 +113,11 @@
 
   import { useCopy } from '@hooks';
 
+  import type { DBTypes } from '@common/const';
+
   interface Props {
     clusterId: number;
+    dbType?: DBTypes;
   }
 
   const props = defineProps<Props>();
@@ -96,6 +127,7 @@
 
   const isLoading = ref(true);
   const isShowPassword = ref(false);
+  const isShowSCPassword = ref(false);
   const result = ref({
     access_port: 0,
     cluster_name: '',
@@ -115,6 +147,12 @@
 
   const passwordText = computed(() => {
     if (!isShowPassword.value) {
+      return '******';
+    }
+    return result.value.password || '--';
+  });
+  const scPasswordText = computed(() => {
+    if (!isShowSCPassword.value) {
       return '******';
     }
     return result.value.password || '--';
@@ -141,17 +179,27 @@
       case 'password':
         copy(passwordToken);
         break;
-      default:
+      case 'security_certification': {
+        const content = `security.protocol=SASL_PLAINTEXT\nsasl.mechanism=PLAIN\nsasl.jaas.config=org.apache.${props.dbType}.common.security.plain.PlainLoginModule required username="${username}" password="${password}";`;
+        copy(content);
+        break;
+      }
+      default: {
         // 复制全部
         // eslint-disable-next-line no-case-declarations, camelcase
         const content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
         copy(content);
         break;
+      }
     }
   };
 
   const handlePasswordToggle = () => {
     isShowPassword.value = !isShowPassword.value;
+  };
+
+  const handleSCPasswordToggle = () => {
+    isShowSCPassword.value = !isShowSCPassword.value;
   };
 </script>
 
