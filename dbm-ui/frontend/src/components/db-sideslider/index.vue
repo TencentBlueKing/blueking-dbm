@@ -93,6 +93,8 @@
       if (isShow) {
         pageChangeConfirm = window.changeConfirm;
         window.changeConfirm = 'popover';
+
+        console.log('window.changeConfirm = ', window.changeConfirm);
       }
     },
     {

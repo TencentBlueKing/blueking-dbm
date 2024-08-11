@@ -259,6 +259,7 @@
   const importSQLTypes = [
     TicketTypes.MYSQL_IMPORT_SQLFILE,
     TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+    TicketTypes.TENDBCLUSTER_FORCE_IMPORT_SQLFILE,
     TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE,
   ];
 

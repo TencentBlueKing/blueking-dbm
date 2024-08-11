@@ -27,8 +27,61 @@
       {{ $t('模拟执行成功后自动提交单据申请_关闭此页面无影响') }}
     </div>
   </div>
+  <div class="mt-12">
+    <DbPopconfirm
+      class="ml8"
+      :confirm-handler="handleRevokeSemanticCheck"
+      :content="t('返回修改会中断当前操作_请谨慎操作')"
+      :title="t('确认终止')">
+      <BkButton :loading="isRevokeing">
+        {{ t('终止执行') }}
+      </BkButton>
+    </DbPopconfirm>
+    <BkButton
+      class="ml8"
+      @click="handleLastStep">
+      {{ t('返回继续提单') }}
+    </BkButton>
+  </div>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+  import { useRoute, useRouter } from 'vue-router';
+
+  import { revokeSemanticCheck } from '@services/source/sqlImport';
+
+  const router = useRouter();
+  const route = useRoute();
+  const { t } = useI18n();
+
+  const { rootId } = route.query as { rootId: string };
+
+  const { loading: isRevokeing, run: runRevokeSemanticCheck } = useRequest(revokeSemanticCheck, {
+    manual: true,
+    onSuccess() {
+      router.push({
+        name: 'MySQLExecute',
+      });
+    },
+  });
+
+  const handleRevokeSemanticCheck = () => {
+    runRevokeSemanticCheck({
+      root_id: rootId,
+    });
+  };
+
+  // 返回继续提单
+  const handleLastStep = () => {
+    router.push({
+      name: 'MySQLExecute',
+      params: {
+        step: '',
+      },
+    });
+  };
+</script>
 <style lang="less" scoped>
   .sql-execute-pending {
     padding-top: 40px;
@@ -47,5 +100,12 @@
         color: #3a84ff;
       }
     }
+  }
+  .sql-execute-more-action-box {
+    display: flex;
+    margin-top: 12px;
+    background: #fff;
+    justify-content: center;
+    align-items: center;
   }
 </style>

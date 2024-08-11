@@ -15,7 +15,7 @@
   <BkLoading
     :loading="state.isLoading"
     style="min-height: calc(100vh - 120px)">
-    <PermissionCatch :key="data.id">
+    <PermissionCatch :key="ticketId">
       <SmartAction :offset-target="getOffsetTarget">
         <div class="ticket-details-page">
           <template v-if="state.ticketData">
@@ -56,8 +56,10 @@
             </DbCard>
           </template>
         </div>
-        <template #action>
-          <TicketClone :data="data" />
+        <template
+          v-if="state.ticketData"
+          #action>
+          <TicketClone :data="state.ticketData" />
         </template>
       </SmartAction>
     </PermissionCatch>
@@ -82,12 +84,11 @@
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
-  // import { useTimeoutPoll } from '@vueuse/core';
   import DemandInfo from './components/Demand.vue';
   import FlowInfo from './components/flow/Index.vue';
 
   interface Props {
-    data: TicketModel<unknown>,
+    ticketId: number;
   }
 
   interface Emits {
@@ -115,13 +116,6 @@
             fetchTicketDetails(id, true);
           }, 10000)
         }
-
-        // 设置轮询
-        // if (currentScope?.active) {
-        //   !isActive.value && ['PENDING', 'RUNNING'].includes(state.ticketData?.status) && resume();
-        // } else {
-        //   pause();
-        // }
       })
       .catch(() => {
         state.ticketData = null;
@@ -143,15 +137,6 @@
     isLoading: false,
     ticketData: null as TicketModel | null,
   });
-
-  // 轮询
-  // const { isActive, resume, pause } = useTimeoutPoll(() => {
-  //   if (props.data) {
-  //     fetchTicketDetails(props.data.id, true);
-  //   }
-  // }, 10000);
-
-  // resume();
 
   /**
    * 基础信息配置
@@ -208,10 +193,10 @@
 
   let flowInit = false;
 
-  watch(() => props.data?.id, (id) => {
-    if (id) {
+  watch(() => props.ticketId, () => {
+    if (props.ticketId) {
       clearTimeout(myTicketsDetailTimer);
-      fetchTicketDetails(id);
+      fetchTicketDetails(props.ticketId);
     }
   }, { immediate: true });
 
@@ -238,8 +223,8 @@
   };
 
   const handleFetchData = () => {
-    if (props.data?.id) {
-      fetchTicketDetails(props.data.id);
+    if (props.ticketId) {
+      fetchTicketDetails(props.ticketId);
     }
   };
 

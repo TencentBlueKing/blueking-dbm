@@ -23,9 +23,11 @@
           :model="formData">
           <ClusterIds
             v-model="formData.cluster_ids"
+            v-model:clusterVersionList="clusterVersionList"
             :cluster-type-list="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]" />
-          <ExecuteDbInfos
+          <ExecuteObjects
             v-model="formData.execute_objects"
+            :cluster-version-list="clusterVersionList"
             style="margin-top: 16px" />
           <RenderCharset v-model="formData.charset" />
           <Backup v-model="formData.backup" />
@@ -73,7 +75,7 @@
   import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
-  import ExecuteDbInfos from '@views/db-manage/common/sql-execute/execute-db-infos/Index.vue';
+  import ExecuteObjects from '@views/db-manage/common/sql-execute/execute-objects/Index.vue';
   import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
 
@@ -116,6 +118,8 @@
   const formRef = ref();
   const resetFormKey = ref(0);
   const isSubmitting = ref(false);
+
+  const clusterVersionList = ref<string[]>([]);
 
   const formData = reactive(createDefaultData());
 

@@ -99,6 +99,10 @@
   import SyntaxError from './components/SyntaxError.vue';
   import SyntaxSuccess from './components/SyntaxSuccess.vue';
 
+  interface Props {
+    clusterVersionList: string[];
+  }
+
   interface Emits {
     (e: 'grammar-check', doCheck: boolean, checkPass: boolean): void;
   }
@@ -107,6 +111,7 @@
     getValue: () => Promise<string[]>;
   }
 
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const genFilename = (() => {
@@ -159,6 +164,7 @@
   );
 
   const triggerChange = () => {
+    window.changeConfirm = true;
     isInnerChange = true;
     modelValue.value = Object.values(uploadFileDataMap.value).map((item) => item.realFilePath);
   };
@@ -167,7 +173,6 @@
     let doCheck = true;
     let checkPass = true;
     Object.values(uploadFileDataMap.value).forEach((item) => {
-      console.log('item = ', item);
       if (!item.grammarCheck && item.content) {
         doCheck = false;
         return;
@@ -205,6 +210,9 @@
     const params = new FormData();
 
     params.append('sql_content', currentFileData.content);
+    props.clusterVersionList.forEach((version, index) => {
+      params.append(`versions[${index}]`, version);
+    });
 
     grammarCheck(params)
       .then((data) => {
@@ -237,6 +245,9 @@
   onActivated(() => {
     isKeepAliveActive.value = true;
     triggerChange();
+    setTimeout(() => {
+      window.changeConfirm = false;
+    });
   });
 
   onDeactivated(() => {

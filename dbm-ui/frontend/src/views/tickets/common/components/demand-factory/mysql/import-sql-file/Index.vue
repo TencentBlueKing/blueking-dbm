@@ -83,7 +83,7 @@
       <span>{{ t('目标DB') }}：</span>
       <DbOriginalTable
         :columns="targetDB"
-        :data="dataList"
+        :data="ticketDetails.details.execute_objects"
         style="width: 800px" />
     </div>
     <div
@@ -153,11 +153,6 @@
   }
 
   const props = defineProps<Props>();
-
-  type targetDBItem = {
-    dbnames: [],
-    ignore_dbnames: [],
-  }
 
   type backupDBItem = {
     backup_on: string,
@@ -261,16 +256,21 @@
       field: 'sql_files',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-        cell.map((item, index) => (
-          <div style="line-height: 20px;" key={index}>
-            <bk-button text theme="primary" onClick={() => handleSelectFile(item)}>
-              <db-icon
-                style="color: #3a84ff; margin-right: 4px"
-                type="file" />
-              {getSQLFilename(item)}
-            </bk-button>
-          </div>
-        ))
+        <bk-button
+          text
+          theme="primary"
+          onClick={() => handleSelectFile(cell[0])}>
+          {
+            cell.length < 2 ? (
+              <>
+                <db-icon
+                  style="color: #3a84ff; margin-right: 4px"
+                  type="file" />
+                {getSQLFilename(cell[0])}
+              </>
+            ) : t('n 个 SQL 文件', {n: cell.length})
+          }
+        </bk-button>
       ),
     },
   ];
@@ -327,23 +327,6 @@
       }
     });
     return modeItem;
-  });
-
-
-  // 目标DB
-  const dataList = computed(() => {
-    const list: targetDBItem[] = [];
-    const dbList = props.ticketDetails.details.execute_objects || [];
-    const checkDbsMap: Record<string, boolean> = {};
-    dbList.forEach((item) => {
-      const key = `${item.dbnames.join('-')}_${item.ignore_dbnames.join('-')}`;
-      if (checkDbsMap[key]) {
-        return;
-      }
-      checkDbsMap[key] = true;
-      list.push(item);
-    });
-    return list;
   });
 
   // 备份设置

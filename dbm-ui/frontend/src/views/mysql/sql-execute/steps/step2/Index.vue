@@ -14,45 +14,6 @@
 <template>
   <div class="mysql-sql-execute-log-page">
     <Component :is="renderStatusCom" />
-    <div class="sql-execute-more-action-box">
-      <template v-if="flowStatus === 'failed'">
-        <BkButton @click="handleGoEdit">
-          {{ t('返回修改') }}
-        </BkButton>
-        <BkButton
-          class="ml8 w-88"
-          :loading="isSubmiting"
-          theme="primary"
-          @click="handleSubmitTicket">
-          {{ t('继续提交') }}
-        </BkButton>
-        <DbPopconfirm
-          class="ml8"
-          :confirm-handler="handleDeleteUserSemanticTasks"
-          :content="t('返回修改会中断当前操作_请谨慎操作')"
-          :title="t('确认终止')">
-          <BkButton :loading="isDeleteing">
-            {{ t('废弃') }}
-          </BkButton>
-        </DbPopconfirm>
-      </template>
-      <template v-if="flowStatus === 'pending'">
-        <DbPopconfirm
-          class="ml8"
-          :confirm-handler="handleRevokeSemanticCheck"
-          :content="t('返回修改会中断当前操作_请谨慎操作')"
-          :title="t('确认终止')">
-          <BkButton :loading="isRevokeing">
-            {{ t('终止执行') }}
-          </BkButton>
-        </DbPopconfirm>
-        <BkButton
-          class="ml8"
-          @click="handleLastStep">
-          {{ t('返回继续提单') }}
-        </BkButton>
-      </template>
-    </div>
     <div
       v-if="flowStatus !== 'pending'"
       class="mt-16"
@@ -99,8 +60,8 @@
             <span v-else-if="data.status === 'Success'">
               <DbIcon
                 svg
-                type="sync-failed" />
-              {{ t('失败') }}
+                type="sync-success" />
+              {{ t('成功') }}
             </span>
             <span v-else>
               <DbIcon
@@ -112,14 +73,17 @@
         </BKTableColumn>
         <BKTableColumn :label="t('失败原因')">
           <template #default="{ data }">
-            <div style="font-size: 12px; font-weight: bold; color: #ea3636; line-height: 22px">
-              {{ data.file_name }}
+            <div v-if="data.status === 'Failed'">
+              <div style="font-size: 12px; font-weight: bold; color: #ea3636; line-height: 22px">
+                {{ data.file_name }}
+              </div>
+              <MultLineText
+                :line="3"
+                style="color: #63656e; line-height: 20px; margin-top: 4px">
+                {{ data.err_msg }}
+              </MultLineText>
             </div>
-            <MultLineText
-              :line="3"
-              style="color: #63656e; line-height: 20px; margin-top: 4px">
-              {{ data.err_msg }}
-            </MultLineText>
+            <div v-else>--</div>
           </template>
         </BKTableColumn>
       </BkTable>
@@ -132,15 +96,7 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import {
-    deleteUserSemanticTasks,
-    getSemanticExecuteResult,
-    querySemanticData,
-    revokeSemanticCheck,
-  } from '@services/source/sqlImport';
-  import { createTicket } from '@services/source/ticket';
-
-  import { useGlobalBizs } from '@stores';
+  import { getSemanticExecuteResult, querySemanticData } from '@services/source/sqlImport';
 
   import MultLineText from '@components/mult-line-text/Index.vue';
 
@@ -152,12 +108,14 @@
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const { rootId } = route.query as { rootId: string; nodeId: string };
+  const { step } = route.params as { step: string };
 
   const ticketMode = ref('');
-  const isSubmiting = ref(false);
+
+  // 查看执行结果日志，执行成功不自动提交
+  const isViewResult = step === 'result';
 
   // 执行状态
   const { flowStatus, ticketId: flowTicketId } = useFlowStatus(rootId);
@@ -188,24 +146,6 @@
     },
   });
 
-  const { loading: isRevokeing, run: runRevokeSemanticCheck } = useRequest(revokeSemanticCheck, {
-    manual: true,
-    onSuccess() {
-      router.push({
-        name: 'MySQLExecute',
-      });
-    },
-  });
-
-  const { loading: isDeleteing, run: runDeleteUserSemanticTasks } = useRequest(deleteUserSemanticTasks, {
-    manual: true,
-    onSuccess() {
-      router.push({
-        name: 'MySQLExecute',
-      });
-    },
-  });
-
   // 执行成功自动跳转
   watch(
     flowStatus,
@@ -215,7 +155,7 @@
           root_id: rootId,
         });
       }
-      if (flowStatus.value === 'successed') {
+      if (flowStatus.value === 'successed' && !isViewResult) {
         router.push({
           name: 'MySQLExecute',
           params: {
@@ -232,70 +172,6 @@
       immediate: true,
     },
   );
-
-  // 提交单据
-  const handleSubmitTicket = () => {
-    isSubmiting.value = true;
-    createTicket({
-      bk_biz_id: currentBizId,
-      details: {
-        root_id: rootId,
-      },
-      remark: '',
-      ticket_type: 'MYSQL_IMPORT_SQLFILE',
-    })
-      .then((data) => {
-        router.push({
-          name: 'MySQLExecute',
-          params: {
-            step: 'success',
-          },
-          query: {
-            ticketId: data.id,
-          },
-        });
-      })
-      .finally(() => {
-        isSubmiting.value = false;
-      });
-  };
-
-  // 执行失败返回编辑
-  const handleGoEdit = () => {
-    router.push({
-      name: 'MySQLExecute',
-      params: {
-        step: '',
-      },
-      query: {
-        rootId,
-      },
-    });
-  };
-
-  // 终止语义检测
-  const handleRevokeSemanticCheck = () => {
-    runRevokeSemanticCheck({
-      root_id: rootId,
-    });
-  };
-
-  const handleDeleteUserSemanticTasks = () => {
-    runDeleteUserSemanticTasks({
-      task_ids: [rootId],
-      cluster_type: 'mysql',
-    });
-  };
-
-  // 返回继续提单
-  const handleLastStep = () => {
-    router.push({
-      name: 'MySQLExecute',
-      params: {
-        step: '',
-      },
-    });
-  };
 </script>
 <style lang="less">
   .mysql-sql-execute-log-page {
@@ -337,14 +213,6 @@
     .bk-log {
       position: relative;
       z-index: 1;
-    }
-
-    .sql-execute-more-action-box {
-      display: flex;
-      margin-top: 12px;
-      background: #fff;
-      justify-content: center;
-      align-items: center;
     }
   }
 </style>

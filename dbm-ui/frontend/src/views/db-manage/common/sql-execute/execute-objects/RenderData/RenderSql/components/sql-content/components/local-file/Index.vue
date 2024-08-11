@@ -90,6 +90,10 @@
   import CheckError from './components/CheckError.vue';
   import CheckSuccess from './components/CheckSuccess.vue';
 
+  interface Props {
+    clusterVersionList: string[];
+  }
+
   interface Emits {
     (e: 'grammar-check', doCheck: boolean, checkPass: boolean): void;
   }
@@ -97,6 +101,8 @@
   interface Expose {
     getValue: () => Promise<string[]>;
   }
+
+  const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -126,7 +132,6 @@
   watch(
     modelValue,
     () => {
-      console.log('from watch = ,', isInnerChange);
       if (isInnerChange) {
         isInnerChange = false;
         return;
@@ -148,6 +153,7 @@
   );
 
   const triggerChange = () => {
+    window.changeConfirm = true;
     const uploadFileDataList = Object.values(uploadFileDataMap.value);
 
     if (_.some(uploadFileDataList, (item) => item.isUploadFailed || item.isCheckFailded)) {
@@ -217,6 +223,10 @@
       selectFileName.value = firstFileName;
     }
 
+    props.clusterVersionList.forEach((version, index) => {
+      params.append(`versions[${index}]`, version);
+    });
+
     grammarCheck(params)
       .then((data) => {
         const lastUploadFileDataMap = { ...uploadFileDataMap.value };
@@ -279,6 +289,9 @@
   onActivated(() => {
     isKeepAliveActive.value = true;
     triggerChange();
+    setTimeout(() => {
+      window.changeConfirm = false;
+    });
   });
 
   onDeactivated(() => {
