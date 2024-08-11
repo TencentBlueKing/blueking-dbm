@@ -1,8 +1,14 @@
 <template>
   <DbSideslider
     v-model:is-show="isShow"
-    :title="t('SQL 内容')"
+    render-directive="show"
     :width="1100">
+    <template #header>
+      <span>{{ t('SQL 内容') }}</span>
+      <span>
+        <slot name="header" />
+      </span>
+    </template>
     <div style="padding: 20px 25px 0">
       <BkForm
         class="mb-12"
@@ -30,18 +36,20 @@
         <Component
           :is="renderCom"
           ref="fileRef"
-          v-model="modelValue"
+          v-model="localModelValue"
+          v-bind="attrs"
           @grammar-check="handleGrammarCheck" />
       </KeepAlive>
     </div>
     <template #footer>
       <span
         v-bk-tooltips="{
-          ...submitButtonTips,
+          content: submitButtonTips,
+          disabled: !submitButtonTips,
         }">
         <BkButton
           class="w-88"
-          :disabled="!submitButtonTips.disabled"
+          :disabled="Boolean(submitButtonTips)"
           theme="primary"
           @click="handleSubmit">
           {{ t('确定') }}
@@ -56,7 +64,7 @@
   </DbSideslider>
 </template>
 <script setup lang="ts">
-  import { ref } from 'vue';
+  import { ref, type UnwrapRef, useAttrs, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import LocalFile from './components/local-file/Index.vue';
@@ -81,41 +89,43 @@
     required: true,
   });
 
+  const attrs = useAttrs();
+
   const fileRef = ref<InstanceType<typeof LocalFile>>();
+  const localModelValue = ref<UnwrapRef<typeof modelValue>>([]);
   const hasGrammarCheck = ref(false);
   const grammarCheckResult = ref(false);
 
   const renderCom = computed(() => (isShow.value ? comMap[importMode.value] : 'div'));
 
   const submitButtonTips = computed(() => {
-    const tooltips = {
-      content: '',
-      disabled: true,
-    };
-
-    if (modelValue.value.length < 1) {
-      tooltips.content = t('请添加 SQL');
-      tooltips.disabled = false;
-      return tooltips;
+    if (localModelValue.value.length < 1) {
+      return t('请添加 SQL');
     }
 
     if (!hasGrammarCheck.value) {
-      tooltips.content = t('先执行语法检测');
-      tooltips.disabled = false;
-      return tooltips;
+      return t('先执行语法检测');
     }
-
     if (!grammarCheckResult.value) {
-      tooltips.content = t('语法检测失败');
-      tooltips.disabled = false;
+      return t('语法检测失败');
     }
 
-    return tooltips;
+    return '';
   });
+
+  watch(
+    modelValue,
+    () => {
+      localModelValue.value = [...modelValue.value];
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 文件来源改变时需要重置文件列表和语法检测
   const handleImportModeChange = () => {
-    modelValue.value = [];
+    localModelValue.value = [];
   };
 
   // 语法检测状态
@@ -135,4 +145,3 @@
     isShow.value = false;
   };
 </script>
-<style></style>

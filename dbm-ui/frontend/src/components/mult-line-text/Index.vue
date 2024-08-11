@@ -32,7 +32,7 @@
 
   interface Props {
     line: number;
-    expandable: boolean;
+    expandable?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -45,6 +45,7 @@
   const placeholderRef = ref<HTMLElement>();
   const isMore = ref(false);
   const isShowExpand = ref(props.expandable);
+
   const styles = computed(() => ({
     '-webkit-line-clamp': isMore.value ? 'initial' : props.line,
   }));

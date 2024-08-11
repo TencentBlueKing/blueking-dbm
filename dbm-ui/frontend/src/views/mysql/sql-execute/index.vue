@@ -28,6 +28,7 @@
     execute: Step1,
     log: Step2,
     success: Step3,
+    result: Step2,
   };
 
   const step = ref('');

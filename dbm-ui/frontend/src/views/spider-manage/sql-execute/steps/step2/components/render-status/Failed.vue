@@ -25,11 +25,100 @@
       {{ t('接下你可以直接_继续提交_或_返回修改_后重试') }}
     </div>
   </div>
+  <div class="sql-execute-more-action-box">
+    <BkButton @click="handleGoEdit">
+      {{ t('返回修改') }}
+    </BkButton>
+    <BkButton
+      class="ml8 w-88"
+      :loading="isSubmiting"
+      theme="primary"
+      @click="handleSubmitTicket">
+      {{ t('继续提交') }}
+    </BkButton>
+    <DbPopconfirm
+      class="ml8"
+      :confirm-handler="handleDeleteUserSemanticTasks"
+      :content="t('返回修改会中断当前操作_请谨慎操作')"
+      :title="t('确认终止')">
+      <BkButton :loading="isDeleteing">
+        {{ t('废弃') }}
+      </BkButton>
+    </DbPopconfirm>
+  </div>
 </template>
 <script setup lang="ts">
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+  import { useRoute, useRouter } from 'vue-router';
 
+  import { deleteUserSemanticTasks } from '@services/source/sqlImport';
+  import { createTicket } from '@services/source/ticket';
+
+  const router = useRouter();
+  const route = useRoute();
   const { t } = useI18n();
+
+  const { rootId } = route.query as { rootId: string; nodeId: string };
+
+  const isSubmiting = ref(false);
+
+  const { loading: isDeleteing, run: runDeleteUserSemanticTasks } = useRequest(deleteUserSemanticTasks, {
+    manual: true,
+    onSuccess() {
+      router.push({
+        name: 'MySQLExecute',
+      });
+    },
+  });
+
+  // 执行失败返回编辑
+  const handleGoEdit = () => {
+    router.push({
+      name: 'MySQLExecute',
+      params: {
+        step: '',
+      },
+      query: {
+        rootId,
+      },
+    });
+  };
+
+  // 提交单据
+  const handleSubmitTicket = () => {
+    isSubmiting.value = true;
+    createTicket({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      details: {
+        root_id: rootId,
+      },
+      remark: '',
+      ticket_type: 'MYSQL_IMPORT_SQLFILE',
+    })
+      .then((data) => {
+        router.push({
+          name: 'MySQLExecute',
+          params: {
+            step: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      })
+      .finally(() => {
+        isSubmiting.value = false;
+      });
+  };
+
+  const handleDeleteUserSemanticTasks = () => {
+    runDeleteUserSemanticTasks({
+      task_ids: [rootId],
+      cluster_type: 'mysql',
+    });
+  };
 </script>
 <style lang="less" scoped>
   .sql-execute-failed {
@@ -54,5 +143,12 @@
       display: flex;
       justify-content: center;
     }
+  }
+  .sql-execute-more-action-box {
+    display: flex;
+    margin-top: 12px;
+    background: #fff;
+    justify-content: center;
+    align-items: center;
   }
 </style>

@@ -29,7 +29,10 @@
         <RenderSql
           ref="sqlFielsRef"
           v-model="localSqlFiles"
-          v-model:importMode="localImportMode" />
+          v-model:importMode="localImportMode"
+          :cluster-version-list="clusterVersionList"
+          :db-names="localDbnames"
+          :ignore-db-names="localIgnoreDbnames" />
       </td>
       <td>
         <div class="action-box">
@@ -81,6 +84,7 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
+    clusterVersionList: string[];
   }
   interface Emits {
     (e: 'add' | 'change', params: IDataRow): void;

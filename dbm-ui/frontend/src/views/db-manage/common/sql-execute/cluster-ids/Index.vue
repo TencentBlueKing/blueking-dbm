@@ -80,6 +80,9 @@
     required: true,
     default: () => [],
   })
+  const clusterVersionList = defineModel<string[]>('clusterVersionList',{
+    default: () => [],
+  })
 
   const colums = [
     {
@@ -137,6 +140,7 @@
   const triggerChange = () => {
     isInnerChange = true;
     modelValue.value = targetClusterList.value.map(item => item.id);
+    clusterVersionList.value = _.uniq(targetClusterList.value.map(item => item.major_version));
   };
 
   const fetchClusterData = (clusterIds: number[]) => {

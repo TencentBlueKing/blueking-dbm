@@ -13,28 +13,31 @@
 
 <template>
   <div class="my-tickets-page">
-    <List @change="handleChangeTicket" />
+    <List v-model="activeTicketId" />
     <div
-      v-if="activeTicket"
+      v-if="activeTicketId"
       class="ticket-detail-wrapper">
-      <Details
-        :data="activeTicket"
-        @update-active-ticket="handleChangeTicket" />
-      <!-- <TicketClone :data="activeTicket" /> -->
+      <Details :ticket-id="activeTicketId" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import TicketModel from '@services/model/ticket/ticket';
+  import { watch } from 'vue';
+
+  import { useUrlSearch } from '@hooks';
 
   import Details from './components/details/Index.vue';
   import List from './components/list/Index.vue';
 
-  const activeTicket = ref<TicketModel<unknown>>();
+  const { appendSearchParams } = useUrlSearch();
 
-  const handleChangeTicket = (data: TicketModel<unknown>) => {
-    activeTicket.value = data;
-  };
+  const activeTicketId = ref(0);
+
+  watch(activeTicketId, () => {
+    appendSearchParams({
+      viewId: activeTicketId.value,
+    });
+  });
 </script>
 <style lang="less">
   .my-tickets-page {

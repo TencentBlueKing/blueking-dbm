@@ -19,23 +19,15 @@
       </span>
     </div>
     <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238">
-      {{ $t('模拟执行成功') }}
-    </div>
-    <div style="margin-top: 8px; line-height: 32px; color: #313238">
-      {{ $t('接下你可以直接_提交申请_或返回上一步修改重试') }}
-    </div>
-    <div class="action-wrapper">
-      <div class="confirm-action">
-        <span>{{ $t('生产执行时无需再确认') }}</span>
-        <BkSwitcher
-          size="small"
-          style="margin-left: 12px"
-          theme="primary" />
-      </div>
+      {{ t('模拟执行成功') }}
     </div>
   </div>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  const { t } = useI18n();
+</script>
 <style lang="less" scoped>
   .sql-execute-success {
     padding-top: 40px;
@@ -71,5 +63,12 @@
       background: #f5f7fa;
       border-radius: 20px;
     }
+  }
+  .sql-execute-more-action-box {
+    display: flex;
+    margin-top: 12px;
+    background: #fff;
+    justify-content: center;
+    align-items: center;
   }
 </style>
