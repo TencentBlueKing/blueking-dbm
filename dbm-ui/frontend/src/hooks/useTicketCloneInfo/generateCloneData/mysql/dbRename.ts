@@ -19,12 +19,14 @@ import { random } from '@utils';
 export function generateMysqlDbRenameCloneData(ticketData: TicketModel<MySQLRenameDetails>) {
   const { clusters, force, infos } = ticketData.details;
   const tableDataList = infos.map((item) => ({
-    cluster_id: item.cluster_id,
-    cluster_domain: clusters[item.cluster_id].immute_domain,
-    cluster_type: clusters[item.cluster_id].cluster_type,
-    from_database: item.from_database,
-    to_database: item.to_database,
-    uniqueId: random(),
+    rowKey: random(),
+    clusterData: {
+      id: item.cluster_id,
+      domain: clusters[item.cluster_id].immute_domain,
+      type: clusters[item.cluster_id].cluster_type,
+    },
+    fromDatabase: item.from_database,
+    toDatabase: item.to_database,
   }));
   return Promise.resolve({
     tableDataList,

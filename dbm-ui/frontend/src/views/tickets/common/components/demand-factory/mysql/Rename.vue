@@ -13,7 +13,7 @@
 
 <template>
   <DbOriginalTable
-    class="details-rename__table"
+    class="details-table"
     :columns="columns"
     :data="dataList" />
 </template>

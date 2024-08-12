@@ -13,7 +13,7 @@
 
 <template>
   <DbOriginalTable
-    class="details-ms-switch__table"
+    class="details-table"
     :columns="columns"
     :data="dataList" />
 </template>

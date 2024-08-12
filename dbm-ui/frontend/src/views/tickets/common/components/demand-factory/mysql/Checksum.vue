@@ -27,7 +27,7 @@
     </div>
   </div>
   <DbOriginalTable
-    class="details-checksum__table"
+    class="details-table"
     :columns="columns"
     :data="dataList" />
 </template>
@@ -160,22 +160,4 @@
 <style lang="less" scoped>
   @import '@views/tickets/common/styles/DetailsTable.less';
   @import '@views/tickets/common/styles/ticketDetails.less';
-
-  .ticket-details {
-    &__info {
-      padding-left: 0;
-    }
-
-    &__item {
-      &-label {
-        min-width: 140px;
-      }
-    }
-  }
-
-  .details-checksum {
-    &__table {
-      padding-left: 80px;
-    }
-  }
 </style>
