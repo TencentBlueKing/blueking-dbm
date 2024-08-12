@@ -97,9 +97,11 @@ func (i *NodeOperationService) CleanData() (err error) {
 		return err
 	}
 
-	// 删除数据目录
-	extraCmd = `df |grep data|grep -vw '/data'|awk '{print $NF}'|while read line;do rm  -rf $line/hadoopdata*;done`
-	logger.Info("删除hadoopdata, [%s]", extraCmd)
+	// 删除数据目录 fix
+	// 大目录删除数据耗时，且块数据无法重新找回，
+	extraCmdFormat := `df |grep data|grep -vw '/data'|awk '{print $NF}'|while read line;do mv $line/%s $line/%s;done`
+	extraCmd = fmt.Sprintf(extraCmdFormat, "hadoopdata", "bak_hadoopdata")
+	logger.Info("rename hadoopdata dir, [%s]", extraCmd)
 	if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
 		logger.Error("[%s] execute failed, %v", extraCmd, err)
 		return err
