@@ -11,7 +11,6 @@
 package apply
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strconv"
@@ -200,18 +199,12 @@ const (
 )
 
 func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
-	var insDedicatedBizIds []string
-	var insDedicatedRstyps []string
+
 	logger.Info("%v", ins.Storages)
 	if err := ins.UnmarshalDiskInfo(); err != nil {
 		logger.Error("%s umarshal disk failed %s", ins.IP, err.Error())
 	}
-	if err := json.Unmarshal(ins.DedicatedBizs, &insDedicatedBizIds); err != nil {
-		logger.Error("unmarshal dedicate bizs failed %v", err)
-	}
-	if err := json.Unmarshal(ins.RsTypes, &insDedicatedRstyps); err != nil {
-		logger.Error("unmarshal resource type failed %v", err)
-	}
+
 	// 如果请求的磁盘为空，尽量匹配没有磁盘的机器
 	// 请求参数需要几块盘，如果机器盘数量预制相等，则优先级更高
 	if len(o.StorageSpecs) == len(ins.Storages) {
@@ -222,15 +215,12 @@ func (o *SearchContext) setResourcePriority(ins model.TbRpDetail, ele *Item) {
 		ele.Priority += PriorityP1
 	}
 	// 如果请求参数请求了专属业务资源，则标记了专用业务的资源优先级更高
-	if o.IntetionBkBizId > 0 && lo.Contains(insDedicatedBizIds, strconv.Itoa(o.IntetionBkBizId)) {
+	if o.IntetionBkBizId > 0 && ins.DedicatedBiz == o.IntetionBkBizId {
 		ele.Priority += PriorityP2
 	}
-	// 如果请求参数请求了专属db类型，则标记了专用db类型的资源优先级更高
-	if lo.IsNotEmpty(o.RsType) && lo.Contains(insDedicatedRstyps, o.RsType) {
-		ele.Priority += PriorityP2
-	}
+
 	//  如果请求参数请求了专属db类型，机器的资源类型标签只有一个，且等于请求的资源的类中，则优先级更高
-	if lo.IsNotEmpty(o.RsType) && (len(insDedicatedRstyps) == 1 && insDedicatedRstyps[0] == o.RsType) {
+	if lo.IsNotEmpty(o.RsType) && (ins.RsType == o.RsType) {
 		ele.Priority += PriorityP2
 	}
 	// 如果是匹配的资源是redis资源

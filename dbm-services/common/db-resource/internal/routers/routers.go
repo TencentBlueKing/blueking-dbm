@@ -17,6 +17,7 @@ import (
 	"dbm-services/common/db-resource/internal/controller"
 	"dbm-services/common/db-resource/internal/controller/apply"
 	"dbm-services/common/db-resource/internal/controller/manage"
+	"dbm-services/common/db-resource/internal/controller/statistic"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,6 +32,9 @@ func RegisterRoutes(engine *gin.Engine) {
 	// background router
 	background := controller.BackStageHandler{}
 	background.RegisterRouter(engine)
+	// statistic router
+	statistic := statistic.Handler{}
+	statistic.RegisterRouter(engine)
 	engine.Handle("GET", "/ping", func(context *gin.Context) {
 		context.String(http.StatusOK, "pong")
 	})

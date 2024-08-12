@@ -17,9 +17,11 @@ import (
 	"time"
 
 	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/dbmapi"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 
+	"github.com/samber/lo"
 	"gorm.io/gorm"
 )
 
@@ -36,14 +38,21 @@ const (
 	UsedByOther = "UsedByOther"
 )
 
+const (
+	// PUBLIC_RESOURCE_DBTYEP 公共资源DB类型
+	PUBLIC_RESOURCE_DBTYEP = "PUBLIC"
+	// PUBLIC_RESOURCE_BIZ  公共资源业务ID
+	PUBLIC_RESOURCE_BIZ = 0
+)
+
 // TbRpDetail  机器资源明细表
 // nolint
 type TbRpDetail struct {
 	ID              int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
 	BkCloudID       int                      `gorm:"uniqueIndex:ip;column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
-	BkBizId         int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:'机器当前所属业务'" json:"bk_biz_id"`
-	DedicatedBizs   json.RawMessage          `gorm:"column:dedicated_bizs;type:json;comment:'专属业务,可属于多个'" json:"for_bizs"`
-	RsTypes         json.RawMessage          `gorm:"column:rs_types;type:json;comment:'资源类型标签'" json:"resource_types"`
+	BkBizId         int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:机器当前所属业务" json:"bk_biz_id"`
+	DedicatedBiz    int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
+	RsType          string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
 	Bizs            map[string]string        `gorm:"-" json:"-"`
 	BkHostID        int                      `gorm:"index:idx_host_id;column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
 	IP              string                   `gorm:"uniqueIndex:ip;column:ip;type:varchar(20);not null" json:"ip"`
@@ -110,6 +119,54 @@ func TbRpDetailName() string {
 	return "tb_rp_detail"
 }
 
+// MatchDbmSpec 资源是否匹配dbm的规格
+func (t TbRpDetail) MatchDbmSpec(spec dbmapi.DbmSpec) bool {
+	logger.Info("spec:%+v", spec)
+	logger.Info("cpu:%d,mem:%d,city:%s,disk:%s", t.CPUNum, t.DramCap, t.City, string(t.StorageDevice))
+	if len(spec.DeviceClass) > 0 {
+		if !lo.Contains(spec.DeviceClass, t.DeviceClass) {
+			logger.Warn("deviceClass not match, dbmSpec:%+v, detail:%s", spec.SpecName, t.IP)
+			return false
+		}
+	} else {
+		if !isWithinRange(t.CPUNum, spec.Cpu.Min, spec.Cpu.Max) {
+			logger.Warn("cpu not match, dbmSpec:%+v, detail:%s", spec.SpecName, t.IP)
+			return false
+		}
+		if !isWithinRange(t.DramCap, int(spec.Mem.Min*1024), spec.Mem.Max*1024) {
+			logger.Warn("mem not match, dbmSpec:%+v, detail:%s", spec.SpecName, t.IP)
+			return false
+		}
+	}
+	if len(spec.StorageSpecs) > 0 {
+		if err := t.UnmarshalDiskInfo(); err != nil {
+			logger.Error("unmarshal disk info failed, err:%s")
+			return false
+		}
+		for _, diskSpec := range spec.StorageSpecs {
+			mp := diskSpec.MountPoint
+			realDiskInfo, ok := t.Storages[mp]
+			if !ok {
+				logger.Warn("disk not found, mp:%s, detail:%s", mp, t.IP)
+				return false
+			}
+			if diskSpec.DiskType != "ALL" && lo.IsNotEmpty(diskSpec.DiskType) {
+				if diskSpec.DiskType != realDiskInfo.DiskType {
+					return false
+				}
+			}
+			if realDiskInfo.Size < diskSpec.Size {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func isWithinRange(value, min, max int) bool {
+	return value >= min && value <= max
+}
+
 // DeviceClassIsLocalSSD TODO
 func (t TbRpDetail) DeviceClassIsLocalSSD() bool {
 	if cmutil.IsEmpty(t.DeviceClass) {
@@ -123,6 +180,14 @@ func (t TbRpDetail) DeviceClassIsLocalSSD() bool {
 func (t *TbRpDetail) UnmarshalDiskInfo() (err error) {
 	t.Storages = make(map[string]bk.DiskDetail)
 	err = json.Unmarshal(t.StorageDevice, &t.Storages)
+	return
+}
+
+// ConcatDiskInfoIgnoreDiskId concat disk info
+func (t *TbRpDetail) ConcatDiskInfoIgnoreDiskId() (info string) {
+	for mp, dk := range t.Storages {
+		info += fmt.Sprintf("%s:%d:%s,", mp, dk.Size, dk.DiskType)
+	}
 	return
 }
 

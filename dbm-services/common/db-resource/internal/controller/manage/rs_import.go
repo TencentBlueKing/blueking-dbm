@@ -35,8 +35,8 @@ import (
 // ImportMachParam 资源导入请求参数
 type ImportMachParam struct {
 	// ForBizs 业务标签,表示这个资源将来给ForBizs这个业务使用
-	ForBizs []int             `json:"for_bizs"`
-	RsTypes []string          `json:"resource_types"`
+	ForBiz  int               `json:"for_biz"`
+	RsType  string            `json:"resource_type"`
 	BkBizId int               `json:"bk_biz_id"  binding:"number"`
 	Hosts   []HostBase        `json:"hosts" binding:"gt=0,dive,required"`
 	Labels  map[string]string `json:"labels"`
@@ -120,28 +120,12 @@ type ImportHostResp struct {
 	NotFoundInCCHosts    []string          `json:"not_found_in_cc_hosts"`
 }
 
-func (p ImportMachParam) transParamToBytes() (lableJson, bizJson, rstypes json.RawMessage, err error) {
+func (p ImportMachParam) transParamToBytes() (lableJson json.RawMessage, err error) {
 	// lableJson = []byte("{}")
 	lableJson, err = json.Marshal(cmutil.CleanStrMap(p.Labels))
 	if err != nil {
 		logger.Error(fmt.Sprintf("ConverLableToJsonStr Failed,Error:%s", err.Error()))
 		return
-	}
-	bizJson = []byte("[]")
-	if len(p.ForBizs) > 0 {
-		bizJson, err = json.Marshal(cmutil.IntSliceToStrSlice(p.ForBizs))
-		if err != nil {
-			logger.Error(fmt.Sprintf("conver biz json Failed,Error:%s", err.Error()))
-			return
-		}
-	}
-	rstypes = []byte("[]")
-	if len(p.RsTypes) > 0 {
-		rstypes, err = json.Marshal(cmutil.StringsRemoveEmpty(p.RsTypes))
-		if err != nil {
-			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
-			return
-		}
 	}
 	return
 }
@@ -183,7 +167,7 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	}
 	resp.SearchDiskErrInfo = diskResp.IpFailedLogMap
 	resp.NotFoundInCCHosts = notFoundHosts
-	lableJson, bizJson, rstypes, err := param.transParamToBytes()
+	lableJson, err := param.transParamToBytes()
 	if err != nil {
 		return resp, err
 	}
@@ -204,7 +188,7 @@ func Doimport(param ImportMachParam) (resp *ImportHostResp, err error) {
 	}
 	for _, h := range ccHostsInfo {
 		delete(hostsMap, h.InnerIP)
-		el := transHostInfoToDbModule(h, h.BkCloudId, param.BkBizId, rstypes, bizJson, lableJson)
+		el := param.transHostInfoToDbModule(h, h.BkCloudId, lableJson)
 		el.SetMore(h.InnerIP, diskResp.IpLogContentMap)
 		// gse agent 1.0的 agent 是用 cloudid:ip
 		gseAgentId := h.BkAgentId
@@ -265,16 +249,16 @@ func getCvmMachList(hosts []*cc.Host) []string {
 }
 
 // transHostInfoToDbModule 获取的到的主机信息赋值给db model
-func transHostInfoToDbModule(h *cc.Host, bkCloudId, bkBizId int, rstp, biz, label []byte) model.TbRpDetail {
+func (p ImportMachParam) transHostInfoToDbModule(h *cc.Host, bkCloudId int, label []byte) model.TbRpDetail {
 	osType := h.BkOsType
 	if cmutil.IsEmpty(osType) {
 		osType = bk.OsLinux
 	}
 	return model.TbRpDetail{
-		RsTypes:         rstp,
-		DedicatedBizs:   biz,
+		DedicatedBiz:    p.ForBiz,
+		RsType:          p.RsType,
 		BkCloudID:       bkCloudId,
-		BkBizId:         bkBizId,
+		BkBizId:         p.BkBizId,
 		AssetID:         h.AssetID,
 		BkHostID:        h.BKHostId,
 		IP:              h.InnerIP,
