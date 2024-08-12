@@ -13,7 +13,7 @@
 
 <template>
   <DbOriginalTable
-    class="details-slave__table"
+    class="details-table"
     :columns="columns"
     :data="dataList" />
 </template>
@@ -46,7 +46,7 @@
       label: t('集群ID'),
       field: 'cluster_id',
       render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-    }, 
+    },
     {
       label: t('集群名称'),
       field: 'immute_domain',
@@ -64,7 +64,7 @@
         <span class="cluster-name__alias">{data.name}</span>
       </div>
     ),
-    }, 
+    },
     {
       label: t('新从库主机'),
       field: 'new_slave',

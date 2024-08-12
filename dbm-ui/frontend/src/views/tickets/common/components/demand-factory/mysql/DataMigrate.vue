@@ -13,6 +13,7 @@
 
 <template>
   <DbOriginalTable
+    class="details-table"
     :columns="columns"
     :data="tableData" />
 </template>
@@ -72,3 +73,7 @@
     },
   ];
 </script>
+
+<style lang="less" scoped>
+  @import '@views/tickets/common/styles/DetailsTable.less';
+</style>
