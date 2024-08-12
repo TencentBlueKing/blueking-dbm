@@ -55,26 +55,26 @@
                 </div>
                 <template v-else>
                   <div class="upload-info">
+                    <span
+                      v-if="!fileData[fileItemData.name].grammarCheck"
+                      style="color: #979ba5">
+                      {{ t('待校验') }}
+                    </span>
                     <DbIcon
-                      v-if="fileData[fileItemData.name].grammarCheck?.isError"
+                      v-else-if="fileData[fileItemData.name].grammarCheck?.isError"
                       style="color: #ea3636"
                       svg
                       type="attention-fill" />
                     <DbIcon
-                      v-else-if="fileData[fileItemData.name].isUploadFailed"
+                      v-else-if="
+                        fileData[fileItemData.name].isUploadFailed || fileData[fileItemData.name].isCheckFailded
+                      "
                       style="color: #ea3636"
                       type="attention-fill" />
                     <DbIcon
                       v-else-if="fileData[fileItemData.name].isSuccess"
                       style="color: #2dcb56"
                       type="check-circle-fill" />
-                    <span
-                      v-else-if="
-                        !fileData[fileItemData.name].grammarCheck || fileData[fileItemData.name].isCheckFailded
-                      "
-                      style="color: #979ba5">
-                      {{ t('待校验') }}
-                    </span>
                   </div>
                   <div class="drag-flag">
                     <DbIcon

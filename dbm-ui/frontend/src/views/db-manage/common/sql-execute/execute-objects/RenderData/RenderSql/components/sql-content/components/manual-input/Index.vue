@@ -39,6 +39,7 @@
         style="position: relative">
         <template v-if="selectFileData">
           <Editor
+            :key="selectFileName"
             v-model="selectFileData.content"
             :message-list="selectFileData.messageList"
             :title="selectFileName"
@@ -59,7 +60,7 @@
               v-if="selectFileData.isUploading"
               class="syntax-checking" />
             <SyntaxError
-              v-else-if="selectFileData.isCheckFailded"
+              v-else-if="selectFileData.isUploadFailed"
               class="syntax-error" />
             <SyntaxSuccess
               v-else-if="selectFileData.messageList.length < 1"
@@ -227,8 +228,9 @@
         currentFileData.isSuccess = true;
         currentFileData.realFilePath = realFilePath;
       })
-      .catch(() => {
-        currentFileData.isCheckFailded = true;
+      .catch((error) => {
+        console.log('eror = ', error);
+        currentFileData.isUploadFailed = true;
         emits('grammar-check', true, false);
       })
       .finally(() => {
