@@ -5,7 +5,7 @@
     "collector_scenario_id": "row",
     "category_id": "os",
     "etl_config": "bk_log_text",
-    "data_encoding": "GBK",
+    "data_encoding": "UTF-8",
     "retention": 7,
     "es_shards": 3,
     "target_object_type": "HOST",

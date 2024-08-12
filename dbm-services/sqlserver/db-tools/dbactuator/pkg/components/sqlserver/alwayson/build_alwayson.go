@@ -165,6 +165,8 @@ func (b *BuildAlwaysOnComp) BuildAlwayOn() error {
 			s.InstanceName,
 			b.AlwaysOnGroupName,
 			s.InstanceName,
+			b.AlwaysOnGroupName,
+			s.InstanceName,
 			s.HostName,
 			b.ListenPort,
 		)

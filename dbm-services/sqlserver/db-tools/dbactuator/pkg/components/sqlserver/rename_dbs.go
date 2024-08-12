@@ -109,6 +109,7 @@ func (r *RenameDBSComp) PerCheck() error {
 			continue
 		}
 		// 没有报错则加入待重命名数组
+		logger.Info("the db [%s] -> [%s] enters the rename queue", i.DBName, i.TargetDBName)
 		r.RealDBS = append(r.RealDBS, i)
 	}
 	if isErr {

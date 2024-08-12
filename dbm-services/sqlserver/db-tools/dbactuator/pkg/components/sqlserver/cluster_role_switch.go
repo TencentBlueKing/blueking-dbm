@@ -45,12 +45,6 @@ type switchRunTimeCtx struct {
 	isEmpty     bool
 }
 
-// execResult todo
-type execResult struct {
-	Msg      string `db:"msg"`
-	ExitCode int    `db:"exitcode"`
-}
-
 // Init 初始化
 func (c *ClusterRoleSwitchComp) Init() error {
 	var MdbWork *sqlserver.DbWorker
@@ -212,7 +206,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 			return nil
 		}
 		// 其他情况需要操作
-		if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_LossOver", ""); err != nil {
+		if err := sqlserver.ExecSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_LossOver", ""); err != nil {
 			logger.Error(
 				"exec Sys_AutoSwitch_LossOver in instance [%s:%d] failed",
 				c.Params.Host,
@@ -223,7 +217,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 
 		// 其余slave需要同步新的master
 		for _, slave := range c.Slaves {
-			if err := execSwitchSP(
+			if err := sqlserver.ExecSwitchSP(
 				slave,
 				"Sys_AutoSwitch_Resume",
 				fmt.Sprintf("'%s','%d',", c.Params.Host, c.Params.Port),
@@ -237,7 +231,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 		// 主从互切模式
 
 		// 阶段1： 在旧master切换成强同步模式
-		if err := execSwitchSP(c.MasterDB, "Sys_AutoSwitch_SafetyOn", ""); err != nil {
+		if err := sqlserver.ExecSwitchSP(c.MasterDB, "Sys_AutoSwitch_SafetyOn", ""); err != nil {
 			// 执行报错则回滚
 			logger.Error(
 				"step 1 : exec Sys_AutoSwitch_SafetyOn in old_master_instance [%s:%d] failed ",
@@ -257,7 +251,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 		case cst.MIRRORING:
 
 			// 阶段2：mirroring架构在旧master执行切换逻辑
-			if err := execSwitchSP(
+			if err := sqlserver.ExecSwitchSP(
 				c.MasterDB,
 				"Sys_AutoSwitch_FailOver",
 				fmt.Sprintf("'%s','%d',", c.Params.Host, c.Params.Port),
@@ -277,7 +271,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 			)
 
 			// 阶段3：同步数据切换成高性能模式
-			if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SafetyOff", ""); err != nil {
+			if err := sqlserver.ExecSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SafetyOff", ""); err != nil {
 				logger.Error(
 					"step 3: exec Sys_AutoSwitch_SafetyOff in new_master_instance [%s:%d] failed",
 					c.Params.Host,
@@ -292,7 +286,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 			)
 
 			// 阶段4： 旧master同步新master数据
-			if err := execSwitchSP(
+			if err := sqlserver.ExecSwitchSP(
 				c.NewMasterDB,
 				"Sys_AutoSwitch_Resume",
 				fmt.Sprintf("'%s','%d',", c.Params.Host, c.Params.Port),
@@ -312,7 +306,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 
 		case cst.ALWAYSON:
 			//  阶段2：Alwayson架构在新master执行切换逻辑
-			if err := execSwitchSP(
+			if err := sqlserver.ExecSwitchSP(
 				c.NewMasterDB, "Sys_AutoSwitch_FailOver",
 				fmt.Sprintf("'%s','%d',", c.Params.Host, c.Params.Port),
 			); err != nil {
@@ -331,7 +325,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 			)
 
 			// 阶段3：同步数据切换成高性能模式
-			if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SafetyOff", ""); err != nil {
+			if err := sqlserver.ExecSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SafetyOff", ""); err != nil {
 				logger.Error(
 					"step 3: exec Sys_AutoSwitch_SafetyOff in new_master_instance [%s:%d] failed",
 					c.Params.Host,
@@ -347,7 +341,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 
 			// 阶段4： 剩余其他slave同步新的master数据
 			// 先在旧master机器跑
-			if err := execSwitchSP(
+			if err := sqlserver.ExecSwitchSP(
 				c.MasterDB,
 				"Sys_AutoSwitch_Resume",
 				fmt.Sprintf("'%s','%d',", c.Params.Host, c.Params.Port),
@@ -361,7 +355,7 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 			}
 			// 再在其余的slave机器跑
 			for _, slave := range c.Slaves {
-				if err := execSwitchSP(
+				if err := sqlserver.ExecSwitchSP(
 					slave,
 					"Sys_AutoSwitch_Resume",
 					fmt.Sprintf("'%s','%d',", c.Params.Host, c.Params.Port),
@@ -390,30 +384,13 @@ func (c *ClusterRoleSwitchComp) ExecSwitch() (err error) {
 func (c *ClusterRoleSwitchComp) ExecSnapShot() (err error) {
 	if !c.Params.Force {
 		// 删除新master的历史快照
-		if err := execSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SnapShot", "1,"); err != nil {
+		if err := sqlserver.ExecSwitchSP(c.NewMasterDB, "Sys_AutoSwitch_SnapShot", "1,"); err != nil {
 			logger.Error(fmt.Sprintf("exec Sys_AutoSwitch_SnapShot failed: %s", err.Error()))
 		}
 		// 创建新master的历史快照
-		if err := execSwitchSP(c.MasterDB, "Sys_AutoSwitch_SnapShot", "0,"); err != nil {
+		if err := sqlserver.ExecSwitchSP(c.MasterDB, "Sys_AutoSwitch_SnapShot", "0,"); err != nil {
 			logger.Error(fmt.Sprintf("exec Sys_AutoSwitch_SnapShot failed: %s", err.Error()))
 		}
 	}
-	return nil
-}
-
-// exec_switch_sp todo
-func execSwitchSP(db *sqlserver.DbWorker, spName string, paramStr string) error {
-	cmd := fmt.Sprintf(cst.EXEC_SWITCH_SP_TMEP_SQL, spName, paramStr)
-	logger.Info(cmd)
-	var ret []execResult
-	if err := db.Queryx(&ret, cmd); err != nil {
-		logger.Error("exec %s failed", spName)
-		return err
-	}
-	if ret[0].ExitCode != 1 {
-		logger.Error("exec %s failed", spName)
-		return fmt.Errorf(ret[0].Msg)
-	}
-	logger.Info(ret[0].Msg)
 	return nil
 }

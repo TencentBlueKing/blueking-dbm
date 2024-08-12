@@ -173,3 +173,50 @@ class SQLServerRollbackHandler(object):
             raise Exception(_("集群【{}】最近的{}天里找不到日志备份").format(self.cluster.name, BACKUP_LOG_RANGE_DAYS))
 
         return last_binlogs[0]["backup_end_time"]
+
+    @staticmethod
+    def check_binlog_lsn_continuity(backup_logs: List[Dict], full_backup_info: Dict) -> (List[Dict], List[str]):
+        """
+        检测一批量日志文件的连续性
+        @param backup_logs: 日志备份列表
+        @param full_backup_info: 关联的全量备份信息
+        """
+        check_lsn = 0
+        check_file_name = ""
+        err = []
+        # 首先传入的list进行排序
+        backup_logs.sort(key=lambda x: x["lastlsn"])
+        # 对比每个日志备份的LSN的连续情况
+        for log in backup_logs:
+            if full_backup_info["checkpointlsn"] != log["databasebackuplsn"]:
+                # 表示获取日志备份有问题，有存在和全量备份不关联的日志备份
+                err.append(
+                    _("请联系系统管理员，恢复集群[{}]的数据库[{}]中拉取到无关联的日志备份记录[{}]").format(
+                        full_backup_info["cluster_address"], full_backup_info["db_name"], log["file_name"]
+                    )
+                )
+                continue
+            if check_lsn == 0:
+                # 表示是第一个lsn
+                check_lsn = log["lastlsn"]
+                check_file_name = log["file_name"]
+                continue
+            # 对比前一个last_lsn是否一致
+            if check_lsn == log["firstlsn"]:
+                check_lsn = log["lastlsn"]
+                check_file_name = log["file_name"]
+                continue
+            # 不一致的话先记录日志，统一报错
+            err.append(
+                _(
+                    "请联系系统管理员，恢复集群[{}]的数据库[{}]中拉取的日志备份存在不连续的情况:the first_lsn [{}]:[{}]; the last_lsn [{}]:[{}]\n"
+                ).format(
+                    full_backup_info["cluster_address"],
+                    full_backup_info["db_name"],
+                    check_file_name,
+                    check_lsn,
+                    log["file_name"],
+                    log["firstlsn"],
+                )
+            )
+        return backup_logs, err

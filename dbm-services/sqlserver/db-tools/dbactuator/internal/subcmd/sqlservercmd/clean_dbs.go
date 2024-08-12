@@ -82,6 +82,6 @@ func (c *CleanDBSAct) Run() (err error) {
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("rename-dbs successfully")
+	logger.Info("clean-dbs successfully")
 	return nil
 }

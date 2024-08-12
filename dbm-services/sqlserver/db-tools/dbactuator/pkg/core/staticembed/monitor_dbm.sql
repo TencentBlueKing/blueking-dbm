@@ -200,8 +200,8 @@ GO
 
 CREATE TABLE [dbo].[APP_SETTING](
 	[APP] [varchar](100) NOT NULL,
-	[FULL_BACKUP_PATH] [varchar](100) NOT NULL,
-	[LOG_BACKUP_PATH] [varchar](100) NOT NULL,
+	[FULL_BACKUP_PATH] [varchar](1000) NOT NULL,
+	[LOG_BACKUP_PATH] [varchar](1000) NOT NULL,
 	[KEEP_FULL_BACKUP_DAYS] [int] NOT NULL,
 	[KEEP_LOG_BACKUP_DAYS] [int] NOT NULL,
 	[FULL_BACKUP_MIN_SIZE_MB] [int] NOT NULL,
@@ -236,7 +236,9 @@ CREATE TABLE [dbo].[APP_SETTING](
 	[TRACEON] [tinyint] NULL,
 	[SLOW_DURATION] [int] NULL,
 	[SLOW_SAVEDAY] [int] NULL,
-	[UPDATESTATS] [tinyint] NULL
+	[UPDATESTATS] [tinyint] NULL,
+	[DATA_PATH] [varchar](1000) NOT NULL,
+	[LOG_PATH] [varchar](1000) NOT NULL
 ) ON [PRIMARY]
 
 GO
@@ -915,7 +917,7 @@ BEGIN
 	declare @port sysname
 	exec monitor.dbo.TOOL_GET_IPPORT null,@port output
 
-	IF datepart(hh,getdate())>=1 and @type=1 and NOT EXISTS(SELECT 1 FROM APP_SETTING WHERE APP='qqhx')
+	IF NOT EXISTS(SELECT 1 FROM APP_SETTING WHERE ROLE='slave')
 		return
 
 	declare @exec_time datetime
@@ -1398,7 +1400,6 @@ BEGIN
 	INSERT INTO #tmp_mssql_exporter
 	select 'mssql_database_usesize',max(convert(int,convert(decimal(10,2),unused_space*1.00/size)*100)),'database_usesize',2 from #DatabaseFile where name not in('master','Monitor','MSDBData')
 END
-*/
 
 IF OBJECT_ID('TEMPDB.DBO.#DISKFREE','U') IS NOT NULL
 	DROP TABLE #DISKFREE
@@ -1423,6 +1424,27 @@ SELECT 'mssql_backupdisk_free',isnull(SUM(freemb)/1024,999),'backup_free',2 FROM
 union all
 SELECT 'mssql_datadisk_free',isnull(SUM(freemb)/1024,0),'Minimum disk remaining capacity',2 FROM #DISKFREE WHERE LABEL not in('C','E')
 END
+*/
+
+DECLARE @total_space_gb decimal(18,1),@used_space_gb decimal(18,1);
+
+WITH T1 AS (
+SELECT DISTINCT
+CAST(vs.total_bytes / 1024.0 / 1024 / 1024 AS NUMERIC(18,2)) AS total_space_gb ,
+CAST(vs.available_bytes / 1024.0 / 1024 / 1024  AS NUMERIC(18,2)) AS free_space_gb
+FROM    sys.master_files AS f
+CROSS APPLY sys.dm_os_volume_stats(f.database_id, f.file_id) AS vs
+)
+SELECT
+@total_space_gb=total_space_gb,
+@used_space_gb=total_space_gb-free_space_gb
+FROM T1
+
+INSERT INTO #tmp_mssql_exporter
+SELECT 'mssql_datadisk_total',isnull(@total_space_gb,0),'datadisk_total',2
+UNION ALL
+SELECT 'mssql_datadisk_used',isnull(@used_space_gb,0),'datadisk_used',2
+
 
 INSERT INTO #tmp_mssql_exporter
 SELECT 'mssql_full_backup_fail',count(1),'full_backup_fail',3
@@ -1595,7 +1617,6 @@ select 'mssql_serveice_available',0,'mssql_serveice_available',3
 select * from #tmp_mssql_exporter order by type
 
 END
-
 
 GO
 
@@ -3116,9 +3137,10 @@ BEGIN
 	ELSE IF @TYPE = 3
 		SELECT @SUFFIX = '.diff'
 
+	UPDATE [Monitor].[dbo].[BACKUP_TRACE] SET UPLOADED=1 WHERE TYPE=@TYPE AND UPLOADED=0 AND STARTTIME< dateadd(dd,-@KEEP_BACKUP_DAYS,getdate()) 
 	DECLARE @DEL_FILE VARCHAR(1000)
 	DECLARE list_cur cursor static forward_only Read_only for 
-	SELECT PATH+FILENAME FROM [Monitor].[dbo].[BACKUP_TRACE] WHERE STARTTIME< dateadd(dd,-@KEEP_BACKUP_DAYS,getdate())
+	SELECT PATH+FILENAME FROM [Monitor].[dbo].[BACKUP_TRACE] WHERE TYPE=@TYPE AND UPLOADED=1
 	OPEN list_cur;
 
 	FETCH NEXT FROM list_cur INTO @DEL_FILE
@@ -3131,6 +3153,7 @@ BEGIN
 	END
 	CLOSE list_cur;
 	DEALLOCATE list_cur;
+	UPDATE [Monitor].[dbo].[BACKUP_TRACE] SET UPLOADED=2 WHERE TYPE=@TYPE AND UPLOADED=1
 
 	EXEC @CHECKER = DBO.TOOL_CHECK_DISK_FREE_SIZE @BACKUP_PATH,@DISK_MIN_SIZE_MB
 	IF @CHECKER = 0
@@ -3186,6 +3209,12 @@ BEGIN
 	DECLARE @DBNAME VARCHAR(1000),@PATH VARCHAR(1000),@FILENAME VARCHAR(1000),@STARTTIME VARCHAR(100),@ENDTIME VARCHAR(100),@FILESIZE VARCHAR(100)
 	DECLARE @BACKUP_STR VARCHAR(MAX),@TASK_ID VARCHAR(100)
 	DECLARE @FILECNT BIGINT,@DBSIZE BIGINT,@DBLEVEL BIGINT
+	DECLARE @FirstLSN bigint
+	DECLARE @LastLSN bigint
+	DECLARE @CheckpointLSN bigint
+	DECLARE @DataBaseBackupLSN bigint
+	DECLARE @BackupStartDate datetime
+	DECLARE @BackupFinishDate datetime
 
 	IF OBJECT_ID('TEMPDB.DBO.#baklist','U') IS NOT NULL
 		DROP TABLE #baklist
@@ -3334,7 +3363,7 @@ BEGIN
 		END
 
 		SELECT @DBSIZE=sum(Size)/1024 FROM #logical
-		SELECT @FILESIZE=CompressedBackupSize/1024,@DBLEVEL=CompatibilityLevel FROM #baklist
+		SELECT @FILESIZE=CompressedBackupSize/1024,@DBLEVEL=CompatibilityLevel,@FirstLSN=FirstLSN,@LastLSN=LastLSN,@CheckpointLSN=CheckpointLSN,@DataBaseBackupLSN=DataBaseBackupLSN,@BackupStartDate=BackupStartDate,@BackupFinishDate=BackupFinishDate FROM #baklist
 
 		IF @TYPE=1
 			SET @CMD=@BACKUP_CLIENT_PATH+' register -f "'+@BakFile+'" -t '+@FULL_BACKUP_FILETAG+' --storage-type='+@BACKUP_STORAGE_TYPE
@@ -3358,12 +3387,12 @@ BEGIN
 		
 		IF @TYPE=1
 		BEGIN
-			SET @BACKUP_STR='{"cluster_id":'+@CLUSTER_ID+',"cluster_address":"'+@CLUSTER_DOMAIN+'","backup_host":"'+@IP+'","backup_port":'+@PORT+',"master_ip":"'+@MASTER_IP+'","master_port":'+@MASTER_PORT+',"role":"'+@ROLE+'","backup_type":"'+@BACKUP_TYPE+'","bill_id":"","bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"charset":"'+@CHARSET+'","time_zone":"'+@TIME_ZONE+'","version":"'+@VERSION+'","data_schema_grant":"'+@DATA_SCHEMA_GRANT+'","is_full_backup":'+(case when @TYPE=1  then 'true' else 'false' end) +',"backup_id":"'+@BACKUP_ID+'","backup_task_start_time":"'+replace(@BACKUP_TASK_START_TIME,' ' ,'T')+@TIME_ZONE+'","backup_task_end_time":"'+replace(@BACKUP_TASK_END_TIME,' ' ,'T')+@TIME_ZONE+'","db_list":"'+@DBLIST+'","file_cnt":'+convert(varchar,@FILECNT)+',"task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","backup_begin_time":"'+replace(@STARTTIME,' ' ,'T')+@TIME_ZONE+'","backup_end_time":"'+replace(@ENDTIME,' ' ,'T')+@TIME_ZONE+'","file_name":"'+@FILENAME+'","file_size_kb":'+convert(varchar,@FILESIZE)+',"db_size_kb":'+convert(varchar,@DBSIZE)+',"compatibility_level":'+convert(varchar,@DBLEVEL)+',"local_path":"'+replace(@FULL_BACKUP_PATH,'\','\\')+'"}'
+			SET @BACKUP_STR='{"cluster_id":'+@CLUSTER_ID+',"cluster_address":"'+@CLUSTER_DOMAIN+'","backup_host":"'+@IP+'","backup_port":'+@PORT+',"master_ip":"'+@MASTER_IP+'","master_port":'+@MASTER_PORT+',"role":"'+@ROLE+'","backup_type":"'+@BACKUP_TYPE+'","bill_id":"","bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"charset":"'+@CHARSET+'","time_zone":"'+@TIME_ZONE+'","version":"'+@VERSION+'","data_schema_grant":"'+@DATA_SCHEMA_GRANT+'","is_full_backup":'+(case when @TYPE=1  then 'true' else 'false' end) +',"backup_id":"'+@BACKUP_ID+'","firstlsn":'+convert(varchar,@FirstLSN)+',"lastlsn":'+convert(varchar,@LastLSN)+',"checkpointlsn":'+convert(varchar,@CheckpointLSN)+',"databasebackuplsn":'+convert(varchar,@DataBaseBackupLSN)+',"backup_task_start_time":"'+replace(@BACKUP_TASK_START_TIME,' ' ,'T')+@TIME_ZONE+'","backup_task_end_time":"'+replace(@BACKUP_TASK_END_TIME,' ' ,'T')+@TIME_ZONE+'","db_list":"'+@DBLIST+'","file_cnt":'+convert(varchar,@FILECNT)+',"task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","backup_begin_time":"'+replace(CONVERT(varchar,@BackupStartDate,120),' ' ,'T')+@TIME_ZONE+'","backup_end_time":"'+replace(CONVERT(varchar,@BackupFinishDate,120),' ' ,'T')+@TIME_ZONE+'","file_name":"'+@FILENAME+'","file_size_kb":'+convert(varchar,@FILESIZE)+',"db_size_kb":'+convert(varchar,@DBSIZE)+',"compatibility_level":'+convert(varchar,@DBLEVEL)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'"}'
 			SET @CMD = 'echo '+@BACKUP_STR+'>>D:\dbbak\backup_result.log' 
 		END
 		ELSE
 		BEGIN
-			SET @BACKUP_STR='{"cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","db_role":"'+@ROLE+'","host":"'+@IP+'","port":'+@PORT+',"bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"backup_id":"'+@BACKUP_ID+'","file_name":"'+@FILENAME+'","size":'+convert(varchar,@FILESIZE)+',"backup_task_start_time":"'+replace(@BACKUP_TASK_START_TIME,' ' ,'T')+@TIME_ZONE+'","backup_task_end_time":"'+replace(@BACKUP_TASK_END_TIME,' ' ,'T')+@TIME_ZONE+'","backup_begin_time":"'+replace(@STARTTIME,' ' ,'T')+@TIME_ZONE+'","backup_end_time":"'+replace(@ENDTIME,' ' ,'T')+@TIME_ZONE+'","backup_status":4,"backup_status_info":"","task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","file_cnt":'+convert(varchar,@FILECNT)+',"local_path":"'+replace(@LOG_BACKUP_PATH,'\','\\')+'"}'
+			SET @BACKUP_STR='{"cluster_id":'+@CLUSTER_ID+',"cluster_domain":"'+@CLUSTER_DOMAIN+'","db_role":"'+@ROLE+'","host":"'+@IP+'","port":'+@PORT+',"bk_biz_id":'+@BK_BIZ_ID+',"bk_cloud_id":'+@BK_CLOUD_ID+',"backup_id":"'+@BACKUP_ID+'","firstlsn":'+convert(varchar,@FirstLSN)+',"lastlsn":'+convert(varchar,@LastLSN)+',"checkpointlsn":'+convert(varchar,@CheckpointLSN)+',"databasebackuplsn":'+convert(varchar,@DataBaseBackupLSN)+',"file_name":"'+@FILENAME+'","size":'+convert(varchar,@FILESIZE)+',"backup_task_start_time":"'+replace(@BACKUP_TASK_START_TIME,' ' ,'T')+@TIME_ZONE+'","backup_task_end_time":"'+replace(@BACKUP_TASK_END_TIME,' ' ,'T')+@TIME_ZONE+'","backup_begin_time":"'+replace(CONVERT(varchar,@BackupStartDate,120),' ' ,'T')+@TIME_ZONE+'","backup_end_time":"'+replace(CONVERT(varchar,@BackupFinishDate,120),' ' ,'T')+@TIME_ZONE+'","backup_status":4,"backup_status_info":"","task_id":"'+@TASK_ID+'","dbname":"'+@DBNAME+'","file_cnt":'+convert(varchar,@FILECNT)+',"local_path":"'+replace(@BACKUP_PATH,'\','\\')+'"}'
 			SET @CMD = 'echo '+@BACKUP_STR+'>>D:\dbbak\binlog_result.log' 
 		END
 		PRINT @CMD
@@ -3729,7 +3758,7 @@ EXEC @ReturnCode = msdb.dbo.sp_add_jobschedule @job_id=@jobId, @name=N'TC_BACKUP
 		@freq_type=4, 
 		@freq_interval=1, 
 		@freq_subday_type=4, 
-		@freq_subday_interval=30, 
+		@freq_subday_interval=10, 
 		@freq_relative_interval=0, 
 		@freq_recurrence_factor=0, 
 		@active_start_date=20101013, 

@@ -39,6 +39,12 @@ type InstanceInfo struct {
 	Hostname   string `db:"hostname"`
 }
 
+// execResult todo
+type execResult struct {
+	Msg      string `db:"msg"`
+	ExitCode int    `db:"exitcode"`
+}
+
 // 定义连接状态的结构
 type ProcessInfo struct {
 	Spid        int            `db:"spid"`
@@ -48,6 +54,11 @@ type ProcessInfo struct {
 	ProgramName sql.NullString `db:"program_name"`
 	Hostname    sql.NullString `db:"hostname"`
 	LoginTime   sql.NullString `db:"login_time"`
+}
+
+type DefaultPathInfo struct {
+	DefaultDataPath string `db:"Default_Data_Path"`
+	DefaultLogPath  string `db:"Default_Log_Path"`
 }
 
 // NewDbWorker 初始化SQLserver实例对象
@@ -195,6 +206,12 @@ func (h *DbWorker) GetGroupName() (name string, err error) {
 func (h *DbWorker) GetRoleInAlwaysOn() (role int, err error) {
 	cmd := "select role from master.sys.dm_hadr_availability_replica_states where is_local = 1;"
 	err = h.Queryxs(&role, cmd)
+	return
+}
+
+// GetDefaultPath 获取实例默认数据目录路径
+func (h *DbWorker) GetDefaultPath() (getpath []DefaultPathInfo, err error) {
+	err = h.Queryx(&getpath, cst.GET_PATH_SQL)
 	return
 }
 
@@ -420,11 +437,28 @@ func ExecLocalSQLFile(sqlVersion string, dbName string, charsetNO int, filenames
 		)
 		fmt.Println(cmd)
 		if ret, err := osutil.StandardPowerShellCommand(cmd); err != nil {
-			logger.Error("exec sql script failed %s, result: %s ", err.Error(), ret)
+			logger.Error("the db [%s] exec sql script failed %s, result: %s ", dbName, err.Error(), ret)
 			return err
 		}
-		logger.Info("exec sql script success  [%d:%s]", port, filename)
+		logger.Info("ths db [%s] exec sql script success  [%d:%s]", dbName, port, filename)
 	}
 
+	return nil
+}
+
+// exec_switch_sp todo
+func ExecSwitchSP(db *DbWorker, spName string, paramStr string) error {
+	cmd := fmt.Sprintf(cst.EXEC_SWITCH_SP_TMEP_SQL, spName, paramStr)
+	logger.Info(cmd)
+	var ret []execResult
+	if err := db.Queryx(&ret, cmd); err != nil {
+		logger.Error("exec %s failed", spName)
+		return err
+	}
+	if ret[0].ExitCode != 1 {
+		logger.Error("exec %s failed", spName)
+		return fmt.Errorf(ret[0].Msg)
+	}
+	logger.Info(ret[0].Msg)
 	return nil
 }

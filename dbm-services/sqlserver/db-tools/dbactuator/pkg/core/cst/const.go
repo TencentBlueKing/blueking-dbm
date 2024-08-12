@@ -174,6 +174,19 @@ const (
 		" and lastwaittype != 'PARALLEL_REDO_WORKER_WAIT_WORK' order by login_time desc;"
 )
 
+// 获取实例的默认数据目录
+
+const (
+	GET_PATH_SQL = `SELECT 
+    (SELECT REPLACE(physical_name,'master.mdf','') 
+     FROM master.sys.database_files 
+     WHERE type=0) AS [Default_Data_Path],
+    (SELECT REPLACE(physical_name,'mastlog.ldf','') 
+     FROM master.sys.database_files 
+     WHERE type=1) AS [Default_Log_Path] 
+	 `
+)
+
 // 定义SQL版本兼容性级别范围
 
 type SQLServerVersionYear int

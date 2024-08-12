@@ -81,6 +81,10 @@ func (c *BuildDBMirroringAct) Run() (err error) {
 			FunName: "建立DB镜像库",
 			Func:    c.BaseService.CreateDBMirroring,
 		},
+		{
+			FunName: "处理快照库",
+			Func:    c.BaseService.ExecSnapShot,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

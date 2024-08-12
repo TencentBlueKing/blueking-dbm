@@ -86,7 +86,7 @@ class SqlserverBackupDBSFlow(BaseFlow):
             )
 
             sub_pipeline.add_act(
-                act_name=_("检查需要清理的库是否存在"),
+                act_name=_("检查需要备份的库是否存在"),
                 act_component_code=CheckDBExistComponent.code,
                 kwargs=asdict(
                     CheckDBExistKwargs(
