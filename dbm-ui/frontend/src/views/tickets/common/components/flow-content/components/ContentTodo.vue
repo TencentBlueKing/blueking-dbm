@@ -13,7 +13,19 @@
 
 <template>
   <div class="flow-todo__infos">
-    <I18nT keypath="U_已处理_A_耗时_T">
+    <div
+      v-if="isSystemHandled"
+      style="color: #ea3636">
+      <I18nT keypath="U_已处理_A">
+        <span>{{ data.done_by }}</span>
+        <span>
+          {{ t('超过n小时自动终止', { n: (content.context.expire_time ?? 0) * 24 }) }}
+        </span>
+      </I18nT>
+    </div>
+    <I18nT
+      v-else
+      keypath="U_已处理_A_耗时_T">
       <span>{{ data.done_by }}</span>
       <span>{{ getOperation(data) }}</span>
       <span>{{ getCostTimeDisplay(data.cost_time) }}</span>
@@ -37,23 +49,26 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { FlowItemTodo } from '@services/types/ticket';
+  import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
   import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
   interface Props {
+    content: FlowItem;
     data: FlowItemTodo;
     hrefTarget: string;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const isSystemHandled = computed(() => props.data.done_by === 'system');
 
   const getOperation = (item: FlowItemTodo) => {
     const text = {
       DONE_SUCCESS: item.type === 'RESOURCE_REPLENISH' ? t('重试') : t('确认执行'),
-      DONE_FAILED: t('终止单据'),
+      DONE_FAILED: t('人工终止'),
       RUNNING: '--',
       TODO: '--',
     };
