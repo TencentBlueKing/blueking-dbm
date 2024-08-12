@@ -147,7 +147,7 @@ class TicketType(str, StructuredEnum):
     def get_db_type_by_ticket(cls, ticket_type, raise_exception=False):
         """根据单据类型找到组件类型"""
         db_type = ticket_type.upper().split("_")[0].lower()
-        if db_type == "TBINLOGDUMPER".lower():
+        if db_type == DBType.TBinlogDumper.lower():
             return DBType.MySQL.value
         if db_type in DBType.get_values():
             return db_type

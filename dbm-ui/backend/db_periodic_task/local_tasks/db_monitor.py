@@ -114,9 +114,7 @@ def sync_plat_monitor_policy():
             policy_name = policy.name
             logger.info("[sync_plat_monitor_policy] start sync bkm alarm policy: %s " % policy_name)
             try:
-                synced_policy = MonitorPolicy.objects.get(
-                    bk_biz_id=policy.bk_biz_id, db_type=policy.db_type, name=policy_name
-                )
+                synced_policy = MonitorPolicy.objects.get(bk_biz_id=policy.bk_biz_id, name=policy_name)
 
                 if deleted:
                     logger.info("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
@@ -167,8 +165,6 @@ def sync_plat_dispatch_policy():
         latest_rules = DispatchGroup.get_rules(bk_biz_id)
         try:
             dispatch_group = DispatchGroup.objects.get(bk_biz_id=bk_biz_id)
-            # 暂时只需比对db_type有没有增减，没有，则无需处理
-            # if len(latest_rules) != len(dispatch_group.rules):
             logger.info("sync_plat_dispatch_policy: update biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
             dispatch_group.rules = latest_rules
             dispatch_group.save()

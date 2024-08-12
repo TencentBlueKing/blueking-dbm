@@ -234,8 +234,8 @@
     },
     "labels": [
       "DBM",
-      "DBM_TBINLOGDUMPER",
-      "DBM_TbinlogDumper"
+      "DBM_MYSQL",
+      "DBM_TBINLOGDUMPER"
     ],
     "app": "",
     "path": "",

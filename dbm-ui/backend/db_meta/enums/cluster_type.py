@@ -20,6 +20,8 @@ class ClusterType(str, StructuredEnum):
     TenDBSingle = EnumField("tendbsingle", _("MySQL单节点集群"))
     TenDBHA = EnumField("tendbha", _("MySQL高可用集群"))
     TenDBCluster = EnumField("tendbcluster", _("TendbCluster集群"))
+    # 仅用于TBinlogDumper实例的管控
+    TBinlogDumper = EnumField("tbinlogdumper", _("TBinlogDumper"))
 
     RedisCluster = EnumField("redis", _("Redis"))
     TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("RedisCluster集群"))

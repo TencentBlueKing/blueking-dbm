@@ -73,7 +73,7 @@ ClusterTypeMachineTypeDefine = {
     ClusterType.SqlserverSingle: [MachineType.SQLSERVER_SINGLE],
     ClusterType.SqlserverHA: [MachineType.SQLSERVER_HA],
     ClusterType.Doris: [MachineType.DORIS_BACKEND, MachineType.DORIS_FOLLOWER, MachineType.DORIS_OBSERVER],
-    "tbinlogdumper": ["tbinlogdumper"],  # 兼容tbinlogdumper注册服务实例，自定义处理
+    ClusterType.TBinlogDumper: MachineType.TBinlogDumper,  # 兼容tbinlogdumper注册服务实例，自定义处理
     ClusterType.Vm: [MachineType.VM_STORAGE, MachineType.VM_SELECT, MachineType.VM_INSERT, MachineType.VM_AUTH],
 }
 

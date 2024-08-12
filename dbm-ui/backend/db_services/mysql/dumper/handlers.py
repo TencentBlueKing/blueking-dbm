@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from typing import Dict, List
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceInnerRole
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
@@ -61,7 +62,7 @@ class DumperHandler:
             return
 
         # 查询dumper实例的状态(效率考虑，仅支持查单个业务下的), 因为dumper实例没有record表，因此直接查询正在运行的相关单据
-        dumper_ticket_types = TicketType.get_ticket_type_by_db("tbinlogdumper")
+        dumper_ticket_types = TicketType.get_ticket_type_by_db(DBType.TBinlogDumper.value)
         dumper_ticket_types.remove(TicketType.TBINLOGDUMPER_INSTALL)
         dumper_ticket_types.extend([TicketType.MYSQL_MASTER_SLAVE_SWITCH, TicketType.MYSQL_MASTER_FAIL_OVER])
         active_tickets = Ticket.objects.filter(

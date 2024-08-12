@@ -29,7 +29,7 @@ INSTANCE_MONITOR_PLUGINS = {
         MachineType.SPIDER: {"name": "spider", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
         MachineType.REMOTE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
         MachineType.SINGLE: {"name": "mysql", "plugin_id": "dbm_mysqld_exporter", "func_name": "mysqld"},
-        "tbinlogdumper": {
+        MachineType.TBinlogDumper: {
             "name": "tbinlogdumper",
             "plugin_id": "dbm_tbinlogdumper_exporter",
             "func_name": "tbinlodumper",
@@ -151,6 +151,11 @@ class AppMonitorTopo(AuditedModel):
 
     @classmethod
     def get_set_by_dbtype(cls, db_type):
+        """获取指定db_type的拓扑配置"""
+        topos = cls.objects.filter(db_type=db_type)
+        # tbinlogdumper 归属于 MySQL，比较特殊，此处做一个转换
+        if db_type == DBType.TBinlogDumper.value:
+            topos = cls.objects.filter(machine_type=MachineType.TBinlogDumper.value)
         return [
             {
                 "machine_type": obj.machine_type,
@@ -158,7 +163,7 @@ class AppMonitorTopo(AuditedModel):
                 "bk_set_name": obj.bk_set_name,
                 "bk_biz_id": obj.bk_biz_id,
             }
-            for obj in cls.objects.filter(db_type=db_type)
+            for obj in topos
         ]
 
     @classmethod
