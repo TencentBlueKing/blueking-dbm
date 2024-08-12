@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
     redirect: {
       name: 'DorisList',
     },
-    component: () => import('@views/doris-manage/Index.vue'),
+    component: () => import('@views/doris-manage/list/Index.vue'),
     children: [
       {
         name: 'DorisList',

@@ -12,41 +12,26 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderSlaveHost
-          ref="hostRef"
-          :cloud-id="cloudId"
-          :disabled="!localClusterId"
-          :domain="data.clusterData?.domain"
-          :model-value="data.newSlaveHost" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderSlaveHost
+        ref="hostRef"
+        :cloud-id="cloudId"
+        :disabled="!localClusterId"
+        :domain="data.clusterData?.domain"
+        :model-value="data.newSlaveHost" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
@@ -76,6 +61,8 @@
 </script>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
+
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderCluster from './RenderCluster.vue';
   import RenderSlaveHost from './RenderSlaveHost.vue';
@@ -140,30 +127,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .action-box {
-    display: flex;
-    align-items: center;
-
-    .action-btn {
-      display: flex;
-      font-size: 14px;
-      color: #c4c6cc;
-      cursor: pointer;
-      transition: all 0.15s;
-
-      &:hover {
-        color: #979ba5;
-      }
-
-      &.disabled {
-        color: #dcdee5;
-        cursor: not-allowed;
-      }
-
-      & ~ .action-btn {
-        margin-left: 18px;
-      }
-    }
-  }
-</style>

@@ -212,9 +212,9 @@ export default class Redis {
     this.master_domain = payload.master_domain;
     this.cluster_entry = payload.cluster_entry || [];
     this.permission = payload.permission || {};
-    this.proxy = payload.proxy;
-    this.redis_master = payload.redis_master;
-    this.redis_slave = payload.redis_slave;
+    this.proxy = payload.proxy || [];
+    this.redis_master = payload.redis_master || [];
+    this.redis_slave = payload.redis_slave || [];
     this.cluster_shard_num = payload.cluster_shard_num;
     this.machine_pair_cnt = payload.machine_pair_cnt;
     this.count = this.storageCount + this.proxyCount;

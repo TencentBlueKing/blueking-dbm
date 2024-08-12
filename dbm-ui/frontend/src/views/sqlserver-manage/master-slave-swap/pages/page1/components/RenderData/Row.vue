@@ -12,48 +12,35 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderMaster
-          ref="masterHostRef"
-          :model-value="data.masterData"
-          @change="handleMasterHostChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderHost
-          ref="slaveHostRef"
-          :cluster-list="relatedClusterList"
-          :model-value="data.slaveData" />
-      </td>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :master-data="localMasterData"
-          @change="handleClusterChange" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderMaster
+        ref="masterHostRef"
+        :model-value="data.masterData"
+        @change="handleMasterHostChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderHost
+        ref="slaveHostRef"
+        :cluster-list="relatedClusterList"
+        :model-value="data.slaveData" />
+    </td>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :master-data="localMasterData"
+        @change="handleClusterChange" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import { ref, shallowRef, watch } from 'vue';
+
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';
 

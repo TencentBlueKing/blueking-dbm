@@ -111,11 +111,11 @@
 
   import { deleteDumperConfig, listDumperConfig, updateDumperConfigPartial } from '@services/source/dumper';
 
+  import { messageSuccess } from '@utils';
+
   import CreateNewRule from '../create-rule/Index.vue';
 
   import GroupCreate from './components/Create.vue';
-
-  import { messageSuccess } from '@/utils';
 
   interface Emits {
     (e: 'change', value: DumperConfig | null): void;

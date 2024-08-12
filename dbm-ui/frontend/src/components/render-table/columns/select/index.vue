@@ -32,6 +32,7 @@
       v-model="localValue"
       auto-focus
       class="select-box"
+      v-bind="$attrs"
       :clearable="false"
       :disabled="disabled"
       :filterable="filterable"

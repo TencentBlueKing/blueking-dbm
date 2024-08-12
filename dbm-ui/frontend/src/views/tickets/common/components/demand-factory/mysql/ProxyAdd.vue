@@ -13,7 +13,7 @@
 
 <template>
   <DbOriginalTable
-    class="details-proxy-add__table"
+    class="details-table"
     :columns="columns"
     :data="dataList" />
 </template>

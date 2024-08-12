@@ -34,8 +34,7 @@
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="page-action-box">
-        <div
-          v-bk-tooltips="t('安全模式下_存在业务连接时需要人工确认')">
+        <div v-bk-tooltips="t('安全模式下_存在业务连接时需要人工确认')">
           <BkCheckbox
             v-model="isSafe"
             :false-label="false"
@@ -98,7 +97,7 @@
   const isSubmitting = ref(false);
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -189,7 +188,11 @@
           ticket_type: 'TENDBCLUSTER_TRUNCATE_DATABASE',
           remark: '',
           details: {
-            infos: data,
+            infos: data.map((item) =>
+              Object.assign(item, {
+                force: !isSafe.value,
+              }),
+            ),
           },
           bk_biz_id: currentBizId,
         }),

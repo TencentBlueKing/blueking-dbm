@@ -38,7 +38,9 @@
                 <DemandInfo
                   :data="state.ticketData"
                   :is-loading="state.isLoading" />
-                <div class="mt-10">
+                <div
+                  class="mt-10"
+                  style="padding-left: 80px">
                   <span>{{ t('备注') }}:</span>
                   <span class="ml-5">{{ state.ticketData.remark }}</span>
                 </div>
