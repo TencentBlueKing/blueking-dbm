@@ -43,32 +43,36 @@
    * 启用、禁用、删除
    */
 
-  const columns = [{
-    label: t('集群ID'),
-    field: 'cluster_ids',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: any }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.immute_domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.immute_domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
-  }, {
-    label: t('集群类型'),
-    field: 'cluster_type_name',
-    render: ({ cell }: { cell: string }) => <span>{cell === 'tendbha' ? t('主从') : t('单节点')}</span>,
-  }];
+  const columns = [
+    {
+      label: t('集群ID'),
+      field: 'cluster_ids',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('集群名称'),
+      field: 'immute_domain',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: any }) => (
+        <div class="cluster-name text-overflow"
+          v-overflow-tips={{
+            content: `
+              <p>${t('域名')}：${data.immute_domain}</p>
+              ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
+            `,
+            allowHTML: true,
+        }}>
+          <span>{data.immute_domain}</span><br />
+          <span class="cluster-name__alias">{data.name}</span>
+        </div>
+      ),
+    },
+    {
+      label: t('集群类型'),
+      field: 'cluster_type_name',
+      render: ({ cell }: { cell: string }) => <span>{cell ? cell : '--'}</span>,
+    }
+  ];
 
   const dataList = computed(() => {
     const list: clusterItem[] = [];
