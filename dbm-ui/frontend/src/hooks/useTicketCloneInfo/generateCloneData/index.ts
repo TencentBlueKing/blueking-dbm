@@ -76,6 +76,7 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_SINGLE_APPLY]: generateMysqlSingleApplyCloneData, // MySQL 单节点部署
   [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: generateMysqlDbTableBackupCloneData, // Mysql 库表备份
   [TicketTypes.MYSQL_HA_RENAME_DATABASE]: generateMysqlDbRenameCloneData, // MySQL 高可用DB重命名
+  [TicketTypes.MYSQL_SINGLE_RENAME_DATABASE]: generateMysqlDbRenameCloneData, // MySQL 单节点DB重命名
   [TicketTypes.MYSQL_HA_FULL_BACKUP]: generateMysqlDbBackupCloneData, // Mysql 全库备份
   [TicketTypes.MYSQL_FLASHBACK]: generateMysqlFlashbackCloneData, // MySQL 闪回
   [TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE]: generateMysqlRestoreLocalSlaveCloneData, // MySQL 重建从库-原地重建
@@ -87,6 +88,7 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.MYSQL_PROXY_ADD]: generateMysqlProxyAddCloneData, // MySQL 添加Proxy
   [TicketTypes.MYSQL_MASTER_FAIL_OVER]: generateMysqlMasterFailoverCloneData, // MySQL 主库故障切换
   [TicketTypes.MYSQL_HA_TRUNCATE_DATA]: generateMysqlDbClearCloneData, // MySQL 高可用清档
+  [TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA]: generateMysqlDbClearCloneData, // MySQL 单节点清档
   [TicketTypes.MYSQL_OPEN_AREA]: generateMysqlOpenAreaCloneData, // Mysql 开区
   [TicketTypes.MYSQL_DATA_MIGRATE]: generateMysqlDataMigrateCloneData, // Mysql DB克隆
   [TicketTypes.MYSQL_PROXY_UPGRADE]: generateMysqlVersionProxyUpgradeCloneData, // MySQL Proxy 升级

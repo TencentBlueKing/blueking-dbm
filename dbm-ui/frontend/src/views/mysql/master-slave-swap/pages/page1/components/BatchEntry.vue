@@ -47,7 +47,7 @@
           v-model="localValue"
           :placeholder="placeholder"
           :rows="20"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -117,7 +117,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import { execCopy } from '@/utils';
+  import { execCopy } from '@utils';
 
   type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 

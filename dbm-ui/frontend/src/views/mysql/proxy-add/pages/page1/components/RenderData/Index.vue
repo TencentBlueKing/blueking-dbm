@@ -39,8 +39,8 @@
   </div>
 </template>
 <script setup lang="ts">
-  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/mysql/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits {
     (e: 'batchSelectCluster'): void;
