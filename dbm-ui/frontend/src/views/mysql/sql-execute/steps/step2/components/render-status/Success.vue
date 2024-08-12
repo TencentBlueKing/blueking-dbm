@@ -21,12 +21,40 @@
     <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238">
       {{ t('模拟执行成功') }}
     </div>
+    <div
+      v-if="isViewResultLog"
+      class="sql-execute-more-action-box">
+      <BkButton
+        class="ml8"
+        @click="handleLastStep">
+        {{ t('返回继续提单') }}
+      </BkButton>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRoute, useRouter } from 'vue-router';
+
+  const router = useRouter();
+  const route = useRoute();
+
+  const { step } = route.params as { step: string };
 
   const { t } = useI18n();
+
+  // 查看执行结果日志
+  const isViewResultLog = step === 'result';
+
+  // 返回继续提单
+  const handleLastStep = () => {
+    router.push({
+      name: 'MySQLExecute',
+      params: {
+        step: '',
+      },
+    });
+  };
 </script>
 <style lang="less" scoped>
   .sql-execute-success {

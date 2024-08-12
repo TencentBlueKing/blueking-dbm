@@ -72,9 +72,10 @@
       <template v-if="content.flow_type === 'DESCRIBE_TASK'">
         <p>
           <span
-            v-if="content.status === 'SUCCEEDED'"
-            style="color: #2dcb56">
-            {{ t('执行成功') }}
+            :style="{
+              color: content.status === 'SUCCEEDED' ? '#2dcb56' : 'inherit',
+            }">
+            {{ content.summary }}
           </span>
           <template v-if="content.summary"> ，{{ t('耗时') }}：{{ getCostTimeDisplay(content.cost_time) }}， </template>
           <BkButton

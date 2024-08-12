@@ -23,7 +23,7 @@
     :cluster-version-list="clusterVersionList">
     <template #header>
       <span style="color: #63656e; font-size: 12px; font-weight: normal; margin-left: 30px">
-        <span>{{ t('变更的 Db:') }}</span>
+        <span>{{ t('变更的 DB:') }}</span>
         <span class="ml-4">
           <BkTag
             v-for="item in dbNames"
@@ -32,7 +32,7 @@
           </BkTag>
           <template v-if="dbNames.length < 1">--</template>
         </span>
-        <span class="ml-25">{{ t('忽略的 Db:') }}</span>
+        <span class="ml-25">{{ t('忽略的 DB:') }}</span>
         <span class="ml-4">
           <BkTag
             v-for="item in ignoreDbNames"

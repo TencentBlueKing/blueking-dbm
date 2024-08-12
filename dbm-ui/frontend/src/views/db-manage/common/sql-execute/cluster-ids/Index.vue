@@ -153,6 +153,18 @@
     })
       .then((data) => {
         targetClusterList.value = data;
+        clusterVersionList.value = _.uniq(data.map(item => item.major_version));
+        clusterSelectorValue.value = data.reduce((result, item) => {
+          if (item.cluster_type === ClusterTypes.TENDBHA) {
+            result[ClusterTypes.TENDBHA].push(item);
+          } else {
+            result[ClusterTypes.TENDBSINGLE].push(item);
+          }
+          return result;
+        }, {
+          [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
+          [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+        })
       })
       .finally(() => {
         isLoading.value = false;
@@ -189,8 +201,8 @@
 
     // ClusterSelector 的值回填
     clusterSelectorValue.value = {
-      [ClusterTypes.TENDBHA]: _.filter(result, item => item.cluster_type === 'tendbha') as TendbhaModel[],
-      [ClusterTypes.TENDBSINGLE]: _.filter(result, item => item.cluster_type === 'tendbsingle') as TendbsingleModel[],
+      [ClusterTypes.TENDBHA]: _.filter(result, item => item.cluster_type === ClusterTypes.TENDBHA) as TendbhaModel[],
+      [ClusterTypes.TENDBSINGLE]: _.filter(result, item => item.cluster_type === ClusterTypes.TENDBSINGLE) as TendbsingleModel[],
     };
     triggerChange();
   };

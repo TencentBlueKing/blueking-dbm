@@ -101,6 +101,15 @@
     cluster_type: DBTypes.MYSQL,
   });
 
+  const formRef = ref();
+  const resetFormKey = ref(0);
+  const isSubmitting = ref(false);
+
+  const clusterVersionList = ref<string[]>([]);
+
+  const formData = reactive(createDefaultData());
+
+  // 单据克隆
   useTicketCloneInfo({
     type: TicketTypes.MYSQL_IMPORT_SQLFILE,
     onSuccess(cloneData) {
@@ -115,14 +124,7 @@
     },
   });
 
-  const formRef = ref();
-  const resetFormKey = ref(0);
-  const isSubmitting = ref(false);
-
-  const clusterVersionList = ref<string[]>([]);
-
-  const formData = reactive(createDefaultData());
-
+  // 模拟执行日志重新修改
   const { loading: isEditLoading } = useRequest(querySemanticData, {
     defaultParams: [
       {
@@ -142,6 +144,7 @@
     },
   });
 
+  // 单据详情跳转重做
   const { loading: isEditTicketLoading } = useRequest(getTicketDetails, {
     defaultParams: [
       {

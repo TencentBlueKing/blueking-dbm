@@ -20,10 +20,9 @@
           v-model="localDbnames" />
       </td>
       <td style="padding: 0">
-        <RenderDbName
+        <RenderIgnoreDbName
           ref="ignoreDbnamesRef"
-          v-model="localIgnoreDbnames"
-          :required="false" />
+          v-model="localIgnoreDbnames" />
       </td>
       <td style="padding: 0">
         <RenderSql
@@ -61,6 +60,7 @@
   import { random } from '@utils';
 
   import RenderDbName from './RenderDbName.vue';
+  import RenderIgnoreDbName from './RenderIgnoreDbName.vue';
   import RenderSql from './RenderSql/Index.vue';
 
   export interface IDataRow {

@@ -109,13 +109,13 @@
   const route = useRoute();
   const { t } = useI18n();
 
-  const { rootId } = route.query as { rootId: string; nodeId: string };
+  const { rootId } = route.query as { rootId: string };
   const { step } = route.params as { step: string };
 
   const ticketMode = ref('');
 
   // 查看执行结果日志，执行成功不自动提交
-  const isViewResult = step === 'result';
+  const isViewResultLog = step === 'result';
 
   // 执行状态
   const { flowStatus, ticketId: flowTicketId } = useFlowStatus(rootId);
@@ -155,7 +155,7 @@
           root_id: rootId,
         });
       }
-      if (flowStatus.value === 'successed' && !isViewResult) {
+      if (flowStatus.value === 'successed' && !isViewResultLog) {
         router.push({
           name: 'MySQLExecute',
           params: {
