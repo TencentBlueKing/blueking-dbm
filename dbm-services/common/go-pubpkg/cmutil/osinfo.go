@@ -1,6 +1,7 @@
 package cmutil
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -55,7 +56,7 @@ type DiskPartInfo struct {
 	// UsedPercent 在os层面看到的磁盘利用率，包括 reserved (Used + Reserved) / Total
 	UsedPercent float64 `json:"used_percent"`
 	// UsedPercentReal Used / (Total - Reserved), stat.UsedPercent
-	//UsedPercentReal   float64 `json:"used_percent_real"`
+	// UsedPercentReal   float64 `json:"used_percent_real"`
 	InodesTotal       uint64  `json:"inodes_total"`
 	InodesUsed        uint64  `json:"inodes_used"`
 	InodesUsedPercent float64 `json:"inodes_used_percent"`
@@ -85,7 +86,7 @@ func GetDiskPartInfo(path string, checkDevice bool) (*DiskPartInfo, error) {
 			}
 		}
 		if info.Device == "" {
-			//CentOS6.2 stat --format has no %m
+			// CentOS6.2 stat --format has no %m
 			return nil, errors.Errorf("fail to get device(mounted %s) for path %s", info.Mountpoint, info.Path)
 		}
 		if info.Mountpoint != info.Path {
@@ -122,4 +123,35 @@ func GetCPUInfo() (*CPUInfo, error) {
 		return nil, errors.Wrap(err, "cpu.Counts")
 	}
 	return &CPUInfo{CoresLogical: cores}, nil
+}
+
+// GetTopLevelDir returns the top-level directory of a given path.
+func GetTopLevelDir(path string) (string, error) {
+	realPath, err := filepath.EvalSymlinks(path) // resolve symlinks to their real paths
+	if err != nil {
+		return "", err
+	}
+	realPath = filepath.Clean(realPath)
+	// Extract the top-level directory
+	parentDir := filepath.Dir(realPath)
+	for parentDir != "/" && parentDir != "." {
+		realPath = parentDir
+		parentDir = filepath.Dir(realPath)
+	}
+	return realPath, nil
+}
+
+// IsSameTopLevelDir 判断dir1 和  dir2是否是同一个顶级目录
+// 1. dir1 dir2 必须是存在的
+// 2. 比如 dir1 = /home/abc, dir2 = /home/abc/def,顶级目录都是 /home,所以返回true
+func IsSameTopLevelDir(dir1, dir2 string) (bool, error) {
+	topDir1, err1 := GetTopLevelDir(dir1)
+	if err1 != nil {
+		return false, err1
+	}
+	topDir2, err2 := GetTopLevelDir(dir2)
+	if err2 != nil {
+		return false, err2
+	}
+	return topDir1 == topDir2, nil
 }

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
 	"dbm-services/redis/db-tools/dbmon/util"
@@ -631,6 +632,14 @@ func (db *RedisClient) TendisplusBackup(targetDir string) (ret string, err error
 		return "", err
 	}
 	cmd := []interface{}{"backup", targetDir}
+	dataDir, _ := db.GetDir()
+	if dataDir != "" {
+		isSameTopLevelDir, _ := cmutil.IsSameTopLevelDir(dataDir, targetDir)
+		if isSameTopLevelDir {
+			// 如果备份目录 和 数据目录 在同一级目录,则添加 ckpt,代表用硬链接方式备份
+			cmd = append(cmd, "ckpt")
+		}
+	}
 	res, err := db.InstanceClient.Do(context.TODO(), cmd...).Result()
 	if err != nil {
 		err = fmt.Errorf("%+v fail,err:%v,addr:%s", cmd, err, db.Addr)
@@ -660,6 +669,7 @@ func (db *RedisClient) TendisplusBackupAndWaitForDone(targetDir string) (err err
 	if err != nil {
 		return err
 	}
+
 	count := 0 // 每分钟输出一次日志
 	var msg string
 	var inProgress bool
