@@ -56,10 +56,12 @@ from backend.flow.utils.sqlserver.sqlserver_act_dataclass import (
 )
 from backend.flow.utils.sqlserver.sqlserver_act_payload import SqlserverActPayload
 from backend.flow.utils.sqlserver.sqlserver_db_function import (
+    check_always_on_status,
     create_sqlserver_login_sid,
     get_dbs_for_drs,
     get_group_name,
     get_no_sync_dbs,
+    get_restoring_dbs,
     get_sync_filter_dbs,
 )
 from backend.flow.utils.sqlserver.sqlserver_db_meta import SqlserverDBMeta
@@ -93,7 +95,9 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
         for info in self.data["infos"]:
             cluster = Cluster.objects.get(id=info["cluster_id"])
             master = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+            cluster_sync_mode = SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
             rebuild_slave = cluster.storageinstance_set.get(machine__ip=info["slave_host"]["ip"])
+            sync_dbs = get_no_sync_dbs(cluster_id=cluster.id)
 
             # 拼接子流程全局上下文
             sub_flow_context = copy.deepcopy(self.data)
@@ -103,7 +107,9 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
             sub_flow_context["sync_mode"] = SqlserverSyncModeMaps[
                 SqlserverClusterSyncMode.objects.get(cluster_id=cluster.id).sync_mode
             ]
-            sub_flow_context["clean_dbs"] = get_no_sync_dbs(cluster_id=cluster.id)
+            sub_flow_context["clean_dbs"] = list(
+                set(sync_dbs) | set(get_restoring_dbs(rebuild_slave, cluster.bk_cloud_id))
+            )
             sub_flow_context["clean_mode"] = SqlserverCleanMode.DROP_DBS.value
             sub_flow_context["clean_tables"] = ["*"]
             sub_flow_context["ignore_clean_tables"] = []
@@ -135,6 +141,32 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                 ),
             )
 
+            if cluster_sync_mode == SqlserverSyncMode.ALWAYS_ON and not check_always_on_status(cluster, rebuild_slave):
+                # 表示这个从实例和可用组端口连接，需要重建可用组关系
+                sub_pipeline.add_act(
+                    act_name=_("[{}]重建可用组".format(info["slave_host"]["ip"])),
+                    act_component_code=SqlserverActuatorScriptComponent.code,
+                    kwargs=asdict(
+                        ExecActuatorKwargs(
+                            exec_ips=[Host(ip=master.machine.ip, bk_cloud_id=cluster.bk_cloud_id)],
+                            get_payload_func=SqlserverActPayload.get_build_always_on.__name__,
+                            custom_params={
+                                "port": master.port,
+                                "add_slaves": [{"host": rebuild_slave.machine.ip, "port": rebuild_slave.port}],
+                                "group_name": get_group_name(master_instance=master, bk_cloud_id=cluster.bk_cloud_id),
+                                "is_first": False,
+                                "is_use_sa": False,
+                            },
+                        )
+                    ),
+                )
+                # 更新清理数据库列表
+                sub_flow_context["clean_dbs"] = list(
+                    set(get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[]))
+                    | set(get_restoring_dbs(rebuild_slave, cluster.bk_cloud_id))
+                )
+                sync_dbs = get_dbs_for_drs(cluster_id=cluster.id, db_list=["*"], ignore_db_list=[])
+
             # 在slave清理业务数据库
             if len(sub_flow_context["clean_dbs"]) > 0:
                 sub_pipeline.add_act(
@@ -156,7 +188,7 @@ class SqlserverSlaveRebuildFlow(BaseFlow):
                         root_id=self.root_id,
                         cluster=cluster,
                         sync_slaves=[Host(**info["slave_host"])],
-                        sync_dbs=list(set(sub_flow_context["clean_dbs"]) - set(get_sync_filter_dbs(cluster.id))),
+                        sync_dbs=sync_dbs,
                     )
                 )
 

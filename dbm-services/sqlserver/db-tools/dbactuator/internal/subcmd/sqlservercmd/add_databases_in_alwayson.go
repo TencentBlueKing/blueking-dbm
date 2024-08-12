@@ -73,6 +73,10 @@ func (c *AddDBSInAlwaysOnAct) Run() (err error) {
 			FunName: "数据库加入到Alwayson可用组",
 			Func:    c.BaseService.AddDBSInAlwaysOn,
 		},
+		{
+			FunName: "处理快照库",
+			Func:    c.BaseService.ExecSnapShot,
+		},
 	}
 
 	if err := steps.Run(); err != nil {

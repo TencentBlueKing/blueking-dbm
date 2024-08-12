@@ -230,8 +230,8 @@ func (m *GetAdminUserPasswordPara) GetMysqlAdminPassword() ([]*TbPasswords, int,
 		return passwords, 0, errno.NameNull
 	}
 	//  mysql实例中ADMIN用户的密码，仅能查看人为修改密码且在有效期的密码，不可以查看随机化生成的密码
-	where := fmt.Sprintf(" username='%s' and component in ('%s','%s') and lock_until is not null and "+
-		"lock_until > now()", m.UserName, mysql, tendbcluster)
+	where := fmt.Sprintf(" username='%s' and component in ('%s','%s', '%s') and lock_until is not null and "+
+		"lock_until > now()", m.UserName, mysql, tendbcluster, sqlserver)
 	var filter []string
 	for _, item := range m.Instances {
 		if item.Port != nil {
@@ -449,15 +449,16 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPasswordForSqlserver(
 			}
 
 			// 更新tb_passwords中实例的密码
-			sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-				"password,component,operator) values('%s',%d,%d,'%s','%s','%s','%s')",
-				address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component, m.Operator)
+			sql := fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,bk_biz_id,username,"+
+				"password,component,operator) values('%s',%d,%d,%d,'%s','%s','%s','%s')",
+				address.Ip, address.Port, *cluster.BkCloudId,
+				*cluster.BkBizId, m.UserName, encrypt, m.Component, m.Operator)
 			if m.LockHour != 0 {
-				sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,username,"+
-					"password,component,operator,lock_until) values('%s',%d,%d,'%s','%s','%s','%s',date_add("+
+				sql = fmt.Sprintf("replace into tb_passwords(ip,port,bk_cloud_id,bk_biz_id,username,"+
+					"password,component,operator,lock_until) values('%s',%d,%d,%d,'%s','%s','%s','%s',date_add("+
 					"now(),INTERVAL %d hour))",
-					address.Ip, address.Port, *cluster.BkCloudId, m.UserName, encrypt, m.Component,
-					m.Operator, m.LockHour)
+					address.Ip, address.Port, *cluster.BkCloudId, *cluster.BkBizId,
+					m.UserName, encrypt, m.Component, m.Operator, m.LockHour)
 			}
 			result := DB.Self.Exec(sql)
 			if result.Error != nil {

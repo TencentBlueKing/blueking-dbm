@@ -15,7 +15,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -64,11 +63,19 @@ type FullBackupListInfo struct {
 	FileGroupName sql.NullString `db:"FileGroupName"`
 }
 
+type AppSettingInfo struct {
+	RestorePath sql.NullString `db:"RESTORE_PATH"`
+	DataPath    sql.NullString `db:"DATA_PATH"`
+	LogPath     sql.NullString `db:"LOG_PATH"`
+}
+
 // 运行是需要的必须参数,可以提前计算
 type RestoreRunTimeCtx struct {
-	LocalDB     *sqlserver.DbWorker
-	VersionYear cst.SQLServerVersionYear
-	RestoreMode string
+	LocalDB         *sqlserver.DbWorker
+	VersionYear     cst.SQLServerVersionYear
+	RestoreMode     string
+	RestoreDataPath string
+	RestoreLogPath  string
 }
 
 // Init 初始化
@@ -99,7 +106,10 @@ func (r *RestoreDBSForFullComp) Init() error {
 	} else {
 		r.RestoreMode = r.Params.RestoreMode
 	}
-
+	// 初始化数据库恢复目录
+	if err := r.GetRestorePath(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -131,6 +141,48 @@ func (r *RestoreDBSForFullComp) PreCheck() error {
 		return err
 	}
 	return nil
+}
+
+// GetRestorePath 获取这次恢复路径
+// 全量备份恢复的路径的优先级：app_setting表[RESTORE_PATH] > app_setting表[DATA_PATH] > 默认
+func (r *RestoreDBSForFullComp) GetRestorePath() error {
+	var infos []AppSettingInfo
+	checkSQL := fmt.Sprintf(
+		"select top(1) RESTORE_PATH, DATA_PATH, LOG_PATH from [%s].[dbo].[APP_SETTING]",
+		cst.SysDB,
+	)
+	if err := r.LocalDB.Queryx(&infos, checkSQL); err != nil {
+		return fmt.Errorf("select APP_SETTING failed: %v", err)
+	}
+	if infos[0].RestorePath.Valid && infos[0].RestorePath.String != "" {
+		r.RestoreDataPath = infos[0].RestorePath.String
+		r.RestoreLogPath = infos[0].RestorePath.String
+		return nil
+	}
+	if infos[0].DataPath.Valid && infos[0].LogPath.Valid &&
+		infos[0].DataPath.String != "" && infos[0].LogPath.String != "" {
+		r.RestoreDataPath = infos[0].DataPath.String
+		r.RestoreLogPath = infos[0].LogPath.String
+		return nil
+	}
+	if defaultPath, err := r.LocalDB.GetDefaultPath(); err != nil {
+		return fmt.Errorf("get default path failed: %v", err)
+	} else {
+		r.RestoreDataPath = defaultPath[0].DefaultDataPath
+		r.RestoreLogPath = defaultPath[0].DefaultLogPath
+	}
+	// 检查data目录是否存在
+	df := osutil.WINSFile{FileName: r.RestoreDataPath}
+	if _, check := df.FileExists(); !check {
+		return fmt.Errorf("data path [%s] is not exist", r.RestoreDataPath)
+	}
+	// 检测log目录是否存在
+	lf := osutil.WINSFile{FileName: r.RestoreLogPath}
+	if _, check := lf.FileExists(); !check {
+		return fmt.Errorf("log path [%s] is not exist", r.RestoreLogPath)
+	}
+	return nil
+
 }
 
 // CheckRestoreReasonableness 检测恢复备份文件组合法性
@@ -195,30 +247,16 @@ func (r *RestoreDBSForFullComp) DoRestoreForFullBackup() error {
 		for _, f := range infoArr {
 			randStr := osutil.GenerateRandomString(8)
 			newFileName := ""
-
-			directory := filepath.Dir(f.PhysicalName)
-			// 判断对应恢复的目录存不存在，如果不存在，则默认存在D:\gamedb\{port}
-			dir := osutil.WINSFile{FileName: directory}
-			err, check := dir.FileExists()
-			if err != nil {
-				return err
-			}
-			// 如果文件不存在
-			if !check {
-				logger.Warn("the folder is not exist, restore dir set D:\\gamedb\\%d", r.Params.Port)
-				directory = filepath.Join(cst.BASE_DATA_PATH, cst.MSSQL_DATA_NAME, strconv.Itoa(r.Params.Port))
-			}
-
 			switch {
 			case f.FileGroupName.String == "PRIMARY" && f.Type == "D":
 				// 代表是主文件组，默认就有
-				newFileName = filepath.Join(directory, fmt.Sprintf("%s_%s.mdf", info.DBName, randStr))
+				newFileName = filepath.Join(r.RestoreDataPath, fmt.Sprintf("%s_%s.mdf", info.DBName, randStr))
 			case f.FileGroupName.String != "PRIMARY" && f.Type == "D":
 				// 代表是辅助文件组，可选
-				newFileName = filepath.Join(directory, fmt.Sprintf("%s_%s.ndf", info.DBName, randStr))
+				newFileName = filepath.Join(r.RestoreDataPath, fmt.Sprintf("%s_%s.ndf", info.DBName, randStr))
 			case f.Type == "L":
 				// 代表是日志文件组，默认就有
-				newFileName = filepath.Join(directory, fmt.Sprintf("%s_%s.ldf", info.DBName, randStr))
+				newFileName = filepath.Join(r.RestoreLogPath, fmt.Sprintf("%s_%s.ldf", info.DBName, randStr))
 			default:
 				logger.Error(
 					"[%s] this FileGroupName [%s] and Type [%s] is not supported",

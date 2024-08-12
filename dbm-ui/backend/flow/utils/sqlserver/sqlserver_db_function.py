@@ -59,7 +59,8 @@ def sqlserver_match_dbs(
 
 def get_dbs_for_drs(cluster_id: int, db_list: list, ignore_db_list: list) -> list:
     """
-    根据传入的db列表正则匹配和忽略db列表的正则匹配，获取真实的db名称
+    根据传入的db列表正则匹配和忽略db列表的正则匹配，获取真实的db名称,
+    统一不处理集群的只读库和在restoring状态的库
     @param cluster_id: 对应的cluster_id
     @param db_list: 匹配db的正则列表
     @param ignore_db_list: 忽略db的正则列表
@@ -75,7 +76,8 @@ def get_dbs_for_drs(cluster_id: int, db_list: list, ignore_db_list: list) -> lis
             "addresses": [master_instance.ip_port],
             "cmds": [
                 "select name from [master].[sys].[databases] where "
-                f"database_id > 4 and name != '{SQLSERVER_CUSTOM_SYS_DB}' and source_database_id is null"
+                f"database_id > 4 and name != '{SQLSERVER_CUSTOM_SYS_DB}' and source_database_id is null "
+                "and state = 0 and is_read_only = 0"
             ],
             "force": False,
         }
@@ -190,6 +192,84 @@ name not in (select name from {SQLSERVER_CUSTOM_SYS_DB}.dbo.MIRRORING_FILTER)"""
     no_sync_db = [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
 
     return no_sync_db
+
+
+def get_restoring_dbs(instance: StorageInstance, bk_cloud_id: int) -> List[str]:
+    """
+    获取实例上存在的restoring状态的数据库
+    针对于dr重建的场景
+    @param instance: 检查实例
+    @param bk_cloud_id: 云区域ID
+    """
+
+    check_sql = f"""select a.name from master.sys.databases as a
+join master.sys.database_mirroring as b on a.database_id =b.database_id
+where a.state = 1 and a.database_id > 4 and a.name <> '{SQLSERVER_CUSTOM_SYS_DB}'
+and (b.mirroring_state not in (2,4) or b.mirroring_state is null)"""
+
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": bk_cloud_id,
+            "addresses": [instance.ip_port],
+            "cmds": [check_sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{instance.ip_port}] get no-sync-dbs failed: {ret[0]['error_msg']}")
+    # 获取所有db名称
+    restoring_db = [i["name"] for i in ret[0]["cmd_results"][0]["table_data"]]
+
+    return restoring_db
+
+
+def check_always_on_status(cluster: Cluster, instance: StorageInstance) -> bool:
+    """
+    检查实例的可用组的状态是否正常
+    @param cluster: 集群信息
+    @param instance: 检查实例
+    """
+    master_instance = cluster.storageinstance_set.get(instance_role=InstanceRole.BACKEND_MASTER)
+    get_replica_id_sql = """SELECT CAST(replica_id AS nvarchar(100)) as id
+FROM master.sys.dm_hadr_availability_replica_states  where is_local = 1"""
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [instance.ip_port],
+            "cmds": [get_replica_id_sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{instance.ip_port}] get_replica_id failed: {ret[0]['error_msg']}")
+
+    if len(ret[0]["cmd_results"][0]["table_data"]) == 0:
+        # 代表没有加入的Alwayson可用组
+        return False
+    replica_id = ret[0]["cmd_results"][0]["table_data"][0]["id"]
+
+    check_sql = (
+        f"SELECT connected_state FROM master.sys.dm_hadr_availability_replica_states where replica_id = '{replica_id}'"
+    )
+    ret = DRSApi.sqlserver_rpc(
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "addresses": [master_instance.ip_port],
+            "cmds": [check_sql],
+            "force": False,
+        }
+    )
+    if ret[0]["error_msg"]:
+        raise Exception(f"[{instance.ip_port}] check replica_states failed: {ret[0]['error_msg']}")
+
+    if len(ret[0]["cmd_results"][0]["table_data"]) == 0:
+        # 代表没有加入的Alwayson可用组
+        return False
+    if ret[0]["cmd_results"][0]["table_data"][0]["connected_state"] == 0:
+        # 代表改同步链路是失联状态
+        return False
+
+    return True
 
 
 def exec_instance_backup_jobs(cluster_id, backup_jobs_type: SqlserverBackupJobExecMode) -> bool:
@@ -515,7 +595,6 @@ def insert_sqlserver_config(
     else:
         sync_mode = ""
     drop_sql = "use Monitor truncate table [Monitor].[dbo].[APP_SETTING]"
-
     for storage in storages:
         if is_get_old_backup_config:
             # 按照需求获取旧的备份配置
@@ -547,6 +626,17 @@ def insert_sqlserver_config(
             data_schema_grant = "all"
         else:
             data_schema_grant = "grant"
+
+        update_data_path_sql = (
+            f"use Monitor update [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[APP_SETTING] set "
+            f"DATA_PATH = REPLACE(physical_name,'master.mdf','') "
+            f"from master.sys.database_files WHERE type=0"
+        )
+        update_log_path_sql = (
+            f"use Monitor update [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[APP_SETTING] set "
+            f"LOG_PATH = REPLACE(physical_name,'mastlog.ldf','') "
+            f"from master.sys.database_files WHERE type=1"
+        )
 
         insert_app_setting_sql = f"""INSERT INTO [{SQLSERVER_CUSTOM_SYS_DB}].[dbo].[APP_SETTING](
 [APP],
@@ -586,13 +676,15 @@ def insert_sqlserver_config(
 [SLOW_DURATION],
 [SLOW_SAVEDAY],
 [UPDATESTATS],
-[COMMIT_MODEL])
-VALUES(
+[COMMIT_MODEL],
+[DATA_PATH],
+[LOG_PATH])
+values(
 '{str(cluster.bk_biz_id)}',
-'{old_backup_config.get('FULL_BACKUP_PATH',backup_config['full_backup_path'])}',
-'{old_backup_config.get('LOG_BACKUP_PATH',backup_config['log_backup_path'])}',
-{int(old_backup_config.get('KEEP_FULL_BACKUP_DAYS',backup_config['keep_full_backup_days']))},
-{int(old_backup_config.get('KEEP_LOG_BACKUP_DAYS',backup_config['keep_log_backup_days']))},
+'{old_backup_config.get('FULL_BACKUP_PATH', backup_config['full_backup_path'])}',
+'{old_backup_config.get('LOG_BACKUP_PATH', backup_config['log_backup_path'])}',
+{int(old_backup_config.get('KEEP_FULL_BACKUP_DAYS', backup_config['keep_full_backup_days']))},
+{int(old_backup_config.get('KEEP_LOG_BACKUP_DAYS', backup_config['keep_log_backup_days']))},
 {int(backup_config['full_backup_min_size_mb'])},
 {int(backup_config['log_backup_min_size_mb'])},
 1,
@@ -625,14 +717,16 @@ VALUES(
 {int(alarm_config['slow_duration'])},
 {int(alarm_config['slow_saveday'])},
 {int(alarm_config['updatestats'])},
-'{alarm_config['commit_model']}'
+'{alarm_config['commit_model']}',
+'',
+''
 )
 """
         ret = DRSApi.sqlserver_rpc(
             {
                 "bk_cloud_id": cluster.bk_cloud_id,
                 "addresses": [storage.ip_port],
-                "cmds": [drop_sql, insert_app_setting_sql],
+                "cmds": [drop_sql, insert_app_setting_sql, update_data_path_sql, update_log_path_sql],
                 "force": False,
             }
         )

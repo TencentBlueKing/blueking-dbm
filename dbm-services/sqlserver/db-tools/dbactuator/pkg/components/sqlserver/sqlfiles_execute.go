@@ -42,7 +42,7 @@ type SQLFileExecuteParam struct {
 // ExcuteSQLFileObj 单个文件的执行对象
 // 一次可以多个文件操作不同的数据库
 type SQLFileExecuteObj struct {
-	SQLFile       string   `json:"sql_file"  validate:"required"`       // 变更文件名称
+	SQLFiles      []string `json:"sql_files"  validate:"required"`      // 变更文件名称
 	IgnoreDbNames []string `json:"ignore_dbnames"  validate:"required"` // 忽略的,需要排除变更的dbName,支持模糊匹配
 	DbNames       []string `json:"dbnames"  validate:"required" `       // 需要变更的DBNames,支持模糊匹配
 }
@@ -65,7 +65,7 @@ func (s *SQLFileExecuteComp) Example() interface{} {
 			FilePath:  "d:\\workspace",
 			ExcuteObjects: []SQLFileExecuteObj{
 				{
-					SQLFile:       "111.sql",
+					SQLFiles:      []string{"111.sql"},
 					IgnoreDbNames: []string{"a%"},
 					DbNames:       []string{"db1", "db2"},
 				},
@@ -163,15 +163,16 @@ func (s *SQLFileExecuteComp) executeForport(port int) (err error) {
 			}
 		}
 
-		// files := []string{fmt.Sprintf("%s\\%s", s.TaskDir, object.SQLFile)}
-		files := []string{filepath.Join(s.TaskDir, object.SQLFile)}
-		logger.Info("will real execute sqlfile %s on %v", files[0], realexcutedbs)
+		for _, sqlfile := range object.SQLFiles {
+			files := []string{filepath.Join(s.TaskDir, sqlfile)}
+			logger.Info("will real execute sqlfile %s on %v", files[0], realexcutedbs)
 
-		// 调用本地执行SQL
-		for _, dbNames := range realexcutedbs {
-			if err := sqlserver.ExecLocalSQLFile(
-				s.SQLVersions[port], dbNames, s.Params.CharSetNO, files, port); err != nil {
-				return err
+			// 调用本地执行SQL
+			for _, dbNames := range realexcutedbs {
+				if err := sqlserver.ExecLocalSQLFile(
+					s.SQLVersions[port], dbNames, s.Params.CharSetNO, files, port); err != nil {
+					return err
+				}
 			}
 		}
 

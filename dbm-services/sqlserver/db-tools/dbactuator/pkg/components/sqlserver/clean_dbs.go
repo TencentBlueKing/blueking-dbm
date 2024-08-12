@@ -107,7 +107,8 @@ func (c *CleanDBSComp) PerCheck() error {
 			logger.Warn("[%s] DB not exists,skip", dbName)
 			continue
 		}
-		// 没有报错则加入待重命名数组
+		// 没有报错则加入待清理数组
+		logger.Info("the db [%s] enters the clean queue", dbName)
 		c.RealDBS = append(c.RealDBS, dbName)
 	}
 	if isErr {

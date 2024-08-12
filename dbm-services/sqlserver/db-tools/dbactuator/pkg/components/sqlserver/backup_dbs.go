@@ -119,6 +119,7 @@ func (b *BackupDBSComp) GetRealDBS() error {
 			continue
 		}
 		// 没有报错则加入待重命名数组
+		logger.Info("the db [%s] enters the backup queue", dbName)
 		b.RealDBS = append(b.RealDBS, dbName)
 	}
 

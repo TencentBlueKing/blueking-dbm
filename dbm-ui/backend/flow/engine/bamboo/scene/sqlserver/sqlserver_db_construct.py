@@ -75,6 +75,8 @@ class SqlserverDataConstruct(BaseFlow):
                             "bak_file": f"{target_path}{file_info['file_name']}",
                             "backup_full_start_time": file_info["backup_begin_time"],
                             "backup_full_end_time": file_info["backup_end_time"],
+                            "checkpointlsn": file_info["checkpointlsn"],
+                            "cluster_address": file_info["cluster_address"],
                         }
                     )
                     break
@@ -88,19 +90,30 @@ class SqlserverDataConstruct(BaseFlow):
         """
         log_download_infos = []
         log_restore_infos = []
+        err_infos = []
         for full_info in full_restore_infos:
+            # 查询对应的日志备份记录
             log_backup_infos = SQLServerRollbackHandler(cluster_id=cluster_id).query_binlogs(
                 str2datetime(full_info["backup_full_end_time"]), restore_time, full_info["db_name"]
             )
 
             if not log_backup_infos:
-                raise Exception(
+                err_infos.append(
                     f"the log-backup-list is empty: "
                     f"cluster_id:[{cluster_id}], "
                     f"start_time:[{full_info['backup_full_end_time']}]"
                     f"end_time:[{restore_time}]"
-                    f"db_name:[{full_info['db_name']}]"
+                    f"db_name:[{full_info['db_name']}]\n"
                 )
+                continue
+
+            # 判断日志备份的连续性
+            log_backup_sort_infos, errs = SQLServerRollbackHandler.check_binlog_lsn_continuity(
+                backup_logs=log_backup_infos, full_backup_info=full_info
+            )
+            if len(errs) > 0:
+                err_infos = err_infos + errs
+                continue
 
             for file in log_backup_infos:
                 log_download_infos.append(
@@ -113,6 +126,9 @@ class SqlserverDataConstruct(BaseFlow):
                     "bak_file": [f"{target_path}{i['file_name']}" for i in log_backup_infos],
                 }
             )
+        if len(err_infos) > 0:
+            raise Exception("\n".join(err_infos))
+
         return log_download_infos, log_restore_infos
 
     def run_flow(self):

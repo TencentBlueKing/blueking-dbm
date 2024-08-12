@@ -13,6 +13,7 @@ package mirroring
 import (
 	"database/sql"
 	"fmt"
+	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/components"
@@ -183,5 +184,20 @@ func (c *CreateMirrorComp) CreateDBMirroring() error {
 		return fmt.Errorf("create dbs mirroring error")
 	}
 
+	return nil
+}
+
+// ExecSnapShot 切换后执行快照逻辑, 不异常退出
+func (c *CreateMirrorComp) ExecSnapShot() (err error) {
+	// 暂停10秒，足够时间同步数据
+	time.Sleep(10 * time.Second)
+	// 删除master的历史快照
+	if err := sqlserver.ExecSwitchSP(c.DB, "Sys_AutoSwitch_SnapShot", "1,"); err != nil {
+		logger.Error(fmt.Sprintf("exec Sys_AutoSwitch_SnapShot failed: %s", err.Error()))
+	}
+	// 创建slave的历史快照
+	if err := sqlserver.ExecSwitchSP(c.DR, "Sys_AutoSwitch_SnapShot", "0,"); err != nil {
+		logger.Error(fmt.Sprintf("exec Sys_AutoSwitch_SnapShot failed: %s", err.Error()))
+	}
 	return nil
 }
