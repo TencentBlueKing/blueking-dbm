@@ -1,9 +1,13 @@
 package hdfs
 
 import (
+	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/hdfsutil"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components/hdfs/util"
@@ -73,9 +77,20 @@ type CheckDecommissionService struct {
 
 // CheckDatanodeDecommission TODO
 func (c *CheckDecommissionService) CheckDatanodeDecommission() (err error) {
+	// 兼容旧集群DN节点未开启代理; 备份系统代理配置未开启代理NameNode
+	visitHost := c.Params.Host
+	// 1. 检查 代理web端口是否打开
+	if err = c.CheckProxyStart(); err != nil {
+		logger.Error("check proxy port %d not open", c.Params.HttpPort, err.Error())
+		// 2. 若未打开，获取Namenode主节点 hostname
+		visitHost, err = hdfsutil.GetActiveNNWithoutClusterName()
+		if err != nil {
+			return err
+		}
+	}
 
 	urlFormat := "http://root:%s@%s:%d/jmx?qry=Hadoop:service=NameNode,name=NameNodeInfo"
-	responseBody, err := util.HttpGet(fmt.Sprintf(urlFormat, c.Params.Password, c.Params.Host, c.Params.HttpPort))
+	responseBody, err := util.HttpGet(fmt.Sprintf(urlFormat, c.Params.Password, visitHost, c.Params.HttpPort))
 	if err != nil {
 		return err
 	}
@@ -122,6 +137,37 @@ func (c *CheckDecommissionService) CheckDatanodeDecommission() (err error) {
 	} else {
 		logger.Error("Datanode Decommissioning")
 		return errors.New("Datanode Decommissioning")
+	}
+}
+
+// CheckProxyStart 检查haproxy 是否打开代理NN web端口
+func (c *CheckDecommissionService) CheckProxyStart() (err error) {
+	RetryCount := 3
+	SleepDuration := 10 * time.Second
+	for retryTimes := 0; retryTimes <= RetryCount; retryTimes++ {
+		err = CheckHostPortOpen(c.Params.Host, c.Params.HttpPort)
+		if err != nil {
+			logger.Error("打开连接失败, ", err.Error())
+			time.Sleep(SleepDuration)
+			continue
+		} else {
+			return nil
+		}
+	}
+	return errors.New("retry all failed")
+}
+
+// CheckHostPortOpen 检查主机端口是否打开
+func CheckHostPortOpen(host string, port int) (err error) {
+	timeout := 10 * time.Second
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(host, strconv.Itoa(port)), timeout)
+
+	if conn != nil {
+		logger.Info("检查连接对象成功")
+		defer conn.Close()
+		return nil
+	} else {
+		return err
 	}
 }
 
