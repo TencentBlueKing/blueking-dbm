@@ -206,6 +206,19 @@ export function getTicketDetails(
   },
   payload = {} as IRequestPayload,
 ) {
+  return http.get<TicketModel>(`${path}/${params.id}/`, params, payload).then((data) => new TicketModel(data));
+}
+
+/**
+ * 单据详情
+ */
+export function getTicketDetailsWithAbortController(
+  params: {
+    id: number;
+    is_reviewed?: number;
+  },
+  payload = {} as IRequestPayload,
+) {
   // 请求控制器取消前一个请求
   window.PROJECT_CONFIG.TICKET_DETAIL_REQUEST_CONTROLLER?.abort();
   window.PROJECT_CONFIG.TICKET_DETAIL_REQUEST_CONTROLLER = new AbortController();

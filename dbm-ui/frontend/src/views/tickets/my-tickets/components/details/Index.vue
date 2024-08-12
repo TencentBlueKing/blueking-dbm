@@ -72,7 +72,7 @@
   import type { LocationQueryValue } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import { getTicketDetails } from '@services/source/ticket';
+  import { getTicketDetailsWithAbortController } from '@services/source/ticket';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
   import CostTimer from '@components/cost-timer/CostTimer.vue';
@@ -103,7 +103,7 @@
    */
   const fetchTicketDetails = (id: number, isPoll = false) => {
     state.isLoading = !isPoll;
-    getTicketDetails({ id }, {
+    getTicketDetailsWithAbortController({ id }, {
       permission: 'catch'
     })
       .then((ticketData) => {
