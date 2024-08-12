@@ -17,7 +17,7 @@ from django.db.models import QuerySet
 
 from backend.configuration.models import BizSettings
 from backend.constants import CommonInstanceLabels
-from backend.db_meta.enums import AccessLayer, ClusterType
+from backend.db_meta.enums import AccessLayer, ClusterType, MachineType
 from backend.db_meta.models import (
     AppCache,
     Cluster,
@@ -247,7 +247,7 @@ class CCTopoOperator:
         for cluster in self.clusters:
             CcManage(bk_biz_id=cluster.bk_biz_id, cluster_type=cluster.cluster_type).get_or_create_set_module(
                 db_type=self.db_type,
-                cluster_type="tbinlogdumper",
+                cluster_type=ClusterType.TBinlogDumper.value,
                 bk_module_name=cluster.immute_domain,
                 cluster_id=cluster.id,
                 creator=cluster.creator,
@@ -258,7 +258,7 @@ class CCTopoOperator:
         for inst in instances:
             inst_id_to_host_id_map[inst.id] = Machine.objects.get(ip=inst.ip, bk_cloud_id=inst.bk_cloud_id).bk_host_id
             inst_id_to_module_id_map[inst.id] = ClusterMonitorTopo.objects.get(
-                cluster_id=inst.cluster_id, machine_type="tbinlogdumper"
+                cluster_id=inst.cluster_id, machine_type=MachineType.TBinlogDumper.value
             ).bk_module_id
 
         # 合并导入机器到对应模块下

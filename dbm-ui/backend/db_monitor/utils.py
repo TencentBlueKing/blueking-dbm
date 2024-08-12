@@ -43,8 +43,12 @@ def bkm_save_alarm_strategy(params):
     response = BKMonitorV3Api.save_alarm_strategy_v3(params, use_admin=True, raw=True)
 
     if not response.get("result"):
-        logger.error("bkm_save_alarm_strategy failed: params: %s\n response: %s", params, response)
-        raise BkMonitorSaveAlarmException(message=response.get("message"))
+        if response.get("code") == BKMonitorV3Api.ErrorCode.STRATEGY_ALREADY_EXISTS:
+            params["id"] = bkm_get_alarm_strategy(params["name"])["id"]
+            return BKMonitorV3Api.save_alarm_strategy_v3(params, use_admin=True)
+        else:
+            logger.error("bkm_save_alarm_strategy failed: params: %s\n response: %s", params, response)
+            raise BkMonitorSaveAlarmException(message=response.get("message"))
 
     return response["data"]
 

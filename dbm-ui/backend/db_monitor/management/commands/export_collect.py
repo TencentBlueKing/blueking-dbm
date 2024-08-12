@@ -20,6 +20,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from backend.components import BKMonitorV3Api
+from backend.configuration.constants import DBType
 from backend.db_monitor.constants import TPLS_COLLECT_DIR
 from backend.utils.time import datetime2str
 
@@ -32,7 +33,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "db_type",
-            choices=["mysql", "redis", "es", "hdfs", "kafka", "pulsar", "influxdb", "sqlserver", "tbinlogdumper"],
+            choices=DBType.get_values(),
             type=str,
             help="db类型",
         )

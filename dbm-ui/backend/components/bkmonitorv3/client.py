@@ -22,6 +22,7 @@ class _BKMonitorV3Api(BaseApi):
     class ErrorCode:
         MONITOR_GROUP_NAME_ALREADY_EXISTS = 3312003
         DUTY_RULE_NAME_ALREADY_EXISTS = 3312006
+        STRATEGY_ALREADY_EXISTS = 3313008
 
     def __init__(self):
         self.metadata_get_data_id = self.generate_data_api(

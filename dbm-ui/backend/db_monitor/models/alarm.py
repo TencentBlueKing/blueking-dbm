@@ -13,6 +13,7 @@ import datetime
 import json
 import logging
 from collections import defaultdict
+from typing import Any, Dict, List
 
 from django.db import models
 from django.utils import timezone
@@ -24,9 +25,11 @@ from backend.bk_web.models import AuditedModel
 from backend.components import BKMonitorV3Api
 from backend.configuration.constants import PLAT_BIZ_ID, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppMonitorTopo, DBModule
 from backend.db_monitor.constants import (
     APP_PRIORITY,
+    BK_MONITOR_DISPATCH_RULE_MIXIN,
     BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE,
     BK_MONITOR_SAVE_USER_GROUP_TEMPLATE,
     DEFAULT_ALERT_NOTICE,
@@ -404,42 +407,52 @@ class DispatchGroup(AuditedModel):
         return BKMonitorV3Api.save_rule_group(params)
 
     @classmethod
-    def get_rule_by_dbtype(cls, db_type, bk_biz_id):
+    def get_rules_by_dbtype(cls, db_type, bk_biz_id) -> List[Dict[str, Any]]:
         """根据db类型生成规则"""
-
-        rule_mixin = {
-            "actions": [
-                {
-                    "action_type": "notice",
-                    "is_enabled": True,
-                    "upgrade_config": {"is_enabled": False, "user_groups": [], "upgrade_interval": 0},
-                }
-            ],
-            "alert_severity": 0,
-            "additional_tags": [],
-            "is_enabled": True,
-        }
-
         conditions = []
         # 仅分派平台策略
         policies = MonitorPolicy.get_policies(db_type)
 
         # 排除无效的db类型，比如cloud
         if not policies:
-            return {}
+            return []
 
         conditions.append({"field": "alert.strategy_id", "value": policies, "method": "eq", "condition": "and"})
-        user_groups = NoticeGroup.get_groups(bk_biz_id)
+        user_groups = [NoticeGroup.get_groups(bk_biz_id).get(db_type)]
 
         # 业务级分派策略
         if bk_biz_id != PLAT_BIZ_ID:
             conditions.append({"field": "appid", "value": [str(bk_biz_id)], "method": "eq", "condition": "and"})
 
-        return {
-            "user_groups": [user_groups.get(db_type)],
-            "conditions": conditions,
-            **rule_mixin,
-        }
+        rules = [
+            {
+                "user_groups": user_groups,
+                "conditions": conditions,
+                **BK_MONITOR_DISPATCH_RULE_MIXIN,
+            }
+        ]
+
+        # 补充 dbha 特殊策略的分派规则
+        if db_type in [DBType.MySQL, DBType.Redis, DBType.Sqlserver]:
+            policies = MonitorPolicy.get_dbha_policies()
+            rules.append(
+                {
+                    "user_groups": user_groups,
+                    "conditions": [
+                        {"field": "alert.strategy_id", "method": "eq", "value": policies, "condition": "and"},
+                        {
+                            "field": "cluster_type",
+                            "method": "eq",
+                            "value": ClusterType.db_type_to_cluster_types(db_type),
+                            "condition": "and",
+                        },
+                        {"field": "appid", "method": "eq", "value": [str(bk_biz_id)], "condition": "and"},
+                    ],
+                    **BK_MONITOR_DISPATCH_RULE_MIXIN,
+                }
+            )
+
+        return rules
 
     @classmethod
     def get_rules(cls, bk_biz_id=PLAT_BIZ_ID):
@@ -447,12 +460,13 @@ class DispatchGroup(AuditedModel):
 
         notify_groups = NoticeGroup.objects.filter(is_built_in=True, bk_biz_id=bk_biz_id)
         for db_type in notify_groups.values_list("db_type", flat=True):
-            rule = cls.get_rule_by_dbtype(db_type, bk_biz_id)
+            db_type_rules = cls.get_rules_by_dbtype(db_type, bk_biz_id)
 
-            if not rule:
+            if not db_type_rules:
                 continue
 
-            rules.append(rule)
+            rules.extend(db_type_rules)
+
         return rules
 
     def save(self, *args, **kwargs):
@@ -649,7 +663,7 @@ class MonitorPolicy(AuditedModel):
         return details
 
     @staticmethod
-    def patch_target_and_metric_id(details, alert_source, db_type):
+    def patch_target_and_metric_id(details, db_type):
         """监控目标/自定义事件和指标需要渲染
         metric_id: {bk_biz_id}_bkmoinitor_event_{event_data_id}
         """
@@ -790,7 +804,7 @@ class MonitorPolicy(AuditedModel):
 
         # other
         details = self.patch_bk_biz_id(details)
-        details = self.patch_target_and_metric_id(details, self.alert_source, self.db_type)
+        details = self.patch_target_and_metric_id(details, self.db_type)
 
         return details
 
@@ -961,8 +975,25 @@ class MonitorPolicy(AuditedModel):
     @classmethod
     def get_policies(cls, db_type, bk_biz_id=PLAT_BIZ_ID):
         """获取监控策略id列表"""
-        return list(
+        policy_ids = list(
             cls.objects.filter(db_type=db_type, bk_biz_id=bk_biz_id).values_list("monitor_policy_id", flat=True)
+        )
+        # MySQL 需额外补充
+        if db_type == DBType.MySQL:
+            policy_ids.extend(
+                list(
+                    cls.objects.filter(details__labels__contains=["/DBM_TBINLOGDUMPER/"]).values_list(
+                        "monitor_policy_id", flat=True
+                    )
+                )
+            )
+        return policy_ids
+
+    @classmethod
+    def get_dbha_policies(cls):
+        """获取高可用策略id列表"""
+        return list(
+            cls.objects.filter(details__labels__contains=["/DBM_DBHA/"]).values_list("monitor_policy_id", flat=True)
         )
 
     @staticmethod
@@ -1087,7 +1118,6 @@ class MonitorPolicy(AuditedModel):
             event_counts = defaultdict(dict)
             for (strategy_id, appid), event_count in tmp.items():
                 event_counts[strategy_id][appid] = event_count
-            # return dict(Counter(event["strategy_id"] for event in events))
             return event_counts
 
         return events

@@ -156,6 +156,19 @@ BK_MONITOR_SAVE_USER_GROUP_TEMPLATE = {
 PLAT_PRIORITY = 100
 APP_PRIORITY = 1000
 
+BK_MONITOR_DISPATCH_RULE_MIXIN = {
+    "actions": [
+        {
+            "action_type": "notice",
+            "is_enabled": True,
+            "upgrade_config": {"is_enabled": False, "user_groups": [], "upgrade_interval": 0},
+        }
+    ],
+    "alert_severity": 0,
+    "additional_tags": [],
+    "is_enabled": True,
+}
+
 # 分派规则模板
 BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE = {
     "id": 0,
@@ -170,16 +183,7 @@ BK_MONITOR_SAVE_DISPATCH_GROUP_TEMPLATE = {
                 {"field": "alert.strategy_id", "value": ["95"], "method": "eq", "condition": "and"},
                 {"field": "appid", "value": ["1", "2", "3"], "method": "eq", "condition": "and"},
             ],
-            "actions": [
-                {
-                    "action_type": "notice",
-                    "is_enabled": True,
-                    "upgrade_config": {"is_enabled": False, "user_groups": [], "upgrade_interval": 0},
-                }
-            ],
-            "alert_severity": 0,
-            "additional_tags": [],
-            "is_enabled": True,
+            **BK_MONITOR_DISPATCH_RULE_MIXIN,
         },
     ],
 }
