@@ -37,8 +37,10 @@ from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.drf_perm.taskflow import TaskFlowPermission
 from backend.iam_app.handlers.permission import Permission
-from backend.ticket.models import Flow
-from backend.utils.basic import get_target_items_from_details
+from backend.ticket.builders.common.base import fetch_host_ids
+from backend.ticket.constants import TODO_RUNNING_STATUS, TodoType
+from backend.ticket.models import Flow, Todo
+from backend.ticket.serializers import TodoSerializer
 
 logger = logging.getLogger("root")
 SWAGGER_TAG = "taskflow"
@@ -97,27 +99,28 @@ class TaskFlowViewSet(viewsets.AuditedModelViewSet):
     def retrieve(self, requests, *args, **kwargs):
         root_id = kwargs["root_id"]
         tree_states = BambooEngine(root_id=root_id).get_pipeline_tree_states()
+        flow_info = super().retrieve(requests, *args, **kwargs).data
 
-        flow_info = super().retrieve(requests, *args, **kwargs)
+        # 补充获取业务和主机信息
         try:
-            # 获取当前flow的参数
-            details = Flow.objects.get(flow_obj_id=root_id).details["ticket_data"]
             # 递归遍历字典，获取主机ID
-            bk_host_ids = get_target_items_from_details(
-                obj=details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
-            )
-            bk_biz_id = details["bk_biz_id"]
+            details = Flow.objects.get(flow_obj_id=root_id).details["ticket_data"]
+            bk_biz_id, bk_host_ids = details["bk_biz_id"], fetch_host_ids(details)
             # 如果当前pipeline整在运行中，并且是从资源池拿取的机器，则bk_biz_id设置为DBA_APP_BK_BIZ_ID
-            if flow_info.data["status"] != StateType.FINISHED and details.get("ip_source") == IpSource.RESOURCE_POOL:
+            if flow_info["status"] != StateType.FINISHED and details.get("ip_source") == IpSource.RESOURCE_POOL:
                 bk_biz_id = env.DBA_APP_BK_BIZ_ID
-            # 更新flow_info
-            logger.warning("bk_host_ids: {}, bk_biz_id: {}".format(bk_host_ids, bk_biz_id))
-            flow_info.data.update(bk_host_ids=bk_host_ids, bk_biz_id=bk_biz_id)
+            flow_info.update(bk_host_ids=bk_host_ids, bk_biz_id=bk_biz_id)
         except Exception as e:
             # 如果没找到flow或者相关bk_host_id参数，则忽略
             logger.info("can not find related host, root_id: {} Exception: {} ".format(root_id, e))
 
-        return Response({"flow_info": flow_info.data, **tree_states})
+        # 补充获取正在进行的todo
+        todo_qs = Todo.objects.filter(
+            flow__flow_obj_id=root_id, type=TodoType.INNER_APPROVE, status__in=TODO_RUNNING_STATUS
+        )
+        todos = TodoSerializer(todo_qs, many=True).data
+
+        return Response({"flow_info": flow_info, "todos": todos, **tree_states})
 
     @common_swagger_auto_schema(
         operation_summary=_("撤销流程"),
