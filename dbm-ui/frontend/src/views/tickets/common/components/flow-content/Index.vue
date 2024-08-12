@@ -12,11 +12,7 @@
 -->
 
 <template>
-  <!-- <FlowContentInnerFlow
-    v-if="content?.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && isTodos === false"
-    :content="content"
-    @fetch-data="handleEmitFetchData" /> -->
-  <template v-if="content.todos?.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
+  <template v-if="content.todos.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
     <ManualConfirm
       v-for="item in content.todos"
       :key="item.id"
@@ -25,10 +21,11 @@
       @processed="handleEmitFetchData" />
   </template>
   <template
-    v-else-if="content?.todos?.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
+    v-else-if="content.todos.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
     <FlowContentTodo
       v-for="item of content.todos"
       :key="item.id"
+      :content="content"
       :data="item"
       href-target="_blank" />
   </template>
@@ -83,7 +80,7 @@
     </div>
   </template>
   <template v-if="content.flow_type !== 'PAUSE'">
-    <div>
+    <div style="padding-top: 8px">
       <template
         v-if="
           content.status === 'RUNNING' &&
@@ -122,6 +119,10 @@
           }">
           {{ content.summary }}
         </span>
+        <template v-if="content.err_msg">
+          <span>，{{ t('处理人') }}: </span>
+          <span>{{ ticketData.updater }}</span>
+        </template>
       </template>
       <template v-if="content.summary">
         ，{{ t('耗时') }}：
@@ -140,7 +141,7 @@
         </a>
       </template>
     </div>
-    <div class="mt-8">
+    <div>
       <BkPopConfirm
         v-if="
           content.err_code === 2 ||
@@ -152,7 +153,7 @@
         :width="320"
         @confirm="handleConfirmRetry(content)">
         <BkButton
-          class="w-88"
+          class="w-88 mt-8"
           :disabled="btnState.retryLoading || btnState.terminateLoading"
           :loading="btnState.retryLoading"
           theme="primary">
@@ -167,7 +168,7 @@
         :width="320"
         @confirm="handleConfirmTerminal(content)">
         <BkButton
-          class="w-88 ml-8"
+          class="w-88 ml-8 mt-8"
           :disabled="btnState.terminateLoading || btnState.retryLoading"
           :loading="btnState.terminateLoading"
           theme="danger">
@@ -179,6 +180,16 @@
       v-if="content.end_time"
       class="flow-time">
       {{ utcDisplayTime(content.end_time) }}
+    </div>
+  </template>
+  <!-- 系统自动终止 -->
+  <template v-if="content.err_code === 3 && content.context.expire_time && content.todos.length === 0">
+    <div style="color: #ea3636; margin-top: 8px">
+      <span>{{ t('system已处理') }}</span>
+      <span> ({{ t('超过n天未处理，自动终止', { n: content.context.expire_time }) }}) </span>
+    </div>
+    <div class="flow-time">
+      {{ utcDisplayTime(content.update_at) }}
     </div>
   </template>
 </template>
@@ -242,7 +253,18 @@
     return content.status === 'RUNNING' && content.flow_type === 'PAUSE';
   });
 
-  // const getHrefTarget = (content: FlowItem) => (content.flow_type === 'BK_ITSM' ? '_blank' : '_self');
+  // const displayExpiredTime = computed(() => {
+  //   const expireTime = props.content.context.expire_time;
+  //   if (!expireTime) {
+  //     return '';
+  //   }
+
+  //   if (expireTime * 24 > 72) {
+  //     return `${expireTime} ${t('天')}`;
+  //   }
+
+  //   return `${expireTime * 24} ${t('小时')}`;
+  // });
 
   const handleConfirmTerminal = (item: FlowItem) => {
     btnState.terminateLoading = true;
