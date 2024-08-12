@@ -55,7 +55,7 @@
           v-model="localValue"
           :placeholder="placeholder"
           :rows="20"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -124,16 +124,15 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { execCopy } from '@/utils';
-
+  import { execCopy } from '@utils';
 
   interface IInputParse {
-    domain: string,
-    startTime: string,
-    databases: string,
-    tables: string,
-    databasesIgnore: string,
-    tablesIgnore: string,
+    domain: string;
+    startTime: string;
+    databases: string;
+    tables: string;
+    databasesIgnore: string;
+    tablesIgnore: string;
   }
 
   interface Props {
@@ -147,14 +146,10 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const getInputTextList = (list: Array<IInputParse>) => list.map(item => [
-    item.domain,
-    item.startTime,
-    item.databases,
-    item.tables,
-    item.databasesIgnore,
-    item.tablesIgnore,
-  ].join('    '));
+  const getInputTextList = (list: Array<IInputParse>) =>
+    list.map((item) =>
+      [item.domain, item.startTime, item.databases, item.tables, item.databasesIgnore, item.tablesIgnore].join('    '),
+    );
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -172,8 +167,7 @@
   const inputClusterErrorStack = ref<Array<IInputParse>>([]);
 
   const demoStartTime = dayjs().format('YYYY-MM-DD HH:mm:ss');
-  const demoEndTime = dayjs().add(7, 'day')
-    .format('YYYY-MM-DD HH:mm:ss');
+  const demoEndTime = dayjs().add(7, 'day').format('YYYY-MM-DD HH:mm:ss');
 
   const handleCopy = () => {
     execCopy(`Gamesever.edb.db    ${demoStartTime} ~ ${demoEndTime}    dbtest    dbtest%    null\n`);
@@ -183,9 +177,8 @@
     emits('update:isShow', false);
   };
 
-
   const handleSubmit = () => {
-    const inputRecordList =  localValue.value.split('\n');
+    const inputRecordList = localValue.value.split('\n');
 
     const validList: Array<IInputParse> = [];
     const invalidList: Array<IInputParse> = [];
@@ -207,15 +200,7 @@
         });
         return;
       }
-      const [
-        inputText,
-        domain,
-        startTime,
-        databases,
-        tables,
-        databasesIgnore,
-        tablesIgnore,
-      ] = match;
+      const [inputText, domain, startTime, databases, tables, databasesIgnore, tablesIgnore] = match;
 
       const payload = {
         domain,
@@ -235,7 +220,7 @@
     });
 
     isChecking.value = true;
-    const clusterFilters = validList.map(item => ({
+    const clusterFilters = validList.map((item) => ({
       immute_domain: item.domain,
     }));
 
@@ -243,11 +228,14 @@
       cluster_filters: clusterFilters,
       bk_biz_id: currentBizId,
     })
-      .then((data: Array<{master_domain: string, id: number}>) => {
-        const realDataMap = data.reduce((result, item) => ({
-          ...result,
-          [item.master_domain]: item.id,
-        }), {} as Record<string, number>);
+      .then((data: Array<{ master_domain: string; id: number }>) => {
+        const realDataMap = data.reduce(
+          (result, item) => ({
+            ...result,
+            [item.master_domain]: item.id,
+          }),
+          {} as Record<string, number>,
+        );
 
         const resultList: Array<IValue> = [];
         const clusterErrorList: Array<IInputParse> = [];
@@ -256,13 +244,7 @@
           if (!realDataMap[item.domain]) {
             clusterErrorList.push(item);
           } else {
-            const {
-              startTime,
-              databases,
-              tables,
-              databasesIgnore,
-              tablesIgnore,
-            } = item;
+            const { startTime, databases, tables, databasesIgnore, tablesIgnore } = item;
 
             const getListValue = (str: string) => {
               if (str === 'null') {
@@ -271,10 +253,7 @@
               return str.split(',');
             };
 
-            const [
-              roolbackTime,
-              endTime,
-            ] = startTime.split(/ +~ +/);
+            const [roolbackTime, endTime] = startTime.split(/ +~ +/);
 
             resultList.push({
               clusterData: {
@@ -293,9 +272,7 @@
         inputInvalidStack.value = invalidList;
         inputErrorStack.value = errorList;
         inputClusterErrorStack.value = clusterErrorList;
-        if (invalidList.length < 1
-          && errorList.length < 1
-          && clusterErrorList.length < 1) {
+        if (invalidList.length < 1 && errorList.length < 1 && clusterErrorList.length < 1) {
           emits('change', resultList);
           handleClosed();
         } else {
@@ -306,17 +283,19 @@
             return arr.join(',');
           };
           localValue.value = _.filter([
-            ...invalidList.map(item => getInputTextList([item])),
-            ...errorList.map(item => getInputTextList([item])),
-            ...clusterErrorList.map(item => getInputTextList([item])),
-            ...resultList.map(item => [
-              item.clusterData.domain,
-              [item.startTime, item.endTime].join(' ~ '),
-              renderListValue(item.databases),
-              renderListValue(item.tables),
-              renderListValue(item.databasesIgnore),
-              renderListValue(item.tablesIgnore),
-            ].join('    ')),
+            ...invalidList.map((item) => getInputTextList([item])),
+            ...errorList.map((item) => getInputTextList([item])),
+            ...clusterErrorList.map((item) => getInputTextList([item])),
+            ...resultList.map((item) =>
+              [
+                item.clusterData.domain,
+                [item.startTime, item.endTime].join(' ~ '),
+                renderListValue(item.databases),
+                renderListValue(item.tables),
+                renderListValue(item.databasesIgnore),
+                renderListValue(item.tablesIgnore),
+              ].join('    '),
+            ),
           ]).join('\n');
         }
       })
@@ -353,10 +332,9 @@
   const handleHighClusterError = () => {
     const $inputEl = inputRef.value.querySelector('textarea');
     $inputEl.focus();
-    const invalidText = [
-      ...getInputTextList(inputInvalidStack.value),
-      ...getInputTextList(inputErrorStack.value),
-    ].join('\n');
+    const invalidText = [...getInputTextList(inputInvalidStack.value), ...getInputTextList(inputErrorStack.value)].join(
+      '\n',
+    );
     const clusterErrorText = getInputTextList(inputClusterErrorStack.value).join('\n');
 
     const startIndex = invalidText.length > 0 ? invalidText.length + 1 : 0;
