@@ -12,46 +12,31 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderOriginalProxy
-          ref="targetRef"
-          :model-value="data.originProxy?.ip"
-          @input-finish="handleOriginProxyInputFinish" />
-      </td>
-      <td style="padding: 0">
-        <RenderRelatedInstances
-          ref="relatedInstancesRef"
-          :list="localRelatedInstances" />
-      </td>
-      <td style="padding: 0">
-        <RenderTargetProxy
-          ref="originRef"
-          :cloud-id="data.originProxy?.bk_cloud_id ?? null"
-          :disabled="!data.originProxy?.ip"
-          :model-value="data.targetProxy"
-          :target-ip="data.originProxy?.ip" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderOriginalProxy
+        ref="targetRef"
+        :model-value="data.originProxy?.ip"
+        @input-finish="handleOriginProxyInputFinish" />
+    </td>
+    <td style="padding: 0">
+      <RenderRelatedInstances
+        ref="relatedInstancesRef"
+        :list="localRelatedInstances" />
+    </td>
+    <td style="padding: 0">
+      <RenderTargetProxy
+        ref="originRef"
+        :cloud-id="data.originProxy?.bk_cloud_id ?? null"
+        :disabled="!data.originProxy?.ip"
+        :model-value="data.targetProxy"
+        :target-ip="data.originProxy?.ip" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
@@ -70,10 +55,13 @@
   }
 
   export interface IHostData {
-    ip: string;
     bk_cloud_id: number | null;
     bk_host_id: number;
     bk_biz_id: number;
+    cluster_id: number;
+    port: number;
+    ip: string;
+    instance_address: string;
   }
 
   export interface IDataRow {
@@ -176,30 +164,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .action-box {
-    display: flex;
-    align-items: center;
-
-    .action-btn {
-      display: flex;
-      font-size: 14px;
-      color: #c4c6cc;
-      cursor: pointer;
-      transition: all 0.15s;
-
-      &:hover {
-        color: #979ba5;
-      }
-
-      &.disabled {
-        color: #dcdee5;
-        cursor: not-allowed;
-      }
-
-      & ~ .action-btn {
-        margin-left: 18px;
-      }
-    }
-  }
-</style>

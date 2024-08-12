@@ -12,50 +12,35 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="dbPatternsRef"
-          :cluster-id="0"
-          :model-value="data.dbPatterns"
-          @change="handleDbPatternsChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="ignoreBackupDbsRef"
-          :cluster-id="0"
-          :model-value="data.ignoreBackupDbs"
-          @change="handleIgnoreBackupDbsChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbs
-          ref="backupDbsRef"
-          :cluster-id-list="clusterIdList"
-          :db-patterns="data.dbPatterns"
-          :ignore-backup-dbs="data.ignoreBackupDbs"
-          :model-value="data.backupDbs"
-          @change="handleBackupOnChange" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="dbPatternsRef"
+        :cluster-id="0"
+        :model-value="data.dbPatterns"
+        @change="handleDbPatternsChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="ignoreBackupDbsRef"
+        :cluster-id="0"
+        :model-value="data.ignoreBackupDbs"
+        @change="handleIgnoreBackupDbsChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbs
+        ref="backupDbsRef"
+        :cluster-id-list="clusterIdList"
+        :db-patterns="data.dbPatterns"
+        :ignore-backup-dbs="data.ignoreBackupDbs"
+        :model-value="data.backupDbs"
+        @change="handleBackupOnChange" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
@@ -77,6 +62,8 @@
 </script>
 <script setup lang="ts">
   import { ref } from 'vue';
+
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
 
@@ -153,30 +140,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .action-box {
-    display: flex;
-    align-items: center;
-
-    .action-btn {
-      display: flex;
-      font-size: 14px;
-      color: #c4c6cc;
-      cursor: pointer;
-      transition: all 0.15s;
-
-      &:hover {
-        color: #979ba5;
-      }
-
-      &.disabled {
-        color: #dcdee5;
-        cursor: not-allowed;
-      }
-
-      & ~ .action-btn {
-        margin-left: 18px;
-      }
-    }
-  }
-</style>

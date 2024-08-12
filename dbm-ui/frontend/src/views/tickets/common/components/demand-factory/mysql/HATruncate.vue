@@ -12,8 +12,14 @@
 -->
 
 <template>
+  <div class="ticket-details__list">
+    <div class="ticket-details__item">
+      <span class="ticket-details__item-label">{{ t('安全模式') }}：</span>
+      <span class="ticket-details__item-value">{{ isSafeMode ? t('是') : t('否') }}</span>
+    </div>
+  </div>
   <DbOriginalTable
-    class="details-ha-truncate__table"
+    class="details-table"
     :columns="columns"
     :data="dataList" />
 </template>
@@ -23,8 +29,6 @@
 
   import type { MySQLHATruncateDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-
-  import { truncateDataTypes } from '@views/mysql/db-clear/common/const';
 
   interface Props {
     ticketDetails: TicketModel<MySQLHATruncateDetails>
@@ -44,6 +48,23 @@
     immute_domain: string,
     name: string,
   }
+
+  const isSafeMode = computed(() => !props.ticketDetails.details.infos[0].force);
+
+  const truncateDataTypes = [
+    {
+      value: 'truncate_table',
+      label: t('清除表数据_truncatetable'),
+    },
+    {
+      value: 'drop_table',
+      label: t('清除表数据和结构_droptable'),
+    },
+    {
+      value: 'drop_database',
+      label: t('删除整库_dropdatabase'),
+    },
+  ];
 
   const columns = [
     {
@@ -150,4 +171,5 @@
 
 <style lang="less" scoped>
   @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

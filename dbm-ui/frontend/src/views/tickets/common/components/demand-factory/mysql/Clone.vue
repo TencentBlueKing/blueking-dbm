@@ -13,7 +13,7 @@
 
 <template>
   <DbOriginalTable
-    class="details-clone__table"
+    class="details-table"
     :columns="renderColumns"
     :data="dataList" />
 </template>

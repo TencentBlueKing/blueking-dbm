@@ -28,6 +28,7 @@
       :model-value="modelValue"
       :placeholder="placeholder"
       :type="type"
+      v-bind="$attrs"
       @blur="handleBlur"
       @change="handleInput"
       @focus="() => (isBlur = false)"

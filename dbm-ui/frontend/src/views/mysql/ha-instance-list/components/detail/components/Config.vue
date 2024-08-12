@@ -32,7 +32,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
+  import type { TableColumnRender } from '@types/bkui-vue';
 
   interface Props {
     queryInfos: {

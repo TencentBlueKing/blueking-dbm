@@ -12,62 +12,47 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderSrcCluster
-          ref="srcClusterRef"
-          v-model="localSrcClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderDstCluster
-          ref="dstClusterRef"
-          v-model="localDstClusterData"
-          :src-cluster-data="localSrcClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="dbNameRef"
-          check-not-exist
-          :cluster-id="localSrcClusterData?.id"
-          :model-value="localDbName"
-          @change="handleDbNameChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="ignoreDbNameRef"
-          :cluster-id="localSrcClusterData?.id"
-          :model-value="localDbIgnoreName"
-          :required="false"
-          @change="handleTargerNameChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderRename
-          ref="renameDbNameRef"
-          v-model:db-ignore-name="localDbIgnoreName"
-          v-model:db-name="localDbName"
-          :cluster-data="localSrcClusterData"
-          :dst-cluster-data="localDstClusterData" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderSrcCluster
+        ref="srcClusterRef"
+        v-model="localSrcClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderDstCluster
+        ref="dstClusterRef"
+        v-model="localDstClusterData"
+        :src-cluster-data="localSrcClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="dbNameRef"
+        check-not-exist
+        :cluster-id="localSrcClusterData?.id"
+        :model-value="localDbName"
+        @change="handleDbNameChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="ignoreDbNameRef"
+        :cluster-id="localSrcClusterData?.id"
+        :model-value="localDbIgnoreName"
+        :required="false"
+        @change="handleTargerNameChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderRename
+        ref="renameDbNameRef"
+        v-model:db-ignore-name="localDbIgnoreName"
+        v-model:db-name="localDbName"
+        :cluster-data="localSrcClusterData"
+        :dst-cluster-data="localDstClusterData" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
@@ -102,6 +87,8 @@
 </script>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
+
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
 
@@ -188,30 +175,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .action-box {
-    display: flex;
-    align-items: center;
-
-    .action-btn {
-      display: flex;
-      font-size: 14px;
-      color: #c4c6cc;
-      cursor: pointer;
-      transition: all 0.15s;
-
-      &:hover {
-        color: #979ba5;
-      }
-
-      &.disabled {
-        color: #dcdee5;
-        cursor: not-allowed;
-      }
-
-      & ~ .action-btn {
-        margin-left: 18px;
-      }
-    }
-  }
-</style>

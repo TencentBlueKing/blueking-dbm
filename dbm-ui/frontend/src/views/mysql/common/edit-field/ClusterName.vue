@@ -14,89 +14,145 @@
 <template>
   <TableEditInput
     ref="editRef"
-    v-model="localValue"
-    :placeholder="t('请输入或选择集群')"
-    :rules="rules"
-    @submit="handleInputFinish" />
+    v-model="localDomain"
+    :placeholder="t('请输入')"
+    :rules="rules" />
 </template>
+<script lang="ts">
+  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import { queryClusters } from '@services/source/mysqlCluster';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { batchSplitRegex, domainRegex } from '@common/regex';
-
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
+  import { random } from '@utils';
+
   interface Props {
-    data?: string;
+    modelValue?: {
+      id: number;
+      domain: string;
+      type?: string;
+    };
   }
 
   interface Emits {
-    (e: 'inputFinish', value: string): void;
+    (e: 'idChange', value: number): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>;
+    getValue: () => Promise<{
+      cluster_id: number;
+    }>;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    data: '',
-    inputed: () => [],
-  });
-
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
-  const localValue = ref(props.data);
+  const instanceKey = `render_cluster_${random()}`;
+  clusterIdMemo[instanceKey] = {};
+
   const editRef = ref();
+
+  const localClusterId = ref(0);
+  const localDomain = ref('');
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
-      message: t('目标集群不能为空'),
-    },
-    {
-      validator: (value: string) => domainRegex.test(value),
-      message: t('目标集群输入格式有误'),
-    },
-    {
-      validator: (value: string) => queryClusters({
-        cluster_filters: value.split(batchSplitRegex).map(item => ({
-          immute_domain: item,
-        })),
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        if (data.length > 0) {
+      validator: (value: string) => {
+        if (value) {
           return true;
         }
         return false;
-      }),
+      },
+      message: t('目标集群不能为空'),
+    },
+    {
+      validator: (value: string) =>
+        queryClusters({
+          cluster_filters: [
+            {
+              immute_domain: value,
+            },
+          ],
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        }).then((data) => {
+          if (data.length > 0) {
+            localClusterId.value = data[0].id;
+            emits('idChange', data[0].id);
+            return true;
+          }
+          return false;
+        }),
       message: t('目标集群不存在'),
+    },
+    {
+      validator: () => {
+        const currentClusterSelectMap = clusterIdMemo[instanceKey];
+        const otherClusterMemoMap = { ...clusterIdMemo };
+        delete otherClusterMemoMap[instanceKey];
+
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
+
+        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
+          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
+            return false;
+          }
+        }
+        return true;
+      },
+      message: t('目标集群重复'),
     },
   ];
 
+  // 同步外部值
   watch(
-    () => props.data,
-    (data) => {
-      localValue.value = data;
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localClusterId.value = props.modelValue.id;
+        localDomain.value = props.modelValue.domain;
+      }
     },
     {
       immediate: true,
     },
   );
 
-  const handleInputFinish = (value: string) => {
-    emits('inputFinish', value);
-  };
+  // 获取关联集群
+  watch(
+    localClusterId,
+    () => {
+      if (!localClusterId.value) {
+        return;
+      }
+      clusterIdMemo[instanceKey][localClusterId.value] = true;
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  onBeforeUnmount(() => {
+    delete clusterIdMemo[instanceKey];
+  });
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => localValue.value);
+      return editRef.value.getValue().then(() => ({
+        cluster_id: localClusterId.value,
+      }));
     },
   });
 </script>
