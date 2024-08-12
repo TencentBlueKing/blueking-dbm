@@ -233,12 +233,13 @@ func (c *DbConsoleDumpComp) Run() (err error) {
 	backupfiles := []string{}
 
 	dumpOption := mysqlutil.MySQLDumpOption{
-		DumpSchema:   c.Params.DumpDetail.DumpSchema,
-		DumpData:     c.Params.DumpDetail.DumpData,
-		AddDropTable: true,
-		DumpRoutine:  true,
-		DumpTrigger:  true,
-		DumpEvent:    true,
+		DumpSchema:     c.Params.DumpDetail.DumpSchema,
+		DumpData:       c.Params.DumpDetail.DumpData,
+		AddDropTable:   true,
+		DumpRoutine:    true,
+		DumpTrigger:    true,
+		DumpEvent:      true,
+		ExtendedInsert: true,
 	}
 
 	if c.isSpider {

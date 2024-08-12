@@ -42,13 +42,14 @@ type MySQLDumpOption struct {
 	// NoData       bool
 	AddDropTable bool // 默认 false 代表添加 --skip-add-drop-table 选项
 	// NeedUseDb     bool
-	NoCreateDb    bool
-	NoCreateTb    bool
-	DumpRoutine   bool // 默认 false 代表添加不导出存储过程,True导出存储过程
-	DumpTrigger   bool // 默认 false 代表添加不导出触发器
-	DumpEvent     bool // 默认 false 导出 event
-	GtidPurgedOff bool // --set-gtid-purged=OFF
-	Quick         bool
+	NoCreateDb     bool
+	NoCreateTb     bool
+	DumpRoutine    bool // 默认 false 代表添加不导出存储过程,True导出存储过程
+	DumpTrigger    bool // 默认 false 代表添加不导出触发器
+	DumpEvent      bool // 默认 false 导出 event
+	GtidPurgedOff  bool // --set-gtid-purged=OFF
+	Quick          bool
+	ExtendedInsert bool
 }
 
 type runtimectx struct {
@@ -226,9 +227,16 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 
 	switch {
 	case m.DumpData && m.DumpSchema:
+		dumpOption += " --hex-blob --create-options "
+		if m.ExtendedInsert {
+			dumpOption += " --extended-insert "
+		}
 		// no options represents backup library table data
 	case m.DumpData:
-		dumpOption += " --no-create-info "
+		dumpOption += " --no-create-info --no-create-db --hex-blob "
+		if m.ExtendedInsert {
+			dumpOption += " --extended-insert "
+		}
 	case m.DumpSchema:
 		dumpOption += " -d "
 	}
@@ -262,7 +270,7 @@ func (m *MySQLDumper) getDumpCmd(outputFile, errFile, dumpOption string) (dumpCm
 		dumpOption += " --quick "
 	}
 	dumpCmd = fmt.Sprintf(
-		`%s -h%s -P%d  -u%s  -p%s --skip-opt --hex-blob --create-options --single-transaction --max-allowed-packet=1G -q --no-autocommit --default-character-set=%s %s`,
+		`%s -h%s -P%d  -u%s  -p%s --skip-opt --create-options --single-transaction --max-allowed-packet=1G -q --no-autocommit --default-character-set=%s %s`,
 		m.DumpCmdFile,
 		m.Ip,
 		m.Port,

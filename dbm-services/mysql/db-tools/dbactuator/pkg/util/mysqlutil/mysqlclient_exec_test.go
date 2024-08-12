@@ -57,7 +57,7 @@ func TestExcuteInitPartition(t *testing.T) {
 	}
 	sql := "--alter \"partition by RANGE (TO_DAYS(b)) (partition p20230221 values less than (to_days('2023-02-22')))\" D=db1,t=tb000 --charset=utf8 --recursion-method=NONE --alter-foreign-keys-method=auto --max-load Threads_running=80 --critical-load=Threads_running=0 --set-vars lock_wait_timeout=5 --print --pause-file=/tmp/partition_osc_pause_db1_tb000 --execute"
 	command := fmt.Sprintf("%s/%s %s", cst.DBAToolkitPath, "percona-toolkit-3.5.0", sql)
-	err := e.ExcuteCommand(command)
+	err := e.ExcuteCommand(command, false)
 	if err != nil {
 		t.Fatal("初始化分区失败！", err.Error())
 	}
@@ -69,7 +69,7 @@ func TestExcuteCommand(t *testing.T) {
 		ErrFile: "/data/install/partition/commandTest.err",
 	}
 	command := "df -h"
-	err := e.ExcuteCommand(command)
+	err := e.ExcuteCommand(command, false)
 	if err != nil {
 		t.Fatal("命令执行失败！", err.Error())
 	}
