@@ -15,6 +15,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -147,10 +148,12 @@ func (c *Component) GenerateBackupConfig() error {
 		backupConfig.LogicalBackup.Regex = ""
 		if c.Params.BackupType == "logical" {
 			if c.Params.Regex == "" {
-				ignoreSys, _ := db_table_filter.NewDbTableFilter(
-					[]string{"*"}, []string{"*"}, native.DBSys, []string{"*"})
-				ignoreSys.BuildFilter()
-				myloaderRegex := ignoreSys.MyloaderRegex(true) // doDr true has specific pattern
+				ignoreDbs := slices.DeleteFunc(native.DBSys, func(s string) bool {
+					return s == "infodba_schema"
+				})
+				tf, _ := db_table_filter.NewFilter([]string{"*"}, []string{"*"}, ignoreDbs, nil)
+				myloaderRegex := tf.TableFilterRegex()
+				//myloaderRegex := tf.MyloaderRegex(true) ToDo xiaog 确认
 				backupConfig.LogicalBackup.Regex = myloaderRegex
 			} else {
 				backupConfig.LogicalBackup.Regex = c.Params.Regex

@@ -47,14 +47,23 @@ func newFilter(
 
 	logger.Info("original dbPatterns: %s", dbPatterns)
 	logger.Info("original ignoreDBs: %s", ignoreDBs)
+
+	ignoreDBs = append(ignoreDBs, []string{
+		fmt.Sprintf("%s%%", stageDBHeader),
+		fmt.Sprintf("%%%s", rollbackTail),
+		fmt.Sprintf("%s%%", "bak_"),
+	}...)
+
 	if hashShard {
 		dbPatterns = adjustByShardId(dbPatterns, shardId)
 		ignoreDBs = adjustByShardId(ignoreDBs, shardId)
 		logger.Info("adjust dbPatterns: %s", dbPatterns)
 		logger.Info("adjust ignoreDBs: %s", ignoreDBs)
 	}
+	// 系统库要放在 shard 调整之后
+	ignoreDBs = append(ignoreDBs, systemDBs...)
 
-	_f, err := db_table_filter.NewDbTableFilter(
+	_f, err := db_table_filter.NewFilter(
 		dbPatterns,
 		tablePatterns,
 		ignoreDBs,
@@ -63,9 +72,6 @@ func newFilter(
 	if err != nil {
 		return nil, err
 	}
-
-	injectHardIgnore(_f, systemDBs, stageDBHeader, rollbackTail)
-	_f.BuildFilter()
 
 	logger.Info("db filter regex: ", _f.DbFilterRegex())
 	logger.Info("table filter regex: ", _f.TableFilterRegex())
@@ -82,11 +88,4 @@ func adjustByShardId(dbs []string, shardId int) (res []string) {
 		}
 	}
 	return res
-}
-
-func injectHardIgnore(ft *db_table_filter.DbTableFilter, systemDBs []string, stageHeader, rollbackTail string) {
-	ft.AdditionExcludePatterns = append(ft.AdditionExcludePatterns, systemDBs...)
-	ft.AdditionExcludePatterns = append(ft.AdditionExcludePatterns, fmt.Sprintf("%s%%", stageHeader))
-	ft.AdditionExcludePatterns = append(ft.AdditionExcludePatterns, fmt.Sprintf("%%%s", rollbackTail))
-	ft.AdditionExcludePatterns = append(ft.AdditionExcludePatterns, fmt.Sprintf("%s%%", "bak_")) // 硬编码 gcs 清档备份库
 }

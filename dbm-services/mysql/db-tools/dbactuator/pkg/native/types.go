@@ -32,7 +32,7 @@ const (
 var dbSysUsers = []string{"event_scheduler", "system user"}
 
 // DBSys TODO
-var DBSys = []string{"mysql", "sys", INFO_SCHEMA, PERF_SCHEMA, INFODBA_SCHEMA, TEST_DB}
+var DBSys = []string{"mysql", "sys", "db_infobase", INFO_SCHEMA, PERF_SCHEMA, INFODBA_SCHEMA, TEST_DB}
 
 // DBUserAdmin TODO
 const DBUserAdmin = "ADMIN"

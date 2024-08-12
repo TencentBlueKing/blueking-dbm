@@ -1,11 +1,11 @@
 package mysqlcmd
 
 import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/rotatebinlog"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ import (
 // InstallMysqlRotateBinlogAct TODO
 type InstallMysqlRotateBinlogAct struct {
 	*subcmd.BaseOptions
-	Service mysql.InstallMysqlRotateBinlogComp
+	Service rotatebinlog.MySQLRotateBinlogComp
 }
 
 // CommandDeployMysqlRotatebinlog TODO
@@ -73,11 +73,11 @@ func (d *InstallMysqlRotateBinlogAct) Run() (err error) {
 		},
 		{
 			FunName: "渲染 config.yaml",
-			Func:    d.Service.GenerateBinaryConfig,
+			Func:    d.Service.GenerateRuntimeConfig,
 		},
 		{
 			FunName: "添加系统crontab",
-			Func:    d.Service.InstallCrontab,
+			Func:    d.Service.AddCrond,
 		},
 		{
 			FunName: "迁移旧rotate_logbin",

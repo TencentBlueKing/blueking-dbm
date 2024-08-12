@@ -1,11 +1,11 @@
 package mysqlcmd
 
 import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/crond"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ import (
 // DeployMysqlCrondAct 部署
 type DeployMysqlCrondAct struct {
 	*subcmd.BaseOptions
-	Service mysql.DeployMySQLCrondComp
+	Service crond.MySQLCrondComp
 }
 
 // DeployMySQLCrond 命令常量
@@ -67,16 +67,12 @@ func (c *DeployMysqlCrondAct) Run() (err error) {
 			Func:    c.Service.Init,
 		},
 		{
-			FunName: "预检查",
-			Func:    c.Service.Precheck,
-		},
-		{
 			FunName: "部署二进制",
 			Func:    c.Service.DeployBinary,
 		},
 		{
 			FunName: "生成配置文件",
-			Func:    c.Service.GeneralRuntimeConfig,
+			Func:    c.Service.GenerateRuntimeConfig,
 		},
 		{
 			FunName: "生成空任务配置",

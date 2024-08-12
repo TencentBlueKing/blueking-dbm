@@ -2,6 +2,8 @@ package mysql
 
 import (
 	"bytes"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/checksum"
+	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 	"fmt"
 	"os"
 	"os/exec"
@@ -14,7 +16,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 
 	_ "github.com/go-sql-driver/mysql" // mysql 驱动
 	"github.com/jmoiron/sqlx"
@@ -47,6 +48,8 @@ type PtTableChecksumParam struct {
 	ReplicateTable            string      `json:"replicate_table"`              // 结果表, 带库前缀
 	Slaves                    []SlaveInfo `json:"slaves"`                       // slave 列表
 	SystemDbs                 []string    `json:"system_dbs"`                   // 系统表
+	StageDBHeader             string      `json:"stage_db_header"`
+	RollbackDBTail            string      `json:"rollback_db_tail"`
 }
 
 // SlaveInfo slave 描述
@@ -120,115 +123,29 @@ func (c *PtTableChecksumComp) Init(uid string) (err error) {
 	return nil
 }
 
-type _cluster struct {
-	Id           int    `yaml:"id"`
-	ImmuteDomain string `yaml:"immute_domain"`
-}
-
-type _slave struct {
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Ip       string `yaml:"ip"`
-	Port     int    `yaml:"port"`
-}
-
-type _ptFilters struct {
-	Databases            []string `yaml:"databases"`
-	Tables               []string `yaml:"tables"`
-	IgnoreDatabases      []string `yaml:"ignore_databases"`
-	IgnoreTables         []string `yaml:"ignore_tables"`
-	DatabasesRegex       string   `yaml:"databases_regex"`
-	TablesRegex          string   `yaml:"tables_regex"`
-	IgnoreDatabasesRegex string   `yaml:"ignore_databases_regex"`
-	IgnoreTablesRegex    string   `yaml:"ignore_tables_regex"`
-}
-
-type _ptChecksum struct {
-	Path      string                   `yaml:"path"`
-	Replicate string                   `yaml:"replicate"`
-	Switches  []string                 `yaml:"switches"`
-	Args      []map[string]interface{} `yaml:"args"`
-}
-
-type _logConfig struct {
-	Console    bool    `yaml:"console"`
-	LogFileDir *string `yaml:"log_file_dir"`
-	Debug      bool    `yaml:"debug"`
-	Source     bool    `yaml:"source"`
-	Json       bool    `yaml:"json"`
-}
-
-// ChecksumConfig mysql-table-checksum 配置
-type ChecksumConfig struct {
-	BkBizId    int         `yaml:"bk_biz_id"`
-	Cluster    _cluster    `yaml:"cluster"`
-	Ip         string      `yaml:"ip"`
-	Port       int         `yaml:"port"`
-	User       string      `yaml:"user"`
-	Password   string      `yaml:"password"`
-	InnerRole  string      `yaml:"inner_role"`
-	ReportPath string      `yaml:"report_path"`
-	Slaves     []_slave    `yaml:"slaves"`
-	Filter     _ptFilters  `yaml:"filter"`
-	PtChecksum _ptChecksum `yaml:"pt_checksum"`
-	Log        *_logConfig `yaml:"log"`
-	Schedule   string      `yaml:"schedule"`
-	ApiUrl     string      `yaml:"api_url"`
-}
-
 // GenerateConfigFile 生成 mysql-table-checksum 配置文件
 func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 	logDir := path.Join(cst.ChecksumInstallPath, "logs")
 
-	cfg := ChecksumConfig{
-		BkBizId: c.Params.BkBizId,
-		Cluster: _cluster{
-			Id:           c.Params.ClusterId,
-			ImmuteDomain: c.Params.ImmuteDomain,
-		},
-		Ip:         c.Params.MasterIp,
-		Port:       c.Params.MasterPort,
-		User:       c.GeneralParam.RuntimeAccountParam.MonitorUser,
-		Password:   c.GeneralParam.RuntimeAccountParam.MonitorPwd,
-		InnerRole:  c.Params.InnerRole,
-		ReportPath: "", // 单据不需要上报, 这里可以留空
-		Slaves:     []_slave{},
-		PtChecksum: _ptChecksum{
-			Replicate: c.Params.ReplicateTable,
-			Switches:  []string{},
-			Args: []map[string]interface{}{
-				{
-					"name":  "run-time",
-					"value": fmt.Sprintf("%dh", c.Params.RuntimeHour),
-				},
-			},
-		},
-		Log: &_logConfig{
-			Console:    false,
-			LogFileDir: &logDir,
-			Debug:      false,
-			Source:     true,
-			Json:       false,
-		},
-		Schedule: "",
-		ApiUrl:   "http://127.0.0.1:9999",
-	}
+	cfg := checksum.NewRuntimeConfig(
+		c.Params.BkBizId, c.Params.ClusterId, c.Params.MasterPort,
+		c.Params.InnerRole, "", c.Params.ImmuteDomain, c.Params.MasterIp,
+		c.GeneralParam.RuntimeAccountParam.MonitorUser, c.GeneralParam.RuntimeAccountParam.MonitorPwd,
+		"http://127.0.0.1:9999", logDir, c.tools)
 
-	ptTableChecksumPath, err := c.tools.Get(tools.ToolPtTableChecksum)
-	if err != nil {
-		logger.Error("get %s failed: %s", tools.ToolPtTableChecksum, err)
-	}
-	cfg.PtChecksum.Path = ptTableChecksumPath
+	var ignoreDbs []string
+	ignoreDbs = append(ignoreDbs, c.Params.SystemDbs...)
+	ignoreDbs = append(ignoreDbs, []string{
+		fmt.Sprintf(`%s%%`, c.Params.StageDBHeader),
+		`bak_%`,
+		fmt.Sprintf(`%%%s`, c.Params.RollbackDBTail),
+	}...)
 
-	filters, err := c.transformFilter()
-	if err != nil {
-		return err
-	}
-	cfg.Filter = *filters
+	cfg.SetFilter(c.Params.DbPatterns, ignoreDbs, c.Params.TablePatterns, c.Params.IgnoreTables)
 
 	for _, slave := range c.Params.Slaves {
 		cfg.Slaves = append(
-			cfg.Slaves, _slave{
+			cfg.Slaves, config.Host{
 				User:     c.Params.MasterAccessSlaveUser,
 				Password: c.Params.MasterAccessSlavePassword,
 				Ip:       slave.Ip,
@@ -323,76 +240,4 @@ func (c *PtTableChecksumComp) Example() interface{} {
 		PtTableChecksumCtx: PtTableChecksumCtx{},
 	}
 	return comp
-}
-
-func (c *PtTableChecksumComp) transformFilter() (*_ptFilters, error) {
-	// validate 在这里做完了
-	filter, err := db_table_filter.NewDbTableFilter(
-		c.Params.DbPatterns,
-		c.Params.TablePatterns,
-		c.Params.IgnoreDbs,
-		c.Params.IgnoreTables)
-	if err != nil {
-		return nil, err
-	}
-	filter.BuildFilter()
-	logger.Info("filter: %v", filter)
-	var res _ptFilters
-	err = c.transformInclude(&res, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.transformExclude(&res, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	logger.Info("system dbs: %s", c.Params.SystemDbs)
-	res.IgnoreDatabases = append(res.IgnoreDatabases, c.Params.SystemDbs...)
-	logger.Info("transformed filters: %s", res)
-	return &res, nil
-}
-
-func (c *PtTableChecksumComp) transformInclude(ptFilters *_ptFilters, filter *db_table_filter.DbTableFilter) error {
-	if db_table_filter.HasGlobPattern(c.Params.DbPatterns) {
-		ptFilters.DatabasesRegex = db_table_filter.ReplaceGlob(c.Params.DbPatterns[0])
-	} else {
-		ptFilters.Databases = c.Params.DbPatterns
-	}
-
-	if db_table_filter.HasGlobPattern(c.Params.TablePatterns) {
-		ptFilters.TablesRegex = db_table_filter.ReplaceGlob(c.Params.TablePatterns[0])
-	} else {
-		ptFilters.Tables = c.Params.TablePatterns
-	}
-	return nil
-}
-
-func (c *PtTableChecksumComp) transformExclude(
-	ptFilters *_ptFilters,
-	filter *db_table_filter.DbTableFilter,
-) (err error) {
-	if db_table_filter.HasGlobPattern(c.Params.IgnoreTables) && c.Params.IgnoreTables[0] == "*" {
-		if db_table_filter.HasGlobPattern(c.Params.IgnoreDbs) {
-			ptFilters.IgnoreDatabasesRegex = db_table_filter.ReplaceGlob(c.Params.IgnoreDbs[0])
-		} else {
-			ptFilters.IgnoreDatabases = c.Params.IgnoreDbs
-		}
-		return nil
-	}
-
-	res, err := filter.GetExcludeTables(
-		c.Params.MasterIp,
-		c.Params.MasterPort,
-		c.GeneralParam.RuntimeAccountParam.MonitorUser,
-		c.GeneralParam.RuntimeAccountParam.MonitorPwd,
-	)
-	for k, v := range res {
-		for _, tb := range v {
-			ptFilters.IgnoreTables = append(ptFilters.IgnoreTables, fmt.Sprintf("%s.%s", k, tb))
-		}
-	}
-
-	return err
 }

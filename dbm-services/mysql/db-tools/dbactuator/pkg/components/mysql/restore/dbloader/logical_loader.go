@@ -3,6 +3,7 @@ package dbloader
 import (
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -171,16 +172,24 @@ func (l *LogicalLoader) buildFilter() error {
 		l.Tables = []string{"*"}
 	}
 	// build regex
-	if filter, err := db_table_filter.NewDbTableFilter(
+	ignoreDbs := l.ExcludeDatabases
+	if l.doDr {
+		ignoreDbs = slices.DeleteFunc(native.DBSys, func(s string) bool {
+			return s == "infodba_schema"
+		})
+	}
+
+	if filter, err := db_table_filter.NewFilter(
 		l.Databases,
 		l.Tables,
-		l.ExcludeDatabases,
+		// l.ExcludeDatabases, ToDo xiaog 确认
+		ignoreDbs,
 		l.ExcludeTables,
 	); err != nil {
 		return err
 	} else {
-		filter.BuildFilter()
-		l.myloaderRegex = filter.MyloaderRegex(l.doDr)
+		//l.myloaderRegex = filter.MyloaderRegex(l.doDr) ToDo xiaog 确认
+		l.myloaderRegex = filter.TableFilterRegex()
 	}
 	return nil
 }

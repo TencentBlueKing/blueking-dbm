@@ -121,6 +121,13 @@ func (c *PreDropStageOnRemoteComponent) instanceGetTarget(port int) error {
 		return err
 	}
 	logger.Info("get instance %d db-tables success: %v", port, target)
+
+	if target == nil || len(target) == 0 {
+		err = fmt.Errorf("got empty db-tables target")
+		logger.Error("get db-tables failed: %s", err.Error())
+		return err
+	}
+
 	c.dbTablesMap = target
 	return nil
 }

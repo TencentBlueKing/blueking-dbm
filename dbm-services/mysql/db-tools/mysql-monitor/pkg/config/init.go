@@ -11,7 +11,7 @@ import (
 )
 
 var HeartBeatName = "mysql_monitor_heart_beat"
-var MonitorConfig *monitorConfig
+var MonitorConfig *Config
 var ItemsConfig []*MonitorItem
 var HardCodeSchedule = "@every 10s"
 
@@ -35,7 +35,7 @@ func InitConfig(configPath string) error {
 		return err
 	}
 
-	MonitorConfig = &monitorConfig{}
+	MonitorConfig = &Config{}
 	err = yaml.UnmarshalStrict(content, MonitorConfig)
 	if err != nil {
 		slog.Error("init config", slog.String("error", err.Error()))

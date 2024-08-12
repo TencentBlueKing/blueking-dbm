@@ -1,11 +1,11 @@
 package mysqlcmd
 
 import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/dbbackup"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ import (
 // InstallNewDbBackupAct TODO
 type InstallNewDbBackupAct struct {
 	*subcmd.BaseOptions
-	Service mysql.InstallNewDbBackupComp
+	Service dbbackup.NewDbBackupComp
 }
 
 // NewInstallNewDbBackupCommand godoc
@@ -76,15 +76,15 @@ func (d *InstallNewDbBackupAct) Run() (err error) {
 		},
 		{
 			FunName: "备份原备份程序",
-			Func:    d.Service.BackupBackupIfExist,
+			Func:    d.Service.StageLegacyBackup,
 		},
 		{
 			FunName: "解压备份程序压缩包",
-			Func:    d.Service.DecompressPkg,
+			Func:    d.Service.DeployBinary,
 		},
 		{
 			FunName: "生成配置",
-			Func:    d.Service.GenerateDbbackupConfig,
+			Func:    d.Service.GenerateRuntimeConfig,
 		},
 		{
 			FunName: "更改安装路径所属用户组",

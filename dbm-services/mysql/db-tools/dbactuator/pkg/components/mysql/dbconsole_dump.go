@@ -141,13 +141,10 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 		tbls = []string{"*"}
 	}
 	if len(c.Params.DumpDetail.TablesIgnore) <= 0 && !(len(tbls) == 1 && tbls[0] == "*") {
-		dbTablefiler, err = db_table_filter.NewDbTableFilter(c.Params.DumpDetail.Databases, tbls,
-			[]string{""},
-			[]string{""})
+		dbTablefiler, err = db_table_filter.NewFilter(c.Params.DumpDetail.Databases, tbls, nil, nil)
 		if err != nil {
 			return err
 		}
-		dbTablefiler.BuildFilter()
 
 		c.realTables, err = dbTablefiler.GetTablesWithoutDbName(host, port, user, pwd)
 		if err != nil {
@@ -155,13 +152,13 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 		}
 	} else if len(c.Params.DumpDetail.TablesIgnore) > 0 {
 		ignoreDbs := c.Params.DumpDetail.Databases
-		dbTablefiler, err = db_table_filter.NewDbTableFilter(c.Params.DumpDetail.Databases, tbls, ignoreDbs,
-			c.Params.DumpDetail.TablesIgnore)
+		dbTablefiler, err = db_table_filter.NewFilter(
+			c.Params.DumpDetail.Databases, tbls,
+			ignoreDbs, c.Params.DumpDetail.TablesIgnore,
+		)
 		if err != nil {
 			return err
 		}
-
-		dbTablefiler.BuildFilter()
 
 		c.realTables, err = dbTablefiler.GetTablesWithoutDbName(host, port, user, pwd)
 		if err != nil {

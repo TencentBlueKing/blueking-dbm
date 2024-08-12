@@ -1,11 +1,11 @@
 package mysqlcmd
 
 import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/monitor"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ import (
 // InstallMonitorAct 安装 mysql monitor
 type InstallMonitorAct struct {
 	*subcmd.BaseOptions
-	Service mysql.InstallMySQLMonitorComp
+	Service monitor.MySQLMonitorComp
 }
 
 // InstallMySQLMonitor 安装 mysql monitor
@@ -66,17 +66,14 @@ func (c *InstallMonitorAct) Run() (err error) {
 			FunName: "初始化",
 			Func:    c.Service.Init,
 		},
-		{
-			FunName: "执行前检查",
-			Func:    c.Service.Precheck,
-		},
+
 		{
 			FunName: "部署二进制程序",
 			Func:    c.Service.DeployBinary,
 		},
 		{
 			FunName: "生成二进制程序配置",
-			Func:    c.Service.GenerateBinaryConfig,
+			Func:    c.Service.GenerateRuntimeConfig,
 		},
 		{
 			FunName: "生成监控项配置",
@@ -84,7 +81,7 @@ func (c *InstallMonitorAct) Run() (err error) {
 		},
 		{
 			FunName: "生成exporter配置文件",
-			Func:    c.Service.CreateExporterCnf,
+			Func:    c.Service.GenerateExporterConfig,
 		},
 		{
 			FunName: "注册crond任务",

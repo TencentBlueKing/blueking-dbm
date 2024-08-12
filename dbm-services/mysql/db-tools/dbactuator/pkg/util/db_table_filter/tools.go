@@ -1,39 +1,19 @@
 package db_table_filter
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/dlclark/regexp2"
+	_ "github.com/go-sql-driver/mysql" // mysql 驱动
+
+	"github.com/jmoiron/sqlx"
 )
 
-func containGlob(p string) bool {
+func ContainGlob(p string) bool {
 	return strings.Contains(p, "*") ||
 		strings.Contains(p, "?") ||
 		strings.Contains(p, "%")
-}
-
-func cleanIt(s []string) []string {
-	var r []string
-	for _, e := range s {
-		te := strings.TrimSpace(e)
-		if len(te) > 0 {
-			r = append(r, strings.TrimSpace(e))
-		}
-	}
-	return r
-}
-
-// ReplaceGlob 通配符替换为正则
-// todo . -> \. ?
-func ReplaceGlob(p string) string {
-	return strings.Replace(
-		strings.Replace(
-			strings.Replace(p, "*", ".*", -1),
-			"%", ".*", -1,
-		),
-		"?", ".", -1,
-	)
 }
 
 // HasGlobPattern 是否有通配符
@@ -46,42 +26,19 @@ func HasGlobPattern(patterns []string) bool {
 	return false
 }
 
-func buildIncludeRegexp(parts []string) string {
-	return buildRegexp(parts, `(?=(?:(%s)))`)
-}
-
-func buildExcludeRegexp(parts []string) string {
-	return buildRegexp(parts, `(?!(?:(%s)))`)
-}
-
-func buildRegexp(parts []string, template string) string {
-	var res string
-
-	if len(parts) > 0 {
-		res += fmt.Sprintf(template, strings.Join(parts, "|"))
+func makeConn(ip string, port int, user string, password string) (*sqlx.DB, *sqlx.Conn, error) {
+	dbh, err := sqlx.Connect(
+		"mysql",
+		fmt.Sprintf(`%s:%s@tcp(%s:%d)/`, user, password, ip, port),
+	)
+	if err != nil {
+		return nil, nil, err
 	}
-	return res
-}
 
-func globCheck(patterns []string) error {
-	r1 := regexp2.MustCompile(`^[%?]+$`, regexp2.None)
-	r2 := regexp2.MustCompile(`^\*+$`, regexp2.None)
-	for _, p := range patterns {
-		if containGlob(p) {
-			if len(patterns) > 1 {
-				return fmt.Errorf("%s: multi patterns not allowed if has glob", patterns)
-			}
-
-			m1, _ := r1.MatchString(p)
-			if (strings.Contains(p, "%") || strings.Contains(p, "?")) && m1 {
-				return fmt.Errorf(`%% ? can't be used alone`)
-			}
-
-			m2, _ := r2.MatchString(p)
-			if strings.Contains(p, "*") && !m2 {
-				return fmt.Errorf("* must used alone")
-			}
-		}
+	conn, err := dbh.Connx(context.Background())
+	if err != nil {
+		return nil, nil, err
 	}
-	return nil
+
+	return dbh, conn, nil
 }
