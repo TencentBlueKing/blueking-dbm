@@ -61,7 +61,7 @@ func DoMigrateFromEmbed() error {
 			logger.Info("migrate schema success with %v", err)
 			err = db.Exec("ALTER TABLE tb_config_node ADD INDEX idx_1(namespace,conf_file,conf_name), " +
 				"ADD INDEX idx_2(level_value,conf_name);").Error
-			logger.Warn("migrate index for tb_config_node with %v", err)
+			//logger.Warn("migrate index for tb_config_node with %v", err)
 		} else {
 			return errors.WithMessage(err, "migrate schema")
 		}

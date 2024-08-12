@@ -50,10 +50,13 @@ func BeforeDump(cnf *config.BackupConfig) error {
 		logger.Log.Warn("failed to delete old backup, err:", err)
 	}
 
-	if err := CheckAndCleanDiskSpace(cnfPublic, dbh); err != nil {
-		logger.Log.Errorf("disk space is not enough for %d, err:%s", cnfPublic.MysqlPort, err.Error())
-		return err
+	if cnf.Public.IfBackupData() {
+		if err := CheckAndCleanDiskSpace(cnfPublic, dbh); err != nil {
+			logger.Log.Errorf("disk space is not enough for %d, err:%s", cnfPublic.MysqlPort, err.Error())
+			return err
+		}
 	}
+
 	return nil
 }
 
