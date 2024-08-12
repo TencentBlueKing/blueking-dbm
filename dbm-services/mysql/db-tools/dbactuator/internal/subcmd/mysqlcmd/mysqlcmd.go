@@ -76,6 +76,12 @@ func NewMysqlCommand() *cobra.Command {
 				NewTruncateDBsInUsingCommand(),
 				NewRenameDBsInUsingCommand(),
 				NewRenamePreDropToOnRemoteCommand(),
+				//NewPushBackupClientConfigCommand(),
+				NewPushChecksumConfigCommand(),
+				NewPushMySQLMonitorConfigCommand(),
+				NewPushNewDbBackupConfigCommand(),
+				NewPushMySQLRotateBinlogConfigCommand(),
+				NewPushMySQLCrondConfigCommand(),
 			},
 		},
 		{

@@ -1,11 +1,11 @@
 package mysqlcmd
 
 import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/checksum"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ import (
 // InstallMySQLChecksumAct 安装数据校验
 type InstallMySQLChecksumAct struct {
 	*subcmd.BaseOptions
-	Service mysql.InstallMySQLChecksumComp
+	Service checksum.MySQLChecksumComp
 }
 
 // InstallMySQLChecksum 安装数据校验子命令名称
@@ -74,21 +74,13 @@ func (c *InstallMySQLChecksumAct) Run() (err error) {
 			Func:    c.Service.Init,
 		},
 		{
-			FunName: "执行前检查",
-			Func:    c.Service.Precheck,
-		},
-		{
 			FunName: "部署二进制程序",
 			Func:    c.Service.DeployBinary,
 		},
 		{
 			FunName: "生成二进制程序配置",
-			Func:    c.Service.GenerateBinaryConfig,
+			Func:    c.Service.GenerateRuntimeConfig,
 		},
-		// {
-		//	FunName: "生成 wrapper 文件",
-		//	Func:    c.Service.BuildWrapper,
-		// },
 		{
 			FunName: "注册 crond 任务",
 			Func:    c.Service.AddToCrond,

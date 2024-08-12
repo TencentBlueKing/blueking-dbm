@@ -41,11 +41,13 @@ class DbTableFilter(object):
         if not self.include_db_patterns or not self.include_table_patterns:
             raise DbTableFilterValidateException(msg=_("include patterns 不能为空"))
 
-        if not (
-            (self.exclude_db_patterns and self.exclude_table_patterns)
-            or (not self.exclude_db_patterns and not self.exclude_table_patterns)
-        ):
-            raise DbTableFilterValidateException(msg=_("exclude patterns 要么同时为空, 要么都不为空"))
+        # if not (
+        #     (self.exclude_db_patterns and self.exclude_table_patterns)
+        #     or (not self.exclude_db_patterns and not self.exclude_table_patterns)
+        # ):
+        #     raise DbTableFilterValidateException(msg=_("exclude patterns 要么同时为空, 要么都不为空"))
+        if "*" in self.exclude_db_patterns or "*" in self.exclude_table_patterns:
+            raise DbTableFilterValidateException(msg=_("exclude patterns 不能包含 *"))
 
         for patterns in [
             self.include_db_patterns,
@@ -68,10 +70,14 @@ class DbTableFilter(object):
             for ele in itertools.product(self.include_db_patterns, self.include_table_patterns)
         ]
 
-        exclude_parts = [
-            r"{}\.{}$".format(replace_glob(ele[0]), replace_glob(ele[1]))
-            for ele in itertools.product(self.exclude_db_patterns, self.exclude_table_patterns)
-        ] + self.system_table_parts
+        # 库排除
+        exclude_parts = [r"{}\.{}$".format(replace_glob(edb), replace_glob("*")) for edb in self.exclude_db_patterns]
+        # 表排除
+        exclude_parts += [
+            r"{}\.{}$".format(replace_glob("*"), replace_glob(etb)) for etb in self.exclude_table_patterns
+        ]
+
+        exclude_parts += self.system_db_parts
 
         self.table_filter_include_regex = build_include_regexp(include_parts)
         self.table_filter_exclude_regex = build_exclude_regexp(exclude_parts)

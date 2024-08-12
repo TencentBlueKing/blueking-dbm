@@ -40,6 +40,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPar
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_add import MySQLProxyClusterAddFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_cluster_switch import MySQLProxyClusterSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_proxy_upgrade import MySQLProxyLocalUpgradeFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_push_peripheral_config import MySQLPushPeripheralConfigFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_random_password import MySQLRandomizePassword
 from backend.flow.engine.bamboo.scene.mysql.mysql_rename_database_flow import MySQLRenameDatabaseFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_restore_slave_flow import MySQLRestoreSlaveFlow
@@ -665,3 +666,11 @@ class MySQLController(BaseController):
         """
         flow = TransferMySQLClusterToOtherBizFlow(root_id=self.root_id, data=self.ticket_data)
         flow.transfer_to_other_biz_flow()
+
+    def push_peripheral_config_scene(self):
+        """
+        下发周边配置
+        """
+
+        flow = MySQLPushPeripheralConfigFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.push_config()

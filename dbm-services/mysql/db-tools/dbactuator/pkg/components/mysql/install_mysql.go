@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -1186,13 +1187,30 @@ func (i *InstallMySQLComp) createSpiderTable(socket string) (err error) {
 // CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件
 // 回档也会调用 install_mysql，但可能不会 install_monitor，为了避免健康误报，这个 install_mysql 阶段也渲染 exporter cnf
 func (i *InstallMySQLComp) CreateExporterCnf() (err error) {
-	for _, inst := range i.InsPorts {
-		err = CreateMySQLExporterCnf(
-			i.Params.Host, inst,
+	for _, port := range i.InsPorts {
+		exporterConfigPath := filepath.Join(
+			"/etc",
+			fmt.Sprintf("exporter_%d.cnf", port),
+		)
+
+		err = util.CreateExporterConf(
+			exporterConfigPath,
+			i.Params.Host,
+			port,
 			i.GeneralParam.RuntimeAccountParam.MonitorUser,
 			i.GeneralParam.RuntimeAccountParam.MonitorPwd,
 		)
 		if err != nil {
+			logger.Error(err.Error())
+			return err
+		}
+
+		_, err = osutil.ExecShellCommand(
+			false,
+			fmt.Sprintf("chown mysql %s", exporterConfigPath),
+		)
+		if err != nil {
+			logger.Error(err.Error())
 			return err
 		}
 	}

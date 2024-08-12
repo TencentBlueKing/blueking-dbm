@@ -8,7 +8,7 @@
 
 package config
 
-// BackupClient the config of backupclient
+// BackupClient the config of backup_client
 type BackupClient struct {
 	// Enable 是否启用备份
 	Enable bool `ini:"Enable"`

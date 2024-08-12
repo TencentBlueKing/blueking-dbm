@@ -1,11 +1,11 @@
 package mysqlcmd
 
 import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/backup_client"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 
 	"github.com/spf13/cobra"
@@ -14,7 +14,7 @@ import (
 // InstallBackupClientAct TODO
 type InstallBackupClientAct struct {
 	*subcmd.BaseOptions
-	Service mysql.InstallBackupClientComp
+	Service backup_client.BackupClientComp
 }
 
 // CommandInstallBackupClient TODO
@@ -81,7 +81,7 @@ func (d *InstallBackupClientAct) Run() (err error) {
 		},
 		{
 			FunName: "添加 upload crontab",
-			Func:    d.Service.InstallCrontab,
+			Func:    d.Service.AddCrond,
 		},
 	}
 

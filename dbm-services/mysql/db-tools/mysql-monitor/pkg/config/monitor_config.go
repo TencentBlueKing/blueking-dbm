@@ -10,13 +10,13 @@ type ConnectAuth struct {
 	Password string `yaml:"password" validate:"required"`
 }
 
-type authCollect struct {
+type AuthCollect struct {
 	Mysql      *ConnectAuth `yaml:"mysql"` // spider, ctl 也是这一套
 	Proxy      *ConnectAuth `yaml:"proxy"`
 	ProxyAdmin *ConnectAuth `yaml:"proxy_admin"`
 }
 
-type monitorConfig struct {
+type Config struct {
 	BkBizId         int           `yaml:"bk_biz_id"`
 	Ip              string        `yaml:"ip" validate:"required,ipv4"`
 	Port            int           `yaml:"port" validate:"required,gt=1024,lte=65535"`
@@ -29,7 +29,7 @@ type monitorConfig struct {
 	Log             *LogConfig    `yaml:"log"`
 	ItemsConfigFile string        `yaml:"items_config_file" validate:"required"`
 	ApiUrl          string        `yaml:"api_url" validate:"required"`
-	Auth            authCollect   `yaml:"auth"`
+	Auth            AuthCollect   `yaml:"auth"`
 	DBASysDbs       []string      `yaml:"dba_sys_dbs" validate:"required"`
 	InteractTimeout time.Duration `yaml:"interact_timeout" validate:"required"`
 	DefaultSchedule string        `yaml:"default_schedule" validate:"required"`

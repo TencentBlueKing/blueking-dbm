@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -379,15 +379,42 @@ func (i *InstallMySQLProxyComp) initOneProxyAdminAccount(port Port) (err error) 
 // CreateExporterCnf 根据mysql部署端口生成对应的exporter配置文件
 // 回档也会调用 install_mysql，但可能不会 install_monitor，为了避免健康误报，这个 install_mysql 阶段也渲染 exporter cnf
 func (i *InstallMySQLProxyComp) CreateExporterCnf() (err error) {
-	for _, inst := range i.InsPorts {
-		err = mysql.CreateProxyExporterCnf(
-			i.Params.Host, inst,
-			i.GeneralParam.RuntimeAccountParam.MonitorUser,
-			i.GeneralParam.RuntimeAccountParam.MonitorPwd,
-		)
+	for _, port := range i.InsPorts {
+		err = i.createExporterCnfIns(port)
 		if err != nil {
+			logger.Error("create exporter cnf failed %s", err.Error())
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (i *InstallMySQLProxyComp) createExporterCnfIns(port int) (err error) {
+	exporterConfigPath := filepath.Join(
+		"/etc",
+		fmt.Sprintf("exporter_%d.cnf", port),
+	)
+
+	f, err := os.OpenFile(exporterConfigPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	proxyContent := fmt.Sprintf(
+		"%s:%d,,,%s:%d,%s,%s",
+		i.Params.Host, port,
+		i.Params.Host, native.GetProxyAdminPort(port),
+		i.GeneralParam.RuntimeAccountParam.ProxyAdminUser, i.GeneralParam.RuntimeAccountParam.ProxyAdminPwd,
+	)
+	_, err = f.WriteString(proxyContent)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
 	}
 
 	return nil

@@ -92,7 +92,7 @@ func (f *TableFilter) BuildArgsTableFilterForMydumper() (args []string, err erro
 		tbList := strings.Split(tables, ",")
 		dbListExclude := strings.Split(excludeDatabases, ",")
 		tbListExclude := strings.Split(excludeTables, ",")
-		filter, err := db_table_filter.BuildMydumperRegex(dbList, tbList, dbListExclude, tbListExclude)
+		filter, err := db_table_filter.NewFilter(dbList, tbList, dbListExclude, tbListExclude)
 		if err != nil {
 			return nil, err
 		}

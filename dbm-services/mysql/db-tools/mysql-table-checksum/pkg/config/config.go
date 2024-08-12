@@ -2,10 +2,12 @@
 package config
 
 import (
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -13,14 +15,14 @@ import (
 // ChecksumConfig 校验配置
 var ChecksumConfig *Config
 
-type host struct {
+type Host struct {
 	Ip       string `yaml:"ip"`
 	Port     int    `yaml:"port"`
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 }
 
-type filter struct {
+type Filter struct {
 	Databases            []string `yaml:"databases"`
 	Tables               []string `yaml:"tables"`
 	IgnoreDatabases      []string `yaml:"ignore_databases"`
@@ -31,11 +33,16 @@ type filter struct {
 	IgnoreTablesRegex    string   `yaml:"ignore_tables_regex"`
 }
 
-type ptChecksum struct {
+type PtChecksum struct {
 	Path      string                   `yaml:"path"`
 	Switches  []string                 `yaml:"switches"`
 	Args      []map[string]interface{} `yaml:"args"`
 	Replicate string                   `yaml:"replicate"`
+}
+
+type Cluster struct {
+	Id           int    `yaml:"id"`
+	ImmuteDomain string `yaml:"immute_domain"`
 }
 
 // InnerRoleEnum 枚举
@@ -52,17 +59,14 @@ const (
 
 // Config 配置结构
 type Config struct {
-	BkBizId int `yaml:"bk_biz_id"`
-	Cluster struct {
-		Id           int    `yaml:"id"`
-		ImmuteDomain string `yaml:"immute_domain"`
-	} `yaml:"cluster"`
-	host       `yaml:",inline"`
+	BkBizId    int `yaml:"bk_biz_id"`
+	Cluster    `yaml:"cluster"`
+	Host       `yaml:",inline"`
 	InnerRole  InnerRoleEnum `yaml:"inner_role"`
 	ReportPath string        `yaml:"report_path"`
-	Slaves     []host        `yaml:"slaves"`
-	Filter     filter        `yaml:"filter"`
-	PtChecksum ptChecksum    `yaml:"pt_checksum"`
+	Slaves     []Host        `yaml:"slaves"`
+	Filter     Filter        `yaml:"filter"`
+	PtChecksum PtChecksum    `yaml:"pt_checksum"`
 	Log        *LogConfig    `yaml:"log"`
 	Schedule   string        `yaml:"schedule"`
 	ApiUrl     string        `yaml:"api_url"`
@@ -93,4 +97,58 @@ func InitConfig(configPath string) error {
 	}
 
 	return nil
+}
+
+func (c *Config) SetFilter(dbPatterns, ignoreDbPatterns, tablePatterns, ignoreTablesPatterns []string) {
+	var p1, p2, p3, p4 []string
+	for _, p := range dbPatterns {
+		if db_table_filter.ContainGlob(p) {
+			p1 = append(p1, p)
+		} else {
+			c.Filter.Databases = append(c.Filter.Databases, p)
+		}
+	}
+	for _, p := range ignoreDbPatterns {
+		if db_table_filter.ContainGlob(p) {
+			p2 = append(p2, p)
+		} else {
+			c.Filter.IgnoreDatabases = append(c.Filter.IgnoreDatabases, p)
+		}
+	}
+	for _, p := range tablePatterns {
+		if db_table_filter.ContainGlob(p) {
+			p3 = append(p3, p)
+		} else {
+			c.Filter.Tables = append(c.Filter.Tables, p)
+		}
+	}
+	for _, p := range ignoreTablesPatterns {
+		if db_table_filter.ContainGlob(p) {
+			p4 = append(p4, p)
+		} else {
+			c.Filter.IgnoreTables = append(c.Filter.IgnoreTables, p)
+		}
+	}
+
+	if len(p1) > 0 {
+		c.Filter.DatabasesRegex = buildRegex(p1)
+	}
+	if len(p2) > 0 {
+		c.Filter.IgnoreDatabasesRegex = buildRegex(p2)
+	}
+	if len(p3) > 0 {
+		c.Filter.TablesRegex = buildRegex(p3)
+	}
+	if len(p4) > 0 {
+		c.Filter.IgnoreTablesRegex = buildRegex(p4)
+	}
+}
+
+func buildRegex(ps []string) string {
+	if len(ps) <= 0 {
+		return ""
+	}
+
+	res := strings.Join(db_table_filter.ReplaceGlobs(ps), "|")
+	return res
 }
