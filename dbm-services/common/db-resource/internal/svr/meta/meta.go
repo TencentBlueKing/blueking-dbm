@@ -1,3 +1,4 @@
+// Package meta TODO
 /*
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -7,165 +8,96 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
-// Package meta TODO
 package meta
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"time"
 
-	"dbm-services/common/db-resource/internal/config"
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-const (
-	// DBMCityUrl 查询逻辑城市映射
-	DBMCityUrl = "/apis/proxypass/dbmeta/bk_city_name/"
-	// DBMEnviron 查询DBM环境变量
-	DBMEnviron = "/apis/conf/system_settings/environ/"
-)
-
-// GetIdcCityByLogicCityParam TODO
-type GetIdcCityByLogicCityParam struct {
-	LogicCityName string `json:"logic_city_name"`
+// MeasureRange TODO
+type MeasureRange struct {
+	Min int `json:"min"`
+	Max int `json:"max"`
 }
 
-// IdcCitysResp idc citys respone
-type IdcCitysResp struct {
-	Code      int      `json:"code"`
-	Message   string   `json:"message"`
-	Data      []string `json:"data"`
-	RequestId string   `json:"request_id"`
+// Iegal determine whether the parameter is legal
+func (m MeasureRange) Iegal() bool {
+	if m.IsNotEmpty() {
+		return m.Max >= m.Min
+	}
+	return true
 }
 
-// DbmEnvResp dbm env respone
-type DbmEnvResp struct {
-	Data      DbmEnvData `json:"data"`
-	Code      int        `json:"code"`
-	Message   string     `json:"message"`
-	RequestId string     `json:"request_id"`
+// MatchTotalStorageSize match total disk capacity
+func (m *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
+	m.MatchRange(db, "total_storage_cap")
 }
 
-// DbmEnvData TODO
-type DbmEnvData struct {
-	BK_DOMAIN         string `json:"BK_DOMAIN"`
-	CC_IDLE_MODULE_ID int    `json:"CC_IDLE_MODULE_ID"`
-	CC_MANAGE_TOPO    struct {
-		SetId            int `json:"set_id"`
-		DirtyModuleId    int `json:"dirty_module_id"`
-		ResourceModuleId int `json:"resource_module_id"`
-	} `json:"CC_MANAGE_TOPO"`
+// MatchMem match memory size range
+func (m *MeasureRange) MatchMem(db *gorm.DB) {
+	m.MatchRange(db, "dram_cap")
 }
 
-// GetDbmEnv get dbm env
-func GetDbmEnv() (data DbmEnvData, err error) {
-	u, err := getRequestUrl(DBMEnviron)
-	if err != nil {
-		return DbmEnvData{}, err
-	}
-	logger.Info("request url %s", u)
-	req, err := http.NewRequest(http.MethodGet, u, nil)
-	if err != nil {
-		return DbmEnvData{}, err
-	}
-	addCookie(req)
-	var content []byte
-	resp, err := http.DefaultClient.Do(req)
-	if resp.Body != nil {
-		content, err = io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Error("read respone body failed %s", err.Error())
-			return data, err
-		}
-	}
-	if err != nil {
-		return DbmEnvData{}, fmt.Errorf("respone body %s,err:%v", string(content), err)
-	}
-	defer resp.Body.Close()
-	var rpdata DbmEnvResp
-	if err = json.Unmarshal(content, &rpdata); err != nil {
-		return DbmEnvData{}, err
-	}
-	if rpdata.Code != 0 {
-		return DbmEnvData{}, errors.New(rpdata.Message)
-	}
-	logger.Info("get dbm env respone body %s", string(content))
-	return rpdata.Data, nil
+// MatchCpu match cpu core number range
+func (m *MeasureRange) MatchCpu(db *gorm.DB) {
+	m.MatchRange(db, "cpu_num")
 }
 
-func addCookie(request *http.Request) {
-	request.AddCookie(&http.Cookie{Name: "bk_app_code", Path: "/", Value: config.AppConfig.BkSecretConfig.BkAppCode,
-		MaxAge: 86400})
-	request.AddCookie(&http.Cookie{Name: "bk_app_secret", Path: "/", Value: config.AppConfig.BkSecretConfig.BKAppSecret,
-		MaxAge: 86400})
+// MatchRange universal range matching
+func (m *MeasureRange) MatchRange(db *gorm.DB, col string) {
+	switch {
+	case m.Min > 0 && m.Max > 0:
+		db.Where(col+" >= ? and "+col+" <= ?", m.Min, m.Max)
+	case m.Max > 0 && m.Min <= 0:
+		db.Where(col+" <= ?", m.Max)
+	case m.Max <= 0 && m.Min > 0:
+		db.Where(col+" >= ?", m.Min)
+	}
 }
 
-func getRequestUrl(apiaddr string) (string, error) {
-	base := config.AppConfig.DbMeta
-	if cmutil.IsEmpty(config.AppConfig.DbMeta) {
-		base = "http://bk-dbm"
-	}
-	return url.JoinPath(base, apiaddr)
+// MatchCpuBuilder cpu builder
+func (m *MeasureRange) MatchCpuBuilder() *MeasureRangeBuilder {
+	return &MeasureRangeBuilder{Col: "cpu_num", MeasureRange: m}
 }
 
-// GetIdcCityByLogicCity 根据逻辑城市获取实际对应城市列表
-func GetIdcCityByLogicCity(logicCity string) (idcCitys []string, err error) {
-	var content []byte
-	u, err := getRequestUrl(DBMCityUrl)
-	if err != nil {
-		return nil, err
-	}
-	p := GetIdcCityByLogicCityParam{
-		LogicCityName: logicCity,
-	}
-	client := &http.Client{} // 客户端,被Get,Head以及Post使用
-	body, err := json.Marshal(p)
-	if err != nil {
-		logger.Error("marshal GetIdcCityByLogicCityParam body failed %s ", err.Error())
-		return nil, err
-	}
-	request, err := http.NewRequest(http.MethodPost, u, bytes.NewBuffer(body))
-	if err != nil {
-		return nil, err
-	}
-	request.Header.Add("content-type", "application/json;charset=utf-8")
-	addCookie(request)
+// MatchMemBuilder mem builder
+func (m *MeasureRange) MatchMemBuilder() *MeasureRangeBuilder {
+	return &MeasureRangeBuilder{Col: "dram_cap", MeasureRange: m}
+}
 
-	f := func() (content []byte, err error) {
-		resp, err := client.Do(request)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		content, err = io.ReadAll(resp.Body)
-		if err != nil {
-			logger.Error("read respone body failed %s", err.Error())
-			return nil, err
-		}
-		return
-	}
+// MeasureRangeBuilder build range sql
+type MeasureRangeBuilder struct {
+	Col string
+	*MeasureRange
+}
 
-	for i := 0; i <= 3; i++ {
-		content, err = f()
-		if err == nil {
-			break
-		}
-		logger.Error("read respone body failed %s", err.Error())
-		time.Sleep(1 * time.Second)
+// Build build orm query sql
+// nolint
+func (m *MeasureRangeBuilder) Build(builder clause.Builder) {
+	switch {
+	case m.Min > 0 && m.Max > 0:
+		builder.WriteQuoted(m.Col)
+		builder.WriteString(fmt.Sprintf(" >= %d AND ", m.Min))
+		builder.WriteQuoted(m.Col)
+		builder.WriteString(fmt.Sprintf(" <= %d ", m.Max))
+	case m.Max > 0 && m.Min <= 0:
+		builder.WriteQuoted(m.Col)
+		builder.WriteString(fmt.Sprintf(" <= %d ", m.Max))
+	case m.Max <= 0 && m.Min > 0:
+		builder.WriteQuoted(m.Col)
+		builder.WriteString(fmt.Sprintf(" >= %d ", m.Min))
 	}
+}
 
-	logger.Info("respone %v", string(content))
-	var d IdcCitysResp
-	if err = json.Unmarshal(content, &d); err != nil {
-		return nil, err
-	}
-	return d.Data, nil
+// IsNotEmpty is not empty
+func (m MeasureRange) IsNotEmpty() bool {
+	return m.Max > 0 && m.Min > 0
+}
+
+// IsEmpty is empty
+func (m MeasureRange) IsEmpty() bool {
+	return m.Min == 0 && m.Max == 0
 }

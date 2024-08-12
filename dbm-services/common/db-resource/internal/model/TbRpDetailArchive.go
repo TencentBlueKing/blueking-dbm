@@ -25,8 +25,8 @@ type TbRpDetailArchive struct {
 	ID              int                      `gorm:"primary_key;auto_increment;not_null" json:"-"`
 	BkCloudID       int                      `gorm:"column:bk_cloud_id;type:int(11);not null;comment:'云区域 ID'" json:"bk_cloud_id"`
 	BkBizId         int                      `gorm:"column:bk_biz_id;type:int(11);not null;comment:'机器当前所属业务'" json:"bk_biz_id"`
-	DedicatedBizs   json.RawMessage          `gorm:"column:dedicated_bizs;type:json;comment:'专属业务,可属于多个'" json:"dedicated_bizs"`
-	RsTypes         json.RawMessage          `gorm:"column:rs_types;type:json;comment:'资源类型标签'" json:"rs_types"`
+	DedicatedBiz    int                      `gorm:"column:dedicated_biz;type:int(11);default:0;comment:专属业务" json:"dedicated_biz"`
+	RsType          string                   `gorm:"column:rs_type;type:varchar(64);default:'PUBLIC';comment:资源专用组件类型" json:"rs_type"`
 	Bizs            map[string]string        `gorm:"-"`
 	BkHostID        int                      `gorm:"column:bk_host_id;type:int(11);not null;comment:'bk主机ID'" json:"bk_host_id"`
 	IP              string                   `gorm:"column:ip;type:varchar(20);not null" json:"ip"` //  svr ip

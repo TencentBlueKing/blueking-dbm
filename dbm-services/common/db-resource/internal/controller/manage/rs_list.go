@@ -19,8 +19,8 @@ import (
 	"gorm.io/gorm"
 
 	"dbm-services/common/db-resource/internal/model"
-	"dbm-services/common/db-resource/internal/svr/apply"
 	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/dbmapi"
 	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
@@ -30,21 +30,24 @@ import (
 // MachineResourceGetterInputParam TODO
 type MachineResourceGetterInputParam struct {
 	// 专用业务Ids
-	ForBizs      []int              `json:"for_bizs"`
-	City         []string           `json:"city"`
-	SubZones     []string           `json:"subzones"`
-	DeviceClass  []string           `json:"device_class"`
-	Labels       map[string]string  `json:"labels"`
-	Hosts        []string           `json:"hosts"`
-	BkCloudIds   []int              `json:"bk_cloud_ids"`
-	RsTypes      []string           `json:"resource_types"`
-	MountPoint   string             `json:"mount_point"`
-	Cpu          apply.MeasureRange `json:"cpu"`
-	Mem          apply.MeasureRange `json:"mem"`
-	Disk         apply.MeasureRange `json:"disk"`
-	DiskType     string             `json:"disk_type"`
-	OsType       string             `json:"os_type"`
-	StorageSpecs []apply.DiskSpec   `json:"storage_spec"`
+	ForBiz       int               `json:"for_biz"`
+	City         []string          `json:"city"`
+	SubZoneIds   []string          `json:"subzone_ids"`
+	DeviceClass  []string          `json:"device_class"`
+	Labels       map[string]string `json:"labels"`
+	Hosts        []string          `json:"hosts"`
+	BkCloudIds   []int             `json:"bk_cloud_ids"`
+	RsType       string            `json:"resource_type"`
+	MountPoint   string            `json:"mount_point"`
+	Cpu          meta.MeasureRange `json:"cpu"`
+	Mem          meta.MeasureRange `json:"mem"`
+	Disk         meta.MeasureRange `json:"disk"`
+	DiskType     string            `json:"disk_type"`
+	OsType       string            `json:"os_type"`
+	StorageSpecs []meta.DiskSpec   `json:"storage_spec"`
+	// 适用于用户没选业务和db类型的情况
+	SetBizEmpty    bool `json:"set_empty_biz"`
+	SetRsTypeEmpty bool `json:"set_empty_resource_type"`
 	// true,false,""
 	GseAgentAlive string `json:"gse_agent_alive"`
 	Limit         int    `json:"limit"`
@@ -129,7 +132,7 @@ func (c *MachineResourceGetterInputParam) matchStorageSpecs(db *gorm.DB) {
 
 func (c *MachineResourceGetterInputParam) getRealCitys() (realCistys []string, err error) {
 	for _, logicCity := range c.City {
-		rcitys, err := meta.GetIdcCityByLogicCity(logicCity)
+		rcitys, err := dbmapi.GetIdcCityByLogicCity(logicCity)
 		if err != nil {
 			logger.Error("from %s get real citys failed %s", logicCity, err.Error())
 			return nil, err
@@ -172,13 +175,11 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 	if len(c.BkCloudIds) > 0 {
 		db.Where("bk_cloud_id in (?) ", c.BkCloudIds)
 	}
-	if len(c.RsTypes) > 0 {
-		// 如果参数["all"],表示选择没有任何资源类型标签的资源
-		if c.RsTypes[0] == "all" {
-			db.Where("JSON_LENGTH(rs_types) <= 0")
-		} else {
-			db.Where("(?)", model.JSONQuery("rs_types").JointOrContains(c.RsTypes))
-		}
+	if !c.SetRsTypeEmpty {
+		db.Where("rs_type = ? ", c.RsType)
+	}
+	if !c.SetBizEmpty {
+		db.Where("dedicated_biz = ?", c.ForBiz)
 	}
 	c.matchSpec(db)
 	c.matchStorageSpecs(db)
@@ -189,18 +190,10 @@ func (c *MachineResourceGetterInputParam) queryBs(db *gorm.DB) (err error) {
 		}
 		db.Where(" city in (?) ", realCitys)
 	}
-	if len(c.SubZones) > 0 {
-		db.Where(" sub_zone in (?) ", c.SubZones)
+	if len(c.SubZoneIds) > 0 {
+		db.Where(" sub_zone_id in (?) ", c.SubZoneIds)
 	}
 
-	if len(c.ForBizs) > 0 {
-		// 如果参数[0],表示选择没有任何业务标签的资源
-		if c.ForBizs[0] == 0 {
-			db.Where("JSON_LENGTH(dedicated_bizs) <= 0")
-		} else {
-			db.Where("(?)", model.JSONQuery("dedicated_bizs").JointOrContains(cmutil.IntSliceToStrSlice(c.ForBizs)))
-		}
-	}
 	if cmutil.IsNotEmpty(c.OsType) {
 		db.Where("os_type = ?", c.OsType)
 	}

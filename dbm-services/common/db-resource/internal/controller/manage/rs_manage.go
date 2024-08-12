@@ -23,6 +23,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 
 	rf "github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 )
 
 // MachineResourceHandler 主机处理handler
@@ -86,8 +87,8 @@ func (c *MachineResourceHandler) Delete(r *rf.Context) {
 // BatchUpdateMachineInput 批量编辑主机信息请求参数
 type BatchUpdateMachineInput struct {
 	BkHostIds      []int                    `json:"bk_host_ids"  binding:"required,dive,gt=0" `
-	ForBizs        []int                    `json:"for_bizs"`
-	RsTypes        []string                 `json:"resource_types"`
+	ForBiz         int                      `json:"for_biz"`
+	RsType         string                   `json:"resource_type"`
 	RackId         string                   `json:"rack_id"`
 	SetBizEmpty    bool                     `json:"set_empty_biz"`
 	SetRsTypeEmpty bool                     `json:"set_empty_resource_type"`
@@ -111,31 +112,13 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 	}
 
 	// update for biz
-	if len(input.ForBizs) > 0 {
-		bizJson, err := json.Marshal(cmutil.IntSliceToStrSlice(input.ForBizs))
-		if err != nil {
-			logger.Error(fmt.Sprintf("conver biz json Failed,Error:%s", err.Error()))
-			c.SendResponse(r, err, requestId, err.Error())
-			return
-		}
-		updateMap["dedicated_bizs"] = bizJson
-	}
-	if input.SetBizEmpty {
-		updateMap["dedicated_bizs"] = EmptyArryJson
+	if input.ForBiz > 0 {
+		updateMap["dedicated_biz"] = input.ForBiz
 	}
 
 	// update resource type
-	if len(input.RsTypes) > 0 {
-		rstypes, err := json.Marshal(input.RsTypes)
-		if err != nil {
-			logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
-			c.SendResponse(r, err, requestId, err.Error())
-			return
-		}
-		updateMap["rs_types"] = rstypes
-	}
-	if input.SetRsTypeEmpty {
-		updateMap["rs_types"] = EmptyArryJson
+	if lo.IsNotEmpty(input.RsType) {
+		updateMap["rs_type"] = input.RsType
 	}
 
 	// update disk
@@ -155,7 +138,7 @@ func (c *MachineResourceHandler) BatchUpdate(r *rf.Context) {
 	}
 
 	// do update
-	err := model.DB.Self.Table(model.TbRpDetailName()).Select("dedicated_bizs", "rs_types", "storage_device", "rack_id").
+	err := model.DB.Self.Table(model.TbRpDetailName()).Select("dedicated_biz", "rs_type", "storage_device", "rack_id").
 		Where("bk_host_id in (?)", input.BkHostIds).Updates(updateMap).Error
 	if err != nil {
 		c.SendResponse(r, err, requestId, err.Error())
@@ -175,8 +158,8 @@ type MachineResourceInputParam struct {
 type MachineResource struct {
 	BkHostID      int                      `json:"bk_host_id" binding:"required"`
 	Labels        map[string]string        `json:"labels"`
-	ForBizs       []int                    `json:"for_bizs"`
-	RsTypes       []string                 `json:"resource_types"`
+	ForBiz        int                      `json:"for_biz"`
+	RsType        string                   `json:"resource_type"`
 	StorageDevice map[string]bk.DiskDetail `json:"storage_device"`
 }
 
@@ -199,23 +182,11 @@ func (c *MachineResourceHandler) Update(r *rf.Context) {
 			}
 			updateMap["lable"] = l
 		}
-		if len(v.ForBizs) > 0 {
-			bizJson, err := json.Marshal(cmutil.IntSliceToStrSlice(v.ForBizs))
-			if err != nil {
-				logger.Error(fmt.Sprintf("conver biz json Failed,Error:%s", err.Error()))
-				c.SendResponse(r, err, requestId, err.Error())
-				return
-			}
-			updateMap["dedicated_bizs"] = bizJson
+		if v.ForBiz > 0 {
+			updateMap["dedicated_biz"] = v.ForBiz
 		}
-		if len(v.RsTypes) > 0 {
-			rstypes, err := json.Marshal(v.RsTypes)
-			if err != nil {
-				logger.Error(fmt.Sprintf("conver resource types Failed,Error:%s", err.Error()))
-				c.SendResponse(r, err, requestId, err.Error())
-				return
-			}
-			updateMap["rs_types"] = rstypes
+		if lo.IsNotEmpty(v.RsType) {
+			updateMap["rs_type"] = v.RsType
 		}
 		if len(v.StorageDevice) > 0 {
 			storageJson, err := json.Marshal(v.StorageDevice)
@@ -226,7 +197,7 @@ func (c *MachineResourceHandler) Update(r *rf.Context) {
 			}
 			updateMap["storage_device"] = storageJson
 		}
-		err := tx.Model(&model.TbRpDetail{}).Table(model.TbRpDetailName()).Select("dedicated_bizs", "rs_types",
+		err := tx.Model(&model.TbRpDetail{}).Table(model.TbRpDetailName()).Select("dedicated_biz", "rs_type",
 			"label").Where("bk_host_id=?", v.BkHostID).Updates(updateMap).Error
 		if err != nil {
 			tx.Rollback()

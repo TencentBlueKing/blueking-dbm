@@ -13,7 +13,8 @@ package task
 import (
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
-	"dbm-services/common/db-resource/internal/svr/meta"
+	"dbm-services/common/db-resource/internal/svr/dbmapi"
+
 	"dbm-services/common/go-pubpkg/cc.v3"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -23,13 +24,13 @@ import (
 func InspectCheckResource() (err error) {
 	//  获取空闲机器
 	var machines []model.TbRpDetail
-	var allowCCMouduleInfo meta.DbmEnvData
+	var allowCCMouduleInfo dbmapi.DbmEnvData
 	err = model.DB.Self.Table(model.TbRpDetailName()).Find(&machines, "status = ?", model.Unused).Error
 	if err != nil {
 		logger.Error("get unused machines failed %s", err.Error())
 		return err
 	}
-	allowCCMouduleInfo, err = meta.GetDbmEnv()
+	allowCCMouduleInfo, err = dbmapi.GetDbmEnv()
 	if err != nil {
 		logger.Error("get dbm env failed %s", err.Error())
 		return err

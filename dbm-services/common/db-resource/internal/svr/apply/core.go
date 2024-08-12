@@ -146,106 +146,6 @@ func NewPicker(count int, item string) *PickerObject {
 	}
 }
 
-// PickerSameSubZone 挑选同subzone的资源
-// func (c *PickerObject) PickerSameSubZone(cross_switch bool) {
-// 	sortSubZones := c.sortSubZone(false)
-// 	if len(sortSubZones) == 0 {
-// 		return
-// 	}
-// 	for _, subzone := range sortSubZones {
-// 		logger.Info("PickerSameSubZone:PickeElements: %v", c.PickeElements[subzone])
-// 		if len(c.PickeElements[subzone]) < c.Count || len(c.PickeElements[subzone]) == 0 {
-// 			c.ProcessLogs = append(c.ProcessLogs, fmt.Sprintf("%s 符合条件的资源有%d,实际需要申请%d,不满足！！！",
-// 				subzone, len(c.PickeElements[subzone]), c.Count))
-// 			continue
-// 		}
-// 		logger.Info("dbeug %v", subzone)
-// 		logger.Info("dbeug %v", c.PickeElements[subzone])
-// 		c.SatisfiedHostIds = []int{}
-// 		c.ExistEquipmentIds = []string{}
-// 		c.ExistLinkNetdeviceIds = []string{}
-// 		for idx := range c.PickeElements[subzone] {
-// 			logger.Info("loop %d", idx)
-// 			c.pickerOne(subzone, cross_switch)
-// 			// 匹配资源完成
-// 			logger.Info(fmt.Sprintf("surplus %s,%d", subzone, len(c.PickeElements[subzone])))
-// 			logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
-// 			if c.PickerDone() {
-// 				return
-// 			}
-// 		}
-// 	}
-// }
-
-// Picker 筛选，匹配资源
-//
-//	@receiver c
-//	@param cross_campus 是否跨园区
-// func (c *PickerObject) Picker(cross_subzone bool) {
-// 	campKeys := c.sortSubZone(cross_subzone)
-// 	if len(campKeys) == 0 {
-// 		return
-// 	}
-// 	subzoneChan := make(chan subzone, len(campKeys))
-// 	for _, v := range campKeys {
-// 		subzoneChan <- v
-// 	}
-// 	for subzone := range subzoneChan {
-// 		if len(c.PickeElements[subzone]) == 0 {
-// 			delete(c.PickeElements, subzone)
-// 		}
-// 		if len(c.sortSubZone(cross_subzone)) == 0 {
-// 			logger.Info("go out here")
-// 			close(subzoneChan)
-// 			return
-// 		}
-// 		logger.Info(fmt.Sprintf("surplus %s,%d", subzone, len(c.PickeElements[subzone])))
-// 		logger.Info(fmt.Sprintf("%s,%d,%d", subzone, c.Count, len(c.SatisfiedHostIds)))
-// 		if c.pickerOne(subzone, false) {
-// 			if cross_subzone {
-// 				delete(c.PickeElements, subzone)
-// 			}
-// 		}
-// 		// 匹配资源完成
-// 		if c.PickerDone() {
-// 			close(subzoneChan)
-// 			return
-// 		}
-// 		// 非跨园区循环读取
-// 		if !cross_subzone {
-// 			subzoneChan <- subzone
-// 			continue
-// 		}
-// 		// 跨园区
-// 		if len(subzoneChan) == 0 {
-// 			close(subzoneChan)
-// 			return
-// 		}
-// 	}
-
-// }
-
-// func (c *PickerObject) pickerOne(key string, cross_switch bool) bool {
-// 	c.ExistSubZone = append(c.ExistSubZone, key)
-// 	for _, v := range c.PickeElements[key] {
-// 		if cross_switch {
-// 			if !c.CrossRackCheck(v) || !c.CrossSwitchCheck(v) {
-// 				// 如果存在交集,则删除该元素
-// 				c.deleteElement(key, v.BkHostId)
-// 				continue
-// 			}
-// 		}
-// 		c.ExistEquipmentIds = append(c.ExistEquipmentIds, v.Equipment)
-// 		c.SatisfiedHostIds = append(c.SatisfiedHostIds, v.BkHostId)
-// 		c.SelectedResources = append(c.SelectedResources, v.InsDetail)
-// 		c.ExistLinkNetdeviceIds = append(c.ExistLinkNetdeviceIds, v.LinkNetdeviceId...)
-// 		c.PickDistrbute[key]++
-// 		c.deleteElement(key, v.BkHostId)
-// 		return true
-// 	}
-// 	return len(c.PickeElements) == 0
-// }
-
 // CrossSwitchCheck 跨交换机检查
 func (c *PickerObject) CrossSwitchCheck(v InstanceObject) bool {
 	if len(v.LinkNetdeviceId) == 0 {
@@ -268,16 +168,6 @@ func (c *PickerObject) DebugDistrubuteLog() {
 		logger.Debug(fmt.Sprintf("Zone:%s,PickCount:%d", key, v))
 	}
 }
-
-// func (c *PickerObject) deleteElement(key string, bkhostId int) {
-// 	var k []InstanceObject
-// 	for _, v := range c.PickeElements[key] {
-// 		if v.BkHostId != bkhostId {
-// 			k = append(k, v)
-// 		}
-// 	}
-// 	c.PickeElements[key] = k
-// }
 
 // PreselectedSatisfiedInstance TODO
 func (c *PickerObject) PreselectedSatisfiedInstance() error {
@@ -323,29 +213,6 @@ func (pw CampusWrapper) Swap(i, j int) {
 func (pw CampusWrapper) Less(i, j int) bool {
 	return pw.by(&pw.Campus[i], &pw.Campus[j])
 }
-
-// sortSubZone 根据排序剩下有效的园区
-// func (c *PickerObject) sortSubZone(cross_subzone bool) []string {
-// 	var keys []string
-// 	var campusNice []CampusNice
-// 	for key, campusIntances := range c.PickeElements {
-// 		//	keys = append(keys, key)
-// 		if !cross_subzone || cmutil.ElementNotInArry(key, c.ExistSubZone) {
-// 			campusNice = append(campusNice, CampusNice{
-// 				Campus: key,
-// 				Count:  len(campusIntances),
-// 			})
-// 		}
-// 	}
-// 	// 按照每个园区的数量从大到小排序
-// 	sort.Sort(CampusWrapper{campusNice, func(p, q *CampusNice) bool {
-// 		return q.Count < p.Count
-// 	}})
-// 	for _, capmus := range campusNice {
-// 		keys = append(keys, capmus.Campus)
-// 	}
-// 	return keys
-// }
 
 // PickerDone TODO
 func (c *PickerObject) PickerDone() bool {

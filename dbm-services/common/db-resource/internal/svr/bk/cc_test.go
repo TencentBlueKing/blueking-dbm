@@ -61,9 +61,9 @@ func TestReserverCC(t *testing.T) {
 		})
 	}
 	param := manage.ImportMachParam{
-		ForBizs: []int{1001, 1002},
+		ForBiz:  1001,
 		BkBizId: 100443,
-		RsTypes: []string{"MySQL", "Redis"},
+		RsType:  "MySQL",
 		Hosts:   hosts,
 	}
 	importResp, err := manage.Doimport(param)

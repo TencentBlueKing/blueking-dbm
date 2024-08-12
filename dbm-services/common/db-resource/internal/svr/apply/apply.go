@@ -14,12 +14,12 @@ package apply
 import (
 	"fmt"
 	"path"
-	"strconv"
 	"strings"
 
 	"dbm-services/common/db-resource/internal/config"
 	"dbm-services/common/db-resource/internal/model"
 	"dbm-services/common/db-resource/internal/svr/bk"
+	"dbm-services/common/db-resource/internal/svr/dbmapi"
 	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/errno"
@@ -56,7 +56,7 @@ func CycleApply(param RequestInputParam) (pickers []*PickerObject, err error) {
 		if config.AppConfig.RunMode == "dev" {
 			idcCitys = []string{}
 		} else if cmutil.ElementNotInArry(v.Affinity, []string{CROSS_RACK, NONE}) || lo.IsNotEmpty(&v.LocationSpec.City) {
-			idcCitys, err = meta.GetIdcCityByLogicCity(v.LocationSpec.City)
+			idcCitys, err = dbmapi.GetIdcCityByLogicCity(v.LocationSpec.City)
 			if err != nil {
 				logger.Error("request real citys by logic city %s from bkdbm api failed:%v", v.LocationSpec.City, err)
 				return pickers, err
@@ -134,18 +134,17 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 
 	// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
 	// 没有资源类型标签的资源可以被所有其他类型使用
-	if cmutil.IsEmpty(o.RsType) {
-		db.Where("JSON_LENGTH(rs_types) <= 0")
+	if lo.IsEmpty(o.RsType) {
+		db.Where("rs_type == 'PUBLIC' ")
 	} else {
-		db.Where("? or JSON_LENGTH(rs_types) <= 0 ", model.JSONQuery("rs_types").Contains([]string{o.RsType}))
+		db.Where("rs_type in (?)", []string{"PUBLIC", o.RsType})
 	}
 	// 如果没有指定专属业务，就表示只能选用公共的资源
 	// 不能匹配打了业务标签的资源
 	if o.IntetionBkBizId <= 0 {
-		db.Where("JSON_LENGTH(dedicated_bizs) <= 0")
+		db.Where("dedicated_biz == 0")
 	} else {
-		db.Where("? or JSON_LENGTH(dedicated_bizs) <= 0", model.JSONQuery("dedicated_bizs").Contains([]string{
-			strconv.Itoa(o.IntetionBkBizId)}))
+		db.Where("dedicated_biz in (?)", []int{0, o.IntetionBkBizId})
 	}
 	o.MatchLables(db)
 	o.MatchLocationSpec(db)
@@ -191,7 +190,7 @@ func (o *SearchContext) PickInstance() (picker *PickerObject, err error) {
 	}
 	// 过滤没有挂载点的磁盘匹配需求
 	logger.Info("storage spec %v", o.StorageSpecs)
-	diskSpecs := GetEmptyDiskSpec(o.StorageSpecs)
+	diskSpecs := meta.GetEmptyDiskSpec(o.StorageSpecs)
 	if len(diskSpecs) > 0 {
 		ts := []model.TbRpDetail{}
 		for _, ins := range items {
@@ -201,7 +200,7 @@ func (o *SearchContext) PickInstance() (picker *PickerObject, err error) {
 			}
 			logger.Info("%v", ins.Storages)
 			noUseStorages := make(map[string]bk.DiskDetail)
-			smp := GetDiskSpecMountPoints(o.StorageSpecs)
+			smp := meta.GetDiskSpecMountPoints(o.StorageSpecs)
 			for mp, v := range ins.Storages {
 				if cmutil.ElementNotInArry(mp, smp) {
 					noUseStorages[mp] = v
@@ -239,7 +238,7 @@ func (o *SearchContext) MatchLables(db *gorm.DB) {
 	db.Where(" JSON_TYPE(label) = 'NULL' OR JSON_LENGTH(label) <= 1 ")
 }
 
-func matchNoMountPointStorage(spec []DiskSpec, sinc map[string]bk.DiskDetail) bool {
+func matchNoMountPointStorage(spec []meta.DiskSpec, sinc map[string]bk.DiskDetail) bool {
 	mcount := 0
 	for _, s := range spec {
 		for mp, d := range sinc {
@@ -253,7 +252,7 @@ func matchNoMountPointStorage(spec []DiskSpec, sinc map[string]bk.DiskDetail) bo
 	return mcount == len(spec)
 }
 
-func diskDetailMatch(d bk.DiskDetail, s DiskSpec) bool {
+func diskDetailMatch(d bk.DiskDetail, s meta.DiskSpec) bool {
 	logger.Info("spec %v", s)
 	logger.Info("detail %v", d)
 	if d.DiskType != s.DiskType && cmutil.IsNotEmpty(s.DiskType) {

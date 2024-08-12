@@ -13,15 +13,13 @@ package apply
 import (
 	"encoding/json"
 	"fmt"
-	"path"
 	"strconv"
 	"time"
 
 	"github.com/samber/lo"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 
 	"dbm-services/common/db-resource/internal/model"
+	"dbm-services/common/db-resource/internal/svr/meta"
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
@@ -195,10 +193,10 @@ type ObjectDetail struct {
 	Labels    map[string]string `json:"labels"`                         // 标签
 	// 通过机型规格 或者 资源规格描述来匹配资源
 	// 这两个条件是 || 关系
-	DeviceClass  []string     `json:"device_class"` // 机器类型 "IT5.8XLARGE128" "SA3.2XLARGE32"
-	Spec         Spec         `json:"spec"`         // 规格描述
-	StorageSpecs []DiskSpec   `json:"storage_spec"`
-	LocationSpec LocationSpec `json:"location_spec"` // 地域区间
+	DeviceClass  []string          `json:"device_class"` // 机器类型 "IT5.8XLARGE128" "SA3.2XLARGE32"
+	Spec         meta.Spec         `json:"spec"`         // 规格描述
+	StorageSpecs []meta.DiskSpec   `json:"storage_spec"`
+	LocationSpec meta.LocationSpec `json:"location_spec"` // 地域区间
 	// 反亲和性 目前只有一种选项,当campus是空的时候，则此值生效
 	// SAME_SUBZONE_CROSS_SWTICH: 同城同subzone跨交换机跨机架、
 	// SAME_SUBZONE: 同城同subzone
@@ -272,157 +270,4 @@ func (a *ObjectDetail) GetMessage() (message string) {
 	}
 	message += fmt.Sprintf("申请总数: %d \n\r", a.Count)
 	return message
-}
-
-// GetEmptyDiskSpec  get empty disk spec info
-func GetEmptyDiskSpec(ds []DiskSpec) (dms []DiskSpec) {
-	for _, v := range ds {
-		if v.MountPointIsEmpty() {
-			dms = append(dms, v)
-		}
-	}
-	return
-}
-
-// GetDiskSpecMountPoints get disk mount point
-func GetDiskSpecMountPoints(ds []DiskSpec) (mountPoints []string) {
-	for _, v := range ds {
-		logger.Info("disk info %v", v)
-		if v.MountPointIsEmpty() {
-			continue
-		}
-		mountPoints = append(mountPoints, path.Clean(v.MountPoint))
-	}
-	return
-}
-
-// Spec cpu memory spec param
-type Spec struct {
-	Cpu MeasureRange `json:"cpu"` // cpu range
-	Mem MeasureRange `json:"ram"`
-}
-
-// IsEmpty judge spec is empty
-func (s Spec) IsEmpty() bool {
-	return s.Cpu.IsEmpty() && s.Mem.IsEmpty()
-}
-
-// NotEmpty  judge spec is not empty
-func (s Spec) NotEmpty() bool {
-	return s.Cpu.IsNotEmpty() || s.Mem.IsNotEmpty()
-}
-
-// MeasureRange cpu spec range
-type MeasureRange struct {
-	Min int `json:"min"`
-	Max int `json:"max"`
-}
-
-// Iegal determine whether the parameter is legal
-func (m MeasureRange) Iegal() bool {
-	if m.IsNotEmpty() {
-		return m.Max >= m.Min
-	}
-	return true
-}
-
-// MatchTotalStorageSize match total disk capacity
-func (m *MeasureRange) MatchTotalStorageSize(db *gorm.DB) {
-	m.MatchRange(db, "total_storage_cap")
-}
-
-// MatchMem match memory size range
-func (m *MeasureRange) MatchMem(db *gorm.DB) {
-	m.MatchRange(db, "dram_cap")
-}
-
-// MatchCpu match cpu core number range
-func (m *MeasureRange) MatchCpu(db *gorm.DB) {
-	m.MatchRange(db, "cpu_num")
-}
-
-// MatchRange universal range matching
-func (m *MeasureRange) MatchRange(db *gorm.DB, col string) {
-	switch {
-	case m.Min > 0 && m.Max > 0:
-		db.Where(col+" >= ? and "+col+" <= ?", m.Min, m.Max)
-	case m.Max > 0 && m.Min <= 0:
-		db.Where(col+" <= ?", m.Max)
-	case m.Max <= 0 && m.Min > 0:
-		db.Where(col+" >= ?", m.Min)
-	}
-}
-
-// MatchCpuBuilder cpu builder
-func (m *MeasureRange) MatchCpuBuilder() *MeasureRangeBuilder {
-	return &MeasureRangeBuilder{Col: "cpu_num", MeasureRange: m}
-}
-
-// MatchMemBuilder mem builder
-func (m *MeasureRange) MatchMemBuilder() *MeasureRangeBuilder {
-	return &MeasureRangeBuilder{Col: "dram_cap", MeasureRange: m}
-}
-
-// MeasureRangeBuilder build range sql
-type MeasureRangeBuilder struct {
-	Col string
-	*MeasureRange
-}
-
-// Build build orm query sql
-// nolint
-func (m *MeasureRangeBuilder) Build(builder clause.Builder) {
-	switch {
-	case m.Min > 0 && m.Max > 0:
-		builder.WriteQuoted(m.Col)
-		builder.WriteString(fmt.Sprintf(" >= %d AND ", m.Min))
-		builder.WriteQuoted(m.Col)
-		builder.WriteString(fmt.Sprintf(" <= %d ", m.Max))
-	case m.Max > 0 && m.Min <= 0:
-		builder.WriteQuoted(m.Col)
-		builder.WriteString(fmt.Sprintf(" <= %d ", m.Max))
-	case m.Max <= 0 && m.Min > 0:
-		builder.WriteQuoted(m.Col)
-		builder.WriteString(fmt.Sprintf(" >= %d ", m.Min))
-	}
-}
-
-// IsNotEmpty is not empty
-func (m MeasureRange) IsNotEmpty() bool {
-	return m.Max > 0 && m.Min > 0
-}
-
-// IsEmpty is empty
-func (m MeasureRange) IsEmpty() bool {
-	return m.Min == 0 && m.Max == 0
-}
-
-// DiskSpec disk spec param
-type DiskSpec struct {
-	DiskType   string `json:"disk_type"`
-	MinSize    int    `json:"min"`
-	MaxSize    int    `json:"max"`
-	MountPoint string `json:"mount_point"`
-}
-
-// MountPointIsEmpty determine whether the disk parameter is empty
-func (d DiskSpec) MountPointIsEmpty() bool {
-	return cmutil.IsEmpty(d.MountPoint)
-}
-
-// LocationSpec location spec param
-type LocationSpec struct {
-	City             string   `json:"city" validate:"required"` // 所属城市获取地域
-	SubZoneIds       []string `json:"sub_zone_ids"`
-	IncludeOrExclude bool     `json:"include_or_exclue"`
-}
-
-// IsEmpty whether the address location parameter is blank
-func (l LocationSpec) IsEmpty() bool {
-	return cmutil.IsEmpty(l.City)
-}
-
-// SubZoneIsEmpty determine whether subzone is empty
-func (l LocationSpec) SubZoneIsEmpty() bool {
-	return l.IsEmpty() || len(l.SubZoneIds) == 0
 }
