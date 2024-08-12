@@ -55,7 +55,7 @@
           v-model="localValue"
           :placeholder="placeholder"
           :rows="20"
-          style="height: 320px; margin: 12px 0 30px;"
+          style="height: 320px; margin: 12px 0 30px"
           type="textarea"
           @input="handleInputChange" />
       </div>
@@ -123,16 +123,15 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { execCopy } from '@/utils';
-
+  import { execCopy } from '@utils';
 
   interface IInputParse {
-    domain: string,
+    domain: string;
     // backupOn: string,
-    dbPatterns: string,
-    ignoreDbs: string,
-    tablePatterns: string,
-    ignoreTables: string,
+    dbPatterns: string;
+    ignoreDbs: string;
+    tablePatterns: string;
+    ignoreTables: string;
   }
 
   interface Props {
@@ -147,7 +146,10 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const getInputTextList = (list: Array<IInputParse>) => list.map(item => `${item.domain} ${item.dbPatterns} ${item.tablePatterns} ${item.ignoreDbs} ${item.ignoreTables}`);
+  const getInputTextList = (list: Array<IInputParse>) =>
+    list.map(
+      (item) => `${item.domain} ${item.dbPatterns} ${item.tablePatterns} ${item.ignoreDbs} ${item.ignoreTables}`,
+    );
 
   const { currentBizId } = useGlobalBizs();
 
@@ -169,9 +171,8 @@
     emits('update:isShow', false);
   };
 
-
   const handleSubmit = () => {
-    const inputRecordList =  localValue.value.split('\n');
+    const inputRecordList = localValue.value.split('\n');
 
     const validList: Array<IInputParse> = [];
     const invalidList: Array<IInputParse> = [];
@@ -181,7 +182,7 @@
       if (!_.trim(recordItem)) {
         return;
       }
-      const recordList = recordItem.split(/ +/).filter(item => _.trim(item));
+      const recordList = recordItem.split(/ +/).filter((item) => _.trim(item));
 
       if (recordList.length !== 5) {
         errorList.push({
@@ -226,16 +227,19 @@
 
     isChecking.value = true;
     queryClusters({
-      cluster_filters: validList.map(item => ({
+      cluster_filters: validList.map((item) => ({
         immute_domain: item.domain,
       })),
       bk_biz_id: currentBizId,
     })
-      .then((data: Array<{master_domain: string, id: number}>) => {
-        const realDataMap = data.reduce((result, item) => ({
-          ...result,
-          [item.master_domain]: item.id,
-        }), {} as Record<string, number>);
+      .then((data: Array<{ master_domain: string; id: number }>) => {
+        const realDataMap = data.reduce(
+          (result, item) => ({
+            ...result,
+            [item.master_domain]: item.id,
+          }),
+          {} as Record<string, number>,
+        );
 
         const resultList: Array<IValue> = [];
         const clusterErrorList: Array<IInputParse> = [];
@@ -273,9 +277,7 @@
         inputInvalidStack.value = invalidList;
         inputErrorStack.value = errorList;
         inputClusterErrorStack.value = clusterErrorList;
-        if (invalidList.length < 1
-          && errorList.length < 1
-          && clusterErrorList.length < 1) {
+        if (invalidList.length < 1 && errorList.length < 1 && clusterErrorList.length < 1) {
           emits('change', resultList);
           handleClosed();
         } else {
@@ -286,10 +288,13 @@
             return arr.join(',');
           };
           localValue.value = _.filter([
-            ...invalidList.map(item => getInputTextList([item])),
-            ...errorList.map(item => getInputTextList([item])),
-            ...clusterErrorList.map(item => getInputTextList([item])),
-            ...resultList.map(item => `${item.clusterData.domain} ${renderListValue(item.dbPatterns)} ${renderListValue(item.tablePatterns)} ${renderListValue(item.ignoreDbs)} ${renderListValue(item.ignoreTables)}`),
+            ...invalidList.map((item) => getInputTextList([item])),
+            ...errorList.map((item) => getInputTextList([item])),
+            ...clusterErrorList.map((item) => getInputTextList([item])),
+            ...resultList.map(
+              (item) =>
+                `${item.clusterData.domain} ${renderListValue(item.dbPatterns)} ${renderListValue(item.tablePatterns)} ${renderListValue(item.ignoreDbs)} ${renderListValue(item.ignoreTables)}`,
+            ),
           ]).join('\n');
         }
       })
@@ -326,10 +331,9 @@
   const handleHighClusterError = () => {
     const $inputEl = inputRef.value.querySelector('textarea');
     $inputEl.focus();
-    const invalidText = [
-      ...getInputTextList(inputInvalidStack.value),
-      ...getInputTextList(inputErrorStack.value),
-    ].join('\n');
+    const invalidText = [...getInputTextList(inputInvalidStack.value), ...getInputTextList(inputErrorStack.value)].join(
+      '\n',
+    );
     const clusterErrorText = getInputTextList(inputClusterErrorStack.value).join('\n');
 
     const startIndex = invalidText.length > 0 ? invalidText.length + 1 : 0;

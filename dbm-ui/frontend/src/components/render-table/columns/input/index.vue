@@ -28,6 +28,7 @@
       :model-value="modelValue"
       :placeholder="placeholder"
       :type="type"
+      v-bind="$attrs"
       @blur="handleBlur"
       @change="handleInput"
       @focus="() => (isBlur = false)"
@@ -54,22 +55,22 @@
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
-    placeholder?: string,
-    rules?: Rules,
-    disabled?: boolean,
-    type?: string,
-    min?: number,
-    max?: number,
-    isShowBlur?: boolean,
+    placeholder?: string;
+    rules?: Rules;
+    disabled?: boolean;
+    type?: string;
+    min?: number;
+    max?: number;
+    isShowBlur?: boolean;
   }
 
   interface Emits {
-    (e: 'submit', value: string): void,
+    (e: 'submit', value: string): void;
   }
 
   interface Exposes {
-    getValue: () => Promise<string>,
-    focus: () => void,
+    getValue: () => Promise<string>;
+    focus: () => void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -93,12 +94,9 @@
 
   const isPassword = computed(() => props.type === 'password');
 
-  let oldInputText = ''
+  let oldInputText = '';
 
-  const {
-    message: errorMessage,
-    validator,
-  } = useValidtor(props.rules);
+  const { message: errorMessage, validator } = useValidtor(props.rules);
 
   watch(modelValue, (value) => {
     if (value) {
@@ -125,11 +123,10 @@
         return;
       }
       oldInputText = modelValue.value;
-      validator(modelValue.value)
-        .then(() => {
-          window.changeConfirm = true;
-          emits('submit', modelValue.value);
-        });
+      validator(modelValue.value).then(() => {
+        window.changeConfirm = true;
+        emits('submit', modelValue.value);
+      });
       return;
     }
     emits('submit', modelValue.value);
@@ -151,13 +148,12 @@
       }
       oldInputText = modelValue.value;
       event.preventDefault();
-      validator(modelValue.value)
-        .then((result) => {
-          if (result) {
-            window.changeConfirm = true;
-            emits('submit', modelValue.value);
-          }
-        });
+      validator(modelValue.value).then((result) => {
+        if (result) {
+          window.changeConfirm = true;
+          emits('submit', modelValue.value);
+        }
+      });
     }
   };
 

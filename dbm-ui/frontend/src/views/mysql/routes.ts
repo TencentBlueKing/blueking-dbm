@@ -31,27 +31,27 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   },
   {
     name: 'MySQLDBRename',
-    path: 'db-rename',
+    path: 'db-rename/:page?',
     meta: {
       navName: t('DB重命名'),
     },
-    component: () => import('@views/mysql/db-rename/index.vue'),
+    component: () => import('@views/mysql/db-rename/Index.vue'),
   },
   {
     name: 'MySQLPrivilegeCloneClient',
-    path: 'privilege-clone-client',
+    path: 'privilege-clone-client/:page?',
     meta: {
       navName: t('客户端权限克隆'),
     },
-    component: () => import('@views/mysql/privilege-clone-client/index.vue'),
+    component: () => import('@views/mysql/privilege-clone-client/Index.vue'),
   },
   {
     name: 'MySQLPrivilegeCloneInst',
-    path: 'privilege-clone-inst',
+    path: 'privilege-clone-inst/:page?',
     meta: {
       navName: t('DB实例权限克隆'),
     },
-    component: () => import('@views/mysql/privilege-clone-inst/index.vue'),
+    component: () => import('@views/mysql/privilege-clone-inst/Index.vue'),
   },
   {
     name: 'MySQLSlaveRebuild',
@@ -63,11 +63,11 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   },
   {
     name: 'MySQLSlaveAdd',
-    path: 'slave-add',
+    path: 'slave-add/:page?',
     meta: {
       navName: t('添加从库'),
     },
-    component: () => import('@views/mysql/slave-add/index.vue'),
+    component: () => import('@views/mysql/slave-add/Index.vue'),
   },
   {
     name: 'MySQLMasterSlaveClone',
@@ -127,11 +127,11 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   },
   {
     name: 'MySQLDBClear',
-    path: 'db-clear',
+    path: 'db-clear/:page?',
     meta: {
       navName: t('清档'),
     },
-    component: () => import('@views/mysql/db-clear/index.vue'),
+    component: () => import('@views/mysql/db-clear/Index.vue'),
   },
   {
     name: 'MySQLDBRollback',
@@ -151,7 +151,7 @@ export const mysqlToolboxChildrenRouters: RouteRecordRaw[] = [
   },
   {
     name: 'MySQLChecksum',
-    path: 'checksum',
+    path: 'checksum/:page?',
     meta: {
       navName: t('数据校验修复'),
     },

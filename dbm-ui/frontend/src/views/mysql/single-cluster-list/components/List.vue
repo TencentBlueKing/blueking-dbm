@@ -158,7 +158,7 @@
   import type {
     SearchSelectData,
     SearchSelectItem,
-  } from '@/types/bkui-vue';
+  } from '@types/bkui-vue';
 
   interface ColumnData {
     cell: string,
