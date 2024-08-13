@@ -82,7 +82,7 @@
       v-model:is-show="isShowPassword"
       render-directive="if"
       :title="t('获取访问方式')"
-      :width="570">
+      :width="600">
       <RenderPassword
         v-if="operationData"
         :cluster-id="operationData.id"
