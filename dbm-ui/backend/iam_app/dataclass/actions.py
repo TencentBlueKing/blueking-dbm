@@ -281,7 +281,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.MYSQL],
         group=_("MySQL"),
         subgroup=_("集群管理"),
-        hidden=True,
     )
 
     MYSQL_ENABLE_DISABLE = ActionMeta(
@@ -601,7 +600,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.TENDBCLUSTER],
         group=_("TenDBCluster"),
         subgroup=_("集群管理"),
-        hidden=True,
     )
 
     TENDBCLUSTER_CREATE_ACCOUNT = ActionMeta(
@@ -1314,7 +1312,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.SQLSERVER],
         group=_("SQLServer"),
         subgroup=_("集群管理"),
-        hidden=True,
     )
 
     SQLSERVER_APPLY = ActionMeta(
@@ -1646,7 +1643,6 @@ class ActionEnum:
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
         subgroup=_(""),
-        hidden=True,
     )
 
     GLOBAL_DBA_ADMINISTRATOR_EDIT = ActionMeta(
@@ -1825,7 +1821,6 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务"),
-        hidden=True,
     )
 
     ADMIN_PWD_VIEW = ActionMeta(
@@ -1836,7 +1831,6 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务"),
-        hidden=True,
     )
 
     @classmethod

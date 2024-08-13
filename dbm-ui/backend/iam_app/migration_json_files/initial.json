@@ -1381,7 +1381,7 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "hidden": true,
+                "hidden": false,
                 "group": "MySQL",
                 "subgroup": "集群管理",
                 "description": "MySQL 临时密码修改",
@@ -2232,7 +2232,7 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "hidden": true,
+                "hidden": false,
                 "group": "TenDBCluster",
                 "subgroup": "集群管理",
                 "description": "TenDB Cluster 临时密码修改",
@@ -4074,7 +4074,7 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "hidden": true,
+                "hidden": false,
                 "group": "SQLServer",
                 "subgroup": "集群管理",
                 "description": "SQLServer 临时密码修改",
@@ -4941,7 +4941,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "hidden": true,
+                "hidden": false,
                 "group": "业务配置",
                 "subgroup": "",
                 "description": "DBA人员设置",
@@ -5382,7 +5382,7 @@
                 ],
                 "related_actions": [],
                 "version": 1,
-                "hidden": true,
+                "hidden": false,
                 "group": "业务",
                 "subgroup": "",
                 "description": "集群入口配置修改",
@@ -5424,7 +5424,7 @@
                     "db_manage"
                 ],
                 "version": 1,
-                "hidden": true,
+                "hidden": false,
                 "group": "业务",
                 "subgroup": "",
                 "description": "临时密码生效实例查看",
