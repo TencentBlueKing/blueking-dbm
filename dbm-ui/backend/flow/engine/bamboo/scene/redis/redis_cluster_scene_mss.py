@@ -244,7 +244,7 @@ class RedisClusterMSSSceneFlow(object):
             sub_kwargs.cluster["meta_func_name"] = RedisDBMeta.instances_failover_4_scene.__name__
             sub_acts.append(
                 {
-                    "act_name": _("Redis-{}-元数据修改".format(master_ip)),
+                    "act_name": _("Redis-{}-角色互换".format(master_ip)),
                     "act_component_code": RedisDBMetaComponent.code,
                     "kwargs": asdict(sub_kwargs),
                 }

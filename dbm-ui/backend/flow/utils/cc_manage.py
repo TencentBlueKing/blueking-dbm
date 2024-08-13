@@ -164,6 +164,8 @@ class CcManage(object):
         """
         批量更新主机属性
         """
+        # 对主机ID 进行去重
+        bk_host_ids = list(set(bk_host_ids))
 
         # 给业务主机模型增加dbm_meta自定义字段
         Services.init_cc_dbm_meta(self.bk_biz_id)

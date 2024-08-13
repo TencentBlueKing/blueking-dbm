@@ -703,7 +703,7 @@ class RedisDBMeta(object):
         cluster_id = self.cluster["cluster_id"]
         cluster = Cluster.objects.get(id=cluster_id)
         with atomic():
-            cc_manage = CcManage(self.cluster["bk_biz_id"], cluster.cluster_type)
+            cc_manage, bk_host_ids = CcManage(self.cluster["bk_biz_id"], cluster.cluster_type), []
             for port in self.cluster["meta_update_ports"]:
                 old_master = StorageInstance.objects.get(
                     machine__ip=self.cluster["meta_update_ip"],
@@ -712,6 +712,9 @@ class RedisDBMeta(object):
                     machine__bk_cloud_id=self.cluster["bk_cloud_id"],
                 )
                 old_slave = old_master.as_ejector.get().receiver
+
+                bk_host_ids.append(old_master.machine.bk_host_id)
+                bk_host_ids.append(old_slave.machine.bk_host_id)
                 StorageInstanceTuple.objects.get(ejector=old_master, receiver=old_slave).delete(keep_parents=True)
                 StorageInstanceTuple.objects.create(ejector=old_slave, receiver=old_master)
                 old_master.instance_role = InstanceRole.REDIS_SLAVE.value
@@ -729,6 +732,7 @@ class RedisDBMeta(object):
                     bk_instance_ids=[old_slave.bk_instance_id],
                     labels_dict={"instance_role": InstanceRole.REDIS_MASTER.value},
                 )
+            cc_manage.update_host_properties(bk_host_ids)
         return True
 
     def tendis_switch_4_scene(self):
@@ -951,7 +955,7 @@ class RedisDBMeta(object):
         params = self.cluster["params"]
         cluster = Cluster.objects.get(id=params["cluster_id"])
         dns_manage = DnsManage(bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id)
-        all_instances = []
+        all_instances, bk_host_ids = [], []
         for replication_pair in params["replication_pairs"]:
             master_ip = replication_pair["master"]["ip"]
             master_port = replication_pair["master"]["port"]
@@ -971,6 +975,8 @@ class RedisDBMeta(object):
             )
             all_instances.append(master_obj)
             all_instances.append(slave_obj)
+            bk_host_ids.append(master_obj.machine.bk_host_id)
+            bk_host_ids.append(slave_obj.machine.bk_host_id)
             master_instance = "{}#{}".format(master_obj.machine.ip, master_obj.port)
             slave_instance = "{}#{}".format(slave_obj.machine.ip, slave_obj.port)
             # 更新 StorageInstance
@@ -1025,6 +1031,7 @@ class RedisDBMeta(object):
         # 更新所有实例的模块信息
         logger.info("cluster {} all instances {} update module".format(cluster.immute_domain, all_instances))
         RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(all_instances)
+        CcManage(cluster.bk_biz_id, cluster.cluster_type).update_host_properties(bk_host_ids)
 
     @transaction.atomic
     def tendisplus_remove_instance_pair(self):
@@ -1132,7 +1139,7 @@ class RedisDBMeta(object):
         }]
         """
         for param in self.cluster["params"]:
-            cluster = Cluster.objects.get(id=param["cluster_id"])
+            cluster, bk_host_ids = Cluster.objects.get(id=param["cluster_id"]), []
             for replication_pair in param["replication_pairs"]:
                 master_ip = replication_pair["master"]["ip"]
                 master_port = replication_pair["master"]["port"]
@@ -1156,6 +1163,7 @@ class RedisDBMeta(object):
                 new_slave_obj.instance_inner_role = InstanceInnerRole.SLAVE
                 new_slave_obj.cluster_type = cluster.cluster_type
                 new_slave_obj.save(update_fields=["instance_role", "instance_inner_role", "cluster_type"])
+                bk_host_ids.append(new_slave_obj.machine.bk_host_id)
 
                 # 更新 machine
                 new_slave_machine = new_slave_obj.machine
@@ -1217,6 +1225,7 @@ class RedisDBMeta(object):
                 RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(
                     [new_slave_obj], is_increment=is_increment
                 )
+            CcManage(cluster.bk_biz_id, cluster.cluster_type).update_host_properties(bk_host_ids)
 
     @transaction.atomic
     def switch_dns_for_redis_instance_version_upgrade(self):
@@ -1258,7 +1267,7 @@ class RedisDBMeta(object):
 
     @transaction.atomic
     def update_meta_for_redis_instance_version_upgrade(self):
-        cluster_ids = self.cluster["cluster_ids"]
+        cluster_ids, bk_host_ids = self.cluster["cluster_ids"], []
         for cluster_id in cluster_ids:
             cluster = Cluster.objects.get(id=cluster_id)
             old_master_obj = cluster.storageinstance_set.get(instance_role=InstanceRole.REDIS_MASTER.value)
@@ -1266,6 +1275,8 @@ class RedisDBMeta(object):
 
             new_slave_obj = old_master_obj
             new_master_obj = old_slave_obj
+            bk_host_ids.append(new_slave_obj.machine.bk_host_id)
+            bk_host_ids.append(new_master_obj.machine.bk_host_id)
 
             logger.info("new_master {} update role ro redis_master".format(new_master_obj.ip_port))
             new_master_obj.instance_role = InstanceRole.REDIS_MASTER
@@ -1300,6 +1311,7 @@ class RedisDBMeta(object):
             RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(
                 [new_master_obj, new_slave_obj], is_increment=False
             )
+        CcManage(cluster.bk_biz_id, cluster.cluster_type).update_host_properties(bk_host_ids)
 
     def add_polairs_domain(self):
         """

@@ -26,6 +26,7 @@ from backend.db_meta.enums import (
     SyncType,
 )
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
+from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 logger = logging.getLogger("flow")
@@ -55,8 +56,10 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
                 raise Exception("master {} has slave {} which status is running.".format(ej_obj, slave))
 
     try:
+        bk_host_ids = []
         # 修改表 db_meta_storageinstance
         for rec_obj in receiver_objs:
+            bk_host_ids.append(rec_obj.machine.bk_host_id)
             rec_obj.instance_role = InstanceRole.REDIS_SLAVE
             rec_obj.instance_inner_role = InstanceInnerRole.SLAVE
             rec_obj.cluster_type = cluster.cluster_type
@@ -98,6 +101,7 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
         if cluster.cluster_type == ClusterType.TendisRedisInstance.value:
             is_increment = True
         RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs, is_increment=is_increment)
+        CcManage(cluster.bk_biz_id, cluster.cluster_type).update_host_properties(bk_host_ids)
         logger.info("cluster {} add storageinstance {}".format(cluster.immute_domain, receiver_objs))
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
@@ -219,7 +223,7 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
                 )
                 cluster.nosqlstoragesetdtl_set.filter(instance=old_ejector_obj).update(instance=new_ejector_obj)
         # 给新实例创建服务实例
-        ejector_objs, receiver_objs = [], []
+        ejector_objs, receiver_objs, bk_host_ids = [], [], []
         for ms_pair in tendisss:
             new_ejector_obj = StorageInstance.objects.get(
                 machine__ip=ms_pair["receiver"]["ip"],
@@ -227,11 +231,13 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
                 machine__bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
             )
+            bk_host_ids.append(new_ejector_obj.machine.bk_host_id)
             if switch_type != SyncType.MS.value:
                 logger.info("switch for sync {} need move cc module & add cc instance".format(switch_type))
                 new_receiver_obj = new_ejector_obj.as_ejector.get().receiver
                 ejector_objs.append(new_ejector_obj)
                 receiver_objs.append(new_receiver_obj)
+                bk_host_ids.append(new_receiver_obj.machine.bk_host_id)
             else:
                 logger.info(
                     "switch for sync {} need update role info {} 2 master".format(switch_type, ms_pair["receiver"])
@@ -245,6 +251,7 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
             is_increment = True
         RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(ejector_objs, is_increment=is_increment)
         RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(receiver_objs, is_increment=is_increment)
+        CcManage(cluster.bk_biz_id, cluster.cluster_type).update_host_properties(bk_host_ids)
     except Exception as e:  # NOCC:broad-except(检查工具误报)
         logger.error(traceback.format_exc())
         raise e
