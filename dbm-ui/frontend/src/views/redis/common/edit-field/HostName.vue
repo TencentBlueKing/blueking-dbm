@@ -17,7 +17,8 @@
       ref="editRef"
       v-model="localValue"
       :placeholder="t('请输入IP（单个）')"
-      :rules="rules" />
+      :rules="rules"
+      @submit="handleInputFinish" />
     <!-- <BkPopover
       :content="t('从业务拓扑选择')"
       placement="top"
@@ -92,7 +93,7 @@
   //   idleHosts: [],
   // } as InstanceSelectorValues);
 
-  let isSkipCheckInstances = false;
+  let isSkipInputFinish = false;
 
   const rules = [
     {
@@ -105,10 +106,6 @@
     },
     {
       validator: async (value: string) => {
-        if (isSkipCheckInstances) {
-          return true;
-        }
-
         const checkResult = await checkRedisInstances({
           bizId: currentBizId,
           instance_addresses: [value],
@@ -117,9 +114,11 @@
         if (checkResult.length === 0) {
           return false;
         }
-
         const ipInfo = `${checkResult[0].bk_cloud_id}:${value}`;
-        emits('inputFinish', ipInfo, checkResult[0].cluster_id);
+        if (!isSkipInputFinish) {
+          emits('inputFinish', ipInfo, checkResult[0].cluster_id);
+        }
+
         return true;
       },
       message: t('目标主机不存在'),
@@ -162,9 +161,13 @@
   //   emits('inputFinish', value);
   // };
 
+  const handleInputFinish = () => {
+    isSkipInputFinish = false;
+  };
+
   defineExpose<Exposes>({
     getValue(isSubmit = false) {
-      isSkipCheckInstances = isSubmit;
+      isSkipInputFinish = isSubmit;
       return editRef.value.getValue().then(() => localValue.value);
     },
   });

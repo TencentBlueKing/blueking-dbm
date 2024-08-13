@@ -141,7 +141,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([clusterRef.value!.getValue(), targetVersionRef.value!.getValue()]).then(
+      return Promise.all([clusterRef.value!.getValue(true), targetVersionRef.value!.getValue()]).then(
         ([clusterIds, targetVersion]) => ({
           cluster_ids: clusterIds,
           node_type: props.data.nodeType,
