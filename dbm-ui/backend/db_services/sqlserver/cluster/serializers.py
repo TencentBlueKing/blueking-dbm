@@ -28,7 +28,7 @@ class ImportDBStructSerializer(GetDBForDrsSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     db_excel = serializers.FileField(help_text=_("构造DB的excel文件"))
     db_list = serializers.CharField(help_text=_("db列表(逗号分隔)"))
-    ignore_db_list = serializers.CharField(help_text=_("忽略db列表(逗号分割)"))
+    ignore_db_list = serializers.CharField(help_text=_("忽略db列表(逗号分割)"), allow_blank=True, required=False)
 
     def validate(self, attrs):
         attrs["db_list"] = attrs["db_list"].split(",")

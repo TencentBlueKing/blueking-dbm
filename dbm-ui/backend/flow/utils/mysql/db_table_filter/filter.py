@@ -27,7 +27,7 @@ class DbTableFilter(object):
     ):
         self.include_db_patterns = include_db_patterns
         self.include_table_patterns = include_table_patterns
-        self.exclude_db_patterns = exclude_db_patterns
+        self.exclude_db_patterns = exclude_db_patterns if exclude_db_patterns else [""]
         self.exclude_table_patterns = exclude_table_patterns
 
         self.system_table_parts = []
