@@ -126,8 +126,8 @@
     ],
     fetchDataFn: () => fetchResources(),
     defaultSearchItem: {
-      name: t('IP 或 IP:Port'),
-      id: 'instance',
+      name: 'IP',
+      id: 'ip',
     },
     isDiscardNondefault: true,
   });
