@@ -34,6 +34,7 @@ from backend.db_services.redis.autofix.models import (
     TbRedisClusterNodesUpdateTask,
 )
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, RedisRole
+from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.dns_manage import DnsManage
 from backend.flow.utils.redis.redis_cluster_nodes import ClusterNodeData, decode_cluster_nodes
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
@@ -355,11 +356,14 @@ class RedisClusterNodesUpdateJob:
     def update_cc_info(self, cluster: Cluster):
         if len(self.role_updated_instances) == 0:
             return
-        where = Q()
+        where, bk_host_ids = Q(), []
         for item in self.role_updated_instances:
             where |= Q(machine__ip=item["ip"], port=item["port"])
         role_updated_insts = StorageInstance.objects.filter(where)
+        for inst_obj in role_updated_insts:
+            bk_host_ids.append(inst_obj.machine.bk_host_id)
         RedisCCTopoOperator(cluster).transfer_instances_to_cluster_module(role_updated_insts)
+        CcManage(cluster.bk_biz_id, cluster.cluster_type).update_host_properties(bk_host_ids)
 
     # 发起自愈流程
     def start_autofix_flow(self, cluster: Cluster):
