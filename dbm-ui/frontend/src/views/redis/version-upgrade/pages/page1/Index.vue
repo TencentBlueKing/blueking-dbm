@@ -62,7 +62,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -241,41 +240,33 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
-      details: {
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认对n个集群版本升级？', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisVersionUpgrade',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    isSubmitting.value = true;
+    try {
+      const infos = await Promise.all(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_VERSION_UPDATE_ONLINE,
+        details: {
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisVersionUpgrade',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

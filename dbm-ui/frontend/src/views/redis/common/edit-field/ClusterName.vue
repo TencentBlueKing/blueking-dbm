@@ -17,7 +17,8 @@
       ref="editRef"
       v-model="localValue"
       :placeholder="t('请输入或选择集群')"
-      :rules="rules" />
+      :rules="rules"
+      @submit="handleInputFinish" />
   </div>
 </template>
 <script setup lang="ts">
@@ -91,6 +92,10 @@
       immediate: true,
     },
   );
+
+  const handleInputFinish = () => {
+    isSkipInputFinish = false;
+  };
 
   defineExpose<Exposes>({
     getValue(isSubmit = false) {
