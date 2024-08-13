@@ -6,7 +6,6 @@
       fontSize: fontConfig.fontSize,
       lineHeight: fontConfig.lineHeight,
     }">
-    <div class="input-line">{{ t('连接的集群：') }} {{ clusterInfo.immute_domain }}</div>
     <template
       v-for="(item, index) in panelRecords"
       :key="index">
@@ -40,7 +39,6 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
 
   import { queryWebconsole } from '@services/source/dbbase';
 
@@ -95,8 +93,6 @@
   }
 
   const props = defineProps<Props>();
-
-  const { t } = useI18n();
 
   const command = ref('');
   const panelRecords = ref<PanelLine[]>([]);
