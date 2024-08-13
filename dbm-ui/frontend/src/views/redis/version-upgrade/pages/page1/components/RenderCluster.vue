@@ -74,7 +74,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<number[]>;
+    getValue: (isSubmit?: boolean) => Promise<number[]>;
   }
 
   const props = defineProps<Props>();
@@ -97,16 +97,17 @@
     }>
   >([]);
 
+  let isSkipInputFinish = false;
+
   const rules = [
     {
       validator: (value: string) => {
         if (value) {
           return true;
         }
-        // emits('idChange', null);
         return false;
       },
-      message: '目标集群不能为空',
+      message: t('目标集群不能为空'),
     },
     {
       validator: (value: string) => domainRegex.test(value),
@@ -120,13 +121,14 @@
           const { results } = data;
           if (results.length > 0) {
             localClusterId.value = results[0].id;
-            emits('input-finish', results[0]);
+            if (!isSkipInputFinish) {
+              emits('input-finish', results[0]);
+            }
             return true;
           }
-          // emits('input-finish');
           return false;
         }),
-      message: '目标集群不存在',
+      message: t('目标集群不存在'),
     },
     {
       validator: () => {
@@ -148,7 +150,7 @@
         }
         return true;
       },
-      message: '目标集群重复',
+      message: t('目标集群重复'),
     },
   ];
 
@@ -206,6 +208,7 @@
 
   // 提交编辑
   const handleEditSubmit = () => {
+    isSkipInputFinish = false;
     isShowEdit.value = false;
   };
 
@@ -217,7 +220,8 @@
   });
 
   defineExpose<Exposes>({
-    getValue() {
+    getValue(isSubmit = false) {
+      isSkipInputFinish = isSubmit;
       const result = _.uniq([localClusterId.value, ...relatedClusterList.value.map((listItem) => listItem.id)]);
       return editRef.value.getValue().then(() => result);
     },
