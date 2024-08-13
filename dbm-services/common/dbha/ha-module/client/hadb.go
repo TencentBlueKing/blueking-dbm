@@ -167,6 +167,7 @@ func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, s
 		BKCloudID:    c.CloudId,
 		Name:         constvar.UpdateInstanceStatus,
 		QueryArgs: &model.HAAgentLogs{
+			App:     app,
 			AgentIP: agentIp,
 			IP:      ip,
 			Port:    port,

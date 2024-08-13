@@ -9,6 +9,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	//max concurrency number for db detect
+	defaultMaxConcurrency = 64
+)
+
 // Config configure for agent/gm
 type Config struct {
 	// configure for Log File
@@ -61,6 +66,8 @@ type AgentConfig struct {
 	FetchInterval  int    `yaml:"fetch_interval"`
 	ReportInterval int    `yaml:"reporter_interval"`
 	LocalIP        string `yaml:"local_ip"`
+	// maximum number of concurrent requests
+	MaxConcurrency int `yaml:"max_concurrency"`
 }
 
 // GMConfig configure for gm component
@@ -160,7 +167,7 @@ type SSHConfig struct {
 	Timeout          int    `yaml:"timeout"`
 }
 
-// DNSConfig dns api configure info
+// NameServicesConfig dns api configure info
 type NameServicesConfig struct {
 	DnsConf     APIConfig `yaml:"dns_conf"`
 	PolarisConf APIConfig `yaml:"polaris_conf"`
@@ -245,6 +252,9 @@ func (c *Config) CheckConfig() error {
 	}
 	if c.GMConf != nil {
 		hasGM = true
+	}
+	if c.AgentConf.MaxConcurrency == 0 {
+		c.AgentConf.MaxConcurrency = defaultMaxConcurrency
 	}
 
 	if hasAgent && hasGM && c.AgentConf.CloudID != c.GMConf.CloudID {

@@ -35,8 +35,9 @@ type MonitorAgent struct {
 	// API client to access cmdb metadata
 	CmDBClient *client.CmDBClient
 	// API client to access hadb
-	HaDBClient *client.HaDBClient
-	heartbeat  time.Time
+	HaDBClient     *client.HaDBClient
+	heartbeat      time.Time
+	MaxConcurrency int // Add this field to store the max concurrency value
 }
 
 // NewMonitorAgent new a new agent do detect
@@ -54,6 +55,7 @@ func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, err
 		CmDBClient:       client.NewCmDBClient(&conf.DBConf.CMDB, conf.GetCloudId()),
 		HaDBClient:       client.NewHaDBClient(&conf.DBConf.HADB, conf.GetCloudId()),
 		MonIp:            conf.AgentConf.LocalIP,
+		MaxConcurrency:   conf.AgentConf.MaxConcurrency,
 	}
 
 	// register agent into
@@ -80,11 +82,14 @@ func NewMonitorAgent(conf *config.Config, detectType string) (*MonitorAgent, err
 // report agent's heartbeat info.
 func (a *MonitorAgent) Process(instances map[string]dbutil.DataBaseDetect) {
 	var wg sync.WaitGroup
+	sem := make(chan struct{}, a.MaxConcurrency) // 创建一个有缓冲的通道，容量为 maxConcurrency
 	log.Logger.Debugf("need to detect instances number:%d", len(a.DBInstance))
 	for _, ins := range instances {
 		wg.Add(1)
+		sem <- struct{}{} // 向通道发送信号，表明一个新的 goroutine 启动
 		go func(ins dbutil.DataBaseDetect) {
 			defer wg.Done()
+			defer func() { <-sem }() // goroutine 完成后，从通道接收信号，释放一个槽位
 			a.DoDetectSingle(ins)
 		}(ins)
 	}
