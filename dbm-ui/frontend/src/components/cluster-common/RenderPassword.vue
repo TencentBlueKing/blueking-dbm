@@ -81,10 +81,9 @@
         <p>security.protocol=SASL_PLAINTEXT</p>
         <p>sasl.mechanism=SCRAM-SHA-512</p>
         <p>
-          sasl,jaas.config=org.apache,{{ dbType }}.common.security,scram.ScramLoginModule required username={{
+          sasl,jaas.config=org.apache,{{ dbType }}.common.security,scram.ScramLoginModule required username="{{
             result.username
-          }}
-          password={{ scPasswordText }};
+          }}" password="{{ scPasswordText }}";
           <span
             class="password-btn"
             @click="handleSCPasswordToggle">
@@ -166,6 +165,13 @@
     if (token) {
       passwordToken = `${password} ${token}`;
     }
+    // eslint-disable-next-line camelcase
+    let content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
+    let securityInfo = '';
+    if (props.dbType) {
+      securityInfo = `security.protocol=SASL_PLAINTEXT\nsasl.mechanism=PLAIN\nsasl.jaas.config=org.apache.${props.dbType}.common.security.plain.PlainLoginModule required username="${username}" password="${password}";`;
+      content = `${content}\n${t('安全认证')}: ${securityInfo}`;
+    }
     switch (type) {
       case 'cluster_name':
         copy(cluster_name);
@@ -179,18 +185,12 @@
       case 'password':
         copy(passwordToken);
         break;
-      case 'security_certification': {
-        const content = `security.protocol=SASL_PLAINTEXT\nsasl.mechanism=PLAIN\nsasl.jaas.config=org.apache.${props.dbType}.common.security.plain.PlainLoginModule required username="${username}" password="${password}";`;
+      case 'security_certification':
+        copy(securityInfo);
+        break;
+      default:
         copy(content);
         break;
-      }
-      default: {
-        // 复制全部
-        // eslint-disable-next-line no-case-declarations, camelcase
-        const content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
-        copy(content);
-        break;
-      }
     }
   };
 
