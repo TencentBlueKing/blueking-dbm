@@ -168,6 +168,11 @@
           name: t('主机选择'),
           topoConfig: {
             filterClusterId: props.data!.clusterId,
+            countFunc: (clusterItem: SpiderModel) => {
+              const hostList = isMater ? clusterItem.spider_master : clusterItem.spider_slave;
+              const ipList = hostList.map((hostItem) => hostItem.ip);
+              return new Set(ipList).size;
+            },
           },
           tableConfig: {
             getTableList: (params: ServiceReturnType<typeof getSpiderMachineList>) =>

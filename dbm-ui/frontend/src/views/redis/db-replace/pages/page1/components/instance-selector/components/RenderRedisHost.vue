@@ -15,6 +15,7 @@
   <div class="instance-selector-render-topo-host">
     <SerachBar
       v-model="searchValue"
+      is-host
       :placeholder="t('请输入或选择条件搜索')"
       :search-attrs="searchAttrs"
       :type="ClusterTypes.REDIS"
