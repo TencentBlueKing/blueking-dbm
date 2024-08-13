@@ -123,7 +123,9 @@ def sync_cluster_stat_by_cluster_type(bk_biz_id, cluster_type):
             continue
         cap["in_use"] = round(cap["used"] * 100.0 / cap["total"], 2)
 
-    cache.set(f"{CACHE_CLUSTER_STATS}_{bk_biz_id}_{cluster_type}", json.dumps(cluster_stats))
+    cache.set(
+        f"{CACHE_CLUSTER_STATS}_{bk_biz_id}_{cluster_type}", json.dumps(cluster_stats), timeout=1 * TimeUnit.HOUR
+    )
 
 
 @register_periodic_task(run_every=crontab(hour="*/1", minute=0))
