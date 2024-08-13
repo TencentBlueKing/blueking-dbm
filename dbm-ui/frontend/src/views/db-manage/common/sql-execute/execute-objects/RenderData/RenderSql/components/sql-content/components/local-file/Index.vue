@@ -282,6 +282,8 @@
     // 如果删除的是当前选中的文件，则重新选择第一个文件
     if (fileName === selectFileName.value && uploadFileNameList.value.length > 0) {
       [selectFileName.value] = uploadFileNameList.value;
+    } else {
+      selectFileName.value = '';
     }
     triggerChange();
   };

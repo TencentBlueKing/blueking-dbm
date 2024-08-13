@@ -170,8 +170,10 @@
       });
       editor.onDidChangeModelContent(() => {
         const value = editor.getValue();
-        emits('update:modelValue', value);
-        emits('change', value);
+        if (value !== props.modelValue) {
+          emits('update:modelValue', value);
+          emits('change', value);
+        }
       });
     });
 

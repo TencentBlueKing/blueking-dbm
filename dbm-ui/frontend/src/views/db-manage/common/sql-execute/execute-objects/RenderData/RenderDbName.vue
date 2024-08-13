@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <div
-    ref="rootRef"
-    class="render-db-name">
+  <div ref="rootRef">
     <span @click="handleShowTips">
       <TableEditTag
         ref="editTagRef"
@@ -34,6 +32,9 @@
     </div>
   </div>
 </template>
+<script lang="ts">
+  const tagMemo = {} as Record<string, string[]>;
+</script>
 <script setup lang="ts">
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
@@ -42,17 +43,16 @@
 
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
-  interface Props {
-    required?: boolean;
-  }
+  import { makeMap, random } from '@utils';
 
   interface Exposes {
     getValue: () => Promise<string[]>;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    required: true,
-  });
+  const { t } = useI18n();
+
+  const instanceKey = random();
+  tagMemo[instanceKey] = [];
 
   const modelValue = defineModel<string[]>({
     required: true,
@@ -61,13 +61,10 @@
   const rootRef = ref();
   const popRef = ref();
 
-  const { t } = useI18n();
   const rules = [
     {
       validator: (value: string[]) => {
-        if (!props.required) {
-          return true;
-        }
+        tagMemo[instanceKey] = value;
         return value && value.length > 0;
       },
       message: t('DB名不能为空'),
@@ -79,12 +76,24 @@
       },
       message: t('一格仅支持单个_对象'),
     },
+    {
+      validator: (value: string[]) => {
+        const otherTagMap = { ...tagMemo };
+        delete otherTagMap[instanceKey];
+
+        const nextValueMap = makeMap(value);
+        console.log('choong fu = ', value, otherTagMap, _.flatten(Object.values(otherTagMap)));
+        return _.flatten(Object.values(otherTagMap)).every((item) => !nextValueMap[item]);
+      },
+      message: t('DB名不允许重复'),
+    },
   ];
 
   const editTagRef = ref<InstanceType<typeof TableEditTag>>();
 
   const handleChange = (value: string[]) => {
     modelValue.value = value;
+    tagMemo[instanceKey] = value;
   };
 
   let tippyIns: Instance | undefined;
@@ -116,6 +125,7 @@
       tippyIns.destroy();
       tippyIns = undefined;
     }
+    delete tagMemo[instanceKey];
   });
 
   defineExpose<Exposes>({
@@ -124,8 +134,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-db-name {
-    display: block;
-  }
-</style>

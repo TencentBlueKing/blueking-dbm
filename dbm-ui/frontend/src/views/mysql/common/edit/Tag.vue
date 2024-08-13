@@ -95,6 +95,7 @@
   };
 
   const handleBlur = () => {
+    validator(localValue.value);
     emits('blur');
   };
 

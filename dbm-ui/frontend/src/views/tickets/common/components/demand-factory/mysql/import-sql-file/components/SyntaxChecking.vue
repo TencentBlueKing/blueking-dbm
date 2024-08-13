@@ -16,10 +16,14 @@
     <DbIcon
       class="rotate-loading"
       type="sync-pending" />
-    <span>{{ $t('语法校验进行中') }}</span>
+    <span>{{ t('语法校验进行中') }}</span>
   </div>
 </template>
-<script setup lang="ts"></script>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  const { t } = useI18n();
+</script>
 <style lang="less">
   .sql-execute-syntax-checking {
     display: flex;

@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="mysql-sql-execute-log-page">
+  <div class="tendb-cluster-sql-execute-log-page">
     <Component :is="renderStatusCom" />
     <div
       v-if="flowStatus !== 'pending'"
@@ -157,7 +157,7 @@
       }
       if (flowStatus.value === 'successed' && !isViewResult) {
         router.push({
-          name: 'MySQLExecute',
+          name: 'spiderSqlExecute',
           params: {
             step: 'success',
           },
@@ -174,7 +174,7 @@
   );
 </script>
 <style lang="less">
-  .mysql-sql-execute-log-page {
+  .tendb-cluster-sql-execute-log-page {
     .log-layout {
       display: flex;
       width: 928px;

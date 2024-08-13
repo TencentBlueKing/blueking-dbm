@@ -23,7 +23,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { IFileData } from './FileList.vue';
+  import { type IFileData } from '../../RenderFileList.vue';
 
   interface Props {
     data: IFileData;

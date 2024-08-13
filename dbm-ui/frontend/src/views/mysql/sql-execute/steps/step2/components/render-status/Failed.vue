@@ -21,15 +21,20 @@
     <div style="margin-top: 22px; font-size: 24px; line-height: 32px; color: #313238">
       {{ t('模拟执行失败') }}
     </div>
-    <div style="margin-top: 8px; line-height: 32px; color: #313238">
+    <div
+      v-if="!isViewResultLog"
+      style="margin-top: 8px; line-height: 32px; color: #313238">
       {{ t('接下你可以直接_继续提交_或_返回修改_后重试') }}
     </div>
   </div>
   <div class="sql-execute-more-action-box">
-    <BkButton @click="handleGoEdit">
+    <BkButton
+      v-if="!isViewResultLog"
+      @click="handleGoEdit">
       {{ t('返回修改') }}
     </BkButton>
     <BkButton
+      v-if="!isViewResultLog"
       class="ml8 w-88"
       :loading="isSubmiting"
       theme="primary"
@@ -37,6 +42,7 @@
       {{ t('继续提交') }}
     </BkButton>
     <DbPopconfirm
+      v-if="!isViewResultLog"
       class="ml8"
       :confirm-handler="handleDeleteUserSemanticTasks"
       :content="t('返回修改会中断当前操作_请谨慎操作')"
@@ -45,6 +51,12 @@
         {{ t('废弃') }}
       </BkButton>
     </DbPopconfirm>
+    <BkButton
+      v-if="isViewResultLog"
+      class="ml8"
+      @click="handleLastStep">
+      {{ t('返回继续提单') }}
+    </BkButton>
   </div>
 </template>
 <script setup lang="ts">
@@ -56,11 +68,17 @@
   import { deleteUserSemanticTasks } from '@services/source/sqlImport';
   import { createTicket } from '@services/source/ticket';
 
+  import { DBTypes, TicketTypes } from '@common/const';
+
   const router = useRouter();
   const route = useRoute();
   const { t } = useI18n();
 
-  const { rootId } = route.query as { rootId: string; nodeId: string };
+  const { rootId } = route.query as { rootId: string };
+  const { step } = route.params as { step: string };
+
+  // 查看执行结果日志，执行成功不自动提交
+  const isViewResultLog = step === 'result';
 
   const isSubmiting = ref(false);
 
@@ -95,7 +113,7 @@
         root_id: rootId,
       },
       remark: '',
-      ticket_type: 'MYSQL_IMPORT_SQLFILE',
+      ticket_type: TicketTypes.MYSQL_IMPORT_SQLFILE,
     })
       .then((data) => {
         router.push({
@@ -116,7 +134,17 @@
   const handleDeleteUserSemanticTasks = () => {
     runDeleteUserSemanticTasks({
       task_ids: [rootId],
-      cluster_type: 'mysql',
+      cluster_type: DBTypes.MYSQL,
+    });
+  };
+
+  // 返回继续提单
+  const handleLastStep = () => {
+    router.push({
+      name: 'MySQLExecute',
+      params: {
+        step: '',
+      },
     });
   };
 </script>

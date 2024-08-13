@@ -21,8 +21,9 @@
       <RenderFileList
         v-if="isKeepAliveActive"
         v-model="selectFileName"
+        v-model:filename-list="uploadFileNameList"
         :file-data="uploadFileDataMap"
-        :filename-list="uploadFileNameList">
+        @remove="handleRemoveFile">
         <div
           key="upload"
           class="create-file-btn mr-4"
@@ -39,6 +40,7 @@
         style="position: relative">
         <template v-if="selectFileData">
           <Editor
+            :key="selectFileName"
             v-model="selectFileData.content"
             :message-list="selectFileData.messageList"
             :title="selectFileName"
@@ -59,7 +61,7 @@
               v-if="selectFileData.isUploading"
               class="syntax-checking" />
             <SyntaxError
-              v-else-if="selectFileData.isCheckFailded"
+              v-else-if="selectFileData.isUploadFailed"
               class="syntax-error" />
             <SyntaxSuccess
               v-else-if="selectFileData.messageList.length < 1"
@@ -191,7 +193,7 @@
     uploadFileDataMap.value[fileName] = createFileData({
       realFilePath: fileName,
       isSuccess: false,
-      content: 'select * from tablea;',
+      content: '',
       messageList: [],
       isCheckFailded: true,
       isUploadFailed: false,
@@ -200,6 +202,22 @@
     });
     selectFileName.value = fileName;
     emits('grammar-check', false, false);
+    triggerChange();
+  };
+
+  const handleRemoveFile = (filename: string) => {
+    const lastUploadFileDataMap = { ...uploadFileDataMap.value };
+
+    delete lastUploadFileDataMap[filename];
+    uploadFileDataMap.value = lastUploadFileDataMap;
+
+    // 如果删除的是当前选中的文件，则重新选择第一个文件
+    if (filename === selectFileName.value && uploadFileNameList.value.length > 0) {
+      [selectFileName.value] = uploadFileNameList.value;
+    } else {
+      selectFileName.value = '';
+    }
+    triggerGramarCheckChange();
     triggerChange();
   };
 
@@ -227,8 +245,9 @@
         currentFileData.isSuccess = true;
         currentFileData.realFilePath = realFilePath;
       })
-      .catch(() => {
-        currentFileData.isCheckFailded = true;
+      .catch((error) => {
+        console.log('eror = ', error);
+        currentFileData.isUploadFailed = true;
         emits('grammar-check', true, false);
       })
       .finally(() => {
