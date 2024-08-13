@@ -218,3 +218,21 @@ class GetClusterVersionSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     node_type = serializers.ChoiceField(help_text=_("集群节点类型"), choices=RedisVerUpdateNodeType.get_choices())
     type = serializers.ChoiceField(help_text=_("请求版本类型"), choices=RedisVersionQueryType.get_choices())
+
+
+class GetClusterCapacityInfoSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群ID"))
+    new_storage_version = serializers.CharField(help_text=_("存储版本"))
+    new_spec_id = serializers.IntegerField(help_text=_("新规格ID"))
+    new_machine_group_count = serializers.IntegerField(help_text=_("申请机器组数量"))
+    new_shards_num = serializers.IntegerField(help_text=_("新的分片数量"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "example": {
+                "capacity_update_type": "keep_current_machines",
+                "require_spec_id": 1,
+                "require_machine_group_num": 3,
+                "err_msg": "",
+            }
+        }

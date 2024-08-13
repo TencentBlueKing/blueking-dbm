@@ -20,7 +20,7 @@ def auto_retry_exclusive_inner_flow():
     TicketTask.retry_exclusive_inner_flow()
 
 
-@register_periodic_task(run_every=crontab(minute=3, hour=2))
+@register_periodic_task(run_every=crontab(minute=0, hour=6))
 def auto_create_data_repair_ticket():
     TicketTask.auto_create_data_repair_ticket()
 

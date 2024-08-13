@@ -22,10 +22,12 @@ from backend.db_services.mysql.cluster.serializers import (
 from backend.db_services.redis.constants import RedisVersionQueryType
 from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.db_services.redis.toolbox.serializers import (
+    GetClusterCapacityInfoSerializer,
     GetClusterVersionSerializer,
     QueryByOneClusterSerializer,
     QueryClusterIpsSerializer,
 )
+from backend.flow.utils.redis.redis_proxy_util import get_cluster_capacity_update_required_info
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/redis/toolbox"
@@ -81,3 +83,13 @@ class ToolboxViewSet(BaseClusterViewSet):
             return Response(ToolboxHandler.get_online_cluster_versions(cluster_id, node_type))
         else:
             return Response(ToolboxHandler.get_update_cluster_versions(cluster_id, node_type))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取集群容量变更所需信息"),
+        query_serializer=GetClusterCapacityInfoSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=GetClusterCapacityInfoSerializer, pagination_class=None)
+    def get_cluster_capacity_update_info(self, request, bk_biz_id, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(get_cluster_capacity_update_required_info(**data))

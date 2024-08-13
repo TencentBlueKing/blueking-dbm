@@ -13,6 +13,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.consts import RedisCapacityUpdateType
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, SkipToRepresentationMixin
@@ -39,12 +40,13 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
         shard_num = serializers.IntegerField(help_text=_("集群分片数"))
         group_num = serializers.IntegerField(help_text=_("部署机器组数"))
         db_version = serializers.CharField(help_text=_("版本号"))
+        capacity = serializers.IntegerField(help_text=_("当前容量需求"))
+        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
+        update_mode = serializers.ChoiceField(help_text=_("容量变更类型"), choices=RedisCapacityUpdateType.get_choices())
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
-        capacity = serializers.IntegerField(help_text=_("当前容量需求"))
-        future_capacity = serializers.IntegerField(help_text=_("未来容量需求"))
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
