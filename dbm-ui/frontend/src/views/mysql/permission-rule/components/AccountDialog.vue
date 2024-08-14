@@ -174,6 +174,17 @@
   const copy = useCopy();
 
   /**
+   * 远程校验密码是否符合要求
+   */
+  const verifyPassword = () =>
+    verifyPasswordStrength({
+      password: getEncyptPassword(),
+    }).then((passwordStrengthResult) => {
+      passwordState.validate = passwordStrengthResult;
+      return passwordStrengthResult.is_strength;
+    });
+
+  /**
    * 拆分是否带有follow_前缀的keys
    */
   const keyArr = Object.keys(PASSWORD_POLICY).reduce<{ included: string[]; excluded: string[] }>(
@@ -283,17 +294,6 @@
     const encyptPassword = encypt.encrypt(state.formdata.password);
     return typeof encyptPassword === 'string' ? encyptPassword : '';
   };
-
-  /**
-   * 远程校验密码是否符合要求
-   */
-  const verifyPassword = () =>
-    verifyPasswordStrength({
-      password: getEncyptPassword(),
-    }).then((passwordStrengthResult) => {
-      passwordState.validate = passwordStrengthResult;
-      return passwordStrengthResult.is_strength;
-    });
 
   /**
    * 获取密码安全策略
