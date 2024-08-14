@@ -253,8 +253,14 @@ class RedisProxyScaleFlow(object):
         proxy_ips = cluster_info["twemproxy_ips_set"]
 
         if proxy_reduced_hosts:
-            # 指定ip缩容
-            scale_down_ips = [host["ip"] for host in proxy_reduced_hosts]
+            # 指定ip缩容,至少需要保留2个proxy
+            scale_down_ips = list(set([host["ip"] for host in proxy_reduced_hosts]))
+            if len(proxy_ips) - len(scale_down_ips) < 2:
+                raise Exception("if remove proxy. proxy num will Less than 2 ")
+            # 检查传入的ip,传入ip必须是该集群的proxy
+            for ip in scale_down_ips:
+                if ip not in proxy_ips:
+                    raise Exception("proxy ip {} not in cluster {}".format(ip, cluster_name))
         else:
             # 根据数量缩容
             scale_down_ips = cls.__calc_scale_down_ips(bk_biz_id, proxy_ips, target_proxy_count)
@@ -274,7 +280,10 @@ class RedisProxyScaleFlow(object):
         for info in self.data["infos"]:
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
             cluster_info = self.__scale_down_cluster_info(
-                self.data["bk_biz_id"], info["cluster_id"], info["target_proxy_count"]
+                self.data["bk_biz_id"],
+                info["cluster_id"],
+                info.get("target_proxy_count", 0),
+                info.get("proxy_reduced_hosts", []),
             )
             cluster_tpl = {**cluster_info, "bk_biz_id": self.data["bk_biz_id"]}
             act_kwargs = ActKwargs()
@@ -284,7 +293,8 @@ class RedisProxyScaleFlow(object):
             act_kwargs.exec_ip = cluster_info["scale_down_ips"]
             act_kwargs.cluster = {**cluster_info}
 
-            self.__down_pre_check(cluster_info["scale_down_ips"], info["target_proxy_count"])
+            if info.get("target_proxy_count"):
+                self.__down_pre_check(cluster_info["scale_down_ips"], info["target_proxy_count"])
 
             sub_pipeline.add_act(
                 act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)

@@ -76,6 +76,7 @@ class RedisBackendScaleFlow(object):
         slave_ips,
         new_shard_num,
         group_num,
+        total_ins_num,
         old_master_group_num,
         is_local_scale,
     ):
@@ -90,6 +91,9 @@ class RedisBackendScaleFlow(object):
         if is_local_scale:
             if len(master_ips) + old_master_group_num != group_num:
                 raise Exception("(old machine add new machine) num != group_num.")
+            # 机器数超过实例数
+            if len(master_ips) + old_master_group_num > total_ins_num:
+                raise Exception("(old machine add new machine) num > total_ins_num.")
         # 如果是机器替换扩容，新机器组数 = 传入组数
         else:
             if len(master_ips) != group_num:
@@ -440,6 +444,7 @@ class RedisBackendScaleFlow(object):
                 new_slave_ips,
                 info["shard_num"],
                 info["group_num"],
+                len(act_kwargs.cluster["ins_pair_map"]),
                 len(act_kwargs.cluster["old_master_list"]),
                 act_kwargs.cluster.get("is_local_scale", False),
             )
@@ -535,6 +540,13 @@ class RedisBackendScaleFlow(object):
                     )
 
                     act_kwargs.exec_ip = new_master_ips + new_slave_ips
+                    # 如果是本地扩容，则还需要将老机器ip也加入到域名中
+                    if act_kwargs.cluster.get("is_local_scale", False):
+                        act_kwargs.exec_ip = (
+                            act_kwargs.exec_ip
+                            + act_kwargs.cluster["old_master_list"]
+                            + act_kwargs.cluster["old_slave_list"]
+                        )
                     sub_pipeline.add_act(
                         act_name=_("初始化新增nodes域名"),
                         act_component_code=RedisDnsManageComponent.code,
@@ -543,8 +555,11 @@ class RedisBackendScaleFlow(object):
 
             sub_pipeline.add_act(act_name=_("Redis-人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
-            if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]):
-                # 删除老实例的nodes域名
+            # 删除老实例的nodes域名
+            # 如果是本地扩容的话，至少还存在一个实例(30000端口),所以不应该清理nodes域名
+            if is_redis_cluster_protocal(act_kwargs.cluster["cluster_type"]) and not act_kwargs.cluster.get(
+                "is_local_scale", False
+            ):
                 params = {
                     "cluster_id": info["cluster_id"],
                     "port": DEFAULT_REDIS_START_PORT,
