@@ -9,37 +9,43 @@
     :trigger-width="20">
     <template #aside>
       <div class="aside-main">
-        <div style="font-weight: 700">## {{ t('使用帮助') }}</div>
-        <div>1. {{ t('支持 show databases、show tables from db1 等部分 show 语句') }};</div>
-        <div>
-          2. {{ t('只能输入select，不支持 insert, delete, update，且 select 必须带limit控制行数，行数<=1000') }};
-        </div>
-        <div>3. {{ t('暂时不支持 use 语句') }};</div>
-        <div>4. {{ t('不允许访问系统库，如 mysql information_schema performance_schema db_infobase') }};</div>
-        <div>5. {{ t('查询结果数据量不能大于64M') }};</div>
-        <div style="font-weight: 700">## {{ t('示例') }}</div>
-        <div>- show databases;</div>
-        <div>- show tables from db1;</div>
-        <div>- select * from [db.]table [where cond] [order by ...] limit [skip,]N; (N&lt;=1000)</div>
+        <Component :is="renderContent" />
       </div>
     </template>
     <template #main>
       <div
         class="empty-main"
-        @click="handleClickMain"></div>
+        @click="handleClickMain" />
     </template>
   </BkResizeLayout>
 </template>
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
+  import { DBTypes } from '@common/const';
+
+  import RenderMysqlContent from './components/RenderMysqlContent.vue';
+  import RenderRedisContent from './components/RenderRedisContent.vue';
+
+  interface Props {
+    dbType?: DBTypes;
+  }
 
   interface Emits {
     (e: 'hide'): void;
   }
 
+  const props = withDefaults(defineProps<Props>(), {
+    dbType: DBTypes.MYSQL,
+  });
+
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
+  const contentMap = {
+    [DBTypes.MYSQL]: RenderMysqlContent,
+    [DBTypes.TENDBCLUSTER]: RenderMysqlContent,
+    [DBTypes.REDIS]: RenderRedisContent,
+  };
+
+  const renderContent = computed(() => contentMap[props.dbType as keyof typeof contentMap]);
 
   const handleClickMain = () => {
     emits('hide');

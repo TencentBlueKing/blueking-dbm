@@ -59,7 +59,9 @@
       <div
         v-show="topOperateState.showUseageHelp"
         class="using-help-wrap">
-        <UseingHelpPanel @hide="handleHideUseingHelp" />
+        <UsingHelpPanel
+          :db-type="dbType"
+          @hide="handleHideUsingHelp" />
       </div>
       <ConsolePanel
         v-if="activeClusterId > 0"
@@ -129,7 +131,7 @@
   import FullScreen from './components/FullScreen.vue';
   import RawSwitcher from './components/RawSwitcher.vue';
   import UseHelp from './components/UseHelp.vue';
-  import UseingHelpPanel from './components/UseingHelpPanel.vue';
+  import UsingHelpPanel from './components/using-help-panel/Index.vue';
 
   export interface Props {
     dbType?: DBTypes;
@@ -313,7 +315,7 @@
     topOperateState.showUseageHelp = !topOperateState.showUseageHelp;
   };
 
-  const handleHideUseingHelp = () => {
+  const handleHideUsingHelp = () => {
     topOperateState.showUseageHelp = false;
   };
 
