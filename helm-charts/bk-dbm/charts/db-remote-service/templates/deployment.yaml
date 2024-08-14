@@ -27,55 +27,25 @@ spec:
       serviceAccountName: {{ include "db-remote-service.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
-      # volumes:
-      #   -
-      #     name: config-volume
-      #     configMap:
-      #       name:  {{ include "db-remote-service.fullname" . }}
-      #       items:
-      #         -
-      #           key: logger.yaml
-      #           mode: 420
-      #           path: path/to/logger.yaml
-      #         -
-      #           key: config.yaml
-      #           mode: 420
-      #           path: path/to/config.yaml
-      #       defaultMode: 272
+      initContainers:
+        {{- include "initContainersWaitFor" (list . "bk-dbm-saas-api") | nindent 8}}
+        {{- include "db-remote_service.initDnsNodeIp" . | nindent 8}}
       containers:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- include "db-remote-service.container_env" . | nindent 10 }}
           ports:
             - name: http
               containerPort: 80
-              protocol: TCP    
-          env:
-            {{- range $key, $val := .Values.envs }}
-          - name: {{ $key }}
-            value: {{ quote $val }}
-            {{- end }}
-          # livenessProbe:
-          #   httpGet:
-          #     path: /ping
-          #     port: http
-          # readinessProbe:
-          #   httpGet:
-          #     path: /ping
-          #     port: http
+              protocol: TCP
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
-          # volumeMounts:
-          #   -
-          #     name: config-volume
-          #     subPath: path/to/logger.yaml
-          #     mountPath: /conf/logger.yaml
-          #   -
-          #     name: config-volume
-          #     subPath: path/to/config.yaml
-          #     mountPath: /conf/config.yaml
+          volumeMounts:
+            - name: shared-env
+              mountPath: /data/install/shard_env/
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -88,3 +58,5 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+      {{- toYaml .Values.volumes | nindent 8}}

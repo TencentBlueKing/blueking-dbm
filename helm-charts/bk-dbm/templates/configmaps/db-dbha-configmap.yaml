@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-dbha-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  DB_CLOUD_TOKEN: "{{ .Values.dbm.envs.bkAppCode }}:{{ .Values.dbm.envs.bkAppToken }}"
+  BK_DBM_URL: "{{ .Values.dbm.envs.dbmBackendApigwDomain | replace "http://" "" }}"
+  HADB_URL: "{{ .Values.dbm.envs.hadbApigwDomain | replace "http://" "" | replace ":8080" ""}}"
+  MYSQL_CROND_BEAT_PATH: "{{ .Values.bk.mysqlCrondBeatPath }}"
+  MYSQL_CROND_AGENT_ADDRESS: "{{ .Values.bk.mysqlCrondAgentAddress }}"

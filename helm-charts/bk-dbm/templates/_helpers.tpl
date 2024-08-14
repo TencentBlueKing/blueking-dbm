@@ -119,3 +119,20 @@ username: {{ $etcd.username }}
 password: {{ $etcd.password }}
 {{- end -}}
 {{- end -}}
+
+
+{{/*
+k8s waitfor让一个pod等待另一个pod启动，用于编排顺序
+*/}}
+{{- define "initContainersWaitFor"}}
+{{- $root := first .}}
+{{- $label := last . -}}
+- name: check-saas-api
+  image: "{{ $root.Values.global.k8sWaitFor.registry }}/{{ $root.Values.global.k8sWaitFor.repository }}:{{ $root.Values.global.k8sWaitFor.tag }}"
+  imagePullPolicy: {{ $root.Values.global.k8sWaitFor.pullPolicy }}
+  args:
+    - pod
+    - -lapp.kubernetes.io/component={{ $label }}
+  resources:
+    {{- toYaml $root.Values.global.k8sWaitFor.resources | nindent 4 }}
+{{- end }}

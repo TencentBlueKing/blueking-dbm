@@ -7,6 +7,34 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from jinja2 import Environment, Template
+
+from backend.db_proxy.models import ClusterExtension
+from backend.utils.string import base64_encode
+
+
+def render_nginx_tpl(extension: ClusterExtension, template: Template = None, conf_tpl: str = None, encode=True):
+    """渲染nginx子配置模板文件"""
+    if not template:
+        jinja_env = Environment()
+        template = jinja_env.from_string(conf_tpl)
+
+    conf_payload = {
+        "bk_biz_id": extension.bk_biz_id,
+        "bk_cloud_id": extension.bk_cloud_id,
+        "db_type": extension.db_type,
+        "cluster_name": extension.cluster_name,
+        "service_type": extension.service_type,
+        "service_url": f"http://{extension.ip}:{extension.port}",
+    }
+    file_name = f"{extension.bk_biz_id}_{extension.db_type}_{extension.cluster_name}_nginx.conf"
+    file_content = template.render(conf_payload)
+
+    if encode:
+        file_content = base64_encode(file_content)
+
+    return {"file_name": file_name, "content": file_content}
+
 
 es_conf_tpl = """
 location /{{bk_biz_id}}/{{db_type}}/{{cluster_name}}/{{service_type}} {

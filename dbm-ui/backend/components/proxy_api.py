@@ -25,7 +25,7 @@ class ProxyAPI(DataAPI):
     def build_actual_url(self, param):
         url = super().build_actual_url(param)
 
-        # 如果配置了DOMAIN_SKIP_PROXY，表示跳过proxy代理
+        # 如果配置了代理跳过，则直接返回url
         if env.DOMAIN_SKIP_PROXY:
             return url
 
@@ -33,6 +33,11 @@ class ProxyAPI(DataAPI):
             bk_cloud_id = param["bk_cloud_id"]
         except KeyError:
             raise DataAPIException(_("ProxyApi 必须传入 bk_cloud_id 参数"))
+
+        # 如果配置了云区域容器化，并且是直连区域，则跳过代理并且忽略ssl
+        if env.CLOUD_CONTAINER_ENABLE and bk_cloud_id == 0:
+            self.ssl = False
+            return url
 
         # 只取最新的nginx作为转发服务
         proxy = DBCloudProxy.objects.filter(bk_cloud_id=bk_cloud_id).last()

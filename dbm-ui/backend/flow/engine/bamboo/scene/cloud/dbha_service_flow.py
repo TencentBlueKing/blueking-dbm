@@ -124,7 +124,7 @@ class CloudDBHAServiceFlow(CloudBaseServiceFlow):
             pipeline=dbha_pipeline,
             proxy_func_name=CloudDBProxy.cloud_dbha_apply.__name__,
             host_infos=[*self.data["dbha"]["agent"], *self.data["dbha"]["gm"]],
-            host_kwargs=ExtensionAccountEnum.get_account_in_info(asdict(dbha_kwargs)),
+            host_kwargs=ExtensionAccountEnum.get_account_map(asdict(dbha_kwargs)),
         )
 
         dbha_pipeline.run_pipeline()

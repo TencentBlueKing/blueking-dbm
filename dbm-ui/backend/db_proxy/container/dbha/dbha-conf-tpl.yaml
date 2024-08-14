@@ -1,0 +1,123 @@
+log_conf:
+  log_path: "./log"
+  log_level: "LOG_DEBUG"
+  log_maxsize: 512
+  log_maxbackups: 100
+  log_maxage: 30
+  log_compress: true
+agent_conf:
+  active_db_type: [
+    "riak",
+    "tendbha",
+    "tendbcluster",
+    "TwemproxyRedisInstance",
+    "PredixyTendisplusCluster",
+    "TwemproxyTendisSSDInstance"
+  ]
+  city_id: -1
+  campus: "all"
+  cloud_id: 0
+  fetch_interval: 60
+  reporter_interval: 120
+  local_ip: "$NODE_IP"
+gm_conf:
+  city_id: 0
+  campus: "zero"
+  cloud_id: 0
+  liston_port: 50000
+  local_ip: "$NODE_IP"
+  report_interval: 60
+  GDM:
+    dup_expire: 600
+    scan_interval: 1
+  GMM:
+  GQA:
+    idc_cache_expire: 300
+    single_switch_idc: 50
+    single_switch_interval: 86400
+    single_switch_limit:  48
+    all_host_switch_limit:  150
+    all_switch_interval:  7200
+  GCM:
+    allowed_checksum_max_offset: 2
+    allowed_slave_delay_max: 600
+    allowed_time_delay_max: 300
+    exec_slow_kbytes: 0
+password_conf:
+  host: "$BK_DBM_URL"
+  port: 80
+  url_pre: "/apis/proxypass"
+  timeout: 10
+  bk_conf:
+    bk_token: "$DB_CLOUD_TOKEN"
+db_conf:
+  hadb:
+    host: "$HADB_URL"
+    port: 8080
+    timeout: 120
+  cmdb:
+    host: "$BK_DBM_URL"
+    port: 80
+    url_pre: "/apis/proxypass"
+    timeout: 30
+    bk_conf:
+      bk_token: "$DB_CLOUD_TOKEN"
+  mysql:
+    user: "$DBHA_USER"
+    pass: "$DBHA_PASSWORD"
+    proxy_user: "proxy"
+    proxy_pass: "$DBHA_PROXY_PASSWORD"
+    timeout: 10
+  redis:
+    timeout: 10
+  riak:
+    timeout: 10
+name_services:
+  dns_conf:
+    host: "$BK_DBM_URL"
+    port: 80
+    url_pre: "/apis/proxypass"
+    user: "dbha"
+    pass: "xxx"
+    timeout: 10
+    bk_conf:
+      bk_token: "$DB_CLOUD_TOKEN"
+  remote_conf:
+    host: "$BK_DBM_URL"
+    port: 80
+    url_pre: "/apis/proxypass"
+    user: "dbha"
+    pass: "xxx"
+    timeout: 10
+    bk_conf:
+      bk_token: "$DB_CLOUD_TOKEN"
+  polaris_conf:
+    host: "$BK_DBM_URL"
+    port: 80
+    user: "nouser"
+    pass: "nopasswd"
+    url_pre: "/apis/proxypass/nameservice"
+    timeout: 10
+    bk_conf:
+      bk_token: "$DB_CLOUD_TOKEN"
+  clb_conf:
+    host: "$BK_DBM_URL"
+    port: 80
+    user: "nouser"
+    pass: "nopasswd"
+    url_pre: "/apis/proxypass/nameservice"
+    timeout: 10
+    bk_conf:
+      bk_token: "$DB_CLOUD_TOKEN"
+monitor:
+  bk_data_id: $BKMONITOR_EVENT_DATA_ID
+  access_token: "$BKMONITOR_EVENT_TOKEN"
+  beat_path: "$MYSQL_CROND_BEAT_PATH"
+  agent_address: "$MYSQL_CROND_AGENT_ADDRESS"
+  local_ip: "$NODE_IP"
+ssh:
+  port: 36000
+  user: "mysql"
+  pass: "$MYSQL_OS_PASSWORD"
+  dest: "agent"
+  timeout: 10

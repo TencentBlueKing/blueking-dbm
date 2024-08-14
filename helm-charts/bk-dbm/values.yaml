@@ -6,10 +6,19 @@ global:
   imagePullSecrets: []
   storageClass: ""
   bkDomain: "example.com"
+  ## k8s wait-for
+  k8sWaitFor:
+    registry: "mirrors.tencent.com"
+    repository: "build/blueking/k8s-wait-for"
+    tag: "v1.5.1"
+    pullPolicy: IfNotPresent
+    resources: {}
   ## 蓝鲸主域名访问协议http/https
   bkDomainScheme: http
   serviceMonitor:
     enabled: true
+  ## 云区域容器化
+  cloudContainer: false
 
 # bk public
 bk:
@@ -105,6 +114,8 @@ dbm:
     brokerUrl: "redis://localhost:6379/0"
     # 蓝鲸数据库管理平台
     dbaAppBkBizId: "dba_biz"
+    dbmApigwDomain: "http://bk-dbm"
+    dbmBackendApigwDomain: "http://bk-dbm-backend-api"
     mysqlPrivManagerApigwDomain: "http://bk-dbm-dbpriv"
     partitionApigwDomain: "http://bk-dbm-dbpartition"
     dbconfigApigwDomain: "http://bk-dbm-dbconfig"
@@ -305,6 +316,24 @@ db-dns-api:
     TRACE_TOKEN: ""
     TRACE_DATA_ID: ""
 
+db-dns:
+  extraEnvVarsCM: db-dns-configmap
+
+db-nginx:
+  extraEnvVarsCM: db-nginx-configmap
+  # ingress
+  ingress:
+    enabled: true
+    className: ""
+    hosts:
+      - host: bk-dbm-nginx
+        paths:
+          - path: /
+            pathType: ImplementationSpecific
+
+db-dbha:
+  extraEnvVarsCM: db-dbha-configmap
+
 hadb-api:
   enabled: true
 
@@ -365,6 +394,7 @@ db-resource:
 
 db-remote-service:
   enabled: false
+  extraEnvVarsCM: db-remote-service-configmap
   envs:
     # apm
     TRACE_SERVICE_NAME: db-remote-service

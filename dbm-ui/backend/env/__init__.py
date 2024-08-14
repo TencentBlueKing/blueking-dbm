@@ -81,6 +81,7 @@ BK_APIGW_GRANT_APPS = get_type_env(key="BK_APIGW_GRANT_APPS", _type=list, defaul
 BK_APIGW_RESOURCE_DOCS_BASE_DIR = get_type_env(
     key="BK_APIGW_RESOURCE_DOCS_BASE_DIR", _type=str, default="backend/docs/apigw"
 )
+APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
 
 ENVIRONMENT = get_type_env(key="BKPAAS_ENVIRONMENT", default="prod", _type=str)
 
@@ -152,8 +153,8 @@ DBM_PORT = get_type_env(key="DBM_PORT", _type=int, default=80)
 MANAGE_PORT = get_type_env(key="MANAGE_PORT", _type=int, default=8080)
 # nginx转发dbm的地址(如果没有则取BK_SAAS_HOST)
 DBM_EXTERNAL_ADDRESS = get_type_env(key="DBM_EXTERNAL_ADDRESS", _type=str, default=BK_SAAS_HOST)
-
-APIGW_PUBLIC_KEY = get_type_env(key="APIGW_PUBLIC_KEY", _type=str, default="")
+# 云区域容器化开关
+CLOUD_CONTAINER_ENABLE = get_type_env(key="CLOUD_CONTAINER_ENABLE", _type=str, default=False)
 
 # 版本号
 APP_VERSION = get_type_env(key="APP_VERSION", _type=str, default="")

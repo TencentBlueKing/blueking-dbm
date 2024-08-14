@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from rest_framework.routers import DefaultRouter
 
 from backend.db_proxy.views.bkrepo.views import BKRepoProxyPassViewSet
+from backend.db_proxy.views.cloud.views import CloudProxyPassViewSet
 from backend.db_proxy.views.db_meta.views import DBMetaApiProxyPassViewSet
 from backend.db_proxy.views.db_remote_service.views import DRSApiProxyPassViewSet
 from backend.db_proxy.views.dbconfig.views import DBConfigProxyPassViewSet
@@ -37,5 +38,6 @@ routers.register(r"", DtsApiProxyPassViewSet, basename="redis_dts")
 routers.register(r"", JobApiProxyPassViewSet, basename="jobapi")
 routers.register(r"", DumperProxyPassViewSet, basename="dumper")
 routers.register(r"", DBPrivProxyPassViewSet, basename="dbpriv")
+routers.register(r"cloud", CloudProxyPassViewSet, basename="cloud")
 
 urlpatterns = routers.urls

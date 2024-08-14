@@ -1,0 +1,17 @@
+{{- $gmComponentName := (include "db-dbha.component.fullname" (list . "gm")) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $gmComponentName }}
+  labels:
+    {{- include "db-dbha.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.gmPort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "db-dbha.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: {{ $gmComponentName }}
