@@ -49,6 +49,7 @@
       <CreateRule
         v-model="createRuleShow"
         :account-id="createRuleAccountId"
+        :db-type="DBTypes.TENDBCLUSTER"
         :rule-obj="currentRule"
         @success="fetchData" />
       <ClusterAuthorize
@@ -71,6 +72,7 @@
   import {
     AccountTypes,
     ClusterTypes,
+    DBTypes,
   } from '@common/const';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue'
@@ -78,12 +80,13 @@
   import DbTable from '@components/db-table/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import CreateRule from '@views/db-manage/common/permission/create-rule/Index.vue';
+
   import { getSearchSelectorParams } from '@utils';
 
   import { dbOperations } from './common/consts';
   import AccountInfoDialog from './components/AccountInfoDialog.vue';
   import AddAccountDialog from './components/AddAccountDialog.vue';
-  import CreateRule from './components/CreateRule.vue';
   import { useDeleteAccount } from './hooks/useDeleteAccount';
 
   const { t } = useI18n();

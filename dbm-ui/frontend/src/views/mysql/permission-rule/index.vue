@@ -60,7 +60,7 @@
       v-model="accountDialog.isShow"
       @success="fetchData" />
     <!-- 添加授权规则 -->
-    <CreateRuleSlider
+    <CreateRule
       v-model="ruleState.isShow"
       :account-id="ruleState.accountId"
       :rule-obj="ruleState.rowData"
@@ -136,11 +136,12 @@
   import DbTable from '@components/db-table/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import CreateRule from '@views/db-manage/common/permission/create-rule/Index.vue';
+
   import { getSearchSelectorParams } from '@utils';
 
   import { dbOperations } from './common/const';
   import AccountDialog from './components/AccountDialog.vue';
-  import CreateRuleSlider from './components/CreateRule.vue';
 
   const { t } = useI18n();
 
