@@ -147,6 +147,7 @@
   watch(
     modelValue,
     () => {
+      console.log('from wtach modelvale = ', isInnerChange);
       if (isInnerChange) {
         isInnerChange = false;
         return;
@@ -195,7 +196,7 @@
       isSuccess: false,
       content: '',
       messageList: [],
-      isCheckFailded: true,
+      isCheckFailded: false,
       isUploadFailed: false,
       isUploading: false,
       grammarCheck: undefined,

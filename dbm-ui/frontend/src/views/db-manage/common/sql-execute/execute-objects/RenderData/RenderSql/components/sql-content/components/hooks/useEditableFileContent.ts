@@ -1,5 +1,6 @@
 import { computed, type Ref, ref, shallowRef, watch } from 'vue';
 
+import GrammarCheckModel from '@services/model/sql-import/grammar-check';
 import { getFileContent } from '@services/source/storage';
 
 import { useSqlImport } from '@stores';
@@ -19,6 +20,24 @@ export default (modelValue: Ref<string[]>) => {
   // 当前选择文件数据
   const selectFileData = computed(() => fileDataMap.value[selectFileName.value]);
 
+  const fetchFileContentByFileName = (fileName: string) => {
+    if (!uploadFilePath) {
+      return;
+    }
+    isContentLoading.value = true;
+    const latestfileDataMap = { ...fileDataMap.value };
+    getFileContent({
+      file_path: `${uploadFilePath}/${fileName}`,
+    })
+      .then((data) => {
+        latestfileDataMap[getSQLFilename(fileName)].content = data.content;
+        fileDataMap.value = latestfileDataMap;
+      })
+      .finally(() => {
+        isContentLoading.value = false;
+      });
+  };
+
   watch(
     selectFileName,
     () => {
@@ -27,10 +46,11 @@ export default (modelValue: Ref<string[]>) => {
         !selectFileName.value ||
         fileDataMap.value[selectFileName.value].content ||
         fileDataMap.value[selectFileName.value].isUploading ||
-        fileDataMap.value[selectFileName.value].grammarCheck
+        !fileDataMap.value[selectFileName.value].grammarCheck
       ) {
         return;
       }
+
       fetchFileContentByFileName(fileDataMap.value[selectFileName.value].realFilePath);
     },
     {
@@ -57,28 +77,12 @@ export default (modelValue: Ref<string[]>) => {
           isSuccess: true,
           isCheckFailded: false,
           realFilePath: filePathMap[localFileName],
+          grammarCheck: new GrammarCheckModel(),
         }),
       }),
       {} as Record<string, IFileData>,
     );
-  };
-
-  const fetchFileContentByFileName = (fileName: string) => {
-    if (!uploadFilePath) {
-      return;
-    }
-    isContentLoading.value = true;
-    const latestfileDataMap = { ...fileDataMap.value };
-    getFileContent({
-      file_path: `${uploadFilePath}/${fileName}`,
-    })
-      .then((data) => {
-        latestfileDataMap[getSQLFilename(fileName)].content = data.content;
-        fileDataMap.value = latestfileDataMap;
-      })
-      .finally(() => {
-        isContentLoading.value = false;
-      });
+    console.log('fileDataMap.value = ', fileDataMap.value);
   };
 
   return {

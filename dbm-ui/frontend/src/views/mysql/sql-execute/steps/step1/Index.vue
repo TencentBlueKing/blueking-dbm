@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <BkLoading :loading="isEditLoading || isEditTicketLoading">
+  <BkLoading :loading="isEditLoading">
     <SmartAction>
       <div class="mysql-sql-execute-page">
         <TaskTips :db-type="DBTypes.MYSQL" />
@@ -62,9 +62,7 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import { querySemanticData, semanticCheck } from '@services/source/sqlImport';
-  import { getTicketDetails } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -84,7 +82,7 @@
   const { t } = useI18n();
   const { updateUploadFilePath } = useSqlImport();
 
-  const { rootId, ticket_id: ticketId } = route.query as { rootId: string | undefined; ticket_id: string | undefined };
+  const { rootId } = route.query as { rootId: string | undefined };
 
   const createDefaultData = () => ({
     bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
@@ -141,27 +139,6 @@
         ticket_mode: semanticData.ticket_mode,
       });
       updateUploadFilePath(semanticData.path);
-    },
-  });
-
-  // 单据详情跳转重做
-  const { loading: isEditTicketLoading } = useRequest(getTicketDetails, {
-    defaultParams: [
-      {
-        id: Number(ticketId),
-      },
-    ],
-    manual: !ticketId,
-    onSuccess(ticketData) {
-      const ticketDetail = ticketData.details as MySQLImportSQLFileDetails;
-      Object.assign(formData, {
-        charset: ticketDetail.charset,
-        cluster_ids: ticketDetail.cluster_ids,
-        execute_objects: ticketDetail.execute_objects,
-        backup: ticketDetail.backup,
-        ticket_mode: ticketDetail.ticket_mode,
-      });
-      updateUploadFilePath(ticketDetail.path);
     },
   });
 

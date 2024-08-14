@@ -27,7 +27,7 @@
             </span>
           </I18nT>
           <div
-            v-for="fileName in sqlFileNames"
+            v-for="fileName in renderSqlFileList"
             :key="fileName">
             <BkButton
               text
@@ -98,19 +98,38 @@
   <BkSideslider
     class="sql-log-sideslider"
     :is-show="isShowSqlFile"
-    render-directive="if"
-    :title="t('执行SQL变更_内容详情')"
     :width="960"
-    :z-index="99999"
     @closed="() => (isShowSqlFile = false)">
-    <div
-      v-if="uploadFileList.length > 1"
-      class="editor-layout">
+    <template
+      v-if="currentFileExecuteObject"
+      #header>
+      <span>{{ t('SQL 内容') }}</span>
+      <span style="color: #63656e; font-size: 12px; font-weight: normal; margin-left: 30px">
+        <span>{{ t('变更的 DB:') }}</span>
+        <span class="ml-4">
+          <BkTag
+            v-for="item in currentFileExecuteObject.dbnames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+          <template v-if="currentFileExecuteObject.dbnames.length < 1">--</template>
+        </span>
+        <span class="ml-25">{{ t('忽略的 DB:') }}</span>
+        <span class="ml-4">
+          <BkTag
+            v-for="item in currentFileExecuteObject.ignore_dbnames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+          <template v-if="currentFileExecuteObject.ignore_dbnames.length < 1">--</template>
+        </span>
+      </span>
+    </template>
+    <div class="editor-layout">
       <div class="editor-layout-left">
         <RenderFileList
           v-model="selectFileName"
-          :data="uploadFileList"
-          @sort="handleFileSortChange" />
+          :data="executeSqlFileList" />
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
@@ -119,12 +138,6 @@
           :title="selectFileName" />
       </div>
     </div>
-    <template v-else>
-      <RenderFileContent
-        :model-value="currentFileContent"
-        readonly
-        :title="uploadFileList.toString()" />
-    </template>
   </BkSideslider>
 </template>
 
@@ -167,13 +180,12 @@
   const selectFileName = ref('');
 
   const fileContentMap = shallowRef<Record<string, string>>({});
-  const uploadFileList = shallowRef<Array<string>>([]);
-
   const executeSqlFileList = computed(() => _.flatten(props.ticketData.details.execute_objects.map(item => item.sql_files)))
 
   const isShowMore = computed(() => executeSqlFileList.value.length > 6);
 
-  const sqlFileNames = computed(() => {
+  const renderSqlFileList = computed(() => {
+    console.log('props.ticketData = ', props.ticketData);
     if (isShowMore.value && !isShowCollapse.value) {
       return executeSqlFileList.value.slice(0, 6);
     }
@@ -188,6 +200,8 @@
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
+  const currentFileExecuteObject = computed(() => _.find(props.ticketData.details.execute_objects, item => item.sql_files.includes(selectFileName.value)));
+
 
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem) => ({
     tag: flow.flow_type_display,
@@ -197,8 +211,6 @@
     icon: () => <FlowIcon data={flow} />,
   })));
 
-  const rootId = computed(() => props.ticketData.details.root_id);
-
   const handleToggleShowMore = () => {
     isShowCollapse.value = !isShowCollapse.value;
   };
@@ -207,11 +219,6 @@
   const handleClickFile = (value: string) => {
     isShowSqlFile.value = true;
     selectFileName.value = value;
-  };
-
-
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileList.value = list;
   };
 
   const handleFetchData = () => {
@@ -225,17 +232,14 @@
         step: 'result'
       },
       query: {
-        rootId: rootId.value,
+        rootId: props.ticketData.details.root_id,
       }
     })
     window.open(href)
   };
 
   onMounted(() => {
-    const uploadSQLFileList = executeSqlFileList.value;
-    uploadFileList.value = uploadSQLFileList;
-
-    const filePathList = uploadSQLFileList.reduce((result, item) => {
+    const filePathList = executeSqlFileList.value.reduce((result, item) => {
       result.push(`${props.ticketData.details.path}/${item}`);
       return result;
     }, [] as string[]);
@@ -249,7 +253,7 @@
           [fileName]: fileInfo.content,
         });
       }, {} as Record<string, string>);
-      [selectFileName.value] = uploadSQLFileList;
+      [selectFileName.value] = executeSqlFileList.value;
     });
   });
 </script>
