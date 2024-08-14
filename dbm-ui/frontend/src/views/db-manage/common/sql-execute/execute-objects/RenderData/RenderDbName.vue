@@ -38,7 +38,7 @@
 <script setup lang="ts">
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { onMounted, ref } from 'vue';
+  import { onMounted, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
@@ -55,7 +55,7 @@
   tagMemo[instanceKey] = [];
 
   const modelValue = defineModel<string[]>({
-    required: true,
+    default: () => [],
   });
 
   const rootRef = ref();
@@ -90,6 +90,16 @@
   ];
 
   const editTagRef = ref<InstanceType<typeof TableEditTag>>();
+
+  watch(
+    modelValue,
+    () => {
+      tagMemo[instanceKey] = modelValue.value;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string[]) => {
     modelValue.value = value;
