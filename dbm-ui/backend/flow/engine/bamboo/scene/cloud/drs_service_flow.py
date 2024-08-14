@@ -63,7 +63,7 @@ class CloudDRSServiceFlow(CloudBaseServiceFlow):
             pipeline=drs_pipeline,
             proxy_func_name=CloudDBProxy.cloud_drs_apply.__name__,
             host_infos=drs_apply_host_infos,
-            host_kwargs=ExtensionAccountEnum.get_account_in_info(asdict(drs_kwargs)),
+            host_kwargs=ExtensionAccountEnum.get_account_map(asdict(drs_kwargs)),
         )
 
         drs_pipeline.run_pipeline()

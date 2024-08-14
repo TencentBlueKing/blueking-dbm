@@ -1,0 +1,78 @@
+{{- $dbhaType := "gm" -}}
+{{- $gmComponentName := (include "db-dbha.component.fullname" (list . "gm")) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $gmComponentName }}
+  labels:
+    {{ include "db-dbha.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.gmReplicaCount }}
+  selector:
+    matchLabels:
+      {{- include "db-dbha.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {{ $gmComponentName }}
+  template:
+    metadata:
+      annotations:
+        reloader.stakater.com/auto: "true"
+      labels:
+        {{- include "db-dbha.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: {{ $gmComponentName }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "db-dbha.serviceAccountName" . }}
+      securityContext:
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+      {{- include "initContainersWaitFor" (list . "bk-dbm-backend-api") | nindent 8}}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              protocol: TCP
+              containerPort: 50000
+          env:
+            {{- if .Values.envs -}}
+              {{- include "envs" . | trim | nindent 6 }}
+            {{- end }}
+            - name: NODE_IP
+              value: {{ $gmComponentName }}
+            - name: DBHA_TYPE
+              value: {{ $dbhaType }}
+          envFrom:
+            {{- if .Values.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+      {{- with .Values.affinity }}
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # gm要求调度到不同的节点
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values:
+                      - {{ $gmComponentName }}
+              topologyKey: "kubernetes.io/hostname"
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}

@@ -30,7 +30,6 @@ from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.utils.redis import RedisConn
-from backend.utils.string import base64_encode
 
 logger = logging.getLogger("celery")
 
@@ -93,8 +92,9 @@ def fill_cluster_service_nginx_conf():
         extension_ids: List[int] = []
         for db_type in cloud__db_type__extension[cloud_id].keys():
             conf_tpl = getattr(nginxconf_tpl, f"{db_type}_conf_tpl", None)
+
+            # 如果没有模板，则打印日志并跳过
             if not conf_tpl:
-                # 如果没有模板，则打印日志并跳过
                 logger.warning(_("集群类型：{} 的nginx配置文件不存在，跳过对该nginx配置的下发").format(db_type))
                 continue
 
@@ -102,18 +102,8 @@ def fill_cluster_service_nginx_conf():
             template = jinja_env.from_string(conf_tpl)
 
             for extension in cloud__db_type__extension[cloud_id][db_type]:
-                conf_payload = {
-                    "bk_biz_id": extension.bk_biz_id,
-                    "bk_cloud_id": extension.bk_cloud_id,
-                    "db_type": extension.db_type,
-                    "cluster_name": extension.cluster_name,
-                    "service_type": extension.service_type,
-                    "service_url": f"http://{extension.ip}:{extension.port}",
-                }
-                file_name = f"{extension.bk_biz_id}_{extension.db_type}_{extension.cluster_name}_nginx.conf"
-                file_content = base64_encode(template.render(conf_payload))
-                file_list.append({"file_name": file_name, "content": file_content})
-
+                # 渲染配置
+                file_list.append(nginxconf_tpl.render_nginx_tpl(template, extension, encode=True))
                 # 这里先提前写入access url，至于是否执行成功根据is_flush
                 extension.save_access_url(nginx_url=f"{proxy.external_address}:{manage_port}")
                 extension_ids.append(extension.id)

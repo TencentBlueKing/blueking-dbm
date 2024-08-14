@@ -1,0 +1,71 @@
+{{- $dbhaType := "agent" -}}
+{{- $agentComponentName := (include "db-dbha.component.fullname" (list . "agent")) -}}
+{{- $gmComponentName := (include "db-dbha.component.fullname" (list . "gm")) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $agentComponentName }}
+  labels:
+    {{ include "db-dbha.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.agentReplicaCount }}
+  selector:
+    matchLabels:
+      {{- include "db-dbha.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: {{ $agentComponentName }}
+  template:
+    metadata:
+      annotations:
+        reloader.stakater.com/auto: "true"
+      labels:
+        {{- include "db-dbha.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: {{ $agentComponentName }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "db-dns.serviceAccountName" . }}
+      securityContext:
+      {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      initContainers:
+      {{- include "initContainersWaitFor" (list . $gmComponentName) | nindent 8}}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          env:
+            {{- if .Values.envs -}}
+              {{- include "envs" . | trim | nindent 12 }}
+            {{- end }}
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: DBHA_TYPE
+              value: {{ $dbhaType }}
+          envFrom:
+            {{- if .Values.extraEnvVarsCM }}
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+      {{- toYaml . | nindent 8 }}
+      {{- end }}

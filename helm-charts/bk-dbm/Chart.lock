@@ -32,9 +32,6 @@ dependencies:
 - name: db-simulation
   repository: file://charts/db-simulation
   version: 0.1.11
-- name: db-remote-service
-  repository: file://charts/db-remote-service
-  version: 0.9.5
 - name: db-dns-api
   repository: file://charts/db-dns-api
   version: 0.1.7
@@ -56,5 +53,17 @@ dependencies:
 - name: backup-consumer
   repository: file://charts/backup-consumer
   version: 0.0.3
-digest: sha256:31236606c1f0aa272b43c84f98bff88edb54144c6df8d1a07f0b5e9f93f20156
-generated: "2024-08-13T19:01:07.629281+08:00"
+- name: db-remote-service
+  repository: file://charts/db-remote-service
+  version: 0.9.5
+- name: db-dns
+  repository: file://charts/db-dns
+  version: 0.1.0
+- name: db-nginx
+  repository: file://charts/db-nginx
+  version: 0.1.0
+- name: db-dbha
+  repository: file://charts/db-dbha
+  version: 0.1.0
+digest: sha256:505dce199e12c74e5852a426b8997b2c527c43c5cba321aebc58ef1040b43ff6
+generated: "2024-08-28T19:45:11.596886126+08:00"

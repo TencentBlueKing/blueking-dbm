@@ -15,7 +15,7 @@ log_conf:
   log_path: "./log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
-  log_maxbackups: 5
+  log_maxbackups: 100
   log_maxage: 30
   log_compress: true
 agent_conf:
@@ -144,7 +144,7 @@ log_conf:
   log_path: "./log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
-  log_maxbackups: 5
+  log_maxbackups: 100
   log_maxage: 30
   log_compress: true
 agent_conf:

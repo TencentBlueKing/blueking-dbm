@@ -70,3 +70,29 @@ environment variables
   value: {{ $val | quote }}
 {{- end }}
 {{- end }}
+
+{{- define "db-remote-service.container_env" -}}
+env:
+  {{- include "dbm.envs" . | trim | nindent 2 }}
+envFrom:
+  {{- if .Values.extraEnvVarsCM }}
+  - configMapRef:
+      name: {{ .Values.extraEnvVarsCM }}
+  {{- end }}
+{{- end }}
+
+{{- define "db-remote_service.initDnsNodeIp" -}}
+- name: init-dns-node-ips
+  image: bitnami/kubectl:latest
+  command: ["/bin/sh", "-c"]
+  args:
+    - |
+      #!/bin/sh
+      LABEL_SELECTOR="cloud-component=dns"
+      NODE_IPS=$(kubectl get nodes -l $LABEL_SELECTOR -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}')
+      NODE_IPS_CSV=$(echo $NODE_IPS | tr ' ' ',')
+      echo $NODE_IPS_CSV > /data/install/shard_env/dns_ip
+  volumeMounts:
+    - name: shared-env
+      mountPath: /data/install/shard_env/
+{{- end }}

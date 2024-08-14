@@ -1,0 +1,21 @@
+{{- if not .Values.daemonRunning.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "db-dns.fullname" . }}
+  labels:
+    {{ include "db-dns.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "db-dns.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        reloader.stakater.com/auto: "true"
+      labels:
+        {{- include "db-dns.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- include "db-dns-podSpec" . | nindent 6 }}
+{{- end }}

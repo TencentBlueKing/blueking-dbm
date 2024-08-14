@@ -8,10 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
 from backend.configuration.constants import DBType
-from backend.flow.consts import CloudServiceName
+from backend.core.encrypt.constants import AsymmetricCipherConfigType
+from backend.core.encrypt.handlers import AsymmetricHandler
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 SWAGGER_TAG = _("透传服务(proxypass)")
@@ -60,18 +62,28 @@ class ExtensionAccountEnum(str, StructuredEnum):
     WEBCONSOLE_PWD = EnumField("webconsole_pwd", _("webconsole_pwd"))
 
     @classmethod
-    def get_account_in_info(cls, info):
+    def get_account_map(cls, info):
         """从info中获取存在的账号/密码信息"""
         account = {value: info[value] for value in cls.get_values() if value in info}
         return account
 
     @classmethod
-    def get_account_tuple_with_service(cls, service: CloudServiceName):
-        """获取不同组件包含的账号枚举类"""
-        account_tuples = [(cls.USER.value, cls.PWD.value)]
-        if service == CloudServiceName.DRS:
-            account_tuples.append((cls.WEBCONSOLE_USER, cls.WEBCONSOLE_PWD))
-        return account_tuples
+    def generate_random_account(cls, bk_cloud_id: int):
+        """生成随机账号"""
+        rsa_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
+        user, password = get_random_string(8), get_random_string(16)
+        encrypt_user = AsymmetricHandler.encrypt(name=rsa_cloud_name, content=user)
+        encrypt_password = AsymmetricHandler.encrypt(name=rsa_cloud_name, content=password)
+        return {"user": user, "password": password, "encrypt_user": encrypt_user, "encrypt_password": encrypt_password}
+
+    @classmethod
+    def get_account_info(cls, bk_cloud_id: int, details: dict, u_key: str, p_key: str):
+        """获取组件的账号和密码信息"""
+        rsa_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
+        encrypt_user, encrypt_password = details[u_key], details[p_key]
+        user = AsymmetricHandler.decrypt(name=rsa_cloud_name, content=encrypt_user)
+        password = AsymmetricHandler.decrypt(name=rsa_cloud_name, content=encrypt_password)
+        return {"user": user, "password": password, "encrypt_user": encrypt_user, "encrypt_password": encrypt_password}
 
 
 CLUSTER__SERVICE_MAP = {

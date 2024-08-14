@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-remote-service-configmap
+  labels: {{- include "common.labels.standard" . | nindent 4 }}
+    {{- if .Values.commonLabels }}
+    {{- include "common.tplvalues.render" (dict "value" .Values.commonLabels "context" $) | nindent 4 }}
+    {{- end }}
+data:
+  DB_CLOUD_TOKEN: "{{ .Values.dbm.envs.bkAppCode }}:{{ .Values.dbm.envs.bkAppToken }}"
+  BK_DBM_URL: "{{ .Values.dbm.envs.dbmApigwDomain }}"
+  DRS_CONCURRENT: "500"
+  DRS_MYSQL_ADMIN_PASSWORD: "gcs_admin_password"
+  DRS_MYSQL_ADMIN_USER: "gcs_admin"
+  DRS_PROXY_ADMIN_PASSWORD: "gcs_admin_password"
+  DRS_PROXY_ADMIN_USER: "gcs_admin"
+  DRS_PORT: "80"
+  DRS_LOG_JSON: "true" # 是否使用 json 格式日志
+  DRS_LOG_CONSOLE: "true" # 是否在 stdout 打印日志
+  DRS_LOG_DEBUG: "true" # 启用 debug 日志级别
+  DRS_LOG_FILE_DIR: "logs"
+  DRS_TMYSQLPARSER_BIN: "tmysqlparse"
+  DRS_TLS: "false" # 是否开启证书校验
+  DRS_KEY_FILE: ""
+  DRS_CA_FILE: ""
+  DRS_CERT_FILE: ""

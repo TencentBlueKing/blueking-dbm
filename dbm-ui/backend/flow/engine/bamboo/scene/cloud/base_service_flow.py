@@ -13,11 +13,8 @@ from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Union
 
 from bamboo_engine.builder import SubProcess
-from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
-from backend.core.encrypt.constants import AsymmetricCipherConfigType
-from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionAccountEnum
 from backend.flow.consts import CloudServiceConfFileEnum, CloudServiceName
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -65,15 +62,20 @@ class CloudBaseServiceFlow(object):
 
     def _get_or_generate_usr_pwd(self, service: CloudServiceName):
         """获取drs和dbha的账户"""
-        rsa_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(self.data["bk_cloud_id"])
+        bk_cloud_id = self.data["bk_cloud_id"]
 
-        def _fetch_usr_pwd(info, user_key, pwd_key):
+        def _fetch_usr_pwd(info, u_key, p_key):
             # 若任意一台主机信息包含用户/密码，则沿用直接返回解密原始账户或密码，否则生成
-            user = info.get(user_key, AsymmetricHandler.encrypt(name=rsa_cloud_name, content=get_random_string(8)))
-            pwd = info.get(pwd_key, AsymmetricHandler.encrypt(name=rsa_cloud_name, content=get_random_string(16)))
-            plain_user = AsymmetricHandler.decrypt(name=rsa_cloud_name, content=user)
-            plain_pwd = AsymmetricHandler.decrypt(name=rsa_cloud_name, content=pwd)
-            return {user_key: user, pwd_key: pwd, f"plain_{user_key}": plain_user, f"plain_{pwd_key}": plain_pwd}
+            if info.get(u_key) and info.get(p_key):
+                account = ExtensionAccountEnum.get_account_info(bk_cloud_id, info, u_key, p_key)
+            else:
+                account = ExtensionAccountEnum.generate_random_account(bk_cloud_id)
+            return {
+                u_key: account["encrypt_user"],
+                p_key: account["encrypt_password"],
+                f"plain_{u_key}": account["user"],
+                f"plain_{p_key}": account["password"],
+            }
 
         # 获取部署组件的主机信息
         host_infos = self.data[service]
@@ -84,9 +86,11 @@ class CloudBaseServiceFlow(object):
             host = host_infos["host_infos"][0]
 
         # 获取组件的账号密码信息
-        account_info = {}
-        for account_tuple in ExtensionAccountEnum.get_account_tuple_with_service(service):
-            account_info.update(_fetch_usr_pwd(host, *account_tuple))
+        account_info = _fetch_usr_pwd(host, ExtensionAccountEnum.USER, ExtensionAccountEnum.PWD)
+        if service == CloudServiceName.DRS:
+            web_acc = _fetch_usr_pwd(host, ExtensionAccountEnum.WEBCONSOLE_USER, ExtensionAccountEnum.WEBCONSOLE_PWD)
+            account_info.update(web_acc)
+
         return account_info
 
     @staticmethod

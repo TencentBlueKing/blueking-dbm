@@ -147,7 +147,8 @@ def instances(
                 logger.warning("{} is not a valid ip, instance or domain".format(ad))
                 raise ValueError("{} is not a valid ip, instance or domain".format(ad))
 
-    if logical_city_ids:
+    # 如果没有城市ID，或者城市ID包含-1，则不过滤城市
+    if logical_city_ids and -1 not in logical_city_ids:
         queries &= Q(**{"machine__bk_city__logical_city_id__in": logical_city_ids})
 
     if statuses:

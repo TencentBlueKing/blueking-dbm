@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import binascii
 
+from django.conf import settings
 from django.utils.translation import ugettext as _
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
@@ -28,6 +29,10 @@ class ProxyPassPermission(permissions.BasePermission):
 
     @classmethod
     def verify_token(cls, db_cloud_token, bk_cloud_id):
+        # 兼容云区域容器化，app_code:app_secret的鉴权模式
+        if db_cloud_token == f"{settings.APP_CODE}:{settings.APP_TOKEN}":
+            return
+
         try:
             token = AsymmetricHandler.decrypt(name=AsymmetricCipherConfigType.PROXYPASS.value, content=db_cloud_token)
         except (RSADecryptException, binascii.Error, KeyError, IndexError):

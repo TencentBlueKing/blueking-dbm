@@ -98,7 +98,7 @@ class BaseServiceOperateFlowParamBuilder(builders.FlowParamBuilder):
             extension_type = ExtensionType.DBHA
 
         ext = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=extension_type)
-        account_info = ExtensionAccountEnum.get_account_in_info(ext.details)
+        account_info = ExtensionAccountEnum.get_account_map(ext.details)
         for host in host_infos:
             host.update(account_info)
 
