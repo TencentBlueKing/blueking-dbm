@@ -5,7 +5,8 @@
     :style="{
       fontSize: fontConfig.fontSize,
       lineHeight: fontConfig.lineHeight,
-    }">
+    }"
+    @click="handleInputFocus">
     <template
       v-for="(item, index) in panelRecords"
       :key="index">
@@ -48,11 +49,11 @@
 
   import type { ClusterItem, Props as MainProps } from '../../Index.vue';
 
-  import RenderMysqlMessage from './RenderMysqlMessage.vue';
+  import RenderMysqlMessage from './components/RenderMysqlMessage.vue';
   import RenderRedisMessage, {
     getDbOwnParams as getRedisOwnParams,
     getInputPlaceholder as getRedisPlaceholder,
-  } from './RenderRedisMessage.vue';
+  } from './components/RenderRedisMessage.vue';
 
   interface Props {
     clusterInfo: ClusterItem;
@@ -177,6 +178,10 @@
       immediate: true,
     },
   );
+
+  const handleInputFocus = () => {
+    inputRef.value.focus();
+  };
 
   // 回车输入指令
   const handleClickSendCommand = async (e: any) => {
