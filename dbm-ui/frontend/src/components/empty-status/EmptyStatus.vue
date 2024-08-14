@@ -72,3 +72,10 @@
   const handleRefresh = () => emits('refresh');
   const handleClearSearch = () => emits('clearSearch');
 </script>
+
+<style lang="less" scoped>
+  .bk-exception.bk-exception-part {
+    height: 260px;
+    padding-top: 48px;
+  }
+</style>

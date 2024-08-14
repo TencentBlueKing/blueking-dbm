@@ -60,7 +60,7 @@
       v-model="accountDialog.isShow"
       @success="fetchData" />
     <!-- 添加授权规则 -->
-    <CreateRuleSlider
+    <CreateRule
       v-model="ruleState.isShow"
       :account-id="ruleState.accountId"
       :rule-obj="ruleState.rowData"
@@ -136,12 +136,12 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/ClusterAuthorize.vue';
+  import CreateRule from '@views/db-manage/common/permission/create-rule/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
   import { dbOperations } from './common/const';
   import AccountDialog from './components/AccountDialog.vue';
-  import CreateRuleSlider from './components/CreateRule.vue';
 
   const { t } = useI18n();
 
@@ -329,11 +329,11 @@
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
           return (
-            <div class="cell-row pr-12" v-overflow-tips>
+            <TextOverflowLayout class="cell-row pr-12">
               {
                 !privilege ? '--' : privilege.replace(/,/g, '，')
               }
-            </div>
+            </TextOverflowLayout>
           );
         })
       ),
@@ -507,7 +507,7 @@
   };
 
   onMounted(() => {
-    fetchData()
+    fetchData();
   })
 </script>
 
