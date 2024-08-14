@@ -49,6 +49,7 @@
       <CreateRule
         v-model="createRuleShow"
         :account-id="createRuleAccountId"
+        :db-type="DBTypes.TENDBCLUSTER"
         :rule-obj="currentRule"
         @success="fetchData" />
       <ClusterAuthorize
@@ -74,6 +75,7 @@
   import {
     AccountTypes,
     ClusterTypes,
+    DBTypes,
     TicketTypes,
   } from '@common/const';
 
@@ -82,13 +84,13 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/ClusterAuthorize.vue';
+  import CreateRule from '@views/db-manage/common/permission/create-rule/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 
   import { dbOperations } from './common/consts';
   import AccountInfoDialog from './components/AccountInfoDialog.vue';
   import AddAccountDialog from './components/AddAccountDialog.vue';
-  import CreateRule from './components/CreateRule.vue';
   import { useDeleteAccount } from './hooks/useDeleteAccount';
 
   const { t } = useI18n();
@@ -280,11 +282,11 @@
           const { privilege } = rule;
 
           return (
-            <div class="cell-row" v-overflow-tips>
+            <TextOverflowLayout class="cell-row pr-12">
               {
                 !privilege ? '--' : privilege.replace(/,/g, '，')
               }
-            </div>
+            </TextOverflowLayout>
           );
         })
       ),
