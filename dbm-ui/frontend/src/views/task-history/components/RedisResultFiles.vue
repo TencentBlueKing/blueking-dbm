@@ -30,7 +30,7 @@
           class="mr-8"
           :disabled="!hasSelected"
           :loading="state.isBatchDownloading"
-          @click="handleDownload()">
+          @click="() => handleBatchDownload()">
           {{ $t('打包下载') }}
         </BkButton>
       </span>
@@ -66,10 +66,8 @@
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getKeyFiles,
-    getRedisFileUrls,
-  } from '@services/source/taskflow';
+  import { batchDownloadDirs,createBkrepoAccessToken } from '@services/source/storage';
+  import { getKeyFiles } from '@services/source/taskflow';
   import { createTicket } from '@services/source/ticket';
 
   import { useCopy, useTicketMessage } from '@hooks';
@@ -78,7 +76,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import { messageWarn } from '@utils';
+  import { downloadUrl, generateBkRepoDownloadUrl,messageWarn } from '@utils';
 
   import type { TableSelectionData } from '@/types/bkui-vue';
 
@@ -92,6 +90,7 @@
   const props = withDefaults(defineProps<Props>(), {
     showDelete: true,
   });
+
   const isShow = defineModel<boolean>({
     required: true,
     default: false,
@@ -103,6 +102,7 @@
   const ticketMessage = useTicketMessage();
 
   const isAnomalies = ref(false);
+
   const state = reactive({
     isLoading: false,
     data: [] as KeyFileItem[],
@@ -111,50 +111,72 @@
     fileLoadings: [] as boolean[],
     isBatchDownloading: false,
   });
-  const columns = [{
-    type: 'selection',
-    width: 52,
-  }, {
-    label: t('目录'),
-    field: 'name',
-    showOverflowTooltip: true,
-  }, {
-    label: t('大小'),
-    field: 'size_display',
-    width: 100,
-  }, {
-    label: t('集群'),
-    field: 'files',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: KeyFileItem }) => (
-      <div
-        class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.domain}</p>
-            ${data.cluster_alias ? `<p>${('集群别名')}：${data.cluster_alias}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.domain}</span><br />
-        <span class="cluster-name__alias">{data.cluster_alias}</span>
-      </div>
-    ),
-  }, {
-    label: t('提取时间'),
-    field: 'created_time',
-    width: 150,
-  }, {
-    label: t('操作'),
-    field: 'operations',
-    width: 200,
-    render: ({ index, data }: { index: number, data: KeyFileItem }) => (
-      <div>
-        <bk-button class="mr-8" text theme="primary" loading={state.downloadLoadings[index]} onClick={handleDownload.bind(null, [data], index)}>{ t('下载') }</bk-button>
-        <bk-button text theme="primary" loading={state.fileLoadings[index]} onClick={getDownloadUrl.bind(null, data, index)}>{ t('复制文件地址') }</bk-button>
-      </div>
-    ),
-  }];
+
+  const columns = [
+    {
+      type: 'selection',
+      width: 52,
+    },
+    {
+      label: t('目录'),
+      field: 'name',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('大小'),
+      field: 'size_display',
+      width: 100,
+    },
+    {
+      label: t('集群'),
+      field: 'files',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: KeyFileItem }) => (
+        <div
+          class="cluster-name text-overflow"
+          v-overflow-tips={{
+            content: `
+              <p>${t('域名')}：${data.domain}</p>
+              ${data.cluster_alias ? `<p>${('集群别名')}：${data.cluster_alias}</p>` : null}
+            `,
+            allowHTML: true,
+        }}>
+          <span>{data.domain}</span><br />
+          <span class="cluster-name__alias">{data.cluster_alias}</span>
+        </div>
+      ),
+    },
+    {
+      label: t('提取时间'),
+      field: 'created_time',
+      width: 150,
+    },
+    {
+      label: t('操作'),
+      field: 'operations',
+      width: 200,
+      render: ({ index, data }: { index: number, data: KeyFileItem }) => (
+        <div>
+          <bk-button
+            class="mr-8"
+            text
+            theme="primary"
+            loading={state.downloadLoadings[index]}
+            onClick={() => handleDownloadFile(data, index)}>
+            { t('下载') }
+          </bk-button>
+          <bk-button
+            text
+            theme="primary"
+            loading={state.fileLoadings[index]}
+            onClick={() => getDownloadUrl(data, index)}>
+            { t('复制文件地址') }
+          </bk-button>
+        </div>
+      ),
+    }
+  ];
+
   const hasSelected = computed(() => state.selected.length > 0);
 
   watch(isShow, (isShow) => {
@@ -187,14 +209,11 @@
    */
   function getDownloadUrl(data: KeyFileItem, index: number) {
     state.fileLoadings[index] = true;
-    getRedisFileUrls({
-      root_id: props.id,
-      paths: [data.path],
-    }).then((res) => {
-      if (res?.[data.path]) {
-        copy(res?.[data.path]);
-      }
-    })
+    createBkrepoAccessToken({ file_path: data.path })
+      .then((tokenResult) => {
+        const url = generateBkRepoDownloadUrl(tokenResult);
+        copy(url);
+      })
       .finally(() => {
         state.fileLoadings[index] = false;
       });
@@ -227,25 +246,18 @@
   }
 
   /**
-   * 下载文件
+   * 打包下载文件
    */
-  function handleDownload(data: KeyFileItem[] = state.selected, index?: number) {
-    if (data.length === 0) return;
-
-    const hasIndexLoading = typeof index === 'number';
-    if (hasIndexLoading) {
-      state.downloadLoadings[index] = true;
-    } else {
-      state.isBatchDownloading = true;
+  function handleBatchDownload() {
+    if (state.selected.length === 0) {
+      return;
     }
-    const paths = data.map(item => item.path);
-    getRedisFileUrls({
-      root_id: props.id,
-      paths,
-    })
-      .then((res = {}) => {
-        const values = Object.values(res);
-        const interval = setInterval(downloadFile, 600, values as string[]);
+    state.isBatchDownloading = true;
+    const paths = state.selected.map(item => item.path);
+    batchDownloadDirs({ paths })
+      .then((result) => {
+        const values = Object.values(result);
+        const interval = setInterval(downloadFile, 600, values);
         function downloadFile(urls: string[]) {
           if (urls.length > 0) {
             const url = urls.pop();
@@ -261,11 +273,23 @@
         }
       })
       .finally(() => {
-        if (hasIndexLoading) {
-          state.downloadLoadings[index] = false;
-        } else {
-          state.isBatchDownloading = false;
-        }
+        state.isBatchDownloading = false;
+      });
+  }
+
+  /**
+   * 下载单个文件
+   */
+  function handleDownloadFile(data: KeyFileItem, index: number) {
+    state.downloadLoadings[index] = true;
+
+    createBkrepoAccessToken({ file_path: data.path })
+      .then((tokenResult) => {
+        const url = generateBkRepoDownloadUrl(tokenResult);
+        downloadUrl(url);
+      })
+      .finally(() => {
+        state.downloadLoadings[index] = false;
       });
   }
 
