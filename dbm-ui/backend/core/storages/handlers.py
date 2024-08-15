@@ -81,8 +81,8 @@ class StorageHandler(object):
         resp = StreamingHttpResponse(
             resp.iter_content(),
             content_type="application/octet‑stream",
-            headers={"Content-Disposition": 'attachment; filename="dump.tar.gz"'},
         )
+        resp["Content-Disposition"] = 'attachment; filename="download.tar.gz"'
         return resp
 
     def delete_file(self, file_path) -> bool:
@@ -114,3 +114,11 @@ class StorageHandler(object):
             "repo": env.BKREPO_BUCKET,
             "path": path,
         }
+
+    def download_dirs(self, paths: list, force_download: bool):
+        """
+        指定目录下载，返回下载链接
+        :param paths: 下载目录列表
+        :param force_download: 是否强制下载
+        """
+        return {path: self.storage.download_url(path, force_download) for path in paths}

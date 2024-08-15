@@ -172,6 +172,11 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     def batch_download(self, paths: List[str]) -> requests.Response:
         return self.client.batch_download(paths)
 
+    def download_url(self, name, force_download):
+        if self.client.is_public:
+            return self.client.build_download_url(self._full_path(name), force_download)
+        return self.client.generate_presigned_url(self._full_path(name), expires_in=0)
+
     def get_file_md5(self, file_name: str) -> str:
         if not self.exists(name=file_name):
             raise FileExistsError(f"{self.project_id}/{self.bucket}/{file_name} not exist.")

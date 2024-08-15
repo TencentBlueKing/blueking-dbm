@@ -71,7 +71,3 @@ class BatchDownloadSerializer(serializers.Serializer):
     full_paths = serializers.ListField(
         help_text=_("文件路径列表"), child=serializers.CharField(help_text="full_path"), min_length=1
     )
-
-
-class DirDownloadSerializer(serializers.Serializer):
-    paths = serializers.ListField(help_text=_("目标目录列表"), child=serializers.CharField(help_text="path"), min_length=1)

@@ -20,6 +20,7 @@ from backend.core.storages.serializers import (
     BatchDownloadFileSerializer,
     CreateTokenSerializer,
     CreateTokenSerializerResponseSerializer,
+    DirDownloadSerializer,
     FileSerializer,
     TemporaryDownloadSerializer,
 )
@@ -83,3 +84,13 @@ class StorageViewSet(viewsets.SystemViewSet):
     def create_bkrepo_access_token(self, request):
         file_path = self.params_validate(self.get_serializer_class())["file_path"]
         return Response(StorageHandler().create_bkrepo_access_token(path=file_path))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("指定目录下载（返回下载链接）"),
+        request_body=DirDownloadSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=DirDownloadSerializer, pagination_class=None)
+    def download_dirs(self, requests, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(StorageHandler().download_dirs(**data))
