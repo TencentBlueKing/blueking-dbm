@@ -248,7 +248,7 @@ func (c *MasterInfo) LockTablesPreCheck(backupUser string) (err error) {
 	if err = c.KillBackupUserProcesslist(backupUser); err != nil {
 		return err
 	}
-	// 查看是否有长的非活跃连接
+	// 查看是否有长的活跃连接
 	if err = c.FindLongQuery(); err != nil {
 		return err
 	}

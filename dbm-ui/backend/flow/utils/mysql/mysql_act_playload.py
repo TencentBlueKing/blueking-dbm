@@ -824,6 +824,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": kwargs["ip"],
                     "slave_delay_check": self.ticket_data.get("is_check_delay", True),
+                    "client_conn_check": self.ticket_data.get("is_check_process", True),
+                    "verify_checksum": self.ticket_data.get("is_verify_checksum", True),
                     "is_dead_master": self.ticket_data["is_dead_master"],
                     "grant_repl": self.ticket_data["grant_repl"],
                     "locked_switch": self.ticket_data["locked_switch"],
