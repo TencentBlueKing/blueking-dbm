@@ -34,10 +34,7 @@ class DBModule(AuditedModel):
 
     class Meta:
         verbose_name = verbose_name_plural = _("DB模块(DBModule)")
-        unique_together = [
-            ("db_module_id", "bk_biz_id", "cluster_type"),
-            ("db_module_name", "bk_biz_id", "cluster_type"),
-        ]
+        unique_together = [("db_module_name", "bk_biz_id", "cluster_type")]
         indexes = [
             models.Index(fields=["bk_biz_id", "alias_name"]),
             models.Index(fields=["alias_name"]),

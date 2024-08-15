@@ -69,7 +69,8 @@ class Cluster(AuditedModel):
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
 
     class Meta:
-        unique_together = ("bk_biz_id", "name", "cluster_type", "db_module_id")
+        unique_together = [("bk_biz_id", "immute_domain", "cluster_type", "db_module_id"), ("immute_domain",)]
+
         verbose_name = verbose_name_plural = _("集群(Cluster)")
 
     def __str__(self):
