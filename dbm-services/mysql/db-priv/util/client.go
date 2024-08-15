@@ -103,7 +103,6 @@ func (c *Client) doNewInner(method, url string, params interface{}, headers map[
 	}
 
 	req, err := http.NewRequest(method, host+url, bytes.NewBuffer(body))
-
 	if err != nil {
 		slog.Error(fmt.Sprintf("create a new request(%s,%s,%+v) get an error", method, host+url, params), err)
 		return nil, fmt.Errorf("new request failed, err: %+v", err)

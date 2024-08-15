@@ -20,7 +20,6 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 	var temp []oneAddressResult
 	host := viper.GetString("dbRemoteService")
 	c := util.NewClientByHosts(host)
-
 	var url string
 	switch vtype {
 	case "mysql":
@@ -56,7 +55,6 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 			}
 		}
 	}
-
 	if len(errMsg) > 0 {
 		// 这里屏蔽一下sqlserver密码输出
 		errStr := RemovePasswordPrintForSqlserver(strings.Join(errMsg, "\n"))

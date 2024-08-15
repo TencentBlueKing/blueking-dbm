@@ -1,12 +1,16 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
+
+	"golang.org/x/time/rate"
 
 	"dbm-services/mysql/priv-service/util"
 
@@ -47,8 +51,9 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	wg := sync.WaitGroup{}
 	finishChan := make(chan bool, 1)
 	errorChan := make(chan error, 1)
-	tokenBucket := make(chan int, 10)
-
+	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	burst := 5                                  // 桶容量 5
+	limiter := rate.NewLimiter(limit, burst)
 	version, errOuter = GetMySQLVersion(address, bkCloudId)
 	if errOuter != nil {
 		return nil, errOuter
@@ -76,20 +81,25 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	if errOuter != nil {
 		return nil, errOuter
 	}
+	slog.Info("users", "repsOuter.CmdResults[0].TableData", repsOuter.CmdResults[0].TableData)
 	for _, row := range repsOuter.CmdResults[0].TableData {
 		if row["user"] == "" || row["host"] == "" {
 			return nil, fmt.Errorf("execute %s in %s ,user or host is null", selectUser, address)
 		}
 		userHost := fmt.Sprintf(`'%s'@'%s'`, row["user"].(string), row["host"].(string))
 		wg.Add(1)
-		tokenBucket <- 0 // 在这里操作 token 可以防止过多的协程启动但处于等待 token 的阻塞状态
 		go func(userHost string, needShowCreateUser bool) {
+			slog.Info("msg", "userHost", userHost)
 			defer func() {
-				<-tokenBucket
 				wg.Done()
 			}()
 			var Grants []string
 			var err error
+			err = limiter.Wait(context.Background())
+			if err != nil {
+				errorChan <- err
+				return
+			}
 			err = GetUserGantSql(needShowCreateUser, userHost, address, &Grants, bkCloudId)
 			if err != nil {
 				errorChan <- err
@@ -103,7 +113,6 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	go func() {
 		wg.Wait()
 		close(finishChan)
-		close(tokenBucket)
 	}()
 
 	select {
@@ -569,15 +578,23 @@ func CheckGrantInMySqlVersion(userGrants []UserGrant, address string, bkCloudId 
 // ImportMysqlPrivileges 执行mysql权限
 func ImportMysqlPrivileges(grants []string, address string, bkCloudId int64) error {
 	var errs []string
-	prepare := []string{flushPriv, setBinlogOff}
-	// nginx默认上传传文件的大小限制是1M，为避免413 Request Entity Too Large报错，切分
-	tmp := util.SplitArray(grants, 2000)
+	grants = append([]string{flushPriv, setBinlogOff}, grants...)
+	grants = append(grants, flushPriv)
+	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	burst := 5                                  // 桶容量 5
+	limiter := rate.NewLimiter(limit, burst)
+	// nginx默认上传文件的大小限制是1M，为避免413 Request Entity Too Large报错，切分
+	tmp := util.SplitArray(grants, 100)
 	for _, vsqls := range tmp {
-		vsqls = append(prepare, vsqls...)
-		vsqls = append(vsqls, prepare...)
-		slog.Info("msg", "vsqls", vsqls)
+		slog.Info("msg", "sqls", vsqls)
+		err := limiter.Wait(context.Background())
+		if err != nil {
+			slog.Error("msg", "limiter.Wait", err)
+			errs = append(errs, err.Error())
+			continue
+		}
 		queryRequest := QueryRequest{[]string{address}, vsqls, true, 60, bkCloudId}
-		_, err := OneAddressExecuteSql(queryRequest)
+		_, err = OneAddressExecuteSql(queryRequest)
 		if err != nil {
 			errs = append(errs, err.Error())
 		}
