@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"dbm-services/common/go-pubpkg/errno"
 	"dbm-services/mysql/priv-service/util"
 	"fmt"
@@ -8,6 +9,9 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/asaskevich/govalidator"
 )
@@ -108,11 +112,20 @@ func GetProxyPrivilege(address string, hosts []string, bkCloudId int64, specifie
 // ImportProxyPrivileges 导入proxy白名单
 func ImportProxyPrivileges(grants []string, address string, bkCloudId int64) error {
 	var errs []string
-	// nginx默认上传传文件的大小限制是1M，为避免413 Request Entity Too Large报错，切分
-	tmp := util.SplitArray(grants, 2000)
+	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	burst := 5                                  // 桶容量 5
+	limiter := rate.NewLimiter(limit, burst)
+	// nginx默认上传文件的大小限制是1M，为避免413 Request Entity Too Large报错，切分
+	tmp := util.SplitArray(grants, 100)
 	for _, vsqls := range tmp {
+		err := limiter.Wait(context.Background())
+		if err != nil {
+			slog.Error("msg", "limiter.Wait", err)
+			errs = append(errs, err.Error())
+			continue
+		}
 		queryRequest := QueryRequest{[]string{address}, vsqls, true, 30, bkCloudId}
-		_, err := OneAddressExecuteProxySql(queryRequest)
+		_, err = OneAddressExecuteProxySql(queryRequest)
 		if err != nil {
 			errs = append(errs, err.Error())
 		}
