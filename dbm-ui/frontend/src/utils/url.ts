@@ -10,7 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 */
-
+import { createBkrepoAccessToken } from '@services/source/storage';
 import _ from 'lodash';
 
 export const parseURL = (url: string) => {
@@ -94,4 +94,8 @@ export const buildURLParams = (params: any) => {
   });
   return parts.join('&');
 };
+
+// 根据 createBkrepoAccessToken 请求返回的响应对象组装bkrepo的下载链接
+export const generateBkRepoDownloadUrl = (tokenResult: ServiceReturnType<typeof createBkrepoAccessToken>) => `${tokenResult.url}/generic/temporary/download/${tokenResult.project}/${tokenResult.repo}/${tokenResult.path}?token=${tokenResult.token}&download=true`
+
 

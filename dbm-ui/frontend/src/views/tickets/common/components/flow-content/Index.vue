@@ -39,7 +39,7 @@
   <!-- 人工确认 -->
   <template v-else-if="content.status === 'PENDING' && content.flow_type === 'PAUSE'">
     <I18nT keypath="等待C确认是否执行T">
-      <span>{{ ticketData.creator }}</span>
+      <span>{{ ticketData.creator === 'system' ? content.details.operators?.join(' , ') : ticketData.creator }}</span>
       <span>{{ manualNexFlowDisaply }}</span>
     </I18nT>
   </template>

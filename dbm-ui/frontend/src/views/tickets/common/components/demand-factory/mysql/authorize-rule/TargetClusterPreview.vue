@@ -51,7 +51,8 @@
   import { useI18n } from 'vue-i18n';
 
   import { getModules } from '@services/source/cmdb';
-  import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
+  import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
 
   import { useDefaultPagination } from '@hooks';
 
@@ -65,7 +66,7 @@
 
   interface Props {
     title?: string,
-    ticketDetails: TicketDetails<MysqlAuthorizationDetails>,
+    ticketDetails: TicketModel<MysqlAuthorizationDetails>,
   }
 
   const props = withDefaults(defineProps<Props>(), {
