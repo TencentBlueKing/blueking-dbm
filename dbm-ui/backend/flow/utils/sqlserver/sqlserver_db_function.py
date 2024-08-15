@@ -45,9 +45,9 @@ def sqlserver_match_dbs(
     # 拼接匹配正则
     db_filter = DbTableFilter(
         include_db_patterns=db_patterns,
-        include_table_patterns=[""],
+        include_table_patterns=[],
         exclude_db_patterns=ignore_db_patterns,
-        exclude_table_patterns=[""],
+        exclude_table_patterns=[],
     )
     db_filter.inject_system_dbs([SQLSERVER_CUSTOM_SYS_DB])
     db_filter_pattern = re.compile(db_filter.db_filter_regexp())
