@@ -20,7 +20,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import Cluster
-from backend.db_services.taskflow.serializers import BatchDownloadSerializer, DirDownloadSerializer, FlowTaskSerializer
+from backend.db_services.taskflow.serializers import FlowTaskSerializer
 from backend.flow.models import FlowTree
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -96,53 +96,3 @@ class KeyOpsViewSet(viewsets.ReadOnlyAuditedModelViewSet):
                 }
             )
         return Response(task_files)
-
-    @common_swagger_auto_schema(
-        operation_summary=_("打包下载结果文件列表"),
-        request_body=BatchDownloadSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        methods=["POST"],
-        detail=False,
-        serializer_class=BatchDownloadSerializer,
-        renderer_classes=(BinaryFileRenderer,),
-    )
-    def download_key_files(self, requests, *args, **kwargs):
-        """
-        key提取结果文件列表
-        考虑到文件列表参数比较长，暂定post请求
-        """
-
-        validated_data = self.params_validate(self.get_serializer_class())
-
-        storage = get_storage()
-        resp = storage.batch_download(validated_data["full_paths"])
-
-        return Response(
-            resp.iter_content(),
-            headers={"Content-Disposition": 'attachment; filename="abc.tar.gz"'},
-            content_type="application/octet‑stream",
-        )
-
-    @common_swagger_auto_schema(
-        operation_summary=_("指定目录下载（返回下载链接）"),
-        request_body=DirDownloadSerializer(),
-        tags=[SWAGGER_TAG],
-    )
-    @action(
-        methods=["POST"],
-        detail=False,
-        serializer_class=DirDownloadSerializer,
-        pagination_class=None,
-    )
-    def download_dirs(self, requests, *args, **kwargs):
-        """
-        指定目录下载
-        """
-
-        validated_data = self.params_validate(self.get_serializer_class())
-
-        storage = get_storage()
-
-        return Response({path: storage.url(path) for path in validated_data["paths"]})
