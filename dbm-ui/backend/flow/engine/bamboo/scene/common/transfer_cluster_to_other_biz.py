@@ -13,7 +13,8 @@ from typing import Dict, Optional
 
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
+from backend.db_meta.models import Cluster, ClusterEntry
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.clone_priv_rules_to_other_biz import (
     ClonePrivRulesToOtherComponent,
@@ -44,9 +45,17 @@ class TransferMySQLClusterToOtherBizFlow(object):
         clusters = Cluster.objects.filter(bk_biz_id=self.bk_biz_id, immute_domain__in=self.cluster_domain_list).all()
         bk_cloud_ids = []
         source_bk_biz_ids = []
+        slave_domain_list = []
         for cluster in clusters:
             bk_cloud_ids.append(cluster.bk_cloud_id)
             source_bk_biz_ids.append(cluster.bk_biz_id)
+            slave_entrys = ClusterEntry.objects.filter(
+                cluster_id=cluster.id,
+                cluster_entry_type=ClusterEntryType.DNS,
+                role=ClusterEntryRole.SLAVE_ENTRY,
+            ).all()
+            for slave_entry in slave_entrys:
+                slave_domain_list.append(slave_entry.entry)
 
         uniq_bk_cloud_ids = list(set(bk_cloud_ids))
         uniq_source_bk_biz_ids = list(set(source_bk_biz_ids))
@@ -85,7 +94,7 @@ class TransferMySQLClusterToOtherBizFlow(object):
             kwargs={
                 "target_biz_id": self.target_biz_id,
                 "source_biz_id": source_bk_biz_id,
-                "cluster_domain_list": self.cluster_domain_list,
+                "cluster_domain_list": self.cluster_domain_list + slave_domain_list,
                 "db_module_id": self.dest_db_module_id,
                 "bk_cloud_id": bk_cloud_id,
             },
