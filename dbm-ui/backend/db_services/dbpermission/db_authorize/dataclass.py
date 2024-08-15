@@ -16,7 +16,8 @@ from typing import Dict, List
 from django.core.files.uploadedfile import InMemoryUploadedFile
 
 from backend.constants import IP_RE_PATTERN
-from backend.db_meta.models.cluster import Cluster
+from backend.db_meta.enums import ClusterEntryType
+from backend.db_meta.models import ClusterEntry
 from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 
 
@@ -37,9 +38,8 @@ class AuthorizeMeta:
     def __post_init__(self):
         # 获取操作的集群id，方便后续在ticket中记录
         if self.target_instances:
-            self.cluster_ids = [
-                cluster.id for cluster in Cluster.objects.filter(immute_domain__in=self.target_instances)
-            ]
+            ens = ClusterEntry.objects.filter(cluster_entry_type=ClusterEntryType.DNS, entry__in=self.target_instances)
+            self.cluster_ids = ens.values_list("cluster_id", flat=True)
 
     @classmethod
     def from_dict(cls, init_data: Dict) -> "AuthorizeMeta":

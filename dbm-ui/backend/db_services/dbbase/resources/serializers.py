@@ -36,7 +36,8 @@ class ListResourceSLZ(serializers.Serializer):
 
 
 class ListMySQLResourceSLZ(ListResourceSLZ):
-    pass
+    master_domain = serializers.CharField(required=False)
+    slave_domain = serializers.CharField(required=False)
 
 
 class ListRedisResourceSLZ(ListResourceSLZ):

@@ -22,7 +22,7 @@ from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import AppCache, Cluster, ClusterEntry, DBModule, Machine, ProxyInstance, StorageInstance
 from backend.db_services.dbbase.instances.handlers import InstanceHandler
 from backend.db_services.dbbase.resources.query_base import (
-    build_q_for_domain_by_custer,
+    build_q_for_domain_by_cluster,
     build_q_for_domain_by_instance,
     build_q_for_instance_filter,
 )
@@ -386,7 +386,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             # 域名精确查询，主要用于工具箱手动填入域名查询
             "exact_domain": Q(immute_domain=query_params.get("exact_domain")),
             # 域名
-            "domain": build_q_for_domain_by_custer(query_params),
+            "domain": build_q_for_domain_by_cluster(domains=query_params.get("domain", "").split(",")),
         }
 
         filter_params_map.update(inner_filter_params_map)
