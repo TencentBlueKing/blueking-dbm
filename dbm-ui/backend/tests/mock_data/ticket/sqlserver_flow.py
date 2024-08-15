@@ -554,7 +554,7 @@ SQLSERVER_CLUSTER_DATA = [
         "bk_biz_id": BK_BIZ_ID,
         "cluster_type": ClusterType.SqlserverHA.value,
         "db_module_id": DB_MODULE_ID + 1,
-        "immute_domain": "test3-sqlserver.dba-test.db",
+        "immute_domain": "test3-sqlserver-1.dba-test.db",
         "major_version": "MSSQL_Enterprise_2016",
         "phase": "offline",
         "status": "normal",
