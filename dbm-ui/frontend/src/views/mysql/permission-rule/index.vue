@@ -466,6 +466,7 @@
           await deleteAccount({
             bizId: window.PROJECT_CONFIG.BIZ_ID,
             account_id: row.account.account_id,
+            account_type: 'mysql',
           });
           Message({
             message: t('成功删除账号'),
