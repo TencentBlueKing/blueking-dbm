@@ -18,15 +18,15 @@ import { getResourcesByBizId as getSpiderResources } from '@services/source/spid
 import { getTendbhaListByBizId } from '@services/source/tendbha';
 import { getTendbsingleListByBizId } from '@services/source/tendbsingle';
 import type { ResourceItem, SearchFilterItem } from '@services/types';
-import type { MysqlAuthorizationDetails, TicketDetails } from '@services/types/ticket';
-
+import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
+import TicketModel from '@services/model/ticket/ticket';
 import { useDefaultPagination } from '@hooks';
 
 import { ClusterTypes, DBTypes } from '@common/const';
 
 import { getSearchSelectorParams } from '@utils';
 
-export function useTargetClusterData(ticketDetails: TicketDetails<MysqlAuthorizationDetails>) {
+export function useTargetClusterData(ticketDetails: TicketModel<MysqlAuthorizationDetails>) {
   const { t } = useI18n();
   const apiMap = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleListByBizId,

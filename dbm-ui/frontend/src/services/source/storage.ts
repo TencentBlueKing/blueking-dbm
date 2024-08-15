@@ -51,3 +51,19 @@ export function createBkrepoAccessToken(params: { file_path: string }) {
     url: string,
   }>(`${path}/create_bkrepo_access_token/`, params);
 }
+
+/**
+ * 批量下载
+ */
+export function batchDownload(params: { file_path_list: string[] }) {
+  return http.post<{
+    file_path_list: string[]
+  }>(`${path}/batch_download/`, params);
+}
+
+/**
+ * 批量下载目录（返回下载链接）
+ */
+export function batchDownloadDirs(params: { paths: string[] }) {
+  return http.post<Record<string, string>>(`${path}/download_dirs/`, params);
+}
