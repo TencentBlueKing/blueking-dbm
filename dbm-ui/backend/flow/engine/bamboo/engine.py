@@ -182,7 +182,7 @@ class BambooEngine:
                     status = states.REVOKED
                 activities[node_id]["status"] = status
 
-    def recursion_nodes_status(self, tree: Dict, flow_node_maps: Dict):
+    def recursion_nodes_status(self, tree: Dict, flow_node_maps: Dict, node_state_maps: Dict):
         for key, values in tree.items():
             if key in flow_node_maps:
                 node = flow_node_maps[key]
@@ -191,10 +191,14 @@ class BambooEngine:
                 tree[key]["started_at"] = int(datetime2timestamp(node.started_at))
                 tree[key]["updated_at"] = int(datetime2timestamp(node.updated_at))
                 tree[key]["hosts"] = node.hosts
+                # 补充node跳过和重试信息
+                if key in node_state_maps:
+                    tree[key]["skip"] = node_state_maps[key].skip
+                    tree[key]["retry"] = node_state_maps[key].retry
                 continue
 
             if isinstance(values, dict):
-                self.recursion_nodes_status(values, flow_node_maps)
+                self.recursion_nodes_status(values, flow_node_maps, node_state_maps)
 
     def recursion_subprocess_act_status(self, root_id: str, activities: Dict, act_status: List, flow_node_maps: Dict):
         for node_id, activity in activities.items():
@@ -221,15 +225,16 @@ class BambooEngine:
             return None
         activities = tree["activities"]
         flow_node_maps = {node.node_id: node for node in FlowNode.objects.filter(root_id=self.root_id)}
+        node_state_maps = {node.node_id: node for node in BambooDjangoRuntime().get_state_by_root(self.root_id)}
         # pipeline 节点状态，根据父亲节点分组
         node_children_status = defaultdict(lambda: {"status": "", "children_states": []})
-        for node in BambooDjangoRuntime().get_state_by_root(self.root_id):
+        for node in node_state_maps.values():
             node_children_status[node.node_id]["status"] = node.name
             node_children_status[node.parent_id]["children_states"].append(node.name)
 
         self.recursion_subprocess_status(activities, flow_node_maps, node_children_status)
         self.recursion_translate_activity(activities)
-        self.recursion_nodes_status(tree, flow_node_maps)
+        self.recursion_nodes_status(tree, flow_node_maps, node_state_maps)
         return tree
 
     def get_pipeline_tree(self) -> Optional[Dict]:

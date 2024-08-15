@@ -14,12 +14,13 @@ from django.db.models import F, Q, QuerySet
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.api.cluster.tendbha.detail import scan_cluster
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterEntryRole, InstanceInnerRole
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, StorageInstance
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import ResourceList
+from backend.db_services.dbbase.resources.query_base import build_q_for_domain_by_cluster
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 
 
@@ -53,6 +54,15 @@ class ListRetrieveResource(query.ListRetrieveResource):
         **kwargs,
     ) -> ResourceList:
         """查询集群信息"""
+        filter_params_map = {
+            # 精确查询主从域名
+            "master_domain": build_q_for_domain_by_cluster(
+                domains=query_params.get("master_domain", "").split(","), role=ClusterEntryRole.MASTER_ENTRY
+            ),
+            "slave_domain": build_q_for_domain_by_cluster(
+                domains=query_params.get("slave_domain", "").split(","), role=ClusterEntryRole.SLAVE_ENTRY
+            ),
+        }
         return super()._list_clusters(
             bk_biz_id, query_params, limit, offset, filter_params_map, filter_func_map, **kwargs
         )

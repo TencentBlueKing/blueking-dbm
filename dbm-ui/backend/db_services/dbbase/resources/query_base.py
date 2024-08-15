@@ -4,15 +4,16 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterEntryType
 
 
-def build_q_for_domain_by_custer(query_params):
-    # 从查询参数中提取域
-    domains = query_params.get("domain", "").split(",")
-
+def build_q_for_domain_by_cluster(domains, role=None):
     # 基础查询条件
     base_query = Q(clusterentry__cluster_entry_type=ClusterEntryType.DNS.value)
-    if len(domains) == 1:  # 单个域，执行模糊查询
+    if role:
+        base_query &= Q(clusterentry__role=role)
+
+    # 单个域名模糊查询，多个域名精确查询
+    if len(domains) == 1:
         query = Q(clusterentry__entry__icontains=domains[0].strip())
-    else:  # 多个域，执行精确查询
+    else:
         # 使用strip确保去除前后空格
         domains = [domain.strip() for domain in domains if domain.strip()]
         query = Q(clusterentry__entry__in=domains)
