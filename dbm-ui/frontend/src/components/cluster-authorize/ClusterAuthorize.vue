@@ -213,6 +213,7 @@
   import { getPermissionRules, preCheckAuthorizeRules } from '@services/source/permission';
   import { getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
   import { preCheckSqlserverAuthorizeRules } from '@services/source/sqlserverPermissionAuthorize';
+  import { getTendbhaList, getTendbhaSalveList } from '@services/source/tendbha';
   import { createTicket } from '@services/source/ticket';
   import { getWhitelist } from '@services/source/whitelist';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
@@ -306,6 +307,11 @@
     tendbhaSlave: {
       name: t('高可用-从域名'),
       showPreviewResultTitle: true,
+      getResourceList: (params: any) => {
+        params.slave_domain = params.domain;
+        delete params.domain;
+        return getTendbhaSalveList(params)
+      }
     },
     [ClusterTypes.TENDBCLUSTER]: {
       name: t('TendbCluster集群'),
@@ -314,6 +320,11 @@
     [ClusterTypes.TENDBHA]: {
       name: t('高可用-主域名'),
       showPreviewResultTitle: true,
+      getResourceList: (params: any) => {
+        params.master_domain = params.domain;
+        delete params.domain;
+        return getTendbhaList(params)
+      }
     },
     [ClusterTypes.TENDBSINGLE]: {
       name: t('单节点集群'),

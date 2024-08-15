@@ -32,6 +32,8 @@ export function getTendbhaList(params: {
   cluster_ids?: number[] | number;
   domain?: string;
   exact_domain?: string;
+  master_domain?: string;
+  slave_domain?: string;
   id?: string;
 }) {
   return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
@@ -55,6 +57,8 @@ export function getTendbhaSalveList(params: {
   dbType?: string;
   cluster_ids?: number[] | number;
   domain?: string;
+  master_domain?: string;
+  slave_domain?: string;
 }) {
   return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
