@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-
 import { TicketTypes } from '@common/const';
 
 import type { IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
@@ -162,6 +161,10 @@ export interface FlowItem {
   todos: FlowItemTodo[];
   update_at: string;
   url: string;
+  details: {
+    ticket_data: MySQLImportSQLFileDetails;
+    operators?: string[]; // 系统单据处理人才会有这个
+  };
 }
 
 /**
