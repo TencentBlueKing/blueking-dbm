@@ -17,7 +17,9 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')" />
+        :title="
+          t('迁移主从：集群主从实例将成对迁移至新机器。默认迁移同机所有关联集群，也可迁移部分集群，迁移会下架旧实例')
+        " />
       <div
         class="mt16"
         style="display: flex">
@@ -135,7 +137,7 @@
   const backupSource = ref('local');
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -199,41 +201,40 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
     }
     dataList.splice(index, 1);
     tableData.value = dataList;
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: 'MYSQL_MIGRATE_CLUSTER',
-          remark: '',
-          details: {
-            infos: data,
-            backup_source: backupSource.value,
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      await createTicket({
+        ticket_type: 'MYSQL_MIGRATE_CLUSTER',
+        remark: '',
+        details: {
+          infos,
+          backup_source: backupSource.value,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
 
-          router.push({
-            name: 'MySQLMasterSlaveClone',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+        router.push({
+          name: 'MySQLMasterSlaveClone',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {
