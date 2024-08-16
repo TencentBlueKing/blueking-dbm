@@ -281,7 +281,7 @@ class CCTopoOperator:
                 bk_process_name=f"{self.db_type}-{'tbinlogdumper'}",
                 labels_dict={
                     "exporter_conf_path": f"exporter_{inst.listen_port}.cnf",
-                    "appid": inst.bk_biz_id,
+                    "appid": str(inst.bk_biz_id),
                 },
             )
             inst.bk_instance_id = bk_instance_id
