@@ -156,42 +156,40 @@
     }
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        checkFlashbackDatabase({
-          infos: data,
-        }).then((checkResult) => {
-          const checkResultError = _.find(checkResult, (item) => !!item.message);
-          if (checkResultError) {
-            messageError(checkResultError.message);
-            return;
-          }
-          return createTicket({
-            ticket_type: 'TENDBCLUSTER_FLASHBACK',
-            remark: '',
-            details: {
-              infos: data,
-            },
-            bk_biz_id: currentBizId,
-          }).then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'spiderFlashback',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const checkResult = await checkFlashbackDatabase({
+        infos,
       });
+      const checkResultError = _.find(checkResult, (item) => !!item.message);
+      if (checkResultError) {
+        messageError(checkResultError.message);
+        return;
+      }
+      await createTicket({
+        ticket_type: 'TENDBCLUSTER_FLASHBACK',
+        remark: '',
+        details: {
+          infos,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'spiderFlashback',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticket_id: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

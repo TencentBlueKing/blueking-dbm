@@ -82,10 +82,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -168,35 +165,34 @@
     }
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: 'TENDBCLUSTER_MASTER_SLAVE_SWITCH',
-          remark: '',
-          details: {
-            ...formData,
-            infos: data,
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const data = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      await createTicket({
+        ticket_type: 'TENDBCLUSTER_MASTER_SLAVE_SWITCH',
+        remark: '',
+        details: {
+          ...formData,
+          infos: data,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
 
-          router.push({
-            name: 'spiderMasterSlaveSwap',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+        router.push({
+          name: 'spiderMasterSlaveSwap',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

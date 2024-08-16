@@ -74,7 +74,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -227,53 +226,46 @@
     tableData.value = dataList;
   };
 
-  const handleSubmit = () => {
-    InfoBox({
-      title: t('确认原地重建n个从库?', { n: totalNum.value }),
-      width: 500,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        Promise.all(rowRefs.value.map((item) => item.getValue()))
-          .then(() =>
-            createTicket({
-              ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
-              remark: '',
-              details: {
-                backup_source: backupSource.value,
-                infos: tableData.value.map((tableItem) => {
-                  const { slave } = tableItem;
-                  return {
-                    cluster_id: slave.clusterId,
-                    slave: {
-                      bk_biz_id: currentBizId,
-                      bk_cloud_id: slave.bkCloudId,
-                      bk_host_id: slave.bkHostId,
-                      ip: slave.ip,
-                      port: slave.port,
-                    },
-                  };
-                }),
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      await Promise.all(rowRefs.value.map((item) => item.getValue()));
+      await createTicket({
+        ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE,
+        remark: '',
+        details: {
+          backup_source: backupSource.value,
+          infos: tableData.value.map((tableItem) => {
+            const { slave } = tableItem;
+            return {
+              cluster_id: slave.clusterId,
+              slave: {
+                bk_biz_id: currentBizId,
+                bk_cloud_id: slave.bkCloudId,
+                bk_host_id: slave.bkHostId,
+                ip: slave.ip,
+                port: slave.port,
               },
-              bk_biz_id: currentBizId,
-            }).then((data) => {
-              window.changeConfirm = false;
+            };
+          }),
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
 
-              router.push({
-                name: 'spiderSlaveRebuild',
-                params: {
-                  page: 'success',
-                },
-                query: {
-                  ticketId: data.id,
-                },
-              });
-            }),
-          )
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+        router.push({
+          name: 'spiderSlaveRebuild',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

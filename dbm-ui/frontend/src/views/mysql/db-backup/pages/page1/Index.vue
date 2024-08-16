@@ -224,36 +224,36 @@
     }
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: 'MYSQL_HA_FULL_BACKUP',
-          remark: '',
-          details: {
-            infos: {
-              ...formData,
-              clusters: data,
-            },
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+
+      await createTicket({
+        bk_biz_id: currentBizId,
+        ticket_type: 'MYSQL_HA_FULL_BACKUP',
+        remark: '',
+        details: {
+          infos: {
+            ...formData,
+            clusters: infos,
           },
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MySQLDBBackup',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+        },
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MySQLDBBackup',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

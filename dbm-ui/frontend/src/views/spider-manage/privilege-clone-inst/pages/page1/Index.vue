@@ -162,45 +162,43 @@
     }
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        precheckPermissionClone({
-          bizId: currentBizId,
-          clone_type: 'instance',
-          clone_list: data,
-          clone_cluster_type: 'tendbcluster',
-        }).then((precheckResult) => {
-          if (!precheckResult.pre_check) {
-            return Promise.reject();
-          }
-          return createTicket({
-            ticket_type: 'TENDBCLUSTER_INSTANCE_CLONE_RULES',
-            remark: '',
-            details: {
-              ...precheckResult,
-              clone_type: 'instance',
-            },
-            bk_biz_id: currentBizId,
-          }).then((data) => {
-            window.changeConfirm = false;
-
-            router.push({
-              name: 'spiderPrivilegeCloneInst',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const precheckResult = await precheckPermissionClone({
+        bizId: currentBizId,
+        clone_type: 'instance',
+        clone_list: infos,
+        clone_cluster_type: 'tendbcluster',
       });
+      if (!precheckResult.pre_check) {
+        return;
+      }
+      await createTicket({
+        ticket_type: 'TENDBCLUSTER_INSTANCE_CLONE_RULES',
+        remark: '',
+        details: {
+          ...precheckResult,
+          clone_type: 'instance',
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
+
+        router.push({
+          name: 'spiderPrivilegeCloneInst',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {
