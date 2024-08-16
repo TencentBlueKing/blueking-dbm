@@ -60,6 +60,8 @@ class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     )
 
     def validate(self, attrs):
+        # 校验集群是否可用
+        super().validate_cluster_can_access(attrs)
         return attrs
 
 

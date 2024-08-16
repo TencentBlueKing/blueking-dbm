@@ -41,6 +41,7 @@ from backend.db_meta.enums.cluster_status import (
     ClusterCommonStatusFlags,
     ClusterDBSingleStatusFlags,
     ClusterRedisStatusFlags,
+    ClusterSqlserverStatusFlags,
 )
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
@@ -214,6 +215,17 @@ class Cluster(AuditedModel):
             flag_obj = ClusterRedisStatusFlags(0)
             if self.storageinstance_set.filter(status=InstanceStatus.UNAVAILABLE.value).exists():
                 flag_obj |= ClusterRedisStatusFlags.RedisUnavailable
+        # sqlserver ha
+        if self.cluster_type == ClusterType.SqlserverHA.value:
+            flag_obj = ClusterSqlserverStatusFlags(0)
+            if self.storageinstance_set.filter(
+                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.MASTER.value
+            ).exists():
+                flag_obj |= ClusterSqlserverStatusFlags.BackendMasterUnavailable
+            if self.storageinstance_set.filter(
+                status=InstanceStatus.UNAVAILABLE.value, instance_inner_role=InstanceInnerRole.SLAVE.value
+            ).exists():
+                flag_obj |= ClusterSqlserverStatusFlags.BackendSlaveUnavailable
         # 默认
         else:
             logger.debug(_("{} 未实现 status flag, 认为实例异常会导致集群异常".format(self.cluster_type)))

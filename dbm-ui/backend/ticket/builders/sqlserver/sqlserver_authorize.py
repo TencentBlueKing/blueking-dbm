@@ -19,17 +19,18 @@ from backend.db_services.mysql.permission.exceptions import AuthorizeDataHasExpi
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder
+from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
-class SQLServerAuthorizeRulesSerializer(serializers.Serializer):
+class SQLServerAuthorizeRulesSerializer(SQLServerBaseOperateDetailSerializer):
     authorize_uid = serializers.CharField(help_text=_("授权数据缓存uid"))
     authorize_data = serializers.ListSerializer(
         child=PreCheckAuthorizeRulesSerializer(), help_text=_("授权数据信息"), required=False
     )
 
     def validate(self, attrs):
+        super().validate_cluster_can_access(attrs)
         return attrs
 
 

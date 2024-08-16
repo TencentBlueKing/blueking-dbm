@@ -43,6 +43,11 @@ class ClusterDBHAStatusFlags(ClusterStatusFlags):
     BackendSlaveUnavailable = auto()
 
 
+class ClusterSqlserverStatusFlags(ClusterStatusFlags):
+    BackendMasterUnavailable = auto()
+    BackendSlaveUnavailable = auto()
+
+
 class ClusterTenDBClusterStatusFlag(ClusterStatusFlags):
     SpiderUnavailable = auto()
     RemoteMasterUnavailable = auto()

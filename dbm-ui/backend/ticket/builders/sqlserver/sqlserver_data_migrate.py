@@ -58,6 +58,8 @@ class SQLServerDataMigrateDetailSerializer(SQLServerBaseOperateDetailSerializer)
         # TODO: 验证target_db_name如果在目标集群存在，则rename_db_name不为空
         # TODO: 验证所有的rename_db_name一定不在目标集群存在
         super().validate(attrs)
+        # 校验集群是否可用
+        super().validate_cluster_can_access(attrs)
         return attrs
 
 

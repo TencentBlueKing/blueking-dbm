@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
@@ -34,6 +35,10 @@ class SQLServerAddSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
 
     def validate(self, attrs):
+        # 校验集群是否可用，集群类型为高可用
+        super().validate_cluster_can_access(attrs)
+        super().validated_cluster_type(attrs, ClusterType.SqlserverHA)
+
         super().validate(attrs)
         return attrs
 

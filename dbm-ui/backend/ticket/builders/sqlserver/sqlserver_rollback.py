@@ -56,6 +56,9 @@ class SQLServerRollbackDetailSerializer(SQLServerBaseOperateDetailSerializer):
         # TODO: 验证target_db_name如果在目标集群存在，则rename_db_name不为空
         # TODO: 验证所有的rename_db_name一定不在目标集群存在
 
+        # 校验集群是否可用
+        super().validate_cluster_can_access(attrs)
+
         # 如果是指定回档时间，则查出最近的备份记录
         for info in attrs["infos"]:
             if not info.get("restore_time"):

@@ -33,6 +33,8 @@ class SQLServerRenameSerializer(SQLServerBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         super().validate(attrs)
+        # 校验集群是否可用
+        super().validate_cluster_can_access(attrs)
 
         # DB重命名校验，逻辑同mysql
         cluster_ids = [info["cluster_id"] for info in attrs["infos"]]
