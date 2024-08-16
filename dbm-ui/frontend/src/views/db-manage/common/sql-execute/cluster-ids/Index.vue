@@ -54,6 +54,11 @@
 </script>
 <script setup lang="tsx">
   import _ from 'lodash';
+  import {
+    ref,
+    shallowRef,
+    watch,
+  } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -92,7 +97,14 @@
     {
       label: t('类型'),
       field: 'cluster_type',
-      render: ({ data }: {data: IClusterData}) => (data.cluster_type === 'tendbha' ? t('主从') : t('单节点')),
+      render: ({ data }: {data: IClusterData}) => {
+        const clusterNameMap = {
+          [ClusterTypes.TENDBHA]: t('高可用'),
+          [ClusterTypes.TENDBSINGLE]: t('单节点'),
+          [ClusterTypes.TENDBCLUSTER]: t('TenDB 集群'),
+        }
+        return clusterNameMap[data.cluster_type as keyof typeof clusterNameMap]
+      },
     },
     {
       label: t('版本'),
@@ -133,6 +145,7 @@
   const clusterSelectorValue = shallowRef<Record<string, TendbhaModel[] | TendbsingleModel[]>>({
     [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
     [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+
   });
   const targetClusterList = shallowRef<Array<IClusterData>>([]);
 
@@ -189,28 +202,21 @@
     isShowClusterSelector.value = true;
   };
 
+
   const handleRemove = (clusterData: IClusterData) => {
-    const result = targetClusterList.value.reduce((result, item) => {
-      if (item.id !== clusterData.id) {
-        result.push(item);
-      }
-      return result;
-    }, [] as IClusterData[]);
 
-    targetClusterList.value = result;
+    const lastestclusterSelectorValue = { ...clusterSelectorValue.value }
 
-    // ClusterSelector 的值回填
-    clusterSelectorValue.value = {
-      [ClusterTypes.TENDBHA]: _.filter(result, item => item.cluster_type === ClusterTypes.TENDBHA) as TendbhaModel[],
-      [ClusterTypes.TENDBSINGLE]: _.filter(result, item => item.cluster_type === ClusterTypes.TENDBSINGLE) as TendbsingleModel[],
-    };
+    clusterSelectorValue.value = Object.keys(lastestclusterSelectorValue).reduce((result, clusterType) => Object.assign(result, {
+      [clusterType]: _.filter(lastestclusterSelectorValue[clusterType], item => item.id !== clusterData.id),
+    }), {});
+    targetClusterList.value = _.flatten(Object.values(clusterSelectorValue.value))
+
     triggerChange();
   };
 
   const handelClusterChange = (selected: Record<string, TendbhaModel[] | TendbsingleModel[]>) => {
-    console.log('selected = ', selected)
     targetClusterList.value = _.flatten(Object.values(selected))
-    console.log('targetClusterList.value = ', targetClusterList.value)
     formItemRef.value.clearValidate();
     clusterSelectorValue.value = selected;
     triggerChange();

@@ -66,7 +66,7 @@
   import { querySemanticData, semanticCheck } from '@services/source/sqlImport';
   import { getTicketDetails } from '@services/source/ticket';
 
-  //   import { useTicketCloneInfo } from '@hooks';
+  // import { useTicketCloneInfo } from '@hooks';
   import { useSqlImport } from '@stores';
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
@@ -74,10 +74,9 @@
   import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
+  import ExecuteObjects from '@views/db-manage/common/sql-execute/execute-objects/Index.vue';
   import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
-
-  import ExecuteObjects from '@/views/db-manage/common/sql-execute/execute-objects/Index.vue';
 
   const router = useRouter();
   const route = useRoute();
@@ -101,19 +100,19 @@
     cluster_type: DBTypes.TENDBCLUSTER,
   });
 
-  //   useTicketCloneInfo({
-  //     type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
-  //     onSuccess(cloneData) {
-  //       Object.assign(formData, {
-  //         backup: cloneData.backup,
-  //         charset: cloneData.charset,
-  //         cluster_ids: cloneData.cluster_ids,
-  //         execute_objects: cloneData.execute_objects,
-  //         ticket_mode: cloneData.ticket_mode,
-  //       });
-  //       window.changeConfirm = true;
-  //     },
-  //   });
+  // useTicketCloneInfo({
+  //   type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+  //   onSuccess(cloneData) {
+  //     Object.assign(formData, {
+  //       backup: cloneData.backup,
+  //       charset: cloneData.charset,
+  //       cluster_ids: cloneData.cluster_ids,
+  //       execute_objects: cloneData.execute_objects,
+  //       ticket_mode: cloneData.ticket_mode,
+  //     });
+  //     window.changeConfirm = true;
+  //   },
+  // });
 
   const formRef = ref();
   const resetFormKey = ref(0);
@@ -149,15 +148,7 @@
     ],
     manual: !ticketId,
     onSuccess(ticketData) {
-      const ticketDetail = ticketData.details as MySQLImportSQLFileDetails;
-      Object.assign(formData, {
-        charset: ticketDetail.charset,
-        cluster_ids: ticketDetail.cluster_ids,
-        execute_objects: ticketDetail.execute_objects,
-        backup: ticketDetail.backup,
-        ticket_mode: ticketDetail.ticket_mode,
-      });
-      updateUploadFilePath(ticketDetail.path);
+      updateUploadFilePath((ticketData.details as MySQLImportSQLFileDetails).path);
     },
   });
 
