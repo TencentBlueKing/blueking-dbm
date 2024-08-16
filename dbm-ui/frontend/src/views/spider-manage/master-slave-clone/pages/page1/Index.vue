@@ -77,7 +77,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getSpiderMachineList } from '@services/source/spider';
@@ -217,51 +216,48 @@
 
   // 提交
   const handleSubmit = async () => {
-    isSubmitting.value = true;
-    const rowDataList = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
-    isSubmitting.value = false;
+    try {
+      isSubmitting.value = true;
+      const rowDataList = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
+        details: {
+          backup_source: backupSource.value,
+          ip_source: 'manual_input',
+          infos: rowDataList.map((rowItem, rowIndex) => {
+            const { clusterData } = tableData.value[rowIndex];
+            return {
+              cluster_id: clusterData.clusterId,
+              new_master: rowItem.newInstaceList[0],
+              new_slave: rowItem.newInstaceList[1],
+              old_master: {
+                ip: clusterData.ip,
+                bk_cloud_id: clusterData.cloudId,
+                bk_host_id: clusterData.hostId,
+                bk_biz_id: currentBizId,
+              },
+              old_slave: rowItem.old_master,
+            };
+          }),
+        },
+      };
 
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
-      details: {
-        backup_source: backupSource.value,
-        ip_source: 'manual_input',
-        infos: rowDataList.map((rowItem, rowIndex) => {
-          const { clusterData } = tableData.value[rowIndex];
-          return {
-            cluster_id: clusterData.clusterId,
-            new_master: rowItem.newInstaceList[0],
-            new_slave: rowItem.newInstaceList[1],
-            old_master: {
-              ip: clusterData.ip,
-              bk_cloud_id: clusterData.cloudId,
-              bk_host_id: clusterData.hostId,
-              bk_biz_id: currentBizId,
-            },
-            old_slave: rowItem.old_master,
-          };
-        }),
-      },
-    };
-
-    InfoBox({
-      title: t('确认迁移n主从实例？', { n: totalNum.value }),
-      width: 500,
-      onConfirm: () =>
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'spiderMasterSlaveClone',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-    });
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'spiderMasterSlaveClone',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置

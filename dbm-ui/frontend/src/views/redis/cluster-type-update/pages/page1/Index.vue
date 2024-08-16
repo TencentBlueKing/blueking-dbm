@@ -108,7 +108,6 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -267,45 +266,42 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
-      details: {
-        ip_source: 'resource_pool',
-        data_check_repair_setting: {
-          type: repairAndVerifyType.value,
-          execution_frequency:
-            repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR ? '' : repairAndVerifyFrequency.value,
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_CLUSTER_TYPE_UPDATE,
+        details: {
+          ip_source: 'resource_pool',
+          data_check_repair_setting: {
+            type: repairAndVerifyType.value,
+            execution_frequency:
+              repairAndVerifyType.value === RepairAndVerifyModes.NO_CHECK_NO_REPAIR
+                ? ''
+                : repairAndVerifyFrequency.value,
+          },
+          infos,
         },
-        infos,
-      },
-    };
-    InfoBox({
-      title: t('确认对n个集群执行类型变更？', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisClusterTypeUpdate',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+      };
+
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisClusterTypeUpdate',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置
