@@ -45,7 +45,9 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
         online_switch_type = serializers.ChoiceField(
             help_text=_("切换类型"), choices=SwitchConfirmType.get_choices(), default=SwitchConfirmType.NO_CONFIRM
         )
-        update_mode = serializers.ChoiceField(help_text=_("容量变更类型"), choices=RedisCapacityUpdateType.get_choices())
+        update_mode = serializers.ChoiceField(
+            help_text=_("容量变更类型"), choices=RedisCapacityUpdateType.get_choices(), required=False
+        )
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
