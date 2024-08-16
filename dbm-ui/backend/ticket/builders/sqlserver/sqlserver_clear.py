@@ -38,6 +38,8 @@ class SQLServerClearDetailSerializer(SQLServerBaseOperateDetailSerializer):
     def validate(self, attrs):
         """验证库表数据库的数据"""
         super().validate(attrs)
+        # 校验集群是否可用
+        super().validate_cluster_can_access(attrs)
         return attrs
 
 

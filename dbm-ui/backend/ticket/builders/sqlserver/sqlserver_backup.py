@@ -12,9 +12,12 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterSqlserverStatusFlags, InstanceInnerRole
+from backend.db_meta.models import Cluster
 from backend.flow.consts import SqlserverBackupFileTagEnum, SqlserverBackupMode
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
@@ -36,6 +39,20 @@ class SQLServerBackupDetailSerializer(SQLServerBaseOperateDetailSerializer):
     def validate(self, attrs):
         """验证库表数据库的数据"""
         super().validate(attrs)
+
+        # 校验集群是否可用
+        try:
+            self.validate_cluster_can_access(attrs)
+        except serializers.ValidationError as e:
+            clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(details=attrs))
+            id__cluster = {cluster.id: cluster for cluster in clusters}
+            # 如果备份位置选的是master，但是slave异常，则认为是可以的
+            if attrs["backup_place"] != InstanceInnerRole.MASTER:
+                raise serializers.ValidationError(e)
+            for info in attrs["infos"]:
+                if id__cluster[info["cluster_id"]].status_flag & ClusterSqlserverStatusFlags.BackendMasterUnavailable:
+                    raise serializers.ValidationError(e)
+
         return attrs
 
 

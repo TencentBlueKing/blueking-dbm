@@ -12,6 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder
@@ -23,8 +24,9 @@ class SQLServerMasterFailOverDetailSerializer(SQLServerMasterSlaveSwitchDetailSe
     force = serializers.BooleanField(help_text=_("是否强制切换(强切固定为true)"), default=True, required=False)
 
     def validate(self, attrs):
-        # 校验集群是否可用
-        # super().validate_cluster_can_access(attrs)
+        # 校验集群是否可用，集群类型为高可用
+        super().validate_cluster_can_access(attrs)
+        super().validated_cluster_type(attrs, ClusterType.SqlserverHA)
         return attrs
 
 

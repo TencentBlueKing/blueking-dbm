@@ -12,6 +12,7 @@ from django.db.models import F, Prefetch
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -43,6 +44,10 @@ class SQLServerRestoreSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer
         # super(MysqlRestoreLocalSlaveDetailSerializer, self).validate_instance_role(
         #     attrs, instance_key=["slave"], role=InstanceInnerRole.SLAVE
         # )
+        # 校验集群是否可用，集群类型为高可用
+        super(SQLServerRestoreSlaveDetailSerializer, self).validate_cluster_can_access(attrs)
+        super(SQLServerRestoreSlaveDetailSerializer, self).validated_cluster_type(attrs, ClusterType.SqlserverHA)
+
         super().validate(attrs)
         return attrs
 
