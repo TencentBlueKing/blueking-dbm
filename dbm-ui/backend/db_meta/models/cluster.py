@@ -44,6 +44,7 @@ from backend.db_meta.enums.cluster_status import (
     ClusterSqlserverStatusFlags,
 )
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
+from backend.db_meta.models.tag import Tag
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.exceptions import ApiError
 from backend.flow.consts import DEFAULT_RIAK_PORT
@@ -69,6 +70,7 @@ class Cluster(AuditedModel):
         max_length=128, help_text=_("容灾要求"), choices=AffinityEnum.get_choices(), default=AffinityEnum.NONE.value
     )
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("集群所在的时区"))
+    tags = models.ManyToManyField(Tag, blank=True, help_text=_("标签（外键）"))
 
     class Meta:
         unique_together = [("bk_biz_id", "immute_domain", "cluster_type", "db_module_id"), ("immute_domain",)]
