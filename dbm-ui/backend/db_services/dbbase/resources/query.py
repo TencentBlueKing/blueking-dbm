@@ -213,7 +213,7 @@ class CommonQueryResourceMixin(abc.ABC):
     @classmethod
     def get_temporary_cluster_info(cls, cluster, ticket_type):
         """如果当前集群是临时集群，则补充临时集群相关信息。"""
-        tags = [tag.name for tag in cluster.tag_set.all()]
+        tags = [tag.key for tag in cluster.tag_set.all()]
         if SystemTagEnum.TEMPORARY.value not in tags:
             return {}
         record = ClusterOperateRecord.objects.filter(cluster_id=cluster.id, ticket__ticket_type=ticket_type).first()
@@ -422,8 +422,14 @@ class ListRetrieveResource(BaseListRetrieveResource):
         for param in filter_params_map:
             if query_params.get(param):
                 query_filters &= filter_params_map[param]
+
+        # 对标签进行过滤，标签“且”查询，需以追加 filter 的方式实现
+        cluster_queryset = Cluster.objects.filter(query_filters)
+        for tag_id in query_params.get("tag_ids", "").split(","):
+            cluster_queryset = cluster_queryset.filter(tags__id=tag_id)
+
         # 一join多的一方会有重复的数据,去重
-        cluster_queryset = Cluster.objects.filter(query_filters).distinct()
+        cluster_queryset = cluster_queryset.distinct()
 
         # 实例筛选
         def filter_instance_func(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):
@@ -487,7 +493,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             Prefetch("proxyinstance_set", queryset=proxy_queryset.select_related("machine"), to_attr="proxies"),
             Prefetch("storageinstance_set", queryset=storage_queryset.select_related("machine"), to_attr="storages"),
             Prefetch("clusterentry_set", to_attr="entries"),
-            "tag_set",
+            "tags",
         )
         # 由于对 queryset 切片工作方式的模糊性，这里的values可能会获得非预期的排序，所以不要在切片后用values
         # cluster_ids = list(cluster_queryset.values_list("id", flat=True))
@@ -589,6 +595,7 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "updater": cluster.updater,
             "create_at": datetime2str(cluster.create_at),
             "update_at": datetime2str(cluster.update_at),
+            "tags": [{tag.key: tag.value} for tag in cluster.tags.all()],
         }
 
     @classmethod
