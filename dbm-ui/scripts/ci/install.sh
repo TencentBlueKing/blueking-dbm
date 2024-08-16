@@ -23,7 +23,7 @@ poetry export --without-hashes -f requirements.txt --output requirements.txt
 pip install -r requirements.txt >> /tmp/pip_install.log
 if [[ $? -ne 0 ]];
 then
-  echo "Error: pip install -r requirements.txt error!"
+  echo -e "\033[1;31m Error: pip install -r requirements.txt error! \033[0m"
   cat /tmp/pip_install.log
   FAILED_COUNT=$[$FAILED_COUNT+1]
 fi
@@ -57,7 +57,7 @@ echo "开始执行 python manage.py migrate --database=report_db"
 python manage.py migrate --database=report_db >> /tmp/migrate_report_db.log
 if [[ $? -ne 0 ]];
 then
-  echo "Error: python manage.py migrate --database=report_db 执行失败！请检查 migrations 文件"
+  echo -e "\033[1;31m Error: python manage.py migrate --database=report_db 执行失败！请检查 migrations 文件 \033[0m"
   cat /tmp/migrate_report_db.log
   FAILED_COUNT=$[$FAILED_COUNT+1]
 fi
@@ -66,7 +66,7 @@ echo "开始执行 python manage.py migrate"
 python manage.py migrate >> /tmp/migrate.log
 if [[ $? -ne 0 ]];
 then
-  echo "Error: python manage.py migrate 执行失败！请检查 migrations 文件"
+  echo -e "\033[1;31m Error: python manage.py migrate 执行失败！请检查 migrations 文件 \033[0m"
   cat /tmp/migrate.log
   FAILED_COUNT=$[$FAILED_COUNT+1]
 fi
@@ -76,13 +76,13 @@ python manage.py createcachetable django_cache
 python manage.py language_finder -p backend/ -m error
 if [[ $? -ne 0 ]];
 then
-  echo "Error: python manage.py language_finder -p backend/ -m error 执行失败！请检查中文是否已标记"
+  echo -e "\033[1;31m Error: python manage.py language_finder -p backend/ -m error 执行失败！请检查中文是否已标记 \033[0m"
   FAILED_COUNT=$[$FAILED_COUNT+1]
 fi
 
 if [[ $FAILED_COUNT -ne 0 ]];
 then
-  echo "Error: 前置命令未通过! 前置命令执行失败数量: $FAILED_COUNT"
+  echo -e "\033[1;31m Error: 前置命令未通过! 前置命令执行失败数量: $FAILED_COUNT \033[0m"
   exit 1
 else
   echo "前置命令已通过"
