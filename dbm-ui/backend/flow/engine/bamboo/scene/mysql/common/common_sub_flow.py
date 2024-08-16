@@ -543,6 +543,7 @@ def install_mysql_in_cluster_sub_flow(
 
     parent_global_data = {
         "uid": uid,
+        "db_module_id": db_module_id,
         "charset": data["charset"],
         "db_version": data["db_version"],
         "mysql_ports": install_ports,

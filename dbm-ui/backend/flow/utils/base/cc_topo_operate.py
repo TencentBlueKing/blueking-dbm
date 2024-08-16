@@ -279,7 +279,10 @@ class CCTopoOperator:
                 listen_port=inst.listen_port,
                 func_name=INSTANCE_MONITOR_PLUGINS[self.db_type]["tbinlogdumper"]["func_name"],
                 bk_process_name=f"{self.db_type}-{'tbinlogdumper'}",
-                labels_dict={"exporter_conf_path": f"exporter_{inst.listen_port}.cnf"},
+                labels_dict={
+                    "exporter_conf_path": f"exporter_{inst.listen_port}.cnf",
+                    "appid": inst.bk_biz_id,
+                },
             )
             inst.bk_instance_id = bk_instance_id
             inst.save(update_fields=["bk_instance_id"])
