@@ -81,7 +81,7 @@
         <p>security.protocol=SASL_PLAINTEXT</p>
         <p>sasl.mechanism=SCRAM-SHA-512</p>
         <p>
-          sasl,jaas.config=org.apache,{{ dbType }}.common.security,scram.ScramLoginModule required username="{{
+          sasl.jaas.config=org.apache.{{ dbType }}.common.security.scram.ScramLoginModule required username="{{
             result.username
           }}" password="{{ scPasswordText }}";
           <span
