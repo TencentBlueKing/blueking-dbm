@@ -23,7 +23,7 @@ from backend.bk_web.swagger import (
 )
 from backend.db_meta.models import Group
 from backend.db_services.group.handlers import GroupHandler
-from backend.db_services.group.serializers import GroupMoveInstancesSerializer, GroupSerializer
+from backend.db_services.group.serializers import GroupMoveInstancesSerializer, TagSerializer
 from backend.iam_app.handlers.drf_perm.base import RejectPermission, get_request_key_id
 
 SWAGGER_TAG = _("分组")
@@ -35,7 +35,7 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
     """
 
     queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+    serializer_class = TagSerializer
     pagination_class = AuditedLimitOffsetPagination
 
     # TODO: 暂时屏蔽对influxdb的鉴权
@@ -74,7 +74,7 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("分组详情"),
-        responses={status.HTTP_200_OK: GroupSerializer(label=_("分组详情"))},
+        responses={status.HTTP_200_OK: TagSerializer(label=_("分组详情"))},
         tags=[SWAGGER_TAG],
     )
     def retrieve(self, request, *args, **kwargs):
@@ -98,7 +98,7 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("创建新分组"),
         auto_schema=ResponseSwaggerAutoSchema,
-        responses={status.HTTP_200_OK: GroupSerializer(label=_("创建新分组"))},
+        responses={status.HTTP_200_OK: TagSerializer(label=_("创建新分组"))},
         tags=[SWAGGER_TAG],
     )
     def create(self, request, *args, **kwargs):
@@ -107,7 +107,7 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("更新分组信息"),
         auto_schema=ResponseSwaggerAutoSchema,
-        responses={status.HTTP_200_OK: GroupSerializer(label=_("更新分组信息"))},
+        responses={status.HTTP_200_OK: TagSerializer(label=_("更新分组信息"))},
         tags=[SWAGGER_TAG],
     )
     def update(self, request, *args, **kwargs):
@@ -116,7 +116,7 @@ class GroupViewSet(viewsets.AuditedModelViewSet):
     @common_swagger_auto_schema(
         operation_summary=_("删除分组"),
         auto_schema=ResponseSwaggerAutoSchema,
-        responses={status.HTTP_200_OK: GroupSerializer(label=_("删除分组"))},
+        responses={status.HTTP_200_OK: TagSerializer(label=_("删除分组"))},
         tags=[SWAGGER_TAG],
     )
     def destroy(self, request, *args, **kwargs):

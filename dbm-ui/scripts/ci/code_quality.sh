@@ -57,7 +57,7 @@ echo "未通过数: $TEST_NOT_SUCCESS_COUNT"
 
 if [[ $TEST_NOT_SUCCESS_COUNT -ne 0 ]];
 then
-  echo -e "$TEST_LOGS"
+  echo -e "\033[1;31m $TEST_LOGS  \033[0m"
   exit 1
 fi
 

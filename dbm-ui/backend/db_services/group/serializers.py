@@ -16,7 +16,7 @@ from backend.bk_web.serializers import AuditedSerializer
 from backend.db_meta.models import Group, GroupInstance
 
 
-class GroupSerializer(AuditedSerializer, serializers.ModelSerializer):
+class TagSerializer(AuditedSerializer, serializers.ModelSerializer):
     instance_count = serializers.SerializerMethodField(help_text=_("实例数量"))
 
     class Meta:
