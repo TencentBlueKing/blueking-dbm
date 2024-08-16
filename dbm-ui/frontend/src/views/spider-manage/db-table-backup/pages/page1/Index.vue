@@ -84,7 +84,7 @@
   const isSubmitting = ref(false);
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -167,20 +167,18 @@
     }
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: 'TENDBCLUSTER_DB_TABLE_BACKUP',
-          remark: '',
-          details: {
-            infos: data,
-          },
-          bk_biz_id: currentBizId,
-        }),
-      )
-      .then((data) => {
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      await createTicket({
+        ticket_type: 'TENDBCLUSTER_DB_TABLE_BACKUP',
+        remark: '',
+        details: {
+          infos,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
         window.changeConfirm = false;
         router.push({
           name: 'spiderDbTableBackup',
@@ -191,10 +189,10 @@
             ticketId: data.id,
           },
         });
-      })
-      .finally(() => {
-        isSubmitting.value = false;
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

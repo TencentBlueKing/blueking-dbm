@@ -64,7 +64,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -188,41 +187,35 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem[]> }) => item.getValue()),
-    );
-    const params: SubmitTicket<TicketTypes, InfoItem[]> = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_DATA_STRUCTURE,
-      details: {
-        ip_source: 'resource_pool',
-        infos,
-      },
-    };
-    InfoBox({
-      title: t('确认定点构造 n 个集群？', { n: totalNum.value }),
-      subTitle: t('已选择的实例数据将会构造到新的主机'),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisDBStructure',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem[]> }) => item.getValue()),
+      );
+      const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_DATA_STRUCTURE,
+        details: {
+          ip_source: 'resource_pool',
+          infos,
+        },
+      };
+
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisDBStructure',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {
