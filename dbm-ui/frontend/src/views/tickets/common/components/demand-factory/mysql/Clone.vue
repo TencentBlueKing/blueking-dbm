@@ -33,69 +33,77 @@
   const props = defineProps<Props>();
 
   const copy = useCopy();
-
   const { t } = useI18n();
 
-  type cloneItem = {
-    source: string,
-    target: [],
-    module: string,
-    cluster_domain: '',
-  }
-
-  const isModule = ref(false);
-
   // 客户端克隆
-  const columns = [{
-    label: t('源客户端IP'),
-    field: 'source',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('所属模块'),
-    field: 'module',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: cell,
-          allowHTML: true,
-      }}>
-        <span>{cell}</span>
-      </div>
-    ),
-  }, {
-    label: t('新客户端IP'),
-    field: 'target',
-    render: ({ cell }: { cell: [] }) => cell.map((ip, index) => <p class="pt-2 pb-2">{ip}
-      { index === 0
-        ? <i v-bk-tooltips={t('复制IP')} class="db-icon-copy" onClick={() => copy(cell.join('\n'))} />
-        : '' }
-    </p>),
-  }];
+  const columns = [
+    {
+      label: t('源客户端IP'),
+      field: 'source',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('所属模块'),
+      field: 'module',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string }) => (
+        <div class="cluster-name text-overflow"
+          v-overflow-tips={{
+            content: cell,
+            allowHTML: true,
+        }}>
+          <span>{cell}</span>
+        </div>
+      ),
+    },
+    {
+      label: t('新客户端IP'),
+      field: 'target',
+      render: ({ cell }: { cell: [] }) => cell.map((ip, index) => <p class="pt-2 pb-2">{ip}
+        { index === 0
+          ? <i
+              v-bk-tooltips={t('复制IP')}
+              class="db-icon-copy"
+              onClick={() => copy(cell.join('\n'))} />
+          : '' }
+      </p>),
+    }
+  ];
 
   // 实例克隆
-  const instanceColumns = [{
-    label: t('源实例'),
-    field: 'source',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('所属集群'),
-    field: 'cluster_domain',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: cell,
-          allowHTML: true,
-      }}>
-        <span>{cell}</span>
-      </div>
-    ),
-  }, {
-    label: t('新实例'),
-    field: 'target',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }];
+  const instanceColumns = [
+    {
+      label: t('源实例'),
+      field: 'source',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('所属集群'),
+      field: 'cluster_domain',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string }) => (
+        <div class="cluster-name text-overflow"
+          v-overflow-tips={{
+            content: cell,
+            allowHTML: true,
+        }}>
+          <span>{cell}</span>
+        </div>
+      ),
+    },
+    {
+      label: t('新实例'),
+      field: 'target',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    }
+  ];
+
+  const isModule = computed(() => {
+    if (props.ticketDetails.details.clone_data[0].module !== undefined) {
+      return true
+    }
+    return false;
+  });
 
   const renderColumns = computed(() => {
     if (isModule.value) {
@@ -105,19 +113,17 @@
   });
 
   const dataList = computed(() => {
-    const list: cloneItem[] = [];
-    const cloneData = props.ticketDetails?.details?.clone_data || [];
-    cloneData.forEach((item) => {
-      const { source, target, module, cluster_domain: clusterDomain } = item;
-      if (clusterDomain) {
-        isModule.value = false;
-        list.push(Object.assign({ source, target, cluster_domain: clusterDomain }));
-      } else if (module) {
-        isModule.value = true;
-        list.push(Object.assign({ source, target, module }));
+    const cloneData = props.ticketDetails.details.clone_data || [];
+    return cloneData.reduce<Partial<MySQLCloneDetails['clone_data'][number]>[]>((results, item) => {
+      const { source, target, module } = item;
+      const clusterDomain = item.cluster_domain;
+      if (isModule.value) {
+        results.push({ source, target, module });
+      } else {
+        results.push({ source, target, cluster_domain: clusterDomain });
       }
-    });
-    return list;
+      return results;
+    }, []);
   });
 </script>
 
