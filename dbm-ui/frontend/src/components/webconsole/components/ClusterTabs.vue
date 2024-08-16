@@ -4,7 +4,7 @@
       v-for="(clusterId, index) in selectedClusters"
       :key="clusterId"
       class="tab-item"
-      :class="{ 'item-selected': clusterId === activeClusterId }"
+      :class="{ 'item-selected': clusterId === modelValue }"
       @click="() => handleActiveTab(clusterId)">
       <div class="active-bar"></div>
       <div class="tab-item-content">
@@ -63,7 +63,6 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import type { Instance, SingleTarget } from 'tippy.js';
   import tippy from 'tippy.js';
   import { useI18n } from 'vue-i18n';
@@ -79,12 +78,12 @@
 
   interface Props {
     dbType: DBTypes;
-    isInputed: (clusterId: number) => boolean;
+    beforeClose: (clusterId: number) => Promise<boolean>;
   }
 
   interface Emits {
     (e: 'change', data: ClusterItem): void;
-    (e: 'beforeClose', clusterId: number): void;
+    (e: 'removeTab', clusterId: number): void;
   }
 
   interface Exposes {
@@ -97,7 +96,7 @@
   const { t } = useI18n();
   const route = useRoute();
 
-  const activeClusterId = defineModel({
+  const modelValue = defineModel({
     default: 0 as number,
     type: Number,
   });
@@ -105,7 +104,7 @@
   const routeClusterId = route.query.clusterId;
   let clustersRaw: ClusterItem[] = [];
   let tippyIns: Instance | undefined;
-  const queryClusterTypesMap: Record<string, string> = {
+  const queryClusterTypesMap = {
     [DBTypes.MYSQL]: 'tendbha,tendbsingle',
     [DBTypes.TENDBCLUSTER]: 'tendbcluster',
     [DBTypes.REDIS]: 'TwemproxyRedisInstance,PredixyTendisplusCluster,TwemproxyTendisSSDInstance,PredixyRedisCluster',
@@ -132,7 +131,7 @@
     defaultParams: [
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        cluster_types: queryClusterTypesMap[props.dbType],
+        cluster_types: queryClusterTypesMap[props.dbType as keyof typeof queryClusterTypesMap],
         phase: 'online',
       },
     ],
@@ -164,7 +163,7 @@
     }
     const id = ids.pop()!;
     selectedClusters.value.push(id);
-    activeClusterId.value = id;
+    modelValue.value = id;
     emits('change', clustersMap.value[id]);
     updateClusterSelect();
     tippyIns?.hide();
@@ -175,26 +174,14 @@
   };
 
   const handleActiveTab = (id: number) => {
-    activeClusterId.value = id;
+    modelValue.value = id;
     emits('change', clustersMap.value[id]);
   };
 
-  const handleCloseTab = (index: number) => {
+  const handleCloseTab = async (index: number) => {
     const currentClusterId = selectedClusters.value[index];
-    const isInputed = props.isInputed(currentClusterId);
-    if (isInputed) {
-      InfoBox({
-        title: t('确认关闭当前窗口？'),
-        content: t('关闭后，内容将不会再在保存，请谨慎操作！'),
-        headerAlign: 'center',
-        footerAlign: 'center',
-        confirmText: t('关闭'),
-        cancelText: t('取消'),
-        onConfirm() {
-          removeTab(index);
-        },
-      });
-    } else {
+    const isClose = await props.beforeClose(currentClusterId);
+    if (isClose) {
       removeTab(index);
     }
   };
@@ -203,11 +190,11 @@
     const currentClusterId = selectedClusters.value[index];
     selectedClusters.value.splice(index, 1);
     const clusterCount = selectedClusters.value.length;
-    if (currentClusterId === activeClusterId.value) {
-      emits('beforeClose', currentClusterId);
+    if (currentClusterId === modelValue.value) {
+      emits('removeTab', currentClusterId);
       // 关闭当前打开tab
-      activeClusterId.value = clusterCount === 0 ? 0 : selectedClusters.value[clusterCount - 1];
-      emits('change', clustersMap.value[activeClusterId.value]);
+      modelValue.value = clusterCount === 0 ? 0 : selectedClusters.value[clusterCount - 1];
+      emits('change', clustersMap.value[modelValue.value]);
     }
     updateClusterSelect();
   };
@@ -285,9 +272,10 @@
   }
 
   .tabs-main {
-    flex: 1;
     display: flex;
+    margin-right: auto;
     overflow: hidden;
+    flex: 1;
 
     .tab-item {
       position: relative;

@@ -19,7 +19,7 @@
           :class="{ 'font-item-active': item.fontSize === currentFontSize }"
           @click="() => handleChangeFontSize(index)">
           <DbIcon
-            :style="{ 'font-size': item }"
+            :style="item"
             type="aa" />
         </div>
       </div>
@@ -31,7 +31,7 @@
 
   interface Emits {
     (
-      e: 'fontSizeChange',
+      e: 'change',
       value: {
         fontSize: string;
         lineHeight: string;
@@ -63,7 +63,7 @@
   const handleChangeFontSize = (index: number) => {
     const currentFont = fontSizeList[index];
     currentFontSize.value = currentFont.fontSize;
-    emits('fontSizeChange', currentFont);
+    emits('change', currentFont);
   };
 </script>
 <style lang="less">
@@ -84,7 +84,7 @@
         width: 28px;
         height: 28px;
         color: #979ba5;
-        align-items: center;
+        align-items: end;
         justify-content: center;
       }
 

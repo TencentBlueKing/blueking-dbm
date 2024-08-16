@@ -6,14 +6,15 @@
   </p>
 </template>
 <script lang="ts">
-  export interface Props {
+  interface Props {
     data: string;
   }
+
   // 集群所选的数据库索引
-  export const clusterSelectedDbIndex: Record<number, number> = {};
+  const clusterSelectedDbIndex: Record<number, number> = {};
 
   // 设置当前集群id所选数据库索引
-  export const setDbIndexByClusterId = (clusterId: number, value = 0) => {
+  const setDbIndexByClusterId = (clusterId: number, value = 0) => {
     clusterSelectedDbIndex[clusterId] = value;
   };
 
