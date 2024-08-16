@@ -254,7 +254,7 @@
           infos,
         },
       };
-      createTicket(params).then((data) => {
+      await createTicket(params).then((data) => {
         window.changeConfirm = false;
         router.push({
           name: 'SpiderProxyScaleUp',

@@ -217,32 +217,33 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    isSubmitting.value = true;
-    Promise.all<InfoItem[]>(rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()))
-      .then((infos) =>
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.REDIS_PROXY_SCALE_UP,
-          details: {
-            ip_source: 'resource_pool',
-            infos,
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      await createTicket({
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_PROXY_SCALE_UP,
+        details: {
+          ip_source: 'resource_pool',
+          infos,
+        },
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisProxyScaleUp',
+          params: {
+            page: 'success',
           },
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisProxyScaleUp',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

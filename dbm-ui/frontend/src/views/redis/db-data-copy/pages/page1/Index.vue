@@ -166,7 +166,6 @@
   };
 </script>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -331,30 +330,26 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    isSubmitting.value = true;
-    const infos = await currentTableRef.value.getValue();
-    isSubmitting.value = false;
+    try {
+      isSubmitting.value = true;
+      const infos = await currentTableRef.value.getValue();
+      const params = generateRequestParam(infos);
 
-    const params = generateRequestParam(infos);
-
-    InfoBox({
-      title: t('确认复制n个集群数据？', { n: params.details.infos.length }),
-      subTitle: t('将会把源集群的数据复制到对应的新集群'),
-      width: 480,
-      onConfirm: () =>
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'RedisDBDataCopy',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-    });
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisDBDataCopy',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置

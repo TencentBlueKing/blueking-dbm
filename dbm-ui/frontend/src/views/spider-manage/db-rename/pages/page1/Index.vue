@@ -187,21 +187,19 @@
     }
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
-          remark: '',
-          details: {
-            force: isIgnore.value,
-            infos: data,
-          },
-          bk_biz_id: currentBizId,
-        }),
-      )
-      .then((data) => {
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      await createTicket({
+        ticket_type: TicketTypes.TENDBCLUSTER_RENAME_DATABASE,
+        remark: '',
+        details: {
+          force: isIgnore.value,
+          infos,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
         window.changeConfirm = false;
         router.push({
           name: 'spiderDbRename',
@@ -212,10 +210,10 @@
             ticketId: data.id,
           },
         });
-      })
-      .finally(() => {
-        isSubmitting.value = false;
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {
