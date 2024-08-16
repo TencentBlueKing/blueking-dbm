@@ -120,7 +120,7 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
 
         # 为临时集群添加临时标志和记录
         temporary_tag, _ = Tag.objects.get_or_create(
-            bk_biz_id=bk_biz_id, name=SystemTagEnum.TEMPORARY.value, type=TagType.SYSTEM.value
+            bk_biz_id=bk_biz_id, key=SystemTagEnum.TEMPORARY.value, type=TagType.SYSTEM.value
         )
         source_cluster_name__cluster: Dict[str, Cluster] = {}
         cluster_records: List[ClusterOperateRecord] = []
