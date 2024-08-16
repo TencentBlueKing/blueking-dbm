@@ -300,7 +300,7 @@ func init() {
 			KeyStep: 2}
 		RedisCommandTable["randomkey"] = &RedisCmdMeta{Name: "randomkey", Arity: 1, Sflags: readOnlyFlag, FirstKey: 0,
 			LastKey: 0, KeyStep: 0}
-		RedisCommandTable["select"] = &RedisCmdMeta{Name: "select", Arity: 2, Sflags: adminFlag, FirstKey: 0, LastKey: 0,
+		RedisCommandTable["select"] = &RedisCmdMeta{Name: "select", Arity: 2, Sflags: readOnlyFlag, FirstKey: 0, LastKey: 0,
 			KeyStep: 0}
 		RedisCommandTable["swapdb"] = &RedisCmdMeta{Name: "swapdb", Arity: 3, Sflags: writeFlag, FirstKey: 0, LastKey: 0,
 			KeyStep: 0}
@@ -320,7 +320,7 @@ func init() {
 			KeyStep: 1}
 		RedisCommandTable["pexpireat"] = &RedisCmdMeta{Name: "pexpireat", Arity: 3, Sflags: writeFlag, FirstKey: 1,
 			LastKey: 1, KeyStep: 1}
-		RedisCommandTable["keys"] = &RedisCmdMeta{Name: "keys", Arity: 2, Sflags: readOnlyFlag + "|" + adminFlag, FirstKey: 0,
+		RedisCommandTable["keys"] = &RedisCmdMeta{Name: "keys", Arity: 2, Sflags: adminFlag, FirstKey: 0,
 			LastKey: 0, KeyStep: 0}
 		RedisCommandTable["scan"] = &RedisCmdMeta{Name: "scan", Arity: -2, Sflags: readOnlyFlag, FirstKey: 0, LastKey: 0,
 			KeyStep: 0}
@@ -446,7 +446,7 @@ func init() {
 			KeyStep: 0}
 		RedisCommandTable["script"] = &RedisCmdMeta{Name: "script", Arity: -2, Sflags: adminFlag, FirstKey: 0, LastKey: 0,
 			KeyStep: 0}
-		RedisCommandTable["time"] = &RedisCmdMeta{Name: "time", Arity: 1, Sflags: adminFlag, FirstKey: 0, LastKey: 0,
+		RedisCommandTable["time"] = &RedisCmdMeta{Name: "time", Arity: 1, Sflags: readOnlyFlag, FirstKey: 0, LastKey: 0,
 			KeyStep: 0}
 		RedisCommandTable["bitop"] = &RedisCmdMeta{Name: "bitop", Arity: -4, Sflags: writeFlag, FirstKey: 2, LastKey: -1,
 			KeyStep: 1}

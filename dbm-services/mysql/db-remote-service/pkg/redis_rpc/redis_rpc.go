@@ -4,7 +4,6 @@ package redis_rpc
 import (
 	"fmt"
 	"log/slog"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -90,6 +89,12 @@ func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 	}
 	slog.Info("RedisRPCEmbed request data", slog.String("param", param.StringWithoutPasswd()))
 
+	// WebConsoleMode 使用 DoCommandForWebConsole
+	if param.ClientType == WebConsoleMode {
+		r.DoCommandForWebConsole(c, &param)
+		return
+	}
+
 	// 格式化并检查命令
 	formatCmd, err := FormatName(param.Command)
 	if err != nil {
@@ -117,7 +122,7 @@ func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 	var maxLen int
 	password := param.Password
 	for _, address := range param.Addresses {
-		valueSize, isString, err := GetValueSize(address, password, formatCmd)
+		valueSize, isString, err := GetValueSize(address, password, formatCmd, param.DbNum)
 		if isString {
 			maxLen = 1 * 1024 * 1024
 		} else {
@@ -136,17 +141,7 @@ func (r *RedisRPCEmbed) DoCommand(c *gin.Context) {
 		}
 
 		var ret string
-		// webConsole模式，不支持管理类命令
-		if param.ClientType == WebConsoleMode {
-			if r.IsAdminCommand(cmdArgs) {
-				slog.Error("RedisRPCEmbed is admin command, not support", slog.String("command", formatCmd))
-				SendResponse(c, 1, fmt.Sprintf("non-support admin command:'%s'", formatCmd), nil)
-				return
-			}
-			ret, err = DoRedisCmd(address, password, formatCmd, strconv.Itoa(param.DbNum), param.Raw)
-		} else {
-			ret, err = DoRedisCmdNew(address, password, formatCmd, param.DbNum)
-		}
+		ret, err = DoRedisCmdNew(address, password, formatCmd, param.DbNum)
 
 		if err != nil {
 			slog.Error("RedisRPCEmbed execute command", err,
