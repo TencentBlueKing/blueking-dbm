@@ -5,44 +5,38 @@
     <div class="top-main">
       <ClusterTabs
         ref="clusterTabsRef"
+        :before-close="handleBeforeClose"
         :db-type="dbType"
-        :is-inputed="isInputed"
-        @before-close="handleClickClearScreen"
-        @change="handleChangeCurrentCluster" />
-      <div class="top-operate-main">
-        <RawSwitcher
-          v-if="dbType === DBTypes.REDIS"
-          v-model="topOperateState.isRaw"
-          :db-type="dbType"
-          @change="handleClickRawSwitcher" />
-        <ClearScreen @clear-current-screen="handleClickClearScreen" />
-        <ExportData @export="handleClickExport" />
-        <UseHelp
-          v-model:showUseageHelp="topOperateState.showUseageHelp"
-          @toggle-show-help="handleToggleHelp" />
-        <div class="operate-item-last">
-          <FontChange @font-size-change="handleChangeFontSize" />
-          <FullScreen
-            v-model:isFullScreen="topOperateState.isFullScreen"
-            @toggle-full-screen="handleClickFullScreen" />
-        </div>
+        @change="handleChangeCurrentCluster"
+        @remove-tab="handleClickClearScreen" />
+      <RawSwitcher
+        v-if="dbType === DBTypes.REDIS"
+        v-model="topOperateState.isRaw"
+        :db-type="dbType"
+        @change="handleClickRawSwitcher" />
+      <ClearScreen @change="handleClickClearScreen" />
+      <ExportData @export="handleClickExport" />
+      <UsageHelp
+        v-model:showUseageHelp="topOperateState.showUseageHelp"
+        @change="handleToggleHelp" />
+      <div class="operate-item-last">
+        <FontChange @change="handleChangeFontSize" />
+        <FullScreen
+          v-model:isFullScreen="topOperateState.isFullScreen"
+          @change="handleClickFullScreen" />
       </div>
     </div>
     <div class="content-main">
-      <div
-        v-show="topOperateState.showUseageHelp"
-        class="using-help-wrap">
-        <UsingHelpPanel
+      <KeepAlive>
+        <ConsolePanel
+          v-if="clusterInfo"
+          :key="clusterInfo.id"
+          ref="consolePanelRef"
+          v-model="clusterInfo"
           :db-type="dbType"
-          @hide="handleHideUsingHelp" />
-      </div>
-      <ConsolePanel
-        v-if="clusterInfo"
-        ref="consolePanelRef"
-        :cluster-info="clusterInfo"
-        :db-type="dbType"
-        :raw="topOperateState.isRaw"
-        :style="currentFontConfig" />
+          :raw="topOperateState.isRaw"
+          :style="currentFontConfig" />
+      </KeepAlive>
       <div class="placeholder-main">
         <DbIcon
           class="warn-icon"
@@ -59,6 +53,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+  import { InfoBox } from 'bkui-vue';
   import screenfull from 'screenfull';
   import { useI18n } from 'vue-i18n';
 
@@ -73,8 +68,7 @@
   import FontChange from './components/FontChange.vue';
   import FullScreen from './components/FullScreen.vue';
   import RawSwitcher from './components/RawSwitcher.vue';
-  import UseHelp from './components/UseHelp.vue';
-  import UsingHelpPanel from './components/using-help-panel/Index.vue';
+  import UsageHelp from './components/usage-help/Index.vue';
 
   export interface Props {
     dbType?: DBTypes;
@@ -102,7 +96,28 @@
     showUseageHelp: false,
   });
 
-  const isInputed = (clusterId: number) => consolePanelRef.value!.isInputed(clusterId);
+  const handleBeforeClose = (clusterId: number) =>
+    new Promise<boolean>((resolve, reject) => {
+      const isInputed = consolePanelRef.value!.isInputed(clusterId);
+      if (isInputed) {
+        InfoBox({
+          title: t('确认关闭当前窗口？'),
+          content: t('关闭后，内容将不会再在保存，请谨慎操作！'),
+          headerAlign: 'center',
+          footerAlign: 'center',
+          confirmText: t('关闭'),
+          cancelText: t('取消'),
+          onConfirm() {
+            resolve(true);
+          },
+          onCancel() {
+            reject(false);
+          },
+        });
+      } else {
+        resolve(true);
+      }
+    });
 
   const handleShowClustersPanel = () => {
     clusterTabsRef.value!.showClustersPanel();
@@ -126,10 +141,6 @@
 
   const handleToggleHelp = () => {
     topOperateState.showUseageHelp = !topOperateState.showUseageHelp;
-  };
-
-  const handleHideUsingHelp = () => {
-    topOperateState.showUseageHelp = false;
   };
 
   const handleChangeFontSize = (item: { fontSize: string; lineHeight: string }) => {
@@ -160,93 +171,97 @@
     height: 100%;
     background: #1a1a1a;
     flex-direction: column;
+    transform: translate(0, 0);
 
     .top-main {
       display: flex;
       width: 100%;
       height: 40px;
       font-size: 12px;
+      color: #c4c6cc;
       background: #2e2e2e;
       box-shadow: 0 2px 4px 0 #00000029;
-      justify-content: space-between;
 
-      .top-operate-main {
+      .operate-item {
+        position: relative;
         display: flex;
-        min-width: 300px;
-        color: #c4c6cc;
+        height: 40px;
+        padding: 0 7px;
+        align-items: center;
 
-        .operate-item {
-          position: relative;
+        &::after {
+          position: absolute;
+          top: 12px;
+          right: 0;
+          width: 1px;
+          height: 16px;
+          background: #45464d;
+          content: '';
+        }
+
+        .operate-item-inner {
           display: flex;
-          height: 40px;
-          padding: 0 7px;
+          height: 28px;
+          padding: 0 6px;
+          cursor: pointer;
           align-items: center;
+          justify-content: center;
 
-          &::after {
-            position: absolute;
-            top: 12px;
-            right: 0;
-            width: 1px;
-            height: 16px;
-            background: #45464d;
-            content: '';
+          &:hover {
+            background: #424242;
+            border-radius: 2px;
           }
 
-          .operate-item-inner {
+          .operate-icon {
+            font-size: 16px;
+          }
+
+          .operate-title {
+            margin-left: 5px;
+          }
+        }
+      }
+
+      .operate-item-last {
+        display: flex;
+        height: 40px;
+        padding: 0 6px;
+        cursor: pointer;
+        align-items: center;
+
+        .operate-icon {
+          display: flex;
+          height: 40px;
+          font-size: 16px;
+          align-items: center;
+
+          .operate-icon-inner {
             display: flex;
-            height: 28px;
-            padding: 0 6px;
-            cursor: pointer;
             align-items: center;
             justify-content: center;
+            width: 28px;
+            height: 28px;
 
             &:hover {
               background: #424242;
               border-radius: 2px;
             }
-
-            .operate-icon {
-              font-size: 16px;
-            }
-
-            .operate-title {
-              margin-left: 5px;
-            }
           }
         }
+      }
 
-        .operate-item-last {
-          display: flex;
-          height: 40px;
-          padding: 0 6px;
-          cursor: pointer;
-          align-items: center;
+      .use-help-selected {
+        color: #699df4;
+        background: #242424;
+      }
 
-          .operate-icon {
-            display: flex;
-            height: 40px;
-            font-size: 16px;
-            align-items: center;
-
-            .operate-icon-inner {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              width: 28px;
-              height: 28px;
-
-              &:hover {
-                background: #424242;
-                border-radius: 2px;
-              }
-            }
-          }
-        }
-
-        .use-help-selected {
-          color: #699df4;
-          background: #242424;
-        }
+      .using-help-wrap {
+        position: fixed;
+        top: 40px;
+        z-index: 99;
+        width: 100%;
+        height: calc(100% - 40px);
+        background: transparent;
       }
     }
 
@@ -254,13 +269,6 @@
       position: relative;
       overflow: hidden;
       flex: 1;
-
-      .using-help-wrap {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        background: transparent;
-      }
 
       .placeholder-main {
         display: flex;

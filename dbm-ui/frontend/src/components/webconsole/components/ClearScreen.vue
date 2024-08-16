@@ -14,7 +14,7 @@
   import { useI18n } from 'vue-i18n';
 
   interface Emits {
-    (e: 'clearCurrentScreen'): void;
+    (e: 'change'): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -22,6 +22,6 @@
   const { t } = useI18n();
 
   const handleClickClearScreen = () => {
-    emits('clearCurrentScreen');
+    emits('change');
   };
 </script>

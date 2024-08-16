@@ -22,8 +22,8 @@
 <script setup lang="ts">
   import { DBTypes } from '@common/const';
 
-  import RenderMysqlContent from './components/RenderMysqlContent.vue';
-  import RenderRedisContent from './components/RenderRedisContent.vue';
+  import RenderMysqlContent from './RenderMysqlContent.vue';
+  import RenderRedisContent from './RenderRedisContent.vue';
 
   interface Props {
     dbType?: DBTypes;

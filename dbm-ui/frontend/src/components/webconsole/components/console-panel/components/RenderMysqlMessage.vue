@@ -53,7 +53,6 @@
 
     table {
       width: 100%;
-      // word-break:break-all;
       word-wrap: break-word;
 
       thead {
@@ -64,7 +63,6 @@
       }
 
       tbody {
-        // border-bottom: 1px solid transparent;
         border-left: 1px solid transparent;
         .dott-line();
       }
