@@ -184,6 +184,7 @@ export interface MySQLCloneDetails {
     source: string;
     target: string[];
     module: string;
+    cluster_domain?: string;
   }[];
 }
 
