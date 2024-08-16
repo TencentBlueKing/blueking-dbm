@@ -82,7 +82,6 @@
         delete otherTagMap[instanceKey];
 
         const nextValueMap = makeMap(value);
-        console.log('choong fu = ', value, otherTagMap, _.flatten(Object.values(otherTagMap)));
         return _.flatten(Object.values(otherTagMap)).every((item) => !nextValueMap[item]);
       },
       message: t('DB名不允许重复'),

@@ -19,7 +19,6 @@
     :min="240">
     <template #aside>
       <RenderFileList
-        v-if="isKeepAliveActive"
         v-model="selectFileName"
         v-model:filename-list="uploadFileNameList"
         :file-data="uploadFileDataMap"
@@ -88,7 +87,7 @@
   </BkResizeLayout>
 </template>
 <script setup lang="ts">
-  import { onActivated, onDeactivated, ref, watch } from 'vue';
+  import { onActivated, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { grammarCheck } from '@services/source/sqlImport';
@@ -139,8 +138,6 @@
     initEditableFile,
     fetchFileContentByFileName,
   } = useEditableFileContent(modelValue);
-
-  const isKeepAliveActive = ref(false);
 
   let isInnerChange = false;
   // 内容回填时需要根据文件名获取文件内容
@@ -245,8 +242,7 @@
         currentFileData.isSuccess = true;
         currentFileData.realFilePath = realFilePath;
       })
-      .catch((error) => {
-        console.log('eror = ', error);
+      .catch(() => {
         currentFileData.isUploadFailed = true;
         emits('grammar-check', true, false);
       })
@@ -262,15 +258,10 @@
   };
 
   onActivated(() => {
-    isKeepAliveActive.value = true;
     triggerChange();
     setTimeout(() => {
       window.changeConfirm = false;
     });
-  });
-
-  onDeactivated(() => {
-    isKeepAliveActive.value = false;
   });
 
   defineExpose<Expose>({

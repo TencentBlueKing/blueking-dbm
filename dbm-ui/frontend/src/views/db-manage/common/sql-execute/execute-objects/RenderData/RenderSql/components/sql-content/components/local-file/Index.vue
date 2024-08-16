@@ -19,7 +19,6 @@
     :min="240">
     <template #aside>
       <RenderFileList
-        v-if="isKeepAliveActive"
         v-model="selectFileName"
         v-model:filename-list="uploadFileNameList"
         :file-data="uploadFileDataMap"
@@ -78,7 +77,7 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import { onActivated, onDeactivated, ref } from 'vue';
+  import { onActivated, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { grammarCheck } from '@services/source/sqlImport';
@@ -123,8 +122,6 @@
   } = useEditableFileContent(modelValue);
 
   const uploadRef = ref();
-
-  const isKeepAliveActive = ref(false);
 
   let isInnerChange = false;
 
@@ -289,15 +286,10 @@
   };
 
   onActivated(() => {
-    isKeepAliveActive.value = true;
     triggerChange();
     setTimeout(() => {
       window.changeConfirm = false;
     });
-  });
-
-  onDeactivated(() => {
-    isKeepAliveActive.value = false;
   });
 
   defineExpose<Expose>({

@@ -38,6 +38,7 @@
           ref="fileRef"
           v-model="localModelValue"
           v-bind="attrs"
+          :cluster-version-list="clusterVersionList"
           @grammar-check="handleGrammarCheck" />
       </KeepAlive>
     </div>
@@ -70,6 +71,12 @@
   import LocalFile from './components/local-file/Index.vue';
   import ManualInput from './components/manual-input/Index.vue';
 
+  interface Props {
+    clusterVersionList: string[];
+  }
+
+  defineProps<Props>();
+
   const { t } = useI18n();
 
   const comMap = {
@@ -96,7 +103,7 @@
   const hasGrammarCheck = ref(false);
   const grammarCheckResult = ref(false);
 
-  const renderCom = computed(() => (isShow.value ? comMap[importMode.value] : 'div'));
+  const renderCom = computed(() => comMap[importMode.value]);
 
   const submitButtonTips = computed(() => {
     if (localModelValue.value.length < 1) {
@@ -113,10 +120,15 @@
     return '';
   });
 
+  let isInnerChange = false;
   watch(
     modelValue,
     () => {
-      localModelValue.value = [...modelValue.value];
+      if (isInnerChange) {
+        isInnerChange = false;
+        return;
+      }
+      localModelValue.value = modelValue.value;
     },
     {
       immediate: true,
@@ -136,6 +148,7 @@
 
   const handleSubmit = () => {
     fileRef.value!.getValue().then((data) => {
+      isInnerChange = true;
       modelValue.value = data;
       isShow.value = false;
     });
