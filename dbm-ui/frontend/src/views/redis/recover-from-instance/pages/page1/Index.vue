@@ -77,7 +77,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -296,41 +295,36 @@
 
   // 提交
   const handleSubmit = async () => {
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-    const params: SubmitTicketType = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
-      details: {
-        dts_copy_type: 'copy_from_rollback_instance',
-        write_mode: writeType.value,
-        infos,
-      },
-    };
-    InfoBox({
-      title: t('确认对n个构造实例进行恢复？', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisRecoverFromInstance',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params: SubmitTicketType = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
+        details: {
+          dts_copy_type: 'copy_from_rollback_instance',
+          write_mode: writeType.value,
+          infos,
+        },
+      };
+
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisRecoverFromInstance',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置

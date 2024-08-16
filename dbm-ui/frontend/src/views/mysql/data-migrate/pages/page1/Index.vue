@@ -59,7 +59,6 @@
   </SmartAction>
 </template>
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -199,41 +198,33 @@
   };
 
   const handleSubmit = async () => {
-    const infos = await Promise.all(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MYSQL_DATA_MIGRATE,
-      details: {
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认提交n个数据迁移任务', { n: infos.length }),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MySQLDataMigrate',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MYSQL_DATA_MIGRATE,
+        details: {
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MySQLDataMigrate',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

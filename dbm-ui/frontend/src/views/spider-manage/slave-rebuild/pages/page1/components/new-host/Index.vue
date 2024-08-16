@@ -236,36 +236,35 @@
     tableData.value = dataList;
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
-          remark: '',
-          details: {
-            ip_source: 'resource_pool',
-            backup_source: backupSource.value,
-            infos: data,
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item) => item.getValue()));
+      await createTicket({
+        ticket_type: TicketTypes.TENDBCLUSTER_RESTORE_SLAVE,
+        remark: '',
+        details: {
+          ip_source: 'resource_pool',
+          backup_source: backupSource.value,
+          infos,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
 
-          router.push({
-            name: 'spiderSlaveRebuild',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+        router.push({
+          name: 'spiderSlaveRebuild',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

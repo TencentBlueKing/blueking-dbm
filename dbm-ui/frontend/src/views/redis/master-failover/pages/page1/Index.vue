@@ -75,7 +75,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -247,43 +246,34 @@
 
   // 提交
   const handleSubmit = async () => {
-    const infos = await Promise.all(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
-      details: {
-        force: isForceSwitch.value,
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认提交 n 个主从切换任务？', { n: totalNum.value }),
-      subTitle: t('从库将会直接替换主库所有信息，请谨慎操作！'),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisMasterFailover',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
+        details: {
+          force: isForceSwitch.value,
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisMasterFailover',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置

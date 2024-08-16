@@ -253,34 +253,33 @@
     tableData.value = dataList;
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((infos: Record<string, string>[]) =>
-        createTicket({
-          bk_biz_id: currentBizId,
-          ticket_type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
-          remark: '',
-          details: {
-            rollback_cluster_type: props.rollbackClusterType,
-            infos,
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      await createTicket({
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MYSQL_ROLLBACK_CLUSTER,
+        remark: '',
+        details: {
+          rollback_cluster_type: props.rollbackClusterType,
+          infos,
+        },
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MySQLDBRollback',
+          params: {
+            page: 'success',
           },
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MySQLDBRollback',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

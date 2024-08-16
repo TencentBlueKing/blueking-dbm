@@ -62,7 +62,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -200,38 +199,36 @@
 
   // 点击提交按钮
   const handleSubmit = async () => {
-    isSubmitting.value = true;
-    const infos = await Promise.all<InfoItem[]>(
-      rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
-    );
-    isSubmitting.value = false;
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all<InfoItem[]>(
+        rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
+      );
+      const params = {
+        remark: '',
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
+        details: {
+          ip_source: 'resource_pool',
+          infos,
+        },
+      };
 
-    const params = {
-      remark: '',
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY,
-      details: {
-        ip_source: 'resource_pool',
-        infos,
-      },
-    };
-    InfoBox({
-      title: t('确认部署 n 个集群的只读接入层？', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () =>
-        createTicket(params).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'SpiderProxySlaveApply',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-    });
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'SpiderProxySlaveApply',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } catch {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

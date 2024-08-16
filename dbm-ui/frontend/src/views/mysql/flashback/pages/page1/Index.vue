@@ -26,10 +26,8 @@
           {{ t('批量录入') }}
         </BkButton>
       </div>
-      <div class="title-spot mt-12 mb-10">
-        {{ t('时区') }}<span class="required" />
-      </div>
-      <TimeZonePicker style="width: 450px;" />
+      <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
+      <TimeZonePicker style="width: 450px" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -123,7 +121,7 @@
   const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<TendbhaModel>}>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -186,39 +184,38 @@
     if (domain) {
       delete domainMemo[domain];
       const clustersArr = selectedClusters.value[ClusterTypes.TENDBHA];
-      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.master_domain !== domain);
+      selectedClusters.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.master_domain !== domain);
     }
     dataList.splice(index, 1);
     tableData.value = dataList;
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: 'MYSQL_FLASHBACK',
-          remark: '',
-          details: {
-            infos: data,
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      await createTicket({
+        ticket_type: 'MYSQL_FLASHBACK',
+        remark: '',
+        details: {
+          infos,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MySQLDBFlashback',
+          params: {
+            page: 'success',
           },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
-          router.push({
-            name: 'MySQLDBFlashback',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {
