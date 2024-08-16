@@ -12,12 +12,9 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set
 
-from django.utils.translation import ugettext as _
-
 from backend.components.bklog.handler import BKLogHandler
 from backend.db_meta.models import Cluster
 from backend.db_services.sqlserver.rollback.constants import BACKUP_LOG_RANGE_DAYS
-from backend.exceptions import AppBaseException
 from backend.flow.utils.sqlserver.sqlserver_db_function import sqlserver_match_dbs
 from backend.utils.time import datetime2str, find_nearby_time, str2datetime, timezone2timestamp
 
@@ -133,7 +130,7 @@ class SQLServerRollbackHandler(object):
         try:
             latest_backup_log_index = find_nearby_time(time_keys, timezone2timestamp(rollback_time), flag=1)
         except IndexError:
-            raise AppBaseException(_("无法找到时间点{}附近的全备日志记录").format(rollback_time))
+            return {"logs": []}
 
         return backup_logs[latest_backup_log_index]
 

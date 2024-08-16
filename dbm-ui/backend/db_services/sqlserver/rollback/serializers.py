@@ -9,12 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import json
+from datetime import datetime, timedelta
 
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_services.sqlserver.cluster.serializers import GetDBForDrsSerializer
 from backend.db_services.sqlserver.rollback import mock_data
+from backend.db_services.sqlserver.rollback.constants import BACKUP_LOG_RANGE_DAYS
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.utils.time import str2datetime
 
@@ -51,6 +54,10 @@ class QueryDbsByBackupLogSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("请输入备份记录或者备份时间来查询操作库表"))
         if attrs.get("restore_time"):
             attrs["restore_time"] = str2datetime(attrs["restore_time"])
+            current_time = datetime.now(timezone.utc)
+            limit_time = current_time - timedelta(days=BACKUP_LOG_RANGE_DAYS)
+            if attrs["restore_time"] < limit_time:
+                raise serializers.ValidationError(_("只能选取回滚近15天的时间"))
         else:
             attrs.pop("restore_time", None)
         return attrs
