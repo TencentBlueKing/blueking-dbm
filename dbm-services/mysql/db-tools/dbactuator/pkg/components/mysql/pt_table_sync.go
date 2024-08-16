@@ -18,7 +18,6 @@ import (
 	"crypto/rand"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
@@ -238,23 +237,24 @@ func (c *PtTableSyncComp) ExecPtTableSync() (err error) {
 
 		// 拼接pt-table-sync 的执行命令
 		syncCmd := fmt.Sprintf(
-			"%s --execute --replicate=%s.%s --sync-to-master --no-buffer-to-client --no-check-child-tables "+
-				"--chunk-size=%s --databases=%s --tables=%s --charset=%s h=%s,P=%d,u=%s,p=%s",
+			"%s --replicate=%s.%s --sync-to-master --no-buffer-to-client --no-check-child-tables "+
+				"--chunk-size=%s --databases=%s --tables=%s --charset=%s h=%s,P=%d,u=%s,p=%s --execute",
 			PtTableSyncPath, checkSumDB, getChecksumName, chunkSize, syncTable.DbName,
 			syncTable.TableName, Charset, c.Params.Host, c.Params.Port, c.Params.SyncUser, c.Params.SyncPass,
 		)
 
 		logger.Info("executing %s", syncCmd)
-		output, err := osutil.ExecShellCommand(false, syncCmd)
+		output, exitCode, err := osutil.StandardShellCommandForExitCode(false, syncCmd)
 
-		if err != nil && !strings.Contains(err.Error(), SyncExitStatus2) {
+		if exitCode != 0 && exitCode != 2 {
 			// 如果修复某张表时候进程查询异常，不中断，记录异常信息，执行下张表的修复
 			logger.Error("exec cmd get an error:%s,%s", output, err.Error())
 			errTableCount++
 			continue
 		} else {
 			// 打印输出日志
-			logger.Info(output)
+			logger.Info("exitcode: %d", exitCode)
+			logger.Info("fix result : %s", output)
 		}
 		// 更新历史记录
 		if err := c.UpdateOldRecords(syncTable.DbName, syncTable.TableName); err != nil {
@@ -379,24 +379,15 @@ func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName strin
 		return false
 	}
 
-	// 在master创建临时checksum临时表
-	if _, err := c.masterDbConn.Exec(
-		fmt.Sprintf(
-			"create table if not exists %s.%s like %s.%s ;",
-			checkSumDB, tempCheckSumTableName, checkSumDB, c.Params.CheckSumTable,
-		),
-	); err != nil {
-		logger.Error("create table %s failed:[%s]", tempCheckSumTableName, err.Error())
-		return false
-	}
-
 	// 导入异常记录在临时表上
-	copySQLs = append(copySQLs, "set binlog_format = 'Statement' ;")
+	copySQLs = append(copySQLs, "set sql_log_bin = OFF;")
+	copySQLs = append(copySQLs, fmt.Sprintf("create table if not exists %s.%s like %s.%s ;",
+		checkSumDB, tempCheckSumTableName, checkSumDB, c.Params.CheckSumTable))
 	copySQLs = append(copySQLs, fmt.Sprintf("truncate table %s.%s ;", checkSumDB, tempCheckSumTableName))
 	copySQLs = append(
 		copySQLs,
 		fmt.Sprintf(
-			"insert into %s.%s select * from %s.%s  where db = '%s' and tbl = '%s' and ts between '%s' and '%s' ",
+			"insert into %s.%s select * from %s.%s  where db = '%s' and tbl = '%s' and ts between '%s' and '%s' ;",
 			checkSumDB,
 			tempCheckSumTableName,
 			checkSumDB,
@@ -407,12 +398,20 @@ func (c *PtTableSyncComp) CopyTableCheckSumReport(DBName string, tableName strin
 			c.Params.EndTime,
 		),
 	)
-	copySQLs = append(copySQLs, "set binlog_format = 'ROW' ;")
+	copySQLs = append(copySQLs, "set sql_log_bin = ON;")
 
+	//  在主库执行
 	if _, err := c.masterDbConn.ExecMore(copySQLs); err != nil {
-		logger.Error("create table %s failed:[%s]", tempCheckSumTableName, err.Error())
+		logger.Error("create table %s in master failed:[%s]", tempCheckSumTableName, err.Error())
 		return false
 	}
+	logger.Info("create table %s in master successfully", tempCheckSumTableName)
+	// 在从库执行
+	if _, err := c.dbConn.ExecMore(copySQLs); err != nil {
+		logger.Error("create table %s in local failed:[%s]", tempCheckSumTableName, err.Error())
+		return false
+	}
+	logger.Info("create table %s in local successfully", tempCheckSumTableName)
 
 	return true
 }

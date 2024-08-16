@@ -171,6 +171,22 @@ func StandardShellCommand(isSudo bool, param string) (stdoutStr string, err erro
 	return stdout.String(), nil
 }
 
+// StandardShellCommandForExitCode todo
+func StandardShellCommandForExitCode(isSudo bool, param string) (stdoutStr string, exitCode int, err error) {
+	var stdout, stderr bytes.Buffer
+	if isSudo {
+		param = "sudo " + param
+	}
+	cmd := exec.Command("bash", "-c", param)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err = cmd.Run()
+	if err != nil {
+		return stdout.String(), cmd.ProcessState.ExitCode(), errors.WithMessage(err, stderr.String())
+	}
+	return stdout.String(), cmd.ProcessState.ExitCode(), nil
+}
+
 // ComplexCommand 捕获标准错误和标准输出io copy 到需要文件里面
 // 不影响正常的输出
 type ComplexCommand struct {
