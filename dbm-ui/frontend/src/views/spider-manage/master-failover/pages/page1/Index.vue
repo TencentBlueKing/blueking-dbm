@@ -83,10 +83,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -171,35 +168,34 @@
     }
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
-          remark: '',
-          details: {
-            ...formData,
-            infos: data,
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const data = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
 
-          router.push({
-            name: 'spiderMasterFailover',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+      await createTicket({
+        ticket_type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
+        remark: '',
+        details: {
+          ...formData,
+          infos: data,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'spiderMasterFailover',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {
