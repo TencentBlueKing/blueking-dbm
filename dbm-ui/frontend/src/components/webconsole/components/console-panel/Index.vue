@@ -2,10 +2,6 @@
   <div
     ref="consolePanelRef"
     class="console-panel-main"
-    :style="{
-      fontSize: fontConfig.fontSize,
-      lineHeight: fontConfig.lineHeight,
-    }"
     @click="handleInputFocus">
     <template
       v-for="(item, index) in panelRecords"
@@ -17,7 +13,7 @@
       </div>
       <template v-else>
         <Component
-          :is="consoleConfig?.renderMessage"
+          :is="consoleConfig.renderMessage"
           :data="item.message" />
       </template>
     </template>
@@ -57,20 +53,14 @@
 
   interface Props {
     clusterInfo: ClusterItem;
-    fontConfig: {
-      fontSize: string;
-      lineHeight: string;
-    };
     dbType: MainProps['dbType'];
-    operableParams: {
-      raw?: boolean;
-    };
+    raw?: boolean;
   }
 
   interface Expose {
-    clearCurrentScreen: (id?: number) => void;
+    clearCurrentScreen: (id: number) => void;
     export: () => void;
-    isInputed: (clusterId: number) => boolean;
+    isInputed: (id?: number) => boolean;
   }
 
   interface PanelLine {
@@ -112,7 +102,7 @@
   let inputPlaceholder = '';
   let recentOnceInput = '';
   let baseParams: ConsoleParams;
-  const configMap: { [key in DBTypes]?: ConsoleConfig } = {
+  const configMap: Record<string, ConsoleConfig> = {
     [DBTypes.MYSQL]: {
       renderMessage: RenderMysqlMessage,
     },
@@ -127,15 +117,16 @@
   };
 
   watch(
-    () => props.operableParams,
+    () => props.raw,
     () => {
-      baseParams = {
-        ...baseParams,
-        ...props.operableParams,
-      };
+      if (typeof props.raw === 'boolean') {
+        baseParams = {
+          ...baseParams,
+          raw: props.raw,
+        };
+      }
     },
     {
-      deep: true,
       immediate: true,
     },
   );
@@ -145,8 +136,8 @@
     () => {
       if (clusterId.value) {
         const domain = props.clusterInfo.immute_domain;
-        inputPlaceholder = consoleConfig.value?.getInputPlaceholder
-          ? consoleConfig.value?.getInputPlaceholder(clusterId.value, domain)
+        inputPlaceholder = consoleConfig.value.getInputPlaceholder
+          ? consoleConfig.value.getInputPlaceholder(clusterId.value, domain)
           : `${domain} > `;
         baseParams = {
           ...baseParams,
@@ -194,6 +185,8 @@
     commandsInput[clusterId.value].push(cmd);
     currentCommandIndex = commandsInput[clusterId.value].length;
     panelsInput[clusterId.value].push(commandLine);
+    console.log(panelsInput, 'panelsInput');
+
     panelRecords.value.push(commandLine);
     command.value = inputPlaceholder;
     if (!isInputed) {
@@ -228,9 +221,9 @@
       panelsInput[clusterId.value].push(normalLine);
       panelRecords.value.push(normalLine);
 
-      if (consoleConfig.value?.getDbOwnParmas) {
+      if (consoleConfig.value.getDbOwnParmas) {
         baseParams = Object.assign(baseParams, consoleConfig.value.getDbOwnParmas(clusterId.value, cmd));
-        if (consoleConfig.value?.getInputPlaceholder) {
+        if (consoleConfig.value.getInputPlaceholder) {
           inputPlaceholder = consoleConfig.value.getInputPlaceholder(clusterId.value, props.clusterInfo.immute_domain);
           command.value = inputPlaceholder;
         }
@@ -324,11 +317,10 @@
 
   defineExpose<Expose>({
     clearCurrentScreen(id?: number) {
-      if (id) {
-        panelsInput[id] = [];
-      } else {
-        panelsInput[clusterId.value] = [];
-      }
+      const currentClusterId = id ?? clusterId.value;
+      commandsInput[currentClusterId] = [];
+      noExecuteCommand[currentClusterId] = '';
+      panelsInput[currentClusterId] = [];
       panelRecords.value = [];
       command.value = inputPlaceholder;
     },
@@ -359,10 +351,11 @@
       const fileName = `${props.clusterInfo.immute_domain}.txt`;
       downloadText(fileName, exportTxt);
     },
-    isInputed(clusterId: number) {
+    isInputed(id?: number) {
+      const currentClusterId = id ?? clusterId.value;
       return (
-        commandsInput[clusterId]?.some((cmd) => cmd.length > inputPlaceholder.length) ||
-        noExecuteCommand[clusterId]?.substring(inputPlaceholder.length).length > 0
+        commandsInput[currentClusterId]?.some((cmd) => cmd.length > inputPlaceholder.length) ||
+        noExecuteCommand[currentClusterId]?.substring(inputPlaceholder.length).length > 0
       );
     },
   });

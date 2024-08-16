@@ -2,10 +2,10 @@
   <div class="operate-item">
     <div class="operate-item-switcher">
       <BkSwitcher
-        v-model="isRawMode"
+        v-model="modelValue"
         v-bk-tooltips="{
           content: t('开启后可正常显示中文'),
-          disabled: isRawMode,
+          disabled: modelValue,
         }"
         theme="primary"
         @change="handleRawSwitch" />
@@ -16,18 +16,28 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  interface Emits {
-    (e: 'change', value: boolean): void;
+  import { DBTypes } from '@common/const';
+
+  interface Props {
+    dbType: DBTypes;
   }
 
+  interface Emits {
+    (e: 'change', value?: boolean): void;
+  }
+
+  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const isRawMode = ref(false);
+  const modelValue = defineModel<boolean>({
+    default: false,
+  });
 
   const handleRawSwitch = (value: boolean) => {
-    emits('change', value);
+    modelValue.value = value;
+    emits('change', props.dbType === DBTypes.REDIS ? value : undefined);
   };
 </script>
 
