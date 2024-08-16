@@ -124,13 +124,17 @@
 
   let ipMemo = {} as Record<string, boolean>;
 
-  watch(() => props.dataList, () => {
-    if (props.dataList) {
-      tableData.value = props.dataList;
-    }
-  }, {
-    immediate: true,
-  })
+  watch(
+    () => props.dataList,
+    () => {
+      if (props.dataList) {
+        tableData.value = props.dataList;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -189,42 +193,41 @@
     if (ip) {
       delete ipMemo[ip];
       const clustersArr = selectedIps.value[ClusterTypes.TENDBHA];
-      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter(item => item.ip !== ip);
+      selectedIps.value[ClusterTypes.TENDBHA] = clustersArr.filter((item) => item.ip !== ip);
     }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item) => item.getValue()))
-      .then((data) =>
-        createTicket({
-          ticket_type: 'MYSQL_RESTORE_SLAVE',
-          remark: '',
-          details: {
-            backup_source: backupSource.value,
-            infos: data,
-          },
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          window.changeConfirm = false;
+  const handleSubmit = async () => {
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item) => item.getValue()));
+      await createTicket({
+        ticket_type: 'MYSQL_RESTORE_SLAVE',
+        remark: '',
+        details: {
+          backup_source: backupSource.value,
+          infos,
+        },
+        bk_biz_id: currentBizId,
+      }).then((data) => {
+        window.changeConfirm = false;
 
-          router.push({
-            name: 'MySQLSlaveRebuild',
-            params: {
-              page: 'success',
-            },
-            query: {
-              ticketId: data.id,
-            },
-          });
-        }),
-      )
-      .finally(() => {
-        isSubmitting.value = false;
+        router.push({
+          name: 'MySQLSlaveRebuild',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
       });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {
