@@ -382,6 +382,9 @@
                     },
                     ...nodeData,
                   },
+                }).then(() => {
+                  emits('change');
+                  resolve('success');
                 });
               },
             });
