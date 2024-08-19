@@ -48,6 +48,7 @@ def create_mongo_cluster(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     cluster_type=ClusterType.MongoShardedCluster.value,
+    disaster_tolerance_level: str = "",
 ):
     """创建副本集 MongoSet 实例
     1. 一般情况需要2到3个域名
@@ -93,6 +94,7 @@ def create_mongo_cluster(
             cluster_type=cluster_type,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            disaster_tolerance_level=disaster_tolerance_level,
         )
         cluster.proxyinstance_set.add(*mongos_objs)
         cluster.storageinstance_set.add(*config_objs)
@@ -152,6 +154,7 @@ def pkg_create_mongo_cluster(
     region: str = "",
     machine_specs: Optional[Dict] = None,
     cluster_type=ClusterType.MongoShardedCluster.value,
+    disaster_tolerance_level: str = "",
 ):
     """创建副本集 MongoSet 实例
     1. 一般情况需要2到3个域名
@@ -206,4 +209,5 @@ def pkg_create_mongo_cluster(
         bk_cloud_id=bk_cloud_id,
         region=region,
         cluster_type=cluster_type,
+        disaster_tolerance_level=disaster_tolerance_level,
     )
