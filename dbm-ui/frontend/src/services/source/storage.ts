@@ -64,6 +64,6 @@ export function batchDownload(params: { file_path_list: string[] }) {
 /**
  * 批量下载目录（返回下载链接）
  */
-export function batchDownloadDirs(params: { paths: string[] }) {
+export function batchDownloadDirs(params: { file_path_list: string[] }) {
   return http.post<Record<string, string>>(`${path}/download_dirs/`, params);
 }
