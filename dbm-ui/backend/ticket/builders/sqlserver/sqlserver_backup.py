@@ -52,7 +52,8 @@ class SQLServerBackupDetailSerializer(SQLServerBaseOperateDetailSerializer):
             for info in attrs["infos"]:
                 if id__cluster[info["cluster_id"]].status_flag & ClusterSqlserverStatusFlags.BackendMasterUnavailable:
                     raise serializers.ValidationError(e)
-
+        # 校验单据是否互斥
+        super().validate(attrs)
         return attrs
 
 

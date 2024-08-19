@@ -31,6 +31,8 @@ class SQLServerAuthorizeRulesSerializer(SQLServerBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         super().validate_cluster_can_access(attrs)
+        # 校验单据是否互斥
+        super().validate(attrs)
         return attrs
 
 
