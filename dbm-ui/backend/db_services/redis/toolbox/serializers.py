@@ -224,7 +224,7 @@ class GetClusterCapacityInfoSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     new_storage_version = serializers.CharField(help_text=_("存储版本"))
     new_spec_id = serializers.IntegerField(help_text=_("新规格ID"))
-    new_machine_group_count = serializers.IntegerField(help_text=_("申请机器组数量"))
+    new_machine_group_num = serializers.IntegerField(help_text=_("申请机器组数量"))
     new_shards_num = serializers.IntegerField(help_text=_("新的分片数量"))
 
     class Meta:
