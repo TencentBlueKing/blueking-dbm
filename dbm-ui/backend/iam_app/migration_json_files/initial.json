@@ -1329,6 +1329,93 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mysql_import_sqlfile",
+                "name": "MySQL 变更SQL执行",
+                "name_en": "MYSQL_IMPORT_SQLFILE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "SQL 任务",
+                "description": "MySQL 变更SQL执行",
+                "description_en": "MYSQL_IMPORT_SQLFILE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_instance_clone_rules",
+                "name": "MySQL DB实例权限克隆",
+                "name_en": "MYSQL_INSTANCE_CLONE_RULES",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "权限管理",
+                "description": "MySQL DB实例权限克隆",
+                "description_en": "MYSQL_INSTANCE_CLONE_RULES"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "mysql_dump_data",
+                "name": "MySQL 数据导出",
+                "name_en": "MYSQL_DUMP_DATA",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mysql",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mysql_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MySQL",
+                "subgroup": "数据处理",
+                "description": "MySQL 数据导出",
+                "description_en": "MYSQL_DUMP_DATA"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mysql_webconsole",
                 "name": "MySQL Webconsole执行",
                 "name_en": "mysql_webconsole",
@@ -1423,7 +1510,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "mysql_client_clone_rules",
-                "name": "MySQL 客户端克隆",
+                "name": "MySQL 客户端权限克隆",
                 "name_en": "mysql_client_clone_rules",
                 "type": "execute",
                 "related_resource_types": [
@@ -1445,8 +1532,8 @@
                 "version": 1,
                 "hidden": false,
                 "group": "MySQL",
-                "subgroup": "集群管理",
-                "description": "MySQL 客户端克隆",
+                "subgroup": "权限管理",
+                "description": "MySQL 客户端权限克隆",
                 "description_en": "mysql_client_clone_rules"
             }
         },
@@ -2180,6 +2267,64 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "tendbcluster_import_sqlfile",
+                "name": "TenDB Cluster 变更SQL执行",
+                "name_en": "TENDBCLUSTER_IMPORT_SQLFILE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "SQL 任务",
+                "description": "TenDB Cluster 变更SQL执行",
+                "description_en": "TENDBCLUSTER_IMPORT_SQLFILE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "tendbcluster_dump_data",
+                "name": "TenDB Cluster 数据导出",
+                "name_en": "TENDBCLUSTER_DUMP_DATA",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "tendbcluster",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "tendbcluster_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "TenDBCluster",
+                "subgroup": "数据处理",
+                "description": "TenDB Cluster 数据导出",
+                "description_en": "TENDBCLUSTER_DUMP_DATA"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "tendbcluster_webconsole",
                 "name": "TendbCluster Webconsole执行",
                 "name_en": "tendbcluster_webconsole",
@@ -2438,7 +2583,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendb_cluster_client_clone_rules",
-                "name": "TenDB Cluster 客户端克隆权限",
+                "name": "TenDB Cluster 客户端权限克隆",
                 "name_en": "tendb_cluster_client_clone_rules",
                 "type": "execute",
                 "related_resource_types": [
@@ -2459,7 +2604,7 @@
                 "hidden": false,
                 "group": "TenDBCluster",
                 "subgroup": "权限管理",
-                "description": "TenDB Cluster 客户端克隆权限",
+                "description": "TenDB Cluster 客户端权限克隆",
                 "description_en": "tendb_cluster_client_clone_rules"
             }
         },
@@ -2489,7 +2634,7 @@
                 "version": 1,
                 "hidden": false,
                 "group": "TenDBCluster",
-                "subgroup": "权限克隆",
+                "subgroup": "权限管理",
                 "description": "TenDB Cluster DB实例权限克隆",
                 "description_en": "tendb_instance_clone_rules"
             }
@@ -5608,35 +5753,6 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "mysql_import_sqlfile",
-                "name": "MySQL 变更SQL执行",
-                "name_en": "MYSQL_IMPORT_SQLFILE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "SQL 任务",
-                "description": "MySQL 变更SQL执行",
-                "description_en": "MYSQL_IMPORT_SQLFILE"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "mysql_proxy_add",
                 "name": "MySQL 添加Proxy",
                 "name_en": "MYSQL_PROXY_ADD",
@@ -5690,35 +5806,6 @@
                 "subgroup": "集群维护",
                 "description": "MySQL 替换Proxy",
                 "description_en": "MYSQL_PROXY_SWITCH"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "mysql_instance_clone_rules",
-                "name": "MySQL DB实例权限克隆",
-                "name_en": "MYSQL_INSTANCE_CLONE_RULES",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "权限管理",
-                "description": "MySQL DB实例权限克隆",
-                "description_en": "MYSQL_INSTANCE_CLONE_RULES"
             }
         },
         {
@@ -6043,35 +6130,6 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "mysql_dump_data",
-                "name": "MySQL 数据导出",
-                "name_en": "MYSQL_DUMP_DATA",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "mysql",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "mysql_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "MySQL",
-                "subgroup": "数据处理",
-                "description": "MySQL 数据导出",
-                "description_en": "MYSQL_DUMP_DATA"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
                 "id": "mysql_local_upgrade",
                 "name": "MySQL 原地升级",
                 "name_en": "MYSQL_LOCAL_UPGRADE",
@@ -6357,35 +6415,6 @@
                 "subgroup": "集群维护",
                 "description": "TenDB Cluster 主从互切",
                 "description_en": "TENDBCLUSTER_MASTER_SLAVE_SWITCH"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "tendbcluster_import_sqlfile",
-                "name": "TenDB Cluster 变更SQL执行",
-                "name_en": "TENDBCLUSTER_IMPORT_SQLFILE",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "tendbcluster",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "tendbcluster_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "TenDBCluster",
-                "subgroup": "SQL 任务",
-                "description": "TenDB Cluster 变更SQL执行",
-                "description_en": "TENDBCLUSTER_IMPORT_SQLFILE"
             }
         },
         {
@@ -6821,35 +6850,6 @@
                 "subgroup": "数据处理",
                 "description": "TenDB Cluster 数据迁移",
                 "description_en": "TENDBCLUSTER_DATA_MIGRATE"
-            }
-        },
-        {
-            "operation": "upsert_action",
-            "data": {
-                "id": "tendbcluster_dump_data",
-                "name": "TenDB Cluster 数据导出",
-                "name_en": "TENDBCLUSTER_DUMP_DATA",
-                "type": "execute",
-                "related_resource_types": [
-                    {
-                        "system_id": "bk_dbm",
-                        "id": "tendbcluster",
-                        "selection_mode": "all",
-                        "related_instance_selections": [
-                            {
-                                "system_id": "bk_dbm",
-                                "id": "tendbcluster_list"
-                            }
-                        ]
-                    }
-                ],
-                "related_actions": [],
-                "version": 1,
-                "hidden": false,
-                "group": "TenDBCluster",
-                "subgroup": "数据处理",
-                "description": "TenDB Cluster 数据导出",
-                "description_en": "TENDBCLUSTER_DUMP_DATA"
             }
         },
         {
@@ -9845,10 +9845,16 @@
                                     "id": "mysql_enable_disable"
                                 },
                                 {
-                                    "id": "mysql_client_clone_rules"
-                                },
-                                {
                                     "id": "mysql_destroy"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "SQL 任务",
+                            "name_en": "SQL 任务",
+                            "actions": [
+                                {
+                                    "id": "mysql_import_sqlfile"
                                 }
                             ]
                         },
@@ -9856,6 +9862,12 @@
                             "name": "权限管理",
                             "name_en": "权限管理",
                             "actions": [
+                                {
+                                    "id": "mysql_instance_clone_rules"
+                                },
+                                {
+                                    "id": "mysql_client_clone_rules"
+                                },
                                 {
                                     "id": "mysql_account_create"
                                 },
@@ -9873,9 +9885,27 @@
                                 },
                                 {
                                     "id": "mysql_excel_authorize_rules"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "数据处理",
+                            "name_en": "数据处理",
+                            "actions": [
+                                {
+                                    "id": "mysql_dump_data"
                                 },
                                 {
-                                    "id": "mysql_instance_clone_rules"
+                                    "id": "mysql_ha_truncate_data"
+                                },
+                                {
+                                    "id": "mysql_checksum"
+                                },
+                                {
+                                    "id": "mysql_single_truncate_data"
+                                },
+                                {
+                                    "id": "mysql_data_migrate"
                                 }
                             ]
                         },
@@ -9982,36 +10012,6 @@
                             ]
                         },
                         {
-                            "name": "SQL 任务",
-                            "name_en": "SQL 任务",
-                            "actions": [
-                                {
-                                    "id": "mysql_import_sqlfile"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "数据处理",
-                            "name_en": "数据处理",
-                            "actions": [
-                                {
-                                    "id": "mysql_ha_truncate_data"
-                                },
-                                {
-                                    "id": "mysql_checksum"
-                                },
-                                {
-                                    "id": "mysql_single_truncate_data"
-                                },
-                                {
-                                    "id": "mysql_data_migrate"
-                                },
-                                {
-                                    "id": "mysql_dump_data"
-                                }
-                            ]
-                        },
-                        {
                             "name": "备份",
                             "name_en": "备份",
                             "actions": [
@@ -10085,6 +10085,36 @@
                             ]
                         },
                         {
+                            "name": "SQL 任务",
+                            "name_en": "SQL 任务",
+                            "actions": [
+                                {
+                                    "id": "tendbcluster_import_sqlfile"
+                                },
+                                {
+                                    "id": "tendbcluster_rename_database"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "数据处理",
+                            "name_en": "数据处理",
+                            "actions": [
+                                {
+                                    "id": "tendbcluster_dump_data"
+                                },
+                                {
+                                    "id": "tendbcluster_checksum"
+                                },
+                                {
+                                    "id": "tendbcluster_truncate_database"
+                                },
+                                {
+                                    "id": "tendbcluster_data_migrate"
+                                }
+                            ]
+                        },
+                        {
                             "name": "权限管理",
                             "name_en": "权限管理",
                             "actions": [
@@ -10108,13 +10138,7 @@
                                 },
                                 {
                                     "id": "tendb_cluster_client_clone_rules"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "权限克隆",
-                            "name_en": "权限克隆",
-                            "actions": [
+                                },
                                 {
                                     "id": "tendb_instance_clone_rules"
                                 }
@@ -10172,24 +10196,6 @@
                             ]
                         },
                         {
-                            "name": "数据处理",
-                            "name_en": "数据处理",
-                            "actions": [
-                                {
-                                    "id": "tendbcluster_checksum"
-                                },
-                                {
-                                    "id": "tendbcluster_truncate_database"
-                                },
-                                {
-                                    "id": "tendbcluster_data_migrate"
-                                },
-                                {
-                                    "id": "tendbcluster_dump_data"
-                                }
-                            ]
-                        },
-                        {
                             "name": "备份",
                             "name_en": "备份",
                             "actions": [
@@ -10198,18 +10204,6 @@
                                 },
                                 {
                                     "id": "tendbcluster_full_backup"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "SQL 任务",
-                            "name_en": "SQL 任务",
-                            "actions": [
-                                {
-                                    "id": "tendbcluster_rename_database"
-                                },
-                                {
-                                    "id": "tendbcluster_import_sqlfile"
                                 }
                             ]
                         },
@@ -10963,6 +10957,9 @@
                             "id": "redis_view"
                         },
                         {
+                            "id": "redis_webconsole"
+                        },
+                        {
                             "id": "es_view"
                         },
                         {
@@ -11014,6 +11011,15 @@
                             "id": "mysql_view"
                         },
                         {
+                            "id": "mysql_import_sqlfile"
+                        },
+                        {
+                            "id": "mysql_instance_clone_rules"
+                        },
+                        {
+                            "id": "mysql_dump_data"
+                        },
+                        {
                             "id": "mysql_webconsole"
                         },
                         {
@@ -11039,9 +11045,6 @@
                         },
                         {
                             "id": "mysql_authorize_rules"
-                        },
-                        {
-                            "id": "mysql_excel_authorize_rules"
                         },
                         {
                             "id": "mysql_excel_authorize_rules"
@@ -11093,6 +11096,12 @@
                         },
                         {
                             "id": "tendbcluster_view"
+                        },
+                        {
+                            "id": "tendbcluster_import_sqlfile"
+                        },
+                        {
+                            "id": "tendbcluster_dump_data"
                         },
                         {
                             "id": "tendbcluster_webconsole"
@@ -11371,16 +11380,10 @@
                             "id": "mysql_master_fail_over"
                         },
                         {
-                            "id": "mysql_import_sqlfile"
-                        },
-                        {
                             "id": "mysql_proxy_add"
                         },
                         {
                             "id": "mysql_proxy_switch"
-                        },
-                        {
-                            "id": "mysql_instance_clone_rules"
                         },
                         {
                             "id": "mysql_ha_rename_database"
@@ -11416,9 +11419,6 @@
                             "id": "mysql_data_migrate"
                         },
                         {
-                            "id": "mysql_dump_data"
-                        },
-                        {
                             "id": "mysql_local_upgrade"
                         },
                         {
@@ -11447,9 +11447,6 @@
                         },
                         {
                             "id": "tendbcluster_master_slave_switch"
-                        },
-                        {
-                            "id": "tendbcluster_import_sqlfile"
                         },
                         {
                             "id": "tendbcluster_spider_add_nodes"
@@ -11495,9 +11492,6 @@
                         },
                         {
                             "id": "tendbcluster_data_migrate"
-                        },
-                        {
-                            "id": "tendbcluster_dump_data"
                         },
                         {
                             "id": "sqlserver_import_sqlfile"
@@ -11782,6 +11776,168 @@
                             "id": "vm_destroy"
                         }
                     ]
+                },
+                {
+                    "name": "MySQL DB授权",
+                    "name_en": "mysql_authorize_rules",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "mysql_instance_clone_rules"
+                        },
+                        {
+                            "id": "mysql_client_clone_rules"
+                        },
+                        {
+                            "id": "mysql_account_create"
+                        },
+                        {
+                            "id": "mysql_add_account_rule"
+                        },
+                        {
+                            "id": "mysql_account_rules_view"
+                        },
+                        {
+                            "id": "mysql_authorize_rules"
+                        },
+                        {
+                            "id": "mysql_excel_authorize_rules"
+                        }
+                    ]
+                },
+                {
+                    "name": "MySQL SQL变更",
+                    "name_en": "mysql_import_sqlfile",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "mysql_import_sqlfile"
+                        }
+                    ]
+                },
+                {
+                    "name": "TendbCluster DB授权",
+                    "name_en": "tendbcluster_authorize_rules",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "tendbcluster_account_create"
+                        },
+                        {
+                            "id": "tendbcluster_add_account_rule"
+                        },
+                        {
+                            "id": "tendbcluster_account_rules_view"
+                        },
+                        {
+                            "id": "tendbcluster_authorize_rules"
+                        },
+                        {
+                            "id": "tendb_excel_authorize_rules"
+                        },
+                        {
+                            "id": "tendb_cluster_client_clone_rules"
+                        },
+                        {
+                            "id": "tendb_instance_clone_rules"
+                        }
+                    ]
+                },
+                {
+                    "name": "TendbCluster SQL变更",
+                    "name_en": "tendbcluster_import_sqlfile",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "tendbcluster_import_sqlfile"
+                        }
+                    ]
+                },
+                {
+                    "name": "外部开发商专用",
+                    "name_en": "external_developer",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "mysql_view"
+                        },
+                        {
+                            "id": "mysql_dump_data"
+                        },
+                        {
+                            "id": "mysql_webconsole"
+                        },
+                        {
+                            "id": "tendbcluster_view"
+                        },
+                        {
+                            "id": "tendbcluster_dump_data"
+                        },
+                        {
+                            "id": "tendbcluster_webconsole"
+                        },
+                        {
+                            "id": "redis_view"
+                        },
+                        {
+                            "id": "redis_webconsole"
+                        }
+                    ]
+                },
+                {
+                    "name": "ES获取访问方式",
+                    "name_en": "es_access",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "es_view"
+                        },
+                        {
+                            "id": "es_access_entry_view"
+                        }
+                    ]
+                },
+                {
+                    "name": "HDFS获取访问方式",
+                    "name_en": "hdfs_access",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "hdfs_view"
+                        },
+                        {
+                            "id": "hdfs_access_entry_view"
+                        }
+                    ]
+                },
+                {
+                    "name": "Kafka获取访问方式",
+                    "name_en": "kafka_access",
+                    "actions": [
+                        {
+                            "id": "db_manage"
+                        },
+                        {
+                            "id": "kafka_view"
+                        },
+                        {
+                            "id": "kafka_access_entry_view"
+                        }
+                    ]
                 }
             ]
         },
@@ -11812,6 +11968,18 @@
                         "actions": [
                             {
                                 "id": "mysql_view",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_import_sqlfile",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_instance_clone_rules",
+                                "required": true
+                            },
+                            {
+                                "id": "mysql_dump_data",
                                 "required": true
                             },
                             {
@@ -11883,19 +12051,11 @@
                                 "required": true
                             },
                             {
-                                "id": "mysql_import_sqlfile",
-                                "required": true
-                            },
-                            {
                                 "id": "mysql_proxy_add",
                                 "required": true
                             },
                             {
                                 "id": "mysql_proxy_switch",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_instance_clone_rules",
                                 "required": true
                             },
                             {
@@ -11940,10 +12100,6 @@
                             },
                             {
                                 "id": "mysql_data_migrate",
-                                "required": true
-                            },
-                            {
-                                "id": "mysql_dump_data",
                                 "required": true
                             },
                             {
@@ -12019,6 +12175,14 @@
                                 "required": true
                             },
                             {
+                                "id": "tendbcluster_import_sqlfile",
+                                "required": true
+                            },
+                            {
+                                "id": "tendbcluster_dump_data",
+                                "required": true
+                            },
+                            {
                                 "id": "tendbcluster_webconsole",
                                 "required": true
                             },
@@ -12079,10 +12243,6 @@
                                 "required": true
                             },
                             {
-                                "id": "tendbcluster_import_sqlfile",
-                                "required": true
-                            },
-                            {
                                 "id": "tendbcluster_spider_add_nodes",
                                 "required": true
                             },
@@ -12140,10 +12300,6 @@
                             },
                             {
                                 "id": "tendbcluster_data_migrate",
-                                "required": true
-                            },
-                            {
-                                "id": "tendbcluster_dump_data",
                                 "required": true
                             }
                         ]
