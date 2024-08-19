@@ -180,6 +180,11 @@
         {{ t('提交') }}
       </BkButton>
       <BkButton
+        class="mr-8"
+        @click="handleShowPreview">
+        {{ t('权限预览') }}
+      </BkButton>
+      <BkButton
         :disabled="state.isLoading"
         @click="handleClose">
         {{ t('取消') }}
@@ -198,9 +203,12 @@
     :account-type="accountType"
     :selected-list="selectedList"
     @change="handleAccountRulesChange" />
+  <PreviewPermission
+    :data="previewTableData"
+    :is-show="previewState.isShow"
+    @close="handleClosePreview" />
 </template>
 <script lang="tsx">
-  import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
@@ -218,7 +226,7 @@
   import { getWhitelist } from '@services/source/whitelist';
   import type { AuthorizePreCheckData, PermissionRule } from '@services/types/permission';
 
-  import { useCopy, useTicketMessage } from '@hooks';
+  import { useBeforeClose, useCopy, useTicketMessage } from '@hooks';
 
   import { AccountTypes, ClusterTypes, TicketTypes } from '@common/const';
 
@@ -226,46 +234,48 @@
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
+  import PreviewPermission from '@views/db-manage/common/permission/preview/Index.vue';
+
   import AccountRulesTable from './accout-rules-preview-table/Index.vue';
   // import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
   import AccountRulesSelector from './accouter-rules-selector/Index.vue';
-</script>
 
-<script setup lang="tsx">
   type ResourceItem = NonNullable<Props['selected']>[number] & { isMaster?: boolean };
-  type MysqlPreCheckResulst = ServiceReturnType<typeof preCheckAuthorizeRules>
-  type MongoPreCheckResulst = ServiceReturnType<typeof preCheckMongodbAuthorizeRules>
-  type SqlserverPreCheckResulst = ServiceReturnType<typeof preCheckSqlserverAuthorizeRules>
+  type MysqlPreCheckResulst = ServiceReturnType<typeof preCheckAuthorizeRules>;
+  type MongoPreCheckResulst = ServiceReturnType<typeof preCheckMongodbAuthorizeRules>;
+  type SqlserverPreCheckResulst = ServiceReturnType<typeof preCheckSqlserverAuthorizeRules>;
 
   interface Props {
-    accountType: AccountTypes,
-    user?: string,
-    accessDbs?: string[],
+    accountType: AccountTypes;
+    user?: string;
+    accessDbs?: string[];
     selected?: {
-      master_domain: string,
-      cluster_name: string,
-      db_module_name?: string,
-    }[],
-    clusterTypes?: string[],
+      master_domain: string;
+      cluster_name: string;
+      db_module_name?: string;
+    }[];
+    clusterTypes?: string[];
     // tabList?: string[],
-    permissonRuleList?: MongodbPermissonAccountModel[]
+    permissonRuleList?: MongodbPermissonAccountModel[];
   }
 
   interface Emits {
-    (e: 'success'): void,
+    (e: 'success'): void;
   }
 
   interface Exposes {
     initSelectorData: (data: {
-      clusterType: ClusterTypes,
-      clusterList: ResourceItem[],
-      sourceIpList: ServiceReturnType<typeof checkHost>
-    }) => void,
+      clusterType: ClusterTypes;
+      clusterList: ResourceItem[];
+      sourceIpList: ServiceReturnType<typeof checkHost>;
+    }) => void;
   }
 
-  type ClusterSelectorResult = Record<string, Array<ResourceItem>>
+  type ClusterSelectorResult = Record<string, Array<ResourceItem>>;
+</script>
 
-    const props = withDefaults(defineProps<Props>(), {
+<script setup lang="tsx">
+  const props = withDefaults(defineProps<Props>(), {
     user: '',
     accessDbs: () => [],
     selected: () => [],
@@ -302,6 +312,7 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
   const copy = useCopy();
+  const handleBeforeClose = useBeforeClose();
 
   const tabListConfigMap = {
     tendbhaSlave: {
@@ -405,6 +416,11 @@
     ],
   });
 
+  const previewState = reactive({
+    isShow: false,
+    data: []
+  })
+
   const isMysql = computed(() => [AccountTypes.MYSQL, AccountTypes.TENDBCLUSTER].includes(props.accountType))
 
   const collapseTableColumns = computed(() => {
@@ -415,11 +431,11 @@
         render: ({ data }: { data: ResourceItem }) => (
           data.isMaster !== undefined
             ? <div class="domain-column">
-                {data.isMaster
-                  ? <span class="master-icon">{t('主')}</span>
-                  : <span class="slave-icon">{t('从')}</span>}
-                <span class="ml-6">{data.master_domain}</span>
-              </div>
+              {data.isMaster
+                ? <span class="master-icon">{t('主')}</span>
+                : <span class="slave-icon">{t('从')}</span>}
+              <span class="ml-6">{data.master_domain}</span>
+            </div>
             : <span>{data.master_domain}</span>
         ),
       },
@@ -432,13 +448,13 @@
         field: 'operation',
         width: 100,
         render: ({ index }: { index: number }) => (
-            <bk-button
-              text
-              theme="primary"
-              onClick={() => handleRemoveSelected(index)}>
-              {t('删除')}
-            </bk-button>
-          ),
+          <bk-button
+            text
+            theme="primary"
+            onClick={() => handleRemoveSelected(index)}>
+            {t('删除')}
+          </bk-button>
+        ),
       },
     ];
 
@@ -475,6 +491,13 @@
     return selected as unknown as Record<string, (MongodbModel)[]>;
   });
 
+  const previewTableData = computed(() => ({
+    ips: selectedIpList.value.map(item => item.ip),
+    account: state.formdata.user,
+    clusters: _.flatten(Object.values(clusterSelectorSelected.value)),
+    rules: selectedRules.value
+  }))
+
   const tabListConfig = computed(() => props.clusterTypes.reduce((prevConfig, clusterTypeItem) => ({
     ...prevConfig,
     [clusterTypeItem]: tabListConfigMap[clusterTypeItem],
@@ -500,7 +523,7 @@
       field: 'privilege',
       showOverflowTooltip: true,
       render: ({ cell }: { cell: string }) => {
-        if (!cell){
+        if (!cell) {
           return '--'
         }
         return cell.replace(/,/g, ', ')
@@ -644,6 +667,14 @@
     accoutRulesShow.value = true;
   };
 
+  const handleShowPreview = () => {
+    previewState.isShow = true;
+  };
+
+  const handleClosePreview = () => {
+    previewState.isShow = false;
+  };
+
   const handleClusterChange = (selected: ClusterSelectorResult) => {
     const list: ResourceItem[] = [];
     Object.keys(selected).forEach((key) => {
@@ -770,26 +801,6 @@
       .finally(() => {
         state.isLoading = false;
       });
-  };
-
-  const handleBeforeClose = () => {
-    if (state.isLoading) return false;
-
-    if (window.changeConfirm) {
-      return new Promise<boolean>((resolve) => {
-        InfoBox({
-          title: t('确认离开当前页'),
-          content: t('离开将会导致未保存信息丢失'),
-          confirmText: t('离开'),
-          onConfirm: () => {
-            window.changeConfirm = false;
-            resolve(true);
-            return true;
-          },
-        });
-      });
-    }
-    return true;
   };
 
   const handleAccountRulesChange = (value: MongodbPermissonAccountModel[]) => {

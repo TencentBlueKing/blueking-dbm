@@ -1,4 +1,3 @@
-<!-- eslint-disable no-restricted-syntax -->
 <!--
  * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
  *
@@ -151,7 +150,7 @@
   import { getPermissionRules, queryAccountRules } from '@services/source/permission';
   import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
 
-  import { type AuthItemKey, type RuleSettingsConfig, type RulesFormData } from '../Index.vue';
+  import type { AuthItemKey, RuleSettingsConfig, RulesFormData } from '../Index.vue';
 
   interface Props {
     isEdit: boolean;
@@ -178,7 +177,6 @@
     },
   });
   const accounts = ref<PermissionRuleAccount[]>([]);
-  let existDbs: string = '';
 
   const rules = computed(() => ({
     access_db: [
@@ -200,25 +198,32 @@
       },
       {
         trigger: 'blur',
-        message: () => t('该账号下已存在xx规则', [existDbs]),
-        validator: async (value: string) => {
+        message: () => t('账号下已存在该规则'),
+        validator: async () => {
           const user = accounts.value.find((item) => item.account_id === formData.value.account_id)?.user;
-          const dbs = value.replace(/\n|;/g, ',').split(',').filter(Boolean);
-          if (!user || !dbs.length) {
-            return false;
-          }
-          if (props.isEdit) {
+          if (props.rulesFormData.beforeChange.access_db === formData.value.access_db) {
             return true;
           }
+          const dbs = formData.value.access_db
+            .replace(/\n|;/g, ',')
+            .split(',')
+            .filter((db) => db);
+
+          if (!user || dbs.length === 0) {
+            return false;
+          }
+
           const { results } = await queryAccountRules({
             bizId: window.PROJECT_CONFIG.BIZ_ID,
             user,
             access_dbs: dbs,
             account_type: props.ruleSettingsConfig.accountType,
           });
-          const rules = results[0]?.rules || [];
-          existDbs = rules.map((item) => item.access_db).join(',');
-          return !rules.length;
+          const intersection =
+            results
+              .find((item) => item.account.user === user)
+              ?.rules.filter((ruleItem) => dbs.includes(ruleItem.access_db)) || [];
+          return !intersection.length;
         },
       },
     ],

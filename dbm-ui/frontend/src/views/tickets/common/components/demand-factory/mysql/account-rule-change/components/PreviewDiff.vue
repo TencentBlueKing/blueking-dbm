@@ -13,21 +13,11 @@
 
 <template>
   <div class="preview-diff">
-    <div>
-      <span class="preview-diff-title mr-7">{{ t('请确认以下差异变化：') }}</span>
-      <span
-        v-for="(tag, index) in tags"
-        :key="tag.type"
-        :class="[`tag-${tag.type}`, { 'ml-25': index > 0 }]">
-        {{ tag.text }}
-      </span>
-    </div>
     <DbCard
       v-model:collapse="collapseActive.accessDb"
-      class="mt-16"
       :is-active="collapseActive.accessDb"
       mode="collapse"
-      :title="t('访问DB')">
+      :title="t('访问DB变更前后对比')">
       <BkTable
         :border="['col', 'outer']"
         :columns="accessColumns"
@@ -41,7 +31,7 @@
       <template #desc>
         <I18nT
           class="privilege-table-title"
-          keypath="权限：新增n个，删除m个"
+          keypath="权限变更前后对比：新增n个，删除m个"
           tag="span">
           <span style="color: #2dcb56">{{ addCount }}</span>
           <span style="color: #ea3636">{{ deleteCount }}</span>
@@ -62,7 +52,9 @@
   import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import type { AuthItemKey, RuleSettingsConfig, RulesFormData } from '../Index.vue';
+  import { DBTypes } from '@common/const';
+
+  import { type AuthItemKey, configMap, type RulesFormData } from "@views/db-manage/common/permission/create-rule/Index.vue";
 
   interface PrivilegeRow {
     privilegeKey: string;
@@ -76,16 +68,13 @@
   }
 
   interface Props {
-    ruleSettingsConfig: RuleSettingsConfig;
+    dbType?: DBTypes;
     rulesFormData: RulesFormData
   }
 
-  interface Exposes {
-    addCount: number;
-    deleteCount: number;
-  }
-
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    dbType: DBTypes.MYSQL,
+  });
 
   const { t } = useI18n();
 
@@ -112,7 +101,7 @@
   }
 
   const getSensitiveWordMap = () => Object.fromEntries(
-    (props.ruleSettingsConfig.ddlSensitiveWords || []).map(word => [word, true])
+    (configMap[props.dbType]?.ddlSensitiveWords || []).map(word => [word, true])
   );
 
   const getPrivilegeData = (key: AuthItemKey) => {
@@ -139,40 +128,23 @@
   const addCount = computed(() => privilegeData.value.filter(item => item.diffType === 'add').length);
   const deleteCount = computed(() => privilegeData.value.filter(item => item.diffType === 'delete').length);
 
-  const tags: {
-    type: PrivilegeRow['diffType'],
-    text: string
-  }[] = [
-      {
-        type: 'add',
-        text: t('新增'),
-      },
-      {
-        type: 'delete',
-        text: t('删除'),
-      },
-      {
-        type: 'unchanged',
-        text: t('不变'),
-      },
-    ];
   const accessColumns: Column[] = [
     {
       label: t('变更前'),
       field: 'oldAccessDb',
-      width: 300,
+      width: 250,
     },
     {
       label: t('变更后'),
       field: 'newAccessDb',
-      width: 300,
+      width: 250,
     },
   ];
   const privilegeColumns: Column[] = [
     {
       label: t('权限类型'),
       field: 'privilegeDisplay',
-      width: 200,
+      width: 180,
       rowspan: ({ row }: { row: PrivilegeRow }) => {
         const { privilegeKey } = row;
         const rowSpan = privilegeData.value.filter((item) => item.privilegeKey === privilegeKey).length;
@@ -183,7 +155,7 @@
     {
       label: t('变更前'),
       field: 'beforePrivilege',
-      width: 200,
+      width: 180,
       render: ({ row }: { row: PrivilegeRow }) => {
         const { beforePrivilege, isSensitiveWord } = row;
         return beforePrivilege ? (
@@ -199,7 +171,7 @@
     {
       label: t('变更后'),
       field: 'afterPrivilege',
-      width: 200,
+      width: 180,
       render: ({ row }: { row: PrivilegeRow }) => {
         const { afterPrivilege, isSensitiveWord } = row;
         return (
@@ -215,11 +187,6 @@
   ];
 
   const getCellClass = (data: { field: string }) => data.field === 'afterPrivilege' ? 'cell-privilege' : '';
-
-  defineExpose<Exposes>({
-    addCount: addCount.value,
-    deleteCount: deleteCount.value,
-  })
 </script>
 
 <style lang="less" scoped>
@@ -228,48 +195,10 @@
   }
 
   .preview-diff {
-    padding: 18px 24px;
-
     .preview-diff-title {
       font-size: 14px;
       font-weight: 700;
       color: #63656e;
-    }
-
-    .tag-add::before {
-      position: relative;
-      top: 2px;
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      margin-right: 5px;
-      background: #f2fff4;
-      border: 1px solid #b3ffc1;
-      content: '';
-    }
-
-    .tag-delete::before {
-      position: relative;
-      top: 2px;
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      margin-right: 5px;
-      background: #ffeded;
-      border: 1px solid #ffd2d2;
-      content: '';
-    }
-
-    .tag-unchanged::before {
-      position: relative;
-      top: 2px;
-      display: inline-block;
-      width: 12px;
-      height: 12px;
-      margin-right: 5px;
-      background: #fff;
-      border: 1px solid #c4c6cc;
-      content: '';
     }
 
     .privilege-card {
@@ -291,7 +220,7 @@
       }
 
       .db-card__content {
-        padding-top: 0;
+        padding: 0;
       }
 
       .privilege-table-title {
@@ -301,8 +230,6 @@
       }
 
       .privilege-table {
-        height: calc(100vh - 400px) !important;
-
         .cell-bold {
           font-weight: 700;
         }
