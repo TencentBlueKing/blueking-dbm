@@ -305,13 +305,16 @@ class TendbClusterMigrateRemoteFlow(object):
                     created_by=self.data["created_by"],
                 )
             )
+            #  为了兼容集群迁移的修改元数据函数，这里替换掉shards为my_shards
+            cluster_info_meta = copy.deepcopy(cluster_info)
+            cluster_info_meta["shards"] = cluster_info["my_shards"]
             switch_sub_pipeline.add_act(
                 act_name=_("remote机器切换完毕后修改元数据指向"),
                 act_component_code=SpiderDBMetaComponent.code,
                 kwargs=asdict(
                     DBMetaOPKwargs(
                         db_meta_class_func=SpiderDBMeta.tendb_remotedb_rebalance_switch.__name__,
-                        cluster=cluster_info,
+                        cluster=cluster_info_meta,
                         is_update_trans_data=True,
                     )
                 ),
