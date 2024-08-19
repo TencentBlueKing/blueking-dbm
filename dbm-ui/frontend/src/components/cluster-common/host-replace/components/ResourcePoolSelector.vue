@@ -142,7 +142,10 @@
     defaultParams: [getDefaultParams()],
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
-        modelValue.value.spec_id = recommendSpecList[0].spec_id;
+        modelValue.value = {
+          spec_id: recommendSpecList[0].spec_id,
+          count: props.data.nodeList.length,
+        };
       }
     },
   });
