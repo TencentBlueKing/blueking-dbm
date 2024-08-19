@@ -27,10 +27,10 @@
       </template>
     </BkAlert>
     <BkForm form-type="vertical">
-      <BkFormItem :label="$t('目标容量')">
+      <BkFormItem :label="t('目标容量')">
         <div class="target-content-box">
           <div class="content-label">
-            {{ $t('缩容至') }}
+            {{ t('缩容至') }}
           </div>
           <div class="content-value">
             <div>
@@ -40,13 +40,13 @@
                 :max="data.totalDisk"
                 :min="1"
                 :model-value="localTargetDisk > 0 ? localTargetDisk : undefined"
-                :placeholder="$t('请输入')"
+                :placeholder="t('请输入')"
                 style="width: 156px; margin-right: 8px"
                 type="number"
                 @change="handleTargetDiskChange" />
               <span>GB</span>
               <template v-if="localTargetDisk > 0">
-                <span> , {{ $t('共缩容') }} </span>
+                <span> , {{ t('共缩容') }} </span>
                 <span
                   class="strong-num"
                   style="color: #2dcb56">
@@ -57,12 +57,12 @@
             </div>
             <div class="content-tips">
               <span>
-                {{ $t('当前容量') }}:
+                {{ t('当前容量') }}:
                 <span class="strong-num">{{ data.totalDisk }}</span>
                 GB
               </span>
               <span style="margin-left: 65px">
-                <span>{{ $t('缩容后') }}:</span>
+                <span>{{ t('缩容后') }}:</span>
                 <span v-if="data.targetDisk">
                   <span class="strong-num">{{ localTargetDisk }}</span>
                   GB

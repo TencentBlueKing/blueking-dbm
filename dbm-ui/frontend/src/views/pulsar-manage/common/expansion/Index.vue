@@ -18,15 +18,15 @@
     <BkAlert
       class="mb16"
       theme="warning"
-      :title="$t('Bookkeeper，Broker 至少扩容一种类型')" />
+      :title="t('Bookkeeper，Broker 至少扩容一种类型')" />
     <BkRadioGroup
       v-model="ipSource"
       class="ip-srouce-box">
       <BkRadioButton label="resource_pool">
-        {{ $t('资源池自动匹配') }}
+        {{ t('资源池自动匹配') }}
       </BkRadioButton>
       <BkRadioButton label="manual_input">
-        {{ $t('手动选择') }}
+        {{ t('手动选择') }}
       </BkRadioButton>
     </BkRadioGroup>
     <div class="wrapper">

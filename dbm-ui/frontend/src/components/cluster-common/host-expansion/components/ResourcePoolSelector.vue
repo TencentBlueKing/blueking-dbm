@@ -152,6 +152,11 @@
         role: props.data.role,
       },
     ],
+    onSuccess(recommendSpecList) {
+      if (recommendSpecList.length > 0) {
+        specId.value = recommendSpecList[0].spec_id;
+      }
+    },
   });
 
   const triggerChange = () => {
