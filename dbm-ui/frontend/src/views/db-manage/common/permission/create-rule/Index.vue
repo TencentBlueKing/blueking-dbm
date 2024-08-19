@@ -14,6 +14,7 @@
 <template>
   <BkSideslider
     :before-close="handleBeforeClose"
+    class="create-rule-sideslider"
     :is-show="isShow"
     render-directive="if"
     :title="isEdit ? t('编辑授权规则') : t('添加授权规则')"
@@ -27,6 +28,7 @@
       :rules-form-data="rulesFormData" />
     <PreviewDiff
       v-else
+      ref="previewDiffRef"
       :rule-settings-config="ruleSettingsConfig"
       :rules-form-data="rulesFormData" />
     <template #footer>
@@ -37,7 +39,7 @@
         {{ t('上一步') }}
       </BkButton>
       <BkButton
-        v-if="isFirstStep"
+        v-if="isFirstStep && isEdit"
         class="w-88 mr-8"
         theme="primary"
         @click="handleGoPreviewDiff">
@@ -69,26 +71,14 @@
   </BkSideslider>
 </template>
 
-<script setup lang="tsx">
-  import _ from 'lodash';
-  import type { JSX } from 'vue/jsx-runtime';
-  import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
+<script lang="tsx">
   import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
-  import { createAccountRule, modifyAccountRule, preCheckAddAccountRule } from '@services/source/permission';
   import type { AccountRule, AccountRulePrivilege } from '@services/types/permission';
 
-  import { useBeforeClose } from '@hooks';
-
-  import { AccountTypes, DBTypes } from '@common/const';
-
-  import { messageError, messageSuccess } from '@utils';
-
-  import PreviewDiff from './components/PreviewDiff.vue';
-  import RuleSettings from './components/RuleSettings.vue';
+  import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
   export interface RuleSettingsConfig {
+    ticketType: TicketTypes;
     accountType: AccountTypes;
     dbOperations: {
       ddl: string[];
@@ -115,44 +105,9 @@
     (e: 'success'): void;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    accountId: -1,
-    ruleObj: undefined,
-    dbType: DBTypes.MYSQL,
-  });
-
-  const emits = defineEmits<Emits>();
-
-  const isShow = defineModel<boolean>({
-    required: true,
-    default: false,
-  });
-
-  const { t } = useI18n();
-  const handleBeforeClose = useBeforeClose();
-
-  const initFormData = (): AccountRule => ({
-    account_id: null,
-    access_db: '',
-    privilege: {
-      ddl: [],
-      dml: [],
-      glob: [],
-    },
-  });
-
-  const ruleSettingsRef = ref<InstanceType<typeof RuleSettings>>();
-  const currentStep = ref(1);
-  const showPopConfirm = ref(false);
-  const precheckWarnTip = ref<JSX.Element>();
-  const isSubmitting = ref(false);
-  const rulesFormData = reactive<RulesFormData>({
-    beforeChange: initFormData(),
-    afterChange: initFormData(),
-  });
-
-  const configMap: { [key in DBTypes]?: RuleSettingsConfig } = {
+  export const configMap: { [key in DBTypes]?: RuleSettingsConfig } = {
     [DBTypes.MYSQL]: {
+      ticketType: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
       accountType: AccountTypes.MYSQL,
       dbOperations: {
         dml: ['select', 'insert', 'update', 'delete', 'show view'],
@@ -182,6 +137,7 @@
       ],
     },
     [DBTypes.TENDBCLUSTER]: {
+      ticketType: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
       accountType: AccountTypes.TENDBCLUSTER,
       dbOperations: {
         dml: ['select', 'insert', 'update', 'delete'],
@@ -190,12 +146,67 @@
       },
     },
   };
+</script>
+
+<script setup lang="tsx">
+  import _ from 'lodash';
+  import type { JSX } from 'vue/jsx-runtime';
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { createAccountRule, modifyAccountRule, preCheckAddAccountRule } from '@services/source/permission';
+  import { createTicket } from '@services/source/ticket';
+
+  import { useBeforeClose } from '@hooks';
+
+  import { messageError, messageSuccess } from '@utils';
+
+  import PreviewDiff from './components/PreviewDiff.vue';
+  import RuleSettings from './components/RuleSettings.vue';
+
+  const props = withDefaults(defineProps<Props>(), {
+    accountId: -1,
+    ruleObj: undefined,
+    dbType: DBTypes.MYSQL,
+  });
+
+  const emits = defineEmits<Emits>();
+
+  const isShow = defineModel<boolean>({
+    required: true,
+    default: false,
+  });
+
+  const { t } = useI18n();
+  const handleBeforeClose = useBeforeClose();
+
+  const initFormData = (): AccountRule => ({
+    account_id: null,
+    access_db: '',
+    privilege: {
+      ddl: [],
+      dml: [],
+      glob: [],
+    },
+  });
+
+  const ruleSettingsRef = ref<InstanceType<typeof RuleSettings>>();
+  const previewDiffRef = ref<InstanceType<typeof PreviewDiff>>();
+  const currentStep = ref(1);
+  const showPopConfirm = ref(false);
+  const precheckWarnTip = ref<JSX.Element>();
+  const isSubmitting = ref(false);
+  const rulesFormData = reactive<RulesFormData>({
+    beforeChange: initFormData(),
+    afterChange: initFormData(),
+  });
 
   const isEdit = computed(() => !!props.ruleObj?.account_id);
   const isFirstStep = computed(() => currentStep.value === 1);
   const ruleSettingsConfig = computed(() => {
-    const { accountType, dbOperations, ddlSensitiveWords } = configMap[props.dbType as DBTypes] as RuleSettingsConfig;
+    const { ticketType, accountType, dbOperations, ddlSensitiveWords } = configMap[props.dbType as DBTypes] as RuleSettingsConfig;
     return {
+      ticketType,
       accountType,
       dbOperations,
       ddlSensitiveWords: ddlSensitiveWords || [],
@@ -243,7 +254,7 @@
    */
   const { run: preCheckAddAccountRuleRun } = useRequest(preCheckAddAccountRule, {
     manual: true,
-    onSuccess({ warning }) {
+    onSuccess: async ({ warning }) => {
       if (warning) {
         precheckWarnTip.value = (
           <div class="pre-check-content">
@@ -253,7 +264,7 @@
         showPopConfirm.value = true;
         return;
       }
-      const params = generateRequestParam();
+      const params = await generateRequestParam();
       createAccountRuleRun(params);
     },
     onError() {
@@ -263,13 +274,26 @@
       isSubmitting.value = false;
       handleClose();
     }
+  });
+
+  /**
+   * 规则变更（有权限被删除）时走单据
+   */
+  const { run: createTicketRun } = useRequest(createTicket, {
+    manual: true,
+    onSuccess() {
+      window.changeConfirm = false;
+      handleClose();
+    },
+    onAfter() {
+      isSubmitting.value = false;
+    }
   })
 
   watch(
     isShow,
     () => {
       rulesFormData.beforeChange = {
-        ...initFormData(),
         account_id: props.accountId ?? -1,
         access_db: props.ruleObj?.access_db || '',
         privilege: props.ruleObj?.privilege ? Object.entries(ruleSettingsConfig.value.dbOperations).reduce<AccountRulePrivilege>((acc, [key, values]) => {
@@ -302,38 +326,75 @@
     isSubmitting.value = false;
   };
 
-  const generateRequestParam = () => {
-    const formData = _.cloneDeep(rulesFormData.afterChange);
+  const generateRequestParam = async () => {
+    let accountRule: AccountRule;
+    if (isFirstStep.value) {
+      accountRule = await ruleSettingsRef.value!.validate();
+    } else {
+      accountRule = _.cloneDeep(rulesFormData.afterChange);
+    }
     return {
-      ...formData,
+      ...accountRule,
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      access_db: formData.access_db.replace(/\n|;/g, ','), // 统一分隔符
+      access_db: accountRule.access_db.replace(/\n|;/g, ','), // 统一分隔符
       account_type: ruleSettingsConfig.value.accountType,
     };
   };
 
-  const handleVerifyConfirm = () => {
+  const handleVerifyConfirm = async () => {
     showPopConfirm.value = false;
-    const params = generateRequestParam();
+    const params = await generateRequestParam();
     createAccountRuleRun(params);
   };
 
   const handleGoPreviewDiff = async () => {
-    const validResult = await ruleSettingsRef.value!.validate();
-    rulesFormData.afterChange = validResult;
+    const accountRule = await ruleSettingsRef.value!.validate();
+    rulesFormData.afterChange = accountRule;
     currentStep.value = 2;
   };
 
   const handleSubmit = async () => {
     isSubmitting.value = true;
-    const params = generateRequestParam();
+    const params = await generateRequestParam();
     if (isEdit.value) {
-      modifyAccountRuleRun({
-        ...params,
-        rule_id: props.ruleObj!.rule_id,
-      })
+      const addCount = previewDiffRef.value?.addCount || 0;
+      const deleteCount = previewDiffRef.value?.deleteCount || 0;
+      if (deleteCount > 0) {
+        createTicketRun({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          ticket_type: ruleSettingsConfig.value.ticketType,
+          remark: '',
+          details: {
+            last_account_rules: rulesFormData.beforeChange,
+            action: addCount > 0 ? 'change' : 'delete',
+            ...params,
+            rule_id: props.ruleObj!.rule_id,
+          },
+        });
+      } else {
+        modifyAccountRuleRun({
+          ...params,
+          rule_id: props.ruleObj!.rule_id,
+        });
+      }
     } else {
       preCheckAddAccountRuleRun(params)
     }
   };
 </script>
+
+<style lang="less">
+  .create-rule-sideslider {
+    position: relative;
+
+    .bk-modal-footer {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+
+      .bk-sideslider-footer {
+        margin: 24px 0;
+      }
+    }
+  }
+</style>

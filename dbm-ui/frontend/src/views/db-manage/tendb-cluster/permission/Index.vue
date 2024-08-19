@@ -282,11 +282,11 @@
           const { privilege } = rule;
 
           return (
-            <div class="cell-row" v-overflow-tips>
+            <TextOverflowLayout class="cell-row pr-12">
               {
                 !privilege ? '--' : privilege.replace(/,/g, '，')
               }
-            </div>
+            </TextOverflowLayout>
           );
         })
       ),

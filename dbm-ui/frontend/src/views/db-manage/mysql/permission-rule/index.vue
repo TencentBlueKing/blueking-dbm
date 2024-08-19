@@ -329,11 +329,11 @@
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
           return (
-            <div class="cell-row pr-12" v-overflow-tips>
+            <TextOverflowLayout class="cell-row pr-12">
               {
                 !privilege ? '--' : privilege.replace(/,/g, '，')
               }
-            </div>
+            </TextOverflowLayout>
           );
         })
       ),
@@ -507,7 +507,7 @@
   };
 
   onMounted(() => {
-    fetchData()
+    fetchData();
   })
 </script>
 
