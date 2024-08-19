@@ -35,10 +35,10 @@
         {{ t('回档类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('构造 DB ') }}
+        {{ t('构造 DB') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
-        {{ t('忽略 DB ') }}
+        {{ t('忽略 DB') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
         {{ t('构造后 DB 名') }}

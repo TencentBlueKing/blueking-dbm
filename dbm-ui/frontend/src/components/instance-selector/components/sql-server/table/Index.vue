@@ -134,7 +134,6 @@
   const checkedMap = shallowRef({} as Record<string, T>);
 
   const initRole = computed(() => props.firsrColumn?.role);
-  const selectClusterId = computed(() => props.clusterId);
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
   const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value
     .filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
@@ -146,7 +145,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(searchValue, initRole, selectClusterId);
+  } = useTableData<T>(searchValue, initRole, props.clusterId);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -189,19 +188,21 @@
     },
     {
       fixed: 'left',
-      minWidth: 160,
+      width: 160,
       label: props.firsrColumn?.label ? firstLetterToUpper(props.firsrColumn.label) : t('实例'),
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
     },
     {
       label: t('角色'),
       field: 'role',
+      width: 100,
       showOverflowTooltip: true,
       filter: props.roleFilterList,
     },
     {
       label: t('实例状态'),
       field: 'status',
+      width: 100,
       filter: {
         list: [
           {
@@ -226,7 +227,7 @@
       },
     },
     {
-      minWidth: 100,
+      width: 150,
       label: t('管控区域'),
       field: 'bk_cloud_id',
       showOverflowTooltip: true,
@@ -237,7 +238,7 @@
       render: ({ data }:  DataRow) => <span>{data.bk_cloud_name}</span>,
     },
     {
-      minWidth: 100,
+      width: 150,
       label: t('Agent状态'),
       field: 'alive',
       render: ({ data }: DataRow) => {
@@ -248,24 +249,28 @@
     {
       label: t('主机名称'),
       field: 'host_name',
+      width: 150,
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.host_name || '--',
     },
     {
       label: t('OS名称'),
       field: 'os_name',
+      width: 150,
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.os_name || '--',
     },
     {
       label: t('所属云厂商'),
       field: 'cloud_vendor',
+      width: 150,
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.cloud_vendor || '--',
     },
     {
       label: t('OS类型'),
       field: 'os_type',
+      width: 100,
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info.os_type || '--',
     },
@@ -297,9 +302,7 @@
   }, { immediate: true, deep: true });
 
   watch(() => props.clusterId, () => {
-    if (props.clusterId) {
       fetchResources();
-    }
   }, {
     immediate: true,
   });

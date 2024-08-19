@@ -31,7 +31,7 @@
     @change="handelClusterChange" />
 </template>
 <script lang="ts">
-  const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+  const clusterIdMemo: { [key: string]: Record<string, number> } = {};
 </script>
 <script setup lang="ts">
   import { onBeforeUnmount, ref, watch } from 'vue';
@@ -48,9 +48,17 @@
 
   import { random } from '@utils';
 
+  interface Props {
+    name?: string;
+  }
+
   interface Exposes {
     getValue: (field: string) => Promise<Record<string, number>>;
   }
+
+  const props = withDefaults(defineProps<Props>(), {
+    name: 'renderCluster',
+  });
 
   const modelValue = defineModel<{
     id: number;
@@ -58,8 +66,10 @@
     cloudId: null | number;
   }>();
 
-  const instanceKey = `render_cluster_${random()}`;
-  clusterIdMemo[instanceKey] = {};
+  const instanceKey = `${props.name}_${random()}`;
+  clusterIdMemo[props.name] = {
+    [instanceKey]: 0,
+  };
 
   const { t } = useI18n();
 
@@ -124,25 +134,10 @@
     },
     {
       validator: () => {
-        const currentClusterSelectMap = clusterIdMemo[instanceKey];
-        const otherClusterMemoMap = { ...clusterIdMemo };
+        const otherClusterMemoMap = { ...clusterIdMemo[props.name] };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
-        }
-        return true;
+        return !Object.values(otherClusterMemoMap).includes(modelValue.value!.id);
       },
       message: t('目标集群重复'),
     },
@@ -153,7 +148,7 @@
     modelValue,
     () => {
       if (modelValue.value) {
-        clusterIdMemo[instanceKey][modelValue.value.id] = true;
+        clusterIdMemo[props.name][instanceKey] = modelValue.value.id;
         localDomain.value = modelValue.value.domain;
       } else {
         localDomain.value = '';
@@ -180,7 +175,7 @@
   };
 
   onBeforeUnmount(() => {
-    delete clusterIdMemo[instanceKey];
+    delete clusterIdMemo[props.name][instanceKey];
   });
 
   defineExpose<Exposes>({

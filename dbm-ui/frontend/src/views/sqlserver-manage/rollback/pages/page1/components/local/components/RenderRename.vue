@@ -35,7 +35,7 @@
     render-directive="if"
     :width="900">
     <template #header>
-      <span>{{ t('手动修改回档的 DB 名 ') }}</span>
+      <span>{{ t('手动修改回档的 DB 名') }}</span>
       <BkTag class="ml-8">{{ clusterData?.domain }}</BkTag>
     </template>
     <EditName

@@ -94,13 +94,7 @@
     ticketId: number;
   }
 
-  interface Emits {
-    (e: 'updateActiveTicket', value: TicketModel): void
-  }
-
   const props = defineProps<Props>();
-
-  const emits = defineEmits<Emits>();
 
   /**
    * 获取单据详情
@@ -112,7 +106,6 @@
     })
       .then((ticketData) => {
         state.ticketData = ticketData;
-        emits('updateActiveTicket', ticketData);
 
         if (currentScope?.active && ['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {
           myTicketsDetailTimer = setTimeout(() => {
@@ -139,7 +132,7 @@
 
   const state = reactive({
     isLoading: false,
-    ticketData: null as TicketModel | null,
+    ticketData: null as TicketModel<unknown> | null,
   });
 
   /**

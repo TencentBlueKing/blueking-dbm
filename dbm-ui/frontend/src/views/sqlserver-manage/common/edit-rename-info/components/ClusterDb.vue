@@ -23,7 +23,7 @@
 
   import { getSqlserverDbs } from '@services/source/sqlserver';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
   import type { IValue } from '../Index.vue';
 

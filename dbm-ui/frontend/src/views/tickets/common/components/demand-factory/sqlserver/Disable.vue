@@ -23,6 +23,8 @@
 
   import type { TicketDetails } from '@services/types/ticket';
 
+  import { TicketTypes } from '@common/const';
+
   interface Props {
     ticketDetails: TicketDetails<{
       clusters: {
@@ -51,6 +53,10 @@
   }
 
   const props = defineProps<Props>();
+
+  defineOptions({
+    name: TicketTypes.SQLSERVER_DISABLE,
+  });
 
   const { t } = useI18n();
 

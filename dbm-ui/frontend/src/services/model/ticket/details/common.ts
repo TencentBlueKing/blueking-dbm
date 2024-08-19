@@ -11,6 +11,10 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+export interface DetailBase {
+  __ticket_detail__: string;
+}
+
 export interface DetailClusters {
   [clusterId: number]: {
     alias: string;

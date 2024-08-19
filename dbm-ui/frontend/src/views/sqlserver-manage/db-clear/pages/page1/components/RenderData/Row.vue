@@ -110,8 +110,8 @@
   });
 </script>
 <script setup lang="ts">
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
-  import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
+  import RenderTableName from '@views/sqlserver-manage/common/TableName.vue';
 
   import RenderClearDbName from './RenderClearDbName.vue';
   import RenderClearMode from './RenderClearMode.vue';

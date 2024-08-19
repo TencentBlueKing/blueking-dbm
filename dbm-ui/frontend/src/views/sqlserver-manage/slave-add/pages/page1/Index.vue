@@ -72,7 +72,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
@@ -160,7 +160,7 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'SQLSERVER_ADD_SLAVE',
+          ticket_type: TicketTypes.SQLSERVER_ADD_SLAVE,
           remark: '',
           details: {
             ip_source: 'manual_input',

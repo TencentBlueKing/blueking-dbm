@@ -83,7 +83,7 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
-  import RenderCluster from '@views/mysql/common/edit-field/ClusterWithRelateCluster.vue';
+  import RenderCluster from '@views/sqlserver-manage/common/ClusterWithRelateCluster.vue';
 
   import RenderMasterSlave from './RenderMasterSlaveHost.vue';
 
