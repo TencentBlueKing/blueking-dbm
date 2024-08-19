@@ -13,13 +13,13 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderCluster
         ref="clusterRef"
         :model-value="localClusterData"
         @change="handleClusterChange"
         @input-create="handleCreate" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderHostSource
         ref="hostSourceRef"
@@ -84,6 +84,7 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';

@@ -22,6 +22,7 @@
       ref="editRef"
       v-model="localDomain"
       :multi-input="false"
+      :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
       @error-message-change="handleErrorMessageChange"
       @submit="handleEditSubmit" />
@@ -50,6 +51,7 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
+  import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { findRelatedClustersByClusterIds, queryClusters } from '@services/source/mysqlCluster';
@@ -83,6 +85,7 @@
   const instanceKey = `render_cluster_instance_${random()}`;
   clusterIdMemo[instanceKey] = {};
 
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const editRef = ref();

@@ -13,11 +13,11 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderSource
         ref="sourceRef"
         v-model="localSource" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderModule
         ref="moduleRef"
@@ -37,6 +37,7 @@
   </tr>
 </template>
 <script lang="ts">
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';

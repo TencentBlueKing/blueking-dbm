@@ -12,47 +12,58 @@
 -->
 
 <template>
-  <div class="db-table-backup-render-data">
-    <RenderTable>
-      <RenderTableHeadColumn
-        :min-width="240"
-        :width="240">
-        {{ $t('目标集群') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowBatchSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <!-- <RenderTableHeadColumn>
-        {{ $t('备份源') }}
-      </RenderTableHeadColumn> -->
-      <RenderTableHeadColumn>
-        {{ $t('备份DB名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('备份表名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        {{ $t('忽略DB名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn :required="false">
-        {{ $t('忽略表名') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="90">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+  <RenderTable>
+    <RenderTableHeadColumn
+      fixed="left"
+      :min-width="240"
+      :width="280">
+      {{ t('目标集群') }}
+      <template #append>
+        <BatchOperateIcon
+          class="ml-4"
+          @batch-click="handleShowBatchSelector" />
       </template>
-    </RenderTable>
-  </div>
+    </RenderTableHeadColumn>
+    <!-- <RenderTableHeadColumn>
+      {{ t('备份源') }}
+    </RenderTableHeadColumn> -->
+    <RenderTableHeadColumn
+      :min-width="240"
+      :width="240">
+      {{ t('备份DB名') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="240"
+      :width="240">
+      {{ t('备份表名') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="240"
+      :required="false"
+      :width="240">
+      {{ t('忽略DB名') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="240"
+      :required="false"
+      :width="240">
+      {{ t('忽略表名') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      fixed="right"
+      :required="false"
+      :width="100">
+      {{ t('操作') }}
+    </RenderTableHeadColumn>
+    <template #data>
+      <slot />
+    </template>
+  </RenderTable>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -62,16 +73,9 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
   };
 </script>
-<style lang="less">
-  .db-table-backup-render-data {
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

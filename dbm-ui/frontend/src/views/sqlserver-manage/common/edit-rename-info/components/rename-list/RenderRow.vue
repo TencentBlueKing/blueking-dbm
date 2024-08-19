@@ -1,34 +1,32 @@
 <template>
-  <tbody>
-    <tr>
-      <td>{{ localValue.db_name }}</td>
-      <td
-        :class="{
-          'is-change': valueMemo['target_db_name'] !== localValue['target_db_name'],
-        }"
-        style="padding: 0">
-        <TableEditInput
-          ref="targetDbNameRef"
-          :model-value="localValue.target_db_name"
-          :rules="targetDbNamerules"
-          @error="handleTargetDbNameError"
-          @submit="handleTargetDbChange" />
-      </td>
-      <td
-        :class="{
-          'is-change': valueMemo['rename_db_name'] !== localValue['rename_db_name'],
-        }"
-        style="padding: 0">
-        <TableEditInput
-          ref="renameDbNameRef"
-          :disabled="!localValue.rename_db_name && !isTargetDbNameError"
-          :model-value="localValue.rename_db_name"
-          :rules="renameDbNamerules"
-          @error="handleRenameDbNameError"
-          @submit="handleRenameDbChange" />
-      </td>
-    </tr>
-  </tbody>
+  <tr>
+    <td>{{ localValue.db_name }}</td>
+    <td
+      :class="{
+        'is-change': valueMemo['target_db_name'] !== localValue['target_db_name'],
+      }"
+      style="padding: 0">
+      <TableEditInput
+        ref="targetDbNameRef"
+        :model-value="localValue.target_db_name"
+        :rules="targetDbNamerules"
+        @error="handleTargetDbNameError"
+        @submit="handleTargetDbChange" />
+    </td>
+    <td
+      :class="{
+        'is-change': valueMemo['rename_db_name'] !== localValue['rename_db_name'],
+      }"
+      style="padding: 0">
+      <TableEditInput
+        ref="renameDbNameRef"
+        :disabled="!localValue.rename_db_name && !isTargetDbNameError"
+        :model-value="localValue.rename_db_name"
+        :rules="renameDbNamerules"
+        @error="handleRenameDbNameError"
+        @submit="handleRenameDbChange" />
+    </td>
+  </tr>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

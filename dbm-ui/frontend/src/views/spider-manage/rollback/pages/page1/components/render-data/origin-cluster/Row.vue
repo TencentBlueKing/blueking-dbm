@@ -12,36 +12,34 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="localClusterData"
-          @change="handleClusterChange"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderBackup
-          ref="backupSourceRef"
-          :list="selectList.backupSource"
-          :model-value="localBackupSource"
-          @change="handleBackupSourceChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderMode
-          ref="modeRef"
-          :backup-source="localBackupSource"
-          :backupid="data.backupid"
-          :cluster-id="localClusterData!.id"
-          :rollback-time="data.rollbackTime" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="localClusterData"
+        @change="handleClusterChange"
+        @input-create="handleCreate" />
+    </td>
+    <td style="padding: 0">
+      <RenderBackup
+        ref="backupSourceRef"
+        :list="selectList.backupSource"
+        :model-value="localBackupSource"
+        @change="handleBackupSourceChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderMode
+        ref="modeRef"
+        :backup-source="localBackupSource"
+        :backupid="data.backupid"
+        :cluster-id="localClusterData!.id"
+        :rollback-time="data.rollbackTime" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script setup lang="ts">
   import { ref, watch } from 'vue';

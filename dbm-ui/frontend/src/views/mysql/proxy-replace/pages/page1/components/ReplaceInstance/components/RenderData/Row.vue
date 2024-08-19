@@ -13,12 +13,12 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderOriginalProxy
         ref="targetRef"
         :model-value="data.originProxy?.instance_address"
         @input-finish="handleOriginProxyInputFinish" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderRelatedClusters
         ref="relatedClustersRef"
@@ -97,6 +97,9 @@
 </script>
 <script setup lang="ts">
   import { ref } from 'vue';
+
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderOriginalProxy from './RenderOriginalProxy.vue';
   import RenderRelatedClusters from './RenderRelatedClusters.vue';

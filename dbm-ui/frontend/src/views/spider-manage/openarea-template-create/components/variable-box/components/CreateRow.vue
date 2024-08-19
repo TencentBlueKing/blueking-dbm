@@ -1,5 +1,5 @@
 <template>
-  <tbody>
+  <tr>
     <td style="padding: 0">
       <TableEditInput
         ref="nameRef"
@@ -28,7 +28,7 @@
         {{ t('取消') }}
       </BkButton>
     </td>
-  </tbody>
+  </tr>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

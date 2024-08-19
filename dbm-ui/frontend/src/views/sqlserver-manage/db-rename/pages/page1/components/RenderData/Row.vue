@@ -12,50 +12,48 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="fromDatabaseRef"
-          check-exist
-          :cluster-id="localClusterId"
-          :model-value="data.fromDatabase"
-          :placeholder="$t('请输入单个源 DB 名')"
-          single />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="toDatabaseRef"
-          :cluster-id="localClusterId"
-          :model-value="data.toDatabase"
-          :placeholder="$t('请输入单个新 DB 名')"
-          single />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="fromDatabaseRef"
+        check-exist
+        :cluster-id="localClusterId"
+        :model-value="data.fromDatabase"
+        :placeholder="$t('请输入单个源 DB 名')"
+        single />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="toDatabaseRef"
+        :cluster-id="localClusterId"
+        :model-value="data.toDatabase"
+        :placeholder="$t('请输入单个新 DB 名')"
+        single />
+    </td>
+    <td>
+      <div class="action-box">
+        <div
+          class="action-btn"
+          @click="handleAppend">
+          <DbIcon type="plus-fill" />
         </div>
-      </td>
-    </tr>
-  </tbody>
+        <div
+          class="action-btn"
+          :class="{
+            disabled: removeable,
+          }"
+          @click="handleRemove">
+          <DbIcon type="minus-fill" />
+        </div>
+      </div>
+    </td>
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';

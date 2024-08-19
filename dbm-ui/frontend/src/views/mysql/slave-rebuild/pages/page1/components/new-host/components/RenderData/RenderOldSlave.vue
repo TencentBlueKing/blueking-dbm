@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="t('请输入IP')"
+      :placeholder="t('请输入IP或从表头批量选择')"
       :rules="rules"
       @input="handleInput" />
   </BkLoading>

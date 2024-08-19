@@ -12,43 +12,41 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderMasterSlave
-          ref="hostRef"
-          :cloud-id="cloudId"
-          :disabled="!localClusterId"
-          :domain="data.clusterData?.domain"
-          :master-host="data.masterHostData"
-          :slave-host="data.slaveHostData" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange"
+        @input-create="handleCreate" />
+    </td>
+    <td style="padding: 0">
+      <RenderMasterSlave
+        ref="hostRef"
+        :cloud-id="cloudId"
+        :disabled="!localClusterId"
+        :domain="data.clusterData?.domain"
+        :master-host="data.masterHostData"
+        :slave-host="data.slaveHostData" />
+    </td>
+    <td>
+      <div class="action-box">
+        <div
+          class="action-btn"
+          @click="handleAppend">
+          <DbIcon type="plus-fill" />
         </div>
-      </td>
-    </tr>
-  </tbody>
+        <div
+          class="action-btn"
+          :class="{
+            disabled: removeable,
+          }"
+          @click="handleRemove">
+          <DbIcon type="minus-fill" />
+        </div>
+      </div>
+    </td>
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
