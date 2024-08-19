@@ -18,10 +18,10 @@
         v-model="ipSource"
         class="ip-srouce-box">
         <BkRadioButton label="resource_pool">
-          {{ $t('资源池自动匹配') }}
+          {{ t('资源池自动匹配') }}
         </BkRadioButton>
         <BkRadioButton label="manual_input">
-          {{ $t('手动选择') }}
+          {{ t('手动选择') }}
         </BkRadioButton>
       </BkRadioGroup>
       <div

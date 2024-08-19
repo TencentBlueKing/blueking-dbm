@@ -49,9 +49,7 @@
   setup
   lang="ts"
   generic="T extends EsNodeModel | HdfsNodeModel | KafkaNodeModel | PulsarNodeModel | InfluxdbInstanceModel">
-  import {
-    shallowRef,
-  } from 'vue';
+  import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -61,22 +59,19 @@
   import type KafkaNodeModel from '@services/model/kafka/kafka-node';
   import type PulsarNodeModel from '@services/model/pulsar/pulsar-node';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
-  import {
-    fetchRecommendSpec,
-    getResourceSpecList,
-  } from '@services/source/dbresourceSpec';
+  import { fetchRecommendSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
 
   import SpecDetail from '@components/cluster-common/SpecDetailForPopover.vue';
 
   import type { TReplaceNode } from '../Index.vue';
 
   interface Props {
-    data: TReplaceNode<T>,
-    error: boolean,
+    data: TReplaceNode<T>;
+    error: boolean;
     cloudInfo: {
-      id: number,
-      name: string
-    },
+      id: number;
+      name: string;
+    };
   }
 
   const props = defineProps<Props>();
@@ -89,19 +84,14 @@
 
   const specCountMap = shallowRef<Record<number, number>>({});
 
-  const {
-    run: fetchSpecResourceCount,
-  } = useRequest(getSpecResourceCount, {
+  const { run: fetchSpecResourceCount } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(data) {
       specCountMap.value = data;
     },
   });
 
-  const {
-    loading: isResourceSpecLoading,
-    data: resourceSpecList,
-  } = useRequest(getResourceSpecList, {
+  const { loading: isResourceSpecLoading, data: resourceSpecList } = useRequest(getResourceSpecList, {
     defaultParams: [
       {
         spec_cluster_type: props.data.specClusterType,
@@ -113,18 +103,20 @@
       fetchSpecResourceCount({
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: props.cloudInfo.id,
-        spec_ids: data.results.map(item => item.spec_id),
+        spec_ids: data.results.map((item) => item.spec_id),
       });
     },
   });
 
-  const getDefaultParams = ():{
-    role: string,
-    instance_id: number,
-  }|{
-    role: string,
-    cluster_id: number,
-  } => {
+  const getDefaultParams = ():
+    | {
+        role: string;
+        instance_id: number;
+      }
+    | {
+        role: string;
+        cluster_id: number;
+      } => {
     // influxdb 没有 cluster_id 需要通过 instance_id 查询
     if (props.data.role === 'influxdb') {
       // eslint-disable-next-line vue/no-setup-props-destructure
@@ -147,7 +139,10 @@
     defaultParams: [getDefaultParams()],
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
-        modelValue.value.spec_id = recommendSpecList[0].spec_id;
+        modelValue.value = {
+          spec_id: recommendSpecList[0].spec_id,
+          count: props.data.nodeList.length,
+        };
       }
     },
   });

@@ -109,7 +109,12 @@
     ],
     onSuccess(recommendSpecList) {
       if (recommendSpecList.length > 0) {
-        modelValue.value.spec_id = recommendSpecList[0].spec_id;
+        const [currentSpec] = recommendSpecList;
+        modelValue.value = {
+          spec_id: currentSpec.spec_id,
+          count: props.data.nodeList.length,
+          instance_num: currentSpec.instance_num,
+        };
       }
     },
   });
