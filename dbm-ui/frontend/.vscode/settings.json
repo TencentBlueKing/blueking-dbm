@@ -36,7 +36,7 @@
   "preCI.localCodeCheck.filter.skipPath": "",
   "preCI.localCodeCheck.checkerSet.JS": ["standard_js"],
   "peacock.remoteColor": "#45e35f",
-  "bk-code-ai.enable": true,
+  "bk-code-ai.enable": false,
   "workbench.colorCustomizations": {
     "activityBar.activeBackground": "#71ea85",
     "activityBar.background": "#71ea85",

@@ -91,6 +91,9 @@
     name: string;
     obj: 'biz' | 'cluster';
     count: number;
+    payload: {
+      id: number;
+    };
     children: Array<TopoTreeData>;
   }
 
@@ -154,8 +157,8 @@
       __is_selected: boolean;
     },
   ) => {
+    selectClusterId.value = node.obj === 'cluster' ? node.payload.id : undefined;
     const rawNode = treeRef.value.getData().data.find((item: { id: number }) => item.id === node.id);
-    selectClusterId.value = node.id;
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(rawNode, true);
       treeRef.value.setSelect(rawNode, true);

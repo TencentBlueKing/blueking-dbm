@@ -11,11 +11,4 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { t } from '@locales/index';
-
-export const textMap = {
-  tendbha: t('MySQL-主从'),
-  tendbsingle: t('MySQL-单节点'),
-  tendbcluster: 'TendbCluster',
-  manualInput: t('手动输入'),
-};
+export const getFileNameFromFilePath = (filePath: string) => filePath.replace(/[^_]+_/, '');

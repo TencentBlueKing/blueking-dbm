@@ -142,8 +142,6 @@
 
   const mysqlTruncateDataTypes = [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA];
 
-  const mysqlRenameTypes = [TicketTypes.MYSQL_HA_RENAME_DATABASE, TicketTypes.MYSQL_SINGLE_RENAME_DATABASE];
-
   const mysqlApplyTypes = [TicketTypes.MYSQL_SINGLE_APPLY, TicketTypes.MYSQL_HA_APPLY];
 
   const mysqlClusterTicketType = [
@@ -388,7 +386,13 @@
       return MySQLHATruncate;
     }
     // MySQL 重命名
-    if (mysqlRenameTypes.includes(ticketType)) {
+    if (
+      [
+        TicketTypes.MYSQL_HA_RENAME_DATABASE,
+        TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
+        TicketTypes.SQLSERVER_DBRENAME,
+      ].includes(ticketType)
+    ) {
       return MySQLRename;
     }
     // Redis、大数据启停删单据

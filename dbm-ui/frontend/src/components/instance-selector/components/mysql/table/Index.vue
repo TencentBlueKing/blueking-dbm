@@ -106,7 +106,8 @@
     db_module_id: data.db_module_id,
     db_module_name: data.db_module_name,
     master_domain: data.master_domain || '',
-    related_clusters: data.related_clusters || []
+    related_clusters: data.related_clusters || [],
+    role: data.role
   });
 
   const { t } = useI18n();

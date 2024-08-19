@@ -622,12 +622,20 @@
     {
       label: t('版本'),
       field: 'major_version',
-      minWidth: 100,
+      minWidth: 180,
+      width: 180,
       filter: {
         list: columnAttrs.value.major_version,
         checked: columnCheckedMap.value.major_version,
       },
       render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.major_version || '--'}</span>,
+    },
+    {
+      label: t('同步模式'),
+      field: 'sync_mode',
+      minWidth: 120,
+      width: 120,
+      render: ({ data }: { data: SqlServerHaClusterModel }) => <span>{data.sync_mode || '--'}</span>,
     },
     {
       label: t('地域'),

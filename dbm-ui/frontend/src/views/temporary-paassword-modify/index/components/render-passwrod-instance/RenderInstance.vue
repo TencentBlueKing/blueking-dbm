@@ -18,7 +18,26 @@
     :title="t('临时密码生效的实例')"
     :width="1200"
     @closed="isShow = false">
-    <div class="password-sideslider">
+    <div class="temporary-password-modify-instance-box">
+      <BkRadioGroup
+        v-model="dbType"
+        @change="handleDbTypeChange">
+        <BkRadioButton
+          class="w-88"
+          :label="DBTypes.MYSQL">
+          Mysql
+        </BkRadioButton>
+        <BkRadioButton
+          class="w-88"
+          :label="DBTypes.TENDBCLUSTER">
+          Tendb Cluster
+        </BkRadioButton>
+        <BkRadioButton
+          class="w-88"
+          :label="DBTypes.SQLSERVER">
+          Sql Server
+        </BkRadioButton>
+      </BkRadioGroup>
       <div class="operate-area">
         <BkButton
           :disabled="!hasSelected"
@@ -50,7 +69,8 @@
           small: true,
         }"
         primary-key="uniqueKey"
-        row-class="password-sideslider-table-row"
+        :releate-url-query="false"
+        row-class="temporary-password-modify-instance-box-table-row"
         selectable
         show-overflow-tooltip
         @clear-search="getDataSource"
@@ -71,7 +91,7 @@
     useTableMaxHeight,
   } from '@hooks';
 
-  import { OccupiedInnerHeight } from '@common/const';
+  import { DBTypes,OccupiedInnerHeight  } from '@common/const';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -209,6 +229,7 @@
   ];
 
   const tableRef = ref();
+  const dbType = ref(DBTypes.MYSQL)
   const passwordShow = ref(false);
   const selected = shallowRef<AdminPasswordModel[]>([]);
 
@@ -219,20 +240,11 @@
 
   const hasSelected = computed(() => selected.value.length > 0);
 
-  watch(tableRef, (newVal) => {
-    if (newVal) {
-      getDataSource();
-    }
-  });
-
-  const handlePasswordShow = () => {
-    passwordShow.value = !passwordShow.value;
-  };
-
   const getDataSource = () => {
     const keys = getSearchSelectorParams(searchParams.keys);
     const params = {
       ...keys,
+      db_type: dbType.value,
     };
 
     if (searchParams.time.length) {
@@ -249,6 +261,12 @@
     tableRef.value?.fetchData({}, params);
   };
 
+  const handlePasswordShow = () => {
+    passwordShow.value = !passwordShow.value;
+  };
+
+
+
   const handleSelection = (data: AdminPasswordModel, list: AdminPasswordModel[]) => {
     selected.value = list;
   };
@@ -261,14 +279,19 @@
   const handleCopy = (val: string) => {
     copy(val);
   };
+
+  const handleDbTypeChange = () => {
+    getDataSource()
+  }
 </script>
 
 <style lang="less" scoped>
-  .password-sideslider {
+  .temporary-password-modify-instance-box {
     padding: 16px 24px;
 
     .operate-area {
       display: flex;
+      margin-top: 18px;
       margin-bottom: 16px;
 
       .search-select {
@@ -280,7 +303,7 @@
       display: none;
     }
 
-    :deep(.password-sideslider-table-row) {
+    :deep(.temporary-password-modify-instance-box-table-row) {
       &:hover {
         .row-copy-icon {
           display: inline;

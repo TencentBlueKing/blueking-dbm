@@ -150,7 +150,7 @@ export default () => {
         ...getRiakManage(bigdataController),
         ...getTicketFlowSettingRoutes(),
         ...getMongoRoutes(mongdbController),
-        ...getSqlServerRouters(funControllerData),
+        ...getSqlServerRouters(),
         ...getDorisRoutes(bigdataController),
       ],
     },
@@ -191,6 +191,8 @@ export default () => {
       }
     });
   }
+
+  console.log('router = ', appRouter);
 
   return appRouter;
 };

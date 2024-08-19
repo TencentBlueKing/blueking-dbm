@@ -47,6 +47,7 @@
     {
       label: t('迁移类型'),
       width: 180,
+      field: 'dtsModeText',
     },
     {
       label: t('迁移 DB'),
@@ -115,23 +116,37 @@
       label: t('操作'),
       width: 150,
       fixed: 'right',
-      render: ({data}: {data: MigrateRecordModel}) => (
+      render: ({data}: {data: MigrateRecordModel}) => {
+        let actionTips = '';
+        if (data.isFull){
+          actionTips = t('完整备份迁移不支持该操作')
+        } else if(data.isSuccess){
+          actionTips = t('迁移完成不支持该操作')
+        }
+        return (
         <>
-          <bk-button
-            theme="primary"
-            text
-            onClick={() => handleForcedTermination(data)}>
-            {t('强制终止')}
-          </bk-button>
-          <bk-button
-            theme="primary"
-            text
-            class="ml-8"
-            onClick={() => handleStopSync(data)}>
-            {t('断开同步')}
-          </bk-button>
+          <span v-bk-tooltips={{ disabled: !actionTips, content: actionTips }}>
+            <bk-button
+              disabled={Boolean(actionTips)}
+              theme="primary"
+              text
+              onClick={() => handleForcedTermination(data)}>
+              {t('强制终止')}
+            </bk-button>
+          </span>
+          <span v-bk-tooltips={{ disabled: !actionTips, content: actionTips }}>
+            <bk-button
+              disabled={Boolean(actionTips)}
+              theme="primary"
+              text
+              class="ml-8"
+              onClick={() => handleStopSync(data)}>
+              {t('断开同步')}
+            </bk-button>
+          </span>
         </>
       )
+      }
     },
   ];
 

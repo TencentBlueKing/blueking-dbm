@@ -109,11 +109,11 @@
     bk_cloud_name: data.bk_cloud_name,
     db_module_id: data.db_module_id,
     db_module_name: data.db_module_name,
+    role: data.role
   });
 
   const { t } = useI18n();
 
-  console.log('instance selector sqlserver table')
   const {
     columnAttrs,
     searchAttrs,
@@ -128,7 +128,6 @@
     attrs: ['bk_cloud_id'],
     fetchDataFn: () => fetchResources()
   });
-  console.log('debug sqlserver instance')
 
   const activePanel = inject(activePanelInjectionKey);
 

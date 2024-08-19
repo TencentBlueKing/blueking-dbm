@@ -182,6 +182,7 @@
       dbIgnoreName.value = result.dbIgnoreName;
       localRenameInfoList.value = result.renameInfoList;
       isInnerChange = true;
+      elementRef.value!.getValue();
     });
   };
 

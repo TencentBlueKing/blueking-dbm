@@ -21,6 +21,9 @@ interface TopoTreeData {
   name: string;
   obj: 'biz' | 'cluster';
   count: number;
+  payload: {
+    id: number;
+  };
   children: Array<TopoTreeData>;
 }
 
@@ -67,10 +70,11 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
         const countFn = currentInstance.proxy?.countFunc;
         const formatData = data.map((item: T) => ({ ...item, count: countFn ? countFn(item) : item.remote_db.length }));
         const children = formatData.map((item: T) => ({
-          id: item.id,
+          id: `#${item.id}#cluster`,
           name: item.master_domain || '--',
           obj: 'cluster',
           count: item.count,
+          payload: item,
           children: [],
         }));
 
@@ -79,18 +83,18 @@ export function useTopoData<T extends Record<string, any>>(filterClusterId: Comp
           : [
               {
                 name: currentBizInfo?.display_name || '--',
-                id: currentBizId,
+                id: `#${currentBizId}#biz`,
                 obj: 'biz',
                 count: formatData.reduce((count: number, item: any) => count + item.count, 0),
                 children,
+                payload: {
+                  id: currentBizId,
+                },
               },
             ];
 
         setTimeout(() => {
           if (data.length > 0) {
-            console.log('treeData.value = ', treeData.value);
-            const [firstNode] = treeData.value;
-            selectClusterId.value = firstNode.id;
             const [firstRawNode] = treeRef.value.getData().data;
             treeRef.value.setOpen(firstRawNode);
             treeRef.value.setSelect(firstRawNode);

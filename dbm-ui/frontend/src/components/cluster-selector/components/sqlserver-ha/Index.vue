@@ -112,8 +112,9 @@
 
   const columns = computed(() => [
     {
-      minWidth: 60,
-      label: () => props.multiple && (
+      width: 80,
+      minWidth: 80,
+      label: () => props.multiple ? (
         <div style="display:flex;align-items:center">
           <bk-checkbox
             key={`${pagination.current}_${activeTab.value}`}
@@ -141,7 +142,7 @@
             }}>
           </bk-popover>
         </div>
-      ),
+      ) : '',
       fixed: 'left',
       render: ({ data }: { data: ResourceItem }) => {
         const disabledRowConfig = props.disabledRowConfig!.find(item => item.handler(data));
@@ -263,6 +264,13 @@
       width: 200,
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => data.major_version || '--',
+    },
+    {
+      label: t('同步模式'),
+      field: 'sync_mode',
+      minWidth: 120,
+      width: 120,
+      render: ({ data }: { data: ResourceItem }) => <span>{data.sync_mode || '--'}</span>,
     },
   ]);
 

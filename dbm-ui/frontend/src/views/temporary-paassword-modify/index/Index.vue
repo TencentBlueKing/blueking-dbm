@@ -76,11 +76,11 @@
 
   import { type ClusterTypes } from '@common/const';
 
-  import InstanceList from './components/instance-list/Index.vue';
-  import PasswordInput from './components/PasswordInput.vue';
+  import InstanceList from './components/form-item/InstanceList.vue';
+  import PasswordInput from './components/form-item/PasswordInput.vue';
+  import ValidDuration from './components/form-item/ValidDuration.vue';
   import RenderPasswordInstance from './components/render-passwrod-instance/Index.vue';
   import UpdateResult from './components/UpdateResult.vue';
-  import ValidDuration from './components/ValidDuration.vue';
 
   const { t } = useI18n();
 
@@ -96,6 +96,16 @@
   const formRef = ref();
   const submitRoleMap = shallowRef<Record<string, string>>({});
   const formData = reactive(createDefaultData());
+
+  watch(
+    formData,
+    () => {
+      console.log('formData = ', formData);
+    },
+    {
+      deep: true,
+    },
+  );
 
   const {
     loading: submitting,

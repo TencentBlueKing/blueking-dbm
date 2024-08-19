@@ -12,22 +12,24 @@
 -->
 
 <template>
-  <tr>
-    <td style="padding: 0">
-      <RenderSlave
-        ref="slaveRef"
-        v-model="localSlave" />
-    </td>
-    <td style="padding: 0">
-      <RenderCluster
-        ref="clusterRef"
-        :slave="localSlave" />
-    </td>
-    <OperateColumn
-      :removeable="removeable"
-      @add="handleAppend"
-      @remove="handleRemove" />
-  </tr>
+  <tbody>
+    <tr>
+      <td style="padding: 0">
+        <RenderSlave
+          ref="slaveRef"
+          v-model="localSlave" />
+      </td>
+      <td style="padding: 0">
+        <RenderCluster
+          ref="clusterRef"
+          :slave="localSlave" />
+      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
+    </tr>
+  </tbody>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

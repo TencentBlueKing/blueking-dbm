@@ -12,70 +12,72 @@
 -->
 
 <template>
-  <tr>
-    <td style="padding: 0">
-      <RenderCluster
-        ref="clusterRef"
-        v-model="localClusterData" />
-    </td>
-    <td style="padding: 0">
-      <RenderClearMode
-        ref="clearModeRef"
-        :model-value="data.cleanMode" />
-    </td>
-    <td style="padding: 0">
-      <RenderDbName
-        ref="cleanDbsPatternsRef"
-        v-model="localCleanDbsPatterns"
-        check-not-exist
-        :cluster-id="localClusterData?.id" />
-    </td>
-    <td style="padding: 0">
-      <RenderDbName
-        ref="cleanIgnoreDbsPatternsRef"
-        v-model="localCleanIgnoreDbsPatterns"
-        check-not-exist
-        :cluster-id="localClusterData?.id"
-        :required="false" />
-    </td>
-    <td style="padding: 0">
-      <RenderTableName
-        ref="cleanTablesRef"
-        :cluster-id="localClusterData?.id"
-        :model-value="data.cleanTables" />
-    </td>
-    <td style="padding: 0">
-      <RenderTableName
-        ref="ignoreCleanTablesRef"
-        :cluster-id="localClusterData?.id"
-        :model-value="data.ignoreCleanTables"
-        :required="false" />
-    </td>
-    <td style="padding: 0">
-      <RenderClearDbName
-        ref="cleanDbsRef"
-        v-model:cleanDbsPatterns="localCleanDbsPatterns"
-        v-model:cleanIgnoreDbsPatterns="localCleanIgnoreDbsPatterns"
-        :cluster-data="localClusterData" />
-    </td>
-    <td>
-      <div class="action-box">
-        <div
-          class="action-btn"
-          @click="handleAppend">
-          <DbIcon type="plus-fill" />
+  <tbody>
+    <tr>
+      <td style="padding: 0">
+        <RenderCluster
+          ref="clusterRef"
+          v-model="localClusterData" />
+      </td>
+      <td style="padding: 0">
+        <RenderClearMode
+          ref="clearModeRef"
+          :model-value="data.cleanMode" />
+      </td>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="cleanDbsPatternsRef"
+          v-model="localCleanDbsPatterns"
+          check-not-exist
+          :cluster-id="localClusterData?.id" />
+      </td>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="cleanIgnoreDbsPatternsRef"
+          v-model="localCleanIgnoreDbsPatterns"
+          check-not-exist
+          :cluster-id="localClusterData?.id"
+          :required="false" />
+      </td>
+      <td style="padding: 0">
+        <RenderTableName
+          ref="cleanTablesRef"
+          :cluster-id="localClusterData?.id"
+          :model-value="data.cleanTables" />
+      </td>
+      <td style="padding: 0">
+        <RenderTableName
+          ref="ignoreCleanTablesRef"
+          :cluster-id="localClusterData?.id"
+          :model-value="data.ignoreCleanTables"
+          :required="false" />
+      </td>
+      <td style="padding: 0">
+        <RenderClearDbName
+          ref="cleanDbsRef"
+          v-model:cleanDbsPatterns="localCleanDbsPatterns"
+          v-model:cleanIgnoreDbsPatterns="localCleanIgnoreDbsPatterns"
+          :cluster-data="localClusterData" />
+      </td>
+      <td>
+        <div class="action-box">
+          <div
+            class="action-btn"
+            @click="handleAppend">
+            <DbIcon type="plus-fill" />
+          </div>
+          <div
+            class="action-btn"
+            :class="{
+              disabled: removeable,
+            }"
+            @click="handleRemove">
+            <DbIcon type="minus-fill" />
+          </div>
         </div>
-        <div
-          class="action-btn"
-          :class="{
-            disabled: removeable,
-          }"
-          @click="handleRemove">
-          <DbIcon type="minus-fill" />
-        </div>
-      </div>
-    </td>
-  </tr>
+      </td>
+    </tr>
+  </tbody>
 </template>
 <script lang="ts">
   import { random } from '@utils';

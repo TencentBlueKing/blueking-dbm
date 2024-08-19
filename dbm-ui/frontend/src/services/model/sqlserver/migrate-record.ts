@@ -69,6 +69,7 @@ export default class MigrateRecord {
   bk_biz_id: number;
   create_at: string;
   creator: string;
+  db_list: string[];
   dts_config: {
     db_name: string;
     target_db_name: string;
@@ -90,6 +91,7 @@ export default class MigrateRecord {
     this.bk_biz_id = payload.bk_biz_id;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.db_list = payload.db_list || [];
     this.dts_config = payload.dts_config || [];
     this.dts_mode = payload.dts_mode;
     this.id = payload.id;
@@ -109,8 +111,16 @@ export default class MigrateRecord {
     return this.dts_mode === 'full' ? t('完整备份迁移（一次性）') : t('增量备份迁移（持续的）');
   }
 
+  get isFull() {
+    return this.dts_mode === 'full';
+  }
+
   get isRunning() {
     return [STATUS.TODO, STATUS.DISCONNECTING, STATUS.FULL_ONLINE, STATUS.INCR_ONLINE].includes(this.status);
+  }
+
+  get isSuccess() {
+    return [STATUS.FULL_SUCCESS, STATUS.INCR_SUCCESS].includes(this.status);
   }
 
   get tagetDb() {
