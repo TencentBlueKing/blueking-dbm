@@ -34,13 +34,13 @@
   const tableColumns = [
     {
       label: t('源集群'),
-      width: 180,
+      width: 240,
       fixed: 'left',
       field: 'source_cluster_domain',
     },
     {
       label: t('目标集群'),
-      width: 180,
+      width: 240,
       fixed: 'left',
       field: 'target_cluster_domain',
     },

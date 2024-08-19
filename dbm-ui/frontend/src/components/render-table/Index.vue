@@ -23,9 +23,7 @@
           <slot />
         </tr>
       </thead>
-      <tbody>
-        <slot name="data" />
-      </tbody>
+      <slot name="data" />
     </table>
     <div
       v-if="slots.empty"

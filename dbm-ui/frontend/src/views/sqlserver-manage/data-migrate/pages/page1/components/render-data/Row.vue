@@ -12,62 +12,60 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderSrcCluster
-          ref="srcClusterRef"
-          v-model="localSrcClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderDstCluster
-          ref="dstClusterRef"
-          v-model="localDstClusterData"
-          :src-cluster-data="localSrcClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="dbNameRef"
-          check-not-exist
-          :cluster-id="localSrcClusterData?.id"
-          :model-value="localDbName"
-          @change="handleDbNameChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="ignoreDbNameRef"
-          :cluster-id="localSrcClusterData?.id"
-          :model-value="localDbIgnoreName"
-          :required="false"
-          @change="handleTargerNameChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderRename
-          ref="renameDbNameRef"
-          v-model:db-ignore-name="localDbIgnoreName"
-          v-model:db-name="localDbName"
-          :cluster-data="localSrcClusterData"
-          :dst-cluster-data="localDstClusterData" />
-      </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
+  <tr>
+    <td style="padding: 0">
+      <RenderSrcCluster
+        ref="srcClusterRef"
+        v-model="localSrcClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderDstCluster
+        ref="dstClusterRef"
+        v-model="localDstClusterData"
+        :src-cluster-data="localSrcClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="dbNameRef"
+        check-not-exist
+        :cluster-id="localSrcClusterData?.id"
+        :model-value="localDbName"
+        @change="handleDbNameChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="ignoreDbNameRef"
+        :cluster-id="localSrcClusterData?.id"
+        :model-value="localDbIgnoreName"
+        :required="false"
+        @change="handleTargerNameChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderRename
+        ref="renameDbNameRef"
+        v-model:db-ignore-name="localDbIgnoreName"
+        v-model:db-name="localDbName"
+        :cluster-data="localSrcClusterData"
+        :dst-cluster-data="localDstClusterData" />
+    </td>
+    <td>
+      <div class="action-box">
+        <div
+          class="action-btn"
+          @click="handleAppend">
+          <DbIcon type="plus-fill" />
         </div>
-      </td>
-    </tr>
-  </tbody>
+        <div
+          class="action-btn"
+          :class="{
+            disabled: removeable,
+          }"
+          @click="handleRemove">
+          <DbIcon type="minus-fill" />
+        </div>
+      </div>
+    </td>
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
