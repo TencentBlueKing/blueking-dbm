@@ -110,7 +110,7 @@
       validator: () => {
         const cleanDbsPatternList = cleanDbsPatterns.value.filter((item) => !/\*/.test(item) && !/%/.test(item));
         console.log('from rule = ', cleanDbsPatternList, localDbList.value);
-        return cleanDbsPatternList.length > localDbList.value.length;
+        return cleanDbsPatternList.length <= localDbList.value.length;
       },
       message: t('最终 DB 和指定 DB 数量不匹配'),
     },

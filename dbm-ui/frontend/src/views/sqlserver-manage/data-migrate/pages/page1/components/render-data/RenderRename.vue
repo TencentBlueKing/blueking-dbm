@@ -130,7 +130,7 @@
     {
       validator: () => {
         const dbNameList = dbName.value.filter((item) => !/\*/.test(item) && !/%/.test(item));
-        return dbNameList.length > localRenameInfoList.value.length;
+        return dbNameList.length <= localRenameInfoList.value.length;
       },
       message: t('迁移后 DB 和迁移 DB 数量不匹配'),
     },
