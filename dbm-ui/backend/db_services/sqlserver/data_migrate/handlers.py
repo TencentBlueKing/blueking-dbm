@@ -9,8 +9,10 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
+from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_dts import SqlserverDTSFlow
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
+from backend.utils.basic import generate_root_id
 
 
 class SQLServerDataMigrateHandler(object):
@@ -45,3 +47,10 @@ class SQLServerDataMigrateHandler(object):
         dts = SqlserverDtsInfo.objects.get(id=dts_id)
         dts.status = DtsStatus.Terminated.value
         dts.save()
+        data = {
+            "cluster_ids": list(set([dts.source_cluster_id, dts.target_cluster_id])),
+            "bk_biz_id": dts.bk_biz_id,
+            "ticket_type": "SQLSERVER_DATA_MIGRATE",
+            "created_by": dts.creator,
+        }
+        SqlserverDTSFlow(root_id=generate_root_id(), data=data).termination_dts_flow()

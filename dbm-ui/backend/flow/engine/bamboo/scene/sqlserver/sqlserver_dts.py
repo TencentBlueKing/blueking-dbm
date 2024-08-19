@@ -441,3 +441,20 @@ class SqlserverDTSFlow(BaseFlow):
 
         main_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
         main_pipeline.run_pipeline()
+
+    def termination_dts_flow(self):
+        """
+        定义强制终止的流程：
+        """
+        termination_dts = Builder(root_id=self.root_id, data=self.data)
+
+        cluster_ids = self.data["cluster_ids"]
+        for cluster_id in cluster_ids:
+            termination_dts.add_act(
+                act_name=_("启动backup jobs cluster:{}".format(cluster_id)),
+                act_component_code=ExecSqlserverBackupJobComponent.code,
+                kwargs=asdict(
+                    ExecBackupJobsKwargs(cluster_id=cluster_id, exec_mode=SqlserverBackupJobExecMode.ENABLE),
+                ),
+            )
+        termination_dts.run_pipeline()
