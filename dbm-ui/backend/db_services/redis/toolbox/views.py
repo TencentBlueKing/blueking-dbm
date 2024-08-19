@@ -92,4 +92,6 @@ class ToolboxViewSet(BaseClusterViewSet):
     @action(methods=["GET"], detail=False, serializer_class=GetClusterCapacityInfoSerializer, pagination_class=None)
     def get_cluster_capacity_update_info(self, request, bk_biz_id, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        return Response(get_cluster_capacity_update_required_info(**data))
+        update_info = get_cluster_capacity_update_required_info(**data)
+        update_fields = ["capacity_update_type", "require_spec_id", "require_machine_group_num", "err_msg"]
+        return Response(dict(zip(update_fields, update_info)))

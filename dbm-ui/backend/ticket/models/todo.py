@@ -36,7 +36,6 @@ class TodoManager(models.Manager):
                 "flow_status": FlowMsgStatus.UNCONFIRMED.value,
                 "processor": todo.operators,
                 "receiver": todo.creator,
-                "detail_address": todo.url,
             }
         )
 

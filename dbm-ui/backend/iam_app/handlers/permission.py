@@ -652,13 +652,17 @@ class Permission(object):
                     return response
 
                 # 获取鉴权的资源
-                if not resource_meta and not perm_actions[0].related_resource_types:
-                    action_resource_meta = None
-                else:
-                    action_resource_meta = resource_meta or perm_actions[0].related_resource_types
-                resource = None if not action_resource_meta else param_field(kwargs)
-                # 填充权限字段
-                return cls.insert_external_permission_field(response, perm_actions, action_resource_meta, resource)
+                try:
+                    if not resource_meta and not perm_actions[0].related_resource_types:
+                        action_resource_meta = None
+                    else:
+                        action_resource_meta = resource_meta or perm_actions[0].related_resource_types
+                    resource = None if not action_resource_meta else param_field(kwargs)
+                    # 填充权限字段
+                    return cls.insert_external_permission_field(response, perm_actions, action_resource_meta, resource)
+                except Exception as e:
+                    logger.error(_("填充权限字段失败：{}").format(e))
+                    return response
 
             return wrapped_view
 

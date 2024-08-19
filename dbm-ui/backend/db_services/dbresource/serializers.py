@@ -238,11 +238,17 @@ class QueryOperationListSerializer(serializers.Serializer):
 
 
 class SpecSerializer(serializers.ModelSerializer):
+    spec_db_type = serializers.SerializerMethodField(help_text=_("规格组件类型"))
+
     class Meta:
         model = Spec
         fields = "__all__"
         read_only_fields = ("spec_id",) + model.AUDITED_FIELDS
         swagger_schema_fields = {"example": SPEC_DATA}
+
+    def get_spec_db_type(self, obj):
+        db_type = ClusterType.cluster_type_to_db_type(obj.spec_cluster_type)
+        return db_type
 
     def validate_valid_cpu_mem(self, attrs):
         # 校验cpu, mem是正确的范围
