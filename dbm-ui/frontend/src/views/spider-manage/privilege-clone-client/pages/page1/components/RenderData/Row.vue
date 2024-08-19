@@ -12,34 +12,32 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderSource
-          ref="sourceRef"
-          v-model="localSource" />
-      </td>
-      <td style="padding: 0">
-        <RenderModule
-          ref="moduleRef"
-          :model-value="data.module"
-          :source="localSource" />
-      </td>
-      <td style="padding: 0">
-        <RenderCloudArea :source="localSource" />
-      </td>
-      <td style="padding: 0">
-        <RenderTarget
-          ref="targetRef"
-          :model-value="data.target"
-          :source="localSource" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderSource
+        ref="sourceRef"
+        v-model="localSource" />
+    </td>
+    <td style="padding: 0">
+      <RenderModule
+        ref="moduleRef"
+        :model-value="data.module"
+        :source="localSource" />
+    </td>
+    <td style="padding: 0">
+      <RenderCloudArea :source="localSource" />
+    </td>
+    <td style="padding: 0">
+      <RenderTarget
+        ref="targetRef"
+        :model-value="data.target"
+        :source="localSource" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

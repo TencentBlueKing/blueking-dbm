@@ -12,77 +12,69 @@
 -->
 
 <template>
-  <div class="render-data">
-    <RenderTable>
-      <template #default>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="200">
-          {{ t('目标集群') }}
-          <template #append>
-            <span
-              v-bk-tooltips="t('批量选择集群')"
-              class="batch-edit-btn"
-              @click="handleShowBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </template>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          v-for="variableName in variableList"
-          :key="variableName"
-          :min-width="170"
-          :width="180">
-          {{ variableName }}
-          <template #append>
-            <BatchEditColumn
-              v-model="showBatchEdit[variableName]"
-              :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
-              :title="variableName"
-              type="textarea"
-              @change="(value: string) => handleBatchEdit(value, variableName)">
-              <span
-                v-bk-tooltips="t('批量编辑：通过换行分隔，快速批量录入多个值')"
-                class="batch-edit-btn"
-                @click="() => handleShowBatchEdit(variableName)">
-                <DbIcon type="piliangluru" />
-              </span>
-            </BatchEditColumn>
-          </template>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          v-if="showIpCloumn"
-          :min-width="100"
-          :required="false"
-          :width="190">
-          {{ t('授权 IP') }}
-          <template #append>
-            <span
-              v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
-              class="batch-edit-btn"
-              @click="handleShowBatchChangeIp">
-              <DbIcon type="bulk-edit" />
-            </span>
-          </template>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          fixed="right"
-          :required="false"
-          :width="100">
-          {{ t('操作') }}
-        </RenderTableHeadColumn>
-      </template>
+  <RenderTable>
+    <template #default>
+      <RenderTableHeadColumn
+        :min-width="120"
+        :width="200">
+        {{ t('目标集群') }}
+        <template #append>
+          <BatchOperateIcon
+            class="ml-4"
+            @batch-click="handleShowBatchSelector" />
+        </template>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        v-for="variableName in variableList"
+        :key="variableName"
+        :min-width="170"
+        :width="180">
+        {{ variableName }}
+        <template #append>
+          <BatchEditColumn
+            v-model="showBatchEdit[variableName]"
+            :placeholder="t('只能包含英文字母、数字，多个换行分隔')"
+            :title="variableName"
+            type="textarea"
+            @change="(value: string) => handleBatchEdit(value, variableName)">
+            <BatchOperateIcon
+              class="ml-4"
+              type="entry"
+              @batch-click="() => handleShowBatchEdit(variableName)" />
+          </BatchEditColumn>
+        </template>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        v-if="showIpCloumn"
+        :min-width="100"
+        :required="false"
+        :width="190">
+        {{ t('授权 IP') }}
+        <template #append>
+          <BatchOperateIcon
+            class="ml-4"
+            type="edit"
+            @batch-click="handleShowBatchChangeIp" />
+        </template>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        fixed="right"
+        :required="false"
+        :width="100">
+        {{ t('操作') }}
+      </RenderTableHeadColumn>
+    </template>
 
-      <template #data>
-        <slot />
-      </template>
-    </RenderTable>
-  </div>
+    <template #data>
+      <slot />
+    </template>
+  </RenderTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import BatchEditColumn from '@components/batch-edit-column/Index.vue';
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -130,12 +122,3 @@
     emits('batchIpSelecter');
   };
 </script>
-<style lang="less">
-  .render-data {
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

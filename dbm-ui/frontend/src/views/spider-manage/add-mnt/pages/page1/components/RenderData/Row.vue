@@ -12,31 +12,29 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          v-model="localClusterData"
-          @id-change="handleClusterIdChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderNet
-          ref="netRef"
-          :cluster-data="localClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderHost
-          ref="proxyRef"
-          :cluster-data="localClusterData"
-          :cluster-id="localClusterId" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        v-model="localClusterData"
+        @id-change="handleClusterIdChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderNet
+        ref="netRef"
+        :cluster-data="localClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderHost
+        ref="proxyRef"
+        :cluster-data="localClusterData"
+        :cluster-id="localClusterId" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

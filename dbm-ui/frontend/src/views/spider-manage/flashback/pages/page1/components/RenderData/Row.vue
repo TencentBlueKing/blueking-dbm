@@ -12,60 +12,58 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderStartTime
-          ref="startTimeRef"
-          v-model="localStartTime" />
-      </td>
-      <td style="padding: 0">
-        <RenderEndTime
-          ref="endTimeRef"
-          v-model="localEndTime"
-          :start-time="localStartTime" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="databasesRef"
-          v-model="localDatabases"
-          :cluster-id="localClusterId"
-          required />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablesRef"
-          v-model="localTables"
-          :cluster-id="localClusterId"
-          required />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="databasesIgnoreRef"
-          v-model="localDatabaseIgnore"
-          :cluster-id="localClusterId"
-          :rules="ingoredbAndTableNameBaseRules" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablesIgnoreRef"
-          v-model="localTablesIgnore"
-          :cluster-id="localClusterId"
-          :rules="ingoredbAndTableNameBaseRules" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange"
+        @input-create="handleCreate" />
+    </td>
+    <td style="padding: 0">
+      <RenderStartTime
+        ref="startTimeRef"
+        v-model="localStartTime" />
+    </td>
+    <td style="padding: 0">
+      <RenderEndTime
+        ref="endTimeRef"
+        v-model="localEndTime"
+        :start-time="localStartTime" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="databasesRef"
+        v-model="localDatabases"
+        :cluster-id="localClusterId"
+        required />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="tablesRef"
+        v-model="localTables"
+        :cluster-id="localClusterId"
+        required />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="databasesIgnoreRef"
+        v-model="localDatabaseIgnore"
+        :cluster-id="localClusterId"
+        :rules="ingoredbAndTableNameBaseRules" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="tablesIgnoreRef"
+        v-model="localTablesIgnore"
+        :cluster-id="localClusterId"
+        :rules="ingoredbAndTableNameBaseRules" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

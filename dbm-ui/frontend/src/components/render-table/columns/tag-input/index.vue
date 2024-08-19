@@ -195,10 +195,10 @@
     margin: 0;
 
     :deep(.bk-tag-input) {
-      position: absolute;
-      top: 0;
-      z-index: 99;
-      width: 100%;
+      // position: absolute;
+      // top: 0;
+      // z-index: 1;
+      // width: 100%;
 
       .bk-tag-input-trigger {
         .tag-list {
@@ -259,7 +259,7 @@
       top: 0;
       right: 0;
       bottom: 0;
-      z-index: 100;
+      z-index: 10;
       display: flex;
       padding-right: 10px;
       font-size: 14px;

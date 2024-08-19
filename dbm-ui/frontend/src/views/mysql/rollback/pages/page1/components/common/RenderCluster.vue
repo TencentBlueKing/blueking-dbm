@@ -17,7 +17,7 @@
       ref="editRef"
       v-model="localDomain"
       multi-input
-      :placeholder="placeholder"
+      :placeholder="placeholder || t('请输入集群域名或从表头批量选择')"
       :rules="rules"
       @multi-input="handleMultiInput" />
   </div>
@@ -46,7 +46,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -54,7 +54,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
-    placeholder: '请输入集群_使用换行分割一次可输入多个',
+    placeholder: '',
   });
   const emits = defineEmits<Emits>();
 
