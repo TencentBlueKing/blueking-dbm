@@ -1149,10 +1149,10 @@ class RequestResultCode(int, StructuredEnum):
 
 class MongoDBPasswordRule(str, StructuredEnum):
     """
-    mongodb密码规则
+    mongodb密码规则名
     """
 
-    RULE = EnumField("password", _("密码规则"))
+    RULE = EnumField("mongo_password", _("MongoDB密码规则"))
 
 
 class MongoDBClusterRole(str, StructuredEnum):

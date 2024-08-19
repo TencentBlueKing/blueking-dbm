@@ -14,53 +14,35 @@ from typing import List
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
 
-# import backend.flow.utils.mongodb.mongodb_dataclass as flow_context
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.mongodb.mongodb_password import MongoDBPassword
+from backend.flow.utils.mongodb.migrate_meta import MongoDBMigrateMeta
 
-logger = logging.getLogger("json")
+logger = logging.getLogger("flow")
 
 
-class ExecAddPasswordToDBOperation(BaseService):
+class MongoDBMigrateMetaService(BaseService):
     """
-    NameServiceCreate服务
+    根据单据类型执行相关功能
     """
 
     def _execute(self, data, parent_data) -> bool:
-        """
-        执行创建名字服务功能的函数
-        global_data 单据全局变量，格式字典
-        kwargs 私有变量
-        """
-
-        # 从流程节点中获取变量
         kwargs = data.get_one_of_inputs("kwargs")
+        # global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
-        usernames = kwargs["usernames"]
 
         # if trans_data is None or trans_data == "${trans_data}":
         #     # 表示没有加载上下文内容，则在此添加
         #     trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
+        #
+        # if kwargs["is_update_trans_data"]:
+        #     # 表示合并上下文的内容
+        #     cluster_info = {**asdict(trans_data), **kwargs["cluster"]}
+        #     self.log_info(_("集群元信息:{}").format(cluster_info))
+        result = MongoDBMigrateMeta(info=kwargs).action()
+        self.log_info("mongodb operate successfully")
+        data.outputs["trans_data"] = trans_data
+        return result
 
-        # 把密码写入db
-        for username in usernames:
-            if kwargs.get("create", True):
-                if kwargs["set_name"]:
-                    password = trans_data[kwargs["set_name"]][username]
-                else:
-                    password = trans_data[username]
-            else:
-                password = kwargs["passwords"][username]
-            result = MongoDBPassword().save_password_to_db(
-                instances=kwargs["nodes"], username=username, password=password, operator=kwargs["operator"]
-            )
-            if result:
-                self.log_error("add password of user:{} to db fail, error:{}".format(username, result))
-                return False
-        self.log_info("add password of users:{} to db successfully".format(",".join(usernames)))
-        return True
-
-    # 流程节点输入参数
     def inputs_format(self) -> List:
         return [
             Service.InputItem(name="kwargs", key="kwargs", type="dict", required=True),
@@ -68,11 +50,7 @@ class ExecAddPasswordToDBOperation(BaseService):
         ]
 
 
-class ExecAddPasswordToDBOperationComponent(Component):
-    """
-    ExecAddPasswordToDBOperation组件
-    """
-
+class MongoDBMigrateMetaComponent(Component):
     name = __name__
-    code = "add_password_to_db"
-    bound_service = ExecAddPasswordToDBOperation
+    code = "mongodb_migrate_meta"
+    bound_service = MongoDBMigrateMetaService

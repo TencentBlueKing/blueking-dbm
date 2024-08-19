@@ -17,6 +17,7 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoF
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install import MongoDBInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_install_dbmon import MongoInstallDBMon
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_instance_restart import MongoRestartInstanceFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_migrate import MongoDBMigrateMetaFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_remove_ns import MongoRemoveNsFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_replace import MongoReplaceFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_restore import MongoRestoreFlow
@@ -181,3 +182,11 @@ class MongoDBController(BaseController):
 
         flow = MongoEnableDisableFlow(root_id=self.root_id, data=self.ticket_data)
         flow.multi_cluster_flow(enable=False)
+
+    def migrate_meta(self):
+        """
+        迁移元数据
+        """
+
+        flow = MongoDBMigrateMetaFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.multi_cluster_migrate_flow()
