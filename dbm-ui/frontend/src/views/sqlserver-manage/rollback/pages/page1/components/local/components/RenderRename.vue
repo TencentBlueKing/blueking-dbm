@@ -44,7 +44,8 @@
       :cluster-id="clusterData.id"
       :db-ignore-name="dbIgnoreName"
       :db-name="dbName"
-      :rename-info-list="localRenameInfoList" />
+      :rename-info-list="localRenameInfoList"
+      :target-cluster-id="clusterData.id" />
     <template #footer>
       <BkButton
         class="w-88"
@@ -62,6 +63,7 @@
 </template>
 <script setup lang="ts">
   import { computed, ref, shallowRef, watch } from 'vue';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -96,7 +98,7 @@
 
   const { t } = useI18n();
 
-  const elementRef = ref<InstanceType<typeof TableEditElement>>();
+  const elementRef = ref<ComponentExposed<typeof TableEditElement>>();
   const editNameRef = ref<InstanceType<typeof EditName>>();
   const localRenameInfoList = shallowRef<
     {

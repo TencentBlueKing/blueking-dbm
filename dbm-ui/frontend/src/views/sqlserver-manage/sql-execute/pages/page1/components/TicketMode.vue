@@ -79,51 +79,51 @@
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
+  interface Props {
+    modelValue: {
+      mode: string;
+      trigger_time: string;
+    };
+  }
+
+  interface Emits {
+    (e: 'update:modelValue', value: Props['modelValue']): void;
+  }
+
+  const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
+
   const { t } = useI18n();
   const formatDateToUTC = useTimeZoneFormat();
-
-  const modelValue = defineModel<{
-    mode: string;
-    trigger_time: string;
-  }>({
-    required: true,
-    default: () => ({
-      mode: 'manual',
-      trigger_time: '',
-    }),
-  });
 
   const disableDate = (date: number | Date) => Boolean(date && date.valueOf() < Date.now() - 86400000);
 
   const rules = [
     {
-      validator: (value: string) => !!value,
+      validator: (value: Props['modelValue']) => !!value.trigger_time,
       message: t('定时执行时执行时间不能为空'),
       trigger: 'change',
     },
   ];
 
   const timeRef = ref();
-  const localMode = ref('');
-  const localTriggerTime = ref('');
+  const localMode = ref(props.modelValue.mode);
+  const localTriggerTime = ref(props.modelValue.trigger_time);
 
   watch(
-    modelValue,
+    () => props.modelValue,
     () => {
-      localMode.value = modelValue.value.mode;
-      localTriggerTime.value = modelValue.value.trigger_time;
-    },
-    {
-      immediate: true,
+      localMode.value = props.modelValue.mode;
+      localTriggerTime.value = props.modelValue.trigger_time;
     },
   );
 
   const triggerChange = () => {
     nextTick(() => {
-      modelValue.value = {
+      emits('update:modelValue', {
         mode: localMode.value,
         trigger_time: formatDateToUTC(localTriggerTime.value),
-      };
+      });
     });
   };
 

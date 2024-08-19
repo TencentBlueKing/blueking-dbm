@@ -116,6 +116,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     }[];
   };
   status: string;
+  sync_mode: string;
   update_at: Date | string;
   updater: string;
 
@@ -150,6 +151,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     this.slaves = payload.slaves;
     this.spec_config = payload.spec_config;
     this.status = payload.status;
+    this.sync_mode = payload.sync_mode;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
   }

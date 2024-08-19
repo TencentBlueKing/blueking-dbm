@@ -106,6 +106,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     status: string;
     phase: string;
   }>;
+  sync_mode: string;
   update_at: string;
   updater: string;
 
@@ -137,6 +138,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.slave_domain = payload.slave_domain;
     this.status = payload.status;
     this.storages = payload.storages;
+    this.sync_mode = payload.sync_mode;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
   }

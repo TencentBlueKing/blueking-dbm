@@ -14,8 +14,8 @@
 <template>
   <div
     ref="rootRef"
-    class="table-edit-tag-input"
-    :class="{ 'table-edit-tag-input-scroll': isFocus }">
+    class="render-db-name"
+    :class="{ 'render-db-name-scroll': isFocus }">
     <div
       class="table-edit-tag"
       :class="{ ['is-error']: Boolean(errorMessage) }"
@@ -195,10 +195,10 @@
     margin: 0;
 
     :deep(.bk-tag-input) {
-      // position: absolute;
-      // top: 0;
-      // z-index: 1;
-      // width: 100%;
+      position: absolute;
+      top: 0;
+      z-index: 99;
+      width: 100%;
 
       .bk-tag-input-trigger {
         .tag-list {
@@ -259,7 +259,7 @@
       top: 0;
       right: 0;
       bottom: 0;
-      z-index: 10;
+      z-index: 100;
       display: flex;
       padding-right: 10px;
       font-size: 14px;

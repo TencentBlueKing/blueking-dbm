@@ -55,6 +55,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
+    initValue: undefined,
     clusterId: undefined,
     required: true,
     single: false,

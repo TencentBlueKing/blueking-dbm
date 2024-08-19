@@ -42,7 +42,7 @@
           :list="logRecordList"
           :rules="rules"
           style="flex: 1"
-          @change="handleBackupidChange" />
+          @change="(value: string | number) => handleBackupidChange(value as string)" />
       </div>
     </div>
   </div>
@@ -75,7 +75,8 @@
 
   const props = defineProps<Props>();
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
+  const disableDate = (date: Date) =>
+    date && (dayjs(date).isAfter(dayjs()) || dayjs(date).isBefore(dayjs().subtract(15, 'day')));
 
   const { t } = useI18n();
   const formatDateToUTC = useTimeZoneFormat();
