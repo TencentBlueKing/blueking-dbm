@@ -77,6 +77,7 @@ from backend.flow.views.migrate_views.riak_migrate import RiakClusterMigrateApiV
 from backend.flow.views.mongodb_scene import (
     ClusterInstallApiView,
     MongoBackupApiView,
+    MongoDBClusterMigrateView,
     MongoDBCreateUserView,
     MongoDBDeInstallView,
     MongoDBDeleteUserView,
@@ -329,6 +330,7 @@ urlpatterns = [
     url(r"^scene/multi_cluster_reduce_node$", MongoDBReduceNodeView.as_view()),
     url(r"^scene/multi_cluster_enable$", MongoDBEnableClusterView.as_view()),
     url(r"^scene/multi_cluster_disable$", MongoDBDisableClusterView.as_view()),
+    url(r"^scene/multi_cluster_migrate_meta$", MongoDBClusterMigrateView.as_view()),
     # mongodb end
     # mysql upgrade
     url(r"^scene/upgrade_mysql_proxy$", UpgradeMySQLProxySceneApiView.as_view()),

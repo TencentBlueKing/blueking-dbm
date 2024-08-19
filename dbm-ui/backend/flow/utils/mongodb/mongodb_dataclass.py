@@ -124,6 +124,7 @@ class ActKwargs:
         key_file = ""
         cache_size = ""
         oplog_size = ""
+        conf_items = []
         if namespace == ClusterType.MongoReplicaSet.value:
             cluster_name = self.replicaset_info["set_id"]
             key_file = self.replicaset_info["key_file"]
@@ -134,11 +135,21 @@ class ActKwargs:
             key_file = self.payload["key_file"]
             cache_size = str(self.payload["shards"][0]["cacheSizeGB"])
             oplog_size = str(self.payload["shards"][0]["oplogSizeMB"])
-        conf_items = [
-            {"conf_name": "key_file", "conf_value": key_file, "op_type": OpType.UPDATE},
-            {"conf_name": "cacheSizeGB", "conf_value": cache_size, "op_type": OpType.UPDATE},
-            {"conf_name": "oplogSizeMB", "conf_value": oplog_size, "op_type": OpType.UPDATE},
-        ]
+            config_cache_size = str(self.payload["config"]["cacheSizeGB"])
+            config_oplog_size = str(self.payload["config"]["oplogSizeMB"])
+            conf_items.extend(
+                [
+                    {"conf_name": "config_cacheSizeGB", "conf_value": config_cache_size, "op_type": OpType.UPDATE},
+                    {"conf_name": "config_oplogSizeMB", "conf_value": config_oplog_size, "op_type": OpType.UPDATE},
+                ]
+            )
+        conf_items.extend(
+            [
+                {"conf_name": "key_file", "conf_value": key_file, "op_type": OpType.UPDATE},
+                {"conf_name": "cacheSizeGB", "conf_value": cache_size, "op_type": OpType.UPDATE},
+                {"conf_name": "oplogSizeMB", "conf_value": oplog_size, "op_type": OpType.UPDATE},
+            ]
+        )
         DBConfigApi.upsert_conf_item(
             {
                 "conf_file_info": {

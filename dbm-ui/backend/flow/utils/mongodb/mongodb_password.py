@@ -64,6 +64,8 @@ class MongoDBPassword(object):
         )
         if result["code"] != RequestResultCode.Success.value:
             return result["message"] + " " + result["data"]
+        else:
+            return ""
 
     def delete_password_from_db(self, instances: list, usernames: list) -> str:
         """
