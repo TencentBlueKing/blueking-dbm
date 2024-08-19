@@ -17,23 +17,23 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange" />
+          v-model="localClusterData" />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="fromDatabaseRef"
-          check-exist
-          :cluster-id="localClusterId"
-          :model-value="data.fromDatabase"
+          check-not-exist
+          :cluster-id="localClusterData?.id"
+          :model-value="localFromDatabase"
           :placeholder="$t('请输入单个源 DB 名')"
           single />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="toDatabaseRef"
-          :cluster-id="localClusterId"
-          :model-value="data.toDatabase"
+          check-exist
+          :cluster-id="localClusterData?.id"
+          :model-value="localToDatabase"
           :placeholder="$t('请输入单个新 DB 名')"
           single />
       </td>
@@ -67,21 +67,21 @@
       domain: string;
       cloudId: number;
     };
-    fromDatabase?: string;
-    toDatabase?: string;
+    fromDatabase: string;
+    toDatabase: string;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
     rowKey: random(),
     clusterData: data.clusterData,
-    fromDatabase: data.fromDatabase,
-    toDatabase: data.toDatabase,
+    fromDatabase: data.fromDatabase || '',
+    toDatabase: data.toDatabase || '',
   });
 </script>
 <script setup lang="ts">
-  import RenderCluster from './RenderCluster.vue';
-  import RenderDbName from './RenderDbName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
+  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
 
   interface Props {
     data: IDataRow;
@@ -104,23 +104,27 @@
   const fromDatabaseRef = ref();
   const toDatabaseRef = ref();
 
-  const localClusterId = ref(0);
+  const localClusterData = ref<IDataRow['clusterData']>();
+  const localFromDatabase = ref<IDataRow['fromDatabase'][]>([]);
+  const localToDatabase = ref<IDataRow['toDatabase'][]>([]);
 
   watch(
     () => props.data,
     () => {
       if (props.data.clusterData) {
-        localClusterId.value = props.data.clusterData.id;
+        localClusterData.value = props.data.clusterData;
+      }
+      if (props.data.fromDatabase) {
+        localFromDatabase.value = [props.data.fromDatabase];
+      }
+      if (props.data.toDatabase) {
+        localToDatabase.value = [props.data.toDatabase];
       }
     },
     {
       immediate: true,
     },
   );
-
-  const handleClusterIdChange = (clusterId: number) => {
-    localClusterId.value = clusterId;
-  };
 
   const handleAppend = () => {
     emits('add', [createRowData()]);
@@ -136,13 +140,13 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value.getValue(),
+        clusterRef.value.getValue('cluster_id'),
         fromDatabaseRef.value.getValue('from_database'),
         toDatabaseRef.value.getValue('to_database'),
-      ]).then(([clusterData, backupLocalData, dbPatternsData]) => ({
+      ]).then(([clusterData, fromDatabaseData, toDatabaseData]) => ({
         ...clusterData,
-        ...backupLocalData,
-        ...dbPatternsData,
+        ...fromDatabaseData,
+        ...toDatabaseData,
       }));
     },
   });

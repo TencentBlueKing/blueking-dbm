@@ -22,6 +22,8 @@
 
   import type { TicketDetails } from '@services/types/ticket';
 
+  import { TicketTypes } from '@common/const';
+
   interface Props {
     ticketDetails: TicketDetails<{
       infos: {
@@ -34,6 +36,10 @@
   }
 
   defineProps<Props>();
+
+  defineOptions({
+    name: TicketTypes.SQLSERVER_RESET,
+  });
 
   const { t } = useI18n();
 

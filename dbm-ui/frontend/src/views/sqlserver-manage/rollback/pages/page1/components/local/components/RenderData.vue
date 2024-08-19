@@ -30,10 +30,10 @@
         {{ t('回档类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('构造 DB ') }}
+        {{ t('构造 DB') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn :required="false">
-        {{ t('忽略 DB ') }}
+        {{ t('忽略 DB') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
         {{ t('构造后 DB 名') }}
@@ -52,8 +52,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import RenderTableHeadColumn from '@views/mysql/common/render-table/HeadColumn.vue';
-  import RenderTable from '@views/mysql/common/render-table/Index.vue';
+  import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
+  import RenderTable from '@components/render-table/Index.vue';
 
   interface Emits {
     (e: 'batchSelectCluster'): void;

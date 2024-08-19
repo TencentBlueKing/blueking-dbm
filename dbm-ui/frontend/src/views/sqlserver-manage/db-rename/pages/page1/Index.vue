@@ -67,9 +67,7 @@
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
@@ -78,7 +76,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>();
   const isShowBatchSelector = ref(false);
@@ -160,12 +157,12 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'SQLSERVER_DBRENAME',
+          ticket_type: TicketTypes.SQLSERVER_DBRENAME,
           remark: '',
           details: {
             infos: data,
           },
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }),
       )
       .then((data) => {

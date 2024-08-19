@@ -70,7 +70,7 @@
     modelValue?: string[];
     single?: boolean;
     rules?: Rules;
-    disabled: boolean;
+    disabled?: boolean;
   }
 
   interface Emits {

@@ -508,7 +508,7 @@
     TendbClusterHost: [
       {
         id: 'TendbClusterHost',
-        name: t('Tendb Cluster 主库主机'),
+        name: t('Tendb Cluster 主从'),
         topoConfig: {
           getTopoList: queryMysqlCluster,
           countFunc: (clusterItem: { remote_db: { ip: string }[] }) => {
@@ -536,7 +536,7 @@
         tableConfig: {
           getTableList: getSpiderMachineList,
           firsrColumn: {
-            label: t('主库主机'),
+            label: 'remote_master',
             field: 'ip',
             role: 'remote_master',
           },
@@ -557,7 +557,7 @@
     RedisHost: [
       {
         id: 'RedisHost',
-        name: t('Redis 主库主机'),
+        name: t('Redis 主从'),
         topoConfig: {
           getTopoList: getRedisClusterList,
           countFunc: (clusterItem: { redis_master: { ip: string }[] }) => {
@@ -606,7 +606,7 @@
     [ClusterTypes.SQLSERVER_HA]: [
       {
         id: ClusterTypes.SQLSERVER_HA,
-        name: t('SQL Server 主库主机'),
+        name: t('SQL Server 主从'),
         topoConfig: {
           getTopoList: getSqlServerHaCluster,
           countFunc: (item: ServiceReturnType<typeof getSqlServerHaCluster>[number]) => item.masters.length,
@@ -643,7 +643,7 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [
       {
         id: ClusterTypes.SQLSERVER_SINGLE,
-        name: t('SQL Server 单节点主机'),
+        name: t('SQL Server 单节点'),
         topoConfig: {
           getTopoList: (params: ServiceParameters<typeof getSingleClusterList>) =>
             getSingleClusterList(params).then((data) => data.results),

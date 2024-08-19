@@ -29,15 +29,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import type { DetailClusters } from '@services/model/ticket/details/common';
-  import TicketModel from '@services/model/ticket/ticket';
+  import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   interface Props {
-    data: TicketModel<{
-      clusters: DetailClusters;
-    }>;
+    data: TicketModel<unknown>;
   }
 
   const props = defineProps<Props>();
@@ -122,7 +119,7 @@
         TicketTypes.REDIS_PURGE,
       ].includes(props.data.ticket_type)
     ) {
-      const clusterInfo = Object.values(props.data.details.clusters)[0];
+      const clusterInfo = Object.values((props.data.details as Redis.RedisRollbackDataCopyDetails).clusters)[0];
       if (clusterInfo.cluster_type === ClusterTypes.REDIS_INSTANCE) {
         name = 'DatabaseRedisHaList';
       } else {

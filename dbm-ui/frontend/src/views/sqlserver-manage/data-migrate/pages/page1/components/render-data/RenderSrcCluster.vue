@@ -128,6 +128,7 @@
     },
     {
       validator: () => {
+        console.log('clusterIdMemo = ', clusterIdMemo, instanceKey, modelValue.value);
         const otherClusterIdMemo = { ...clusterIdMemo };
         delete otherClusterIdMemo[instanceKey];
         if (Object.values(otherClusterIdMemo).includes(modelValue.value!.id)) {
@@ -180,6 +181,7 @@
     if (modelValue.value) {
       delete clusterIdMemo[modelValue.value.id];
     }
+    delete clusterIdMemo[instanceKey];
   });
 
   defineExpose<Exposes>({

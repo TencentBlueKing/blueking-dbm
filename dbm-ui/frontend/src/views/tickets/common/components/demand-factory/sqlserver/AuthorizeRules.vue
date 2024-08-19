@@ -42,6 +42,9 @@
   }
 
   const props = defineProps<Props>();
+  defineOptions({
+    name: TicketTypes.SQLSERVER_AUTHORIZE_RULES,
+  });
 
   const { t } = useI18n();
 
@@ -210,7 +213,6 @@
       .cell {
         padding: 0 !important;
       }
-
     }
 
     td:first-child {

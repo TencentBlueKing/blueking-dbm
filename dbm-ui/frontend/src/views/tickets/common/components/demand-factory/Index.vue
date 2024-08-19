@@ -19,6 +19,9 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
+  import type { RouteRecordRaw } from 'vue-router';
+
   import TicketModel from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
@@ -125,17 +128,14 @@
   import SpiderSlaveRebuild from './spider/SlaveRebuild.vue';
   import SpiderTableBackup from './spider/TableBackup.vue';
   import SpiderTruncateDatabase from './spider/TruncateDatabase.vue';
-  import SqlserverAuthrizeRules from './sqlserver/AuthorizeRules.vue';
-  import SqlserverClusterOperation from './sqlserver/ClusterOperation.vue';
-  import SqlserverClusterReset from './sqlserver/ClusterReset.vue';
-  import SqlserverDbBackup from './sqlserver/DbBackup.vue';
-  import SqlserverDetails from './sqlserver/Details.vue';
 
   interface Props {
     data: TicketModel<unknown>;
   }
 
   const props = defineProps<Props>();
+
+  const sqlserverDetailModule = import.meta.glob<{ default: () => RouteRecordRaw[] }>('./sqlserver/*', { eager: true });
 
   const mysqlTicketType = [TicketTypes.MYSQL_AUTHORIZE_RULES, TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES];
 
@@ -182,16 +182,13 @@
     TicketTypes.RIAK_CLUSTER_DESTROY,
   ];
 
-  const sqlserverApplyTiketType = [TicketTypes.SQLSERVER_SINGLE_APPLY, TicketTypes.SQLSERVER_HA_APPLY];
+  // const sqlserverApplyTiketType = [TicketTypes.SQLSERVER_SINGLE_APPLY, TicketTypes.SQLSERVER_HA_APPLY];
 
-  const sqlserverClusterTicketType = [
-    TicketTypes.SQLSERVER_DISABLE,
-    TicketTypes.SQLSERVER_DISABLE,
-    TicketTypes.SQLSERVER_ENABLE,
-    TicketTypes.SQLSERVER_ENABLE,
-    TicketTypes.SQLSERVER_DESTROY,
-    TicketTypes.SQLSERVER_DESTROY,
-  ];
+  // const sqlserverClusterTicketType = [
+  //   TicketTypes.SQLSERVER_DISABLE,
+  //   TicketTypes.SQLSERVER_ENABLE,
+  //   TicketTypes.SQLSERVER_DESTROY,
+  // ];
 
   const bigDataReplaceType = [
     TicketTypes.ES_REPLACE,
@@ -268,10 +265,10 @@
 
   const mongoAuthorizeRulesTypes = [TicketTypes.MONGODB_AUTHORIZE, TicketTypes.MONGODB_EXCEL_AUTHORIZE];
 
-  const sqlserverAuthorizeRulesTypes = [
-    TicketTypes.SQLSERVER_AUTHORIZE_RULES,
-    TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES,
-  ];
+  // const sqlserverAuthorizeRulesTypes = [
+  //   TicketTypes.SQLSERVER_AUTHORIZE_RULES,
+  //   TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES,
+  // ];
 
   const redisHaOperationTypes = [
     TicketTypes.REDIS_INSTANCE_PROXY_CLOSE,
@@ -293,7 +290,7 @@
     [TicketTypes.MYSQL_PROXY_SWITCH]: MySQLProxySwitch,
     [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: MySQLTableBackup,
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: MySQLMigrateCluster,
-    [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: MySQLMasterSlaveSwitch,
+
     [TicketTypes.MYSQL_PROXY_ADD]: MySQLProxyAdd,
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: MySQLMasterFailOver,
     [TicketTypes.MYSQL_FLASHBACK]: MySQLFlashback,
@@ -304,6 +301,7 @@
     [TicketTypes.MYSQL_CHECKSUM]: MySQLChecksum,
     [TicketTypes.MYSQL_ADD_SLAVE]: MySQLAddSlave,
     [TicketTypes.MYSQL_DATA_MIGRATE]: MySQLDataMigrate,
+    [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: MySQLMasterSlaveSwitch,
     [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
     [TicketTypes.TBINLOGDUMPER_SWITCH_NODES]: DumperSwitchNode,
     [TicketTypes.PULSAR_APPLY]: DetailsPulsar,
@@ -356,8 +354,6 @@
     [TicketTypes.MONGODB_SCALE_UPDOWN]: MongoCapacityChange,
     [TicketTypes.MONGODB_ADD_MONGOS]: MongoProxyScaleUp,
     [TicketTypes.MONGODB_TEMPORARY_DESTROY]: MongoTemporaryDestrot,
-    [TicketTypes.SQLSERVER_RESET]: SqlserverClusterReset,
-    [TicketTypes.SQLSERVER_BACKUP_DBS]: SqlserverDbBackup,
     [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: SpiderMigrateCluster,
     [TicketTypes.REDIS_INS_APPLY]: DetailsRedisHa,
     [TicketTypes.MYSQL_PROXY_UPGRADE]: MySQLVerisonProxyUpgrade,
@@ -368,6 +364,16 @@
   // 不同集群详情组件
   const detailsComp = computed(() => {
     const ticketType = props.data.ticket_type;
+
+    const renderModule = _.find(
+      Object.values(sqlserverDetailModule),
+      (moduleItem) => moduleItem.default.name === ticketType,
+    );
+
+    if (renderModule) {
+      return renderModule.default;
+    }
+
     // M权限克隆
     if (clones.includes(ticketType)) {
       return MySQLClone;
@@ -377,13 +383,7 @@
       return MySQLHATruncate;
     }
     // MySQL 重命名
-    if (
-      [
-        TicketTypes.MYSQL_HA_RENAME_DATABASE,
-        TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
-        TicketTypes.SQLSERVER_DBRENAME,
-      ].includes(ticketType)
-    ) {
+    if ([TicketTypes.MYSQL_HA_RENAME_DATABASE, TicketTypes.MYSQL_SINGLE_RENAME_DATABASE].includes(ticketType)) {
       return MySQLRename;
     }
     // Redis、大数据启停删单据
@@ -448,18 +448,18 @@
     if (mongoAuthorizeRulesTypes.includes(ticketType)) {
       return MongoAuthrizeRules;
     }
-    // SQLServer 申请
-    if (sqlserverApplyTiketType.includes(ticketType)) {
-      return SqlserverDetails;
-    }
-    // SQLServer 启停删
-    if (sqlserverClusterTicketType.includes(ticketType)) {
-      return SqlserverClusterOperation;
-    }
-    // SQLServer 授权
-    if (sqlserverAuthorizeRulesTypes.includes(ticketType)) {
-      return SqlserverAuthrizeRules;
-    }
+    // // SQLServer 申请
+    // if (sqlserverApplyTiketType.includes(ticketType)) {
+    //   return SqlserverDetails;
+    // }
+    // // SQLServer 启停删
+    // if (sqlserverClusterTicketType.includes(ticketType)) {
+    //   return SqlserverClusterOperation;
+    // }
+    // // SQLServer 授权
+    // if (sqlserverAuthorizeRulesTypes.includes(ticketType)) {
+    //   return SqlserverAuthrizeRules;
+    // }
     // Spider 重建从库
     if (spiderSlaveType.includes(ticketType)) {
       return SpiderSlaveRebuild;
@@ -484,6 +484,16 @@
     }
     if (dataExportTypes.includes(ticketType)) {
       return MysqlExportData;
+    }
+    if ([TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE, TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE].includes(ticketType)) {
+      return MySQLRestoreLocalSlave;
+    }
+    if ([TicketTypes.MYSQL_RESTORE_SLAVE, TicketTypes.SQLSERVER_RESTORE_SLAVE].includes(ticketType)) {
+      return MySQLRestoreSlave;
+    }
+
+    if ([TicketTypes.MYSQL_MASTER_SLAVE_SWITCH, TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH].includes(ticketType)) {
+      return MySQLMasterSlaveSwitch;
     }
 
     return DefaultDetails;

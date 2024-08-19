@@ -26,7 +26,6 @@
         v-model="resotreTime"
         :disabled="editDisabled"
         :disabled-date="disableDate"
-        ext-popover-cls="not-seconds-date-picker"
         :rules="timerRules"
         type="datetime" />
       <div
@@ -40,9 +39,10 @@
           v-model="localBackupid"
           :disabled="editDisabled"
           :list="logRecordList"
+          :popover-min-width="300"
           :rules="rules"
           style="flex: 1"
-          @change="(value: string | number) => handleBackupidChange(value as string)" />
+          @change="(value: any) => handleBackupidChange(value as string)" />
       </div>
     </div>
   </div>
@@ -59,8 +59,8 @@
 
   import { useTimeZone } from '@stores';
 
-  import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
     clusterId?: number;
@@ -98,12 +98,12 @@
 
   const targetList = [
     {
-      id: 'record',
-      name: t('备份记录'),
+      value: 'record',
+      label: t('备份记录'),
     },
     {
-      id: 'time',
-      name: t('回档到指定时间'),
+      value: 'time',
+      label: t('回档到指定时间'),
     },
   ];
 
@@ -117,7 +117,7 @@
   const localBackupType = ref('record');
   const localBackupid = ref(0);
 
-  const logRecordList = shallowRef<Array<{ id: string; name: string }>>([]);
+  const logRecordList = shallowRef<Array<{ value: string; label: string }>>([]);
 
   const editDisabled = computed(() => !props.clusterId);
 
@@ -134,8 +134,8 @@
       days: 30,
     }).then((dataList) => {
       logRecordList.value = dataList.map((item) => ({
-        id: item.backup_id,
-        name: `${item.role} ${dayjs(item.start_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
+        value: item.backup_id,
+        label: `${item.role} ${dayjs(item.start_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
       }));
       logRecordListMemo = dataList;
     });

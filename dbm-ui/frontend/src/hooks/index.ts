@@ -34,6 +34,7 @@ export * from './useStretchLayout';
 export * from './useTableMaxHeight';
 export * from './useTableSettings';
 export * from './useTagsOverflow';
+export * from './useTaskCount';
 export * from './useTicketCloneInfo';
 export * from './useTicketMessage';
 export * from './useTimeZoneFormat';

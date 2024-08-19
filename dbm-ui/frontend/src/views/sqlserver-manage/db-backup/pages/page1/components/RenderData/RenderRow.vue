@@ -48,7 +48,7 @@
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
   import { random } from '@utils';
 

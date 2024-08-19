@@ -103,7 +103,7 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
   import RenderDstCluster from './RenderDstCluster.vue';
   import RenderRename from './RenderRename.vue';

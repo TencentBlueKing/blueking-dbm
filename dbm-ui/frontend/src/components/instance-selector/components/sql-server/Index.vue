@@ -157,7 +157,8 @@
       __is_selected: boolean;
     },
   ) => {
-    selectClusterId.value = node.obj === 'cluster' ? node.payload.id : undefined;
+    selectClusterId.value = node.obj === 'cluster' ? node.payload.id : 0;
+    console.log('selectClusterId.value = ', selectClusterId.value);
     const rawNode = treeRef.value.getData().data.find((item: { id: number }) => item.id === node.id);
     if (!isOpen && !isSelected) {
       treeRef.value.setNodeOpened(rawNode, true);

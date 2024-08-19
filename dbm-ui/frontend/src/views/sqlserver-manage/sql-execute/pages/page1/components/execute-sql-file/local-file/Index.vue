@@ -84,7 +84,7 @@
 
   import { getSQLFilename } from '@utils';
 
-  import { updateFilePath } from '../../../Index.vue';
+  import { updateFilePath } from '../../../Index.bak.vue';
   import Editor from '../editor/Index.vue';
 
   import CheckError from './components/CheckError.vue';
