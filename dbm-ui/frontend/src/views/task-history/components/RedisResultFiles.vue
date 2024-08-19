@@ -254,7 +254,7 @@
     }
     state.isBatchDownloading = true;
     const paths = state.selected.map(item => item.path);
-    batchDownloadDirs({ paths })
+    batchDownloadDirs({ file_path_list: paths })
       .then((result) => {
         const values = Object.values(result);
         const interval = setInterval(downloadFile, 600, values);
