@@ -28,6 +28,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
@@ -155,6 +156,9 @@ class TendbClusterMigrateRemoteFlow(object):
                 cluster_info["ports"].append(shard["master"]["port"])
 
             # 阶段2 安装实例
+            db_config = get_instance_config(
+                cluster_class.bk_cloud_id, self.data["old_master_ip"], cluster_info["ports"]
+            )
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             install_sub_pipeline.add_sub_pipeline(
@@ -165,6 +169,7 @@ class TendbClusterMigrateRemoteFlow(object):
                     new_mysql_list=[self.data["new_master_ip"], self.data["new_slave_ip"]],
                     install_ports=cluster_info["ports"],
                     bk_host_ids=[self.data["bk_new_master"]["bk_host_id"], self.data["bk_new_slave"]["bk_host_id"]],
+                    db_config=db_config,
                 )
             )
 

@@ -28,8 +28,8 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
-    sync_mycnf_item_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
@@ -144,6 +144,8 @@ class MySQLMigrateClusterFlow(object):
 
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             # 整机安装数据库
+            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            db_config = get_instance_config(cluster_class.bk_cloud_id, master.machine.ip, self.data["ports"])
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             install_sub_pipeline.add_sub_pipeline(
@@ -156,6 +158,7 @@ class MySQLMigrateClusterFlow(object):
                     bk_host_ids=bk_host_ids,
                     pkg_id=pkg_id,
                     db_module_id=str(db_module_id),
+                    db_config=db_config,
                 )
             )
 
@@ -202,30 +205,6 @@ class MySQLMigrateClusterFlow(object):
                 kwargs=asdict(exec_act_kwargs),
             )
             install_sub_pipeline_list.append(install_sub_pipeline.build_sub_process(sub_name=_("安装实例")))
-
-            # 同步配置
-            sync_mycnf_sub_pipeline_list = []
-            for cluster_id in self.data["cluster_ids"]:
-                cluster_model = Cluster.objects.get(id=cluster_id)
-                master_model = cluster_model.storageinstance_set.get(
-                    instance_inner_role=InstanceInnerRole.MASTER.value
-                )
-                sync_mycnf_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                sync_mycnf_sub_pipeline.add_sub_pipeline(
-                    sub_flow=sync_mycnf_item_sub_flow(
-                        uid=self.data["uid"],
-                        root_id=self.root_id,
-                        bk_cloud_id=self.data["bk_cloud_id"],
-                        src_host=self.data["master_ip"],
-                        src_port=master_model.port,
-                        master_slave_hosts=[self.data["new_slave_ip"], self.data["new_master_ip"]],
-                        dest_port=master_model.port,
-                        var_list=["collation_server", "lower_case_table_names"],
-                    )
-                )
-                sync_mycnf_sub_pipeline_list.append(
-                    sync_mycnf_sub_pipeline.build_sub_process(_("{}:同步配置到新的主从实例上").format(cluster_model.immute_domain))
-                )
 
             sync_data_sub_pipeline_list = []
             for cluster_id in self.data["cluster_ids"]:
@@ -416,7 +395,7 @@ class MySQLMigrateClusterFlow(object):
             # 安装实例
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
             # 同步配置
-            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_mycnf_sub_pipeline_list)
+            # tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_mycnf_sub_pipeline_list)
             # 数据同步
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
             #  新机器安装周边组件

@@ -28,6 +28,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import (
     mysql_restore_master_slave_sub_flow,
 )
@@ -144,7 +145,8 @@ class TenDBRemoteRebalanceFlow(object):
                 cluster_info["ports"].append(port)
 
             shard_ids = copy.deepcopy(cluster_info["shard_ids"])
-            for node in self.data["remote_group"]:
+            for idx, node in enumerate(copy.deepcopy(self.data["remote_group"])):
+                db_config = {}
                 for port in cluster_info["ports"]:
                     master = {
                         "ip": node["master"]["ip"],
@@ -161,10 +163,20 @@ class TenDBRemoteRebalanceFlow(object):
                     shard_id = shard_ids.pop(0)
                     cluster_info["shards"][shard_id]["new_master"] = master
                     cluster_info["shards"][shard_id]["new_slave"] = slave
+                    # 获取分片的master节点信息
+                    shard_config = get_instance_config(
+                        cluster_class.bk_cloud_id,
+                        cluster_info["shards"][shard_id]["master"]["ip"],
+                        [cluster_info["shards"][shard_id]["master"]["port"]],
+                    )
+                    db_config[port] = shard_config.get(str(cluster_info["shards"][shard_id]["master"]["port"]), {})
+                # 源实例对应分片配置文件一一放入新机器安装信息
+                self.data["remote_group"][idx]["db_config"] = db_config
 
             # 阶段2 安装实例并写入数据
             install_sub_pipeline_list = []
             for node in self.data["remote_group"]:
+                logger.debug("node config", node.get("db_config", {}))
                 install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 install_sub_pipeline.add_sub_pipeline(
                     sub_flow=install_mysql_in_cluster_sub_flow(
@@ -173,6 +185,7 @@ class TenDBRemoteRebalanceFlow(object):
                         cluster=cluster_class,
                         new_mysql_list=[node["master"]["ip"], node["slave"]["ip"]],
                         install_ports=cluster_info["ports"],
+                        db_config=node.get("db_config", {}),
                     )
                 )
                 cluster = {
