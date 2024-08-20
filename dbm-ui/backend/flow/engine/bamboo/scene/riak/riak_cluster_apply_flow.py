@@ -181,6 +181,7 @@ class RiakClusterApplyFlow(object):
                     bk_cloud_id=bk_cloud_id,
                     run_as_system_user=DBA_ROOT_USER,
                     get_riak_payload_func=RiakActPayload.get_init_bucket_type_payload.__name__,
+                    cluster=cluster,
                 )
             ),
         )

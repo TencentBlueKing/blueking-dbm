@@ -2,24 +2,27 @@ package osutil
 
 import (
 	"dbm-services/common/go-pubpkg/logger"
+	"fmt"
 	"strconv"
 	"strings"
 )
 
 // IsDataDirOk TODO
-func IsDataDirOk(filepath string) bool {
+func IsDataDirOk(filepath string) error {
 	mountPaths := GetMountPathInfo()
 	if m, ok := mountPaths[filepath]; ok {
 		// 大于150GB
 		if m.AvailSizeMB > 153600 {
-			return true
+			return nil
 		} else {
-			logger.Error("%s available disk size is less than 150GB", filepath)
-			return false
+			msg := fmt.Sprintf("%s available disk size less than 150GB", filepath)
+			logger.Error(msg)
+			return fmt.Errorf(msg)
 		}
 	}
-	logger.Error("GetMountPathInfo not found mount point: %s", filepath)
-	return false
+	msg := fmt.Sprintf("GetMountPathInfo not found mount point: %s", filepath)
+	logger.Error(msg)
+	return fmt.Errorf(msg)
 }
 
 // MountPath TODO

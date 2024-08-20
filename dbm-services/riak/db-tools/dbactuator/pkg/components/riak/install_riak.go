@@ -48,22 +48,24 @@ func (i *InstallRiakComp) Init() error {
 		cst.AlterNativeDataRootPath,
 	)
 	if err != nil {
-		logger.Error("not found mount point: %s", err.Error())
-		return err
+		msg := fmt.Sprintf("not found mount point: %s", err.Error())
+		logger.Error(msg)
+		return fmt.Errorf(msg)
 	}
-	if osutil.IsDataDirOk(mountpoint) {
-		i.DataDir = mountpoint
-	} else {
-		logger.Error("%s could not be data dir", mountpoint)
-		return fmt.Errorf("%s could not be data dir", mountpoint)
+	err = osutil.IsDataDirOk(mountpoint)
+	if err != nil {
+		msg := fmt.Sprintf("%s could not be data dir: %s", mountpoint, err.Error())
+		logger.Error(msg)
+		return fmt.Errorf(msg)
 	}
+	i.DataDir = mountpoint
 	platformDataDir := path.Join(mountpoint, cst.DataDir)
 	cmd := fmt.Sprintf("mkdir -p %s; chown -R riak:root %s", platformDataDir, platformDataDir)
 	_, err = osutil.ExecShellCommand(false, cmd)
 	if err != nil {
-		logger.Error("execute shell [%s] error: %s", cmd, err.Error())
-		err = fmt.Errorf("execute shell [%s] error: %s", cmd, err.Error())
-		return err
+		msg := fmt.Sprintf("execute shell [%s] error: %s", cmd, err.Error())
+		logger.Error(msg)
+		return fmt.Errorf(msg)
 	}
 	return nil
 }
