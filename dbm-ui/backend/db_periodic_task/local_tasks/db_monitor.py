@@ -151,7 +151,7 @@ def sync_plat_monitor_policy():
     )
 
 
-@register_periodic_task(run_every=crontab(minute="*/5"))
+@register_periodic_task(run_every=crontab(minute=0, hour="*/1"))
 def sync_plat_dispatch_policy():
     """同步平台分派通知策略
     按照app_id->db_type来拆分策略：
@@ -160,18 +160,27 @@ def sync_plat_dispatch_policy():
     """
 
     logger.info("sync_plat_dispatch_policy started")
+    biz_ids = NoticeGroup.objects.exclude(monitor_group_id=0).values_list("bk_biz_id", flat=True).distinct()
+    count = len(biz_ids)
     # 同步平台/业务分派策略
-    for bk_biz_id in NoticeGroup.objects.exclude(monitor_group_id=0).values_list("bk_biz_id", flat=True).distinct():
-        latest_rules = DispatchGroup.get_rules(bk_biz_id)
-        try:
-            dispatch_group = DispatchGroup.objects.get(bk_biz_id=bk_biz_id)
-            logger.info("sync_plat_dispatch_policy: update biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
-            dispatch_group.rules = latest_rules
-            dispatch_group.save()
-        except DispatchGroup.DoesNotExist:
-            logger.info("sync_plat_dispatch_policy: create biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
-            dispatch_group = DispatchGroup(bk_biz_id=bk_biz_id, rules=latest_rules)
-            dispatch_group.save()
+    for index, bk_biz_id in enumerate(biz_ids):
+        countdown = calculate_countdown(count=count, index=index, duration=TimeUnit.HOUR)
+        logger.info("biz({}) sync dispatch policy will be run after {} seconds.".format(bk_biz_id, countdown))
+        sync_biz_dispatch_policy.apply_async(kwargs={"bk_biz_id": bk_biz_id}, countdown=countdown)
+
+
+@app.task
+def sync_biz_dispatch_policy(bk_biz_id):
+    latest_rules = DispatchGroup.get_rules(bk_biz_id)
+    try:
+        dispatch_group = DispatchGroup.objects.get(bk_biz_id=bk_biz_id)
+        logger.info("sync_plat_dispatch_policy: update biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
+        dispatch_group.rules = latest_rules
+        dispatch_group.save()
+    except DispatchGroup.DoesNotExist:
+        logger.info("sync_plat_dispatch_policy: create biz_rules(%s)\n %s \n", bk_biz_id, latest_rules)
+        dispatch_group = DispatchGroup(bk_biz_id=bk_biz_id, rules=latest_rules)
+        dispatch_group.save()
 
 
 @register_periodic_task(run_every=crontab(minute="*/5"))
