@@ -45,8 +45,14 @@ export default class TicketFlowDescribe {
     return utcDisplayTime(this.update_at);
   }
 
+  // 是否自定义目标
   get isCustomTarget() {
     return this.bk_biz_id !== 0;
+  }
+
+  // 是否集群目标
+  get isClusterTarget() {
+    return this.cluster_ids.length > 0;
   }
 
   get clusterDomainList() {
