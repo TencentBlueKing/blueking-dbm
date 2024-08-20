@@ -14,6 +14,7 @@
 <template>
   <RenderTable>
     <RenderTableHeadColumn
+      fixed="left"
       :min-width="300"
       :width="350">
       {{ t('变更的DB') }}

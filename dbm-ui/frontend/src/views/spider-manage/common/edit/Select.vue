@@ -237,7 +237,7 @@
   .table-edit-select {
     position: relative;
     display: flex;
-    height: 40px;
+    height: 42px;
     overflow: hidden;
     color: #63656e;
     cursor: pointer;
@@ -271,7 +271,7 @@
     }
 
     &.is-error {
-      background: rgb(255 221 221 / 20%);
+      background: #fff0f1;
 
       .focused-flag {
         display: none;

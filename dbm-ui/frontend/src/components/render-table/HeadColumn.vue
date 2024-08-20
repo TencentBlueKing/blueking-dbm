@@ -16,7 +16,6 @@
     ref="columnRef"
     class="ediatable-head-column"
     :class="{
-      'edit-required': required,
       [`column-${columnKey}`]: true,
       'toolbox-right-fixed-column': isMinimize && isFixedRight && !isScrollToRight,
       'toolbox-left-fixed-column': isMinimize && isFixedLeft && !isScrollToLeft,
@@ -28,15 +27,17 @@
     :style="styles"
     @mousedown="handleMouseDown"
     @mousemove="handleMouseMove">
-    <div
-      v-overflow-tips
-      class="th-cell">
-      <slot />
-    </div>
-    <div
-      v-if="slots.append"
-      style="display: inline-block; line-height: 40px; vertical-align: top">
-      <slot name="append" />
+    <div :class="{ 'edit-required': required }">
+      <div
+        v-overflow-tips
+        class="th-cell">
+        <slot />
+      </div>
+      <div
+        v-if="slots.append"
+        style="display: inline-block; line-height: 40px; vertical-align: top">
+        <slot name="append" />
+      </div>
     </div>
   </th>
 </template>

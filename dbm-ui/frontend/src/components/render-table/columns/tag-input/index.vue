@@ -26,7 +26,6 @@
         allow-create
         :clearable="false"
         v-bind="$attrs"
-        collapse-tags
         :disabled="disabled"
         has-delete-icon
         :max-data="single ? 1 : -1"
@@ -70,7 +69,7 @@
     modelValue?: string[];
     single?: boolean;
     rules?: Rules;
-    disabled: boolean;
+    disabled?: boolean;
   }
 
   interface Emits {
@@ -203,7 +202,7 @@
       .bk-tag-input-trigger {
         .tag-list {
           height: auto;
-          max-height: 135px;
+          max-height: 400px;
         }
       }
     }
