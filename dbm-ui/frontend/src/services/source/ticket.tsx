@@ -274,10 +274,6 @@ export function queryTicketFlowDescribe(params: {
   offset?: number;
   bk_biz_id?: number;
 }) {
-  // 组件 db-table 传值问题，临时解决 bk_biz_id 多余传值
-  // eslint-disable-next-line no-param-reassign
-  delete params.bk_biz_id;
-
   return http.get<TicketFlowDescribeModel[]>(`${path}/query_ticket_flow_describe/`, params).then((data) => ({
     count: data.length || 0,
     results: data.map((item) => new TicketFlowDescribeModel(item)) || [],

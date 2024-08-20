@@ -233,6 +233,8 @@
   const fetchData = () => {
     tableRef.value.fetchData({ ...reqParams.value }, {
       db_type: props.dbType,
+      // 全局配置下单据流程列表不传bk_biz_id,覆盖db-table组件传入的bk_biz_id,请求时会过滤掉值为undefined的字段
+      bk_biz_id: undefined,
     });
   };
 

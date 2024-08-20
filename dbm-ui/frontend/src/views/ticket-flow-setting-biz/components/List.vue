@@ -70,7 +70,12 @@
                 :data="data.clusterDomainList"
                 show-all>
                 <template #prepend>
-                  <span class="mr-4">{{ t('集群') }} :</span>
+                  <span
+                    v-if="data.isClusterTarget"
+                    class="mr-4">
+                    {{ t('集群') }} :
+                  </span>
+                  <span v-else>{{ t('业务下全部对象') }}</span>
                 </template>
                 <template #append>
                   <BkTag
@@ -80,18 +85,18 @@
                     {{ t('自定义') }}
                   </BkTag>
                   <EditConfig
-                    v-model:isShow="showEditConfig"
+                    v-model:isShow="showEditConfig[data.id]"
                     :data="data"
                     @success="fetchData">
                     <DbIcon
                       v-bk-tooltips="t('修改目标')"
                       class="is-custom ml-4"
                       type="bk-dbm-icon db-icon-edit"
-                      @click="() => (showEditConfig = true)" />
+                      @click="() => (showEditConfig[data.id] = true)" />
                   </EditConfig>
                 </template>
               </RenderRow>
-              <TextOverflowLayout v-else-if="!data.hidden">
+              <TextOverflowLayout v-else>
                 {{ t('业务下全部对象') }}
                 <template #append>
                   <BkTag
@@ -109,6 +114,7 @@
             :width="120">
             <template #default="{ data }">
               <RenderFlowPreview
+                v-if="data.isCustomTarget"
                 v-model="data.configs.need_itsm"
                 config-key="need_itsm"
                 :data="data"
@@ -123,6 +129,16 @@
                     style="pointer-events: none" />
                 </AuthTemplate>
               </RenderFlowPreview>
+              <div v-else>
+                <span v-if="data.configs.need_manual_confirm">
+                  {{ t('是') }}
+                </span>
+                <span
+                  v-else
+                  style="color: #ff9c01">
+                  {{ t('否') }}
+                </span>
+              </div>
             </template>
           </BkTableColumn>
           <BkTableColumn
@@ -130,21 +146,14 @@
             :label="renderHead('need_manual_confirm')"
             :width="120">
             <template #default="{ data }">
-              <RenderFlowPreview
-                v-model="data.configs.need_manual_confirm"
-                config-key="need_manual_confirm"
-                :data="data"
-                @success="fetchData">
-                <AuthTemplate
-                  action-id="ticket_config_set"
-                  class="flow-node-action"
-                  :permission="data.permission.ticket_config_set"
-                  :resource="props.dbType">
-                  <BkCheckbox
-                    v-model:model-value="data.configs.need_manual_confirm"
-                    style="pointer-events: none" />
-                </AuthTemplate>
-              </RenderFlowPreview>
+              <span v-if="data.configs.need_manual_confirm">
+                {{ t('是') }}
+              </span>
+              <span
+                v-else
+                style="color: #ff9c01">
+                {{ t('否') }}
+              </span>
             </template>
           </BkTableColumn>
           <BkTableColumn
@@ -228,6 +237,8 @@
 
   import { useDefaultPagination } from '@hooks';
 
+  import { useGlobalBizs } from '@stores';
+
   import type { DBTypes } from '@common/const';
 
   import RenderRow from '@components/render-row/index.vue';
@@ -249,10 +260,11 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+  const { currentBizId } = useGlobalBizs();
 
   const ticketTypeList = shallowRef<ISearchItem[]>([]);
   const searchValue = ref<Array<ISearchItem & { values: ISearchItem[] }>>([]);
-  const showEditConfig = ref(false);
+  const showEditConfig = ref<Record<string, boolean>>({});
   const isAnomalies = ref(false);
   const pagination = ref(useDefaultPagination());
   const allTableData = shallowRef<IDataRow[]>([]);
@@ -304,16 +316,20 @@
       pagination.value.count = data.count;
       const resultsMap = _.groupBy(data.results, 'ticket_type');
       allTableData.value = Object.values(resultsMap).flatMap(values => {
-        let rowSpan = values.length;
+        const rowSpan = values.length;
         return values
           .map(item => ({
             ..._.cloneDeep(item),
             updateAtDisplay: item.updateAtDisplay,
             isCustomTarget: item.isCustomTarget,
+            isClusterTarget: item.isClusterTarget,
             clusterDomainList: item.clusterDomainList,
-            rowSpan,
+            // 多个目标时，将内置目标隐藏
+            hidden: rowSpan > 1 && !item.isCustomTarget,
+            // 多个目标时，将rowSpan-1
+            rowSpan: rowSpan > 1 ? rowSpan - 1 : 1,
           }))
-          .filter(item => rowSpan === 1 || item.isCustomTarget ? true : (rowSpan -= 1, false));
+          .filter(item => !item.hidden);
       });
       isAnomalies.value = false;
     },
@@ -371,6 +387,7 @@
     queryTicketFlowDescribeRun({
       ...reqParams.value,
       db_type: props.dbType,
+      bk_biz_id: currentBizId,
     });
   };
 
