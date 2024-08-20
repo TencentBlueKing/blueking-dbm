@@ -399,7 +399,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value!.getValue().then(() => {
+      const getResult = () => {
         if (props.clusterData) {
           const { clusterData } = props;
           const value = {
@@ -431,7 +431,11 @@
 
           return value;
         }
-      });
+      };
+      return editSelectRef
+        .value!.getValue()
+        .then(() => getResult())
+        .catch(() => Promise.reject(getResult()));
     },
   });
 </script>

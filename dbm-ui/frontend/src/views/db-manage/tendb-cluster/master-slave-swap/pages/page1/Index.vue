@@ -28,6 +28,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="item-block">
@@ -45,6 +46,7 @@
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </div>
+      <TicketRemark v-model="formData.remark" />
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -78,11 +80,14 @@
 
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -90,6 +95,22 @@
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
+    onSuccess(cloneData) {
+      const { isCheckDelay, isCheckProcess, isVerifyChecksum, tableDataList, remark } = cloneData;
+      tableData.value = tableDataList;
+      Object.assign(formData, {
+        is_check_process: isCheckProcess,
+        is_verify_checksum: isVerifyChecksum,
+        is_check_delay: isCheckDelay,
+        remark,
+      });
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
@@ -102,6 +123,7 @@
     is_check_process: true,
     is_verify_checksum: true,
     is_check_delay: true,
+    remark: '',
   });
 
   let ipMemo = {} as Record<string, boolean>;
@@ -165,13 +187,32 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(
+      index + 1,
+      0,
+      Object.assign(sourceData, {
+        clusterData: {
+          ...sourceData.clusterData,
+          domain: tableData.value[index].clusterData?.domain ?? '',
+        },
+      }),
+    );
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
       const data = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: 'TENDBCLUSTER_MASTER_SLAVE_SWITCH',
-        remark: '',
+        ticket_type: TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
+        remark: formData.remark,
         details: {
           ...formData,
           infos: data,

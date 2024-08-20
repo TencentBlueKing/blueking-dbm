@@ -93,7 +93,7 @@
     isShowBatchEdit.value = !isShowBatchEdit.value;
   };
 
-  const handleBatchEdit = (value: string) => {
-    emits('batchEditBackupLocal', value);
+  const handleBatchEdit = (value: string | string[]) => {
+    emits('batchEditBackupLocal', value as string);
   };
 </script>

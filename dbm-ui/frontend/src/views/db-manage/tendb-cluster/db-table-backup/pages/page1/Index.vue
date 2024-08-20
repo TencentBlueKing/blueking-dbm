@@ -20,7 +20,7 @@
         :title="t('库表备份：指定库表备份，支持模糊匹配')" />
       <RenderData
         class="mt16"
-        @batch-edit-backup-local="handleBatchEditBackupLocal"
+        @batch-edit="handleBatchEditColumn"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -29,8 +29,10 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -66,24 +68,38 @@
   import SpiderModel from '@services/model/spider/spider';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
-
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const remark = ref('');
+
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
@@ -110,13 +126,13 @@
     isShowBatchSelector.value = true;
   };
 
-  const handleBatchEditBackupLocal = (value: string) => {
+  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
     if (!value || checkListEmpty(tableData.value)) {
       return;
     }
     tableData.value.forEach((row) => {
       Object.assign(row, {
-        backupLocal: value,
+        [filed]: value,
       });
     });
   };
@@ -167,13 +183,32 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(
+      index + 1,
+      0,
+      Object.assign(sourceData, {
+        clusterData: {
+          ...sourceData.clusterData,
+          domain: tableData.value[index].clusterData?.domain ?? '',
+        },
+      }),
+    );
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: 'TENDBCLUSTER_DB_TABLE_BACKUP',
-        remark: '',
+        ticket_type: TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP,
+        remark: remark.value,
         details: {
           infos,
         },
@@ -196,6 +231,7 @@
   };
 
   const handleReset = () => {
+    remark.value = '';
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
     domainMemo = {};

@@ -37,6 +37,7 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -89,6 +90,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -135,14 +137,26 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    sourceRef.value.getValue(),
+    clusterRef.value.getValue(),
+    moduleRef.value.getValue(),
+    targetRef.value.getValue(),
+  ];
+
+  const handleClone = () => {
+    emits(
+      'clone',
+      createRowData({
+        source: props.data.source,
+        target: props.data.target,
+      }),
+    );
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        sourceRef.value.getValue(),
-        clusterRef.value.getValue(),
-        moduleRef.value.getValue(),
-        targetRef.value.getValue(),
-      ]).then(([sourceData, clusterData, moduleData, targetData]) => ({
+      return Promise.all(getRowData()).then(([sourceData, clusterData, moduleData, targetData]) => ({
         ...sourceData,
         ...clusterData,
         ...moduleData,

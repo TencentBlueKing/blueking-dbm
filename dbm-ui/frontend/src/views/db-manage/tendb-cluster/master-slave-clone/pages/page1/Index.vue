@@ -28,16 +28,17 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @host-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />
       </RenderData>
       <BkForm
-        class="mt-24"
+        class="toolbox-form mt-24"
         form-type="vertical">
         <BkFormItem
           :label="t('备份源')"
           required>
-          <BkRadioGroup v-model="backupSource">
+          <BkRadioGroup v-model="formData.backup_source">
             <BkRadio label="local">
               {{ t('本地备份') }}
             </BkRadio>
@@ -47,6 +48,7 @@
           </BkRadioGroup>
         </BkFormItem>
       </BkForm>
+      <TicketRemark v-model="formData.remark" />
     </div>
     <template #action>
       <BkButton
@@ -77,31 +79,52 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { getSpiderMachineList } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
+
+  import { useTicketCloneInfo } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
 
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { random } from '@utils';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/Row.vue';
 
+  const createDefaultData = () => ({
+    backup_source: 'local',
+    remark: '',
+  });
+
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
+    onSuccess(cloneData) {
+      const { tableDataList, remark } = cloneData;
+      tableData.value = tableDataList;
+      formData.remark = remark;
+      window.changeConfirm = true;
+    },
+  });
+
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting = ref(false);
-  const backupSource = ref('local');
   const tableData = ref([createRowData()]);
+
+  const formData = reactive(createDefaultData());
 
   const selected = shallowRef({ TendbClusterHost: [] } as InstanceSelectorValues<IValue>);
 
@@ -139,6 +162,7 @@
       hostId: item.bk_host_id,
     },
     masterInstanceList: item.related_instances || [],
+    newHostList: [],
   });
 
   // 批量选择
@@ -214,6 +238,27 @@
     selected.value.TendbClusterHost = ipsArr.filter((item) => item.ip !== removeIp);
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    const rowData = _.cloneDeep(dataList[index]);
+    dataList.splice(
+      index + 1,
+      0,
+      Object.assign(sourceData, {
+        clusterData: {
+          ...sourceData.clusterData,
+          domain: tableData.value[index].clusterData?.domain ?? '',
+        },
+        masterInstanceList: rowData.masterInstanceList,
+      }),
+    );
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value![rowRefs.value!.length - 1].getValue();
+    });
+  };
+
   // 提交
   const handleSubmit = async () => {
     try {
@@ -222,8 +267,9 @@
       const params = {
         bk_biz_id: currentBizId,
         ticket_type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
+        remark: formData.remark,
         details: {
-          backup_source: backupSource.value,
+          ...formData,
           ip_source: 'manual_input',
           infos: rowDataList.map((rowItem, rowIndex) => {
             const { clusterData } = tableData.value[rowIndex];
@@ -262,6 +308,7 @@
 
   // 重置
   const handleReset = () => {
+    Object.assign(formData, createDefaultData());
     tableData.value = [createRowData()];
     selected.value.TendbClusterHost = [];
     ipMemo = {};

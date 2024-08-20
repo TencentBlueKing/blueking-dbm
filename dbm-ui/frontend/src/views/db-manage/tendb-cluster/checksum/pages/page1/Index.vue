@@ -20,7 +20,7 @@
         :title="t('数据校验修复：对集群的主库和从库进行数据一致性校验和修复，其中 MyISAM 引擎库表不会被校验和修复')" />
       <RenderData
         class="mt16"
-        @batch-edit-scope="handleBatchEditScope"
+        @batch-edit="handleBatchEditColumn"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -102,6 +102,7 @@
             </div>
           </BkRadioGroup>
         </BkFormItem>
+        <TicketRemark v-model="formData.remark" />
       </BkForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
@@ -138,22 +139,34 @@
   import SpiderModel from '@services/model/spider/tendbCluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useTimeZoneFormat } from '@hooks';
+  import { useTicketCloneInfo, useTimeZoneFormat } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
   const { format: formatDateToUTC } = useTimeZoneFormat();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_CHECKSUM,
+    onSuccess(cloneData) {
+      const { tableDataList, formInfo } = cloneData;
+      tableData.value = tableDataList;
+      Object.assign(formData, formInfo);
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -167,6 +180,7 @@
     is_sync_non_innodb: true,
     timing: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     runtime_hour: 48,
+    remark: '',
   });
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
@@ -189,15 +203,21 @@
     isShowBatchSelector.value = true;
   };
 
-  const handleBatchEditScope = (value: string) => {
+  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
     if (!value || checkListEmpty(tableData.value)) {
       return;
     }
-    tableData.value.forEach((row) => {
-      Object.assign(row, {
-        scope: value,
+    if (filed === 'scope') {
+      tableData.value.forEach((row) => {
+        Object.assign(row, {
+          [filed]: value,
+        });
       });
-    });
+    } else {
+      rowRefs.value.map((item: { setLocalBackupInfos: (value: string[], field: IDataRowBatchKey) => void }) =>
+        item.setLocalBackupInfos(value as string[], filed),
+      );
+    }
   };
 
   // 批量选择
@@ -248,11 +268,11 @@
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
-      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const infos = await Promise.all(rowRefs.value!.map((item: { getValue: () => Promise<any> }) => item.getValue()));
 
       await createTicket({
-        ticket_type: 'TENDBCLUSTER_CHECKSUM',
-        remark: '',
+        ticket_type: TicketTypes.TENDBCLUSTER_CHECKSUM,
+        remark: formData.remark,
         details: {
           ...formData,
           timing: formatDateToUTC(dayjs(formData.timing).format('YYYY-MM-DD HH:mm:ss')),
