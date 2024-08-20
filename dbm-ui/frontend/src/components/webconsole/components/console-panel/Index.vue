@@ -37,13 +37,11 @@
 <script setup lang="ts">
   import _ from 'lodash';
 
-  import { queryWebconsole } from '@services/source/dbbase';
+  import { queryAllTypeCluster, queryWebconsole } from '@services/source/dbbase';
 
   import { DBTypes } from '@common/const';
 
   import { downloadText } from '@utils';
-
-  import type { ClusterItem, Props as MainProps } from '../../Index.vue';
 
   import RenderMysqlMessage from './components/RenderMysqlMessage.vue';
   import RenderRedisMessage, {
@@ -51,9 +49,11 @@
     getInputPlaceholder as getRedisPlaceholder,
   } from './components/RenderRedisMessage.vue';
 
+  type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
+
   interface Props {
     modelValue: ClusterItem;
-    dbType: MainProps['dbType'];
+    dbType: DBTypes;
     raw?: boolean;
   }
 

@@ -11,18 +11,19 @@
         @remove-tab="handleClickClearScreen" />
       <RawSwitcher
         v-if="dbType === DBTypes.REDIS"
-        v-model="topOperateState.isRaw"
-        :db-type="dbType"
-        @change="handleClickRawSwitcher" />
+        v-model="isRaw"
+        :db-type="dbType" />
       <ClearScreen @change="handleClickClearScreen" />
       <ExportData @export="handleClickExport" />
       <UsageHelp
-        v-model:showUseageHelp="topOperateState.showUseageHelp"
+        v-model="showUsageHelp"
         @change="handleToggleHelp" />
       <div class="operate-item-last">
-        <FontChange @change="handleChangeFontSize" />
+        <FontSetting
+          v-model="currentFontConfig"
+          @change="handleChangeFontSize" />
         <FullScreen
-          v-model:isFullScreen="topOperateState.isFullScreen"
+          v-model="isFullScreen"
           @change="handleClickFullScreen" />
       </div>
     </div>
@@ -34,7 +35,7 @@
           ref="consolePanelRef"
           v-model="clusterInfo"
           :db-type="dbType"
-          :raw="topOperateState.isRaw"
+          :raw="isRaw"
           :style="currentFontConfig" />
       </KeepAlive>
       <div class="placeholder-main">
@@ -65,16 +66,16 @@
   import ClusterTabs from './components/ClusterTabs.vue';
   import ConsolePanel from './components/console-panel/Index.vue';
   import ExportData from './components/ExportData.vue';
-  import FontChange from './components/FontChange.vue';
+  import FontSetting from './components/FontSetting.vue';
   import FullScreen from './components/FullScreen.vue';
   import RawSwitcher from './components/RawSwitcher.vue';
   import UsageHelp from './components/usage-help/Index.vue';
 
-  export interface Props {
+  interface Props {
     dbType?: DBTypes;
   }
 
-  export type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
+  type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
 
   const props = withDefaults(defineProps<Props>(), {
     dbType: DBTypes.MYSQL,
@@ -90,11 +91,9 @@
     fontSize: '12px',
     lineHeight: '20px',
   });
-  const topOperateState = reactive({
-    isRaw: props.dbType === DBTypes.REDIS ? false : undefined,
-    isFullScreen: false,
-    showUseageHelp: false,
-  });
+  const isRaw = ref(props.dbType === DBTypes.REDIS ? false : undefined);
+  const isFullScreen = ref(false);
+  const showUsageHelp = ref(false);
 
   const handleBeforeClose = (clusterId: number) =>
     new Promise<boolean>((resolve, reject) => {
@@ -135,12 +134,8 @@
     clusterInfo.value = data;
   };
 
-  const handleClickRawSwitcher = (value?: boolean) => {
-    topOperateState.isRaw = value;
-  };
-
   const handleToggleHelp = () => {
-    topOperateState.showUseageHelp = !topOperateState.showUseageHelp;
+    showUsageHelp.value = !showUsageHelp.value;
   };
 
   const handleChangeFontSize = (item: { fontSize: string; lineHeight: string }) => {
@@ -149,11 +144,11 @@
 
   const handleClickFullScreen = () => {
     screenfull.toggle(rootRef.value);
-    topOperateState.isFullScreen = !topOperateState.isFullScreen;
+    isFullScreen.value = !isFullScreen.value;
   };
 
   const checkFullScreen = () => {
-    topOperateState.isFullScreen = screenfull.isFullscreen;
+    isFullScreen.value = screenfull.isFullscreen;
   };
 
   onMounted(() => {

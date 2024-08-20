@@ -22,22 +22,16 @@
     dbType: DBTypes;
   }
 
-  interface Emits {
-    (e: 'change', value?: boolean): void;
-  }
-
   const props = defineProps<Props>();
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const modelValue = defineModel<boolean>({
-    default: false,
+  const modelValue = defineModel<boolean | undefined>({
+    default: undefined,
   });
 
   const handleRawSwitch = (value: boolean) => {
-    modelValue.value = value;
-    emits('change', props.dbType === DBTypes.REDIS ? value : undefined);
+    modelValue.value = props.dbType === DBTypes.REDIS ? value : undefined;
   };
 </script>
 

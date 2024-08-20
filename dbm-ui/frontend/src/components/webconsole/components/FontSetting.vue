@@ -16,8 +16,8 @@
           v-for="(item, index) in fontSizeList"
           :key="index"
           class="font-item"
-          :class="{ 'font-item-active': item.fontSize === currentFontSize }"
-          @click="() => handleChangeFontSize(index)">
+          :class="{ 'font-item-active': item.fontSize === modelValue.fontSize }"
+          @click="() => handleChangeFontSize(item)">
           <DbIcon
             :style="item"
             type="aa" />
@@ -29,21 +29,25 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
+  interface FontSetting {
+    fontSize: string;
+    lineHeight: string;
+  }
+
   interface Emits {
-    (
-      e: 'change',
-      value: {
-        fontSize: string;
-        lineHeight: string;
-      },
-    ): void;
+    (e: 'change', value: FontSetting): void;
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const currentFontSize = ref('12px');
+  const modelValue = defineModel<FontSetting>({
+    default: {
+      fontSize: '12px',
+      lineHeight: '20px',
+    },
+  });
 
   const fontSizeList = [
     {
@@ -60,10 +64,9 @@
     },
   ];
 
-  const handleChangeFontSize = (index: number) => {
-    const currentFont = fontSizeList[index];
-    currentFontSize.value = currentFont.fontSize;
-    emits('change', currentFont);
+  const handleChangeFontSize = (item: FontSetting) => {
+    modelValue.value = item;
+    emits('change', item);
   };
 </script>
 <style lang="less">
