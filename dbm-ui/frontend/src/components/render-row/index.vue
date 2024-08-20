@@ -15,6 +15,7 @@
   <div
     ref="rowRef"
     class="render-row">
+    <slot name="prepend" />
     <p
       ref="textRef"
       class="text-overflow">
@@ -30,6 +31,7 @@
       class="render-row-tag">
       {{ showAll ? t('共n个', [data.length]) : `+${overflowData.length}` }}
     </BkTag>
+    <slot name="append" />
   </div>
 </template>
 
@@ -47,6 +49,13 @@
   const props = withDefaults(defineProps<Props>(), {
     showAll: false,
   });
+
+  defineSlots<
+    Partial<{
+      prepend(): any;
+      append(): any;
+    }>
+  >();
 
   const { t } = useI18n();
 

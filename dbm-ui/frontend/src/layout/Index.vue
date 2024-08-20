@@ -136,7 +136,13 @@
       'DBPasswordTemporaryModify',
     ],
     [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],
-    [menuEnum.configManage]: ['DbConfigure', 'DBMonitorStrategy', 'DBMonitorAlarmGroup', 'StaffManage'],
+    [menuEnum.configManage]: [
+      'DbConfigure',
+      'DBMonitorStrategy',
+      'DBMonitorAlarmGroup',
+      'StaffManage',
+      'TicketFlowSetting',
+    ],
     [menuEnum.resourceManage]: ['ResourceSpec', 'resourceManage', 'resourcePoolDirtyMachines'],
     [menuEnum.platformManage]: [
       'PlatformVersionFiles',

@@ -276,27 +276,36 @@ export function queryTicketFlowDescribe(params: {
   offset?: number;
   bk_biz_id?: number;
 }) {
-  // 组件 db-table 传值问题，临时解决 bk_biz_id 多余传值
-  // eslint-disable-next-line no-param-reassign
-  delete params.bk_biz_id;
-
-  return http.get<ListBase<TicketFlowDescribeModel[]>>(`${path}/query_ticket_flow_describe/`, params).then((data) => ({
-    ...data,
-    results: data.results.map(
-      (item) =>
-        new TicketFlowDescribeModel(
-          Object.assign(item, {
-            permission: data.permission,
-          }),
-        ),
-    ),
+  return http.get<TicketFlowDescribeModel[]>(`${path}/query_ticket_flow_describe/`, params).then((data) => ({
+    count: data.length || 0,
+    results: data.map((item) => new TicketFlowDescribeModel(item)) || [],
   }));
 }
 
 /**
- * 修改可编辑的单据流程
+ * 创建单据流程规则
  */
-export function updateTicketFlowConfig(params: { ticket_types: string[]; configs: Record<string, boolean> }) {
+export function createTicketFlowConfig(params: {
+  ticket_types: string[];
+  configs: Record<string, boolean>;
+  bk_biz_id: number;
+  cluster_ids?: number[];
+}) {
+  return http.post<{
+    ticket_types: string[];
+  }>(`${path}/create_ticket_flow_config/`, params);
+}
+
+/**
+ * 修改可编辑的单据流程规则
+ */
+export function updateTicketFlowConfig(params: {
+  ticket_types: string[];
+  configs: Record<string, boolean>;
+  bk_biz_id: number;
+  cluster_ids?: number[];
+  config_ids?: number[];
+}) {
   return http.post<{
     ticket_types: string[];
   }>(`${path}/update_ticket_flow_config/`, params);
@@ -304,6 +313,15 @@ export function updateTicketFlowConfig(params: { ticket_types: string[]; configs
 
 export function getTicketStatus(params: { ticket_ids: string }) {
   return http.get<Record<string, string>>(`${path}/list_ticket_status/`, params);
+}
+
+/**
+ * 删除单据流程规则
+ */
+export function deleteTicketFlowConfig(params: { config_ids: number[] }) {
+  return http.delete<{
+    ticket_types: string[];
+  }>(`${path}/delete_ticket_flow_config/`, params);
 }
 
 /**
