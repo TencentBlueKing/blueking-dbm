@@ -38,8 +38,6 @@ class SQLServerMasterSlaveSwitchDetailSerializer(SQLServerBaseOperateDetailSeria
         slave_insts = [f"{info['slave']['ip']}" for info in attrs["infos"]]
         CommonValidate.validate_slave_is_stand_by(slave_insts)
 
-        # 校验单据是否互斥
-        super().validate(attrs)
         return attrs
 
 
