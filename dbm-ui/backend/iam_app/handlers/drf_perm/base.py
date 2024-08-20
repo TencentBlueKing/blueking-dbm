@@ -95,12 +95,15 @@ class IAMPermission(permissions.BasePermission):
                 # 打散资源，平铺成资源列表
                 resources_list = list(itertools.chain(*self.resources))
                 for resource in resources_list:
-                    bk_audit_client.add_event(
-                        action=action,
-                        resource_type=self.resource_type() if self.resource_type else resource,
-                        audit_context=context,
-                        instance=CommonInstance(resource.attribute),
-                    )
+                    try:
+                        bk_audit_client.add_event(
+                            action=action,
+                            resource_type=self.resource_type() if self.resource_type else resource,
+                            audit_context=context,
+                            instance=CommonInstance(resource.attribute),
+                        )
+                    except TypeError as e:
+                        logger.error("bkauth add event error...%s", e)
 
         # 如果是超级用户或忽略鉴权，则跳过鉴权
         if request.user.is_superuser or env.BK_IAM_SKIP:
