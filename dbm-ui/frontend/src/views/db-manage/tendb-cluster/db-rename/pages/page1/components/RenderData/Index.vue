@@ -31,11 +31,39 @@
           :min-width="100"
           :width="400">
           {{ t('源 DB 名') }}
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.fromDatabase"
+              :title="t('备份DB名')"
+              type="input"
+              @change="(value) => handleBatchEditChange(value, 'fromDatabase')">
+              <span
+                v-bk-tooltips="t('统一设置')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('fromDatabase')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :width="400">
           {{ t('新 DB 名') }}
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.toDatabase"
+              :title="t('备份DB名')"
+              type="input"
+              @change="(value) => handleBatchEditChange(value, 'toDatabase')">
+              <span
+                v-bk-tooltips="t('统一设置')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('toDatabase')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
@@ -54,19 +82,36 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import type { IDataRowBatchKey } from './Row.vue';
+
   interface Emits {
     (e: 'batchSelectCluster'): void;
+    (e: 'batchEdit', value: string, filed: IDataRowBatchKey): void;
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
+  const batchEditShow = reactive({
+    fromDatabase: false,
+    toDatabase: false,
+  });
+
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
+  };
+
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');
+  };
+
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    emits('batchEdit', value as string, filed);
   };
 </script>
 <style lang="less">

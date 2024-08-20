@@ -41,11 +41,13 @@
     <td style="padding: 0">
       <RenderTargetResourceSpec
         ref="targetResourceSpecRef"
-        :cluster-data="localClusterData" />
+        :cluster-data="localClusterData"
+        :row-data="data" />
     </td>
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -77,7 +79,9 @@
       backend_group: {
         spec_id: number;
         count: number;
-        affinity: '';
+        affinity: string;
+        futureCapacity: number;
+        specName: string;
       };
     };
   }
@@ -107,6 +111,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -149,16 +154,34 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    clusterRef.value!.getValue(),
+    resourceSpecRef.value!.getValue(),
+    targetResourceSpecRef.value!.getValue(),
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [clusterData, resourceSpecData, targetResourceSpecData] = rowData.map((item) =>
+        item.status === 'fulfilled' ? item.value : item.reason,
+      );
+      emits(
+        'clone',
+        createRowData({
+          clusterData: localClusterData.value,
+          resourceSpec: {
+            id: 0,
+            name: localClusterData.value?.clusterSpec.spec_name ?? '',
+          },
+          resource_spec: targetResourceSpecData.resource_spec,
+        }),
+      );
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value!.getValue(),
-        targetResourceSpecRef.value!.getValue(),
-        shardNumRef.value!.getValue(),
-        machinePairCntRef.value!.getValue(),
-        capacityRef.value!.getValue(),
-        resourceSpecRef.value!.getValue(),
-      ]).then(([clusterData, targetResourceSpecData]) => ({
+      return Promise.all(getRowData()).then(([clusterData, resourceSpecData, targetResourceSpecData]) => ({
         ...clusterData,
         ...targetResourceSpecData,
         prev_machine_pair: props.data.clusterData!.machinePairCnt,

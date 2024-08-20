@@ -77,7 +77,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => ({ count: Number(localValue.value) }));
+      return editRef.value
+        .getValue()
+        .then(() => ({ count: Number(localValue.value) }))
+        .catch(() => Promise.reject({ count: 0 }));
     },
   });
 </script>

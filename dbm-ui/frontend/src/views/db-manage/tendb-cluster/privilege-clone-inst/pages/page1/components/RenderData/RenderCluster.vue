@@ -41,10 +41,18 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => ({
-        cluster_domain: props.source!.masterDomain,
-        bk_cloud_id: props.source!.bkCloudId,
-      }));
+      return inputRef.value
+        .getValue()
+        .then(() => ({
+          cluster_domain: props.source!.masterDomain,
+          bk_cloud_id: props.source!.bkCloudId,
+        }))
+        .catch(() =>
+          Promise.reject({
+            cluster_domain: props.source?.masterDomain,
+            bk_cloud_id: props.source?.bkCloudId,
+          }),
+        );
     },
   });
 </script>
