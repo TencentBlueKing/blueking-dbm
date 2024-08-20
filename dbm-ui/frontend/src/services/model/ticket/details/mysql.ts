@@ -147,6 +147,7 @@ export interface MySQLInstanceCloneDetails extends DetailBase {
     target: string;
     module: string;
     cluster_domain: string;
+    cluster_id: number;
   }[];
 }
 

@@ -74,8 +74,8 @@
     :biz-id="bizId"
     button-text=""
     :cloud-info="{
-      id: clusterData.bk_cloud_id,
-      name: clusterData.bk_cloud_name,
+      id: clusterData.bkCloudId,
+      name: clusterData.bkCloudName,
     }"
     :data="localHostList"
     :os-types="[OSTypes.Linux]"
@@ -86,17 +86,23 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TendbClusterModel from '@services/model/spider/tendbCluster';
+  import { checkHost } from '@services/source/ipchooser';
   import type { HostDetails } from '@services/types';
 
   import { OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
+  import type { IDataRow } from './Row.vue';
   import useValidtor from './useValidtor';
 
   interface Props {
-    clusterData?: TendbClusterModel;
+    clusterData?: IDataRow['clusterData'];
+    ipList?: {
+      bk_host_id: number;
+      ip: string;
+      bk_cloud_id: number;
+    }[];
   }
 
   interface Exposes {
@@ -109,7 +115,7 @@
     }>;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -132,6 +138,29 @@
   ];
 
   const { message: errorMessage, validator } = useValidtor(rules);
+
+  watch(
+    () => props?.ipList,
+    () => {
+      if (props?.ipList?.length) {
+        checkHost({
+          ip_list: props.ipList.map((item) => item.ip),
+          mode: 'all',
+          scope_list: [
+            {
+              scope_type: 'biz',
+              scope_id: window.PROJECT_CONFIG.BIZ_ID,
+            },
+          ],
+        }).then((hostList) => {
+          localHostList.value = hostList;
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(
     localHostList,
@@ -170,11 +199,17 @@
           bk_cloud_id: item.cloud_area.id,
         }));
 
-      return validator(localHostList.value).then(() =>
-        Promise.resolve({
-          spider_ip_list: formatHost(localHostList.value),
-        }),
-      );
+      return validator(localHostList.value)
+        .then(() =>
+          Promise.resolve({
+            spider_ip_list: formatHost(localHostList.value),
+          }),
+        )
+        .catch(() =>
+          Promise.reject({
+            spider_ip_list: formatHost(localHostList.value),
+          }),
+        );
     },
   });
 </script>

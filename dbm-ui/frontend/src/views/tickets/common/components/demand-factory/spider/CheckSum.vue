@@ -47,13 +47,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { SpiderCheckSumDetails } from '@services/model/ticket/details/spider';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getSpiderListByBizId } from '@services/source/spider';
-  import type { SpiderCheckSumDetails, TicketDetails } from '@services/types/ticket';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderCheckSumDetails>;
+    ticketDetails: TicketModel<SpiderCheckSumDetails>;
   }
 
   interface RowData {

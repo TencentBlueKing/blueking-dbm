@@ -585,6 +585,48 @@
   }
 }
 
+.toolbox-right-fixed-column {
+  position:sticky;
+  right:0;
+  z-index: 1;
+  background-color: #fff;
+
+  &::before {
+    position: absolute;
+    top: 0;
+    left: -10px;
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(to left, rgb(0 0 0 / 12%), transparent);
+    content: '';
+  }
+}
+
+.toolbox-left-fixed-column {
+  position:sticky;
+  left:0;
+  z-index: 1;
+  background-color: #fff;
+
+  &::before {
+    position: absolute;
+    top: 0;
+    right: -10px;
+    width: 10px;
+    height: 100%;
+    background: linear-gradient(to right, rgb(0 0 0 / 12%), transparent);
+    content: '';
+  }
+}
+
+.toolbox-form {
+  .bk-form-label {
+    font-size: 12px;
+    font-weight: bold;
+    color: #313238;
+  }
+}
+
 .bk-tab-header-nav::-webkit-scrollbar {
   display: unset !important;
   width: 4px !important;

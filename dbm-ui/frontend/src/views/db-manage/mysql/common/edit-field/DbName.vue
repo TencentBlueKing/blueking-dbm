@@ -235,14 +235,17 @@
 
   defineExpose<Exposes>({
     getValue(field: string) {
-      return tagRef.value.getValue().then(() => {
-        if (!localValue.value) {
-          return Promise.reject();
-        }
-        return {
-          [field]: props.single ? localValue.value[0] : localValue.value,
-        };
-      });
+      return tagRef.value
+        .getValue()
+        .then(() => {
+          if (!localValue.value) {
+            return Promise.reject();
+          }
+          return {
+            [field]: props.single ? localValue.value[0] : localValue.value,
+          };
+        })
+        .catch(() => Promise.reject({ [field]: props.single ? localValue.value?.[0] || '' : localValue.value }));
     },
   });
 </script>

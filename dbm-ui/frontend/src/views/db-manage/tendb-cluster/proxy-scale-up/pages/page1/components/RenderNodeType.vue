@@ -150,7 +150,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value.getValue().then(() => ({ add_spider_role: localValue.value }));
+      return selectRef.value
+        .getValue()
+        .then(() => ({ add_spider_role: localValue.value }))
+        .catch(() => Promise.reject({ add_spider_role: localValue.value }));
     },
   });
 </script>

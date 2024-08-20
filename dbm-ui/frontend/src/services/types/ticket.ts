@@ -556,3 +556,25 @@ export interface SpiderPartitionManageDetails {
     };
   };
 }
+
+export interface MysqlDataMigrateDetails {
+  clusters: clustersItems;
+  infos: {
+    db_list: string;
+    source_cluster: number;
+    target_clusters: number[];
+  }[];
+}
+
+/**
+ * redis 版本升级
+ */
+export interface RedisVersionUpgrade {
+  clusters: clustersItems;
+  infos: {
+    cluster_id: number;
+    current_versions: string[];
+    node_type: string;
+    target_version: string;
+  }[];
+}
