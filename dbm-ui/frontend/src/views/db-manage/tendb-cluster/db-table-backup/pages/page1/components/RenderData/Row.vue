@@ -57,6 +57,7 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -77,6 +78,8 @@
     ignoreDbs?: string[];
     ignoreTables?: string[];
   }
+
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>): IDataRow => ({
@@ -103,6 +106,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -113,12 +117,12 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref();
-  const backupLocalRef = ref();
-  const dbPatternsRef = ref();
-  const ignoreDbsRef = ref();
-  const tablePatternsRef = ref();
-  const ignoreTablesRef = ref();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const backupLocalRef = ref<InstanceType<typeof RenderBackupLocal>>();
+  const dbPatternsRef = ref<InstanceType<typeof RenderDbName>>();
+  const ignoreDbsRef = ref<InstanceType<typeof RenderTableName>>();
+  const tablePatternsRef = ref<InstanceType<typeof RenderDbName>>();
+  const ignoreTablesRef = ref<InstanceType<typeof RenderTableName>>();
 
   const localClusterId = ref(0);
 
@@ -163,23 +167,48 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    clusterRef.value!.getValue(),
+    backupLocalRef.value!.getValue(),
+    dbPatternsRef.value!.getValue('db_patterns'),
+    tablePatternsRef.value!.getValue('table_patterns'),
+    ignoreDbsRef.value!.getValue('ignore_dbs'),
+    ignoreTablesRef.value!.getValue('ignore_tables'),
+  ];
+
+  const handleClone = async () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [clusterData, backupLocalData, dbPatternsData, tablePatternsData, ignoreDbsData, ignoreTablesData] =
+        rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          clusterData: {
+            id: clusterData.cluster_id,
+            domain: '',
+          },
+          backupLocal: backupLocalData.backup_local,
+          dbPatterns: dbPatternsData.db_patterns,
+          tablePatterns: tablePatternsData.table_patterns,
+          ignoreDbs: ignoreDbsData.ignore_dbs,
+          ignoreTables: ignoreTablesData.ignore_tables,
+        }),
+      );
+    });
+  };
+
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([
-        clusterRef.value.getValue(),
-        backupLocalRef.value.getValue(),
-        dbPatternsRef.value.getValue('db_patterns'),
-        tablePatternsRef.value.getValue('table_patterns'),
-        ignoreDbsRef.value.getValue('ignore_dbs'),
-        ignoreTablesRef.value.getValue('ignore_tables'),
-      ]).then(([clusterData, backupLocalData, dbPatternsData, tablePatternsData, ignoreDbsData, ignoreTablesData]) => ({
-        ...clusterData,
-        ...backupLocalData,
-        ...dbPatternsData,
-        ...tablePatternsData,
-        ...ignoreDbsData,
-        ...ignoreTablesData,
-      }));
+      return Promise.all(getRowData()).then(
+        ([clusterData, backupLocalData, dbPatternsData, tablePatternsData, ignoreDbsData, ignoreTablesData]) => ({
+          ...clusterData,
+          ...backupLocalData,
+          ...dbPatternsData,
+          ...tablePatternsData,
+          ...ignoreDbsData,
+          ...ignoreTablesData,
+        }),
+      );
     },
   });
 </script>

@@ -35,11 +35,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { SpiderFullBackupDetails } from '@services/model/ticket/details/spider';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getSpiderListByBizId } from '@services/source/spider';
-  import type { SpiderFullBackupDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderFullBackupDetails>;
+    ticketDetails: TicketModel<SpiderFullBackupDetails>;
   }
 
   interface RowData {

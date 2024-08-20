@@ -24,15 +24,15 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { TicketDetails } from '@services/types/ticket';
+  import type { SpiderMigrateCluster } from '@services/model/ticket/details/spider';
+  import TicketModel from '@services/model/ticket/ticket';
 
-  import type { SpiderMigrateCluster } from '../common/types'
   import DemandInfo, {
     type DemandInfoConfig,
   } from '../components/DemandInfo.vue';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderMigrateCluster>
+    ticketDetails: TicketModel<SpiderMigrateCluster>
   }
 
   type dataItem = {

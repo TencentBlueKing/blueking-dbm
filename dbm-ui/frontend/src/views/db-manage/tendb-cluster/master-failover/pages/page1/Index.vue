@@ -28,6 +28,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="item-block">
@@ -45,6 +46,7 @@
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </div>
+      <TicketRemark v-model="formData.remark" />
       <InstanceSelector
         v-model:isShow="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -79,18 +81,41 @@
 
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
+  const createDefaultData = () => ({
+    remark: '',
+  });
+
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
+    onSuccess(cloneData) {
+      const { tableDataList, isCheckProcess, isVerifyChecksum, isCheckDelay, remark } = cloneData;
+      tableData.value = tableDataList;
+      Object.assign(formData, {
+        is_check_process: isCheckProcess,
+        is_check_delay: isCheckDelay,
+        is_verify_checksum: isVerifyChecksum,
+        remark,
+      });
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
@@ -103,6 +128,7 @@
     is_check_process: false,
     is_verify_checksum: false,
     is_check_delay: false,
+    remark: '',
   });
 
   let ipMemo = {} as Record<string, boolean>;
@@ -168,6 +194,25 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(
+      index + 1,
+      0,
+      Object.assign(sourceData, {
+        clusterData: {
+          ...sourceData.clusterData,
+          domain: tableData.value[index].clusterData?.domain ?? '',
+        },
+      }),
+    );
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
@@ -175,7 +220,7 @@
 
       await createTicket({
         ticket_type: TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
-        remark: '',
+        remark: formData.remark,
         details: {
           ...formData,
           infos: data,
@@ -199,6 +244,7 @@
   };
 
   const handleReset = () => {
+    Object.assign(formData, createDefaultData());
     tableData.value = [createRowData()];
     ipMemo = {};
     selectedIps.value.tendbcluster = [];
