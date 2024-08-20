@@ -52,6 +52,11 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
+  const isTodo = defineModel<boolean>('isTodo', {
+    default: false,
+    required: true,
+  });
+
   const currentScope = getCurrentScope();
 
   const state = reactive({
@@ -94,8 +99,9 @@
   function fetchTicketFlows(id: number, isPoll = false) {
     state.isLoading = !isPoll;
     getTicketFlows({ id })
-      .then((res) => {
-        state.flows = res || [];
+      .then((flowsResult) => {
+        state.flows = flowsResult;
+        isTodo.value = props.data?.status === 'RUNNING' && flowsResult.some((flowItem) => flowItem.todos.length > 0);
         // 设置轮询
         if (currentScope?.active) {
           !isActive.value && needPollStatus.includes(props.data?.status) && resume();

@@ -9,11 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
-import {
-  getTaskflowDetails,
-} from '@services/source/taskflow';
+import { getTaskflowDetails } from '@services/source/taskflow';
 
 import D3Graph from '@blueking/bkflow.js';
 
@@ -21,8 +19,8 @@ import GraphRender from './graphRender';
 import type { GraphNode } from './utils';
 
 interface GraphData {
-  locations: GraphNode[],
-  lines: any[]
+  locations: GraphNode[];
+  lines: any[];
 }
 
 export default class GraphCanvas {
@@ -32,8 +30,13 @@ export default class GraphCanvas {
   graphData: GraphData;
   expandNodes: string[]; // 展开节点
   flowInfo: ServiceReturnType<typeof getTaskflowDetails>['flow_info'];
+  todoNodeIdList: string[];
 
-  constructor(selector: string, flowInfo: ServiceReturnType<typeof getTaskflowDetails>['flow_info']) {
+  constructor(
+    selector: string,
+    flowInfo: ServiceReturnType<typeof getTaskflowDetails>['flow_info'],
+    todoNodeIdList: string[],
+  ) {
     this.expandNodes = [];
     this.flowInstance = null;
     this.selector = selector;
@@ -43,11 +46,12 @@ export default class GraphCanvas {
       lines: [],
     };
     this.flowInfo = flowInfo;
+    this.todoNodeIdList = todoNodeIdList;
     this.renderCanvas();
   }
 
   renderCanvas() {
-    const { flowInfo } = this;
+    const { flowInfo, todoNodeIdList } = this;
     this.flowInstance = new D3Graph(this.selector, {
       mode: 'readonly',
       nodeTemplateKey: 'tpl',
@@ -67,7 +71,7 @@ export default class GraphCanvas {
         scaleExtent: [0.5, 1.5],
         controlPanel: false,
       },
-      onNodeRender: (node: any) => this.tplRender.render(node.tpl, [node, flowInfo]),
+      onNodeRender: (node: any) => this.tplRender.render(node.tpl, [node, flowInfo, todoNodeIdList]),
     });
     this.flowInstance.renderGraph(this.graphData, false);
     this.updateLinePosition();
@@ -106,7 +110,9 @@ export default class GraphCanvas {
   }
 
   destroy() {
-    if (!this.flowInstance) return;
+    if (!this.flowInstance) {
+      return;
+    }
 
     this.flowInstance.clear();
     this.flowInstance = null;
@@ -122,7 +128,12 @@ export default class GraphCanvas {
   updateLinePosition() {
     // eslint-disable-next-line no-underscore-dangle
     const lineCollectionInstance = this.flowInstance?._lineCollectionInstance;
-    if (!lineCollectionInstance) return;
+
+    if (!lineCollectionInstance) {
+      return;
+    }
+
+    // 重置 generatePolylineLink 计算方法
 
     // 重置 generatePolylineLink 计算方法
     lineCollectionInstance.generatePolylineLink = function (line: any) {
@@ -141,8 +152,9 @@ export default class GraphCanvas {
       } else {
         if (sourceX !== targetX && sourceY !== targetY) {
           let breakPoint = [tOffsetX, sOffsetY];
-          if (this.isLineCrossNode([source.x, source.y], [sOffsetX, sOffsetY], breakPoint)
-            || this.isLineCrossNode([target.x, target.y], [tOffsetX, tOffsetY], breakPoint)
+          if (
+            this.isLineCrossNode([source.x, source.y], [sOffsetX, sOffsetY], breakPoint) ||
+            this.isLineCrossNode([target.x, target.y], [tOffsetX, tOffsetY], breakPoint)
           ) {
             breakPoint = [sOffsetX, tOffsetY];
           }
@@ -160,7 +172,7 @@ export default class GraphCanvas {
         // eslint-disable-next-line no-underscore-dangle
         this._linesExtends[this.lineDataKeyFunc(line)] = { points: [[sourceX, sourceY], ...pointList] };
       }
-      return `M ${sourceX} ${sourceY},${pointList.map(item => `L ${item[0]} ${item[1]}`).join(',')}`;
+      return `M ${sourceX} ${sourceY},${pointList.map((item) => `L ${item[0]} ${item[1]}`).join(',')}`;
     };
 
     lineCollectionInstance.reDrawLins(this.graphData.lines);

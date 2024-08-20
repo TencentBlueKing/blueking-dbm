@@ -52,6 +52,7 @@
               :title="t('实施进度')">
               <FlowInfo
                 ref="flowInfoRef"
+                v-model:isTodo="isTodo"
                 :data="state.ticketData"
                 @fetch-data="handleFetchData"
                 @mounted="handleFlowInfoMounted" />
@@ -134,6 +135,7 @@
   const isFullscreen = ref<LocationQueryValue | LocationQueryValue[]>();
   const demandCollapse = ref(false);
   const flowInfoRef = ref<InstanceType<typeof FlowInfo>>()
+  const isTodo = ref(false)
 
   const state = reactive({
     isLoading: false,
@@ -164,6 +166,9 @@
         key: 'status',
         render: () => {
           if (state.ticketData) {
+            if (isTodo.value) {
+              return <bk-tag theme='danger'>{t('执行中，待确认')}</bk-tag>
+            }
             return <bk-tag theme={state.ticketData.tagTheme}>{t(state.ticketData.statusText)}</bk-tag>;
           }
           return <bk-tag theme={undefined} />;

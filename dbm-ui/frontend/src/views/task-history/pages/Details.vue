@@ -54,6 +54,29 @@
       </div>
     </div>
     <div
+      v-show="todoState.isShow"
+      ref="todoTemplateRef"
+      class="mission-tips-content">
+      <div class="title">
+        {{ t('确认继续执行该节点？') }}
+      </div>
+      <div class="sub-title">
+        {{ t('确认后将会继续执行操作') }}
+      </div>
+      <div class="btn">
+        <span
+          class="bk-button-primary bk-button mr-8"
+          @click.stop="handleTodoClick">
+          {{ t('确定') }}
+        </span>
+        <span
+          class="bk-button"
+          @click.stop="handleTodoCancel">
+          {{ t('取消') }}
+        </span>
+      </div>
+    </div>
+    <div
       v-show="forceFailState.isShow"
       ref="forceFailTipsRef"
       class="mission-force-fail-tip">
@@ -97,8 +120,27 @@
             <div
               class="flow-tools"
               @click.stop>
-              <BkPopover
-                v-if="flowState.details.flow_info?.status === 'FAILED'"
+              <PreviewNodeTree
+                v-if="todoNodesCount > 0"
+                :nodes-count="todoNodesCount"
+                :nodes-tree-data="todoNodesTreeData"
+                status-keypath="待确认n"
+                theme="warning"
+                title-keypath="人工确认节点（n）"
+                :tooltips="t('人工确认节点列表')"
+                @after-show="handleFailNodeTreeAfterShow"
+                @node-click="handleFailNodeClick" />
+              <PreviewNodeTree
+                v-else-if="flowState.details.flow_info?.status === 'FAILED'"
+                :nodes-count="failNodesCount"
+                :nodes-tree-data="failNodesTreeData"
+                status-keypath="失败n"
+                title-keypath="失败节点（n）"
+                :tooltips="t('失败节点列表')"
+                @after-show="handleFailNodeTreeAfterShow"
+                @node-click="handleFailNodeClick" />
+              <!-- <BkPopover
+                v-else-if="flowState.details.flow_info?.status === 'FAILED'"
                 ext-cls="task-history-fail-nodes"
                 :is-show="isShowFailNodePanel"
                 placement="bottom"
@@ -146,7 +188,7 @@
                 </template>
                 <span
                   v-bk-tooltips="t('失败节点列表')"
-                  class="task-history-fail-num-tip"
+                  class="task-history-fail-num-tip ml-8"
                   @click="() => handleShowFailNodePanel()">
                   <I18nT
                     keypath="失败n"
@@ -156,7 +198,7 @@
                     </span>
                   </I18nT>
                 </span>
-              </BkPopover>
+              </BkPopover> -->
               <i
                 v-bk-tooltips="t('放大')"
                 class="flow-tools-icon db-icon-plus-circle"
@@ -258,7 +300,7 @@
       :is-show="logState.isShow"
       :node="logState.node"
       @close="() => (logState.isShow = false)"
-      @quickGoto="handleQuickGotoFailNodeLog"
+      @quick-goto="handleQuickGotoFailNodeLog"
       @refresh="handleRefresh" />
     <!-- 结果文件功能 -->
     <RedisResultFiles
@@ -282,7 +324,26 @@
           class="mission-detail-status-info">
           <span class="mr-8">{{ t('状态') }}: </span>
           <span>
-            <BkPopover
+            <PreviewNodeTree
+              v-if="todoNodesCount > 0"
+              :nodes-count="todoNodesCount"
+              :nodes-tree-data="todoNodesTreeData"
+              status-keypath="待确认n"
+              theme="warning"
+              title-keypath="人工确认节点（n）"
+              :tooltips="t('人工确认节点列表')"
+              @after-show="handleFailNodeTreeAfterShow"
+              @node-click="handleFailNodeClick" />
+            <PreviewNodeTree
+              v-else-if="flowState.details.flow_info?.status === 'FAILED'"
+              :nodes-count="failNodesCount"
+              :nodes-tree-data="failNodesTreeData"
+              status-keypath="失败n"
+              title-keypath="失败节点（n）"
+              :tooltips="t('失败节点列表')"
+              @after-show="handleFailNodeTreeAfterShow"
+              @node-click="handleFailNodeClick" />
+            <!-- <BkPopover
               v-if="flowState.details.flow_info?.status === 'FAILED'"
               ext-cls="task-history-fail-nodes"
               :is-show="isShowTopFailNodePanel"
@@ -337,12 +398,12 @@
                   </span>
                 </I18nT>
               </span>
-            </BkPopover>
+            </BkPopover> -->
             <BkTag
               v-else
-              :theme="getStatusTheme(true)"
-              >{{ statusText }}</BkTag
-            >
+              :theme="getStatusTheme(true)">
+              {{ statusText }}
+            </BkTag>
           </span>
         </div>
         <div class="mission-detail-status-info">
@@ -353,7 +414,20 @@
             :value="flowState.details?.flow_info?.cost_time || 0" />
         </div>
         <BkPopConfirm
-          v-if="isShowRevokePipelineButton"
+          v-if="todoNodesCount > 0"
+          :content="t('确定继续所有节点任务')"
+          trigger="click"
+          width="288"
+          @confirm="handleTodoAllPipeline">
+          <BkButton
+            class="mission-detail-status-operate-button mr-12"
+            :loading="isRetryAllPipeline">
+            <DbIcon type="check" />
+            {{ t('确认继续') }}
+          </BkButton>
+        </BkPopConfirm>
+        <BkPopConfirm
+          v-else-if="isShowRevokePipelineButton"
           :content="t('确定重试所有失败节点')"
           trigger="click"
           width="288"
@@ -398,6 +472,7 @@
     revokePipeline,
     skipTaskflowNode,
   } from '@services/source/taskflow';
+  import { ticketBatchProcessTodo } from '@services/source/ticket'
 
   import { dbTippy } from '@common/tippy';
 
@@ -425,6 +500,7 @@
   } from '../common/utils';
   import NodeLog from '../components/NodeLog.vue';
   import HostPreview from '../components/PreviewHost.vue';
+  import PreviewNodeTree from '../components/PreviewNodeTree.vue';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
   import { TicketTypes, type TicketTypesStrings } from '@/common/const';
@@ -441,6 +517,7 @@
   const refreshTemplateRef = ref<HTMLDivElement>();
   const skippTipsRef = ref<HTMLDivElement>();
   const forceFailTipsRef = ref<HTMLDivElement>();
+  const todoTemplateRef = ref<HTMLDivElement>();
   const flowRef = ref<HTMLDivElement>();
   const flowTopoRef = ref<HTMLDivElement>();
   const minimapRef = ref();
@@ -455,12 +532,14 @@
   const tippyInstances = ref<Instance[]>([]);
   const skippInstances = ref<Instance[]>([]);
   const forceFailInstances = ref<Instance[]>([]);
+  const todoInstances = ref<Instance[]>([])
+  const todoNodesTreeData = ref<FailTaskflowList>([]);
   const failNodesTreeData = ref<FailTaskflowList>([]);
   const failNodesCount = ref(0);
-  const failNodeTreeRef = ref();
-  const topFailNodeTreeRef = ref();
-  const isShowFailNodePanel = ref(false);
-  const isShowTopFailNodePanel = ref(false);
+  // const failNodeTreeRef = ref();
+  // const topFailNodeTreeRef = ref();
+  // const isShowFailNodePanel = ref(false);
+  // const isShowTopFailNodePanel = ref(false);
 
   const failLeafNodes = shallowRef<GraphNode[]>([]);
 
@@ -514,6 +593,16 @@
     isShow: false,
   });
 
+  const todoState = reactive<{
+    instance: Instance | null,
+    node: GraphNode | null,
+    isShow: boolean,
+  }>({
+    instance: null,
+    node: null,
+    isShow: false,
+  });
+
   /**
    * 查看节点日志
    */
@@ -525,6 +614,8 @@
   let isFindFirstLeafFailNode = false;
 
   const rootId = computed(() => route.params.root_id as string);
+
+  const todoNodesCount = computed(() => flowState.details.todos?.length || 0)
 
   const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
 
@@ -542,7 +633,16 @@
       REVOKED: '已终止',
     };
     const value = baseInfo.value.status as keyof typeof statusMap;
-    return value && statusMap[value] ? t(statusMap[value]) : '';
+    if (value) {
+      if (todoNodesCount.value > 0) {
+        return t('待确认')
+      }
+      if (statusMap[value]) {
+        return t(statusMap[value])
+      }
+    }
+    return ''
+    // return value && statusMap[value] ? t(statusMap[value]) : '';
   });
 
   const screenIcon = computed(() => ({
@@ -554,51 +654,63 @@
 
   const baseColumns = computed(() => {
     const columns: InfoColumn[][] = [
-      [{
-        label: t('任务ID'),
-        key: 'root_id',
-        isCopy: true,
-      }, {
-        label: t('任务类型'),
-        key: 'ticket_type_display',
-      }],
-      [{
-        label: t('开始时间'),
-        key: 'created_at',
-      }, {
-        label: t('结束时间'),
-        key: 'updated_at',
-      }],
-      [{
-        label: t('状态'),
-        key: '',
-        render: () => <DbStatus style="vertical-align: top;" type="linear" theme={getStatusTheme()}>
-        <span>{statusText.value || '--'}</span>
-      </DbStatus>,
-      }, {
-        label: t('耗时'),
-        key: '',
-        render: () => getCostTimeDisplay(baseInfo.value.cost_time) as string,
-      }],
-      [{
-        label: t('执行人'),
-        key: 'created_by',
-      }, {
-        label: t('关联单据'),
-        key: 'uid',
-        render: () => (baseInfo.value.uid ? (
-        <router-link
-          target="_blank"
-          to={{
-            name: 'bizTicketManage',
-            query: {
-              id: baseInfo.value.uid,
-            },
-          }}>
-          {baseInfo.value.uid}
-        </router-link>
-          ) : '--'),
-      }],
+      [
+        {
+          label: t('任务ID'),
+          key: 'root_id',
+          isCopy: true,
+        },
+        {
+          label: t('任务类型'),
+          key: 'ticket_type_display',
+        }
+      ],
+      [
+        {
+          label: t('开始时间'),
+          key: 'created_at',
+        },
+        {
+          label: t('结束时间'),
+          key: 'updated_at',
+        }
+      ],
+      [
+        {
+          label: t('状态'),
+          key: '',
+          render: () => <DbStatus style="vertical-align: top;" type="linear" theme={getStatusTheme()}>
+            <span>{statusText.value || '--'}</span>
+          </DbStatus>,
+        },
+        {
+          label: t('耗时'),
+          key: '',
+          render: () => getCostTimeDisplay(baseInfo.value.cost_time) as string,
+        }
+      ],
+      [
+        {
+          label: t('执行人'),
+          key: 'created_by',
+        },
+        {
+          label: t('关联单据'),
+          key: 'uid',
+          render: () => (baseInfo.value.uid ? (
+            <router-link
+              target="_blank"
+              to={{
+                name: 'bizTicketManage',
+                query: {
+                  id: baseInfo.value.uid,
+                },
+              }}>
+              {baseInfo.value.uid}
+            </router-link>
+            ) : '--'),
+        }
+      ],
     ];
 
     // 结果文件
@@ -657,21 +769,50 @@
     return flowList;
   }
 
+  const generateTodoNodesTree = (activities: TaskflowDetails['activities'], nodeList: string[]) => {
+    const flowList: FailTaskflowList = []
+    Object.values(activities).forEach((activityItem) => {
+      if (activityItem.pipeline) {
+        const activityChildren = generateTodoNodesTree(activityItem.pipeline.activities, nodeList)
+        Object.assign(activityItem, {
+          children: activityChildren,
+        });
+        if (activityChildren.length > 0) {
+          flowList.push(activityItem)
+          expandNodes.push(activityItem.id);
+          expandNodeObjects.push(activityItem);
+        }
+      } else {
+        if (nodeList.includes(activityItem.id)) {
+          flowList.push(activityItem);
+          failLeafNodes.value.push({ data: _.cloneDeep(activityItem) } as GraphNode)
+        }
+      }
+    })
+    return flowList;
+  }
+
   watch(() => flowState.details, () => {
-    if (failNodesTreeData.value.length > 0) {
+    if (failNodesTreeData.value.length > 0 || todoNodesTreeData.value.length > 0) {
       return
     };
 
     failNodesCount.value = 0;
     if (flowState.details.activities) {
-      failNodesTreeData.value = generateFailNodesTree(flowState.details.activities);
+      if (flowState.details.flow_info?.status === 'FAILED') {
+        failNodesTreeData.value = generateFailNodesTree(flowState.details.activities);
+      } else if (flowState.details?.flow_info?.status === 'RUNNING') {
+        const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+        todoNodesTreeData.value = generateTodoNodesTree(flowState.details.activities, todoNodeIdList);
+      }
     }
   })
 
   watch(() => baseInfo.value.status, (status) => {
     if (status && flowState.instance === null) {
       setTimeout(() => {
-        flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value);
+        const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+        flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value, todoNodeIdList);
         flowState.instance
           .on('nodeClick', handleNodeClick)
           .on('nodeMouseEnter', handleNodeMouseEnter)
@@ -683,27 +824,38 @@
     immediate: true,
   });
 
-  const handleShowFailNodePanel = (isTop = false) => {
-    isShowFailNodePanel.value = !isTop;
-    isShowTopFailNodePanel.value = isTop;
-  };
+  // const handleShowFailNodePanel = (isTop = false) => {
+  //   isShowFailNodePanel.value = !isTop;
+  //   isShowTopFailNodePanel.value = isTop;
+  // };
 
-  const handleFailNodeTreeAfterShow = (isMain = true) => {
+  // const handleFailNodeTreeAfterShow = (isMain = true) => {
+  //   setTimeout(() => {
+  //     expandNodeObjects.forEach(node => {
+  //       if (isMain) {
+  //         failNodeTreeRef.value.setOpen(node);
+  //         return
+  //       }
+  //       topFailNodeTreeRef.value.setOpen(node);
+  //     });
+
+  //     const leafNode = expandNodeObjects[expandNodeObjects.length - 1];
+  //     if (isMain) {
+  //       failNodeTreeRef.value.setSelect(leafNode);
+  //       return
+  //     }
+  //     topFailNodeTreeRef.value.setSelect(leafNode);
+  //   })
+  // }
+
+    const handleFailNodeTreeAfterShow = (treeRef: Ref) => {
     setTimeout(() => {
       expandNodeObjects.forEach(node => {
-        if (isMain) {
-          failNodeTreeRef.value.setOpen(node);
-          return
-        }
-        topFailNodeTreeRef.value.setOpen(node);
+        treeRef.value.setOpen(node);
       });
 
       const leafNode = expandNodeObjects[expandNodeObjects.length - 1];
-      if (isMain) {
-        failNodeTreeRef.value.setSelect(leafNode);
-        return
-      }
-      topFailNodeTreeRef.value.setSelect(leafNode);
+      treeRef.value.setSelect(leafNode);
     })
   }
 
@@ -740,7 +892,9 @@
 
   const getStatusTheme = (isTag = false) => {
     const value = baseInfo.value.status;
-    if (isTag && value === 'RUNNING') return 'info';
+    if (isTag && value === 'RUNNING') {
+      return 'info'
+    };
     const themes = {
       RUNNING: 'loading',
       CREATED: 'default',
@@ -813,6 +967,10 @@
         forceFailInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-qiangzhizhongzhi'), {
           content: t('强制失败'),
         });
+        todoInstances.value?.forEach?.(t => t.destroy());
+        todoInstances.value = dbTippy(document.querySelectorAll('.operation-icon.db-icon-check'), {
+          content: t('确认继续'),
+        });
       }, 30);
     });
     // 渲染画布节点
@@ -858,6 +1016,27 @@
   };
 
   /**
+   * 继续节点
+   */
+   const handleTodo = (node: GraphNode) => {
+    const todoItem = flowState.details.todos.find(todoItem => todoItem.context.node_id === node.id)
+    if (todoItem) {
+      ticketBatchProcessTodo({
+        action: "APPROVE",
+        operations: [
+          {
+          todo_id: todoItem.id,
+          params: {}
+        }
+      ]})
+        .then(() => {
+          fetchTaskflowDetails();
+          messageSuccess(t('继续任务成功'));
+        })
+    }
+  };
+
+  /**
    * 跳过节点
    */
   const handleSkipp = (node: GraphNode) => {
@@ -883,6 +1062,20 @@
       renderNodes();
       fetchTaskflowDetails();
     });
+  };
+
+  const handleTodoAllPipeline = () => {
+    ticketBatchProcessTodo({
+      action: "APPROVE",
+      operations: flowState.details.todos.map(todoItem => ({
+        todo_id: todoItem.id,
+        params: {}
+      }))
+    })
+      .then(() => {
+        fetchTaskflowDetails();
+        messageSuccess(t('继续任务成功'));
+      })
   };
 
   const handleRetryAllPipeline = () => {
@@ -991,6 +1184,27 @@
         return;
       }
 
+      if (eventType === 'todo') {
+        todoState.instance && todoState.instance.destroy();
+        todoState.instance = dbTippy(event.target as HTMLElement, {
+          trigger: 'click',
+          theme: 'light',
+          content: todoTemplateRef.value,
+          arrow: true,
+          placement: 'top',
+          appendTo: () => document.body,
+          interactive: true,
+          allowHTML: true,
+          hideOnClick: true,
+          maxWidth: 400,
+          zIndex: 9999,
+        });
+        todoState.instance.show();
+        todoState.node = node;
+        todoState.isShow = true;
+        return;
+      }
+
       const targetParent = (event.target as HTMLElement).closest('.node-ractangle');
       const hasLog = targetParent?.getAttribute('data-evt-type') === 'log';
       if (hasLog) {
@@ -1052,6 +1266,24 @@
   const handleRefreshClick = () => {
     handleRefresh();
     handleRefreshCancel();
+  };
+
+  /**
+   * 取消继续节点
+   */
+   const handleTodoCancel = () => {
+    todoState.instance && todoState.instance.destroy();
+    todoState.isShow = false;
+  };
+
+  /**
+   * 确认继续节点
+   */
+  const handleTodoClick = () => {
+    if (todoState.node) {
+      handleTodo(todoState.node);
+    }
+    handleTodoCancel();
   };
 
   const handleForceFailClick = () => {
@@ -1265,7 +1497,14 @@
   .mission-tips-content {
     width: 240px;
     padding: 8px 0;
-    color: @default-color;
+    font-size: 16px;
+    color: #313238;
+
+    .sub-title {
+      margin-top: 6px;
+      font-size: 12px;
+      color: #63656e;
+    }
 
     .btn {
       width: 100%;
@@ -1552,8 +1791,7 @@
       padding: 5px 8px;
       border-radius: 50px;
 
-      .db-icon-revoke,
-      .db-icon-refresh {
+      [class*='db-icon-'] {
         margin-right: 4px;
         font-size: 20px;
       }
@@ -1563,96 +1801,96 @@
   .task-history-fail-num-tip {
     display: inline-block;
     height: 22px;
-    line-height: 22px;
     padding: 0 8px;
-    background: #ffeeee;
-    border-radius: 11px;
     font-size: 12px;
+    line-height: 22px;
     color: #ea3536;
     cursor: pointer;
+    background: #fee;
+    border-radius: 11px;
 
     .number-display {
       height: 16px;
+      padding: 0 5px;
+      margin-left: 5px;
+      line-height: 20px;
+      color: #fff;
       background: #ea3636;
       border-radius: 8px;
-      color: #ffffff;
-      line-height: 20px;
-      margin-left: 5px;
-      padding: 0 5px;
     }
   }
 
-  .task-history-fail-nodes {
-    max-height: 500px;
-    padding: 12px 0 !important;
-    z-index: 999 !important;
+  // .task-history-fail-nodes {
+  //   z-index: 999 !important;
+  //   max-height: 500px;
+  //   padding: 12px 0 !important;
 
-    .fail-top-main {
-      font-weight: 700;
-      font-size: 12px;
-      color: #313238;
-      padding: 0 12px 10px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+  //   .fail-top-main {
+  //     display: flex;
+  //     padding: 0 12px 10px;
+  //     font-size: 12px;
+  //     font-weight: 700;
+  //     color: #313238;
+  //     justify-content: space-between;
+  //     align-items: center;
 
-      .quick-operate {
-        display: flex;
+  //     .quick-operate {
+  //       display: flex;
 
-        .operate-item {
-          width: 20px;
-          height: 20px;
-          display: flex;
-          background: #f0f1f5;
-          border-radius: 2px;
-          color: #979ba5;
-          cursor: pointer;
-          justify-content: center;
-          align-items: center;
-          font-size: 16px;
+  //       .operate-item {
+  //         display: flex;
+  //         width: 20px;
+  //         height: 20px;
+  //         font-size: 16px;
+  //         color: #979ba5;
+  //         cursor: pointer;
+  //         background: #f0f1f5;
+  //         border-radius: 2px;
+  //         justify-content: center;
+  //         align-items: center;
 
-          &:hover {
-            background: #eaebf0;
-            color: #63656e;
-          }
-        }
-      }
-    }
+  //         &:hover {
+  //           color: #63656e;
+  //           background: #eaebf0;
+  //         }
+  //       }
+  //     }
+  //   }
 
-    .fail-node-tree-main {
-      max-height: 450px !important;
+  //   .fail-node-tree-main {
+  //     max-height: 450px !important;
 
-      .bk-node-row {
-        padding: 0 12px;
+  //     .bk-node-row {
+  //       padding: 0 12px;
 
-        &.is-selected {
-          .bk-node-prefix {
-            color: #3a84ff;
-          }
-        }
-      }
+  //       &.is-selected {
+  //         .bk-node-prefix {
+  //           color: #3a84ff;
+  //         }
+  //       }
+  //     }
 
-      .custom-tree-node {
-        width: 100%;
-        display: flex;
-        align-items: center;
+  //     .custom-tree-node {
+  //       display: flex;
+  //       width: 100%;
+  //       align-items: center;
 
-        .file-icon {
-          height: 16px;
-          width: 16px;
-          background: #ffdddd;
-          border-radius: 2px;
-          color: #ea3636;
-          margin-right: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+  //       .file-icon {
+  //         display: flex;
+  //         width: 16px;
+  //         height: 16px;
+  //         margin-right: 8px;
+  //         color: #ea3636;
+  //         background: #fdd;
+  //         border-radius: 2px;
+  //         align-items: center;
+  //         justify-content: center;
 
-          .db-icon-file {
-            font-size: 10px;
-          }
-        }
-      }
-    }
-  }
+  //         .db-icon-file {
+  //           font-size: 10px;
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 </style>
