@@ -19,13 +19,15 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceStatus
-from backend.db_meta.models import Cluster
+from backend.db_meta.exceptions import MasterInstanceNotExistException
+from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.engine.bamboo.scene.spider.spider_remote_node_migrate import remote_node_uninstall_sub_flow
@@ -116,6 +118,17 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 }
                 cluster_info["my_shards"][shard_id]["new_slave"] = slave
                 cluster_info["ports"].append(shard["slave"]["port"])
+            #  获取主节点ip
+            slaves = StorageInstance.objects.filter(
+                machine__bk_cloud_id=cluster_class.bk_cloud_id, machine__ip=self.data["source_ip"]
+            )
+            slave_tuple = StorageInstanceTuple.objects.filter(receiver=slaves[0]).first()
+            if slave_tuple is None:
+                raise MasterInstanceNotExistException(
+                    cluster_type=cluster_class.cluster_type, cluster_id=cluster_class.id
+                )
+            master = StorageInstance.objects.get(slave_tuple.ejector)
+            db_config = get_instance_config(cluster_class.bk_cloud_id, master.machine.ip, cluster_info["ports"])
 
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
@@ -127,6 +140,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     new_mysql_list=[self.data["target_ip"]],
                     install_ports=cluster_info["ports"],
                     bk_host_ids=[self.data["bk_new_slave"]["bk_host_id"]],
+                    db_config=db_config,
                 )
             )
             cluster = {

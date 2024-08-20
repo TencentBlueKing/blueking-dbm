@@ -151,9 +151,15 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         if not isinstance(install_mysql_ports, list) or len(install_mysql_ports) == 0:
             logger.error(_("传入的安装mysql端口列表为空或者非法值，请联系系统管理员"))
             return {}
-
+        # todo 指定实例的配置参数
+        old_configs = self.cluster.get("old_instance_configs", {})
+        logger.debug("source instance config:", old_configs)
         for port in install_mysql_ports:
             mysql_config[port] = copy.deepcopy(init_mysql_config[port])
+            port_str = str(port)
+            if port_str in old_configs.keys():
+                mysql_config[port]["mysqld"].update(old_configs[port_str])
+        logger.debug("install  config:", mysql_config)
 
         drs_account, dbha_account = self.get_super_account()
 

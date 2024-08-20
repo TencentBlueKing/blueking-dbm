@@ -512,6 +512,7 @@ def install_mysql_in_cluster_sub_flow(
     bk_host_ids: list = None,
     pkg_id: int = 0,
     db_module_id: str = None,
+    db_config: dict = None,
 ):
     """
     设计基于某个cluster，以及计算好的实例安装端口列表，对新机器安装mysql实例的公共子流
@@ -633,6 +634,9 @@ def install_mysql_in_cluster_sub_flow(
 
     # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
     acts_list = []
+    if db_config is not None:
+        exec_act_kwargs.cluster["old_instance_configs"] = db_config
+    logger.debug("instance dbconfig", db_config)
     for mysql_ip in new_mysql_list:
         exec_act_kwargs.exec_ip = mysql_ip
         exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__

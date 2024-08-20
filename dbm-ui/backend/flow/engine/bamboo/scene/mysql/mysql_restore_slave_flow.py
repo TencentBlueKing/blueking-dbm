@@ -28,6 +28,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     build_surrounding_apps_sub_flow,
     install_mysql_in_cluster_sub_flow,
 )
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
@@ -126,6 +127,8 @@ class MySQLRestoreSlaveFlow(object):
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             #  获取信息
             # 整机安装数据库
+            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            db_config = get_instance_config(cluster_class.bk_cloud_id, master.machine.ip, self.data["ports"])
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             install_sub_pipeline.add_sub_pipeline(
@@ -136,6 +139,7 @@ class MySQLRestoreSlaveFlow(object):
                     new_mysql_list=[self.data["new_slave_ip"]],
                     install_ports=self.data["ports"],
                     bk_host_ids=bk_host_ids,
+                    db_config=db_config,
                 )
             )
 

@@ -37,7 +37,6 @@ def get_tendb_ha_entry(cluster_id: int) -> Dict:
             cluster_entry_type=ClusterEntryType.DNS.value, role=ClusterEntryRole.SLAVE_ENTRY.value
         )
     if len(standby_ins_dns) > 0:
-        # todo 问题 standby 可能有多个域名 这里需要映射修改 master_and_slave_switch.py
         entry_map["slave_domain"] = standby_ins_dns[0].entry
 
     for slave in slave_ins:
