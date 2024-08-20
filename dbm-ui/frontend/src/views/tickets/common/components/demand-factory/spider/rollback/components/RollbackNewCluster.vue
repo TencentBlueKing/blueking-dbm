@@ -77,7 +77,7 @@
           return <span>{ t('回档到指定时间') } - { utcDisplayTime(data.rollback_time) }</span>;
         }
         if (data.backupinfo?.backup_time) {
-          return <span>{ t('备份记录') } - { data.backupinfo?.backup_time }</span>;
+          return <span>{ t('备份记录') } - { utcDisplayTime(data.backupinfo?.backup_time) }</span>;
         }
         return '--';
       },
