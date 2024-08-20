@@ -42,7 +42,7 @@ class StoragePermission(ResourceActionPermission):
 
         # 保证文件列表都是同种类型，即不允许同时操作介质文件和业务文件(一般也无此需求)
         medium_types = MediumEnum.get_values()
-        is_all_pkg = set([(path.split("/")[1] in medium_types) for path in file_path_list])
+        is_all_pkg = set([(path.strip("/").split("/")[1] in medium_types) for path in file_path_list])
         if len(is_all_pkg) > 1:
             raise PermissionDeniedError(_("不允许同时操作业务临时文件和介质文件"))
 
