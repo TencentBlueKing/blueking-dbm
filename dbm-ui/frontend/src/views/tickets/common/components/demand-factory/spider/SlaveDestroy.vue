@@ -29,11 +29,12 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { SpiderSlaveDestroyDetails } from '@services/model/ticket/details/spider';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getSpiderListByBizId } from '@services/source/spider';
-  import type { SpiderSlaveDestroyDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderSlaveDestroyDetails>;
+    ticketDetails: TicketModel<SpiderSlaveDestroyDetails>;
   }
 
   interface RowData {

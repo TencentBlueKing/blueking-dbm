@@ -128,9 +128,16 @@
   defineExpose<Exposes>({
     getValue() {
       // 用户输入未完成验证
-      return editRef.value.getValue().then(() => ({
-        target: localInstanceAddress.value,
-      }));
+      return editRef.value
+        .getValue()
+        .then(() => ({
+          target: localInstanceAddress.value,
+        }))
+        .catch(() =>
+          Promise.reject({
+            target: localInstanceAddress.value,
+          }),
+        );
     },
   });
 </script>

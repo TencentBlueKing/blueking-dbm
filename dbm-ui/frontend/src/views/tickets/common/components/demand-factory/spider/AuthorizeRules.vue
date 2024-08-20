@@ -21,7 +21,7 @@
             text
             theme="primary"
             @click="handleAccessSource">
-            <strong>{{ authorizeData?.source_ips.length || 0 }}</strong>
+            <strong>{{ authorizeData?.source_ips?.length || 0 }}</strong>
           </BkButton>
           <span>{{ t('台') }}</span>
         </span>
@@ -93,11 +93,9 @@
   import { useRequest } from 'vue-request';
 
   import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
+  import TicketModel from '@services/model/ticket/ticket';
   import { queryAccountRules } from '@services/source/permission';
   import { getHostInAuthorize } from '@services/source/ticket';
-  import type {
-    TicketDetails,
-  } from '@services/types/ticket';
 
   import {
     AccountTypes,
@@ -110,7 +108,7 @@
   import TargetClusterPreview from './TargetClusterPreview.vue';
 
   interface Props {
-    ticketDetails: TicketDetails<MysqlAuthorizationDetails>
+    ticketDetails: TicketModel<MysqlAuthorizationDetails>
   }
   const props = defineProps<Props>();
 

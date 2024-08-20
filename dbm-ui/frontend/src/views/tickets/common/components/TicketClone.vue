@@ -120,6 +120,28 @@
     [TicketTypes.SQLSERVER_IMPORT_SQLFILE]: 'sqlServerExecute', // sqlserver 变更SQL执行
     [TicketTypes.SQLSERVER_FULL_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 全库迁移
     [TicketTypes.SQLSERVER_INCR_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 增量迁移
+    [TicketTypes.TENDBCLUSTER_APPLY]: 'spiderApply', // spider 集群部署
+    [TicketTypes.TENDBCLUSTER_SPIDER_ADD_NODES]: 'SpiderProxyScaleUp', // Spider扩容接入层
+    [TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES]: 'SpiderProxyScaleDown', // Spider缩容接入层
+    [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_APPLY]: 'SpiderProxySlaveApply', // Spider 部署只读接入层
+    [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: 'spiderAddMnt', // Spider 添加运维节点
+    [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: 'spiderMasterSlaveSwap', // Spider remote 主从切换
+    [TicketTypes.TENDBCLUSTER_RENAME_DATABASE]: 'spiderDbRename', // Spider Tendbcluster 重命名
+    [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: 'spiderMasterFailover', // Spider remote主故障切换
+    [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: 'spiderDbTableBackup', // Spider TenDBCluster 库表备份
+    [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: 'spiderDbBackup', // Spider TenDBCluster 全备单据
+    [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: 'spiderCapacityChange', // Spider 集群remote节点扩缩容
+    [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: 'spiderRollback', // Spider 定点回档
+    [TicketTypes.TENDBCLUSTER_FLASHBACK]: 'spiderFlashback', // Spider 闪回
+    [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: 'spiderDbClear', // Spider tendbcluster 清档
+    [TicketTypes.TENDBCLUSTER_CHECKSUM]: 'spiderChecksum', // Spider checksum
+    [TicketTypes.TENDBCLUSTER_CLIENT_CLONE_RULES]: 'spiderPrivilegeCloneClient', // Spider 客户端权限克隆
+    [TicketTypes.TENDBCLUSTER_INSTANCE_CLONE_RULES]: 'spiderPrivilegeCloneInst', // Spider DB 实例权限克隆
+    [TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES]: 'spiderPermission',
+    [TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE]: 'spiderSqlExecute', // Spider SQL变更执行
+    [TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER]: 'spiderMasterSlaveClone', // spider 迁移主从
+    [TicketTypes.TENDBCLUSTER_RESTORE_LOCAL_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-原地重建
+    [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-新机重建
   };
 
   const isShowTicketClone = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);

@@ -9,7 +9,7 @@
     <slot />
     <template #content>
       <div class="batch-edit-column-select">
-        <div class="main-title">{{ t('批量编辑') }}{{ title }}</div>
+        <div class="main-title">{{ t('统一设置') }}{{ title }}</div>
         <slot
           v-if="slots.content"
           name="content" />
@@ -21,17 +21,41 @@
           </div>
           <BkSelect
             v-if="type === 'select'"
-            v-model="localValue"
             :clearable="false"
+            :disabled="disabled"
             filterable
-            :list="dataList" />
+            :list="dataList"
+            :model-value="localValue"
+            @change="handleChange" />
           <BkInput
             v-else-if="type === 'textarea'"
             ref="inputRef"
             v-model="localValue"
             :placeholder="placeholder"
             :rows="5"
-            type="textarea" />
+            type="textarea"
+            @change="handleChange" />
+          <BkInput
+            v-else-if="type === 'input'"
+            :disabled="disabled"
+            :model-value="localValue as string"
+            @change="handleChange" />
+          <BkTagInput
+            v-else-if="type === 'taginput'"
+            allow-create
+            :disabled="disabled"
+            has-delete-icon
+            :model-value="localValue as string[]"
+            @change="handleChange" />
+          <BkDatePicker
+            v-else-if="type === 'datetime'"
+            :clearable="false"
+            :disabled="disabled"
+            :disabled-date="disableFn"
+            :model-value="localValue as string"
+            type="datetime"
+            @change="handleChange">
+          </BkDatePicker>
         </div>
       </div>
     </template>
@@ -47,18 +71,20 @@
       value: T;
       label: string;
     }[];
-    type?: 'select' | 'textarea';
+    type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime';
     placeholder?: string;
+    disableFn?: (date?: Date | number) => boolean;
   }
 
   interface Emits {
-    (e: 'change', value: string): void;
+    (e: 'change', value: string | string[]): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     dataList: () => [],
     type: 'select',
     placeholder: '',
+    disableFn: () => false,
   });
 
   const emits = defineEmits<Emits>();
@@ -71,7 +97,13 @@
   const { t } = useI18n();
 
   const inputRef = ref();
-  const localValue = ref('');
+  const localValue = ref<string | string[]>(props.type === 'taginput' ? [] : '');
+
+  const disabled = computed(() => props.disableFn());
+
+  const handleChange = (value: string | string[]) => {
+    localValue.value = value;
+  };
 
   const handleConfirm = () => {
     emits('change', localValue.value);
