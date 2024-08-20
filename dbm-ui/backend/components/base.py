@@ -20,6 +20,7 @@ from urllib import parse
 import requests
 from django.conf import settings
 from django.core.cache import cache
+from django.core.handlers.wsgi import WSGIRequest
 from django.utils import translation
 from django.utils.translation import ugettext as _
 from urllib3.exceptions import ConnectTimeoutError
@@ -556,6 +557,9 @@ class DataAPI(object):
             return file_data, non_file_data
 
         for key, value in list(data.items()):
+            if isinstance(value, WSGIRequest):
+                # 忽略body注入的request线程信息
+                continue
             if hasattr(value, "read"):
                 # 一般认为含有read属性的为文件类型
                 file_data[key] = value
