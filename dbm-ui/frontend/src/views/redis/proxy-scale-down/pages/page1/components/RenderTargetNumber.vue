@@ -51,7 +51,7 @@
 
   const { t } = useI18n();
 
-  const localValue = ref();
+  const localValue = ref<string>();
   const editRef = ref();
 
   const nonInterger = /\D/g;

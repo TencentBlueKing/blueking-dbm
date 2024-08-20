@@ -33,21 +33,17 @@ export async function generateRedisProxyScaleDownCloneData(ticketData: TicketMod
     }),
   ]);
   const clusterListMap = clusterListResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
+    (obj, item) =>
+      Object.assign({}, obj, {
         [item.id]: item,
-      });
-      return obj;
-    },
+      }),
     {} as Record<number, RedisModel>,
   );
   const instanceListMap = instanceListResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
+    (obj, item) =>
+      Object.assign({}, obj, {
         [item.ip]: item,
-      });
-      return obj;
-    },
+      }),
     {} as Record<string, RedisInstanceModel>,
   );
 

@@ -42,9 +42,8 @@ export function useTableData<T>(role?: Ref<string | undefined>, clusterId?: Ref<
   const { run: getTableListRun, loading: isLoading } = useRequest(currentInstance.proxy.getTableList, {
     manual: true,
     onSuccess(data) {
-      const ret = data;
-      tableData.value = ret.results;
-      pagination.count = ret.count;
+      tableData.value = data.results;
+      pagination.count = data.count;
       isAnomalies.value = false;
     },
     onError() {
