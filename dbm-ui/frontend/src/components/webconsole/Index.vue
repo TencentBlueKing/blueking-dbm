@@ -17,6 +17,7 @@
       <ExportData @export="handleClickExport" />
       <UsageHelp
         v-model="showUsageHelp"
+        :db-type="dbType"
         @change="handleToggleHelp" />
       <div class="operate-item-last">
         <FontSetting
