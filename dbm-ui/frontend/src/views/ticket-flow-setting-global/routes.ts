@@ -10,34 +10,22 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-
-import InfoBox from 'bkui-vue/lib/info-box';
+import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-/**
- * 侧栏通用关闭前提示
- */
-export const useBeforeClose = () =>
-  function sideSilderbeforeClose(flag?: boolean) {
-    const closable = flag ?? window.changeConfirm;
-    if (closable) {
-      return new Promise((resolve) => {
-        InfoBox({
-          title: t('确认离开当前页'),
-          content: t('离开将会导致未保存信息丢失'),
-          confirmText: t('离开'),
-          cancelText: t('取消'),
-          onConfirm: () => {
-            const hasFlag = typeof flag === 'boolean';
-            if (hasFlag === false) {
-              window.changeConfirm = false;
-            }
-            resolve(true);
-            return true;
-          },
-        });
-      });
-    }
-    return true;
-  };
+const routes = [
+  {
+    name: 'PlatformTicketFlowSetting',
+    path: 'platform-ticket-flow-setting',
+    meta: {
+      navName: t('单据流程设置'),
+      fullscreen: true,
+    },
+    component: () => import('@views/ticket-flow-setting-global/Index.vue'),
+  },
+];
+
+export default function getRoutes() {
+  return checkDbConsole('globalConfigManage.ticketFlowSetting') ? routes : [];
+}

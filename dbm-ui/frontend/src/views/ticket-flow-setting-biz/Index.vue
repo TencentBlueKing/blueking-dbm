@@ -13,7 +13,7 @@
 
 <template>
   <DbTab v-model="activeTab" />
-  <List :active-db-type="activeTab" />
+  <List :db-type="activeTab" />
 </template>
 <script setup lang="ts">
   import { DBTypes } from '@common/const';
@@ -24,5 +24,5 @@
 
   const route = useRoute();
 
-  const activeTab = ref<DBTypes>((route.query.db_type as DBTypes) || 'mysql');
+  const activeTab = ref<DBTypes>((route.query.db_type as DBTypes) || DBTypes.MYSQL);
 </script>
