@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 from backend.exceptions import PermissionDeniedError
 from backend.flow.consts import MediumEnum
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta
-from backend.iam_app.dataclass.resources import ResourceMeta
+from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission, get_request_key_id
 
 logger = logging.getLogger("root")
@@ -50,12 +50,14 @@ class StoragePermission(ResourceActionPermission):
         try:
             if is_all_pkg.pop():
                 self.actions = [ActionEnum.PACKAGE_MANAGE]
+                self.resource_meta = ResourceEnum.DBTYPE
                 db_types = set([path.split("/")[0] for path in file_path_list])
-                return [db_types]
+                return list(db_types)
             else:
                 self.actions = [ActionEnum.DB_MANAGE]
+                self.resource_meta = ResourceEnum.BUSINESS
                 bk_biz_ids = set([int(path.split("/")[2]) for path in file_path_list])
-                return [bk_biz_ids]
+                return list(bk_biz_ids)
         except Exception:
             logger.error(_("文件操作路径{}不合法，请联系管理员").format(file_path_list))
             # TODO: 暂时屏蔽校验，一个月后放开

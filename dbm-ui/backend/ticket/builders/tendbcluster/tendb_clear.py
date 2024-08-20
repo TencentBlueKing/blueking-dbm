@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
+from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_ha_clear import MySQLHaClearDetailSerializer
@@ -20,7 +21,13 @@ from backend.ticket.constants import TicketType
 
 class TendbClearDetailSerializer(MySQLHaClearDetailSerializer):
     def validate(self, attrs):
-        return super().validate(attrs)
+        """校验库表选择器信息是否正确"""
+        super().validate_cluster_can_access(attrs)
+        # 库表选择器校验
+        super().validate_database_table_selector(attrs)
+        # 校验集群类型只能是高可用
+        super().validated_cluster_type(attrs, cluster_type=ClusterType.TenDBCluster)
+        return attrs
 
 
 class TendbClearFlowParamBuilder(builders.FlowParamBuilder):
