@@ -99,7 +99,7 @@
   ];
 
   const isModule = computed(() => {
-    if (props.ticketDetails.details.clone_data[0].module !== undefined) {
+    if (props.ticketDetails.details.clone_data[0].cluster_domain === undefined) {
       return true
     }
     return false;
