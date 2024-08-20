@@ -142,8 +142,9 @@
 
   import type { BizItem } from '@services/types';
 
-  import { useApplyBase } from '@hooks';
+  import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
+  import { TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
@@ -161,12 +162,55 @@
   const router = useRouter();
   const { t } = useI18n();
 
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_APPLY,
+    onSuccess(cloneData) {
+      const {
+        bizId,
+        affinity,
+        cloudId,
+        cityCode,
+        dbModuleId,
+        remark,
+        clusterName,
+        clusterAlias,
+        spiderPort,
+        spiderSpecId,
+        spiderSpecCount,
+        backendSpecId,
+        backendSpecCount,
+        capacity,
+        futureCapacity,
+      } = cloneData;
+
+      formdata.bk_biz_id = bizId;
+      formdata.remark = remark;
+      formdata.details.bk_cloud_id = cloudId;
+      formdata.details.cluster_name = clusterName;
+      formdata.details.cluster_alias = clusterAlias;
+      formdata.details.city_code = cityCode;
+      formdata.details.db_module_id = dbModuleId;
+      // formdata.details.cluster_shard_num: 0,
+      // formdata.details.remote_shard_num: 0,
+      formdata.details.disaster_tolerance_level = affinity;
+      formdata.details.spider_port = spiderPort;
+      formdata.details.resource_spec.spider.spec_id = spiderSpecId;
+      formdata.details.resource_spec.spider.count = spiderSpecCount;
+      formdata.details.resource_spec.backend_group.affinity = affinity;
+      formdata.details.resource_spec.backend_group.spec_id = backendSpecId;
+      formdata.details.resource_spec.backend_group.count = backendSpecCount;
+      formdata.details.resource_spec.backend_group.capacity = capacity;
+      formdata.details.resource_spec.backend_group.future_capacity = futureCapacity;
+    },
+  });
+
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
   const initData = () => ({
     bk_biz_id: '' as number | '',
     remark: '',
-    ticket_type: 'TENDBCLUSTER_APPLY',
+    ticket_type: TicketTypes.TENDBCLUSTER_APPLY,
     details: {
       bk_cloud_id: 0,
       db_app_abbr: '',
@@ -204,8 +248,9 @@
   const formRef = ref();
   const specProxyRef = ref();
   const specBackendRef = ref<InstanceType<typeof BackendQPSSpec>>();
-  const formdata = ref(initData());
   const regionItemRef = ref();
+
+  const formdata = reactive(initData());
 
   // const isDefaultCity = computed(() => formdata.value.details.city_code === 'default');
 
@@ -247,7 +292,7 @@
       content: t('重置后_将会清空当前填写的内容'),
       cancelText: t('取消'),
       onConfirm: () => {
-        formdata.value = initData();
+        Object.assign(formdata, initData());
         nextTick(() => {
           window.changeConfirm = false;
         });
@@ -262,11 +307,11 @@
     baseState.isSubmitting = true;
 
     const getDetails = () => {
-      const details: Record<string, any> = _.cloneDeep(formdata.value.details);
+      const details: Record<string, any> = _.cloneDeep(formdata.details);
       const { cityCode } = regionItemRef.value.getValue();
       // 集群容量需求不需要提交
-      delete details.resource_spec.backend_group.capacity;
-      delete details.resource_spec.backend_group.future_capacity;
+      // delete details.resource_spec.backend_group.capacity;
+      // delete details.resource_spec.backend_group.future_capacity;
 
       const regionAndDisasterParams = {
         affinity: details.resource_spec.backend_group.affinity,
@@ -302,7 +347,7 @@
       };
     };
     const params = {
-      ...formdata.value,
+      ...formdata,
       details: getDetails(),
     };
 

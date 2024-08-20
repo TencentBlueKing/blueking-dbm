@@ -142,9 +142,16 @@
         ip: item.ip,
         bk_cloud_id: item.bk_cloud_id,
       });
-      return editRef.value.getValue().then(() => ({
-        master: formatHost(localProxyData),
-      }));
+      return editRef.value
+        .getValue()
+        .then(() => ({
+          master: formatHost(localProxyData),
+        }))
+        .catch(() =>
+          Promise.reject({
+            master: props.modelValue,
+          }),
+        );
     },
   });
 </script>

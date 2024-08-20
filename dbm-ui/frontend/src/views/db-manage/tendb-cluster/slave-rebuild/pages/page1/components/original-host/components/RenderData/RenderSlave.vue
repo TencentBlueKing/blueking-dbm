@@ -144,7 +144,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value!.getValue();
+      return editRef
+        .value!.getValue()
+        .then(() => Promise.resolve(localValue.value))
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>
