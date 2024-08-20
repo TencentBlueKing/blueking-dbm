@@ -47,7 +47,7 @@ def sqlserver_match_dbs(
         include_db_patterns=db_patterns,
         include_table_patterns=[""],
         exclude_db_patterns=ignore_db_patterns,
-        exclude_table_patterns=[],
+        exclude_table_patterns=[""] if ignore_db_patterns else [],
     )
     db_filter.inject_system_dbs([SQLSERVER_CUSTOM_SYS_DB])
     db_filter_pattern = re.compile(db_filter.db_filter_regexp())
