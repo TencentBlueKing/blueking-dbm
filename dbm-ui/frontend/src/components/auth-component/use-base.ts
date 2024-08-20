@@ -62,6 +62,13 @@ const withBizActionList = [
   'admin_pwd_view',
   'riak_cluster_apply',
   'monitor_policy_clone',
+  'mongodb_apply',
+  'mongodb_account_create',
+  'mongodb_account_rules_view',
+  'sqlserver_apply',
+  'sqlserver_account_create',
+  'sqlserver_account_rules_view',
+  'biz_ticket_config_set',
 ];
 
 export default function (props: Props) {
