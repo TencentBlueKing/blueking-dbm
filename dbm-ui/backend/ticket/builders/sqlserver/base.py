@@ -98,15 +98,6 @@ class SQLServerBaseOperateDetailSerializer(SkipToRepresentationMixin, serializer
 
     def validate(self, attrs):
         # 默认全局校验只需要校验集群的状态
-        # TODO: 暂时忽略单据互斥，后续可能改为执行互斥
-        try:
-            clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(details=attrs))
-            for cluster in clusters:
-                # 锁定检测
-                if Cluster.is_exclusive(cluster.id, self.context["ticket_type"]):
-                    raise serializers.ValidationError(_("集群【{}({})】锁定中，请等待").format(cluster.name, cluster.id))
-        except Cluster.DoesNotExist:
-            raise serializers.ValidationError(_("集群【{}】不存在").format(attrs["cluster_id"]))
         return attrs
 
 
