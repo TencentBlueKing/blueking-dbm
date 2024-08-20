@@ -170,44 +170,6 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .table-edit-tag-input {
-    display: block;
-    min-height: 42px;
-
-    :deep(.bk-tag-input-trigger) {
-      padding-left: 16px;
-
-      .tag-list {
-        height: 40px;
-      }
-
-      .placeholder {
-        left: 16px;
-      }
-    }
-  }
-
-  .table-edit-tag-input-scroll {
-    position: relative;
-    padding: 0;
-    margin: 0;
-
-    :deep(.bk-tag-input) {
-      position: absolute;
-      top: 0;
-      z-index: 99;
-      width: 100%;
-
-      .bk-tag-input-trigger {
-        .tag-list {
-          height: auto;
-          max-height: 400px;
-        }
-      }
-    }
-  }
-</style>
 <style lang="less">
   .table-edit-tag {
     position: relative;
@@ -243,6 +205,11 @@
 
         .tag-input {
           background-color: transparent !important;
+        }
+
+        .tag-list {
+          height: auto;
+          max-height: 400px;
         }
 
         .placeholder {
