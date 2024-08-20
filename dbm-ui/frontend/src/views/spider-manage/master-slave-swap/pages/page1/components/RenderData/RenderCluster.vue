@@ -22,11 +22,7 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
@@ -39,14 +35,14 @@
   import type { IHostData } from './Row.vue';
 
   interface Props {
-    masterData?: IHostData
+    masterData?: IHostData;
   }
 
   interface Emits {
-    (e: 'change', value: number[]): void
+    (e: 'change', value: number[]): void;
   }
   interface Exposes {
-    getValue: () => Promise<Record<'cluster_id', number>>
+    getValue: () => Promise<Record<'cluster_id', number>>;
   }
 
   const props = defineProps<Props>();
@@ -66,40 +62,57 @@
     },
   ];
 
-  watch(() => props.masterData, () => {
-    relatedClusterList.value = [];
-    emits('change', []);
-    if (props.masterData && props.masterData.ip) {
-      isLoading.value = true;
-      checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [props.masterData.ip],
-      }).then((data) => {
-        if (data.length < 1) {
-          return;
-        }
-
-        const [currentProxyData] = data;
-        relatedClusterList.value = currentProxyData.related_clusters;
-        emits('change', relatedClusterList.value.map(item => item.id));
-      })
-        .finally(() => {
-          isLoading.value = false;
-        });
-    } else {
+  watch(
+    () => props.masterData,
+    () => {
       relatedClusterList.value = [];
-    }
-  }, {
-    immediate: true,
-  });
+      emits('change', []);
+      if (props.masterData && props.masterData.ip) {
+        isLoading.value = true;
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [props.masterData.ip],
+        })
+          .then((data) => {
+            if (data.length < 1) {
+              return;
+            }
+
+            const [currentProxyData] = data;
+            relatedClusterList.value = currentProxyData.related_clusters;
+            emits(
+              'change',
+              relatedClusterList.value.map((item) => item.id),
+            );
+            setTimeout(() => {
+              // 行复制后，查询到对应数据后消除验证失败的样式
+              inputRef.value.getValue();
+            });
+          })
+          .finally(() => {
+            isLoading.value = false;
+          });
+      } else {
+        relatedClusterList.value = [];
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
       return inputRef.value
         .getValue()
         .then(() => ({
-          cluster_id: relatedClusterList.value.map(item => item.id)[0],
-        }));
+          cluster_id: relatedClusterList.value.map((item) => item.id)[0],
+        }))
+        .catch(() =>
+          Promise.reject({
+            cluster_id: relatedClusterList.value.map((item) => item.id)[0],
+          }),
+        );
     },
   });
 </script>

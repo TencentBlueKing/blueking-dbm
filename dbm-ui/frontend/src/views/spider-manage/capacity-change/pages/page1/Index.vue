@@ -28,12 +28,26 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <BkForm
         class="mt-24 form-block"
         form-type="vertical"
         :model="formData">
+        <BkFormItem
+          :label="t('备份源')"
+          property="backup_source"
+          required>
+          <BkRadioGroup v-model="formData.backup_source">
+            <BkRadio label="local">
+              {{ t('本地备份') }}
+            </BkRadio>
+            <BkRadio label="remote">
+              {{ t('远程备份') }}
+            </BkRadio>
+          </BkRadioGroup>
+        </BkFormItem>
         <BkFormItem
           :label="t('数据校验')"
           property="need_checksum"
@@ -68,6 +82,7 @@
           </BkFormItem>
         </template>
       </BkForm>
+      <TicketRemark v-model="formData.remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBCLUSTER]"
@@ -103,11 +118,14 @@
   import SpiderModel from '@services/model/spider/spider';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -115,6 +133,23 @@
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
+    onSuccess(cloneData) {
+      const { tableDataList } = cloneData;
+      tableData.value = tableDataList;
+      Object.assign(formData, {
+        backup_source: cloneData.backupSource,
+        need_checksum: cloneData.needChecksum,
+        trigger_checksum_type: cloneData.triggerChecksumType,
+        trigger_checksum_time: cloneData.triggerChecksumTime,
+        remark: cloneData.remark,
+      });
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -124,9 +159,11 @@
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const formData = reactive({
+    backup_source: 'local',
     need_checksum: false,
     trigger_checksum_type: 'timer',
     trigger_checksum_time: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    remark: '',
   });
 
   // 集群域名是否已存在表格的映射表
@@ -200,13 +237,23 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
-        ticket_type: 'TENDBCLUSTER_NODE_REBALANCE',
-        remark: '',
+        ticket_type: TicketTypes.TENDBCLUSTER_NODE_REBALANCE,
+        remark: formData.remark,
         details: {
           ...formData,
           infos,

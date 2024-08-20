@@ -12,48 +12,73 @@
 -->
 
 <template>
-  <BkAlert
-    closable
-    theme="info"
-    :title="
-      t(
-        '定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态',
-      )
-    " />
-  <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
-  <TimeZonePicker style="width: 450px" />
-  <div class="title-spot mt-12 mb-10">{{ t('构造类型') }}<span class="required" /></div>
-  <BkRadioGroup
-    v-model="rollbackClusterType"
-    style="width: 450px"
-    type="card"
-    @change="handleChange">
-    <BkRadioButton
-      v-for="(item, index) in rollbackInfos"
-      :key="index"
-      :label="item.value">
-      {{ item.label }}
-    </BkRadioButton>
-  </BkRadioGroup>
-  <RenderData
-    ref="renderDataRef"
-    :data="tableData"
-    :rollback-cluster-type="rollbackClusterType" />
+  <SmartAction>
+    <div class="spider-manage-rollback-page">
+      <BkAlert
+        closable
+        theme="info"
+        :title="
+          t(
+            '定点构造：新建一个单节点实例，通过全备 +binlog 的方式，将数据库恢复到过去的某一时间点或者某个指定备份文件的状态',
+          )
+        " />
+      <div class="title-spot mt-12 mb-10">{{ t('时区') }}<span class="required" /></div>
+      <TimeZonePicker style="width: 450px" />
+      <RenderData
+        class="mt16"
+        @batch-select-cluster="handleShowBatchSelector">
+        <RenderDataRow
+          v-for="item in tableData"
+          :key="item.rowKey"
+          ref="rowRefs"
+          :data="item" />
+      </RenderData>
+      <ClusterSelector
+        v-model:is-show="isShowBatchSelector"
+        :cluster-types="[ClusterTypes.TENDBCLUSTER]"
+        :selected="selectedClusters"
+        @change="handelClusterChange" />
+      <BatchEntry
+        v-model:is-show="isShowBatchEntry"
+        @change="handleBatchEntry" />
+    </div>
+    <template #action>
+      <BkButton
+        class="w-88"
+        :loading="isSubmitting"
+        theme="primary"
+        @click="handleSubmit">
+        {{ t('提交') }}
+      </BkButton>
+      <DbPopconfirm
+        :confirm-handler="handleReset"
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
+        <BkButton
+          class="ml8 w-88"
+          :disabled="isSubmitting">
+          {{ t('重置') }}
+        </BkButton>
+      </DbPopconfirm>
+    </template>
+  </SmartAction>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
+  import SpiderModel from '@services/model/spider/spider';
+  import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
+  import ClusterSelector from '@components/cluster-selector/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
-  import { rollbackInfos } from '@views/mysql/rollback/pages/page1/components/common/const';
-
-  import RenderData, { createRowData, type IDataRow } from './components/render-data/Index.vue';
+  import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
+  import RenderData from './components/RenderData/Index.vue';
+  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
 
@@ -61,17 +86,114 @@
   useTicketCloneInfo({
     type: TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER,
     onSuccess(cloneData) {
-      rollbackClusterType.value = cloneData.rollback_cluster_type;
-      tableData.value = cloneData.tableDataList as IDataRow[];
+      const { tableDataList } = cloneData;
+      tableData.value = tableDataList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
 
-  const renderDataRef = ref<InstanceType<typeof RenderData>>();
-  const rollbackClusterType = ref<RollbackClusterTypes>(RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER);
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const rowRefs = ref();
+  const isShowBatchSelector = ref(false);
+  const isShowBatchEntry = ref(false);
+  const isSubmitting = ref(false);
 
-  const handleChange = () => {
-    renderDataRef.value!.reset();
+  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
+
+  // 集群域名是否已存在表格的映射表
+  let domainMemo: Record<string, boolean> = {};
+
+  // 检测列表是否为空
+  const checkListEmpty = (list: Array<IDataRow>) => {
+    if (list.length > 1) {
+      return false;
+    }
+    const [firstRow] = list;
+    return (
+      !firstRow.clusterData &&
+      !firstRow.rollbackTime &&
+      !firstRow.databases &&
+      !firstRow.databasesIgnore &&
+      !firstRow.tables &&
+      !firstRow.tablesIgnore
+    );
+  };
+
+  // 批量选择
+  const handleShowBatchSelector = () => {
+    isShowBatchSelector.value = true;
+  };
+
+  // 批量选择
+  const handleBatchEntry = (list: Array<IBatchEntryValue>) => {
+    const newList = list.map((item) => createRowData(item));
+    if (checkListEmpty(tableData.value)) {
+      tableData.value = newList;
+    } else {
+      tableData.value = [...tableData.value, ...newList];
+    }
+    window.changeConfirm = true;
+  };
+
+  // 批量选择
+  const handelClusterChange = (selected: { [key: string]: Array<SpiderModel> }) => {
+    selectedClusters.value = selected;
+    const list = selected[ClusterTypes.TENDBCLUSTER];
+    const newList = list.reduce((result, item) => {
+      const domain = item.master_domain;
+      if (!domainMemo[domain]) {
+        const row = createRowData({
+          clusterData: {
+            id: item.id,
+            domain: item.master_domain,
+            cloudId: item.bk_cloud_id,
+          },
+        });
+        result.push(row);
+        domainMemo[domain] = true;
+      }
+      return result;
+    }, [] as IDataRow[]);
+    if (checkListEmpty(tableData.value)) {
+      tableData.value = newList;
+    } else {
+      tableData.value = [...tableData.value, ...newList];
+    }
+    window.changeConfirm = true;
+  };
+
+  const handleSubmit = () => {
+    isSubmitting.value = true;
+    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
+      .then((data) =>
+        createTicket({
+          ticket_type: 'TENDBCLUSTER_ROLLBACK_CLUSTER',
+          remark: '',
+          details: data[0],
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          window.changeConfirm = false;
+          router.push({
+            name: 'spiderRollback',
+            params: {
+              page: 'success',
+            },
+            query: {
+              ticketId: data.id,
+            },
+          });
+        }),
+      )
+      .finally(() => {
+        isSubmitting.value = false;
+      });
+  };
+
+  const handleReset = () => {
+    tableData.value = [createRowData()];
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
+    domainMemo = {};
+    window.changeConfirm = false;
   };
 </script>

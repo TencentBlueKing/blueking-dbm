@@ -23,13 +23,14 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import type { SpiderFlashbackDetails } from '@services/model/ticket/details/spider';
+  import TicketModel from '@services/model/ticket/ticket';
   import { getSpiderListByBizId } from '@services/source/spider';
-  import type { SpiderFlashbackDetails, TicketDetails } from '@services/types/ticket';
 
   import { utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderFlashbackDetails>;
+    ticketDetails: TicketModel<SpiderFlashbackDetails>;
   }
 
   interface RowData {

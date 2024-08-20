@@ -23,10 +23,7 @@
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
-  import {
-    ref,
-    watch,
-  } from 'vue';
+  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
@@ -38,15 +35,15 @@
 
   import { random } from '@utils';
 
-  import type { IDataRow, IProxyData  } from './Row.vue';
+  import type { IDataRow, IProxyData } from './Row.vue';
 
   interface Props {
-    modelValue?: IProxyData,
-    source: IDataRow['source'],
+    modelValue?: IProxyData;
+    source: IDataRow['source'];
   }
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Array<number>;
   }
 
   const props = defineProps<Props>();
@@ -68,18 +65,19 @@
       message: t('新实例不能为空'),
     },
     {
-      validator: () => checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [localInstanceAddress.value],
-      }).then((data) => {
-        if (data.length < 1) {
-          return false;
-        }
-        [localInstanceData] = data;
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+      validator: () =>
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [localInstanceAddress.value],
+        }).then((data) => {
+          if (data.length < 1) {
+            return false;
+          }
+          [localInstanceData] = data;
+          instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
 
-        return true;
-      }),
+          return true;
+        }),
       message: t('新实例不存在'),
     },
     {
@@ -92,10 +90,13 @@
         const otherClusterMemoMap = { ...instanceAddreddMemo };
         delete otherClusterMemoMap[instanceKey];
 
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
 
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
@@ -110,15 +111,19 @@
   ];
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localInstanceAddress.value = props.modelValue.instance_address;
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localInstanceAddress.value = props.modelValue.instance_address;
 
-      instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
-    }
-  }, {
-    immediate: true,
-  });
+        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
@@ -127,7 +132,12 @@
         .getValue()
         .then(() => ({
           target: localInstanceAddress.value,
-        }));
+        }))
+        .catch(() =>
+          Promise.reject({
+            target: localInstanceAddress.value,
+          }),
+        );
     },
   });
 </script>

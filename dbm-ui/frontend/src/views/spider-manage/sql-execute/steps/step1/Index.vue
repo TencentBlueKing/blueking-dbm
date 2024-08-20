@@ -114,6 +114,29 @@
   //   },
   // });
 
+  // useTicketCloneInfo({
+  //   type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+  //   onSuccess(cloneData) {
+  //     const {
+  //       backup,
+  //       charset,
+  //       import_mode: importMode,
+  //       execute_db_infos: executeDbInfos,
+  //       cluster_ids: clusterIds,
+  //       ticket_mode: ticketMode,
+  //       remark,
+  //     } = cloneData;
+  //     formData.backup = backup;
+  //     formData.charset = charset;
+  //     formData.import_mode = importMode;
+  //     formData.execute_db_infos = executeDbInfos;
+  //     formData.cluster_ids = clusterIds;
+  //     formData.ticket_mode = ticketMode;
+  //     formData.remark = remark;
+  //     window.changeConfirm = true;
+  //   },
+  // });
+
   const formRef = ref();
   const resetFormKey = ref(0);
   const isSubmitting = ref(false);
@@ -191,13 +214,13 @@
   .tendb-sql-execute-page {
     padding-bottom: 40px;
 
-    .bk-form-label {
-      font-weight: bold;
-      color: #313238;
+    // .bk-form-label {
+    //   font-weight: bold;
+    //   color: #313238;
 
-      &::after {
-        line-height: unset !important;
-      }
-    }
+    //   &::after {
+    //     line-height: unset !important;
+    //   }
+    // }
   }
 </style>

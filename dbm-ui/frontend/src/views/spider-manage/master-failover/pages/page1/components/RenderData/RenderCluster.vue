@@ -34,11 +34,11 @@
   import type { IHostData } from './Row.vue';
 
   interface Props {
-    masterData?: IHostData
+    masterData?: IHostData;
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<'cluster_id', number>>
+    getValue: () => Promise<Record<'cluster_id', number>>;
   }
 
   const props = defineProps<Props>();
@@ -57,36 +57,50 @@
     },
   ];
 
-  watch(() => props.masterData, () => {
-    relatedClusterList.value = [];
-    if (props.masterData && props.masterData.ip) {
-      isLoading.value = true;
-      checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [props.masterData.ip],
-      }).then((data) => {
-        if (data.length < 1) {
-          return;
-        }
+  watch(
+    () => props.masterData,
+    () => {
+      relatedClusterList.value = [];
+      if (props.masterData && props.masterData.ip) {
+        isLoading.value = true;
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [props.masterData.ip],
+        })
+          .then((data) => {
+            if (data.length < 1) {
+              return;
+            }
 
-        const [currentProxyData] = data;
-        relatedClusterList.value = currentProxyData.related_clusters;
-      })
-        .finally(() => {
-          isLoading.value = false;
-        });
-    }
-  }, {
-    immediate: true,
-  });
+            const [currentProxyData] = data;
+            relatedClusterList.value = currentProxyData.related_clusters;
+            setTimeout(() => {
+              // 行复制后，查询到对应数据后消除验证失败的样式
+              inputRef.value.getValue();
+            });
+          })
+          .finally(() => {
+            isLoading.value = false;
+          });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
       return inputRef.value
         .getValue()
         .then(() => ({
-          cluster_id: relatedClusterList.value.map(item => item.id)[0],
-        }));
+          cluster_id: relatedClusterList.value.map((item) => item.id)[0],
+        }))
+        .catch(() =>
+          Promise.reject({
+            cluster_id: relatedClusterList.value.map((item) => item.id)[0],
+          }),
+        );
     },
   });
 </script>

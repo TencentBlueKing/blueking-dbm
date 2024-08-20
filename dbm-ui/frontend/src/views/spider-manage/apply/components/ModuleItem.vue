@@ -117,6 +117,10 @@
     { immediate: true },
   );
 
+  watch(moduleId, () => {
+    fetchLevelConfig(moduleId.value);
+  });
+
   // 获取配置详情
   const fetchLevelConfig = (moduleId: number) => {
     const params = {

@@ -128,10 +128,7 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
   import { checkHost, getHostTopoInfos } from '@services/source/ipchooser';
@@ -150,22 +147,25 @@
 
   import type { IDataRow } from './Row.vue';
 
-  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number]
+  type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 
   interface Props {
     clusterData: IDataRow['clusterData'];
+    newHostList: IDataRow['newHostList'];
   }
 
   interface Exposes {
-    getValue: () => Promise<{
-      ip: string,
-      bk_cloud_id: number,
-      bk_host_id: number,
-      bk_biz_id: number
-    }[]>;
+    getValue: () => Promise<
+      {
+        ip: string;
+        bk_cloud_id: number;
+        bk_host_id: number;
+        bk_biz_id: number;
+      }[]
+    >;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const genHostKey = (hostData: HostTopoInfo) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
 
@@ -184,14 +184,14 @@
   const localValue = ref();
   const isConflict = ref(false);
   const isShowIpSelector = ref(false);
-  const errorMessage = ref('')
+  const errorMessage = ref('');
   const showEditIcon = ref(false);
 
   const conflicHostMap = shallowRef<Record<string, Array<HostTopoInfo>>>({});
   const conflicHostSelectMap = shallowRef<Record<string, HostTopoInfo>>({});
   const localHostList = shallowRef<HostDetails[]>([]);
 
-  let masterHost  = {} as HostTopoInfo;
+  let masterHost = {} as HostTopoInfo;
   let slaveHost = {} as HostTopoInfo;
 
   const rules = [
@@ -201,8 +201,8 @@
     },
     {
       validator: (value: string) => {
-        const ipList = value.split(splitReg)
-        return _.every(ipList, item => ipv4.test(_.trim(item)));
+        const ipList = value.split(splitReg);
+        return _.every(ipList, (item) => ipv4.test(_.trim(item)));
       },
       message: t('IP格式不正确'),
     },
@@ -221,25 +221,28 @@
             bk_host_innerip: [masterIp, slaveIp],
           },
           bk_biz_id: currentBizId,
-        }).then((data) => {
+        }).then(async (data) => {
           // 一个 IP 存在于多个管控区域
           if (data.hosts_topo_info.length > 2) {
             isConflict.value = true;
-            conflicHostMap.value = data.hosts_topo_info.reduce((result, item) => {
-              if (!result[item.ip]) {
-                Object.assign(result, {
-                  [item.ip]: []
-                })
-              }
-              result[item.ip].push(item);
-              return result;
-            }, {} as Record<string, Array<HostTopoInfo>>);
+            conflicHostMap.value = data.hosts_topo_info.reduce(
+              (result, item) => {
+                if (!result[item.ip]) {
+                  Object.assign(result, {
+                    [item.ip]: [],
+                  });
+                }
+                result[item.ip].push(item);
+                return result;
+              },
+              {} as Record<string, Array<HostTopoInfo>>,
+            );
             return false;
           }
           // IP 有效
           if (data.hosts_topo_info.length === 2) {
             singleHostSelectMemo[instanceKey] = {};
-            data.hosts_topo_info.forEach(((item) => {
+            data.hosts_topo_info.forEach((item) => {
               if (item.ip === masterIp) {
                 masterHost = item;
                 singleHostSelectMemo[instanceKey][genHostKey(masterHost)] = true;
@@ -247,21 +250,20 @@
                 slaveHost = item;
                 singleHostSelectMemo[instanceKey][genHostKey(slaveHost)] = true;
               }
-              if (!_.isEmpty(masterHost) && !_.isEmpty(slaveHost)) {
-                checkHost({
-                  ip_list: [masterHost.ip, slaveHost.ip],
-                  scope_list: [
-                    {
-                      scope_id: currentBizId,
-                      scope_type: 'biz'
-                    }
-                  ],
-                  mode: 'all'
-                }).then(hostList => {
-                  localHostList.value = hostList
-                })
-              }
-            }));
+            });
+            if (!_.isEmpty(masterHost) && !_.isEmpty(slaveHost)) {
+              const hostList = await checkHost({
+                ip_list: [masterHost.ip, slaveHost.ip],
+                scope_list: [
+                  {
+                    scope_id: currentBizId,
+                    scope_type: 'biz',
+                  },
+                ],
+                mode: 'all',
+              });
+              localHostList.value = hostList;
+            }
             return true;
           }
           return false;
@@ -273,10 +275,13 @@
       validator: () => {
         const otherHostSelectMemo = { ...singleHostSelectMemo };
         delete otherHostSelectMemo[instanceKey];
-        const otherAllSelectHostMap = Object.values(otherHostSelectMemo).reduce((result, selectItem) => ({
-          ...result,
-          ...selectItem,
-        }), {} as Record<string, boolean>);
+        const otherAllSelectHostMap = Object.values(otherHostSelectMemo).reduce(
+          (result, selectItem) => ({
+            ...result,
+            ...selectItem,
+          }),
+          {} as Record<string, boolean>,
+        );
         if (otherAllSelectHostMap[genHostKey(masterHost)] || otherAllSelectHostMap[genHostKey(slaveHost)]) {
           return false;
         }
@@ -294,6 +299,16 @@
     const [fisrt, last] = localValue.value.split(splitReg);
     return _.trim(fisrt) === _.trim(last);
   });
+
+  watch(
+    () => props.newHostList,
+    () => {
+      localValue.value = props.newHostList.join(',');
+    },
+    {
+      immediate: true,
+    },
+  );
 
   watch(isConflict, () => {
     nextTick(() => {
@@ -322,20 +337,21 @@
   };
 
   const handleInputError = (value: string) => {
-    errorMessage.value = value
-  }
+    errorMessage.value = value;
+  };
 
   const handleShowIpSelector = () => {
     isShowIpSelector.value = true;
   };
 
-  const disableDialogSubmitMethod = (hostList: HostDetails[]) => hostList.length === 2 ? false : t('需n台', { n: 2 });
+  const disableDialogSubmitMethod = (hostList: HostDetails[]) => (hostList.length === 2 ? false : t('需n台', { n: 2 }));
 
-  const disableHostMethod = (data: HostDetails, list: HostDetails[]) => list.length >= 2 ? t('仅需n台', { n: 2 }) : false
+  const disableHostMethod = (data: HostDetails, list: HostDetails[]) =>
+    list.length >= 2 ? t('仅需n台', { n: 2 }) : false;
 
   const handleHostChange = (hostList: HostDetails[]) => {
     localHostList.value = hostList;
-    localValue.value = hostList.map(hostItem => hostItem.ip).join(',')
+    localValue.value = hostList.map((hostItem) => hostItem.ip).join(',');
   };
 
   const handleConflictHostChange = (hostData: HostTopoInfo, checked: boolean) => {
@@ -360,14 +376,16 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value!.getValue().then(() =>
-        Promise.resolve(localHostList.value.map(hostItem => ({
-          ip: hostItem.ip,
-          bk_cloud_id: hostItem.cloud_id,
-          bk_host_id: hostItem.host_id,
-          bk_biz_id: hostItem.biz.id
-        })))
-      );
+      const hostList = localHostList.value.map((hostItem) => ({
+        ip: hostItem.ip,
+        bk_cloud_id: hostItem.cloud_id,
+        bk_host_id: hostItem.host_id,
+        bk_biz_id: hostItem.biz.id,
+      }));
+      return inputRef
+        .value!.getValue()
+        .then(() => Promise.resolve(hostList))
+        .catch(() => Promise.reject(hostList));
     },
   });
 </script>

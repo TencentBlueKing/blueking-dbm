@@ -87,6 +87,8 @@
   import { ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { getResourceSpec } from '@services/source/dbresourceSpec';
+
   import { useBeforeClose } from '@hooks';
 
   import ClusterSpecPlanSelector, { type TicketSpecInfo } from '@components/cluster-spec-plan-selector/Index.vue';
@@ -96,12 +98,15 @@
 
   interface Props {
     clusterData?: IDataRow['clusterData'];
+    rowData: IDataRow;
   }
+
   interface Exposes {
     getValue: () => Promise<any>;
   }
 
   const props = defineProps<Props>();
+
   defineOptions({
     inheritAttrs: false,
   });
@@ -151,6 +156,26 @@
     },
   );
 
+  watch(
+    () => props.rowData.resource_spec?.backend_group.spec_id,
+    (newSpecId) => {
+      if (newSpecId) {
+        getResourceSpec({ spec_id: newSpecId }).then((specData) => {
+          const backend = props.rowData.resource_spec?.backend_group;
+          handlePlanChange(newSpecId, {
+            spec_id: newSpecId,
+            spec_name: specData.spec_name,
+            machine_pair: backend?.count ?? 0,
+            cluster_capacity: backend?.futureCapacity ?? 0,
+          });
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleShowSelector = () => {
     if (!props.clusterData) {
       return;
@@ -182,21 +207,40 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => {
-        if (!props.clusterData || !localSpec.value) {
-          return Promise.reject();
-        }
-        return {
-          remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
-          resource_spec: {
-            backend_group: {
-              spec_id: localSpec.value.spec_id,
-              count: localSpec.value.machine_pair,
-              affinity: '',
+      return inputRef.value
+        .getValue()
+        .then(() => {
+          if (!props.clusterData || !localSpec.value) {
+            return Promise.reject();
+          }
+          return {
+            remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
+            resource_spec: {
+              backend_group: {
+                spec_id: localSpec.value.spec_id,
+                count: localSpec.value.machine_pair,
+                affinity: '',
+              },
             },
-          },
-        };
-      });
+          };
+        })
+        .catch(() => {
+          if (!props.clusterData || !localSpec.value) {
+            return Promise.reject({ resource_spec: undefined });
+          }
+          return Promise.reject({
+            remote_shard_num: Math.ceil(props.clusterData.clusterShardNum / localSpec.value.machine_pair),
+            resource_spec: {
+              backend_group: {
+                spec_id: localSpec.value.spec_id,
+                count: localSpec.value.machine_pair,
+                affinity: '',
+                futureCapacity: localSpec.value.cluster_capacity,
+                specName: localSpec.value.spec_name,
+              },
+            },
+          });
+        });
     },
   });
 </script>

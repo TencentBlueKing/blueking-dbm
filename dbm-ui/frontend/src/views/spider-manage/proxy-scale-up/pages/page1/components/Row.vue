@@ -51,6 +51,7 @@
     <OperateColumn
       :removeable="removeable"
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -122,6 +123,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: string): void;
     (e: 'nodeTypeChoosed', label: string): void;
   }
@@ -179,13 +181,23 @@
     emits('remove');
   };
 
+  const getRowData = () => [nodeTypeRef.value!.getValue(), numRef.value!.getValue(), specRef.value!.getValue()];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [nodeType, targetNum] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...createRowData(),
+        cluster: props.data.cluster,
+        nodeType: nodeType.reduce_spider_role,
+        targetNum: targetNum.count ? targetNum.count : '',
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([
-        nodeTypeRef.value!.getValue(),
-        numRef.value!.getValue(),
-        specRef.value!.getValue(),
-      ]).then((data) => {
+      return await Promise.all(getRowData()).then((data) => {
         const [nodetype, targetNum, specInfo] = data;
         return {
           cluster_id: props.data.clusterId,

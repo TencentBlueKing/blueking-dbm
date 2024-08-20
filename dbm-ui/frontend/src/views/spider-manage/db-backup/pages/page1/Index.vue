@@ -28,11 +28,13 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @input-cluster-finish="(item: IDataRow) => handleInputCluster(index, item)"
           @remove="() => handleRemove(index)" />
       </RenderData>
       <DbForm
         ref="formRef"
+        class="toolbox-form"
         form-type="vertical"
         :model="formData"
         style="margin-top: 16px">
@@ -68,6 +70,7 @@
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
+        <TicketRemark v-model="formData.remark" />
       </DbForm>
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
@@ -104,11 +107,14 @@
   import SpiderModel from '@services/model/spider/spider';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -116,11 +122,23 @@
   const createDefaultData = () => ({
     backup_type: 'logical',
     file_tag: 'DBFILE1M',
+    remark: '',
   });
 
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
+
+  // 单据克隆
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
+    onSuccess(cloneData) {
+      const { tableDataList, form } = cloneData;
+      Object.assign(formData, form);
+      tableData.value = tableDataList;
+      window.changeConfirm = true;
+    },
+  });
 
   const formRef = ref();
   const rowRefs = ref();
@@ -210,14 +228,33 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(
+      index + 1,
+      0,
+      Object.assign(sourceData, {
+        clusterData: {
+          ...sourceData.clusterData,
+          domain: tableData.value[index].clusterData?.domain ?? '',
+        },
+      }),
+    );
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
       const data = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
         bk_biz_id: currentBizId,
-        ticket_type: 'TENDBCLUSTER_FULL_BACKUP',
-        remark: '',
+        ticket_type: TicketTypes.TENDBCLUSTER_FULL_BACKUP,
+        remark: formData.remark,
         details: {
           infos: {
             ...formData,
@@ -252,10 +289,5 @@
 <style lang="less">
   .db-backup-page {
     padding-bottom: 20px;
-
-    .bk-form-label {
-      font-weight: bold;
-      color: #313238;
-    }
   }
 </style>

@@ -88,7 +88,7 @@
   // import DbResourceModel from '@services/model/db-resource/DbResource';
   // import { fetchList, getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
-  import { getResourceSpecList } from '@services/source/dbresourceSpec'
+  import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   // import { checkHost, getHostTopo } from '@services/source/ipchooser'
   // import type { HostDetails } from '@services/types/ip';
@@ -126,7 +126,7 @@
     {
       id: 'resource_pool',
       name: t('资源池自动匹配'),
-      tooltips: t('当前为资源池自动匹配，切换类型将会清空并需重新选择')
+      tooltips: t('当前为资源池自动匹配，切换类型将会清空并需重新选择'),
     },
     // {
     //   id: 'resource_pool_manual',
@@ -247,65 +247,71 @@
   const isShowIpSelector = ref(false);
   const isShowResourcePoolSelector = ref(false);
   const countMap = reactive<Record<string, number>>({
-    'resource_pool': 0,
-    'resource_pool_manual': 0,
-    'manual_input': 0
-  })
+    resource_pool: 0,
+    resource_pool_manual: 0,
+    manual_input: 0,
+  });
 
-  const localHostList = shallowRef<{
-    bk_biz_id: number,
-    bk_cloud_id: number,
-    bk_host_id: number,
-    ip: string
-  }[]>([]);
+  const localHostList = shallowRef<
+    {
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      ip: string;
+    }[]
+  >([]);
 
-  watch(() => props.clusterData, (newClusterData) => {
-    if (newClusterData) {
-      getResourceSpecList({
-        limit: -1,
-        spec_name: newClusterData.specConfig.name,
-        spec_cluster_type: ClusterTypes.TENDBCLUSTER,
-        spec_machine_type: 'spider',
-        enable: true
-      }).then(specResult => {
-        if (specResult.results.length) {
-          const specItem = specResult.results[0]
-          getSpecResourceCount({
-            bk_biz_id: currentBizId,
-            bk_cloud_id: newClusterData.bkCloudId,
-            spec_ids: [specItem.spec_id],
-          }).then(countReuslt => {
-            countMap.resource_pool = countReuslt[specItem.spec_id]
-          })
-        }
-      })
-      // fetchList({
-      //   bk_biz_id: currentBizId,
-      //   limit: 0,
-      //   offset: 0
-      // }).then(resourceResult => {
-      //   const {length} = resourceResult.results
-      //   if (length !== 0) {
-      //     countMap.resource_pool_manual = length
-      //   }
-      // })
-      // getHostTopo({
-      //   mode: "idle_only",
-      //   all_scope: true,
-      //   scope_list: [
-      //     {
-      //       scope_id: currentBizId,
-      //       scope_type: "biz",
-      //       bk_cloud_id: newClusterData.bkCloudId
-      //     }
-      //   ]
-      // }).then(hostTopoResult => {
-      //   countMap.manual_input = hostTopoResult[0].count
-      // })
-    }
-  }, {
-    immediate: true
-  })
+  watch(
+    () => props.clusterData,
+    (newClusterData) => {
+      if (newClusterData) {
+        getResourceSpecList({
+          limit: -1,
+          spec_name: newClusterData.specConfig.name,
+          spec_cluster_type: ClusterTypes.TENDBCLUSTER,
+          spec_machine_type: 'spider',
+          enable: true,
+        }).then((specResult) => {
+          if (specResult.results.length) {
+            const specItem = specResult.results[0];
+            getSpecResourceCount({
+              bk_biz_id: currentBizId,
+              bk_cloud_id: newClusterData.bkCloudId,
+              spec_ids: [specItem.spec_id],
+            }).then((countReuslt) => {
+              countMap.resource_pool = countReuslt[specItem.spec_id];
+            });
+          }
+        });
+        // fetchList({
+        //   bk_biz_id: currentBizId,
+        //   limit: 0,
+        //   offset: 0
+        // }).then(resourceResult => {
+        //   const {length} = resourceResult.results
+        //   if (length !== 0) {
+        //     countMap.resource_pool_manual = length
+        //   }
+        // })
+        // getHostTopo({
+        //   mode: "idle_only",
+        //   all_scope: true,
+        //   scope_list: [
+        //     {
+        //       scope_id: currentBizId,
+        //       scope_type: "biz",
+        //       bk_cloud_id: newClusterData.bkCloudId
+        //     }
+        //   ]
+        // }).then(hostTopoResult => {
+        //   countMap.manual_input = hostTopoResult[0].count
+        // })
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   // const getOtherAllSelectHostMap = (hostSelectMemo: { [key: string]: Record<string, boolean> }) => {
   //   const otherHostSelectMemo = { ...hostSelectMemo };
@@ -364,24 +370,28 @@
 
   const handleChange = (value: string) => {
     if (value === 'manual_input') {
-      isShowIpSelector.value = true
+      isShowIpSelector.value = true;
     } else if (value === 'resource_pool_manual') {
-      isShowResourcePoolSelector.value = true
+      isShowResourcePoolSelector.value = true;
     }
     localValue.value = value;
   };
 
-  const selectDisplayFun = (value: string, item?: {
-    id: string | number;
-    name: string;
-  }) => {
+  const selectDisplayFun = (
+    value: string,
+    item?: {
+      id: string | number;
+      name: string;
+    },
+  ) => {
     if (item?.id === 'resource_pool') {
-      return item.name
-    } if (['resource_pool_manual', 'manual_input'].includes(value)) {
-      return ''
+      return item.name;
     }
-    return value
-  }
+    if (['resource_pool_manual', 'manual_input'].includes(value)) {
+      return '';
+    }
+    return value;
+  };
   // onBeforeUnmount(() => {
   //   poolHostSelectMemo[instanceKey] = {};
   //   idleHostSelectMemo[instanceKey] = {};
@@ -389,39 +399,43 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editSelectRef.value!.getValue().then(() => {
+      const getResult = () => {
         if (props.clusterData) {
-          const {clusterData} = props
+          const { clusterData } = props;
           const value = {
             cluster_id: clusterData.clusterId,
             old_slave: {
               bk_biz_id: currentBizId,
               bk_cloud_id: clusterData.bkCloudId,
               bk_host_id: clusterData.bkHostId,
-              ip: clusterData.ip
+              ip: clusterData.ip,
             },
-          }
+          };
 
-          const currentSelectItem = editSelectRef.value!.getCurrentItem()
+          const currentSelectItem = editSelectRef.value!.getCurrentItem();
           if (currentSelectItem?.id === 'resource_pool') {
             Object.assign(value, {
               resource_spec: {
                 new_slave: {
                   ...clusterData.specConfig,
                   count: 1,
-                  spec_id: clusterData.specConfig.id
-                }
-              }
-            })
+                  spec_id: clusterData.specConfig.id,
+                },
+              },
+            });
           } else {
             Object.assign(value, {
-              new_slave: localHostList.value[0]
-            })
+              new_slave: localHostList.value[0],
+            });
           }
 
-          return value
+          return value;
         }
-      })
+      };
+      return editSelectRef
+        .value!.getValue()
+        .then(() => getResult())
+        .catch(() => Promise.reject(getResult()));
     },
   });
 </script>
