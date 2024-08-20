@@ -276,12 +276,12 @@
       }
 
       .edit-btn {
-        z-index: 999;
+        z-index: 50;
       }
     }
 
     &.is-focused {
-      z-index: 99;
+      z-index: 10;
 
       .inner-input {
         padding-right: 25px;
@@ -375,7 +375,7 @@
       position: absolute;
       top: 50%;
       right: 10px;
-      z-index: 99;
+      z-index: 10;
       padding-bottom: 3px;
       font-size: 14px;
       color: #ea3636;

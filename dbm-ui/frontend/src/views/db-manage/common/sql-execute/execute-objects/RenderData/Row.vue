@@ -13,11 +13,11 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderDbName
         ref="dbnamesRef"
         v-model="localDbnames" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderDbName
         ref="ignoreDbnamesRef"
@@ -43,6 +43,7 @@
   import { ref } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';
