@@ -129,10 +129,7 @@
           selectList.value = selectListRaw.filter((item) => item.value === localValue.value);
           return;
         }
-        if (localValue.value === '') {
-          selectList.value = selectListRaw.filter((item) => !choosedTypes.includes(item.value));
-          return;
-        }
+        selectList.value = selectListRaw.filter((item) => !choosedTypes.includes(item.value));
       }
     },
     {

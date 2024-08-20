@@ -121,25 +121,27 @@
       }, {} as Record<number, {clusterName: string, clusterType: string, proxyList: RedisModel['proxy']}>);
 
       tableData.value = infos.map((item) => {
-        const proxySpecMap = clusterMap[item.cluster_id].proxyList.map(proxyItem => proxyItem.spec_config).reduce(
-          (prevSpecMap, dataItem) => {
-            const specId = dataItem.id;
-            if (prevSpecMap[specId]) {
-              Object.assign(prevSpecMap[specId], {
-                ...prevSpecMap[specId],
-                count: prevSpecMap[specId].count + 1,
+        const proxySpecMap = clusterMap[item.cluster_id].proxyList
+          .map(proxyItem => proxyItem.spec_config)
+          .reduce<Record<number, RedisModel['proxy'][number]['spec_config'] & { count: number }>>(
+            (prevSpecMap, dataItem) => {
+              const specId = dataItem.id;
+              if (prevSpecMap[specId]) {
+                Object.assign(prevSpecMap[specId], {
+                  ...prevSpecMap[specId],
+                  count: prevSpecMap[specId].count + 1,
+                });
+                return prevSpecMap;
+              }
+              return Object.assign(prevSpecMap, {
+                [specId]: {
+                  ...dataItem,
+                  count: 1,
+                },
               });
-              return prevSpecMap;
-            }
-            return Object.assign(prevSpecMap, {
-              [specId]: {
-                ...dataItem,
-                count: 1,
-              },
-            });
-          },
-          {} as Record<number, RedisModel['proxy'][number]['spec_config'] & { count: number }>,
-        );
+            },
+            {},
+          );
         const spec = Object.values(proxySpecMap).map((specItem) => ({
           name: specItem.name,
           count: specItem.count

@@ -52,7 +52,7 @@
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref();
+  const localValue = ref<string>();
 
   const selectList = [
     {
