@@ -49,6 +49,20 @@
             </span>
           </BkMenuItem>
         </BkMenuGroup>
+        <BkMenuGroup :name="t('单据配置')">
+          <BkMenuItem
+            key="TicketFlowSetting"
+            v-db-console="'bizConfigManage.ticketFlowSetting'">
+            <template #icon>
+              <DbIcon type="db-config" />
+            </template>
+            <span
+              v-overflow-tips.right
+              class="text-overflow">
+              {{ t('单据流程设置') }}
+            </span>
+          </BkMenuItem>
+        </BkMenuGroup>
         <BkMenuGroup :name="t('设置')">
           <BkMenuItem
             key="StaffManage"

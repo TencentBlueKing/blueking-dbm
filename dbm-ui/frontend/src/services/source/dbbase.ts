@@ -109,6 +109,8 @@ export function queryAllTypeCluster(params: {
   cluster_types?: string;
   immute_domain?: string;
   phase?: string;
+  limit?: number;
+  offset?: number;
 }) {
   return http.get<
     {
