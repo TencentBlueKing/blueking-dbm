@@ -49,5 +49,6 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
       total: clusterListMap[item.cluster_id].cluster_capacity,
     },
     switchMode: item.online_switch_type,
+    spec: clusterListMap[item.cluster_id].cluster_spec,
   }));
 }

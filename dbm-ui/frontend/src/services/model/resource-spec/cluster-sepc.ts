@@ -48,6 +48,7 @@ export default class ClusterSpec {
     size: number;
     type: string;
   }[];
+  methed: string;
 
   constructor(payload = {} as ClusterSpec) {
     this.capacity = payload.capacity;
@@ -71,5 +72,6 @@ export default class ClusterSpec {
     this.spec_machine_type = payload.spec_machine_type;
     this.spec_name = payload.spec_name;
     this.storage_spec = payload.storage_spec;
+    this.methed = 'new';
   }
 }

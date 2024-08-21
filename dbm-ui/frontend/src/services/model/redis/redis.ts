@@ -115,13 +115,11 @@ export default class Redis {
       min: number;
     };
     device_class: [];
-    storage_spec: [
-      {
-        size: number;
-        type: string;
-        mount_point: string;
-      },
-    ];
+    storage_spec: {
+      size: number;
+      type: string;
+      mount_point: string;
+    }[];
     desc: string;
     instance_num: number;
     qps: {
