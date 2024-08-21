@@ -331,7 +331,9 @@
           if (!key) {
             return;
           }
-          state.formdata.privilege[key].push(privilege);
+          if (!state.formdata.privilege[key].includes(privilege)) {
+            state.formdata.privilege[key].push(privilege);
+          }
         })
       }
     }
