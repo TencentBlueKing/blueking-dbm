@@ -373,7 +373,9 @@
           if (!key) {
             return;
           }
-          formdata.value.privilege[key].push(privilege);
+          if (!formdata.value.privilege[key].includes(privilege)) {
+            formdata.value.privilege[key].push(privilege);
+          }
         })
       }
     }
