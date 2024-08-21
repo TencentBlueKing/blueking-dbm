@@ -40,8 +40,10 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
     currentSepc: clusterListMap[item.cluster_id].cluster_spec.spec_name,
     clusterId: item.cluster_id,
     bkCloudId: item.bk_cloud_id,
-    shardNum: item.shard_num,
-    groupNum: item.group_num,
+    clusterTypeName: clusterListMap[item.cluster_id].cluster_type_name,
+    clusterStats: clusterListMap[item.cluster_id].cluster_stats,
+    shardNum: clusterListMap[item.cluster_id].cluster_shard_num,
+    groupNum: clusterListMap[item.cluster_id].machine_pair_cnt,
     version: item.db_version,
     clusterType: clusters[item.cluster_id].cluster_type as RedisClusterTypes,
     currentCapacity: {
@@ -49,5 +51,6 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
       total: clusterListMap[item.cluster_id].cluster_capacity,
     },
     switchMode: item.online_switch_type,
+    spec: clusterListMap[item.cluster_id].cluster_spec,
   }));
 }

@@ -18,7 +18,7 @@
         <RenderTableHeadColumn
           :min-width="130"
           :width="300">
-          <span>{{ $t('目标集群') }}</span>
+          <span>{{ t('目标集群') }}</span>
           <template #append>
             <BkPopover
               content="批量添加"
@@ -35,54 +35,31 @@
           :min-width="120"
           :required="false"
           :width="200">
-          <span>{{ $t('架构版本') }}</span>
+          <span>{{ t('架构版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="120"
-          :required="false"
-          :width="200">
-          <span>{{ $t('当前资源规格') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
-          :required="false"
-          :width="150">
-          <span>{{ $t('集群分片数') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="110"
-          :required="false"
-          :width="150">
-          <span>{{ $t('部署机器组数') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
-          :required="false"
-          :width="250">
-          <span>{{ $t('当前容量') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="350">
-          <span>{{ $t('目标容量') }}</span>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :required="false"
           :width="180">
-          <span>{{ $t('指定Redis版本') }}</span>
+          <span>{{ t('Redis版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="110"
+          :min-width="240"
+          :required="false">
+          <span>{{ t('当前容量') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn :min-width="350">
+          <span>{{ t('目标容量') }}</span>
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
           :required="false"
           :width="130">
-          <span>{{ $t('切换模式') }}</span>
+          <span>{{ t('切换模式') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
           :required="false"
           :width="100">
-          {{ $t('操作') }}
+          {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
 
@@ -93,6 +70,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -101,6 +80,8 @@
   }
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const handleShowMasterBatchSelector = () => {
     emits('showBatchSelector');

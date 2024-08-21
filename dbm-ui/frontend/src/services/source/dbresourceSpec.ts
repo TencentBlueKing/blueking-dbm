@@ -69,7 +69,9 @@ export function getFilterClusterSpec(params: {
   };
   shard_num?: number;
 }) {
-  return http.post<ClusterSpecModel[]>(`${path}/filter_cluster_spec/`, params);
+  return http
+    .post<ClusterSpecModel[]>(`${path}/filter_cluster_spec/`, params)
+    .then((data) => data.map((item) => new ClusterSpecModel(item)));
 }
 
 /**
