@@ -102,7 +102,7 @@
 
   const slots = defineSlots<
     Partial<{
-      default: () => VNode | VNode[];
+      default: (values: { optionItem: IListItem; index: number }) => VNode | VNode[];
       trigger: () => VNode | VNode[];
     }>
   >();

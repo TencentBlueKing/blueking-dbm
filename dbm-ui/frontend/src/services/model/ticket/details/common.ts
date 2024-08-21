@@ -52,7 +52,10 @@ export interface DetailSpecs {
       min: number;
     };
     name: string;
-    qps: Record<string, unknown>;
+    qps: {
+      max: number;
+      min: number;
+    };
     storage_spec: {
       mount_point: string;
       size: number;

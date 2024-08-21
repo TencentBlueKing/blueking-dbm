@@ -22,45 +22,32 @@
     </td>
     <td style="padding: 0">
       <RenderText
-        :data="data.cluster_type_name"
+        :data="data.clusterTypeName"
         :is-loading="data.isLoading"
-        :placeholder="$t('选择集群后自动生成')" />
+        :placeholder="t('选择集群后自动生成')" />
     </td>
     <td style="padding: 0">
-      <RenderText
-        :data="data.currentSepc"
-        :is-loading="data.isLoading"
-        :placeholder="$t('选择集群后自动生成')" />
+      <RenderTargetVersion
+        ref="versionRef"
+        :data="data"
+        @change="handleTargetVersionChange" />
     </td>
-    <td style="padding: 0">
-      <RenderText
-        :data="data.shardNum"
-        :is-loading="data.isLoading"
-        placeholder="--" />
-    </td>
-    <td style="padding: 0">
-      <RenderText
-        :data="data.groupNum"
-        :is-loading="data.isLoading"
-        placeholder="--" />
-    </td>
-    <td style="padding: 0">
+    <td
+      style="padding: 0"
+      valign="top">
       <RenderCurrentCapacity
-        :data="data.currentCapacity"
-        :is-loading="data.isLoading" />
+        :data="data"
+        :is-loading="data.isLoading"
+        :placeholder="t('选择集群后自动生成')">
+      </RenderCurrentCapacity>
     </td>
     <td style="padding: 0">
       <RenderTargetCapacity
         ref="targetCapacityRef"
-        :is-disabled="!data.targetCluster"
+        :is-disabled="!data.targetCluster || !localTargetVersion"
         :is-loading="data.isLoading"
-        :row-data="data" />
-    </td>
-    <td style="padding: 0">
-      <RenderSpecifyVersion
-        ref="versionRef"
-        :cluster-type="data.clusterType"
-        :data="data.version" />
+        :row-data="data"
+        :target-version="localTargetVersion" />
     </td>
     <td style="padding: 0">
       <RenderSwitchMode
@@ -75,13 +62,15 @@
   </tr>
 </template>
 <script lang="ts">
+  import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/db-manage/redis/common/edit-field/ClusterName.vue';
-  import RenderSpecifyVersion from '@views/db-manage/redis/common/edit-field/VersionSelect.vue';
   import { AffinityType } from '@views/db-manage/redis/common/types';
 
   import { random } from '@utils';
@@ -89,6 +78,7 @@
   import RenderCurrentCapacity from './RenderCurrentCapacity.vue';
   import RenderSwitchMode, { type OnlineSwitchType } from './RenderSwitchMode.vue';
   import RenderTargetCapacity from './RenderTargetCapacity.vue';
+  import RenderTargetVersion from './RenderTargetVersion.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -96,7 +86,8 @@
     targetCluster: string;
     clusterId: number;
     bkCloudId: number;
-    cluster_type_name: string;
+    clusterTypeName: string;
+    clusterStats: RedisModel['cluster_stats'];
     shardNum?: number;
     groupNum?: number;
     currentSepc?: string;
@@ -112,6 +103,7 @@
     version?: string;
     clusterType?: RedisClusterTypes;
     switchMode?: OnlineSwitchType;
+    spec?: RedisModel['cluster_spec'];
   }
 
   export interface InfoItem {
@@ -139,7 +131,8 @@
     targetCluster: '',
     clusterId: 0,
     bkCloudId: 0,
-    cluster_type_name: '',
+    clusterTypeName: '',
+    clusterStats: {} as IDataRow['clusterStats'],
   });
 </script>
 <script setup lang="ts">
@@ -165,10 +158,17 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
-  const versionRef = ref<InstanceType<typeof RenderSpecifyVersion>>();
-  const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
+  const versionRef = ref<InstanceType<typeof RenderTargetVersion>>();
   const targetCapacityRef = ref<InstanceType<typeof RenderTargetCapacity>>();
+  const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
+  const localTargetVersion = ref<string>('');
+
+  const handleTargetVersionChange = (value: string) => {
+    localTargetVersion.value = value;
+  };
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);

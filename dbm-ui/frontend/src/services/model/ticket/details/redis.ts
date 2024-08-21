@@ -87,6 +87,7 @@ export interface RedisScaleUpDownDetails extends DetailBase {
     online_switch_type: OnlineSwitchType;
     capacity: number;
     future_capacity: number;
+    update_mode: string;
     resource_spec: {
       backend_group: {
         spec_id: number;

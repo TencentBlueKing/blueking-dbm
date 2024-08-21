@@ -163,10 +163,12 @@
               v-model={modelValue.value.spec_id}
               label={data.spec_id}
               key={index}
-              class="spec-radio">
+              class="spec-radio"
+              onClick={(event: Event) => handleRowClick(event, data)}>
               <div
                 class="text-overflow"
-                v-overflow-tips>
+                v-overflow-tips
+                onClick={(event: Event) => event.stopPropagation()}>
                 {data.spec_name}
               </div>
             </bk-radio>
