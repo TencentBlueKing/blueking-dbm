@@ -39,20 +39,20 @@ import (
 	"dbm-services/mysql/db-simulation/model"
 )
 
-// Kcs TODO
+// Kcs k8s client sets
 var Kcs KubeClientSets
 
-// DefaultUser TODO
+// DefaultUser default user
 const DefaultUser = "root"
 
-// KubeClientSets TODO
+// KubeClientSets k8s client sets
 type KubeClientSets struct {
 	Cli        *kubernetes.Clientset
 	RestConfig *rest.Config
 	Namespace  string // namespace
 }
 
-// MySQLPodBaseInfo TODO
+// MySQLPodBaseInfo mysql pod base info
 type MySQLPodBaseInfo struct {
 	PodName string
 	Lables  map[string]string
@@ -61,7 +61,7 @@ type MySQLPodBaseInfo struct {
 	Charset string
 }
 
-// DbPodSets TODO
+// DbPodSets db pod sets
 type DbPodSets struct {
 	K8S         KubeClientSets
 	BaseInfo    *MySQLPodBaseInfo
@@ -71,7 +71,7 @@ type DbPodSets struct {
 	SpiderImage string
 }
 
-// ClusterPodSets TODO
+// ClusterPodSets cluster pod sets
 type ClusterPodSets struct {
 	DbPodSets
 }
@@ -96,7 +96,7 @@ func init() {
 	Kcs.Namespace = config.GAppConfig.Bcs.NameSpace
 }
 
-// NewDbPodSets TODO
+// NewDbPodSets new db pod sets
 func NewDbPodSets() *DbPodSets {
 	return &DbPodSets{
 		K8S: Kcs,
@@ -211,77 +211,7 @@ func (k *DbPodSets) CreateClusterPod() (err error) {
 					item.Value
 			}),
 			Tolerations: k.getToleration(),
-			Containers: []v1.Container{
-				{
-					Name: "backend",
-					Env: []v1.EnvVar{{
-						Name:  "MYSQL_ROOT_PASSWORD",
-						Value: k.BaseInfo.RootPwd,
-					}},
-					Resources:       k.getResourceLimit(),
-					ImagePullPolicy: v1.PullIfNotPresent,
-					Image:           k.DbImage,
-					Args: []string{"--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=20000",
-						fmt.Sprintf("--character-set-server=%s",
-							k.BaseInfo.Charset),
-						"--user=mysql"},
-					ReadinessProbe: &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							Exec: &v1.ExecAction{
-								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
-							},
-						},
-						InitialDelaySeconds: 3,
-						PeriodSeconds:       5,
-					},
-				}, {
-					Name: "spider",
-					Env: []v1.EnvVar{{
-						Name:  "MYSQL_ROOT_PASSWORD",
-						Value: k.BaseInfo.RootPwd,
-					}},
-					Resources:       k.getResourceLimit(),
-					ImagePullPolicy: v1.PullIfNotPresent,
-					Image:           k.SpiderImage,
-					Args: []string{"--defaults-file=/etc/my.cnf", "--log_bin_trust_function_creators", "--port=25000",
-						fmt.Sprintf("--character-set-server=%s",
-							k.BaseInfo.Charset),
-						"--user=mysql"},
-					ReadinessProbe: &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							Exec: &v1.ExecAction{
-								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
-							},
-						},
-						InitialDelaySeconds: 3,
-						PeriodSeconds:       5,
-					},
-				},
-				{
-					Name: "tdbctl",
-					Env: []v1.EnvVar{{
-						Name:  "MYSQL_ROOT_PASSWORD",
-						Value: k.BaseInfo.RootPwd,
-					}},
-					Resources:       k.gettdbctlResourceLimit(),
-					ImagePullPolicy: v1.PullIfNotPresent,
-					Image:           k.TdbCtlImage,
-					Args: []string{"--defaults-file=/etc/my.cnf", "--port=26000", "--tc-admin=1",
-						"--dbm-allow-standalone-primary",
-						fmt.Sprintf("--character-set-server=%s",
-							k.BaseInfo.Charset),
-						"--user=mysql"},
-					ReadinessProbe: &v1.Probe{
-						ProbeHandler: v1.ProbeHandler{
-							Exec: &v1.ExecAction{
-								Command: []string{"/bin/bash", "-c", fmt.Sprintf("mysql -uroot -p%s -e 'select 1'", k.BaseInfo.RootPwd)},
-							},
-						},
-						InitialDelaySeconds: 3,
-						PeriodSeconds:       5,
-					},
-				},
-			},
+			Containers:  k.getClusterPodContanierSpec(),
 		},
 	}
 	if err = k.createpod(c, 26000); err != nil {
@@ -328,6 +258,11 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 			if !cStatus.Ready {
 				return fmt.Errorf("container %s is not ready", cStatus.Name)
 			}
+			for _, podCondition := range podI.Status.Conditions {
+				if podI.Status.Phase != v1.PodRunning {
+					logger.Warn("%s: %v", podCondition.Status, podCondition.Message, podCondition.Reason)
+				}
+			}
 		}
 		podIp = podI.Status.PodIP
 		logger.Info("the pod is ready,ip is %s", podIp)
@@ -351,8 +286,14 @@ func (k *DbPodSets) createpod(pod *v1.Pod, probePort int) (err error) {
 	if err = cmutil.Retry(cmutil.RetryConfig{Times: 60, DelayTime: 1 * time.Second}, fnc); err == nil {
 		model.UpdateTbContainerRecord(k.BaseInfo.PodName)
 	}
-	k.DbWork.Db.Exec("create user ADMIN@localhost;")
-	k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;")
+	_, errx := k.DbWork.Db.Exec("create user ADMIN@localhost;")
+	if errx != nil {
+		logger.Error("create user ADMIN@localhost failed %s", errx.Error())
+	}
+	_, errx = k.DbWork.Db.Exec("grant all on *.* to ADMIN@localhost;")
+	if errx != nil {
+		logger.Error("grants user failed %s", errx.Error())
+	}
 	return err
 }
 

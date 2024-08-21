@@ -61,7 +61,7 @@ func TendbSimulation(r *gin.Context) {
 		return
 	}
 	version := param.MySQLVersion
-	img, err := service.GetImgFromMySQLVersion(version)
+	img, err := getImgFromMySQLVersion(version)
 	if err != nil {
 		logger.Error("GetImgFromMySQLVersion %s failed:%s", version, err.Error())
 		SendResponse(r, err, nil, requestID)
@@ -102,7 +102,7 @@ func TendbClusterSimulation(r *gin.Context) {
 		return
 	}
 	version := param.MySQLVersion
-	img, err := service.GetImgFromMySQLVersion(version)
+	img, err := getImgFromMySQLVersion(version)
 	if err != nil {
 		logger.Error("GetImgFromMySQLVersion %s failed:%s", version, err.Error())
 		SendResponse(r, err, nil, RequestID)
@@ -125,8 +125,7 @@ func TendbClusterSimulation(r *gin.Context) {
 		logger.Info("the pwd %s", rootPwd)
 	}
 	tsk.DbImage = img
-	tsk.SpiderImage = param.GetSpiderImg()
-	tsk.TdbCtlImage = param.GetTdbctlImg()
+	tsk.SpiderImage, tsk.TdbCtlImage = getSpiderAndTdbctlImg(param.SpiderVersion, LatestVersion)
 	tsk.BaseInfo = &service.MySQLPodBaseInfo{
 		PodName: fmt.Sprintf("spider-%s-%s", strings.ToLower(version),
 			replaceUnderSource(param.TaskId)),

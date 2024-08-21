@@ -22,7 +22,6 @@ import (
 	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app"
-	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/model"
 )
 
@@ -63,16 +62,6 @@ func (b BaseParam) BuildStartArgs() []string {
 	return args
 }
 
-// GetSpiderImg 获取spider节点的镜像
-func (in SpiderSimulationExecParam) GetSpiderImg() string {
-	return config.GAppConfig.Image.SpiderImg
-}
-
-// GetTdbctlImg 获取tdbctl的镜像配置
-func (in SpiderSimulationExecParam) GetTdbctlImg() string {
-	return config.GAppConfig.Image.TdbCtlImg
-}
-
 // parseDbParamRe ConvertDbParamToRegular 解析DbNames参数成正则参数
 func (e *ExcuteSQLFileObj) parseDbParamRe() (s []string) {
 	return changeToMatch(e.DbNames)
@@ -99,22 +88,6 @@ func changeToMatch(input []string) []string {
 		result = append(result, str)
 	}
 	return result
-}
-
-// GetImgFromMySQLVersion 根据版本获取模拟执行运行的镜像配置
-func GetImgFromMySQLVersion(verion string) (img string, err error) {
-	switch {
-	case regexp.MustCompile("5.5").MatchString(verion):
-		return config.GAppConfig.Image.Tendb55Img, nil
-	case regexp.MustCompile("5.6").MatchString(verion):
-		return config.GAppConfig.Image.Tendb56Img, nil
-	case regexp.MustCompile("5.7").MatchString(verion):
-		return config.GAppConfig.Image.Tendb57Img, nil
-	case regexp.MustCompile("8.0").MatchString(verion):
-		return config.GAppConfig.Image.Tendb80Img, nil
-	default:
-		return "", fmt.Errorf("not match any version")
-	}
 }
 
 // TaskRuntimCtx 模拟执行运行上下文

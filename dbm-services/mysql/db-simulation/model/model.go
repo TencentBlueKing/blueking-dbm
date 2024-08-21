@@ -55,7 +55,7 @@ func init() {
 func Migration() {
 	//nolint
 	DB.AutoMigrate(&TbSimulationTask{}, &TbRequestRecord{}, &TbSyntaxRule{}, &TbContainerRecord{},
-		&TbSqlFileSimulationInfo{})
+		&TbSqlFileSimulationInfo{}, &TbSimulationImgCfg{})
 }
 
 func openDB(username, password, addr, name string) *gorm.DB {

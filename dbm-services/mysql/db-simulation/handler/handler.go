@@ -14,11 +14,12 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/samber/lo"
 
-	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/app/service"
@@ -61,95 +62,6 @@ func CreateTmpSpiderPodCluster(r *gin.Context) {
 		return
 	}
 	SendResponse(r, nil, "ok", "")
-}
-
-// SpiderClusterSimulation TendbCluster 模拟执行
-func SpiderClusterSimulation(r *gin.Context) {
-	var param service.SpiderSimulationExecParam
-	RequestID := r.GetString("request_id")
-	if err := r.ShouldBindJSON(&param); err != nil {
-		logger.Error("ShouldBind failed %s", err)
-		SendResponse(r, err, "failed to deserialize parameters", RequestID)
-		return
-	}
-	img, err := service.GetImgFromMySQLVersion(param.MySQLVersion)
-	if err != nil {
-		logger.Error("GetImgFromMySQLVersion %s failed:%s", param.MySQLVersion, err.Error())
-		SendResponse(r, err, nil, RequestID)
-		return
-	}
-
-	if err := model.CreateTask(param.TaskId, RequestID, param.MySQLVersion, param.Uid); err != nil {
-		logger.Error("create task db record error %s", err.Error())
-		SendResponse(r, err, nil, RequestID)
-		return
-	}
-	tsk := service.SimulationTask{
-		RequestId: RequestID,
-		DbPodSets: service.NewDbPodSets(),
-		BaseParam: &param.BaseParam,
-	}
-	rootPwd := cmutil.RandStr(10)
-	if !service.DelPod {
-		logger.Info("the pwd %s", rootPwd)
-	}
-	tsk.DbImage = img
-	tsk.SpiderImage = param.GetSpiderImg()
-	tsk.TdbCtlImage = param.GetTdbctlImg()
-	tsk.BaseInfo = &service.MySQLPodBaseInfo{
-		PodName: fmt.Sprintf("spider-%s-%s", strings.ToLower(param.MySQLVersion),
-			replaceUnderSource(param.TaskId)),
-		Lables: map[string]string{"task_id": replaceUnderSource(param.TaskId),
-			"request_id": RequestID},
-		RootPwd: rootPwd,
-		Args:    param.BuildStartArgs(),
-		Charset: param.MySQLCharSet,
-	}
-	service.SpiderTaskChan <- tsk
-	SendResponse(r, nil, "request successful", RequestID)
-}
-
-// Dbsimulation 发起Tendb模拟执行
-func Dbsimulation(r *gin.Context) {
-	var param service.BaseParam
-	requestID := r.GetString("request_id")
-	if err := r.ShouldBindJSON(&param); err != nil {
-		logger.Error("ShouldBind failed %s", err)
-		SendResponse(r, err, "failed to deserialize parameters", requestID)
-		return
-	}
-	if requestID == "" {
-		SendResponse(r, fmt.Errorf("create request id failed"), nil, requestID)
-		return
-	}
-	img, err := service.GetImgFromMySQLVersion(param.MySQLVersion)
-	if err != nil {
-		logger.Error("GetImgFromMySQLVersion %s failed:%s", param.MySQLVersion, err.Error())
-		SendResponse(r, err, nil, requestID)
-		return
-	}
-	if err := model.CreateTask(param.TaskId, requestID, param.MySQLVersion, param.Uid); err != nil {
-		logger.Error("create task db record error %s", err.Error())
-		SendResponse(r, err, nil, requestID)
-		return
-	}
-	tsk := service.SimulationTask{
-		RequestId: requestID,
-		DbPodSets: service.NewDbPodSets(),
-		BaseParam: &param,
-	}
-	tsk.DbImage = img
-	tsk.BaseInfo = &service.MySQLPodBaseInfo{
-		PodName: fmt.Sprintf("tendb-%s-%s", strings.ToLower(param.MySQLVersion),
-			replaceUnderSource(param.TaskId)),
-		Lables: map[string]string{"task_id": replaceUnderSource(param.TaskId),
-			"request_id": requestID},
-		RootPwd: param.TaskId,
-		Args:    param.BuildStartArgs(),
-		Charset: param.MySQLCharSet,
-	}
-	service.TaskChan <- tsk
-	SendResponse(r, nil, "request successful", requestID)
 }
 
 func replaceUnderSource(str string) string {
@@ -229,4 +141,56 @@ func SendResponse(r *gin.Context, err error, data interface{}, requestid string)
 		Data:      data,
 		RequestID: requestid,
 	})
+}
+
+// getImgFromMySQLVersion 根据版本获取模拟执行运行的镜像配置
+func getImgFromMySQLVersion(version string) (img string, err error) {
+	img, errx := model.GetImageName("mysql", version)
+	if errx == nil {
+		logger.Info("get image from db img config: %s", img)
+		return img, nil
+	}
+	switch {
+	case regexp.MustCompile("5.5").MatchString(version):
+		return config.GAppConfig.Image.Tendb55Img, nil
+	case regexp.MustCompile("5.6").MatchString(version):
+		return config.GAppConfig.Image.Tendb56Img, nil
+	case regexp.MustCompile("5.7").MatchString(version):
+		return config.GAppConfig.Image.Tendb57Img, nil
+	case regexp.MustCompile("8.0").MatchString(version):
+		return config.GAppConfig.Image.Tendb80Img, nil
+	default:
+		return "", fmt.Errorf("not match any version")
+	}
+}
+
+func getSpiderAndTdbctlImg(spiderVersion, tdbctlVersion string) (spiderImg, tdbctlImg string) {
+	return getSpiderImg(spiderVersion), getTdbctlImg(tdbctlVersion)
+}
+
+const (
+	// LatestVersion latest version
+	LatestVersion = "latest"
+)
+
+func getSpiderImg(version string) (img string) {
+	if lo.IsEmpty(version) {
+		version = LatestVersion
+	}
+	img, errx := model.GetImageName("spider", version)
+	if errx == nil {
+		return img
+	}
+	return config.GAppConfig.Image.SpiderImg
+}
+
+func getTdbctlImg(version string) (img string) {
+	if lo.IsEmpty(version) {
+		version = LatestVersion
+	}
+	img, errx := model.GetImageName("tdbctl", version)
+	if errx == nil {
+		return img
+	}
+	return config.GAppConfig.Image.TdbCtlImg
 }

@@ -20,13 +20,48 @@ import (
 	"dbm-services/mysql/db-simulation/model"
 )
 
-// UpdateRuleParam TODO
+// OptRuleParam 语法规则管理参数
+type OptRuleParam struct {
+	RuleID int  `json:"rule_id" binding:"required"`
+	Status bool `json:"status" `
+}
+
+// ManageRule 语法规则管理
+func ManageRule(c *gin.Context) {
+	var param OptRuleParam
+	if err := c.ShouldBindJSON(&param); err != nil {
+		logger.Error("ShouldBind failed %s", err)
+		SendResponse(c, err, "failed to deserialize parameters", "")
+		return
+	}
+	result := model.DB.Model(&model.TbSyntaxRule{}).Where(&model.TbSyntaxRule{ID: param.RuleID}).Update("status",
+		param.Status).Limit(1)
+	if result.Error != nil {
+		logger.Error("update rule status failed %s,affect rows %d", result.Error.Error(), result.RowsAffected)
+		SendResponse(c, result.Error, result.Error, "")
+		return
+	}
+	SendResponse(c, nil, "ok", "")
+}
+
+// GetAllRule 获取所有权限规则
+func GetAllRule(c *gin.Context) {
+	var rs []model.TbSyntaxRule
+	if err := model.DB.Find(&rs).Error; err != nil {
+		logger.Error("query rules failed %s", err.Error())
+		SendResponse(c, err, err.Error(), "")
+		return
+	}
+	SendResponse(c, nil, rs, "")
+}
+
+// UpdateRuleParam 更新语法规则参数
 type UpdateRuleParam struct {
 	Item interface{} `json:"item" binding:"required"`
 	ID   int         `json:"id" binding:"required"`
 }
 
-// UpdateRule TODO
+// UpdateRule update syntax rule
 func UpdateRule(r *gin.Context) {
 	logger.Info("UpdateRule...")
 	var param UpdateRuleParam
