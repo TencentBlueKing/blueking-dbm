@@ -137,8 +137,6 @@
 
   import { useDefaultPagination } from '@hooks';
 
-  import { TicketTypes } from '@common/const';
-
   import DBCollapseTable from '@components/db-collapse-table/DBCollapseTable.vue';
 
   import { getSQLFilename} from '@utils'
@@ -214,7 +212,7 @@
   // 执行前备份
   const isBackup = computed(() => (props.ticketDetails.details.backup.length ? t('是') : t('否')));
 
-  const isForceSql = computed(() => props.ticketDetails.ticket_type === TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE);
+  // const isForceSql = computed(() => props.ticketDetails.ticket_type === TicketTypes.MYSQL_FORCE_IMPORT_SQLFILE);
 
   const targetDB = [
     {
@@ -344,7 +342,7 @@
 
   const {run: runBatchFetchFile} = useRequest(() => {
     const filePathList = uploadFileList.value.reduce<string[]>((result, item) => {
-      result.push(isForceSql.value ? item : `${props.ticketDetails.details.path}/${item}`);
+      result.push(`${props.ticketDetails.details.path}/${item}`);
       return result;
     }, []);
 
@@ -355,7 +353,7 @@
     manual: true,
     onSuccess(result) {
       fileContentMap.value = result.reduce<Record<string, string>>((result, fileInfo) => {
-        const fileName = isForceSql.value ? fileInfo.path : fileInfo.path.split('/').pop() as string;
+        const fileName = fileInfo.path.split('/').pop() as string;
         return Object.assign(result, {
           [fileName]: fileInfo.content,
         });
