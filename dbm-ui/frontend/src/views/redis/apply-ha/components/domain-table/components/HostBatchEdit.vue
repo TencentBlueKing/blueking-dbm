@@ -101,6 +101,10 @@
     }
   });
 
+  watch(props, () => {
+    handleValidate();
+  });
+
   /**
    * validate batch edit value
    */
@@ -143,7 +147,7 @@
       return [...prevList, key];
     }, [] as string[]);
     if (errorHostList.length) {
-      validateErrorText.value = t('目标从库主机 n 不存在', { n: errorHostList.join('，') });
+      validateErrorText.value = t('目标主库主机 n 不存在', { n: errorHostList.join('，') });
       return;
     }
 

@@ -19,7 +19,7 @@
       :data="tableData"
       :empty-text="t('请选择业务')" />
     <InstanceSelector
-      :key="instanceSelectorIndex"
+      :key="instanceSelectorKey"
       v-model:is-show="isShowInstanceSelector"
       :cluster-types="['RedisHost']"
       :selected="selectedHostList"
@@ -117,7 +117,7 @@
       },
       {
         validator: (value: string) => ipv4.test(value),
-        message: t('目标从库主机格式不正确'),
+        message: t('目标主库主机格式不正确'),
       },
       // {
       //   validator: (value: string) => masterHostIpList.value.filter(item => item === value).length < 2,
@@ -382,6 +382,8 @@
 
   const clusterNameList = computed(() => tableData.value.map(item => item.cluster_name));
   // const masterHostIpList = computed(() => tableData.value.map(item => item.masterHost.ip));
+
+  const instanceSelectorKey = computed(() => `${props.cloudId}-${props.cityName}`)
 
   const handleBatchClusterName = (values: string[]) => {
     if (values.length !== 0) {
