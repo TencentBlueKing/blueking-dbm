@@ -169,14 +169,14 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                 {
                     "act_name": _("刷新域名-{}").format(act_kwargs.cluster["immute_domain"]),
                     "act_component_code": RedisDnsManageComponent.code,
-                    "kwargs": asdict(
-                        {
-                            "dns_op_type": DnsOpType.UPDATE,
-                            "old_instance": "{}#{}".format(sync_host["origin_1"], sync_port["origin_1"]),
-                            "new_instance": "{}#{}".format(sync_host["sync_dst1"], sync_port["sync_dst1"]),
-                            "update_domain_name": act_kwargs.cluster["immute_domain"],
-                        }
-                    ),
+                    "kwargs": {
+                        "bk_biz_id": act_kwargs.cluster["bk_biz_id"],
+                        "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
+                        "dns_op_type": DnsOpType.UPDATE,
+                        "old_instance": "{}#{}".format(sync_host["origin_1"], sync_port["origin_1"]),
+                        "new_instance": "{}#{}".format(sync_host["sync_dst1"], sync_port["sync_dst1"]),
+                        "update_domain_name": act_kwargs.cluster["immute_domain"],
+                    },
                 }
             )
             if not SyncType.SYNC_MS.value == act_kwargs.cluster["switch_condition"]["sync_type"]:
@@ -191,14 +191,14 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
                         {
                             "act_name": _("刷新域名-{}").format(domain),
                             "act_component_code": RedisDnsManageComponent.code,
-                            "kwargs": asdict(
-                                {
-                                    "dns_op_type": DnsOpType.UPDATE,
-                                    "old_instance": "{}#{}".format(sync_host["origin_2"], sync_port["origin_2"]),
-                                    "new_instance": "{}#{}".format(sync_host["sync_dst2"], sync_port["sync_dst2"]),
-                                    "update_domain_name": domain,
-                                }
-                            ),
+                            "kwargs": {
+                                "bk_biz_id": act_kwargs.cluster["bk_biz_id"],
+                                "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
+                                "dns_op_type": DnsOpType.UPDATE,
+                                "old_instance": "{}#{}".format(sync_host["origin_2"], sync_port["origin_2"]),
+                                "new_instance": "{}#{}".format(sync_host["sync_dst2"], sync_port["sync_dst2"]),
+                                "update_domain_name": domain,
+                            },
                         }
                     )
         sub_pipeline.add_parallel_acts(acts_list=acts_list)

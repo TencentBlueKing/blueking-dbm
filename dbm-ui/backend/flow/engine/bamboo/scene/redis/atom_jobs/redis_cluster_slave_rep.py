@@ -16,6 +16,7 @@ from typing import Dict
 from django.utils.translation import ugettext as _
 
 from backend.constants import IP_PORT_DIVIDER
+from backend.db_meta.api.cluster.nosqlcomm.other import get_cluster_ins_dns
 from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceRole
 from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType, SyncType
@@ -177,10 +178,26 @@ def RedisClusterSlaveReplaceJob(root_id, ticket_data, sub_kwargs: ActKwargs, sla
     )
     # #### 新节点加入集群 ################################################################# 完毕 ###
 
-    # 刷新bkdbmon
+    # 刷新bkdbmon , 刷新DNS
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
         for replace_link in slave_replace_detail:
-            new_slave = replace_link["target"]["ip"]
+            old_slave, new_slave = replace_link["ip"], replace_link["target"]["ip"]
+            for slave_port in act_kwargs.cluster["slave_ports"][old_slave]:
+                domain = get_cluster_ins_dns(act_kwargs.cluster["cluster_id"], replace_link["ip"], int(slave_port))
+                if domain != "":
+                    redis_pipeline.add_act(
+                        act_name=_("刷新域名-{}").format(domain),
+                        act_component_code=RedisDnsManageComponent.code,
+                        kwargs={
+                            "bk_biz_id": act_kwargs.cluster["bk_biz_id"],
+                            "bk_cloud_id": act_kwargs.cluster["bk_cloud_id"],
+                            "dns_op_type": DnsOpType.UPDATE,
+                            "old_instance": "{}#{}".format(old_slave, slave_port),
+                            "new_instance": "{}#{}".format(new_slave, slave_port),
+                            "update_domain_name": domain,
+                        },
+                    )
+
             act_kwargs.exec_ip = new_slave
             act_kwargs.cluster["ip"] = new_slave
             act_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__

@@ -621,13 +621,14 @@ class RedisDBMeta(object):
         """"""
         with atomic():
             for slave_info in self.cluster["old_slaves"]:
-                StorageInstance.objects.filter(machine__ip=slave_info["ip"], port__in=slave_info["ports"]).update(
-                    status=InstanceStatus.UNAVAILABLE
-                )
+                StorageInstance.objects.filter(
+                    machine__bk_cloud_id=self.cluster["bk_cloud_id"],
+                    machine__ip=slave_info["ip"],
+                    port__in=slave_info["ports"],
+                ).update(status=InstanceStatus.UNAVAILABLE)
                 logger.info(
                     "update old_slave {} ports: {} status to UNAVAILABLE".format(slave_info["ip"], slave_info["ports"])
                 )
-
             cluster = Cluster.objects.get(
                 bk_cloud_id=self.cluster["bk_cloud_id"], immute_domain=self.cluster["immute_domain"]
             )
@@ -638,7 +639,9 @@ class RedisDBMeta(object):
                 # 主从
                 for item in self.cluster["tendiss"]:
                     master_obj = StorageInstance.objects.get(
-                        machine__ip=item["ejector"]["ip"], port=item["ejector"]["port"]
+                        machine__bk_cloud_id=self.cluster["bk_cloud_id"],
+                        machine__ip=item["ejector"]["ip"],
+                        port=item["ejector"]["port"],
                     )
                     mycluster = master_obj.cluster.first()
                     if not mycluster:
