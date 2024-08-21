@@ -143,4 +143,7 @@ def RedisBatchShutdownAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, shutd
         kwargs=asdict(act_kwargs),
     )
 
-    return sub_pipeline.build_sub_process(sub_name=_("Redis-{}-下架原子任务").format(exec_ip))
+    sub_name = _("Redis-{}-下架").format(exec_ip)
+    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+        sub_name = _("Redis-{}-{}-下架").format(exec_ip, shutdown_param["ports"])
+    return sub_pipeline.build_sub_process(sub_name=sub_name)

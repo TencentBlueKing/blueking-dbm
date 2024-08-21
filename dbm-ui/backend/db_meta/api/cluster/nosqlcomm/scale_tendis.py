@@ -90,6 +90,12 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
             )
             StorageInstanceTuple.objects.create(ejector=ejector_obj, receiver=receiver_obj, creator=created_by)
             logger.info("create link info {} -> {}".format(ejector_obj, receiver_obj))
+
+            # get slave domain(UNavaiable status.)
+            if cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY.value).exists():
+                slave_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY.value).first()
+                receiver_obj.bind_entry.add(slave_entry)
+
         # 修改表 db_meta_storageinstance_cluster
         cluster.storageinstance_set.add(*receiver_objs)
 
@@ -214,21 +220,21 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
             )
             new_ejector_obj.proxyinstance_set.add(*tmp_proxy_objs)
             # storageinstance bind info .
-            ejector_entry = old_ejector_obj.old_receiver_obj
-            ejector_entry.storageinstance_set.remove(old_ejector_obj)
-            ejector_entry.storageinstance_set.add(new_ejector_obj)
-            logger.info(
-                "change ejector entry {} from {} to {}".format(ejector_entry, old_ejector_obj, new_ejector_obj)
-            )
+            for entry_obj in old_ejector_obj.bind_entry.all():
+                entry_obj.storageinstance_set.remove(old_ejector_obj)
+                entry_obj.storageinstance_set.add(new_ejector_obj)
+                logger.info(
+                    "change ejector entry {} from {} to {}".format(entry_obj, old_ejector_obj, new_ejector_obj)
+                )
             if switch_type != SyncType.MS.value:
                 old_receiver_obj = old_ejector_obj.as_ejector.get().receiver
                 new_receiver_obj = new_ejector_obj.as_ejector.get().receiver
-                receiver_entry = old_receiver_obj.old_receiver_obj
-                receiver_entry.storageinstance_set.remove(old_receiver_obj)
-                receiver_entry.storageinstance_set.add(new_receiver_obj)
-                logger.info(
-                    "change receiver entry {} from {} to {}".format(receiver_entry, old_receiver_obj, new_receiver_obj)
-                )
+                for entry_obj in old_receiver_obj.bind_entry.all():
+                    entry_obj.storageinstance_set.remove(old_receiver_obj)
+                    entry_obj.storageinstance_set.add(new_receiver_obj)
+                    logger.info(
+                        "change receiver entry {} from {} to {}".format(entry_obj, old_receiver_obj, new_receiver_obj)
+                    )
 
             if cluster.cluster_type in [
                 ClusterType.TendisTwemproxyRedisInstance,

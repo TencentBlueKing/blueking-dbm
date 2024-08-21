@@ -55,7 +55,7 @@ def get_cluster_ins_dns(cluster_id: int, ip: str, port: int):
     2. 且实例只有一个dns域名
     """
     try:
-        cluster = Cluster.objects.get(cluster_id=cluster_id)
+        cluster = Cluster.objects.get(id=cluster_id)
         inst_obj = cluster.storageinstance_set.get(machine__ip=ip, port=port)
         if inst_obj.bind_entry.exists():
             entry_obj = inst_obj.bind_entry.get()
