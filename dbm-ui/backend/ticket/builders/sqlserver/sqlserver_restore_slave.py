@@ -131,3 +131,6 @@ class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerTicketFlowBuilder):
                 raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))
 
             info["system_version"] = db_config["system_version"].split(",")
+
+        # 添加集群信息
+        self.patch_cluster_details()
