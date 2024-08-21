@@ -178,7 +178,7 @@ class RedisBackendScaleFlow(object):
             **cluster_info,
             "operate": operate_name,
             "sync_type": sync_type,
-            "is_local_scale": info["update_mode"] == RedisCapacityUpdateType.KEEP_CURRENT_MACHINES.value,
+            "is_local_scale": info.get("update_mode", "") == RedisCapacityUpdateType.KEEP_CURRENT_MACHINES.value,
         }
         act_kwargs.bk_cloud_id = cluster_info["bk_cloud_id"]
         logger.info("+===+++++===current tick_data info+++++===++++ :: {}".format(act_kwargs))
@@ -416,7 +416,7 @@ class RedisBackendScaleFlow(object):
             if (
                 cluster_info["cluster_shard_num"] != info["shard_num"]
                 and cluster_info["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster
-                and info["update_mode"] == RedisCapacityUpdateType.KEEP_CURRENT_MACHINES
+                and info.get("update_mode", "") == RedisCapacityUpdateType.KEEP_CURRENT_MACHINES
             ):
                 # 对于tendisplus集群，分片数变化了,且为原地变更,需要单独处理
                 sub_pipeline = self.tendisplus_shards_update_and_keep_machine_flow(info)
