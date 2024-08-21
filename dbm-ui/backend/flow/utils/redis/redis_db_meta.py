@@ -745,7 +745,6 @@ class RedisDBMeta(object):
             tendisss=self.cluster["sync_relation"],
             switch_type=self.cluster["switch_condition"]["sync_type"],
         )
-
         if "origin_db_version" in self.cluster:
             if self.cluster["origin_db_version"] != self.cluster["db_version"]:
                 cluster.major_version = self.cluster["db_version"]

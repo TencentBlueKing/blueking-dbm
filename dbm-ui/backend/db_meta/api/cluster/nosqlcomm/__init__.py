@@ -17,7 +17,7 @@ from .create_cluster import (
 from .create_instances import create_mongo_instances, create_proxies, create_tendis_instances
 from .decommission import decommission_backends, decommission_cluster, decommission_instances, decommission_proxies
 from .detail_cluster import scan_cluster
-from .other import get_cluster_detail, get_clusters_details
+from .other import get_cluster_detail, get_cluster_ins_dns, get_clusters_details
 from .precheck import (
     before_create_domain_precheck,
     before_create_proxy_precheck,

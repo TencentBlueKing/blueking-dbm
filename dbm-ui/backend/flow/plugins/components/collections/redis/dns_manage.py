@@ -70,7 +70,16 @@ class RedisDnsManageService(BaseService):
 
         elif dns_op_type == DnsOpType.UPDATE:
             # 更新域名方法
-            pass
+            result = dns_manage.update_domain(
+                old_instance=kwargs["old_instance"],
+                new_instance=kwargs["new_instance"],
+                update_domain_name=kwargs["update_domain_name"],
+            )
+            self.log_info(
+                "update domain {} from {} to {} rst:{}".format(
+                    kwargs["update_domain_name"], kwargs["old_instance"], kwargs["new_instance"], result
+                )
+            )
         elif dns_op_type == DnsOpType.RECYCLE_RECORD:
             # 回收实例对应的域名记录，适配实例下架场景
             exec_ips = self.__get_exec_ips(kwargs=kwargs, trans_data=trans_data)
