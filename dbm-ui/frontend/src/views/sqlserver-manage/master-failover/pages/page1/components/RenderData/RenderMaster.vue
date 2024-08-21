@@ -15,7 +15,7 @@
   <TableEditInput
     ref="editRef"
     v-model="localValue"
-    :placeholder="$t('请输入IP')"
+    :placeholder="t('请输入IP')"
     :rules="rules"
     textarea />
 </template>
@@ -32,7 +32,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 

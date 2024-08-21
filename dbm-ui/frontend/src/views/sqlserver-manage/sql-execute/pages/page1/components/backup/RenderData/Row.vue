@@ -78,7 +78,7 @@
 <script setup lang="ts">
   import { ref } from 'vue';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
   import RenderDbs from './RenderDbs.vue';
 

@@ -37,6 +37,8 @@
   </tbody>
 </template>
 <script lang="ts">
+  import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
+
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';
@@ -55,6 +57,7 @@
       port: number;
       instanceAddress: string;
       clusterId: number;
+      hostInfo: SqlServerHaInstanceModel['host_info'];
     };
     clusterId?: number;
     newSlave?: {

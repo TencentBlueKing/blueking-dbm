@@ -40,7 +40,7 @@
   import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditTag from '@views/mysql/common/edit/Tag.vue';
+  import TableEditTag from '@components/render-table/columns/tag-input/index.vue';
 
   interface Props {
     modelValue: string[];

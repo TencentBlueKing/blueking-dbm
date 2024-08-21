@@ -24,7 +24,7 @@
     class="sqlserver-manage-db-clear-clean-db"
     :width="900">
     <template #header>
-      <span>{{ t('手动修改回档的 DB 名 ') }}</span>
+      <span>{{ t('手动修改回档的 DB 名') }}</span>
       <BkTag class="ml-8">{{ clusterData?.domain }}</BkTag>
     </template>
     <BkLoading :loading="isLoading">
@@ -66,7 +66,7 @@
 
   import TableEditElement from '@components/render-table/columns/element/Index.vue';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
   import type { IDataRow } from './Row.vue';
 

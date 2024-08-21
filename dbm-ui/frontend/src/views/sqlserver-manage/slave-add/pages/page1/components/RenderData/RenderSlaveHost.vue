@@ -35,7 +35,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -65,7 +65,6 @@
   const localIpText = ref('');
 
   let hostMemo = {} as HostTopoInfo;
-  let errorMessage = t('IP不存在');
 
   const rules = [
     {
@@ -83,16 +82,14 @@
         }).then((data) => {
           const [newHost] = data.hosts_topo_info;
           if (!newHost) {
-            errorMessage = t('ips不在空闲机中', { ips: value });
-            return false;
+            return t('ips不在空闲机中', { ips: value });
           }
 
           if (newHost.bk_cloud_id !== props.cloudId) {
-            errorMessage = t('新主机xx跟目标集群xx须在同一个管控区域', {
+            return t('新主机xx跟目标集群xx须在同一个管控区域', {
               ip: value,
               cluster: props.domain,
             });
-            return false;
           }
 
           hostMemo = newHost;
@@ -102,7 +99,7 @@
 
           return true;
         }),
-      message: () => errorMessage,
+      message: t('IP不存在'),
     },
     {
       validator: () => {
@@ -145,7 +142,6 @@
         bk_cloud_id: item.bk_cloud_id,
         ip: item.ip,
       });
-      console.log('getvalue = ', hostMemo, formatHost(hostMemo));
       return inputRef.value.getValue().then(() =>
         Promise.resolve({
           new_slave_host: formatHost(hostMemo),

@@ -24,7 +24,7 @@
     class="sqlserver-manage-db-backup-fianal-db"
     :width="900">
     <template #header>
-      <span>{{ t('预览 DB 结果列表 ') }}</span>
+      <span>{{ t('预览 DB 结果列表') }}</span>
       <BkTag class="ml-8">{{ clusterData?.domain }}</BkTag>
     </template>
     <BkLoading :loading="isLoading">
@@ -66,7 +66,7 @@
 
   import TableEditElement from '@components/render-table/columns/element/Index.vue';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
   import type { IDataRow } from './RenderRow.vue';
 
@@ -109,7 +109,7 @@
     {
       validator: () => {
         const cleanDbsPatternList = dbList.value.filter((item) => !/\*/.test(item) && !/%/.test(item));
-        return cleanDbsPatternList.length > localDbList.value.length;
+        return cleanDbsPatternList.length <= localDbList.value.length;
       },
       message: t('最终 DB 和指定的备份 DB 数量不匹配'),
     },

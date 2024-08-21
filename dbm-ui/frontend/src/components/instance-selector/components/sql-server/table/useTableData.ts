@@ -23,7 +23,7 @@ import { getSearchSelectorParams } from '@utils';
 export function useTableData<T>(
   searchSelectValue: Ref<ISearchValue[]>,
   role: Ref<string | undefined>,
-  clusterId: Ref<number | undefined>,
+  clusterId?: number,
 ) {
   const { currentBizId } = useGlobalBizs();
   const currentInstance = getCurrentInstance() as ComponentInternalInstance & {
@@ -64,9 +64,9 @@ export function useTableData<T>(
         role: role.value,
       });
     }
-    if (clusterId.value) {
+    if (clusterId) {
       Object.assign(params, {
-        cluster_id: clusterId.value,
+        cluster_id: clusterId,
       });
     }
     return currentInstance.proxy

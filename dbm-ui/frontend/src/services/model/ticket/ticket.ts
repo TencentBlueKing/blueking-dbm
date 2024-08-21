@@ -16,49 +16,11 @@ import { TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
-import type {
-  DumperInstallDetails,
-  MysqlAuthorizationDetails,
-  MySQLChecksumDetails,
-  MySQLCloneDetails,
-  MySQLDetails,
-  MySQLFlashback,
-  MySQLFullBackupDetails,
-  MySQLHATruncateDetails,
-  MySQLImportSQLFileDetails,
-  MySQLInstanceCloneDetails,
-  MySQLMasterFailDetails,
-  MySQLMasterSlaveDetails,
-  MySQLMigrateDetails,
-  MysqlOpenAreaDetails,
-  MySQLOperationDetails,
-  MySQLProxyAddDetails,
-  MySQLProxySwitchDetails,
-  MySQLRenameDetails,
-  MySQLRestoreLocalSlaveDetails,
-  MySQLRestoreSlaveDetails,
-  MySQLRollbackDetails,
-  MySQLSlaveDetails,
-  MySQLTableBackupDetails,
-} from './details/mysql';
-import type {
-  RedisAddSlaveDetails,
-  RedisCLBDetails,
-  RedisClusterShardUpdateDetails,
-  RedisClusterTypeUpdateDetails,
-  RedisDataCheckAndRepairDetails,
-  RedisDataCopyDetails,
-  RedisDataStructrueDetails,
-  RedisDBReplaceDetails,
-  RedisDetails,
-  RedisKeysDetails,
-  RedisMasterSlaveSwitchDetails,
-  RedisProxyScaleDownDetails,
-  RedisProxyScaleUpDetails,
-  RedisRollbackDataCopyDetails,
-  RedisScaleUpDownDetails,
-  RedisStructureDeleteDetails,
-} from './details/redis';
+import type { DetailBase } from './details/common';
+
+export type * as Mysql from './details/mysql';
+export type * as Redis from './details/redis';
+export type * as Sqlserver from './details/sqlserver';
 
 /**
  * 单据状态类型
@@ -88,15 +50,7 @@ const tagTheme = {
   ALL: undefined,
 };
 
-export type TicketDetails = RedisAddSlaveDetails & RedisCLBDetails & RedisScaleUpDownDetails & RedisClusterShardUpdateDetails & RedisClusterTypeUpdateDetails
-  & RedisDataCheckAndRepairDetails & RedisDataCopyDetails & RedisDataStructrueDetails & RedisDBReplaceDetails & RedisDetails & RedisMasterSlaveSwitchDetails
-  & RedisKeysDetails & RedisProxyScaleDownDetails & RedisProxyScaleUpDetails & RedisRollbackDataCopyDetails & RedisStructureDeleteDetails & MysqlAuthorizationDetails
-  & MySQLImportSQLFileDetails & MySQLChecksumDetails & MySQLCloneDetails & MySQLInstanceCloneDetails & MySQLOperationDetails & MySQLDetails
-  & DumperInstallDetails & MySQLFlashback & MySQLFullBackupDetails & MySQLHATruncateDetails & MySQLMasterFailDetails & MySQLMasterSlaveDetails
-  & MySQLMigrateDetails & MysqlOpenAreaDetails & MySQLProxyAddDetails & MySQLProxySwitchDetails & MySQLRenameDetails & MySQLRestoreLocalSlaveDetails
-  & MySQLRestoreSlaveDetails & MySQLRollbackDetails & MySQLSlaveDetails & MySQLTableBackupDetails
-
-export default class Ticket<T = TicketDetails> {
+export default class Ticket<T extends unknown | DetailBase> {
   bk_biz_id: number;
   bk_biz_name: string;
   cost_time: number;

@@ -19,7 +19,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
   interface Props {
     dbName: string[];

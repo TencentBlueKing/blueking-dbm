@@ -105,10 +105,17 @@
     }>;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
+
+  // const disableHostMethod = (hostData: HostDetails) => {
+  //   if (hostData.os_name !== props.oldSlave!.hostInfo.os_name.replace(/ /g, '')) {
+  //     return t('操作系统版本');
+  //   }
+  //   return false;
+  // };
 
   const contentRef = ref();
   const isShowIpSelector = ref(false);
@@ -141,6 +148,13 @@
     },
     {
       deep: true,
+    },
+  );
+
+  watch(
+    () => props.oldSlave,
+    () => {
+      console.log('props .oldSlave = ', props.oldSlave);
     },
   );
 
