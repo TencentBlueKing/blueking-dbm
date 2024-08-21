@@ -16,8 +16,8 @@
     <FixedColumn fixed="left">
       <RenderCluster
         ref="sourceClusterRef"
-        :data="data.clusterData.domain"
-        @input-finish="handleInputFinish" />
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderClusterNameWithSelector
@@ -105,7 +105,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: string): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
@@ -146,8 +146,8 @@
     rowInfo.targetClusters = list.map((item) => item.id);
   };
 
-  const handleInputFinish = (value: string) => {
-    emits('clusterInputFinish', value);
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleAppend = () => {
@@ -177,7 +177,7 @@
   defineExpose<Exposes>({
     async getValue() {
       await Promise.all([
-        sourceClusterRef.value!.getValue(),
+        sourceClusterRef.value!.getValue(true),
         targetClustersRef.value!.getValue(),
         dbPatternsRef.value!.getValue('db_patterns'),
         ignoreDbsRef.value!.getValue('ignore_dbs'),
