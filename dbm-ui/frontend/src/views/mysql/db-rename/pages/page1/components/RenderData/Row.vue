@@ -16,7 +16,9 @@
     <FixedColumn fixed="left">
       <RenderCluster
         ref="clusterRef"
+        :cluster-types="clusterTypes"
         :model-value="data.clusterData"
+        only-one-type
         @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
@@ -25,15 +27,16 @@
         check-exist
         :cluster-id="localClusterId"
         :model-value="data.fromDatabase"
-        :placeholder="$t('请输入单个源 DB 名')"
+        :placeholder="t('请输入单个源 DB 名')"
         single />
     </td>
     <td style="padding: 0">
       <RenderDbName
         ref="toDatabaseRef"
+        check-not-exist
         :cluster-id="localClusterId"
         :model-value="data.toDatabase"
-        :placeholder="$t('请输入单个新 DB 名')"
+        :placeholder="t('请输入单个新 DB 名')"
         single />
     </td>
     <OperateColumn
@@ -65,6 +68,8 @@
   });
 </script>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
@@ -75,11 +80,13 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
+    clusterTypes?: string[];
   }
 
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
@@ -89,6 +96,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const clusterRef = ref<InstanceType<typeof RenderCluster>>();
   const fromDatabaseRef = ref<InstanceType<typeof RenderDbName>>();
@@ -109,6 +118,7 @@
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleAppend = () => {
@@ -125,7 +135,7 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value!.getValue(),
+        clusterRef.value!.getValue(true),
         fromDatabaseRef.value!.getValue('from_database'),
         toDatabaseRef.value!.getValue('to_database'),
       ]).then(([clusterData, backupLocalData, dbPatternsData]) => ({

@@ -27,7 +27,8 @@
           ref="rowRefs"
           :data="item"
           :removeable="tableData.length < 2"
-          @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @add="(payload: IDataRow) => handleAppend(index, payload)"
+          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="bottom-opeartion">
@@ -76,6 +77,7 @@
   import { useRouter } from 'vue-router';
 
   import SpiderModel from '@services/model/spider/spider';
+  import { getSpiderList } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -95,8 +97,8 @@
   const isShowBatchSelector = ref(false);
   const isSubmitting = ref(false);
   const isIgnore = ref(false);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
@@ -143,10 +145,33 @@
   };
 
   // 追加一个集群
-  const handleAppend = (index: number, appendList: Array<IDataRow>) => {
+  const handleAppend = (index: number, rowData: IDataRow) => {
     const dataList = [...tableData.value];
-    dataList.splice(index + 1, 0, ...appendList);
+    dataList.splice(index + 1, 0, rowData);
     tableData.value = dataList;
+  };
+
+  // 输入集群后查询集群信息并填充到table
+  const handleChangeCluster = async (index: number, domain: string) => {
+    if (tableData.value[index].clusterData?.domain === domain) {
+      return;
+    }
+
+    const resultList = await getSpiderList({ exact_domain: domain });
+    if (resultList.results.length < 1) {
+      return;
+    }
+
+    const item = resultList.results[0];
+    const row = createRowData({
+      clusterData: {
+        id: item.id,
+        domain,
+      },
+    });
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
+    selectedClusters.value[ClusterTypes.TENDBCLUSTER].push(item);
   };
 
   // 删除一个集群
