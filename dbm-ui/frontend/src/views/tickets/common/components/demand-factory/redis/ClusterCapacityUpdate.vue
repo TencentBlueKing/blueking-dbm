@@ -18,28 +18,27 @@
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import RedisModel from '@services/model/redis/redis';
   import type { RedisScaleUpDownDetails } from '@services/model/ticket/details/redis';
   import TicketModel from '@services/model/ticket/ticket';
+  import { getRedisList } from '@services/source/redis';
+
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue';
+  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+
+  import ValueDiff from '@views/db-manage/common/value-diff/Index.vue'
+
+  import TableGroupContent from '../components/TableGroupContent.vue'
 
   interface Props {
     ticketDetails: TicketModel<RedisScaleUpDownDetails>
   }
 
-  interface RowData {
-    clusterName: string,
-    clusterType: string,
-    sepc: {
-      id: number,
-      name: string,
-    },
-    shardNum: number,
-    groupNum: number,
-    capacity: number,
-    futureCapacity: number,
-    dbVersion: string,
-    switchMode: string,
-  }
+  type RowData = RedisModel & RedisScaleUpDownDetails['infos'][number]
 
   const props = defineProps<Props>();
 
@@ -47,75 +46,222 @@
 
   const tableData = ref<RowData[]>([]);
 
-  const { clusters, infos, specs } = props.ticketDetails.details;
+  const { infos, specs } = props.ticketDetails.details;
 
   const columns = [
     {
       label: t('目标集群'),
-      field: 'clusterName',
+      field: 'cluster_name',
       showOverflowTooltip: true,
     },
     {
       label: t('架构版本'),
-      field: 'clusterTypeName',
+      field: 'cluster_type_name',
       showOverflowTooltip: true,
     },
     {
-      label: t('集群分片数'),
-      field: 'shardNum',
+      label: t('Redis版本'),
+      field: 'db_version',
+      width: 180,
       showOverflowTooltip: true,
     },
     {
-      label: t('部署机器组数'),
-      field: 'groupNum',
-      showOverflowTooltip: true,
+      label: t('当前容量'),
+      field: '',
+      render: ({ data }: {data: RowData}) => {
+        const columns = [
+          {
+            title: t('当前容量'),
+            render: () => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
+          },
+          {
+            title: t('资源规格'),
+            render: () => {
+              const currentSpec = {
+                ...data.cluster_spec,
+                id: data.cluster_spec.spec_id,
+                name: data.cluster_spec.spec_name,
+              }
+              return (
+                <RenderSpec
+                  data={currentSpec}
+                  hide-qps={!currentSpec.qps.max}
+                  is-ignore-counts />
+              )
+            }
+          },
+          {
+            title: t('机器组数'),
+            render: () => data.machine_pair_cnt
+          },
+          {
+            title: t('机器数量'),
+            render: () => data.machine_pair_cnt * 2
+          },
+          {
+            title: t('分片数'),
+            render: () => data.cluster_shard_num
+          },
+        ]
+        return <TableGroupContent columns={columns} />
+      }
     },
     {
-      label: t('当前容量需求'),
-      field: 'capacity',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.capacity}G</span>,
+      label: t('目标容量'),
+      field: '',
+      render: ({ data }: {data: RowData}) => {
+        const columns = [
+          {
+            title: t('目标容量'),
+            render: () => {
+              let stats = {} as RedisModel['cluster_stats']
+              if (!_.isEmpty(data.cluster_stats)) {
+                const { used, total } = data.cluster_stats;
+                const targetTotal = total + data.future_capacity * 1024 * 1024
+
+                stats = {
+                  used,
+                  total: targetTotal,
+                  in_use: Number((used/targetTotal).toFixed(2))
+                }
+              }
+              return (
+                <>
+                  <ClusterCapacityUsageRate clusterStats={stats} />
+                  <ValueDiff
+                    currentValue={stats.total || 0}
+                    num-unit="G"
+                    targetValue={data.future_capacity} />
+                </>
+              )
+            }
+          },
+          {
+            title: t('资源规格'),
+            render: () => {
+              const targetSpec = specs[data.resource_spec.backend_group.spec_id]
+              return (
+                <RenderSpec
+                  data={targetSpec}
+                  hide-qps={!targetSpec.qps.max}
+                  is-ignore-counts />
+              )
+            }
+          },
+          {
+            title: t('机器组数'),
+            render: () => (
+              <>
+                <span>{data.group_num }</span>
+                <ValueDiff
+                  currentValue={data.machine_pair_cnt}
+                  show-rate={false}
+                  targetValue={data.group_num} />
+              </>
+            )
+          },
+          {
+            title: t('机器数量'),
+            render: () => (
+              <>
+                <span>{data.group_num * 2}</span>
+                <ValueDiff
+                  currentValue={data.machine_pair_cnt * 2}
+                  show-rate={false}
+                  targetValue={data.group_num * 2} />
+              </>
+            )
+          },
+          {
+            title: t('分片数'),
+            render: () => (
+              <>
+                <span>{data.shard_num}</span>
+                <ValueDiff
+                  currentValue={data.cluster_shard_num}
+                  show-rate={false}
+                  targetValue={data.shard_num} />
+              </>
+            )
+          },
+          {
+            title: t('变更方式'),
+            render: () => data.update_mode === 'keep_current_machines' ? t('原地变更') : t('替换变更')
+          }
+        ]
+        return <TableGroupContent columns={columns} />
+      }
     },
-    {
-      label: t('未来容量需求'),
-      field: 'futureCapacity',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.futureCapacity}G</span>,
-    },
-    {
-      label: t('目标资源规格'),
-      field: 'sepc',
-      showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
-    },
-    {
-      label: t('指定Redis版本'),
-      field: 'dbVersion',
-      showOverflowTooltip: true,
-    },
+    // {
+    //   label: t('集群分片数'),
+    //   field: 'shardNum',
+    //   showOverflowTooltip: true,
+    // },
+    // {
+    //   label: t('部署机器组数'),
+    //   field: 'groupNum',
+    //   showOverflowTooltip: true,
+    // },
+    // {
+    //   label: t('当前容量需求'),
+    //   field: 'capacity',
+    //   showOverflowTooltip: true,
+    //   render: ({ data }: {data: RowData}) => <span>{data.capacity}G</span>,
+    // },
+    // {
+    //   label: t('未来容量需求'),
+    //   field: 'futureCapacity',
+    //   showOverflowTooltip: true,
+    //   render: ({ data }: {data: RowData}) => <span>{data.futureCapacity}G</span>,
+    // },
+    // {
+    //   label: t('目标资源规格'),
+    //   field: 'sepc',
+    //   showOverflowTooltip: true,
+    //   render: ({ data }: {data: RowData}) => <span>{data.sepc.name}</span>,
+    // },
+    // {
+    //   label: t('变更方式'),
+    //   field: 'updateMode',
+    //   showOverflowTooltip: true,
+    //   render: ({ data }: {data: RowData}) => {
+    //     if (data.updateMode) {
+    //       <span>{data.updateMode === 'keep_current_machines' ? t('原地变更') : t('替换变更')}</span>
+    //     }
+    //     return <span>--</span>
+    //   }
+    // },
     {
       label: t('切换模式'),
-      field: 'switchMode',
+      field: 'online_switch_type',
+      width: 120,
       showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => <span>{data.switchMode === 'user_confirm' ? t('需人工确认') : t('无需确认')}</span>,
+      render: ({ data }: {data: RowData}) => <span>{data.online_switch_type === 'user_confirm' ? t('需人工确认') : t('无需确认')}</span>,
     },
   ];
 
-  tableData.value = infos.map((item) => {
-    return {
-      clusterName: clusters[item.cluster_id].immute_domain,
-      clusterType: clusters[item.cluster_id].cluster_type,
-      clusterTypeName: clusters[item.cluster_id].cluster_type_name,
-      shardNum: item.shard_num,
-      groupNum: item.group_num,
-      dbVersion: item.db_version,
-      capacity: item.capacity,
-      futureCapacity: item.future_capacity,
-      sepc: {
-        id: item.resource_spec.backend_group.spec_id,
-        name: specs[item.resource_spec.backend_group.spec_id].name,
-      },
-      switchMode: item.online_switch_type,
-    };
-  });
+  useRequest(getRedisList, {
+    defaultParams: [{
+      cluster_ids: infos.map((item) => item.cluster_id).join(','),
+    }],
+    onSuccess(clustersResult) {
+      const clusterInfo = clustersResult.results.reduce<Record<number, RedisModel>>((results, item) => {
+        Object.assign(results, {
+          [item.id]: item,
+        });
+        return results;
+      }, {} )
+      tableData.value = infos.map((infoItem) => ({
+        ...clusterInfo[infoItem.cluster_id],
+        ...infoItem,
+      }));
+    }
+  })
 </script>
+
+<style lang="less" scoped>
+  :deep(.render-spec-box) {
+    height: auto;
+    padding: 0;
+  }
+</style>

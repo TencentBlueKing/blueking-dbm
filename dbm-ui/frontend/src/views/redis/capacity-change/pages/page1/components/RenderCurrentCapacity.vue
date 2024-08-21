@@ -14,33 +14,50 @@
 <template>
   <BkLoading :loading="isLoading">
     <div
-      ref="textRef"
-      v-bk-tooltips="{
-        content: placeholder,
-        disabled: !isOverflow,
-      }"
+      v-overflow-tips
       class="capacity-box"
-      :class="{ 'default-display': !data }">
+      :class="{ 'default-display': !data.currentCapacity?.total }">
       <span
-        v-if="!data"
+        v-if="!data.currentCapacity?.total"
         style="color: #c4c6cc">
-        {{ placeholder }}
+        {{ t('选择集群后自动生成') }}
       </span>
       <div
         v-else
-        class="content">
-        <!-- <span style="margin-right: 5px;">{{ $t('磁盘') }}:</span>
-        <BkProgress
-          color="#EA3636"
-          :percent="percent"
-          :show-text="false"
-          size="small"
-          :stroke-width="18"
-          type="circle"
-          :width="20" />
-        <span class="percent">{{ percent }}%</span> -->
-        <!-- <span class="spec">{{ `(${data.used}G/${data.total}G)` }}</span> -->
-        <span class="spec">{{ `${data.total}G` }}</span>
+        class="display-content">
+        <div class="item">
+          <div class="item-title">{{ t('当前容量') }}：</div>
+          <div class="item-content">
+            <ClusterCapacityUsageRate :cluster-stats="data.clusterStats" />
+          </div>
+        </div>
+        <div class="item">
+          <div class="item-title">{{ t('资源规格') }}：</div>
+          <div class="item-content">
+            <RenderSpec
+              :data="specData"
+              :hide-qps="!specData?.qps.max"
+              is-ignore-counts />
+          </div>
+        </div>
+        <div class="item">
+          <div class="item-title">{{ t('机器组数') }}：</div>
+          <div class="item-content">
+            {{ data.groupNum }}
+          </div>
+        </div>
+        <div class="item">
+          <div class="item-title">{{ t('机器数量') }}：</div>
+          <div class="item-content">
+            {{ (data.groupNum || 0) * 2 }}
+          </div>
+        </div>
+        <div class="item">
+          <div class="item-title">{{ t('分片数') }}：</div>
+          <div class="item-content">
+            {{ data.shardNum }}
+          </div>
+        </div>
       </div>
     </div>
   </BkLoading>
@@ -48,31 +65,36 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useIsWidthOverflow } from '@hooks';
+  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue';
+  import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    data?: IDataRow['currentCapacity'];
-    isLoading?: boolean;
+    data: IDataRow;
+    isLoading: boolean;
   }
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
 
-  const textRef = ref();
-
-  const renderData = computed(() => props.data);
-
-  const placeholder = t('选择集群后自动生成');
-
-  const { isOverflow } = useIsWidthOverflow(textRef, renderData);
-  // const percent = computed(() => {
-  //   if (props.data) return Number(((props.data.used / props.data.total) * 100).toFixed(2));
-  //   return 0;
-  // });
+  const specData = computed(() => {
+    const { spec } = props.data;
+    if (spec) {
+      return {
+        name: spec.spec_name,
+        cpu: spec.cpu,
+        id: spec.spec_id,
+        mem: spec.mem,
+        qps: spec.qps,
+        storage_spec: spec.storage_spec,
+      };
+    }
+    return undefined;
+  });
 </script>
+
 <style lang="less" scoped>
   .capacity-box {
     padding: 11px 16px;
@@ -82,21 +104,42 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    .content {
+    .display-content {
       display: flex;
-      align-items: center;
+      flex-direction: column;
 
-      .percent {
-        margin-left: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        color: #313238;
-      }
+      .item {
+        display: flex;
+        width: 100%;
 
-      .spec {
-        margin-left: 2px;
-        font-size: 12px;
-        // color: #979BA5;
+        .item-title {
+          width: 64px;
+          text-align: right;
+        }
+
+        .item-content {
+          flex: 1;
+          display: flex;
+          align-items: center;
+
+          .percent {
+            margin-left: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #313238;
+          }
+
+          .spec {
+            margin-left: 2px;
+            font-size: 12px;
+            color: #979ba5;
+          }
+
+          :deep(.render-spec-box) {
+            height: 22px;
+            padding: 0;
+          }
+        }
       }
     }
   }

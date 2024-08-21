@@ -21,15 +21,15 @@
     <slot />
     <template #content>
       <div class="spec-diaplay-panel">
-        <div class="title">{{ data.name }} {{ $t('规格') }}</div>
+        <div class="spec-diaplay-panel-title">{{ data.name }} {{ $t('规格') }}</div>
         <div class="items">
           <div class="item">
             <div class="item-title">CPU：</div>
             <div class="item-content">
               {{
                 data.cpu.min === data.cpu.max
-                  ? $t('n核', { n: data.cpu.min })
-                  : $t('((n-m))核', { n: data.cpu.min, m: data.cpu.max })
+                  ? t('n核', { n: data.cpu.min })
+                  : t('((n-m))核', { n: data.cpu.min, m: data.cpu.max })
               }}
             </div>
           </div>
@@ -44,8 +44,8 @@
             style="align-items: flex-start">
             <div class="item-title">{{ $t('磁盘') }}：</div>
             <div class="item-content">
-              <div class="table">
-                <div class="head">
+              <div class="disk-table">
+                <div class="table-head">
                   <div class="head-one">
                     {{ $t('挂载点') }}
                   </div>
@@ -56,7 +56,7 @@
                     {{ $t('磁盘类别') }}
                   </div>
                 </div>
-                <div class="row">
+                <div class="table-row">
                   <div class="row-one">
                     {{ data.storage_spec[0].mount_point }}
                   </div>
@@ -86,6 +86,8 @@
   </BkPopover>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   export interface SpecInfo {
     name: string;
     cpu: {
@@ -141,6 +143,8 @@
     }),
     hideQps: false,
   });
+
+  const { t } = useI18n();
 </script>
 <style lang="less" scoped>
   .spec-diaplay-panel {
@@ -155,113 +159,96 @@
     box-sizing: border-box;
     flex-direction: column;
 
-    .title {
+    .spec-diaplay-panel-title {
       height: 20px;
-      margin-bottom: 18px;
+      margin-bottom: 12px;
       font-size: 12px;
       font-weight: 700;
       line-height: 20px;
       color: #63656e;
     }
 
-    .items {
+    .item {
       display: flex;
       width: 100%;
-      padding: 16px 24px 20px 16px;
-      margin-top: -12px;
-      margin-left: -12px;
-      background: #fff;
-      box-sizing: border-box;
-      flex-direction: column;
-      gap: 18px;
+      align-items: center;
+      line-height: 32px;
 
-      .title {
-        height: 20px;
-        margin-bottom: 18px;
+      .item-title {
+        min-width: 36px;
         font-size: 12px;
-        font-weight: 700;
-        line-height: 20px;
+        letter-spacing: 0;
         color: #63656e;
+        text-align: right;
+        flex-shrink: 0;
       }
 
-      .item {
-        display: flex;
-        width: 100%;
-        align-items: center;
+      .item-content {
+        font-size: 12px;
+        letter-spacing: 0;
+        color: #313238;
 
-        .item-title {
-          min-width: 36px;
-          font-size: 12px;
-          letter-spacing: 0;
-          color: #63656e;
-          text-align: right;
-        }
+        .disk-table {
+          display: flex;
+          flex-direction: column;
+          margin-top: 10px;
 
-        .item-content {
-          font-size: 12px;
-          letter-spacing: 0;
-          color: #313238;
+          .cell-common {
+            width: 160px;
+            height: 42px;
+            padding: 0 16px;
+            line-height: 42px;
+            border: 1px solid #dcdee5;
+          }
 
-          .table {
+          .table-head {
             display: flex;
-            flex-direction: column;
+            width: 100%;
+            background: #f0f1f5;
 
-            .cell_common {
-              width: 200px;
-              height: 42px;
-              padding: 11px 16px;
-              border: 1px solid #dcdee5;
+            .head-one {
+              .cell-common();
+
+              border-bottom: none;
             }
 
-            .head {
-              display: flex;
-              width: 100%;
-              background: #f0f1f5;
+            .head-two {
+              .cell-common();
 
-              .head-one {
-                .cell_common();
-
-                border-bottom: none;
-              }
-
-              .head-two {
-                .cell_common();
-
-                width: 120px;
-                border-right: none;
-                border-bottom: none;
-                border-left: none;
-              }
-
-              .head-three {
-                .cell_common();
-
-                width: 120px;
-                border-bottom: none;
-              }
+              width: 120px;
+              border-right: none;
+              border-bottom: none;
+              border-left: none;
             }
 
-            .row {
-              display: flex;
-              width: 100%;
+            .head-three {
+              .cell-common();
 
-              .row-one {
-                .cell_common();
-              }
+              width: 120px;
+              border-bottom: none;
+            }
+          }
 
-              .row-two {
-                .cell_common();
+          .table-row {
+            display: flex;
+            width: 100%;
 
-                width: 120px;
-                border-right: none;
-                border-left: none;
-              }
+            .row-one {
+              .cell-common();
+            }
 
-              .row-three {
-                .cell_common();
+            .row-two {
+              .cell-common();
 
-                width: 120px;
-              }
+              width: 120px;
+              border-right: none;
+              border-left: none;
+            }
+
+            .row-three {
+              .cell-common();
+
+              width: 120px;
             }
           }
         }
