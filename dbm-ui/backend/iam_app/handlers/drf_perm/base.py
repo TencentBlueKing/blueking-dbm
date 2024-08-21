@@ -89,9 +89,13 @@ class IAMPermission(permissions.BasePermission):
         # 查询类请求（简单定义为所有 GET 请求）不审计
         if request.method != "GET":
             # 审计操作类请求
+            if hasattr(request, "data"):
+                extend_data = request.data
+            else:
+                extend_data = {}
             for action in self.actions:
                 if not self.resources:
-                    bk_audit_client.add_event(action=action, audit_context=context, extend_data=request.data)
+                    bk_audit_client.add_event(action=action, audit_context=context, extend_data=extend_data)
                     continue
                 # 打散资源，平铺成资源列表
                 resources_list = list(itertools.chain(*self.resources))
@@ -102,7 +106,7 @@ class IAMPermission(permissions.BasePermission):
                             resource_type=self.resource_type() if self.resource_type else resource,
                             audit_context=context,
                             instance=CommonInstance(resource.attribute),
-                            extend_data=request.data,
+                            extend_data=extend_data,
                         )
                     except TypeError as e:
                         logger.error("bk audit add event error...%s", e)
