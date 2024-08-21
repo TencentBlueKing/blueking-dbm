@@ -93,6 +93,7 @@
     .content {
       // padding-bottom: 2px;
       cursor: pointer;
+      color: #313238;
       // border-bottom: 1px dotted #979ba5;
     }
   }
