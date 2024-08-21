@@ -16,11 +16,13 @@ from typing import List
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
+from backend.db_meta.api.cluster.nosqlcomm.other import get_cluster_ins_dns
 from backend.db_meta.enums import ClusterType
-from backend.flow.consts import SwitchType, SyncType
+from backend.flow.consts import DnsOpType, SwitchType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.redis.dns_manage import RedisDnsManageComponent
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
@@ -157,6 +159,49 @@ def RedisClusterSwitchAtomJob(root_id, data, act_kwargs: ActKwargs, sync_params:
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(act_kwargs),
         )
+
+    # 刷新DNS 主从版本需要
+    if act_kwargs.cluster["cluster_type"] in [ClusterType.TendisRedisInstance.value]:
+        acts_list = []
+        for sync_host in sync_params:
+            # change master domain .
+            acts_list.append(
+                {
+                    "act_name": _("刷新域名-{}").format(act_kwargs.cluster["immute_domain"]),
+                    "act_component_code": RedisDnsManageComponent.code,
+                    "kwargs": asdict(
+                        {
+                            "dns_op_type": DnsOpType.UPDATE,
+                            "old_instance": "{}#{}".format(sync_host["origin_1"], sync_port["origin_1"]),
+                            "new_instance": "{}#{}".format(sync_host["sync_dst1"], sync_port["sync_dst1"]),
+                            "update_domain_name": act_kwargs.cluster["immute_domain"],
+                        }
+                    ),
+                }
+            )
+            if not SyncType.SYNC_MS.value == act_kwargs.cluster["switch_condition"]["sync_type"]:
+                # change slave domian. [一主多从？？]
+                # s = cluster.storageinstance_set.get(machine__ip=sync_host["sync_dst2"],port=sync_port["sync_dst2"])
+                # entry_obj = s.bind_entry.get()
+                domain = get_cluster_ins_dns(
+                    act_kwargs.cluster["cluster_id"], sync_host["origin_2"], int(sync_port["origin_2"])
+                )
+                if domain != "":
+                    acts_list.append(
+                        {
+                            "act_name": _("刷新域名-{}").format(domain),
+                            "act_component_code": RedisDnsManageComponent.code,
+                            "kwargs": asdict(
+                                {
+                                    "dns_op_type": DnsOpType.UPDATE,
+                                    "old_instance": "{}#{}".format(sync_host["origin_2"], sync_port["origin_2"]),
+                                    "new_instance": "{}#{}".format(sync_host["sync_dst2"], sync_port["sync_dst2"]),
+                                    "update_domain_name": domain,
+                                }
+                            ),
+                        }
+                    )
+        sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     # 修改元数据指向，并娜动CC模块
     act_kwargs.cluster["sync_relation"], new_ips = [], {}

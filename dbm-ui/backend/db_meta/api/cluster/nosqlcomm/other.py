@@ -47,3 +47,21 @@ def get_clusters_details(cluster_ids: List):
     except Exception as e:  # pylint: disable=broad-except
         logger.error(traceback.format_exc())
         raise Exception("get clusters detail failed {}".format(e))
+
+
+def get_cluster_ins_dns(cluster_id: int, ip: str, port: int):
+    """
+    1. 实例属于某个集群
+    2. 且实例只有一个dns域名
+    """
+    try:
+        cluster = Cluster.objects.get(cluster_id=cluster_id)
+        inst_obj = cluster.storageinstance_set.get(machine__ip=ip, port=port)
+        if inst_obj.bind_entry.exists():
+            entry_obj = inst_obj.bind_entry.get()
+            return entry_obj.entry
+        else:
+            return ""
+    except Exception as e:  # pylint: disable=broad-except
+        logger.error(traceback.format_exc())
+        raise Exception("get cluster detail failed {}".format(e))

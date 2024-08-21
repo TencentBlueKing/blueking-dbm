@@ -176,6 +176,7 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
     1. 修改 db_meta_storagesetdtl 把 M1 改成 M2
     2. 修改 db_meta_proxyinstance_storageinstance
     3. 如果sync 时修改了角色，需要改回去
+    4. 单实例， 域名也需要跟着切
     """
     logger.info("user request switch msms , cluster {} , link info {}".format(cluster.immute_domain, tendisss))
     old_ejector_objs, new_ejector_objs = precheck(cluster, tendisss)
@@ -212,6 +213,22 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
                 "add cluster {} proxys {} link with storage {}".format(cluster, tmp_proxy_objs, new_ejector_obj)
             )
             new_ejector_obj.proxyinstance_set.add(*tmp_proxy_objs)
+            # storageinstance bind info .
+            ejector_entry = old_ejector_obj.old_receiver_obj
+            ejector_entry.storageinstance_set.remove(old_ejector_obj)
+            ejector_entry.storageinstance_set.add(new_ejector_obj)
+            logger.info(
+                "change ejector entry {} from {} to {}".format(ejector_entry, old_ejector_obj, new_ejector_obj)
+            )
+            if switch_type != SyncType.MS.value:
+                old_receiver_obj = old_ejector_obj.as_ejector.get().receiver
+                new_receiver_obj = new_ejector_obj.as_ejector.get().receiver
+                receiver_entry = old_receiver_obj.old_receiver_obj
+                receiver_entry.storageinstance_set.remove(old_receiver_obj)
+                receiver_entry.storageinstance_set.add(new_receiver_obj)
+                logger.info(
+                    "change receiver entry {} from {} to {}".format(receiver_entry, old_receiver_obj, new_receiver_obj)
+                )
 
             if cluster.cluster_type in [
                 ClusterType.TendisTwemproxyRedisInstance,
@@ -231,6 +248,7 @@ def switch_tendis(cluster: Cluster, tendisss: List[Dict], switch_type: str = Syn
                 machine__bk_cloud_id=cluster.bk_cloud_id,
                 bk_biz_id=cluster.bk_biz_id,
             )
+
             bk_host_ids.append(new_ejector_obj.machine.bk_host_id)
             if switch_type != SyncType.MS.value:
                 logger.info("switch for sync {} need move cc module & add cc instance".format(switch_type))
