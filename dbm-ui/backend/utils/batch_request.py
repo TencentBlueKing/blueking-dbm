@@ -212,9 +212,6 @@ def batch_decorator(
 
         kwargs.pop("page")
         kwargs.update(wrapped=wrapped)
-        # 如果是classmethod，默认为第一个位置参数
-        if is_classmethod:
-            kwargs.update(cls=args[0])
 
         # 调用批量请求接口
         data = batch_request(

@@ -76,8 +76,8 @@ class IpChooserTopoViewSet(viewsets.SystemViewSet):
             topo_handler.TopoHandler.query_host_id_infos(
                 readable_node_list=self.validated_data["node_list"],
                 conditions=self.validated_data["conditions"],
-                start=self.validated_data["start"],
-                page_size=self.validated_data["page_size"],
+                start=self.validated_data["page"]["start"],
+                page_size=self.validated_data["page"]["page_size"],
             )
         )
 
