@@ -61,3 +61,20 @@ class UpsertConfigData:
             init_data.get("publish_description", ""),
             init_data["confirm"],
         )
+
+
+@attr.s(auto_attribs=True)
+class DBConfigDeployData:
+    bk_biz_id: str
+    module_id: str
+
+    def __attrs_post_init__(self):
+        self.bk_biz_id = str(self.bk_biz_id)
+        self.module_id = str(self.module_id)
+
+    @classmethod
+    def from_dict(cls, init_data: Dict) -> "DBConfigDeployData":
+        return cls(
+            init_data["bk_biz_id"],
+            init_data["module_id"],
+        )

@@ -14,7 +14,12 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName, ReqType
 from backend.configuration.constants import PLAT_BIZ_ID
 from backend.db_meta.models import Cluster
-from backend.db_services.dbconfig.dataclass import DBBaseConfig, DBConfigLevelData, UpsertConfigData
+from backend.db_services.dbconfig.dataclass import (
+    DBBaseConfig,
+    DBConfigDeployData,
+    DBConfigLevelData,
+    UpsertConfigData,
+)
 
 
 class DBConfigHandler:
@@ -318,3 +323,19 @@ class DBConfigHandler:
             "updated_at": dbconfig["updated_at"],
             "updated_by": dbconfig["updated_by"],
         }
+
+    def get_module_by_id(self, dbconfig_deploy_data: DBConfigDeployData) -> List[Dict]:
+        """通过模块id查询部署集配置详情"""
+        data = DBConfigApi.query_conf_item(
+            {
+                "bk_biz_id": dbconfig_deploy_data.bk_biz_id,
+                "level_name": LevelName.MODULE,
+                "level_value": dbconfig_deploy_data.module_id,
+                "conf_file": "deploy_info",
+                "conf_type": "deploy",
+                "namespace": self.meta_cluster_type,
+                "format": FormatType.MAP,
+            }
+        )["content"]
+
+        return data

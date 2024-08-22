@@ -16,8 +16,14 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_meta.enums import ClusterType
+from backend.db_meta.models import DBModule
 from backend.db_services.dbconfig import serializers
-from backend.db_services.dbconfig.dataclass import DBBaseConfig, DBConfigLevelData, UpsertConfigData
+from backend.db_services.dbconfig.dataclass import (
+    DBBaseConfig,
+    DBConfigDeployData,
+    DBConfigLevelData,
+    UpsertConfigData,
+)
 from backend.db_services.dbconfig.handlers import DBConfigHandler
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -188,6 +194,28 @@ class ConfigViewSet(viewsets.SystemViewSet):
         base_conf = DBBaseConfig.from_dict(validated_data)
         dbconfig_level_data = DBConfigLevelData.from_dict(validated_data)
         return Response(DBConfigHandler(base_conf, True).get_level_config(dbconfig_level_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询模块配置详情"),
+        request_body=serializers.ModuleConfigSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=serializers.ModuleConfigSerializer)
+    def get_module_by_id(self, request):
+        """
+        通过module id获取模块配置详情
+        """
+        validated_data = self.params_validate(self.get_serializer_class())
+        module_id = validated_data["module_id"]
+        try:
+            dbmodule_obj = DBModule.objects.get(db_module_id=module_id)
+        except DBModule.DoesNotExist:
+            raise Exception("DBModule {} does not exist".format(module_id))
+        base_conf = DBBaseConfig.from_dict({"meta_cluster_type": dbmodule_obj.cluster_type, "conf_type": "deploy"})
+        deconfig_deploy_data = DBConfigDeployData.from_dict(
+            {"bk_biz_id": dbmodule_obj.bk_biz_id, "module_id": module_id}
+        )
+        return Response(DBConfigHandler(base_conf).get_module_by_id(deconfig_deploy_data))
 
     @common_swagger_auto_schema(
         operation_summary=_("查询配置发布历史记录"),

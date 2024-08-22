@@ -90,6 +90,10 @@ class CommonLevelConfigSerializer(DBConfigBaseSerializer):
     level_info = serializers.DictField(help_text=_("层级关系"), required=False)
 
 
+class ModuleConfigSerializer(serializers.Serializer):
+    module_id = serializers.IntegerField(help_text=_("DB模块ID"))
+
+
 class UpsertLevelConfigSerializer(CommonLevelConfigSerializer):
     conf_items = serializers.ListSerializer(help_text=_("配置项列表"), child=LevelConfigItemSerializer())
     confirm = serializers.IntegerField(help_text=_("是否确认"), min_value=0, max_value=1, default=0)
