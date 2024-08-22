@@ -106,7 +106,6 @@ class MysqlSqlImportFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.MYSQL_IMPORT_SQLFILE)
 class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlSqlImportDetailSerializer
-    editable = False
     # 定义流程所用到的cls，方便继承复用
     itsm_flow_builder = MysqlSqlImportItsmParamBuilder
     backup_flow_builder = MysqlSqlImportBackUpFlowParamBuilder

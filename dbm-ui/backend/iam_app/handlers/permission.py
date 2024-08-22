@@ -579,11 +579,10 @@ class Permission(object):
             )
 
         # 填充权限字段
-        if isinstance(response.data, list):
-            response.data = [{"permission": permission_result, **d} for d in response.data]
-        elif isinstance(response.data, dict):
-            response.data.setdefault("permission", {})
-            response.data["permission"].update(permission_result)
+        data_list = response.data if isinstance(response.data, list) else [response.data]
+        for data in data_list:
+            data.setdefault("permission", {})
+            data["permission"].update(permission_result)
 
         return response
 

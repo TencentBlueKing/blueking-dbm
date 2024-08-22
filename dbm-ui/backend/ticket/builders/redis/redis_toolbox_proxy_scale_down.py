@@ -14,7 +14,6 @@ from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.redis import RedisController
-from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer, SkipToRepresentationMixin, fetch_cluster_ids
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
@@ -58,7 +57,7 @@ class ProxyScaleDownParamBuilder(builders.FlowParamBuilder):
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_PROXY_SCALE_DOWN, iam=ActionEnum.REDIS_PROXY_SCALE_DOWN)
+@builders.BuilderFactory.register(TicketType.REDIS_PROXY_SCALE_DOWN)
 class ProxyScaleDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = ProxyScaleDownDetailSerializer
     inner_flow_builder = ProxyScaleDownParamBuilder

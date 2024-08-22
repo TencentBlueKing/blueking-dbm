@@ -233,23 +233,37 @@ class TicketFlowsConfig(AuditedModel):
     """
 
     bk_biz_id = models.IntegerField(_("业务ID"), default=0)
-    ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128)
+    cluster_ids = models.JSONField(_("集群ID列表"), default=list)
     group = models.CharField(_("单据分组类型"), choices=DBType.get_choices(), max_length=LEN_NORMAL)
-    editable = models.BooleanField(_("是否支持用户配置"))
+    ticket_type = models.CharField(_("单据类型"), choices=TicketType.get_choices(), max_length=128)
+    editable = models.BooleanField(_("是否支持用户配置"), default=True)
     configs = models.JSONField(_("单据配置 eg: {'need_itsm': false, 'need_manual_confirm': false}"), default=dict)
 
     class Meta:
         verbose_name_plural = verbose_name = _("单据流程配置(TicketFlowsConfig)")
-        indexes = [models.Index(fields=["group"])]
+        indexes = [models.Index(fields=["group"]), models.Index(fields=["bk_biz_id"])]
 
     @classmethod
-    def get_config(cls, ticket_type, bk_biz_id=PLAT_BIZ_ID):
-        """获取单据类型的配置"""
-        # 优先获取业务的单据配置，如果业务配置没有则获取平台的
-        try:
-            return cls.objects.get(bk_biz_id=bk_biz_id, ticket_type=ticket_type).configs
-        except cls.DoesNotExist:
-            return cls.objects.get(bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type).configs
+    def get_cluster_configs(cls, ticket_type, bk_biz_id, cluster_ids):
+        """获取集群生效的流程配置"""
+        # 流程优先级：集群维度 > 业务维度 > 平台维度
+        # 全局配置
+        global_cfg = cls.objects.get(bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type)
+        # 业务配置和集群配置
+        biz_configs = cls.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
+        biz_cfg = biz_configs.filter(cluster_ids=[]).first() or global_cfg
+        cluster_cfg = biz_configs.exclude(cluster_ids=[]).first() or biz_cfg
+
+        # 单据不涉及集群，则返回业务/平台配置
+        if not cluster_ids:
+            return [biz_cfg]
+
+        # 业务或集群配置最多共存一个
+        cluster_configs = [
+            cluster_cfg if cluster_cfg and cluster_id in cluster_cfg.cluster_ids else biz_cfg
+            for cluster_id in cluster_ids
+        ]
+        return cluster_configs
 
 
 class ClusterOperateRecordManager(models.Manager):

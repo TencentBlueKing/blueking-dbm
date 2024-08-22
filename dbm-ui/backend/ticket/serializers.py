@@ -291,24 +291,31 @@ class QueryTicketFlowDescribeSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("单据分组类型"), choices=DBType.get_choices())
     ticket_types = serializers.CharField(help_text=_("单据类型"), default="")
 
-    limit = serializers.IntegerField(help_text=_("每页限制"), required=False, default=10)
-    offset = serializers.IntegerField(help_text=_("起始"), required=False, default=0)
-
-    limit = serializers.IntegerField(help_text=_("每页限制"), required=False, default=10)
-    offset = serializers.IntegerField(help_text=_("起始"), required=False, default=0)
-
     def validate(self, attrs):
         if attrs.get("ticket_types"):
             attrs["ticket_types"] = attrs["ticket_types"].split(",")
         return attrs
 
 
-class UpdateTicketFlowConfigSerializer(serializers.Serializer):
+class CreateTicketFlowConfigSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=PLAT_BIZ_ID)
+    cluster_ids = serializers.ListSerializer(
+        help_text=_("集群ID列表"), child=serializers.IntegerField(), required=False, default=[]
+    )
     ticket_types = serializers.ListField(
         help_text=_("单据类型"), child=serializers.ChoiceField(choices=TicketType.get_choices())
     )
     configs = serializers.DictField(help_text=_("单据可配置项"))
+
+
+class UpdateTicketFlowConfigSerializer(CreateTicketFlowConfigSerializer):
+    config_ids = serializers.ListField(
+        help_text=_("流程规则ID列表)"), child=serializers.IntegerField(), required=False, default=[]
+    )
+
+
+class DeleteTicketFlowConfigSerializer(serializers.Serializer):
+    config_ids = serializers.ListField(help_text=_("流程规则ID列表)"), child=serializers.IntegerField())
 
 
 class TicketFlowDescribeDetailSerializer(serializers.Serializer):

@@ -307,18 +307,26 @@ class TicketFlowBuilder:
         return True
 
     @property
+    def ticket_configs(self):
+        if not hasattr(self, "_ticket_configs"):
+            from backend.ticket.builders.common.base import fetch_cluster_ids
+
+            cluster_ids = fetch_cluster_ids(self.ticket.details)
+            configs = TicketFlowsConfig.get_cluster_configs(self.ticket_type, self.ticket.bk_biz_id, cluster_ids)
+            setattr(self, "_ticket_configs", configs)
+        return getattr(self, "_ticket_configs")
+
+    @property
     def need_itsm(self):
         """是否需要itsm审批节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
-        assert self.ticket_type is not None, "Please make sure FlowBuilder set the ticket type! "
-        config = TicketFlowsConfig.get_config(ticket_type=self.ticket_type, bk_biz_id=self.ticket.bk_biz_id)
-        return config["need_itsm"]
+        need_itsm = any([c.configs["need_itsm"] for c in self.ticket_configs])
+        return need_itsm
 
     @property
     def need_manual_confirm(self):
         """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
-        assert self.ticket_type is not None, "Please make sure FlowBuilder set the ticket type! "
-        config = TicketFlowsConfig.get_config(ticket_type=self.ticket_type, bk_biz_id=self.ticket.bk_biz_id)
-        return config["need_manual_confirm"]
+        need_manual_confirm = any([c.configs["need_manual_confirm"] for c in self.ticket_configs])
+        return need_manual_confirm
 
     @property
     def need_resource_pool(self):
