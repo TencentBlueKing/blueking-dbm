@@ -109,7 +109,6 @@
           }),
           {} as Record<string, boolean>,
         );
-
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
@@ -155,7 +154,9 @@
   );
 
   const handleInputFinish = (value: string) => {
-    emits('inputCreate', value);
+    if (value) {
+      emits('inputCreate', value);
+    }
   };
 
   onBeforeUnmount(() => {
