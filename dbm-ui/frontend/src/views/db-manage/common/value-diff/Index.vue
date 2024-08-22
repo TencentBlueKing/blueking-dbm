@@ -37,7 +37,7 @@
 
     const diff = targetValue - currentValue;
     let rate = '0';
-    if (diff > 0 && currentValue > 0 && showRate) {
+    if (diff !== 0 && currentValue > 0 && showRate) {
       rate = ((diff / currentValue) * 100).toFixed(2);
     }
     if (diff < 0) {

@@ -20,15 +20,15 @@
       :placeholder="t('请选择')"
       :rules="rules"
       @change="handleChange">
-      <template #suffix="{ index }">
+      <template #suffix="{ item, index }">
         <div>
-          <!-- <BkTag
+          <BkTag
             v-if="isCurrentVersion(item.label as string)"
             class="ml-4"
             size="small"
             theme="info">
             {{ t('当前版本') }}
-          </BkTag> -->
+          </BkTag>
           <BkTag
             v-if="index === 0"
             class="ml-4"
@@ -148,7 +148,7 @@
     },
   );
 
-  // const isCurrentVersion = (value: string) => props.currentList.includes(value);
+  const isCurrentVersion = (value: string) => props.data?.version === value;
 
   const handleChange = (value: IListItem['value']) => {
     emits('change', value as string);

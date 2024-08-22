@@ -51,7 +51,7 @@
               <template v-if="targetInfo.spec.name">
                 <ClusterCapacityUsageRate :cluster-stats="targetClusterStats" />
                 <ValueDiff
-                  :current-value="targetClusterStats.total || 0"
+                  :current-value="currentCapacity"
                   num-unit="G"
                   :target-value="targetInfo.capacity" />
               </template>
@@ -262,6 +262,8 @@
 
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue'
 
+  import { convertStorageUnits, messageError } from '@utils';
+
   export interface CapacityNeed {
     current: number,
     future: number,
@@ -278,6 +280,7 @@
       storage_spec: ClusterSpecModel['storage_spec']
     },
     groupNum: number,
+    requireMachineGroupNum: number,
     shardNum: number,
     updateMode: string
   }
@@ -304,7 +307,7 @@
   }
 
   interface Emits {
-    (e: 'clickConfirm', obj: ClusterSpecModel, capacity: CapacityNeed, target: UnwrapRef<typeof targetInfo>): void
+    (e: 'clickConfirm', obj: ClusterSpecModel, capacity: number, target: UnwrapRef<typeof targetInfo>): void
     (e: 'clickCancel'): void
     (e: 'targetStatsChange', value: RedisModel['cluster_stats']): void
   }
@@ -328,6 +331,7 @@
       },
       clusterType: RedisClusterTypes.TwemproxyRedisInstance,
       groupNum: 0,
+      requireMachineGroupNum: 0,
       shardNum: 0,
     }),
     title: '',
@@ -342,8 +346,7 @@
   const handleBeforeClose = useBeforeClose();
 
   const capacityNeed = ref();
-  // const capacityFutureNeed = ref();
-  const radioValue  = ref(-1);
+  const radioValue = ref(-1);
   const radioChoosedId  = ref(''); // 标记，sort重新定位index用
   const isTableLoading = ref(false);
   const isConfirmLoading = ref(false);
@@ -359,6 +362,7 @@
       storage_spec: [] as ClusterSpecModel['storage_spec']
     },
     groupNum: 0,
+    requireMachineGroupNum: 0,
     shardNum: 0,
     updateMode: ''
   });
@@ -371,18 +375,25 @@
   const targetClusterStats = computed(() => {
     let stats = {} as RedisModel['cluster_stats']
     if (!_.isEmpty(props.clusterStats)) {
-      const { used, total } = props.clusterStats;
-      const targetTotal = total + targetInfo.value.capacity * 1024 * 1024
+      const { used } = props.clusterStats;
+      const targetTotal = convertStorageUnits(targetInfo.value.capacity, 'GB', 'B')
 
       stats = {
         used,
         total: targetTotal,
-        in_use: Number((used/targetTotal).toFixed(2))
+        in_use: Number((used / targetTotal * 100).toFixed(2))
       }
     }
 
     emits('targetStatsChange', stats)
     return stats
+  })
+
+  const currentCapacity = computed(() => {
+    if (_.isEmpty(props.clusterStats)) {
+      return 0
+    }
+    return convertStorageUnits(props.clusterStats.total, 'B', 'GB')
   })
 
   const cluserMachineMap = {
@@ -424,51 +435,6 @@
 
   let rawTableData: ClusterSpecModel[] = [];
 
-  // watch(() => props.data, (data) => {
-  //   if (data) {
-  //     targetCapacity.value.current = data.capacity.total;
-  //   }
-  // }, {
-  //   immediate: true,
-  // });
-
-  // watch(capacityNeed, (data) => {
-  //   if (data && data > 0 && data !== capacityFutureNeed.value) {
-  //     capacityFutureNeed.value = data;
-  //   }
-  // }, {
-  //   immediate: true,
-  // });
-
-  watch(radioValue, (index) => {
-    if (index === -1) {
-      return;
-    }
-    const plan = tableData.value[index];
-    getRedisClusterCapacityUpdateInfo({
-      cluster_id: props.clusterId!,
-      new_storage_version: props.targetVerison!,
-      new_spec_id : plan.spec_id,
-      new_machine_group_num: plan.machine_pair,
-      new_shards_num: plan.cluster_shard_num
-    }).then((updateInfo) => {
-      targetInfo.value = {
-        capacity: plan.cluster_capacity,
-        spec: {
-          name: plan.spec_name,
-          cpu: plan.cpu,
-          id: plan.spec_id,
-          mem: plan.mem,
-          qps: plan.qps,
-          storage_spec: plan.storage_spec
-        },
-        groupNum: updateInfo.require_machine_group_num,
-        shardNum: plan.cluster_shard_num,
-        updateMode: updateInfo.capacity_update_type
-      }
-    })
-  });
-
   const handleSearchClusterSpec = async () => {
     if (capacityNeed.value === undefined) {
       return;
@@ -480,7 +446,7 @@
         spec_cluster_type: clusterType,
         spec_machine_type: cluserMachineMap[clusterType],
         shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
-        capacity: capacityNeed.value,
+        capacity: props.data.capacity.total ?? 1,
         future_capacity: capacityNeed.value,
       };
       if (!props.isSameShardNum) {
@@ -500,7 +466,7 @@
     if (index === -1) {
       return;
     }
-    emits('clickConfirm', tableData.value[index], { current: capacityNeed.value, future: targetInfo.value.capacity }, targetInfo.value);
+    emits('clickConfirm', tableData.value[index], capacityNeed.value, targetInfo.value);
   };
 
   async function handleClose() {
@@ -511,8 +477,35 @@
   }
 
   const handleRowClick = (event: PointerEvent, row: ClusterSpecModel, index: number) => {
-    radioValue.value = index;
-    radioChoosedId.value = row.spec_name;
+    getRedisClusterCapacityUpdateInfo({
+      cluster_id: props.clusterId!,
+      new_storage_version: props.targetVerison!,
+      new_spec_id : row.spec_id,
+      new_machine_group_num: row.machine_pair,
+      new_shards_num: row.cluster_shard_num
+    }).then((updateInfo) => {
+      if (updateInfo.err_msg) {
+        messageError(updateInfo.err_msg)
+        return
+      }
+      targetInfo.value = {
+        capacity: row.cluster_capacity,
+        spec: {
+          name: row.spec_name,
+          cpu: row.cpu,
+          id: row.spec_id,
+          mem: row.mem,
+          qps: row.qps,
+          storage_spec: row.storage_spec
+        },
+        groupNum: updateInfo.require_machine_group_num,
+        requireMachineGroupNum: updateInfo.require_machine_group_num,
+        shardNum: row.cluster_shard_num,
+        updateMode: updateInfo.capacity_update_type
+      }
+      radioValue.value = index;
+      radioChoosedId.value = row.spec_name;
+    })
   };
 
   const handleColumnSort = (data: { column: { field: string }, index: number, type: string }) => {

@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="tsx">
-  import _ from 'lodash'
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -31,6 +31,8 @@
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue'
+
+  import { convertStorageUnits } from '@utils';
 
   import TableGroupContent from '../components/TableGroupContent.vue'
 
@@ -62,12 +64,12 @@
     {
       label: t('Redis版本'),
       field: 'db_version',
-      width: 180,
       showOverflowTooltip: true,
     },
     {
       label: t('当前容量'),
       field: '',
+      minWidth: 240,
       render: ({ data }: {data: RowData}) => {
         const columns = [
           {
@@ -109,27 +111,30 @@
     {
       label: t('目标容量'),
       field: '',
+      minWidth: 370,
       render: ({ data }: {data: RowData}) => {
         const columns = [
           {
             title: t('目标容量'),
             render: () => {
-              let stats = {} as RedisModel['cluster_stats']
-              if (!_.isEmpty(data.cluster_stats)) {
-                const { used, total } = data.cluster_stats;
-                const targetTotal = total + data.future_capacity * 1024 * 1024
+              const { used = 0, total = 0 } = data.cluster_stats;
+              const targetTotal = convertStorageUnits(data.future_capacity, 'GB', 'B')
+              const currentValue = convertStorageUnits(total, 'B', 'GB')
 
+              let stats = {}
+              if (!_.isEmpty(data.cluster_stats)) {
                 stats = {
                   used,
                   total: targetTotal,
-                  in_use: Number((used/targetTotal).toFixed(2))
+                  in_use: Number((used / targetTotal * 100).toFixed(2))
                 }
               }
+
               return (
                 <>
                   <ClusterCapacityUsageRate clusterStats={stats} />
                   <ValueDiff
-                    currentValue={stats.total || 0}
+                    currentValue={currentValue}
                     num-unit="G"
                     targetValue={data.future_capacity} />
                 </>
@@ -251,10 +256,12 @@
         });
         return results;
       }, {} )
-      tableData.value = infos.map((infoItem) => ({
-        ...clusterInfo[infoItem.cluster_id],
-        ...infoItem,
-      }));
+      tableData.value = infos.map((infoItem) =>
+      Object.assign(
+        {},
+        clusterInfo[infoItem.cluster_id],
+        infoItem,
+      ));
     }
   })
 </script>
