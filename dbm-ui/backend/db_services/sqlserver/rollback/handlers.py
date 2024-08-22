@@ -12,6 +12,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Set
 
+from django.utils.translation import ugettext as _
+
 from backend.components.bklog.handler import BKLogHandler
 from backend.db_meta.models import Cluster
 from backend.db_services.sqlserver.rollback.constants import BACKUP_LOG_RANGE_DAYS
@@ -27,9 +29,9 @@ class SQLServerRollbackHandler(object):
 
     @staticmethod
     def _get_log_from_bklog(
-        collector: str, start_time: datetime, end_time: datetime, query_string="*", size=1000
+        collector: str, start_time: datetime, end_time: datetime, query_string="*", size=1000, sort_rule="asc"
     ) -> List[Dict]:
-        return BKLogHandler.query_logs(collector, start_time, end_time, query_string, size)
+        return BKLogHandler.query_logs(collector, start_time, end_time, query_string, size, sort_rule)
 
     def query_binlogs(self, start_time: datetime, end_time: datetime, dbname: str):
         """
@@ -154,3 +156,20 @@ class SQLServerRollbackHandler(object):
         db_names = [log["dbname"] for log in backup_logs["logs"]]
         real_db_names = sqlserver_match_dbs(db_names, db_pattern, ignore_db)
         return real_db_names
+
+    def query_last_log_time(self, query_time: datetime):
+        """
+        查询集群的最近一次上报的备份时间
+        """
+        last_binlogs = self._get_log_from_bklog(
+            collector="mssql_binlog_result",
+            start_time=query_time - timedelta(days=BACKUP_LOG_RANGE_DAYS),
+            end_time=query_time,
+            query_string=f"""cluster_id: {self.cluster.id} """,
+            size=1,
+            sort_rule="desc",
+        )
+        if not last_binlogs:
+            raise Exception(_("集群【{}】最近的{}天里找不到日志备份").format(self.cluster.name, BACKUP_LOG_RANGE_DAYS))
+
+        return last_binlogs[0]["backup_end_time"]
