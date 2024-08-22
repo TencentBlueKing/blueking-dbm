@@ -106,7 +106,7 @@
         if (!props.onlyOneType) {
           return true;
         }
-        const types = new Set(props.clusterTypes);
+        const types = new Set(props.clusterTypes.filter((item) => !!item));
         return types.size === 1;
       },
       message: t('只允许提交一种集群类型'),
