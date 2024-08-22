@@ -8,17 +8,21 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import itertools
 import json
 import logging
 from typing import Dict, List
 
-from django.db.models import Prefetch
+from django.db import transaction
+from django.db.models import Prefetch, Q
+from django.forms import model_to_dict
 from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components import ItsmApi
 from backend.configuration.constants import PLAT_BIZ_ID, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_meta.models import Cluster
 from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
@@ -31,6 +35,7 @@ from backend.ticket.constants import (
     TicketFlowStatus,
     TicketType,
 )
+from backend.ticket.exceptions import TicketFlowsConfigException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.todos import ActionType, TodoActorFactory
@@ -163,7 +168,16 @@ class TicketHandler:
     @classmethod
     def ticket_flow_config_init(cls):
         """初始化单据配置"""
-        exist_ticket_types = list(TicketFlowsConfig.objects.all().values_list("ticket_type", flat=True))
+        exist_flow_configs = TicketFlowsConfig.objects.all()
+        exist_ticket_types = [config.ticket_type for config in exist_flow_configs]
+
+        # 删除不存在的单据流程
+        deleted_configs = [
+            config.id for config in exist_flow_configs if config.ticket_type not in BuilderFactory.registry.keys()
+        ]
+        TicketFlowsConfig.objects.filter(id__in=deleted_configs).delete()
+
+        # 创建新单据类型流程
         created_configs = [
             TicketFlowsConfig(
                 bk_biz_id=PLAT_BIZ_ID,
@@ -267,3 +281,118 @@ class TicketHandler:
             # 用户终止 / 系统终止flow
             logger.info(_("操作人[{}]终止了单据[{}]").format(operator, ticket.id))
             cls.operate_flow(ticket.id, first_running_flow.id, func="revoke", operator=operator)
+
+    @classmethod
+    def create_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, operator):
+        """
+        创建单据流程
+        @param bk_biz_id: 业务ID，为0表示平台业务
+        @param cluster_ids: 集群ID列表，表示规则生效的集群范围
+        @param ticket_types: 单据类型列表
+        @param configs: 流程配置
+        @param operator: 创建者
+        """
+
+        def check_create_config(ticket_type):
+            if not bk_biz_id:
+                raise TicketFlowsConfigException(_("不允许新增平台级别的流程设置"))
+
+            global_config = TicketFlowsConfig.objects.get(bk_biz_id=0, ticket_type=ticket_type)
+            biz_configs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type=ticket_type)
+
+            if configs["need_manual_confirm"] != global_config.configs["need_manual_confirm"]:
+                raise TicketFlowsConfigException(_("业务级别不允许编辑[人工确认]设置"))
+
+            biz_cfg = biz_configs.filter(cluster_ids=[]).first()
+            cluster_cfg = biz_configs.exclude(cluster_ids=[]).first()
+
+            # 不允许创建相同维度的流程
+            if biz_cfg and not cluster_ids:
+                raise TicketFlowsConfigException(_("业务[{}]已存在{}的流程配置").format(bk_biz_id, ticket_type))
+            if cluster_cfg and cluster_ids:
+                raise TicketFlowsConfigException(_("业务[{}]已存在{}的集群流程配置").format(bk_biz_id, ticket_type))
+            # 新创建的流程，不能和生效流程的配置冲突
+            effect_flows = [biz_cfg or global_config, cluster_cfg]
+            for ef in effect_flows:
+                if ef and ef.configs["need_itsm"] == configs["need_itsm"]:
+                    raise TicketFlowsConfigException(_("业务[{}]已存在{}的相同范围配置").format(bk_biz_id, ticket_type))
+
+        flows_config_list = []
+        for type in ticket_types:
+            # 校验创建单据流程配置是否合理
+            check_create_config(type)
+            # 创建流程规则
+            group = TicketType.get_db_type_by_ticket(type)
+            flows_config = TicketFlowsConfig(
+                bk_biz_id=bk_biz_id,
+                cluster_ids=cluster_ids,
+                ticket_type=type,
+                group=group,
+                configs=configs,
+                creator=operator,
+                updater=operator,
+            )
+            flows_config_list.append(flows_config)
+
+        TicketFlowsConfig.objects.bulk_create(flows_config_list)
+
+    @classmethod
+    def update_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, config_ids, operator):
+        """
+        更新单据流程
+        @param bk_biz_id: 业务ID，为0表示平台业务
+        @param cluster_ids: 集群ID列表，表示规则生效的集群范围
+        @param ticket_types: 单据类型列表
+        @param configs: 流程配置
+        @param config_ids: 更新的流程ID列表
+        @param operator: 更新人
+        """
+        cluster_ids = cluster_ids or []
+        config_ids = config_ids or []
+
+        config_qs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type__in=ticket_types)
+        # 平台全局配置直接更新
+        if not bk_biz_id:
+            config_qs.update(configs=configs)
+            return
+
+        # 业务级别先删除，再创建，可以复用校验流程
+        with transaction.atomic():
+            config_qs.filter(id__in=config_ids).delete()
+            cls.create_ticket_flow_config(bk_biz_id, cluster_ids, ticket_types, configs, operator)
+
+    @classmethod
+    def query_ticket_flows_describe(cls, bk_biz_id, db_type, ticket_types=None):
+        # 根据条件过滤单据配置
+        config_filter = Q(bk_biz_id__in=[bk_biz_id, PLAT_BIZ_ID], group=db_type, editable=True)
+        if ticket_types:
+            config_filter &= Q(ticket_type__in=ticket_types)
+        ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
+
+        # 获得单据flow配置映射表和集群映射表
+        flow_config_map = {config.ticket_type: config.configs for config in ticket_flow_configs}
+        cluster_ids = list(itertools.chain(*ticket_flow_configs.values_list("cluster_ids", flat=True)))
+        clusters_map = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
+
+        # 获取单据流程配置信息
+        flow_desc_list: List[Dict] = []
+        for flow_config in ticket_flow_configs:
+            # 获取当前单据的执行流程描述
+            flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(flow_config_map)
+            # 获取集群的描述
+            cluster_info = [
+                {"cluster_id": clusters_map[c].id, "immute_domain": clusters_map[c].immute_domain}
+                for c in flow_config.cluster_ids
+                if c in clusters_map
+            ]
+            # 获取配置的基本信息
+            flow_config_info = model_to_dict(flow_config)
+            flow_config_info.update(
+                ticket_type_display=flow_config.get_ticket_type_display(),
+                flow_desc=flow_desc,
+                clusters=cluster_info,
+                update_at=flow_config.update_at,
+            )
+            flow_desc_list.append(flow_config_info)
+
+        return flow_desc_list

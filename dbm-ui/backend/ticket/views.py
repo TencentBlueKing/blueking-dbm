@@ -10,11 +10,9 @@ specific language governing permissions and limitations under the License.
 """
 import operator
 from functools import reduce
-from typing import Dict, List
 
 from django.db import transaction
 from django.db.models import Q
-from django.forms.models import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
@@ -32,7 +30,11 @@ from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import RejectPermission, ResourceActionPermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
-from backend.iam_app.handlers.drf_perm.ticket import BatchApprovalPermission, create_ticket_permission
+from backend.iam_app.handlers.drf_perm.ticket import (
+    BatchApprovalPermission,
+    create_ticket_permission,
+    ticket_flows_config_permission,
+)
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import InfluxdbTicketFlowBuilderPatchMixin, fetch_cluster_ids
@@ -54,6 +56,8 @@ from backend.ticket.serializers import (
     BatchTodoOperateSerializer,
     ClusterModifyOpSerializer,
     CountTicketSLZ,
+    CreateTicketFlowConfigSerializer,
+    DeleteTicketFlowConfigSerializer,
     FastCreateCloudComponentSerializer,
     GetNodesSLZ,
     GetTodosSLZ,
@@ -114,11 +118,10 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             instance_getter = lambda request, view: [request.parser_context["kwargs"]["pk"]]  # noqa
             return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, instance_getter)]
         # 单据流程设置，关联单据流程设置动作
-        elif self.action == "update_ticket_flow_config":
-            instance_getter = lambda request, view: list(  # noqa
-                set([TicketType.get_db_type_by_ticket(d) for d in request.data["ticket_types"]])
-            )
-            return [ResourceActionPermission([ActionEnum.TICKET_CONFIG_SET], ResourceEnum.DBTYPE, instance_getter)]
+        elif self.action in ["update_ticket_flow_config", "create_ticket_flow_config"]:
+            return ticket_flows_config_permission(self.action, self.request)
+        elif self.action == "delete_ticket_flow_config":
+            return ticket_flows_config_permission(self.action, self.request)
         # 其他非敏感GET接口，不鉴权
         elif self.action in [
             "list",
@@ -555,51 +558,49 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     )
     @Permission.decorator_external_permission_field(
         param_field=lambda d: d["db_type"],
-        actions=[ActionEnum.TICKET_CONFIG_SET],
+        actions=[ActionEnum.GLOBAL_TICKET_CONFIG_SET],
         resource_meta=ResourceEnum.DBTYPE,
     )
+    @Permission.decorator_external_permission_field(
+        param_field=lambda d: {ResourceEnum.DBTYPE.id: d["db_type"], ResourceEnum.BUSINESS.id: d.get("bk_biz_id")},
+        actions=[ActionEnum.BIZ_TICKET_CONFIG_SET],
+        resource_meta=[ResourceEnum.DBTYPE, ResourceEnum.BUSINESS],
+    )
     def query_ticket_flow_describe(self, request, *args, **kwargs):
-        from backend.ticket.builders import BuilderFactory
-
         data = self.params_validate(self.get_serializer_class())
-        limit, offset = data["limit"], data["offset"]
-
-        # 根据条件过滤单据配置
-        config_filter = Q(bk_biz_id=data["bk_biz_id"], group=data["db_type"], editable=True)
-        if data.get("ticket_types"):
-            config_filter &= Q(ticket_type__in=data["ticket_types"])
-
-        ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
-        ticket_flow_config_count = ticket_flow_configs.count()
-        ticket_flow_configs = ticket_flow_configs[offset : offset + limit]
-        # 获得单据类型与单据flow配置映射表
-        flow_config_map = {config.ticket_type: config.configs for config in ticket_flow_configs}
-
-        # 获取单据流程配置信息
-        flow_desc_list: List[Dict] = []
-        # 获取单据流程配置信息
-        for flow_config in ticket_flow_configs:
-            flow_config_info = model_to_dict(flow_config)
-            flow_config_info["ticket_type_display"] = flow_config.get_ticket_type_display()
-            flow_config_info["update_at"] = flow_config.update_at
-            # 获取当前单据的执行流程描述
-            flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(flow_config_map)
-            flow_config_info["flow_desc"] = flow_desc
-            flow_desc_list.append(flow_config_info)
-
-        return Response({"count": ticket_flow_config_count, "results": flow_desc_list})
+        return Response(TicketHandler.query_ticket_flows_describe(**data))
 
     @swagger_auto_schema(
-        operation_summary=_("修改可编辑的单据流程"),
+        operation_summary=_("修改可编辑的单据流程规则"),
         request_body=UpdateTicketFlowConfigSerializer(),
         tags=[TICKET_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=UpdateTicketFlowConfigSerializer)
     def update_ticket_flow_config(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
-        TicketFlowsConfig.objects.filter(bk_biz_id=data["bk_biz_id"], ticket_type__in=data["ticket_types"]).update(
-            configs=data["configs"]
-        )
+        TicketHandler.update_ticket_flow_config(**data, operator=request.user.username)
+        return Response()
+
+    @swagger_auto_schema(
+        operation_summary=_("创建单据流程规则"),
+        request_body=CreateTicketFlowConfigSerializer(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CreateTicketFlowConfigSerializer)
+    def create_ticket_flow_config(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        TicketHandler.create_ticket_flow_config(**data, operator=request.user.username)
+        return Response()
+
+    @swagger_auto_schema(
+        operation_summary=_("删除单据流程规则"),
+        request_body=DeleteTicketFlowConfigSerializer(),
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["DELETE"], detail=False, serializer_class=DeleteTicketFlowConfigSerializer)
+    def delete_ticket_flow_config(self, request, *args, **kwargs):
+        config_ids = self.params_validate(self.get_serializer_class())["config_ids"]
+        TicketFlowsConfig.objects.filter(id__in=config_ids).delete()
         return Response()
 
     @common_swagger_auto_schema(

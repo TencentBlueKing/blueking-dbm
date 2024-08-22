@@ -64,3 +64,9 @@ class ApprovalWrongOperatorException(TicketBaseException):
     ERROR_CODE = "008"
     MESSAGE = _("审批处理异常")
     MESSAGE_TPL = _("审批处理异常{username}")
+
+
+class TicketFlowsConfigException(TicketBaseException):
+    ERROR_CODE = "008"
+    MESSAGE = _("单据流程设置失败")
+    MESSAGE_TPL = _("单据流程{ticket_type}设置失败")

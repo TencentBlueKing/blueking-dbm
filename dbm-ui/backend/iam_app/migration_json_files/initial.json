@@ -1015,7 +1015,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "ticket_config_set",
-                "name": "单据流程设置",
+                "name": "全局单据流程设置",
                 "name_en": "ticket_config_set",
                 "type": "edit",
                 "related_resource_types": [
@@ -1038,8 +1038,50 @@
                 "hidden": true,
                 "group": "全局设置",
                 "subgroup": "",
-                "description": "单据流程设置",
+                "description": "全局单据流程设置",
                 "description_en": "ticket_config_set"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "biz_ticket_config_set",
+                "name": "业务单据流程设置",
+                "name_en": "biz_ticket_config_set",
+                "type": "edit",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_cmdb",
+                        "id": "biz",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_cmdb",
+                                "id": "business"
+                            }
+                        ]
+                    },
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "dbtype",
+                        "selection_mode": "instance",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "dbtype_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [
+                    "db_manage"
+                ],
+                "version": 1,
+                "hidden": false,
+                "group": "业务配置",
+                "subgroup": "",
+                "description": "业务单据流程设置",
+                "description_en": "biz_ticket_config_set"
             }
         },
         {
@@ -6827,7 +6869,7 @@
             "operation": "upsert_action",
             "data": {
                 "id": "tendbcluster_data_migrate",
-                "name": "TenDB Cluster 数据迁移",
+                "name": "TenDB Cluster DB克隆",
                 "name_en": "TENDBCLUSTER_DATA_MIGRATE",
                 "type": "execute",
                 "related_resource_types": [
@@ -6848,7 +6890,7 @@
                 "hidden": false,
                 "group": "TenDBCluster",
                 "subgroup": "数据处理",
-                "description": "TenDB Cluster 数据迁移",
+                "description": "TenDB Cluster DB克隆",
                 "description_en": "TENDBCLUSTER_DATA_MIGRATE"
             }
         },
@@ -7174,9 +7216,9 @@
         {
             "operation": "upsert_action",
             "data": {
-                "id": "sqlserver_data_migrate",
-                "name": "SQLServer 数据迁移",
-                "name_en": "SQLSERVER_DATA_MIGRATE",
+                "id": "sqlserver_full_migrate",
+                "name": "SQLServer 全备迁移",
+                "name_en": "SQLSERVER_FULL_MIGRATE",
                 "type": "execute",
                 "related_resource_types": [
                     {
@@ -7196,8 +7238,37 @@
                 "hidden": false,
                 "group": "SQLServer",
                 "subgroup": "数据处理",
-                "description": "SQLServer 数据迁移",
-                "description_en": "SQLSERVER_DATA_MIGRATE"
+                "description": "SQLServer 全备迁移",
+                "description_en": "SQLSERVER_FULL_MIGRATE"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "sqlserver_incr_migrate",
+                "name": "SQLServer 增量迁移",
+                "name_en": "SQLSERVER_INCR_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "sqlserver",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "sqlserver_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "SQLServer",
+                "subgroup": "数据处理",
+                "description": "SQLServer 增量迁移",
+                "description_en": "SQLSERVER_INCR_MIGRATE"
             }
         },
         {
@@ -9709,56 +9780,12 @@
                     ]
                 },
                 {
-                    "name": "资源管理",
-                    "name_en": "资源管理",
-                    "actions": [
-                        {
-                            "id": "resource_manage"
-                        }
-                    ],
-                    "sub_groups": [
-                        {
-                            "name": "资源池",
-                            "name_en": "资源池",
-                            "actions": [
-                                {
-                                    "id": "resource_pool_manage"
-                                },
-                                {
-                                    "id": "resource_operation_view"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "污点池",
-                            "name_en": "污点池",
-                            "actions": [
-                                {
-                                    "id": "dirty_pool_manage"
-                                }
-                            ]
-                        },
-                        {
-                            "name": "资源规格",
-                            "name_en": "资源规格",
-                            "actions": [
-                                {
-                                    "id": "spec_create"
-                                },
-                                {
-                                    "id": "spec_update"
-                                },
-                                {
-                                    "id": "spec_delete"
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
                     "name": "业务配置",
                     "name_en": "业务配置",
                     "actions": [
+                        {
+                            "id": "biz_ticket_config_set"
+                        },
                         {
                             "id": "dba_administrator_edit"
                         },
@@ -9815,6 +9842,53 @@
                                 },
                                 {
                                     "id": "monitor_policy_clone"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "资源管理",
+                    "name_en": "资源管理",
+                    "actions": [
+                        {
+                            "id": "resource_manage"
+                        }
+                    ],
+                    "sub_groups": [
+                        {
+                            "name": "资源池",
+                            "name_en": "资源池",
+                            "actions": [
+                                {
+                                    "id": "resource_pool_manage"
+                                },
+                                {
+                                    "id": "resource_operation_view"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "污点池",
+                            "name_en": "污点池",
+                            "actions": [
+                                {
+                                    "id": "dirty_pool_manage"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "资源规格",
+                            "name_en": "资源规格",
+                            "actions": [
+                                {
+                                    "id": "spec_create"
+                                },
+                                {
+                                    "id": "spec_update"
+                                },
+                                {
+                                    "id": "spec_delete"
                                 }
                             ]
                         }
@@ -10824,7 +10898,10 @@
                                     "id": "sqlserver_clear_dbs"
                                 },
                                 {
-                                    "id": "sqlserver_data_migrate"
+                                    "id": "sqlserver_full_migrate"
+                                },
+                                {
+                                    "id": "sqlserver_incr_migrate"
                                 },
                                 {
                                     "id": "sqlserver_rollback"
@@ -11527,7 +11604,10 @@
                             "id": "sqlserver_reset"
                         },
                         {
-                            "id": "sqlserver_data_migrate"
+                            "id": "sqlserver_full_migrate"
+                        },
+                        {
+                            "id": "sqlserver_incr_migrate"
                         },
                         {
                             "id": "sqlserver_rollback"
@@ -12830,7 +12910,11 @@
                                 "required": true
                             },
                             {
-                                "id": "sqlserver_data_migrate",
+                                "id": "sqlserver_full_migrate",
+                                "required": true
+                            },
+                            {
+                                "id": "sqlserver_incr_migrate",
                                 "required": true
                             },
                             {

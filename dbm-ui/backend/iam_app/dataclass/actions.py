@@ -152,15 +152,25 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
-    TICKET_CONFIG_SET = ActionMeta(
+    GLOBAL_TICKET_CONFIG_SET = ActionMeta(
         id="ticket_config_set",
-        name=_("单据流程设置"),
+        name=_("全局单据流程设置"),
         name_en="ticket_config_set",
         type="edit",
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
         hidden=True,
+    )
+
+    BIZ_TICKET_CONFIG_SET = ActionMeta(
+        id="biz_ticket_config_set",
+        name=_("业务单据流程设置"),
+        name_en="biz_ticket_config_set",
+        type="edit",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        group=_("业务配置"),
     )
 
     RESOURCE_MANAGE = ActionMeta(

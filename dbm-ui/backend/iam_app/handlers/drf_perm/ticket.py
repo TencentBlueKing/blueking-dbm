@@ -20,6 +20,7 @@ from backend.db_meta.models import ExtraProcessInstance
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.dataclass.resources import ResourceEnum
 from backend.iam_app.handlers.drf_perm.base import (
+    BizDBTypeResourceActionPermission,
     IAMPermission,
     MoreResourceActionPermission,
     RejectPermission,
@@ -29,7 +30,7 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids
 from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import ApprovalWrongOperatorException
-from backend.ticket.models import Ticket
+from backend.ticket.models import Ticket, TicketFlowsConfig
 from backend.utils.basic import get_target_items_from_details
 
 logger = logging.getLogger("root")
@@ -172,3 +173,36 @@ class BatchApprovalPermission(BasePermission):
                 )
 
         return True
+
+
+def ticket_flows_config_permission(action, request):
+    dbtype_cov = TicketType.get_db_type_by_ticket
+    permission: IAMPermission = None
+
+    if action in ["update_ticket_flow_config", "create_ticket_flow_config"]:
+        if request.data.get("bk_biz_id"):
+            permission = BizDBTypeResourceActionPermission(
+                [ActionEnum.BIZ_TICKET_CONFIG_SET],
+                instance_biz_getter=lambda req, view: [req.data["bk_biz_id"]],
+                instance_dbtype_getter=lambda req, view: list(set([dbtype_cov(d) for d in req.data["ticket_types"]])),
+            )
+        else:
+            permission = ResourceActionPermission(
+                [ActionEnum.GLOBAL_TICKET_CONFIG_SET],
+                ResourceEnum.DBTYPE,
+                instance_ids_getter=lambda req, view: [req.data["bk_biz_id"]],
+            )
+    elif action == "delete_ticket_flow_config":
+        configs = list(TicketFlowsConfig.objects.filter(id__in=request.data["config_ids"]))
+        groups, bk_biz_ids = [c.group for c in configs], [c.bk_biz_id for c in configs]
+        # 只允许一个业务下的一种db类型
+        if len(set(groups)) > 1 or len(set(bk_biz_ids)) > 1:
+            permission = RejectPermission()
+        else:
+            permission = BizDBTypeResourceActionPermission(
+                [ActionEnum.BIZ_TICKET_CONFIG_SET],
+                instance_biz_getter=lambda req, view: bk_biz_ids,
+                instance_dbtype_getter=lambda req, view: groups,
+            )
+
+    return [permission]
