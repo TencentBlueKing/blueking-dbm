@@ -391,7 +391,7 @@ def swap_cc_svr_instance_role(ins1_obj: StorageInstance, ins2_obj: StorageInstan
         bk_instance_ids=[ins2_obj.bk_instance_id],
         labels_dict={"instance_role": ins2_obj.instance_role},
     )
-    cc_manage.update_host_properties(bk_host_ids=[ins1_obj.machine.bk_host_id, ins2_obj.machine.bk_hsot_id])
+    cc_manage.update_host_properties(bk_host_ids=[ins1_obj.machine.bk_host_id, ins2_obj.machine.bk_host_id])
 
 
 @transaction.atomic
