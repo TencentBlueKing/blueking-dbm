@@ -43,14 +43,11 @@
           <span>{{ t('Redis版本') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="100"
-          :required="false"
-          :width="150">
+          :min-width="240"
+          :required="false">
           <span>{{ t('当前容量') }}</span>
         </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="350">
+        <RenderTableHeadColumn :min-width="350">
           <span>{{ t('目标容量') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn

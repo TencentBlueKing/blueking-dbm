@@ -33,7 +33,7 @@
           <div class="item-content">
             <ClusterCapacityUsageRate :cluster-stats="targetClusterStats" />
             <ValueDiff
-              :current-value="targetClusterStats.total ?? 0"
+              :current-value="currentCapacity"
               num-unit="G"
               :target-value="targetObj.capacity" />
           </div>
@@ -100,6 +100,7 @@
     @target-stats-change="handleTargetStatsChange" />
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
@@ -112,11 +113,9 @@
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
   import { AffinityType } from '@views/redis/common/types';
 
-  import ChooseClusterTargetPlan, {
-    type CapacityNeed,
-    type Props as TargetPlanProps,
-    type TargetInfo,
-  } from './ClusterDeployPlan.vue';
+  import { convertStorageUnits } from '@utils';
+
+  import ChooseClusterTargetPlan, { type Props as TargetPlanProps, type TargetInfo } from './ClusterDeployPlan.vue';
   import type { IDataRow } from './Row.vue';
 
   interface Props {
@@ -150,9 +149,16 @@
   const activeRowData = ref<TargetPlanProps['data']>();
   const showChooseClusterTargetPlan = ref(false);
   const localValue = shallowRef<ClusterSpecModel>();
-  const capacityObj = ref<CapacityNeed>();
+  const futureCapacity = ref(1);
   const targetObj = ref<TargetInfo>();
   const targetClusterStats = ref<RedisModel['cluster_stats']>({} as Record<string, never>);
+
+  const currentCapacity = computed(() => {
+    if (!props.rowData || _.isEmpty(props.rowData?.clusterStats)) {
+      return 0;
+    }
+    return convertStorageUnits(props.rowData.clusterStats.total, 'B', 'GB');
+  });
 
   const rules = [
     {
@@ -190,9 +196,9 @@
   };
 
   // 从侧边窗点击确认后触发
-  const handleChoosedTargetCapacity = (obj: ClusterSpecModel, capacity: CapacityNeed, targetInfo: TargetInfo) => {
+  const handleChoosedTargetCapacity = (obj: ClusterSpecModel, capacity: number, targetInfo: TargetInfo) => {
     localValue.value = obj;
-    capacityObj.value = capacity;
+    futureCapacity.value = capacity;
     targetObj.value = targetInfo;
     showChooseClusterTargetPlan.value = false;
   };
@@ -209,13 +215,13 @@
       return Promise.resolve({
         shard_num: props.rowData!.shardNum, // localValue.value.cluster_shard_num,
         group_num: localValue.value.machine_pair,
-        capacity: capacityObj.value?.current ?? 1,
-        future_capacity: capacityObj.value?.future ?? 1,
+        capacity: props.rowData?.currentCapacity?.total ?? 1,
+        future_capacity: futureCapacity.value ?? 1,
         update_mode: targetObj.value?.updateMode,
         resource_spec: {
           backend_group: {
             spec_id: localValue.value.spec_id,
-            count: targetObj.value!.groupNum, // 机器组数
+            count: targetObj.value!.requireMachineGroupNum, // 机器实际需要申请的组数
             affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
           },
         },
