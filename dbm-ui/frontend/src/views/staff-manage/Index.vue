@@ -34,10 +34,9 @@
             <AuthTemplate
               :action-id="editPermissionActionId"
               :resource="item.db_type">
-              <DbMemberSelector
+              <MemberSelector
                 v-model="item.users"
-                style="width: 520px"
-                @change="handleChange(item.db_type)" />
+                style="width: 520px" />
             </AuthTemplate>
           </BkFormItem>
         </DbCard>
@@ -73,7 +72,7 @@
 
   import { getAdmins, updateAdmins } from '@services/source/dbadmin';
 
-  import DbMemberSelector from '@components/db-member-selector/index.vue';
+  import MemberSelector from './components/MemberSelector.vue';
 
   const { t } = useI18n();
   const route = useRoute();
@@ -89,8 +88,6 @@
   const adminList = ref<ServiceReturnType<typeof getAdmins>>([]);
 
   let adminListMemo: UnwrapRef<typeof adminList> = [];
-
-  const updateDbTypeMap: Record<string, boolean> = {};
 
   const rules = [
     {
@@ -126,16 +123,11 @@
     },
   });
 
-  const handleChange = (type: string) => {
-    updateDbTypeMap[type] = true;
-  };
-
   /**
    * 编辑人员列表
    */
   const handleSubmit = () => {
-    const lastValue = _.filter(adminList.value, (item) => updateDbTypeMap[item.db_type] === true);
-    if (lastValue.length < 1) {
+    if (JSON.stringify(adminList.value) === JSON.stringify(adminListMemo)) {
       Message({
         message: t('保存成功'),
         theme: 'success',
@@ -146,7 +138,7 @@
     staffFormRef.value.validate().then(() => {
       updateAdminsMethod({
         bk_biz_id: bizId,
-        db_admins: lastValue,
+        db_admins: adminList.value,
       });
     });
   };
@@ -157,7 +149,7 @@
       content: t('重置将会恢复上次保存的内容'),
       cancelText: t('取消'),
       onConfirm: () => {
-        adminList.value = adminListMemo;
+        adminList.value = _.cloneDeep(adminListMemo);
         return true;
       },
     });

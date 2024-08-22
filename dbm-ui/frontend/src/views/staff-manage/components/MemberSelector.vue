@@ -1,0 +1,147 @@
+<!--
+ * TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+ *
+ * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+ *
+ * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
+ * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
+ * the specific language governing permissions and limitations under the License.
+-->
+
+<template>
+  <div class="member-selector-wrapper">
+    <UserSelector
+      ref="userSelectorRef"
+      v-model="modelValue"
+      class="member-selector"
+      :exact-search-method="exactSearchMethod"
+      :fixed-height="false"
+      :fuzzy-search-method="fuzzySearchMethod"
+      :paste-validator="pasteValidator"
+      :render-list="renderList"
+      :render-tag="renderTag"
+      :search-from-default-alternate="false"
+      tag-clearable
+      @remove-selected="handleRemoveSelected" />
+    <DbIcon
+      v-bk-tooltips="t('复制')"
+      type="copy db-member-selector-copy"
+      @click.stop="handleCopy" />
+  </div>
+</template>
+
+<script setup lang="ts">
+  import { Fragment } from 'vue/jsx-runtime';
+  import { useI18n } from 'vue-i18n';
+
+  import { getUserList } from '@services/source/user';
+
+  import { useCopy } from '@hooks';
+
+  const modelValue = defineModel<string[]>({
+    required: true,
+  });
+
+  const { t } = useI18n();
+  const copy = useCopy();
+
+  const userSelectorRef = ref();
+
+  const exactSearchMethod = () => getUserList().then((result) => result.results);
+
+  const pasteValidator = (values: string[]) => values;
+
+  const fuzzySearchMethod = (keyword: string) =>
+    getUserList({
+      fuzzy_lookups: keyword,
+    }).then((searchList) => ({
+      next: false,
+      results: searchList.results.map((userItem) => ({
+        username: userItem.username,
+        display_name: userItem.display_name,
+      })),
+    }));
+
+  const renderTag = (
+    renderMethod: typeof h,
+    node: {
+      username: string;
+      user: {
+        username: string;
+        display_name: string;
+      };
+    },
+  ) =>
+    renderMethod('div', null, [
+      renderMethod(
+        'span',
+        {
+          class: 'mr-4',
+        },
+        `${node.username}(${node.user?.display_name || node.username})`,
+      ),
+    ]);
+
+  const renderList = (
+    renderMethod: typeof h,
+    node: {
+      user: {
+        username: string;
+        display_name: string;
+        type: string;
+      };
+    },
+  ) => {
+    const { username } = node.user;
+
+    return renderMethod(Fragment, [renderMethod('span', username)]);
+  };
+
+  const handleRemoveSelected = () => {
+    userSelectorRef.value.search();
+  };
+
+  const handleCopy = () => {
+    copy(modelValue.value.join(';'));
+  };
+</script>
+
+<style lang="less" scoped>
+  .member-selector-wrapper {
+    position: relative;
+
+    &:hover {
+      .db-member-selector-copy {
+        display: block;
+      }
+    }
+
+    .member-selector {
+      width: 100%;
+    }
+
+    .db-member-selector-copy {
+      position: absolute;
+      top: 50%;
+      right: 2px;
+      z-index: 99;
+      display: none;
+      width: 20px;
+      height: 20px;
+      margin-top: -15px;
+      margin-right: 4px;
+      font-size: 16px;
+      line-height: 20px;
+      cursor: pointer;
+      background-color: white;
+
+      &:hover {
+        color: @primary-color;
+        background-color: #e1ecff;
+      }
+    }
+  }
+</style>
