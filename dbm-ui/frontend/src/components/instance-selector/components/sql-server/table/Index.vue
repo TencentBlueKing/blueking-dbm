@@ -134,6 +134,7 @@
   const checkedMap = shallowRef({} as Record<string, T>);
 
   const initRole = computed(() => props.firsrColumn?.role);
+  const selectClusterId = computed(() => props.clusterId);
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
   const mainSelectDisable = computed(() => (props.disabledRowConfig ? tableData.value
     .filter(data => props.disabledRowConfig?.handler(data)).length === tableData.value.length : false));
@@ -145,7 +146,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<T>(searchValue, initRole, props.clusterId);
+  } = useTableData<T>(searchValue, initRole, selectClusterId);
 
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
@@ -302,7 +303,9 @@
   }, { immediate: true, deep: true });
 
   watch(() => props.clusterId, () => {
-      fetchResources();
+      setTimeout(() => {
+        fetchResources();
+      })
   }, {
     immediate: true,
   });

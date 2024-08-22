@@ -130,7 +130,7 @@
             db_list: value,
           }).then((data) => {
             const existDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
-              if (!data[dbName]) {
+              if (data[dbName]) {
                 result.push(dbName);
               }
               return result;
