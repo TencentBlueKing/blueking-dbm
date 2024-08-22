@@ -95,9 +95,9 @@
       };
     },
   ) => {
-    const { username } = node.user;
+    const { display_name: displayName, username } = node.user;
 
-    return renderMethod(Fragment, [renderMethod('span', username)]);
+    return renderMethod(Fragment, [renderMethod('span', `${username}(${displayName})`)]);
   };
 
   const handleRemoveSelected = () => {
