@@ -8,10 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from datetime import datetime, timezone
+from typing import Dict, List
+
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.sqlserver.cluster.handlers import ClusterServiceHandler
 from backend.db_services.sqlserver.rollback.handlers import SQLServerRollbackHandler
+from backend.flow.consts import SqlserverBackupFileTagEnum, SqlserverBackupMode
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.field import DBTimezoneField
@@ -88,6 +93,36 @@ class SQLServerRollbackRenameFlowParamBuilder(SQLServerRenameFlowParamBuilder):
         super().__init__(rename_type, ticket)
 
 
+class SQLServerRollbackBackupFlowParamBuilder(builders.FlowParamBuilder):
+    controller = SqlserverController.backup_dbs_scene
+
+    def format_ticket_data(self):
+        # 通过库表匹配查询db
+        backup_infos: List[Dict[str, str]] = []
+        for info in self.ticket_data["infos"]:
+            if "restore_time" not in info:
+                continue
+            cluster_id = info["src_cluster"]
+            db_list = info["db_list"]
+            ignore_db_list = info["ignore_db_list"]
+            restore_time = str2datetime(info["restore_time"])
+            current_time = datetime.now(timezone.utc)
+            # 获取最近的一次日志备份记录的时间点
+            last_time = str2datetime(SQLServerRollbackHandler(cluster_id).query_last_log_time(current_time))
+            if last_time < restore_time:
+                continue
+
+            backup_dbs = ClusterServiceHandler(self.ticket.bk_biz_id).get_dbs_for_drs(
+                cluster_id, db_list, ignore_db_list
+            )
+            backup_infos.extend([{"cluster_id": cluster_id, "backup_dbs": backup_dbs, "backup_type": "log_backup"}])
+        self.ticket_data["infos"] = backup_infos
+        self.ticket_data["ticket_type"] = TicketType.SQLSERVER_BACKUP_DBS
+        self.ticket_data["backup_place"] = "master"
+        self.ticket_data["file_tag"] = SqlserverBackupFileTagEnum.INCREMENT_BACKUP.value
+        self.ticket_data["backup_type"] = SqlserverBackupMode.LOG_BACKUP.value
+
+
 @builders.BuilderFactory.register(TicketType.SQLSERVER_ROLLBACK)
 class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerRollbackDetailSerializer
@@ -110,9 +145,18 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
             flow_alias=_("SQLServer 数据库重命名"),
         )
 
+        backup_flow = Flow(
+            ticket=self.ticket,
+            flow_type=FlowType.INNER_FLOW.value,
+            details=SQLServerRollbackBackupFlowParamBuilder(ticket=self.ticket).get_params(),
+            flow_alias=_("SQLServer 库表备份执行"),
+        )
+        flows = []
+
         # 如果重命名单据参数不为空，需要串重命名流程
         if dbrename_flow.details["ticket_data"].get("infos"):
-            flows = [dbrename_flow, rollback_flow]
-        else:
-            flows = [rollback_flow]
+            flows.append(dbrename_flow)
+        elif backup_flow.details["ticket_data"].get("infos"):
+            flows.append(backup_flow)
+        flows.append(rollback_flow)
         return flows

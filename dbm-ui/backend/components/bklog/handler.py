@@ -27,7 +27,13 @@ class BKLogHandler(object):
 
     @classmethod
     def query_logs(
-        cls, collector: str, start_time: datetime, end_time: datetime, query_string="*", size=1000
+        cls,
+        collector: str,
+        start_time: datetime,
+        end_time: datetime,
+        query_string="*",
+        size=1000,
+        sorting_rule: str = "asc",
     ) -> List[Dict]:
         """
         从日志平台获取对应采集项的日志
@@ -36,6 +42,7 @@ class BKLogHandler(object):
         @param end_time: 结束时间
         @param query_string: 过滤条件
         @param size: 返回条数
+        @param sorting_rule: 排序规则，默认是 asc升序； desc倒序
         """
         resp = BKLogApi.esquery_search(
             {
@@ -45,7 +52,11 @@ class BKLogHandler(object):
                 "query_string": query_string,
                 "start": 0,
                 "size": size,
-                "sort_list": [["dtEventTimeStamp", "asc"], ["gseIndex", "asc"], ["iterationIndex", "asc"]],
+                "sort_list": [
+                    ["dtEventTimeStamp", sorting_rule],
+                    ["gseIndex", sorting_rule],
+                    ["iterationIndex", sorting_rule],
+                ],
             },
             use_admin=True,
         )
