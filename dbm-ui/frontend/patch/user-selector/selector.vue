@@ -88,7 +88,7 @@
 </template>
 
 <script>
-/* eslint-disable @typescript-eslint/no-misused-promises, max-len, no-prototype-builtins, vue/space-infix-ops */
+  /* eslint-disable @typescript-eslint/no-misused-promises, max-len, no-prototype-builtins, vue/space-infix-ops */
   import { throttle } from 'lodash';
   import Tippy from 'tippy.js';
   import {
@@ -147,11 +147,7 @@
       defaultAlternate: {
         type: [String, Array, Function],
         validator(value) {
-          return (
-            value === 'history'
-            || typeof value === 'function'
-            || value instanceof Array
-          );
+          return value === 'history' || typeof value === 'function' || value instanceof Array;
         },
       },
       searchFromDefaultAlternate: {
@@ -238,16 +234,7 @@
         },
       },
     },
-    emits: [
-      'update:modelValue',
-      'change',
-      'remove-selected',
-      'select-user',
-      'keydown',
-      'focus',
-      'blur',
-      'clear',
-    ],
+    emits: ['update:modelValue', 'change', 'remove-selected', 'select-user', 'keydown', 'focus', 'blur', 'clear'],
     setup(props, ctx) {
       const {
         modelValue,
@@ -353,9 +340,7 @@
       const containerStyle = computed(() => {
         const style = {};
         if (isFocus.value) {
-          style.maxHeight = fixedHeight.value
-            ? `${focusRowLimit.value * singleRowHeight.value}px`
-            : 'auto';
+          style.maxHeight = fixedHeight.value ? `${focusRowLimit.value * singleRowHeight.value}px` : 'auto';
         } else if (fixedHeight.value) {
           style.height = `${singleRowHeight.value}px`;
         }
@@ -372,24 +357,22 @@
       //   },
       // });
       const localValue = ref([]);
-      localValue.value = [...modelValue.value];
+      // localValue.value = [...modelValue.value];
+      let isIgnoreUpdateModelValue = false;
 
-      const localValueUsers = computed(() => localValue.value.map((username) => {
-        const user = currentUsers.value.find(user => user.username === username);
-        return user || { username };
-      }));
+      const localValueUsers = computed(() =>
+        localValue.value.map((username) => {
+          const user = currentUsers.value.find((user) => user.username === username);
+          return user || { username };
+        }),
+      );
 
-      const userInfo = computed(() => localValueUsers.value
-        .map(user => getDisplayText(user))
-        .join(';'));
+      const userInfo = computed(() => localValueUsers.value.map((user) => getDisplayText(user)).join(';'));
 
       const getCurrentUsers = async () => {
         try {
           if (api.value) {
-            currentUsers.value = await request.scheduleExactSearch(
-              api.value,
-              localValue.value,
-            );
+            currentUsers.value = await request.scheduleExactSearch(api.value, localValue.value);
           } else if (exactSearchMethod.value) {
             currentUsers.value = await exactSearchMethod.value(localValue.value);
           } else {
@@ -401,12 +384,9 @@
       };
       const getDefaultAlternateData = async (keyword) => {
         let users = [];
-        const isMatch = (user, keyword) => user.username.toLowerCase().indexOf(keyword.toString().toLowerCase())
-          > -1;
+        const isMatch = (user, keyword) => user.username.toLowerCase().indexOf(keyword.toString().toLowerCase()) > -1;
         if (defaultAlternate.value === 'history') {
-          users = [
-            { display_name: historyLabel.value, children: getHistoryUsers() },
-          ];
+          users = [{ display_name: historyLabel.value, children: getHistoryUsers() }];
         } else if (defaultAlternate.value instanceof Array) {
           users = defaultAlternate.value;
         } else if (typeof defaultAlternate.value === 'function') {
@@ -416,7 +396,7 @@
           const filterResult = [];
           users.forEach((user) => {
             if (user.hasOwnProperty('children')) {
-              const children = user.children.filter(child => isMatch(child, keyword));
+              const children = user.children.filter((child) => isMatch(child, keyword));
               if (children.length) {
                 filterResult.push({
                   ...user,
@@ -436,9 +416,11 @@
         const flattened = [];
         users.forEach((user) => {
           if (user.hasOwnProperty('children')) {
-            const children = user.children.filter(child => !flattened.some(flattenedUser => flattenedUser.username === child.username));
+            const children = user.children.filter(
+              (child) => !flattened.some((flattenedUser) => flattenedUser.username === child.username),
+            );
             if (multiple.value) {
-              const unexistUser = children.filter(child => !localValue.value.includes(child.username));
+              const unexistUser = children.filter((child) => !localValue.value.includes(child.username));
               if (unexistUser.length) {
                 user.children = unexistUser;
                 matched.push(user);
@@ -451,7 +433,7 @@
             return;
           }
           const exist = localValue.value.includes(user.username);
-          const repeat = flattened.some(flattenedUser => flattenedUser.username === user.username);
+          const repeat = flattened.some((flattenedUser) => flattenedUser.username === user.username);
           if ((!multiple.value || !exist) && !repeat) {
             matched.push(user);
             flattened.push(user);
@@ -492,12 +474,8 @@
             const content = await tagTipsContent.value(username);
             contentElement.innerHTML = content;
           } else {
-            const user = await (
-              exactSearchMethod.value || defaultExactSearchMethod
-            )(username);
-            contentElement.innerHTML = user
-              ? user.category_name
-              : 'Non existing user';
+            const user = await (exactSearchMethod.value || defaultExactSearchMethod)(username);
+            contentElement.innerHTML = user ? user.category_name : 'Non existing user';
           }
           instance.setContent(contentElement);
         } catch (e) {
@@ -543,15 +521,15 @@
           alternateContent.value = instanceStore.getInstance('alternateContent', 'alternateList');
           // alternateContent.value.selector = proxy;
           alternateContent.value.selector = proxy;
-        // document.body.appendChild(alternateContentContainer);
+          // document.body.appendChild(alternateContentContainer);
         }
-      // return alternateContent;
+        // return alternateContent;
       };
       const getHistoryUsers = () => {
         try {
           if (historyKey.value) {
             const users = JSON.parse(window.localStorage.getItem(historyKey.value)) || [];
-            return users.filter(user => !disabledUsers.value.includes(user.username));
+            return users.filter((user) => !disabledUsers.value.includes(user.username));
           }
           throw new Error('History key not provide');
         } catch (e) {
@@ -563,20 +541,15 @@
         if (historyKey.value) {
           try {
             const histories = getHistoryUsers();
-            const exist = histories.findIndex(history => history.username === user.username);
+            const exist = histories.findIndex((history) => history.username === user.username);
             if (exist > -1) {
               histories.splice(exist, 1);
             }
-            Array.isArray(user)
-              ? histories.unshift(...user)
-              : histories.unshift(user);
+            Array.isArray(user) ? histories.unshift(...user) : histories.unshift(user);
             const newHistories = histories
-              .filter(history => !disabledUsers.value.includes(history.username))
+              .filter((history) => !disabledUsers.value.includes(history.username))
               .slice(0, historyRecord.value);
-            window.localStorage.setItem(
-              historyKey.value,
-              JSON.stringify(newHistories),
-            );
+            window.localStorage.setItem(historyKey.value, JSON.stringify(newHistories));
           } catch (e) {
             console.error(e);
           }
@@ -602,9 +575,7 @@
       const getDisplayText = (user) => {
         const isObject = typeof user === 'object';
         let displayText = isObject ? user.username : user;
-        displayText = displayDomain.value
-          ? displayText
-          : displayText.replace(/@.*/, '');
+        displayText = displayDomain.value ? displayText : displayText.replace(/@.*/, '');
         if (isObject && user.display_name) {
           displayText += `(${user.display_name})`;
         }
@@ -676,8 +647,7 @@
       };
       const handleSelectedMouseleave = (event, { username }) => {
         if (displayTagTips.value) {
-          selectedTipsTimer.value[username]
-            && clearTimeout(selectedTipsTimer.value[username]);
+          selectedTipsTimer.value[username] && clearTimeout(selectedTipsTimer.value[username]);
         }
       };
       const handleRemoveMouseDown = () => {
@@ -831,10 +801,7 @@
           }
           if (arrow === 'ArrowLeft' && inputIndex.value !== 0) {
             moveInput(-1);
-          } else if (
-            arrow === 'ArrowRight'
-            && inputIndex.value !== localValue.value.length
-          ) {
+          } else if (arrow === 'ArrowRight' && inputIndex.value !== localValue.value.length) {
             moveInput(1);
           }
         } else if (flattenedUsers.value.length) {
@@ -872,7 +839,7 @@
         const user = flattenedUsers.value.find((user) => {
           const enName = user.username;
           const cnName = user.display_name;
-          const isMatch = [enName, cnName].some(name => name.toLowerCase() === nameToMatch.toLowerCase());
+          const isMatch = [enName, cnName].some((name) => name.toLowerCase() === nameToMatch.toLowerCase());
           const isSelected = localValue.value.includes(enName);
           return isMatch && !isSelected;
         });
@@ -881,7 +848,7 @@
       const defaultPasteValidator = async (originalValues) => {
         if (api.value) {
           const users = await request.pasteValidate(api.value, originalValues);
-          const validValues = users.map(user => user.username);
+          const validValues = users.map((user) => user.username);
           if (!exclude.value) {
             return [...new Set(validValues.concat(originalValues))];
           }
@@ -904,17 +871,15 @@
           const pasteStr = event.clipboardData.getData('text').replace(/\s/g, '');
           const values = pasteStr
             .split(/,|;/)
-            .map(value => pasteFormatter.value(value))
-            .filter(value => value.length);
+            .map((value) => pasteFormatter.value(value))
+            .filter((value) => value.length);
           const uniqueValues = [...new Set(values)];
           if (!uniqueValues.length) {
             return;
           }
-          const validValues = await (
-            pasteValidator.value || defaultPasteValidator
-          )(uniqueValues);
+          const validValues = await (pasteValidator.value || defaultPasteValidator)(uniqueValues);
 
-          const newValues = validValues.filter(value => !localValue.value.includes(value));
+          const newValues = validValues.filter((value) => !localValue.value.includes(value));
           if (!validValues.length) {
             return;
           }
@@ -962,8 +927,8 @@
             const itemOffsetTop = $alternateItem.offsetTop;
             const itemOffsetHeight = $alternateItem.offsetHeight;
             if (
-              itemOffsetTop >= listScrollTop
-              && itemOffsetTop + itemOffsetHeight <= listScrollTop + listClientHeight
+              itemOffsetTop >= listScrollTop &&
+              itemOffsetTop + itemOffsetHeight <= listScrollTop + listClientHeight
             ) {
               return false;
             }
@@ -985,11 +950,7 @@
 
         removeOverflowTagNode();
 
-        if (
-          !fixedHeight.value
-          || isFocus.value
-          || localValue.value.length < 2
-        ) {
+        if (!fixedHeight.value || isFocus.value || localValue.value.length < 2) {
           return false;
         }
         clearOverflowTimer();
@@ -1023,9 +984,7 @@
         const selectedUser = getSelectedDOM();
         const referenceUser = selectedUser[overflowTagIndex.value];
         if (referenceUser) {
-          overflowTagNode.value.textContent = `+${
-            localValue.value.length - overflowTagIndex.value
-          }`;
+          overflowTagNode.value.textContent = `+${localValue.value.length - overflowTagIndex.value}`;
           containerRef.value.insertBefore(overflowTagNode.value, referenceUser);
         } else {
           overflowTagIndex.value = null;
@@ -1035,13 +994,8 @@
           const previousUser = selectedUser[overflowTagIndex.value - 1];
           if (overflowTagNode.value.offsetTop !== previousUser.offsetTop) {
             overflowTagIndex.value -= 1;
-            containerRef.value.insertBefore(
-              overflowTagNode.value,
-              overflowTagNode.value.previousSibling,
-            );
-            overflowTagNode.value.textContent = `+${
-              localValue.value.length - overflowTagIndex.value
-            }`;
+            containerRef.value.insertBefore(overflowTagNode.value, overflowTagNode.value.previousSibling);
+            overflowTagNode.value.textContent = `+${localValue.value.length - overflowTagIndex.value}`;
           }
         }, 0);
       };
@@ -1054,10 +1008,7 @@
         overflowTagNode.value = node;
       };
       const removeOverflowTagNode = () => {
-        if (
-          overflowTagNode.value
-          && overflowTagNode.value.parentNode === containerRef.value
-        ) {
+        if (overflowTagNode.value && overflowTagNode.value.parentNode === containerRef.value) {
           containerRef.value.removeChild(overflowTagNode.value);
         }
       };
@@ -1099,8 +1050,22 @@
         updateScroller();
       });
 
+      watch(
+        modelValue,
+        () => {
+          isIgnoreUpdateModelValue = true;
+          localValue.value = [...modelValue.value];
+        },
+        {
+          immediate: true,
+        },
+      );
+
       watch(localValue, (_localValue) => {
-        ctx.emit('update:modelValue', _localValue);
+        if (!isIgnoreUpdateModelValue) {
+          ctx.emit('update:modelValue', _localValue);
+        }
+        isIgnoreUpdateModelValue = false;
         ctx.emit('change', _localValue);
         calcOverflow();
         getCurrentUsers();
@@ -1194,5 +1159,5 @@
 </script>
 
 <style lang="css">
-@import './style.css';
+  @import './style.css';
 </style>
