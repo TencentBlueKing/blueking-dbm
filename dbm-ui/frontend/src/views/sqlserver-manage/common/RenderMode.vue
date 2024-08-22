@@ -13,13 +13,13 @@
 
 <template>
   <div class="render-mode">
-    <div class="action-item">
+    <div style="width: 120px">
       <TableEditSelect
         v-model="localBackupType"
         :disabled="editDisabled"
         :list="targetList" />
     </div>
-    <div class="action-item">
+    <div style="flex: 1">
       <TableEditDateTime
         v-if="localBackupType === 'time'"
         ref="localRollbackTimeRef"
@@ -183,11 +183,6 @@
 <style lang="less" scoped>
   .render-mode {
     display: flex;
-
-    .action-item {
-      flex: 0 0 50%;
-      overflow: hidden;
-    }
   }
 
   .local-backup-select {

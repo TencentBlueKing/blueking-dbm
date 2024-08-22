@@ -26,7 +26,9 @@
           </span>
         </template>
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :min-width="240">
+      <RenderTableHeadColumn
+        :min-width="350"
+        :width="350">
         {{ t('回档类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
