@@ -134,7 +134,6 @@
   import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
 
-  import type { ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
   import RedisModel from '@services/model/redis/redis';
   import {
     getRedisDetail,
@@ -156,7 +155,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useFunController, useGlobalBizs } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import {
     ClusterTypes,
@@ -208,7 +207,6 @@
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
-  const { funControllerData } = useFunController();
 
   let isInit = true;
 
@@ -396,7 +394,7 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 240 : 320;
+      return isCN.value ? 260 : 350;
     }
     return 60;
   });
@@ -898,101 +896,86 @@
           ];
         };
 
-        const dropdownDbConsoleValueList = [
-          'redis.haClusterManage.getAccess',
-          'redis.haClusterManage.disable',
-          'redis.haClusterManage.enable',
-          'redis.haClusterManage.delete',
-        ]
-        const isShowDropdown = dropdownDbConsoleValueList.every(value => !funControllerData[value as ExtractedControllerDataKeys]) ||
-          dropdownDbConsoleValueList.some(value => funControllerData[value as ExtractedControllerDataKeys].is_enabled)
-
         return (
-            <div class="operations-box">
-              {getOperations()}
-              {isShowDropdown && <bk-dropdown
-                class="operations-more"
-                trigger="click"
-                popover-options={{ zIndex: 10 }}>
-                {{
-                  default: () => <db-icon type="more" />,
-                  content: () => (
-                    <bk-dropdown-menu>
-                      <bk-dropdown-item v-db-console="redis.haClusterManage.getAccess">
-                        <OperationBtnStatusTips
-                        data={data}
-                        disabled={!data.isOffline}>
+          <div class="operations-box">
+            {getOperations()}
+            <MoreActionExtend class="ml-8">
+              {{
+                default: () => <>
+                  <bk-dropdown-item v-db-console="redis.haClusterManage.getAccess">
+                    <OperationBtnStatusTips
+                    data={data}
+                    disabled={!data.isOffline}>
+                      <auth-button
+                        action-id="redis_access_entry_view"
+                        resource={data.id}
+                        permission={data.permission.redis_access_entry_view}
+                        style="width: 100%;height: 32px;"
+                        disabled={data.isOffline}
+                        text
+                        onClick={() => handleShowPassword(data.id)}>
+                        { t('获取访问方式') }
+                      </auth-button>
+                    </OperationBtnStatusTips>
+                  </bk-dropdown-item>
+                  {
+                    data.isOnline && (
+                      <bk-dropdown-item v-db-console="redis.haClusterManage.disable">
+                        <OperationBtnStatusTips data={data}>
                           <auth-button
-                            action-id="redis_access_entry_view"
+                            action-id="redis_open_close"
                             resource={data.id}
-                            permission={data.permission.redis_access_entry_view}
+                            permission={data.permission.redis_open_close}
                             style="width: 100%;height: 32px;"
-                            disabled={data.isOffline}
+                            disabled={data.operationDisabled}
                             text
-                            onClick={() => handleShowPassword(data.id)}>
-                            { t('获取访问方式') }
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_CLOSE, data)}>
+                            { t('禁用') }
                           </auth-button>
                         </OperationBtnStatusTips>
                       </bk-dropdown-item>
-                      {
-                        data.isOnline && (
-                          <bk-dropdown-item v-db-console="redis.haClusterManage.disable">
-                            <OperationBtnStatusTips data={data}>
-                              <auth-button
-                                action-id="redis_open_close"
-                                resource={data.id}
-                                permission={data.permission.redis_open_close}
-                                style="width: 100%;height: 32px;"
-                                disabled={data.operationDisabled}
-                                text
-                                onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_CLOSE, data)}>
-                                { t('禁用') }
-                              </auth-button>
-                            </OperationBtnStatusTips>
-                          </bk-dropdown-item>
-                        )
-                      }
-                      {
-                        !data.isOnline && (
-                          <bk-dropdown-item v-db-console="redis.haClusterManage.enable">
-                            <OperationBtnStatusTips data={data}>
-                              <auth-button
-                                action-id="redis_open_close"
-                                resource={data.id}
-                                permission={data.permission.redis_open_close}
-                                style="width: 100%;height: 32px;"
-                                text
-                                disabled={data.isStarting}
-                                onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_OPEN, data)}>
-                                { t('启用') }
-                              </auth-button>
-                            </OperationBtnStatusTips>
-                          </bk-dropdown-item>
-                        )
-                      }
-                      {
-                        data.isOffline && (
-                          <bk-dropdown-item v-db-console="redis.haClusterManage.delete">
-                            <OperationBtnStatusTips data={data}>
-                              <auth-button
-                                action-id="redis_destroy"
-                                resource={data.id}
-                                permission={data.permission.redis_destroy}
-                                style="width: 100%;height: 32px;"
-                                disabled={Boolean(data.operationTicketId)}
-                                text
-                                onClick={() => handleDeleteCluster(data)}>
-                                { t('删除') }
-                              </auth-button>
-                            </OperationBtnStatusTips>
-                          </bk-dropdown-item>
-                        )
-                      }
-                    </bk-dropdown-menu>
-                  ),
-                }}
-              </bk-dropdown>}
-            </div>
+                    )
+                  }
+                  {
+                    !data.isOnline && (
+                      <bk-dropdown-item v-db-console="redis.haClusterManage.enable">
+                        <OperationBtnStatusTips data={data}>
+                          <auth-button
+                            action-id="redis_open_close"
+                            resource={data.id}
+                            permission={data.permission.redis_open_close}
+                            style="width: 100%;height: 32px;"
+                            text
+                            disabled={data.isStarting}
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_OPEN, data)}>
+                            { t('启用') }
+                          </auth-button>
+                        </OperationBtnStatusTips>
+                      </bk-dropdown-item>
+                    )
+                  }
+                  {
+                    data.isOffline && (
+                      <bk-dropdown-item v-db-console="redis.haClusterManage.delete">
+                        <OperationBtnStatusTips data={data}>
+                          <auth-button
+                            action-id="redis_destroy"
+                            resource={data.id}
+                            permission={data.permission.redis_destroy}
+                            style="width: 100%;height: 32px;"
+                            disabled={Boolean(data.operationTicketId)}
+                            text
+                            onClick={() => handleDeleteCluster(data)}>
+                            { t('删除') }
+                          </auth-button>
+                        </OperationBtnStatusTips>
+                      </bk-dropdown-item>
+                    )
+                  }
+                </>
+              }}
+            </MoreActionExtend>
+          </div>
         );
       },
     },

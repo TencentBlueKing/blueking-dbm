@@ -172,7 +172,6 @@
     useRouter,
   } from 'vue-router';
 
-  import type { ExtractedControllerDataKeys } from '@services/model/function-controller/functionController';
   import RedisModel from '@services/model/redis/redis';
   import {
     getRedisDetail,
@@ -194,7 +193,7 @@
     useTicketMessage,
   } from '@hooks';
 
-  import { useFunController, useGlobalBizs } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import {
     ClusterTypes,
@@ -212,6 +211,7 @@
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -254,8 +254,6 @@
     isOpen: isStretchLayoutOpen,
     splitScreen: stretchLayoutSplitScreen,
   } = useStretchLayout();
-
-  const { funControllerData } = useFunController();
 
   const {
     columnAttrs,
@@ -454,7 +452,7 @@
   const isCN = computed(() => locale.value === 'zh-cn');
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
-      return isCN.value ? 290 : 370;
+      return isCN.value ? 350 : 420;
     }
     return 60;
   });
@@ -970,154 +968,136 @@
           ];
         };
 
-        const dropdownDbConsoleValueList = [
-          'redis.clusterManage.getAccess',
-          'redis.clusterManage.enableCLB',
-          'redis.clusterManage.DNSDomainToCLB',
-          'redis.clusterManage.enablePolaris',
-          'redis.clusterManage.disable',
-          'redis.clusterManage.enable',
-          'redis.clusterManage.delete',
-        ]
-        const isShowDropdown = dropdownDbConsoleValueList.every(value => !funControllerData[value as ExtractedControllerDataKeys]) ||
-          dropdownDbConsoleValueList.some(value => funControllerData[value as ExtractedControllerDataKeys].is_enabled)
-
         return (
-            <div class="operations">
-              {getOperations()}
-              {isShowDropdown && <bk-dropdown
-                class="operations__more"
-                trigger="click"
-                popover-options={{ zIndex: 10 }}>
-                {{
-                  default: () => <db-icon type="more" />,
-                  content: () => (
-                    <bk-dropdown-menu>
-                      <bk-dropdown-item v-db-console="redis.clusterManage.getAccess">
-                        <OperationBtnStatusTips
-                          data={data}
-                          disabled={!data.isOffline}>
+          <div class="operations">
+            {getOperations()}
+            <MoreActionExtend class="ml-8">
+              {{
+                default: () => <>
+                  <bk-dropdown-item v-db-console="redis.clusterManage.getAccess">
+                    <OperationBtnStatusTips
+                      data={data}
+                      disabled={!data.isOffline}>
+                      <auth-button
+                        action-id="redis_access_entry_view"
+                        resource={data.id}
+                        permission={data.permission.redis_access_entry_view}
+                        style="width: 100%;height: 32px;"
+                        disabled={data.isOffline}
+                        text
+                        onClick={() => handleShowPassword(data.id)}>
+                        { t('获取访问方式') }
+                      </auth-button>
+                    </OperationBtnStatusTips>
+                  </bk-dropdown-item>
+                  <fun-controller moduleId="addons" controllerId="redis_nameservice">
+                    <bk-dropdown-item v-db-console="redis.clusterManage.enableCLB">
+                      <OperationBtnStatusTips
+                        data={data}
+                        disabled={!data.isOffline}>
+                        <auth-button
+                          action-id="redis_plugin_create_clb"
+                          permission={data.permission.redis_plugin_create_clb}
+                          resource={data.id}
+                          style="width: 100%;height: 32px;"
+                          disabled={data.isOffline}
+                          text
+                          onClick={() => handleSwitchCLB(data)}>
+                          { data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                    <bk-dropdown-item v-db-console="redis.clusterManage.DNSDomainToCLB">
+                      <OperationBtnStatusTips
+                        data={data}
+                        disabled={!data.isOffline}>
+                        <auth-button
+                          action-id="redis_plugin_dns_bind_clb"
+                          permission={data.permission.redis_plugin_dns_bind_clb}
+                          resource={data.id}
+                          style="width: 100%;height: 32px;"
+                          disabled={data.isOffline}
+                          text
+                          onClick={() => handleSwitchDNSBindCLB(data)}>
+                          { data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                    <bk-dropdown-item v-db-console="redis.clusterManage.enablePolaris">
+                      <OperationBtnStatusTips
+                        data={data}
+                        disabled={!data.isOffline}>
+                        <auth-button
+                          action-id="redis_plugin_create_polaris"
+                          permission={data.permission.redis_plugin_create_polaris}
+                          resource={data.id}
+                          style="width: 100%;height: 32px;"
+                          disabled={data.isOffline}
+                          text
+                          onClick={() => handleSwitchPolaris(data)}>
+                          { data.isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                  </fun-controller>
+                  {
+                    data.isOnline && (
+                      <bk-dropdown-item v-db-console="redis.clusterManage.disable">
+                        <OperationBtnStatusTips data={data}>
                           <auth-button
-                            action-id="redis_access_entry_view"
+                            action-id="redis_open_close"
                             resource={data.id}
-                            permission={data.permission.redis_access_entry_view}
+                            permission={data.permission.redis_open_close}
                             style="width: 100%;height: 32px;"
-                            disabled={data.isOffline}
+                            disabled={data.operationDisabled}
                             text
-                            onClick={() => handleShowPassword(data.id)}>
-                            { t('获取访问方式') }
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_CLOSE, data)}>
+                            { t('禁用') }
                           </auth-button>
                         </OperationBtnStatusTips>
                       </bk-dropdown-item>
-                      <fun-controller moduleId="addons" controllerId="redis_nameservice">
-                        <bk-dropdown-item v-db-console="redis.clusterManage.enableCLB">
-                          <OperationBtnStatusTips
-                            data={data}
-                            disabled={!data.isOffline}>
-                            <auth-button
-                              action-id="redis_plugin_create_clb"
-                              permission={data.permission.redis_plugin_create_clb}
-                              resource={data.id}
-                              style="width: 100%;height: 32px;"
-                              disabled={data.isOffline}
-                              text
-                              onClick={() => handleSwitchCLB(data)}>
-                              { data.isOnlineCLB ? t('禁用CLB') : t('启用CLB') }
-                            </auth-button>
-                          </OperationBtnStatusTips>
-                        </bk-dropdown-item>
-                        <bk-dropdown-item v-db-console="redis.clusterManage.DNSDomainToCLB">
-                          <OperationBtnStatusTips
-                            data={data}
-                            disabled={!data.isOffline}>
-                            <auth-button
-                              action-id="redis_plugin_dns_bind_clb"
-                              permission={data.permission.redis_plugin_dns_bind_clb}
-                              resource={data.id}
-                              style="width: 100%;height: 32px;"
-                              disabled={data.isOffline}
-                              text
-                              onClick={() => handleSwitchDNSBindCLB(data)}>
-                              { data.dns_to_clb ? t('恢复DNS域名指向') : t('DNS域名指向CLB') }
-                            </auth-button>
-                          </OperationBtnStatusTips>
-                        </bk-dropdown-item>
-                        <bk-dropdown-item v-db-console="redis.clusterManage.enablePolaris">
-                          <OperationBtnStatusTips
-                            data={data}
-                            disabled={!data.isOffline}>
-                            <auth-button
-                              action-id="redis_plugin_create_polaris"
-                              permission={data.permission.redis_plugin_create_polaris}
-                              resource={data.id}
-                              style="width: 100%;height: 32px;"
-                              disabled={data.isOffline}
-                              text
-                              onClick={() => handleSwitchPolaris(data)}>
-                              { data.isOnlinePolaris ? t('禁用北极星') : t('启用北极星') }
-                            </auth-button>
-                          </OperationBtnStatusTips>
-                        </bk-dropdown-item>
-                      </fun-controller>
-                      {
-                        data.isOnline && (
-                          <bk-dropdown-item v-db-console="redis.clusterManage.disable">
-                            <OperationBtnStatusTips data={data}>
-                              <auth-button
-                                action-id="redis_open_close"
-                                resource={data.id}
-                                permission={data.permission.redis_open_close}
-                                style="width: 100%;height: 32px;"
-                                disabled={data.operationDisabled}
-                                text
-                                onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_CLOSE, data)}>
-                                { t('禁用') }
-                              </auth-button>
-                            </OperationBtnStatusTips>
-                          </bk-dropdown-item>
-                        )
-                      }
-                      {
-                        !data.isOnline && (
-                          <bk-dropdown-item v-db-console="redis.clusterManage.enable">
-                            <OperationBtnStatusTips data={data}>
-                              <auth-button
-                                action-id="redis_open_close"
-                                resource={data.id}
-                                permission={data.permission.redis_open_close}
-                                style="width: 100%;height: 32px;"
-                                text
-                                disabled={data.isStarting || data.operationDisabled}
-                                onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_OPEN, data)}>
-                                { t('启用') }
-                              </auth-button>
-                            </OperationBtnStatusTips>
-                          </bk-dropdown-item>
-                        )
-                      }
-                      {
-                        data.isOffline && (
-                          <bk-dropdown-item v-db-console="redis.clusterManage.delete">
-                            <OperationBtnStatusTips data={data}>
-                              <auth-button
-                                action-id="redis_destroy"
-                                resource={data.id}
-                                permission={data.permission.redis_destroy}
-                                style="width: 100%;height: 32px;"
-                                disabled={Boolean(data.operationTicketId)}
-                                text
-                                onClick={() => handleDeleteCluster(data)}>
-                                { t('删除') }
-                              </auth-button>
-                            </OperationBtnStatusTips>
-                          </bk-dropdown-item>
-                        )
-                      }
-                    </bk-dropdown-menu>
-                  ),
-                }}
-              </bk-dropdown>}
-            </div>
+                    )
+                  }
+                  {
+                    !data.isOnline && (
+                      <bk-dropdown-item v-db-console="redis.clusterManage.enable">
+                        <OperationBtnStatusTips data={data}>
+                          <auth-button
+                            action-id="redis_open_close"
+                            resource={data.id}
+                            permission={data.permission.redis_open_close}
+                            style="width: 100%;height: 32px;"
+                            text
+                            disabled={data.isStarting || data.operationDisabled}
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_PROXY_OPEN, data)}>
+                            { t('启用') }
+                          </auth-button>
+                        </OperationBtnStatusTips>
+                      </bk-dropdown-item>
+                    )
+                  }
+                  {
+                    data.isOffline && (
+                      <bk-dropdown-item v-db-console="redis.clusterManage.delete">
+                        <OperationBtnStatusTips data={data}>
+                          <auth-button
+                            action-id="redis_destroy"
+                            resource={data.id}
+                            permission={data.permission.redis_destroy}
+                            style="width: 100%;height: 32px;"
+                            disabled={Boolean(data.operationTicketId)}
+                            text
+                            onClick={() => handleDeleteCluster(data)}>
+                            { t('删除') }
+                          </auth-button>
+                        </OperationBtnStatusTips>
+                      </bk-dropdown-item>
+                    )
+                  }
+                </>
+              }}
+            </MoreActionExtend>
+          </div>
         );
       },
     },
