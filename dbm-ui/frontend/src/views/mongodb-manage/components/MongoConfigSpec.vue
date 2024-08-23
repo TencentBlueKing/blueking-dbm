@@ -79,7 +79,7 @@
 
   import SpecTip from '@images/spec-tip.png';
 
-  type RedisClusterSpecRow = ClusterSpecModel & {
+  export type MongoConfigSpecRow = ClusterSpecModel & {
     shard_node_num: number;
     shard_num: number;
     shard_node_spec: string;
@@ -98,10 +98,11 @@
     shardNodeCount?: number,
     isApply?: boolean
     originSpecId?: number | string
+    clusterType: ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER
   }
 
   interface Emits {
-    (e: 'currentChange', value?: RedisClusterSpecRow): void
+    (e: 'currentChange', value?: MongoConfigSpecRow): void
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -121,7 +122,7 @@
   const { t } = useI18n();
 
   const specRef = ref();
-  const specList = ref<RedisClusterSpecRow[]>([]);
+  const specList = ref<MongoConfigSpecRow[]>([]);
 
   let timer = 0;
 
@@ -139,7 +140,7 @@
           }}
         </bk-popover>
       ),
-      render: ({ data, index }: { data: RedisClusterSpecRow, index: number }) => {
+      render: ({ data, index }: { data: MongoConfigSpecRow, index: number }) => {
         let tag;
         if (props.originSpecId === data.spec_id) {
           tag = (
@@ -184,7 +185,7 @@
       field: 'shard_num',
       label: t('Shard数量'),
       width: 100,
-      render: ({ data, index }: { data: RedisClusterSpecRow, index: number }) => {
+      render: ({ data, index }: { data: MongoConfigSpecRow, index: number }) => {
         if (props.isApply) {
           return (
             <bk-select
@@ -211,7 +212,7 @@
     {
       field: 'shard_node_spec',
       label: t('Shard节点规格'),
-      render: ({ data }: { data: RedisClusterSpecRow }) => {
+      render: ({ data }: { data: MongoConfigSpecRow }) => {
         // if (props.isApply) {
         const index = data.shard_choices.findIndex(choiceItem => choiceItem.shard_num === data.shard_num);
         return <span>{ index > -1 ? data.shard_choices[index].shard_spec : '--' }</span>;
@@ -271,7 +272,7 @@
         shard_node_spec: '',
         machine_num: item.machine_pair * shardNodeNum, // 机器组数 x 每个Shard节点数
         count: 0,
-      } as RedisClusterSpecRow));
+      } as MongoConfigSpecRow));
       getSpecResourceCountRun({
         bk_biz_id: Number(props.bizId),
         bk_cloud_id: Number(props.cloudId),
@@ -336,7 +337,7 @@
     }
 
     getFilterClusterSpecRun({
-      spec_cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+      spec_cluster_type: props.clusterType,
       spec_machine_type: MachineTypes.MONGODB,
       capacity: Number(modelValue.value.capacity),
       shard_num: props.shardNum,
@@ -344,7 +345,7 @@
   };
   fetchFilterClusterSpec();
 
-  const handleRowClick = (event: Event, row: RedisClusterSpecRow) => {
+  const handleRowClick = (event: Event, row: MongoConfigSpecRow) => {
     modelValue.value.spec_id = row.spec_id;
     emits('currentChange', row);
   };

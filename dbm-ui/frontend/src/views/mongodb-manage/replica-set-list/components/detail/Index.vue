@@ -29,10 +29,15 @@
           @click="handleCopyMasterDomainDisplayName">
           {{ t('复制访问地址') }}
         </BkButton>
-        <BkDropdown
-          class="ml-4">
+        <!-- <BkButton
+          class="ml-4"
+          size="small"
+          @click="handleCapacityChange">
+          {{ t('集群容量变更') }}
+        </BkButton> -->
+        <BkDropdown class="ml-4">
           <BkButton
-            class="more-button "
+            class="more-button"
             size="small">
             <DbIcon type="more" />
           </BkButton>
@@ -53,7 +58,7 @@
     </div>
   </Teleport>
   <div
-    v-bkloading="{loading: isLoading}"
+    v-bkloading="{ loading: isLoading }"
     class="cluster-details">
     <BkTab
       v-model:active="activePanelKey"
@@ -90,6 +95,24 @@
         v-if="activePanelKey === activePanel?.name"
         :url="activePanel?.link" />
     </div>
+    <!-- <DbSideslider
+      v-if="capacityData"
+      v-model:is-show="capacityChangeShow"
+      :disabled-confirm="!isCapacityChange"
+      :width="960">
+      <template #header>
+        <span>
+          {{ t('MongoDB 集群容量变更【xxx】', [capacityData.clusterName]) }}
+          <BkTag theme="info">
+            {{ t('存储层') }}
+          </BkTag>
+        </span>
+      </template>
+      <CapacityChange
+        v-model:is-change="isCapacityChange"
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        :data="capacityData" />
+    </DbSideslider> -->
   </div>
 </template>
 
@@ -100,23 +123,18 @@
   import { getMongoClusterDetails } from '@services/source/mongodb';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
 
-  import {
-    useCopy,
-    useStretchLayout,
-  } from '@hooks';
+  import { useCopy, useStretchLayout } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-  } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
 
+  // import CapacityChange from '@views/mongodb-manage/shared-cluster-list/components/components/CapacityChange.vue';
   import { useDisableCluster } from '../../hooks/useDisableCluster';
 
   import BaseInfo from './BaseInfo.vue';
@@ -134,13 +152,27 @@
   const disableCluster = useDisableCluster();
 
   const activePanelKey = ref('topo');
-  const monitorPanelList = ref<{
-    label: string,
-    name: string,
-    link: string,
-  }[]>([]);
+  // const capacityChangeShow = ref(false);
+  // const isCapacityChange = ref(false);
+  // const capacityData = ref<{
+  //   id: number;
+  //   clusterName: string;
+  //   specId: number;
+  //   specName: string;
+  //   bizId: number;
+  //   cloudId: number;
+  //   shardNum: number;
+  //   shardNodeCount: number;
+  // }>();
+  const monitorPanelList = ref<
+    {
+      label: string;
+      name: string;
+      link: string;
+    }[]
+  >([]);
 
-  const activePanel = computed(() => monitorPanelList.value.find(item => item.name === activePanelKey.value));
+  const activePanel = computed(() => monitorPanelList.value.find((item) => item.name === activePanelKey.value));
 
   const {
     data,
@@ -154,7 +186,7 @@
     manual: true,
     onSuccess(res) {
       if (res.urls.length > 0) {
-        monitorPanelList.value = res.urls.map(item => ({
+        monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
           name: item.view,
           link: item.url,
@@ -163,25 +195,33 @@
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (!props.clusterId) {
-      return;
-    }
-    fetchResourceDetails({
-      cluster_id: props.clusterId,
-    });
-    runGetMonitorUrls({
-      bk_biz_id: currentBizId,
-      cluster_type: ClusterTypes.MONGO_REPLICA_SET,
-      cluster_id: props.clusterId,
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (!props.clusterId) {
+        return;
+      }
+      fetchResourceDetails({
+        cluster_id: props.clusterId,
+      });
+      runGetMonitorUrls({
+        bk_biz_id: currentBizId,
+        cluster_type: ClusterTypes.MONGO_REPLICA_SET,
+        cluster_id: props.clusterId,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleCopyMasterDomainDisplayName = () => {
     copy(data.value!.masterDomainDisplayName);
   };
+
+  // const handleCapacityChange = () => {
+  //   capacityChangeShow.value = true;
+  // };
 
   const handleDisableCluster = () => {
     disableCluster(data.value!);
@@ -189,29 +229,29 @@
 </script>
 
 <style lang="less">
-.replica-set-breadcrumbs-box {
-  display: flex;
-  width: 100%;
-  margin-left: 8px;
-  font-size: 12px;
-  align-items: center;
-
-  .replica-set-breadcrumbs-box-status {
+  .replica-set-breadcrumbs-box {
     display: flex;
-    margin-left: 30px;
-    align-items: center;
-  }
-
-  .replica-set-breadcrumbs-box-button {
-    display: flex;
-    margin-left: auto;
+    width: 100%;
+    margin-left: 8px;
+    font-size: 12px;
     align-items: center;
 
-    .more-button {
-      padding: 3px 6px;
+    .replica-set-breadcrumbs-box-status {
+      display: flex;
+      margin-left: 30px;
+      align-items: center;
+    }
+
+    .replica-set-breadcrumbs-box-button {
+      display: flex;
+      margin-left: auto;
+      align-items: center;
+
+      .more-button {
+        padding: 3px 6px;
+      }
     }
   }
-}
 </style>
 
 <style lang="less" scoped>

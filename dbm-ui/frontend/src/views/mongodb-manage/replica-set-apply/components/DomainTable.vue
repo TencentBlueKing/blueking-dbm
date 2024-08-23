@@ -23,7 +23,6 @@
 <script setup lang="tsx">
   import { Form } from 'bkui-vue';
   import type { Column } from 'bkui-vue/lib/table/props';
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import { nameRegx } from '@common/regex';
@@ -236,7 +235,7 @@
   };
 
   const handleChangeCellValue = (value: string, index: number, fieldName: keyof Domain) => {
-    const newDomains = _.cloneDeep(domains.value);
+    const newDomains = domains.value;
     newDomains[index][fieldName] = value;
 
     // 主域名根据集群ID自动生成
@@ -249,33 +248,33 @@
 </script>
 
 <style lang="less" scoped>
-.domain-table {
-  :deep(.bk-table) {
-    .bk-form-content {
-      margin-left: 0 !important;
-    }
-  }
-
-  :deep(.table-custom-label) {
-    display: flex;
-    align-items: center;
-  }
-
-  :deep(.domain-address) {
-    display: flex;
-    align-items: center;
-
-    > span {
-      flex-shrink: 0;
+  .domain-table {
+    :deep(.bk-table) {
+      .bk-form-content {
+        margin-left: 0 !important;
+      }
     }
 
-    .cell-item {
-      margin-bottom: 0;
+    :deep(.table-custom-label) {
+      display: flex;
+      align-items: center;
+    }
 
-      .bk-form-label {
-        display: none;
+    :deep(.domain-address) {
+      display: flex;
+      align-items: center;
+
+      > span {
+        flex-shrink: 0;
+      }
+
+      .cell-item {
+        margin-bottom: 0;
+
+        .bk-form-label {
+          display: none;
+        }
       }
     }
   }
-}
 </style>

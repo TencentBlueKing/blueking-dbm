@@ -16,7 +16,6 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="t('至少n台', { n: 3 })"
       :rules="rules"
       type="number" />
   </BkLoading>

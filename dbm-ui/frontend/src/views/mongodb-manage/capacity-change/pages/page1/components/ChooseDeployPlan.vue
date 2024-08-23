@@ -40,7 +40,9 @@
               <span v-if="targetSepc">{{ targetSepc }}</span>
               <span
                 v-else
-                style="color: #c4c6cc">{{ t('请先选择部署方案') }}</span>
+                style="color: #c4c6cc"
+                >{{ t('请先选择部署方案') }}</span
+              >
             </div>
           </div>
         </div>
@@ -296,7 +298,7 @@
                     { t('当前方案') }
                   </bk-tag>
                 );
-              } 
+              }
               if (data.machine_need_num > data.available_machines) {
                 return (
                   <bk-tag
@@ -307,7 +309,7 @@
                   </bk-tag>
                 );
               }
-              
+
               return null
             }
           }}
@@ -367,7 +369,8 @@
     if (capacityNeed.value > 0) {
       isTableLoading.value = true;
       const params = {
-        spec_cluster_type: 'MongoShardedCluster',
+        // spec_cluster_type: 'MongoShardedCluster',
+        spec_cluster_type: props.data.clusterType,
         spec_machine_type: 'mongodb',
         capacity: capacityNeed.value,
         shard_num: props.data.shardNum,
