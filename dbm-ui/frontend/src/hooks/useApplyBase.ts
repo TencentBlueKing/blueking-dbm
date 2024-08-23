@@ -19,18 +19,12 @@ import { createAppAbbr } from '@services/source/cmdb';
 import { createTicket } from '@services/source/ticket';
 import type { BizItem } from '@services/types';
 
-import { useMainViewStore } from '@stores';
-
-import { serviceTicketTypes, type ServiceTicketTypeStrings } from '@common/const';
-
 /**
  * 申请服务基础信息设置
  */
 export const useApplyBase = () => {
   const { t } = useI18n();
   const router = useRouter();
-  const route = useRoute();
-  const mainViewStore = useMainViewStore();
 
   // 业务相关状态
   const bizState = reactive({
@@ -41,20 +35,6 @@ export const useApplyBase = () => {
   const baseState = reactive({
     isSubmitting: false,
   });
-
-  /**
-   * 设置导航名称
-   */
-  watch(
-    () => route.params.type,
-    (value, old) => {
-      if (value && value !== old) {
-        const info = serviceTicketTypes[value as ServiceTicketTypeStrings];
-        mainViewStore.breadCrumbsTitle = info ? t('申请xx', [info.name]) : t('申请服务');
-      }
-    },
-    { immediate: true },
-  );
 
   /**
    * 取消申请

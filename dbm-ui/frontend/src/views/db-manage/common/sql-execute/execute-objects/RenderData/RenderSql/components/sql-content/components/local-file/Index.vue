@@ -80,7 +80,7 @@
   import { onActivated, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { grammarCheck } from '@services/source/sqlImport';
+  import { useSqlImport } from '@stores';
 
   import Editor from '../editor/Index.vue';
   import useEditableFileContent from '../hooks/useEditableFileContent';
@@ -105,6 +105,7 @@
 
   const emits = defineEmits<Emits>();
 
+  const { grammarCheckHandle } = useSqlImport();
   const { t } = useI18n();
 
   const modelValue = defineModel<string[]>({
@@ -224,7 +225,7 @@
       params.append(`versions[${index}]`, version);
     });
 
-    grammarCheck(params)
+    grammarCheckHandle(params)
       .then((data) => {
         const lastUploadFileDataMap = { ...uploadFileDataMap.value };
         Object.keys(data).forEach((realFilePath) => {
@@ -321,21 +322,23 @@
     .content-loading {
       position: relative;
       height: 100%;
+
       .bk-loading-mask {
         background: transparent !important;
       }
     }
+
     .upload-btn {
       display: flex;
-      align-items: center;
-      justify-content: center;
       height: 36px;
       padding: 0 8px;
+      font-size: 12px;
+      color: #c4c6cc;
       cursor: pointer;
       background: rgb(255 255 255 / 8%);
       border-radius: 2px;
-      color: #c4c6cc;
-      font-size: 12px;
+      align-items: center;
+      justify-content: center;
 
       &:hover {
         background: rgb(255 255 255 / 20%);

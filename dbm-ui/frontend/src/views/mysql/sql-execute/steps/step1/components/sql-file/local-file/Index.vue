@@ -79,7 +79,7 @@
   import { computed, onActivated, onDeactivated, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { grammarCheck } from '@services/source/sqlImport';
+  import { grammarCheck } from '@services/source/mysqlSqlImport';
   import { getFileContent } from '@services/source/storage';
 
   import { getSQLFilename } from '@utils';

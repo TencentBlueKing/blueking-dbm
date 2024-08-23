@@ -15,7 +15,7 @@ import tippy, { type Instance, type SingleTarget } from 'tippy.js';
 import { useRouter } from 'vue-router';
 
 import type UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
-import { deleteUserSemanticTasks, getUserSemanticTasks } from '@services/source/sqlImport';
+import { deleteUserSemanticTasks, getUserSemanticTasks } from '@services/source/mysqlSqlImport';
 
 import { useSQLTaskCount } from '@stores';
 

@@ -17,7 +17,8 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          v-model="localClusterData" />
+          v-model="localClusterData"
+          :unique="false" />
       </td>
       <td style="padding: 0">
         <RenderDbName

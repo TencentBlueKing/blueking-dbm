@@ -12,14 +12,12 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <TableEditInput
-      ref="editRef"
-      v-model="localValue"
-      :placeholder="t('请输入IP')"
-      :rules="rules"
-      @input="handleInput" />
-  </BkLoading>
+  <TableEditInput
+    ref="editRef"
+    v-model="localValue"
+    :placeholder="t('请输入IP')"
+    :rules="rules"
+    @input="handleInput" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -54,7 +52,6 @@
 
   const editRef = ref<InstanceType<typeof TableEditInput>>();
   const localValue = ref('');
-  const isLoading = ref(false);
 
   const rules = [
     {
@@ -83,7 +80,7 @@
             port: instanceData.port,
             instanceAddress: instanceData.instance_address,
             clusterId: instanceData.cluster_id,
-            hostInfo: instanceData.host_info,
+            dbModuleId: instanceData.db_module_id,
           };
           return true;
         }),

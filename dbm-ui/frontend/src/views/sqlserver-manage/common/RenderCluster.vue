@@ -50,6 +50,7 @@
 
   interface Props {
     name?: string;
+    unique?: boolean;
   }
 
   interface Exposes {
@@ -58,6 +59,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     name: 'renderCluster',
+    unique: true,
   });
 
   const modelValue = defineModel<{
@@ -134,6 +136,9 @@
     },
     {
       validator: () => {
+        if (!props.unique) {
+          return true;
+        }
         const otherClusterMemoMap = { ...clusterIdMemo[props.name] };
         delete otherClusterMemoMap[instanceKey];
 

@@ -14,7 +14,7 @@
 <template>
   <div
     ref="rootRef"
-    class="ticket-import-sql-file-render">
+    class="ticket-detail-import-sqlfile-file-content">
     <div class="editor-layout-header">
       <span>{{ getSQLFilename(title) }}</span>
       <div class="editro-action-box">
@@ -220,10 +220,10 @@
   });
 </script>
 <style lang="less">
-  .ticket-import-sql-file-render {
+  .ticket-detail-import-sqlfile-file-content {
     position: relative;
     z-index: 0;
-    height: calc(100vh - 80px);
+    height: calc(100vh - 52px);
 
     .editor-layout-header {
       display: flex;
