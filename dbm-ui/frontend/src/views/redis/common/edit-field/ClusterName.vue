@@ -18,7 +18,7 @@
       v-model="localValue"
       :placeholder="t('请输入或选择集群')"
       :rules="rules"
-      @submit="handleInputFinish" />
+      @focus="handleFocus" />
   </div>
 </template>
 <script setup lang="ts">
@@ -93,7 +93,7 @@
     },
   );
 
-  const handleInputFinish = () => {
+  const handleFocus = () => {
     isSkipInputFinish = false;
   };
 

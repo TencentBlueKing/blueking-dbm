@@ -32,6 +32,7 @@
     modelValue?: string;
     placeholder?: string;
     checkExist?: boolean;
+    checkNotExist?: boolean;
   }
 
   interface Exposes {
@@ -42,6 +43,7 @@
     placeholder: '',
     modelValue: '',
     checkExist: false,
+    checkNotExist: false,
   });
 
   const { t } = useI18n();
@@ -85,6 +87,26 @@
         }).then((data) => (data.length > 0 ? data[0].check_info[value] : false));
       },
       message: t('DB 不存在'),
+    },
+    {
+      validator: (value: string) => {
+        if (!props.checkNotExist) {
+          return true;
+        }
+        const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
+        if (clearDbList.length < 1) {
+          return true;
+        }
+        return checkClusterDatabase({
+          infos: [
+            {
+              cluster_id: props.clusterId,
+              db_names: [value],
+            },
+          ],
+        }).then((data) => (data.length > 0 ? !data[0].check_info[value] : true));
+      },
+      message: t('新DB已存在'),
     },
   ];
 
