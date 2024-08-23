@@ -13,14 +13,14 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderCluster
         ref="clusterRef"
         :model-value="data.clusterData"
         relate-cluster-tips="同主机关联的其他集群，勾选后一并添加"
         @id-change="handleClusterIdChange"
         @input-create="handleCreate" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderProxy
         ref="proxyRef"
@@ -64,6 +64,7 @@
 <script setup lang="ts">
   import { ref } from 'vue';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderCluster from '@views/mysql/common/edit-field/ClusterWithRelateCluster.vue';

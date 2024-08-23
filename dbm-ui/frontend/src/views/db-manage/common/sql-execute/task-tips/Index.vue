@@ -12,72 +12,70 @@
 -->
 
 <template>
-  <div style="margin-bottom: 40px">
+  <BkAlert
+    v-if="taskCount < 1"
+    closable
+    theme="info"
+    :title="$t('提供多个集群批量执行sql文件功能')" />
+  <div v-else>
     <BkAlert
-      v-if="taskCount < 1"
-      closable
-      theme="info"
-      :title="$t('提供多个集群批量执行sql文件功能')" />
-    <div v-else>
-      <BkAlert
-        :show-icon="false"
-        theme="warning">
-        <div class="sql-execute-task-tips">
-          <div
-            class="loading-flag rotate-loading"
-            style="width: 12px; height: 12px">
-            <DbIcon
-              svg
-              type="sync-pending" />
-          </div>
-          <div style="padding-left: 4px">
-            <span>{{ $t('目前已有') }}</span>
-            <span
-              ref="rootRef"
-              class="strong-number">
-              {{ taskCount }}
-            </span>
-            <span>{{ $t('个模拟执行任务待确认_可点击查看最新动态') }}</span>
-          </div>
-        </div>
-      </BkAlert>
-      <div style="display: none">
+      :show-icon="false"
+      theme="warning">
+      <div class="sql-execute-task-tips">
         <div
-          ref="popRef"
-          class="sql-execute-task-popover-list">
-          <div
-            v-for="item in taskList"
-            :key="item.root_id"
-            class="task-item">
-            <div>
-              <DbIcon
-                v-if="item.isPending"
-                type="loading" />
-              <DbIcon
-                v-else-if="item.isSucceeded"
-                style="color: #2dcb56"
-                type="check-circle-fill" />
-              <DbIcon
-                v-else
-                style="color: #ea3636"
-                type="delete-fill" />
+          class="loading-flag rotate-loading"
+          style="width: 12px; height: 12px">
+          <DbIcon
+            svg
+            type="sync-pending" />
+        </div>
+        <div style="padding-left: 4px">
+          <span>{{ $t('目前已有') }}</span>
+          <span
+            ref="rootRef"
+            class="strong-number">
+            {{ taskCount }}
+          </span>
+          <span>{{ $t('个模拟执行任务待确认_可点击查看最新动态') }}</span>
+        </div>
+      </div>
+    </BkAlert>
+    <div style="display: none">
+      <div
+        ref="popRef"
+        class="sql-execute-task-popover-list">
+        <div
+          v-for="item in taskList"
+          :key="item.root_id"
+          class="task-item">
+          <div>
+            <DbIcon
+              v-if="item.isPending"
+              type="loading" />
+            <DbIcon
+              v-else-if="item.isSucceeded"
+              style="color: #2dcb56"
+              type="check-circle-fill" />
+            <DbIcon
+              v-else
+              style="color: #ea3636"
+              type="delete-fill" />
+          </div>
+          <div class="task-create-time">
+            {{ item.created_at }}
+          </div>
+          <div class="task-create-action">
+            <div
+              v-bk-tooltips="$t('移除')"
+              @click="handleRevokeTask(item)">
+              <DbIcon type="delete" />
             </div>
-            <div class="task-create-time">
-              {{ item.created_at }}
-            </div>
-            <div class="task-create-action">
-              <div
-                v-bk-tooltips="$t('移除')"
-                @click="handleRevokeTask(item)">
-                <DbIcon type="delete" />
-              </div>
-              <div
-                v-bk-tooltips="$t('执行日志')"
-                @click="handleGoTaskLog(item)">
-                <DbIcon
-                  class="ml8"
-                  type="link" />
-              </div>
+            <div
+              v-bk-tooltips="$t('执行日志')"
+              @click="handleGoTaskLog(item)">
+              <DbIcon
+                class="ml8"
+                type="link" />
             </div>
           </div>
         </div>

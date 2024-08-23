@@ -9,9 +9,9 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-
+ */
 import _ from 'lodash';
+import { type Ref } from 'vue';
 
 export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLElement>, mouseupCallback: () => void) {
   let dragable = false;
@@ -47,18 +47,15 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
   const handleMouseDown = (
     event: MouseEvent,
     payload: {
-      columnKey: string,
-      minWidth: number
+      columnKey: string;
+      minWidth: number;
     },
   ) => {
     if (!dragable) {
       return;
     }
-    const {
-      columnKey,
-      minWidth = 100,
-    } = payload;
-
+    const { columnKey, minWidth = 100 } = payload;
+    const target = (event.target as Element).closest('th') as Element;
     const tableEl = tableRef.value;
     const columnEl = tableEl.querySelector(`th.column-${columnKey}`) as HTMLElement;
     const tableLeft = tableEl.getBoundingClientRect().left;
@@ -85,11 +82,12 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
 
     const handleMouseMove = (event: MouseEvent) => {
       dragging.value = true;
-      const deltaLeft = event.clientX - (dragState.value).startMouseLeft;
-      const proxyLeft = (dragState.value).startLeft + deltaLeft;
+      const deltaLeft = event.clientX - dragState.value.startMouseLeft;
+      const proxyLeft = dragState.value.startLeft + deltaLeft;
       resizeProxy.style.display = 'block';
       resizeProxyLeft = Math.max(minLeft, proxyLeft);
       resizeProxy.style.left = `${resizeProxyLeft}px`;
+      target.classList.add('poiner-right');
     };
 
     const handleMouseUp = () => {
@@ -117,17 +115,22 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
   };
 
   const handleMouseMove = (event: MouseEvent) => {
+    if (dragging.value) {
+      return;
+    }
+
     const target = (event.target as Element).closest('th') as Element;
-
     const rect = target.getBoundingClientRect();
-
     const bodyStyle = document.body.style;
     if (rect.width > 12 && rect.right - event.pageX < 8) {
       bodyStyle.cursor = 'col-resize';
       dragable = true;
+      target.classList.add('poiner-right');
     } else if (!dragging.value) {
       bodyStyle.cursor = '';
       dragable = false;
+      target.classList.remove('poiner-right');
+      target.previousElementSibling?.classList.remove('poiner-right');
     }
   };
 
@@ -141,7 +144,6 @@ export default function (tableRef: Ref<Element>, tableColumnResizeRef: Ref<HTMLE
     }
     document.body.style.cursor = '';
   }, 100);
-
 
   provide('toolboxRenderTableKey', {
     columnMousedown: handleMouseDown,

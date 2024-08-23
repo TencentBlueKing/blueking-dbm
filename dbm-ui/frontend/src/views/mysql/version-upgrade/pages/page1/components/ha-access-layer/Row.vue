@@ -13,12 +13,12 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderCluster
         ref="clusterRef"
         :model-value="clusterInfo"
         @id-change="handleClusterIdChange" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderText
         :data="data.clusterData?.currentVersion"
@@ -41,6 +41,7 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 

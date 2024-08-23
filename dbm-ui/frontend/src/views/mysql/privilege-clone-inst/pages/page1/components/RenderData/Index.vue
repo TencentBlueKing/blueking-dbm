@@ -12,48 +12,46 @@
 -->
 
 <template>
-  <div class="render-data">
-    <RenderTable>
-      <template #default>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="225">
-          {{ t('源实例') }}
-          <template #append>
-            <span
-              class="batch-edit-btn"
-              @click="handleShowBatchSelectCluster">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </template>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="300">
-          {{ t('所属集群') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="280">
-          {{ t('新实例') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          fixed="right"
-          :required="false"
-          :width="100">
-          {{ t('操作') }}
-        </RenderTableHeadColumn>
-      </template>
+  <RenderTable>
+    <template #default>
+      <RenderTableHeadColumn
+        fixed="left"
+        :min-width="120"
+        :width="225">
+        {{ t('源实例') }}
+        <template #append>
+          <BatchOperateIcon
+            class="ml-4"
+            @batch-click="handleShowBatchSelectCluster" />
+        </template>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="120"
+        :width="300">
+        {{ t('所属集群') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="120"
+        :width="280">
+        {{ t('新实例') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        fixed="right"
+        :required="false"
+        :width="100">
+        {{ t('操作') }}
+      </RenderTableHeadColumn>
+    </template>
 
-      <template #data>
-        <slot />
-      </template>
-    </RenderTable>
-  </div>
+    <template #data>
+      <slot />
+    </template>
+  </RenderTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -69,12 +67,3 @@
     emits('batchSelectCluster');
   };
 </script>
-<style lang="less">
-  .render-data {
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

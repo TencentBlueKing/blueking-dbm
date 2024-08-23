@@ -13,21 +13,30 @@
 
 <template>
   <RenderTable>
-    <RenderTableHeadColumn :min-width="300">
+    <RenderTableHeadColumn
+      fixed="left"
+      :min-width="300"
+      :width="350">
       {{ t('变更的DB') }}
       <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
         ({{ t('如果变更 SQL 是“create database ...”，这个请填写 test') }})
       </span>
     </RenderTableHeadColumn>
-    <RenderTableHeadColumn :required="false">
+    <RenderTableHeadColumn
+      :min-width="200"
+      :required="false"
+      :width="250">
       {{ t('忽略的DB') }}
     </RenderTableHeadColumn>
-    <RenderTableHeadColumn :max-width="200">
+    <RenderTableHeadColumn
+      :min-width="200"
+      :width="250">
       {{ t('执行的 SQL') }}
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
-      :max-width="90"
-      :required="false">
+      fixed="right"
+      :required="false"
+      :width="100">
       {{ t('操作') }}
     </RenderTableHeadColumn>
     <template #data>

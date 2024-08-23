@@ -12,42 +12,40 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <CellName
-          ref="nameRef"
-          :data="localRowData"
-          :model-value="localRowData.name"
-          @edit-change="handleNameChange" />
-      </td>
-      <td style="padding: 0">
-        <CellDesc
-          ref="descRef"
-          v-model="localRowData.desc" />
-      </td>
-      <td style="padding: 0">
-        <CellType />
-      </td>
-      <td :class="{ 'shadow-column': isFixed }">
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: data.builtin,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
+  <tr>
+    <td style="padding: 0">
+      <CellName
+        ref="nameRef"
+        :data="localRowData"
+        :model-value="localRowData.name"
+        @edit-change="handleNameChange" />
+    </td>
+    <td style="padding: 0">
+      <CellDesc
+        ref="descRef"
+        v-model="localRowData.desc" />
+    </td>
+    <td style="padding: 0">
+      <CellType />
+    </td>
+    <td :class="{ 'shadow-column': isFixed }">
+      <div class="action-box">
+        <div
+          class="action-btn"
+          @click="handleAppend">
+          <DbIcon type="plus-fill" />
         </div>
-      </td>
-    </tr>
-  </tbody>
+        <div
+          class="action-btn"
+          :class="{
+            disabled: data.builtin,
+          }"
+          @click="handleRemove">
+          <DbIcon type="minus-fill" />
+        </div>
+      </div>
+    </td>
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';

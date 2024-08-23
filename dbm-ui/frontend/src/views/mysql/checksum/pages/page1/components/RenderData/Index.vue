@@ -12,72 +12,70 @@
 -->
 
 <template>
-  <div class="db-table-backup-render-data">
-    <RenderTable>
-      <template #default>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="180">
-          {{ t('目标集群') }}
-          <template #append>
-            <span
-              class="batch-edit-btn"
-              @click="handleShowBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </template>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="90"
-          :required="false"
-          :width="140">
-          {{ t('校验主库') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="90"
-          :required="false"
-          :width="160">
-          {{ t('校验从库') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
-          :width="170">
-          {{ t('校验DB名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
-          :required="false"
-          :width="170">
-          {{ t('忽略DB名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
-          :width="170">
-          {{ t('校验表名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
-          :required="false"
-          :width="170">
-          {{ t('忽略表名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          fixed="right"
-          :required="false"
-          :width="100">
-          {{ t('操作') }}
-        </RenderTableHeadColumn>
-      </template>
+  <RenderTable>
+    <template #default>
+      <RenderTableHeadColumn
+        fixed="left"
+        :min-width="200"
+        :width="250">
+        {{ t('目标集群') }}
+        <template #append>
+          <BatchOperateIcon
+            class="ml-4"
+            @batch-click="handleShowBatchSelector" />
+        </template>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="150"
+        :required="false"
+        :width="180">
+        {{ t('校验主库') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="150"
+        :required="false"
+        :width="200">
+        {{ t('校验从库') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="200"
+        :width="250">
+        {{ t('校验DB名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="200"
+        :required="false"
+        :width="250">
+        {{ t('忽略DB名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="200"
+        :width="250">
+        {{ t('校验表名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="200"
+        :required="false"
+        :width="250">
+        {{ t('忽略表名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        fixed="right"
+        :required="false"
+        :width="100">
+        {{ t('操作') }}
+      </RenderTableHeadColumn>
+    </template>
 
-      <template #data>
-        <slot />
-      </template>
-    </RenderTable>
-  </div>
+    <template #data>
+      <slot />
+    </template>
+  </RenderTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -93,12 +91,3 @@
     emits('batchSelectCluster');
   };
 </script>
-<style lang="less">
-  .db-table-backup-render-data {
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>
