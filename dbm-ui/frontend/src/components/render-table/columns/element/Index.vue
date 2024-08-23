@@ -33,6 +33,11 @@
         v-bk-tooltips="errorMessage"
         type="exclamation-fill" />
     </div>
+    <div
+      v-if="slots.append"
+      class="append-flag">
+      <slot name="append" />
+    </div>
   </div>
 </template>
 <script setup lang="ts" generic="T extends any">
@@ -57,8 +62,9 @@
     placeholder: '请设置值',
   });
 
-  defineSlots<{
+  const slots = defineSlots<{
     default: () => VNode | VNode[];
+    append?: () => VNode | VNode[];
   }>();
 
   const { message: errorMessage, validator } = useValidtor(props.rules);
@@ -94,6 +100,7 @@
 
   .render-element {
     position: relative;
+    display: flex;
     min-height: 42px;
     padding: 10px 16px;
     overflow: hidden;
@@ -101,6 +108,13 @@
     color: #63656e;
     text-overflow: ellipsis;
     white-space: nowrap;
+    align-items: center;
+
+    &:hover {
+      .append-flag {
+        display: flex;
+      }
+    }
 
     .input-error {
       position: absolute;
@@ -128,6 +142,17 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       pointer-events: none;
+    }
+
+    .append-flag {
+      position: absolute;
+      right: 5px;
+      z-index: 999;
+      display: none;
+      width: 24px;
+      height: 40px;
+      align-items: center;
+      cursor: pointer;
     }
   }
 </style>

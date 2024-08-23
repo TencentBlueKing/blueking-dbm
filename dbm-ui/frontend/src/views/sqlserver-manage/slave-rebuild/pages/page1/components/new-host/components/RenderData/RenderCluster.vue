@@ -63,15 +63,14 @@
 
   watch(
     () => props.oldSlave,
-    () => {
-      localRelateClusterList.value = [];
-      if (!props.oldSlave) {
-        return;
+    (newData, oldData) => {
+      if (newData && newData.ip !== oldData?.ip) {
+        localRelateClusterList.value = [];
+        fetchCheckInstances({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          instance_addresses: [newData.ip],
+        });
       }
-      fetchCheckInstances({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        instance_addresses: [props.oldSlave.ip],
-      });
     },
     {
       immediate: true,

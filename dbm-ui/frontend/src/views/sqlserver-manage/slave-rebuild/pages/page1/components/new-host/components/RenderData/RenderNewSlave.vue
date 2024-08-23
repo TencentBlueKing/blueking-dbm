@@ -12,59 +12,26 @@
 -->
 
 <template>
-  <div
-    class="render-host-box"
-    @mouseenter="handleControlShowEdit(true)"
-    @mouseleave="handleControlShowEdit(false)">
-    <BkPopover
-      :is-show="isShowOverflowTip"
-      placement="top"
-      :popover-delay="0"
-      theme="light"
-      trigger="manual">
-      <div
-        class="content-box"
-        :class="{
-          'is-empty': !oldSlave,
-          'is-error': Boolean(errorMessage),
-        }">
-        <span
-          v-if="!localHostData"
-          class="placehold">
-          {{ t('请选择主机') }}
-        </span>
-        <span
-          v-else
-          ref="contentRef"
-          class="content-text">
-          {{ localHostData.ip }}
-        </span>
-        <BkPopover
-          v-if="!!oldSlave && showEditIcon"
-          :content="t('从业务拓扑选择')"
-          placement="top"
-          theme="dark">
-          <div
-            class="edit-btn"
-            @click="handleShowIpSelector">
-            <div class="edit-btn-inner">
-              <DbIcon
-                class="select-icon"
-                type="host-select" />
-            </div>
-          </div>
-        </BkPopover>
-        <div
-          v-if="errorMessage"
-          class="input-error">
+  <BkLoading :loading="isModuleLoading">
+    <span
+      v-bk-tooltips="{
+        content: disabledTips,
+        disabled: !disabledTips,
+      }">
+      <RenderElement
+        ref="elementRef"
+        :placeholder="t('请选择主机')"
+        :rules="rules"
+        @click="handleShowIpSelector">
+        <span>{{ localHostData?.ip }}</span>
+        <template #append>
           <DbIcon
-            v-bk-tooltips="errorMessage"
-            type="exclamation-fill" />
-        </div>
-      </div>
-      <template #content> {{ localHostData?.ip }}} </template>
-    </BkPopover>
-  </div>
+            class="select-icon"
+            type="host-select" />
+        </template>
+      </RenderElement>
+    </span>
+  </BkLoading>
   <IpSelector
     v-if="oldSlave"
     v-model:show-dialog="isShowIpSelector"
@@ -74,22 +41,26 @@
       id: oldSlave.bkCloudId,
       name: oldSlave.bkCloudName,
     }"
+    :disable-host-method="disableHostMethod"
     service-mode="all"
     :show-view="false"
     single-host-select
     @change="handleHostChange" />
 </template>
 <script setup lang="ts">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
+  import { getModuleDetail } from '@services/source/cmdb';
   import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
+  import RenderElement from '@components/render-table/columns/element/Index.vue';
 
   import type { IDataRow } from './Row.vue';
-  import useValidtor from './useValidtor';
 
   interface Props {
     oldSlave?: IDataRow['oldSlave'];
@@ -110,59 +81,58 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  // const disableHostMethod = (hostData: HostDetails) => {
-  //   if (hostData.os_name !== props.oldSlave!.hostInfo.os_name.replace(/ /g, '')) {
-  //     return t('操作系统版本');
-  //   }
-  //   return false;
-  // };
+  const disabledTips = computed(() => (props.oldSlave ? '' : t('请先选择从库主机')));
 
-  const contentRef = ref();
+  const disableHostMethod = (hostData: HostDetails) => {
+    if (!hostModuleRelatedSystemVersion.value) {
+      return t('获取从库主机操作系统失败');
+    }
+    const osName = hostData.os_name.replace(/ /g, '');
+    if (!hostModuleRelatedSystemVersion.value.split(',').includes(osName)) {
+      return t('操作系统仅支持 n', { n: hostModuleRelatedSystemVersion.value });
+    }
+    return false;
+  };
+
+  const elementRef = ref<ComponentExposed<typeof RenderElement>>();
   const isShowIpSelector = ref(false);
-  const showEditIcon = ref(false);
-  const isOverflow = ref(false);
 
   const localHostData = shallowRef<HostDetails>();
-
-  const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
+  const hostModuleRelatedSystemVersion = ref('');
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
+      validator: () => Boolean(localHostData.value?.ip),
       message: t('新从库主机不能为空'),
     },
   ];
 
-  const { message: errorMessage, validator } = useValidtor(rules);
+  const { loading: isModuleLoading, run: fetchModuleDetail } = useRequest(getModuleDetail, {
+    manual: true,
+    onSuccess(result) {
+      hostModuleRelatedSystemVersion.value = result.system_version;
+    },
+  });
 
   watch(
-    localHostData,
-    () => {
-      if (localHostData.value) {
-        validator(localHostData.value).finally(() => {
-          setTimeout(() => {
-            isOverflow.value = contentRef.value.clientWidth < contentRef.value.scrollWidth;
-          });
+    () => props.oldSlave,
+    (newData, oldData) => {
+      if (newData && newData.dbModuleId !== oldData?.dbModuleId) {
+        hostModuleRelatedSystemVersion.value = '';
+        fetchModuleDetail({
+          module_id: newData.dbModuleId,
         });
       }
     },
     {
-      deep: true,
+      immediate: true,
     },
   );
-
-  watch(
-    () => props.oldSlave,
-    () => {
-      console.log('props .oldSlave = ', props.oldSlave);
-    },
-  );
-
-  const handleControlShowEdit = (isShow: boolean) => {
-    showEditIcon.value = isShow;
-  };
 
   const handleShowIpSelector = () => {
+    if (disabledTips.value) {
+      return;
+    }
     isShowIpSelector.value = true;
   };
 
@@ -172,134 +142,14 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localHostData.value).then(() => {
-        if (!localHostData.value) {
-          return Promise.reject();
-        }
-        return {
-          new_slave_host: {
-            bk_biz_id: localHostData.value.biz.id,
-            bk_cloud_id: localHostData.value.cloud_id,
-            bk_host_id: localHostData.value.host_id,
-            ip: localHostData.value.ip,
-          },
-        };
-      });
+      return elementRef.value!.getValue().then(() => ({
+        new_slave_host: {
+          bk_biz_id: localHostData.value!.biz.id,
+          bk_cloud_id: localHostData.value!.cloud_id,
+          bk_host_id: localHostData.value!.host_id,
+          ip: localHostData.value!.ip,
+        },
+      }));
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-host-box {
-    position: relative;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-
-    .content-box {
-      position: relative;
-      display: flex;
-      width: 100%;
-      height: 42px;
-      align-items: center;
-      padding: 0 25px 0 17px;
-      overflow: hidden;
-      border: solid transparent 1px;
-
-      &:hover {
-        cursor: pointer;
-        border-color: #a3c5fd;
-
-        .edit-btn-inner {
-          background-color: #f0f1f5;
-        }
-      }
-
-      .placehold {
-        color: #c4c6cc;
-      }
-
-      .content-text {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .edit-btn {
-        position: absolute;
-        right: 5px;
-        z-index: 999;
-        display: flex;
-        width: 24px;
-        height: 40px;
-        align-items: center;
-
-        .edit-btn-inner {
-          display: flex;
-          width: 24px;
-          height: 24px;
-          cursor: pointer;
-          border-radius: 2px;
-          align-items: center;
-          justify-content: center;
-
-          .select-icon {
-            font-size: 16px;
-            color: #979ba5;
-          }
-
-          &:hover {
-            background: #f0f1f5;
-
-            .select-icon {
-              color: #3a84ff;
-            }
-          }
-        }
-      }
-
-      .input-error {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        padding-right: 35px;
-        font-size: 14px;
-        color: #ea3636;
-        align-items: center;
-        justify-content: flex-end;
-      }
-    }
-
-    .is-empty {
-      background-color: #fafbfd;
-      border: none;
-
-      :hover {
-        border: none;
-      }
-    }
-
-    .is-error {
-      background-color: #fff1f1;
-    }
-
-    .host-input {
-      flex: 1;
-
-      :deep(.inner-input) {
-        padding-right: 24px;
-        background-color: #fff;
-        border: solid transparent 1px;
-
-        &:hover {
-          background-color: #fafbfd;
-          border-color: #a3c5fd;
-        }
-      }
-
-      &:hover {
-        cursor: pointer;
-      }
-    }
-  }
-</style>

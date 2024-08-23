@@ -35,7 +35,7 @@
   import { onMounted, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { checkSqlserverDbExist } from '@services/source/sqlserver';
+  import { checkClusterDatabase } from '@services/source/dbbase';
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
@@ -95,7 +95,8 @@
         if (isNotNeedValidateTargetDb.value) {
           return true;
         }
-        return checkSqlserverDbExist({
+        return checkClusterDatabase({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_id: props.targetClusterId,
           db_list: [value],
         }).then((data) => !Object.values(data)[0]);
@@ -124,7 +125,8 @@
         if (!value) {
           return true;
         }
-        return checkSqlserverDbExist({
+        return checkClusterDatabase({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_id: props.targetClusterId,
           db_list: [value],
         }).then((data) => !Object.values(data)[0]);

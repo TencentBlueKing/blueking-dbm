@@ -57,7 +57,7 @@
       port: number;
       instanceAddress: string;
       clusterId: number;
-      hostInfo: SqlServerHaInstanceModel['host_info'];
+      dbModuleId: SqlServerHaInstanceModel['db_module_id'];
     };
     clusterId?: number;
     newSlave?: {

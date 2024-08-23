@@ -46,6 +46,7 @@
 
   interface Expose {
     submit: () => Promise<any>;
+    reset: () => void;
   }
 
   // 检测列表是否为空
@@ -121,6 +122,14 @@
   defineExpose<Expose>({
     submit() {
       return Promise.all(rowRefs.value!.map((item) => item.getValue()));
+    },
+    reset() {
+      tableData.value = [createRowData()];
+      selectedSrcClusters.value = {
+        [ClusterTypes.SQLSERVER_HA]: [],
+        [ClusterTypes.SQLSERVER_SINGLE]: [],
+      };
+      window.changeConfirm = false;
     },
   });
 </script>

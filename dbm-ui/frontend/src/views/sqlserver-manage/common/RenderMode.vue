@@ -17,7 +17,8 @@
       <TableEditSelect
         v-model="localBackupType"
         :disabled="editDisabled"
-        :list="targetList" />
+        :list="targetList"
+        @change="handleBackupTypeChange" />
     </div>
     <div style="flex: 1">
       <TableEditDateTime
@@ -163,6 +164,10 @@
     },
   );
 
+  const handleBackupTypeChange = () => {
+    resotreTime.value = '';
+  };
+
   const handleBackupidChange = (id: string) => {
     restoreBackupFile.value = _.find(logRecordListMemo, (item) => item.backup_id === id);
   };
@@ -201,7 +206,7 @@
     .file-flag {
       position: absolute;
       top: 14px;
-      left: 8px;
+      left: 2px;
       z-index: 1;
       font-size: 16px;
       color: #c4c6cc;

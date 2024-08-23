@@ -57,7 +57,6 @@
     </template>
   </SmartAction>
 </template>
-
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
@@ -88,9 +87,6 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
 
-  // 集群域名是否已存在表格的映射表
-  let domainMemo: Record<string, boolean> = {};
-
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
     if (list.length > 1) {
@@ -112,18 +108,14 @@
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          clusterData: {
-            id: item.id,
-            domain: item.master_domain,
-            cloudId: item.bk_cloud_id,
-          },
-        });
-        result.push(row);
-        domainMemo[domain] = true;
-      }
+      const row = createRowData({
+        clusterData: {
+          id: item.id,
+          domain: item.master_domain,
+          cloudId: item.bk_cloud_id,
+        },
+      });
+      result.push(row);
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
@@ -144,12 +136,8 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const domain = dataList[index].clusterData?.domain;
     dataList.splice(index, 1);
     tableData.value = dataList;
-    if (domain) {
-      delete domainMemo[domain];
-    }
   };
 
   const handleSubmit = () => {
@@ -184,8 +172,10 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
-    domainMemo = {};
+    selectedClusters.value = {
+      [ClusterTypes.SQLSERVER_HA]: [],
+      [ClusterTypes.SQLSERVER_SINGLE]: [],
+    };
     window.changeConfirm = false;
   };
 </script>

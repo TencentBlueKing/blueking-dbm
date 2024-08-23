@@ -22,7 +22,7 @@
     v-model:is-show="isShowSql"
     :cluster-version-list="clusterVersionList">
     <template #header>
-      <span style="color: #63656e; font-size: 12px; font-weight: normal; margin-left: 30px">
+      <span style="margin-left: 30px; font-size: 12px; font-weight: normal; color: #63656e">
         <span>{{ t('变更的 DB:') }}</span>
         <span class="ml-4">
           <BkTag

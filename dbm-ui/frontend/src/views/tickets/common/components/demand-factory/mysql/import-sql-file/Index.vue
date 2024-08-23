@@ -87,7 +87,7 @@
       v-if="currentExecuteObject"
       #header>
       <span>{{ t('SQL 内容') }}</span>
-      <span style="color: #63656e; font-size: 12px; font-weight: normal; margin-left: 30px">
+      <span style="margin-left: 30px; font-size: 12px; font-weight: normal; color: #63656e">
         <span>{{ t('变更的 DB:') }}</span>
         <span class="ml-4">
           <BkTag
@@ -441,7 +441,7 @@
   }
 
   .tip-number {
-    font-weight: 700;
     display: inline-block;
+    font-weight: 700;
   }
 </style>

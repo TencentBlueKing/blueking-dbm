@@ -613,11 +613,11 @@
         },
         tableConfig: {
           getTableList: getSqlServerInstanceList,
-          firsrColumn: {
-            label: 'backend_master',
-            field: 'instance_address',
-            role: 'backend_master',
-          },
+          // firsrColumn: {
+          //   label: 'backend_master',
+          //   field: 'instance_address',
+          //   role: 'backend_master',
+          // },
         },
         content: SqlServerContent,
       },
