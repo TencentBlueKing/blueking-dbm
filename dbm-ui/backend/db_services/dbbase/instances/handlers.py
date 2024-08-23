@@ -130,6 +130,7 @@ class InstanceHandler:
                 "cluster_name": db_inst_related_cluster["cluster_info"]["cluster_name"],
                 "master_domain": db_inst_related_cluster["cluster_info"]["master_domain"],
                 "cluster_type": db_inst_related_cluster["cluster_info"]["cluster_type"],
+                "db_module_id": db_inst_related_cluster["cluster_info"]["db_module_id"],
                 # 实例的关联集群把本身集群和集群的关联集群合并到一起
                 "related_clusters": [
                     *db_inst_related_cluster["related_clusters"],
