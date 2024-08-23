@@ -51,7 +51,7 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import { revokeSemanticCheck } from '@services/source/sqlImport';
+  import { revokeSemanticCheck } from '@services/source/mysqlSqlImport';
 
   const router = useRouter();
   const route = useRoute();
@@ -102,6 +102,7 @@
       }
     }
   }
+
   .sql-execute-more-action-box {
     display: flex;
     margin-top: 12px;

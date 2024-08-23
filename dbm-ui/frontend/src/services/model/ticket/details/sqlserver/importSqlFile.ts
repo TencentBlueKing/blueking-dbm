@@ -33,6 +33,7 @@ export interface ImportSqlFile extends DetailBase {
   execute_objects: {
     dbnames: [];
     ignore_dbnames: [];
+    import_mode: string;
     sql_files: string[];
   }[];
   import_mode: string;

@@ -61,7 +61,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
-  import { grammarCheck } from '@services/source/sqlImport';
+  import { grammarCheck } from '@services/source/mysqlSqlImport';
   import { getFileContent } from '@services/source/storage';
 
   import { updateFilePath } from '../../../Index.bak.vue';

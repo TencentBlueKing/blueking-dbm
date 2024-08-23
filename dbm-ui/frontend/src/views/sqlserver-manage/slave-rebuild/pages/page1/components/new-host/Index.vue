@@ -139,7 +139,7 @@
             port: instanceData.port,
             instanceAddress: instanceData.instance_address,
             clusterId: instanceData.cluster_id,
-            hostInfo: instanceData.host_info,
+            dbModuleId: instanceData.db_module_id,
           },
         }),
       );
