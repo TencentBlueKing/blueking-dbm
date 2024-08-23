@@ -126,7 +126,7 @@ const mongo: InfoType = {
   },
   [ClusterTypes.MONGO_SHARED_CLUSTER]: {
     id: ClusterTypes.MONGO_SHARED_CLUSTER,
-    name: t('Mongo分片集'),
+    name: t('Mongo 分片集群'),
     dbType: DBTypes.MONGODB,
     moduleId: 'mongodb',
   },

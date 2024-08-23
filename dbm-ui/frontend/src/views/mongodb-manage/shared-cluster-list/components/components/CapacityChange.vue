@@ -30,6 +30,7 @@
         v-model="specInfo"
         :biz-id="data.bizId"
         :cloud-id="data.cloudId"
+        :cluster-type="clusterType"
         :is-apply="false"
         :origin-spec-id="originSpecId"
         :properties="{
@@ -45,16 +46,16 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import { type ComponentProps } from 'vue-component-type-helpers'
   import { useI18n } from 'vue-i18n';
 
-  import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';
 
   import { TicketTypes } from '@common/const';
 
-  import MongoConfigSpec from '@views/mongodb-manage/components/MongoConfigSpec.vue';
+  import MongoConfigSpec, { type MongoConfigSpecRow } from '@views/mongodb-manage/components/MongoConfigSpec.vue';
 
   interface Props {
     data: {
@@ -67,6 +68,7 @@
       shardNum: number;
       shardNodeCount: number;
     },
+    clusterType: ComponentProps<typeof MongoConfigSpec>['clusterType']
   }
 
   const props = defineProps<Props>();
@@ -75,13 +77,7 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-  const currentSpec = ref<ClusterSpecModel & {
-    shard_node_num: number;
-    shard_num: number;
-    shard_node_spec: string;
-    machine_num: number;
-    count: number;
-  } | null>(null);
+  const currentSpec = ref<MongoConfigSpecRow>();
   const specInfo = reactive({
     capacity: 0,
     spec_id: props.data.specId,
@@ -93,7 +89,7 @@
     isChange.value = newSpecId > 0;
   });
 
-  const handleMongoConfigSpecChange = (value: typeof currentSpec.value) => {
+  const handleMongoConfigSpecChange = (value?: MongoConfigSpecRow) => {
     currentSpec.value = value;
   };
 
@@ -109,7 +105,7 @@
           headerAlign: 'center',
           contentAlign: 'center',
           footerAlign: 'center',
-          onClosed: () => reject(),
+          onClose: () => reject(),
           onConfirm: () => {
             createTicket({
               ticket_type: TicketTypes.MONGODB_SCALE_UPDOWN,

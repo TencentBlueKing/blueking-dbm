@@ -35,10 +35,9 @@
           @click="handleCapacityChange">
           {{ t('集群容量变更') }}
         </BkButton>
-        <BkDropdown
-          class="ml-4">
+        <BkDropdown class="ml-4">
           <BkButton
-            class="more-button "
+            class="more-button"
             size="small">
             <DbIcon type="more" />
           </BkButton>
@@ -59,7 +58,7 @@
     </div>
   </Teleport>
   <div
-    v-bkloading="{loading: isLoading}"
+    v-bkloading="{ loading: isLoading }"
     class="cluster-details">
     <BkTab
       v-model:active="activePanelKey"
@@ -107,10 +106,12 @@
         {{ t('MongoDB 集群容量变更【xxx】', [capacityData.clusterName]) }}
         <BkTag theme="info">
           {{ t('存储层') }}
-        </BkTag></span>
+        </BkTag>
+      </span>
     </template>
     <CapacityChange
       v-model:is-change="isCapacityChange"
+      :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
       :data="capacityData" />
   </DbSideslider>
 </template>
@@ -122,17 +123,11 @@
   import { getMongoClusterDetails } from '@services/source/mongodb';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
 
-  import {
-    useCopy,
-    useStretchLayout,
-  } from '@hooks';
+  import { useCopy, useStretchLayout } from '@hooks';
 
   import { useGlobalBizs } from '@stores';
 
-  import {
-    ClusterTypes,
-    DBTypes,
-  } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
@@ -160,22 +155,24 @@
   const isCapacityChange = ref(false);
   const activePanelKey = ref('topo');
   const capacityData = ref<{
-    id: number,
-    clusterName: string,
-    specId: number,
-    specName: string
-    bizId: number,
-    cloudId: number,
-    shardNum: number,
-    shardNodeCount: number,
+    id: number;
+    clusterName: string;
+    specId: number;
+    specName: string;
+    bizId: number;
+    cloudId: number;
+    shardNum: number;
+    shardNodeCount: number;
   }>();
-  const monitorPanelList = ref<{
-    label: string,
-    name: string,
-    link: string,
-  }[]>([]);
+  const monitorPanelList = ref<
+    {
+      label: string;
+      name: string;
+      link: string;
+    }[]
+  >([]);
 
-  const activePanel = computed(() => monitorPanelList.value.find(item => item.name === activePanelKey.value));
+  const activePanel = computed(() => monitorPanelList.value.find((item) => item.name === activePanelKey.value));
 
   const {
     data,
@@ -193,10 +190,7 @@
         shard_node_count: shardNodeCount,
         mongodb,
       } = result;
-      const {
-        id: specId,
-        name,
-      } = mongodb[0].spec_config;
+      const { id: specId, name } = mongodb[0].spec_config;
 
       capacityData.value = {
         id,
@@ -215,7 +209,7 @@
     manual: true,
     onSuccess(res) {
       if (res.urls.length > 0) {
-        monitorPanelList.value = res.urls.map(item => ({
+        monitorPanelList.value = res.urls.map((item) => ({
           label: item.view,
           name: item.view,
           link: item.url,
@@ -224,21 +218,25 @@
     },
   });
 
-  watch(() => props.clusterId, () => {
-    if (!props.clusterId) {
-      return;
-    }
-    fetchResourceDetails({
-      cluster_id: props.clusterId,
-    });
-    runGetMonitorUrls({
-      bk_biz_id: currentBizId,
-      cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
-      cluster_id: props.clusterId,
-    });
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.clusterId,
+    () => {
+      if (!props.clusterId) {
+        return;
+      }
+      fetchResourceDetails({
+        cluster_id: props.clusterId,
+      });
+      runGetMonitorUrls({
+        bk_biz_id: currentBizId,
+        cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
+        cluster_id: props.clusterId,
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleCopyMasterDomainDisplayName = () => {
     copy(data.value!.masterDomainDisplayName);
@@ -254,46 +252,46 @@
 </script>
 
 <style lang="less">
-.shared-cluster-breadcrumbs-box {
-  display: flex;
-  width: 100%;
-  margin-left: 8px;
-  font-size: 12px;
-  align-items: center;
-
-  .shared-cluster-breadcrumbs-box-status {
+  .shared-cluster-breadcrumbs-box {
     display: flex;
-    margin-left: 30px;
-    align-items: center;
-  }
-
-  .shared-cluster-breadcrumbs-box-button {
-    display: flex;
-    margin-left: auto;
+    width: 100%;
+    margin-left: 8px;
+    font-size: 12px;
     align-items: center;
 
-    .more-button {
-      padding: 3px 6px;
+    .shared-cluster-breadcrumbs-box-status {
+      display: flex;
+      margin-left: 30px;
+      align-items: center;
+    }
+
+    .shared-cluster-breadcrumbs-box-button {
+      display: flex;
+      margin-left: auto;
+      align-items: center;
+
+      .more-button {
+        padding: 3px 6px;
+      }
     }
   }
-}
 </style>
 
 <style lang="less" scoped>
-.cluster-details {
-  height: 100%;
-  background: #fff;
+  .cluster-details {
+    height: 100%;
+    background: #fff;
 
-  .content-tabs {
-    :deep(.bk-tab-content) {
-      padding: 0;
+    .content-tabs {
+      :deep(.bk-tab-content) {
+        padding: 0;
+      }
+    }
+
+    .content-wrapper {
+      height: calc(100vh - 168px);
+      padding: 0 24px;
+      overflow: auto;
     }
   }
-
-  .content-wrapper {
-    height: calc(100vh - 168px);
-    padding: 0 24px;
-    overflow: auto;
-  }
-}
 </style>
