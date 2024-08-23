@@ -19,6 +19,7 @@ from backend import env
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
+from backend.exceptions import ValidationError
 from backend.flow.consts import DEFAULT_SQLSERVER_PATH, SQlCmdFileFormatNOMap
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -56,10 +57,12 @@ class SqlserverSQLExecuteFlow(BaseFlow):
         """
         file_list = []
         for obj in self.data["execute_objects"]:
-            if not obj["sql_file"]:
-                raise Exception("param execute_objects error: sql_file is null")
+            sql_files = obj.get("sql_files", [])
+            if not sql_files:
+                raise ValidationError("param execute_objects error: sql_files is null")
 
-            file_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.data['path']}/{obj['sql_file']}")
+            for sql_file in sql_files:
+                file_list.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.data['path']}/{sql_file}")
 
         # 做一下去重返回
         return list(filter(None, list(set(file_list))))

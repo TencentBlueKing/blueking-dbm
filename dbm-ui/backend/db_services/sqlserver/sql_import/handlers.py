@@ -56,6 +56,7 @@ class SQLHandler(object):
         sql_content: str = None,
         sql_filenames: List[str] = None,
         sql_files: List[InMemoryUploadedFile] = None,
+        versions: list = None,
     ) -> Optional[Dict]:
         """
         sql 语法检查
@@ -63,6 +64,7 @@ class SQLHandler(object):
         @param sql_content: sql内容
         @param sql_filenames: sql文件名(在制品库的路径，说明已经在制品库上传好了。目前是适配sql执行插件形式.)
         @param sql_files: sql文件
+        @param versions 版本列表
         """
         if sql_filenames:
             sql_file_info_list = [{"sql_path": filename} for filename in sql_filenames]
