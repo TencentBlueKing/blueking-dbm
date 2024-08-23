@@ -16,7 +16,7 @@
     v-if="isEdit"
     ref="editRef"
     v-model="relatedClusterDisplayInfo.cluster_domain"
-    :placeholder="t('请输入或选择集群')"
+    :placeholder="t('请输入集群域名或从表头批量选择')"
     :rules="rules"
     @submit="handleInputFinish" />
   <ClusterRelatedInput

@@ -12,36 +12,43 @@
 -->
 
 <template>
-  <div class="render-data">
-    <RenderTable>
-      <RenderTableHeadColumn>
-        {{ $t('目标主库') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowMasterBatchSelector">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('目标从库') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('同机关联的集群') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="90">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+  <RenderTable>
+    <RenderTableHeadColumn
+      fixed="left"
+      :min-width="200"
+      :width="240">
+      {{ t('目标主库') }}
+      <template #append>
+        <BatchOperateIcon
+          class="ml-4"
+          @batch-click="handleShowMasterBatchSelector" />
       </template>
-    </RenderTable>
-  </div>
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="200"
+      :width="240">
+      {{ t('目标从库') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="200"
+      :width="240">
+      {{ t('同机关联的集群') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      fixed="right"
+      :required="false"
+      :width="100">
+      {{ t('操作') }}
+    </RenderTableHeadColumn>
+    <template #data>
+      <slot />
+    </template>
+  </RenderTable>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -51,18 +58,9 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');
   };
 </script>
-<style lang="less">
-  .render-data {
-    display: block;
-
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

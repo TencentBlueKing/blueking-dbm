@@ -12,44 +12,42 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          v-model="localClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderResourceSpec
-          ref="resourceSpecRef"
-          :cluster-data="localClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderShardNum
-          ref="shardNumRef"
-          :cluster-data="localClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderMachinePairCnt
-          ref="machinePairCntRef"
-          :cluster-data="localClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderCapacity
-          ref="capacityRef"
-          :cluster-data="localClusterData" />
-      </td>
-      <td style="padding: 0">
-        <RenderTargetResourceSpec
-          ref="targetResourceSpecRef"
-          :cluster-data="localClusterData" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        v-model="localClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderResourceSpec
+        ref="resourceSpecRef"
+        :cluster-data="localClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderShardNum
+        ref="shardNumRef"
+        :cluster-data="localClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderMachinePairCnt
+        ref="machinePairCntRef"
+        :cluster-data="localClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderCapacity
+        ref="capacityRef"
+        :cluster-data="localClusterData" />
+    </td>
+    <td style="padding: 0">
+      <RenderTargetResourceSpec
+        ref="targetResourceSpecRef"
+        :cluster-data="localClusterData" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

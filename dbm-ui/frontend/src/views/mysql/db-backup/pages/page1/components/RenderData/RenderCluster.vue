@@ -17,7 +17,7 @@
       ref="editRef"
       v-model="localDomain"
       multi-input
-      :placeholder="t('请输入集群_使用换行分割一次可输入多个')"
+      :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
       @input="handleInputChange"
       @multi-input="handleMultiInput"
@@ -41,16 +41,16 @@
   import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IDataRow['clusterData'],
+    modelValue?: IDataRow['clusterData'];
   }
 
   interface Emits {
-    (e: 'inputClusterFinish', value: string): void,
-    (e: 'inputCreate', value: Array<string>): void,
+    (e: 'inputClusterFinish', value: string): void;
+    (e: 'inputCreate', value: Array<string>): void;
   }
 
   interface Exposes {
-    getValue: () => Array<number>
+    getValue: () => Array<number>;
   }
 
   const props = defineProps<Props>();
@@ -75,20 +75,21 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => queryClusters({
-        cluster_filters: [
-          {
-            immute_domain: value,
-          },
-        ],
-        bk_biz_id: currentBizId,
-      }).then((data) => {
-        if (data.length > 0) {
-          localClusterId.value = data[0].id;
-          return true;
-        }
-        return false;
-      }),
+      validator: (value: string) =>
+        queryClusters({
+          cluster_filters: [
+            {
+              immute_domain: value,
+            },
+          ],
+          bk_biz_id: currentBizId,
+        }).then((data) => {
+          if (data.length > 0) {
+            localClusterId.value = data[0].id;
+            return true;
+          }
+          return false;
+        }),
       message: t('目标集群不存在'),
     },
     {
@@ -96,10 +97,13 @@
         const currentClusterSelectMap = clusterIdMemo[instanceKey];
         const otherClusterMemoMap = { ...clusterIdMemo };
         delete otherClusterMemoMap[instanceKey];
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce((result, item) => ({
-          ...result,
-          ...item,
-        }), {} as Record<string, boolean>);
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
         const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
         for (let i = 0; i < currentSelectClusterIdList.length; i++) {
           if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
@@ -113,27 +117,35 @@
   ];
 
   // 同步外部值
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localClusterId.value = props.modelValue.id;
-      localDomain.value = props.modelValue.domain;
-      isShowEdit.value = false;
-    } else {
-      isShowEdit.value = true;
-    }
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localClusterId.value = props.modelValue.id;
+        localDomain.value = props.modelValue.domain;
+        isShowEdit.value = false;
+      } else {
+        isShowEdit.value = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(localClusterId, () => {
-    if (!localClusterId.value) {
-      return;
-    }
-    clusterIdMemo[instanceKey] = {};
-    clusterIdMemo[instanceKey][localClusterId.value] = true;
-  }, {
-    immediate: true,
-  });
+  watch(
+    localClusterId,
+    () => {
+      if (!localClusterId.value) {
+        return;
+      }
+      clusterIdMemo[instanceKey] = {};
+      clusterIdMemo[instanceKey][localClusterId.value] = true;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleInputChange = (value: string) => {
     if (value === '') {
@@ -155,11 +167,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => ({
-          cluster_id: localClusterId.value,
-        }));
+      return editRef.value.getValue().then(() => ({
+        cluster_id: localClusterId.value,
+      }));
     },
   });
 </script>

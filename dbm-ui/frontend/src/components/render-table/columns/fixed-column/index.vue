@@ -29,8 +29,8 @@
     fixed: 'right',
   });
 
-  const { isOverflow: isFixed } = inject(renderTablekey)!;
+  const { isOverflow: isFixed, isScrollToLeft, isScrollToRight } = inject(renderTablekey)!;
 
-  const isFixedRight = computed(() => isFixed?.value && props.fixed === 'right');
-  const isFixedLeft = computed(() => isFixed?.value && props.fixed === 'left');
+  const isFixedRight = computed(() => isFixed?.value && props.fixed === 'right' && !isScrollToRight.value);
+  const isFixedLeft = computed(() => isFixed?.value && props.fixed === 'left' && !isScrollToLeft.value);
 </script>

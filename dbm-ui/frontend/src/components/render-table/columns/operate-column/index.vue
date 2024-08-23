@@ -71,6 +71,7 @@
     height: 42px;
     padding: 0 16px;
     align-items: center;
+    background-color: #fff;
 
     .action-btn {
       display: flex;

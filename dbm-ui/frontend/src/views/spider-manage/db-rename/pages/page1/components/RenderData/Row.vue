@@ -12,38 +12,36 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="fromDatabaseRef"
-          check-exist
-          :cluster-id="localClusterId"
-          :model-value="data.fromDatabase"
-          :placeholder="$t('请输入单个源 DB 名')"
-          single />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="toDatabaseRef"
-          :cluster-id="localClusterId"
-          :model-value="data.toDatabase"
-          :placeholder="$t('请输入单个新 DB 名')"
-          single />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange"
+        @input-create="handleCreate" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="fromDatabaseRef"
+        check-exist
+        :cluster-id="localClusterId"
+        :model-value="data.fromDatabase"
+        :placeholder="$t('请输入单个源 DB 名')"
+        single />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="toDatabaseRef"
+        :cluster-id="localClusterId"
+        :model-value="data.toDatabase"
+        :placeholder="$t('请输入单个新 DB 名')"
+        single />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
