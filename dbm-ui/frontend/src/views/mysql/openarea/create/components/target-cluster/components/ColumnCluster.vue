@@ -17,7 +17,8 @@
       ref="editRef"
       v-model="localDomain"
       :placeholder="t('请输入集群域名或从表头批量选择')"
-      :rules="rules" />
+      :rules="rules"
+      @focus="handleFocus" />
   </div>
 </template>
 <!-- <script lang="ts">
@@ -66,7 +67,7 @@
   const localDomain = ref('');
   const isShowEdit = ref(true);
 
-  let isSkipCheckClusterExisted = false;
+  let isSkipInputFinish = false;
 
   const rules = [
     {
@@ -74,12 +75,8 @@
       message: t('目标集群不能为空'),
     },
     {
-      validator: (value: string) => {
-        if (isSkipCheckClusterExisted) {
-          return true;
-        }
-
-        return queryClusters({
+      validator: (value: string) =>
+        queryClusters({
           cluster_filters: [
             {
               immute_domain: value,
@@ -88,13 +85,14 @@
           bk_biz_id: currentBizId,
         }).then((data) => {
           if (data.length > 0) {
-            emits('clusterInputFinish', data[0]);
+            if (!isSkipInputFinish) {
+              emits('clusterInputFinish', data[0]);
+            }
             localClusterId.value = data[0].id;
             return true;
           }
           return false;
-        });
-      },
+        }),
       message: t('目标集群不存在'),
     },
     // {
@@ -155,9 +153,13 @@
   //   delete clusterIdMemo[instanceKey];
   // });
 
+  const handleFocus = () => {
+    isSkipInputFinish = false;
+  };
+
   defineExpose<Exposes>({
     getValue(isSubmit = false) {
-      isSkipCheckClusterExisted = isSubmit;
+      isSkipInputFinish = isSubmit;
       return editRef.value!.getValue().then(() => ({
         cluster_id: localClusterId.value,
       }));
