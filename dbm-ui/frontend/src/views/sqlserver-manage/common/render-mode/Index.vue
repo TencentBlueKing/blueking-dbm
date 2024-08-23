@@ -18,70 +18,65 @@
         v-model="localBackupType"
         :disabled="editDisabled"
         :list="targetList"
-        @change="handleBackupTypeChange" />
+        @change="hanldeBackupTypeChange" />
     </div>
     <div class="action-item">
       <TableEditDateTime
         v-if="localBackupType === 'time'"
         ref="localRollbackTimeRef"
-        v-model="resotreTime"
+        v-model="localRollbackTime"
         :disabled="editDisabled"
         :disabled-date="disableDate"
         :rules="timerRules"
         type="datetime" />
+
       <div
         v-else
         class="local-backup-select">
         <DbIcon
           class="file-flag"
           type="wenjian" />
-        <TableEditSelect
-          ref="localBackupidRef"
-          v-model="localBackupid"
-          :disabled="editDisabled"
-          :list="logRecordList"
-          :popover-min-width="300"
-          :rules="rules"
-          style="flex: 1"
-          @change="(value: any) => handleBackupidChange(value as string)" />
+        <RecordSelector
+          ref="localBackupFileRef"
+          :backup-source="backupSource"
+          :backupid="backupid"
+          :cluster-id="clusterId"
+          :disabled="editDisabled" />
       </div>
     </div>
   </div>
 </template>
-<script setup lang="ts">
-  import dayjs from 'dayjs';
-  import _ from 'lodash';
+<script setup lang="tsx">
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { queryBackupLogs } from '@services/source/sqlserver';
-
   import { useTimeZoneFormat } from '@hooks';
 
-  import { useTimeZone } from '@stores';
-
-  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
+  import TableEditDateTime from '@components/render-table/columns//DateTime.vue';
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
+  import RecordSelector from './RecordSelector.vue';
+
   interface Props {
-    clusterId?: number;
+    clusterId: number;
+    backupid?: string;
+    backupSource?: string;
+    rollbackTime?: string;
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      restore_backup_file?: any;
-      restore_time?: string;
+      backupinfo?: any;
+      rollback_time?: string;
     }>;
   }
 
   const props = defineProps<Props>();
 
-  const disableDate = (date: Date) =>
-    date && (dayjs(date).isAfter(dayjs()) || dayjs(date).isBefore(dayjs().subtract(15, 'day')));
+  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
 
   const { t } = useI18n();
   const formatDateToUTC = useTimeZoneFormat();
-  const timeZoneStore = useTimeZone();
 
   const timerRules = [
     {
@@ -89,14 +84,6 @@
       message: t('回档时间不能为空'),
     },
   ];
-
-  const rules = [
-    {
-      validator: (value: string) => !!value,
-      message: t('备份记录不能为空'),
-    },
-  ];
-
   const targetList = [
     {
       value: 'record',
@@ -108,46 +95,26 @@
     },
   ];
 
-  const restoreBackupFile = defineModel<ServiceReturnType<typeof queryBackupLogs>[number]>('restoreBackupFile');
-  const resotreTime = defineModel<string>('restoreTime', {
-    default: '',
-  });
-
   const localRollbackTimeRef = ref<InstanceType<typeof TableEditDateTime>>();
-  const localBackupidRef = ref<InstanceType<typeof TableEditSelect>>();
+  const localBackupFileRef = ref<InstanceType<typeof RecordSelector>>();
   const localBackupType = ref('record');
-  const localBackupid = ref(0);
+  const localRollbackTime = ref('');
 
-  const logRecordList = shallowRef<Array<{ value: string; label: string }>>([]);
+  const editDisabled = computed(() => !props.clusterId || !props.backupSource);
 
-  const editDisabled = computed(() => !props.clusterId);
-
-  let logRecordListMemo = [] as ServiceReturnType<typeof queryBackupLogs>;
-
-  const fetchLogData = () => {
-    if (!props.clusterId) {
-      return;
-    }
-    logRecordList.value = [];
-    logRecordListMemo = [];
-    queryBackupLogs({
-      cluster_id: props.clusterId,
-      days: 30,
-    }).then((dataList) => {
-      logRecordList.value = dataList.map((item) => ({
-        value: item.backup_id,
-        label: `${item.role} ${dayjs(item.start_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
-      }));
-      logRecordListMemo = dataList;
-    });
+  const hanldeBackupTypeChange = () => {
+    localRollbackTime.value = '';
   };
 
   watch(
-    () => props.clusterId,
-    () => {
-      restoreBackupFile.value = undefined;
-      resotreTime.value = '';
-      fetchLogData();
+    () => props.rollbackTime,
+    (newVal) => {
+      if (newVal) {
+        localRollbackTime.value = newVal;
+        localBackupType.value = 'time';
+      } else {
+        localBackupType.value = 'record';
+      }
     },
     {
       immediate: true,
@@ -155,32 +122,28 @@
   );
 
   watch(
-    [resotreTime, restoreBackupFile],
-    () => {
-      localBackupType.value = resotreTime.value ? 'time' : 'record';
+    () => props.backupid,
+    (newVal) => {
+      if (newVal) {
+        localBackupType.value = 'record';
+      }
     },
     {
       immediate: true,
     },
   );
-
-  const handleBackupTypeChange = () => {
-    resotreTime.value = '';
-  };
-
-  const handleBackupidChange = (id: string) => {
-    restoreBackupFile.value = _.find(logRecordListMemo, (item) => item.backup_id === id);
-  };
 
   defineExpose<Exposes>({
     getValue() {
       if (localBackupType.value === 'record') {
-        return localBackupidRef.value!.getValue().then(() => ({
-          restore_backup_file: restoreBackupFile.value,
+        return localBackupFileRef.value!.getValue().then((data) => ({
+          rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
+          backupinfo: data,
         }));
       }
       return localRollbackTimeRef.value!.getValue().then(() => ({
-        restore_time: formatDateToUTC(resotreTime.value),
+        rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
+        rollback_time: formatDateToUTC(localRollbackTime.value),
       }));
     },
   });
@@ -190,15 +153,23 @@
     display: flex;
 
     .action-item {
-      flex: 0 0 50%;
       overflow: hidden;
+
+      &:first-child {
+        flex: 1;
+      }
+
+      &:last-child {
+        flex: 2;
+      }
     }
   }
 
   .local-backup-select {
     position: relative;
 
-    :deep(.table-edit-select) {
+    :deep(.table-edit-select),
+    :deep(.rollback-mode-select) {
       .select-result-text {
         padding-left: 14px;
       }
@@ -211,7 +182,7 @@
     .file-flag {
       position: absolute;
       top: 14px;
-      left: 2px;
+      left: 8px;
       z-index: 1;
       font-size: 16px;
       color: #c4c6cc;

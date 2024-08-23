@@ -11,8 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
-import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-ha-cluster';
+import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
+import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-cluster-detail';
 import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
 
 import { useGlobalBizs } from '@stores';
@@ -28,9 +28,9 @@ const path = `/apis/sqlserver/bizs/${currentBizId}/sqlserver_ha_resources`;
  * 获取集群列表
  */
 export function getHaClusterList(params: { limit?: number; offset?: number; sys_mode?: 'mirrorin' | 'always_on' }) {
-  return http.get<ListBase<SqlServerClusterListModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<SqlServerHaClusterModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
-    results: data.results.map((item) => new SqlServerClusterListModel(item)),
+    results: data.results.map((item) => new SqlServerHaClusterModel(item)),
   }));
 }
 
@@ -39,20 +39,20 @@ export function getHaClusterList(params: { limit?: number; offset?: number; sys_
  */
 export function getHaClusterWholeList() {
   return http
-    .get<ListBase<SqlServerClusterListModel[]>>(`${path}/`, {
+    .get<ListBase<SqlServerHaClusterModel[]>>(`${path}/`, {
       limit: -1,
       offset: 0,
     })
-    .then((data) => data.results.map((item) => new SqlServerClusterListModel(item)));
+    .then((data) => data.results.map((item) => new SqlServerHaClusterModel(item)));
 }
 
 /**
  * 获取集群详情
  */
-export function getHaClusterDetail(params: { cluster_id: number }) {
+export function getHaClusterDetail(params: { id: number }) {
   return http
-    .get<SqlServerClusterDetailModel>(`${path}/${params.cluster_id}/`)
-    .then((data) => new SqlServerClusterDetailModel(data));
+    .get<SqlServerHaClusterDetailModel>(`${path}/${params.id}/`)
+    .then((data) => new SqlServerHaClusterDetailModel(data));
 }
 
 /**

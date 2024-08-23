@@ -171,6 +171,7 @@
   const handelClusterChange = (selected: {
     [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
   }) => {
+    selectedClusters.value = selected;
     const [clusterData] = Object.values(selected)[0];
     modelValue.value = {
       id: clusterData.id,

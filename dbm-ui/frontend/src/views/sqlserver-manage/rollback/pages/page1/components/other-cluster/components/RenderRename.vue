@@ -1,5 +1,5 @@
 <template>
-  <BkLoading :loading="isLoading">
+  <BkLoading :loading="isLoading || isCheckoutDbLoading">
     <span
       v-bk-tooltips="{
         content: disabledTips,
@@ -61,11 +61,13 @@
   </BkSideslider>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { computed, ref, shallowRef, watch } from 'vue';
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import { checkClusterDatabase } from '@services/source/dbbase';
   import { getSqlserverDbs } from '@services/source/sqlserver';
 
   import TableEditElement from '@components/render-table/columns/element/Index.vue';
@@ -129,6 +131,13 @@
     },
   ];
 
+  const { loading: isCheckoutDbLoading, run: runCheckClusterDatabase } = useRequest(checkClusterDatabase, {
+    manual: true,
+    onSuccess(data) {
+      hasEditDbName.value = _.every(Object.values(data), (item) => !item);
+    },
+  });
+
   const { loading: isLoading, run: fetchSqlserverDbs } = useRequest(getSqlserverDbs, {
     manual: true,
     onSuccess(data) {
@@ -137,6 +146,13 @@
         target_db_name: item,
         rename_db_name: '',
       }));
+      if (data.length > 0) {
+        runCheckClusterDatabase({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.dstClusterData!.id,
+          db_list: data,
+        });
+      }
     },
   });
 
@@ -157,7 +173,26 @@
     },
   );
 
+  watch(
+    () => props.dstClusterData,
+    () => {
+      if (props.dstClusterData && dbName.value.length > 0) {
+        runCheckClusterDatabase({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.dstClusterData.id,
+          db_list: dbName.value,
+        });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleShowEditName = () => {
+    if (disabledTips.value) {
+      return;
+    }
     isShowEditName.value = true;
   };
 

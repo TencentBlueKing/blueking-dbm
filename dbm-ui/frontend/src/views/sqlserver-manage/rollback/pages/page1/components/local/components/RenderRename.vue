@@ -159,6 +159,9 @@
   );
 
   const handleShowEditName = () => {
+    if (disabledTips.value) {
+      return;
+    }
     isShowEditName.value = true;
   };
 

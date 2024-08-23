@@ -12,32 +12,47 @@
 -->
 
 <template>
-  <tr>
-    <FixedColumn fixed="left">
-      <RenderDbName
-        ref="dbnamesRef"
-        v-model="localDbnames" />
-    </FixedColumn>
-    <td style="padding: 0">
-      <RenderIgnoreDbName
-        ref="ignoreDbnamesRef"
-        v-model="localIgnoreDbnames"
-        :required="false" />
-    </td>
-    <td style="padding: 0">
-      <RenderSql
-        ref="sqlFielsRef"
-        v-model="localSqlFiles"
-        v-model:importMode="localImportMode"
-        :cluster-version-list="clusterVersionList"
-        :db-names="localDbnames"
-        :ignore-db-names="localIgnoreDbnames" />
-    </td>
-    <OperateColumn
-      :removeable="removeable"
-      @add="handleAppend"
-      @remove="handleRemove" />
-  </tr>
+  <tbody>
+    <tr>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="dbnamesRef"
+          v-model="localDbnames" />
+      </td>
+      <td style="padding: 0">
+        <RenderIgnoreDbName
+          ref="ignoreDbnamesRef"
+          v-model="localIgnoreDbnames"
+          :db-names="localDbnames" />
+      </td>
+      <td style="padding: 0">
+        <RenderSql
+          ref="sqlFielsRef"
+          v-model="localSqlFiles"
+          v-model:importMode="localImportMode"
+          :cluster-version-list="clusterVersionList"
+          :db-names="localDbnames"
+          :ignore-db-names="localIgnoreDbnames" />
+      </td>
+      <td>
+        <div class="action-box">
+          <div
+            class="action-btn ml-2"
+            @click="handleAppend">
+            <DbIcon type="plus-fill" />
+          </div>
+          <div
+            class="action-btn"
+            :class="{
+              disabled: removeable,
+            }"
+            @click="handleRemove">
+            <DbIcon type="minus-fill" />
+          </div>
+        </div>
+      </td>
+    </tr>
+  </tbody>
 </template>
 <script lang="ts">
   import { ref } from 'vue';
@@ -142,3 +157,30 @@
     },
   });
 </script>
+<style lang="less" scoped>
+  .action-box {
+    display: flex;
+    align-items: center;
+
+    .action-btn {
+      display: flex;
+      font-size: 14px;
+      color: #c4c6cc;
+      cursor: pointer;
+      transition: all 0.15s;
+
+      &:hover {
+        color: #979ba5;
+      }
+
+      &.disabled {
+        color: #dcdee5;
+        cursor: not-allowed;
+      }
+
+      & ~ .action-btn {
+        margin-left: 18px;
+      }
+    }
+  }
+</style>

@@ -11,14 +11,12 @@
 
   import { getSingleClusterDetail } from '@services/source/sqlserverSingleCluster';
 
-  import EditInfo, {
-    type InfoColumn,
-  } from '@components/editable-info/index.vue';
+  import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    singleClusterData:{
-      clusterId: number
-    }
+    singleClusterData: {
+      clusterId: number;
+    };
   }
 
   const props = defineProps<Props>();
@@ -56,12 +54,10 @@
       {
         label: 'node_id',
         key: 'node_id',
-
       },
       {
         label: 'Proxy',
         key: 'proxies',
-
       },
       {
         label: t('创建人'),
@@ -74,14 +70,15 @@
     ],
   ];
 
-  const {
-    run: fetchInstDetails,
-    data,
-  } = useRequest(getSingleClusterDetail, { manual: true });
+  const { run: fetchInstDetails, data } = useRequest(getSingleClusterDetail, { manual: true });
 
-  watch(() => props.singleClusterData, () => {
-    if (props.singleClusterData) {
-      fetchInstDetails({ cluster_id: props.singleClusterData.clusterId });
-    }
-  }, { immediate: true });
+  watch(
+    () => props.singleClusterData,
+    () => {
+      if (props.singleClusterData) {
+        fetchInstDetails({ id: props.singleClusterData.clusterId });
+      }
+    },
+    { immediate: true },
+  );
 </script>

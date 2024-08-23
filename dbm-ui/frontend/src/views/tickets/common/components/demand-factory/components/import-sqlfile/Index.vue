@@ -76,7 +76,7 @@
         <BkTableColumn :label="t('忽略的 DB')">
           <template #default="{ data }: { data: TargetDbRow }">
             <BkTag
-              v-for="dbName in data.dbnames"
+              v-for="dbName in data.ignore_dbnames"
               :key="dbName">
               {{ dbName }}
             </BkTag>

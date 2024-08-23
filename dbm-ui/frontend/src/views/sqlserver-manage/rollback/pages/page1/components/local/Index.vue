@@ -45,6 +45,7 @@
 
   interface Expose {
     submit: () => Promise<any>;
+    reset: () => void;
   }
 
   // 检测列表是否为空
@@ -76,7 +77,6 @@
   const handelClusterChange = (selected: {
     [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
   }) => {
-    console.log('handelClusterChange = ', selected);
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
@@ -114,6 +114,14 @@
   defineExpose<Expose>({
     submit() {
       return Promise.all(rowRefs.value!.map((item) => item.getValue()));
+    },
+    reset() {
+      tableData.value = [createRowData()];
+      selectedClusters.value = {
+        [ClusterTypes.SQLSERVER_HA]: [],
+        [ClusterTypes.SQLSERVER_SINGLE]: [],
+      };
+      window.changeConfirm = false;
     },
   });
 </script>

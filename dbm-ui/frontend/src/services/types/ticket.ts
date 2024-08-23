@@ -143,9 +143,6 @@ export interface FlowItem {
   context: {
     expire_time?: number;
   };
-  details: {
-    ticket_data: MySQLImportSQLFileDetails;
-  };
   err_code: number;
   err_msg: string;
   end_time: string;

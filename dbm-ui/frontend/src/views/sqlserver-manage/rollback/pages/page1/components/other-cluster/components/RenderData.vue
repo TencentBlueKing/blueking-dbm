@@ -15,8 +15,8 @@
   <div class="render-data">
     <RenderTable>
       <RenderTableHeadColumn
-        :min-width="180"
-        :width="180">
+        :min-width="220"
+        :width="220">
         {{ t('待回档集群') }}
         <template #append>
           <span
@@ -27,11 +27,13 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="180"
-        :width="180">
+        :min-width="220"
+        :width="220">
         {{ t('目标集群') }}
       </RenderTableHeadColumn>
-      <RenderTableHeadColumn :min-width="240">
+      <RenderTableHeadColumn
+        :min-width="350"
+        :width="350">
         {{ t('回档类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
