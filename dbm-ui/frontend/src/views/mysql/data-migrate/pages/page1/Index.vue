@@ -28,7 +28,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @cluster-input-finish="(domain: string) => handleChangeCluster(index, domain)"
+          @cluster-input-finish="(clusterId: number) => handleChangeCluster(index, clusterId)"
           @remove="() => handleRemove(index)" />
       </RenderData>
     </div>
@@ -146,20 +146,15 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domain: string) => {
-    if (!domain) {
-      const { clusterData } = tableData.value[index];
-      const clusterName = clusterData.domain;
-      if (clusterName) {
-        domainMemo[clusterName] = false;
-        tableData.value[index] = createRowData();
-      }
+  const handleChangeCluster = async (index: number, clusterId: number) => {
+    if (tableData.value[index].clusterData?.id === clusterId) {
       return;
     }
+
     const resultList = await queryClusters({
       cluster_filters: [
         {
-          immute_domain: domain,
+          id: clusterId,
         },
       ],
       bk_biz_id: currentBizId,
@@ -168,9 +163,10 @@
       return;
     }
     const item = resultList[0];
+    const domain = item.master_domain;
     const row = createRowData({
       id: item.id,
-      domain: item.master_domain,
+      domain,
       type: item.cluster_type,
     });
     tableData.value[index] = row;

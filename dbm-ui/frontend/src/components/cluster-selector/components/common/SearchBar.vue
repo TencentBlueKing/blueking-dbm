@@ -103,7 +103,6 @@
       baseSelectList.splice(3, 0, dbModuleSelect);
     }
 
-    console.log('架构版本');
     if (showClusterTypeSelect.value) {
       const clusterTypeSelect = {
         name: t('架构版本'),

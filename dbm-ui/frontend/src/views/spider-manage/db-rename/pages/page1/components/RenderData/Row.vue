@@ -18,7 +18,7 @@
         ref="clusterRef"
         :model-value="data.clusterData"
         @id-change="handleClusterIdChange"
-        @input-create="handleCreate" />
+        @input-create="handleInputFinish" />
     </td>
     <td style="padding: 0">
       <RenderDbName
@@ -26,15 +26,16 @@
         check-exist
         :cluster-id="localClusterId"
         :model-value="data.fromDatabase"
-        :placeholder="$t('请输入单个源 DB 名')"
+        :placeholder="t('请输入单个源 DB 名')"
         single />
     </td>
     <td style="padding: 0">
       <RenderDbName
         ref="toDatabaseRef"
+        check-not-exist
         :cluster-id="localClusterId"
         :model-value="data.toDatabase"
-        :placeholder="$t('请输入单个新 DB 名')"
+        :placeholder="t('请输入单个新 DB 名')"
         single />
     </td>
     <OperateColumn
@@ -67,6 +68,8 @@
   });
 </script>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderCluster from './RenderCluster.vue';
   import RenderDbName from './RenderDbName.vue';
 
@@ -75,8 +78,9 @@
     removeable: boolean;
   }
   interface Emits {
-    (e: 'add', params: Array<IDataRow>): void;
+    (e: 'add', params: IDataRow): void;
     (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: string): void;
   }
 
   interface Exposes {
@@ -87,10 +91,11 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const clusterRef = ref();
   const fromDatabaseRef = ref();
   const toDatabaseRef = ref();
-
   const localClusterId = ref(0);
 
   watch(
@@ -109,22 +114,12 @@
     localClusterId.value = clusterId;
   };
 
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((domain) =>
-        createRowData({
-          clusterData: {
-            id: 0,
-            domain,
-          },
-        }),
-      ),
-    );
+  const handleInputFinish = (domain: string) => {
+    emits('clusterInputFinish', domain);
   };
 
   const handleAppend = () => {
-    emits('add', [createRowData()]);
+    emits('add', createRowData());
   };
 
   const handleRemove = () => {
