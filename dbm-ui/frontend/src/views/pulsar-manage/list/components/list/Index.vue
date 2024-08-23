@@ -132,6 +132,7 @@
   import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
@@ -665,18 +666,11 @@
         }
 
         return (
-          <bk-dropdown class="operations__more">
+          <MoreActionExtend class="ml-8">
             {{
-              default: () => <db-icon type="more" />,
-              content: () => (
-                <bk-dropdown-menu>
-                  {
-                    renderAction('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
-                  }
-                </bk-dropdown-menu>
-              ),
+              default: () => renderAction('').map(opt => <bk-dropdown-item>{opt}</bk-dropdown-item>)
             }}
-          </bk-dropdown>
+          </MoreActionExtend>
         );
       },
     },
