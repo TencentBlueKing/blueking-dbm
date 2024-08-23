@@ -12,39 +12,37 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderSourceDb
-          ref="sourceDbRef"
-          v-model="localRowData.source_db"
-          :cluster-id="clusterId" />
-      </td>
-      <td>
-        {{ t('所有表') }}
-      </td>
-      <td style="padding: 0">
-        <RenderTableData
-          ref="tableDataRef"
-          v-model="localRowData.data_tblist"
-          check-exist
-          :cluster-id="clusterId"
-          :placeholder="t('表名支持通配符“%”，含通配符的仅支持单个，为空则不克隆表数据')"
-          :required="false"
-          :source-db="localRowData.source_db" />
-      </td>
-      <td style="padding: 0">
-        <RenderTargetDbPattern
-          ref="targetDbPatternRef"
-          v-model="localRowData.target_db_pattern"
-          :db-name="localRowData.source_db" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderSourceDb
+        ref="sourceDbRef"
+        v-model="localRowData.source_db"
+        :cluster-id="clusterId" />
+    </td>
+    <td>
+      {{ t('所有表') }}
+    </td>
+    <td style="padding: 0">
+      <RenderTableData
+        ref="tableDataRef"
+        v-model="localRowData.data_tblist"
+        check-exist
+        :cluster-id="clusterId"
+        :placeholder="t('表名支持通配符“%”，含通配符的仅支持单个，为空则不克隆表数据')"
+        :required="false"
+        :source-db="localRowData.source_db" />
+    </td>
+    <td style="padding: 0">
+      <RenderTargetDbPattern
+        ref="targetDbPatternRef"
+        v-model="localRowData.target_db_pattern"
+        :db-name="localRowData.source_db" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

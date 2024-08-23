@@ -18,7 +18,7 @@
         ref="selectRef"
         v-model="localValue"
         :list="selectList"
-        :placeholder="$t('请选择')"
+        :placeholder="t('请选择')"
         :rules="rules">
         <template #default="{ optionItem, index }">
           <div class="redis-version-select-option">

@@ -12,48 +12,46 @@
 -->
 
 <template>
-  <div class="render-data">
-    <RenderTable>
-      <template #default>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="330">
-          {{ t('源客户端IP') }}
-          <template #append>
-            <span
-              class="batch-edit-btn"
-              @click="handleShowIpSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </template>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="90"
-          :width="240">
-          {{ t('模块') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="340">
-          {{ t('新客户端IP') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          fixed="right"
-          :required="false"
-          :width="100">
-          {{ t('操作') }}
-        </RenderTableHeadColumn>
-      </template>
+  <RenderTable>
+    <template #default>
+      <RenderTableHeadColumn
+        fixed="left"
+        :min-width="120"
+        :width="330">
+        {{ t('源客户端IP') }}
+        <template #append>
+          <BatchOperateIcon
+            class="ml-4"
+            @batch-click="handleShowIpSelector" />
+        </template>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="90"
+        :width="240">
+        {{ t('模块') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="120"
+        :width="340">
+        {{ t('新客户端IP') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        fixed="right"
+        :required="false"
+        :width="100">
+        {{ t('操作') }}
+      </RenderTableHeadColumn>
+    </template>
 
-      <template #data>
-        <slot />
-      </template>
-    </RenderTable>
-  </div>
+    <template #data>
+      <slot />
+    </template>
+  </RenderTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -69,14 +67,3 @@
     emits('showIpSelector');
   };
 </script>
-<style lang="less">
-  .render-data {
-    display: block;
-
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

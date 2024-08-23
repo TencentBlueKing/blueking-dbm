@@ -13,23 +13,18 @@
 
 <template>
   <SmartAction>
-    <div class="render-data mb-24">
+    <div class="mb-24">
       <RenderTable>
         <template #default>
           <RenderTableHeadColumn
+            fixed="left"
             :min-width="120"
             :width="220">
             <span>{{ t('目标集群') }}</span>
             <template #append>
-              <BkPopover
-                :content="t('批量添加')"
-                theme="dark">
-                <span
-                  class="batch-edit-btn"
-                  @click="handleShowMasterBatchSelector">
-                  <DbIcon type="batch-host-select" />
-                </span>
-              </BkPopover>
+              <BatchOperateIcon
+                class="ml-4"
+                @batch-click="handleShowMasterBatchSelector" />
             </template>
           </RenderTableHeadColumn>
           <RenderTableHeadColumn
@@ -100,6 +95,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
@@ -277,13 +273,3 @@
       Promise.all<InfoItem[]>(rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue())),
   });
 </script>
-
-<style lang="less" scoped>
-  .render-data {
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

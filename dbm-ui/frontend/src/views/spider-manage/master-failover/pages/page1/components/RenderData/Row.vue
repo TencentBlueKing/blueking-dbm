@@ -12,31 +12,29 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderMaster
-          ref="masterHostRef"
-          :model-value="localMasterData"
-          @change="handleMasterHostChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderHost
-          ref="slaveHostRef"
-          :master-data="localMasterData"
-          :model-value="data.slaveData" />
-      </td>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :master-data="localMasterData" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderMaster
+        ref="masterHostRef"
+        :model-value="localMasterData"
+        @change="handleMasterHostChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderHost
+        ref="slaveHostRef"
+        :master-data="localMasterData"
+        :model-value="data.slaveData" />
+    </td>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :master-data="localMasterData" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

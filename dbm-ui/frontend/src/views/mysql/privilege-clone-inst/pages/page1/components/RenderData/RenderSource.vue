@@ -15,7 +15,7 @@
   <TableEditInput
     ref="editRef"
     v-model="localInstanceAddress"
-    :placeholder="t('请输入IP_Port')"
+    :placeholder="t('请输入IP:Port或从表头批量选择')"
     :rules="rules" />
 </template>
 <script lang="ts">
