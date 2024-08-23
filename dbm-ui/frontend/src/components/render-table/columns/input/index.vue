@@ -31,7 +31,7 @@
       v-bind="$attrs"
       @blur="handleBlur"
       @change="handleInput"
-      @focus="() => (isBlur = false)"
+      @focus="handleFocus"
       @input="handleInput"
       @keydown="handleKeydown"
       @paste="handlePaste">
@@ -66,6 +66,8 @@
 
   interface Emits {
     (e: 'submit', value: string): void;
+    (e: 'error', result: boolean): void;
+    (e: 'focus'): void;
   }
 
   interface Exposes {
@@ -109,6 +111,11 @@
     isBlur.value = false;
     window.changeConfirm = true;
     modelValue.value = value;
+  };
+
+  const handleFocus = () => {
+    isBlur.value = false;
+    emits('focus');
   };
 
   // 失去焦点

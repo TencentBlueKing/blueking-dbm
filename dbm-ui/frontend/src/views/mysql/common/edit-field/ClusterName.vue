@@ -16,7 +16,8 @@
     ref="editRef"
     v-model="localDomain"
     :placeholder="t('请输入集群域名或从表头批量选择')"
-    :rules="rules" />
+    :rules="rules"
+    @focus="handleFocus" />
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -36,6 +37,8 @@
       domain: string;
       type?: string;
     };
+    onlyOneType?: boolean;
+    clusterTypes?: string[];
   }
 
   interface Emits {
@@ -43,12 +46,16 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<{
+    getValue: (isSubmit?: boolean) => Promise<{
       cluster_id: number;
     }>;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    modelValue: undefined,
+    onlyOneType: false,
+    clusterTypes: () => [],
+  });
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
@@ -60,6 +67,8 @@
 
   const localClusterId = ref(0);
   const localDomain = ref('');
+
+  let isSkipInputFinish = false;
 
   const rules = [
     {
@@ -83,12 +92,24 @@
         }).then((data) => {
           if (data.length > 0) {
             localClusterId.value = data[0].id;
-            emits('idChange', data[0].id);
+            if (!isSkipInputFinish) {
+              emits('idChange', data[0].id);
+            }
             return true;
           }
           return false;
         }),
       message: t('目标集群不存在'),
+    },
+    {
+      validator: () => {
+        if (!props.onlyOneType) {
+          return true;
+        }
+        const types = new Set(props.clusterTypes.filter((item) => !!item));
+        return types.size === 1;
+      },
+      message: t('只允许提交一种集群类型'),
     },
     {
       validator: () => {
@@ -127,6 +148,7 @@
     },
     {
       immediate: true,
+      deep: true,
     },
   );
 
@@ -144,12 +166,17 @@
     },
   );
 
+  const handleFocus = () => {
+    isSkipInputFinish = false;
+  };
+
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
   });
 
   defineExpose<Exposes>({
-    getValue() {
+    getValue(isSubmit = false) {
+      isSkipInputFinish = isSubmit;
       return editRef.value.getValue().then(() => ({
         cluster_id: localClusterId.value,
       }));

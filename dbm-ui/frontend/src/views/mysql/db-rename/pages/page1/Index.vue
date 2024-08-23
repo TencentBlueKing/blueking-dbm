@@ -30,9 +30,11 @@
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
+          :cluster-types="clusterTypes"
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload) => handleAppend(index, payload)"
+          @cluster-input-finish="(clusterId: number) => handleChangeCluster(index, clusterId)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="bottom-opeartion">
@@ -81,7 +83,6 @@
 </template>
 
 <script setup lang="tsx">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
@@ -95,8 +96,6 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
-
-  import { messageError } from '@utils';
 
   import BatchInput from './components/BatchInput.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -140,6 +139,8 @@
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
   });
+
+  const clusterTypes = computed(() => tableData.value.map((item) => item.clusterData?.type as string));
 
   let domainMemo: Record<string, boolean> = {};
 
@@ -219,6 +220,37 @@
     window.changeConfirm = true;
   }
 
+  // 输入集群后查询集群信息并填充到table
+  const handleChangeCluster = async (index: number, clusterId: number) => {
+    if (tableData.value[index].clusterData?.id === clusterId) {
+      return;
+    }
+
+    const resultList = await queryClusters({
+      cluster_filters: [
+        {
+          id: clusterId,
+        },
+      ],
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    });
+    if (resultList.length < 1) {
+      return;
+    }
+    const item = resultList[0];
+    const domain = item.master_domain;
+    const row = createRowData({
+      clusterData: {
+        id: item.id,
+        domain,
+        type: item.cluster_type,
+      },
+    });
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
+    selectedClusters.value[item.cluster_type].push(item);
+  };
+
   /**
    * 集群选择器批量选择
    */
@@ -254,16 +286,9 @@
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) => {
-        const clusterTypes = _.uniq(tableData.value.map((item) => item.clusterData?.type));
-        // 限制只能提同一种类型的集群，否则提示
-        if (clusterTypes.length > 1) {
-          messageError('只允许提交一种集群类型');
-          return Promise.reject();
-        }
-
         const params = {
           ticket_type:
-            clusterTypes[0] === ClusterTypes.TENDBHA
+            clusterTypes.value[0] === ClusterTypes.TENDBHA
               ? TicketTypes.MYSQL_HA_RENAME_DATABASE
               : TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
           bk_biz_id: globalBizsStore.currentBizId,

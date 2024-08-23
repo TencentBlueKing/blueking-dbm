@@ -24,6 +24,7 @@
       :multi-input="false"
       :rules="rules"
       @error-message-change="handleErrorMessageChange"
+      @focus="handleFocus"
       @submit="handleEditSubmit" />
     <div
       v-show="!isShowEdit"
@@ -206,9 +207,12 @@
     });
   };
 
+  const handleFocus = () => {
+    isSkipInputFinish = false;
+  };
+
   // 提交编辑
   const handleEditSubmit = () => {
-    isSkipInputFinish = false;
     isShowEdit.value = false;
   };
 

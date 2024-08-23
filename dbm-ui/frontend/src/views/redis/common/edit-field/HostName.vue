@@ -18,7 +18,7 @@
       v-model="localValue"
       :placeholder="t('请输入IP（单个）')"
       :rules="rules"
-      @submit="handleInputFinish" />
+      @focus="handleFocus" />
     <!-- <BkPopover
       :content="t('从业务拓扑选择')"
       placement="top"
@@ -157,11 +157,11 @@
   //   isShowSelector.value = true;
   // };
 
-  // const handleInputFinish = (value: string) => {
+  // const handleFocus = (value: string) => {
   //   emits('inputFinish', value);
   // };
 
-  const handleInputFinish = () => {
+  const handleFocus = () => {
     isSkipInputFinish = false;
   };
 
