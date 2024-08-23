@@ -13,11 +13,11 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderSource
         ref="sourceRef"
         v-model="localSource" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderText
         :data="localSource?.masterDomain"
@@ -71,6 +71,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 

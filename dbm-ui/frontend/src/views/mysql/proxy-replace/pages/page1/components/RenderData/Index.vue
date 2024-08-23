@@ -12,33 +12,44 @@
 -->
 
 <template>
-  <div class="render-data">
-    <RenderTable>
-      <RenderTableHeadColumn>
-        {{ $t('目标Proxy') }}
-        <template #append>
-          <span
-            class="batch-edit-btn"
-            @click="handleShowBatchSelectCluster">
-            <DbIcon type="batch-host-select" />
-          </span>
-        </template>
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn>
-        {{ $t('新Proxy主机') }}
-      </RenderTableHeadColumn>
-      <RenderTableHeadColumn
-        :required="false"
-        :width="90">
-        {{ $t('操作') }}
-      </RenderTableHeadColumn>
-      <template #data>
-        <slot />
+  <RenderTable>
+    <RenderTableHeadColumn
+      fixed="left"
+      :min-width="200"
+      :width="240">
+      {{ t('目标实例') }}
+      <template #append>
+        <BatchOperateIcon
+          class="ml-4"
+          @batch-click="handleShowBatchSelectCluster" />
       </template>
-    </RenderTable>
-  </div>
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="200"
+      :required="false"
+      :width="240">
+      {{ t('关联集群') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="200"
+      :width="240">
+      {{ t('新Proxy主机') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      fixed="right"
+      :required="false"
+      :width="100">
+      {{ t('操作') }}
+    </RenderTableHeadColumn>
+    <template #data>
+      <slot />
+    </template>
+  </RenderTable>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -48,16 +59,9 @@
 
   const emits = defineEmits<Emits>();
 
+  const t = useI18n();
+
   const handleShowBatchSelectCluster = () => {
     emits('batchSelectCluster');
   };
 </script>
-<style lang="less">
-  .render-data {
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

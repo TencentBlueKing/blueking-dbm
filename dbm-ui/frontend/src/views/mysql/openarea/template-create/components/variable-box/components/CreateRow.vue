@@ -1,34 +1,32 @@
 <template>
-  <tbody>
-    <td style="padding: 0">
-      <TableEditInput
-        ref="nameRef"
-        v-model="formData.name"
-        :rules="nameRules" />
-    </td>
-    <td style="padding: 0">
-      <TableEditInput
-        ref="descRef"
-        v-model="formData.desc"
-        :rules="descRules" />
-    </td>
-    <td>String</td>
-    <td>
-      <BkButton
-        :loading="isSubmiting"
-        text
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('保存') }}
-      </BkButton>
-      <BkButton
-        class="ml-4"
-        text
-        theme="primary">
-        {{ t('取消') }}
-      </BkButton>
-    </td>
-  </tbody>
+  <td style="padding: 0">
+    <TableEditInput
+      ref="nameRef"
+      v-model="formData.name"
+      :rules="nameRules" />
+  </td>
+  <td style="padding: 0">
+    <TableEditInput
+      ref="descRef"
+      v-model="formData.desc"
+      :rules="descRules" />
+  </td>
+  <td>String</td>
+  <td>
+    <BkButton
+      :loading="isSubmiting"
+      text
+      theme="primary"
+      @click="handleSubmit">
+      {{ t('保存') }}
+    </BkButton>
+    <BkButton
+      class="ml-4"
+      text
+      theme="primary">
+      {{ t('取消') }}
+    </BkButton>
+  </td>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';

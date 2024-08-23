@@ -12,84 +12,84 @@
 -->
 
 <template>
-  <tbody :key="data.rowKey">
-    <template
-      v-for="(backupInfoItem, index) in localBackupInfos"
-      :key="index">
-      <tr>
-        <td
-          v-if="index === 0"
-          :rowspan="localBackupInfos.length"
-          style="padding: 0">
-          <RenderCluster
-            ref="clusterRefs"
-            :model-value="data.clusterData"
-            @id-change="handleClusterIdChange" />
-        </td>
-        <td
-          v-if="index === 0"
-          :rowspan="localBackupInfos.length"
-          style="padding: 0">
-          <RenderScope
-            ref="scopeRefs"
-            :cluster-id="localClusterId"
-            :model-value="data.scope"
-            @change="handleScopeChange" />
-        </td>
-        <td
-          v-if="index === 0"
-          :rowspan="localBackupInfos.length"
-          style="padding: 0">
-          <RenderSlave
-            ref="slaveRefs"
-            :cluster-id="localClusterId"
-            :model-value="backupInfoItem.slave"
-            :scope="localScope"
-            @change="handleSlaveChange" />
-        </td>
-        <td
-          name="master"
-          style="padding: 0">
-          <RenderMaster
-            ref="masterRefs"
-            :cluster-id="localClusterId"
-            :model-value="backupInfoItem.master"
-            :scope="localScope"
-            :slave="backupInfoItem.slave" />
-        </td>
-        <td style="padding: 0">
-          <RenderDbName
-            ref="dbPatternsRefs"
-            :cluster-id="localClusterId"
-            :model-value="backupInfoItem.dbPatterns" />
-        </td>
-        <td style="padding: 0">
-          <RenderDbName
-            ref="ignoreDbsRefs"
-            v-model:model-value="backupInfoItem.ignoreDbs"
-            :cluster-id="localClusterId"
-            :required="false" />
-        </td>
-        <td style="padding: 0">
-          <RenderTableName
-            ref="tablePatternsRefs"
-            :cluster-id="localClusterId"
-            :model-value="backupInfoItem.tablePatterns" />
-        </td>
-        <td style="padding: 0">
-          <RenderIgnoreTables
-            ref="ignoreTablesRefs"
-            :cluster-id="localClusterId"
-            :ignore-dbs="backupInfoItem.ignoreDbs"
-            :model-value="backupInfoItem.ignoreTables" />
-        </td>
-        <OperateColumn
-          :removeable="removeable"
-          :show-add="false"
-          @remove="handleRemove" />
-      </tr>
-    </template>
-  </tbody>
+  <!-- <tbody :key="data.rowKey"> -->
+  <template
+    v-for="(backupInfoItem, index) in localBackupInfos"
+    :key="index">
+    <tr>
+      <td
+        v-if="index === 0"
+        :rowspan="localBackupInfos.length"
+        style="padding: 0">
+        <RenderCluster
+          ref="clusterRefs"
+          :model-value="data.clusterData"
+          @id-change="handleClusterIdChange" />
+      </td>
+      <td
+        v-if="index === 0"
+        :rowspan="localBackupInfos.length"
+        style="padding: 0">
+        <RenderScope
+          ref="scopeRefs"
+          :cluster-id="localClusterId"
+          :model-value="data.scope"
+          @change="handleScopeChange" />
+      </td>
+      <td
+        v-if="index === 0"
+        :rowspan="localBackupInfos.length"
+        style="padding: 0">
+        <RenderSlave
+          ref="slaveRefs"
+          :cluster-id="localClusterId"
+          :model-value="backupInfoItem.slave"
+          :scope="localScope"
+          @change="handleSlaveChange" />
+      </td>
+      <td
+        name="master"
+        style="padding: 0">
+        <RenderMaster
+          ref="masterRefs"
+          :cluster-id="localClusterId"
+          :model-value="backupInfoItem.master"
+          :scope="localScope"
+          :slave="backupInfoItem.slave" />
+      </td>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="dbPatternsRefs"
+          :cluster-id="localClusterId"
+          :model-value="backupInfoItem.dbPatterns" />
+      </td>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="ignoreDbsRefs"
+          v-model:model-value="backupInfoItem.ignoreDbs"
+          :cluster-id="localClusterId"
+          :required="false" />
+      </td>
+      <td style="padding: 0">
+        <RenderTableName
+          ref="tablePatternsRefs"
+          :cluster-id="localClusterId"
+          :model-value="backupInfoItem.tablePatterns" />
+      </td>
+      <td style="padding: 0">
+        <RenderIgnoreTables
+          ref="ignoreTablesRefs"
+          :cluster-id="localClusterId"
+          :ignore-dbs="backupInfoItem.ignoreDbs"
+          :model-value="backupInfoItem.ignoreTables" />
+      </td>
+      <OperateColumn
+        :removeable="removeable"
+        :show-add="false"
+        @remove="handleRemove" />
+    </tr>
+  </template>
+  <!-- </tbody> -->
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

@@ -17,6 +17,7 @@
       ref="editRef"
       v-model="localDomain"
       :multi-input="false"
+      :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
       @submit="handleEditSubmit" />
   </div>
@@ -27,6 +28,8 @@
 </script>
 
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import TendbSingleModel from '@services/model/mysql/tendbsingle';
   import { queryClusters } from '@services/source/mysqlCluster';
 
@@ -61,10 +64,10 @@
   const instanceKey = `render_cluster_instance_${random()}`;
   clusterIdMemo[instanceKey] = {};
 
+  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const editRef = ref();
-
   const localClusterId = ref(0);
   const localDomain = ref('');
   const isShowEdit = ref(true);

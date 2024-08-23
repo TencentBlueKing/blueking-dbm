@@ -13,12 +13,12 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderCluster
         ref="sourceClusterRef"
         :data="data.clusterData.domain"
         @input-finish="handleInputFinish" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderClusterNameWithSelector
         ref="targetClustersRef"
@@ -55,6 +55,7 @@
   </tr>
 </template>
 <script lang="ts">
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';

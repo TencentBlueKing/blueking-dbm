@@ -192,15 +192,15 @@
     margin: 0;
 
     :deep(.bk-tag-input) {
-      position: absolute;
-      top: -21px;
-      z-index: 99;
-      width: 100%;
+      // position: absolute;
+      // top: 0;
+      // z-index: 1;
+      // width: 100%;
 
       .bk-tag-input-trigger {
         .tag-list {
           height: auto;
-          max-height: 135px;
+          max-height: 400px;
         }
       }
     }
@@ -255,6 +255,7 @@
       top: 0;
       right: 0;
       bottom: 0;
+      z-index: 10;
       display: flex;
       padding-right: 10px;
       font-size: 14px;
