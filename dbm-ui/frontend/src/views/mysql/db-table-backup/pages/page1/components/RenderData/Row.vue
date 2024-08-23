@@ -12,52 +12,50 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
-      </td>
-      <!-- <td style="padding: 0;">
-        <RenderBackupSource
-          ref="backupSourceRef"
-          :model-value="data.backupOn" />
-      </td> -->
-      <td style="padding: 0">
-        <RenderDbName
-          ref="dbPatternsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.dbPatterns" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablePatternsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.tablePatterns" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="ignoreDbsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.ignoreDbs"
-          :required="false" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="ignoreTablesRef"
-          :cluster-id="localClusterId"
-          :model-value="data.ignoreTables"
-          :required="false" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <FixedColumn fixed="left">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange"
+        @input-create="handleCreate" />
+    </FixedColumn>
+    <!-- <td style="padding: 0;">
+      <RenderBackupSource
+        ref="backupSourceRef"
+        :model-value="data.backupOn" />
+    </td> -->
+    <td style="padding: 0">
+      <RenderDbName
+        ref="dbPatternsRef"
+        :cluster-id="localClusterId"
+        :model-value="data.dbPatterns" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="tablePatternsRef"
+        :cluster-id="localClusterId"
+        :model-value="data.tablePatterns" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="ignoreDbsRef"
+        :cluster-id="localClusterId"
+        :model-value="data.ignoreDbs"
+        :required="false" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="ignoreTablesRef"
+        :cluster-id="localClusterId"
+        :model-value="data.ignoreTables"
+        :required="false" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';
@@ -89,6 +87,7 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';

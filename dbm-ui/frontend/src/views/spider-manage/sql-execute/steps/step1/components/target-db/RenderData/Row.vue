@@ -12,27 +12,25 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="dbnamesRef"
-          :model-value="data.dbnames"
-          @change="handleDbnamesChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="ignoreDbnamesRef"
-          :model-value="data.ignore_dbnames"
-          :required="false"
-          @change="handleIgnoreDbnamesChange" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="dbnamesRef"
+        :model-value="data.dbnames"
+        @change="handleDbnamesChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="ignoreDbnamesRef"
+        :model-value="data.ignore_dbnames"
+        :required="false"
+        @change="handleIgnoreDbnamesChange" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import { random } from '@utils';

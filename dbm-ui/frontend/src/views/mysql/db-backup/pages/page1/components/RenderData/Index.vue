@@ -12,64 +12,60 @@
 -->
 
 <template>
-  <div class="db-table-backup-render-data">
-    <RenderTable>
-      <template #default>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="630">
-          {{ t('目标集群') }}
-          <template #append>
-            <span
-              class="batch-edit-btn"
-              @click="handleShowBatchSelector">
-              <DbIcon type="batch-host-select" />
-            </span>
-          </template>
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="120"
-          :width="580">
-          <template #append>
-            <BatchEditColumn
-              v-model="isShowBatchEdit"
-              :data-list="selectList"
-              :title="t('备份位置')"
-              @change="handleBatchEdit">
-              <span
-                v-bk-tooltips="t('批量编辑')"
-                class="batch-edit-btn"
-                @click="handleShowBatchEdit">
-                <DbIcon type="bulk-edit" />
-              </span>
-            </BatchEditColumn>
-          </template>
-          {{ t('备份位置') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          fixed="right"
-          :required="false"
-          :width="100">
-          {{ t('操作') }}
-        </RenderTableHeadColumn>
-      </template>
+  <RenderTable>
+    <template #default>
+      <RenderTableHeadColumn
+        fixed="left"
+        :min-width="200"
+        :width="300">
+        {{ t('目标集群') }}
+        <template #append>
+          <BatchOperateIcon
+            class="ml-4"
+            @batch-click="handleShowBatchSelector" />
+        </template>
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="120"
+        :width="580">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit"
+            :data-list="selectList"
+            :title="t('备份位置')"
+            @change="handleBatchEdit">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @batch-click="handleShowBatchEdit" />
+          </BatchEditColumn>
+        </template>
+        {{ t('备份位置') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        fixed="right"
+        :required="false"
+        :width="100">
+        {{ t('操作') }}
+      </RenderTableHeadColumn>
+    </template>
 
-      <template #data>
-        <slot />
-      </template>
-    </RenderTable>
-  </div>
+    <template #data>
+      <slot />
+    </template>
+  </RenderTable>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import BatchEditColumn from '@components/batch-edit-column/Index.vue';
+  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'batchSelectCluster'): void,
-    (e: 'batchEditBackupLocal', value: string): void
+  interface Emits {
+    (e: 'batchSelectCluster'): void;
+    (e: 'batchEditBackupLocal', value: string): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -101,12 +97,3 @@
     emits('batchEditBackupLocal', value);
   };
 </script>
-<style lang="less">
-  .db-table-backup-render-data {
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

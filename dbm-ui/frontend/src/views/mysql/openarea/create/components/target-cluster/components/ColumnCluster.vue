@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localDomain"
-      :placeholder="t('请输入集群')"
+      :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules" />
   </div>
 </template>

@@ -16,7 +16,7 @@
     <TableEditInput
       ref="editRef"
       v-model="localValue"
-      :placeholder="$t('请输入IP')"
+      :placeholder="t('请输入IP或从表头批量选择')"
       :rules="rules"
       textarea />
   </div>
@@ -123,16 +123,19 @@
     },
   ];
 
-  watch(() => props.modelValue, () => {
-    if (props.modelValue) {
-      localValue.value = props.modelValue.ip;
-      localProxyData = props.modelValue;
-      oldLocalProxyData = props.modelValue;
-    }
-  }, {
-    immediate: true,
-  });
-
+  watch(
+    () => props.modelValue,
+    () => {
+      if (props.modelValue) {
+        localValue.value = props.modelValue.ip;
+        localProxyData = props.modelValue;
+        oldLocalProxyData = props.modelValue;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {

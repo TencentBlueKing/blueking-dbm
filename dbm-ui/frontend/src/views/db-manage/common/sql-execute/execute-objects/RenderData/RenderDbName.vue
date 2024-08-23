@@ -12,33 +12,26 @@
 -->
 
 <template>
-  <div ref="rootRef">
-    <span @click="handleShowTips">
-      <TableEditTag
-        ref="editTagRef"
-        :model-value="modelValue"
-        :placeholder="t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
-        :rules="rules"
-        @change="handleChange" />
-    </span>
-    <div
-      ref="popRef"
-      style="font-size: 12px; line-height: 24px; color: #63656e">
+  <TableEditTag
+    ref="editTagRef"
+    :model-value="modelValue"
+    :placeholder="t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
+    :rules="rules"
+    @change="handleChange">
+    <template #tip>
       <p>{{ t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
       <p>{{ t('匹配任意单一字符_如a_d') }}</p>
       <p>{{ t('专门指代ALL语义_只能独立使用') }}</p>
       <p>{{ t('注_含通配符的单元格仅支持输入单个对象') }}</p>
       <p>{{ t('Enter完成内容输入') }}</p>
-    </div>
-  </div>
+    </template>
+  </TableEditTag>
 </template>
 <script lang="ts">
   const tagMemo = {} as Record<string, string[]>;
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
-  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { onMounted, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@components/render-table/columns/tag-input/index.vue';
@@ -49,17 +42,16 @@
     getValue: () => Promise<string[]>;
   }
 
+  const modelValue = defineModel<string[]>({
+    default: () => [],
+  });
+
   const { t } = useI18n();
 
   const instanceKey = random();
   tagMemo[instanceKey] = [];
 
-  const modelValue = defineModel<string[]>({
-    default: () => [],
-  });
-
-  const rootRef = ref();
-  const popRef = ref();
+  const editTagRef = ref<InstanceType<typeof TableEditTag>>();
 
   const rules = [
     {
@@ -88,8 +80,6 @@
     },
   ];
 
-  const editTagRef = ref<InstanceType<typeof TableEditTag>>();
-
   watch(
     modelValue,
     () => {
@@ -105,35 +95,7 @@
     tagMemo[instanceKey] = value;
   };
 
-  let tippyIns: Instance | undefined;
-
-  const handleShowTips = () => {
-    tippyIns?.show();
-  };
-
-  onMounted(() => {
-    tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
-      appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
-      arrow: true,
-      offset: [0, 8],
-      zIndex: 999999,
-      hideOnClick: true,
-    });
-  });
-
   onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
     delete tagMemo[instanceKey];
   });
 

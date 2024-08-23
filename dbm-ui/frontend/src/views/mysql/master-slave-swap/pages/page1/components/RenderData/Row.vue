@@ -13,12 +13,12 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderMaster
         ref="masterHostRef"
         :model-value="data.masterData"
         @change="handleMasterHostChange" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderHost
         ref="slaveHostRef"
@@ -40,6 +40,7 @@
 <script lang="ts">
   import { ref, shallowRef, watch } from 'vue';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';

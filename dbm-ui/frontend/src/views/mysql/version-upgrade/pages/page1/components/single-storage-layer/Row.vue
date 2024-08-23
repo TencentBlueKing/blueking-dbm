@@ -13,12 +13,12 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderCluster
         ref="clusterRef"
         :model-value="clusterInfo"
         @id-change="handleClusterIdChange" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderCurrentVersion
         :charset="localCharset"
@@ -41,6 +41,7 @@
 <script lang="ts">
   import TendbSingleModel from '@services/model/mysql/tendbsingle';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';

@@ -12,57 +12,55 @@
 -->
 
 <template>
-  <tbody>
-    <tr>
-      <td style="padding: 0">
-        <RenderCluster
-          ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
-      </td>
-      <td style="padding: 0">
-        <RenderTruncateDataType
-          ref="truncateDataTypeRef"
-          :model-value="data.truncateDataType"
-          @change="handleTruncateDataTypeChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="dbPatternsRef"
-          check-exist
-          :cluster-id="localClusterId"
-          :model-value="data.dbPatterns" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="tablePatternsRef"
-          :cluster-id="localClusterId"
-          :disabled="isDropDatabase"
-          :model-value="tablePatterns" />
-      </td>
-      <td style="padding: 0">
-        <RenderDbName
-          ref="ignoreDbsRef"
-          :cluster-id="localClusterId"
-          :model-value="data.ignoreDbs"
-          :required="false"
-          @change="handleIgnoreDbsChange" />
-      </td>
-      <td style="padding: 0">
-        <RenderTableName
-          ref="ignoreTablesRef"
-          :cluster-id="localClusterId"
-          :disabled="isDropDatabase"
-          :model-value="ignoreTables"
-          :required="false" />
-      </td>
-      <OperateColumn
-        :removeable="removeable"
-        @add="handleAppend"
-        @remove="handleRemove" />
-    </tr>
-  </tbody>
+  <tr>
+    <td style="padding: 0">
+      <RenderCluster
+        ref="clusterRef"
+        :model-value="data.clusterData"
+        @id-change="handleClusterIdChange"
+        @input-create="handleCreate" />
+    </td>
+    <td style="padding: 0">
+      <RenderTruncateDataType
+        ref="truncateDataTypeRef"
+        :model-value="data.truncateDataType"
+        @change="handleTruncateDataTypeChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="dbPatternsRef"
+        check-exist
+        :cluster-id="localClusterId"
+        :model-value="data.dbPatterns" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="tablePatternsRef"
+        :cluster-id="localClusterId"
+        :disabled="isDropDatabase"
+        :model-value="tablePatterns" />
+    </td>
+    <td style="padding: 0">
+      <RenderDbName
+        ref="ignoreDbsRef"
+        :cluster-id="localClusterId"
+        :model-value="data.ignoreDbs"
+        :required="false"
+        @change="handleIgnoreDbsChange" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
+        ref="ignoreTablesRef"
+        :cluster-id="localClusterId"
+        :disabled="isDropDatabase"
+        :model-value="ignoreTables"
+        :required="false" />
+    </td>
+    <OperateColumn
+      :removeable="removeable"
+      @add="handleAppend"
+      @remove="handleRemove" />
+  </tr>
 </template>
 <script lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
