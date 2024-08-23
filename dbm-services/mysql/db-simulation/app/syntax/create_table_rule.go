@@ -51,7 +51,7 @@ func (c CreateTableResult) BlobColumCount() (blobColumCount int) {
 func (c CreateTableResult) GetValFromTbOptions(key string) (val string) {
 	for _, tableOption := range c.TableOptions {
 		if tableOption.Key == key {
-			val = tableOption.Value.(string)
+			val, _ = tableOption.Value.(string)
 		}
 	}
 	logger.Info("%s:%s", key, val)

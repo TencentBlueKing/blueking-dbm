@@ -34,7 +34,6 @@ func RegisterRouter(engine *gin.Engine) {
 	t.POST("/task", handler.QueryTask)
 	// mysql
 	g := engine.Group("/mysql")
-	// g.POST("/simulation", handler.Dbsimulation)
 	g.POST("/simulation", handler.TendbSimulation)
 	g.POST("/task", handler.QueryTask)
 	// syntax
@@ -49,7 +48,6 @@ func RegisterRouter(engine *gin.Engine) {
 	r.POST("/update", handler.UpdateRule)
 	// spider
 	sp := engine.Group("/spider")
-	// sp.POST("/simulation", handler.SpiderClusterSimulation)
 	sp.POST("/simulation", handler.TendbClusterSimulation)
 	sp.POST("/create", handler.CreateTmpSpiderPodCluster)
 }

@@ -8,16 +8,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-// Package config TODO
+// Package config app config pkg
 package config
 
 import (
-	"path"
-
 	"github.com/samber/lo"
 	"github.com/spf13/viper"
 
-	util "dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 )
 
@@ -137,29 +134,7 @@ func init() {
 		Port: viper.GetInt("DB_PORT"),
 		Name: viper.GetString("DBSIMULATION_DB"),
 	}
-	mirroraddr := viper.GetString("MIRRORS_ADDR")
-	if !util.IsEmpty(mirroraddr) {
-		mysql56 := viper.GetString("MYSQL56")
-		mysql57 := viper.GetString("MYSQL57")
-		mysql80 := viper.GetString("MYSQL80")
-		spiderImg := viper.GetString("SPIDER_IMG")
-		tdbctlImg := viper.GetString("TDBCTL_IMG")
-		if !util.IsEmpty(mysql56) {
-			GAppConfig.Image.Tendb56Img = path.Join(mirroraddr, mysql56)
-		}
-		if !util.IsEmpty(mysql57) {
-			GAppConfig.Image.Tendb57Img = path.Join(mirroraddr, mysql57)
-		}
-		if !util.IsEmpty(mysql80) {
-			GAppConfig.Image.Tendb80Img = path.Join(mirroraddr, mysql80)
-		}
-		if !util.IsEmpty(spiderImg) {
-			GAppConfig.Image.SpiderImg = path.Join(mirroraddr, spiderImg)
-		}
-		if !util.IsEmpty(tdbctlImg) {
-			GAppConfig.Image.TdbCtlImg = path.Join(mirroraddr, tdbctlImg)
-		}
-	}
+
 	if err := loadConfig(); err != nil {
 		logger.Error("load config file failed:%s", err.Error())
 	}
@@ -179,7 +154,6 @@ func init() {
 			GAppConfig.Image.TdbCtlImg = v.Image
 		}
 	}
-	logger.Info("app config %v", GAppConfig)
 	logger.Info("simulationNodeLables: %v", lo.SliceToMap(GAppConfig.SimulationNodeLables, func(item LabelItem) (k,
 		v string) {
 		return item.Key, item.Value

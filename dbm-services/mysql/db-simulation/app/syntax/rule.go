@@ -15,15 +15,15 @@ import (
 	"os"
 	"reflect"
 
-	"dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-simulation/app/config"
-	"dbm-services/mysql/db-simulation/model"
-
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-simulation/app/config"
+	"dbm-services/mysql/db-simulation/model"
 )
 
 // R TODO
@@ -82,7 +82,7 @@ func init() {
 	}
 }
 
-// IsPass TODO
+// IsPass syntax check ok
 func (c CheckerResult) IsPass() bool {
 	return len(c.BanWarns) == 0 && len(c.RiskWarns) == 0
 }
@@ -128,7 +128,7 @@ func (c *CheckerResult) ParseBultinRisk(f func() (bool, string)) {
 	}
 }
 
-// RuleItem TODO
+// RuleItem syntax rule item
 type RuleItem struct {
 	Item        interface{} `yaml:"item"`
 	Val         interface{}
@@ -196,7 +196,7 @@ type AlterTableRule struct {
 	AddColumnMixed      *RuleItem `yaml:"AddColumnMixed"`
 }
 
-// DmlRule TODO
+// DmlRule dml rules
 type DmlRule struct {
 	DmlNotHasWhere *RuleItem `yaml:"DmlNotHasWhere"`
 }
@@ -260,7 +260,7 @@ func traverseRule(v interface{}) (rules []*RuleItem) {
 	return rules
 }
 
-// Env TODO
+// Env expr的运行环境
 type Env struct {
 	Val  interface{}
 	Item interface{}
