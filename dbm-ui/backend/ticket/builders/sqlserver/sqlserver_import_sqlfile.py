@@ -8,12 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
+from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode, SQLImportMode
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.flow.consts import SqlserverBackupFileTagEnum, SqlserverBackupMode, SqlserverCharSet
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -27,9 +27,11 @@ from backend.ticket.models import Flow
 
 
 class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
-    class ExecuteDBInfoSerializer(serializers.Serializer):
+    class ExecuteSQLObjectSerializer(serializers.Serializer):
         dbnames = serializers.ListField(help_text=_("执行DB"), child=serializers.CharField())
         ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField(), required=False)
+        sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
+        import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
 
     class SQLImportModeSerializer(serializers.Serializer):
         mode = serializers.ChoiceField(help_text=_("单据执行模式"), choices=SQLExecuteTicketMode.get_choices())
@@ -42,8 +44,7 @@ class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
     charset = serializers.ChoiceField(help_text=_("字符集"), required=False, choices=SqlserverCharSet.get_choices())
     force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
-    execute_sql_files = serializers.ListField(help_text=_("sql执行文件"), child=serializers.CharField())
-    execute_db_infos = serializers.ListSerializer(help_text=_("sql执行的DB信息"), child=ExecuteDBInfoSerializer())
+    execute_objects = serializers.ListSerializer(help_text=_("sql执行体信息"), child=ExecuteSQLObjectSerializer())
     ticket_mode = SQLImportModeSerializer(help_text=_("执行模式"))
 
     backup = serializers.ListSerializer(help_text=_("备份信息"), required=False, child=SQLImportBackUpSerializer())
@@ -100,10 +101,6 @@ class SQLServerImportFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         ticket_data = self.ticket_data
-        execute_objects: List[Dict[str, Union[str, List]]] = []
-        for sql_file in ticket_data["execute_sql_files"]:
-            execute_objects.extend([{"sql_file": sql_file, **db_info} for db_info in ticket_data["execute_db_infos"]])
-        ticket_data["execute_objects"] = execute_objects
         ticket_data["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)
 
 

@@ -278,8 +278,7 @@ SQLSERVER_IMPORT_SQLFILE_TICKET_DATA = {
         "charset": "GBK",
         "force": False,
         "cluster_ids": [CLUSTER_ID + 1],
-        "execute_sql_files": ["sql_server.sql"],
-        "execute_db_infos": [{"dbnames": ["master"], "ignore_dbnames": []}],
+        "execute_objects": [{"dbnames": ["master"], "ignore_dbnames": [], "sql_files": [], "import_mode": "manual"}],
         "ticket_mode": {"mode": "auto", "trigger_time": "2024-04-29T12:11:11+08:00"},
     },
 }
