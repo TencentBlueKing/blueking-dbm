@@ -13,11 +13,11 @@ package syntax
 import (
 	"os"
 
+	"gopkg.in/yaml.v2"
+
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/config"
-
-	"gopkg.in/yaml.v2"
 )
 
 // SR tendbcluster syntax rules

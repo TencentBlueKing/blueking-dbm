@@ -17,18 +17,17 @@ import (
 	"os"
 	"time"
 
+	"github.com/gin-contrib/pprof"
+	"github.com/gin-contrib/requestid"
+	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
 	"dbm-services/common/go-pubpkg/apm/metric"
 	"dbm-services/common/go-pubpkg/apm/trace"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/app/config"
 	"dbm-services/mysql/db-simulation/model"
 	"dbm-services/mysql/db-simulation/router"
-
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
-
-	"github.com/gin-contrib/pprof"
-	"github.com/gin-contrib/requestid"
-	"github.com/gin-gonic/gin"
 )
 
 var buildstamp = ""
@@ -53,7 +52,9 @@ func main() {
 		ctx.SecureJSON(http.StatusOK, map[string]interface{}{"buildstamp": buildstamp, "githash": githash,
 			"version": version})
 	})
-	app.Run(config.GAppConfig.ListenAddr)
+	if err := app.Run(config.GAppConfig.ListenAddr); err != nil {
+		logger.Fatal("app run error: %v", err)
+	}
 }
 
 func init() {

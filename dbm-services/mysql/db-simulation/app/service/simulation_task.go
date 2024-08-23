@@ -202,7 +202,7 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	err error) {
 	logger.Info("will execute in %s", containerName)
 	doneChan := make(chan struct{})
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	go func() {
 		for {
 			select {

@@ -15,7 +15,7 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// Checker TODO
+// Checker syntax checker
 func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
 	for _, altercmd := range c.AlterCommands {
@@ -34,7 +34,7 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	return
 }
 
-// GetAllAlterType TODO
+// GetAllAlterType get all alter types
 // 对于 `alter table add a int(11),drop b,add d int(11);`
 // 这种语句，我们需要把 alter type
 // 也就是 add,drop,add 提取出来
@@ -58,7 +58,7 @@ func (a AlterCommand) GetPkAlterType() string {
 	return ""
 }
 
-// GetAlterAlgorithm TODO
+// GetAlterAlgorithm get the alter algorithm
 //
 //	@receiver a
 func (a AlterCommand) GetAlterAlgorithm() string {

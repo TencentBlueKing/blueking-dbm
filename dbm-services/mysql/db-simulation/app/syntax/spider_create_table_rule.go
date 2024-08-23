@@ -45,18 +45,16 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 	return r
 }
 
+// shardKeyChecker 分片键检查
 func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 	var hasShardKey bool
 	var shardKeyCol string
 	var err error
-	logger.Info("start shardKeyChecker...")
-	// 如果沒有任何索引,则直接返回错误
 	if len(c.CreateDefinitions.KeyDefs) == 0 {
 		r.Trigger(SR.SpiderCreateTableRule.NoIndexExists, "")
 		return
 	}
-	pk, uks, keys := c.findTablesIndex()
-	tableComment := c.GetComment()
+	hasPk, uks, keys := c.findTablesIndex()
 	// 如果存在多个唯一健（含主键),多个唯一键都没有包含相同的字段也是不允许的
 	var pubCols []string
 	logger.Info("uniqueKeys is %v,len is %d", uks, len(uks))
@@ -67,8 +65,8 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 			return
 		}
 	}
+	tableComment := c.GetComment()
 	logger.Info("tableComment is %s", tableComment)
-
 	if cmutil.IsNotEmpty(tableComment) {
 		// table comment 不为空的时候 先校验comment 格式是否合法
 		legal, msg := c.validateSpiderComment(tableComment)
@@ -87,7 +85,7 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 	// 如果table comment 为空,表示没有指定shard key,或table comnent 没有指定shardkey 由中控自主选择
 	if !hasShardKey {
 		switch {
-		case pk != nil:
+		case hasPk:
 			return
 		case len(uks) > 1:
 			return
@@ -130,18 +128,20 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 	}
 }
 
-func (c CreateTableResult) findTablesIndex() (pk *KeyDef, uks []KeyDef, keys []KeyDef) {
+// findTablesIndex 寻找表中的主键,唯一键,普通索引
+func (c CreateTableResult) findTablesIndex() (hasPk bool, uks []KeyDef, keys []KeyDef) {
+	hasPk = false
 	for _, key := range c.CreateDefinitions.KeyDefs {
 		switch {
 		case key.PrimaryKey:
-			pk = &key
+			hasPk = true
 		case key.UniqueKey:
 			uks = append(uks, key)
 		default:
 			keys = append(keys, key)
 		}
 	}
-	return pk, uks, keys
+	return hasPk, uks, keys
 }
 
 // findCommonColByKeys 寻找多个唯一键中的公共列

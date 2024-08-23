@@ -17,17 +17,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime/debug"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/samber/lo"
 
 	"dbm-services/common/go-pubpkg/bkrepo"
 	"dbm-services/common/go-pubpkg/logger"
@@ -252,7 +252,8 @@ func getbkrepoClient() *bkrepo.BkRepoClient {
 
 // Init init env
 func (t *TmysqlParse) Init() (err error) {
-	tmpDir := fmt.Sprintf("tmysqlparse_%s_%s", time.Now().Format("20060102150405"), strconv.Itoa(rand.Intn(10000)))
+	tmpDir := fmt.Sprintf("tmysqlparse_%s_%s", time.Now().Format("20060102150405"), lo.RandomString(6,
+		[]rune("0123456789abcdefghijklmnopqrstuvwxyz")))
 	t.tmpWorkdir = path.Join(t.BaseWorkdir, tmpDir)
 	if err = os.MkdirAll(t.tmpWorkdir, os.ModePerm); err != nil {
 		logger.Error("mkdir %s failed, err:%+v", t.tmpWorkdir, err)
@@ -433,7 +434,7 @@ func (c *CheckInfo) parseResult(rule *RuleItem, res ParseLineQueryBase, ver stri
 }
 
 // analyzeDDLTbls 分析DDL语句
-func (tf *TmysqlParse) analyzeDDLTbls(inputfileName string) (err error) {
+func (t *TmysqlParse) analyzeDDLTbls(inputfileName string) (err error) {
 	ddlTbls := make(map[string][]string)
 	defer func() {
 		if r := recover(); r != nil {
@@ -441,8 +442,8 @@ func (tf *TmysqlParse) analyzeDDLTbls(inputfileName string) (err error) {
 			logger.Error("Recovered. Error: %v", r)
 		}
 	}()
-	tf.result[inputfileName] = &CheckInfo{}
-	f, err := os.Open(tf.getAbsoutputfilePath(inputfileName))
+	t.result[inputfileName] = &CheckInfo{}
+	f, err := os.Open(t.getAbsoutputfilePath(inputfileName))
 	if err != nil {
 		logger.Error("open file failed %s", err.Error())
 		return err
@@ -481,7 +482,7 @@ func (tf *TmysqlParse) analyzeDDLTbls(inputfileName string) (err error) {
 			ddlTbls[o.DbName] = append(ddlTbls[o.DbName], o.TableName)
 		}
 	}
-	fd, err := os.Create(path.Join(tf.tmpWorkdir, inputfileName+DdlMapFileSubffix))
+	fd, err := os.Create(path.Join(t.tmpWorkdir, inputfileName+DdlMapFileSubffix))
 	if err != nil {
 		logger.Error("create file failed %s", err.Error())
 		return err
@@ -498,6 +499,21 @@ func (tf *TmysqlParse) analyzeDDLTbls(inputfileName string) (err error) {
 		return err
 	}
 	return nil
+}
+
+// getSyntaxErrorResult  with syntax error result
+func (t *TmysqlParse) getSyntaxErrorResult(res ParseLineQueryBase, mysqlVersion string) FailedInfo {
+	errMsg := res.ErrorMsg
+	vl := strings.Split(mysqlVersion, ".")
+	if len(vl) >= 2 {
+		errMsg = fmt.Sprintf("[%s]: %s", fmt.Sprintf("MySQL-%s.%s", vl[0], vl[1]), res.ErrorMsg)
+	}
+	return FailedInfo{
+		Line:      int64(res.QueryId),
+		Sqltext:   res.QueryString,
+		ErrorCode: int64(res.ErrorCode),
+		ErrorMsg:  errMsg,
+	}
 }
 
 // AnalyzeOne 分析单个文件
@@ -545,19 +561,9 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 			return err
 		}
 
-		// 判断是否有语法错误
+		//  ErrorCode !=0 就是语法错误
 		if res.ErrorCode != 0 {
-			errMsg := res.ErrorMsg
-			vl := strings.Split(mysqlVersion, ".")
-			if len(vl) >= 2 {
-				errMsg = fmt.Sprintf("[%s]: %s", fmt.Sprintf("MySQL-%s.%s", vl[0], vl[1]), res.ErrorMsg)
-			}
-			syntaxFailInfos = append(syntaxFailInfos, FailedInfo{
-				Line:      int64(res.QueryId),
-				Sqltext:   res.QueryString,
-				ErrorCode: int64(res.ErrorCode),
-				ErrorMsg:  errMsg,
-			})
+			syntaxFailInfos = append(syntaxFailInfos, t.getSyntaxErrorResult(res, mysqlVersion))
 			continue
 		}
 
