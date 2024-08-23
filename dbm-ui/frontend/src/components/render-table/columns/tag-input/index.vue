@@ -244,6 +244,7 @@
 
         .placeholder {
           top: 0;
+          padding-left: 8px;
           height: 42px;
           line-height: 42px;
         }
