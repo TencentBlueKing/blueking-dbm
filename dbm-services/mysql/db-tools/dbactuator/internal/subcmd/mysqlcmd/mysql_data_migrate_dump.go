@@ -25,7 +25,7 @@ import (
 type MysqlDataMigrateDumpAct struct {
 	*subcmd.BaseOptions
 	// 与开区大部分一样，可以服用开区的代码，只在导出库的时候不一样
-	Service mysql.OpenAreaDumpSchemaComp
+	Service mysql.DbMigrateDumpComp
 }
 
 // NewMysqlDataMigrateDumpCommand TODO
@@ -71,23 +71,19 @@ func (d *MysqlDataMigrateDumpAct) Init() (err error) {
 func (d *MysqlDataMigrateDumpAct) Run() (err error) {
 	steps := subcmd.Steps{
 		{
-			FunName: "init",
+			FunName: "初始化",
 			Func:    d.Service.Init,
 		},
 		{
-			FunName: "precheck",
+			FunName: "预检查",
 			Func:    d.Service.Precheck,
 		},
 		{
 			FunName: "运行导出库",
-			Func:    d.Service.MysqlDataMigrate,
+			Func:    d.Service.DbMigrateDump,
 		},
 		{
-			FunName: "压缩开区文件",
-			Func:    d.Service.CompressDumpDir,
-		},
-		{
-			FunName: "上传库文件",
+			FunName: "上传备份文件信息",
 			Func:    d.Service.Upload,
 		},
 	}

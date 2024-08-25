@@ -216,7 +216,7 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpSchema() (err error) {
 			OutputfileName: outputfileName,
 		}
 		if err := dumper.OpenAreaDump(); err != nil {
-			logger.Error("dump failed: ", err.Error())
+			logger.Error("dump failed: %s", err.Error())
 			return err
 		}
 	}
@@ -265,7 +265,7 @@ func (c *OpenAreaDumpSchemaComp) OpenAreaDumpData() (err error) {
 			OutputfileName: outputfileName,
 		}
 		if err := dumper.OpenAreaDump(); err != nil {
-			logger.Error("dump failed: ", err.Error())
+			logger.Error("dump failed: %s", err.Error())
 			return err
 		}
 	}
@@ -303,7 +303,7 @@ func (c *OpenAreaDumpSchemaComp) MysqlDataMigrate() (err error) {
 				OutputfileName: outputfileName,
 			}
 			if err := dumper.OpenAreaDump(); err != nil {
-				logger.Error("dump failed: ", err.Error())
+				logger.Error("dump failed: %s", err.Error())
 				return err
 			}
 		}

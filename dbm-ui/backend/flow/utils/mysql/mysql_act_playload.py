@@ -2138,7 +2138,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "work_dir": self.cluster["work_dir"],
                     "dump_dir_name": self.cluster["dump_dir_name"],
                     "fileserver": fileserver,
-                    "open_area_param": self.cluster["open_area_param"],
+                    "db_list": self.cluster["db_list"],
+                    "data_schema_grant": self.cluster["data_schema_grant"],
                 },
             },
         }
@@ -2161,8 +2162,8 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "root_id": self.cluster["root_id"],
                     "bk_cloud_id": self.bk_cloud_id,
                     "work_dir": self.cluster["work_dir"],
-                    "dump_dir_name": self.cluster["dump_dir_name"],
-                    "open_area_param": self.cluster["open_area_param"],
+                    "import_dir_name": self.cluster["import_dir_name"],
+                    "index_file_name": kwargs["trans_data"]["file_list_info"]["file_name_list"][0],
                 },
             },
         }

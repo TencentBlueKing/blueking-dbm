@@ -343,3 +343,16 @@ class SystemInfoContext:
     """
 
     system_info: dict = field(default_factory=dict)
+
+
+@dataclass()
+class MysqlDataMigrateContext:
+    """
+    获取数据导出后的文件名称
+    """
+
+    file_list_info: dict = None
+
+    @staticmethod
+    def get_file_list_var_name() -> str:
+        return "file_list_info"
