@@ -18,14 +18,15 @@ from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException, DBMetaException
 from backend.db_meta.models import Cluster
-from backend.db_services.mysql.sql_import.constants import BKREPO_SQLFILE_PATH
 from backend.flow.consts import LONG_JOB_TIMEOUT
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
+from backend.flow.plugins.components.collections.mysql.trans_db_migrate_file import DbMigrateTransFileComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs
+from backend.flow.utils.mysql.mysql_act_dataclass import DownloadMediaKwargs, ExecActuatorKwargs, P2PFileKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
+from backend.flow.utils.mysql.mysql_context_dataclass import MysqlDataMigrateContext
 
 
 class MysqlDataMigrateFlow(object):
@@ -79,9 +80,8 @@ class MysqlDataMigrateFlow(object):
         target_clusters = []
         for tc_id in info["target_clusters"]:
             target_cluster = self.__get_cluster_info(cluster_id=tc_id, bk_biz_id=self.data["bk_biz_id"])
-            target_cluster["open_area_param"] = [{"db_list": info["db_list"], "schema": "migrate_database"}]
-            target_clusters.append(target_cluster)
             target_cluster["work_dir"] = self.work_dir
+            target_clusters.append(target_cluster)
 
         return target_clusters
 
@@ -93,7 +93,8 @@ class MysqlDataMigrateFlow(object):
         # 返回字典类型
         source_cluster = self.__get_cluster_info(cluster_id=info["source_cluster"], bk_biz_id=self.data["bk_biz_id"])
         # 字典增加键值
-        source_cluster["open_area_param"] = [{"db_list": info["db_list"]}]
+        source_cluster["db_list"] = info["db_list"]
+        source_cluster["data_schema_grant"] = info["data_schema_grant"]
         source_cluster["work_dir"] = self.work_dir
         return source_cluster
 
@@ -165,33 +166,29 @@ class MysqlDataMigrateFlow(object):
                         get_mysql_payload_func=MysqlActPayload.get_data_migrate_dump_payload.__name__,
                     )
                 ),
+                write_payload_var=MysqlDataMigrateContext.get_file_list_var_name(),
             )
 
-            # 源集群不需要下发，移除其ip
             exec_ip_list.remove(source_cluster["ip"])
-            # 源实例与目标实例在同一个机器上，下发ip列表为空，会报错
+            # 没有在目标集群创建目标目录，依赖job的强制模式，没有则创建
             if len(exec_ip_list) > 0:
-                migrate_tar_file_name = "{}.tar.gz".format(dump_dir_name)
-                migrate_md5sum_file_name = "{}.md5sum".format(dump_dir_name)
                 sub_pipeline.add_act(
                     act_name=_("下发库表文件到目标实例"),
-                    act_component_code=TransFileComponent.code,
+                    act_component_code=DbMigrateTransFileComponent.code,
                     kwargs=asdict(
-                        DownloadMediaKwargs(
+                        P2PFileKwargs(
                             bk_cloud_id=source_cluster["bk_cloud_id"],
+                            source_ip_list=[source_cluster["ip"]],
                             exec_ip=exec_ip_list,
-                            file_target_path="{}/{}".format(BK_PKG_INSTALL_PATH, self.work_dir),
-                            file_list=GetFileList(db_type=DBType.MySQL).mysql_import_sqlfile(
-                                path=BKREPO_SQLFILE_PATH.format(biz=self.data["bk_biz_id"]),
-                                filelist=[migrate_tar_file_name, migrate_md5sum_file_name],
-                            ),
+                            file_target_path="{}/{}/{}".format(BK_PKG_INSTALL_PATH, self.work_dir, dump_dir_name),
+                            file_list=[],
                         )
                     ),
                 )
 
             acts_list = []
             for target_cluster in target_clusters:
-                target_cluster["dump_dir_name"] = dump_dir_name
+                target_cluster["import_dir_name"] = dump_dir_name
                 acts_list.append(
                     {
                         "act_name": _("向目标实例:{}#{}导入库".format(target_cluster["ip"], target_cluster["port"])),
@@ -213,4 +210,4 @@ class MysqlDataMigrateFlow(object):
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=_("数据迁移流程")))
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        pipeline.run_pipeline(is_drop_random_user=True)
+        pipeline.run_pipeline(is_drop_random_user=True, init_trans_data_class=MysqlDataMigrateContext())

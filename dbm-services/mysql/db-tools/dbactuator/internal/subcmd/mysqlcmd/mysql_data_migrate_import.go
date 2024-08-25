@@ -24,7 +24,7 @@ import (
 // MysqlDataMigrateImportAct TODO
 type MysqlDataMigrateImportAct struct {
 	*subcmd.BaseOptions
-	Service mysql.OpenAreaImportSchemaComp
+	Service mysql.DbMigrateImportComp
 }
 
 // NewMysqlDataMigrateImportCommand TODO
@@ -75,25 +75,25 @@ func (d *MysqlDataMigrateImportAct) Run() (err error) {
 			Func:    d.Service.Precheck,
 		},
 		{
-			FunName: "解压schema文件",
+			FunName: "解压备份文件",
 			Func:    d.Service.DecompressDumpDir,
 		},
-		{
-			FunName: "创建库",
-			Func:    d.Service.CreateDatabase,
-		},
+		//{
+		//	FunName: "创建库",
+		//	Func:    d.Service.CreateDatabase,
+		//},
 		{
 			FunName: "导入库文件",
-			Func:    d.Service.MysqlDataMigrateImport,
+			Func:    d.Service.DbMigrateImport,
 		},
-		{
-			FunName: "清除dump目录",
-			Func:    d.Service.CleanDumpDir,
-		},
+		//{
+		//	FunName: "清除dump目录",
+		//	Func:    d.Service.CleanDumpDir,
+		//},
 	}
 	if err := steps.Run(); err != nil {
 		return err
 	}
-	logger.Info("开区导入表结构成功")
+	logger.Info("数据迁移导入库表结构成功")
 	return
 }

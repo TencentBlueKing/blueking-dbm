@@ -620,3 +620,45 @@ func (m *OpenAreaDumper) getOpenAreaDumpCmd(dbName, outputFile, errFile, dumpOpt
 	)
 	return strings.ReplaceAll(dumpCmd, "\n", " ")
 }
+
+// DbbackupDumper 使用备份工具进行数据导出
+type DbbackupDumper interface {
+	DumpbackupLogical() error
+	//PhysicalBackup() error
+}
+
+type DbMigrateDumper struct {
+	DumpDir         string
+	DbBackupUser    string
+	DbBackuoPwd     string
+	Ip              string
+	Port            int
+	BackupCmdPath   string
+	DbNames         string
+	DataSchemaGrant string
+}
+
+// DumpbackupLogical 使用备份工具进行逻辑备份
+func (d *DbMigrateDumper) DumpbackupLogical() (err error) {
+	backupCmd := d.getBackupCmd()
+	logger.Info("backupcmd is %s", ClearSensitiveInformation(backupCmd))
+	output, err := osutil.StandardShellCommand(false, backupCmd)
+	if err != nil {
+		return fmt.Errorf("execte %s get an error:%s,%w", backupCmd, output, err)
+	}
+	return nil
+}
+
+// getBackupCmd 拼接数据备份命令
+func (d *DbMigrateDumper) getBackupCmd() (backupCmd string) {
+	backupCmd = fmt.Sprintf("%s dumpbackup logical -u%s -p%s -h%s -P%d %s",
+		d.BackupCmdPath, d.DbBackupUser, d.DbBackuoPwd, d.Ip, d.Port, d.getBackupCmdOption())
+	return backupCmd
+}
+
+// getBackupCmdOption 拼接数据备份参数选项
+func (d *DbMigrateDumper) getBackupCmdOption() (opt string) {
+	opt = fmt.Sprintf(" --data-schema-grant=%s --backup-dir=%s --cluster-domain=xx.xx --databases %s",
+		d.DataSchemaGrant, d.DumpDir, d.DbNames)
+	return opt
+}

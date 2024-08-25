@@ -1658,6 +1658,14 @@ definitions:
         type: boolean
       is_no_slave:
         type: boolean
+      mnt_spider_instances:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
+        type: array
+      mnt_spider_slave_instances:
+        items:
+          $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance'
+        type: array
       mysql_instance_tuples:
         items:
           $ref: '#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.InstanceTuple'

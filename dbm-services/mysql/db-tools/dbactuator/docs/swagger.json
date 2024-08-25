@@ -3198,6 +3198,18 @@
                 "is_no_slave": {
                     "type": "boolean"
                 },
+                "mnt_spider_instances": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance"
+                    }
+                },
+                "mnt_spider_slave_instances": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dbm-services_mysql_db-tools_dbactuator_pkg_components_spiderctl.Instance"
+                    }
+                },
                 "mysql_instance_tuples": {
                     "type": "array",
                     "items": {
