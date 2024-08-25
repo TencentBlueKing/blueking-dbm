@@ -13,7 +13,7 @@
 
 <template>
   <SmartAction>
-    <div class="mysql-master-slave-swap-page">
+    <div class="sqlserver-master-slave-swap-page">
       <BkAlert
         closable
         theme="info"
@@ -33,6 +33,7 @@
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.SQLSERVER_HA]"
+        :selected="instanceSelectValue"
         :tab-list-config="tabListConfig"
         @change="handelMasterProxyChange" />
     </div>
@@ -60,22 +61,17 @@
 </template>
 
 <script setup lang="tsx">
-  import { ref, shallowRef } from 'vue';
+  import { ref, shallowRef, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
+  import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useGlobalBizs } from '@stores';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import { ClusterTypes } from '@common/const';
-
-  import InstanceSelector, {
-    type InstanceSelectorValues,
-    type IValue,
-    type PanelListType,
-  } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, { type PanelListType } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -105,11 +101,13 @@
 
   const router = useRouter();
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting = ref(false);
+  const instanceSelectValue = shallowRef<Record<string, SqlServerHaInstanceModel[]>>({
+    [ClusterTypes.SQLSERVER_HA]: [],
+  });
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
 
@@ -118,23 +116,20 @@
     isShowMasterInstanceSelector.value = true;
   };
   // Master 批量选择
-  const handelMasterProxyChange = (data: InstanceSelectorValues<IValue>) => {
-    const ipMemo = {} as Record<string, boolean>;
+  const handelMasterProxyChange = (data: UnwrapRef<typeof instanceSelectValue>) => {
+    instanceSelectValue.value = data;
     const newList = [] as IDataRow[];
     data[ClusterTypes.SQLSERVER_HA].forEach((proxyData) => {
       const { ip, bk_host_id, bk_cloud_id } = proxyData;
-      if (!ipMemo[ip]) {
-        newList.push(
-          createRowData({
-            masterData: {
-              bk_host_id,
-              bk_cloud_id,
-              ip,
-            },
-          }),
-        );
-        ipMemo[ip] = true;
-      }
+      newList.push(
+        createRowData({
+          masterData: {
+            bk_host_id,
+            bk_cloud_id,
+            ip,
+          },
+        }),
+      );
     });
     if (checkListEmpty(tableData.value)) {
       tableData.value = newList;
@@ -163,12 +158,12 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'SQLSERVER_MASTER_SLAVE_SWITCH',
+          ticket_type: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
           remark: '',
           details: {
             infos: data,
           },
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           window.changeConfirm = false;
 
@@ -190,11 +185,15 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    instanceSelectValue.value = {
+      [ClusterTypes.SQLSERVER_HA]: [],
+    };
+    window.changeConfirm = false;
   };
 </script>
 
 <style lang="less">
-  .mysql-master-slave-swap-page {
+  .sqlserver-master-slave-swap-page {
     padding-bottom: 20px;
 
     .item-block {

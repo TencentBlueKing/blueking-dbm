@@ -31,6 +31,7 @@
         <span>{{ $t('同机关联的集群') }}</span>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :min-width="90"
         :required="false"
         :width="90">
         {{ $t('操作') }}

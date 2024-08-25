@@ -35,8 +35,6 @@
   import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
 
-  import { useGlobalBizs } from '@stores';
-
   import type { IHostData } from './Row.vue';
 
   interface Props {
@@ -53,21 +51,19 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const { currentBizId } = useGlobalBizs();
-
   const isLoading = ref(false);
   const relatedClusterList = shallowRef<InstanceInfos['related_clusters']>([]);
 
   watch(
     () => props.masterData,
-    () => {
-      relatedClusterList.value = [];
-      emits('change', []);
-      if (props.masterData && props.masterData.ip) {
+    (newData, oldData) => {
+      if (newData && newData.ip !== oldData?.ip) {
+        relatedClusterList.value = [];
+        emits('change', []);
         isLoading.value = true;
         checkMysqlInstances({
-          bizId: currentBizId,
-          instance_addresses: [props.masterData.ip],
+          bizId: window.PROJECT_CONFIG.BIZ_ID,
+          instance_addresses: [newData.ip],
         })
           .then((data) => {
             if (data.length < 1) {

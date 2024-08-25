@@ -43,7 +43,7 @@ export default class MigrateRecord {
   static statusTextMap = {
     [STATUS.TODO]: t('待执行'),
     [STATUS.TERMINATED]: t('已终止'),
-    [STATUS.DISCONNECTING]: t('"中断中'),
+    [STATUS.DISCONNECTING]: t('中断中'),
     [STATUS.DISCONNECTED]: t('已断开'),
     [STATUS.FULL_ONLINE]: t('全量传输中'),
     [STATUS.FULL_FAILED]: t('全量传输失败'),
@@ -108,7 +108,7 @@ export default class MigrateRecord {
   }
 
   get dtsModeText() {
-    return this.dts_mode === 'full' ? t('完整备份迁移（一次性）') : t('增量备份迁移（持续的）');
+    return this.dts_mode === 'full' ? t('一次性全备迁移') : t('持续增量迁移');
   }
 
   get isFull() {
@@ -125,6 +125,30 @@ export default class MigrateRecord {
 
   get tagetDb() {
     return this.dts_config.map((item) => item.target_db_name);
+  }
+
+  get forcedTerminationDisableTips() {
+    if (
+      [
+        STATUS.TODO,
+        STATUS.TERMINATED,
+        STATUS.FULL_ONLINE,
+        STATUS.FULL_SUCCESS,
+        STATUS.INCR_SUCCESS,
+        STATUS.DISCONNECTING,
+        STATUS.DISCONNECTED,
+      ].includes(this.status)
+    ) {
+      return t('迁移任务：n，不支持该操作', { n: MigrateRecord.statusTextMap[this.status] });
+    }
+    return '';
+  }
+
+  get terminateSynceDisableTips() {
+    if ([STATUS.FULL_FAILED, STATUS.INCR_FAILED].includes(this.status)) {
+      return t('迁移任务：n，不支持该操作', { n: MigrateRecord.statusTextMap[this.status] });
+    }
+    return '';
   }
 
   get createAtDisplay() {

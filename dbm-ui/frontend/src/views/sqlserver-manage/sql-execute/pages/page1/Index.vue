@@ -42,7 +42,7 @@
           :loading="isSubmitting"
           theme="primary"
           @click="handleSubmit">
-          {{ t('模拟执行') }}
+          {{ t('提交') }}
         </BkButton>
         <DbPopconfirm
           :confirm-handler="handleReset"
@@ -72,7 +72,7 @@
   import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
-  import ExecuteObjects from '@views/db-manage/common/sql-execute/execute-objects/Index.vue';
+  import ExecuteObjects from '@views/db-manage/common/sql-execute/sqlserver-execute-objects/Index.vue';
   import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
 

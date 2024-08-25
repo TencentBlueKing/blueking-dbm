@@ -25,7 +25,7 @@
   import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerClusterDetailModel from '@services/model/sqlserver/sqlserver-cluster-detail';
+  import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-cluster-detail';
   import { filterClusters } from '@services/source/dbbase';
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
@@ -76,7 +76,7 @@
     },
     {
       validator: (value: string) =>
-        filterClusters<SqlServerClusterDetailModel>({
+        filterClusters<SqlServerHaClusterDetailModel>({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: value,
         }).then((data) => {

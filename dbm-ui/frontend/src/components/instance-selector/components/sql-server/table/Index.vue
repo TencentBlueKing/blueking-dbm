@@ -196,7 +196,7 @@
     {
       label: t('角色'),
       field: 'role',
-      width: 100,
+      width: 160,
       showOverflowTooltip: true,
       filter: props.roleFilterList,
     },
@@ -257,7 +257,7 @@
     {
       label: t('OS名称'),
       field: 'os_name',
-      width: 150,
+      width: 300,
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.os_name || '--',
     },
@@ -271,19 +271,21 @@
     {
       label: t('OS类型'),
       field: 'os_type',
-      width: 100,
+      width: 150,
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info.os_type || '--',
     },
     {
       label: t('主机ID'),
       field: 'host_id',
+      width: 100,
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.host_id || '--',
     },
     {
       label: 'Agent ID',
       field: 'agent_id',
+      width: 100,
       showOverflowTooltip: true,
       render: ({ data }: DataRow) => data.host_info?.agent_id || '--',
     },

@@ -146,9 +146,6 @@
     },
   } as unknown as Record<ClusterTypes, TabItem>;
 
-  // 集群域名是否已存在表格的映射表
-  let domainMemo: Record<string, boolean> = {};
-
   const createDefaultData = () => ({
     backup_type: 'full_backup',
     backup_place: 'master',
@@ -197,18 +194,14 @@
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          clusterData: {
-            id: item.id,
-            domain: item.master_domain,
-            cloudId: item.bk_cloud_id,
-          },
-        });
-        result.push(row);
-        domainMemo[domain] = true;
-      }
+      const row = createRowData({
+        clusterData: {
+          id: item.id,
+          domain: item.master_domain,
+          cloudId: item.bk_cloud_id,
+        },
+      });
+      result.push(row);
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
@@ -229,14 +222,8 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const domain = dataList[index].clusterData?.domain;
     dataList.splice(index, 1);
     tableData.value = dataList;
-    if (domain) {
-      delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
-    }
   };
 
   const handleSubmit = async () => {
@@ -268,10 +255,12 @@
   };
 
   const handleReset = () => {
+    tableData.value = [createRowData()];
     Object.assign(formData, createDefaultData());
-    selectedClusters.value[ClusterTypes.SQLSERVER_HA] = [];
-    selectedClusters.value[ClusterTypes.SQLSERVER_SINGLE] = [];
-    domainMemo = {};
+    selectedClusters.value = {
+      [ClusterTypes.SQLSERVER_HA]: [],
+      [ClusterTypes.SQLSERVER_SINGLE]: [],
+    };
     window.changeConfirm = false;
   };
 </script>

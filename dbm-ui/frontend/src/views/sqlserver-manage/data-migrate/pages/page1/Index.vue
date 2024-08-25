@@ -36,10 +36,10 @@
         <BkFormItem :label="t('迁移方式')">
           <BkRadioGroup v-model="formData.dts_mode">
             <BkRadio label="full">
-              {{ t('完整备份迁移') }}
+              {{ t('一次性全备迁移') }}
             </BkRadio>
             <BkRadio label="incr">
-              {{ t('增量备份迁移') }}
+              {{ t('持续增量迁移') }}
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
@@ -83,7 +83,7 @@
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
-  import { reactive } from 'vue';
+  import { reactive, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -91,9 +91,7 @@
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
@@ -102,7 +100,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>();
   const isShowBatchSelector = ref(false);
@@ -119,9 +116,6 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
 
-  // 集群域名是否已存在表格的映射表
-  let domainMemo: Record<string, boolean> = {};
-
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
     if (list.length > 1) {
@@ -137,25 +131,19 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {
-    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
-  }) => {
+  const handelClusterChange = (selected: UnwrapRef<typeof selectedClusters>) => {
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          srcClusterData: {
-            id: item.id,
-            domain: item.master_domain,
-            cloudId: item.bk_cloud_id,
-            majorVersion: item.major_version,
-          },
-        });
-        result.push(row);
-        domainMemo[domain] = true;
-      }
+      const row = createRowData({
+        srcClusterData: {
+          id: item.id,
+          domain: item.master_domain,
+          cloudId: item.bk_cloud_id,
+          majorVersion: item.major_version,
+        },
+      });
+      result.push(row);
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
@@ -176,14 +164,8 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const domain = dataList[index].srcClusterData?.domain;
     dataList.splice(index, 1);
     tableData.value = dataList;
-    if (domain) {
-      delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
-    }
   };
 
   const handleSubmit = () => {
@@ -191,13 +173,13 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'SQLSERVER_DATA_MIGRATE',
+          ticket_type: TicketTypes.SQLSERVER_DATA_MIGRATE,
           remark: '',
           details: {
             ...formData,
             infos: data,
           },
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }),
       )
       .then((data) => {
@@ -220,7 +202,6 @@
   const handleReset = () => {
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
-    domainMemo = {};
     window.changeConfirm = false;
   };
 </script>

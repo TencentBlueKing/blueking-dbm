@@ -62,6 +62,7 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
+  import { ref, shallowRef, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -69,9 +70,7 @@
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
@@ -80,7 +79,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -92,9 +90,6 @@
     [ClusterTypes.SQLSERVER_HA]: [],
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
-
-  // 集群域名是否已存在表格的映射表
-  let domainMemo: Record<string, boolean> = {};
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -117,24 +112,18 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: {
-    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
-  }) => {
+  const handelClusterChange = (selected: UnwrapRef<typeof selectedClusters>) => {
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
-      const domain = item.master_domain;
-      if (!domainMemo[domain]) {
-        const row = createRowData({
-          clusterData: {
-            id: item.id,
-            domain: item.master_domain,
-            cloudId: item.bk_cloud_id,
-          },
-        });
-        result.push(row);
-        domainMemo[domain] = true;
-      }
+      const row = createRowData({
+        clusterData: {
+          id: item.id,
+          domain: item.master_domain,
+          cloudId: item.bk_cloud_id,
+        },
+      });
+      result.push(row);
       return result;
     }, [] as IDataRow[]);
     if (checkListEmpty(tableData.value)) {
@@ -155,14 +144,8 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const domain = dataList[index].clusterData?.domain;
     dataList.splice(index, 1);
     tableData.value = dataList;
-    if (domain) {
-      delete domainMemo[domain];
-      const clustersArr = selectedClusters.value[ClusterTypes.TENDBCLUSTER];
-      selectedClusters.value[ClusterTypes.TENDBCLUSTER] = clustersArr.filter((item) => item.master_domain !== domain);
-    }
   };
 
   const handleSubmit = () => {
@@ -170,12 +153,12 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'SQLSERVER_CLEAR_DBS',
+          ticket_type: TicketTypes.SQLSERVER_CLEAR_DBS,
           remark: '',
           details: {
             infos: data,
           },
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }),
       )
       .then((data) => {
@@ -197,8 +180,10 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selectedClusters.value[ClusterTypes.TENDBCLUSTER] = [];
-    domainMemo = {};
+    selectedClusters.value = {
+      [ClusterTypes.SQLSERVER_HA]: [],
+      [ClusterTypes.SQLSERVER_SINGLE]: [],
+    };
     window.changeConfirm = false;
   };
 </script>

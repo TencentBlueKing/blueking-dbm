@@ -120,7 +120,7 @@
   };
 
   const handleReset = () => {
-    console.log('handleReset');
+    tableRef.value!.reset();
   };
 </script>
 <style lang="less">

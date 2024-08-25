@@ -32,7 +32,6 @@
 
   interface Props {
     modelValue?: string[];
-    initValue?: string[];
     clusterId?: number;
     required?: boolean;
     single?: boolean;
@@ -55,7 +54,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
-    initValue: undefined,
     clusterId: undefined,
     required: true,
     single: false,
@@ -183,11 +181,7 @@
   watch(
     () => props.clusterId,
     () => {
-      if (props.initValue) {
-        localValue.value = props.initValue;
-      } else {
-        localValue.value = [];
-      }
+      localValue.value = [];
     },
   );
 

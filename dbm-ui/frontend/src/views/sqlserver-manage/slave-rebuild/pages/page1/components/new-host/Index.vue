@@ -55,7 +55,7 @@
   </SmartAction>
 </template>
 <script setup lang="tsx">
-  import { ref } from 'vue';
+  import { ref, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -63,13 +63,10 @@
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
-    type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
@@ -78,7 +75,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   const tabListConfig = {
     [ClusterTypes.SQLSERVER_HA]: [
@@ -94,8 +90,6 @@
       },
     ],
   } as Record<ClusterTypes, PanelListType>;
-
-  const ipMemo: Record<string, boolean> = {};
 
   const isShowInstanceSelecotr = ref(false);
   const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);
@@ -120,15 +114,13 @@
     isShowInstanceSelecotr.value = true;
   };
 
-  const handleInstancesChange = (selected: InstanceSelectorValues<IValue>) => {
+  const handleInstancesChange = (selected: UnwrapRef<typeof instanceSelectValue>) => {
+    instanceSelectValue.value = selected;
     if (checkListEmpty(tableData.value)) {
       tableData.value = [];
     }
 
     selected[ClusterTypes.SQLSERVER_HA].forEach((instanceData) => {
-      if (ipMemo[instanceData.ip]) {
-        return;
-      }
       tableData.value.push(
         createRowData({
           oldSlave: {
@@ -143,7 +135,6 @@
           },
         }),
       );
-      ipMemo[instanceData.ip] = true;
     });
     window.changeConfirm = true;
   };
@@ -157,12 +148,6 @@
 
   // 删除一个行
   const handleRemove = (index: number) => {
-    const ip = tableData.value[index].oldSlave?.ip;
-    if (ip) {
-      delete ipMemo[ip];
-      const clustersArr = instanceSelectValue.value[ClusterTypes.SQLSERVER_HA];
-      instanceSelectValue.value[ClusterTypes.SQLSERVER_HA] = clustersArr.filter((item) => item.ip !== ip);
-    }
     const dataList = [...tableData.value];
     dataList.splice(index, 1);
     tableData.value = dataList;
@@ -173,13 +158,13 @@
     Promise.all(rowRefs.value.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'SQLSERVER_RESTORE_SLAVE',
+          ticket_type: TicketTypes.SQLSERVER_RESTORE_SLAVE,
           remark: '',
           details: {
             ip_source: 'manual_input',
             infos: data,
           },
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           window.changeConfirm = false;
 
@@ -201,6 +186,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    instanceSelectValue.value = {
+      [ClusterTypes.SQLSERVER_HA]: [],
+    };
     window.changeConfirm = false;
   };
 </script>

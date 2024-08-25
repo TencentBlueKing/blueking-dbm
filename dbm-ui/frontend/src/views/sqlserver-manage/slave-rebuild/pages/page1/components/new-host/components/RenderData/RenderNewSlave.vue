@@ -89,7 +89,7 @@
     }
     const osName = hostData.os_name.replace(/ /g, '');
     if (!hostModuleRelatedSystemVersion.value.split(',').includes(osName)) {
-      return t('操作系统版本支持 n', { n: hostModuleRelatedSystemVersion.value });
+      return t('操作系统仅支持 n', { n: hostModuleRelatedSystemVersion.value });
     }
     return false;
   };
@@ -102,7 +102,7 @@
 
   const rules = [
     {
-      validator: (value: string) => Boolean(value),
+      validator: () => Boolean(localHostData.value?.ip),
       message: t('新从库主机不能为空'),
     },
   ];
@@ -116,11 +116,11 @@
 
   watch(
     () => props.oldSlave,
-    () => {
-      hostModuleRelatedSystemVersion.value = '';
-      if (props.oldSlave) {
+    (newData, oldData) => {
+      if (newData && newData.dbModuleId !== oldData?.dbModuleId) {
+        hostModuleRelatedSystemVersion.value = '';
         fetchModuleDetail({
-          module_id: props.oldSlave.dbModuleId,
+          module_id: newData.dbModuleId,
         });
       }
     },
@@ -142,9 +142,6 @@
 
   defineExpose<Exposes>({
     getValue() {
-      if (!localHostData.value) {
-        return Promise.reject();
-      }
       return elementRef.value!.getValue().then(() => ({
         new_slave_host: {
           bk_biz_id: localHostData.value!.biz.id,

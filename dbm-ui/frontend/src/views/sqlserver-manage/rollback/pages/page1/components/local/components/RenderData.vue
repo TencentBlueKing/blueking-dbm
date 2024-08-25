@@ -39,6 +39,7 @@
         {{ t('构造后 DB 名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :min-width="90"
         :required="false"
         :width="90">
         {{ t('操作') }}

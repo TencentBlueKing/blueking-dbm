@@ -49,22 +49,20 @@
     <InstanceSelector
       v-model:is-show="isShowInstanceSelecotr"
       :cluster-types="[ClusterTypes.SQLSERVER_HA]"
-      :selected="selected"
+      :selected="instanceSelectValue"
       :tab-list-config="tabListConfig"
       @change="handleInstancesChange" />
   </SmartAction>
 </template>
 <script setup lang="tsx">
-  import { ref } from 'vue';
+  import { ref, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
@@ -77,7 +75,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   const tabListConfig = {
     [ClusterTypes.SQLSERVER_HA as string]: [
@@ -97,7 +94,7 @@
   const isShowInstanceSelecotr = ref(false);
   const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);
   const isSubmitting = ref(false);
-  const selected = shallowRef<InstanceSelectorValues<IValue>>({
+  const instanceSelectValue = shallowRef<InstanceSelectorValues<IValue>>({
     [ClusterTypes.SQLSERVER_HA]: [],
   });
 
@@ -117,7 +114,8 @@
     isShowInstanceSelecotr.value = true;
   };
 
-  const handleInstancesChange = (selected: InstanceSelectorValues<IValue>) => {
+  const handleInstancesChange = (selected: UnwrapRef<typeof instanceSelectValue>) => {
+    instanceSelectValue.value = selected;
     const newList = selected[ClusterTypes.SQLSERVER_HA].map((instanceData) =>
       createRowData({
         slave: {
@@ -158,13 +156,13 @@
     Promise.all(rowRefs.value.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: 'SQLSERVER_RESTORE_LOCAL_SLAVE',
+          ticket_type: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
           remark: '',
           details: {
             backup_source: 'manual_input',
             infos: data,
           },
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           window.changeConfirm = false;
 
@@ -186,6 +184,9 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    instanceSelectValue.value = {
+      [ClusterTypes.SQLSERVER_HA]: [],
+    };
     window.changeConfirm = false;
   };
 </script>

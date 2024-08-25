@@ -177,7 +177,7 @@
     {
       label: t('访问入口'),
       field: 'cluster_name',
-      minWidth: 220,
+      width: 220,
       fixed: 'left',
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (

@@ -61,7 +61,7 @@
 
 <script setup lang="tsx">
   import _ from 'lodash';
-  import { ref, shallowRef } from 'vue';
+  import { ref, shallowRef, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -69,8 +69,6 @@
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { getHaClusterList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
-
-  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -90,7 +88,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const { currentBizId } = useGlobalBizs();
 
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
@@ -118,9 +115,8 @@
   const handleShowBatchSelector = () => {
     isShowBatchSelector.value = true;
   };
-  const handelClusterChange = (selected: {
-    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
-  }) => {
+
+  const handelClusterChange = (selected: UnwrapRef<typeof selectedClusters>) => {
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
@@ -166,7 +162,7 @@
             ip_source: 'manual_input',
             infos: data,
           },
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           window.changeConfirm = false;
 
@@ -188,6 +184,11 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    selectedClusters.value = {
+      [ClusterTypes.SQLSERVER_HA]: [],
+      [ClusterTypes.SQLSERVER_SINGLE]: [],
+    };
+    window.changeConfirm = false;
   };
 </script>
 

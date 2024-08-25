@@ -9,183 +9,192 @@
       :placeholder="t('请输入集群名称')"
       style="width: 500px; margin-top: 16px"
       @change="handelChange" />
-    <BkLoading :loading="isLoading">
+    <BkLoading
+      :loading="isLoading"
+      :pagination="pagination">
       <BkTable
         class="mt-16"
-        :columns="tableColumns"
-        :data="data" />
+        :data="data">
+        <BkTableColumn
+          field="source_cluster_domain"
+          fixed="left"
+          :label="t('源集群')"
+          :width="220" />
+        <BkTableColumn
+          field="target_cluster_domain"
+          fixed="left"
+          :label="t('目标集群')"
+          :width="220" />
+        <BkTableColumn
+          field="dtsModeText"
+          :label="t('迁移类型')"
+          :width="180" />
+        <BkTableColumn
+          field="dtsModeText"
+          :label="t('迁移 DB')"
+          :width="180">
+          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+            <BkTag
+              v-for="item in rowData.tagetDb"
+              :key="item">
+              {{ item }}
+            </BkTag>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="dtsModeText"
+          :label="t('忽略 DB')"
+          :width="180">
+          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+            <BkTag
+              v-for="item in rowData.ignore_db_list"
+              :key="item">
+              {{ item }}
+            </BkTag>
+            <span v-if="rowData.ignore_db_list.length < 1">--</span>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="dtsModeText"
+          :label="t('关联单据')"
+          :width="100">
+          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+            <RouterLink
+              target="_blank"
+              :to="{
+                name: 'bizTicketManage',
+                query: {
+                  id: rowData.ticket_id,
+                },
+              }">
+              {{ rowData.ticket_id }}
+            </RouterLink>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="dtsModeText"
+          :label="t('状态')"
+          :width="180">
+          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+            <span
+              :class="{ 'rotate-loading': rowData.isRunning }"
+              style="display: inline-block; line-height: 0; vertical-align: middle">
+              <DbIcon
+                svg
+                :type="MigrateRecordModel.statusIconMap[rowData.status]" />
+            </span>
+            <span
+              class="ml-4"
+              style="vertical-align: middle">
+              {{ MigrateRecordModel.statusTextMap[rowData.status] }}
+            </span>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          field="createAtDisplay"
+          :label="t('创建时间')"
+          :width="250" />
+        <BkTableColumn
+          fixed="right"
+          :label="t('操作')"
+          :width="150">
+          <template #default="{ data: rowData }: {data: MigrateRecordModel}">
+            <span
+              v-bk-tooltips="{
+                content: rowData.forcedTerminationDisableTips,
+                disabled: !rowData.forcedTerminationDisableTips,
+              }">
+              <DbPopconfirm
+                :confirm-handler="() => handleForcedTermination(rowData)"
+                :content="t('强制终止后将不可恢复_请确认操作')"
+                :title="t('确认强制终止')">
+                <BkButton
+                  :disabled="Boolean(rowData.forcedTerminationDisableTips)"
+                  text
+                  theme="primary">
+                  {{ t('强制终止') }}
+                </BkButton>
+              </DbPopconfirm>
+            </span>
+            <span
+              v-bk-tooltips="{
+                content: rowData.terminateSynceDisableTips,
+                disabled: !rowData.terminateSynceDisableTips,
+              }">
+              <DbPopconfirm
+                :confirm-handler="() => handleStopSync(rowData)"
+                :content="t('断开同步后将不可恢复_请确认操作')"
+                :title="t('确认断开同步')">
+                <BkButton
+                  class="ml-8"
+                  :disabled="Boolean(rowData.terminateSynceDisableTips)"
+                  text
+                  theme="primary"
+                  @click="handleStopSync(rowData)">
+                  {{ t('断开同步') }}
+                </BkButton>
+              </DbPopconfirm>
+            </span>
+          </template>
+        </BkTableColumn>
+      </BkTable>
     </BkLoading>
   </div>
 </template>
 <script setup lang="tsx">
-  import {ref} from 'vue'
+  import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import MigrateRecordModel from '@services/model/sqlserver/migrate-record';
   import { forceFailedMigrate, getList, manualTerminateSync } from '@services/source/sqlServerMigrate';
 
-  import { messageSuccess } from '@utils'
+  import { messageSuccess } from '@utils';
 
   const { t } = useI18n();
 
+  const pagination = reactive({
+    count: 100,
+    current: 1,
+    limit: 10,
+  });
+
   const searchKeyword = ref('');
-
-  const tableColumns = [
-    {
-      label: t('源集群'),
-      width: 240,
-      fixed: 'left',
-      field: 'source_cluster_domain',
-    },
-    {
-      label: t('目标集群'),
-      width: 240,
-      fixed: 'left',
-      field: 'target_cluster_domain',
-    },
-    {
-      label: t('迁移类型'),
-      width: 180,
-      field: 'dtsModeText',
-    },
-    {
-      label: t('迁移 DB'),
-      width: 180,
-      render: ({data}: {data: MigrateRecordModel}) => (
-        <>
-          {data.tagetDb.map(item => <bk-tag>{item}</bk-tag>)}
-        </>
-      )
-    },
-    {
-      label: t('忽略 DB'),
-      width: 180,
-      render: ({data}: {data: MigrateRecordModel}) => (
-        <>
-          {data.ignore_db_list.length < 1 ? '--':data.ignore_db_list.map(item => <bk-tag>{item}</bk-tag>)}
-        </>
-      )
-    },
-    {
-      label: t('关联单据'),
-      minWidth: 120,
-      render: ({data}: {data: MigrateRecordModel}) => {
-        if (!data.ticket_id) {
-          return '--'
-        }
-        return (
-          <router-link
-            to={{
-              name: 'bizTicketManage',
-              query: {
-                id: data.ticket_id
-              }
-
-            }}
-            target='_blank'>
-            {data.ticket_id}
-          </router-link>
-        )
-      }
-    },
-    {
-      label: t('状态'),
-      minWidth: 120,
-      render: ({data}: {data: MigrateRecordModel}) => (
-        <>
-          <span
-            class={{ 'rotate-loading': data.isRunning}}
-            style="display: inline-block; line-height: 0; vertical-align: middle;">
-            <db-icon
-              type={MigrateRecordModel.statusIconMap[data.status]}
-              svg />
-          </span>
-          <span class="ml-4" style="vertical-align: middle;">
-            {MigrateRecordModel.statusTextMap[data.status]}
-          </span>
-        </>
-      )
-    },
-    {
-      label: t('创建时间'),
-      width: 250,
-      render: ({data}: {data: MigrateRecordModel}) => data.createAtDisplay
-    },
-    {
-      label: t('操作'),
-      width: 150,
-      fixed: 'right',
-      render: ({data}: {data: MigrateRecordModel}) => {
-        let actionTips = '';
-        if (data.isFull){
-          actionTips = t('完整备份迁移不支持该操作')
-        } else if(data.isSuccess){
-          actionTips = t('迁移完成不支持该操作')
-        }
-        return (
-        <>
-          <span v-bk-tooltips={{ disabled: !actionTips, content: actionTips }}>
-            <bk-button
-              disabled={Boolean(actionTips)}
-              theme="primary"
-              text
-              onClick={() => handleForcedTermination(data)}>
-              {t('强制终止')}
-            </bk-button>
-          </span>
-          <span v-bk-tooltips={{ disabled: !actionTips, content: actionTips }}>
-            <bk-button
-              disabled={Boolean(actionTips)}
-              theme="primary"
-              text
-              class="ml-8"
-              onClick={() => handleStopSync(data)}>
-              {t('断开同步')}
-            </bk-button>
-          </span>
-        </>
-      )
-      }
-    },
-  ];
 
   const { loading: isLoading, data, run: fetchList } = useRequest(getList);
 
   const { run: runForceFailedMigrate } = useRequest(forceFailedMigrate, {
     manual: true,
     onSuccess() {
-      messageSuccess(t('操作成功'))
+      messageSuccess(t('操作成功'));
       fetchList({
-        cluster_name: searchKeyword.value
-      })
-    }
-  })
+        cluster_name: searchKeyword.value,
+      });
+    },
+  });
   const { run: runManualTerminateSynce } = useRequest(manualTerminateSync, {
     manual: true,
     onSuccess() {
-      messageSuccess(t('操作成功'))
+      messageSuccess(t('操作成功'));
       fetchList({
-        cluster_name: searchKeyword.value
-      })
-    }
-  })
+        cluster_name: searchKeyword.value,
+      });
+    },
+  });
 
   const handelChange = (value: string) => {
     fetchList({
-      cluster_name: value
-    })
-  }
+      cluster_name: value,
+    });
+  };
 
-  const handleForcedTermination = (data: MigrateRecordModel) => {
+  const handleForcedTermination = (data: MigrateRecordModel) =>
     runForceFailedMigrate({
-      dts_id: data.id
-    })
-  }
+      dts_id: data.id,
+    });
 
-  const handleStopSync = (data: MigrateRecordModel) => {
+  const handleStopSync = (data: MigrateRecordModel) =>
     runManualTerminateSynce({
-      ticket_id: data.ticket_id
-    })
-  }
+      ticket_id: data.ticket_id,
+    });
 </script>
