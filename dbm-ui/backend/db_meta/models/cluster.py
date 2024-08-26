@@ -328,7 +328,7 @@ class Cluster(AuditedModel):
         elif self.cluster_type == ClusterType.MongoShardedCluster:
             return next(inst.port for inst in self.proxies if inst.machine_type == MachineType.MONGOS)
         elif self.cluster_type == ClusterType.MongoReplicaSet:
-            return next(inst.port for inst in self.proxies if inst.machine_type == MachineType.MONGODB)
+            return next(inst.port for inst in self.storages if inst.machine_type == MachineType.MONGODB)
         elif self.cluster_type == ClusterType.Doris:
             return next(inst.port for inst in self.storages if inst.instance_role == InstanceRole.DORIS_FOLLOWER)
         else:
