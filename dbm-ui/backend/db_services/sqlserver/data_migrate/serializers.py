@@ -23,8 +23,8 @@ class ManualTerminateSyncSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         ticket = Ticket.objects.get(id=attrs["ticket_id"])
-        if ticket.ticket_type != TicketType.SQLSERVER_DATA_MIGRATE:
-            raise serializers.ValidationError(_("请保证单据类型是[SQLServer 数据迁移]"))
+        if ticket.ticket_type != TicketType.SQLSERVER_INCR_MIGRATE:
+            raise serializers.ValidationError(_("请保证单据类型是[SQLServer 增量迁移]"))
         if ticket.details["dts_mode"] != SqlserverDtsMode.INCR:
             raise serializers.ValidationError(_("请保证迁移模式是[增量备份迁移]"))
         return attrs

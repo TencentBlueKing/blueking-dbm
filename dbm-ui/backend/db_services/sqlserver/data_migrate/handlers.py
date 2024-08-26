@@ -30,7 +30,7 @@ class SQLServerDataMigrateHandler(object):
         # 直接沿用源单据details,标记手动终止
         ticket.details["manual_terminate"] = True
         return Ticket.create_ticket(
-            ticket_type=TicketType.SQLSERVER_DATA_MIGRATE,
+            ticket_type=TicketType.SQLSERVER_INCR_MIGRATE,
             creator=ticket.creator,
             bk_biz_id=ticket.bk_biz_id,
             remark=ticket.remark,
@@ -50,7 +50,7 @@ class SQLServerDataMigrateHandler(object):
         data = {
             "cluster_ids": list(set([dts.source_cluster_id, dts.target_cluster_id])),
             "bk_biz_id": dts.bk_biz_id,
-            "ticket_type": "SQLSERVER_DATA_MIGRATE",
+            "ticket_type": TicketType.SQLSERVER_INCR_MIGRATE.value,
             "created_by": dts.creator,
         }
         SqlserverDTSFlow(root_id=generate_root_id(), data=data).termination_dts_flow()

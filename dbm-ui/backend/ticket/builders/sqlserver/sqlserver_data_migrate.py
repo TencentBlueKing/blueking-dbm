@@ -134,11 +134,11 @@ class SQLServerRenameFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["ticket_type"] = TicketType.SQLSERVER_DBRENAME
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_DATA_MIGRATE)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_FULL_MIGRATE)
 class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
     serializer = SQLServerDataMigrateDetailSerializer
     inner_flow_builder = SQLServerDataMigrateFlowParamBuilder
-    inner_flow_name = _("SQLServer 数据迁移执行")
+    inner_flow_name = _("SQLServer 全备迁移执行")
     retry_type = FlowRetryType.MANUAL_RETRY
     # 流程不允许修改
     editable = False
@@ -202,7 +202,7 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
         dts_mode = self.ticket.details["dts_mode"]
 
         if is_manual_terminate:
-            self.inner_flow_name = _("SQLServer 数据迁移执行(断开同步)")
+            self.inner_flow_name = _("SQLServer 增量迁移执行(断开同步)")
 
         dts_flow = Flow(
             ticket=self.ticket,
@@ -237,3 +237,8 @@ class SQLServerDataMigrateFlowBuilder(BaseSQLServerTicketFlowBuilder):
             flows.append(source_dbrename_flow)
 
         return flows
+
+
+@builders.BuilderFactory.register(TicketType.SQLSERVER_INCR_MIGRATE)
+class SQLServerIncrDataMigrateFlowBuilder(SQLServerDataMigrateFlowBuilder):
+    inner_flow_name = _("SQLServer 增量迁移执行")

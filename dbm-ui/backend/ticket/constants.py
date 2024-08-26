@@ -269,7 +269,8 @@ class TicketType(str, StructuredEnum):
     SQLSERVER_RESTORE_SLAVE = TicketEnumField("SQLSERVER_RESTORE_SLAVE", _("SQLServer 新机重建"), _("集群维护"))
     SQLSERVER_ADD_SLAVE = TicketEnumField("SQLSERVER_ADD_SLAVE", _("SQLServer 添加从库"), _("集群维护"))
     SQLSERVER_RESET = TicketEnumField("SQLSERVER_RESET", _("SQLServer 集群重置"), _("集群维护"))
-    SQLSERVER_DATA_MIGRATE = TicketEnumField("SQLSERVER_DATA_MIGRATE", _("SQLServer 数据迁移"), _("数据处理"))
+    SQLSERVER_FULL_MIGRATE = TicketEnumField("SQLSERVER_FULL_MIGRATE", _("SQLServer 全备迁移"), _("数据处理"))
+    SQLSERVER_INCR_MIGRATE = TicketEnumField("SQLSERVER_INCR_MIGRATE", _("SQLServer 增量迁移"), _("数据处理"))
     SQLSERVER_ROLLBACK = TicketEnumField("SQLSERVER_ROLLBACK", _("SQLServer 定点构造"), _("数据处理"))
     SQLSERVER_AUTHORIZE_RULES = TicketEnumField("SQLSERVER_AUTHORIZE_RULES", _("SQLServer 集群授权"), _("权限管理"))
     SQLSERVER_EXCEL_AUTHORIZE_RULES = TicketEnumField("SQLSERVER_EXCEL_AUTHORIZE_RULES", _("SQLServer EXCEL授权"), _("权限管理"))  # noqa
