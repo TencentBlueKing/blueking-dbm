@@ -34,7 +34,7 @@ class TodoManager(models.Manager):
                 "flow_id": todo.flow.id,
                 "flow_msg_type": FlowMsgType.TODO.value,
                 "flow_status": FlowMsgStatus.UNCONFIRMED.value,
-                "processor": todo.operators,
+                "processor": ",".join(todo.operators),
                 "receiver": todo.creator,
             }
         )
