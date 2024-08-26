@@ -35,7 +35,7 @@ export default defineComponent({
     });
     const listStyle = computed(() => {
       const style = {
-        'max-height': '192px',
+        'max-height': '390px',
       };
       if (selector.value) {
         const maxHeight = parseInt(selector.value.listScrollHeight, 10);
@@ -102,7 +102,8 @@ export default defineComponent({
   },
   render() {
     return (
-      <div ref="alternateListContainer"
+      <div
+        ref='alternateListContainer'
         class={[
           'user-selector-alternate-list-wrapper',
           this.selector?.displayListTips ? 'has-folder' : '',
@@ -110,55 +111,55 @@ export default defineComponent({
         ]}
         style={this.wrapperStyle}>
         <ul
-          class="alternate-list"
-          ref="alternateList"
+          class='alternate-list'
+          ref='alternateList'
           style={this.listStyle}
           onScroll={() => void this.handleScroll()}>
-          {
-            this.matchedUsers.map((user, index) => {
-              if (user.hasOwnProperty('children')) {
-                return <>
+          {this.matchedUsers.map((user, index) => {
+            if (user.hasOwnProperty('children')) {
+              return (
+                <>
                   <li
-                    class="alternate-group"
-                    onClick={e => e.stopPropagation()}
+                    class='alternate-group'
+                    onClick={(e) => e.stopPropagation()}
                     onMousedown={withModifiers((): any => void this.selector.handleGroupMousedown(), ['left', 'stop'])}
                     onMouseup={withModifiers((): any => void this.selector.handleGroupMouseup(), ['left', 'stop'])}>
-                    { `${user.display_name}(${user.children.length})` }
+                    {`${user.display_name}(${user.children.length})`}
                   </li>
-                  {
-                    user.children.map((child: any, childIndex: number) => <>
+                  {user.children.map((child: any, childIndex: number) => (
+                    <>
                       <AlternateItem
                         // ref="alternateItem"
                         ref={(el: HTMLElement | ComponentPublicInstance | HTMLAttributes) => void this.setRef(el)}
                         index={this.getIndex(index, childIndex)}
                         selector={this.selector}
                         user={child}
-                        keyword={this.keyword} />
-                    </>)
-                  }
-                </>;
-              }
-              return <>
+                        keyword={this.keyword}
+                      />
+                    </>
+                  ))}
+                </>
+              );
+            }
+            return (
+              <>
                 <AlternateItem
                   // ref="alternateItem"
                   ref={(el: HTMLElement | ComponentPublicInstance | HTMLAttributes) => void this.setRef(el)}
                   selector={this.selector}
                   user={user}
                   index={this.getIndex(index)}
-                  keyword={this.keyword} />
-              </>;
-            })
-          }
+                  keyword={this.keyword}
+                />
+              </>
+            );
+          })}
         </ul>
-        {
-           (!this.loading && !this.matchedUsers.length)
-             ? <>
-              <p class="alternate-empty" >
-                { this.selector.emptyText }
-              </p>
-             </>
-             : null
-        }
+        {!this.loading && !this.matchedUsers.length ? (
+          <>
+            <p class='alternate-empty'>{this.selector.emptyText}</p>
+          </>
+        ) : null}
       </div>
     );
   },
