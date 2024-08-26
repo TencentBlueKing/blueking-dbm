@@ -142,6 +142,7 @@
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -601,70 +602,64 @@
               disabled={data.operationDisabled}
               text
               theme="primary"
-              class="mr-8"
+              class="mr-16"
               onClick={() => handleShowDataExportSlider(data)}>
               { t('导出数据') }
             </auth-button>
           </OperationBtnStatusTips>
-          <bk-dropdown
-            class="operations-more"
-            trigger="click"
-            popover-options={{ zIndex: 10 }}>
+          <MoreActionExtend>
             {{
-              default: () => <db-icon type="more" />,
-              content: () => (
-                <bk-dropdown-menu>
-                  {data.isOnline ? (
-                    <bk-dropdown-item v-db-console="mysql.singleClusterList.disable">
+              default: () => <>
+                {data.isOnline ? (
+                  <bk-dropdown-item v-db-console="mysql.singleClusterList.disable">
+                    <OperationBtnStatusTips data={data}>
+                      <auth-button
+                        text
+                        class="mr-8"
+                        action-id="mysql_enable_disable"
+                        permission={data.permission.mysql_enable_disable}
+                        disabled={data.operationDisabled}
+                        resource={data.id}
+                        onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
+                        { t('禁用') }
+                      </auth-button>
+                    </OperationBtnStatusTips>
+                  </bk-dropdown-item>
+                ) : (
+                  <>
+                    <bk-dropdown-item v-db-console="mysql.singleClusterList.enable">
                       <OperationBtnStatusTips data={data}>
                         <auth-button
                           text
                           class="mr-8"
                           action-id="mysql_enable_disable"
                           permission={data.permission.mysql_enable_disable}
-                          disabled={data.operationDisabled}
+                          disabled={data.isStarting}
                           resource={data.id}
-                          onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_DISABLE, data)}>
-                          { t('禁用') }
+                          onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
+                          { t('启用') }
                         </auth-button>
                       </OperationBtnStatusTips>
                     </bk-dropdown-item>
-                  ) : (
-                    <>
-                      <bk-dropdown-item v-db-console="mysql.singleClusterList.enable">
-                        <OperationBtnStatusTips data={data}>
-                          <auth-button
-                            text
-                            class="mr-8"
-                            action-id="mysql_enable_disable"
-                            permission={data.permission.mysql_enable_disable}
-                            disabled={data.isStarting}
-                            resource={data.id}
-                            onClick={() => handleSwitchCluster(TicketTypes.MYSQL_SINGLE_ENABLE, data)}>
-                            { t('启用') }
-                          </auth-button>
-                        </OperationBtnStatusTips>
-                      </bk-dropdown-item>
-                      <bk-dropdown-item v-db-console="mysql.singleClusterList.delete">
-                        <OperationBtnStatusTips data={data}>
-                          <auth-button
-                            text
-                            class="mr-8"
-                            action-id="mysql_destroy"
-                            permission={data.permission.mysql_destroy}
-                            disabled={Boolean(data.operationTicketId)}
-                            resource={data.id}
-                            onClick={() => handleDeleteCluster(data)}>
-                            { t('删除') }
-                          </auth-button>
-                        </OperationBtnStatusTips>
-                      </bk-dropdown-item>
-                    </>
-                  )}
-                </bk-dropdown-menu>
-              ),
+                    <bk-dropdown-item v-db-console="mysql.singleClusterList.delete">
+                      <OperationBtnStatusTips data={data}>
+                        <auth-button
+                          text
+                          class="mr-8"
+                          action-id="mysql_destroy"
+                          permission={data.permission.mysql_destroy}
+                          disabled={Boolean(data.operationTicketId)}
+                          resource={data.id}
+                          onClick={() => handleDeleteCluster(data)}>
+                          { t('删除') }
+                        </auth-button>
+                      </OperationBtnStatusTips>
+                    </bk-dropdown-item>
+                  </>
+                )}
+              </>
             }}
-          </bk-dropdown>
+          </MoreActionExtend>
         </>
       ),
     },
