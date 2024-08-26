@@ -367,6 +367,8 @@
     updateMode: ''
   });
 
+  const specDisabledMap = shallowRef<Record<number, boolean>>({})
+
   const isAbleSubmit = computed(() => radioValue.value !== -1);
 
   const isDataChange = computed(() => capacityNeed.value !== undefined
@@ -412,7 +414,12 @@
       width: 260,
       render: ({ index, row }: { index: number, row: ClusterSpecModel }) => (
         <div style="display:flex;align-items:center;">
-          <bk-radio label={index} v-model={radioValue.value}>{row.spec_name}</bk-radio>
+          <bk-radio
+            label={index}
+            v-model={radioValue.value}
+            disabled={specDisabledMap.value[row.spec_id]}>
+            {row.spec_name}
+          </bk-radio>
         </div>
       ),
     },
@@ -457,6 +464,7 @@
       });
       tableData.value = retArr;
       rawTableData = _.cloneDeep(retArr);
+      specDisabledMap.value = {}
     }
   };
 
@@ -477,6 +485,9 @@
   }
 
   const handleRowClick = (event: PointerEvent, row: ClusterSpecModel, index: number) => {
+    if (specDisabledMap.value[row.spec_id]) {
+      return
+    }
     getRedisClusterCapacityUpdateInfo({
       cluster_id: props.clusterId!,
       new_storage_version: props.targetVerison!,
@@ -486,6 +497,9 @@
     }).then((updateInfo) => {
       if (updateInfo.err_msg) {
         messageError(updateInfo.err_msg)
+        radioValue.value = -1;
+        radioChoosedId.value = '';
+        specDisabledMap.value[row.spec_id] = true
         return
       }
       targetInfo.value = {
