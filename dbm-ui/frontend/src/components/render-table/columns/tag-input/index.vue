@@ -14,54 +14,43 @@
 <template>
   <div
     ref="rootRef"
-    class="render-db-name"
-    :class="{ 'render-db-name-scroll': isFocus }">
-    <span @click="handleShowTips">
+    class="render-db-name">
+    <div
+      class="table-edit-tag"
+      :class="{ ['is-error']: Boolean(errorMessage) }"
+      @click="handleShowTips">
+      <BkTagInput
+        v-model="localValue"
+        allow-auto-match
+        allow-create
+        :clearable="false"
+        v-bind="$attrs"
+        :disabled="disabled"
+        has-delete-icon
+        :max-data="single ? 1 : -1"
+        :paste-fn="tagInputPasteFn"
+        :placeholder="placeholder"
+        @change="handleChange"
+        @focus="handleFocus" />
       <div
-        class="table-edit-tag"
-        :class="{ ['is-error']: Boolean(errorMessage) }">
-        <BkTagInput
-          v-model="localValue"
-          allow-auto-match
-          allow-create
-          :clearable="false"
-          v-bind="$attrs"
-          collapse-tags
-          has-delete-icon
-          :max-data="single ? 1 : -1"
-          :paste-fn="tagInputPasteFn"
-          :placeholder="placeholder"
-          @blur="handleBlur"
-          @change="handleChange"
-          @focus="handleFocus" />
-        <div
-          v-if="errorMessage"
-          class="input-error">
-          <DbIcon
-            v-bk-tooltips="errorMessage"
-            type="exclamation-fill" />
-        </div>
+        v-if="errorMessage"
+        class="input-error">
+        <DbIcon
+          v-bk-tooltips="errorMessage"
+          type="exclamation-fill" />
       </div>
-    </span>
+    </div>
     <div style="display: none">
       <div
         ref="popRef"
         style="font-size: 12px; line-height: 24px; color: #63656e">
-        <slot name="tip">
-          <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
-          <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
-          <p>{{ t('* ：专门指代 ALL 语义, 只能独立使用') }}</p>
-          <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
-          <p>{{ t('Enter 完成内容输入') }}</p>
-        </slot>
+        <slot name="tip"> </slot>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-
-  import { t } from '@locales/index';
 
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
@@ -70,6 +59,7 @@
     modelValue?: string[];
     single?: boolean;
     rules?: Rules;
+    disabled?: boolean;
   }
 
   interface Emits {
@@ -86,14 +76,20 @@
     modelValue: undefined,
     single: false,
     rules: undefined,
+    disabled: false,
   });
 
   const emits = defineEmits<Emits>();
 
+  const slots = defineSlots<{
+    default: any;
+    tip: any;
+  }>();
+
   const rootRef = ref();
   const popRef = ref();
   const localValue = ref(props.modelValue);
-  const isFocus = ref(false);
+  const isFocus = ref(true);
 
   let tippyIns: Instance | undefined;
 
@@ -134,28 +130,26 @@
     isFocus.value = true;
   };
 
-  const handleBlur = () => {
-    isFocus.value = false;
-  };
-
   onMounted(() => {
-    tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
-      appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
-      arrow: true,
-      offset: [0, 18],
-      zIndex: 9998,
-      hideOnClick: true,
-    });
+    if (slots.tip) {
+      tippyIns = tippy(rootRef.value as SingleTarget, {
+        content: popRef.value,
+        placement: 'top',
+        appendTo: () => document.body,
+        theme: 'light',
+        maxWidth: 'none',
+        trigger: 'manual',
+        interactive: true,
+        arrow: true,
+        offset: [0, 18],
+        zIndex: 9998,
+        hideOnClick: true,
+      });
+    }
   });
 
   onBeforeUnmount(() => {
-    if (tippyIns) {
+    if (slots.tip && tippyIns) {
       tippyIns.hide();
       tippyIns.unmount();
       tippyIns.destroy();
@@ -169,46 +163,10 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-db-name {
-    display: block;
-
-    :deep(.bk-tag-input-trigger) {
-      padding-left: 16px;
-
-      .tag-list {
-        height: 40px;
-      }
-
-      .placeholder {
-        left: 16px;
-      }
-    }
-  }
-
-  .render-db-name-scroll {
-    position: relative;
-    padding: 0;
-    margin: 0;
-
-    :deep(.bk-tag-input) {
-      // position: absolute;
-      // top: 0;
-      // z-index: 1;
-      // width: 100%;
-
-      .bk-tag-input-trigger {
-        .tag-list {
-          height: auto;
-          max-height: 400px;
-        }
-      }
-    }
-  }
-</style>
 <style lang="less">
   .table-edit-tag {
     position: relative;
+    min-height: 42px;
 
     &.is-error {
       .bk-tag-input {
@@ -242,6 +200,11 @@
           background-color: transparent !important;
         }
 
+        .tag-list {
+          height: auto;
+          max-height: 400px;
+        }
+
         .placeholder {
           top: 0;
           padding-left: 8px;
@@ -256,7 +219,7 @@
       top: 0;
       right: 0;
       bottom: 0;
-      z-index: 10;
+      z-index: 100;
       display: flex;
       padding-right: 10px;
       font-size: 14px;

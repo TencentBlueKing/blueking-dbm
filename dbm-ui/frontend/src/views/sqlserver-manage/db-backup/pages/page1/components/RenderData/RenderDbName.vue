@@ -24,9 +24,9 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { checkSqlserverDbExist } from '@services/source/sqlserver'
+  import { checkSqlserverDbExist } from '@services/source/sqlserver';
 
-  import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
+  import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
 
   import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
@@ -49,7 +49,7 @@
 
   const { t } = useI18n();
 
-  let noExitsDbList = [] as string[]
+  let noExitsDbList = [] as string[];
 
   const rules = [
     {
@@ -62,36 +62,35 @@
     {
       validator: (value: string[]) => {
         if (value.length > 0) {
-          return props.clusterId > 0
+          return props.clusterId > 0;
         }
-        return true
+        return true;
       },
       message: t('请先输入或选择集群'),
     },
     {
-      validator: (value: string[]) => checkSqlserverDbExist({
-        cluster_id: props.clusterId,
-        db_list: value
-      }).then((data) => {
-        noExitsDbList = Object.entries(data).reduce((prevDbList, [dbName, isExists]) => {
-          if (!isExists) {
-            return [...prevDbList, dbName]
-          }
-          return prevDbList
-        }, [] as string[])
-        return noExitsDbList.length === 0
-      }),
+      validator: (value: string[]) =>
+        checkSqlserverDbExist({
+          cluster_id: props.clusterId,
+          db_list: value,
+        }).then((data) => {
+          noExitsDbList = Object.entries(data).reduce((prevDbList, [dbName, isExists]) => {
+            if (!isExists) {
+              return [...prevDbList, dbName];
+            }
+            return prevDbList;
+          }, [] as string[]);
+          return noExitsDbList.length === 0;
+        }),
       message: () => t('目标DB不存在', [noExitsDbList.join('，')]),
     },
   ];
 
   if (props.required) {
-    rules.unshift(
-      {
-        validator: (value: string[]) => value.length > 0,
-        message: t('DB名不能为空'),
-      }
-    )
+    rules.unshift({
+      validator: (value: string[]) => value.length > 0,
+      message: t('DB名不能为空'),
+    });
   }
 
   const tagRef = ref<InstanceType<typeof TableEditTag>>();
