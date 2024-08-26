@@ -12,12 +12,17 @@
 -->
 
 <template>
-  <div class="member-selector-wrapper">
+  <div
+    class="member-selector-wrapper"
+    :class="{ 'is-hover': isHover }"
+    @mouseenter="handleHover"
+    @mouseleave="handleBlur">
     <UserSelector
       ref="userSelectorRef"
       v-model="modelValue"
       class="member-selector"
       :exact-search-method="exactSearchMethod"
+      fast-clear
       :fixed-height="false"
       :fuzzy-search-method="fuzzySearchMethod"
       :paste-validator="pasteValidator"
@@ -49,6 +54,7 @@
   const copy = useCopy();
 
   const userSelectorRef = ref();
+  const isHover = ref(false);
 
   const exactSearchMethod = () => getUserList().then((result) => result.results);
 
@@ -104,6 +110,14 @@
     userSelectorRef.value.search();
   };
 
+  const handleHover = () => {
+    isHover.value = true;
+  };
+
+  const handleBlur = () => {
+    isHover.value = false;
+  };
+
   const handleCopy = () => {
     copy(modelValue.value.join(';'));
   };
@@ -112,6 +126,12 @@
 <style lang="less" scoped>
   .member-selector-wrapper {
     position: relative;
+
+    &.is-hover {
+      :deep(.user-selector-container) {
+        padding-right: 42px;
+      }
+    }
 
     &:hover {
       .db-member-selector-copy {
@@ -126,13 +146,12 @@
     .db-member-selector-copy {
       position: absolute;
       top: 50%;
-      right: 2px;
+      right: 24px;
       z-index: 99;
       display: none;
       width: 20px;
       height: 20px;
       margin-top: -15px;
-      margin-right: 4px;
       font-size: 16px;
       line-height: 20px;
       cursor: pointer;
