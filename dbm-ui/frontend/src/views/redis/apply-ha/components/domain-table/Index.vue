@@ -35,7 +35,7 @@
 
   import RedisModel from '@services/model/redis/redis';
   import RedisMachineModel from '@services/model/redis/redis-machine';
-  import { getRedisMachineList } from '@services/source/redis'
+  import { getRedisClusterList, getRedisMachineList } from '@services/source/redis'
 
   import { ClusterTypes } from '@common/const'
   import { ipv4, nameRegx } from '@common/regex';
@@ -71,7 +71,10 @@
     port: number;
     cloudId: string | number;
     maxMemory: string;
-    cityName: string;
+    cityInfo: {
+      cityCode: string,
+      cityName: string
+    }
   }
 
   interface Emits {
@@ -129,7 +132,7 @@
             ip: value,
             instance_role: 'redis_master',
             bk_cloud_id: props.cloudId as number,
-            bk_city_name: props.cityName,
+            bk_city_name: props.cityInfo.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
           }).then((data) => {
             const redisMachineList = data.results;
@@ -255,7 +258,7 @@
                 <span v-bk-tooltips={t('批量编辑')}>
                   <HostBatchEdit
                     cloudId={props.cloudId}
-                    cityName={props.cityName}
+                    cityName={props.cityInfo.cityName}
                     onChange={handleBatchHost} />
                 </span>
               )
@@ -328,6 +331,10 @@
     RedisHost: [
       {
         topoConfig: {
+          getTopoList: (params: ServiceParameters<typeof getRedisClusterList>) => getRedisClusterList({
+            ...params,
+            region: props.cityInfo.cityCode
+          }),
           totalCountFunc: (dataList: RedisModel[]) => {
             const ipSet = new Set<string>()
             dataList.forEach(dataItem => dataItem.redis_master.forEach(masterItem => ipSet.add(masterItem.ip)))
@@ -338,7 +345,7 @@
           getTableList: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            bk_city_name: props.cityName,
+            bk_city_name: props.cityInfo.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
           }),
           disabledRowConfig: {
@@ -352,7 +359,7 @@
           getTableList: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            bk_city_name: props.cityName,
+            bk_city_name: props.cityInfo.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
           }),
           disabledRowConfig: {
@@ -364,7 +371,7 @@
           checkInstances: (params: Record<string, any>) => getRedisMachineList({
             ...params,
             bk_cloud_id: props.cloudId as number,
-            bk_city_name: props.cityName,
+            bk_city_name: props.cityInfo.cityName,
             cluster_type: ClusterTypes.REDIS_INSTANCE
           })
         }
@@ -383,7 +390,7 @@
   const clusterNameList = computed(() => tableData.value.map(item => item.cluster_name));
   // const masterHostIpList = computed(() => tableData.value.map(item => item.masterHost.ip));
 
-  const instanceSelectorKey = computed(() => `${props.cloudId}-${props.cityName}`)
+  const instanceSelectorKey = computed(() => `${props.cloudId}-${props.cityInfo.cityName}`)
 
   const handleBatchClusterName = (values: string[]) => {
     if (values.length !== 0) {
