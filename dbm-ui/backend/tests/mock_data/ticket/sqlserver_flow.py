@@ -237,7 +237,7 @@ SQLSERVER_BACKUP_TICKET_DATA = {
 # SQLSERVER 数据迁移单据
 SQLSERVER_DATA_MIGRATE_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
-    "ticket_type": TicketType.SQLSERVER_DATA_MIGRATE,
+    "ticket_type": TicketType.SQLSERVER_FULL_MIGRATE,
     "details": {
         "dts_mode": "full",
         "need_auto_rename": False,
