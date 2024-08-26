@@ -32,13 +32,14 @@ def post_set_state_signal_handler(sender, node_id, to_state, version, root_id, *
 
     now = timezone.now()
     logger.debug(_("【状态信号捕获】{} root_id={}, node_id={}, status:{}").format(now, root_id, node_id, to_state))
-    if to_state == StateType.RUNNING:
-        # 记录开始时间
-        FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(started_at=now)
 
-    FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(
-        version_id=version, status=to_state, updated_at=now
-    )
+    flow_node = FlowNode.objects.get(root_id=root_id, node_id=node_id)
+    if to_state == StateType.RUNNING and flow_node.status == StateType.CREATED:
+        # 记录开始时间
+        flow_node.started_at = now
+
+    flow_node.version_id, flow_node.status, flow_node.updated_at = version, to_state, now
+    flow_node.save()
     try:
         tree = FlowTree.objects.get(root_id=root_id)
     except FlowTree.DoesNotExist:
