@@ -16,32 +16,26 @@ import SpiderMachineModel from '@services/model/spider/spiderMachine';
 import TendbClusterModel from '@services/model/spider/tendbCluster';
 import TendbInstanceModel from '@services/model/spider/tendbInstance';
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 import type { ListBase, ResourceInstance, ResourceItem, ResourceTopo } from '../types';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mysql/bizs/${currentBizId}/spider_resources`;
+const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/spider_resources`;
 
 /**
  * 获取 TendbCluster 集群列表
  */
 export function getTendbClusterList(params: Record<string, any> = {}) {
-  return http
-    .get<ListBase<TendbClusterModel[]>>(`/apis/mysql/bizs/${currentBizId}/spider_resources/`, params)
-    .then((data) => ({
-      ...data,
-      results: data.results.map(
-        (item) =>
-          new TendbClusterModel(
-            Object.assign(item, {
-              permission: Object.assign({}, item.permission, data.permission),
-            }),
-          ),
-      ),
-    }));
+  return http.get<ListBase<TendbClusterModel[]>>(`${getRootPath()}/`, params).then((data) => ({
+    ...data,
+    results: data.results.map(
+      (item) =>
+        new TendbClusterModel(
+          Object.assign(item, {
+            permission: Object.assign({}, item.permission, data.permission),
+          }),
+        ),
+    ),
+  }));
 }
 
 /**
@@ -61,7 +55,7 @@ export function getSpiderList(params: {
   db_module_id?: number;
   region?: string;
 }) {
-  return http.get<ListBase<SpiderModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<SpiderModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map((item: SpiderModel) => new SpiderModel(item)),
   }));
@@ -103,7 +97,7 @@ export function getResources(params: {
   cluster_ids?: number[] | number;
   dbType: string;
 }) {
-  return http.get<ListBase<ResourceItem[]>>(`${path}/`, params);
+  return http.get<ListBase<ResourceItem[]>>(`${getRootPath()}/`, params);
 }
 
 /**
@@ -129,14 +123,14 @@ export function getSpiderTableFields() {
       key: string;
       name: string;
     }[]
-  >(`${path}/get_table_fields/`);
+  >(`${getRootPath()}/get_table_fields/`);
 }
 
 /**
  * 获取集群实例列表
  */
 export function getSpiderInstanceList(params: Record<string, any>) {
-  return http.get<ListBase<TendbInstanceModel[]>>(`${path}/list_instances/`, params);
+  return http.get<ListBase<TendbInstanceModel[]>>(`${getRootPath()}/list_instances/`, params);
 }
 
 /**
@@ -183,35 +177,35 @@ export function retrieveSpiderInstance(params: {
   cluster_id?: number;
   dbType: string;
 }) {
-  return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+  return http.get<InstanceDetails>(`${getRootPath()}/retrieve_instance/`, params);
 }
 
 /**
  * 获取集群详情
  */
 export function getSpiderDetail(params: { id: number }) {
-  return http.get<SpiderModel>(`${path}/${params.id}/`).then((data) => new SpiderModel(data));
+  return http.get<SpiderModel>(`${getRootPath()}/${params.id}/`).then((data) => new SpiderModel(data));
 }
 
 /**
  * 获取集群拓扑
  */
 export function getSpiderTopoGraph(params: { cluster_id: number }) {
-  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ResourceTopo>(`${getRootPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 导出集群数据为 excel 文件
  */
 export function exportSpiderClusterToExcel(params: { cluster_ids?: number[] }) {
-  return http.post<string>(`${path}/export_cluster/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_cluster/`, params, { responseType: 'blob' });
 }
 
 /**
  * 导出实例数据为 excel 文件
  */
 export function exportSpiderInstanceToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 /**
@@ -230,7 +224,7 @@ export function getSpiderMachineList(params: {
   spider_role?: string;
   creator?: string;
 }) {
-  return http.get<ListBase<SpiderMachineModel[]>>(`${path}/list_machines/`, params).then((data) => ({
+  return http.get<ListBase<SpiderMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new SpiderMachineModel(item)),
   }));
