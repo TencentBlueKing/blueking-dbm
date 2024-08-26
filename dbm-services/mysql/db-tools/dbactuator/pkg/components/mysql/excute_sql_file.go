@@ -34,14 +34,14 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
-// ExcuteSQLFileComp TODO
+// ExcuteSQLFileComp excute sql file component
 type ExcuteSQLFileComp struct {
 	GeneralParam            *components.GeneralParam `json:"general"`
 	Params                  *ExcuteSQLFileParam      `json:"extend"`
 	ExcuteSQLFileRunTimeCtx `json:"-"`
 }
 
-// ExcuteSQLFileParam TODO
+// ExcuteSQLFileParam excute sql file param
 type ExcuteSQLFileParam struct {
 	Host          string             `json:"host"  validate:"required,ip"`             // 当前实例的主机地址
 	Ports         []int              `json:"ports"`                                    // 被监控机器的上所有需要监控的端口
@@ -96,12 +96,30 @@ func (e *ExcuteSQLFileComp) Example() interface{} {
 
 // Precheck do some check step
 func (e *ExcuteSQLFileComp) Precheck() (err error) {
+	if err = e.checkSQLFileExist(); err != nil {
+		logger.Error("SQL文件存在性检查失败:%s", err.Error())
+		return err
+	}
 	for _, port := range e.ports {
 		if err = e.checkDuplicateObjects(port); err != nil {
 			return err
 		}
 	}
 	return
+}
+
+// checkSQLFileExist 检查文件是否存在
+func (e *ExcuteSQLFileComp) checkSQLFileExist() (err error) {
+	var errs []error
+	for _, f := range e.Params.ExcuteObjects {
+		for _, sqlFile := range f.SQLFiles {
+			if !cmutil.FileExists(path.Join(e.taskdir, sqlFile)) {
+				err = fmt.Errorf("文件不存在:%s", sqlFile)
+				errs = append(errs, err)
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // checkDuplicateObjects  判断每行变更对象，是否存在相同文件变更相同db的情况
