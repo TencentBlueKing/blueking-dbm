@@ -14,8 +14,7 @@
 <template>
   <span
     v-bk-tooltips="batchIconsInfoMap[type].tooltip"
-    class="batch-edit-btn"
-    @click="handleBatchClick">
+    class="batch-edit-btn">
     <DbIcon :type="batchIconsInfoMap[type].icon" />
   </span>
 </template>
@@ -26,15 +25,9 @@
     type?: 'edit' | 'select' | 'entry';
   }
 
-  interface Emits {
-    (e: 'batchClick'): void;
-  }
-
   withDefaults(defineProps<Props>(), {
     type: 'select',
   });
-
-  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
@@ -51,10 +44,6 @@
       tooltip: t('批量选择'),
       icon: 'batch-host-select',
     },
-  };
-
-  const handleBatchClick = () => {
-    emits('batchClick');
   };
 </script>
 <style lang="less">

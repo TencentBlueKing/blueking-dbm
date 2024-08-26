@@ -21,7 +21,7 @@
         <template #append>
           <BatchOperateIcon
             class="ml-4"
-            @batch-click="handleShowBatchSelector" />
+            @click="handleShowBatchSelector" />
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
@@ -40,7 +40,7 @@
             <BatchOperateIcon
               class="ml-4"
               type="entry"
-              @batch-click="() => handleShowBatchEdit(variableName)" />
+              @click="() => handleShowBatchEdit(variableName)" />
           </BatchEditColumn>
         </template>
       </RenderTableHeadColumn>
@@ -54,7 +54,7 @@
           <BatchOperateIcon
             class="ml-4"
             type="edit"
-            @batch-click="handleShowBatchChangeIp" />
+            @click="handleShowBatchChangeIp" />
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn

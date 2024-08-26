@@ -21,14 +21,8 @@
       <template #append>
         <BatchOperateIcon
           class="ml-4"
-          @batch-click="handleShowBatchSelectCluster" />
+          @click="handleShowBatchSelectCluster" />
       </template>
-    </RenderTableHeadColumn>
-    <RenderTableHeadColumn
-      :min-width="200"
-      :required="false"
-      :width="240">
-      {{ t('关联集群') }}
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="200"

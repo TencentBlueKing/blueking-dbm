@@ -26,7 +26,7 @@
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
+  import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
     modelValue?: string[];

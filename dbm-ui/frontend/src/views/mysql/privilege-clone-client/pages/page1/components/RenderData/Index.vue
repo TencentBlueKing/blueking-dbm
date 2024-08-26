@@ -22,7 +22,7 @@
         <template #append>
           <BatchOperateIcon
             class="ml-4"
-            @batch-click="handleShowIpSelector" />
+            @click="handleShowIpSelector" />
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
