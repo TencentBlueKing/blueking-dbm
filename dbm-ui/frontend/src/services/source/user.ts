@@ -33,5 +33,7 @@ export function getUserList(
         display_name: string;
       }[]
     >
-  >(`${path}/list_users/`, params);
+  >(`${path}/list_users/`, params, {
+    cache: true,
+  });
 }

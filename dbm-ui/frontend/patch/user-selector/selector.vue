@@ -1061,15 +1061,21 @@
         },
       );
 
-      watch(localValue, (_localValue) => {
-        if (!isIgnoreUpdateModelValue) {
-          ctx.emit('update:modelValue', _localValue);
-        }
-        isIgnoreUpdateModelValue = false;
-        ctx.emit('change', _localValue);
-        calcOverflow();
-        getCurrentUsers();
-      });
+      watch(
+        localValue,
+        (_localValue) => {
+          if (!isIgnoreUpdateModelValue) {
+            ctx.emit('update:modelValue', _localValue);
+          }
+          isIgnoreUpdateModelValue = false;
+          ctx.emit('change', _localValue);
+          calcOverflow();
+          getCurrentUsers();
+        },
+        {
+          immediate: true,
+        },
+      );
 
       onMounted(() => {
         calcOverflow();
