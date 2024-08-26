@@ -14,8 +14,7 @@
 <template>
   <div
     ref="rootRef"
-    class="render-db-name"
-    :class="{ 'render-db-name-scroll': isFocus }">
+    class="render-db-name">
     <div
       class="table-edit-tag"
       :class="{ ['is-error']: Boolean(errorMessage) }"
@@ -31,7 +30,6 @@
         :max-data="single ? 1 : -1"
         :paste-fn="tagInputPasteFn"
         :placeholder="placeholder"
-        @blur="handleBlur"
         @change="handleChange"
         @focus="handleFocus" />
       <div
@@ -46,21 +44,13 @@
       <div
         ref="popRef"
         style="font-size: 12px; line-height: 24px; color: #63656e">
-        <slot name="tip">
-          <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
-          <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
-          <p>{{ t('* ：专门指代 ALL 语义, 只能独立使用') }}</p>
-          <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
-          <p>{{ t('Enter 完成内容输入') }}</p>
-        </slot>
+        <slot name="tip"> </slot>
       </div>
     </div>
   </div>
 </template>
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-
-  import { t } from '@locales/index';
 
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
@@ -90,6 +80,11 @@
   });
 
   const emits = defineEmits<Emits>();
+
+  const slots = defineSlots<{
+    default: any;
+    tip: any;
+  }>();
 
   const rootRef = ref();
   const popRef = ref();
@@ -135,28 +130,26 @@
     isFocus.value = true;
   };
 
-  const handleBlur = () => {
-    // isFocus.value = false;
-  };
-
   onMounted(() => {
-    tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
-      appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
-      arrow: true,
-      offset: [0, 18],
-      zIndex: 9998,
-      hideOnClick: true,
-    });
+    if (slots.tip) {
+      tippyIns = tippy(rootRef.value as SingleTarget, {
+        content: popRef.value,
+        placement: 'top',
+        appendTo: () => document.body,
+        theme: 'light',
+        maxWidth: 'none',
+        trigger: 'manual',
+        interactive: true,
+        arrow: true,
+        offset: [0, 18],
+        zIndex: 9998,
+        hideOnClick: true,
+      });
+    }
   });
 
   onBeforeUnmount(() => {
-    if (tippyIns) {
+    if (slots.tip && tippyIns) {
       tippyIns.hide();
       tippyIns.unmount();
       tippyIns.destroy();
