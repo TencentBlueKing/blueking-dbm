@@ -32,6 +32,7 @@
       tag-clearable
       @remove-selected="handleRemoveSelected" />
     <DbIcon
+      v-if="modelValue.length > 0"
       v-bk-tooltips="t('复制')"
       type="copy db-member-selector-copy"
       @click.stop="handleCopy" />
@@ -128,8 +129,8 @@
     position: relative;
 
     &.is-hover {
-      :deep(.user-selector-container) {
-        padding-right: 42px;
+      :deep(.user-selector-clear) {
+        visibility: visible;
       }
     }
 

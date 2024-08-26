@@ -41,7 +41,7 @@
 }
 
 .user-selector .user-selector-layout .user-selector-container.is-fast-clear {
-  padding-right: 22px;
+  padding-right: 42px;
 }
 
 .user-selector .user-selector-layout .user-selector-container.disabled {
@@ -133,6 +133,11 @@
   font-size: 12px;
   color: #c4c6cc;
   cursor: pointer;
+  visibility: hidden;
+}
+
+.user-selector:hover .user-selector-clear {
+  visibility: visible;
 }
 
 .user-selector .user-selector-layout .user-selector-clear:hover {
@@ -251,7 +256,7 @@
 
 .user-selector-alternate-list-wrapper {
   position: relative;
-  width: 190px;
+  width: 250px;
   color: #63656e;
   background-color: #fff;
 }
