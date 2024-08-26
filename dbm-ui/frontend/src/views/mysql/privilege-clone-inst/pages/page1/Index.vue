@@ -74,8 +74,8 @@
   import { useRouter } from 'vue-router';
 
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
-  import { precheckPermissionClone } from '@services/permission';
   import { checkMysqlInstances } from '@services/source/instances';
+  import { precheckPermissionClone } from '@services/source/permission';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
