@@ -15,24 +15,16 @@
   <TableEditTag
     ref="tagRef"
     :model-value="modelValue"
-    :placeholder="$t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
+    :placeholder="t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
     :rules="rules"
-    @change="handleChange">
-    <template #tip>
-      <p>{{ $t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
-      <p>{{ $t('匹配任意单一字符_如a_d') }}</p>
-      <p>{{ $t('专门指代ALL语义_只能独立使用') }}</p>
-      <p>{{ $t('注_含通配符的单元格仅支持输入单个对象') }}</p>
-      <p>{{ $t('Enter完成内容输入') }}</p>
-    </template>
-  </TableEditTag>
+    @change="handleChange" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditTag from '@components/render-table/columns/tag-input/index.vue';
+  import TableEditTag from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
     modelValue?: string[];

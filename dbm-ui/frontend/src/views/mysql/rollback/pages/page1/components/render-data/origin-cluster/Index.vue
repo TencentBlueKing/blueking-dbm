@@ -21,7 +21,7 @@
       <template #append>
         <BatchOperateIcon
           class="ml-4"
-          @batch-click="handleShowBatchSelector" />
+          @click="handleShowBatchSelector" />
       </template>
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
@@ -36,7 +36,7 @@
           <BatchOperateIcon
             class="ml-4"
             type="edit"
-            @batch-click="handleShowBatchEdit('backupSource')" />
+            @click="handleShowBatchEdit('backupSource')" />
         </BatchEditColumn>
       </template>
       {{ t('备份源') }}
@@ -99,7 +99,7 @@
         <BatchOperateIcon
           class="ml-4"
           type="edit"
-          @batch-click="handleShowBatchEdit('mode')" />
+          @click="handleShowBatchEdit('mode')" />
       </template>
       {{ t('回档类型') }}
     </RenderTableHeadColumn>
