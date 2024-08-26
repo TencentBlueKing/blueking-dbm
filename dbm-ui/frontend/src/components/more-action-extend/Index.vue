@@ -53,7 +53,7 @@
     }
 
     .more-icon-active {
-      transform: rotate(180deg);
+      transform: rotate(-180deg);
     }
   }
 </style>
