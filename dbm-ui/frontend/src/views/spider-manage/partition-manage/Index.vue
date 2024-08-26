@@ -227,7 +227,7 @@
     {
       label: t('操作'),
       field: 'action',
-      width: 200,
+      width: 220,
       fixed: 'right',
       render: ({ data }: { data: PartitionModel }) => {
         const renderAction = () => {
@@ -295,45 +295,52 @@
               action-id="tendbcluster_partition"
               permission={data.permission.tendbcluster_partition}
               resource={data.cluster_id}
-              class="ml-8"
+              class="ml-8 mr-16"
               theme="primary"
               text
               onClick={() => handleShowExecuteLog(data)}>
               {t('执行记录')}
             </auth-button>
-            <more-action-extend class="ml-8">
+            <more-action-extend>
               {{
                 default: () => (
                   <>
                     {
                       data.isOnline && (
-                        <auth-template
-                          text
-                          action-id="tendb_partition_enable_disable"
-                          permission={data.permission.tendb_partition_enable_disable}
-                          resource={data.cluster_id}>
-                          <div onClick={() => handleDisable(data)}>{ t('禁用') }</div>
-                        </auth-template>
+                        <bk-dropdown-item>
+                          <auth-template
+                            text
+                            action-id="tendb_partition_enable_disable"
+                            permission={data.permission.tendb_partition_enable_disable}
+                            resource={data.cluster_id}>
+                            <div onClick={() => handleDisable(data)}>{ t('禁用') }</div>
+                          </auth-template>
+                        </bk-dropdown-item>
+
                       )
                     }
-                    <auth-template
-                      text
-                      action-id="tendbcluster_partition_create"
-                      permission={data.permission.tendbcluster_partition_create}
-                      resource={data.cluster_id}>
-                      <div onClick={() => handleClone(data)}>{ t('克隆') }</div>
-                    </auth-template>
-                    <auth-template
-                      action-id="tendbcluster_partition_delete"
-                      permission={data.permission.tendbcluster_partition_delete}
-                      resource={data.cluster_id}>
-                      <db-popconfirm
-                        confirm-handler={() => handleRemove(data)}
-                        content={t('删除操作无法撤回，请谨慎操作！')}
-                        title={t('确认删除该分区策略？')}>
-                        <div>{ t('删除') }</div>
-                      </db-popconfirm>
-                    </auth-template>
+                    <bk-dropdown-item>
+                      <auth-template
+                        text
+                        action-id="tendbcluster_partition_create"
+                        permission={data.permission.tendbcluster_partition_create}
+                        resource={data.cluster_id}>
+                        <div onClick={() => handleClone(data)}>{ t('克隆') }</div>
+                      </auth-template>
+                    </bk-dropdown-item>
+                    <bk-dropdown-item>
+                      <auth-template
+                        action-id="tendbcluster_partition_delete"
+                        permission={data.permission.tendbcluster_partition_delete}
+                        resource={data.cluster_id}>
+                        <db-popconfirm
+                          confirm-handler={() => handleRemove(data)}
+                          content={t('删除操作无法撤回，请谨慎操作！')}
+                          title={t('确认删除该分区策略？')}>
+                          <div>{ t('删除') }</div>
+                        </db-popconfirm>
+                      </auth-template>
+                    </bk-dropdown-item>
                   </>
                 ),
               }}
