@@ -67,6 +67,7 @@
   import ApplyPermissionCatch from '@components/apply-permission/Catch.vue'
   import AuthButton from '@components/auth-component/button.vue';
   import MiniTag from '@components/mini-tag/index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageSuccess } from '@utils';
@@ -331,7 +332,7 @@
       label: t('操作'),
       fixed: 'right',
       field: '',
-      width: 180,
+      width: 230,
       render: ({ data }: {data: MonitorPolicyModel}) => {
         const isInner = data.bk_biz_id === 0;
         return (
@@ -362,29 +363,24 @@
             onClick={() => handleOpenMonitorAlarmPage(data.event_url)}>
             {t('监控告警')}
           </bk-button>
-          <bk-dropdown
-            class="operations-more"
-            popover-options={{ popoverDelay: 0, trigger: 'click' }}>
+          <MoreActionExtend>
             {{
-              default: () => <db-icon type="more" class="icon"/>,
-              content: () => (
-                <bk-dropdown-menu class="operations-menu">
-                  <bk-dropdown-item>
-                    <auth-button
-                      disabled={isInner}
-                      text
-                      action-id="monitor_policy_delete"
-                      results={data.permission.monitor_policy_delete}
-                      permission={data.permission.monitor_policy_delete}
-                      resource={data.id}
-                      onClick={() => handleClickDelete(data)}>
-                        {t('删除')}
-                      </auth-button>
-                    </bk-dropdown-item>
-                </bk-dropdown-menu>
-              ),
+              default: () => <>
+                <bk-dropdown-item>
+                  <auth-button
+                    disabled={isInner}
+                    text
+                    action-id="monitor_policy_delete"
+                    results={data.permission.monitor_policy_delete}
+                    permission={data.permission.monitor_policy_delete}
+                    resource={data.id}
+                    onClick={() => handleClickDelete(data)}>
+                    {t('删除')}
+                  </auth-button>
+                </bk-dropdown-item>
+              </>
             }}
-          </bk-dropdown>
+          </MoreActionExtend>
         </div>
         );
       },
@@ -576,6 +572,7 @@
         gap: 15px;
         justify-content: flex-end;
         align-items: center;
+        padding-right: 15px;
 
         .operations-more {
           .icon {
