@@ -12,9 +12,10 @@ import collections
 from typing import Dict, List
 
 import humanize
+from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.models import LogicalCity
+from backend.db_meta.models import BKCity, LogicalCity
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.infras.constants import InventoryTag
 
@@ -59,6 +60,15 @@ def list_cities() -> List[LCityModel]:
         city_name = _("无限制") if city.name == "default" else city.name
         cities.append(LCityModel(city_code, city_name, "0", InventoryTag.SUFFICIENT.value))
     return cities
+
+
+def list_logic_cities() -> List:
+    """返回逻辑城市的映射关系"""
+    cities = BKCity.objects.all().order_by("bk_idc_city_name")
+    logic_cities = []
+    for city in cities:
+        logic_cities.append({**model_to_dict(city), "logical_city_name": city.logical_city.name})
+    return logic_cities
 
 
 def list_host_specs() -> List[HostSpecModel]:

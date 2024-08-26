@@ -21,7 +21,14 @@ from backend.exceptions import ValidationError
 
 from ...configuration.constants import DBType
 from ..dbbase.constants import IpSource
-from .host import list_cap_specs_cache, list_cap_specs_ssd, list_cap_specs_tendisplus, list_cities, list_host_specs
+from .host import (
+    list_cap_specs_cache,
+    list_cap_specs_ssd,
+    list_cap_specs_tendisplus,
+    list_cities,
+    list_host_specs,
+    list_logic_cities,
+)
 
 SWAGGER_TAG = "infras"
 
@@ -50,6 +57,16 @@ class LogicalCityViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False)
     def list_cities(self, requests, *args, **kwargs):
         serializer = serializers.CitySLZ(list_cities(), many=True)
+        return Response(serializer.data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询逻辑城市映射关系"),
+        responses={status.HTTP_200_OK: serializers.LogicCitySLZ(label=_("城市信息"), many=True)},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def list_logic_cities(self, requests, *args, **kwargs):
+        serializer = serializers.LogicCitySLZ(list_logic_cities(), many=True)
         return Response(serializer.data)
 
 

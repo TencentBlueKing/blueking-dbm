@@ -30,6 +30,15 @@ class CitySLZ(serializers.Serializer):
     inventory_tag = serializers.CharField()
 
 
+class LogicCitySLZ(serializers.Serializer):
+    """逻辑城市映射"""
+
+    bk_idc_city_id = serializers.IntegerField()
+    bk_idc_city_name = serializers.CharField()
+    logical_city = serializers.IntegerField()
+    logical_city_name = serializers.CharField()
+
+
 class HostSpecSLZ(serializers.Serializer):
     """服务器规格"""
 
