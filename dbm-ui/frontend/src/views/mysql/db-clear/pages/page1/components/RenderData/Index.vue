@@ -22,7 +22,7 @@
         <template #append>
           <BatchOperateIcon
             class="ml-4"
-            @batch-click="handleShowBatchSelector" />
+            @click="handleShowBatchSelector" />
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
@@ -37,7 +37,7 @@
             <BatchOperateIcon
               class="ml-4"
               type="edit"
-              @batch-click="handleShowBatchEdit" />
+              @click="handleShowBatchEdit" />
           </BatchEditColumn>
         </template>
         {{ t('清档类型') }}

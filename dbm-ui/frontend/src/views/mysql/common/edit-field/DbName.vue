@@ -28,7 +28,7 @@
 
   import { checkClusterDatabase } from '@services/source/dbbase';
 
-  import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
+  import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
     modelValue?: string[];

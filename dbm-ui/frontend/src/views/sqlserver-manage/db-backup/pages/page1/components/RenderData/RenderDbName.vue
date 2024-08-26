@@ -12,37 +12,46 @@
 -->
 
 <template>
-  <TableEditTag
+  <TableTagInput
     ref="tagRef"
     :model-value="modelValue"
     :placeholder="t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
     :rules="rules"
     @change="handleChange" />
 </template>
+
 <script setup lang="ts">
   import _ from 'lodash';
-  import { ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditTag from '@components/render-table/columns/db-table-name/Index.vue';
+  import { checkSqlserverDbExist } from '@services/source/sqlserver';
+
+  import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
+
+  import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
   interface Props {
-    modelValue?: string[];
     clusterId: number;
+    modelValue?: string[];
+    required?: boolean;
+  }
+
+  interface Emits {
+    (e: 'change', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, string[]>>;
+    getValue: () => Promise<string[]>;
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  let noExitsDbList = [] as string[];
+
   const rules = [
-    {
-      validator: (value: string[]) => value && value.length > 0,
-      message: t('DB名不能为空'),
-    },
     {
       validator: (value: string[]) => {
         const hasAllMatch = _.find(value, (item) => /%$/.test(item));
@@ -50,10 +59,42 @@
       },
       message: t('一格仅支持单个_对象'),
     },
+    {
+      validator: (value: string[]) => {
+        if (value.length > 0) {
+          return props.clusterId > 0;
+        }
+        return true;
+      },
+      message: t('请先输入或选择集群'),
+    },
+    {
+      validator: (value: string[]) =>
+        checkSqlserverDbExist({
+          cluster_id: props.clusterId,
+          db_list: value,
+        }).then((data) => {
+          noExitsDbList = Object.entries(data).reduce((prevDbList, [dbName, isExists]) => {
+            if (!isExists) {
+              return [...prevDbList, dbName];
+            }
+            return prevDbList;
+          }, [] as string[]);
+          return noExitsDbList.length === 0;
+        }),
+      message: () => t('目标DB不存在', [noExitsDbList.join('，')]),
+    },
   ];
 
-  const tagRef = ref();
-  const localValue = ref(props.modelValue);
+  if (props.required) {
+    rules.unshift({
+      validator: (value: string[]) => value.length > 0,
+      message: t('DB名不能为空'),
+    });
+  }
+
+  const tagRef = ref<InstanceType<typeof TableEditTag>>();
+  const localValue = ref(props.modelValue || []);
 
   // 集群改变时 DB 需要重置
   watch(
@@ -79,13 +120,18 @@
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
+    emits('change', value);
   };
 
   defineExpose<Exposes>({
-    getValue(field: string) {
-      return tagRef.value.getValue().then(() => ({
-        [field]: localValue.value,
-      }));
+    getValue() {
+      return tagRef.value!.getValue().then(() => localValue.value);
     },
   });
 </script>
+
+<style lang="less">
+  .render-db-name {
+    display: block;
+  }
+</style>

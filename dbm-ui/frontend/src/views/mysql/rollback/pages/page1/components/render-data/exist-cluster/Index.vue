@@ -21,7 +21,7 @@
       <template #append>
         <BatchOperateIcon
           class="ml-4"
-          @batch-click="handleShowBatchSelector" />
+          @click="handleShowBatchSelector" />
       </template>
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
@@ -41,7 +41,7 @@
           <BatchOperateIcon
             class="ml-4"
             type="edit"
-            @batch-click="handleShowBatchEdit('backupSource')" />
+            @click="handleShowBatchEdit('backupSource')" />
         </BatchEditColumn>
       </template>
       {{ t('备份源') }}
@@ -104,7 +104,7 @@
         <BatchOperateIcon
           class="ml-4"
           type="edit"
-          @batch-click="handleShowBatchEdit('mode')" />
+          @click="handleShowBatchEdit('mode')" />
       </template>
       {{ t('回档类型') }}
     </RenderTableHeadColumn>
@@ -121,7 +121,7 @@
           <BatchOperateIcon
             class="ml-4"
             type="edit"
-            @batch-click="handleShowBatchEdit('databases')" />
+            @click="handleShowBatchEdit('databases')" />
         </BatchEditColumn>
       </template>
       {{ t('回档DB') }}
@@ -140,7 +140,7 @@
           <BatchOperateIcon
             class="ml-4"
             type="edit"
-            @batch-click="handleShowBatchEdit('databasesIgnore')" />
+            @click="handleShowBatchEdit('databasesIgnore')" />
         </BatchEditColumn>
       </template>
       {{ t('忽略DB') }}
@@ -158,7 +158,7 @@
           <BatchOperateIcon
             class="ml-4"
             type="edit"
-            @batch-click="handleShowBatchEdit('tables')" />
+            @click="handleShowBatchEdit('tables')" />
         </BatchEditColumn>
       </template>
       {{ t('回档表名') }}
@@ -177,7 +177,7 @@
           <BatchOperateIcon
             class="ml-4"
             type="edit"
-            @batch-click="handleShowBatchEdit('tablesIgnore')" />
+            @click="handleShowBatchEdit('tablesIgnore')" />
         </BatchEditColumn>
       </template>
       {{ t('忽略表名') }}

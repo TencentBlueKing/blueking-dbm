@@ -24,23 +24,23 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
+  import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
-    required?: boolean,
-    single?: boolean,
+    required?: boolean;
+    single?: boolean;
     rules?: {
-      validator: (value: string[]) => boolean,
-      message: string
-    }[]
+      validator: (value: string[]) => boolean;
+      message: string;
+    }[];
   }
 
   interface Emits {
-    (e: 'change', value: string []): void,
+    (e: 'change', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, string[]>>
+    getValue: (field: string) => Promise<Record<string, string[]>>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -54,7 +54,7 @@
   const { t } = useI18n();
 
   const tagRef = ref();
-  const localValue  = ref<string[]>([]);
+  const localValue = ref<string[]>([]);
 
   const rules = computed(() => {
     if (props.rules && props.rules.length > 0) {
@@ -72,12 +72,12 @@
         message: t('表名不能为空'),
       },
       {
-        validator: (value: string[]) => _.every(value, item => item.length <= 255),
+        validator: (value: string[]) => _.every(value, (item) => item.length <= 255),
         message: t('表名长度不超过255个字符'),
         trigger: 'change',
       },
       {
-        validator: (value: string[]) => _.every(value, item => /^[a-zA-Z0-9_-]*\*?[a-zA-Z0-9_-]*$/.test(item)),
+        validator: (value: string[]) => _.every(value, (item) => /^[a-zA-Z0-9_-]*\*?[a-zA-Z0-9_-]*$/.test(item)),
         message: t('输入格式有误'),
         trigger: 'change',
       },
@@ -91,15 +91,14 @@
 
   defineExpose<Exposes>({
     getValue(field: string) {
-      return tagRef.value.getValue()
-        .then(() => {
-          if (!localValue.value) {
-            return Promise.reject();
-          }
-          return {
-            [field]: props.single ? localValue.value[0] : localValue.value,
-          };
-        });
+      return tagRef.value.getValue().then(() => {
+        if (!localValue.value) {
+          return Promise.reject();
+        }
+        return {
+          [field]: props.single ? localValue.value[0] : localValue.value,
+        };
+      });
     },
   });
 </script>
