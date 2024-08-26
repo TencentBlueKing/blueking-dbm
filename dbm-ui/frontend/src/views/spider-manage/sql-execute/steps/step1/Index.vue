@@ -95,7 +95,7 @@
       mode: 'manual',
       trigger_time: '',
     },
-    ticket_type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+    ticket_type: TicketTypes.TENDBCLUSTER_SEMANTIC_CHECK,
     cluster_type: DBTypes.TENDBCLUSTER,
   });
 
@@ -172,7 +172,6 @@
   // 开始模拟执行
   const handleSubmit = () => {
     isSubmitting.value = true;
-
     formRef.value
       .validate()
       .then(() => runSemanticCheck(formData))
