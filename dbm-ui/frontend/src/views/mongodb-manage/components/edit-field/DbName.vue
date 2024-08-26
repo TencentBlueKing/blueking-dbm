@@ -24,23 +24,23 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableTagInput from '@components/render-table/columns/tag-input/index.vue';
+  import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
 
   interface Props {
-    required?: boolean,
-    single?: boolean,
+    required?: boolean;
+    single?: boolean;
     rules?: {
-      validator: (value: string[]) => boolean,
-      message: string
-    }[]
+      validator: (value: string[]) => boolean;
+      message: string;
+    }[];
   }
 
   interface Emits {
-    (e: 'change', value: string []): void,
+    (e: 'change', value: string[]): void;
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<Record<string, string[]>>
+    getValue: (field: string) => Promise<Record<string, string[]>>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -65,7 +65,7 @@
 
     return [
       {
-        validator: (value: string []) => {
+        validator: (value: string[]) => {
           if (!props.required) {
             return true;
           }
@@ -74,12 +74,12 @@
         message: t('DB 名不能为空'),
       },
       {
-        validator: (value: string []) => _.every(value, item => item.length <= 64),
+        validator: (value: string[]) => _.every(value, (item) => item.length <= 64),
         message: t('库名长度不超过64个字符'),
         trigger: 'change',
       },
       {
-        validator: (value: string []) => _.every(value, item => /^[a-zA-Z0-9_-]*\*?[a-zA-Z0-9_-]*$/.test(item)),
+        validator: (value: string[]) => _.every(value, (item) => /^[a-zA-Z0-9_-]*\*?[a-zA-Z0-9_-]*$/.test(item)),
         message: t('输入格式有误'),
         trigger: 'change',
       },
@@ -93,15 +93,14 @@
 
   defineExpose<Exposes>({
     getValue(field: string) {
-      return tagRef.value.getValue()
-        .then(() => {
-          if (!localValue.value) {
-            return Promise.reject();
-          }
-          return {
-            [field]: props.single ? localValue.value[0] : localValue.value,
-          };
-        });
+      return tagRef.value.getValue().then(() => {
+        if (!localValue.value) {
+          return Promise.reject();
+        }
+        return {
+          [field]: props.single ? localValue.value[0] : localValue.value,
+        };
+      });
     },
   });
 </script>

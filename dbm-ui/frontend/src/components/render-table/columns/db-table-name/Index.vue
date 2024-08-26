@@ -12,66 +12,68 @@
 -->
 
 <template>
-  <TableEditTag
-    ref="editTagRef"
-    :model-value="localValue"
-    :placeholder="t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
+  <TagInput
+    ref="tagInputRef"
+    v-model="modelValue"
+    :disabled="disabled"
+    :placeholder="placeholder"
     :rules="rules"
-    @change="handleChange" />
+    :single="single"
+    @change="handleValueChange">
+    <template #tip>
+      <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
+      <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
+      <p>{{ t('* ：专门指代 ALL 语义, 只能独立使用') }}</p>
+      <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
+      <p>{{ t('Enter 完成内容输入') }}</p>
+    </template>
+  </TagInput>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditTag from '@components/render-table/columns/db-table-name/Index.vue';
+  import { type Rules } from '../../hooks/useValidtor';
+  import TagInput from '../tag-input/index.vue';
 
   interface Props {
-    modelValue: string[];
-    required?: boolean;
+    placeholder?: string;
+    single?: boolean;
+    rules?: Rules;
+    disabled?: boolean;
   }
+
   interface Emits {
     (e: 'change', value: string[]): void;
   }
+
   interface Exposes {
     getValue: () => Promise<string[]>;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    required: true,
+  withDefaults(defineProps<Props>(), {
+    placeholder: '',
+    single: false,
+    rules: undefined,
+    disabled: false,
   });
 
   const emits = defineEmits<Emits>();
 
+  const modelValue = defineModel<string[]>({
+    default: [],
+  });
+
   const { t } = useI18n();
-  const rules = [
-    {
-      validator: (value: string[]) => {
-        if (!props.required) {
-          return true;
-        }
-        return value && value.length > 0;
-      },
-      message: t('DB名不能为空'),
-    },
-    {
-      validator: (value: string[]) => {
-        const hasAllMatch = _.find(value, (item) => /%$/.test(item));
-        return !(value.length > 1 && hasAllMatch);
-      },
-      message: t('一格仅支持单个_对象'),
-    },
-  ];
 
-  const editTagRef = ref();
-  const localValue = ref(props.modelValue);
+  const tagInputRef = ref<InstanceType<typeof TagInput>>();
 
-  const handleChange = (value: string[]) => {
+  const handleValueChange = (value: string[]) => {
     emits('change', value);
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return editTagRef.value.getValue(localValue.value);
+      return tagInputRef.value!.getValue().then(() => modelValue.value);
     },
   });
 </script>

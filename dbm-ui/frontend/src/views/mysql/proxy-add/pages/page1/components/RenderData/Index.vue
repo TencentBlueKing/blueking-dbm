@@ -21,7 +21,7 @@
       <template #append>
         <BatchOperateIcon
           class="ml-4"
-          @batch-click="handleShowBatchSelectCluster" />
+          @click="handleShowBatchSelectCluster" />
       </template>
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
