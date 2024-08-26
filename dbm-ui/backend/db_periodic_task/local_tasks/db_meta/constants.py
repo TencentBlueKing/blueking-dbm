@@ -97,6 +97,32 @@ QUERY_TEMPLATE = {
                     bkmonitor:exporter_dbm_mysqld_exporter:mysql_datadir_df_total_mb{instance_role="remote_master",%s}[5m]
                 ) * 1024 * 1024))""",
     },
+    ClusterType.SqlserverSingle: {
+        "range": 120,
+        "used": """sum by (cluster_domain) (
+                    max_over_time(
+                        bkmonitor:exporter_dbm_mssql_exporter:mssql_datadisk_used{instance_role="orphan",%s}[5m]
+                    ) * 1024 * 1024 * 1024 )""",
+        "total": """max by (cluster_domain) (
+                    max_over_time(
+                        bkmonitor:exporter_dbm_mssql_exporter:mssql_datadisk_total{instance_role="orphan",%s}[5m]
+                    ) * 1024 * 1024 * 1024 )""",
+    },
+    ClusterType.SqlserverHA: {
+        "range": 120,
+        "used": """sum by (cluster_domain) (
+            max by (cluster_domain, ip) (
+                max_over_time(
+                    bkmonitor:exporter_dbm_mssql_exporter:mssql_datadisk_used{instance_role="backend_master",%s}[5m]
+                ) * 1024 * 1024 * 1024
+            ))""",
+        "total": """sum by (cluster_domain) (
+            max by (cluster_domain, ip) (
+                max_over_time(
+                    bkmonitor:exporter_dbm_mssql_exporter:mssql_datadisk_total{instance_role="backend_master",%s}[5m]
+                ) * 1024 * 1024 * 1024
+            ))""",
+    },
     # es采集器本身存在容量统计指标（elasticsearch_filesystem_data_size_bytes、elasticsearch_indices_store_size_bytes）
     # 但数据节点只注册了一个，这里暂时用磁盘容量计算
     ClusterType.Es: {
