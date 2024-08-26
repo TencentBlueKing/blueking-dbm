@@ -157,7 +157,7 @@
               v-model:domains="formData.details.infos"
               :app-abbr="formData.details.db_app_abbr"
               :biz-id="formData.bk_biz_id"
-              :city-name="cityName"
+              :city-info="cityInfo"
               :cloud-id="cloudInfo.id"
               :is-append="isAppend"
               :max-memory="maxMemory"
@@ -266,7 +266,10 @@
     name: '',
   });
   const maxMemory = ref('0G');
-  const cityName = ref('');
+  const cityInfo = ref({
+    cityCode: '',
+    cityName: '',
+  });
 
   const formData = reactive(initData());
 
@@ -302,7 +305,7 @@
   watch(
     () => formData.details.city_code,
     () => {
-      cityName.value = regionItemRef.value!.getValue().cityName;
+      cityInfo.value = regionItemRef.value!.getValue();
     },
   );
 
@@ -376,7 +379,7 @@
       ip: value,
       instance_role: 'redis_master',
       bk_cloud_id: formData.details.bk_cloud_id,
-      bk_city_name: cityName.value,
+      bk_city_name: cityInfo.value.cityName,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
     }).then((data) => {
       const redisMachineList = data.results;
