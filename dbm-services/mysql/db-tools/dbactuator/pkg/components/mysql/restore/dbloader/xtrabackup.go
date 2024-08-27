@@ -132,7 +132,7 @@ func (x *Xtrabackup) PostRun() (err error) {
 	logger.Info("reconnect use ADMIN and temp_job_user pwd(already repaired) %d", x.TgtInstance.Port)
 	tmpAdminPassInst := deepcopy.Copy(x.TgtInstance).(native.InsObject)
 	tmpAdminPassInst.User = native.DBUserAdmin
-	//tmpAdminPassInst.ConnBySocket()
+	tmpAdminPassInst.Socket = ""
 	if x.dbWorker, err = tmpAdminPassInst.Conn(); err != nil {
 		return err
 	} else {

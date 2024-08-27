@@ -135,8 +135,11 @@ func (l *LogicalLoader) Execute() (err error) {
 		"-u", l.cnf.LogicalLoad.MysqlUser,
 		"-p", l.cnf.LogicalLoad.MysqlPasswd,
 		"-d", l.cnf.LogicalLoad.MysqlLoadDir,
-		fmt.Sprintf("--threads=%d", l.cnf.LogicalLoad.Threads),
 		fmt.Sprintf("--set-names=%s", l.cnf.LogicalLoad.MysqlCharset),
+	}
+	if l.cnf.LogicalLoad.Threads > 0 {
+		// cpus, err := cmutil.GetCPUInfo()
+		args = append(args, fmt.Sprintf("--threads=%d", l.cnf.LogicalLoad.Threads))
 	}
 	if l.cnf.LogicalLoad.EnableBinlog {
 		args = append(args, "--enable-binlog")

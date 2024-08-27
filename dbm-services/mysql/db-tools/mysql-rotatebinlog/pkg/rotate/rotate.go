@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/spf13/cast"
-
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/reportlog"
@@ -201,7 +199,7 @@ func (i *ServerObj) RegisterBinlog(lastFileBefore *models.BinlogFileModel) error
 			i.backupEnable = true
 		}
 	} else {
-		i.backupEnable = cast.ToBool(i.publicCfg.BackupEnable)
+		i.backupEnable = cmutil.ToBoolExt(i.publicCfg.BackupEnable)
 	}
 	var roleSwitched bool
 	if i.Tags.DBRole == cst.RoleMaster && lastFileBefore.DBRole == cst.RoleSlave {

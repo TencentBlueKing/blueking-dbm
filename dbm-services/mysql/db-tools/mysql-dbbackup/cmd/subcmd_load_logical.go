@@ -50,7 +50,7 @@ func init() {
 	viper.BindPFlag("LogicalLoad.MysqlCharset", loadLogicalCmd.Flags().Lookup("charset"))
 
 	// Control options
-	loadLogicalCmd.Flags().Bool("enable-binlog", false, "threads for myloader, overwrite LogicalLoad.EnableBinlog")
+	loadLogicalCmd.Flags().Bool("enable-binlog", false, "overwrite LogicalLoad.EnableBinlog")
 	loadLogicalCmd.Flags().String("databases-drop", "", "database list to drop, "+
 		"overwrite LogicalLoad.DBListDropIfExists")
 	viper.BindPFlag("LogicalLoad.EnableBinlog", loadLogicalCmd.Flags().Lookup("enable-binlog"))

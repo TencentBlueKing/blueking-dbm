@@ -125,14 +125,17 @@ func (x *Xtrabackup) RepairAndTruncateMyIsamTables() error {
 	wg := sync.WaitGroup{}
 	errorChan := make(chan error, 1)
 	finishChan := make(chan bool, 1)
+	ch := make(chan struct{}, 4) // 控制并发
 	for rows.Next() {
 		var db string
 		var table string
 		if err := rows.Scan(&db, &table); err != nil {
 			return err
 		}
+		ch <- struct{}{}
 		wg.Add(1)
 		go func(worker *native.DbWorker, db, table string) {
+			<-ch
 			defer wg.Done()
 			defer func() {
 				if r := recover(); r != nil {
