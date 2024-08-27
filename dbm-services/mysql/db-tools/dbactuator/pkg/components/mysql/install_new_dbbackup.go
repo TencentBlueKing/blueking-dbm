@@ -140,43 +140,6 @@ func (i *InstallNewDbBackupComp) Init() (err error) {
 		logger.Info("untar_only=true do not try to connect")
 		return nil
 	}
-	for _, port := range i.Params.Ports {
-		/*
-			dbwork, err := native.InsObject{
-				Host: i.Params.Host,
-				Port: port,
-				User: i.GeneralParam.RuntimeAccountParam.AdminUser,
-				Pwd:  i.GeneralParam.RuntimeAccountParam.AdminPwd,
-			}.Conn()
-			if err != nil {
-				return fmt.Errorf("init db conn %d failed err:%w", port, err)
-			}
-			i.dbConn[port] = dbwork
-			version, err := dbwork.SelectVersion()
-			if err != nil {
-				return err
-			}
-			i.versionMap[port] = version
-		*/
-		if i.Params.Role == cst.BackupRoleSpiderMaster {
-			tdbctlPort := mysqlcomm.GetTdbctlPortBySpider(port)
-			tdbctlWork, err := native.InsObject{
-				Host: i.Params.Host,
-				Port: tdbctlPort,
-				User: i.GeneralParam.RuntimeAccountParam.AdminUser,
-				Pwd:  i.GeneralParam.RuntimeAccountParam.AdminPwd,
-			}.Conn()
-			if err != nil {
-				return fmt.Errorf("init tdbcl conn %d failed:%w", tdbctlPort, err)
-			}
-			i.dbConn[tdbctlPort] = tdbctlWork
-			version, err := tdbctlWork.SelectVersion()
-			if err != nil {
-				return err
-			}
-			i.versionMap[tdbctlPort] = version
-		}
-	}
 	logger.Info("config %v", i.Params.Configs)
 	return nil
 }

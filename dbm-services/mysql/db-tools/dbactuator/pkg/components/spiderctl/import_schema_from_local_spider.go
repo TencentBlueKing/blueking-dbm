@@ -51,7 +51,7 @@ type ImportSchemaFromLocalSpiderParam struct {
 type importSchemaFromLocalSpiderRuntime struct {
 	spiderconn      *native.DbWorker
 	tdbctlConn      *native.DbWorker
-	version         string
+	tdbctlConns     []*native.DbWorker
 	charset         string
 	dumpDbs         []string
 	tmpDumpDir      string
@@ -65,7 +65,7 @@ type importSchemaFromLocalSpiderRuntime struct {
 }
 
 // Example subcommand example input
-func (i *ImportSchemaFromLocalSpiderComp) Example() interface{} {
+func (c *ImportSchemaFromLocalSpiderComp) Example() interface{} {
 	comp := ImportSchemaFromLocalSpiderComp{
 		Params: ImportSchemaFromLocalSpiderParam{
 			Host:       "1.1.1.1",
@@ -118,10 +118,7 @@ func (c *ImportSchemaFromLocalSpiderComp) Init() (err error) {
 		logger.Error("获取version failed %s", err.Error())
 		return err
 	}
-	finaldbs := []string{}
-	for _, db := range util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest(version)) {
-		finaldbs = append(finaldbs, db)
-	}
+	finaldbs := util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabases(version))
 	c.dumpDbs = finaldbs
 	c.charset, err = c.spiderconn.ShowServerCharset()
 	if err != nil {
@@ -130,11 +127,11 @@ func (c *ImportSchemaFromLocalSpiderComp) Init() (err error) {
 	}
 	c.tmpDumpDir = path.Join(cst.BK_PKG_INSTALL_PATH, "schema_migrate_"+time.Now().Format(cst.TimeLayoutDir))
 	if !cmutil.FileExists(c.tmpDumpDir) {
-		stderr, err := osutil.StandardShellCommand(false, fmt.Sprintf("mkdir %s && chown -R mysql %s", c.tmpDumpDir,
+		stderr, errx := osutil.StandardShellCommand(false, fmt.Sprintf("mkdir %s && chown -R mysql %s", c.tmpDumpDir,
 			c.tmpDumpDir))
-		if err != nil {
-			logger.Error("init dir %s failed %s,stderr:%s ", c.tmpDumpDir, err.Error(), stderr)
-			return err
+		if errx != nil {
+			logger.Error("init dir %s failed %s,stderr:%s ", c.tmpDumpDir, errx.Error(), stderr)
+			return errx
 		}
 	}
 	c.tmpDumpFile = time.Now().Format(cst.TimeLayoutDir) + "_schema.sql"
@@ -146,21 +143,82 @@ func (c *ImportSchemaFromLocalSpiderComp) Init() (err error) {
 			c.maxThreads = 2
 		}
 	}
+	if err = c.initSlaveTdbctlConns(); err != nil {
+		logger.Error("init slave tdbctl conns failed %s", err.Error())
+		return err
+	}
 	return err
 }
 
-// Migrate TODO
-func (c *ImportSchemaFromLocalSpiderComp) Migrate() (err error) {
-	_, err = c.tdbctlConn.Exec("set global tc_ignore_partitioning_for_create_table = 1;")
+// initSlaveTdbctlConns init slave tdbctl conns
+func (c *ImportSchemaFromLocalSpiderComp) initSlaveTdbctlConns() (err error) {
+	tconn := native.TdbctlDbWork{
+		DbWorker: *c.tdbctlConn,
+	}
+	servers, err := tconn.SelectServers()
 	if err != nil {
-		logger.Error("set global tc_ignore_partitioning_for_create_table failed %s", err.Error())
+		logger.Error("select servers failed %s", err.Error())
+	}
+	var tdbctlServers []native.Server
+	for _, server := range servers {
+		if native.SvrNameIsTdbctl(server.ServerName) {
+			tdbctlServers = append(tdbctlServers, server)
+		}
+	}
+	for _, server := range tdbctlServers {
+		conn, err := native.InsObject{
+			Host: server.Host,
+			Port: server.Port,
+			User: server.Username,
+			Pwd:  server.Password,
+		}.Conn()
+		if err != nil {
+			return err
+		}
+		c.tdbctlConns = append(c.tdbctlConns, conn)
+	}
+	return
+}
+
+func (c *ImportSchemaFromLocalSpiderComp) enableTcIgnore() (err error) {
+	for _, c := range c.tdbctlConns {
+		_, err = c.Exec("set global tc_ignore_partitioning_for_create_table = 1;")
+		if err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func (c *ImportSchemaFromLocalSpiderComp) disableTcIgnore() (err error) {
+	for _, c := range c.tdbctlConns {
+		_, err = c.Exec("set global tc_ignore_partitioning_for_create_table = 0;")
+		if err != nil {
+			return err
+		}
+	}
+	return
+}
+
+func (c *ImportSchemaFromLocalSpiderComp) closeSlavetdbctlConns() {
+	for _, c := range c.tdbctlConns {
+		if c != nil {
+			c.Close()
+		}
+	}
+}
+
+// Migrate migrate local spider schema to tdbctl
+func (c *ImportSchemaFromLocalSpiderComp) Migrate() (err error) {
+	if err = c.enableTcIgnore(); err != nil {
 		return err
 	}
 	defer func() {
-		_, errx := c.tdbctlConn.Exec("set global tc_ignore_partitioning_for_create_table = 0;")
+		errx := c.disableTcIgnore()
 		if errx != nil {
 			logger.Warn("set close tc_ignore_partitioning_for_create_table failed %s", errx.Error())
 		}
+		c.closeSlavetdbctlConns()
 	}()
 	if c.Params.UseMydumper {
 		if c.Params.Stream {
