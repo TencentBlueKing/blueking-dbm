@@ -84,7 +84,7 @@ func (a *AddSlaveClusterRoutingComp) Init() (err error) {
 func (a *AddSlaveClusterRoutingComp) PerCheck() (err error) {
 
 	// 先把session级别tc_admin 设置为0，让show命令生效
-	if _, err := a.dbConn.Exec("set tc_admin = 0"); err != nil {
+	if _, err = a.dbConn.Exec("set tc_admin = 0"); err != nil {
 		logger.Error("set tc_admin failed:[%s]", err.Error())
 		return err
 	}

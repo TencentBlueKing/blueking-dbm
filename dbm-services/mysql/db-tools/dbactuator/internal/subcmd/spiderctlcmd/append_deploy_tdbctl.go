@@ -24,13 +24,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/spf13/cobra"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
-
-	"github.com/spf13/cobra"
 )
 
 // AppendDeployCtlSpiderAct 部署 spider ctl 实例
