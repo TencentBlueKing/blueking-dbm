@@ -39,17 +39,24 @@
     } = props.ticketDetails.details;
 
     return infos.map(item => ({
+      cloneType: item.data_schema_grant,
       dbNameList: item.db_list,
       sourceCluster: clusters[item.source_cluster].immute_domain,
       targetClusters: item.target_clusters.map(id => clusters[id].immute_domain),
     }));
   });
 
+  const cloneTypeMap: Record<string, string> = {
+    'data,schema': t('克隆表结构和数据'),
+    'schema': t('克隆表结构'),
+  }
+
   const columns = [
     {
       label: t('源集群'),
       width: 220,
       field: 'sourceCluster',
+      fixed: 'left'
     },
     {
       label: t('目标集群'),
@@ -60,6 +67,12 @@
           {cell.join(',')}
         </span>
       ),
+    },
+    {
+      label: t('克隆类型'),
+      field: 'cloneType',
+      minWidth: 300,
+      render: ({ cell }: {cell: string}) => <span>{cloneTypeMap[cell] || '--'}</span>,
     },
     {
       label: t('最终DB名'),

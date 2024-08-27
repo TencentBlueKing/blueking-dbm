@@ -542,6 +542,7 @@ export interface MySQLExportData {
 export interface MysqlDataMigrateDetails {
   clusters: DetailClusters;
   infos: {
+    data_schema_grant: string;
     db_list: string;
     source_cluster: number;
     target_clusters: number[];

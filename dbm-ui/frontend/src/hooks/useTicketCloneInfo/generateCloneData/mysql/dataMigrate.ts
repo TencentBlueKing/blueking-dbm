@@ -27,6 +27,7 @@ export function generateMysqlDataMigrateCloneData(ticketData: TicketModel<MysqlD
         domain: sourceClusterInfo.immute_domain,
         type: sourceClusterInfo.cluster_type,
       },
+      cloneType: item.data_schema_grant,
       targetClusters: item.target_clusters.map((id) => clusters[id].immute_domain).join(','),
     };
   });
