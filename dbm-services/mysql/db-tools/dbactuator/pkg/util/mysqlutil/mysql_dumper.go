@@ -11,7 +11,6 @@
 package mysqlutil
 
 import (
-	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"errors"
 	"fmt"
 	"os"
@@ -21,6 +20,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -641,7 +642,7 @@ type DbMigrateDumper struct {
 // DumpbackupLogical 使用备份工具进行逻辑备份
 func (d *DbMigrateDumper) DumpbackupLogical() (err error) {
 	backupCmd := d.getBackupCmd()
-	logger.Info("backupcmd is %s", ClearSensitiveInformation(backupCmd))
+	logger.Info("backupcmd is %s", mysqlcomm.ClearSensitiveInformation(backupCmd))
 	output, err := osutil.StandardShellCommand(false, backupCmd)
 	if err != nil {
 		return fmt.Errorf("execte %s get an error:%s,%w", backupCmd, output, err)
