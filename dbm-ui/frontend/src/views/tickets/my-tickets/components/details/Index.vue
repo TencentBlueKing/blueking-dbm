@@ -28,19 +28,12 @@
                 :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
                 mode="collapse"
                 :title="t('需求信息')">
-                <DemandInfo :data="ticketData" />
-                <div>
-                  <span
-                    style="
-                      display: inline-block;
-                      min-width: 100px;
-                      padding-right: 4px;
-                      line-height: 32px;
-                      text-align: right;
-                    ">
-                    {{ t('备注：') }}
-                  </span>
-                  <span>{{ ticketData.remark || '--' }}</span>
+                <DemandInfo
+                  :data="ticketData"
+                  :is-loading="isLoading" />
+                <div class="ticket-details-item">
+                  <span class="ticket-details-item-label">{{ t('备注') }}：</span>
+                  <span class="ticket-details-item-value">{{ ticketData.remark || '--' }}</span>
                 </div>
               </DbCard>
             </Teleport>
@@ -68,7 +61,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
@@ -96,21 +88,20 @@
   const demandCollapse = ref(false);
   const flowInfoRef = ref<InstanceType<typeof FlowInfo>>();
 
-  const isLoading = ref(true);
-  const ticketData = ref<TicketModel<unknown>>();
-
-  const { run: fetchTicketDetails } = useRequest(
+  const {
+    run: fetchTicketDetails,
+    data: ticketData,
+    loading: isLoading,
+  } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
       getTicketDetails(params, {
         permission: 'catch',
       }),
     {
-      onSuccess(data, params) {
+      onSuccess(_, params) {
         if (params[0].id !== props.ticketId) {
           return;
         }
-        isLoading.value = false;
-        ticketData.value = data;
         loopFetchTicketDetails();
       },
     },
@@ -171,6 +162,8 @@
 </script>
 
 <style lang="less">
+  @import '@views/tickets/common/styles/ticketDetails.less';
+
   .ticket-details-page {
     padding: 24px;
     font-size: 12px;

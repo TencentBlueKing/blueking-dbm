@@ -16,23 +16,23 @@
     <div
       v-for="(item, index) in dataList"
       :key="index">
-      <strong class="ticket-details__info-title">{{ item.title }}</strong>
-      <div class="ticket-details__list">
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ t('集群') }}：</span>
-          <span class="ticket-details__item-value">{{ item.clusterName }}</span>
+      <strong class="ticket-details-info-title">{{ item.title }}</strong>
+      <div class="ticket-details-list">
+        <div class="ticket-details-item">
+          <span class="ticket-details-item-label">{{ t('集群') }}：</span>
+          <span class="ticket-details-item-value">{{ item.clusterName }}</span>
         </div>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ t('集群ID') }}：</span>
-          <span class="ticket-details__item-value">{{ item.clusterId }}</span>
+        <div class="ticket-details-item">
+          <span class="ticket-details-item-label">{{ t('集群ID') }}：</span>
+          <span class="ticket-details-item-value">{{ item.clusterId }}</span>
         </div>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ t('服务器选择方式') }}：</span>
-          <span class="ticket-details__item-value">{{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }} </span>
+        <div class="ticket-details-item">
+          <span class="ticket-details-item-label">{{ t('服务器选择方式') }}：</span>
+          <span class="ticket-details-item-value">{{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }} </span>
         </div>
-        <div class="ticket-details__item">
-          <span class="ticket-details__item-label">{{ isScaleUp ? t('扩容容量') : t('缩容容量') }}：</span>
-          <span class="ticket-details__item-value">
+        <div class="ticket-details-item">
+          <span class="ticket-details-item-label">{{ isScaleUp ? t('扩容容量') : t('缩容容量') }}：</span>
+          <span class="ticket-details-item-value">
             {{ isScaleUp ? item.targetDisk : item.shrinkDisk }}GB （{{
               isScaleUp
                 ? t('当前m_G_扩容后预估n_G', { m: item.totalDisk, n: item.expectDisk })
@@ -41,13 +41,13 @@
           </span>
         </div>
         <template v-if="isFromResourcePool">
-          <div class="ticket-details__item">
-            <span class="ticket-details__item-label">{{ isScaleUp ? t('扩容规格') : t('缩容规格') }}：</span>
-            <span class="ticket-details__item-value">{{ item.specName }}</span>
+          <div class="ticket-details-item">
+            <span class="ticket-details-item-label">{{ isScaleUp ? t('扩容规格') : t('缩容规格') }}：</span>
+            <span class="ticket-details-item-value">{{ item.specName }}</span>
           </div>
-          <div class="ticket-details__item">
-            <span class="ticket-details__item-label">{{ isScaleUp ? t('扩容数量') : t('缩容数量') }}：</span>
-            <span class="ticket-details__item-value">
+          <div class="ticket-details-item">
+            <span class="ticket-details-item-label">{{ isScaleUp ? t('扩容数量') : t('缩容数量') }}：</span>
+            <span class="ticket-details-item-value">
               {{ t('n台', [item.count]) }}（{{
                 t('当前n台_扩容至m台', { n: item.totalHost, m: item.totalHost + item.count })
               }})
@@ -55,8 +55,8 @@
           </div>
         </template>
         <template v-else>
-          <div class="ticket-details__item">
-            <span class="ticket-details__item-label">{{ t('已选IP') }}：</span>
+          <div class="ticket-details-item">
+            <span class="ticket-details-item-label">{{ t('已选IP') }}：</span>
           </div>
           <div class="inline-table">
             <SelectIpTable :data="item.hostList" />

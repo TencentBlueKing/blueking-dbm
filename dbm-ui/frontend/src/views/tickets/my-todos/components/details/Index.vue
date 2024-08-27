@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="ticket-details">
+  <div class="ticket-details-page">
     <BkLoading
       :loading="state.isLoading"
       style="min-height: 200px">
@@ -36,9 +36,9 @@
             <DemandInfo
               :data="state.ticketData"
               :is-loading="state.isLoading" />
-            <div class="mt-10">
-              <span>{{ t('备注') }}:</span>
-              <span class="ml-5">{{ state.ticketData.remark }}</span>
+            <div class="ticket-details-item">
+              <span class="ticket-details-item-label">{{ t('备注') }}：</span>
+              <span class="ticket-details-item-value">{{ state.ticketData.remark || '--' }}</span>
             </div>
           </DbCard>
         </Teleport>

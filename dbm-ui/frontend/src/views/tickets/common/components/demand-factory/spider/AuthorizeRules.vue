@@ -13,10 +13,10 @@
 
 <template>
   <div v-if="isAddAuth">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('访问源') }}：</span>
-        <span class="ticket-details__item-value">
+    <div class="ticket-details-list">
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('访问源') }}：</span>
+        <span class="ticket-details-item-value">
           <BkButton
             text
             theme="primary"
@@ -26,9 +26,9 @@
           <span>{{ t('台') }}</span>
         </span>
       </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('目标集群') }}：</span>
-        <span class="ticket-details__item-value">
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('目标集群') }}：</span>
+        <span class="ticket-details-item-value">
           <BkButton
             text
             theme="primary"
@@ -38,12 +38,12 @@
           <span>{{ t('个') }}（{{ clusterType }}）</span>
         </span>
       </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('账号名') }}：</span>
-        <span class="ticket-details__item-value">{{ authorizeData?.user || '--' }}</span>
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('账号名') }}：</span>
+        <span class="ticket-details-item-value">{{ authorizeData?.user || '--' }}</span>
       </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('访问DB') }}：</span>
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('访问DB') }}：</span>
         <span>
           <BkTag
             v-for="(item, index) in authorizeData?.access_dbs || []"
@@ -61,7 +61,7 @@
     </div>
   </div>
   <div v-else>
-    <div class="ticket-details__list">
+    <div class="ticket-details-list">
       <span>{{ t('Excel文件') }}：</span>
       <div class="excel-link">
         <DbIcon

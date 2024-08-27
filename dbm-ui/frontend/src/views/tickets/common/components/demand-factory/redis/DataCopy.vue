@@ -13,10 +13,10 @@
 
 <template>
   <div
-    class="ticket-details__item"
+    class="ticket-details-item"
     style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('复制信息') }}：</span>
-    <span class="ticket-details__item-value">
+    <span class="ticket-details-item-label">{{ t('复制信息') }}：</span>
+    <span class="ticket-details-item-value">
       <BkLoading :loading="loading">
         <DbOriginalTable
           :columns="columns"
@@ -25,39 +25,39 @@
     </span>
   </div>
 
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('复制类型') }}：</span>
-      <span class="ticket-details__item-value">{{ copyTypesMap[ticketDetails.details.dts_copy_type] }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('复制类型') }}：</span>
+      <span class="ticket-details-item-value">{{ copyTypesMap[ticketDetails.details.dts_copy_type] }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('写入类型') }}：</span>
-      <span class="ticket-details__item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('写入类型') }}：</span>
+      <span class="ticket-details-item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('断开设置') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('断开设置') }}：</span>
+      <span class="ticket-details-item-value">
         {{ disconnectTypesMap[ticketDetails.details.sync_disconnect_setting.type] }}
       </span>
     </div>
     <template v-if="ticketDetails.details.sync_disconnect_setting.type !== 'auto_disconnect_after_replication'">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('提醒频率') }}：</span>
-        <span class="ticket-details__item-value">
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('提醒频率') }}：</span>
+        <span class="ticket-details-item-value">
           {{ remindFrequencyTypesMap[ticketDetails.details.sync_disconnect_setting.reminder_frequency] }}
         </span>
       </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('校验与修复类型') }}：</span>
-        <span class="ticket-details__item-value">
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('校验与修复类型') }}：</span>
+        <span class="ticket-details-item-value">
           {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
         </span>
       </div>
       <div
         v-if="ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'"
-        class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('校验与修复频率设置') }}：</span>
-        <span class="ticket-details__item-value">
+        class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('校验与修复频率设置') }}：</span>
+        <span class="ticket-details-item-value">
           {{ repairAndVerifyFrequencyTypesMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
         </span>
       </div>
@@ -235,17 +235,18 @@
   };
 
   const columns = computed(() => {
+    const newColumns = [...basicColumns];
     switch (props.ticketDetails.details.dts_copy_type) {
     case 'copy_to_other_system':
-      return basicColumns;
+      return newColumns;
     case 'diff_app_diff_cluster':
-      basicColumns.splice(1, 0, bizCloumn);
-      return basicColumns;
+      newColumns.splice(1, 0, bizCloumn);
+      return newColumns;
     case 'one_app_diff_cluster':
-      return basicColumns;
+      return newColumns;
     case 'user_built_to_dbm':
-      basicColumns.splice(1, 0, clusterTypeColum);
-      return basicColumns;
+      newColumns.splice(1, 0, clusterTypeColum);
+      return newColumns;
     default:
       return [];
     }
