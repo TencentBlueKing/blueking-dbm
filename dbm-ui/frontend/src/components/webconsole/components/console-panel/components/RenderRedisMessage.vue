@@ -1,8 +1,9 @@
 <template>
   <p
     v-for="(row, index) in rows"
-    :key="index">
-    <span>{{ row }}</span>
+    :key="index"
+    class="preserve-whitespace">
+    {{ row }}
   </p>
 </template>
 <script lang="ts">
@@ -18,21 +19,36 @@
     clusterSelectedDbIndex[clusterId] = value;
   };
 
-  // cmd前缀
+  // 命令行前缀
   export const getInputPlaceholder = (clusterId: number, domain: string) => {
-    if (!clusterSelectedDbIndex[clusterId]) {
-      setDbIndexByClusterId(clusterId);
-    }
+    clusterSelectedDbIndex[clusterId] ??= 0;
     return `${domain}[${clusterSelectedDbIndex[clusterId]}] > `;
   };
 
-  // db独有参数
-  export const getDbOwnParams = (clusterId: number, cmd: string) => {
-    if (cmd.includes('select')) {
-      setDbIndexByClusterId(clusterId, Number(cmd.substring('select '.length)) as number);
+  // 切换数据库索引
+  export const switchDbIndex = ({
+    clusterId,
+    cmd,
+    queryResult,
+    commandInputs,
+  }: {
+    clusterId: number;
+    cmd: string;
+    queryResult: string;
+    commandInputs: string[];
+  }) => {
+    if (/select/i.test(cmd) && queryResult === 'OK') {
+      const newDbIndex = Number(cmd.substring('select '.length));
+      setDbIndexByClusterId(clusterId, newDbIndex);
+      const newCommandInputs = commandInputs.map((item) => item.replace(/\[(\d+)\]/, `[${newDbIndex}]`));
+      return {
+        dbIndex: newDbIndex,
+        commandInputs: newCommandInputs,
+      };
     }
     return {
-      db_num: clusterSelectedDbIndex[clusterId],
+      dbIndex: clusterSelectedDbIndex[clusterId],
+      commandInputs,
     };
   };
 </script>
@@ -41,3 +57,10 @@
 
   const rows = computed(() => props.data.split('\n') || []);
 </script>
+
+<style lang="less" scoped>
+  .preserve-whitespace {
+    font-family: 'Courier New', Courier, monospace; /* 等宽字体 */
+    white-space: pre;
+  }
+</style>
