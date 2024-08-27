@@ -61,6 +61,15 @@
       message: t('一格仅支持单个_对象'),
     },
     {
+      validator: (value: string[]) =>
+        !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
+      message: t('* 只能独立使用'),
+    },
+    {
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+    },
+    {
       validator: (value: string[]) => {
         const otherTagMap = { ...tagMemo };
         delete otherTagMap[instanceKey];
