@@ -137,10 +137,21 @@ export default class GraphRender {
     }
 
     const getNodeCls = (nodeStatus: string, isSkip: boolean) => {
+      if (todoNodeIdList.includes(node.id)) {
+        return 'node-ractangle--todo';
+      }
       if (isSkip) {
         return 'node-ractangle--skipped';
       }
       return nodeStatus ? `node-ractangle--${nodeStatus.toLowerCase()}` : '';
+    };
+
+    const getNodeStatusText = (isSkip: boolean) => {
+      if (isSkip) {
+        return t('忽略错误');
+      }
+      const nodeStatusText = status ? NODE_STATUS_TEXT[status] : '';
+      return nodeStatusText ? t(nodeStatusText) : t('待执行');
     };
 
     const icon =
@@ -151,7 +162,6 @@ export default class GraphRender {
     const createdStatus = status && status.toLowerCase() === 'created';
     const nodeClickType = type === 'ServiceActivity' && !createdStatus ? 'log' : '';
     const isShowTime = status !== 'CREATED' && updatedAt && startedAt && updatedAt - startedAt >= 0;
-    const nodeStatusText = status ? NODE_STATUS_TEXT[status] : '';
     const diffSeconds = status === 'RUNNING' ? Math.floor(Date.now() / 1000) - startedAt : updatedAt - startedAt;
     return (
       <div class={['node-ractangle-layout', { 'node-hover': node.children || nodeClickType }]}>
@@ -206,10 +216,8 @@ export default class GraphRender {
                         {`${abstractNum.running}`}
                       </span>
                     </span>
-                  ) : nodeStatusText ? (
-                    t(nodeStatusText)
                   ) : (
-                    t('待执行')
+                    getNodeStatusText(skip)
                   )
                 }
               </p>

@@ -13,8 +13,9 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{content}">
-      <template v-if="content.todos?.length > 0">
+    <template #content="{content}: { content: FlowItem }">
+      <template
+        v-if="content.todos?.length > 0 && content.todos.some((todoItem) => todoItem.type === 'RESOURCE_REPLENISH')">
         <ManualConfirm
           v-for="item in content.todos"
           :key="item.id"

@@ -60,9 +60,6 @@
       <div class="title">
         {{ t('确认继续执行该节点？') }}
       </div>
-      <div class="sub-title">
-        {{ t('确认后将会继续执行操作') }}
-      </div>
       <div class="btn">
         <span
           class="bk-button-primary bk-button mr-8"
@@ -122,83 +119,26 @@
               @click.stop>
               <PreviewNodeTree
                 v-if="todoNodesCount > 0"
+                children="todoChildren"
+                margin-right
                 :nodes-count="todoNodesCount"
                 :nodes-tree-data="todoNodesTreeData"
                 status-keypath="待确认n"
                 theme="warning"
                 title-keypath="人工确认节点（n）"
                 :tooltips="t('人工确认节点列表')"
-                @after-show="handleFailNodeTreeAfterShow"
-                @node-click="handleFailNodeClick" />
+                @after-show="(treeRef: Ref) => handleNodeTreeAfterShow(treeRef, false)"
+                @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef, false)" />
               <PreviewNodeTree
-                v-else-if="flowState.details.flow_info?.status === 'FAILED'"
+                v-if="flowState.details.flow_info?.status === 'FAILED'"
+                children="failedChildren"
                 :nodes-count="failNodesCount"
                 :nodes-tree-data="failNodesTreeData"
                 status-keypath="失败n"
                 title-keypath="失败节点（n）"
                 :tooltips="t('失败节点列表')"
-                @after-show="handleFailNodeTreeAfterShow"
-                @node-click="handleFailNodeClick" />
-              <!-- <BkPopover
-                v-else-if="flowState.details.flow_info?.status === 'FAILED'"
-                ext-cls="task-history-fail-nodes"
-                :is-show="isShowFailNodePanel"
-                placement="bottom"
-                theme="light"
-                trigger="manual"
-                :width="300"
-                @after-show="() => handleFailNodeTreeAfterShow()">
-                <template #content>
-                  <div class="fail-top-main">
-                    <span>
-                      {{ t('失败节点（n）', { n: failNodesCount }) }}
-                    </span>
-                    <div
-                      class="quick-operate"
-                      @click="() => (isShowFailNodePanel = false)">
-                      <div class="operate-item">
-                        <DbIcon type="close" />
-                      </div>
-                    </div>
-                  </div>
-                  <BkTree
-                    ref="failNodeTreeRef"
-                    children="children"
-                    class="fail-node-tree-main"
-                    :data="failNodesTreeData"
-                    label="name"
-                    node-key="id"
-                    selectable
-                    :show-node-type-icon="false"
-                    @node-click="handleFailNodeClick"
-                    @node-expand="handleFailNodeClick">
-                    <template #node="item">
-                      <div class="custom-tree-node">
-                        <div class="file-icon">
-                          <DbIcon type="file" />
-                        </div>
-                        <span
-                          v-overflow-tips
-                          class="node-name text-overflow">
-                          {{ item.name }}
-                        </span>
-                      </div>
-                    </template>
-                  </BkTree>
-                </template>
-                <span
-                  v-bk-tooltips="t('失败节点列表')"
-                  class="task-history-fail-num-tip ml-8"
-                  @click="() => handleShowFailNodePanel()">
-                  <I18nT
-                    keypath="失败n"
-                    tag="span">
-                    <span class="number-display">
-                      {{ failNodesCount }}
-                    </span>
-                  </I18nT>
-                </span>
-              </BkPopover> -->
+                @after-show="(treeRef: Ref) => handleNodeTreeAfterShow(treeRef)"
+                @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef)" />
               <i
                 v-bk-tooltips="t('放大')"
                 class="flow-tools-icon db-icon-plus-circle"
@@ -325,80 +265,26 @@
           <span class="mr-8">{{ t('状态') }}: </span>
           <span>
             <PreviewNodeTree
-              v-if="todoNodesCount > 0"
+              v-if="flowState.details.flow_info?.status === 'FAILED'"
+              children="failedChildren"
+              :nodes-count="failNodesCount"
+              :nodes-tree-data="failNodesTreeData"
+              status-keypath="失败n"
+              title-keypath="失败节点（n）"
+              :tooltips="t('失败节点列表')"
+              @after-show="(treeRef: Ref) => handleNodeTreeAfterShow(treeRef)"
+              @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef)" />
+            <PreviewNodeTree
+              v-else-if="todoNodesCount > 0"
+              children="todoChildren"
               :nodes-count="todoNodesCount"
               :nodes-tree-data="todoNodesTreeData"
               status-keypath="待确认n"
               theme="warning"
               title-keypath="人工确认节点（n）"
               :tooltips="t('人工确认节点列表')"
-              @after-show="handleFailNodeTreeAfterShow"
-              @node-click="handleFailNodeClick" />
-            <PreviewNodeTree
-              v-else-if="flowState.details.flow_info?.status === 'FAILED'"
-              :nodes-count="failNodesCount"
-              :nodes-tree-data="failNodesTreeData"
-              status-keypath="失败n"
-              title-keypath="失败节点（n）"
-              :tooltips="t('失败节点列表')"
-              @after-show="handleFailNodeTreeAfterShow"
-              @node-click="handleFailNodeClick" />
-            <!-- <BkPopover
-              v-if="flowState.details.flow_info?.status === 'FAILED'"
-              ext-cls="task-history-fail-nodes"
-              :is-show="isShowTopFailNodePanel"
-              placement="bottom"
-              theme="light"
-              trigger="manual"
-              :width="300"
-              @after-show="() => handleFailNodeTreeAfterShow(false)">
-              <template #content>
-                <div class="fail-top-main">
-                  <span>{{ t('失败节点（n）', { n: failNodesCount }) }}</span>
-                  <div class="quick-operate">
-                    <div
-                      class="operate-item"
-                      @click="() => (isShowTopFailNodePanel = false)">
-                      <DbIcon type="close" />
-                    </div>
-                  </div>
-                </div>
-                <BkTree
-                  ref="topFailNodeTreeRef"
-                  children="children"
-                  class="fail-node-tree-main"
-                  :data="failNodesTreeData"
-                  label="name"
-                  selectable
-                  :show-node-type-icon="false"
-                  @node-click="handleFailNodeClick"
-                  @node-expand="handleFailNodeClick">
-                  <template #node="item">
-                    <div class="custom-tree-node">
-                      <div class="file-icon">
-                        <DbIcon type="file" />
-                      </div>
-                      <span
-                        v-overflow-tips
-                        class="node-name text-overflow">
-                        {{ item.name }}
-                      </span>
-                    </div>
-                  </template>
-                </BkTree>
-              </template>
-              <span
-                class="task-history-fail-num-tip"
-                @click="() => handleShowFailNodePanel(true)">
-                <I18nT
-                  keypath="执行失败n"
-                  tag="span">
-                  <span class="number-display">
-                    {{ failNodesCount }}
-                  </span>
-                </I18nT>
-              </span>
-            </BkPopover> -->
+              @after-show="(treeRef: Ref) => handleNodeTreeAfterShow(treeRef, false)"
+              @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef, false)" />
             <BkTag
               v-else
               :theme="getStatusTheme(true)">
@@ -415,7 +301,7 @@
         </div>
         <BkPopConfirm
           v-if="todoNodesCount > 0"
-          :content="t('确定继续所有节点任务')"
+          :content="t('确认继续所有人工确认节点')"
           trigger="click"
           width="288"
           @confirm="handleTodoAllPipeline">
@@ -427,7 +313,7 @@
           </BkButton>
         </BkPopConfirm>
         <BkPopConfirm
-          v-else-if="isShowRevokePipelineButton"
+          v-if="isShowRevokePipelineButton"
           :content="t('确定重试所有失败节点')"
           trigger="click"
           width="288"
@@ -450,7 +336,7 @@
             ref="revokeButtonRef"
             class="mission-detail-status-operate-button"
             :loading="isRevokePipeline">
-            <DbIcon type="revoke" />
+            <DbIcon type="stop" />
             {{ t('终止任务') }}
           </BkButton>
         </BkPopConfirm>
@@ -461,6 +347,7 @@
 <script setup lang="tsx">
   import _ from 'lodash';
   import type { Instance } from 'tippy.js';
+  import type { Ref } from 'vue'
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -506,7 +393,10 @@
   import { TicketTypes, type TicketTypesStrings } from '@/common/const';
 
   type TaskflowDetails = ServiceReturnType<typeof getTaskflowDetails>;
-  type FailTaskflowList = TaskflowDetails['activities'][string][];
+  type TaskflowList = (TaskflowDetails['activities'][string] & {
+    failedChildren?: TaskflowDetails['activities'][string][];
+    todoChildren?:TaskflowDetails['activities'][string][];
+  })[];
 
   const { t } = useI18n();
   const route = useRoute();
@@ -533,8 +423,8 @@
   const skippInstances = ref<Instance[]>([]);
   const forceFailInstances = ref<Instance[]>([]);
   const todoInstances = ref<Instance[]>([])
-  const todoNodesTreeData = ref<FailTaskflowList>([]);
-  const failNodesTreeData = ref<FailTaskflowList>([]);
+  const todoNodesTreeData = ref<TaskflowList>([]);
+  const failNodesTreeData = ref<TaskflowList>([]);
   const failNodesCount = ref(0);
   // const failNodeTreeRef = ref();
   // const topFailNodeTreeRef = ref();
@@ -612,6 +502,7 @@
   });
 
   let isFindFirstLeafFailNode = false;
+  let isFindFirstLeafTodoNode = false;
 
   const rootId = computed(() => route.params.root_id as string);
 
@@ -633,16 +524,7 @@
       REVOKED: '已终止',
     };
     const value = baseInfo.value.status as keyof typeof statusMap;
-    if (value) {
-      if (todoNodesCount.value > 0) {
-        return t('待确认')
-      }
-      if (statusMap[value]) {
-        return t(statusMap[value])
-      }
-    }
-    return ''
-    // return value && statusMap[value] ? t(statusMap[value]) : '';
+    return value && statusMap[value] ? t(statusMap[value]) : '';
   });
 
   const screenIcon = computed(() => ({
@@ -743,21 +625,22 @@
   const { isFullscreen, toggle } = useFullscreen(flowTopoRef);
 
   const expandNodes:string[] = [];
-  const expandNodeObjects: FailTaskflowList = [];
+  const expandFailedNodeObjects: TaskflowList = [];
+  const expandTodoNodeObjects: TaskflowList = [];
   const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
 
   const generateFailNodesTree = (activities: TaskflowDetails['activities'] ) => {
-    const flowList: FailTaskflowList = []
+    const flowList: TaskflowList = []
     Object.values(activities).forEach(item  => {
       if (item.status === 'FAILED') {
         flowList.push(item);
         if (!isFindFirstLeafFailNode) {
           expandNodes.push(item.id);
-          expandNodeObjects.push(item);
+          expandFailedNodeObjects.push(item);
         }
         if (item.pipeline) {
           Object.assign(item, {
-            children: generateFailNodesTree(item.pipeline.activities),
+            failedChildren: generateFailNodesTree(item.pipeline.activities),
           });
         } else {
           isFindFirstLeafFailNode = true;
@@ -770,22 +653,24 @@
   }
 
   const generateTodoNodesTree = (activities: TaskflowDetails['activities'], nodeList: string[]) => {
-    const flowList: FailTaskflowList = []
+    const flowList: TaskflowList = []
     Object.values(activities).forEach((activityItem) => {
       if (activityItem.pipeline) {
         const activityChildren = generateTodoNodesTree(activityItem.pipeline.activities, nodeList)
         Object.assign(activityItem, {
-          children: activityChildren,
+          todoChildren: activityChildren,
         });
         if (activityChildren.length > 0) {
           flowList.push(activityItem)
-          expandNodes.push(activityItem.id);
-          expandNodeObjects.push(activityItem);
+          if (!isFindFirstLeafTodoNode) {
+            isFindFirstLeafTodoNode = true
+            expandNodes.push(activityItem.id);
+            expandTodoNodeObjects.push(activityItem);
+          }
         }
       } else {
         if (nodeList.includes(activityItem.id)) {
           flowList.push(activityItem);
-          failLeafNodes.value.push({ data: _.cloneDeep(activityItem) } as GraphNode)
         }
       }
     })
@@ -801,8 +686,9 @@
     if (flowState.details.activities) {
       if (flowState.details.flow_info?.status === 'FAILED') {
         failNodesTreeData.value = generateFailNodesTree(flowState.details.activities);
-      } else if (flowState.details?.flow_info?.status === 'RUNNING') {
-        const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+      }
+      const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+      if (todoNodeIdList.length) {
         todoNodesTreeData.value = generateTodoNodesTree(flowState.details.activities, todoNodeIdList);
       }
     }
@@ -824,32 +710,9 @@
     immediate: true,
   });
 
-  // const handleShowFailNodePanel = (isTop = false) => {
-  //   isShowFailNodePanel.value = !isTop;
-  //   isShowTopFailNodePanel.value = isTop;
-  // };
-
-  // const handleFailNodeTreeAfterShow = (isMain = true) => {
-  //   setTimeout(() => {
-  //     expandNodeObjects.forEach(node => {
-  //       if (isMain) {
-  //         failNodeTreeRef.value.setOpen(node);
-  //         return
-  //       }
-  //       topFailNodeTreeRef.value.setOpen(node);
-  //     });
-
-  //     const leafNode = expandNodeObjects[expandNodeObjects.length - 1];
-  //     if (isMain) {
-  //       failNodeTreeRef.value.setSelect(leafNode);
-  //       return
-  //     }
-  //     topFailNodeTreeRef.value.setSelect(leafNode);
-  //   })
-  // }
-
-    const handleFailNodeTreeAfterShow = (treeRef: Ref) => {
+  const handleNodeTreeAfterShow = (treeRef: Ref, isFailed = true) => {
     setTimeout(() => {
+      const expandNodeObjects = isFailed ? expandFailedNodeObjects : expandTodoNodeObjects
       expandNodeObjects.forEach(node => {
         treeRef.value.setOpen(node);
       });
@@ -866,23 +729,36 @@
     handleShowLog(targetNode);
   }
 
-  // 定位失败节点
-  const handleFailNodeClick = (node: GraphNode) => {
-    // eslint-disable-next-line no-underscore-dangle
-    const { scale } = flowState.instance.flowInstance._diagramInstance._canvasTransform;
-    const graphNode = flowState.instance.graphData.locations.find((item: GraphNode) => item.data.id === node.id);
-    // 展开父节点
-    if (node.children && node.children.length > 0) {
+  const expandRetractNodes = (node: TaskflowList[number], treeRef: Ref, showLog: boolean) => {
+    const children = showLog ? node.failedChildren : node.todoChildren
+    // 有子节点则展开
+    if (children && children.length > 0) {
       if (!expandNodes.includes(node.id)) {
         expandNodes.push(node.id);
         renderNodes();
       }
-    } else {
-      handleShowLog(graphNode);
     }
+    const parentNode = treeRef.value.getParentNode(node)
+    if (parentNode) {
+      expandRetractNodes(parentNode, treeRef, showLog)
+    }
+  }
+
+  // 点击父节点展开，点击叶子节点定位
+  const handleTreeNodeClick = (node: TaskflowList[number], treeRef: Ref, showLog = true) => {
+    // eslint-disable-next-line no-underscore-dangle
+    const { scale } = flowState.instance.flowInstance._diagramInstance._canvasTransform;
+
+    expandRetractNodes(node, treeRef, showLog)
 
     setTimeout(() => {
-      if (!node.children) {
+      const graphNode = flowState.instance.graphData.locations.find((item: GraphNode) => item.data.id === node.id);
+      if (showLog) {
+        handleShowLog(graphNode);
+      }
+
+      const children = showLog ? node.failedChildren : node.todoChildren
+      if (!children) {
         const x = ((flowRef.value!.clientWidth / 2) - graphNode.x) * scale;
         const y = ((flowRef.value!.clientHeight / 2) - graphNode.y - 128) * scale;
         flowState.instance?.translate(x, y);
@@ -1497,14 +1373,7 @@
   .mission-tips-content {
     width: 240px;
     padding: 8px 0;
-    font-size: 16px;
-    color: #313238;
-
-    .sub-title {
-      margin-top: 6px;
-      font-size: 12px;
-      color: #63656e;
-    }
+    color: @default-color;
 
     .btn {
       width: 100%;
@@ -1707,16 +1576,22 @@
           font-size: 16px;
           color: @white-color;
           cursor: pointer;
-          background-color: #929496;
+          background-color: #000;
           border-radius: 2px;
+          opacity: 40%;
 
-          &.db-icon-refresh-2,
-          &.db-icon-qiangzhizhongzhi {
-            display: inline-block;
-            padding: 1px;
-            font-size: 14px;
-            vertical-align: top;
+          &:hover {
+            opacity: 60%;
           }
+        }
+
+        [class*='db-icon-'] {
+          display: inline-block;
+          width: 16px;
+          height: 16px;
+          font-size: 12px;
+          line-height: 16px;
+          vertical-align: top;
         }
       }
 
@@ -1758,6 +1633,16 @@
 
         .node-ractangle__text {
           color: #89c053;
+        }
+      }
+
+      &--todo {
+        .node-ractangle__status {
+          background-color: #ff9c01;
+        }
+
+        .node-ractangle__text {
+          color: #f59500;
         }
       }
     }
