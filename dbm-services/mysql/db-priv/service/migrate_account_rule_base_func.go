@@ -157,7 +157,7 @@ func DoAddAccountRule(rule *PrivModule, apps map[string]int64, clusterType strin
 	}
 	log, _ := json.Marshal(rulePara)
 	// 添加帐号规则
-	err = rulePara.AddAccountRule(string(log), "add_account_rule")
+	_, err = rulePara.AddAccountRule(string(log), "add_account_rule")
 	if err != nil {
 		return fmt.Errorf("add rule failed: %s", err.Error())
 	}

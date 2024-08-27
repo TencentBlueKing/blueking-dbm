@@ -22,6 +22,8 @@ const (
 	statusSuccess int = 0
 )
 
+var DbmetaClient, DrsClient *Client
+
 // APIServerResponse TODO
 type APIServerResponse struct {
 	Code    int             `json:"code"`
@@ -69,10 +71,7 @@ func (c *Client) DoNew(method, url string, params interface{}, headers map[strin
 	var err error
 	for retryIdx := 0; retryIdx < 5; retryIdx++ {
 		response, err = c.doNewInner(method, url, params, headers)
-		if err == nil {
-			break
-		}
-		if strings.Contains(err.Error(), "cse.flowcontrol.Consumer.qps.limit") {
+		if err != nil {
 			slog.Error(fmt.Sprintf("DoNew failed, retryIdx:%d", retryIdx), err)
 			wait := retryIdx*retryIdx*1000 + rand.Intn(1000)
 			time.Sleep(time.Duration(wait) * time.Millisecond)
@@ -141,6 +140,11 @@ func (c *Client) doNewInner(method, url string, params interface{}, headers map[
 		if !HasElem(resp.StatusCode, []int{http.StatusInternalServerError, http.StatusTooManyRequests,
 			http.StatusGatewayTimeout}) {
 			break
+		}
+
+		// 关闭前一个响应体，防止内存泄漏
+		if resp.Body != nil {
+			resp.Body.Close()
 		}
 
 		wait := i*i*1000 + rand.Intn(1000)

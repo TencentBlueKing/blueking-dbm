@@ -78,10 +78,10 @@ GetAllClustersInfo 获取业务下所有集群信息
 		  "immute_domain": "gamedb.2.hayley.db"
 		}]
 */
-func GetAllClustersInfo(c *util.Client, id BkBizIdPara) ([]Cluster, error) {
+func GetAllClustersInfo(id BkBizIdPara) ([]Cluster, error) {
 	var resp []Cluster
 	url := "/apis/proxypass/dbmeta/priv_manager/biz_clusters/"
-	result, err := c.Do(http.MethodPost, url, id)
+	result, err := util.DbmetaClient.Do(http.MethodPost, url, id)
 	if err != nil {
 		slog.Error("msg", url, err)
 		return resp, err
@@ -94,7 +94,7 @@ func GetAllClustersInfo(c *util.Client, id BkBizIdPara) ([]Cluster, error) {
 }
 
 // GetCluster 根据域名获取集群信息
-func GetCluster(c *util.Client, ClusterType string, dns Domain) (Instance, error) {
+func GetCluster(ClusterType string, dns Domain) (Instance, error) {
 	var resp Instance
 	var url string
 	if ClusterType == sqlserverHA || ClusterType == sqlserverSingle || ClusterType == sqlserver {
@@ -104,7 +104,7 @@ func GetCluster(c *util.Client, ClusterType string, dns Domain) (Instance, error
 		url = fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/mysql/%s/cluster_instances/", ClusterType)
 	}
 
-	result, err := c.Do(http.MethodPost, url, dns)
+	result, err := util.DbmetaClient.Do(http.MethodPost, url, dns)
 	if err != nil {
 		slog.Error("msg", url, err)
 		return resp, errno.DomainNotExists.Add(fmt.Sprintf(" %s: %s", dns.EntryName, err.Error()))

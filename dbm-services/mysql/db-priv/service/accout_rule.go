@@ -142,7 +142,7 @@ func (m *QueryRulePara) QueryAccountRule() ([]*AccountRuleSplitUser, int, error)
 }
 
 // AddAccountRule 新增账号规则
-func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
+func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) ([]TbAccountRules, error) {
 	var (
 		accountRule TbAccountRules
 		dbs         []string
@@ -150,6 +150,7 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 		dmlDdlPriv  string
 		globalPriv  string
 		err         error
+		rules       []TbAccountRules
 	)
 	// dml: select，insert，update，delete
 	// ddl: create，alter，drop，index，execute，create view
@@ -168,17 +169,17 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 
 	err = m.ParaPreCheck()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dbs, err = util.String2Slice(m.Dbname)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = AccountRulePreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, _type := range ConstPrivType {
@@ -205,17 +206,17 @@ func (m *AccountRulePara) AddAccountRule(jsonPara string, ticket string) error {
 		err = tx.Debug().Model(&TbAccountRules{}).Create(&accountRule).Error
 		if err != nil {
 			tx.Rollback()
-			return err
+			return nil, err
 		}
+		rules = append(rules, accountRule)
 	}
 	err = tx.Commit().Error
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: vtime}
 	AddPrivLog(log)
-
-	return nil
+	return rules, nil
 }
 
 // AddAccountRuleDryRun 新增账号规则检查

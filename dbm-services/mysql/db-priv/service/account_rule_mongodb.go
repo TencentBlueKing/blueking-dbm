@@ -8,7 +8,7 @@ import (
 )
 
 // MongoDBAddAccountRule 新增账号规则
-func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) error {
+func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) ([]TbAccountRules, error) {
 	var (
 		accountRule TbAccountRules
 		dbs         []string
@@ -16,6 +16,7 @@ func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) 
 		userPriv    string
 		managerPriv string
 		err         error
+		rules       []TbAccountRules
 	)
 	// mongo_user: read readWrite readAnyDatabase readWriteAnyDatabase
 	// mongo_manager: dbAdmin backup restore userAdmin clusterAdmin
@@ -24,17 +25,17 @@ func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) 
 
 	err = m.ParaPreCheck()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	dbs, err = util.String2Slice(m.Dbname)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	_, err = AccountRulePreCheck(m.BkBizId, m.AccountId, *m.ClusterType, dbs, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, _type := range ConstPrivType {
@@ -62,15 +63,16 @@ func (m *AccountRulePara) MongoDBAddAccountRule(jsonPara string, ticket string) 
 		err = tx.Debug().Model(&TbAccountRules{}).Create(&accountRule).Error
 		if err != nil {
 			tx.Rollback()
-			return err
+			return nil, err
 		}
+		rules = append(rules, accountRule)
 	}
 	err = tx.Commit().Error
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log := PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: vtime}
 	AddPrivLog(log)
 
-	return nil
+	return rules, nil
 }

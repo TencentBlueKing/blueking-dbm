@@ -5,10 +5,6 @@ import (
 	"log/slog"
 	"strings"
 	"time"
-
-	"dbm-services/mysql/priv-service/util"
-
-	"github.com/spf13/viper"
 )
 
 // AddPriv 使用账号规则，新增权限
@@ -37,11 +33,10 @@ func (m *PrivTaskPara) AddPrivForSqlserver(jsonPara string) error {
 		rules = append(rules, accountRule)
 	}
 
-	client := util.NewClientByHosts(viper.GetString("dbmeta"))
 	for _, dns := range m.TargetInstances {
 		// 获取集群相关信息
 		dns = strings.Trim(strings.TrimSpace(dns), ".")
-		cluster, err := GetCluster(client, m.ClusterType, Domain{EntryName: dns})
+		cluster, err := GetCluster(m.ClusterType, Domain{EntryName: dns})
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"dbm-services/mysql/priv-service/util"
 	"io"
 	"log/slog"
 	"net/http"
@@ -40,6 +41,9 @@ func main() {
 			os.Exit(0)
 		}
 	}
+
+	util.DbmetaClient = util.NewClientByHosts(viper.GetString("dbmeta"))
+	util.DrsClient = util.NewClientByHosts(viper.GetString("dbRemoteService"))
 
 	// 注册服务
 	gin.SetMode(gin.ReleaseMode)
