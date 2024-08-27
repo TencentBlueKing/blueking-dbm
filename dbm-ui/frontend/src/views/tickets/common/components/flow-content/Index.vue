@@ -12,7 +12,13 @@
 -->
 
 <template>
-  <template v-if="content.todos.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
+  <template
+    v-if="
+      content.todos.length > 0 &&
+      content.flow_type === 'INNER_FLOW' &&
+      content.status === 'RUNNING' &&
+      content.todos.some((todoItem) => todoItem.type === 'RESOURCE_REPLENISH')
+    ">
     <ManualConfirm
       v-for="item in content.todos"
       :key="item.id"
@@ -114,6 +120,15 @@
             </RouterLink>
           </template>
         </I18nT>
+      </template>
+      <template
+        v-else-if="
+          content.status === 'RUNNING' &&
+          content.flow_type === 'INNER_FLOW' &&
+          content.todos.length > 0 &&
+          content.todos.every((todoItem) => todoItem.type !== 'RESOURCE_REPLENISH')
+        ">
+        {{ t('任务待确认') }}
       </template>
       <template v-else-if="isPause && isTodos === false">
         <span>{{ t('处理人') }}: </span>

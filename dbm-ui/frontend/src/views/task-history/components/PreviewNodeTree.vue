@@ -22,7 +22,7 @@
       </div>
       <BkTree
         ref="treeRef"
-        children="children"
+        :children="children"
         class="tree-node-tree-main"
         :data="nodesTreeData"
         label="name"
@@ -50,7 +50,7 @@
     <span
       v-bk-tooltips="tooltips"
       class="task-preview-node-tree-num-tip"
-      :class="[`task-preview-node-tree-num-tip-${theme}`]"
+      :class="[`task-preview-node-tree-num-tip-${theme}`, marginRight ? 'mr-8' : '']"
       @click="() => handleShowFailNodePanel()">
       <I18nT
         :keypath="statusKeypath"
@@ -71,8 +71,6 @@
 
   import { getTaskflowDetails } from '@services/source/taskflow';
 
-  import type { GraphNode } from '../common/utils';
-
   interface Props {
     nodesCount: number;
     nodesTreeData: ServiceReturnType<typeof getTaskflowDetails>['activities'][string][];
@@ -80,15 +78,19 @@
     titleKeypath: string;
     tooltips: string;
     theme?: 'error' | 'warning';
+    children?: string;
+    marginRight?: boolean;
   }
 
   interface Emits {
-    (e: 'node-click', value: GraphNode): void;
+    (e: 'node-click', value: Props['nodesTreeData'][number], refValue: typeof treeRef): void;
     (e: 'after-show', value: typeof treeRef): void;
   }
 
   withDefaults(defineProps<Props>(), {
     theme: 'error',
+    children: 'children',
+    marginRight: false,
   });
   const emits = defineEmits<Emits>();
 
@@ -103,8 +105,8 @@
     });
   };
 
-  const handleFailNodeClick = (node: GraphNode) => {
-    emits('node-click', node);
+  const handleFailNodeClick = (node: Props['nodesTreeData'][number]) => {
+    emits('node-click', node, treeRef);
   };
 
   const handleShowFailNodePanel = () => {

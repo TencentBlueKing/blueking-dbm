@@ -13,8 +13,9 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{ content }">
-      <template v-if="content?.todos?.length > 0">
+    <template #content="{ content } : { content: FlowItem & { isLast: boolean } }">
+      <template
+        v-if="content?.todos?.length > 0 && content.todos.some((todoItem) => todoItem.type === 'RESOURCE_REPLENISH')">
         <div
           v-for="item in content.todos"
           :key="item.id"
@@ -170,7 +171,7 @@
   import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
   interface Props {
-    ticketData: TicketModel<unknown>,
+    ticketData: TicketModel,
     flows?: FlowItem[]
   }
 

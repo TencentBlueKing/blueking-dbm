@@ -35,7 +35,7 @@
     <div
       v-if="data.status === 'TODO'"
       class="operations mt-8">
-      <!-- <BkPopover
+      <BkPopover
         v-model:is-show="state.confirmTips"
         theme="light"
         trigger="manual"
@@ -69,16 +69,7 @@
             </div>
           </div>
         </template>
-      </BkPopover> -->
-      <div class="flow-todo__infos mb-8">
-        {{ t('任务待确认') }}，{{ t('耗时') }}：{{ getCostTimeDisplay(data.cost_time) }}，
-        <BkButton
-          text
-          theme="primary"
-          @click="toTaskDetail">
-          {{ t('查看详情') }} &gt;
-        </BkButton>
-      </div>
+      </BkPopover>
       <BkPopover
         v-model:is-show="state.cancelTips"
         theme="light"
@@ -152,7 +143,7 @@
     (e: 'processed'): void;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
@@ -175,8 +166,8 @@
   };
 
   const getConfirmText = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('重试') : t('确认执行'));
-  // const getConfirmTips = (item: FlowItemTodo) =>
-  //   item.type === 'RESOURCE_REPLENISH' ? t('是否确认重试') : t('是否确认继续执行单据');
+  const getConfirmTips = (item: FlowItemTodo) =>
+    item.type === 'RESOURCE_REPLENISH' ? t('是否确认重试') : t('是否确认继续执行单据');
 
   const getOperation = (item: FlowItemTodo) => {
     const text = {
@@ -188,10 +179,10 @@
     return text[item.status];
   };
 
-  // const handleConfirmToggle = (show: boolean) => {
-  //   state.confirmTips = show;
-  //   state.cancelTips = false;
-  // };
+  const handleConfirmToggle = (show: boolean) => {
+    state.confirmTips = show;
+    state.cancelTips = false;
+  };
 
   const handleCancelToggle = (show: boolean) => {
     state.cancelTips = show;
@@ -230,15 +221,5 @@
     router.push({
       name: 'resourcePool',
     });
-  };
-
-  const toTaskDetail = () => {
-    const { href } = router.resolve({
-      name: 'taskHistoryDetail',
-      params: {
-        root_id: props.content.flow_obj_id,
-      },
-    });
-    window.open(href);
   };
 </script>
