@@ -76,7 +76,7 @@
       </div>
       <i
         v-if="fastClear && !disabled && localValue.length"
-        class="user-selector-clear bk-biz-components-icon bk-biz-icon-close-circle-shape"
+        class="user-selector-clear bk-dbm db-icon-close-circle-shape"
         @click.stop="handleFastClear" />
     </div>
   </div>
