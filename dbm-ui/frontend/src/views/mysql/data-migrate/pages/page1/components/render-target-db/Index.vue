@@ -33,7 +33,9 @@
         <span class="split-line" />
         <span
           v-overflow-tips
-          class="cluster-name">{{ data.sourceCluster }}</span>
+          class="cluster-name"
+          >{{ data.sourceCluster }}</span
+        >
       </div>
     </template>
     <TargetDbPreview
@@ -53,7 +55,7 @@
 
   interface Props {
     data: {
-      sourceCluster: string,
+      sourceCluster: string;
       sourceClusterId: number;
       targetClusters: number[];
       dbs: string[];
@@ -93,10 +95,7 @@
     },
   ]);
 
-  const {
-    loading,
-    run: fetchDatabasesWithPattern,
-  } = useRequest(showDatabasesWithPatterns, {
+  const { loading, run: fetchDatabasesWithPattern } = useRequest(showDatabasesWithPatterns, {
     manual: true,
     onSuccess(dataList) {
       const clusterDbsMap: Record<string, boolean> = {};
@@ -112,7 +111,7 @@
           });
         }
       });
-      const dbNames = targetDbList.value.filter(name => clusterDbsMap[name]);
+      const dbNames = targetDbList.value.filter((name) => clusterDbsMap[name]);
       existedDbNameList.value = dbNames;
     },
   });
@@ -121,9 +120,8 @@
     () => props.data,
     () => {
       const { sourceClusterId, targetClusters, dbs, ignoreDbs } = props.data;
-
       if (sourceClusterId || targetClusters.length > 0) {
-        const infos = [sourceClusterId, ...targetClusters].map(id => ({
+        const infos = [sourceClusterId, ...targetClusters].map((id) => ({
           cluster_id: id,
           dbs,
           ignore_dbs: ignoreDbs,

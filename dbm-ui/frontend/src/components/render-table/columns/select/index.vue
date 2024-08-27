@@ -167,7 +167,11 @@
   };
 
   const checkRootHeight = () => {
-    rootHeight.value = rootRef.value?.parentNode.clientHeight;
+    if (!rootRef.value) {
+      return;
+    }
+
+    rootHeight.value = rootRef.value.parentNode.clientHeight;
   };
 
   const handleOptionClick = (value: IKey) => {

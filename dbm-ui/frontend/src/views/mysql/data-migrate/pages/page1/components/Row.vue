@@ -27,6 +27,11 @@
         @change="handleTargetClusterChange" />
     </td>
     <td style="padding: 0">
+      <RenderCloneType
+        ref="cloneTypeRef"
+        :model-value="data.cloneType" />
+    </td>
+    <td style="padding: 0">
       <RenderDbName
         ref="dbPatternsRef"
         :cluster-id="data.clusterData.id"
@@ -67,6 +72,7 @@
       domain: string;
       type: string;
     };
+    cloneType?: string;
     dbPatterns?: string[];
     ignoreDbs?: string[];
     targetClusters?: string;
@@ -97,6 +103,7 @@
   import RenderClusterNameWithSelector from './render-target-clusters/Index.vue';
   import RenderTargetDb from './render-target-db/Index.vue';
   import { type DbsType } from './render-target-db/TargetDbPreview.vue';
+  import RenderCloneType from './RenderCloneType.vue';
 
   interface Props {
     data: IDataRow;
@@ -118,6 +125,7 @@
 
   const sourceClusterRef = ref<InstanceType<typeof RenderCluster>>();
   const targetClustersRef = ref<InstanceType<typeof RenderClusterNameWithSelector>>();
+  const cloneTypeRef = ref<InstanceType<typeof RenderCloneType>>();
   const dbPatternsRef = ref<InstanceType<typeof RenderDbName>>();
   const ignoreDbsRef = ref<InstanceType<typeof RenderDbName>>();
   const targetDbsRef = ref<InstanceType<typeof RenderTargetDb>>();
@@ -182,11 +190,14 @@
         dbPatternsRef.value!.getValue('db_patterns'),
         ignoreDbsRef.value!.getValue('ignore_dbs'),
       ]);
-      return targetDbsRef.value!.getValue().then((dbList) => ({
-        source_cluster: rowInfo.sourceClusterId,
-        target_clusters: rowInfo.targetClusters,
-        db_list: dbList,
-      }));
+      return Promise.all([targetDbsRef.value!.getValue(), cloneTypeRef.value!.getValue()]).then(
+        ([dbList, cloneTypeInfo]) => ({
+          source_cluster: rowInfo.sourceClusterId,
+          target_clusters: rowInfo.targetClusters,
+          db_list: dbList,
+          ...cloneTypeInfo,
+        }),
+      );
     },
   });
 </script>
