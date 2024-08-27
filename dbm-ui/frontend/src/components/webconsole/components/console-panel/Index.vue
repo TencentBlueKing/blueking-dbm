@@ -3,26 +3,28 @@
     ref="consolePanelRef"
     class="console-panel-main"
     @click="handleInputFocus">
-    <template
-      v-for="(item, index) in panelInputMap[clusterId]"
-      :key="index">
-      <div
-        v-if="item.type !== 'normal'"
-        class="input-line">
-        <span :class="{ 'error-text': item.type === 'error' }">{{ item.message }}</span>
-      </div>
-      <template v-else>
-        <Component
-          :is="consoleConfig.renderMessage"
-          :data="item.message" />
+    <div @mousedown="handleFreezeTextarea">
+      <template
+        v-for="(item, index) in panelInputMap[clusterId]"
+        :key="index">
+        <div
+          v-if="item.type !== 'normal'"
+          class="input-line">
+          <span :class="{ 'error-text': item.type === 'error' }">{{ item.message }}</span>
+        </div>
+        <template v-else>
+          <Component
+            :is="consoleConfig.renderMessage"
+            :data="item.message" />
+        </template>
       </template>
-    </template>
+    </div>
     <div v-show="loading">Waiting...</div>
     <div class="input-line">
       <textarea
         ref="inputRef"
         class="input-main"
-        :disabled="loading"
+        :disabled="loading || isFrozenTextarea"
         :style="{ height: realHeight }"
         :value="command"
         @blur="handleInputBlur"
@@ -45,8 +47,8 @@
 
   import RenderMysqlMessage from './components/RenderMysqlMessage.vue';
   import RenderRedisMessage, {
-    getDbOwnParams as getRedisOwnParams,
     getInputPlaceholder as getRedisPlaceholder,
+    switchDbIndex,
   } from './components/RenderRedisMessage.vue';
 
   type ClusterItem = ServiceReturnType<typeof queryAllTypeCluster>[number];
@@ -68,6 +70,7 @@
   const command = ref('');
   const consolePanelRef = ref();
   const loading = ref(false);
+  const isFrozenTextarea = ref(false);
   const inputRef = ref();
   const realHeight = ref('52px');
   const panelInputMap = reactive<
@@ -92,12 +95,12 @@
   const configMap: Record<
     string,
     {
-      // 渲染组件
       renderMessage: any;
-      // cmd前缀
       getInputPlaceholder?: (clusterId: number, domain: string) => string;
-      // db独有参数
-      getDbOwnParmas?: (clusterId: number, cmd: string) => Record<string, unknown>;
+      switchDbIndex?: (params: { clusterId: number; cmd: string; queryResult: string; commandInputs: string[] }) => {
+        dbIndex: number;
+        commandInputs: string[];
+      };
     }
   > = {
     [DBTypes.MYSQL]: {
@@ -109,7 +112,7 @@
     [DBTypes.REDIS]: {
       renderMessage: RenderRedisMessage,
       getInputPlaceholder: getRedisPlaceholder,
-      getDbOwnParmas: getRedisOwnParams,
+      switchDbIndex,
     },
   };
 
@@ -154,8 +157,13 @@
   );
 
   const handleInputFocus = () => {
+    isFrozenTextarea.value = false;
     inputRef.value.focus();
     checkCursorPosition();
+  };
+
+  const handleFreezeTextarea = () => {
+    isFrozenTextarea.value = true;
   };
 
   // 回车输入指令
@@ -206,11 +214,21 @@
       };
       panelInputMap[clusterId.value].push(normalLine);
 
-      if (consoleConfig.value.getDbOwnParmas) {
-        baseParams = Object.assign(baseParams, consoleConfig.value.getDbOwnParmas(clusterId.value, cmd));
-        if (consoleConfig.value.getInputPlaceholder) {
-          inputPlaceholder = consoleConfig.value.getInputPlaceholder(clusterId.value, props.modelValue.immute_domain);
-          command.value = inputPlaceholder;
+      const config = consoleConfig.value;
+      if (config.switchDbIndex) {
+        const { dbIndex, commandInputs } = config.switchDbIndex({
+          clusterId: clusterId.value,
+          cmd,
+          queryResult: executeResult.query as string,
+          commandInputs: commandInputMap[clusterId.value],
+        });
+        baseParams = {
+          ...baseParams,
+          db_num: dbIndex,
+        };
+        commandInputMap[clusterId.value] = commandInputs;
+        if (config.getInputPlaceholder) {
+          command.value = config.getInputPlaceholder(clusterId.value, props.modelValue.immute_domain);
         }
       }
     }

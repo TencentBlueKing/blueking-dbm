@@ -102,7 +102,7 @@ export function queryResourceAdministrationAttrs(params: { resource_type: string
  */
 export function queryWebconsole(params: { cluster_id: number; cmd: string }) {
   return http.post<{
-    query: Array<Record<string, string>>;
+    query: string | Record<string, string>[];
     error_msg?: string;
   }>(`${path}/webconsole/`, params);
 }
