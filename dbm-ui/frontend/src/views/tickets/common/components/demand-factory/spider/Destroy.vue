@@ -12,23 +12,13 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__item"
-    style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-    <span class="ticket-details__item-value">
-      <BkLoading :loading="loading">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData" />
-      </BkLoading>
-    </span>
-  </div>
-
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('强制实例下架') }}：</span>
-      <span class="ticket-details__item-value">
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('强制实例下架') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.force ? t('是') : t('否') }}
       </span>
     </div>
@@ -65,7 +55,7 @@
     },
   ];
 
-  const { loading } = useRequest(getSpiderListByBizId, {
+  useRequest(getSpiderListByBizId, {
     defaultParams: [
       {
         bk_biz_id: props.ticketDetails.bk_biz_id,
@@ -77,21 +67,18 @@
       if (r.results.length < 1) {
         return;
       }
-      const clusterMap = r.results.reduce(
-        (obj, item) => {
-          Object.assign(obj, { [item.id]: item.master_domain });
-          return obj;
-        },
-        {} as Record<number, string>,
-      );
+      const clusterMap = r.results.reduce<Record<number, string>>((obj, item) => {
+        Object.assign(obj, { [item.id]: item.master_domain });
+        return obj;
+      }, {});
 
-      tableData.value = list.reduce((results, clusterId) => {
+      tableData.value = list.reduce<RowData[]>((results, clusterId) => {
         const obj = {
           clusterName: clusterMap[clusterId],
         };
         results.push(obj);
         return results;
-      }, [] as RowData[]);
+      }, []);
     },
   });
 </script>

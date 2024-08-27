@@ -12,29 +12,19 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__item"
-    style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-    <span class="ticket-details__item-value">
-      <BkLoading :loading="loading">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData" />
-      </BkLoading>
-    </span>
-  </div>
-
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('备份类型') }}：</span>
-      <span class="ticket-details__item-value">{{
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('备份类型') }}：</span>
+      <span class="ticket-details-item-value">{{
         infos.backup_type === 'physical' ? t('物理备份') : t('逻辑备份')
       }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('备份保存时间') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('备份保存时间') }}：</span>
+      <span class="ticket-details-item-value">
         {{ backupTime }}
       </span>
     </div>
@@ -98,7 +88,7 @@
     return fileTagMap[fileTag];
   });
 
-  const { loading } = useRequest(getSpiderListByBizId, {
+  useRequest(getSpiderListByBizId, {
     defaultParams: [
       {
         bk_biz_id: props.ticketDetails.bk_biz_id,
@@ -110,21 +100,18 @@
       if (r.results.length < 1) {
         return;
       }
-      const clusterMap = r.results.reduce(
-        (obj, item) => {
-          Object.assign(obj, { [item.id]: item.master_domain });
-          return obj;
-        },
-        {} as Record<number, string>,
-      );
-      tableData.value = infos.clusters.reduce((results, item) => {
+      const clusterMap = r.results.reduce<Record<number, string>>((obj, item) => {
+        Object.assign(obj, { [item.id]: item.master_domain });
+        return obj;
+      }, {});
+      tableData.value = infos.clusters.reduce<RowData[]>((results, item) => {
         const obj = {
           clusterName: clusterMap[item.cluster_id],
           position: item.backup_local,
         };
         results.push(obj);
         return results;
-      }, [] as RowData[]);
+      }, []);
     },
   });
 </script>

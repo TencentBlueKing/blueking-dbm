@@ -15,40 +15,40 @@
   <DbOriginalTable
     :columns="columns"
     :data="ticketDetails.details.infos" />
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('执行模式') }}：</span>
-      <span class="ticket-details__item-value">{{ executeModesMap[ticketDetails.details.execute_mode] }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('执行模式') }}：</span>
+      <span class="ticket-details-item-value">{{ executeModesMap[ticketDetails.details.execute_mode] }}</span>
     </div>
     <div
       v-if="ticketDetails.details.execute_mode === 'scheduled_execution'"
-      class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('指定执行时间') }}：</span>
-      <span class="ticket-details__item-value">
+      class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('指定执行时间') }}：</span>
+      <span class="ticket-details-item-value">
         {{ utcDisplayTime(ticketDetails.details.specified_execution_time) }}
       </span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('指定停止时间') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('指定停止时间') }}：</span>
+      <span class="ticket-details-item-value">
         {{ utcDisplayTime(ticketDetails.details.check_stop_time) }}
       </span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('一直保持校验修复') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('一直保持校验修复') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.keep_check_and_repair ? t('是') : t('否') }}
       </span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('修复数据') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('修复数据') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.data_repair_enabled ? t('是') : t('否') }}
       </span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('修复模式') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('修复模式') }}：</span>
+      <span class="ticket-details-item-value">
         {{ repairModesMap[ticketDetails.details.repair_mode] }}
       </span>
     </div>

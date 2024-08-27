@@ -115,6 +115,7 @@
   import SpiderEnable from './spider/Enable.vue';
   import SpiderFlashback from './spider/Flashback.vue';
   import SpiderFullBackup from './spider/FullBackup.vue';
+  import SpiderMasterFailOver from './spider/MasterFailOver.vue';
   import SpiderMasterSlaveSwitch from './spider/MasterSlaveSwitch.vue';
   import SpiderMigrateCluster from './spider/MigrateCluster.vue';
   import SpiderMNTApply from './spider/MNTApply.vue';
@@ -235,11 +236,6 @@
     TicketTypes.INFLUXDB_DESTROY,
   ];
 
-  const spiderMasterSlaveTypes = [
-    TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH,
-    TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER,
-  ];
-
   const spiderAuthorizeRulesTypes = [
     TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
     TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES,
@@ -292,7 +288,6 @@
     [TicketTypes.MYSQL_PROXY_SWITCH]: MySQLProxySwitch,
     [TicketTypes.MYSQL_HA_DB_TABLE_BACKUP]: MySQLTableBackup,
     [TicketTypes.MYSQL_MIGRATE_CLUSTER]: MySQLMigrateCluster,
-
     [TicketTypes.MYSQL_PROXY_ADD]: MySQLProxyAdd,
     [TicketTypes.MYSQL_MASTER_FAIL_OVER]: MySQLMasterFailOver,
     [TicketTypes.MYSQL_FLASHBACK]: MySQLFlashback,
@@ -328,6 +323,8 @@
     [TicketTypes.TENDBCLUSTER_DESTROY]: SpiderDestroy,
     [TicketTypes.TENDBCLUSTER_DISABLE]: SpiderDisable,
     [TicketTypes.TENDBCLUSTER_ENABLE]: SpiderEnable,
+    [TicketTypes.TENDBCLUSTER_MASTER_SLAVE_SWITCH]: SpiderMasterSlaveSwitch,
+    [TicketTypes.TENDBCLUSTER_MASTER_FAIL_OVER]: SpiderMasterFailOver,
     [TicketTypes.TENDBCLUSTER_FLASHBACK]: SpiderFlashback,
     [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: SpiderFullBackup,
     [TicketTypes.TENDBCLUSTER_SPIDER_MNT_APPLY]: SpiderMNTApply,
@@ -421,10 +418,6 @@
     // Riak 扩缩容
     if (riakCapacityType.includes(ticketType)) {
       return RiakExpansionCapacity;
-    }
-    // Spider 主从相关
-    if (spiderMasterSlaveTypes.includes(ticketType)) {
-      return SpiderMasterSlaveSwitch;
     }
     // spider 授权规则
     if (spiderAuthorizeRulesTypes.includes(ticketType)) {
