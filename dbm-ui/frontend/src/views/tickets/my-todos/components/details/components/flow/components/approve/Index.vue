@@ -14,14 +14,23 @@
 <template>
   <BkTimeline :list="flowTimeline">
     <template #content="{content}: { content: FlowItem }">
-      <template
-        v-if="content.todos?.length > 0 && content.todos.some((todoItem) => todoItem.type === 'RESOURCE_REPLENISH')">
-        <ManualConfirm
-          v-for="item in content.todos"
-          :key="item.id"
-          :content="content"
-          :data="item"
-          @processed="handleProcessed" />
+      <template v-if="content.todos?.length > 0">
+        <template
+          v-if="
+            content.flow_type === 'INNER_FLOW' &&
+            content.status === 'RUNNING' &&
+            content.todos.some((todoItem) => todoItem.type !== 'RESOURCE_REPLENISH')
+          ">
+          <InnerManualConfirm :content="content" />
+        </template>
+        <template v-else>
+          <ManualConfirm
+            v-for="item in content.todos"
+            :key="item.id"
+            :content="content"
+            :data="item"
+            @processed="handleProcessed" />
+        </template>
       </template>
       <template v-else>
         <FlowContent
@@ -41,6 +50,7 @@
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
+  import InnerManualConfirm from './InnerManualConfirm.vue';
   import ManualConfirm from './ManualConfirm.vue';
 
   interface Props {

@@ -313,7 +313,7 @@
           </BkButton>
         </BkPopConfirm>
         <BkPopConfirm
-          v-if="isShowRevokePipelineButton"
+          v-if="isShowFailedPipelineButton"
           :content="t('确定重试所有失败节点')"
           trigger="click"
           width="288"
@@ -509,6 +509,7 @@
   const todoNodesCount = computed(() => flowState.details.todos?.length || 0)
 
   const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
+  const isShowFailedPipelineButton = computed(() => flowState.details?.flow_info?.status === 'FAILED');
 
   const baseInfo = computed(() => flowState.details.flow_info || {});
 
