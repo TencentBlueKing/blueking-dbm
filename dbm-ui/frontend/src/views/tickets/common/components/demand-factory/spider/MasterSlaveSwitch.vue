@@ -12,32 +12,26 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__item"
-    style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-    <span class="ticket-details__item-value">
-      <DbOriginalTable
-        :columns="columns"
-        :data="tableData" />
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
+  <div class="mt-24">
+    {{ t('检查业务来源的连接') }}：
+    <span style="font-weight: bold">
+      {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
     </span>
   </div>
-
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('检查业务来源的连接') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_process ? t('是') : t('否') }}</span>
-    </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('检查主从同步延迟') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}</span>
-    </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('检查主从数据校验结果') }}：</span>
-      <span class="ticket-details__item-value">
-        {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
-      </span>
-    </div>
+  <div class="mt-24">
+    {{ t('检查主从同步延迟') }}：
+    <span style="font-weight: bold">
+      {{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}
+    </span>
+  </div>
+  <div class="mt-24 mb-20">
+    {{ t('检查主从数据校验结果') }}：
+    <span style="font-weight: bold">
+      {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
+    </span>
   </div>
 </template>
 
