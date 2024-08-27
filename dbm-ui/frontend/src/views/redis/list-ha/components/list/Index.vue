@@ -925,7 +925,7 @@
                             style="width: 100%;height: 32px;"
                             disabled={data.operationDisabled}
                             text
-                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_CLOSE, data)}>
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_CLOSE, data)}>
                             { t('禁用') }
                           </auth-button>
                         </OperationBtnStatusTips>
@@ -943,7 +943,7 @@
                             style="width: 100%;height: 32px;"
                             text
                             disabled={data.isStarting}
-                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_PROXY_OPEN, data)}>
+                            onClick={() => handleSwitchRedis(TicketTypes.REDIS_INSTANCE_OPEN, data)}>
                             { t('启用') }
                           </auth-button>
                         </OperationBtnStatusTips>
@@ -1049,7 +1049,7 @@
 
     if (data.operations?.length > 0) {
       const operationData = data.operations[0];
-      return ([TicketTypes.REDIS_INSTANCE_DESTROY, TicketTypes.REDIS_INSTANCE_PROXY_CLOSE] as string[]).includes(operationData.ticket_type);
+      return ([TicketTypes.REDIS_INSTANCE_DESTROY, TicketTypes.REDIS_INSTANCE_CLOSE] as string[]).includes(operationData.ticket_type);
     }
 
     return false;
@@ -1202,7 +1202,7 @@
    * 集群启停
    */
   const handleSwitchRedis = (type: TicketTypesStrings, data: RedisModel) => {
-    const isOpen = type === TicketTypes.REDIS_INSTANCE_PROXY_OPEN;
+    const isOpen = type === TicketTypes.REDIS_INSTANCE_OPEN;
     const title = isOpen ? t('确定启用该集群') : t('确定禁用该集群');
     InfoBox({
       type: 'warning',
