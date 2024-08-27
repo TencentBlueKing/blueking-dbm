@@ -13,9 +13,26 @@
 
 <template>
   <DbOriginalTable
-    class="details-table"
     :columns="columns"
     :data="dataList" />
+  <div class="mt-24">
+    {{ t('检查业务来源的连接') }}：
+    <span style="font-weight: bold">
+      {{ ticketDetails.details.is_check_process ? t('是') : t('否') }}
+    </span>
+  </div>
+  <div class="mt-24">
+    {{ t('检查主从同步延迟') }}：
+    <span style="font-weight: bold">
+      {{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}
+    </span>
+  </div>
+  <div class="mt-24 mb-20">
+    {{ t('检查主从数据校验结果') }}：
+    <span style="font-weight: bold">
+      {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
+    </span>
+  </div>
 </template>
 
 <script setup lang="tsx">
