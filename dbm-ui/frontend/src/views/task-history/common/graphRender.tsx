@@ -253,18 +253,16 @@ export default class GraphRender {
               ) : (
                 ''
               )}
+              {todoNodeIdList.includes(node.id) ? (
+                <i
+                  class='operation-icon db-icon-check'
+                  v-bk-tooltips={t('人工确认')}
+                  data-evt-type='todo'
+                />
+              ) : (
+                ''
+              )}
             </div>
-          )}
-          {todoNodeIdList.includes(node.id) ? (
-            <div class='node-ractangle__operations'>
-              <i
-                class='operation-icon db-icon-check'
-                v-bk-tooltips={t('人工确认')}
-                data-evt-type='todo'
-              />
-            </div>
-          ) : (
-            ''
           )}
         </div>
       </div>
