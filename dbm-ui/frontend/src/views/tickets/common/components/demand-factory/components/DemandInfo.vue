@@ -1,5 +1,5 @@
 <template>
-  <div class="ticket-details">
+  <div class="ticket-details-page">
     <div
       v-for="(dataItem, dataKey) in config"
       :key="dataKey"

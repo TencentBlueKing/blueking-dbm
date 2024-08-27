@@ -16,10 +16,10 @@
     class="details-backup__table"
     :columns="columns"
     :data="tableData" />
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('忽略业务连接') }}：</span>
-      <span class="ticket-details__item-value">
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('忽略业务连接') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.is_safe ? t('否') : t('是') }}
       </span>
     </div>
@@ -165,29 +165,27 @@
     drop_index: item.drop_index,
     ...item.ns_filter,
   }));
-
-
 </script>
 <style lang="less" scoped>
-@import "@views/tickets/common/styles/DetailsTable.less";
-@import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
-.ticket-details {
-  &__info {
-    padding-left: 80px;
-  }
+  .ticket-details {
+    &__info {
+      padding-left: 80px;
+    }
 
-  &__item {
-    &-label {
-      min-width: 0;
-      text-align: left;
+    &__item {
+      &-label {
+        min-width: 0;
+        text-align: left;
+      }
     }
   }
-}
 
-.details-backup {
-  &__table {
-    padding-left: 80px;
+  .details-backup {
+    &__table {
+      padding-left: 80px;
+    }
   }
-}
 </style>

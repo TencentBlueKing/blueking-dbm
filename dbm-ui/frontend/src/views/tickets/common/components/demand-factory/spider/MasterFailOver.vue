@@ -17,9 +17,17 @@
     :data="tableData" />
   <div class="ticket-details-list">
     <div class="ticket-details-item">
-      <span class="ticket-details-item-label">{{ t('只启用只读集群') }}：</span>
+      <span class="ticket-details-item-label">{{ t('检查业务来源的连接') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.is_check_process ? t('是') : t('否') }}</span>
+    </div>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('检查主从同步延迟') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}</span>
+    </div>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('检查主从数据校验结果') }}：</span>
       <span class="ticket-details-item-value">
-        {{ ticketDetails.details.is_only_add_slave_domain ? t('是') : t('否') }}
+        {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
       </span>
     </div>
   </div>
@@ -27,17 +35,16 @@
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getSpiderListByBizId } from '@services/source/spider';
-  import type { SpiderEnableDetails, TicketDetails } from '@services/types/ticket';
+  import type { SpiderMasterSlaveSwitchDetails, TicketDetails } from '@services/types/ticket';
 
   interface Props {
-    ticketDetails: TicketDetails<SpiderEnableDetails>;
+    ticketDetails: TicketDetails<SpiderMasterSlaveSwitchDetails>;
   }
 
   interface RowData {
-    clusterName: string;
+    masterIp: string;
+    slaveIp: string;
   }
 
   const props = defineProps<Props>();
@@ -45,42 +52,29 @@
   const { t } = useI18n();
 
   // eslint-disable-next-line vue/no-setup-props-destructure
-  const list = props.ticketDetails.details.cluster_ids;
-  const tableData = ref<RowData[]>([]);
+  const { infos } = props.ticketDetails.details;
+  const tableData = infos.reduce((results, item) => {
+    item.switch_tuples.forEach((tuple) => {
+      results.push({
+        masterIp: tuple.master.ip,
+        slaveIp: tuple.slave.ip,
+      });
+    });
+    return results;
+  }, [] as RowData[]);
+
   const columns = [
     {
-      label: t('集群'),
-      field: 'clusterName',
+      label: t('故障主库主机'),
+      field: 'masterIp',
+      showOverflowTooltip: true,
+    },
+    {
+      label: t('从库主机'),
+      field: 'slaveIp',
       showOverflowTooltip: true,
     },
   ];
-
-  useRequest(getSpiderListByBizId, {
-    defaultParams: [
-      {
-        bk_biz_id: props.ticketDetails.bk_biz_id,
-        offset: 0,
-        limit: -1,
-      },
-    ],
-    onSuccess: (r) => {
-      if (r.results.length < 1) {
-        return;
-      }
-      const clusterMap = r.results.reduce<Record<number, string>>((obj, item) => {
-        Object.assign(obj, { [item.id]: item.master_domain });
-        return obj;
-      }, {});
-
-      tableData.value = list.reduce<RowData[]>((results, clusterId) => {
-        const obj = {
-          clusterName: clusterMap[clusterId],
-        };
-        results.push(obj);
-        return results;
-      }, []);
-    },
-  });
 </script>
 <style lang="less" scoped>
   @import '@views/tickets/common/styles/ticketDetails.less';

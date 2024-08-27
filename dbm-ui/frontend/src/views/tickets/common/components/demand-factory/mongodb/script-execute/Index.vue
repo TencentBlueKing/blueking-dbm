@@ -12,15 +12,15 @@
 -->
 
 <template>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('脚本来源') }}：</span>
-      <span class="ticket-details__item-value">
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('脚本来源') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.mode === 'file' ? t('脚本文件') : t('手动输入') }}
       </span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('脚本执行内容') }}：</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('脚本执行内容') }}：</span>
       <BkButton
         text
         theme="primary"

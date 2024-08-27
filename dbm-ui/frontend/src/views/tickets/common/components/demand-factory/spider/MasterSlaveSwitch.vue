@@ -12,29 +12,22 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__item"
-    style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-    <span class="ticket-details__item-value">
-      <DbOriginalTable
-        :columns="columns"
-        :data="tableData" />
-    </span>
-  </div>
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
 
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('检查业务来源的连接') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_process ? t('是') : t('否') }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('检查业务来源的连接') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.is_check_process ? t('是') : t('否') }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('检查主从同步延迟') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('检查主从同步延迟') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('检查主从数据校验结果') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('检查主从数据校验结果') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
       </span>
     </div>
@@ -73,7 +66,7 @@
 
   const columns = [
     {
-      label: t('故障主库主机'),
+      label: t('主库主机'),
       field: 'masterIp',
       showOverflowTooltip: true,
     },

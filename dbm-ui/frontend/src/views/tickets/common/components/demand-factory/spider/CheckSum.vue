@@ -12,41 +12,31 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__item"
-    style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-    <span class="ticket-details__item-value">
-      <BkLoading :loading="loading">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData" />
-      </BkLoading>
-    </span>
-  </div>
-
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('指定执行时间') }}：</span>
-      <span class="ticket-details__item-value">{{ utcDisplayTime(ticketDetails.details.timing) }}</span>
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('指定执行时间') }}：</span>
+      <span class="ticket-details-item-value">{{ utcDisplayTime(ticketDetails.details.timing) }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('全局超时时间（h）') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('全局超时时间（h）') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.runtime_hour }}
       </span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('修复数据') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('修复数据') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.data_repair.is_repair ? t('是') : t('否') }}
       </span>
     </div>
     <div
       v-if="ticketDetails.details.data_repair.is_repair"
-      class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('修复模式') }}：</span>
-      <span class="ticket-details__item-value">
+      class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('修复模式') }}：</span>
+      <span class="ticket-details-item-value">
         {{ repairModesMap[ticketDetails.details.data_repair.mode] }}
       </span>
     </div>
@@ -132,7 +122,7 @@
     },
   ];
 
-  const { loading } = useRequest(getSpiderListByBizId, {
+  useRequest(getSpiderListByBizId, {
     defaultParams: [
       {
         bk_biz_id: props.ticketDetails.bk_biz_id,
@@ -142,15 +132,12 @@
       if (r.results.length < 1) {
         return;
       }
-      const clusterMap = r.results.reduce(
-        (obj, item) => {
-          Object.assign(obj, { [item.id]: item.master_domain });
-          return obj;
-        },
-        {} as Record<number, string>,
-      );
+      const clusterMap = r.results.reduce<Record<number, string>>((obj, item) => {
+        Object.assign(obj, { [item.id]: item.master_domain });
+        return obj;
+      }, {});
 
-      tableData.value = infos.reduce((results, item) => {
+      tableData.value = infos.reduce<RowData[]>((results, item) => {
         item.backup_infos.forEach((row) => {
           const obj = {
             clusterName: clusterMap[item.cluster_id],
@@ -165,7 +152,7 @@
           results.push(obj);
         });
         return results;
-      }, [] as RowData[]);
+      }, []);
     },
   });
 </script>
