@@ -12,35 +12,25 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__item"
-    style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-    <span class="ticket-details__item-value">
-      <BkLoading :loading="loading">
-        <DbOriginalTable
-          :columns="columns"
-          :data="tableData" />
-      </BkLoading>
-    </span>
-  </div>
-
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('数据校验') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.details.need_checksum ? t('是') : t('否') }}</span>
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('数据校验') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.need_checksum ? t('是') : t('否') }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('校验时间') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('校验时间') }}：</span>
+      <span class="ticket-details-item-value">
         {{ isTimer ? t('定时执行') : t('立即执行') }}
       </span>
     </div>
     <div
       v-if="isTimer"
-      class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('定时执行时间') }}：</span>
-      <span class="ticket-details__item-value">
+      class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('定时执行时间') }}：</span>
+      <span class="ticket-details-item-value">
         {{ utcDisplayTime(ticketDetails.details.trigger_checksum_time) }}
       </span>
     </div>
@@ -114,7 +104,7 @@
     },
   ];
 
-  const { loading } = useRequest(getSpiderListByBizId, {
+  useRequest(getSpiderListByBizId, {
     defaultParams: [{
       bk_biz_id: props.ticketDetails.bk_biz_id,
       offset: 0,
@@ -124,13 +114,13 @@
       if (r.results.length < 1) {
         return;
       }
-      const clusterMap = r.results.reduce((obj, item) => {
+      const clusterMap = r.results.reduce<Record<number, {clusterName: string, clusterType: string}>>((obj, item) => {
         Object.assign(obj, { [item.id]: {
           clusterName: item.master_domain,
           clusterType: item.cluster_spec.spec_cluster_type,
         } });
         return obj;
-      }, {} as Record<number, {clusterName: string, clusterType: string}>);
+      }, {});
 
       // 避免重复查询
       const clusterTypes = [...new Set(Object.values(clusterMap).map(item => item.clusterType))];
@@ -143,7 +133,6 @@
         });
         sepcMap[type] = ret.results;
       }));
-      loading.value = false;
       tableData.value = infos.map((item) => {
         const sepcList = sepcMap[clusterMap[item.cluster_id].clusterType];
         const specInfo = sepcList.find(row => row.spec_id === item.resource_spec.backend_group.spec_id);

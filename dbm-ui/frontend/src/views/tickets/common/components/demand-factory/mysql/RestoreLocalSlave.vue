@@ -13,7 +13,6 @@
 
 <template>
   <DbOriginalTable
-    class="details-table"
     :columns="localSlaveColumns"
     :data="dataList" />
 </template>

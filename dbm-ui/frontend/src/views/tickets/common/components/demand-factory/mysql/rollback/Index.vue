@@ -12,15 +12,14 @@
 -->
 
 <template>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('构造类型') }}：</span>
-      <span class="ticket-details__item-value">{{ renderData.label }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('构造类型') }}：</span>
+      <span class="ticket-details-item-value">{{ renderData.label }}</span>
     </div>
   </div>
   <component
     :is="renderData.tableCom"
-    class="details-table"
     :ticket-details="ticketDetails" />
 </template>
 

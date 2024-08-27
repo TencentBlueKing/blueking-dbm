@@ -13,9 +13,24 @@
 
 <template>
   <DbOriginalTable
-    class="details-table"
     :columns="columns"
-    :data="dataList" />
+    :data="tableData" />
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('检查业务来源的连接') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.is_check_process ? t('是') : t('否') }}</span>
+    </div>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('检查主从同步延迟') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.is_check_delay ? t('是') : t('否') }}</span>
+    </div>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('检查主从数据校验结果') }}：</span>
+      <span class="ticket-details-item-value">
+        {{ ticketDetails.details.is_verify_checksum ? t('是') : t('否') }}
+      </span>
+    </div>
+  </div>
 </template>
 
 <script setup lang="tsx">
@@ -44,38 +59,38 @@
    *  MySQL 主从互换
    */
 
-  const columns: any = [{
-    label: t('集群ID'),
-    field: 'cluster_ids',
-    render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: any }) => (
-      <div class="cluster-name text-overflow"
-        v-overflow-tips={{
-          content: `
-            <p>${t('域名')}：${data.immute_domain}</p>
-            ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
-          `,
-          allowHTML: true,
-      }}>
-        <span>{data.immute_domain}</span><br />
-        <span class="cluster-name__alias">{data.name}</span>
-      </div>
-    ),
-  }, {
-    label: t('目标主库IP'),
-    field: 'master_ip',
-    render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('目标从库IP'),
-    field: 'slave_ip',
-    render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
-  }];
+  const columns: any = [
+    {
+      label: t('集群名称'),
+      field: 'immute_domain',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: any }) => (
+        <div class="cluster-name text-overflow"
+          v-overflow-tips={{
+            content: `
+              <p>${t('域名')}：${data.immute_domain}</p>
+              ${data.name ? `<p>${('集群别名')}：${data.name}</p>` : null}
+            `,
+            allowHTML: true,
+        }}>
+          <span>{data.immute_domain}</span><br />
+          <span class="cluster-name__alias">{data.name}</span>
+        </div>
+      ),
+    },
+    {
+      label: t('目标主库IP'),
+      field: 'master_ip',
+      render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('目标从库IP'),
+      field: 'slave_ip',
+      render: ({ cell }: { cell: [] }) => <span>{cell || '--'}</span>,
+    }
+  ];
 
-  const dataList = computed(() => {
+  const tableData = computed(() => {
     const list: dataItem[] = [];
     const infosData = props.ticketDetails?.details?.infos || [];
     const clusterIds = props.ticketDetails?.details?.clusters || {};
@@ -98,5 +113,5 @@
 </script>
 
 <style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 </style>

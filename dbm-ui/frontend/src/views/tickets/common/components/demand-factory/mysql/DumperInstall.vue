@@ -13,10 +13,10 @@
 
 <template>
   <div
-    class="ticket-details__item"
+    class="ticket-details-item"
     style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('订阅的库表') }}：</span>
-    <span class="ticket-details__item-value">
+    <span class="ticket-details-item-label">{{ t('订阅的库表') }}：</span>
+    <span class="ticket-details-item-value">
       <BkTable
         class="subscribe-table"
         :columns="subscribeColumns"
@@ -24,10 +24,10 @@
     </span>
   </div>
   <div
-    class="ticket-details__item mt-16"
+    class="ticket-details-item mt-16"
     style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('数据源与接收端') }}：</span>
-    <span class="ticket-details__item-value">
+    <span class="ticket-details-item-label">{{ t('数据源与接收端') }}：</span>
+    <span class="ticket-details-item-value">
       <BkTable
         class="subscribe-table"
         :columns="receiverColumns"
@@ -35,18 +35,18 @@
     </span>
   </div>
 
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('订阅名称') }}：</span>
-      <span class="ticket-details__item-value">{{ name }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('订阅名称') }}：</span>
+      <span class="ticket-details-item-value">{{ name }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('Dumper部署位置') }}：</span>
-      <span class="ticket-details__item-value">{{ t('集群Master所在主机') }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('Dumper部署位置') }}：</span>
+      <span class="ticket-details-item-value">{{ t('集群Master所在主机') }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('数据同步方式') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('数据同步方式') }}：</span>
+      <span class="ticket-details-item-value">
         {{ addType === 'incr_sync' ? t('增量同步') : t('全量同步') }}
       </span>
     </div>

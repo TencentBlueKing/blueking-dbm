@@ -21,7 +21,7 @@
   </div>
   <div
     v-else
-    class="ticket-details__list">
+    class="ticket-details-list">
     <span>{{ t('Excel文件') }}：</span>
     <div>
       <i class="db-icon-excel" />

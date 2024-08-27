@@ -16,14 +16,18 @@
     class="details-backup__table"
     :columns="columns"
     :data="dataList" />
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('备份文件保存时间') }}：</span>
-      <span class="ticket-details__item-value">{{ fileTag === 'normal_backup' ? t('常规备份（25天）') : t('长期备份（3年）') }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('备份文件保存时间') }}：</span>
+      <span class="ticket-details-item-value">{{
+        fileTag === 'normal_backup' ? t('常规备份（25天）') : t('长期备份（3年）')
+      }}</span>
     </div>
-    <div v-if="backupType" class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('备份位置') }}：</span>
-      <span class="ticket-details__item-value">{{ backupType }}</span>
+    <div
+      v-if="backupType"
+      class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('备份位置') }}：</span>
+      <span class="ticket-details-item-value">{{ backupType }}</span>
     </div>
   </div>
 </template>
@@ -163,25 +167,25 @@
 </script>
 
 <style lang="less" scoped>
-@import "@views/tickets/common/styles/DetailsTable.less";
-@import "@views/tickets/common/styles/ticketDetails.less";
+  @import '@views/tickets/common/styles/DetailsTable.less';
+  @import '@views/tickets/common/styles/ticketDetails.less';
 
-.ticket-details {
-  &__info {
-    padding-left: 80px;
-  }
+  .ticket-details {
+    &__info {
+      padding-left: 80px;
+    }
 
-  &__item {
-    &-label {
-      min-width: 0;
-      text-align: left;
+    &__item {
+      &-label {
+        min-width: 0;
+        text-align: left;
+      }
     }
   }
-}
 
-.details-backup {
-  &__table {
-    padding-left: 80px;
+  .details-backup {
+    &__table {
+      padding-left: 80px;
+    }
   }
-}
 </style>

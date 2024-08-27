@@ -12,14 +12,13 @@
 -->
 
 <template>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('安全模式') }}：</span>
-      <span class="ticket-details__item-value">{{ isSafeMode ? t('是') : t('否') }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('安全模式') }}：</span>
+      <span class="ticket-details-item-value">{{ isSafeMode ? t('是') : t('否') }}</span>
     </div>
   </div>
   <DbOriginalTable
-    class="details-table"
     :columns="columns"
     :data="dataList" />
 </template>

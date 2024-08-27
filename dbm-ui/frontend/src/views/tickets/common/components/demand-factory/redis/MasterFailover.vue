@@ -12,20 +12,13 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__item"
-    style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-    <span class="ticket-details__item-value">
-      <DbOriginalTable
-        :columns="columns"
-        :data="tableData" />
-    </span>
-  </div>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('是否强制切换') }}：</span>
-      <span class="ticket-details__item-value">
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('是否强制切换') }}：</span>
+      <span class="ticket-details-item-value">
         {{ ticketDetails.details.force ? t('是') : t('否') }}
       </span>
     </div>
@@ -79,7 +72,7 @@
 
   const tableData = computed(() => {
     const { infos, clusters } = props.ticketDetails.details;
-    return infos.reduce((results, item) => {
+    return infos.reduce<RowData[]>((results, item) => {
       item.pairs.forEach((pair) => {
         const obj = {
           clusterName: item.cluster_id
@@ -92,7 +85,7 @@
         results.push(obj);
       });
       return results;
-    }, [] as RowData[])
+    }, [])
   });
 </script>
 
