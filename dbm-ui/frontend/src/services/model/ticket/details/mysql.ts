@@ -557,6 +557,7 @@ export interface MySQLExportData extends DetailBase {
 export interface MysqlDataMigrateDetails extends DetailBase {
   clusters: DetailClusters;
   infos: {
+    data_schema_grant: string;
     db_list: string;
     source_cluster: number;
     target_clusters: number[];

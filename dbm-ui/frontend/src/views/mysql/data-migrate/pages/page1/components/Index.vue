@@ -31,9 +31,14 @@
         {{ t('目标集群') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        :min-width="150"
+        :width="180">
+        {{ t('克隆类型') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
         :min-width="90"
         :width="210">
-        {{ t('迁移DB名 ') }}
+        {{ t('克隆DB名') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :min-width="90"

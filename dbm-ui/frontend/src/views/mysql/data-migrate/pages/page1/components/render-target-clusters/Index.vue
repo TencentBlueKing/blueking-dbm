@@ -61,6 +61,24 @@
 
   const emits = defineEmits<Emits>();
 
+  const checkClusterExisted = async (value: string) => {
+    const list = value.split(batchSplitRegex);
+    return await queryClusters({
+      cluster_filters: list.map((item) => ({
+        immute_domain: item,
+      })),
+      bk_biz_id: currentBizId,
+    }).then((data) => {
+      if (data.length === list.length) {
+        if (!ignoreEmitChange) {
+          emits('change', data);
+        }
+        return true;
+      }
+      return false;
+    });
+  };
+
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
@@ -95,6 +113,8 @@
     },
   } as unknown as Record<string, TabConfig>;
 
+  let ignoreEmitChange = false;
+
   const rules = [
     {
       validator: (value: string) => value.split(',').every((domain) => Boolean(domain)),
@@ -105,29 +125,20 @@
       message: t('目标集群输入格式有误'),
     },
     {
-      validator: async (value: string) => {
-        const list = value.split(batchSplitRegex);
-        return await queryClusters({
-          cluster_filters: list.map((item) => ({
-            immute_domain: item,
-          })),
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          if (data.length === list.length) {
-            emits('change', data);
-            return true;
-          }
-          return false;
-        });
-      },
+      validator: (value: string) => checkClusterExisted(value),
       message: t('目标集群不存在'),
     },
   ];
 
   watch(
     () => props.data,
-    (data) => {
-      localValue.value = data;
+    () => {
+      if (!props.data) {
+        return;
+      }
+
+      localValue.value = props.data;
+      checkClusterExisted(props.data);
     },
     {
       immediate: true,
@@ -151,7 +162,11 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => localClusterIds.value);
+      ignoreEmitChange = true;
+      return editRef.value.getValue().then(() => {
+        ignoreEmitChange = false;
+        return localClusterIds.value;
+      });
     },
   });
 </script>
