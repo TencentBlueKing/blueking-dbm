@@ -19,7 +19,6 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 	var result oneAddressResult
 	var temp []oneAddressResult
 	host := viper.GetString("dbRemoteService")
-	c := util.NewClientByHosts(host)
 	var url string
 	switch vtype {
 	case "mysql":
@@ -32,7 +31,7 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 		return result, fmt.Errorf("vtype not suppurt [%s]", vtype)
 	}
 
-	apiResp, err := c.Do(http.MethodPost, url, queryRequest)
+	apiResp, err := util.DrsClient.Do(http.MethodPost, url, queryRequest)
 	if err != nil {
 		slog.Error("msg", "host", host, "url", url, "drs err", err)
 		return result, fmt.Errorf("%s%s drs error: %s", host, url, err.Error())

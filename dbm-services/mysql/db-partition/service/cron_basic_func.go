@@ -440,20 +440,20 @@ func DownLoadFilesCreateTicketByMachine(cloudMachineList map[int][]string, machi
 	for cloud, machines := range cloudMachineList {
 		tmp := util.SplitArray(machines, 20)
 		for _, ips := range tmp {
+			errLimiter := limiter.Wait(context.Background())
+			if errLimiter != nil {
+				msg := "dbmeta/apis/v1/flow/scene/download_dbactor/ error"
+				SendMonitor(msg, errLimiter)
+				slog.Error("msg", msg, errLimiter)
+				continue
+			}
 			wg.Add(1)
 			go func(cloud int, ips []string) {
 				defer func() {
 					wg.Done()
 				}()
-				err := limiter.Wait(context.Background())
-				if err != nil {
-					msg := "dbmeta/apis/v1/flow/scene/download_dbactor/ error"
-					SendMonitor(msg, err)
-					slog.Error("msg", msg, err)
-					return
-				}
 				// 按照机器下载好dbactor
-				err = DownloadDbactor(cloud, ips)
+				err := DownloadDbactor(cloud, ips)
 				// dbactor下载失败，可以继续执行分区的单据，机器上可能已经存在dbactor
 				if err != nil {
 					dimension := monitor.NewDeveloperEventDimension(Scheduler, monitor.PartitionCron)
@@ -502,19 +502,19 @@ func DownLoadFilesCreateTicketByCluster(clusterIps map[string][]string, machineF
 		vcluster := strings.Split(cluster, "|")
 		domain := vcluster[0]
 		cloud, _ := strconv.Atoi(vcluster[2])
+		err := limiter.Wait(context.Background())
+		if err != nil {
+			msg := "get token error"
+			SendMonitor(msg, err)
+			slog.Error("msg", msg, err)
+			continue
+		}
 		wg.Add(1)
 		var clusterFiles []Info
 		go func(domain string, cloud int, machines []string) {
 			defer func() {
 				wg.Done()
 			}()
-			err := limiter.Wait(context.Background())
-			if err != nil {
-				msg := "get token error"
-				SendMonitor(msg, err)
-				slog.Error("msg", msg, err)
-				return
-			}
 			tmp := util.SplitArray(machines, 20)
 			for _, ips := range tmp {
 				// 按照机器下载好dbactor

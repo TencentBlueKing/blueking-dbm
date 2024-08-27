@@ -15,7 +15,6 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/jinzhu/gorm"
-	"github.com/spf13/viper"
 )
 
 // GetAccountRuleInfo 根据账号名获取账号信息，根据账号 id 以及授权数据库获取账号规则
@@ -489,8 +488,6 @@ func DeduplicationTargetInstance(instances []string, clusterType string) ([]stri
 		UniqMap = make(map[string]struct{})
 		err     error
 	)
-
-	client := util.NewClientByHosts(viper.GetString("dbmeta"))
 	for _, instance := range instances {
 		instance = strings.Trim(strings.TrimSpace(instance), ".")
 		if !govalidator.IsDNSName(instance) {
@@ -499,7 +496,7 @@ func DeduplicationTargetInstance(instances []string, clusterType string) ([]stri
 			continue
 		}
 		dns = Domain{EntryName: instance}
-		_, err = GetCluster(client, clusterType, dns)
+		_, err = GetCluster(clusterType, dns)
 		if err != nil {
 			errMsg = append(errMsg, err.Error())
 			continue

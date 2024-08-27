@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -11,9 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	"github.com/asaskevich/govalidator"
+	"golang.org/x/time/rate"
 )
 
 // ReplaceHostInMysqlGrants 替换mysql授权语句中的host
@@ -111,27 +109,33 @@ func GetProxyPrivilege(address string, hosts []string, bkCloudId int64, specifie
 
 // ImportProxyPrivileges 导入proxy白名单
 func ImportProxyPrivileges(grants []string, address string, bkCloudId int64) error {
-	var errs []string
-	limit := rate.Every(time.Millisecond * 200) // QPS：5
-	burst := 5                                  // 桶容量 5
+	var errMsg Err
+	wg := sync.WaitGroup{}
+	limit := rate.Every(time.Millisecond * 20) // QPS：50
+	burst := 50                                // 桶容量 50
 	limiter := rate.NewLimiter(limit, burst)
-	// nginx默认上传文件的大小限制是1M，为避免413 Request Entity Too Large报错，切分
-	tmp := util.SplitArray(grants, 100)
-	for _, vsqls := range tmp {
-		err := limiter.Wait(context.Background())
-		if err != nil {
-			slog.Error("msg", "limiter.Wait", err)
-			errs = append(errs, err.Error())
-			continue
+	for _, item := range grants {
+		errLimiter := limiter.Wait(context.Background())
+		if errLimiter != nil {
+			slog.Error("msg", "limiter.Wait", errLimiter)
+			return errLimiter
 		}
-		queryRequest := QueryRequest{[]string{address}, vsqls, true, 30, bkCloudId}
-		_, err = OneAddressExecuteProxySql(queryRequest)
-		if err != nil {
-			errs = append(errs, err.Error())
-		}
+		wg.Add(1)
+		go func(item string) {
+			defer func() {
+				wg.Done()
+			}()
+			queryRequest := QueryRequest{[]string{address}, []string{item}, true, 30, bkCloudId}
+			_, err := OneAddressExecuteProxySql(queryRequest)
+			if err != nil {
+				AddError(&errMsg, address, err)
+				return
+			}
+		}(item)
 	}
-	if len(errs) > 0 {
-		return errno.ClonePrivilegesFail.Add(strings.Join(errs, "\n"))
+	wg.Wait()
+	if len(errMsg.errs) > 0 {
+		return errno.ClonePrivilegesFail.Add(strings.Join(errMsg.errs, "\n"))
 	}
 	return nil
 }

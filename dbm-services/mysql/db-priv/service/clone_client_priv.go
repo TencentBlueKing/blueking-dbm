@@ -12,9 +12,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
-
-	"github.com/spf13/viper"
 )
 
 // CloneClientPrivDryRun 克隆客户端权限预检查
@@ -54,9 +51,10 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 	var errMsg Err
 	var sqls ClusterGrants
 	wg := sync.WaitGroup{}
-	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	limit := rate.Every(time.Millisecond * 100) // QPS：10
 	burst := 10                                 // 桶容量 10
 	limiter := rate.NewLimiter(limit, burst)
+	tokenBucket := make(chan int, 10) // 最大并行度
 
 	if m.BkBizId == 0 {
 		return nil, errno.BkBizIdIsEmpty
@@ -70,9 +68,7 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 	}
 
 	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
-
-	client := util.NewClientByHosts(viper.GetString("dbmeta"))
-	resp, errOuter := GetAllClustersInfo(client, BkBizIdPara{m.BkBizId})
+	resp, errOuter := GetAllClustersInfo(BkBizIdPara{m.BkBizId})
 	if errOuter != nil {
 		return nil, errOuter
 	}
@@ -122,17 +118,22 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 	// 一个协程失败，其报错信息添加到errMsg.errs。主协程wg.Wait()，等待所有协程执行完成才会返回。
 
 	// 每个集群一个协程
+	slog.Info("msg", "clusters", clusters)
 	for _, item := range clusters {
+		errOuter = limiter.Wait(context.Background())
+		if errOuter != nil {
+			slog.Error("limiter.Wait", "error", errOuter)
+			AddError(&errMsg, item.ImmuteDomain, errOuter)
+			continue
+		}
 		wg.Add(1)
+		tokenBucket <- 0
+		slog.Info("msg", "item.ImmuteDomain", item.ImmuteDomain)
 		go func(item Cluster) {
 			defer func() {
+				<-tokenBucket
 				wg.Done()
 			}()
-			errOuter = limiter.Wait(context.Background())
-			if errOuter != nil {
-				AddError(&errMsg, item.ImmuteDomain, errOuter)
-				return
-			}
 			clusterGrant := ClusterGrantSql{ImmuteDomain: item.ImmuteDomain}
 			if item.ClusterType == tendbha || item.ClusterType == tendbsingle {
 				for _, storage := range item.Storages {
@@ -143,6 +144,11 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 						AddError(&errMsg, address, err)
 						continue
 					}
+					if len(matchHosts) == 0 {
+						slog.Info("no match user@host", "instance", address,
+							"source ip", m.SourceIp)
+						continue
+					}
 					slog.Info("msg", "matchHosts", matchHosts)
 					userGrants, err := GetRemotePrivilege(address, matchHosts, item.BkCloudId,
 						machineTypeBackend, m.User, true)
@@ -151,6 +157,8 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 						continue
 					}
 					if len(userGrants) == 0 {
+						slog.Info("no match user@host", "instance", address,
+							"source ip", m.SourceIp, "user", m.User)
 						continue
 					}
 					userGrants = ReplaceHostInMysqlGrants(userGrants, m.TargetIp)
@@ -160,7 +168,7 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 					}
 					clusterGrant.Sqls = append(clusterGrant.Sqls, InstanceGrantSql{address,
 						mysqlcomm.ClearIdentifyByInSQLs(grants)})
-					err = ImportMysqlPrivileges(grants, address, item.BkCloudId)
+					err = ImportMysqlPrivileges(userGrants, address, item.BkCloudId)
 					if err != nil {
 						AddError(&errMsg, address, err)
 					}
@@ -173,6 +181,11 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 						AddError(&errMsg, address, err)
 						continue
 					}
+					if len(matchHosts) == 0 {
+						slog.Info("no match user@host", "instance", address,
+							"source ip", m.SourceIp)
+						continue
+					}
 					userGrants, err := GetRemotePrivilege(address, matchHosts, item.BkCloudId,
 						machineTypeSpider, m.User, true)
 					if err != nil {
@@ -180,6 +193,8 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 						continue
 					}
 					if len(userGrants) == 0 {
+						slog.Info("no match user@host", "instance", address,
+							"source ip", m.SourceIp, "user", m.User)
 						continue
 					}
 					userGrants = ReplaceHostInMysqlGrants(userGrants, m.TargetIp)
@@ -189,7 +204,7 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 					}
 					clusterGrant.Sqls = append(clusterGrant.Sqls, InstanceGrantSql{address,
 						mysqlcomm.ClearIdentifyByInSQLs(grants)})
-					err = ImportMysqlPrivileges(grants, address, item.BkCloudId)
+					err = ImportMysqlPrivileges(userGrants, address, item.BkCloudId)
 					if err != nil {
 						AddError(&errMsg, address, err)
 					}
@@ -204,12 +219,18 @@ func (m *CloneClientPrivPara) CloneClientPriv(jsonPara string, ticket string) ([
 						AddError(&errMsg, address, err)
 					}
 					slog.Info("msg", "matchHosts", matchHosts)
+					if len(matchHosts) == 0 {
+						slog.Info("no match user@host", "instance", address,
+							"source ip", m.SourceIp)
+						continue
+					}
 					proxyGrants, err := GetProxyPrivilege(address, matchHosts, item.BkCloudId, m.User)
 					if err != nil {
 						slog.Error("msg", "GetProxyPrivilege", err)
 						AddError(&errMsg, address, err)
 					}
 					if len(proxyGrants) == 0 {
+						slog.Info("no match user@host", "instance", address, "user", m.User)
 						continue
 					}
 					proxyGrants = ReplaceHostInProxyGrants(proxyGrants, m.TargetIp)

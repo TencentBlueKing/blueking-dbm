@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/spf13/viper"
 	"golang.org/x/time/rate"
 )
 
@@ -24,8 +23,6 @@ func (m *GetPrivPara) GetUserList() ([]string, int, error) {
 	if errCheck != nil {
 		return userList.l, count, errCheck
 	}
-	client := util.NewClientByHosts(viper.GetString("dbmeta"))
-
 	wg := sync.WaitGroup{}
 	limit := rate.Every(time.Millisecond * 50) // QPS：20
 	burst := 20                                // 桶容量 20
@@ -42,7 +39,7 @@ func (m *GetPrivPara) GetUserList() ([]string, int, error) {
 				AddError(&errMsg, item, err)
 				return
 			}
-			instance, err := GetCluster(client, *m.ClusterType, Domain{EntryName: item})
+			instance, err := GetCluster(*m.ClusterType, Domain{EntryName: item})
 			if err != nil {
 				AddError(&errMsg, item, err)
 				return
@@ -120,8 +117,6 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 		return nil, nil, count, nil, nil, nil, errno.ErrUserIsEmpty
 	}
 	users := strings.Join(m.Users, "','")
-	client := util.NewClientByHosts(viper.GetString("dbmeta"))
-
 	wg := sync.WaitGroup{}
 	limit := rate.Every(time.Millisecond * 50) // QPS：20
 	burst := 20                                // 桶容量 20
@@ -132,7 +127,7 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 			defer func() {
 				wg.Done()
 			}()
-			instance, err := GetCluster(client, *m.ClusterType, Domain{EntryName: item})
+			instance, err := GetCluster(*m.ClusterType, Domain{EntryName: item})
 			if err != nil {
 				AddError(&errMsg, item, err)
 				return
@@ -211,11 +206,21 @@ func (m *GetPrivPara) GetPriv() ([]RelatedIp, []RelatedDomain2, int, []GrantInfo
 					AddError(&errMsg, address, err)
 					return
 				}
+				if len(matchHosts) == 0 {
+					slog.Info("no match user@host", "instance", address,
+						"source ip", m.Ips, "users", m.Users)
+					return
+				}
 				// 获取user@host的权限信息
 				userGrants, err = GetRemotePrivilege(address, matchHosts, instance.BkCloudId,
 					machineType, users, true)
 				if err != nil {
 					AddError(&errMsg, address, err)
+					return
+				}
+				if len(userGrants) == 0 {
+					slog.Info("no match user@host", "instance", address,
+						"source ip", matchHosts, "users", users)
 					return
 				}
 				// 对权限语句做正则匹配，模糊匹配，过滤出匹配输入db的权限信息

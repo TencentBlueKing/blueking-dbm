@@ -12,9 +12,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"dbm-services/common/go-pubpkg/errno"
-	"dbm-services/mysql/priv-service/util"
-
-	"github.com/spf13/viper"
 )
 
 // AddPrivDryRun 使用账号规则，新增权限预检查
@@ -80,8 +77,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 		return errno.ClusterTypeIsEmpty
 	}
 	AddPrivLog(PrivLog{BkBizId: m.BkBizId, Ticket: ticket, Operator: m.Operator, Para: jsonPara, Time: time.Now()})
-	client := util.NewClientByHosts(viper.GetString("dbmeta"))
-	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	limit := rate.Every(time.Millisecond * 100) // QPS：10
 	burst := 10                                 // 桶容量 10
 	limiter := rate.NewLimiter(limit, burst)
 	for _, rule := range m.AccoutRules { // 添加权限,for acccountRuleList;for instanceList; do create a routine
@@ -91,6 +87,12 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 			continue
 		}
 		for _, dns := range m.TargetInstances {
+			errLimiter := limiter.Wait(context.Background())
+			if errLimiter != nil {
+				slog.Error("limiter.Wait", "error", errLimiter, "dns", dns)
+				AddErrorOnly(&errMsg, errors.New(errLimiter.Error()))
+				continue
+			}
 			wg.Add(1)
 			go func(dns string) {
 				defer func() {
@@ -111,13 +113,7 @@ func (m *PrivTaskPara) AddPriv(jsonPara string, ticket string) error {
 				successInfo = fmt.Sprintf(`%s，授权成功。`, baseInfo)
 				failInfo = fmt.Sprintf(`%s，授权失败：`, baseInfo)
 
-				err = limiter.Wait(context.Background())
-				if err != nil {
-					AddErrorOnly(&errMsg, errors.New(failInfo+sep+err.Error()))
-					return
-				}
-
-				instance, err = GetCluster(client, m.ClusterType, Domain{EntryName: dns})
+				instance, err = GetCluster(m.ClusterType, Domain{EntryName: dns})
 				if err != nil {
 					AddErrorOnly(&errMsg, errors.New(failInfo+sep+err.Error()))
 					return

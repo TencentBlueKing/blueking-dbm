@@ -127,18 +127,17 @@ func CheckPartitionConfigs(configs []*PartitionConfig, dbtype string, splitCnt i
 	tokenBucket := make(chan int, 10) // 最大并行度
 
 	for _, config := range configs {
+		err := limiter.Wait(context.Background())
+		if err != nil {
+			checkFailSet.Mu.Lock()
+			checkFailSet.IdLogs = append(checkFailSet.IdLogs, IdLog{(*config).ID, err.Error()})
+			checkFailSet.Mu.Unlock()
+			continue
+		}
 		wg.Add(1)
 		tokenBucket <- 0
-
 		ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 		go func(config *PartitionConfig) {
-			err := limiter.Wait(context.Background())
-			if err != nil {
-				checkFailSet.Mu.Lock()
-				checkFailSet.IdLogs = append(checkFailSet.IdLogs, IdLog{(*config).ID, err.Error()})
-				checkFailSet.Mu.Unlock()
-				return
-			}
 			CheckOnePartitionConfig(ctx, cancel, *config, &wg, &sqlSet, &nothingToDoSet, &checkFailSet, dbtype, splitCnt,
 				fromCron, host, &tokenBucket)
 		}(config)

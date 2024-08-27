@@ -51,8 +51,9 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	wg := sync.WaitGroup{}
 	finishChan := make(chan bool, 1)
 	errorChan := make(chan error, 1)
-	limit := rate.Every(time.Millisecond * 200) // QPS：5
-	burst := 5                                  // 桶容量 5
+	//tokenBucket := make(chan int, 50)
+	limit := rate.Every(time.Millisecond * 20) // QPS：50
+	burst := 50                                // 桶容量 50
 	limiter := rate.NewLimiter(limit, burst)
 	version, errOuter = GetMySQLVersion(address, bkCloudId)
 	if errOuter != nil {
@@ -88,18 +89,20 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 		}
 		userHost := fmt.Sprintf(`'%s'@'%s'`, row["user"].(string), row["host"].(string))
 		wg.Add(1)
+		errLimiter := limiter.Wait(context.Background())
+		if errLimiter != nil {
+			slog.Error("msg", "limiter.Wait", errLimiter)
+			return nil, errLimiter
+		}
+		// tokenBucket <- 0 // 在这里操作 token 可以防止过多的协程启动但处于等待 token 的阻塞状态
 		go func(userHost string, needShowCreateUser bool) {
-			slog.Info("msg", "userHost", userHost)
 			defer func() {
 				wg.Done()
+				// <-tokenBucket
 			}()
 			var Grants []string
 			var err error
-			err = limiter.Wait(context.Background())
-			if err != nil {
-				errorChan <- err
-				return
-			}
+			slog.Info("msg", "userHost", userHost)
 			err = GetUserGantSql(needShowCreateUser, userHost, address, &Grants, bkCloudId)
 			if err != nil {
 				errorChan <- err
@@ -113,6 +116,7 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	go func() {
 		wg.Wait()
 		close(finishChan)
+		// close(tokenBucket)
 	}()
 
 	select {
@@ -576,31 +580,49 @@ func CheckGrantInMySqlVersion(userGrants []UserGrant, address string, bkCloudId 
 }
 
 // ImportMysqlPrivileges 执行mysql权限
-func ImportMysqlPrivileges(grants []string, address string, bkCloudId int64) error {
-	var errs []string
-	grants = append([]string{flushPriv, setBinlogOff}, grants...)
-	grants = append(grants, flushPriv)
-	limit := rate.Every(time.Millisecond * 200) // QPS：5
-	burst := 5                                  // 桶容量 5
-	limiter := rate.NewLimiter(limit, burst)
-	// nginx默认上传文件的大小限制是1M，为避免413 Request Entity Too Large报错，切分
-	tmp := util.SplitArray(grants, 100)
-	for _, vsqls := range tmp {
-		slog.Info("msg", "sqls", vsqls)
-		err := limiter.Wait(context.Background())
-		if err != nil {
-			slog.Error("msg", "limiter.Wait", err)
-			errs = append(errs, err.Error())
-			continue
-		}
-		queryRequest := QueryRequest{[]string{address}, vsqls, true, 60, bkCloudId}
-		_, err = OneAddressExecuteSql(queryRequest)
-		if err != nil {
-			errs = append(errs, err.Error())
-		}
+func ImportMysqlPrivileges(userGrants []UserGrant, address string, bkCloudId int64) error {
+	// Err 错误信息列表
+	type Err struct {
+		mu   sync.RWMutex
+		errs []string
 	}
-	if len(errs) > 0 {
-		return fmt.Errorf(strings.Join(errs, "\n"))
+	var errMsg Err
+	wg := sync.WaitGroup{}
+	limit := rate.Every(time.Millisecond * 20) // QPS：50
+	burst := 50                                // 桶容量 50
+	limiter := rate.NewLimiter(limit, burst)
+	for _, row := range userGrants {
+		errLimiter := limiter.Wait(context.Background())
+		if errLimiter != nil {
+			slog.Error("msg", "limiter.Wait", errLimiter)
+			return errLimiter
+		}
+		wg.Add(1)
+		go func(row UserGrant) {
+			defer func() {
+				wg.Done()
+			}()
+			slog.Info("msg", "user@host", row.UserHost)
+			queryRequest := QueryRequest{[]string{address}, row.Grants, true, 60, bkCloudId}
+			_, err := OneAddressExecuteSql(queryRequest)
+			if err != nil {
+				errMsg.mu.Lock()
+				errMsg.errs = append(errMsg.errs, err.Error())
+				errMsg.mu.Unlock()
+				return
+			}
+		}(row)
+	}
+	wg.Wait()
+	queryRequest := QueryRequest{[]string{address}, []string{flushPriv}, true, 60, bkCloudId}
+	_, err := OneAddressExecuteSql(queryRequest)
+	if err != nil {
+		errMsg.mu.Lock()
+		errMsg.errs = append(errMsg.errs, err.Error())
+		errMsg.mu.Unlock()
+	}
+	if len(errMsg.errs) > 0 {
+		return fmt.Errorf(strings.Join(errMsg.errs, "\n"))
 	}
 	return nil
 }

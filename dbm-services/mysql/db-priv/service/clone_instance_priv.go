@@ -79,11 +79,7 @@ func (m *CloneInstancePrivPara) CloneInstancePriv(jsonPara string, ticket string
 				return err
 			}
 		}
-		var grants []string
-		for _, sql := range userGrants {
-			grants = append(grants, sql.Grants...)
-		}
-		err = ImportMysqlPrivileges(grants, m.Target.Address, *m.BkCloudId)
+		err = ImportMysqlPrivileges(userGrants, m.Target.Address, *m.BkCloudId)
 		if err != nil {
 			return err
 		}

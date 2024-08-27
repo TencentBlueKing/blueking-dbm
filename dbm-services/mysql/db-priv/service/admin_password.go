@@ -287,7 +287,7 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error)
 	var passwordInput string
 	var errCheck error
 
-	limit := rate.Every(time.Millisecond * 200) // QPS：5
+	limit := rate.Every(time.Millisecond * 100) // QPS：10
 	burst := 10                                 // 桶容量 10
 	limiter := rate.NewLimiter(limit, burst)
 
@@ -377,16 +377,16 @@ func (m *ModifyAdminUserPasswordPara) ModifyAdminPassword() (BatchResult, error)
 			slog.Error("SM4Encrypt", "error", errOuter)
 			return batch, errOuter
 		}
+		err := limiter.Wait(context.Background())
+		if err != nil {
+			AddError(&errMsg, "get parallel resource", err)
+			continue
+		}
 		wg.Add(1)
 		go func(psw, encrypt string, cluster OneCluster) {
 			defer func() {
 				wg.Done()
 			}()
-			err := limiter.Wait(context.Background())
-			if err != nil {
-				AddError(&errMsg, "get parallel resource", err)
-				return
-			}
 			// 如果是sqlserver授权，走sqlserver授权通道
 			if m.Component == "sqlserver" {
 				m.ModifyAdminPasswordForSqlserver(

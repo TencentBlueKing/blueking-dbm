@@ -41,6 +41,7 @@ func (m *PrivService) GetAccountRuleList(c *gin.Context) {
 func (m *PrivService) AddAccountRule(c *gin.Context) {
 	slog.Info("do AddAccountRule!")
 	var input service.AccountRulePara
+	var rules []service.TbAccountRules
 	ticket := strings.TrimPrefix(c.FullPath(), "/priv/")
 
 	body, err := ioutil.ReadAll(c.Request.Body)
@@ -55,13 +56,19 @@ func (m *PrivService) AddAccountRule(c *gin.Context) {
 		SendResponse(c, errno.ErrBind, err)
 		return
 	}
-
 	if *input.ClusterType == "mongodb" {
-		err = input.MongoDBAddAccountRule(string(body), ticket)
+		rules, err = input.MongoDBAddAccountRule(string(body), ticket)
 	} else {
-		err = input.AddAccountRule(string(body), ticket)
+		rules, err = input.AddAccountRule(string(body), ticket)
 	}
-	SendResponse(c, err, nil)
+	if err != nil {
+		SendResponse(c, err, nil)
+		return
+	}
+	SendResponse(c, err, ListResponse{
+		Count: len(rules),
+		Items: rules,
+	})
 	return
 }
 
