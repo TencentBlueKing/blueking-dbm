@@ -276,8 +276,8 @@
   ];
 
   const redisHaOperationTypes = [
-    TicketTypes.REDIS_INSTANCE_PROXY_CLOSE,
-    TicketTypes.REDIS_INSTANCE_PROXY_OPEN,
+    TicketTypes.REDIS_INSTANCE_CLOSE,
+    TicketTypes.REDIS_INSTANCE_OPEN,
     TicketTypes.REDIS_INSTANCE_DESTROY,
   ];
 
