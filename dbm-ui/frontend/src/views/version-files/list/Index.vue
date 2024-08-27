@@ -177,6 +177,10 @@
           label: 'RedisDTS',
           name: 'redis-dts',
         },
+        {
+          label: 'RedisModules',
+          name: 'redis-modules',
+        },
       ],
     },
     {
