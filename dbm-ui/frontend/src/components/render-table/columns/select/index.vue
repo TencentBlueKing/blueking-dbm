@@ -178,6 +178,10 @@
   };
 
   const checkRootHeight = () => {
+    if (!rootRef.value) {
+      return;
+    }
+
     rootHeight.value = rootRef.value.parentNode.clientHeight;
   };
 
