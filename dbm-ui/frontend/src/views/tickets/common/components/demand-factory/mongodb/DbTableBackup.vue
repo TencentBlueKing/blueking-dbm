@@ -16,18 +16,18 @@
     class="details-backup__table"
     :columns="columns"
     :data="dataList" />
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('备份文件保存时间') }}：</span>
-      <span class="ticket-details__item-value">{{
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('备份文件保存时间') }}：</span>
+      <span class="ticket-details-item-value">{{
         fileTag === 'normal_backup' ? t('常规备份（25天）') : t('长期备份（3年）')
       }}</span>
     </div>
     <div
       v-if="backupType"
-      class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('备份位置') }}：</span>
-      <span class="ticket-details__item-value">{{ backupType }}</span>
+      class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('备份位置') }}：</span>
+      <span class="ticket-details-item-value">{{ backupType }}</span>
     </div>
   </div>
 </template>

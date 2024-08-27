@@ -14,16 +14,16 @@
 @import "@styles/mixins.less";
 
 .ticket-details {
-  &__info {
+  .ticket-details-info {
     padding-left: 82px;
     font-size: @font-size-mini;
 
-    &-title {
+    .ticket-details-info-title {
       color: @title-color;
     }
   }
 
-  &__list {
+  .ticket-details-list {
     .flex-center();
 
     max-width: 1000px;
@@ -32,7 +32,7 @@
 
   }
 
-  &__item {
+  .ticket-details-item {
     .flex-center();
 
     overflow: hidden;
@@ -40,13 +40,13 @@
     line-height: 32px;
     flex: 0 0 50%;
 
-    &-label {
+    .ticket-details-item-label {
       flex-shrink: 0;
       min-width: 140px;
       text-align: right;
     }
 
-    &-value {
+    .ticket-details-item-value {
       overflow: hidden;
       color: @title-color;
       text-overflow: ellipsis;
@@ -71,7 +71,7 @@
       align-items: flex-start;
       flex: 0 0 100%;
 
-      .ticket-details__item-value {
+      .ticket-details-item-value {
         padding-top: 8px;
       }
     }

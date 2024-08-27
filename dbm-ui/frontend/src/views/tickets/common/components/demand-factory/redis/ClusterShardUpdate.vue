@@ -13,10 +13,10 @@
 
 <template>
   <div
-    class="ticket-details__item"
+    class="ticket-details-item"
     style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('变更信息') }}：</span>
-    <span class="ticket-details__item-value">
+    <span class="ticket-details-item-label">{{ t('变更信息') }}：</span>
+    <span class="ticket-details-item-value">
       <BkLoading :loading="loading">
         <DbOriginalTable
           :columns="columns"
@@ -25,18 +25,18 @@
     </span>
   </div>
 
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('校验与修复类型') }}：</span>
-      <span class="ticket-details__item-value">
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('校验与修复类型') }}：</span>
+      <span class="ticket-details-item-value">
         {{ repairAndVerifyTypesMap[ticketDetails.details.data_check_repair_setting.type] }}
       </span>
     </div>
     <div
       v-if="ticketDetails.details.data_check_repair_setting.type !== 'no_check_no_repair'"
-      class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('校验与修复类型') }}：</span>
-      <span class="ticket-details__item-value">
+      class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('校验与修复类型') }}：</span>
+      <span class="ticket-details-item-value">
         {{ repairAndVerifyFrequencyMap[ticketDetails.details.data_check_repair_setting.execution_frequency] }}
       </span>
     </div>

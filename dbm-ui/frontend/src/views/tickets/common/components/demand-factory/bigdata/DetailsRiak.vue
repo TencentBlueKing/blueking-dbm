@@ -12,61 +12,61 @@
 -->
 
 <template>
-  <strong class="ticket-details__info-title">{{ t('部署模块') }}</strong>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('所属业务') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
+  <strong class="ticket-details-info-title">{{ t('部署模块') }}</strong>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('所属业务') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.bk_biz_name || '--' }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('业务英文名') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('业务英文名') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.db_app_abbr || '--' }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('DB模块名') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.details?.db_module_name || '--' }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('DB模块名') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.details?.db_module_name || '--' }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('集群ID') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_name || '--' }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('集群ID') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.details?.cluster_name || '--' }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('集群名称') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.details?.cluster_alias || '--' }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('集群名称') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.details?.cluster_alias || '--' }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('管控区域') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.details?.bk_cloud_name || '--' }}</span>
-    </div>
-  </div>
-  <strong class="ticket-details__info-title">{{ t('地域要求') }}</strong>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('数据库部署地域') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.details?.city_name || '--' }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('管控区域') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.details?.bk_cloud_name || '--' }}</span>
     </div>
   </div>
-  <strong class="ticket-details__info-title">{{ t('数据库部署信息') }}</strong>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('Riak版本') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
+  <strong class="ticket-details-info-title">{{ t('地域要求') }}</strong>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('数据库部署地域') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.details?.city_name || '--' }}</span>
     </div>
   </div>
-  <strong class="ticket-details__info-title">{{ t('部署需求') }}</strong>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('服务器选择方式') }}：</span>
-      <span class="ticket-details__item-value">{{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }} </span>
+  <strong class="ticket-details-info-title">{{ t('数据库部署信息') }}</strong>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('Riak版本') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.details?.db_version || '--' }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('备注') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails?.remark || '--' }}</span>
+  </div>
+  <strong class="ticket-details-info-title">{{ t('部署需求') }}</strong>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('服务器选择方式') }}：</span>
+      <span class="ticket-details-item-value">{{ isFromResourcePool ? t('从资源池匹配') : t('手动选择') }} </span>
+    </div>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('备注') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails?.remark || '--' }}</span>
     </div>
     <template v-if="isFromResourcePool">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('资源规格') }}：</span>
-        <span class="ticket-details__item-value">
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('资源规格') }}：</span>
+        <span class="ticket-details-item-value">
           <BkPopover
             placement="top"
             theme="light">
@@ -81,15 +81,15 @@
           </BkPopover>
         </span>
       </div>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('节点数量') }}：</span>
-        <span class="ticket-details__item-value">{{ riakSpec?.count || '--' }}</span>
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('节点数量') }}：</span>
+        <span class="ticket-details-item-value">{{ riakSpec?.count || '--' }}</span>
       </div>
     </template>
     <template v-else>
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('Riak节点IP') }}：</span>
-        <span class="ticket-details__item-value">
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('Riak节点IP') }}：</span>
+        <span class="ticket-details-item-value">
           <span
             v-if="riakNodeCount > 0"
             class="host-nums">
