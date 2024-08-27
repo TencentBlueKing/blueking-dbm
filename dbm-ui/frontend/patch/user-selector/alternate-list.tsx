@@ -35,7 +35,7 @@ export default defineComponent({
     });
     const listStyle = computed(() => {
       const style = {
-        'max-height': '390px',
+        'max-height': '385px',
       };
       if (selector.value) {
         const maxHeight = parseInt(selector.value.listScrollHeight, 10);

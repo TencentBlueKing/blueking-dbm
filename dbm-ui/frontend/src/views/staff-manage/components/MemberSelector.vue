@@ -34,7 +34,8 @@
     <DbIcon
       v-if="modelValue.length > 0"
       v-bk-tooltips="t('复制')"
-      type="copy db-member-selector-copy"
+      class="db-member-selector-copy"
+      type="copy"
       @click.stop="handleCopy" />
   </div>
 </template>
@@ -153,10 +154,11 @@
       width: 20px;
       height: 20px;
       margin-top: -15px;
-      font-size: 16px;
+      font-size: 12px;
       line-height: 20px;
       cursor: pointer;
       background-color: white;
+      color: #979ba5;
 
       &:hover {
         color: @primary-color;

@@ -401,3 +401,7 @@
 .tippy-content {
   padding: 0;
 }
+
+.tippy-box[data-theme~="light"][data-theme~="user-selector-popover"] .tippy-content {
+  padding: 0;
+}
