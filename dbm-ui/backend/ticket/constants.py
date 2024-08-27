@@ -294,8 +294,6 @@ class TicketType(str, StructuredEnum):
     REDIS_INSTANCE_OPEN = TicketEnumField("REDIS_INSTANCE_OPEN", _("Redis 主从启用"), register_iam=False)
     REDIS_INSTANCE_CLOSE = TicketEnumField("REDIS_INSTANCE_CLOSE", _("Redis 主从禁用"), register_iam=False)
     REDIS_DESTROY = TicketEnumField("REDIS_DESTROY", _("Redis 集群删除"), _("集群管理"))
-    REDIS_INSTANCE_PROXY_OPEN = TicketEnumField("REDIS_INSTANCE_PROXY_OPEN", _("Redis 主从集群启用"), register_iam=False)
-    REDIS_INSTANCE_PROXY_CLOSE = TicketEnumField("REDIS_INSTANCE_PROXY_CLOSE", _("Redis 主从集群禁用"), register_iam=False) # noqa
     REDIS_INSTANCE_DESTROY = TicketEnumField("REDIS_INSTANCE_DESTROY", _("Redis 主从集群删除"), _("集群管理"))
     REDIS_PURGE = TicketEnumField("REDIS_PURGE", _("Redis 集群清档"), _("集群管理"))
 

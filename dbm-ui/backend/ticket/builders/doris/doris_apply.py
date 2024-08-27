@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import random
+import string
 
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
@@ -84,7 +86,8 @@ class DorisApplyFlowParamBuilder(builders.FlowParamBuilder):
         """ """
         self.ticket_data.update(
             {
-                "username": get_random_string(8),
+                # doris 用户名首位需要字母
+                "username": random.choice(string.ascii_letters) + get_random_string(7),
                 "password": get_random_string(16),
                 "domain": f"doris.{self.ticket_data['cluster_name']}.{self.ticket_data['db_app_abbr']}.db",
             }

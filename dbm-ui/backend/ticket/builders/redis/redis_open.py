@@ -54,11 +54,11 @@ class RedisInstanceOpenDetailSerializer(SkipToRepresentationMixin, serializers.S
 
 
 class RedisInstanceOpenFlowParamBuilder(builders.FlowParamBuilder):
-    controller = RedisController.fake_scene
+    controller = RedisController.redis_ins_open_close_scene
 
 
 @builders.BuilderFactory.register(
-    TicketType.REDIS_INSTANCE_PROXY_OPEN, phase=ClusterPhase.ONLINE, iam=ActionEnum.REDIS_OPEN_CLOSE
+    TicketType.REDIS_INSTANCE_OPEN, phase=ClusterPhase.ONLINE, iam=ActionEnum.REDIS_OPEN_CLOSE
 )
 class RedisInstanceCloseFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisInstanceOpenDetailSerializer
