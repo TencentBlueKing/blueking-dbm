@@ -13,7 +13,6 @@
 
 <template>
   <DbOriginalTable
-    class="details-table"
     :columns="renderColumns"
     :data="dataList" />
 </template>

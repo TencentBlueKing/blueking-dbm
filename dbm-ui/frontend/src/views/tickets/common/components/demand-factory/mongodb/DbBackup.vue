@@ -16,14 +16,14 @@
     class="details-backup__table"
     :columns="columns"
     :data="dataList" />
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('备份文件保存时间') }}：</span>
-      <span class="ticket-details__item-value">{{ fileTag }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('备份文件保存时间') }}：</span>
+      <span class="ticket-details-item-value">{{ fileTag }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('是否开启 Oplog') }}：</span>
-      <span class="ticket-details__item-value">{{ oplogType }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('是否开启 Oplog') }}：</span>
+      <span class="ticket-details-item-value">{{ oplogType }}</span>
     </div>
   </div>
 </template>

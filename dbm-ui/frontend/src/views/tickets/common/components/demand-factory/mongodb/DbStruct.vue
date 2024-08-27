@@ -17,9 +17,9 @@
     :columns="columns"
     :data="tableData" />
   <template v-if="tableSettingData.length > 0">
-    <div class="ticket-details__list">
-      <div class="ticket-details__item">
-        <span class="ticket-details__item-label">{{ t('库表设置') }}：</span>
+    <div class="ticket-details-list">
+      <div class="ticket-details-item">
+        <span class="ticket-details-item-label">{{ t('库表设置') }}：</span>
       </div>
     </div>
     <DbOriginalTable
@@ -27,16 +27,16 @@
       :columns="dbTableColumns"
       :data="tableSettingData" />
   </template>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('构造新主机规格') }}：</span>
-      <span class="ticket-details__item-value">
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('构造新主机规格') }}：</span>
+      <span class="ticket-details-item-value">
         {{ specs[resource_spec.mongodb.spec_id].name ?? '--' }}
       </span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('每台主机构造Shard数量') }}：</span>
-      <span class="ticket-details__item-value">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('每台主机构造Shard数量') }}：</span>
+      <span class="ticket-details-item-value">
         {{ instance_per_host }}
       </span>
     </div>

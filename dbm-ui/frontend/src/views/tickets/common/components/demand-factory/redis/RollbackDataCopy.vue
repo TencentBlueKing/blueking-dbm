@@ -12,20 +12,13 @@
 -->
 
 <template>
-  <div
-    class="ticket-details__item"
-    style="align-items: flex-start">
-    <span class="ticket-details__item-label">{{ t('需求信息') }}：</span>
-    <span class="ticket-details__item-value">
-      <DbOriginalTable
-        :columns="columns"
-        :data="tableData" />
-    </span>
-  </div>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('写入类型') }}：</span>
-      <span class="ticket-details__item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
+  <DbOriginalTable
+    :columns="columns"
+    :data="tableData" />
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('写入类型') }}：</span>
+      <span class="ticket-details-item-value">{{ writeTypesMap[ticketDetails.details.write_mode] }}</span>
     </div>
   </div>
 </template>

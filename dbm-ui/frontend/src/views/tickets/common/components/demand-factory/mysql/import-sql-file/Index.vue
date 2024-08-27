@@ -12,39 +12,39 @@
 -->
 
 <template>
-  <div class="ticket-details__list">
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('所属业务') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.bk_biz_name }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('所属业务') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.bk_biz_name }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('业务英文名') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.db_app_abbr }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('业务英文名') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.db_app_abbr }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('SQL来源') }}：</span>
-      <span class="ticket-details__item-value">{{ importModeType }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('SQL来源') }}：</span>
+      <span class="ticket-details-item-value">{{ importModeType }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('字符集') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.details.charset }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('字符集') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.charset }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('执行前备份') }}：</span>
-      <span class="ticket-details__item-value">{{ isBackup }}</span>
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('执行前备份') }}：</span>
+      <span class="ticket-details-item-value">{{ isBackup }}</span>
     </div>
-    <div class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('执行模式') }}：</span>
-      <span class="ticket-details__item-value sql-mode-execute">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('执行模式') }}：</span>
+      <span class="ticket-details-item-value sql-mode-execute">
         <i :class="ticketModeData.icon" />
         <span v-bk-tooltips="ticketModeData.tips">{{ ticketModeData.text }}</span>
       </span>
     </div>
     <div
       v-if="ticketDetails.details.ticket_mode.trigger_time"
-      class="ticket-details__item">
-      <span class="ticket-details__item-label">{{ t('执行时间') }}：</span>
-      <span class="ticket-details__item-value">{{ ticketDetails.details.ticket_mode.trigger_time }}</span>
+      class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('执行时间') }}：</span>
+      <span class="ticket-details-item-value">{{ ticketDetails.details.ticket_mode.trigger_time }}</span>
     </div>
   </div>
   <div class="mysql-table">
