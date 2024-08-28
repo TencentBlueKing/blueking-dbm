@@ -89,6 +89,10 @@
       id,
       is_reviewed: 1,
     }).then((res) => {
+      if (props.data.id !== id) {
+        return;
+      }
+
       state.ticketData = res;
       // 设置轮询
       if (currentScope?.active) {
