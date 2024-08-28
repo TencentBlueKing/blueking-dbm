@@ -533,6 +533,14 @@
                     }
                   ]
                 } />
+                <bk-button
+                  v-bk-tooltips={t('修改入口配置')}
+                  class="ml-4"
+                  text
+                  theme="primary"
+                  onClick={() => handleOpenEntryConfig(data)}>
+                  <db-icon type="edit" />
+                </bk-button>
               </>
             )
           }}

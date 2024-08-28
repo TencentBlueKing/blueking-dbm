@@ -61,6 +61,12 @@
   const rootRef = ref();
   const popRef = ref();
 
+  const disabledTagMap = {
+    monitor: true,
+    model: true,
+    msdb: true,
+    tempdb: true,
+  };
   const rules = [
     {
       validator: (value: string[]) => {
@@ -74,16 +80,8 @@
       message: t('有 master 时只允许一个'),
     },
     {
-      validator: (value: string[]) => {
-        const disabledTagMap = {
-          montor: true,
-          model: true,
-          msdb: true,
-          tempdb: true,
-        };
-        return _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]);
-      },
-      message: t('DB名不能支持 montor、model、msdb、tempdb'),
+      validator: (value: string[]) => _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]),
+      message: t(`DB名不能支持 n`, { n: Object.keys(disabledTagMap).join(',') }),
     },
     {
       validator: (value: string[]) => {

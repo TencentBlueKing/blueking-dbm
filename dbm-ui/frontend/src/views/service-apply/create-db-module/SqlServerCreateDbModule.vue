@@ -242,11 +242,25 @@
 
   const formData = reactive(getFormData());
 
+  let lastestModuleId = 0;
+
   const { run: runSaveModuleDeploy } = useRequest(saveModulesDeployInfo, {
     manual: true,
-    onSuccess() {
+    onSuccess(data) {
       messageSuccess(t('创建DB模块并绑定数据库配置成功'));
       window.changeConfirm = false;
+
+      // 跳转到数据库配置并选中当前模块
+      router.push({
+        name: 'DbConfigureList',
+        params: {
+          clusterType: ticketInfo.type,
+        },
+        query: {
+          treeId: lastestModuleId ? `module-${lastestModuleId}` : '',
+          parentId: `app-${data.bk_biz_id}`,
+        },
+      });
     },
   });
 
@@ -254,6 +268,7 @@
     manual: true,
     onSuccess(res) {
       if (res.db_module_id) {
+        lastestModuleId = res.db_module_id;
         // 绑定数据库配置
         runSaveModuleDeploy({
           level_name: 'module',

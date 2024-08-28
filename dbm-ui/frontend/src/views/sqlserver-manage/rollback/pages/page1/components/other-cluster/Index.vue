@@ -29,7 +29,7 @@
       @change="handelClusterChange" />
   </div>
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 

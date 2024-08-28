@@ -26,14 +26,14 @@
           :desc="t('在原主机上进行故障从库实例重建')"
           icon="rebuild"
           :title="t('原地重建')"
-          true-value="MYSQL_RESTORE_LOCAL_SLAVE" />
+          :true-value="TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE" />
         <CardCheckbox
           v-model="ticketType"
           class="ml-8"
           :desc="t('将故障从库主机的实例重建到新主机')"
           icon="host"
           :title="t('新机重建')"
-          true-value="MYSQL_RESTORE_SLAVE" />
+          :true-value="TicketTypes.SQLSERVER_RESTORE_SLAVE" />
       </div>
     </div>
     <Component :is="renderCom" />
@@ -42,6 +42,9 @@
 <script setup lang="tsx">
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
+
+  import { TicketTypes } from '@common/const';
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
@@ -50,14 +53,16 @@
 
   const { t } = useI18n();
 
+  const route = useRoute();
+
   const comMap = {
-    MYSQL_RESTORE_LOCAL_SLAVE: OriginalHost,
-    MYSQL_RESTORE_SLAVE: NewHost,
+    [TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE]: OriginalHost,
+    [TicketTypes.SQLSERVER_RESTORE_SLAVE]: NewHost,
   };
 
-  const ticketType = ref<keyof typeof comMap>('MYSQL_RESTORE_LOCAL_SLAVE');
+  const ticketType = ref(route.query.ticketType || TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE);
 
-  const renderCom = computed(() => comMap[ticketType.value]);
+  const renderCom = computed(() => comMap[ticketType.value as keyof typeof comMap]);
 </script>
 <style lang="less">
   .sqlserver-manage-slave-rebuild-page {

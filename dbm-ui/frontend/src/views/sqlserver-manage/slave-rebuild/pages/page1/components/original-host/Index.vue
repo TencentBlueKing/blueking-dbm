@@ -62,6 +62,8 @@
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
@@ -75,6 +77,23 @@
 
   const { t } = useI18n();
   const router = useRouter();
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
+    onSuccess(data) {
+      tableData.value = data.map((item) =>
+        createRowData({
+          slave: {
+            bkCloudId: item.slave.bk_cloud_id,
+            bkHostId: item.slave.bk_host_id,
+            ip: item.slave.ip,
+            port: item.slave.port,
+            instanceAddress: `${item.slave.ip}:${item.slave.port}`,
+          },
+        }),
+      );
+    },
+  });
 
   const tabListConfig = {
     [ClusterTypes.SQLSERVER_HA as string]: [
@@ -124,7 +143,6 @@
           ip: instanceData.ip,
           port: instanceData.port,
           instanceAddress: instanceData.instance_address,
-          clusterId: instanceData.cluster_id,
         },
       }),
     );

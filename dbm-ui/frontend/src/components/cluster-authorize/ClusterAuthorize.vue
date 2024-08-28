@@ -377,6 +377,8 @@
       [ClusterTypes.TENDBHA]: [],
       [ClusterTypes.TENDBSINGLE]: [],
       [ClusterTypes.TENDBCLUSTER]: [],
+      [ClusterTypes.SQLSERVER_HA]: [],
+      [ClusterTypes.SQLSERVER_SINGLE]: []
     } as ClusterSelectorResult,
     isShow: false,
     tableProps: {

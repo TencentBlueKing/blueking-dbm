@@ -73,7 +73,6 @@
             ip: instanceData.ip,
             port: instanceData.port,
             instanceAddress: instanceData.instance_address,
-            clusterId: instanceData.cluster_id,
           };
           return true;
         }),

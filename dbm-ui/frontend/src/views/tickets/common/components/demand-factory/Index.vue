@@ -136,7 +136,9 @@
 
   const props = defineProps<Props>();
 
-  const sqlserverDetailModule = import.meta.glob<{ default: () => RouteRecordRaw[] }>('./sqlserver/*', { eager: true });
+  const sqlserverDetailModule = import.meta.glob<{ default: () => RouteRecordRaw[] }>('./sqlserver/*.vue', {
+    eager: true,
+  });
 
   const mysqlTicketType = [TicketTypes.MYSQL_AUTHORIZE_RULES, TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES];
 

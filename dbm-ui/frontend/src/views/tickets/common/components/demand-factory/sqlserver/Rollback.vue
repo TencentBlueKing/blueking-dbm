@@ -12,29 +12,34 @@
 -->
 
 <template>
-  <BkTable
-    class="details-ms-switch__table"
-    :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('待回档集群')">
-      <template #default="{ data }: { data: ColumnRow }">
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      :label="t('待回档集群')"
+      :width="180">
+      <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: ColumnRow }">
+    <BkTableColumn
+      :label="t('目标集群')"
+      :width="180">
+      <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('回档类型')">
-      <template #default="{ data }: { data: ColumnRow }">
-        <div v-if="data.restore_backup_file">
-          {{ t('备份记录') }}
+    <BkTableColumn
+      :label="t('回档类型')"
+      :width="300">
+      <template #default="{ data }: { data: RowData }">
+        <div v-if="data.restore_time">{{ t('回档到指定时间：') }}{{ data.restore_time }}</div>
+        <div v-else-if="data.restore_backup_file">
+          {{ t('备份记录：') }}{{ data.restore_backup_file.role }}
+          {{ dayjs(data.restore_backup_file.start_time).format('YYYY-MM-DD HH:mm:ss ZZ') }}
         </div>
-        <div v-else>{{ t('回档到指定时间') }}</div>
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('构造 DB')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         <BkTag
           v-for="item in data.db_list"
           :key="item">
@@ -43,16 +48,17 @@
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略 DB')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         <BkTag
           v-for="item in data.ignore_db_list"
           :key="item">
           {{ item }}
         </BkTag>
+        <span v-if="data.ignore_db_list.length < 1">--</span>
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('构造后 DB 名')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         <BkTag
           v-for="item in data.rename_infos"
           :key="item.db_name">
@@ -63,6 +69,7 @@
   </BkTable>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
@@ -73,7 +80,7 @@
     ticketDetails: TicketModel<Sqlserver.Rollback>;
   }
 
-  type ColumnRow = Props['ticketDetails']['details']['infos'][number];
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineProps<Props>();
 
@@ -83,7 +90,3 @@
 
   const { t } = useI18n();
 </script>
-
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>
