@@ -15,6 +15,7 @@
   <tr>
     <td style="padding: 0">
       <RenderTargetCluster
+        ref="clusterRef"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
     </td>
@@ -23,7 +24,7 @@
         ref="sepcRef"
         :cloud-id="data.cloudId"
         :cluster-type="data.clusterType"
-        :data="data.spec" />
+        :data="data.specId" />
     </td>
     <td style="padding: 0">
       <RenderTargetNumber
@@ -34,6 +35,7 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
       @clone="handleClone"
       @remove="handleRemove" />
@@ -59,6 +61,7 @@
     cloudId: number;
     bizId: number;
     spec?: SpecInfo;
+    specId?: number;
     targetNum?: string;
   }
 
@@ -104,6 +107,7 @@
 
   const emits = defineEmits<Emits>();
 
+  const clusterRef = ref();
   const sepcRef = ref();
   const numRef = ref();
 
@@ -122,35 +126,33 @@
     emits('remove');
   };
 
-  const getRowData = () => [sepcRef.value.getValue(), numRef.value.getValue()];
+  const getRowData = () => [clusterRef.value.getValue(), sepcRef.value.getValue(), numRef.value.getValue()];
 
   const handleClone = () => {
     Promise.allSettled(getRowData()).then((rowData) => {
-      const [specId, targetNum] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
       emits('clone', {
         ...props.data,
         rowKey: random(),
         isLoading: false,
-        targetNum: targetNum.count,
+        specId: rowInfo[1].spec_id,
+        targetNum: rowInfo[2].count,
       });
     });
   };
 
   defineExpose<Exposes>({
     async getValue() {
-      return Promise.all(getRowData()).then((data) => {
-        const [specId, targetNum] = data;
-        return {
-          cluster_id: props.data.clusterId,
-          resource_spec: {
-            spider_slave_ip_list: {
-              ...props.data.spec,
-              ...targetNum,
-              ...specId,
-            },
+      return Promise.all(getRowData()).then((data) => ({
+        cluster_id: props.data.clusterId,
+        resource_spec: {
+          spider_slave_ip_list: {
+            ...props.data.spec,
+            ...data[1],
+            ...data[2],
           },
-        };
-      });
+        },
+      }));
     },
   });
 </script>

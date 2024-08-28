@@ -63,21 +63,26 @@ export async function generateRedisProxyScaleDownCloneData(ticketData: TicketMod
     cluster_name: '',
   });
 
-  return infos.map((item) => {
-    const clusterId = item.cluster_id;
-    return {
-      rowKey: random(),
-      isLoading: false,
-      cluster: clusters[clusterId].immute_domain,
-      clusterId,
-      bkCloudId: clusterListMap[clusterId].bk_cloud_id,
-      nodeType: 'Proxy',
-      cluster_type_name: clusterListMap[clusterId].cluster_type_name,
-      proxyList: clusterListMap[clusterId].proxy,
-      selectedNodeList: (item.proxy_reduced_hosts || []).map((proxyHost) => formatValue(instanceListMap[proxyHost.ip])),
-      // targetNum: `${clusterListMap[clusterId].proxy.length}`,
-      targetNum: `${clusterListMap[clusterId].proxy.length - (item.target_proxy_count || 0)}`,
-      switchMode: item.online_switch_type,
-    };
-  });
+  return {
+    tableDataList: infos.map((item) => {
+      const clusterId = item.cluster_id;
+      return {
+        rowKey: random(),
+        isLoading: false,
+        cluster: clusters[clusterId].immute_domain,
+        clusterId,
+        bkCloudId: clusterListMap[clusterId].bk_cloud_id,
+        nodeType: 'Proxy',
+        cluster_type_name: clusterListMap[clusterId].cluster_type_name,
+        proxyList: clusterListMap[clusterId].proxy,
+        selectedNodeList: (item.proxy_reduced_hosts || []).map((proxyHost) =>
+          formatValue(instanceListMap[proxyHost.ip]),
+        ),
+        // targetNum: `${clusterListMap[clusterId].proxy.length}`,
+        targetNum: `${clusterListMap[clusterId].proxy.length - (item.target_proxy_count || 0)}`,
+        switchMode: item.online_switch_type,
+      };
+    }),
+    remark: ticketData.remark,
+  };
 }

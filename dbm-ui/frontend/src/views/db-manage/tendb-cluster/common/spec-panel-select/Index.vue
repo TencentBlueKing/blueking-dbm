@@ -31,13 +31,13 @@
   import { getSpecResourceCount } from '@services/source/dbresourceResource';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  import type { SpecInfo } from './components/Panel.vue';
+  // import type { SpecInfo } from './components/Panel.vue';
   import TableEditSelect, { type IListItem } from './components/Select.vue';
 
   interface Props {
     cloudId?: number;
     clusterType?: string;
-    data?: SpecInfo;
+    data?: number;
     currentSpecIds?: number[];
   }
 
@@ -74,7 +74,7 @@
   );
 
   watch(
-    () => props.data?.id,
+    () => props.data,
     async (id) => {
       if (id !== undefined) {
         localValue.value = id;

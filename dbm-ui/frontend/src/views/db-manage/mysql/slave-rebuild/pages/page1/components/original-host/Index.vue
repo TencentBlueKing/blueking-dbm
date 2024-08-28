@@ -24,10 +24,11 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <BkForm
-        class="mt-24"
+        class="toolbox-form mt-24"
         form-type="vertical">
         <BkFormItem
           :label="t('备份源')"
@@ -42,6 +43,7 @@
           </BkRadioGroup>
         </BkFormItem>
       </BkForm>
+      <TicketRemark v-model="localRemark" />
     </div>
     <template #action>
       <BkButton
@@ -86,6 +88,7 @@
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -93,6 +96,7 @@
   interface Props {
     dataList?: IDataRow[];
     backupType?: string;
+    remark: string;
   }
 
   const props = defineProps<Props>();
@@ -104,9 +108,10 @@
   const isShowInstanceSelecotr = ref(false);
   const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);
   const backupSource = ref('local');
+  const localRemark = ref('');
   const isSubmitting = ref(false);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
 
   const tabListConfig = {
@@ -130,7 +135,8 @@
     () => {
       if (props.dataList) {
         tableData.value = props.dataList;
-        backupSource.value = props.backupType;
+        backupSource.value = props.backupType || 'local';
+        localRemark.value = props.remark;
       }
     },
     {
@@ -204,13 +210,23 @@
     tableData.value = dataList;
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item) => item.getValue()));
       await createTicket({
         ticket_type: 'MYSQL_RESTORE_LOCAL_SLAVE',
-        remark: '',
+        remark: localRemark.value,
         details: {
           backup_source: backupSource.value,
           infos,
@@ -236,6 +252,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    localRemark.value = '';
     instanceMemo = {};
     selectedIntances.value[ClusterTypes.TENDBHA] = [];
     window.changeConfirm = false;

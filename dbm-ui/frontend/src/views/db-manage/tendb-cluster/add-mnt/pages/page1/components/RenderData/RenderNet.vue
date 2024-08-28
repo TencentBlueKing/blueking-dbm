@@ -31,7 +31,7 @@
   }
 
   interface Exposes {
-    getValue: () => Record<'bk_cloud_id', number>;
+    getValue: () => { bk_cloud_id: number };
   }
 
   const props = defineProps<Props>();

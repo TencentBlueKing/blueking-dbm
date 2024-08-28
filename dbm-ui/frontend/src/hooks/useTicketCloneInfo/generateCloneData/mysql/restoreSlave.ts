@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import _ from 'lodash';
 
 import type { MySQLRestoreSlaveDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
@@ -20,25 +19,31 @@ import { random } from '@utils';
 // MySQL 重建从库-新机重建
 export function generateMysqlRestoreSlaveCloneData(ticketData: TicketModel<MySQLRestoreSlaveDetails>) {
   const { infos } = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    rowKey: random(),
-    oldSlave: {
-      bkCloudId: item.old_slave.bk_cloud_id,
-      bkCloudName: '',
-      bkHostId: item.old_slave.bk_host_id,
-      ip: item.old_slave.ip,
-      port: item.old_slave.port,
-      instanceAddress: `${item.old_slave.ip}:${item.old_slave.port}`,
-      clusterId,
-    },
-    newSlave: {
-      bkBizId: item.new_slave.bk_biz_id,
-      bkCloudId: item.new_slave.bk_cloud_id,
-      bkHostId: item.new_slave.bk_host_id,
-      ip: item.new_slave.ip,
-      port: item.new_slave.port,
-    }
-  }))));
+  const tableDataList = infos.map((item) => {
+    const clusterId = item.cluster_ids[0];
+    return {
+      rowKey: random(),
+      oldSlave: {
+        bkCloudId: item.old_slave.bk_cloud_id,
+        bkCloudName: '',
+        bkHostId: item.old_slave.bk_host_id,
+        ip: item.old_slave.ip,
+        port: item.old_slave.port,
+        instanceAddress: `${item.old_slave.ip}:${item.old_slave.port}`,
+        clusterId,
+      },
+      newSlave: {
+        bkBizId: item.new_slave.bk_biz_id,
+        bkCloudId: item.new_slave.bk_cloud_id,
+        bkHostId: item.new_slave.bk_host_id,
+        ip: item.new_slave.ip,
+        port: item.new_slave.port,
+      },
+    };
+  });
 
-  return Promise.resolve({ tableDataList });
+  return Promise.resolve({
+    tableDataList,
+    remark: ticketData.remark,
+  });
 }

@@ -58,5 +58,6 @@ export async function generateMysqlVersionMigrateUpgradeCloneData(ticketData: Ti
   return Promise.resolve({
     tableList,
     backupSource,
+    remark: ticketData.remark,
   });
 }

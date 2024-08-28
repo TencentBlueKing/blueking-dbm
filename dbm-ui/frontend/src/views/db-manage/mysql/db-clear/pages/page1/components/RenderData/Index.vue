@@ -30,14 +30,14 @@
         :width="220">
         <template #append>
           <BatchEditColumn
-            v-model="isShowBatchEdit"
+            v-model="batchEditShow.truncateDataType"
             :data-list="selectList"
             :title="t('清档类型')"
-            @change="handleBatchEdit">
+            @change="(value) => handleBatchEditChange(value, 'truncateDataType')">
             <BatchOperateIcon
               class="ml-4"
               type="edit"
-              @click="handleShowBatchEdit" />
+              @click="handleBatchEditShow('truncateDataType')" />
           </BatchEditColumn>
         </template>
         {{ t('清档类型') }}
@@ -46,23 +46,71 @@
         :min-width="200"
         :width="250">
         {{ t('目标DB名') }}
+        <template #append>
+          <BatchEditColumn
+            v-model="batchEditShow.dbPatterns"
+            :title="t('目标DB名')"
+            type="taginput"
+            @change="(value) => handleBatchEditChange(value, 'dbPatterns')">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @click="handleBatchEditShow('dbPatterns')" />
+          </BatchEditColumn>
+        </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :min-width="200"
         :required="false"
         :width="250">
         {{ t('忽略DB名') }}
+        <template #append>
+          <BatchEditColumn
+            v-model="batchEditShow.ignoreDbs"
+            :title="t('忽略DB名')"
+            type="taginput"
+            @change="(value) => handleBatchEditChange(value, 'ignoreDbs')">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @click="handleBatchEditShow('ignoreDbs')" />
+          </BatchEditColumn>
+        </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :min-width="200"
         :width="250">
         {{ t('目标表名') }}
+        <template #append>
+          <BatchEditColumn
+            v-model="batchEditShow.tablePatterns"
+            :title="t('目标表名')"
+            type="taginput"
+            @change="(value) => handleBatchEditChange(value, 'tablePatterns')">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @click="handleBatchEditShow('tablePatterns')" />
+          </BatchEditColumn>
+        </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :min-width="200"
         :required="false"
         :width="250">
         {{ t('忽略表名') }}
+        <template #append>
+          <BatchEditColumn
+            v-model="batchEditShow.ignoreTables"
+            :title="t('忽略表名')"
+            type="taginput"
+            @change="(value) => handleBatchEditChange(value, 'ignoreTables')">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @click="handleBatchEditShow('ignoreTables')" />
+          </BatchEditColumn>
+        </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         fixed="right"
@@ -85,16 +133,24 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import type { IDataRowBatchKey } from './Row.vue';
+
   interface Emits {
     (e: 'batchSelectCluster'): void;
-    (e: 'batchEditTruncateType', value: string): void;
+    (e: 'batchEdit', value: string | string[], filed: IDataRowBatchKey): void;
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
-  const isShowBatchEdit = ref(false);
+  const batchEditShow = reactive({
+    truncateDataType: false,
+    dbPatterns: false,
+    tablePatterns: false,
+    ignoreDbs: false,
+    ignoreTables: false,
+  });
 
   const selectList = [
     {
@@ -111,12 +167,12 @@
     },
   ];
 
-  const handleShowBatchEdit = () => {
-    isShowBatchEdit.value = !isShowBatchEdit.value;
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
   };
 
-  const handleBatchEdit = (value: string) => {
-    emits('batchEditTruncateType', value);
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    emits('batchEdit', value, filed);
   };
 
   const handleShowBatchSelector = () => {

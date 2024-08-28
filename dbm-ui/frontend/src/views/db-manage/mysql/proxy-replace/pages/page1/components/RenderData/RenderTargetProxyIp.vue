@@ -105,14 +105,26 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => ({
-        target_proxy: {
-          bk_biz_id: currentBizId,
-          bk_host_id: hostDataMemo.bk_host_id,
-          bk_cloud_id: hostDataMemo.bk_cloud_id,
-          ip: hostDataMemo.ip,
-        },
-      }));
+      return inputRef.value
+        .getValue()
+        .then(() => ({
+          target_proxy: {
+            bk_biz_id: currentBizId,
+            bk_host_id: hostDataMemo.bk_host_id,
+            bk_cloud_id: hostDataMemo.bk_cloud_id,
+            ip: hostDataMemo.ip,
+          },
+        }))
+        .catch(() =>
+          Promise.reject({
+            target_proxy: {
+              bk_biz_id: currentBizId,
+              bk_host_id: hostDataMemo.bk_host_id,
+              bk_cloud_id: hostDataMemo.bk_cloud_id,
+              ip: hostDataMemo.ip,
+            },
+          }),
+        );
     },
   });
 </script>

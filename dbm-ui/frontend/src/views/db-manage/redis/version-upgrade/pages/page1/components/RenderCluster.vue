@@ -23,7 +23,7 @@
       v-model="localDomain"
       :multi-input="false"
       :rules="rules"
-      @error-message-change="handleErrorMessageChange"
+      @error="handleError"
       @focus="handleFocus"
       @submit="handleEditSubmit" />
     <div
@@ -190,12 +190,25 @@
     },
   );
 
+  watch(
+    localClusterId,
+    () => {
+      if (localClusterId.value) {
+        clusterIdMemo[instanceKey] = { [localClusterId.value]: true };
+        return;
+      }
+      clusterIdMemo[instanceKey] = {};
+    },
+    {
+      immediate: true,
+    },
+  );
+
   // 获取关联集群
   watchEffect(() => {
     if (!localClusterId.value || props.data.clusterType !== ClusterTypes.REDIS_INSTANCE) {
       return;
     }
-    clusterIdMemo[instanceKey][localClusterId.value] = true;
     fetchRelatedClustersByClusterIds();
   });
 
@@ -216,11 +229,12 @@
     isShowEdit.value = false;
   };
 
-  const handleErrorMessageChange = (value: string) => {
-    isShowEdit.value = !!value;
+  const handleError = (result: boolean) => {
+    isShowEdit.value = result;
   };
+
   onBeforeUnmount(() => {
-    clusterIdMemo[instanceKey] = {};
+    delete clusterIdMemo[instanceKey];
   });
 
   defineExpose<Exposes>({
