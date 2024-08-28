@@ -219,15 +219,7 @@ export function getTicketDetails(
   },
   payload = {} as IRequestPayload,
 ) {
-  // 请求控制器取消前一个请求
-  window.PROJECT_CONFIG.TICKET_DETAIL_REQUEST_CONTROLLER?.abort();
-  window.PROJECT_CONFIG.TICKET_DETAIL_REQUEST_CONTROLLER = new AbortController();
-  return http
-    .get<TicketModel>(`${path}/${params.id}/`, params, {
-      ...payload,
-      signal: window.PROJECT_CONFIG.TICKET_DETAIL_REQUEST_CONTROLLER.signal,
-    })
-    .then((data) => new TicketModel(data));
+  return http.get<TicketModel>(`${path}/${params.id}/`, params, payload).then((data) => new TicketModel(data));
 }
 
 /**

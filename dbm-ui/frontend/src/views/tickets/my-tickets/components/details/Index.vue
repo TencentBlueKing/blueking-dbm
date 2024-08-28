@@ -110,6 +110,10 @@
       permission: 'catch'
     })
       .then((ticketData) => {
+        if (props.ticketId !== id) {
+          return;
+        }
+
         state.ticketData = ticketData;
         emits('updateActiveTicket', ticketData);
 
