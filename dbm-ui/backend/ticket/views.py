@@ -85,7 +85,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
     filter_fields = {
-        "id": ["exact"],
+        "id": ["exact", "in"],
         "bk_biz_id": ["exact"],
         "ticket_type": ["exact", "in"],
         "status": ["exact", "in"],
