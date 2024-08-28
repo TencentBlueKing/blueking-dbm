@@ -48,15 +48,23 @@ class SQLServerDataMigrateDetailSerializer(SQLServerBaseOperateDetailSerializer)
         rename_infos = serializers.ListSerializer(help_text=_("迁移DB信息"), child=RenameInfoSerializer())
         dts_id = serializers.IntegerField(help_text=_("迁移记录ID"), required=False)
 
-    dts_mode = serializers.ChoiceField(help_text=_("迁移方式"), choices=SqlserverDtsMode.get_choices())
     need_auto_rename = serializers.BooleanField(help_text=_("迁移后，系统是否对源DB进行重命名"))
     manual_terminate = serializers.BooleanField(help_text=_("手动终止迁移"), required=False, default=False)
     infos = serializers.ListSerializer(help_text=_("迁移信息列表"), child=DataMigrateInfoSerializer())
 
     def validate(self, attrs):
         """验证库表数据库的数据"""
+        # TODO: 根据单据类型固定迁移方式
         # TODO: 验证target_db_name如果在目标集群存在，则rename_db_name不为空
         # TODO: 验证所有的rename_db_name一定不在目标集群存在
+        ticket_type = self.context["ticket_type"]
+        if ticket_type == TicketType.SQLSERVER_FULL_MIGRATE:
+            attrs["dts_mode"] = SqlserverDtsMode.FULL
+        elif ticket_type == TicketType.SQLSERVER_INCR_MIGRATE:
+            attrs["dts_mode"] = SqlserverDtsMode.INCR
+        else:
+            raise ValueError("Unknown ticket type")
+
         super().validate(attrs)
         # 校验集群是否可用
         super().validate_cluster_can_access(attrs)

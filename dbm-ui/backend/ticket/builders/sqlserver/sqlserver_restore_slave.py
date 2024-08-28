@@ -133,4 +133,4 @@ class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerTicketFlowBuilder):
             info["system_version"] = db_config["system_version"].split(",")
 
         # 添加集群信息
-        self.patch_cluster_details()
+        super().patch_ticket_detail()
