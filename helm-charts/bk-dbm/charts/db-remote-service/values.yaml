@@ -5,7 +5,7 @@ replicaCount: 1
 
 image:
   registry: "mirrors.tencent.com"
-  repository: "build/blueking/db-remote-service"
+  repository: "build/blueking/cloud-drs"
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
   tag: ""

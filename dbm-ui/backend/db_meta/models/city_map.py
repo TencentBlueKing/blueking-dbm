@@ -44,3 +44,19 @@ class BKCity(AuditedModel):
 
     class Meta:
         verbose_name = verbose_name_plural = _("蓝鲸城市表(BKCity)")
+
+
+class BKSubzone(AuditedModel):
+    """
+    机器实际的园区
+    """
+
+    bk_sub_zone = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("子 Zone"))
+    bk_sub_zone_id = models.IntegerField(default=0, help_text=_("子 Zone ID"))
+    bk_city = models.ForeignKey(BKCity, on_delete=models.PROTECT)
+
+    def __str__(self):
+        return self.bk_sub_zone
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("蓝鲸园区表(BKSubzone)")

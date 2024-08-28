@@ -44,3 +44,8 @@ CLUSTER_TYPE__SPEC_FILTER = {
 class ResourceOperation(str, StructuredEnum):
     import_hosts = EnumField("imported", _("导入主机"))
     consume_hosts = EnumField("consumed", _("消费主机"))
+
+
+class ResourceGroupByEnum(str, StructuredEnum):
+    DEVICE_CLASS = EnumField("device_class", _("按照机型聚合"))
+    SPEC = EnumField("spec", _("按规格聚合"))

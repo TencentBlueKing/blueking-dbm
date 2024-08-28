@@ -36,6 +36,13 @@ class BKCityAdmin(admin.ModelAdmin):
     search_fields = ("bk_idc_city_name",)
 
 
+@admin.register(models.city_map.BKSubzone)
+class BKSubzoneAdmin(admin.ModelAdmin):
+    list_display = ("bk_city", "bk_sub_zone", "bk_sub_zone_id")
+    list_filter = ("bk_city",)
+    search_fields = ("bk_sub_zone", "bk_sub_zone_id")
+
+
 @admin.register(models.cluster.Cluster)
 class ClusterAdmin(admin.ModelAdmin):
     list_display = ("name", "bk_biz_id", "cluster_type", "db_module_id", "immute_domain")

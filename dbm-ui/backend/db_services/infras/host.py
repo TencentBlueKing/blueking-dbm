@@ -16,6 +16,7 @@ from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
 from backend.db_meta.models import BKCity, LogicalCity
+from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.infras.constants import InventoryTag
 
@@ -69,6 +70,17 @@ def list_logic_cities() -> List:
     for city in cities:
         logic_cities.append({**model_to_dict(city), "logical_city_name": city.logical_city.name})
     return logic_cities
+
+
+def list_subzones(city_code: str = "") -> List:
+    subzones = BKSubzone.objects.select_related("bk_city").all()
+    if city_code:
+        subzones = subzones.filter(bk_city__bk_idc_city_name=city_code)
+
+    subzone_infos = []
+    for zone in subzones:
+        subzone_infos.append({**model_to_dict(zone), "bk_city_code": zone.bk_city.bk_idc_city_name})
+    return subzone_infos
 
 
 def list_host_specs() -> List[HostSpecModel]:

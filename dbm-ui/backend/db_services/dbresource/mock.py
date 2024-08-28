@@ -55,8 +55,8 @@ RESOURCE_LIST_DATA = [
         "bk_mem": 15,
         "bk_cpu": 8,
         "bk_disk": 0,
-        "resource_types": ["influxdb"],
-        "for_bizs": [{"bk_biz_id": 2005000100, "bk_biz_name": "xxxx"}],
+        "resource_type": "influxdb",
+        "for_biz": {"bk_biz_id": 2005000100, "bk_biz_name": "xxxx"},
     },
 ]
 
@@ -81,9 +81,32 @@ RECOMMEND_SPEC_DATA = [
 
 RESOURCE_UPDATE_PARAMS = {
     "bk_host_ids": [192],
-    "for_bizs": [3],
-    "resource_types": ["tendbcluster"],
+    "for_biz": 3,
+    "resource_type": "tendbcluster",
     "set_empty_biz": False,
     "set_empty_resource_type": False,
     "storage_device": {"/data3": {"size": 200, "disk_type": "HDD"}},
 }
+
+RESOURCE_SUMMARY_DATA = [
+    {
+        "dedicated_biz": 3,
+        "for_biz_name": "业务1",
+        "city": "上海",
+        "spec_id": 1,
+        "spec_name": "2核4G100G磁盘",
+        "spec_machine_type": "single",
+        "count": 1,
+        "sub_zone_detail": {"上海-宝信": 1},
+    },
+    {
+        "dedicated_biz": 1001,
+        "for_biz_name": "业务2",
+        "city": "上海",
+        "device_class": "S5.4XLARGE32",
+        "disk_summary": "",
+        "cpu_mem_summary": "16核32000G",
+        "count": 1,
+        "sub_zone_detail": {"上海-宝信": 1},
+    },
+]

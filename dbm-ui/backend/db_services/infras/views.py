@@ -15,11 +15,11 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_services.infras import serializers
 from backend.exceptions import ValidationError
 
-from ...configuration.constants import DBType
 from ..dbbase.constants import IpSource
 from .host import (
     list_cap_specs_cache,
@@ -28,7 +28,9 @@ from .host import (
     list_cities,
     list_host_specs,
     list_logic_cities,
+    list_subzones,
 )
+from .serializers import ListSubzoneSLZ
 
 SWAGGER_TAG = "infras"
 
@@ -42,7 +44,11 @@ class DBTypeViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False)
     def list_db_types(self, requests, *args, **kwargs):
-        db_types = [{"id": db_type[0], "name": db_type[1]} for db_type in DBType.get_choices()]
+        db_types = [
+            {"id": db_type[0], "name": db_type[1]}
+            for db_type in DBType.get_choices()
+            if db_type[0] not in [DBType.Cloud, DBType.TBinlogDumper]
+        ]
         return Response(db_types)
 
 
@@ -67,6 +73,18 @@ class LogicalCityViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=False)
     def list_logic_cities(self, requests, *args, **kwargs):
         serializer = serializers.LogicCitySLZ(list_logic_cities(), many=True)
+        return Response(serializer.data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询城市园区信息"),
+        query_serializer=ListSubzoneSLZ(),
+        responses={status.HTTP_200_OK: serializers.SubzoneSLZ(label=_("城市信息"), many=True)},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListSubzoneSLZ)
+    def list_subzones(self, requests, *args, **kwargs):
+        params = self.params_validate(self.get_serializer_class())
+        serializer = serializers.SubzoneSLZ(list_subzones(params["city_code"]), many=True)
         return Response(serializer.data)
 
 

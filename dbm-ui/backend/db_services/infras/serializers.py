@@ -39,6 +39,19 @@ class LogicCitySLZ(serializers.Serializer):
     logical_city_name = serializers.CharField()
 
 
+class ListSubzoneSLZ(serializers.Serializer):
+    city_code = serializers.CharField(help_text=_("城市ID"), required=False, default="")
+
+
+class SubzoneSLZ(serializers.Serializer):
+    """城市园区信息"""
+
+    bk_city = serializers.IntegerField()
+    bk_city_code = serializers.CharField()
+    bk_sub_zone_id = serializers.IntegerField()
+    bk_sub_zone = serializers.CharField()
+
+
 class HostSpecSLZ(serializers.Serializer):
     """服务器规格"""
 
