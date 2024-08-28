@@ -52,6 +52,8 @@
 <script setup lang="ts">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
 
+  import { batchSplitRegex } from '@common/regex';
+
   import useValidtor, { type Rules } from '../../hooks/useValidtor';
 
   interface Props {
@@ -109,7 +111,7 @@
     },
   );
 
-  const tagInputPasteFn = (value: string) => value.split('\n').map((item) => ({ id: item }));
+  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
   const handleChange = (value: string[]) => {
     localValue.value = value;
