@@ -37,7 +37,8 @@
         ref="sepcRef"
         :data="data.rowModelData"
         :is-loading="data.isLoading"
-        :select-list="specList" />
+        :select-list="specList"
+        :selected-spec-id="data.selectedSpecId" />
     </td>
     <td style="padding: 0">
       <RenderTargetNumber
@@ -49,7 +50,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -84,6 +87,7 @@
     targetNum?: string;
     clusterType?: string;
     rowModelData?: RedisModel;
+    selectedSpecId?: number;
   }
 
   export interface MoreDataItem {
@@ -124,6 +128,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: RedisModel): void;
   }
 
@@ -220,6 +225,21 @@
       return;
     }
     emits('remove');
+  };
+
+  const getRowData = () => [sepcRef.value!.getValue(), numRef.value!.getValue()];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...props.data,
+        rowKey: random(),
+        isLoading: false,
+        targetNum: rowInfo[1] || '',
+        selectedSpecId: rowInfo[0],
+      });
+    });
   };
 
   defineExpose<Exposes>({

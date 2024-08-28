@@ -28,7 +28,7 @@
         {{ item }}
       </div>
       <div
-        v-if="localSlaveInstanceList.length < 1"
+        v-if="localSlaveInstanceList.length < 1 || localSlaveInstanceList.every((item) => !item)"
         style="color: #c4c6cc"
         @click="handleShowBatchSelector">
         {{ t('请选择') }}
@@ -61,6 +61,7 @@
   interface Props {
     clusterId: number;
     scope: string;
+    modelValue: string[];
   }
   interface Emits {
     (e: 'change', value: string[]): void;
@@ -95,6 +96,10 @@
       },
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
+
+  watchEffect(() => {
+    localSlaveInstanceList.value = props.modelValue || [];
+  });
 
   // 批量选择
   const handleShowBatchSelector = () => {

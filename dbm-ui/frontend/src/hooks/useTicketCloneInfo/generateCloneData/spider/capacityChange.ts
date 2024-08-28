@@ -30,15 +30,12 @@ export async function generateSpiderCapacityChangeCloneData(ticketData: TicketMo
   const clusterListResult = await getSpiderList({
     cluster_ids: infos.map((item) => item.cluster_id),
   });
-  const clusterListMap = clusterListResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
-        [item.id]: item,
-      });
-      return obj;
-    },
-    {} as Record<number, SpiderModel>,
-  );
+  const clusterListMap = clusterListResult.results.reduce<Record<number, SpiderModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.id]: item,
+    });
+    return obj;
+  }, {});
 
   const tableDataList = infos.map((item) => {
     const clusterItem = clusterListMap[item.cluster_id];

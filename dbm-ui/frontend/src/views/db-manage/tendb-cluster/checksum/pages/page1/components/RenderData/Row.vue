@@ -43,7 +43,7 @@
         <RenderSlave
           ref="slaveRefs"
           :cluster-id="localClusterId"
-          :model-value="backupInfoItem.slave"
+          :model-value="localSlave"
           :scope="localScope"
           @change="handleSlaveChange" />
       </td>
@@ -180,6 +180,8 @@
   const localClusterId = ref(0);
   const localBackupInfos = ref<IDataRow['backupInfos']>([]);
   const localScope = ref('');
+
+  const localSlave = computed(() => localBackupInfos.value.map((infoItem) => infoItem.slave));
 
   watch(
     () => props.data,

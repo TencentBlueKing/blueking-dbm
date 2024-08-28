@@ -29,7 +29,24 @@ export function generateSpiderChecksumCloneData(ticketData: TicketModel<SpiderCh
         domain: clusterInfo.immute_domain,
       },
       scope: item.checksum_scope,
-      backupInfos: item.backup_infos,
+      backupInfos: item.backup_infos.map((backupInfosItem) => {
+        const {
+          slave,
+          master,
+          db_patterns: dbPatterns,
+          ignore_dbs: ignoreDbs,
+          table_patterns: tablePatterns,
+          ignore_tables: ignoreTables,
+        } = backupInfosItem;
+        return {
+          slave,
+          master,
+          dbPatterns,
+          ignoreDbs,
+          tablePatterns,
+          ignoreTables,
+        };
+      }),
     };
   });
   return Promise.resolve({

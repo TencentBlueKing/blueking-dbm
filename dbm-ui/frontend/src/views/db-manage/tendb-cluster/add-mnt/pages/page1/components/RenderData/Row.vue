@@ -33,6 +33,7 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
       @clone="handleClone"
       @remove="handleRemove" />
@@ -138,12 +139,7 @@
       emits(
         'clone',
         createRowData({
-          clusterData: {
-            id: clusterData.cluster_id,
-            domain: '',
-            bkCloudId: 0,
-            bkCloudName: '',
-          },
+          clusterData: props.data.clusterData,
           bkCloudId: netData.bk_cloud_id,
           spiderIpList: proxyData.spider_ip_list,
         }),

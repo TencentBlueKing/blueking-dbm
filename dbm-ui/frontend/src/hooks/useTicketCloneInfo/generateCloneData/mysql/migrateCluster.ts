@@ -33,5 +33,8 @@ export function generateMysqlMigrateClusterCloneData(ticketData: TicketModel<MyS
     };
   });
 
-  return Promise.resolve({ tableDataList });
+  return Promise.resolve({
+    tableDataList,
+    remark: ticketData.remark,
+  });
 }

@@ -146,7 +146,8 @@
       if (!localClusterId.value) {
         return;
       }
-      clusterIdMemo[instanceKey][localClusterId.value] = true;
+      clusterIdMemo[instanceKey] = { [localClusterId.value]: true };
+      // clusterIdMemo[instanceKey][localClusterId.value] = true;
     },
     {
       immediate: true,

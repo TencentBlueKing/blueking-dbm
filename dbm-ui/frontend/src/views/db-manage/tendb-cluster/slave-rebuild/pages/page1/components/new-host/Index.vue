@@ -75,6 +75,12 @@
   </SmartAction>
 </template>
 
+<script lang="tsx">
+  export const createDefaultFormData = () => ({
+    backup_source: 'local',
+    remark: '',
+  });
+</script>
 <script setup lang="tsx">
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -107,11 +113,6 @@
 
   const props = defineProps<Props>();
 
-  const createDefaultData = () => ({
-    backup_source: 'local',
-    remark: '',
-  });
-
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
@@ -121,7 +122,7 @@
   const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData()]);
 
-  const formData = reactive(createDefaultData());
+  const formData = reactive(createDefaultFormData());
 
   const selected = shallowRef({ TendbClusterHost: [] } as InstanceSelectorValues<IValue>);
 
@@ -160,9 +161,6 @@
         tableData.value = props.ticketCloneData.tableDataList;
         Object.assign(formData, props.ticketCloneData.formData);
       }
-    },
-    {
-      immediate: true,
     },
   );
 
@@ -310,7 +308,7 @@
   };
 
   const handleReset = () => {
-    Object.assign(formData, createDefaultData());
+    Object.assign(formData, createDefaultFormData());
     tableData.value = [createRowData()];
     ipMemo = {};
     selected.value.TendbClusterHost = [];

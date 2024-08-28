@@ -174,14 +174,14 @@
   .render-host-box {
     position: relative;
 
-    :deep(.is-error) {
-      .error-icon {
-        top: auto;
-        top: 50%;
-        right: auto;
-        left: 50%;
-        transform: translate(-50%, -50%);
-      }
-    }
+    // :deep(.is-error) {
+    //   .error-icon {
+    //     top: auto;
+    //     top: 50%;
+    //     right: auto;
+    //     // left: 50%;
+    //     transform: translate(-50%, -50%);
+    //   }
+    // }
   }
 </style>

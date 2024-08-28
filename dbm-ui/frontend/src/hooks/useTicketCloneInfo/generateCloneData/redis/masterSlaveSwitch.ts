@@ -55,5 +55,6 @@ export async function generateRedisMasterSlaveSwitchCloneData(ticketData: Ticket
   return {
     tableList,
     force,
+    remark: ticketData.remark,
   };
 }

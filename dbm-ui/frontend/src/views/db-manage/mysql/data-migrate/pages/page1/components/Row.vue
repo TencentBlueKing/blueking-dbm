@@ -56,7 +56,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -110,9 +112,11 @@
     data: IDataRow;
     removeable: boolean;
   }
+
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: number): void;
   }
 
@@ -151,6 +155,21 @@
     },
   );
 
+  watch(
+    () => [props.data?.dbPatterns, props.data?.ignoreDbs],
+    ([dbPatterns, ignoreDbs]) => {
+      if (dbPatterns) {
+        rowInfo.dbs = dbPatterns;
+      }
+      if (ignoreDbs) {
+        rowInfo.ignoreDbs = ignoreDbs;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const handleTargetClusterChange = (list: { id: number }[]) => {
     rowInfo.targetClusters = list.map((item) => item.id);
   };
@@ -181,6 +200,24 @@
   const handleTargetDbsChange = (dbs: DbsType) => {
     rowInfo.dbs = dbs.dbs;
     rowInfo.ignoreDbs = dbs.ignoreDbs;
+  };
+
+  const getRowData = () => [
+    sourceClusterRef.value!.getValue(),
+    targetClustersRef.value!.getValue(),
+    dbPatternsRef.value!.getValue('db_patterns'),
+    ignoreDbsRef.value!.getValue('ignore_dbs'),
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...createRowData(props.data.clusterData),
+        dbPatterns: rowInfo[2].db_patterns,
+        ignoreDbs: rowInfo[3].ignore_dbs,
+      });
+    });
   };
 
   defineExpose<Exposes>({

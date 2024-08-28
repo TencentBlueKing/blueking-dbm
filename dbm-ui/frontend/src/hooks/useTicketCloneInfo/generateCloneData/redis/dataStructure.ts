@@ -33,8 +33,8 @@ export async function generateRedisDataStructureCloneData(ticketData: TicketMode
     {} as Record<number, RedisModel>,
   );
 
-  return Promise.resolve(
-    infos.map((item) => {
+  return Promise.resolve({
+    tableDataList: infos.map((item) => {
       const currentClusterInfo = clusterListMap[item.cluster_id];
       const instances = currentClusterInfo.redis_master.map((row) => `${row.ip}:${row.port}`);
       return {
@@ -55,5 +55,6 @@ export async function generateRedisDataStructureCloneData(ticketData: TicketMode
         },
       };
     }),
-  );
+    remark: ticketData.remark,
+  });
 }

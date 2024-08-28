@@ -73,7 +73,7 @@
             return false;
           }
           [localInstanceData] = data;
-          instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+          instanceAddreddMemo[instanceKey] = { [localInstanceAddress.value]: true };
 
           return true;
         }),
@@ -116,7 +116,9 @@
       if (props.modelValue) {
         localInstanceAddress.value = props.modelValue.instance_address;
 
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+        instanceAddreddMemo[instanceKey] = { [localInstanceAddress.value]: true };
+      } else {
+        instanceAddreddMemo[instanceKey] = {};
       }
     },
     {
@@ -131,9 +133,16 @@
   defineExpose<Exposes>({
     getValue() {
       // 用户输入未完成验证
-      return editRef.value.getValue().then(() => ({
-        target: localInstanceAddress.value,
-      }));
+      return editRef.value
+        .getValue()
+        .then(() => ({
+          target: localInstanceAddress.value,
+        }))
+        .catch(() =>
+          Promise.reject({
+            target: localInstanceAddress.value,
+          }),
+        );
     },
   });
 </script>

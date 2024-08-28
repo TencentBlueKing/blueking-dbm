@@ -53,7 +53,7 @@
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const editRef = ref();
-  const dateValue = ref(props.data);
+  const dateValue = ref();
 
   const rules = [
     {
@@ -61,6 +61,16 @@
       message: t('请指定时间'),
     },
   ];
+
+  watch(
+    () => props.data,
+    () => {
+      dateValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const disableDate = (date: Date) => {
     const now = Date.now();
@@ -73,7 +83,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => formatDateToUTC(dateValue.value));
+      return editRef.value
+        .getValue()
+        .then(() => formatDateToUTC(dateValue.value))
+        .catch(() => Promise.reject(formatDateToUTC(dateValue.value)));
     },
   });
 </script>

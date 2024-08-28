@@ -35,6 +35,7 @@
     selectList: IListItem[];
     data?: IDataRow['rowModelData'];
     isLoading?: boolean;
+    selectedSpecId?: number;
   }
 
   interface Exposes {
@@ -43,7 +44,7 @@
 
   const props = defineProps<Props>();
   const selectRef = ref();
-  const localValue = ref();
+  const localValue = ref(props.selectedSpecId);
 
   const { t } = useI18n();
 
@@ -76,7 +77,10 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return selectRef.value.getValue().then(() => Number(localValue.value));
+      return selectRef.value
+        .getValue()
+        .then(() => Number(localValue.value))
+        .catch(() => Promise.reject(Number(localValue.value)));
     },
   });
 </script>

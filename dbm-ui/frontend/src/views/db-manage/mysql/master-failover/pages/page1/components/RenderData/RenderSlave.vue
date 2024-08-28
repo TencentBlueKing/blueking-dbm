@@ -77,22 +77,27 @@
     },
   ];
 
-  watch(
-    () => props.modelValue,
-    () => {
-      if (props.modelValue) {
-        localValue.value = props.modelValue.ip;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  // watch(
+  //   () => props.modelValue,
+  //   () => {
+  //     if (props.modelValue) {
+  //       localValue.value = props.modelValue.ip;
+  //     }
+  //   },
+  //   {
+  //     immediate: true,
+  //   },
+  // );
 
   watch(
     () => props.clusterList,
     () => {
-      localValue.value = '';
+      if (props.modelValue) {
+        localValue.value = genHostKey(props.modelValue);
+      } else {
+        localValue.value = '';
+      }
+
       slaveHostSelectList.value = [];
       allSlaveHostList = [];
 
@@ -106,6 +111,10 @@
             label: hostData.ip,
           }));
           allSlaveHostList = data;
+          setTimeout(() => {
+            // 行复制后，查询到对应数据后消除验证失败的样式
+            editRef.value.getValue();
+          });
         });
       }
     },
@@ -116,12 +125,19 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => {
-        const slaveHostData = _.find(allSlaveHostList, (item) => genHostKey(item) === localValue.value);
-        return {
-          slave_ip: slaveHostData,
-        };
-      });
+      return editRef.value
+        .getValue()
+        .then(() => {
+          const slaveHostData = _.find(allSlaveHostList, (item) => genHostKey(item) === localValue.value);
+          return {
+            slave_ip: slaveHostData,
+          };
+        })
+        .catch(() =>
+          Promise.reject({
+            slave_ip: undefined,
+          }),
+        );
     },
   });
 </script>

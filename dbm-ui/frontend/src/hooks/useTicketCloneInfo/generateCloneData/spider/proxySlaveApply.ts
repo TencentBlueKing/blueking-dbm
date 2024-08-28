@@ -24,15 +24,12 @@ export async function generateSpiderProxySlaveApplyCloneData(ticketData: TicketM
   const clusterListResult = await getSpiderList({
     cluster_ids: infos.map((item) => item.cluster_id),
   });
-  const clusterListMap = clusterListResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
-        [item.id]: item,
-      });
-      return obj;
-    },
-    {} as Record<number, SpiderModel>,
-  );
+  const clusterListMap = clusterListResult.results.reduce<Record<number, SpiderModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.id]: item,
+    });
+    return obj;
+  }, {});
 
   const tableDataList = infos.map((item) => {
     const clusterItem = clusterListMap[item.cluster_id];
@@ -50,6 +47,7 @@ export async function generateSpiderProxySlaveApplyCloneData(ticketData: TicketM
         id: item.resource_spec.spider_slave_ip_list.spec_id,
         count: item.resource_spec.spider_slave_ip_list.count,
       },
+      specId: item.resource_spec.spider_slave_ip_list.spec_id,
       targetNum: String(item.resource_spec.spider_slave_ip_list.count),
     };
   });
