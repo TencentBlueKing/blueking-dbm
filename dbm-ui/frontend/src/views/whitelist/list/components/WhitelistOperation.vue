@@ -100,35 +100,28 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    createWhitelist,
-    getWhitelist,
-    updateWhitelist,
-  } from '@services/source/whitelist';
+  import { createWhitelist, getWhitelist, updateWhitelist } from '@services/source/whitelist';
 
-  import { ipv4 } from '@common/regex';
+  import { batchSplitRegex, ipv4 } from '@common/regex';
 
   import { messageSuccess } from '@utils';
 
-  type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number]
+  type WhitelistItem = ServiceReturnType<typeof getWhitelist>['results'][number];
 
   interface Emits {
-    (e: 'update:isShow', value: boolean): void,
-    (e: 'successed'): void,
+    (e: 'update:isShow', value: boolean): void;
+    (e: 'successed'): void;
   }
 
   interface Props {
-    isShow: boolean,
-    title: string,
-    bizId: number,
-    isEdit: boolean,
-    data: WhitelistItem
+    isShow: boolean;
+    title: string;
+    bizId: number;
+    isEdit: boolean;
+    data: WhitelistItem;
   }
 
   const props = defineProps<Props>();
@@ -154,27 +147,34 @@
 
   const ipRules = [
     {
-      validator: (value: string) => _.every(value.split('\n'), item => {
-        const text = _.trim(item);
-        if (!text) {
-          return true
-        }
-        return ipv4.test(text)
-          || text === 'localhost'
-          || text === '%'
-          || /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){0,2}(\.%)$/.test(text)
-      }),
+      validator: (value: string) =>
+        _.every(value.split(batchSplitRegex), (item) => {
+          const text = _.trim(item);
+          if (!text) {
+            return true;
+          }
+          return (
+            ipv4.test(text) ||
+            text === 'localhost' ||
+            text === '%' ||
+            /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]\d|\d)){0,2}(\.%)$/.test(text)
+          );
+        }),
       message: t('ip中存在格式错误'),
       trigger: 'blur',
     },
   ];
 
-  watch(() => props.isShow, (isShow) => {
-    if (isShow && props.isEdit) {
-      formdata.remark = props.data.remark;
-      formdata.ips = props.data.ips.join('\n');
-    }
-  }, { immediate: true });
+  watch(
+    () => props.isShow,
+    (isShow) => {
+      if (isShow && props.isEdit) {
+        formdata.remark = props.data.remark;
+        formdata.ips = props.data.ips.join('\n');
+      }
+    },
+    { immediate: true },
+  );
 
   const renderTips = () => {
     handleHideMergeInst();
@@ -213,7 +213,7 @@
     ipMergeState.mergeValues = [];
     ipMergeState.renderValues = [];
 
-    const ips = value.split('\n').filter(ip => ip.trim());
+    const ips = value.split('\n').filter((ip) => ip.trim());
     // 记录相同 aaa.bbb.ccc.% 的 ip
     const abcIpMap = new Map<string, string[]>();
     for (const ip of ips) {
@@ -295,25 +295,24 @@
   };
 
   const handleSubmit = () => {
-    formRef.value.validate()
-      .then(() => {
-        isSubmitting.value = true;
-        const api = props.isEdit ? updateWhitelist : createWhitelist;
+    formRef.value.validate().then(() => {
+      isSubmitting.value = true;
+      const api = props.isEdit ? updateWhitelist : createWhitelist;
 
-        api({
-          ips: formdata.ips.split('\n'),
-          remark: formdata.remark,
-          bk_biz_id: props.bizId,
-          id: props.data?.id || 0,
+      api({
+        ips: formdata.ips.split(batchSplitRegex),
+        remark: formdata.remark,
+        bk_biz_id: props.bizId,
+        id: props.data?.id || 0,
+      })
+        .then(() => {
+          messageSuccess(t('创建成功'));
+          handleCancel();
+          emits('successed');
         })
-          .then(() => {
-            messageSuccess(t('创建成功'));
-            handleCancel();
-            emits('successed');
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      });
+        .finally(() => {
+          isSubmitting.value = false;
+        });
+    });
   };
 </script>
