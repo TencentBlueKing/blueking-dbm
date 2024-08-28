@@ -12,10 +12,20 @@
 -->
 
 <template>
-  <DbOriginalTable
-    class="details-ms-switch__table"
-    :columns="columns"
-    :data="ticketDetails.details.infos" />
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      field="cluster_id"
+      :label="t('目标从库实例')">
+      <template #default="{ data }: {data: RowData}"> {{ data.slave.ip }}:{{ data.slave.port }} </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="new_cluster_name"
+      :label="t('所属集群')">
+      <template #default="{ data }: {data: RowData}">
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -29,30 +39,13 @@
     ticketDetails: TicketModel<Sqlserver.RestoreLocalSlave>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
     name: TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE,
   });
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      label: t('目标从库实例'),
-      field: 'slave',
-      render: ({ data }: { data: Props['ticketDetails']['details']['infos'][number] }) =>
-        `${data.slave.ip}:${data.slave.port}`,
-    },
-    {
-      label: t('所属集群'),
-      field: 'immute_domain',
-      render: ({ data }: { data: Props['ticketDetails']['details']['infos'][number] }) =>
-        props.ticketDetails.details.clusters[data.cluster_id].immute_domain,
-    },
-  ];
 </script>
-
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>

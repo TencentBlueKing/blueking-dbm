@@ -12,10 +12,26 @@
 -->
 
 <template>
-  <DbOriginalTable
-    class="details-ms-switch__table"
-    :columns="columns"
-    :data="ticketDetails.details.infos" />
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      field="new_slave_host.ip"
+      :label="t('待重建从库主机')" />
+    <BkTableColumn
+      field="new_cluster_name"
+      :label="t('同机关联集群')">
+      <template #default="{ data }: { data: RowData }">
+        <div
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId"
+          style="line-height: 20px">
+          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+        </div>
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="old_slave_host.ip"
+      :label="t('新从库主机')" />
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
@@ -29,6 +45,8 @@
     ticketDetails: TicketModel<Sqlserver.RestoreSlave>;
   }
 
+  type RowData = Props['ticketDetails']['details']['infos'][number];
+
   defineProps<Props>();
 
   defineOptions({
@@ -36,27 +54,4 @@
   });
 
   const { t } = useI18n();
-
-  const columns = [
-  {
-      label: t('待重建从库主机'),
-      field: 'new_slave_host.ip',
-    },
-    {
-      label: t('同机关联集群'),
-      field: 'immute_domain',
-      render: ({ data }: { data: Props['ticketDetails']['details']['infos'][number] }) => data.cluster_ids.map((clusterId) => (
-        <div style="line-height: 20px">{clusterId}</div>
-      )),
-    },
-    {
-      label: t('新从库主机'),
-      field: 'old_slave_host.ip',
-    },
-
-  ];
 </script>
-
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>

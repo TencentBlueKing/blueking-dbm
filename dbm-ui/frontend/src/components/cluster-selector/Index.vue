@@ -436,6 +436,8 @@
           {} as Record<string, Record<string, T>>,
         );
       showTabTips.value = true;
+
+      console.log('watch = ', selectedMap.value, tabList.value);
     }
   });
 

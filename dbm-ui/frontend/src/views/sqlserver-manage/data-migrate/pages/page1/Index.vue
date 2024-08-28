@@ -18,32 +18,39 @@
         closable
         theme="info"
         :title="t('DB 重命名：database 重命名')" />
-      <RenderData
-        class="mt16"
-        @batch-select-cluster="handleShowBatchSelector">
-        <RenderDataRow
-          v-for="(item, index) in tableData"
-          :key="item.rowKey"
-          ref="rowRefs"
-          :data="item"
-          :removeable="tableData.length < 2"
-          @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-          @remove="handleRemove(index)" />
-      </RenderData>
+
       <BkForm
         class="mt-24"
         form-type="vertical">
-        <BkFormItem :label="t('迁移方式')">
-          <BkRadioGroup v-model="formData.dts_mode">
-            <BkRadio label="full">
+        <BkFormItem
+          :label="t('迁移类型')"
+          required>
+          <BkRadioGroup v-model="ticketType">
+            <BkRadioButton
+              :label="TicketTypes.SQLSERVER_FULL_MIGRATE"
+              style="width: 200px">
               {{ t('一次性全备迁移') }}
-            </BkRadio>
-            <BkRadio label="incr">
+            </BkRadioButton>
+            <BkRadioButton
+              :label="TicketTypes.SQLSERVER_INCR_MIGRATE"
+              style="width: 200px">
               {{ t('持续增量迁移') }}
-            </BkRadio>
+            </BkRadioButton>
           </BkRadioGroup>
         </BkFormItem>
-        <BkFormItem :label="t('DB名处理')">
+        <RenderData @batch-select-cluster="handleShowBatchSelector">
+          <RenderDataRow
+            v-for="(item, index) in tableData"
+            :key="item.rowKey"
+            ref="rowRefs"
+            :data="item"
+            :removeable="tableData.length < 2"
+            @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+            @remove="handleRemove(index)" />
+        </RenderData>
+        <BkFormItem
+          class="mt-24"
+          :label="t('DB名处理')">
           <BkRadioGroup v-model="formData.need_auto_rename">
             <BkRadio :label="false">
               {{ t('迁移后源DB继续使用，DB名不变') }}
@@ -106,10 +113,10 @@
   const isSubmitting = ref(false);
 
   const formData = reactive({
-    dts_mode: 'full',
     need_auto_rename: false,
   });
 
+  const ticketType = ref(TicketTypes.SQLSERVER_FULL_MIGRATE);
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
     [ClusterTypes.SQLSERVER_HA]: [],
@@ -173,7 +180,7 @@
     Promise.all(rowRefs.value!.map((item) => item.getValue()))
       .then((data) =>
         createTicket({
-          ticket_type: TicketTypes.SQLSERVER_DATA_MIGRATE,
+          ticket_type: ticketType.value,
           remark: '',
           details: {
             ...formData,

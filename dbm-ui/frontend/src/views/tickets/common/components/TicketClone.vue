@@ -107,6 +107,19 @@
     [TicketTypes.MYSQL_MIGRATE_UPGRADE]: 'MySQLVersionUpgrade', // MySQL 迁移升级
     [TicketTypes.TENDBCLUSTER_OPEN_AREA]: 'spiderOpenareaTemplate', // Spider 开区
     [TicketTypes.REDIS_VERSION_UPDATE_ONLINE]: 'RedisVersionUpgrade', // redis 版本升级
+    [TicketTypes.SQLSERVER_DATA_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 数据迁移
+    [TicketTypes.SQLSERVER_CLEAR_DBS]: 'sqlServerDBClear', // sqlserver 清档
+    [TicketTypes.SQLSERVER_DBRENAME]: 'sqlServerDBRename', // sqlserver DB重命名
+    [TicketTypes.SQLSERVER_BACKUP_DBS]: 'SqlServerDbBackup', // sqlserver 库备份
+    [TicketTypes.SQLSERVER_MASTER_FAIL_OVER]: 'sqlServerMasterFailover', // sqlserver 主库故障切换
+    [TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH]: 'sqlServerMasterSlaveSwap', // sqlserver 主从互切
+    [TicketTypes.SQLSERVER_ROLLBACK]: 'sqlServerDBRollback', // sqlserver 定点构造
+    [TicketTypes.SQLSERVER_ADD_SLAVE]: 'sqlServerSlaveAdd', // sqlserver 添加从库
+    [TicketTypes.SQLSERVER_RESTORE_SLAVE]: 'sqlServerSlaveRebuild', // sqlserver 重建从库_新机重建
+    [TicketTypes.SQLSERVER_RESTORE_LOCAL_SLAVE]: 'sqlServerSlaveRebuild', // sqlserver 重建从库_原地重建
+    [TicketTypes.SQLSERVER_IMPORT_SQLFILE]: 'sqlServerExecute', // sqlserver 变更SQL执行
+    [TicketTypes.SQLSERVER_FULL_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 全库迁移
+    [TicketTypes.SQLSERVER_INCR_MIGRATE]: 'sqlServerDataMigrate', // sqlserver 增量迁移
   };
 
   const isShowTicketClone = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
@@ -135,6 +148,7 @@
         name,
         query: {
           ticketId: props.data.id,
+          ticketType: props.data.ticket_type,
         },
       });
     }

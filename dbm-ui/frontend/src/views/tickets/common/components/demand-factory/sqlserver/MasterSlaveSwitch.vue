@@ -12,13 +12,31 @@
 -->
 
 <template>
-  <DbOriginalTable
-    class="details-ms-switch__table"
-    :columns="columns"
-    :data="ticketDetails.details.infos" />
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      field="master.ip"
+      :label="t('目标主库IP')">
+    </BkTableColumn>
+    <BkTableColumn
+      field="slave.ip"
+      :label="t('目标从库IP')">
+    </BkTableColumn>
+    <BkTableColumn
+      field="slave.ip"
+      :label="t('目标从库IP')">
+      <template #default="{ data }: { data: RowData }">
+        <div
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId"
+          style="line-height: 20px">
+          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+        </div>
+      </template>
+    </BkTableColumn>
+  </BkTable>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
@@ -29,33 +47,13 @@
     ticketDetails: TicketModel<Sqlserver.MasterSlaveSwitch>;
   }
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
+
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
     name: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
   });
 
   const { t } = useI18n();
-
-  const columns = [
-  {
-      label: t('目标主库IP'),
-      field: 'master.ip',
-    },
-    {
-      label: t('目标从库IP'),
-      field: 'slave.ip',
-    },
-    {
-      label: t('关联集群'),
-      field: 'immute_domain',
-      render: ({ data }: { data: Props['ticketDetails']['details']['infos'][number] }) => data.cluster_ids.map((clusterId) => (
-        <div style="line-height: 20px">{props.ticketDetails.details.clusters[clusterId].immute_domain}</div>
-      )),
-    },
-  ];
 </script>
-
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>

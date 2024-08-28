@@ -47,7 +47,6 @@
       ip: string;
       port: number;
       instanceAddress: string;
-      clusterId: number;
     };
     clusterId?: number;
   }
