@@ -29,9 +29,11 @@
           :inputed-ips="inputedIps"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
     </div>
     <template #action>
       <BkButton
@@ -65,7 +67,6 @@
 </template>
 
 <script setup lang="tsx">
-  import { InfoBox } from 'bkui-vue';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
@@ -79,6 +80,8 @@
   import { useGlobalBizs } from '@stores';
 
   import { TicketTypes } from '@common/const';
+
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import { switchToNormalRole } from '@utils';
 
@@ -108,7 +111,8 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_CUTOFF,
     onSuccess(cloneData) {
-      tableData.value = cloneData;
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
       sortTableByCluster();
       updateSlaveMasterMap();
       window.changeConfirm = true;
@@ -118,8 +122,9 @@
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting = ref(false);
-
   const tableData = ref([createRowData()]);
+  const remark = ref('');
+
   const selected = shallowRef({
     idleHosts: [],
   } as InstanceSelectorValues);
@@ -297,6 +302,16 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
@@ -349,48 +364,41 @@
 
   // 提交
   const handleSubmit = async () => {
-    isSubmitting.value = true;
-    await Promise.all(rowRefs.value.map((item: { getValue: () => void }) => item.getValue()));
-    isSubmitting.value = false;
+    try {
+      isSubmitting.value = true;
+      await Promise.all(rowRefs.value.map((item: { getValue: () => void }) => item.getValue()));
 
-    const infos = generateRequestParam();
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.REDIS_CLUSTER_CUTOFF,
-      details: {
-        ip_source: 'resource_pool',
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认整机替换n台主机？', { n: totalNum.value }),
-      subTitle: t('替换后所有的数据将会迁移到新的主机上，请谨慎操作！'),
-      width: 480,
-      onConfirm: () => {
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'RedisDBReplace',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+      const infos = generateRequestParam();
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.REDIS_CLUSTER_CUTOFF,
+        remark: remark.value,
+        details: {
+          ip_source: 'resource_pool',
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'RedisDBReplace',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selected.value.idleHosts = [];
     ipMemo = {};
     window.changeConfirm = false;

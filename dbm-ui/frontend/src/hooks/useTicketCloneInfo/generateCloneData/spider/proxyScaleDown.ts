@@ -11,39 +11,66 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import _ from 'lodash';
+
 import SpiderModel from '@services/model/spider/spider';
+import TendbInstanceModel from '@services/model/spider/tendbInstance';
 import type { SpiderReduceNodesDetails } from '@services/model/ticket/details/spider';
 import TicketModel from '@services/model/ticket/ticket';
-import { getSpiderList } from '@services/source/spider';
+import { getSpiderInstanceList, getSpiderList } from '@services/source/spider';
 
 import { random } from '@utils';
 
 // spider 缩容接入层
 export async function generateSpiderProxyScaleDownCloneData(ticketData: TicketModel<SpiderReduceNodesDetails>) {
   const { infos, is_safe: isSafe } = ticketData.details;
-  const clusterListResult = await getSpiderList({
-    cluster_ids: infos.map((item) => item.cluster_id),
+  const [clusterListResult, instanceListResult] = await Promise.all([
+    getSpiderList({
+      cluster_ids: infos.map((item) => item.cluster_id),
+    }),
+    getSpiderInstanceList({
+      ip: _.flatten(infos.map((infoItem) => infoItem.spider_reduced_hosts?.map((hostItem) => hostItem.ip))).join(','),
+    }),
+  ]);
+  const clusterListMap = clusterListResult.results.reduce<Record<number, SpiderModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.id]: item,
+    });
+    return obj;
+  }, {});
+  const instanceListMap = instanceListResult.results.reduce<Record<string, TendbInstanceModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.ip]: item,
+    });
+    return obj;
+  }, {});
+
+  const formatValue = (data: TendbInstanceModel) => ({
+    bk_host_id: data.bk_host_id,
+    instance_address: data.instance_address || '',
+    cluster_id: data.cluster_id,
+    bk_cloud_id: data?.host_info?.cloud_id || 0,
+    ip: data.ip || '',
+    port: data.port,
+    cluster_type: data.cluster_type,
+    id: data.id,
+    master_domain: data.master_domain,
+    bk_cloud_name: data.bk_cloud_name,
+    db_module_id: data.db_module_id,
+    db_module_name: data.db_module_name,
   });
-  const clusterListMap = clusterListResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
-        [item.id]: item,
-      });
-      return obj;
-    },
-    {} as Record<number, SpiderModel>,
-  );
 
   const tableDataList = infos.map((item) => {
     const clusterItem = clusterListMap[item.cluster_id];
     const masterCount = clusterItem.spider_master.length;
     const slaveCount = clusterItem.spider_slave.length;
+    const nodeList = item.reduce_spider_role === 'spider_master' ? clusterItem.spider_master : clusterItem.spider_slave;
     const targetNum = item.spider_reduced_to_count;
 
     return {
       rowKey: random(),
       isLoading: false,
-      cluster: clusterItem.cluster_name,
+      cluster: clusterItem.master_domain,
       clusterId: item.cluster_id,
       bkCloudId: clusterItem.bk_cloud_id,
       nodeType: item.reduce_spider_role,
@@ -56,7 +83,11 @@ export async function generateSpiderProxyScaleDownCloneData(ticketData: TicketMo
         ...clusterItem.spider_master[0].spec_config,
         count: targetNum,
       },
-      targetNum: String(targetNum),
+      selectedNodeList: (item.spider_reduced_hosts || []).map((proxyHost) =>
+        formatValue(instanceListMap[proxyHost.ip]),
+      ),
+      targetNum: `${nodeList.length - (item.spider_reduced_to_count || 0)}`,
+      // targetNum: String(targetNum),
     };
   });
 

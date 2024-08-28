@@ -32,7 +32,7 @@
         :cloud-id="data.bkCloudId"
         :cluster-type="data.clusterType"
         :current-spec-ids="currentSpecIds"
-        :data="data.spec" />
+        :data="data.specId" />
     </td>
     <td style="padding: 0">
       <RenderHostType
@@ -50,6 +50,7 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
       @clone="handleClone"
       @remove="handleRemove" />
@@ -61,7 +62,7 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderTargetCluster from '@views/spider-manage/common/edit-field/ClusterName.vue';
-  import type { SpecInfo } from '@views/spider-manage/common/spec-panel-select/components/Panel.vue';
+  // import type { SpecInfo } from '@views/spider-manage/common/spec-panel-select/components/Panel.vue';
   import RenderSpec from '@views/spider-manage/common/spec-panel-select/Index.vue';
 
   import { random } from '@utils';
@@ -82,7 +83,8 @@
     mntCount: number; // 校验 spider_master + spider _mnt <=37
     spiderMasterList: SpiderModel['spider_master'];
     spiderSlaveList: SpiderModel['spider_slave'];
-    spec?: SpecInfo;
+    // spec?: SpecInfo;
+    specId?: number;
     targetNum?: string;
     clusterType?: string;
   }
@@ -185,12 +187,15 @@
 
   const handleClone = () => {
     Promise.allSettled(getRowData()).then((rowData) => {
-      const [nodeType, targetNum] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      const [nodeType, targetNum, specInfo] = rowData.map((item) =>
+        item.status === 'fulfilled' ? item.value : item.reason,
+      );
       emits('clone', {
         ...createRowData(),
         cluster: props.data.cluster,
         nodeType: nodeType.reduce_spider_role,
         targetNum: targetNum.count ? targetNum.count : '',
+        specId: specInfo.spec_id,
       });
     });
   };

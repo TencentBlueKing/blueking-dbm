@@ -66,7 +66,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -140,6 +142,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: RedisModel): void;
     (e: 'targetNumChange', value: number): void;
   }
@@ -233,6 +236,31 @@
 
   const handleHostNumChange = (value: number) => {
     localTargerNum.value = String(value);
+  };
+
+  const handleClone = () => {
+    Promise.allSettled([
+      clusterRef.value!.getValue(),
+      targetNumberRef.value!.getValue(),
+      hostRef.value!.getValue('proxy_reduced_hosts'),
+      switchRef.value!.getValue(),
+    ]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      const cloneData = {
+        ...props.data,
+        rowKey: random(),
+        isLoading: false,
+        targetNum: String(roleHostCount.value - Number(rowInfo[1])),
+        switchMode: rowInfo[3],
+      };
+      if (rowInfo[2]) {
+        Object.assign(cloneData, {
+          hostSelectType: HostSelectType.MANUAL,
+          selectedNodeList: rowInfo[2].proxy_reduced_hosts,
+        });
+      }
+      emits('clone', cloneData);
+    });
   };
 
   defineExpose<Exposes>({

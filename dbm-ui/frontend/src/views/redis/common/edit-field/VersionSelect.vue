@@ -77,7 +77,7 @@
   const { t } = useI18n();
 
   const selectRef = ref();
-  const localValue = ref(props.data);
+  const localValue = ref('');
   const selectList = ref<
     {
       value: string;
@@ -95,7 +95,9 @@
   const { loading, run: fetchListPackages } = useRequest(listPackages, {
     manual: true,
     onSuccess(listResult) {
-      [localValue.value] = listResult;
+      if (!props.data) {
+        [localValue.value] = listResult[0];
+      }
       selectList.value = listResult.map((value) => ({
         value,
         label: value,
@@ -112,6 +114,16 @@
           query_key: clusterTypeMachineMap[props.clusterType] ?? 'redis',
         });
       }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
     },
     {
       immediate: true,

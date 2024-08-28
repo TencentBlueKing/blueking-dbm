@@ -17,7 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="data.clusterData"
-        relate-cluster-tips="同主机关联的其他集群，勾选后一并添加"
+        :relate-cluster-tips="t('同主机关联的其他集群，勾选后一并添加')"
         @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
@@ -30,7 +30,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -62,6 +64,7 @@
 </script>
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
@@ -78,6 +81,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -87,6 +91,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const clusterRef = ref<InstanceType<typeof RenderCluster>>();
   const proxyRef = ref<InstanceType<typeof RenderProxy>>();
@@ -120,6 +126,21 @@
       return;
     }
     emits('remove');
+  };
+
+  const getRowData = () => [clusterRef.value.getValue(), proxyRef.value.getValue()];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          clusterData: props.data.clusterData,
+          proxyIp: rowInfo[1].new_proxy,
+        }),
+      );
+    });
   };
 
   defineExpose<Exposes>({

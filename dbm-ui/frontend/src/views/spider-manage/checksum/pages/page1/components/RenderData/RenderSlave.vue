@@ -52,7 +52,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import InstanceSelector,  {
+  import InstanceSelector, {
     type InstanceSelectorValues,
     type IValue,
     type PanelListType,
@@ -61,6 +61,7 @@
   interface Props {
     clusterId: number;
     scope: string;
+    modelValue: string[];
   }
   interface Emits {
     (e: 'change', value: string[]): void;
@@ -96,6 +97,10 @@
     ],
   } as unknown as Record<ClusterTypes, PanelListType>;
 
+  watchEffect(() => {
+    localSlaveInstanceList.value = props.modelValue || [];
+  });
+
   // 批量选择
   const handleShowBatchSelector = () => {
     isShowInstanceSelector.value = true;
@@ -103,7 +108,7 @@
 
   // 批量选择
   const handelInstanceSelectorChange = (payload: InstanceSelectorValues<IValue>) => {
-    localSlaveInstanceList.value = payload.tendbcluster.map(item => item.instance_address);
+    localSlaveInstanceList.value = payload.tendbcluster.map((item) => item.instance_address);
     emits('change', [...localSlaveInstanceList.value]);
   };
 

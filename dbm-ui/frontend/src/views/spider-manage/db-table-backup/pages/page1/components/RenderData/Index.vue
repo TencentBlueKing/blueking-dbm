@@ -37,7 +37,7 @@
               :title="t('备份位置')"
               @change="(value) => handleBatchEditChange(value, 'backupLocal')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('backupLocal')">
                 <DbIcon type="bulk-edit" />
@@ -56,7 +56,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'dbPatterns')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('dbPatterns')">
                 <DbIcon type="bulk-edit" />
@@ -76,7 +76,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'ignoreDbs')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('ignoreDbs')">
                 <DbIcon type="bulk-edit" />
@@ -95,7 +95,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'tablePatterns')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('tablePatterns')">
                 <DbIcon type="bulk-edit" />
@@ -110,12 +110,12 @@
           :width="210">
           <template #append>
             <BatchEditColumn
-              v-model="batchEditShow.ignoreDbs"
+              v-model="batchEditShow.ignoreTables"
               :title="t('忽略表名')"
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'ignoreTables')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('ignoreTables')">
                 <DbIcon type="bulk-edit" />

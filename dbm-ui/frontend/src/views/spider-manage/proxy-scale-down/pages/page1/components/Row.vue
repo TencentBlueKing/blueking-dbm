@@ -15,6 +15,7 @@
   <tr>
     <td style="padding: 0">
       <RenderTargetCluster
+        ref="clusterRef"
         :check-duplicate="false"
         :data="data.cluster"
         @on-input-finish="handleInputFinish" />
@@ -41,6 +42,7 @@
         :data="data"
         :instance-ip-list="instaceIpList"
         :is-loading="data.isLoading"
+        :selected-node-list="data.selectedNodeList"
         :tab-list-config="tabListConfig"
         @num-change="handleHostNumChange"
         @type-change="handleChangeHostSelectType" />
@@ -56,6 +58,7 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
       @clone="handleClone"
       @remove="handleRemove" />
@@ -69,7 +72,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import { type PanelListType } from '@components/instance-selector/Index.vue';
+  import type { IValue, PanelListType } from '@components/instance-selector/Index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderRoleHostSelect, { HostSelectType } from '@components/render-table/columns/role-host-select/Index.vue';
 
@@ -95,6 +98,7 @@
     spiderSlaveList: SpiderModel['spider_slave'];
     spec?: SpecInfo;
     hostSelectType?: string;
+    selectedNodeList?: IValue[];
     targetNum?: string;
   }
 
@@ -150,6 +154,7 @@
 
   const { t } = useI18n();
 
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
   const nodeTypeRef = ref<InstanceType<typeof RenderNodeType>>();
   const hostRef = ref<InstanceType<typeof RenderRoleHostSelect>>();
   const tergetNumRef = ref<InstanceType<typeof RenderTargetNumber>>();
@@ -235,7 +240,7 @@
     }
     emits('nodeTypeChoosed', choosedLabel);
 
-    localTargerNum.value = '';
+    // localTargerNum.value = '';
     hostRef.value?.resetValue();
   };
 
@@ -262,36 +267,45 @@
     emits('remove');
   };
 
-  const getRowData = () => [
-    nodeTypeRef.value!.getValue(),
-    hostRef.value!.getValue('spider_reduced_hosts'),
-    tergetNumRef.value!.getValue(),
-  ];
-
   const handleClone = () => {
-    Promise.allSettled(getRowData()).then((rowData) => {
-      const [nodeType, hostData, targetNum] = rowData.map((item) =>
-        item.status === 'fulfilled' ? item.value : item.reason,
-      );
-      emits('clone', {
+    Promise.allSettled([
+      clusterRef.value!.getValue(),
+      nodeTypeRef.value!.getValue(),
+      hostRef.value!.getValue('spider_reduced_hosts'),
+      tergetNumRef.value!.getValue(),
+    ]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      const cloneData = {
         rowKey: random(),
         isLoading: false,
         cluster: '',
         clusterId: 0,
         bkCloudId: 0,
-        nodeType: nodeType.reduce_spider_role,
+        nodeType: rowInfo[1].reduce_spider_role,
         masterCount: 0,
         slaveCount: 0,
         spiderMasterList: [],
         spiderSlaveList: [],
-        targetNum: targetNum.spider_reduced_to_count || '',
-      });
+        targetNum: String(nodeCount.value - Number(rowInfo[3].spider_reduced_to_count)),
+      };
+      if (rowInfo[2]) {
+        Object.assign(cloneData, {
+          hostSelectType: HostSelectType.MANUAL,
+          selectedNodeList: rowInfo[2].spider_reduced_hosts,
+        });
+      }
+      emits('clone', cloneData);
     });
   };
 
   defineExpose<Exposes>({
     async getValue() {
-      return Promise.all(getRowData()).then((data) => {
+      await clusterRef.value!.getValue();
+      return Promise.all([
+        nodeTypeRef.value!.getValue(),
+        hostRef.value!.getValue('spider_reduced_hosts'),
+        tergetNumRef.value!.getValue(),
+      ]).then((data) => {
         const [nodeType, hostData, targetNum] = data;
         const info = {
           cluster_id: props.data.clusterId,

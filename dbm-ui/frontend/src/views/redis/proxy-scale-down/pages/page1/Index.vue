@@ -20,6 +20,7 @@
         :title="t('缩容接入层：减少集群的Proxy数量，但集群Proxy数量不能少于2')" />
       <RenderData
         class="mt16"
+        @batch-edit-backup-local="handleBatchEditBackupLocal"
         @show-master-batch-selector="handleShowMasterBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -29,9 +30,11 @@
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
         :cluster-types="[ClusterTypes.REDIS]"
@@ -78,6 +81,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
@@ -99,7 +103,7 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
     onSuccess(cloneData) {
-      tableData.value = cloneData;
+      tableData.value = cloneData.tableDataList;
       window.changeConfirm = true;
     },
   });
@@ -108,6 +112,7 @@
   const isShowClusterSelector = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref([createRowData()]);
+  const remark = ref('');
 
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
@@ -154,6 +159,17 @@
     // targetNum: `${item.proxy.length}`,
     targetNum: '1',
   });
+
+  const handleBatchEditBackupLocal = (value: string) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        switchMode: value,
+      });
+    });
+  };
   // 批量选择
   const handelClusterChange = (selected: { [key: string]: Array<RedisModel> }) => {
     selectedClusters.value = selected;
@@ -197,6 +213,16 @@
     selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== cluster);
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   // 点击提交按钮
   const handleSubmit = async () => {
     try {
@@ -207,6 +233,7 @@
       const params: SubmitTicket<TicketTypes, InfoItem[]> = {
         bk_biz_id: currentBizId,
         ticket_type: TicketTypes.REDIS_PROXY_SCALE_DOWN,
+        remark: remark.value,
         details: {
           ip_source: 'resource_pool',
           infos,

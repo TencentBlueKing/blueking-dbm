@@ -20,20 +20,17 @@ import { random } from '@utils';
 
 // spider 迁移主从
 export async function generateSpiderMasterSlaveCloneCloneData(ticketData: TicketModel<SpiderMigrateCluster>) {
-  const { infos } = ticketData.details;
+  const { infos, backup_source: backupSource } = ticketData.details;
   const masterMachineResult = await getSpiderMachineList({
     ip: infos.map((item) => item.old_master.ip).join(','),
     instance_role: 'remote_master',
   });
-  const masterMachineMap = masterMachineResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
-        [item.ip]: item,
-      });
-      return obj;
-    },
-    {} as Record<string, SpiderMachineModel>,
-  );
+  const masterMachineMap = masterMachineResult.results.reduce<Record<string, SpiderMachineModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.ip]: item,
+    });
+    return obj;
+  }, {});
 
   const tableDataList = infos.map((item) => {
     const masterItem = masterMachineMap[item.old_master.ip];
@@ -55,6 +52,7 @@ export async function generateSpiderMasterSlaveCloneCloneData(ticketData: Ticket
 
   return Promise.resolve({
     tableDataList,
+    backupSource,
     remark: ticketData.remark,
   });
 }

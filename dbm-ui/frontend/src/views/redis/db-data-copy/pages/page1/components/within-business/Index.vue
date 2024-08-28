@@ -46,12 +46,40 @@
           :min-width="120"
           :width="220">
           <span>{{ t('包含Key') }}</span>
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.includeKey"
+              :title="t('包含Key')"
+              type="taginput"
+              @change="(value) => handleBatchEditChange(value, 'includeKey')">
+              <span
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('includeKey')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="120"
           :required="false"
           :width="220">
           <span>{{ t('排除Key') }}</span>
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.excludeKey"
+              :title="t('排除Key')"
+              type="taginput"
+              @change="(value) => handleBatchEditChange(value, 'excludeKey')">
+              <span
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('excludeKey')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
@@ -71,6 +99,7 @@
           :inputed-clusters="inputedClusters"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @cluster-input-finish="(domainObj: RedisModel) => handleChangeCluster(index, domainObj)"
           @remove="handleRemove(index)" />
       </template>
@@ -93,6 +122,7 @@
 
   import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
@@ -102,7 +132,7 @@
 
   import { destroyLocalStorage } from '../../Index.vue';
 
-  import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './Row.vue';
 
   interface Props {
     clusterList: SelectItem[];
@@ -133,6 +163,11 @@
   const tableData = ref([createRowData()]);
   const isShowClusterSelector = ref(false);
   const rowRefs = ref();
+
+  const batchEditShow = reactive({
+    includeKey: false,
+    excludeKey: false,
+  });
 
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
@@ -206,6 +241,16 @@
     selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== srcCluster);
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const generateTableRow = (item: RedisModel) => ({
     rowKey: item.master_domain,
     isLoading: false,
@@ -217,6 +262,21 @@
     includeKey: ['*'],
     excludeKey: [],
   });
+
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
+  };
+
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
 
   // 批量选择
   const handelClusterChange = async (selected: Record<string, RedisModel[]>) => {

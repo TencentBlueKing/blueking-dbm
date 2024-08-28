@@ -113,7 +113,7 @@
       if (modelValue.value) {
         localInstanceAddress.value = modelValue.value.instanceAddress;
 
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+        instanceAddreddMemo[instanceKey] = { [localInstanceAddress.value]: true };
       }
     },
     {

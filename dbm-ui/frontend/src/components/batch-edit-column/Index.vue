@@ -41,8 +41,15 @@
             :disabled="disabled"
             :model-value="localValue as string"
             @change="handleChange" />
+          <BkInput
+            v-else-if="type === 'number-input'"
+            :disabled="disabled"
+            :model-value="localValue as string"
+            type="number"
+            @change="handleChange" />
           <BkTagInput
             v-else-if="type === 'taginput'"
+            allow-auto-match
             allow-create
             :disabled="disabled"
             has-delete-icon
@@ -63,22 +70,23 @@
   </BkPopConfirm>
 </template>
 
-<script setup lang="ts" generic="T extends string | number">
+<script setup lang="ts">
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   interface Props {
     title: string;
     dataList?: {
-      value: T;
+      value: string | number;
       label: string;
     }[];
-    type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime';
+    type?: 'select' | 'textarea' | 'input' | 'taginput' | 'datetime' | 'number-input';
     placeholder?: string;
     disableFn?: (date?: Date | number) => boolean;
   }
 
   interface Emits {
-    (e: 'change', value: string | string[]): void;
+    (e: 'change', value: UnwrapRef<typeof localValue>): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -102,11 +110,29 @@
 
   const disabled = computed(() => props.disableFn());
 
-  const handleChange = (value: string | string[]) => {
+  watch(
+    () => props.dataList,
+    () => {
+      localValue.value = '';
+    },
+  );
+
+  const handleChange = (value: UnwrapRef<typeof localValue>) => {
     localValue.value = value;
   };
 
   const handleConfirm = () => {
+    if (props.type === 'taginput') {
+      // 组件内为200ms后失焦处理失焦的回调，这里将任务添加至失焦回调后，以获取最新值
+      setTimeout(() => {
+        handleConfirmChange();
+      }, 210);
+    } else {
+      handleConfirmChange();
+    }
+  };
+
+  const handleConfirmChange = () => {
     emits('change', localValue.value);
     isShow.value = false;
   };

@@ -63,7 +63,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const genHostKey = (hostData: InstanceInfos) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
+  const genHostKey = (hostData: IHostData) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
 
   const instanceKey = `render_master_${random()}`;
   singleHostSelectMemo[instanceKey] = {};
@@ -94,6 +94,7 @@
           if (data.length > 0) {
             const [currentInstanceData] = data;
             localProxyData = currentInstanceData;
+            singleHostSelectMemo[instanceKey] = { [genHostKey(currentInstanceData)]: true };
             return true;
           }
           return false;
@@ -126,12 +127,19 @@
     () => {
       if (props.modelValue) {
         localValue.value = props.modelValue.ip;
+        singleHostSelectMemo[instanceKey] = { [genHostKey(props.modelValue)]: true };
+      } else {
+        singleHostSelectMemo[instanceKey] = {};
       }
     },
     {
       immediate: true,
     },
   );
+
+  onBeforeUnmount(() => {
+    delete singleHostSelectMemo[instanceKey];
+  });
 
   defineExpose<Exposes>({
     getValue() {
@@ -141,9 +149,16 @@
         ip: item.ip,
         bk_cloud_id: item.bk_cloud_id,
       });
-      return editRef.value.getValue().then(() => ({
-        master_ip: formatHost(localProxyData),
-      }));
+      return editRef.value
+        .getValue()
+        .then(() => ({
+          master_ip: formatHost(localProxyData),
+        }))
+        .catch(() =>
+          Promise.reject({
+            master_ip: formatHost(localProxyData),
+          }),
+        );
     },
   });
 </script>

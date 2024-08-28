@@ -41,23 +41,71 @@
         :min-width="200"
         :width="250">
         {{ t('校验DB名') }}
+        <BatchEditColumn
+          v-model="batchEditShow.dbPatterns"
+          :title="t('校验DB名')"
+          type="taginput"
+          @change="(value) => handleBatchEditChange(value, 'dbPatterns')">
+          <span
+            v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+            class="batch-edit-btn"
+            @click="handleBatchEditShow('dbPatterns')">
+            <DbIcon type="bulk-edit" />
+          </span>
+        </BatchEditColumn>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :min-width="200"
         :required="false"
         :width="250">
         {{ t('忽略DB名') }}
+        <BatchEditColumn
+          v-model="batchEditShow.ignoreDbs"
+          :title="t('忽略DB名')"
+          type="taginput"
+          @change="(value) => handleBatchEditChange(value, 'ignoreDbs')">
+          <span
+            v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+            class="batch-edit-btn"
+            @click="handleBatchEditShow('ignoreDbs')">
+            <DbIcon type="bulk-edit" />
+          </span>
+        </BatchEditColumn>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :min-width="200"
         :width="250">
         {{ t('校验表名') }}
+        <BatchEditColumn
+          v-model="batchEditShow.tablePatterns"
+          :title="t('校验表名')"
+          type="taginput"
+          @change="(value) => handleBatchEditChange(value, 'tablePatterns')">
+          <span
+            v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+            class="batch-edit-btn"
+            @click="handleBatchEditShow('tablePatterns')">
+            <DbIcon type="bulk-edit" />
+          </span>
+        </BatchEditColumn>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :min-width="200"
         :required="false"
         :width="250">
         {{ t('忽略表名') }}
+        <BatchEditColumn
+          v-model="batchEditShow.ignoreTables"
+          :title="t('忽略表名')"
+          type="taginput"
+          @change="(value) => handleBatchEditChange(value, 'ignoreTables')">
+          <span
+            v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+            class="batch-edit-btn"
+            @click="handleBatchEditShow('ignoreTables')">
+            <DbIcon type="bulk-edit" />
+          </span>
+        </BatchEditColumn>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         fixed="right"
@@ -75,17 +123,36 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import type { IDataRowBatchKey } from './Row.vue';
+
   interface Emits {
     (e: 'batchSelectCluster'): void;
+    (e: 'batchEdit', value: string | string[], filed: IDataRowBatchKey): void;
   }
 
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const batchEditShow = reactive({
+    dbPatterns: false,
+    ignoreDbs: false,
+    tablePatterns: false,
+    ignoreTables: false,
+  });
+
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
+  };
+
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    emits('batchEdit', value, filed);
+  };
 
   const handleShowBatchSelector = () => {
     emits('batchSelectCluster');

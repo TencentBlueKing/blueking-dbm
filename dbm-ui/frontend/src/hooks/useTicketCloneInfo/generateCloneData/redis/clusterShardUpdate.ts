@@ -72,5 +72,6 @@ export async function generateRedisClusterShardUpdateCloneData(
     tableList: tableData,
     type: ticketData.details.data_check_repair_setting.type,
     frequency: ticketData.details.data_check_repair_setting.execution_frequency,
+    remark: ticketData.remark,
   };
 }

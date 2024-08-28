@@ -25,15 +25,12 @@ export async function generateSpiderSlaveRebuildNewCloneData(ticketData: TicketM
     ip: infos.map((item) => item.old_slave.ip).join(','),
     instance_role: 'remote_slave',
   });
-  const slaveMachineMap = slaveMachineResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
-        [item.ip]: item,
-      });
-      return obj;
-    },
-    {} as Record<string, SpiderMachineModel>,
-  );
+  const slaveMachineMap = slaveMachineResult.results.reduce<Record<string, SpiderMachineModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.ip]: item,
+    });
+    return obj;
+  }, {});
 
   const tableDataList = infos.map((item) => {
     const slaveMachineItem = slaveMachineMap[item.old_slave.ip];

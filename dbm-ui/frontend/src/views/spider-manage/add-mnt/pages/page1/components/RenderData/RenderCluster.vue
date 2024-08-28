@@ -112,7 +112,7 @@
     modelValue,
     () => {
       if (modelValue.value) {
-        clusterIdMemo[instanceKey][modelValue.value.id] = true;
+        clusterIdMemo[instanceKey] = { [modelValue.value.id]: true };
       }
     },
     {

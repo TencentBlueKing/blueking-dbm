@@ -41,7 +41,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -66,6 +68,8 @@
     fromDatabase: data.fromDatabase,
     toDatabase: data.toDatabase,
   });
+
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -86,6 +90,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: number): void;
   }
 
@@ -130,6 +135,25 @@
       return;
     }
     emits('remove');
+  };
+
+  const handleClone = () => {
+    Promise.allSettled([
+      clusterRef.value!.getValue(true),
+      fromDatabaseRef.value!.getValue('from_database'),
+      toDatabaseRef.value!.getValue('to_database'),
+    ]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          rowKey: random(),
+          clusterData: props.data.clusterData,
+          fromDatabase: rowInfo[1].from_database,
+          toDatabase: rowInfo[2].to_database,
+        }),
+      );
+    });
   };
 
   defineExpose<Exposes>({

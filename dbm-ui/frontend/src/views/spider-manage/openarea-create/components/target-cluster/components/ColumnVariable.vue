@@ -62,9 +62,16 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return (editRef.value as InstanceType<typeof TableEditInput>).getValue().then(() => ({
-        [props.name]: localValue.value,
-      }));
+      return (editRef.value as InstanceType<typeof TableEditInput>)
+        .getValue()
+        .then(() => ({
+          [props.name]: localValue.value,
+        }))
+        .catch(() =>
+          Promise.reject({
+            [props.name]: localValue.value,
+          }),
+        );
     },
   });
 </script>

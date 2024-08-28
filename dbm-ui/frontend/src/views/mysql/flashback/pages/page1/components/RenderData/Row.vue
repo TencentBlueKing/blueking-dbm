@@ -61,7 +61,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -81,6 +83,8 @@
     databasesIgnore?: string[];
     tablesIgnore?: string[];
   }
+
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
@@ -114,6 +118,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -140,14 +145,21 @@
     () => {
       if (props.data.clusterData) {
         localClusterId.value = props.data.clusterData.id;
-        localStartTime.value = props.data.startTime;
-        localEndTime.value = props.data.endTime;
       }
     },
     {
       immediate: true,
     },
   );
+
+  watchEffect(() => {
+    localStartTime.value = props.data.startTime;
+  });
+
+  watchEffect(() => {
+    localEndTime.value = props.data.endTime;
+  });
+
   const handleClusterIdChange = (id: number) => {
     localClusterId.value = id;
   };
@@ -175,6 +187,32 @@
       return;
     }
     emits('remove');
+  };
+
+  const getRowData = () => [
+    clusterRef.value.getValue(),
+    startTimeRef.value.getValue(),
+    endTimeRef.value.getValue(),
+    databasesRef.value.getValue('databases'),
+    tablesRef.value.getValue('tables'),
+    databasesIgnoreRef.value.getValue('databases_ignore'),
+    tablesIgnoreRef.value.getValue('tables_ignore'),
+  ];
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...props.data,
+        rowKey: random(),
+        clusterData: props.data.clusterData,
+        startTime: rowInfo[1].start_time,
+        endTime: rowInfo[2].end_time,
+        databases: rowInfo[3].databases,
+        tables: rowInfo[4].tables,
+        databasesIgnore: rowInfo[5].databases_ignore,
+        tablesIgnore: rowInfo[6].tables_ignore,
+      });
+    });
   };
 
   defineExpose<Exposes>({

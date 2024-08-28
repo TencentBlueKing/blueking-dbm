@@ -51,8 +51,12 @@
 
   import CardCheckbox from '@components/db-card-checkbox/CardCheckbox.vue';
 
-  import NewHost from './components/new-host/Index.vue';
-  import OriginalHost from './components/original-host/Index.vue';
+  import { createRowData as createNewHostRowData } from './components/new-host/components/render-data/Row.vue';
+  import NewHost, { createDefaultFormData as createNewHostFormData } from './components/new-host/Index.vue';
+  import { createRowData as createOriginHostRowData } from './components/original-host/components/RenderData/Row.vue';
+  import OriginalHost, {
+    createDefaultFormData as createOriginalHostFormData,
+  } from './components/original-host/Index.vue';
 
   const { t } = useI18n();
 
@@ -77,14 +81,30 @@
   });
 
   const comMap = {
-    TENDBCLUSTER_RESTORE_LOCAL_SLAVE: OriginalHost,
-    TENDBCLUSTER_RESTORE_SLAVE: NewHost,
+    TENDBCLUSTER_RESTORE_LOCAL_SLAVE: {
+      content: OriginalHost,
+      createRowData: createOriginHostRowData,
+      createDefaultFormData: createOriginalHostFormData,
+    },
+    TENDBCLUSTER_RESTORE_SLAVE: {
+      content: NewHost,
+      createRowData: createNewHostRowData,
+      createDefaultFormData: createNewHostFormData,
+    },
   };
 
   const ticketType = ref<keyof typeof comMap>('TENDBCLUSTER_RESTORE_LOCAL_SLAVE');
   const ticketCloneData = ref();
 
-  const renderCom = computed(() => comMap[ticketType.value]);
+  const renderCom = computed(() => comMap[ticketType.value].content);
+
+  watch(ticketType, () => {
+    const currentComponent = comMap[ticketType.value];
+    Object.assign(ticketCloneData, {
+      tableDataList: [currentComponent.createDefaultFormData()],
+      formData: currentComponent.createDefaultFormData(),
+    });
+  });
 </script>
 
 <style lang="less">

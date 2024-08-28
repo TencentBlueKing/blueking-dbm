@@ -25,7 +25,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -66,6 +68,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -104,14 +107,36 @@
     emits('remove');
   };
 
-  defineExpose<Exposes>({
-    getValue() {
-      return Promise.all([slaveRef.value.getValue('master_ip'), clusterRef.value.getValue()]).then(
-        ([sourceData, moduleData]) => ({
-          ...sourceData,
-          ...moduleData,
+  const getRowData = () => [slaveRef.value.getValue('master_ip'), clusterRef.value.getValue()];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [sourceData, clusterData] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          slave: sourceData
+            ? {
+                bkCloudId: sourceData.slave.bk_cloud_id,
+                bkHostId: sourceData.slave.bk_host_id,
+                ip: sourceData.slave.ip,
+                port: sourceData.slave.port,
+                instanceAddress: sourceData.slave.instance_address,
+                clusterId: clusterData.cluster_id,
+              }
+            : undefined,
+          clusterId: clusterData.cluster_id,
         }),
       );
+    });
+  };
+
+  defineExpose<Exposes>({
+    getValue() {
+      return Promise.all(getRowData()).then(([sourceData, clusterData]) => ({
+        ...sourceData,
+        ...clusterData,
+      }));
     },
   });
 </script>

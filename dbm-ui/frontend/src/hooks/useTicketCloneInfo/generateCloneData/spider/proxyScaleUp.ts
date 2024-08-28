@@ -24,33 +24,30 @@ export async function generateSpiderProxyScaleUpCloneData(ticketData: TicketMode
   const clusterListResult = await getSpiderList({
     cluster_ids: infos.map((item) => item.cluster_id),
   });
-  const clusterListMap = clusterListResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
-        [item.id]: item,
-      });
-      return obj;
-    },
-    {} as Record<number, SpiderModel>,
-  );
+  const clusterListMap = clusterListResult.results.reduce<Record<number, SpiderModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.id]: item,
+    });
+    return obj;
+  }, {});
 
   const tableDataList = infos.map((item) => {
     const clusterItem = clusterListMap[item.cluster_id];
     const masterCount = clusterItem.spider_master.length;
     const slaveCount = clusterItem.spider_slave.length;
-    const nodeCount = item.resource_spec.spider_ip_list.count;
-    let targetNum = 0;
+    // const nodeCount = item.resource_spec.spider_ip_list.count;
+    // let targetNum = 0;
 
-    if (item.add_spider_role === 'spider_master') {
-      targetNum = nodeCount + masterCount;
-    } else {
-      targetNum = nodeCount + slaveCount;
-    }
+    // if (item.add_spider_role === 'spider_master') {
+    //   targetNum = nodeCount + masterCount;
+    // } else {
+    //   targetNum = nodeCount + slaveCount;
+    // }
 
     return {
       rowKey: random(),
       isLoading: false,
-      cluster: clusterItem.cluster_name,
+      cluster: clusterItem.master_domain,
       clusterId: item.cluster_id,
       bkCloudId: clusterItem.bk_cloud_id,
       nodeType: item.add_spider_role,
@@ -59,11 +56,12 @@ export async function generateSpiderProxyScaleUpCloneData(ticketData: TicketMode
       mntCount: clusterItem.spider_mnt.length,
       spiderMasterList: clusterItem.spider_master,
       spiderSlaveList: clusterItem.spider_slave,
-      spec: {
-        ...clusterItem.spider_master[0].spec_config,
-        count: targetNum,
-      },
-      targetNum: String(targetNum),
+      // spec: {
+      //   ...clusterItem.spider_master[0].spec_config,
+      //   count: targetNum,
+      // },
+      specId: item.resource_spec.spider_ip_list.spec_id,
+      targetNum: String(item.resource_spec.spider_ip_list.count),
       clusterType: clusterItem.cluster_spec.spec_cluster_type,
     };
   });

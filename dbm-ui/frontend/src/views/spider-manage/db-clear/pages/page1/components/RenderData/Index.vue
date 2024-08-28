@@ -37,7 +37,7 @@
               :title="t('清档类型')"
               @change="(value) => handleBatchEditChange(value, 'truncateDataType')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('truncateDataType')">
                 <DbIcon type="bulk-edit" />
@@ -56,7 +56,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'dbPatterns')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('dbPatterns')">
                 <DbIcon type="bulk-edit" />
@@ -67,6 +67,7 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
+          :required="false"
           :width="190">
           <template #append>
             <BatchEditColumn
@@ -75,7 +76,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'ignoreDbs')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('ignoreDbs')">
                 <DbIcon type="bulk-edit" />
@@ -84,25 +85,24 @@
           </template>
           {{ t('忽略DB名') }}
         </RenderTableHeadColumn>
-
         <RenderTableHeadColumn
           :min-width="100"
           :width="190">
           <template #append>
             <BatchEditColumn
               v-model="batchEditShow.tablePatterns"
-              :title="t('目标表名')"
+              :title="t('指定表名')"
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'tablePatterns')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('tablePatterns')">
                 <DbIcon type="bulk-edit" />
               </span>
             </BatchEditColumn>
           </template>
-          {{ t('目标表名') }}
+          {{ t('指定表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
@@ -115,7 +115,7 @@
               type="taginput"
               @change="(value) => handleBatchEditChange(value, 'ignoreTables')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('ignoreTables')">
                 <DbIcon type="bulk-edit" />

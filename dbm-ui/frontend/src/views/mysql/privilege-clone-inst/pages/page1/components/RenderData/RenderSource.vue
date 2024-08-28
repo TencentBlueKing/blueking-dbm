@@ -82,7 +82,7 @@
           if (data.length < 1) {
             return false;
           }
-          instanceAddreddMemo[instanceKey][value] = true;
+          instanceAddreddMemo[instanceKey] = { [value]: true };
 
           const [currentInstanceData] = data;
 
@@ -132,7 +132,9 @@
       if (modelValue.value) {
         localInstanceAddress.value = modelValue.value.instanceAddress;
 
-        instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
+        instanceAddreddMemo[instanceKey] = { [localInstanceAddress.value]: true };
+      } else {
+        instanceAddreddMemo[instanceKey] = {};
       }
     },
     {

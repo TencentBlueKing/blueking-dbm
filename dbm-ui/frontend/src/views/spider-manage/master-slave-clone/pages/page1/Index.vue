@@ -112,8 +112,9 @@
   useTicketCloneInfo({
     type: TicketTypes.TENDBCLUSTER_MIGRATE_CLUSTER,
     onSuccess(cloneData) {
-      const { tableDataList, remark } = cloneData;
+      const { tableDataList, remark, backupSource } = cloneData;
       tableData.value = tableDataList;
+      formData.backup_source = backupSource;
       formData.remark = remark;
       window.changeConfirm = true;
     },

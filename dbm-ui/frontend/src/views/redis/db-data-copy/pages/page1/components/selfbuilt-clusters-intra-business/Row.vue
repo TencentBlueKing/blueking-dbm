@@ -54,7 +54,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -86,6 +88,8 @@
     excludeKey: string[];
   }
 
+  export type IDataRowBatchKey = keyof Pick<IDataRow, 'includeKey' | 'excludeKey'>;
+
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
     rowKey: random(),
@@ -107,6 +111,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: string): void;
   }
 
@@ -145,16 +150,36 @@
     emits('remove');
   };
 
+  const getRowData = () => [
+    sourceClusterRef.value.getValue(),
+    clusterTypeRef.value.getValue(),
+    sccessCodeRef.value.getValue(),
+    targetClusterRef.value.getValue(),
+    includeKeyRef.value.getValue(),
+    excludeKeyRef.value.getValue(),
+  ];
+
+  const handleClone = () => {
+    Promise.allSettled(getRowData()).then((rowData) => {
+      const [srcCluster, clusterType, password, targetClusterId, includeKey, excludeKey] = rowData.map((item) =>
+        item.status === 'fulfilled' ? item.value : item.reason,
+      );
+      emits('clone', {
+        ...props.data,
+        rowKey: random(),
+        isLoading: false,
+        clusterType,
+        password,
+        targetClusterId,
+        includeKey,
+        excludeKey,
+      });
+    });
+  };
+
   defineExpose<Exposes>({
     async getValue() {
-      return await Promise.all([
-        sourceClusterRef.value.getValue(),
-        clusterTypeRef.value.getValue(),
-        sccessCodeRef.value.getValue(),
-        targetClusterRef.value.getValue(),
-        includeKeyRef.value.getValue(),
-        excludeKeyRef.value.getValue(),
-      ]).then((data) => {
+      return await Promise.all(getRowData()).then((data) => {
         const [srcCluster, clusterType, password, targetClusterId, includeKey, excludeKey] = data;
         return {
           src_cluster: srcCluster,

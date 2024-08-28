@@ -25,15 +25,12 @@ export async function generateSpiderSlaveRebuildLocalCloneData(ticketData: Ticke
     instance: infos.map((item) => item.slave.ip),
     role: 'remote_slave',
   });
-  const instanceMap = instanceListResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
-        [item.ip]: item,
-      });
-      return obj;
-    },
-    {} as Record<string, TendbInstanceModel>,
-  );
+  const instanceMap = instanceListResult.results.reduce<Record<string, TendbInstanceModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.ip]: item,
+    });
+    return obj;
+  }, {});
 
   const tableDataList = infos.map((item) => {
     const instanceItem = instanceMap[item.slave.ip];

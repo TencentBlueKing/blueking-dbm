@@ -160,7 +160,9 @@
     () => props.rowData.resource_spec?.backend_group.spec_id,
     (newSpecId) => {
       if (newSpecId) {
-        getResourceSpec({ spec_id: newSpecId }).then((specData) => {
+        getResourceSpec({
+          spec_id: newSpecId,
+        }).then((specData) => {
           const backend = props.rowData.resource_spec?.backend_group;
           handlePlanChange(newSpecId, {
             spec_id: newSpecId,
@@ -220,6 +222,8 @@
                 spec_id: localSpec.value.spec_id,
                 count: localSpec.value.machine_pair,
                 affinity: '',
+                futureCapacity: localSpec.value.cluster_capacity,
+                specName: localSpec.value.spec_name,
               },
             },
           };
