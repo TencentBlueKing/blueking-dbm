@@ -153,11 +153,16 @@
         ip: item.ip,
       });
 
-      return inputRef.value.getValue().then(() =>
-        Promise.resolve({
-          new_slave: formatHost(hostMemo),
-        }),
-      );
+      return inputRef.value
+        .getValue()
+        .then(() =>
+          Promise.resolve({
+            new_slave: formatHost(hostMemo),
+          }),
+        )
+        .catch(() => {
+          Promise.reject('');
+        });
     },
   });
 </script>

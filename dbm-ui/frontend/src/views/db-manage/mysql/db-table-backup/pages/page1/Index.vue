@@ -26,6 +26,7 @@
       </div>
       <RenderData
         class="mt16"
+        @batch-edit="handleBatchEditColumn"
         @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -34,8 +35,10 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBHA]"
@@ -81,10 +84,11 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './components/RenderData/Row.vue';
 
   // 检测列表是否为空
   const checkListEmpty = (list: Array<IDataRow>) => {
@@ -112,6 +116,7 @@
     type: TicketTypes.MYSQL_HA_DB_TABLE_BACKUP,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -120,8 +125,9 @@
   const isShowBatchSelector = ref(false);
   const isShowBatchEntry = ref(false);
   const isSubmitting = ref(false);
+  const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const remark = ref('');
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
   // 集群域名是否已存在表格的映射表
@@ -171,6 +177,17 @@
     window.changeConfirm = true;
   };
 
+  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
@@ -191,13 +208,23 @@
     tableData.value = dataList;
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
         ticket_type: 'MYSQL_HA_DB_TABLE_BACKUP',
-        remark: '',
+        remark: remark.value,
         details: {
           infos,
         },
@@ -221,6 +248,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
     domainMemo = {};
     window.changeConfirm = false;

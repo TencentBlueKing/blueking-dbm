@@ -34,11 +34,11 @@
           <template #append>
             <BatchEditColumn
               v-model="batchEditShow.fromDatabase"
-              :title="t('备份DB名')"
+              :title="t('源 DB 名')"
               type="input"
               @change="(value) => handleBatchEditChange(value, 'fromDatabase')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('fromDatabase')">
                 <DbIcon type="bulk-edit" />
@@ -53,11 +53,11 @@
           <template #append>
             <BatchEditColumn
               v-model="batchEditShow.toDatabase"
-              :title="t('备份DB名')"
+              :title="t('新 DB 名')"
               type="input"
               @change="(value) => handleBatchEditChange(value, 'toDatabase')">
               <span
-                v-bk-tooltips="t('统一设置')"
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
                 class="batch-edit-btn"
                 @click="handleBatchEditShow('toDatabase')">
                 <DbIcon type="bulk-edit" />

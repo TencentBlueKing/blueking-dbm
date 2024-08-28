@@ -70,7 +70,11 @@
   };
 
   defineExpose<Exposes>({
-    getValue: () => Promise.resolve(localValue.value),
+    getValue: () =>
+      editRef.value
+        .getValue()
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value)),
   });
 </script>
 <style lang="less" scoped>

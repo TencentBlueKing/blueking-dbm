@@ -35,7 +35,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -87,6 +89,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: SpiderModel): void;
   }
 
@@ -127,6 +130,26 @@
       return;
     }
     emits('remove');
+  };
+
+  const handleClone = () => {
+    Promise.allSettled([
+      clusterRef.value!.getValue(true),
+      Promise.allSettled(variableRefs.value.map((item) => item.getValue())),
+      hostRef.value?.getValue(),
+    ]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          clusterData: props.data.clusterData,
+          vars: (rowInfo[1] as PromiseSettledResult<Record<string, string>>[])
+            .map<Record<string, string>>((item) => (item.status === 'fulfilled' ? item.value : item.reason))
+            .reduce<Record<string, string>>((result, item) => Object.assign(result, item), {}),
+          authorizeIps: props.showIpCloumn ? rowInfo[2].authorize_ips : [],
+        }),
+      );
+    });
   };
 
   defineExpose<Exposes>({

@@ -27,5 +27,6 @@ export function generateMysqlClientCloneData(ticketData: TicketModel<MySQLCloneD
       },
       target: item.target,
     })),
+    remark: ticketData.remark,
   });
 }

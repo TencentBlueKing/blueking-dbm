@@ -34,5 +34,6 @@ export function generateMysqlDbClearCloneData(ticketData: TicketModel<MySQLHATru
   return Promise.resolve({
     tableDataList,
     isSafeStatus: !infos[0].force,
+    remark: ticketData.remark,
   });
 }

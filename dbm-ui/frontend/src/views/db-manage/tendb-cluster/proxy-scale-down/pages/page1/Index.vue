@@ -109,7 +109,7 @@
     type: TicketTypes.TENDBCLUSTER_SPIDER_REDUCE_NODES,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
-      isIgnoreBusinessAccess.value = cloneData.isSafe;
+      isIgnoreBusinessAccess.value = !cloneData.isSafe;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
     },

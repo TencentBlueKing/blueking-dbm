@@ -144,9 +144,10 @@
     localClusterId,
     () => {
       if (!localClusterId.value) {
+        clusterIdMemo[instanceKey] = {};
         return;
       }
-      clusterIdMemo[instanceKey][localClusterId.value] = true;
+      clusterIdMemo[instanceKey] = { [localClusterId.value]: true };
     },
     {
       immediate: true,

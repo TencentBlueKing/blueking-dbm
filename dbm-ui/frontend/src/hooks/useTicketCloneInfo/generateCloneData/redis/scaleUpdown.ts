@@ -33,7 +33,7 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
     {} as Record<number, RedisModel>,
   );
 
-  return infos.map((item) => ({
+  const tableDataList = infos.map((item) => ({
     rowKey: random(),
     isLoading: false,
     targetCluster: clusters[item.cluster_id].immute_domain,
@@ -53,4 +53,9 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
     switchMode: item.online_switch_type,
     spec: clusterListMap[item.cluster_id].cluster_spec,
   }));
+
+  return {
+    tableDataList,
+    remark: ticketData.remark,
+  };
 }

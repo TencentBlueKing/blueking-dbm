@@ -31,9 +31,11 @@
           :inputed-ips="inputedIps"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @on-ip-input-finish="(ip: string) => handleChangeHostIp(index, ip)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.REDIS]"
@@ -88,6 +90,7 @@
     type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, {
@@ -124,7 +127,8 @@
   useTicketCloneInfo({
     type: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
     onSuccess(cloneData) {
-      tableData.value = cloneData;
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark
       window.changeConfirm = true;
     }
   });
@@ -133,6 +137,7 @@
   const isShowMasterInstanceSelector = ref(false);
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
+  const remark = ref('')
 
   const selected = shallowRef({ redis: [] } as InstanceSelectorValues<IValue>);
 
@@ -359,6 +364,16 @@
     selected.value.redis = arr.filter(item => item.ip !== removeIp);
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = () => {
     const clusterMap: Record<string, IDataRow[]> = {};
@@ -413,6 +428,7 @@
       const params = {
         bk_biz_id: currentBizId,
         ticket_type: TicketTypes.REDIS_CLUSTER_ADD_SLAVE,
+        remark: remark.value,
         details: {
           ip_source: 'resource_pool',
           infos,
@@ -438,6 +454,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = ''
     selected.value.redis = [];
     ipMemo = {};
     window.changeConfirm = false;

@@ -16,7 +16,8 @@
     <FixedColumn fixed="left">
       <RenderCluster
         ref="clusterRef"
-        :model-value="data"
+        :model-value="data.clusterData"
+        :relate-cluster-tips="t('同主机关联的其他集群，勾选后一并添加')"
         @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
@@ -29,7 +30,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -69,7 +72,10 @@
   });
 </script>
 <script setup lang="ts">
-  import RenderCluster from './render-cluster/Index.vue';
+  import { useI18n } from 'vue-i18n';
+
+  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterWithRelateCluster.vue';
+
   import RenderSlaveHost from './RenderSlaveHost.vue';
 
   interface Props {
@@ -80,6 +86,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
   }
 
   interface Exposes {
@@ -89,6 +96,8 @@
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const clusterRef = ref<InstanceType<typeof RenderSlaveHost>>();
   const hostRef = ref<InstanceType<typeof RenderSlaveHost>>();
@@ -123,6 +132,20 @@
       return;
     }
     emits('remove');
+  };
+
+  const handleClone = () => {
+    Promise.allSettled([clusterRef.value!.getValue(), hostRef.value!.getValue()]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          rowKey: random(),
+          clusterData: props.data.clusterData,
+          newSlaveIp: rowInfo[1] ? rowInfo[1].new_slave.ip : '',
+        }),
+      );
+    });
   };
 
   defineExpose<Exposes>({

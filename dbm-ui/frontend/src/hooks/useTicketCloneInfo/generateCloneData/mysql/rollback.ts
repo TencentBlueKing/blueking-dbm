@@ -39,5 +39,6 @@ export function generateMysqlRollbackCloneData(ticketData: TicketModel<MySQLRoll
   return Promise.resolve({
     tableDataList,
     rollback_cluster_type,
+    remark: ticketData.remark,
   });
 }

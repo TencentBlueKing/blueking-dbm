@@ -75,14 +75,17 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editInputRef.value.getValue().then(() => {
-        if (!localInstanceData.value) {
-          return Promise.reject();
-        }
-        return {
-          cluster_id: localInstanceData.value.cluster_id,
-        };
-      });
+      return editInputRef.value
+        .getValue()
+        .then(() => {
+          if (!localInstanceData.value) {
+            return Promise.reject();
+          }
+          return {
+            cluster_id: localInstanceData.value.cluster_id,
+          };
+        })
+        .catch(() => Promise.reject({ cluster_id: localInstanceData.value?.cluster_id }));
     },
   });
 </script>

@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import _ from 'lodash';
 
 import type { MySQLMasterFailDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
@@ -26,20 +25,24 @@ export function generateMysqlMasterFailoverCloneData(ticketData: TicketModel<MyS
     is_check_process: isCheckProcess,
     is_verify_checksum: isVerifyChecksum,
   } = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    rowKey: random(),
-    clusterData: {
-      id: clusterId,
-      domain: clusters[clusterId].immute_domain,
-    },
-    masterData: item.master_ip,
-    slaveData: item.slave_ip,
-  }))));
-  
+  const tableDataList = infos.map((item) => {
+    const clusterId = item.cluster_ids[0];
+    return {
+      rowKey: random(),
+      clusterData: {
+        id: clusterId,
+        domain: clusters[clusterId].immute_domain,
+      },
+      masterData: item.master_ip,
+      slaveData: item.slave_ip,
+    };
+  });
+
   return Promise.resolve({
     isCheckDelay,
     isCheckProcess,
     isVerifyChecksum,
     tableDataList,
+    remark: ticketData.remark,
   });
 }

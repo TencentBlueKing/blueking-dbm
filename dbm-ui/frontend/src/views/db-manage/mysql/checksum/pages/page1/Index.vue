@@ -24,7 +24,9 @@
         {{ t('批量录入') }}
       </BkButton>
       <div class="checksum-main">
-        <RenderData @batch-select-cluster="handleShowBatchSelector">
+        <RenderData
+          @batch-edit="handleBatchEditColumn"
+          @batch-select-cluster="handleShowBatchSelector">
           <RenderDataRow
             v-for="(item, index) in tableData"
             :key="item.rowKey"
@@ -37,7 +39,7 @@
         </RenderData>
         <DbForm
           ref="checksumFormRef"
-          class="checksum-form"
+          class="checksum-form toolbox-form"
           form-type="vertical"
           :model="formdata">
           <BkFormItem
@@ -108,6 +110,7 @@
               </div>
             </BkRadioGroup>
           </BkFormItem>
+          <TicketRemark v-model="formdata.remark" />
         </DbForm>
       </div>
     </div>
@@ -156,11 +159,17 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   import BatchInput, { type InputItem } from './components/BatchInput.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createInstanceData, createRowData, type IDataRow } from './components/RenderData/Row.vue';
+  import RenderDataRow, {
+    createInstanceData,
+    createRowData,
+    type IDataRow,
+    type IDataRowBatchKey,
+  } from './components/RenderData/Row.vue';
 
   const disabledDate = (date: Date | number) => {
     const day = new Date();
@@ -187,6 +196,7 @@
       (tableData.value = cloneData.tableDataList), (formdata.timing = cloneData.timing);
       formdata.runtime_hour = cloneData.runtime_hour;
       formdata.data_repair = cloneData.data_repair;
+      formdata.remark = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -207,6 +217,7 @@
       is_repair: true,
       mode: 'manual',
     },
+    remark: '',
   });
 
   // 集群域名是否已存在表格的映射表
@@ -327,6 +338,17 @@
     window.changeConfirm = true;
   }
 
+  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
@@ -352,6 +374,7 @@
     formdata.data_repair.is_repair = true;
     formdata.timing = getCurrentDate();
     formdata.runtime_hour = 48;
+    formdata.remark = '';
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
     domainMemo = {};
     window.changeConfirm = false;
@@ -364,6 +387,7 @@
         const params = {
           ticket_type: TicketTypes.MYSQL_CHECKSUM,
           bk_biz_id: globalBizsStore.currentBizId,
+          remark: formdata.remark,
           details: {
             ...formdata,
             timing: formatDateToUTC(format(new Date(formdata.timing), 'yyyy-MM-dd HH:mm:ss')),

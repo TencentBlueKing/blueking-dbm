@@ -61,7 +61,7 @@
     showAdd: true,
     showRemove: true,
     removeable: true,
-    showClone: true,
+    showClone: false,
   });
 
   const emits = defineEmits<Emits>();

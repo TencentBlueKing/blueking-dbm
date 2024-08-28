@@ -17,12 +17,12 @@ import { random } from '@utils';
 
 // MySQL 闪回
 export function generateMysqlFlashbackCloneData(ticketData: TicketModel<MySQLFlashback>) {
-  const { clusters, infos} = ticketData.details;
-  const tableDataList = infos.map(item => ({
+  const { clusters, infos } = ticketData.details;
+  const tableDataList = infos.map((item) => ({
     rowKey: random(),
     clusterData: {
       id: item.cluster_id,
-      domain: clusters[item.cluster_id].immute_domain
+      domain: clusters[item.cluster_id].immute_domain,
     },
     startTime: item.start_time,
     endTime: item.end_time,
@@ -30,6 +30,9 @@ export function generateMysqlFlashbackCloneData(ticketData: TicketModel<MySQLFla
     tables: item.tables,
     databasesIgnore: item.databases_ignore,
     tablesIgnore: item.tables_ignore,
-  }))
-  return Promise.resolve({ tableDataList });
+  }));
+  return Promise.resolve({
+    tableDataList,
+    remark: ticketData.remark,
+  });
 }

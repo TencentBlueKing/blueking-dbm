@@ -60,6 +60,7 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
       @clone="handleClone"
       @remove="handleRemove" />
@@ -140,13 +141,19 @@
       if (props.data.clusterData) {
         localClusterId.value = props.data.clusterData.id;
       }
-      tablePatterns.value = props.data.tablePatterns ?? [];
-      ignoreTables.value = props.data.ignoreTables ?? [];
     },
     {
       immediate: true,
     },
   );
+
+  watchEffect(() => {
+    tablePatterns.value = props.data.tablePatterns ?? [];
+  });
+
+  watchEffect(() => {
+    ignoreTables.value = props.data.ignoreTables ?? [];
+  });
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;

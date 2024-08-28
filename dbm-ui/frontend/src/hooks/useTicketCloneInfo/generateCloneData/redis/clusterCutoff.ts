@@ -18,8 +18,8 @@ import { random } from '@utils';
 // Redis 整机替换
 export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<RedisDBReplaceDetails>) {
   const { clusters, infos, specs } = ticketData.details;
-  return Promise.resolve(
-    infos.reduce(
+  return Promise.resolve({
+    tableDataList: infos.reduce(
       (dataList, item) => {
         const roleList = ['proxy', 'redis_master', 'redis_slave'] as ['proxy', 'redis_master', 'redis_slave'];
         const roleMap = {
@@ -61,5 +61,6 @@ export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<Redi
         spec: any;
       }[],
     ),
-  );
+    remark: ticketData.remark,
+  });
 }

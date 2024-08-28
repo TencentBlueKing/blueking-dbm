@@ -88,9 +88,16 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return (editRef.value as InstanceType<typeof TableEditSelect>).getValue().then(() => ({
-        source_db: modelValue.value,
-      }));
+      return (editRef.value as InstanceType<typeof TableEditSelect>)
+        .getValue()
+        .then(() => ({
+          source_db: modelValue.value,
+        }))
+        .catch(() =>
+          Promise.reject({
+            source_db: modelValue.value,
+          }),
+        );
     },
   });
 </script>
