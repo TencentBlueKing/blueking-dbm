@@ -152,6 +152,7 @@
       id: item.cluster_spec.spec_id,
       count: 0,
     },
+    specId: item.cluster_spec.spec_id,
   });
 
   // 批量选择

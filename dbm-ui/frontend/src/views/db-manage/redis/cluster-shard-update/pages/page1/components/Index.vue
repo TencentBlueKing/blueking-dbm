@@ -18,10 +18,10 @@
         <RenderTableHeadColumn
           :min-width="120"
           :width="270">
-          <span>{{ $t('源集群') }}</span>
+          <span>{{ t('源集群') }}</span>
           <template #append>
             <BkPopover
-              :content="$t('批量添加')"
+              :content="t('批量添加')"
               theme="dark">
               <span
                 class="batch-edit-btn"
@@ -41,39 +41,69 @@
           :min-width="150"
           :required="false"
           :width="350">
-          <span>{{ $t('当前集群容量/QPS') }}</span>
+          <span>{{ t('当前集群容量/QPS') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="130"
           :width="350">
           <BkPopover
-            :content="$t('将会部署新的集群以进行集群变更')"
+            :content="t('将会部署新的集群以进行集群变更')"
             placement="top"
             theme="dark">
-            <span style="border-bottom: 1px dashed #979ba5">{{ $t('部署方案') }}</span>
+            <span style="border-bottom: 1px dashed #979ba5">{{ t('部署方案') }}</span>
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="130"
           :width="140">
-          <span>{{ $t('版本') }}</span>
+          <span>{{ t('版本') }}</span>
+          <template
+            v-if="versionList.length"
+            #append>
+            <BatchEditColumn
+              v-model="batchEditShow.dbVersion"
+              :data-list="versionList"
+              :title="t('版本')"
+              @change="(value) => handleBatchEditChange(value, 'dbVersion')">
+              <span
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('dbVersion')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
           :required="false"
           :width="240">
           <BkPopover
-            :content="$t('后端存储实例与 Proxy 的关系切换')"
+            :content="t('后端存储实例与 Proxy 的关系切换')"
             placement="top"
             theme="dark">
-            <span style="border-bottom: 1px dashed #979ba5">{{ $t('切换模式') }}</span>
+            <span style="border-bottom: 1px dashed #979ba5">{{ t('切换模式') }}</span>
           </BkPopover>
+          <template #append>
+            <BatchEditColumn
+              v-model="batchEditShow.switchMode"
+              :data-list="switchModeList"
+              :title="t('切换模式')"
+              @change="(value) => handleBatchEditChange(value, 'switchMode')">
+              <span
+                v-bk-tooltips="t('统一设置：将该列统一设置为相同的值')"
+                class="batch-edit-btn"
+                @click="handleBatchEditShow('switchMode')">
+                <DbIcon type="bulk-edit" />
+              </span>
+            </BatchEditColumn>
+          </template>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           fixed="right"
           :required="false"
           :width="100">
-          {{ $t('操作') }}
+          {{ t('操作') }}
         </RenderTableHeadColumn>
       </template>
       <template #data>
@@ -83,17 +113,53 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits {
-    (e: 'showMasterBatchSelector'): void;
+  import type { IDataRowBatchKey } from './Row.vue';
+
+  interface Props {
+    versionList: {
+      value: string;
+      label: string;
+    }[];
   }
 
+  interface Emits {
+    (e: 'showMasterBatchSelector'): void;
+    (e: 'batchEdit', value: string | string[], filed: IDataRowBatchKey): void;
+  }
+
+  defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
+
+  const batchEditShow = reactive({
+    switchMode: false,
+    dbVersion: false,
+  });
+
+  const switchModeList = [
+    {
+      value: t('需人工确认'),
+      label: t('需人工确认'),
+    },
+  ];
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');
+  };
+
+  const handleBatchEditShow = (key: IDataRowBatchKey) => {
+    batchEditShow[key] = !batchEditShow[key];
+  };
+
+  const handleBatchEditChange = (value: string | string[], filed: IDataRowBatchKey) => {
+    emits('batchEdit', value, filed);
   };
 </script>
 <style lang="less">

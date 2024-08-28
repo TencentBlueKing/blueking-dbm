@@ -112,7 +112,7 @@
     modelValue,
     () => {
       if (modelValue.value) {
-        clusterIdMemo[instanceKey][modelValue.value.id] = true;
+        clusterIdMemo[instanceKey] = { [modelValue.value.id]: true };
       }
     },
     {
@@ -126,16 +126,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value
-        .getValue()
-        .then(() => ({
-          cluster_id: modelValue.value!.id,
-        }))
-        .catch(() =>
-          Promise.reject({
-            cluster_id: modelValue.value?.id,
-          }),
-        );
+      return editRef.value.getValue().then(() => ({
+        cluster_id: modelValue.value!.id,
+      }));
     },
   });
 </script>

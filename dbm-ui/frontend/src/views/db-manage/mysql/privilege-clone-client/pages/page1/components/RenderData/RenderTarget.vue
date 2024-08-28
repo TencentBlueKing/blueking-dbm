@@ -109,9 +109,14 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return inputRef.value.getValue().then(() => ({
-        target: localIpText.value.split(splitReg).join('\n'),
-      }));
+      return inputRef.value
+        .getValue()
+        .then(() => ({
+          target: localIpText.value.split(splitReg).join('\n'),
+        }))
+        .catch(() => ({
+          target: '',
+        }));
     },
   });
 </script>

@@ -22,6 +22,10 @@
     </BkLoading>
   </div>
 </template>
+
+<script lang="ts">
+  const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
+</script>
 <script setup lang="ts">
   import _ from 'lodash';
   import { ref, watch } from 'vue';
@@ -35,11 +39,16 @@
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
+  import { random } from '@utils';
+
   import type { IDataRow } from './Row.vue';
 
   interface Exposes {
     getValue: (field: string) => Promise<string>;
   }
+
+  const instanceKey = `render_source_${random()}`;
+  instanceAddreddMemo[instanceKey] = {};
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -68,6 +77,7 @@
           if (data.length < 1) {
             return false;
           }
+          instanceAddreddMemo[instanceKey] = { [localValue.value]: true };
           const [instanceData] = data;
           if (
             !modelValue.value?.instanceAddress ||
@@ -86,38 +96,86 @@
         }),
       message: t('目标从库实例不存在'),
     },
+    {
+      validator: () => {
+        const currentClusterSelectMap = instanceAddreddMemo[instanceKey];
+        const otherClusterMemoMap = { ...instanceAddreddMemo };
+        delete otherClusterMemoMap[instanceKey];
+
+        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
+          (result, item) => ({
+            ...result,
+            ...item,
+          }),
+          {} as Record<string, boolean>,
+        );
+
+        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
+        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
+          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
+            return false;
+          }
+        }
+        return true;
+      },
+      message: t('源实例重复'),
+    },
   ];
 
   watch(
     () => modelValue.value,
     () => {
-      if (!modelValue.value) {
+      if (modelValue.value) {
+        localValue.value = `${modelValue.value.ip}:${modelValue.value.port}`;
+        instanceAddreddMemo[instanceKey] = { [localValue.value]: true };
         return;
       }
-      localValue.value = `${modelValue.value.ip}:${modelValue.value.port}`;
+      instanceAddreddMemo[instanceKey] = {};
     },
     {
       immediate: true,
     },
   );
 
+  onBeforeUnmount(() => {
+    delete instanceAddreddMemo[instanceKey];
+  });
+
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => {
-        if (!modelValue.value) {
-          return Promise.reject();
-        }
-        return {
-          slave: {
-            bk_biz_id: currentBizId,
-            bk_cloud_id: modelValue.value.bkCloudId,
-            ip: modelValue.value.ip,
-            bk_host_id: modelValue.value.bkHostId,
-            port: modelValue.value.port,
-            instance_address: modelValue.value.instanceAddress,
-          },
-        };
-      });
+      return editRef.value
+        .getValue()
+        .then(() => {
+          if (!modelValue.value) {
+            return Promise.reject();
+          }
+          return {
+            slave: {
+              bk_biz_id: currentBizId,
+              bk_cloud_id: modelValue.value.bkCloudId,
+              ip: modelValue.value.ip,
+              bk_host_id: modelValue.value.bkHostId,
+              port: modelValue.value.port,
+              instance_address: modelValue.value.instanceAddress,
+            },
+          };
+        })
+        .catch(() =>
+          Promise.reject(
+            modelValue.value
+              ? {
+                  slave: {
+                    bk_biz_id: currentBizId,
+                    bk_cloud_id: modelValue.value?.bkCloudId,
+                    ip: modelValue.value?.ip,
+                    bk_host_id: modelValue.value?.bkHostId,
+                    port: modelValue.value?.port,
+                    instance_address: modelValue.value?.instanceAddress,
+                  },
+                }
+              : undefined,
+          ),
+        );
     },
   });
 </script>

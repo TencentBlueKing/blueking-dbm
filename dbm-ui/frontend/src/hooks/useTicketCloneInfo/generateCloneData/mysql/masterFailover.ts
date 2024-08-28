@@ -26,20 +26,26 @@ export function generateMysqlMasterFailoverCloneData(ticketData: TicketModel<MyS
     is_check_process: isCheckProcess,
     is_verify_checksum: isVerifyChecksum,
   } = ticketData.details;
-  const tableDataList = _.flatMap(infos.map(item => item.cluster_ids.map(clusterId => ({
-    rowKey: random(),
-    clusterData: {
-      id: clusterId,
-      domain: clusters[clusterId].immute_domain,
-    },
-    masterData: item.master_ip,
-    slaveData: item.slave_ip,
-  }))));
-  
+  const tableDataList = _.flatMap(
+    infos.map((item) => {
+      const clusterId = item.cluster_ids[0];
+      return {
+        rowKey: random(),
+        clusterData: {
+          id: clusterId,
+          domain: clusters[clusterId].immute_domain,
+        },
+        masterData: item.master_ip,
+        slaveData: item.slave_ip,
+      };
+    }),
+  );
+
   return Promise.resolve({
     isCheckDelay,
     isCheckProcess,
     isVerifyChecksum,
     tableDataList,
+    remark: ticketData.remark,
   });
 }

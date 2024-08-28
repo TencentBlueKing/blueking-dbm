@@ -92,6 +92,7 @@
           if (data.length > 0) {
             const [currentInstanceData] = data;
             localProxyData = currentInstanceData;
+            singleHostSelectMemo[instanceKey] = { [genHostKey(currentInstanceData)]: true };
             return true;
           }
           return false;
@@ -131,12 +132,19 @@
         localValue.value = props.modelValue.ip;
         localProxyData = props.modelValue;
         oldLocalProxyData = props.modelValue;
+        singleHostSelectMemo[instanceKey] = { [genHostKey(props.modelValue)]: true };
+      } else {
+        singleHostSelectMemo[instanceKey] = {};
       }
     },
     {
       immediate: true,
     },
   );
+
+  onBeforeUnmount(() => {
+    delete singleHostSelectMemo[instanceKey];
+  });
 
   defineExpose<Exposes>({
     getValue() {
@@ -146,9 +154,16 @@
         ip: item.ip,
         bk_cloud_id: item.bk_cloud_id,
       });
-      return editRef.value.getValue().then(() => ({
-        master_ip: formatHost(localProxyData),
-      }));
+      return editRef.value
+        .getValue()
+        .then(() => ({
+          master_ip: formatHost(localProxyData),
+        }))
+        .catch(() =>
+          Promise.resolve({
+            master_ip: formatHost(localProxyData),
+          }),
+        );
     },
   });
 </script>

@@ -39,5 +39,6 @@ export function generateRedisDataCopyCloneData(ticketData: TicketModel<RedisData
     copyMode: ticketData.details.dts_copy_type,
     writeMode: ticketData.details.write_mode,
     disconnectSetting: ticketData.details.sync_disconnect_setting,
+    remark: ticketData.remark,
   });
 }

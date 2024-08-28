@@ -183,7 +183,11 @@
     getValue() {
       return Promise.resolve({
         authorize_ips: localHostList.value.map(({ ip }) => ip),
-      });
+      }).catch(() =>
+        Promise.reject({
+          authorize_ips: localHostList.value.map(({ ip }) => ip),
+        }),
+      );
     },
   });
 </script>
