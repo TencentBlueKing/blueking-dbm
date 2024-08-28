@@ -64,27 +64,38 @@ class MySQLDataMigrateFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_data_migrate_scene
 
     def format_ticket_data(self):
-        # 1. 聚合源集群和迁移DB，value是目标集群列表
-        source__migrate_dbs__target = defaultdict(lambda: defaultdict(set))
+        # 先按照克隆类型分类
+        data_schema__migrate_infos = defaultdict(list)
         for info in self.ticket_data["infos"]:
-            for db in info["db_list"]:
-                source__migrate_dbs__target[info["source_cluster"]][db].update(info["target_clusters"])
+            data_schema__migrate_infos[info["data_schema_grant"]].append(info)
 
-        # 2. 聚合源集群和目标集群列表，value是迁移db列表
-        source__targets__migrate_dbs = defaultdict(lambda: defaultdict(set))
-        for source, db_info in source__migrate_dbs__target.items():
-            for db, targets in db_info.items():
-                targets_key = ",".join(list(map(str, sorted(targets))))
-                source__targets__migrate_dbs[source][targets_key].add(db)
-
-        # 3. 取出聚合的迁移信息
         migrate_infos = []
-        for source, target_info in source__targets__migrate_dbs.items():
-            for targets, dbs in target_info.items():
-                target_clusters = list(map(int, targets.split(",")))
-                migrate_infos.append(
-                    {"source_cluster": source, "target_clusters": target_clusters, "db_list": list(dbs)}
-                )
+        for data_schema_grant, infos in data_schema__migrate_infos.items():
+            # 1. 聚合源集群和迁移DB，value是目标集群列表
+            source__migrate_dbs__target = defaultdict(lambda: defaultdict(set))
+            for info in infos:
+                for db in info["db_list"]:
+                    source__migrate_dbs__target[info["source_cluster"]][db].update(info["target_clusters"])
+
+            # 2. 聚合源集群和目标集群列表，value是迁移db列表
+            source__targets__migrate_dbs = defaultdict(lambda: defaultdict(set))
+            for source, db_info in source__migrate_dbs__target.items():
+                for db, targets in db_info.items():
+                    targets_key = ",".join(list(map(str, sorted(targets))))
+                    source__targets__migrate_dbs[source][targets_key].add(db)
+
+            # 3. 取出聚合的迁移信息
+            for source, target_info in source__targets__migrate_dbs.items():
+                for targets, dbs in target_info.items():
+                    target_clusters = list(map(int, targets.split(",")))
+                    migrate_infos.append(
+                        {
+                            "source_cluster": source,
+                            "target_clusters": target_clusters,
+                            "db_list": list(dbs),
+                            "data_schema_grant": data_schema_grant,
+                        }
+                    )
 
         self.ticket_data["infos"] = migrate_infos
 
