@@ -247,13 +247,12 @@
         const clusterData = data[0];
         relatedClusterList.value = clusterData.related_clusters;
         // 默认选中所有关联集群
-        realateCheckedMap.value = clusterData.related_clusters.reduce(
-          (result, item) => ({
-            ...result,
-            [item.id]: item,
-          }),
-          {} as Record<number, IClusterData>,
-        );
+        const checkedMap = {} as Record<number, IClusterData>;
+        clusterData.related_clusters.forEach((item) => {
+          checkedMap[item.id] = item;
+          clusterIdMemo[instanceKey][item.id] = true;
+        });
+        realateCheckedMap.value = checkedMap;
         selectRelateClusterList.value = Object.values(realateCheckedMap.value);
         setTimeout(() => {
           initRelateClusterPopover();
@@ -315,9 +314,10 @@
     localClusterId,
     () => {
       if (!localClusterId.value) {
+        clusterIdMemo[instanceKey] = {};
         return;
       }
-      clusterIdMemo[instanceKey][localClusterId.value] = true;
+      clusterIdMemo[instanceKey] = { [localClusterId.value]: true };
       fetchRelatedClustersByClusterIds();
     },
     {

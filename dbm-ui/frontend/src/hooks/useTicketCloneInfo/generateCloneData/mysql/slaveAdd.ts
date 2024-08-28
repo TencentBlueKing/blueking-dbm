@@ -33,5 +33,6 @@ export function generateMysqlSlaveAddCloneData(ticketData: TicketModel<MySQLSlav
   return Promise.resolve({
     tableDataList,
     backupSource: ticketData.details.backup_source,
+    remark: ticketData.remark,
   });
 }

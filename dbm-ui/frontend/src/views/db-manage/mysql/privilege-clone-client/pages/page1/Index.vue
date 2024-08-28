@@ -34,8 +34,10 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <BatchInput
         v-model:is-show="isShowBatchInput"
         @change="handleBatchInput" />
@@ -85,6 +87,7 @@
   import { OSTypes, TicketTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import BatchInput from './components/BatchInput.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -100,6 +103,7 @@
     onSuccess(cloneData) {
       const { tableDataList } = cloneData;
       tableData.value = tableDataList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -109,6 +113,7 @@
   const isShowBatchInput = ref(false);
   const isSubmitting = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const remark = ref('');
 
   const selectedIps = shallowRef<HostDetails[]>([]);
 
@@ -188,6 +193,16 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
@@ -204,7 +219,7 @@
           return createTicket({
             ticket_type: TicketTypes.MYSQL_CLIENT_CLONE_RULES,
             bk_biz_id: currentBizId,
-            remark: '',
+            remark: remark.value,
             details: {
               ...precheckResult,
               clone_type: 'client',
@@ -231,6 +246,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     ipMemo = {};
     selectedIps.value = [];
     window.changeConfirm = false;

@@ -36,6 +36,7 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
       @clone="handleClone"
       @remove="handleRemove" />
@@ -65,7 +66,8 @@
       instanceAddress: string;
       masterDomain: string;
     };
-    target?: IProxyData;
+    // target?: IProxyData;
+    target?: string;
   }
 
   // 创建表格数据
@@ -137,26 +139,27 @@
     emits('remove');
   };
 
-  const getRowData = () => [
-    sourceRef.value.getValue(),
-    clusterRef.value.getValue(),
-    moduleRef.value.getValue(),
-    targetRef.value.getValue(),
-  ];
-
   const handleClone = () => {
-    emits(
-      'clone',
-      createRowData({
-        source: props.data.source,
-        target: props.data.target,
-      }),
-    );
+    Promise.allSettled([targetRef.value.getValue()]).then((rowData) => {
+      const [targetData] = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          source: props.data.source,
+          target: targetData.target,
+        }),
+      );
+    });
   };
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(([sourceData, clusterData, moduleData, targetData]) => ({
+      return Promise.all([
+        sourceRef.value.getValue(),
+        clusterRef.value.getValue(),
+        moduleRef.value.getValue(),
+        targetRef.value.getValue(),
+      ]).then(([sourceData, clusterData, moduleData, targetData]) => ({
         ...sourceData,
         ...clusterData,
         ...moduleData,

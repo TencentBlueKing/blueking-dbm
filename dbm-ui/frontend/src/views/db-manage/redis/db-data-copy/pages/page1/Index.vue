@@ -114,6 +114,7 @@
           </BkSelect>
         </template>
       </template>
+      <TicketRemark v-model="remark" />
     </div>
     <template #action>
       <BkButton
@@ -188,6 +189,8 @@
 
   import { LocalStorageKeys, TicketTypes } from '@common/const';
 
+  import TicketRemark from '@components/ticket-remark/Index.vue';
+
   import {
     copyTypeList,
     disconnectTypeList,
@@ -235,6 +238,7 @@
       writeType.value = writeMode;
       disconnectType.value = disconnectSetting.type;
       remindFrequencyType.value = disconnectSetting.reminder_frequency;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -246,6 +250,7 @@
   const remindFrequencyType = ref(RemindFrequencyModes.ONCE_DAILY);
   const repairAndVerifyType = ref(RepairAndVerifyModes.DATA_CHECK_AND_REPAIR);
   const repairAndVerifyFrequency = ref(RepairAndVerifyFrequencyModes.ONCE_AFTER_REPLICATION);
+  const remark = ref('');
   const submitDisable = ref(true);
   const clusterList = ref<SelectItem[]>([]);
   const currentTableRef = ref();
@@ -307,6 +312,7 @@
     const params: DataCopySubmitTicket = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
+      remark: remark.value,
       details: {
         dts_copy_type: copyType.value,
         write_mode: writeType.value,

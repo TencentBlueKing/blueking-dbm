@@ -113,11 +113,18 @@
         ip: item.ip,
         bk_cloud_id: item.bk_cloud_id,
       });
-      return inputRef.value.getValue().then(() =>
-        Promise.resolve({
-          new_proxy: formatHost(localHostData),
-        }),
-      );
+      return inputRef.value
+        .getValue()
+        .then(() =>
+          Promise.resolve({
+            new_proxy: formatHost(localHostData),
+          }),
+        )
+        .catch(() =>
+          Promise.reject({
+            new_proxy: formatHost(localHostData),
+          }),
+        );
     },
   });
 </script>

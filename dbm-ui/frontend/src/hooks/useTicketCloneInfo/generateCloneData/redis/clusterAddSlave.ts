@@ -55,26 +55,29 @@ export async function generateRedisClusterAddSlaveCloneData(ticketData: TicketMo
     {} as Record<string, ServiceReturnType<typeof getRedisMachineList>['results'][number]>,
   );
 
-  return masterIps.map((ip) => ({
-    rowKey: random(),
-    isLoading: false,
-    slaveIp: masterSlaveIpMap[ip],
-    masterIp: ip,
-    ip,
-    clusterIds: IpInfoMap[ip].cluster_ids,
-    bkCloudId: IpInfoMap[ip].bk_cloud_id,
-    bkHostId: IpInfoMap[ip].bk_host_id,
-    cluster: {
-      domain: machineIpMap[ip].related_clusters.map((item) => item.immute_domain).join(','),
-      isStart: false,
-      isGeneral: true,
-      rowSpan: 1,
-    },
-    spec: machineIpMap[ip].spec_config,
-    targetNum: 1,
-    slaveHost: {
-      faults: machineIpMap[ip].unavailable_slave,
-      total: machineIpMap[ip].total_slave,
-    },
-  }));
+  return {
+    tableDataList: masterIps.map((ip) => ({
+      rowKey: random(),
+      isLoading: false,
+      slaveIp: masterSlaveIpMap[ip],
+      masterIp: ip,
+      ip,
+      clusterIds: IpInfoMap[ip].cluster_ids,
+      bkCloudId: IpInfoMap[ip].bk_cloud_id,
+      bkHostId: IpInfoMap[ip].bk_host_id,
+      cluster: {
+        domain: machineIpMap[ip].related_clusters.map((item) => item.immute_domain).join(','),
+        isStart: false,
+        isGeneral: true,
+        rowSpan: 1,
+      },
+      spec: machineIpMap[ip].spec_config,
+      targetNum: 1,
+      slaveHost: {
+        faults: machineIpMap[ip].unavailable_slave,
+        total: machineIpMap[ip].total_slave,
+      },
+    })),
+    remark: ticketData.remark,
+  };
 }

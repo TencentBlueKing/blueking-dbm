@@ -28,11 +28,13 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @input-cluster-finish="(item: IDataRow) => handleInputCluster(index, item)"
           @remove="handleRemove(index)" />
       </RenderData>
       <DbForm
         ref="formRef"
+        class="toolbox-form"
         form-type="vertical"
         :model="formData"
         style="margin-top: 16px">
@@ -69,6 +71,7 @@
           </BkRadioGroup>
         </BkFormItem>
       </DbForm>
+      <TicketRemark v-model="formData.remark" />
       <ClusterSelector
         v-model:is-show="isShowBatchSelector"
         :cluster-types="[ClusterTypes.TENDBHA]"
@@ -111,6 +114,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -118,6 +122,7 @@
   const createDefaultData = () => ({
     backup_type: 'logical',
     file_tag: 'DBFILE1M',
+    remark: '',
   });
 
   const { t } = useI18n();
@@ -132,6 +137,7 @@
       tableData.value = tableDataList;
       formData.backup_type = backupType;
       formData.file_tag = fileTag;
+      formData.remark = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -224,6 +230,16 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
@@ -232,7 +248,7 @@
       await createTicket({
         bk_biz_id: currentBizId,
         ticket_type: 'MYSQL_HA_FULL_BACKUP',
-        remark: '',
+        remark: formData.remark,
         details: {
           infos: {
             ...formData,

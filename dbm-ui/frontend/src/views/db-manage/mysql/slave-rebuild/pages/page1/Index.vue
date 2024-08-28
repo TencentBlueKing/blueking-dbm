@@ -39,7 +39,8 @@
     <Component
       :is="renderCom"
       :backup-type="backupType"
-      :data-list="dataList" />
+      :data-list="dataList"
+      :remark="remark" />
   </div>
 </template>
 <script setup lang="tsx">
@@ -65,6 +66,7 @@
       ticketType.value = TicketTypes.MYSQL_RESTORE_LOCAL_SLAVE;
       backupType.value = backupSouce;
       dataList.value = tableDataList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -76,6 +78,7 @@
       const { tableDataList } = cloneData;
       ticketType.value = TicketTypes.MYSQL_RESTORE_SLAVE;
       dataList.value = tableDataList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -89,6 +92,7 @@
 
   const dataList = ref();
   const backupType = ref();
+  const remark = ref('');
 
   const renderCom = computed(() => comMap[ticketType.value]);
 </script>

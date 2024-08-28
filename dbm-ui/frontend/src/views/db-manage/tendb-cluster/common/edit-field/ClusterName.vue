@@ -128,9 +128,10 @@
     localClusterId,
     () => {
       if (!localClusterId.value) {
+        clusterIdMemo[instanceKey] = {};
         return;
       }
-      clusterIdMemo[instanceKey][localClusterId.value] = true;
+      clusterIdMemo[instanceKey] = { [localClusterId.value]: true };
     },
     {
       immediate: true,
@@ -142,6 +143,10 @@
     localValue.value = realValue;
     emits('onInputFinish', realValue);
   };
+
+  onUnmounted(() => {
+    delete clusterIdMemo[instanceKey];
+  });
 
   defineExpose<Exposes>({
     getValue() {

@@ -133,7 +133,6 @@ export const generateCloneDataHandlerMap = {
   [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: generateSpiderDbTableBackupCloneData, // Spider TenDBCluster 库表备份
   [TicketTypes.TENDBCLUSTER_FULL_BACKUP]: generateSpiderDbBackupCloneData, // Spider TenDBCluster 全备单据
   [TicketTypes.TENDBCLUSTER_NODE_REBALANCE]: generateSpiderCapacityChangeCloneData, // Spider 集群remote节点扩缩容
-  // [TicketTypes.TENDBCLUSTER_ROLLBACK_CLUSTER]: generateSpiderRollbackCloneData, // Spider 定点回档
   [TicketTypes.TENDBCLUSTER_FLASHBACK]: generateSpiderFlashbackCloneData, // Spider 闪回
   [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: generateSpiderDbClearCloneData, // Spider tendbcluster 清档
   [TicketTypes.TENDBCLUSTER_CHECKSUM]: generateSpiderChecksumCloneData, // Spider checksum

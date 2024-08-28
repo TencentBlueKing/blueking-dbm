@@ -35,10 +35,10 @@
 
   import { random } from '@utils';
 
-  import type { IDataRow, IProxyData } from './Row.vue';
+  import type { IDataRow } from './Row.vue';
 
   interface Props {
-    modelValue?: IProxyData;
+    modelValue?: IDataRow['target'];
     source: IDataRow['source'];
   }
 
@@ -115,7 +115,7 @@
     () => props.modelValue,
     () => {
       if (props.modelValue) {
-        localInstanceAddress.value = props.modelValue.instance_address;
+        localInstanceAddress.value = props.modelValue;
 
         instanceAddreddMemo[instanceKey][localInstanceAddress.value] = true;
       }

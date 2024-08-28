@@ -19,7 +19,7 @@ import { random } from '@utils';
 
 // Mysql SQL变更执行
 export async function generateMysqlChecksumCloneData(ticketData: TicketModel<MySQLChecksumDetails>) {
-  const { details } = ticketData;
+  const { details, remark } = ticketData;
   const clustersResult = await getTendbhaList({
     cluster_ids: details.infos.map((item) => item.cluster_id),
     limit: -1,
@@ -59,5 +59,6 @@ export async function generateMysqlChecksumCloneData(ticketData: TicketModel<MyS
     timing: new Date(details.timing),
     runtime_hour: details.runtime_hour,
     data_repair: details.data_repair,
+    remark,
   };
 }

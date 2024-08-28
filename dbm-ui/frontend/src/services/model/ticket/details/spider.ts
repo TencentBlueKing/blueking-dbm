@@ -206,8 +206,14 @@ export interface SpiderReduceNodesDetails {
   is_safe: boolean; // 是否做安全检测
   infos: {
     cluster_id: number;
-    spider_reduced_to_count: number;
     reduce_spider_role: string;
+    spider_reduced_to_count?: number;
+    spider_reduced_hosts?: {
+      ip: string;
+      bk_host_id: number;
+      bk_cloud_id: number;
+      bk_biz_id: number;
+    }[];
   }[];
   clusters: DetailClusters;
 }

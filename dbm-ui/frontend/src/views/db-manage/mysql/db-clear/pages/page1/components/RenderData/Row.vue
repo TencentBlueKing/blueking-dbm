@@ -61,7 +61,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -94,6 +96,8 @@
     ignoreDbs: data.ignoreDbs,
     ignoreTables: data.ignoreTables,
   });
+
+  export type IDataRowBatchKey = keyof Omit<IDataRow, 'rowKey' | 'clusterData'>;
 </script>
 <script setup lang="ts">
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
@@ -112,6 +116,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'clusterInputFinish', value: number): void;
   }
 
@@ -137,18 +142,24 @@
   const isDropDatabase = computed(() => currentTruncateDataType.value === 'drop_database');
 
   watch(
-    () => props.data,
+    () => props.data.clusterData,
     () => {
       if (props.data.clusterData) {
         localClusterId.value = props.data.clusterData.id;
       }
-      tablePatterns.value = props.data.tablePatterns ?? [];
-      ignoreTables.value = props.data.ignoreTables ?? [];
     },
     {
       immediate: true,
     },
   );
+
+  watchEffect(() => {
+    tablePatterns.value = props.data.tablePatterns ?? [];
+  });
+
+  watchEffect(() => {
+    ignoreTables.value = props.data.ignoreTables ?? [];
+  });
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
@@ -179,6 +190,31 @@
       return;
     }
     emits('remove');
+  };
+
+  const handleClone = () => {
+    Promise.allSettled([
+      clusterRef.value.getValue(),
+      truncateDataTypeRef.value.getValue(),
+      dbPatternsRef.value.getValue('db_patterns'),
+      tablePatternsRef.value.getValue('table_patterns'),
+      ignoreDbsRef.value.getValue('ignore_dbs'),
+      ignoreTablesRef.value.getValue('ignore_tables'),
+    ]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits(
+        'clone',
+        createRowData({
+          rowKey: random(),
+          clusterData: props.data.clusterData,
+          truncateDataType: rowInfo[1].truncate_data_type,
+          dbPatterns: rowInfo[2].db_patterns,
+          tablePatterns: rowInfo[3].table_patterns,
+          ignoreDbs: rowInfo[4].ignore_dbs,
+          ignoreTables: rowInfo[5].ignore_tables,
+        }),
+      );
+    });
   };
 
   defineExpose<Exposes>({

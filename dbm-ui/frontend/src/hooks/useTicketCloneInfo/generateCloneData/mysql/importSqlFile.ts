@@ -24,5 +24,6 @@ export function generateMysqlImportSqlFileCloneData(ticketData: TicketModel<MySQ
     ticket_mode: details.ticket_mode,
     execute_sql_files: details.execute_sql_files as string[],
     path: details.path,
+    remark: ticketData.remark,
   });
 }

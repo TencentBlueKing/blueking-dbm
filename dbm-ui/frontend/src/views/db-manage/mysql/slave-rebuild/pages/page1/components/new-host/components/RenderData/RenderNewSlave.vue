@@ -181,19 +181,33 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(localHostData.value).then(() => {
-        if (!localHostData.value) {
-          return Promise.reject();
-        }
-        return {
-          new_slave: {
-            bk_biz_id: localHostData.value.biz.id,
-            bk_cloud_id: localHostData.value.cloud_id,
-            bk_host_id: localHostData.value.host_id,
-            ip: localHostData.value.ip,
-          },
-        };
-      });
+      return validator(localHostData.value)
+        .then(() => {
+          if (!localHostData.value) {
+            return Promise.reject();
+          }
+          return {
+            new_slave: {
+              bk_biz_id: localHostData.value.biz.id,
+              bk_cloud_id: localHostData.value.cloud_id,
+              bk_host_id: localHostData.value.host_id,
+              ip: localHostData.value.ip,
+            },
+          };
+        })
+        .catch(() => {
+          if (!localHostData.value) {
+            return Promise.reject();
+          }
+          return Promise.reject({
+            new_slave: {
+              bk_biz_id: localHostData.value.biz.id,
+              bk_cloud_id: localHostData.value.cloud_id,
+              bk_host_id: localHostData.value.host_id,
+              ip: localHostData.value.ip,
+            },
+          });
+        });
     },
   });
 </script>

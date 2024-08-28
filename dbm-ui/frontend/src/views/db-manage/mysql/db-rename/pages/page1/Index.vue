@@ -25,7 +25,9 @@
           {{ t('批量录入') }}
         </BkButton>
       </div>
-      <RenderData @batch-select-cluster="handleShowBatchSelector">
+      <RenderData
+        @batch-edit="handleBatchEditColumn"
+        @batch-select-cluster="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
           :key="item.rowKey"
@@ -34,6 +36,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @cluster-input-finish="(clusterId: number) => handleChangeCluster(index, clusterId)"
           @remove="handleRemove(index)" />
       </RenderData>
@@ -50,6 +53,7 @@
           {{ t('忽略业务连接') }}
         </span>
       </div>
+      <TicketRemark v-model="remark" />
     </div>
     <template #action>
       <BkButton
@@ -96,10 +100,11 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import BatchInput from './components/BatchInput.vue';
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
+  import RenderDataRow, { createRowData, type IDataRow, type IDataRowBatchKey } from './components/RenderData/Row.vue';
 
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
@@ -112,6 +117,7 @@
       const { force, tableDataList } = cloneData;
       tableData.value = tableDataList;
       isForce.value = force;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -134,6 +140,7 @@
   const clusterInfoMap: Map<string, TendbhaModel> = reactive(new Map());
   const isForce = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const remark = ref('');
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({
     [ClusterTypes.TENDBHA]: [],
@@ -159,6 +166,17 @@
     isShowBatchSelector.value = true;
   };
 
+  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
+
   // 追加一个集群
   const handleAppend = (index: number, appendList: Array<IDataRow>) => {
     const dataList = [...tableData.value];
@@ -178,6 +196,16 @@
       const clustersArr = selectedClusters.value[clusterType];
       selectedClusters.value[clusterType] = clustersArr.filter((item) => item.master_domain !== domain);
     }
+  };
+
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
   };
 
   /**
@@ -292,6 +320,7 @@
               ? TicketTypes.MYSQL_HA_RENAME_DATABASE
               : TicketTypes.MYSQL_SINGLE_RENAME_DATABASE,
           bk_biz_id: globalBizsStore.currentBizId,
+          remark: remark.value,
           details: {
             force: isForce.value,
             infos: data,
@@ -318,6 +347,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
     selectedClusters.value[ClusterTypes.TENDBSINGLE] = [];
     domainMemo = {};
