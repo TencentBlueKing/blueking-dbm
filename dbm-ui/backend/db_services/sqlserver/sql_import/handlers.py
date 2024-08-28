@@ -71,20 +71,19 @@ class SQLHandler(object):
         else:
             upload_sql_path = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=bk_biz_id)
             sql_file_info_list = MySQLSQLHandler.upload_sql_file(upload_sql_path, sql_content, sql_files)
-
+        data = {}
         # 填充虚构sqlserver内容。
         for sql_file_info in sql_file_info_list:
             sql_path = sql_file_info["sql_path"]
             file_name = os.path.split(sql_path)[1]
-            data = {
-                file_name: {
-                    "syntax_fails": "",
-                    "highrisk_warnings": "",
-                    "bancommand_warnings": "",
-                    "content": sql_file_info.get("sql_content"),
-                    "sql_path": sql_path,
-                    "raw_file_name": sql_file_info.get("raw_file_name"),
-                    "skip_check": "",
-                }
+            data[file_name] = {
+                "syntax_fails": "",
+                "highrisk_warnings": "",
+                "bancommand_warnings": "",
+                "content": sql_file_info.get("sql_content"),
+                "sql_path": sql_path,
+                "raw_file_name": sql_file_info.get("raw_file_name"),
+                "skip_check": "",
             }
-            return data
+
+        return data
