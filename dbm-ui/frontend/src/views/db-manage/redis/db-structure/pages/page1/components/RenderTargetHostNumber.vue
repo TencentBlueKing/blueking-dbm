@@ -45,7 +45,7 @@
   });
 
   const { t } = useI18n();
-  const localValue = ref(props.data);
+  const localValue = ref();
   const editRef = ref();
 
   const nonInterger = /\D/g;
@@ -65,9 +65,22 @@
     },
   ];
 
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
+
   defineExpose<Exposes>({
     getValue() {
-      return editRef.value.getValue().then(() => localValue.value);
+      return editRef.value
+        .getValue()
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));
     },
   });
 </script>

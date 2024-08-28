@@ -23,7 +23,7 @@
           :model="formData">
           <ClusterIds
             v-model="formData.cluster_ids"
-            v-model:clusterVersionList="clusterVersionList"
+            v-model:cluster-version-list="clusterVersionList"
             :cluster-type-list="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]" />
           <ExecuteObjects
             v-model="formData.execute_objects"
@@ -35,6 +35,7 @@
           <RenderCharset v-model="formData.charset" />
           <Backup v-model="formData.backup" />
           <TicketMode v-model="formData.ticket_mode" />
+          <TicketRemark v-model="formData.remark" />
         </DbForm>
       </div>
       <template #action>
@@ -71,6 +72,8 @@
 
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
+  import TicketRemark from '@components/ticket-remark/Index.vue';
+
   import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
@@ -97,6 +100,7 @@
     },
     ticket_type: 'MYSQL_SEMANTIC_CHECK',
     cluster_type: DBTypes.MYSQL,
+    remark: '',
   });
 
   const formRef = ref();
@@ -117,6 +121,7 @@
         cluster_ids: cloneData.cluster_ids,
         execute_objects: cloneData.execute_objects,
         ticket_mode: cloneData.ticket_mode,
+        remark: cloneData.remark,
       });
       window.changeConfirm = true;
       uploadFilePath.value = cloneData.path;

@@ -27,6 +27,7 @@
     </td>
     <td style="padding: 0">
       <RenderNodeType
+        ref="nodeTypeRef"
         :cluster-type="data.clusterType"
         :data="data.nodeType"
         @change="handleNodeTypeChange" />
@@ -44,7 +45,9 @@
     </td>
     <OperateColumn
       :removeable="removeable"
+      show-clone
       @add="handleAppend"
+      @clone="handleClone"
       @remove="handleRemove" />
   </tr>
 </template>
@@ -73,6 +76,8 @@
     targetVersion?: string;
   }
 
+  export type IDataRowBatchKey = keyof Pick<IDataRow, 'nodeType' | 'targetVersion'>;
+
   export interface InfoItem {
     cluster_ids: number[];
     node_type: string;
@@ -81,7 +86,7 @@
   }
 
   // 创建表格数据
-  export const createRowData = () => ({
+  export const createRowData = (): IDataRow => ({
     rowKey: random(),
     isLoading: false,
     cluster: '',
@@ -99,6 +104,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clone', value: IDataRow): void;
     (e: 'nodeTypeChange', value: string): void;
     (e: 'clusterInputFinish', value: RedisModel): void;
   }
@@ -113,6 +119,7 @@
   const { t } = useI18n();
 
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const nodeTypeRef = ref<InstanceType<typeof RenderNodeType>>();
   const targetVersionRef = ref<InstanceType<typeof RenderTargetVersion>>();
   const currentVersionList = ref<string[]>([]);
 
@@ -137,6 +144,23 @@
       return;
     }
     emits('remove');
+  };
+
+  const handleClone = () => {
+    Promise.allSettled([
+      clusterRef.value!.getValue(),
+      nodeTypeRef.value!.getValue(),
+      targetVersionRef.value!.getValue(),
+    ]).then((rowData) => {
+      const rowInfo = rowData.map((item) => (item.status === 'fulfilled' ? item.value : item.reason));
+      emits('clone', {
+        ...props.data,
+        rowKey: random(),
+        isLoading: false,
+        nodeType: rowInfo[1],
+        targetVersion: rowInfo[2],
+      });
+    });
   };
 
   defineExpose<Exposes>({

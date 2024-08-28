@@ -21,6 +21,7 @@
       <BkLoading :loading="isLoading">
         <RenderData
           class="mt16"
+          @batch-edit-backup-local="handleBatchEditBackupLocal"
           @show-master-batch-selector="handleShowMasterBatchSelector">
           <RenderDataRow
             v-for="(item, index) in tableData"
@@ -30,6 +31,7 @@
             :inputed-ips="inputedIps"
             :removeable="tableData.length < 2"
             @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+            @clone="(payload: IDataRow) => handleClone(index, payload)"
             @on-ip-input-finish="(ipInfo: string) => handleChangeHostIp(index, ipInfo)"
             @remove="handleRemove(index)" />
         </RenderData>
@@ -45,6 +47,7 @@
           </div>
         </BkPopover>
       </div>
+      <TicketRemark v-model="remark" />
     </div>
     <template #action>
       <BkButton
@@ -88,6 +91,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, { type InstanceSelectorValues } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
@@ -111,6 +115,7 @@
 
       tableData.value = tableList;
       isForceSwitch.value = force;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -121,6 +126,7 @@
   const isForceSwitch = ref(false);
   const tableData = ref([createRowData()]);
   const isLoading = ref(false);
+  const remark = ref('');
 
   const selected = shallowRef({ redis: [] } as InstanceSelectorValues<ChoosedFailedMasterItem>);
 
@@ -145,6 +151,17 @@
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {
     isShowMasterInstanceSelector.value = true;
+  };
+
+  const handleBatchEditBackupLocal = (value: string) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        switchMode: value,
+      });
+    });
   };
 
   // 批量选择
@@ -244,6 +261,16 @@
     selected.value.redis = arr.filter((item) => item.ip !== removeIp);
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   // 提交
   const handleSubmit = async () => {
     try {
@@ -254,6 +281,7 @@
       const params = {
         bk_biz_id: currentBizId,
         ticket_type: TicketTypes.REDIS_MASTER_SLAVE_SWITCH,
+        remark: remark.value,
         details: {
           force: isForceSwitch.value,
           infos,
@@ -279,6 +307,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     selected.value.redis = [];
     ipMemo = {};
     window.changeConfirm = false;

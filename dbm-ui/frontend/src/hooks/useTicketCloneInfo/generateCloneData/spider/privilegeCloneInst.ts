@@ -22,40 +22,39 @@ import { random } from '@utils';
 export async function generateSpiderPrivilegeCloneInstCloneData(ticketData: TicketModel<MySQLInstanceCloneDetails>) {
   const { clone_data: cloneData } = ticketData.details;
   const instanceListResult = await getSpiderInstanceList({
-    instance_address: cloneData.reduce((prev, item) => [...prev, item.source, item.target], [] as string[]).join(','),
+    // instance_address: cloneData.reduce<string[]>((prev, item) => [...prev, item.source], []).join(','),
+    instance_address: cloneData.map((cloneDataItem) => cloneDataItem.source),
   });
-  const instanceListMap = instanceListResult.results.reduce(
-    (obj, item) => {
-      Object.assign(obj, {
-        [item.instance_address]: item,
-      });
-      return obj;
-    },
-    {} as Record<string, TendbInstanceModel>,
-  );
+  const instanceListMap = instanceListResult.results.reduce<Record<string, TendbInstanceModel>>((obj, item) => {
+    Object.assign(obj, {
+      [item.instance_address]: item,
+    });
+    return obj;
+  }, {});
 
   return {
     tableDataList: ticketData.details.clone_data.map((item) => {
       const sourceInfo = instanceListMap[item.source];
-      const targetInfo = instanceListMap[item.target];
+      // const targetInfo = instanceListMap[item.target];
       return {
         rowKey: random(),
         source: {
           bkCloudId: sourceInfo.bk_cloud_id,
           clusterId: sourceInfo.cluster_id,
           dbModuleId: sourceInfo.db_module_id,
-          dbModuleName: item.module,
+          dbModuleName: sourceInfo.db_module_name,
           instanceAddress: item.source,
           masterDomain: sourceInfo.master_domain,
         },
-        target: {
-          cluster_id: targetInfo.cluster_id,
-          bk_host_id: targetInfo.bk_host_id,
-          bk_cloud_id: targetInfo.bk_cloud_id,
-          port: targetInfo.port,
-          ip: targetInfo.ip,
-          instance_address: item.target,
-        },
+        target: item.target,
+        // target: {
+        //   cluster_id: targetInfo.cluster_id,
+        //   bk_host_id: targetInfo.bk_host_id,
+        //   bk_cloud_id: targetInfo.bk_cloud_id,
+        //   port: targetInfo.port,
+        //   ip: targetInfo.ip,
+        //   instance_address: item.target,
+        // },
       };
     }),
     remark: ticketData.remark,

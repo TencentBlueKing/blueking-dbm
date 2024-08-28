@@ -66,6 +66,7 @@
     <Component
       :is="currentTable"
       :backup-source="backupSource"
+      :remark="remark"
       :table-list="tableList" />
   </div>
 </template>
@@ -96,6 +97,7 @@
     type: TicketTypes.MYSQL_PROXY_UPGRADE,
     onSuccess(cloneData) {
       tableList.value = cloneData.tableList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
       formData.roleType = 'haAccessLayer';
     },
@@ -106,6 +108,7 @@
     type: TicketTypes.MYSQL_LOCAL_UPGRADE,
     onSuccess(cloneData) {
       tableList.value = cloneData.tableList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
 
       const isSingle = cloneData.tableList[0].clusterData.clusterType === ClusterTypes.TENDBSINGLE;
@@ -119,6 +122,7 @@
     type: TicketTypes.MYSQL_MIGRATE_UPGRADE,
     onSuccess(cloneData) {
       backupSource.value = cloneData.backupSource;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
 
       formData.roleType = 'haStorageLayer';
@@ -152,6 +156,7 @@
   ];
 
   const backupSource = ref('');
+  const remark = ref('');
 
   const tableList = shallowRef<
     HaAccessLayerRow[] | HaStorageLayerLocalRow[] | HaStorageLayerRemoteRow[] | SingleStorageRow[]
@@ -184,6 +189,7 @@
     () => formData.updateType,
     () => {
       tableList.value = [];
+      remark.value = '';
       if (formData.updateType === '') {
         formData.updateType = 'local';
       }
@@ -191,6 +197,7 @@
   );
 
   const handleRoleTypeChange = () => {
+    remark.value = '';
     tableList.value = [];
   };
 </script>

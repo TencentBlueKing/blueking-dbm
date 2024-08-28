@@ -38,6 +38,10 @@
     (e: 'change', value: string): void;
   }
 
+  interface Exposes {
+    getValue: () => Promise<string>;
+  }
+
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
@@ -85,4 +89,13 @@
   const handleChange = (value: string) => {
     emits('change', value);
   };
+
+  defineExpose<Exposes>({
+    getValue() {
+      return selectRef
+        .value!.getValue()
+        .then(() => localValue.value)
+        .catch(() => Promise.reject(localValue.value));
+    },
+  });
 </script>

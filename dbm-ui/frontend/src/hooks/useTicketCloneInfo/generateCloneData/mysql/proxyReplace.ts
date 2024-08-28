@@ -35,5 +35,6 @@ export function generateMysqlProxyReplaceCloneData(ticketData: TicketModel<MySQL
   return Promise.resolve({
     force,
     tableDataList,
+    remark: ticketData.remark,
   });
 }

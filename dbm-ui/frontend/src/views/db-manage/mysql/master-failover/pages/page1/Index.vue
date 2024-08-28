@@ -34,6 +34,7 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="item-block">
@@ -51,6 +52,7 @@
           {{ t('检查主从数据校验结果') }}
         </BkCheckbox>
       </div>
+      <TicketRemark v-model="formData.remark" />
       <InstanceSelector
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.TENDBHA]"
@@ -101,6 +103,7 @@
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import BatchEntry, { type IValue as IBatchEntryValue } from './components/BatchEntry.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -128,6 +131,7 @@
       formData.is_check_process = isCheckProcess;
       formData.is_verify_checksum = isVerifyChecksum;
       formData.is_check_delay = isCheckDelay;
+      formData.remark = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -144,6 +148,7 @@
     is_check_process: false,
     is_verify_checksum: false,
     is_check_delay: false,
+    remark: '',
   });
 
   const tabListConfig = {
@@ -221,13 +226,23 @@
     tableData.value = dataList;
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = async () => {
     try {
       isSubmitting.value = true;
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
         ticket_type: 'MYSQL_MASTER_FAIL_OVER',
-        remark: '',
+        remark: formData.remark,
         details: {
           ...formData,
           infos,

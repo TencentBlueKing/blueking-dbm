@@ -30,6 +30,7 @@
         ref="targetVersionRef"
         :data="data.clusterData"
         :is-loading="data.isLoading"
+        :target-package="data.targetPackage"
         @module-change="handleModuleChange" />
     </td>
     <OperateColumn
@@ -62,6 +63,7 @@
       packageVersion: string;
       moduleName: string;
     };
+    targetPackage?: number;
   }
 
   // 创建表格数据

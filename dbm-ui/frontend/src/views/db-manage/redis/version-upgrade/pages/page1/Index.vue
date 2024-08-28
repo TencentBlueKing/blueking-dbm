@@ -20,6 +20,8 @@
         :title="t('版本升级：将集群的接入层或存储层，更新到指定版本')" />
       <RenderData
         class="mt16"
+        :version-list-params="versionListParams"
+        @batch-edit="handleBatchEditColumn"
         @show-batch-selector="handleShowBatchSelector">
         <RenderDataRow
           v-for="(item, index) in tableData"
@@ -28,10 +30,12 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @cluster-input-finish="(rowInfo: RedisModel) => handleChangeCluster(index, rowInfo)"
           @node-type-change="(type: string) => handleNodeTypeChange(index, type)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
         :cluster-types="[ClusterTypes.REDIS]"
@@ -76,9 +80,15 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import RenderData from './components/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
+  import RenderDataRow, {
+    createRowData,
+    type IDataRow,
+    type IDataRowBatchKey,
+    type InfoItem,
+  } from './components/Row.vue';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -102,37 +112,27 @@
   const selectedClusters = shallowRef<{ [key: string]: Array<RedisModel> }>({ [ClusterTypes.REDIS]: [] });
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
-  // const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
 
-  // const patchEditVersionListParams = computed(() => {
-  //   const tableDataList = tableData.value
-  //   const params = {
-  //     nodeType: '',
-  //     clusterType: '',
-  //   }
-  //   if (tableDataList.length > 0) {
-  //     const clusterTypeList = []
-  //     for(let i = 0; i < tableDataList.length; i++) {
-  //       const dataItem = tableDataList[i]
-  //       if (!dataItem.clusterType) {
-  //         continue
-  //       }
-  //       clusterTypeList.push(dataItem.clusterType)
-  //       if (clusterTypeList.length > 1) {
-  //         return params
-  //       }
-  //     }
-  //     if (clusterTypeList.length === 1) {
-  //       const {clusterType, nodeType} = tableDataList[0]
-  //       return {
-  //         nodeType,
-  //         clusterType,
-  //       }
-  //     }
-  //     return params
-  //   }
-  //   return params
-  // })
+  const versionListParams = computed(() => {
+    if (checkListEmpty(tableData.value)) {
+      return null;
+    }
+    const [firstRow, ...otherRowList] = tableData.value;
+    const params = {
+      nodeType: firstRow.nodeType,
+      clusterId: firstRow.clusterId,
+    };
+    if (
+      otherRowList.length === 0 ||
+      otherRowList.every(
+        (rowItem) => rowItem.clusterType === firstRow.clusterType && rowItem.nodeType === firstRow.nodeType,
+      )
+    ) {
+      return params;
+    }
+    return null;
+  });
+  // const inputedClusters = computed(() => tableData.value.map((item) => item.cluster));
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -238,6 +238,27 @@
     selectedClusters.value[ClusterTypes.REDIS] = clustersArr.filter((item) => item.master_domain !== cluster);
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
+  const handleBatchEditColumn = (value: string | string[], filed: IDataRowBatchKey) => {
+    if (!value || checkListEmpty(tableData.value)) {
+      return;
+    }
+    tableData.value.forEach((row) => {
+      Object.assign(row, {
+        [filed]: value,
+      });
+    });
+  };
+
   // 点击提交按钮
   const handleSubmit = async () => {
     isSubmitting.value = true;
@@ -271,7 +292,6 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
-    remark.value = '';
     selectedClusters.value[ClusterTypes.REDIS] = [];
     domainMemo = {};
     window.changeConfirm = false;

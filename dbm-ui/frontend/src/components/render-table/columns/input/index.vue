@@ -216,7 +216,9 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return validator(modelValue.value).then(() => modelValue.value);
+      return validator(modelValue.value)
+        .then(() => modelValue.value)
+        .catch(() => Promise.reject(modelValue.value));
     },
     validator() {
       return validator(modelValue.value).then(

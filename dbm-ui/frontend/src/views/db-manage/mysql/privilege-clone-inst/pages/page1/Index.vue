@@ -34,8 +34,10 @@
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @clone="(payload: IDataRow) => handleClone(index, payload)"
           @remove="handleRemove(index)" />
       </RenderData>
+      <TicketRemark v-model="remark" />
       <BatchInput
         v-model:is-show="isShowBatchInput"
         @change="handleBatchInput" />
@@ -88,6 +90,7 @@
     type InstanceSelectorValues,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import BatchInput from './components/BatchInput.vue';
   import RenderData from './components/RenderData/Index.vue';
@@ -104,6 +107,7 @@
     type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
     onSuccess(cloneData) {
       tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -113,6 +117,7 @@
   const isSubmitting = ref(false);
   const isShowBatchInput = ref(false);
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
+  const remark = ref('');
 
   const selectedIps = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({
     tendbha: [],
@@ -269,6 +274,16 @@
     }
   };
 
+  // 复制行数据
+  const handleClone = (index: number, sourceData: IDataRow) => {
+    const dataList = [...tableData.value];
+    dataList.splice(index + 1, 0, sourceData);
+    tableData.value = dataList;
+    setTimeout(() => {
+      rowRefs.value[rowRefs.value.length - 1].getValue();
+    });
+  };
+
   const handleSubmit = () => {
     isSubmitting.value = true;
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
@@ -285,7 +300,7 @@
 
           const params = {
             ticket_type: TicketTypes.MYSQL_INSTANCE_CLONE_RULES,
-            remark: '',
+            remark: remark.value,
             details: {
               ...precheckResult,
               clone_type: 'instance',
@@ -314,6 +329,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    remark.value = '';
     instanceMemo = {};
     selectedIps.value.tendbha = [];
     selectedIps.value.tendbsingle = [];

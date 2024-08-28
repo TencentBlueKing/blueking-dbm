@@ -123,6 +123,7 @@
             </div>
           </div>
         </BkRadio>
+        <TicketRemark v-model="remark" />
       </div>
     </BkRadioGroup>
     <div class="btns">
@@ -162,6 +163,8 @@
 
   import { LocalStorageKeys, TicketTypes } from '@common/const';
 
+  import TicketRemark from '@components/ticket-remark/Index.vue';
+
   import { formatDatetime } from '@views/db-manage/redis/common/utils';
 
   import BasicInfoTable from './basic-info-table/Index.vue';
@@ -184,6 +187,7 @@
       isKeepCheckAndRepair.value = isKeepCheck;
       isRepairData.value = isRepairEnable;
       repairMode.value = repairType;
+      remark.value = cloneData.remark;
       window.changeConfirm = true;
     },
   });
@@ -200,6 +204,7 @@
   const isSubmitting = ref(false);
   const tableRef = ref();
   const isKeepCheckAndRepair = ref(true);
+  const remark = ref('');
 
   const tableData = shallowRef<IDataRow[]>([]);
 
@@ -232,6 +237,7 @@
     const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_DATACOPY_CHECK_REPAIR,
+      remark: remark.value,
       details: {
         execute_mode: executeMode.value,
         specified_execution_time:
@@ -276,6 +282,7 @@
     repairMode.value = RepairModes.AUTO_REPAIR;
     overtime.value = 0;
     tableData.value = [];
+    remark.value = '';
     setTimeout(() => {
       recoverDataListFromLocalStorage();
     });

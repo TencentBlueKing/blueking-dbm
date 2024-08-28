@@ -24,10 +24,9 @@
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
-  import { getRemoteParis } from '@services/source/mysqlCluster';
-
+  // import { useRequest } from 'vue-request';
+  // import { getRemoteParis } from '@services/source/mysqlCluster';
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   interface Props {
@@ -67,9 +66,9 @@
   const editSelectRef = ref();
   const localValue = ref('');
 
-  const { run: fetchRemoteParis } = useRequest(getRemoteParis, {
-    manual: true,
-  });
+  // const { run: fetchRemoteParis } = useRequest(getRemoteParis, {
+  //   manual: true,
+  // });
 
   watch(
     () => props.modelValue,
@@ -81,19 +80,19 @@
     },
   );
 
-  watch(
-    () => props.clusterId,
-    () => {
-      if (props.clusterId) {
-        fetchRemoteParis({
-          cluster_ids: [props.clusterId],
-        });
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
+  // watch(
+  //   () => props.clusterId,
+  //   () => {
+  //     if (props.clusterId) {
+  //       fetchRemoteParis({
+  //         cluster_ids: [props.clusterId],
+  //       });
+  //     }
+  //   },
+  //   {
+  //     immediate: true,
+  //   },
+  // );
 
   const handleChange = (value: string) => {
     localValue.value = value;

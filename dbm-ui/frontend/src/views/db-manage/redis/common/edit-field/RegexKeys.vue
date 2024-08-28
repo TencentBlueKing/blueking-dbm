@@ -64,7 +64,17 @@
   ];
 
   const editTagRef = ref();
-  const localValue = ref(props.data);
+  const localValue = ref();
+
+  watch(
+    () => props.data,
+    () => {
+      localValue.value = props.data;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = (value: string[]) => {
     if (value.includes('*') && value.length > 1) {
@@ -76,7 +86,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return editTagRef.value.getValue(localValue.value);
+      return editTagRef.value.getValue(localValue.value).catch(() => Promise.reject(localValue.value));
     },
   });
 </script>

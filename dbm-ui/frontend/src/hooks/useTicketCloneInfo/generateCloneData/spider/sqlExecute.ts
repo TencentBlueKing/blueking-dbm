@@ -14,21 +14,17 @@
 import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
 
-import { random } from '@utils';
-
 // spider SQL变更执行
 export function generateSpiderSqlExecuteCloneData(ticketData: TicketModel<MySQLImportSQLFileDetails>) {
   const { details } = ticketData;
   return Promise.resolve({
     backup: details.backup,
     charset: details.charset,
-    ticket_mode: details.ticket_mode,
-    import_mode: details.import_mode,
     cluster_ids: details.cluster_ids,
-    execute_db_infos: details.execute_objects.map((item) => ({
-      ...item,
-      rowKey: random(),
-    })),
+    execute_objects: details.execute_objects,
+    ticket_mode: details.ticket_mode,
+    execute_sql_files: details.execute_sql_files as string[],
+    path: details.path,
     remark: ticketData.remark,
   });
 }
