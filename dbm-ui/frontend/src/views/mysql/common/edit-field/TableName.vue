@@ -84,7 +84,8 @@
         message: t('表名不能为空'),
       },
       {
-        validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
+        validator: (value: string[]) =>
+          !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
         message: t('* 只能独立使用'),
         trigger: 'change',
       },
