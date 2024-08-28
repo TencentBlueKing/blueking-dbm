@@ -61,6 +61,8 @@ class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         # 校验集群是否可用
+        # 单据详情添加path字段信息
+        attrs["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.context["bk_biz_id"])
         super().validate_cluster_can_access(attrs)
         return attrs
 
