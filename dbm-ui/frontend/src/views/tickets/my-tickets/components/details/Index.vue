@@ -103,6 +103,10 @@
       permission: 'catch'
     })
       .then((ticketData) => {
+        if (props.ticketId !== id) {
+          return;
+        }
+
         state.ticketData = ticketData;
 
         if (currentScope?.active && ['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {

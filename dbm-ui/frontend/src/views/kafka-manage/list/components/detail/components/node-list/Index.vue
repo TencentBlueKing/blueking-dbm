@@ -376,6 +376,7 @@
       label: t('类型'),
       field: 'node_type',
       filter: {
+        filterFn: () => true,
         list: [
           {
             value: 'broker',
