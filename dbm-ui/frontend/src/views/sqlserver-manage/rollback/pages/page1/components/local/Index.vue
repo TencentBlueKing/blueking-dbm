@@ -28,13 +28,14 @@
       @change="handelClusterChange" />
   </div>
 </template>
-<script setup lang="tsx">
+<script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
+  // import { useTicketCloneInfo } from '@hooks';
   import { ClusterTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';

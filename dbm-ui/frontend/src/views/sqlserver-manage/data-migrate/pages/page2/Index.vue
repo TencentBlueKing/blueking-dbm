@@ -14,7 +14,7 @@
 <template>
   <RenderSuccess :steps="steps">
     <template #title>
-      {{ t('定点回档任务提交成功') }}
+      {{ t('数据迁移任务提交成功') }}
     </template>
     <I18nT
       keypath="接下来您可以通过xx查看任务最新动态"

@@ -145,7 +145,19 @@ export default class MigrateRecord {
   }
 
   get terminateSynceDisableTips() {
-    if ([STATUS.FULL_FAILED, STATUS.INCR_FAILED].includes(this.status)) {
+    if (
+      [
+        STATUS.TODO,
+        STATUS.TERMINATED,
+        STATUS.FULL_ONLINE,
+        STATUS.FULL_SUCCESS,
+        STATUS.INCR_SUCCESS,
+        STATUS.DISCONNECTING,
+        STATUS.DISCONNECTED,
+        STATUS.FULL_FAILED,
+        STATUS.INCR_FAILED,
+      ].includes(this.status)
+    ) {
       return t('迁移任务：n，不支持该操作', { n: MigrateRecord.statusTextMap[this.status] });
     }
     return '';

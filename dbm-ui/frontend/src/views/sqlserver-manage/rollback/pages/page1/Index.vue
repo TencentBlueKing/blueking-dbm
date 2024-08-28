@@ -26,14 +26,14 @@
         <BkFormItem
           :label="t('构造类型')"
           required>
-          <BkRadioGroup v-model="actionType">
+          <BkRadioGroup v-model="isLocal">
             <BkRadioButton
-              label="local"
+              label
               style="width: 200px">
               {{ t('原地定点构造') }}
             </BkRadioButton>
             <BkRadioButton
-              label="otherCluster"
+              :label="false"
               style="width: 200px">
               {{ t('定点构造到其他集群') }}
             </BkRadioButton>
@@ -71,22 +71,29 @@
 
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
+  import { TicketTypes } from '@common/const';
+
   import RenderLocal from './components/local/Index.vue';
   import RenderOtherCluster from './components/other-cluster/Index.vue';
 
   const router = useRouter();
   const { t } = useI18n();
 
-  const comMap = {
-    local: RenderLocal,
-    otherCluster: RenderOtherCluster,
-  };
-
   const tableRef = ref<InstanceType<typeof RenderLocal>>();
-  const actionType = ref<keyof typeof comMap>('local');
+  const isLocal = ref(true);
   const isSubmitting = ref(false);
 
-  const renderCom = computed(() => comMap[actionType.value]);
+  const renderCom = computed(() => (isLocal.value ? RenderLocal : RenderOtherCluster));
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_ROLLBACK,
+    onSuccess(data) {
+      console.log(data);
+      isLocal.value = data.is_local;
+    },
+  });
 
   const handleSubmit = () => {
     isSubmitting.value = true;
@@ -94,10 +101,10 @@
       .value!.submit()
       .then((data) =>
         createTicket({
-          ticket_type: 'SQLSERVER_ROLLBACK',
+          ticket_type: TicketTypes.SQLSERVER_ROLLBACK,
           remark: '',
           details: {
-            is_local: actionType.value === 'local',
+            is_local: isLocal.value,
             infos: data,
           },
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,

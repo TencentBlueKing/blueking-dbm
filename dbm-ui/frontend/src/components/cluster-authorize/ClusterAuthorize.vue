@@ -229,10 +229,6 @@
   import AccountRulesTable from './accout-rules-preview-table/Index.vue';
   // import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
   import AccountRulesSelector from './accouter-rules-selector/Index.vue';
-
-  export default {
-    name: 'ClusterAuthorize',
-  };
 </script>
 
 <script setup lang="tsx">
@@ -381,6 +377,8 @@
       [ClusterTypes.TENDBHA]: [],
       [ClusterTypes.TENDBSINGLE]: [],
       [ClusterTypes.TENDBCLUSTER]: [],
+      [ClusterTypes.SQLSERVER_HA]: [],
+      [ClusterTypes.SQLSERVER_SINGLE]: []
     } as ClusterSelectorResult,
     isShow: false,
     tableProps: {

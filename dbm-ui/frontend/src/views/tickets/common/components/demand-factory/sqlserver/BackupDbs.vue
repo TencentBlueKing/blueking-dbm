@@ -12,16 +12,14 @@
 -->
 
 <template>
-  <BkTable
-    class="details-ms-switch__table"
-    :data="ticketDetails.details.infos">
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('备份 DB 名')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         <BkTag
           v-for="dbName in data.db_list"
           :key="dbName">
@@ -31,7 +29,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('忽略 DB 名')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         <BkTag
           v-for="dbName in data.ignore_db_list"
           :key="dbName">
@@ -41,7 +39,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('最终 DB')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         <BkTag
           v-for="item in data.backup_dbs"
           :key="item">
@@ -50,6 +48,17 @@
       </template>
     </BkTableColumn>
   </BkTable>
+  <InfoList>
+    <InfoItem :label="t('备份方式：')">
+      {{ ticketDetails.details.backup_type === 'full_backup' ? t('全量备份') : t('增量备份') }}
+    </InfoItem>
+    <InfoItem :label="t('备份位置：')">
+      {{ ticketDetails.details.backup_place === 'master' ? t('主库主机') : t('--') }}
+    </InfoItem>
+    <InfoItem :label="t('备份保存时间：')">
+      {{ fileTagMap[ticketDetails.details.file_tag] }}
+    </InfoItem>
+  </InfoList>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -58,11 +67,15 @@
 
   import { TicketTypes } from '@common/const';
 
+  import InfoList, {
+    Item as InfoItem,
+  } from '@views/tickets/common/components/demand-factory/components/info-list/Index.vue';
+
   interface Props {
     ticketDetails: TicketModel<Sqlserver.BackupDb>;
   }
 
-  type ColumnRow = Props['ticketDetails']['details']['infos'][number];
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineProps<Props>();
   defineOptions({
@@ -70,8 +83,12 @@
   });
 
   const { t } = useI18n();
-</script>
 
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>
+  const fileTagMap = {
+    DBFILE1M: t('1 个月'),
+    DBFILE6M: t('6 个月'),
+    DBFILE1Y: t('1 年'),
+    DBFILE3Y: t('3 年'),
+    INCREMENT_BACKUP: t('15天'),
+  } as Record<string, string>;
+</script>

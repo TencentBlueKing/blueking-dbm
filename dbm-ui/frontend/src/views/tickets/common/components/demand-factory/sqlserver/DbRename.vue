@@ -12,23 +12,21 @@
 -->
 
 <template>
-  <BkTable
-    class="details-ms-switch__table"
-    :data="ticketDetails.details.infos">
+  <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('目标集群')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('源 DB 名')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         <BkTag>
           {{ data.from_database }}
         </BkTag>
       </template>
     </BkTableColumn>
     <BkTableColumn :label="t('新 DB 名')">
-      <template #default="{ data }: { data: ColumnRow }">
+      <template #default="{ data }: { data: RowData }">
         <BkTag>
           {{ data.to_database }}
         </BkTag>
@@ -47,7 +45,7 @@
     ticketDetails: TicketModel<Sqlserver.DbRename>;
   }
 
-  type ColumnRow = Props['ticketDetails']['details']['infos'][number];
+  type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineProps<Props>();
   defineOptions({
@@ -56,7 +54,3 @@
 
   const { t } = useI18n();
 </script>
-
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>

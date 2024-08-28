@@ -64,6 +64,13 @@
 
   const { t } = useI18n();
 
+  const disabledTagMap = {
+    monitor: true,
+    model: true,
+    msdb: true,
+    tempdb: true,
+  };
+
   const rules = [
     {
       validator: (value: string[]) => {
@@ -73,16 +80,8 @@
       message: t('一格仅支持单个_对象'),
     },
     {
-      validator: (value: string[]) => {
-        const disabledTagMap = {
-          montor: true,
-          model: true,
-          msdb: true,
-          tempdb: true,
-        };
-        return _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]);
-      },
-      message: t('DB名不能支持 montor、model、msdb、tempdb'),
+      validator: (value: string[]) => _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]),
+      message: t(`DB名不能支持 n`, { n: Object.keys(disabledTagMap).join(',') }),
     },
   ];
 

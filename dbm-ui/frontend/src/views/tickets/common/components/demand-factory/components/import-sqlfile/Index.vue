@@ -43,7 +43,7 @@
             {{ ticketDetails.details.clusters[data.id].immute_domain }}
           </template>
         </BkTableColumn>
-        <BkTableColumn :label="t('集群')">
+        <BkTableColumn :label="t('集群类型')">
           <template #default="{ data }: { data: TargerCluster }">
             {{ ticketDetails.details.clusters[data.id].cluster_type_name }}
           </template>
@@ -80,6 +80,7 @@
               :key="dbName">
               {{ dbName }}
             </BkTag>
+            <span v-if="data.ignore_dbnames.length < 1">--</span>
           </template>
         </BkTableColumn>
         <BkTableColumn :label="t('执行的 SQL')">

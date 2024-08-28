@@ -12,27 +12,31 @@
 -->
 
 <template>
-  <DbOriginalTable
-    :columns="columns"
-    :data="ticketDetails.details.infos" />
+  <BkTable :data="ticketDetails.details.infos">
+    <BkTableColumn
+      field="cluster_id"
+      :label="t('集群ID')" />
+    <BkTableColumn
+      field="new_cluster_name"
+      :label="t('新集群')" />
+    <BkTableColumn
+      field="new_immutable_domain"
+      :label="t('主域名')" />
+    <BkTableColumn
+      field="new_slave_domain"
+      :label="t('从域名')" />
+  </BkTable>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { TicketDetails } from '@services/types/ticket';
+  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketDetails<{
-      infos: {
-        cluster_id: number,
-        new_cluster_name: string,
-        new_immutable_domain: string,
-        new_slave_domain: string
-      }[],
-    }>
+    ticketDetails: TicketModel<Sqlserver.Reset>;
   }
 
   defineProps<Props>();
@@ -42,31 +46,4 @@
   });
 
   const { t } = useI18n();
-
-  const columns = [
-    {
-      label: t('集群ID'),
-      field: 'cluster_id',
-      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('新集群'),
-      field: 'new_cluster_name',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('主域名'),
-      field: 'new_immutable_domain',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    },
-    {
-      label: t('从域名'),
-      field: 'new_slave_domain',
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-    },
-  ];
 </script>
-
-<style lang="less" scoped>
-  @import '@views/tickets/common/styles/DetailsTable.less';
-</style>

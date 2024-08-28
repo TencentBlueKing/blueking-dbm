@@ -157,6 +157,8 @@ export enum TicketTypes {
   SQLSERVER_RESTORE_SLAVE = 'SQLSERVER_RESTORE_SLAVE', // sqlserver 重建从库_新机重建
   SQLSERVER_RESTORE_LOCAL_SLAVE = 'SQLSERVER_RESTORE_LOCAL_SLAVE', // sqlserver 重建从库_原地重建
   SQLSERVER_IMPORT_SQLFILE = 'SQLSERVER_IMPORT_SQLFILE', // sqlserver SQL变更执行'
+  SQLSERVER_FULL_MIGRATE = 'SQLSERVER_FULL_MIGRATE', // sqlserver 全量迁移
+  SQLSERVER_INCR_MIGRATE = 'SQLSERVER_INCR_MIGRATE', // sqlserver 增量迁移
 }
 
 export enum TicketTypes {

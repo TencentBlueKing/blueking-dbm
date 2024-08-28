@@ -15,17 +15,17 @@ import { useRoute } from 'vue-router';
 
 import { getTicketDetails } from '@services/source/ticket';
 
-import { type CloneDataHandlerMap, type CloneDataHandlerMapKeys, generateCloneData } from './generateCloneData';
+import { allTicketMap, type CloneDataHandlerMapKeys, generateCloneData } from './generateCloneData';
 
 export function useTicketCloneInfo<T extends CloneDataHandlerMapKeys>(params: {
   type: T;
-  onSuccess?: (data: ServiceReturnType<CloneDataHandlerMap[T]>, ticketType: T) => void;
+  onSuccess?: (data: ServiceReturnType<(typeof allTicketMap)[T]>, ticketType: T) => void;
 }) {
   const { type, onSuccess } = params;
   const route = useRoute();
   const { ticketId } = route.query;
 
-  const data = ref<ServiceReturnType<CloneDataHandlerMap[T]>>();
+  const data = ref<ServiceReturnType<(typeof allTicketMap)[T]>>();
 
   if (!ticketId) {
     return { data };
@@ -40,7 +40,7 @@ export function useTicketCloneInfo<T extends CloneDataHandlerMapKeys>(params: {
 
       data.value = await generateCloneData(type, ticketData);
       if (onSuccess) {
-        onSuccess(data.value, type);
+        onSuccess(data.value as ServiceReturnType<(typeof allTicketMap)[T]>, type);
       }
     },
   });
