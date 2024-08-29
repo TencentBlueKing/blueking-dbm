@@ -453,7 +453,7 @@
         spec_cluster_type: clusterType,
         spec_machine_type: cluserMachineMap[clusterType],
         shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
-        capacity: props.data.capacity.total ?? 1,
+        capacity: capacityNeed.value,
         future_capacity: capacityNeed.value,
       };
       if (!props.isSameShardNum) {
@@ -462,6 +462,7 @@
       const retArr = await getFilterClusterSpec(params).finally(() => {
         isTableLoading.value = false;
       });
+      radioValue.value = -1
       tableData.value = retArr;
       rawTableData = _.cloneDeep(retArr);
       specDisabledMap.value = {}
@@ -484,10 +485,7 @@
     emits('clickCancel');
   }
 
-  const handleRowClick = (event: PointerEvent, row: ClusterSpecModel, index: number) => {
-    if (specDisabledMap.value[row.spec_id]) {
-      return
-    }
+  const getUpdateInfo = (row: ClusterSpecModel, index: number) => {
     getRedisClusterCapacityUpdateInfo({
       cluster_id: props.clusterId!,
       new_storage_version: props.targetVerison!,
@@ -520,6 +518,17 @@
       radioValue.value = index;
       radioChoosedId.value = row.spec_name;
     })
+  }
+
+  const getUpdateInfoDebounce = _.debounce(getUpdateInfo, 200)
+
+  const handleRowClick = (event: PointerEvent, row: ClusterSpecModel, index: number) => {
+    if (index === radioValue.value || specDisabledMap.value[row.spec_id]) {
+      return
+    }
+
+    // TODO 这里暂时通过防抖，来防止触发两次请求
+    getUpdateInfoDebounce(row, index)
   };
 
   const handleColumnSort = (data: { column: { field: string }, index: number, type: string }) => {
