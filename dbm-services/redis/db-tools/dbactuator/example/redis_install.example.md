@@ -17,6 +17,10 @@
         "pkg":"dbtools.tar.gz",
         "pkg_md5":"334cf6e3b84d371325052d961584d5aa"
     },
+    "redis_modules_pkg":{
+        "pkg":"redis_modules.tar.gz",
+        "pkg_md5":"90f93cd47679fb4509af4c0c5f377be0"
+    },
     "data_dirs":[], // 优先尝试用 /data1/ /data/作为数据保存目录,而后测试 data_dirs 中目录是否满足,满足则可用作数据目录
     "ip":"127.0.0.1",
     "ports":[], //端口不连续
@@ -26,6 +30,11 @@
     "databases":2,
     "db_type":"TwemproxyRedisInstance",
     "maxmemory":536870912,
+    "load_modules_detail":[
+        {"major_version":"Redis-6","module_name":"redisbloom","so_file":"redisbloom-2.6.13.so"}
+        {"major_version":"Redis-6","module_name":"rediscell","so_file":"libredis_cell_0.3.1.so"}
+        {"major_version":"Redis-6","module_name":"redisjson","so_file":"librejson-2.6.6.so"}
+    ],
     "redis_conf_configs":{
         "activerehashing":"yes",
         "always-show-logo":"yes",

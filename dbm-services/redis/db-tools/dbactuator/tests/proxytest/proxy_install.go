@@ -113,6 +113,15 @@ func (test *PredixyInstallTest) SetOtherParamsDefault() *PredixyInstallTest {
 	return test
 }
 
+// SetToLoadModules 设置要加载的模块
+func (test *PredixyInstallTest) SetToLoadModules(toLoadModules []string) *PredixyInstallTest {
+	if test.Err != nil {
+		return test
+	}
+	test.LoadModules = strings.Join(toLoadModules, ",")
+	return test
+}
+
 // RunPredixyInstall 安装predixy
 func (test *PredixyInstallTest) RunPredixyInstall() {
 	msg := fmt.Sprintf("=========PredixyIntall test start============")
@@ -409,7 +418,7 @@ func TwemproxyClear(serverIP string, port int, clearDataDir bool) {
 
 // PredixyInstall predixy安装
 func PredixyInstall(serverIP, predixyPkgName, predixyPkgMd5, dbType string,
-	startPort, instNum, predixyPort int) (err error) {
+	startPort, instNum, predixyPort int, toLoadModules []string) (err error) {
 	// predixy 安装并建立redis关系
 	servers := make([]string, 0, instNum)
 	for i := 0; i < instNum; i++ {
@@ -421,7 +430,8 @@ func PredixyInstall(serverIP, predixyPkgName, predixyPkgMd5, dbType string,
 		SetProxyPassword(consts.ProxyTestPasswd).
 		SetRedisPassword(consts.RedisTestPasswd).
 		SetServers(servers).
-		SetOtherParamsDefault()
+		SetOtherParamsDefault().
+		SetToLoadModules(toLoadModules)
 	if predixyTest.Err != nil {
 		return predixyTest.Err
 	}

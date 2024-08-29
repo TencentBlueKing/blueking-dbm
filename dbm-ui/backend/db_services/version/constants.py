@@ -40,6 +40,7 @@ class RedisVersion(str, StructuredEnum):
     Redis30 = EnumField("Redis-3", _("Redis-3"))
     Redis40 = EnumField("Redis-4", _("Redis-4"))
     Redis4t = EnumField("Redis-4t", _("Redis-4t"))
+    Redis409 = EnumField("Redis-4.0.9", _("Redis-4.0.9"))
     Redis50 = EnumField("Redis-5", _("Redis-5"))
     Redis60 = EnumField("Redis-6", _("Redis-6"))
     Redis70 = EnumField("Redis-7", _("Redis-7"))

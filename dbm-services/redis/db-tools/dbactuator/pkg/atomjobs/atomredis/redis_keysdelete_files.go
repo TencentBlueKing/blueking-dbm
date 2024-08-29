@@ -411,9 +411,9 @@ func (job *TendisKeysFilesDelete) DelKeysRateLimitFromFiles(resultFile string) {
 	for scanner.Scan() {
 		// 不断打印进度
 		m := scanner.Text()
-		if strings.Contains(m, `"level":"error"`) == true {
+		if strings.Contains(strings.ToLower(m), `"level":"error"`) == true {
 			err = errors.New(m)
-			job.runtime.Logger.Info(m)
+			job.runtime.Logger.Error(m)
 			continue
 		}
 		m = m + ";" + addr

@@ -49,10 +49,11 @@ def RedisBatchInstallAtomJob(
     ticket_data,
     sub_kwargs: ActKwargs,
     param: Dict,
-    dbmon_install: bool = True,
+    to_install_dbmon: bool = True,
     to_trans_files: bool = True,
     to_install_puglins: bool = True,
     to_install_redis: bool = True,
+    load_modules: list = [],
 ) -> SubBuilder:
     """
     ### SubBuilder: Redis安装原籽任务
@@ -146,6 +147,7 @@ def RedisBatchInstallAtomJob(
             act_kwargs.cluster["requirepass"] = param["requirepass"]
             act_kwargs.cluster["databases"] = param["databases"]
             act_kwargs.cluster["maxmemory"] = param["maxmemory"]
+            act_kwargs.cluster["load_modules"] = load_modules
             act_kwargs.get_redis_payload_func = RedisActPayload.get_install_redis_apply_payload.__name__
         else:
             act_kwargs.get_redis_payload_func = RedisActPayload.get_redis_install_4_scene.__name__
@@ -174,7 +176,7 @@ def RedisBatchInstallAtomJob(
         )
 
     # 部署bkdbmon
-    if dbmon_install:
+    if to_install_dbmon:
         act_kwargs.cluster["servers"] = [
             {
                 "app": app,

@@ -25,17 +25,26 @@ import (
 // RedisInstallParams 安装参数
 type RedisInstallParams struct {
 	common.MediaPkg
-	DbToolsPkg       common.DbToolsMediaPkg `json:"dbtoolspkg"`
-	DataDirs         []string               `json:"data_dirs"`
-	IP               string                 `json:"ip" validate:"required"`
-	Ports            []int                  `json:"ports"`      // 如果端口不连续,可直接指定端口
-	StartPort        int                    `json:"start_port"` // 如果端口连续,则可直接指定起始端口和实例个数
-	InstNum          int                    `json:"inst_num"`
-	Password         string                 `json:"password" validate:"required"`
-	Databases        int                    `json:"databases" validate:"required"`
-	RedisConfConfigs map[string]string      `json:"redis_conf_configs" validate:"required"`
-	DbType           string                 `json:"db_type" validate:"required"`
-	MaxMemory        uint64                 `json:"maxmemory"`
+	DbToolsPkg        common.DbToolsMediaPkg      `json:"dbtoolspkg"`
+	RedisModulesPkg   common.RedisModulesMediaPkg `json:"redis_modules_pkg"`
+	DataDirs          []string                    `json:"data_dirs"`
+	IP                string                      `json:"ip" validate:"required"`
+	Ports             []int                       `json:"ports"`      // 如果端口不连续,可直接指定端口
+	StartPort         int                         `json:"start_port"` // 如果端口连续,则可直接指定起始端口和实例个数
+	InstNum           int                         `json:"inst_num"`
+	Password          string                      `json:"password" validate:"required"`
+	Databases         int                         `json:"databases" validate:"required"`
+	RedisConfConfigs  map[string]string           `json:"redis_conf_configs" validate:"required"`
+	DbType            string                      `json:"db_type" validate:"required"`
+	MaxMemory         uint64                      `json:"maxmemory"`
+	LoadModulesDetail []LoadModuleItem            `json:"load_modules_detail"`
+}
+
+// LoadModuleItem 加载module信息
+type LoadModuleItem struct {
+	MajorVersion string `json:"major_version"`
+	ModuleName   string `json:"module_name"`
+	SoFile       string `json:"so_file"`
 }
 
 // RedisInstall redis install atomjob
@@ -135,7 +144,7 @@ func (job *RedisInstall) Run() (err error) {
 		default:
 			runTimes++
 			sleepTime := time.Duration(rand.Intn(5)+5) * time.Second
-			job.runtime.Logger.Info("job ports %+v get file lock err:%+v. run %d times and takes %v. "+
+			job.runtime.Logger.Info("job ports %+v get file lock(%s) err:%+v. run %d times and takes %v. "+
 				"will sleep %d second",
 				job.params.Ports, lockFileName, err, runTimes, time.Since(startTime), int(sleepTime)/1000000000)
 
@@ -238,6 +247,12 @@ fi
 	err = job.params.DbToolsPkg.Install()
 	if err != nil {
 		return err
+	}
+	if len(job.params.LoadModulesDetail) > 0 {
+		err = job.params.RedisModulesPkg.UnTar()
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -395,6 +410,25 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 	return true, nil
 }
 
+// isModulesSoFileExists 判断module so文件是否存在
+func (job *RedisInstall) isModulesSoFileExists() (err error) {
+	if len(job.params.LoadModulesDetail) == 0 {
+		job.runtime.Logger.Info("no module to load")
+		return nil
+	}
+	// 确认module so文件存在
+	soFile := ""
+	for _, moduleItem := range job.params.LoadModulesDetail {
+		soFile = filepath.Join(consts.RedisModulePath, moduleItem.SoFile)
+		if !util.FileExists(soFile) {
+			err = errors.New(fmt.Sprintf("module(%s) not exists", soFile))
+			job.runtime.Logger.Error(err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
 func (job *RedisInstall) getRedisConfTemplate() error {
 	if job.RedisConfTemplate != "" {
 		return nil
@@ -405,7 +439,7 @@ func (job *RedisInstall) getRedisConfTemplate() error {
 		key = strings.TrimSpace(key)
 		lower_key := strings.ToLower(key)
 		value = strings.TrimSpace(value)
-		if key == "loadmodule" && value == "" {
+		if key == "loadmodule" {
 			continue
 		}
 		if key == "repl-diskless-sync" &&
@@ -436,14 +470,24 @@ func (job *RedisInstall) getRedisConfTemplate() error {
 		}
 		sb.WriteString(key + " " + value + "\n")
 	}
+	// 加载module
+	soFile := ""
+	for _, moduleItem := range job.params.LoadModulesDetail {
+		soFile = filepath.Join(consts.RedisModulePath, moduleItem.SoFile)
+		sb.WriteString("loadmodule " + soFile + "\n")
+	}
 	job.RedisConfTemplate = sb.String()
 	return nil
 }
 
 // GenerateConfigFile 生成配置文件
-func (job *RedisInstall) GenerateConfigFile(port int) error {
+func (job *RedisInstall) GenerateConfigFile(port int) (err error) {
 	job.runtime.Logger.Info("begin to GenerateConfigFile,port:%d", port)
-	err := job.getRedisConfTemplate()
+	err = job.isModulesSoFileExists()
+	if err != nil {
+		return err
+	}
+	err = job.getRedisConfTemplate()
 	if err != nil {
 		return err
 	}

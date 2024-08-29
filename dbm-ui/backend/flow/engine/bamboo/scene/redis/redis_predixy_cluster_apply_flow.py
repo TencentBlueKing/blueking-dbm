@@ -144,7 +144,7 @@ class TendisPlusApplyFlow(object):
             params["spec_id"] = int(self.data["resource_spec"]["master"]["id"])
             params["spec_config"] = self.data["resource_spec"]["master"]
             params["meta_role"] = InstanceRole.REDIS_MASTER.value
-            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
+            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, to_install_dbmon=False)
             sub_pipelines.append(sub_builder)
         for ip in slave_ips:
             # 为了解决重复问题，cluster重新赋值一下
@@ -154,7 +154,7 @@ class TendisPlusApplyFlow(object):
             params["spec_id"] = int(self.data["resource_spec"]["slave"]["id"])
             params["spec_config"] = self.data["resource_spec"]["slave"]
             params["meta_role"] = InstanceRole.REDIS_SLAVE.value
-            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
+            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, to_install_dbmon=False)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
@@ -215,7 +215,7 @@ class TendisPlusApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
-            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
+            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, to_install_dbmon=False)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 

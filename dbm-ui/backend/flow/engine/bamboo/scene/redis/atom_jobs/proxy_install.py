@@ -17,7 +17,8 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.machine_type import MachineType
-from backend.db_meta.models import AppCache
+from backend.db_meta.models import AppCache, Cluster
+from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detial
 from backend.flow.consts import DEPENDENCIES_PLUGINS
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -40,7 +41,7 @@ logger = logging.getLogger("flow")
 
 
 def ProxyBatchInstallAtomJob(
-    root_id, ticket_data, act_kwargs: ActKwargs, param: Dict, dbmon_install: bool = True
+    root_id, ticket_data, act_kwargs: ActKwargs, param: Dict, to_install_dbmon: bool = True, load_modules: list = []
 ) -> SubBuilder:
     """
     ### SubBuilder: Proxy安装原子任务
@@ -121,6 +122,9 @@ def ProxyBatchInstallAtomJob(
     if "conf_configs" in param:
         act_kwargs.cluster["conf_configs"] = param["conf_configs"]
         act_kwargs.cluster["dbconfig"] = param["conf_configs"]
+        # 从dbconfig中获取load_modules
+        cluster = Cluster.objects.get(immute_domain=act_kwargs.cluster["immute_domain"])
+        load_modules = get_cluster_redis_modules_detial(cluster_id=cluster.id)
 
     # 安装proxy实例
     if act_kwargs.cluster["cluster_type"] in [
@@ -135,6 +139,7 @@ def ProxyBatchInstallAtomJob(
         act_kwargs.cluster["predixyadminpasswd"] = param["proxy_admin_pwd"]
         act_kwargs.cluster["port"] = param["proxy_port"]
         act_kwargs.cluster["servers"] = param["servers"]
+        act_kwargs.cluster["load_modules"] = load_modules
         act_kwargs.get_redis_payload_func = RedisActPayload.get_install_predixy_payload.__name__
     else:
         act_kwargs.cluster["ip"] = exec_ip
@@ -144,6 +149,7 @@ def ProxyBatchInstallAtomJob(
         act_kwargs.cluster["password"] = param["proxy_pwd"]
         act_kwargs.cluster["port"] = param["proxy_port"]
         act_kwargs.cluster["servers"] = param["servers"]
+        act_kwargs.cluster["load_modules"] = load_modules
         act_kwargs.get_redis_payload_func = RedisActPayload.get_install_twemproxy_payload.__name__
     sub_pipeline.add_act(
         act_name=_("Proxy-003-{}-安装实例").format(exec_ip),
@@ -163,7 +169,7 @@ def ProxyBatchInstallAtomJob(
     )
 
     # 部署bkdbmon
-    if dbmon_install:
+    if to_install_dbmon:
         act_kwargs.cluster["servers"] = [
             {
                 "app": app,

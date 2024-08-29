@@ -69,12 +69,13 @@ cp ./build/dbactuator_redis /data/install/
 
 # 如果要使用不同版本的集群,就改这里
 tendisssdIndexUrl="$repoUrl/tendisssd/TendisSSD-1.2/"
-tendisplusIndexUrl="$repoUrl/tendisplus/Tendisplus-2.6/"
+tendisplusIndexUrl="$repoUrl/tendisplus/Tendisplus-2.7/"
 redisIndexUrl="$repoUrl/redis/Redis-6/"
 predixyIndexUrl="$repoUrl/predixy/Predixy-latest/"
 twemproxyIndexUrl="$repoUrl/twemproxy/Twemproxy-latest/"
 dbtoolsIndexUrl="$repoUrl/tools/latest/"
 bkdbmonIndexUrl="$repoUrl/dbmon/latest/"
+redisModulesIndexUrl="$repoUrl/redis-modules/latest/"
 
 wget --user=$repoUser --password=$repoPassword $tendisssdIndexUrl -O  /tmp/tendisssd-latest.html
 
@@ -151,6 +152,18 @@ fi
 bkdbmonPkgMd5=$(md5sum  /data/install/$bkdbmonPkgName| awk '{print $1}')
 
 
+#拉取redis modules介质
+
+wget --user=$repoUser --password=$repoPassword $redisModulesIndexUrl -O /tmp/redismodules-latest.html
+
+redismodulesPkgName=$(grep -P --only-match "redis_modules.tar.gz" /tmp/redismodules-latest.html|head -1)
+
+if [[ ! -e "/data/install/$redismodulesPkgName" ]]
+then
+  wget --user=$repoUser --password=$repoPassword $redisModulesIndexUrl/$redismodulesPkgName -O /data/install/$redismodulesPkgName
+fi
+redismodulesPkgMd5=$(md5sum  /data/install/$redismodulesPkgName| awk '{print $1}')
+
 echo "tendisssdPkgName===>$tendisssdPkgName"
 echo "tendisplusPkgName===>$tendisplusPkgName"
 echo "redisPkgName===>$redisPkgName"
@@ -158,6 +171,7 @@ echo "predixyPkgName==>$predixyPkgName"
 echo "twemproxyPkgName==>$twemproxyPkgName"
 echo "dbtoolsPkgName==>$dbtoolsPkgName"
 echo "bkdbmonPkgName==>$bkdbmonPkgName"
+echo "redismodulesPkgName==>$redismodulesPkgName"
 
 cd $DIR
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dbactuator-test -v test.go
@@ -168,7 +182,8 @@ echo "./dbactuator-test  -tendisplus-pkgname=$tendisplusPkgName -tendisplus-pkgm
     -predixy-pkgname=$predixyPkgName -predixy-pkgmd5=$predixyPkgMd5 
     -twemproxy-pkgname=$twemproxyPkgName -twemproxy-pkgmd5=$twemproxyPkgMd5
     -dbtools-pkgname=$dbtoolsPkgName -dbtools-pkgmd5=$dbtoolsPkgMd5
-    -bkdbmon-pkgname=$bkdbmonPkgName -bkdbmon-pkgmd5=$bkdbmonPkgMd5"
+    -bkdbmon-pkgname=$bkdbmonPkgName -bkdbmon-pkgmd5=$bkdbmonPkgMd5
+    -redismodules-pkgname=$redismodulesPkgName -redismodules-pkgmd5=$redismodulesPkgMd5"
 
 ./dbactuator-test \
     -tendisplus-pkgname=$tendisplusPkgName -tendisplus-pkgmd5=$tendisplusPkgMd5 \
@@ -178,4 +193,5 @@ echo "./dbactuator-test  -tendisplus-pkgname=$tendisplusPkgName -tendisplus-pkgm
     -twemproxy-pkgname=$twemproxyPkgName -twemproxy-pkgmd5=$twemproxyPkgMd5 \
     -dbtools-pkgname=$dbtoolsPkgName -dbtools-pkgmd5=$dbtoolsPkgMd5 \
     -bkdbmon-pkgname=$bkdbmonPkgName -bkdbmon-pkgmd5=$bkdbmonPkgMd5 \
+    -redismodules-pkgname=$redismodulesPkgName -redismodules-pkgmd5=$redismodulesPkgMd5 \
     -user $repoUser -password $repoPassword -repo-url $repoUrl

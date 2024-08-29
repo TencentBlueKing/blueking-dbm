@@ -128,3 +128,82 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 	util.LocalDirChownMysql(backupDir)
 	return nil
 }
+
+// RedisModulesMediaPkg modules 包
+type RedisModulesMediaPkg struct {
+	MediaPkg
+}
+
+// UnTar 解压
+// 1. 确保本地 /data/install/redis_modules.tar.gz 存在,且md5校验ok;
+// 2. 检查 {REDIS_BACKUP_DIR}/dbbak/redis_modules.tar.gz 与 /data/install/redis_modules.tar.gz 是否一致;
+// - md5一致,则忽略更新;
+// - /data/install/redis_modules.tar.gz 不存在 or md5不一致 则用最新 /data/install/redis_modules.tar.gz 工具覆盖 {REDIS_BACKUP_DIR}/dbbak/redis_modules
+// 3. 创建 /home/mysql/redis_modules -> /data/dbbak/redis_modules 软链接
+// 4. cp  /data/install/redis_modules.tar.gz {REDIS_BACKUP_DIR}/dbbak/redis_modules.tar.gz
+func (pkg *RedisModulesMediaPkg) UnTar() (err error) {
+	var fileMd5 string
+	var overrideLocal bool = true
+	var newMysqlHomeLink bool = true
+	var realLink string
+	moduleBasename := filepath.Base(consts.RedisModulePath)
+	backupDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak")       // 如 /data/dbbak
+	bakdirModuleTar := filepath.Join(backupDir, moduleBasename+".tar.gz") // 如 /data/dbbak/redis_modules.tar.gz
+	installModuleTar := pkg.GetAbsolutePath()
+	if util.FileExists(bakdirModuleTar) {
+		fileMd5, err = util.GetFileMd5(bakdirModuleTar)
+		if err != nil {
+			return
+		}
+		if fileMd5 == pkg.PkgMd5 {
+			overrideLocal = false
+		}
+	}
+	if overrideLocal {
+		// 最新介质覆盖本地
+		untarCmd := fmt.Sprintf("tar -zxf %s -C %s", installModuleTar, backupDir)
+		mylog.Logger.Info(untarCmd)
+		_, err = util.RunBashCmd(untarCmd, "", nil, 10*time.Minute)
+		if err != nil {
+			return
+		}
+	}
+	if !util.FileExists(filepath.Join(backupDir, moduleBasename)) { // 如 /data/dbbak/redis_modules 目录不存在
+		err = fmt.Errorf("dir:%s not exists", filepath.Join(backupDir, moduleBasename))
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	if util.FileExists(consts.RedisModulePath) {
+		realLink, err = filepath.EvalSymlinks(consts.RedisModulePath)
+		if err != nil {
+			err = fmt.Errorf("filepath.EvalSymlinks %s fail,err:%v", consts.RedisModulePath, err)
+			mylog.Logger.Error(err.Error())
+			return err
+		}
+		if realLink == filepath.Join(backupDir, moduleBasename) {
+			// /home/mysql/redis_modules 已经是指向 /data/dbbak/redis_modules 的软连接
+			newMysqlHomeLink = false
+		}
+	}
+	if newMysqlHomeLink {
+		// 需创建 /home/mysql/redis_modules -> /data/dbbak/redis_modules 软链接
+		err = os.Symlink(filepath.Join(backupDir, moduleBasename), consts.RedisModulePath)
+		if err != nil {
+			err = fmt.Errorf("os.Symlink %s -> %s fail,err:%s", consts.RedisModulePath, filepath.Join(backupDir, moduleBasename),
+				err)
+			mylog.Logger.Error(err.Error())
+			return
+		}
+		mylog.Logger.Info("create softLink success,%s -> %s", consts.RedisModulePath, filepath.Join(backupDir,
+			moduleBasename))
+	}
+	cpCmd := fmt.Sprintf("cp %s %s", installModuleTar, bakdirModuleTar)
+	mylog.Logger.Info(cpCmd)
+	_, err = util.RunBashCmd(cpCmd, "", nil, 10*time.Minute)
+	if err != nil {
+		return
+	}
+	util.LocalDirChownMysql(consts.RedisModulePath)
+	util.LocalDirChownMysql(backupDir)
+	return nil
+}

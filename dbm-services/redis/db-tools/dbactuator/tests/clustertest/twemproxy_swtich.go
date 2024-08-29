@@ -19,7 +19,8 @@ import (
 func TwemproxyCacheSwitch(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	bkdbmonPkgName, bkdbmonPkgMd5 string) (err error) {
+	bkdbmonPkgName, bkdbmonPkgMd5,
+	redismodulesPkgName, redismodulesPkgMd5 string) (err error) {
 	// 设置参数
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>start tendisCacheSwitchTest=================")
@@ -30,12 +31,14 @@ func TwemproxyCacheSwitch(serverIP,
 
 	// 安装sync redis 并创建主从关系
 	err = redistest.RedisSyncMasterInstall(serverIP, redisPkgName, redisPkgMd5, dbtoolsPkgName, dbtoolsPkgMd5,
-		consts.TendisTypeTwemproxyRedisInstance)
+		redismodulesPkgName, redismodulesPkgMd5,
+		consts.TendisTypeTwemproxyRedisInstance, []string{})
 	if err != nil {
 		return
 	}
 	err = redistest.RedisSyncSlaveInstall(serverIP, redisPkgName, redisPkgMd5, dbtoolsPkgName, dbtoolsPkgMd5,
-		consts.TendisTypeTwemproxyRedisInstance)
+		redismodulesPkgName, redismodulesPkgMd5,
+		consts.TendisTypeTwemproxyRedisInstance, []string{})
 	if err != nil {
 		return
 	}
@@ -125,7 +128,8 @@ func TwemproxyCacheSwitch(serverIP,
 func TwemproxyCacheSwitchRestoreEnv(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	bkdbmonPkgName, bkdbmonPkgMd5 string) (err error) {
+	bkdbmonPkgName, bkdbmonPkgMd5,
+	redismodulesPkgName, redismodulesPkgMd5 string) (err error) {
 	// 设置参数
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
 	fmt.Println(">>>>>>>>>>>>>>>start TwemproxyCacheSwitchRestoreEnv=================")
@@ -136,12 +140,14 @@ func TwemproxyCacheSwitchRestoreEnv(serverIP,
 
 	// 安装redis master/slave 并创建主从关系
 	err = redistest.RedisInstanceMasterInstall(serverIP, redisPkgName, redisPkgMd5, dbtoolsPkgName, dbtoolsPkgMd5,
-		consts.TendisTypeTwemproxyRedisInstance)
+		redismodulesPkgName, redismodulesPkgMd5,
+		consts.TendisTypeTwemproxyRedisInstance, []string{})
 	if err != nil {
 		return
 	}
 	err = redistest.RedisInstanceSlaveInstall(serverIP, redisPkgName, redisPkgMd5, dbtoolsPkgName, dbtoolsPkgMd5,
-		consts.TendisTypeTwemproxyRedisInstance)
+		redismodulesPkgName, redismodulesPkgMd5,
+		consts.TendisTypeTwemproxyRedisInstance, []string{})
 	if err != nil {
 		return
 	}

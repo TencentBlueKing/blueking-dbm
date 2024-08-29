@@ -241,12 +241,19 @@ class GetFileList(object):
         bkdbmon_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.DbMon, db_type=DBType.Redis
         )
-        return [
+        ret = [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redis_tool_pkg.path}",
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{bkdbmon_pkg.path}",
         ]
+        if db_version.startswith("Redis-"):
+            # 如果是 cache Redis,则下发 redis modules 介质
+            redismodules_pkg = Package.get_latest_package(
+                version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
+            )
+            ret.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redismodules_pkg.path}")
+        return ret
 
     def redis_cluster_version_update(self, db_version: str) -> list:
         """

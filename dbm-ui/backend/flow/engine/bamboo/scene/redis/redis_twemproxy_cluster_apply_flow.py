@@ -183,7 +183,7 @@ class RedisClusterApplyFlow(object):
             params["meta_role"] = InstanceRole.REDIS_MASTER.value
             params["server_shards"] = twemproxy_server_shards[ip]
             params["cache_backup_mode"] = get_cache_backup_mode(self.data["bk_biz_id"], 0)
-            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
+            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, to_install_dbmon=False)
             sub_pipelines.append(sub_builder)
         for ip in slave_ips:
             # 为了解决重复问题，cluster重新赋值一下
@@ -195,7 +195,7 @@ class RedisClusterApplyFlow(object):
             params["meta_role"] = InstanceRole.REDIS_SLAVE.value
             params["server_shards"] = twemproxy_server_shards[ip]
             params["cache_backup_mode"] = get_cache_backup_mode(self.data["bk_biz_id"], 0)
-            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
+            sub_builder = RedisBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, to_install_dbmon=False)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
@@ -220,7 +220,9 @@ class RedisClusterApplyFlow(object):
         act_kwargs.exec_ip = master_ips[0]
         act_kwargs.get_redis_payload_func = RedisActPayload.get_slaveof_redis_payload.__name__
         redis_pipeline.add_act(
-            act_name=_("建立主从关系"), act_component_code=ExecuteDBActuatorScriptComponent.code, kwargs=asdict(act_kwargs)
+            act_name=_("建立主从关系"),
+            act_component_code=ExecuteDBActuatorScriptComponent.code,
+            kwargs=asdict(act_kwargs),
         )
 
         act_kwargs.cluster = {
@@ -248,7 +250,7 @@ class RedisClusterApplyFlow(object):
             act_kwargs.cluster = copy.deepcopy(cluster_tpl)
 
             params["ip"] = ip
-            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, dbmon_install=False)
+            sub_builder = ProxyBatchInstallAtomJob(self.root_id, self.data, act_kwargs, params, to_install_dbmon=False)
             sub_pipelines.append(sub_builder)
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 

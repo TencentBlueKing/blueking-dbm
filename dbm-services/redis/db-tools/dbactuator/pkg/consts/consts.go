@@ -144,6 +144,11 @@ const (
 	TendisplusRediscli       = "/home/mysql/dbtools/redis-cli"
 )
 
+// redis modules
+const (
+	RedisModulePath = "/home/mysql/redis_modules"
+)
+
 // bk-dbmon path
 const (
 	BkDbmonPath        = "/home/mysql/bk-dbmon"
@@ -227,6 +232,13 @@ const (
 // redis maxmemory-policy
 const (
 	PolicyNoeviction = "noeviction"
+)
+
+// redis module type
+const (
+	ModuleRedisBloom = "redisbloom"
+	ModuleRedisCell  = "rediscell"
+	ModuleRedisJson  = "redisjson"
 )
 
 // IsClusterDbType 存储端是否是cluster类型

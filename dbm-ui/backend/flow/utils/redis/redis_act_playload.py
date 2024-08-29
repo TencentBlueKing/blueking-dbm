@@ -35,6 +35,7 @@ from backend.db_services.redis.maxmemory_set.util import (
     get_dbmon_maxmemory_config_by_cluster_ids,
 )
 from backend.db_services.redis.redis_dts.models.tb_tendis_dts_switch_backup import TbTendisDtsSwitchBackup
+from backend.db_services.redis.redis_modules.util import get_cluster_redis_modules_detial, get_redis_moudles_detail
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
     is_redis_instance_type,
@@ -123,6 +124,11 @@ class RedisActPayload(object):
         self.bk_biz_id = str(self.ticket_data["bk_biz_id"])
         self.tools_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
+        )
+        self.redis_modules_pkg = (
+            Package.objects.filter(pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis, enable=True)
+            .order_by("-update_at")
+            .first()
         )
 
         self.__init_dbconfig_params()
@@ -1361,10 +1367,16 @@ class RedisActPayload(object):
             redis_config = self.__get_cluster_config(
                 params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf
             )
+        cluster = Cluster.objects.get(immute_domain=params["immute_domain"])
 
         redis_conf = copy.deepcopy(redis_config)
+        # redis modules pkg
+        redis_modules_pkg = {}
+        if self.redis_modules_pkg:
+            redis_modules_pkg = {"pkg": self.redis_modules_pkg.name, "pkg_md5": self.redis_modules_pkg.md5}
         install_payload = {
             "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
+            "redis_modules_pkg": redis_modules_pkg,
             "pkg": self.redis_pkg.name,
             "pkg_md5": self.redis_pkg.md5,
             "db_type": params["cluster_type"],
@@ -1377,6 +1389,7 @@ class RedisActPayload(object):
             "inst_num": int(params["inst_num"]),
             "start_port": int(params["start_port"]),
             "redis_conf_configs": redis_conf,
+            "load_modules_detail": get_cluster_redis_modules_detial(cluster_id=cluster.id),
         }
         # tendisplus cluster 模式暂时不需要特别指定这两个参数
         if is_twemproxy_proxy_type(self.namespace):
@@ -1398,11 +1411,16 @@ class RedisActPayload(object):
         self.__get_redis_pkg(params["cluster_type"], params["db_version"])
         redis_conf = copy.deepcopy(self.init_redis_config)
 
+        # redis modules pkg
+        redis_modules_pkg = {}
+        if self.redis_modules_pkg:
+            redis_modules_pkg = {"pkg": self.redis_modules_pkg.name, "pkg_md5": self.redis_modules_pkg.md5}
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.Install.value,
             "payload": {
                 "dbtoolspkg": {"pkg": self.tools_pkg.name, "pkg_md5": self.tools_pkg.md5},
+                "redis_modules_pkg": redis_modules_pkg,
                 "pkg": self.redis_pkg.name,
                 "pkg_md5": self.redis_pkg.md5,
                 "password": params["requirepass"],
@@ -1416,6 +1434,9 @@ class RedisActPayload(object):
                 "ip": params["exec_ip"],
                 # "inst_num": params["inst_num"],
                 # "start_port": int(params["start_port"]),
+                "load_modules_detail": get_redis_moudles_detail(
+                    major_version=params["db_version"], module_names=params.get("load_modules", [])
+                ),
             },
         }
 

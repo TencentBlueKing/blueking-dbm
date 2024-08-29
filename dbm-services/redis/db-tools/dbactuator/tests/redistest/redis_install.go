@@ -97,6 +97,52 @@ func (test *RedisInstallTest) SetDbtoolsPkg(pkg, pkgMd5 string) *RedisInstallTes
 	return test
 }
 
+// SetRedisModulesPkg set dbtools pkg信息,传入为空则 pkg=redis_modules.tar.gz, pkgMd5=334cf6e3b84d371325052d961584d5aa
+func (test *RedisInstallTest) SetRedisModulesPkg(pkg, pkgMd5 string) *RedisInstallTest {
+	if test.Err != nil {
+		return test
+	}
+	if pkg == "" || pkgMd5 == "" {
+		pkg = "redis_modules.tar.gz"
+		pkgMd5 = "90f93cd47679fb4509af4c0c5f377be0"
+	}
+	test.RedisModulesPkg.Pkg = pkg
+	test.RedisModulesPkg.PkgMd5 = pkgMd5
+	return test
+}
+
+// SetLoadModulesDetail 设置是否加载模块
+func (test *RedisInstallTest) SetLoadModulesDetail(toLoadModules []string) *RedisInstallTest {
+	if test.Err != nil {
+		return test
+	}
+	test.LoadModulesDetail = []atomredis.LoadModuleItem{}
+	var item atomredis.LoadModuleItem
+	for _, module := range toLoadModules {
+		if module == "redisbloom" {
+			item = atomredis.LoadModuleItem{
+				MajorVersion: "Redis-6",
+				ModuleName:   "redisbloom",
+				SoFile:       "redisbloom-2.6.13.so",
+			}
+		} else if module == "redisjson" {
+			item = atomredis.LoadModuleItem{
+				MajorVersion: "Redis-6",
+				ModuleName:   "redisjson",
+				SoFile:       "librejson-2.6.6.so",
+			}
+		} else if module == "rediscell" {
+			item = atomredis.LoadModuleItem{
+				MajorVersion: "Redis-6",
+				ModuleName:   "rediscell",
+				SoFile:       "libredis_cell_0.3.1.so",
+			}
+		}
+		test.LoadModulesDetail = append(test.LoadModulesDetail, item)
+	}
+	return test
+}
+
 // SetDatabases 设置databases,默认为2
 func (test *RedisInstallTest) SetDatabases(databases int) *RedisInstallTest {
 	if test.Err != nil {
@@ -492,13 +538,16 @@ func (test *RedisInstallTest) SetTendisSSDRedisConf() {
 func RedisInstanceInstall(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	dbType string, startPort, numbers int) (err error) {
+	redismodulesPkgName, redismodulesPkgMd5,
+	dbType string, toLoadModules []string, startPort, numbers int) (err error) {
 	cacheMasterTest := RedisInstallTest{}
 	cacheMasterTest.SetIP(serverIP).
 		SetPorts([]int{}, startPort, numbers).
 		SetPassword(consts.RedisTestPasswd).
 		SetRedisMediaPkg(redisPkgName, redisPkgMd5).
 		SetDbtoolsPkg(dbtoolsPkgName, dbtoolsPkgMd5).
+		SetRedisModulesPkg(redismodulesPkgName, redismodulesPkgMd5).
+		SetLoadModulesDetail(toLoadModules).
 		SetDbType(dbType).
 		SetDatabases(2).SetMaxMemory(8589934592)
 	if cacheMasterTest.Err != nil {
@@ -536,11 +585,14 @@ func RedisInstanceClear(serverIP, dbType string,
 func RedisInstanceMasterInstall(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	dbType string) (err error) {
+	redismodulesPkgName, redismodulesPkgMd5,
+	dbType string, toLoadModules []string) (err error) {
 	return RedisInstanceInstall(serverIP,
 		redisPkgName, redisPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
 		dbType,
+		toLoadModules,
 		consts.TestRedisMasterStartPort,
 		consts.TestRedisInstanceNum)
 }
@@ -559,11 +611,14 @@ func RedisInstanceMasterClear(serverIP, dbType string,
 func RedisInstanceSlaveInstall(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	dbType string) (err error) {
+	redismodulesPkgName, redismodulesPkgMd5,
+	dbType string, toLoadModules []string) (err error) {
 	return RedisInstanceInstall(serverIP,
 		redisPkgName, redisPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
 		dbType,
+		toLoadModules,
 		consts.TestRedisSlaveStartPort,
 		consts.TestRedisInstanceNum)
 }
@@ -581,11 +636,14 @@ func RedisInstanceSlaveClear(serverIP, dbType string, clearDataDir bool) (err er
 func RedisSyncMasterInstall(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	dbType string) (err error) {
+	redismodulesPkgName, redismodulesPkgMd5,
+	dbType string, toLoadModules []string) (err error) {
 	return RedisInstanceInstall(serverIP,
 		redisPkgName, redisPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
 		dbType,
+		toLoadModules,
 		consts.TestSyncRedisMasterStartPort,
 		consts.TestRedisInstanceNum)
 }
@@ -603,11 +661,14 @@ func RedisSyncMasterClear(serverIP, dbType string, clearDataDir bool) (err error
 func RedisSyncSlaveInstall(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	dbType string) (err error) {
+	redismodulesPkgName, redismodulesPkgMd5,
+	dbType string, toLoadModules []string) (err error) {
 	return RedisInstanceInstall(serverIP,
 		redisPkgName, redisPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
 		dbType,
+		toLoadModules,
 		consts.TestSyncRedisSlaveStartPort,
 		consts.TestRedisInstanceNum)
 }
