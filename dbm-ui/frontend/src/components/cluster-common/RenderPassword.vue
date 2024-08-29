@@ -169,7 +169,7 @@
     let content = `${t('集群名称')}: ${cluster_name}\n${t('域名')}: ${domainPort}\n${t('账号')}: ${username}\n${t('密码')}: ${passwordToken}`;
     let securityInfo = '';
     if (props.dbType) {
-      securityInfo = `security.protocol=SASL_PLAINTEXT\nsasl.mechanism=PLAIN\nsasl.jaas.config=org.apache.${props.dbType}.common.security.plain.PlainLoginModule required username="${username}" password="${password}";`;
+      securityInfo = `security.protocol=SASL_PLAINTEXT\nsasl.mechanism=SCRAM-SHA-512\nsasl.jaas.config=org.apache.${props.dbType}.common.security.plain.PlainLoginModule required username="${username}" password="${password}";`;
       content = `${content}\n${t('安全认证')}: ${securityInfo}`;
     }
     switch (type) {
