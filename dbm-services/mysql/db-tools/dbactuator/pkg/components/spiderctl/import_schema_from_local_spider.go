@@ -214,10 +214,11 @@ func (c *ImportSchemaFromLocalSpiderComp) Migrate() (err error) {
 		return err
 	}
 	defer func() {
-		errx := c.disableTcIgnore()
-		if errx != nil {
-			logger.Warn("set close tc_ignore_partitioning_for_create_table failed %s", errx.Error())
-		}
+		// 从库会有延迟的操作,此时不能关闭 tc_ignore_partitioning_for_create_table = 0
+		// errx := c.disableTcIgnore()
+		// if errx != nil {
+		// 	logger.Warn("set close tc_ignore_partitioning_for_create_table failed %s", errx.Error())
+		// }
 		c.closeSlavetdbctlConns()
 	}()
 	if c.Params.UseMydumper {
