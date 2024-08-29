@@ -111,7 +111,7 @@ class SQLParseHandler:
             if keyword[0].upper() in ["DESC", "DESCRIBE", "USE"]:
                 return True
             # 允许show databases，show processlist、show slave status
-            if keyword[0].upper() == "SHOW" and ids[0] in ["DATABASES", "PROCESSLIST", "SLAVE STATUS"]:
+            if keyword[0].upper() == "SHOW" and ids and ids[0] in ["DATABASES", "PROCESSLIST", "SLAVE STATUS"]:
                 return True
             # 允许show tables，show create
             if len(keyword) > 1 and keyword[0].upper() == "SHOW" and keyword[1].upper() in ["TABLES", "CREATE"]:
