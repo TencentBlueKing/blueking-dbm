@@ -1,17 +1,20 @@
 package simpleconfig
 
 import (
+	"encoding/json"
+	"strings"
+
 	"bk-dbconfig/internal/api"
 	"bk-dbconfig/internal/repository/model"
 	"bk-dbconfig/pkg/constvar"
 	"bk-dbconfig/pkg/core/logger"
 	"bk-dbconfig/pkg/util"
 	"bk-dbconfig/pkg/validate"
-	"encoding/json"
-	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // FormatConfItemForResp TODO
@@ -143,7 +146,7 @@ func CastValueType(confName string, confValue string, f api.BaseConfFileDef, val
 	} else if valueType == validate.DTypeFloat || valueType == validate.DTypeNumber {
 		return cast.ToFloat32(confValue)
 	} else if valueType == validate.DTypeBool {
-		return util.ToBoolExt(confValue)
+		return cmutil.ToBoolExt(confValue)
 	} else if valueType == validate.DTypeString {
 		if valueSubType == validate.DTypeSubList {
 			newValue := util.SplitAnyRuneTrim(confValue, ",")

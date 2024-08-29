@@ -1,12 +1,13 @@
 package validate
 
 import (
-	"bk-dbconfig/pkg/util"
 	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"bk-dbconfig/pkg/util"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -14,6 +15,8 @@ import (
 	en_translations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
+
+	"dbm-services/common/go-pubpkg/cmutil"
 )
 
 // ValueTypeDef TODO
@@ -255,7 +258,7 @@ func CheckDataType(name, value string) error {
 			return errors.Wrap(err2, err.Error())
 		}
 	} else if name == DTypeBool {
-		if _, err := util.ToBoolExtE(value); err != nil {
+		if _, err := cmutil.ToBoolExtE(value); err != nil {
 			return errors.Wrap(err2, err.Error())
 		}
 	} else if name == "" {
