@@ -15,7 +15,8 @@ import (
 func TwemproxyRedisInstanceInstall(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	twemproxyPkgName, twemproxyPkgMd5 string) (err error) {
+	twemproxyPkgName, twemproxyPkgMd5,
+	redismodulesPkgName, redismodulesPkgMd5 string) (err error) {
 
 	// 先清理再安装
 	err = redistest.RedisInstanceMasterClear(serverIP, consts.TendisTypeTwemproxyRedisInstance, true)
@@ -28,13 +29,17 @@ func TwemproxyRedisInstanceInstall(serverIP,
 	}
 	// 安装master
 	err = redistest.RedisInstanceMasterInstall(serverIP, redisPkgName, redisPkgMd5,
-		dbtoolsPkgName, dbtoolsPkgMd5, consts.TendisTypeTwemproxyRedisInstance)
+		dbtoolsPkgName, dbtoolsPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
+		consts.TendisTypeTwemproxyRedisInstance, []string{})
 	if err != nil {
 		return
 	}
 
 	err = redistest.RedisInstanceSlaveInstall(serverIP, redisPkgName, redisPkgMd5,
-		dbtoolsPkgName, dbtoolsPkgMd5, consts.TendisTypeTwemproxyRedisInstance)
+		dbtoolsPkgName, dbtoolsPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
+		consts.TendisTypeTwemproxyRedisInstance, []string{})
 	if err != nil {
 		return
 	}

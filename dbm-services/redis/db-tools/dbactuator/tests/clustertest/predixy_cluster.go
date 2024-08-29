@@ -38,6 +38,7 @@ func PredixyTendisplusClusterInstallTest(serverIP,
 		consts.TendisTypePredixyTendisplusCluster,
 		consts.TestTendisPlusMasterStartPort, consts.TestRedisInstanceNum,
 		consts.TestTendisplusPredixyPort,
+		[]string{},
 	)
 	if err != nil {
 		return
@@ -148,21 +149,28 @@ func TendisPlusMigrateSpecificSlots(localIP string) (err error) {
 func PredixyRedisClusterInstallTest(serverIP,
 	redisPkgName, redisPkgMd5,
 	dbtoolsPkgName, dbtoolsPkgMd5,
-	predixyPkgName, predixyPkgMd5 string) (err error) {
+	predixyPkgName, predixyPkgMd5,
+	redismodulesPkgName, redismodulesPkgMd5 string) (err error) {
 	// 先清理
 	redistest.RedisInstanceMasterClear(serverIP, consts.TendisTypePredixyRedisCluster, true)
 	redistest.RedisInstanceSlaveClear(serverIP, consts.TendisTypePredixyRedisCluster, true)
 	proxytest.PredixyClear(serverIP, consts.TestRedisPredixyPort, true)
 
 	// 安装 redis_master 和 redis_slave
+	toLoadModules := []string{"redisbloom", "redisjson"}
+	// toLoadModules := []string{}
 	err = redistest.RedisInstanceMasterInstall(serverIP, redisPkgName, redisPkgMd5,
-		dbtoolsPkgName, dbtoolsPkgMd5, consts.TendisTypePredixyRedisCluster)
+		dbtoolsPkgName, dbtoolsPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
+		consts.TendisTypePredixyRedisCluster, toLoadModules)
 	if err != nil {
 		return
 	}
 
 	err = redistest.RedisInstanceSlaveInstall(serverIP, redisPkgName, redisPkgMd5,
-		dbtoolsPkgName, dbtoolsPkgMd5, consts.TendisTypePredixyRedisCluster)
+		dbtoolsPkgName, dbtoolsPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
+		consts.TendisTypePredixyRedisCluster, toLoadModules)
 	if err != nil {
 		return
 	}
@@ -177,6 +185,7 @@ func PredixyRedisClusterInstallTest(serverIP,
 		consts.TendisTypePredixyTendisplusCluster,
 		consts.TestRedisMasterStartPort, consts.TestRedisInstanceNum,
 		consts.TestRedisPredixyPort,
+		toLoadModules,
 	)
 	if err != nil {
 		return

@@ -1441,9 +1441,9 @@ func (task *RedisInsKeyPatternTask) DelKeysRateLimitV2() {
 	for scanner.Scan() {
 		// 不断打印进度
 		m := scanner.Text()
-		if strings.Contains(m, `"level":"error"`) == true {
+		if strings.Contains(strings.ToLower(m), `"level":"error"`) == true {
 			err = errors.New(m)
-			task.runtime.Logger.Info(m)
+			task.runtime.Logger.Error(m)
 			continue
 		}
 		m = m + ";" + task.redisCli.Addr

@@ -25,6 +25,7 @@
     "127.0.0.1:11",
     "2.2.2.2:11"
   ],
+  "load_modules":"redisbloom,redisjson,rediscell",
   "dbconfig":{
     "workerthreads":"8",
     "clienttimeout":"0",

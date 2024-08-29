@@ -123,6 +123,7 @@ INSTALLED_APPS += (
     "backend.db_periodic_task",
     "backend.db_report",
     "backend.db_services.redis.slots_migrate",
+    "backend.db_services.redis.redis_modules",
     "backend.db_services.mysql.dumper",
     "backend.dbm_init",
 )
@@ -223,7 +224,7 @@ DATABASES = {
             "CHARSET": "utf8",
             "COLLATION": "utf8_general_ci",
         },
-    }
+    },
 }
 
 DATABASE_ROUTERS = ["backend.db_report.database_router.ReportRouter"]
@@ -240,7 +241,7 @@ CACHES = {
             "REDIS_CLIENT_KWARGS": {"decode_responses": True},
             "SERIALIZER": "backend.utils.redis.JSONSerializer",
             "MAX_ENTRIES": 100000,
-            "CULL_FREQUENCY": 10
+            "CULL_FREQUENCY": 10,
         },
     },
     "login_db": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "account_cache"},
@@ -277,7 +278,9 @@ BK_AUDIT_SETTINGS = {
 
 # apm 配置
 ENABLE_OTEL_TRACE = env.ENABLE_OTEL_TRACE
-BK_APP_OTEL_INSTRUMENT_DB_API = env.BK_APP_OTEL_INSTRUMENT_DB_API  # 是否开启 DB 访问 trace（开启后 span 数量会明显增多）
+BK_APP_OTEL_INSTRUMENT_DB_API = (
+    env.BK_APP_OTEL_INSTRUMENT_DB_API
+)  # 是否开启 DB 访问 trace（开启后 span 数量会明显增多）
 
 # BAMBOO PIPELINE 配置
 AUTO_UPDATE_COMPONENT_MODELS = False
@@ -394,7 +397,7 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SPECTACULAR_SETTINGS = {"COMPONENT_SPLIT_REQUEST": True}
 
 # DJANGO CELERY BEAT
-CELERYBEAT_SCHEDULER = 'django_celery_beat.schedulers.DatabaseScheduler'
+CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers.DatabaseScheduler"
 # CELERY 配置，申明任务的文件路径，即包含有 @task 装饰器的函数文件
 CELERY_IMPORTS = (
     "backend.db_periodic_task.local_tasks",
@@ -418,7 +421,7 @@ def get_logging_config(log_dir: str, log_level: str = "ERROR") -> Dict:
         "formatters": {
             "verbose": {
                 "format": "%(levelname)s [%(asctime)s] [%(request_id)s] %(name)s %(pathname)s %(lineno)d %(funcName)s "
-                          "%(process)d %(thread)d \n \t %(message)s \n",
+                "%(process)d %(thread)d \n \t %(message)s \n",
                 # noqa
                 "datefmt": "%Y-%m-%d %H:%M:%S",
             },
@@ -514,13 +517,13 @@ BKCRYPTO = {
                     key_size=16,
                     iv=env.SECRET_KEY[:16].encode("utf-8"),
                     mode=constants.SymmetricMode.CBC,
-                    interceptor=SymmetricInterceptor
+                    interceptor=SymmetricInterceptor,
                 ),
                 # 蓝鲸推荐配置
                 constants.SymmetricCipherType.SM4.value: SM4SymmetricOptions(
                     mode=constants.SymmetricMode.CTR, key=env.SECRET_KEY
-                )
-            }
+                ),
+            },
         },
     },
     "ASYMMETRIC_CIPHERS": {
@@ -530,10 +533,10 @@ BKCRYPTO = {
                 constants.AsymmetricCipherType.RSA.value: RSAAsymmetricOptions(
                     padding=constants.RSACipherPadding.PKCS1_v1_5
                 ),
-                constants.AsymmetricCipherType.SM2.value: SM2AsymmetricOptions()
+                constants.AsymmetricCipherType.SM2.value: SM2AsymmetricOptions(),
             },
         },
-    }
+    },
 }
 
 # 默认的file storage

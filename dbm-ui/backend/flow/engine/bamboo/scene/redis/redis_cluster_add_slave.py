@@ -21,6 +21,7 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster, Machine
 from backend.db_meta.models.instance import StorageInstance
+from backend.db_services.redis.redis_modules.util import get_cluster_redis_module_names
 from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType, SyncType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
@@ -229,7 +230,7 @@ class RedisClusterAddSlaveFlow(object):
                         "instance_numb": 0,
                         "ports": [],
                     },
-                    dbmon_install=False,
+                    to_install_dbmon=False,
                     to_trans_files=True,
                     to_install_puglins=True,
                     to_install_redis=False,
@@ -277,6 +278,7 @@ class RedisClusterAddSlaveFlow(object):
                         "requirepass": cluster_item["redis_password"],
                         "databases": cluster_item["redis_databases"],
                         "maxmemory": 0,  # maxmemory由dbmon去设置吧
+                        "load_modules": get_cluster_redis_module_names(cluster_id=cluster_item["cluster_id"]),
                     }
                     install_kwargs.get_redis_payload_func = RedisActPayload.get_install_redis_apply_payload.__name__
                     acts_list.append(

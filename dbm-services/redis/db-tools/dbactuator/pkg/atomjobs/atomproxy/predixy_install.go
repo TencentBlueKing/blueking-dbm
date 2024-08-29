@@ -62,6 +62,7 @@ type PredixyConfParams struct {
 	PredixyAdminPasswd string   `json:"predixyadminpasswd" validate:"required"`
 	RedisPasswd        string   `json:"redispasswd" validate:"required"`
 	Servers            []string `json:"servers" validate:"required"`
+	LoadModules        []string `json:"load_modules"` // 需要加载的模块, [redisbloom,rediscell,redisjson]
 	DbConfig           struct {
 		WorkerThreads        string `json:"workerthreads" validate:"required"`
 		ClientTimeout        string `json:"clienttimeout"`
@@ -166,6 +167,10 @@ func (p *PredixyInstall) getConfFileContent() {
 		p.ConfParams.DbConfig.ServerFailureLimit, -1)
 	conf = strings.Replace(conf, "{{server_retry_timeout}}",
 		p.ConfParams.DbConfig.ServerRetryTimeout, -1)
+	// 配置文件加入module commands
+	if len(p.ConfParams.LoadModules) != 0 {
+		conf = conf + consts.GetPredixyModuleCommands(p.ConfParams.LoadModules)
+	}
 	p.ConfFileContent = conf
 	p.runtime.Logger.Info("make config file content successfully")
 }

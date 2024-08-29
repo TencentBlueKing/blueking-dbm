@@ -21,22 +21,24 @@ var (
 	repoUser     string
 	repoPassword string
 
-	tendisplusPkgName string
-	tendisplusPkgMd5  string
-	tendisssdPkgName  string
-	tendisssdPkgMd5   string
-	redisPkgName      string
-	redisPkgMd5       string
-	predixyPkgName    string
-	predixyPkgMd5     string
-	twemproxyPkgName  string
-	twemproxyPkgMd5   string
-	keytoolsPkgName   string
-	keytoolsPkgMd5    string
-	dbtoolsPkgName    string
-	dbtoolsPkgMd5     string
-	bkdbmonPkgName    string
-	bkdbmonPkgMd5     string
+	tendisplusPkgName   string
+	tendisplusPkgMd5    string
+	tendisssdPkgName    string
+	tendisssdPkgMd5     string
+	redisPkgName        string
+	redisPkgMd5         string
+	predixyPkgName      string
+	predixyPkgMd5       string
+	twemproxyPkgName    string
+	twemproxyPkgMd5     string
+	keytoolsPkgName     string
+	keytoolsPkgMd5      string
+	dbtoolsPkgName      string
+	dbtoolsPkgMd5       string
+	bkdbmonPkgName      string
+	bkdbmonPkgMd5       string
+	redismodulesPkgName string
+	redismodulesPkgMd5  string
 )
 
 func before() (err error) {
@@ -67,6 +69,8 @@ func main() {
 	flag.StringVar(&dbtoolsPkgMd5, "dbtools-pkgmd5", "", "dbtools pkg md5sum")
 	flag.StringVar(&bkdbmonPkgName, "bkdbmon-pkgname", "", "bk-dbmon pkg name")
 	flag.StringVar(&bkdbmonPkgMd5, "bkdbmon-pkgmd5", "", "bk-dbmon pkg md5sum")
+	flag.StringVar(&redismodulesPkgName, "redismodules-pkgname", "", "redismodules pkg name")
+	flag.StringVar(&redismodulesPkgMd5, "redismodules-pkgmd5", "", "redismodules pkg md5sum")
 	flag.StringVar(&repoUrl, "repo-url", "xxxx", "制品库地址")
 	flag.StringVar(&repoUser, "user", "xxxx", "制品库用户名")
 	flag.StringVar(&repoPassword, "password", "xxxx", "制品库用户密码")
@@ -80,6 +84,24 @@ func main() {
 			os.Exit(-1)
 		}
 	}()
+
+	fmt.Printf(`tendisplusPkgName:%s  tendisplusPkgMd5:%s
+tendisssdPkgName:%s  tendisssdPkgMd5:%s
+redisPkgName:%s  redisPkgMd5:%s
+predixyPkgName:%s  predixyPkgMd5:%s
+twemproxyPkgName:%s  twemproxyPkgMd5:%s
+dbtoolsPkgName:%s  dbtoolsPkgMd5:%s
+bkdbmonPkgName:%s  bkdbmonPkgMd5:%s
+redismodulesPkgName:%s  redismodulesPkgMd5:%s
+	`, tendisplusPkgName, tendisplusPkgMd5,
+		tendisssdPkgName, tendisssdPkgMd5,
+		redisPkgName, redisPkgMd5,
+		predixyPkgName, predixyPkgMd5,
+		twemproxyPkgName, twemproxyPkgMd5,
+		dbtoolsPkgName, dbtoolsPkgMd5,
+		bkdbmonPkgName, bkdbmonPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5,
+	)
 
 	// 获取制品库地址
 	u, err := url.Parse(repoUrl)
@@ -219,7 +241,8 @@ func main() {
 	fmt.Println(">>>>>>>>>>>>>>>>>>>>start predixy redis_cluster test>>>>>>>>>>>>>>>")
 	err = clustertest.PredixyRedisClusterInstallTest(localIP, redisPkgName, redisPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5,
-		predixyPkgName, predixyPkgMd5)
+		predixyPkgName, predixyPkgMd5,
+		redismodulesPkgName, redisPkgMd5)
 	if err != nil {
 		return
 	}
@@ -233,7 +256,8 @@ func main() {
 	err = clustertest.TwemproxyRedisInstanceInstall(localIP,
 		redisPkgName, redisPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5,
-		twemproxyPkgName, twemproxyPkgMd5)
+		twemproxyPkgName, twemproxyPkgMd5,
+		redismodulesPkgName, redismodulesPkgMd5)
 	if err != nil {
 		return
 	}
@@ -305,7 +329,8 @@ func main() {
 	err = clustertest.TwemproxyCacheSwitch(localIP,
 		redisPkgName, redisPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5,
-		bkdbmonPkgName, bkdbmonPkgMd5)
+		bkdbmonPkgName, bkdbmonPkgMd5,
+		redismodulesPkgName, redisPkgMd5)
 	if err != nil {
 		return
 	}
@@ -313,7 +338,8 @@ func main() {
 	err = clustertest.TwemproxyCacheSwitchRestoreEnv(localIP,
 		redisPkgName, redisPkgMd5,
 		dbtoolsPkgName, dbtoolsPkgMd5,
-		bkdbmonPkgName, bkdbmonPkgMd5)
+		bkdbmonPkgName, bkdbmonPkgMd5,
+		redismodulesPkgName, redisPkgMd5)
 	if err != nil {
 		return
 	}
