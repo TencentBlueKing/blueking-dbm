@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from datetime import datetime
-from typing import List
+from typing import Any, Dict
 
 from django.db import models
 from django.db.models import Q
@@ -19,6 +19,8 @@ from django.utils.translation import ugettext_lazy as _
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import SqlserverDtsMode
+from backend.ticket.builders.common.base import fetch_cluster_ids
+from backend.ticket.constants import TicketType
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 logger = logging.getLogger("root")
@@ -85,7 +87,8 @@ class SqlserverDtsInfo(AuditedModel):
         return data
 
     @classmethod
-    def dts_info_clusive(cls, cluster_ids: List[int]):
+    def dts_info_clusive(cls, ticket_id: int, ticket_type: str, details: Dict[str, Any]):
+        cluster_ids = fetch_cluster_ids(details=details)
         dts_infos = cls.objects.filter(
             (Q(source_cluster_id__in=cluster_ids) | Q(target_cluster_id__in=cluster_ids))
             & Q(
@@ -99,5 +102,7 @@ class SqlserverDtsInfo(AuditedModel):
         )
         for dts_info in dts_infos:
             raise ClusterExclusiveOperateException(
-                _("当前操作「SQLServer 集群禁用」与迁移记录(关联单据：{})存在执行互斥").format(dts_info.ticket_id)
+                _("当前操作「{}(单据：{})」与迁移记录(关联单据：{})存在执行互斥").format(
+                    TicketType.get_choice_label(ticket_type), ticket_id, dts_info.ticket_id
+                )
             )

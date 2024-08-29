@@ -108,9 +108,14 @@ class InnerFlow(BaseTicketFlow):
         #  4. 执行后台任务，后台任务执行完成以后，释放互斥锁(即在数据库删掉对应记录)
         #  考虑：如果单纯是为了防住同时操作，是不是设计一个全局锁就好了？
         ticket_type = self.ticket.ticket_type
-        if ticket_type == TicketType.SQLSERVER_DISABLE.value:
-            # 判断禁用是否跟迁移记录互斥
-            SqlserverDtsInfo.dts_info_clusive(cluster_ids=self.ticket.details["cluster_ids"])
+        if ticket_type == TicketType.SQLSERVER_DISABLE.value or ticket_type in [
+            TicketType.SQLSERVER_INCR_MIGRATE,
+            TicketType.SQLSERVER_FULL_MIGRATE,
+        ]:
+            # 判断禁用、迁移集群跟迁移记录是否互斥
+            SqlserverDtsInfo.dts_info_clusive(
+                ticket_id=self.ticket.id, ticket_type=ticket_type, details=self.ticket.details
+            )
 
         cluster_ids = fetch_cluster_ids(details=self.ticket.details)
         Cluster.handle_exclusive_operations(
