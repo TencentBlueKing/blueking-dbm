@@ -268,7 +268,7 @@
     },
   });
 
-  const verifyAccountRulesExits = () => {
+  const verifyAccountRulesExits = async () => {
     existDBs.value = [];
 
     const user = selectedUserInfo.value?.user;
@@ -278,18 +278,16 @@
 
     if (!user || dbs.length === 0) return false;
 
-    return queryAccountRules({
+    const { results } = await queryAccountRules({
       bizId: window.PROJECT_CONFIG.BIZ_ID,
       user,
       access_dbs: dbs,
       account_type: TENDBCLUSTER,
     })
-      .then((res) => {
-        const rules = res.results[0]?.rules || [];
-        existDBs.value = rules.map(item => item.access_db);
-
-        return rules.length === 0;
-      });
+    const intersection = results.find(item => item.account.user === user)?.rules
+      .filter(ruleItem => dbs.includes(ruleItem.access_db)) || [];
+    existDBs.value = intersection.map(item => item.access_db);
+    return !intersection.length;
   };
 
   const { t } = useI18n();
