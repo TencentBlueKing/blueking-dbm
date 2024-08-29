@@ -61,6 +61,9 @@ const (
 	TendisplusMetaType = "tendisplus"
 	// SqlserverMetatype storage layer type name in SqlserverHa
 	SqlserverMetatype = "sqlserver_ha"
+
+	// Mongos MONGOS = EnumField("mongos", _("mongos"))  # mongos
+	Mongos = "mongos"
 )
 
 // instance role in cmdb
@@ -108,6 +111,9 @@ const (
 	Riak = "riak"
 	// SqlserverHA TODO
 	SqlserverHA = "sqlserver_ha"
+
+	// MongoShardedCluster = EnumField("MongoShardedCluster", _("Mongo分片集群"))
+	MongoShardCluster = "MongoShardedCluster"
 )
 
 // wrapper name in TenDBCluster
