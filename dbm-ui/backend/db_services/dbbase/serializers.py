@@ -77,12 +77,15 @@ class CommonQueryClusterResponseSerializer(serializers.Serializer):
 class ClusterFilterSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     exact_domain = serializers.CharField(help_text=_("域名精确查询"), required=False)
+    cluster_ids = serializers.CharField(help_text=_("集群ID(逗号分割)"), required=False, default="")
 
     # 后续有其他过滤条件可以再加
 
     def validate(self, attrs):
+        cluster_ids = attrs["cluster_ids"].split(",") if attrs["cluster_ids"] else []
         filters = Q(bk_biz_id=attrs["bk_biz_id"])
         filters &= Q(immute_domain=attrs["exact_domain"]) if attrs.get("exact_domain") else Q()
+        filters &= Q(id__in=cluster_ids) if cluster_ids else Q()
         attrs["filters"] = filters
         return attrs
 

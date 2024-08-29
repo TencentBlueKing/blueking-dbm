@@ -384,7 +384,16 @@ class BaseTicketFlowBuilderPatchMixin(object):
         cluster_ids = fetch_cluster_ids(self.ticket.details)
         if not cluster_ids:
             return
-        clusters = {cluster.id: cluster.to_dict() for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
+        clusters = {
+            cluster.id: {
+                **cluster.to_dict(),
+                "bk_cloud_name": cloud_info.get(str(cluster.to_dict().get("bk_cloud_id")), {}).get(
+                    "bk_cloud_name", ""
+                ),
+            }
+            for cluster in Cluster.objects.filter(id__in=cluster_ids)
+        }
         self.ticket.details["clusters"] = clusters
 
     def patch_spec_details(self):
