@@ -807,10 +807,11 @@
    */
   const renderNodes = (updateLogData = false) => {
     const { locations, lines } = formatGraphData(flowState.details, expandNodes);
+    const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
     flowState.instance.update({
       locations,
       lines,
-    });
+    }, todoNodeIdList);
     flowState.minimap.windowWidth = Math.max(...locations.map(item => item.x || 0)) + 400;
     flowState.minimap.windowHeight = Math.max(...locations.map(item => item.y || 0)) + 400;
     // 如果打开侧栏需要更新侧栏的节点状态
@@ -907,6 +908,7 @@
         }
       ]})
         .then(() => {
+          renderNodes();
           fetchTaskflowDetails();
           messageSuccess(t('继续任务成功'));
         })

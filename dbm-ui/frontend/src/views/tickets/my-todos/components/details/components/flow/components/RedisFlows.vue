@@ -18,10 +18,11 @@
         <template
           v-if="
             content.flow_type === 'INNER_FLOW' &&
-            content.status === 'RUNNING' &&
             content.todos.some((todoItem) => todoItem.type !== 'RESOURCE_REPLENISH')
           ">
-          <InnerManualConfirm :content="content" />
+          <InnerManualConfirm
+            :content="content"
+            :ticket-data="ticketData" />
         </template>
         <template v-else>
           <div
@@ -29,7 +30,7 @@
             :key="item.id"
             class="flow-todo">
             <div class="flow-todo__title">
-              {{ item.name }}
+              <!-- {{ item.name }} -->
               <template v-if="isShowResourceApply(item)">
                 ，
                 <BkButton
@@ -217,7 +218,7 @@
     // const prevFlow = props.flows[index - 1];
     // const flowObjId = isLast && prevFlow ? prevFlow.flow_obj_id : flow.flow_obj_id;
     return {
-      tag: flow.flow_type_display,
+      tag: flow.flow_type === 'PAUSE' ? `${t('确认是否执行')}“${flow.flow_type_display}”` : flow.flow_type_display,
       type: 'default',
       filled: true,
       content: Object.assign(flow, { isLast }),
