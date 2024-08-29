@@ -58,7 +58,10 @@
   const userSelectorRef = ref();
   const isHover = ref(false);
 
-  const exactSearchMethod = () => getUserList().then((result) => result.results);
+  const exactSearchMethod = () =>
+    getUserList({
+      fuzzy_lookups: modelValue.value.join(','),
+    }).then((result) => result.results);
 
   const pasteValidator = (values: string[]) => values;
 
