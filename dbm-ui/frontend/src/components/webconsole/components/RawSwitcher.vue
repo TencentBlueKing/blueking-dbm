@@ -7,6 +7,7 @@
           content: t('开启后可正常显示中文'),
           disabled: modelValue,
         }"
+        size="small"
         theme="primary"
         @change="handleRawSwitch" />
       <span class="operate-title ml-5">{{ t('Raw 模式') }}</span>
