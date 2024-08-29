@@ -29,10 +29,10 @@ export default class DbResource {
   consume_time: string;
   create_time: string;
   device_class: string;
-  for_bizs: Array<{
+  for_biz: {
     bk_biz_id: number;
     bk_biz_name: string;
-  }>;
+  };
   ip: string;
   label: string;
   net_device_id: string;
@@ -44,7 +44,7 @@ export default class DbResource {
   };
   rack_id: string;
   raid: string;
-  resource_types: string[];
+  resource_type: string;
   status: string;
   storage_device: {
     [key: string]: {
@@ -75,7 +75,7 @@ export default class DbResource {
     this.consume_time = payload.consume_time;
     this.create_time = payload.create_time;
     this.device_class = payload.device_class;
-    this.for_bizs = payload.for_bizs || [];
+    this.for_biz = payload.for_biz;
     this.ip = payload.ip;
     this.label = payload.label;
     this.net_device_id = payload.net_device_id;
@@ -85,7 +85,7 @@ export default class DbResource {
     this.permission = payload.permission;
     this.rack_id = payload.rack_id;
     this.raid = payload.raid;
-    this.resource_types = payload.resource_types || [];
+    this.resource_type = payload.resource_type;
     this.status = payload.status;
     this.storage_device = payload.storage_device || {};
     this.sub_zone = payload.sub_zone;
@@ -99,6 +99,6 @@ export default class DbResource {
   }
 
   get isAbnormal() {
-    return this.agent_status === 0
+    return this.agent_status === 0;
   }
 }

@@ -30,6 +30,7 @@
     "bkui-vue": "2.0.1-beta.63",
     "date-fns": "3.6.0",
     "dayjs": "1.11.12",
+    "echarts": "^5.5.1",
     "html-to-image": "1.11.11",
     "js-cookie": "3.0.5",
     "jsencrypt": "3.3.2",
@@ -49,7 +50,7 @@
     "vue-router": "4.3.2",
     "vue-types": "5.1.2",
     "vuedraggable": "4.1.0",
-    "xlsx": "0.18.5"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@commitlint/config-conventional": "19.2.2",

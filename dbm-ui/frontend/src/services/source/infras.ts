@@ -30,6 +30,20 @@ export function getInfrasCities() {
 }
 
 /**
+ * 查询城市园区信息
+ */
+export function getInfrasSubzonesByCity(params: { city_code: string }) {
+  return http.get<
+    {
+      bk_city: number;
+      bk_city_code: string;
+      bk_sub_zone_id: number;
+      bk_sub_zone: string;
+    }[]
+  >(`${path}/cities/list_subzones/`, params);
+}
+
+/**
  * 主机提交格式
  */
 interface HostSubmitParams {

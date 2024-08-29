@@ -9,9 +9,10 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-import { createBkrepoAccessToken } from '@services/source/storage';
+ */
 import _ from 'lodash';
+
+import { createBkrepoAccessToken } from '@services/source/storage';
 
 export const parseURL = (url: string) => {
   const a = document.createElement('a');
@@ -30,7 +31,7 @@ export const parseURL = (url: string) => {
 };
 
 export const buildURLParams = (params: any) => {
-  function forEach(obj:any, fn:any) {
+  function forEach(obj: any, fn: any) {
     // Don't bother if no value provided
     if (obj === null || typeof obj === 'undefined') {
       return;
@@ -56,7 +57,7 @@ export const buildURLParams = (params: any) => {
       });
     }
   }
-  function encode(val:string) {
+  function encode(val: string) {
     return encodeURIComponent(val)
       .replace(/%40/gi, '@')
       .replace(/%3A/gi, ':')
@@ -72,7 +73,7 @@ export const buildURLParams = (params: any) => {
   }
 
   const parts: Array<string> = [];
-  forEach(params, (val:any, key: any) => {
+  forEach(params, (val: any, key: any) => {
     if (val === null || typeof val === 'undefined') {
       return;
     }
@@ -83,7 +84,7 @@ export const buildURLParams = (params: any) => {
       val = [val];
     }
 
-    forEach(val, (v:any) => {
+    forEach(val, (v: any) => {
       if (_.isDate(v)) {
         v = v.toISOString();
       } else if (_.isObject(v)) {
@@ -96,6 +97,5 @@ export const buildURLParams = (params: any) => {
 };
 
 // 根据 createBkrepoAccessToken 请求返回的响应对象组装bkrepo的下载链接
-export const generateBkRepoDownloadUrl = (tokenResult: ServiceReturnType<typeof createBkrepoAccessToken>) => `${tokenResult.url}/generic/temporary/download/${tokenResult.project}/${tokenResult.repo}/${tokenResult.path}?token=${tokenResult.token}&download=true`
-
-
+export const generateBkRepoDownloadUrl = (tokenResult: ServiceReturnType<typeof createBkrepoAccessToken>) =>
+  `${tokenResult.url}/generic/temporary/download/${tokenResult.project}/${tokenResult.repo}/${tokenResult.path}?token=${tokenResult.token}&download=true`;
