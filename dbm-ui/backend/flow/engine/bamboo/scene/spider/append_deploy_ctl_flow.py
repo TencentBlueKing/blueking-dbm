@@ -8,6 +8,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+import copy
 import logging.config
 from dataclasses import asdict
 from typing import Dict, Optional
@@ -226,15 +227,20 @@ class AppendDeployCTLFlow(object):
                 if remote.machine.ip == backends[0].machine.ip:
                     mysql_ports.append(remote.port)
             # 赋值给全局参数
-            self.data["spider_ip_list"] = [{"ip": value} for value in list(set([c.machine.ip for c in spiders]))]
-            self.data["tdbctl_ip_list"] = [
+            sub_flow_context = copy.deepcopy(self.data)
+            sub_flow_context["spider_ip_list"] = [
+                {"ip": value} for value in list(set([c.machine.ip for c in spiders]))
+            ]
+            sub_flow_context["tdbctl_ip_list"] = [
                 {"ip": value} for value in list(set([c.machine.ip for c in master_spiders]))
             ]
-            self.data["spider_port"] = leader_spider.port
-            self.data["mysql_ip_list"] = [{"ip": value} for value in list(set([c.machine.ip for c in backends]))]
-            self.data["mysql_ports"] = mysql_ports
+            sub_flow_context["spider_port"] = leader_spider.port
+            sub_flow_context["mysql_ip_list"] = [
+                {"ip": value} for value in list(set([c.machine.ip for c in backends]))
+            ]
+            sub_flow_context["mysql_ports"] = mysql_ports
             ctl_port = self.__get_tdbctl_port_by_spider_port(leader_spider.port)
-            self.data["ctl_port"] = ctl_port
+            sub_flow_context["ctl_port"] = ctl_port
             self.tdbctl_user, self.tdbctl_pass = self.__get_origin_spider_sys_account(
                 leader_spider.machine.ip, leader_spider.port
             )
@@ -244,7 +250,7 @@ class AppendDeployCTLFlow(object):
             # self.tdbctl_pass="xxx"
             # self.charset = "utf8"
             # 给spider节点下发tdbctl介质, 还一起下发了actor
-            migrate_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
+            migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
             migrate_pipeline.add_act(
                 act_name=_("下发tdbCtl介质包"),
                 act_component_code=TransFileComponent.code,
