@@ -81,8 +81,9 @@ export default class GraphCanvas {
     this.flowInstance.updateCallback = callback;
   }
 
-  update(graphData: GraphData) {
+  update(graphData: GraphData, todoNodeIdList: string[]) {
     this.graphData = graphData;
+    this.todoNodeIdList = todoNodeIdList;
     this.flowInstance.clear();
     this.flowInstance.renderGraph(this.graphData, false);
     this.updateLinePosition();

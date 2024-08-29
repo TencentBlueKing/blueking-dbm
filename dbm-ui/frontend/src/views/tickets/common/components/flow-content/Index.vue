@@ -27,7 +27,12 @@
       @processed="handleEmitFetchData" />
   </template>
   <template
-    v-else-if="content.todos.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
+    v-else-if="
+      content.todos.length > 0 &&
+      ['TERMINATED', 'SUCCEEDED'].includes(content.status) &&
+      isTodos === false &&
+      !(content.flow_type === 'INNER_FLOW' && content.todos.every((todoItem) => todoItem.type !== 'RESOURCE_REPLENISH'))
+    ">
     <FlowContentTodo
       v-for="item of content.todos"
       :key="item.id"

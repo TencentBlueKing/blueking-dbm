@@ -13,7 +13,21 @@
 
 <template>
   <div>
-    {{ t('任务待确认') }}
+    <template v-if="content.status === 'RUNNING'">
+      {{ t('任务待确认') }}
+    </template>
+    <template v-else>
+      <span
+        :style="{
+          color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e',
+        }">
+        {{ content.summary }}
+      </span>
+      <template v-if="content.err_msg">
+        <span>，{{ t('处理人') }}: </span>
+        <span>{{ ticketData.updater }}</span>
+      </template>
+    </template>
     <template v-if="content.summary">
       ，{{ t('耗时') }}：
       <CostTimer
@@ -30,19 +44,26 @@
       </a>
     </template>
   </div>
+  <div
+    v-if="content.end_time"
+    class="flow-time">
+    {{ utcDisplayTime(content.end_time) }}
+  </div>
 </template>
 
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
+  import TicketModel from '@services/model/ticket/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import { utcTimeToSeconds } from '@utils';
+  import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   interface Props {
     content: FlowItem;
+    ticketData: TicketModel<unknown>;
   }
 
   defineProps<Props>();
