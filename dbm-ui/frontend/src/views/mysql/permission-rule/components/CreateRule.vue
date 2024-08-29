@@ -366,7 +366,7 @@
     state.formdata.privilege[key] = [];
   };
 
-  const verifyAccountRules = () => {
+  const verifyAccountRules = async () => {
     const user = selectedUserInfo.value?.user;
     const dbs = state.formdata.access_db.replace(/\n|;/g, ',')
       .split(',')
@@ -374,17 +374,16 @@
 
     if (!user || dbs.length === 0) return false;
 
-    return queryAccountRules({
+    const { results } = await queryAccountRules({
       bizId: window.PROJECT_CONFIG.BIZ_ID,
       user,
       access_dbs: dbs,
       account_type: 'mysql',
     })
-      .then((res) => {
-        const rules = res.results[0]?.rules || [];
-        state.existDBs = rules.map(item => item.access_db);
-        return rules.length === 0;
-      });
+    const intersection = results.find(item => item.account.user === user)?.rules
+      .filter(ruleItem => dbs.includes(ruleItem.access_db)) || [];
+    state.existDBs = intersection.map(item => item.access_db);
+    return !intersection.length;
   };
 
   /**
