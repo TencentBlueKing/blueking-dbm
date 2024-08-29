@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import urllib.parse
 
 from django.utils.translation import gettext_lazy as _
@@ -234,17 +235,17 @@ class AlarmCallBackDataSerializer(serializers.Serializer):
         ticket_types = []
 
         # 取告警负责人作为单据创建人
-        data["creator"] = data["appointees"].split(",")[0]
-
-        # 判断是否需要自愈
-        labels = data["callback_message"].get("labels") or []
-        if "need_autofix" not in labels:
-            raise AutofixException(_("此策略无需进行故障自愈"))
+        try:
+            data["creator"] = json.loads(data["appointees"].replace("'", '"'))[0]
+        except IndexError:
+            data["creator"] = "system"
 
         # 取关联的的故障自愈处理单据
-        for label in labels:
-            if label in TicketType.get_values():
-                ticket_types.append(label)
+        for label in data["callback_message"].get("labels") or []:
+            if label.startswith("NEED_AUTOFIX"):
+                ticket_type = label.split("/")[1]
+                if ticket_type in TicketType.get_values():
+                    ticket_types.append(ticket_type)
         if not ticket_types:
             raise AutofixException(_("未匹配到对应的故障自愈处理单据，请确认是否配置正确"))
         data["ticket_types"] = ticket_types
