@@ -128,6 +128,8 @@ type DBConfig struct {
 	Riak RiakConfig `yaml:"riak"`
 	// Sqlserver instance detect info
 	Sqlserver SqlserverConfig `yaml:"sqlserver"`
+	// MongoDB mongo config.
+	MongoDB MongoConfig `yaml:"mongodb"`
 }
 
 // MySQLConfig mysql instance connect info
@@ -154,6 +156,11 @@ type SqlserverConfig struct {
 	User    string `yaml:"user"`
 	Pass    string `yaml:"pass"`
 	Timeout int    `yaml:"timeout"`
+}
+
+// MongoConfig mongo
+type MongoConfig struct {
+	Timeout int `yaml:"timeout"`
 }
 
 // SSHConfig ssh detect configure

@@ -4,6 +4,7 @@ import (
 	"dbm-services/common/dbha/ha-module/config"
 	"dbm-services/common/dbha/ha-module/constvar"
 	"dbm-services/common/dbha/ha-module/dbmodule/dbmysql"
+	"dbm-services/common/dbha/ha-module/dbmodule/mongodb"
 	"dbm-services/common/dbha/ha-module/dbmodule/redis"
 	"dbm-services/common/dbha/ha-module/dbmodule/riak"
 	"dbm-services/common/dbha/ha-module/dbmodule/sqlserver"
@@ -95,5 +96,12 @@ func init() {
 		FetchDBCallback:              sqlserver.NewSqlserverInstanceByCmDB,
 		DeserializeCallback:          sqlserver.DeserializeSqlserver,
 		GetSwitchInstanceInformation: sqlserver.NewSqlserverSwitchInstance,
+	}
+
+	// Mongos used
+	DBCallbackMap[constvar.MongoShardCluster] = Callback{
+		FetchDBCallback:              mongodb.NewMongosInstanceByCmDB,
+		DeserializeCallback:          mongodb.DeserializeMongos,
+		GetSwitchInstanceInformation: mongodb.NewMongosSwitchInstance,
 	}
 }
