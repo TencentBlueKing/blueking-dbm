@@ -141,25 +141,15 @@
     },
     {
       label: t('专用业务'),
-      field: 'for_bizs',
+      field: 'for_biz',
       width: 170,
-      render: ({ data }: {data: DbResourceModel}) => {
-        if (data.for_bizs.length < 1) {
-          return t('无限制');
-        }
-        return data.for_bizs.map(item => item.bk_biz_name).join(',');
-      },
+      render: ({ data }: {data: DbResourceModel}) => data.for_biz.bk_biz_name || t('无限制'),
     },
     {
       label: t('专用 DB'),
-      field: 'resource_types',
+      field: 'resource_type',
       width: 150,
-      render: ({ data }: {data: DbResourceModel}) => {
-        if (data.resource_types.length < 1) {
-          return t('无限制');
-        }
-        return data.resource_types.join(',');
-      },
+      render: ({ data }: {data: DbResourceModel}) => data.resource_type || t('无限制'),
     },
     {
       label: t('机型'),
@@ -208,14 +198,14 @@
     fields: columns.filter(item => item.field).map(item => ({
       label: item.label,
       field: item.field,
-      disabled: ['ip', 'for_bizs', 'resource_types'].includes(item.field as string),
+      disabled: ['ip', 'for_biz', 'resource_type'].includes(item.field as string),
     })),
     checked: [
       'ip',
       'bk_cloud_name',
       'agent_status',
-      'for_bizs',
-      'resource_types',
+      'for_biz',
+      'resource_type',
     ],
     size: 'small',
   };

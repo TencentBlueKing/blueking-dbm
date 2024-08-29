@@ -9,7 +9,7 @@
         <I18nT
           class="ml-8"
           keypath="共n条"
-          style="color: #63656E;"
+          style="color: #63656e"
           tag="span">
           <template #n>
             <strong>{{ data.length }}</strong>
@@ -85,15 +85,13 @@
     const deviceClassSet = new Set<string>();
 
     props.data.forEach((dataItem) => {
-      dataItem.for_bizs.forEach((forBizItem) => {
-        if (!bizNameMap[forBizItem.bk_biz_id]) {
-          bizNameMap[forBizItem.bk_biz_id] = currentBizNameMap[forBizItem.bk_biz_id];
+      if (!bizNameMap[dataItem.for_biz.bk_biz_id]) {
+          bizNameMap[dataItem.for_biz.bk_biz_id] = currentBizNameMap[dataItem.for_biz.bk_biz_id];
         }
-      });
 
-      dataItem.resource_types.forEach((resourceTypesItem) => {
-        resourceTypesSet.add(resourceTypesItem);
-      });
+      if(dataItem.resource_type) {
+        resourceTypesSet.add(dataItem.resource_type);
+      }
 
       if (dataItem.device_class) {
         deviceClassSet.add(dataItem.device_class);
@@ -163,7 +161,7 @@
     },
     {
       label: t('专用业务'),
-      field: 'for_bizs',
+      field: 'for_biz',
       width: 100,
       filter: {
         list: Object.entries(filterMap.value.bizNameMap).map(bizItem => ({
@@ -174,19 +172,14 @@
           if (checked.length === 0) {
             return true;
           }
-          return checked.some(checkedItem => row.for_bizs.some(forBizItem => forBizItem.bk_biz_id === checkedItem));
+          return checked.some(checkedItem => row.for_biz.bk_biz_id === checkedItem);
         },
       },
-      render: ({ data }: { data: DbResourceModel }) => {
-        if (data.for_bizs.length < 1) {
-          return t('无限制');
-        }
-        return data.for_bizs.map(item => <bk-tag>{item.bk_biz_name}</bk-tag>);
-      },
+      render: ({ data }: { data: DbResourceModel }) => data.for_biz.bk_biz_id ? <bk-tag>{data.for_biz.bk_biz_name}</bk-tag> : t('无限制'),
     },
     {
       label: t('专用DB'),
-      field: 'resource_types',
+      field: 'resource_type',
       filter: {
         list: Array.from(filterMap.value.resourceTypesSet).map(resourceTypeItem => ({
           value: resourceTypeItem,
@@ -196,16 +189,10 @@
           if (checked.length === 0) {
             return true;
           }
-          return checked.some(checkedItem => row.resource_types
-            .some(resourceTypeItem => resourceTypeItem === checkedItem));
+          return checked.some(checkedItem => row.resource_type === checkedItem);
         },
       },
-      render: ({ data }: { data: DbResourceModel }) => {
-        if (data.resource_types.length < 1) {
-          return t('无限制');
-        }
-        return data.resource_types.map(typeItem => <bk-tag>{typeItem}</bk-tag>);
-      },
+      render: ({ data }: { data: DbResourceModel }) => data.resource_type ? <bk-tag>{data.resource_type}</bk-tag> : t('无限制'),
     },
     {
       label: t('机型'),
@@ -263,8 +250,8 @@
       'ip',
       'bk_cloud_id',
       'agent_status',
-      'for_bizs',
-      'resource_types',
+      'for_biz',
+      'resource_type',
       'device_class',
       'city',
       'sub_zone',

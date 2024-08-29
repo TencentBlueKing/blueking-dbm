@@ -21,9 +21,10 @@ const resourcePoolRoute = {
   path: 'pool',
   meta: {
     navName: t('DB 资源池'),
+    fullscreen: true,
   },
   component: () => import('@views/resource-manage/pool/Index.vue'),
-}
+};
 
 const resourcePoolOperationRecordRoute = {
   name: 'resourcePoolOperationRecord',
@@ -32,7 +33,7 @@ const resourcePoolOperationRecordRoute = {
     navName: t('资源操作记录'),
   },
   component: () => import('@views/resource-manage/record/Index.vue'),
-}
+};
 
 const resourcePoolDirtyMachinesRoute = {
   name: 'resourcePoolDirtyMachines',
@@ -41,7 +42,7 @@ const resourcePoolDirtyMachinesRoute = {
     navName: t('污点主机处理'),
   },
   component: () => import('@views/resource-manage/dirty-machine/Index.vue'),
-}
+};
 
 const resourceSpecRoute = {
   name: 'resourceSpec',
@@ -51,7 +52,7 @@ const resourceSpecRoute = {
     fullscreen: true,
   },
   component: () => import('@views/resource-manage/spec/Index.vue'),
-}
+};
 
 const mainRoute = [
   {
@@ -64,7 +65,6 @@ const mainRoute = [
     children: [] as RouteRecordRaw[],
   },
 ];
-
 
 export default function getRoutes() {
   let existResourcePool = false;

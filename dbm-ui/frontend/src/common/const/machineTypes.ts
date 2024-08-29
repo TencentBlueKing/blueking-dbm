@@ -11,6 +11,8 @@ export enum MachineTypes {
   TWEMPROXY = 'twemproxy',
   INFLUXDB = 'influxdb',
   RIAK = 'riak',
+  BROKER = 'broker',
+  ZOOKEEPER = 'zookeeper',
 }
 export enum MachineTypes {
   REDIS = 'redis',
@@ -37,11 +39,7 @@ export enum MachineTypes {
   SQLSERVER_SINGLE = 'sqlserver_single',
 }
 export enum MachineTypes {
-  ZOOKEEPER = 'zookeeper',
-  PULSAR_ZOOKEEPER = 'pulsar_zookeeper',
-  PULSAR_BOOKKEEPER = 'pulsar_bookkeeper',
-}
-export enum MachineTypes {
-  BROKER = 'broker',
   PULSAR_BROKER = 'pulsar_broker',
+  PULSAR_BOOKKEEPER = 'pulsar_bookkeeper',
+  PULSAR_ZOOKEEPER = 'pulsar_zookeeper',
 }
