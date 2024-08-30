@@ -53,7 +53,9 @@
           v-db-console="'tendbCluster.clusterManage.export'"
           :ids="selectedIds"
           type="spider" />
-        <ClusterIpCopy :selected="selected" />
+        <ClusterIpCopy
+          v-db-console="'tendbCluster.clusterManage.batchCopy'"
+          :selected="selected" />
       </div>
       <DbSearchSelect
         :data="searchSelectData"
@@ -1023,7 +1025,7 @@
             { getOperations() }
             {
               renderDropdownOperations.length > 0
-                ? <MoreActionExtend>
+                ? <MoreActionExtend v-db-console="tendbCluster.clusterManage.moreOperation">
                     {{
                       default: () => renderDropdownOperations
                     }}

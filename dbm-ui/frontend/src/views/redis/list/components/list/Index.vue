@@ -104,7 +104,9 @@
           v-db-console="'redis.clusterManage.export'"
           :ids="selectedIds"
           type="redis" />
-        <ClusterIpCopy :selected="selected" />
+        <ClusterIpCopy
+          v-db-console="'redis.clusterManage.batchCopy'"
+          :selected="selected" />
       </div>
       <DbSearchSelect
         class="operations-right mb-16"
@@ -971,7 +973,9 @@
         return (
           <div class="operations">
             {getOperations()}
-            <MoreActionExtend class="ml-8">
+            <MoreActionExtend
+              v-db-console="redis.clusterManage.moreOperation"
+              class="ml-8">
               {{
                 default: () => <>
                   <bk-dropdown-item v-db-console="redis.clusterManage.getAccess">

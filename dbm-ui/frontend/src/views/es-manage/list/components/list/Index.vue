@@ -27,7 +27,9 @@
         :has-selected="hasSelected"
         :ids="selectedIds"
         type="es" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'es.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         class="mb16"
         :data="serachData"
