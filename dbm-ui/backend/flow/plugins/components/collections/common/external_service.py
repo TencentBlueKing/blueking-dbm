@@ -47,7 +47,7 @@ class ExternalService(BaseService):
         # 成功时调用回调函数
         success_callback = kwargs.get("success_callback_path")
         if success_callback:
-            func_module, func_name = success_callback.rsplit(",", 1)
+            func_module, func_name = success_callback.rsplit(".", 1)
             getattr(importlib.import_module(func_module), func_name)(
                 params=params, data=resp, kwargs=kwargs, global_data=global_data
             )
