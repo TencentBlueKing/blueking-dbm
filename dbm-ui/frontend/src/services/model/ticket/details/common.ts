@@ -20,6 +20,7 @@ export interface DetailClusters {
     alias: string;
     bk_biz_id: number;
     bk_cloud_id: number;
+    bk_cloud_name: string;
     cluster_type: string;
     cluster_type_name: string;
     creator: string;

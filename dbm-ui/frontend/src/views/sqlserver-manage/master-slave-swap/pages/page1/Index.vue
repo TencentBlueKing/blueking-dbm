@@ -69,6 +69,8 @@
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, { type PanelListType } from '@components/instance-selector/Index.vue';
@@ -82,7 +84,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.masterData && !firstRow.slaveData && !firstRow.clusterData;
+    return !firstRow.masterData && !firstRow.slaveData;
   };
 
   const tabListConfig = {
@@ -110,6 +112,27 @@
   });
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.map((item) =>
+        createRowData({
+          masterData: {
+            bk_host_id: item.master.bk_host_id,
+            bk_cloud_id: item.master.bk_cloud_id,
+            ip: item.master.ip,
+          },
+          slaveData: {
+            bk_host_id: item.slave.bk_host_id,
+            bk_cloud_id: item.slave.bk_cloud_id,
+            ip: item.slave.ip,
+          },
+          clusterIdList: item.cluster_ids,
+        }),
+      );
+    },
+  });
 
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {

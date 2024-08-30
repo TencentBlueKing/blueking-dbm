@@ -55,7 +55,6 @@
       bkHostId: number;
       ip: string;
       port: number;
-      instanceAddress: string;
       clusterId: number;
       dbModuleId: SqlServerHaInstanceModel['db_module_id'];
     };

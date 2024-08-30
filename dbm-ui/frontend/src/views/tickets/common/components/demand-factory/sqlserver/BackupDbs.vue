@@ -18,7 +18,7 @@
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('备份 DB 名')">
+    <!-- <BkTableColumn :label="t('备份 DB 名')">
       <template #default="{ data }: { data: RowData }">
         <BkTag
           v-for="dbName in data.db_list"
@@ -37,7 +37,7 @@
         </BkTag>
         <span v-if="data.ignore_db_list.length < 1">--</span>
       </template>
-    </BkTableColumn>
+    </BkTableColumn> -->
     <BkTableColumn :label="t('最终 DB')">
       <template #default="{ data }: { data: RowData }">
         <BkTag

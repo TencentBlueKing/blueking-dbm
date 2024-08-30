@@ -40,7 +40,7 @@
                   :is-loading="state.isLoading" />
                 <div class="mt-10">
                   <span>{{ t('备注') }}:</span>
-                  <span class="ml-5">{{ state.ticketData.remark }}</span>
+                  <span class="ml-5">{{ state.ticketData.remark || '--' }}</span>
                 </div>
               </DbCard>
             </Teleport>
@@ -51,8 +51,7 @@
               <FlowInfo
                 ref="flowInfoRef"
                 :data="state.ticketData"
-                @fetch-data="handleFetchData"
-                @mounted="handleFlowInfoMounted" />
+                @refresh="handleRefreshTicketData" />
             </DbCard>
           </template>
         </div>
@@ -180,8 +179,6 @@
     ],
   ];
 
-  let flowInit = false;
-
   watch(() => props.ticketId, () => {
     if (props.ticketId) {
       clearTimeout(myTicketsDetailTimer);
@@ -211,21 +208,11 @@
     }
   };
 
-  const handleFetchData = () => {
-    if (props.ticketId) {
-      fetchTicketDetails(props.ticketId);
-    }
+  const handleRefreshTicketData = () => {
+    fetchTicketDetails(props.ticketId);
   };
 
-  const handleFlowInfoMounted = () => {
-    if (flowInit) {
-      flowInfoRef.value!.fetchFlowData();
-      flowInit = false;
-    }
-  }
-
   onMounted(() => {
-    flowInit = true;
     window.addEventListener('keydown', exitFullscreen);
   });
 

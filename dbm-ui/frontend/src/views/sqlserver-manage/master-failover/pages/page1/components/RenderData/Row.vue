@@ -23,7 +23,7 @@
       <td style="padding: 0">
         <RenderSlave
           ref="slaveHostRef"
-          :cluster-list="relatedClusterList"
+          :cluster-list="localClusterIdList"
           :model-value="data.slaveData" />
       </td>
       <td style="padding: 0">
@@ -71,10 +71,7 @@
     rowKey: string;
     masterData?: IHostData;
     slaveData?: IHostData;
-    clusterData?: {
-      id: number;
-      domain: string;
-    };
+    clusterIdList: number[];
   }
 
   // 创建表格数据
@@ -82,7 +79,7 @@
     rowKey: random(),
     masterData: data.masterData,
     slaveData: data.slaveData,
-    clusterData: data.clusterData,
+    clusterIdList: data.clusterIdList || [],
   });
 </script>
 <script setup lang="ts">
@@ -109,7 +106,7 @@
 
   const localMasterData = shallowRef();
 
-  const relatedClusterList = shallowRef<number[]>([]);
+  const localClusterIdList = shallowRef<IDataRow['clusterIdList']>([]);
 
   watch(
     () => props.data,
@@ -126,7 +123,7 @@
   };
 
   const handleClusterChange = (data: number[]) => {
-    relatedClusterList.value = data;
+    localClusterIdList.value = data;
   };
 
   const handleAppend = () => {

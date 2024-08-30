@@ -92,11 +92,13 @@
   import _ from 'lodash';
   import { reactive, type UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { createTicket } from '@services/source/ticket';
+
+  import { useTicketCloneInfo } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
@@ -106,7 +108,12 @@
   import RenderDataRow, { createRowData, type IDataRow } from './components/render-data/Row.vue';
 
   const { t } = useI18n();
+  const route = useRoute();
   const router = useRouter();
+
+  const { ticketType: urlTicketType } = route.query as {
+    ticketType: TicketTypes.SQLSERVER_FULL_MIGRATE | TicketTypes.SQLSERVER_INCR_MIGRATE;
+  };
 
   const rowRefs = ref<InstanceType<typeof RenderDataRow>[]>();
   const isShowBatchSelector = ref(false);
@@ -116,7 +123,11 @@
     need_auto_rename: false,
   });
 
-  const ticketType = ref(TicketTypes.SQLSERVER_FULL_MIGRATE);
+  const ticketType = ref<typeof urlTicketType>(
+    [TicketTypes.SQLSERVER_FULL_MIGRATE, TicketTypes.SQLSERVER_INCR_MIGRATE].includes(urlTicketType)
+      ? urlTicketType
+      : TicketTypes.SQLSERVER_FULL_MIGRATE,
+  );
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
   const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
     [ClusterTypes.SQLSERVER_HA]: [],
@@ -131,6 +142,30 @@
     const [firstRow] = list;
     return !firstRow.srcClusterData && !firstRow.dstClusterData && !firstRow.dbList;
   };
+
+  useTicketCloneInfo({
+    type: ticketType.value,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.map((item) =>
+        createRowData({
+          srcClusterData: {
+            id: item.src_cluster.id,
+            domain: item.src_cluster.immute_domain,
+            cloudId: item.src_cluster.bk_cloud_id,
+            majorVersion: item.src_cluster.major_version,
+          },
+          dstClusterData: {
+            id: item.dst_cluster.id,
+            domain: item.dst_cluster.immute_domain,
+            cloudId: item.dst_cluster.bk_cloud_id,
+          },
+          dbList: item.db_list,
+          ignoreDbList: item.ignore_db_list,
+          renameInfos: [],
+        }),
+      );
+    },
+  });
 
   // 批量选择
   const handleShowBatchSelector = () => {

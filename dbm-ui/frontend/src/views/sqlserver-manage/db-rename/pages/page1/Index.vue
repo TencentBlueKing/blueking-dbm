@@ -66,6 +66,8 @@
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -95,6 +97,23 @@
     const [firstRow] = list;
     return !firstRow.clusterData && !firstRow.fromDatabase && !firstRow.toDatabase;
   };
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_DBRENAME,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.map((item) =>
+        createRowData({
+          clusterData: {
+            id: item.cluster.id,
+            domain: item.cluster.immute_domain,
+            cloudId: item.cluster.bk_cloud_id,
+          },
+          fromDatabase: item.from_database,
+          toDatabase: item.to_database,
+        }),
+      );
+    },
+  });
 
   // 批量选择
   const handleShowBatchSelector = () => {

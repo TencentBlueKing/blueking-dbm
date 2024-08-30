@@ -13,17 +13,30 @@
 
 <template>
   <div
-    class="render-element"
+    class="editabletable-element"
     :class="{
+      'is-focused': isFocus,
       'is-error': Boolean(errorMessage),
-    }">
+      'is-disabled': disabled,
+    }"
+    :disabled="disabled"
+    @mouseenter="handleMouseenter"
+    @mouseleave="handleMOouseleave">
+    <div
+      v-if="slots.prepend"
+      class="prepend-flag">
+      <slot name="prepend" />
+    </div>
     <div ref="rootRef">
       <slot />
     </div>
     <div
       v-if="isShowPlaceholder"
       class="placeholder"
-      style="color: #c4c6cc">
+      :style="{
+        color: '#c4c6cc',
+        paddingLeft: slots.prepend ? '18px' : 0,
+      }">
       {{ placeholder }}
     </div>
     <div
@@ -38,6 +51,12 @@
       class="append-flag">
       <slot name="append" />
     </div>
+    <div
+      v-if="value"
+      class="value-clear"
+      @click.stop="handleClear">
+      <DbIcon type="delete-fill" />
+    </div>
   </div>
 </template>
 <script setup lang="ts" generic="T extends any">
@@ -50,6 +69,11 @@
     rules?: Rules;
     value?: any;
     placeholder?: string;
+    disabled?: boolean;
+  }
+
+  interface Emits {
+    (e: 'clear'): void;
   }
 
   interface Exposes {
@@ -62,7 +86,10 @@
     placeholder: '请设置值',
   });
 
+  const emits = defineEmits<Emits>();
+
   const slots = defineSlots<{
+    prepend?: () => VNode | VNode[];
     default: () => VNode | VNode[];
     append?: () => VNode | VNode[];
   }>();
@@ -72,11 +99,24 @@
   const rootRef = ref<HTMLElement>();
 
   const isShowPlaceholder = ref(true);
+  const isFocus = ref(false);
 
   const calcShowPlaceholder = () => {
     nextTick(() => {
       isShowPlaceholder.value = !_.trim(rootRef.value!.innerText);
     });
+  };
+
+  const handleMouseenter = () => {
+    isFocus.value = true;
+  };
+
+  const handleMOouseleave = () => {
+    isFocus.value = false;
+  };
+
+  const handleClear = () => {
+    emits('clear');
   };
 
   onUpdated(() => {
@@ -93,12 +133,8 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .is-error {
-    background-color: #fff0f1 !important;
-  }
-
-  .render-element {
+<style lang="less">
+  .editabletable-element {
     position: relative;
     display: flex;
     min-height: 42px;
@@ -109,11 +145,26 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     align-items: center;
+    border: 1px solid transparent;
 
     &:hover {
-      .append-flag {
+      .append-flag,
+      .value-clear {
         display: flex;
       }
+    }
+
+    &.is-error {
+      background-color: #fff0f1 !important;
+    }
+
+    &.is-focused {
+      border: 1px solid #a3c5fd !important;
+    }
+
+    &.is-disabled {
+      cursor: not-allowed;
+      background: #fafbfd;
     }
 
     .input-error {
@@ -121,6 +172,7 @@
       top: 0;
       right: 0;
       bottom: 0;
+      z-index: 1;
       display: flex;
       padding-right: 10px;
       font-size: 14px;
@@ -144,15 +196,36 @@
       pointer-events: none;
     }
 
+    .prepend-flag {
+      display: flex;
+      width: 24px;
+      height: 100%;
+      align-items: center;
+    }
+
     .append-flag {
       position: absolute;
       right: 5px;
-      z-index: 999;
       display: none;
       width: 24px;
       height: 40px;
       align-items: center;
       cursor: pointer;
+    }
+
+    .value-clear {
+      position: absolute;
+      right: 5px;
+      display: none;
+      width: 24px;
+      height: 40px;
+      color: #c4c6cc;
+      cursor: pointer;
+      align-items: center;
+
+      &:hover {
+        color: #979ba5;
+      }
     }
   }
 </style>

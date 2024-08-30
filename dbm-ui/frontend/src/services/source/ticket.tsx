@@ -52,7 +52,7 @@ export function getTickets(
     offset?: number;
   } = {},
 ) {
-  return http.get<ListBase<TicketModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<TicketModel<unknown>[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new TicketModel(item)),
   }));
@@ -204,7 +204,7 @@ export function getTodoTickets(
     offset?: number;
   } = {},
 ) {
-  return http.get<ListBase<TicketModel[]>>(`${path}/get_todo_tickets/`, params).then((data) => ({
+  return http.get<ListBase<TicketModel<unknown>[]>>(`${path}/get_todo_tickets/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new TicketModel(item)),
   }));
@@ -221,12 +221,9 @@ export function getTicketDetails(
   payload = {} as IRequestPayload,
 ) {
   // 请求控制器取消前一个请求
-  window.PROJECT_CONFIG.TICKET_DETAIL_REQUEST_CONTROLLER?.abort();
-  window.PROJECT_CONFIG.TICKET_DETAIL_REQUEST_CONTROLLER = new AbortController();
   return http
-    .get<TicketModel>(`${path}/${params.id}/`, params, {
+    .get<TicketModel<unknown>>(`${path}/${params.id}/`, params, {
       ...payload,
-      signal: window.PROJECT_CONFIG.TICKET_DETAIL_REQUEST_CONTROLLER.signal,
     })
     .then((data) => new TicketModel(data));
 }

@@ -23,18 +23,18 @@
       <td style="padding: 0">
         <RenderDbName
           ref="fromDatabaseRef"
+          v-model="localFromDatabase"
           check-not-exist
           :cluster-id="localClusterData?.id"
-          :model-value="localFromDatabase"
           :placeholder="$t('请输入单个源 DB 名')"
           single />
       </td>
       <td style="padding: 0">
         <RenderDbName
           ref="toDatabaseRef"
+          v-model="localToDatabase"
           check-exist
           :cluster-id="localClusterData?.id"
-          :model-value="localToDatabase"
           :placeholder="$t('请输入单个新 DB 名')"
           single />
       </td>

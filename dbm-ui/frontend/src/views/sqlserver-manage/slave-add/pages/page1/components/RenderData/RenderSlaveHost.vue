@@ -12,13 +12,19 @@
 -->
 
 <template>
-  <TableEditInput
-    ref="inputRef"
-    v-model="localIpText"
-    :disabled="disabled"
-    :placeholder="t('请输入单个 IP')"
-    :rules="rules"
-    textarea />
+  <span
+    v-bk-tooltips="{
+      content: disableTips,
+      disabled: !disableTips,
+    }">
+    <TableEditInput
+      ref="inputRef"
+      v-model="localIpText"
+      :disabled="Boolean(disableTips)"
+      :placeholder="t('请输入单个 IP')"
+      :rules="rules"
+      textarea />
+  </span>
 </template>
 <script lang="ts">
   const instanceKey = `slave_host_${random()}`;
@@ -31,23 +37,19 @@
 
   import { getHostTopoInfos } from '@services/source/ipchooser';
 
-  import { useGlobalBizs } from '@stores';
-
   import { ipv4 } from '@common/regex';
 
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
-  import type { IHostData } from './Row.vue';
+  import type { IDataRow, IHostData } from './Row.vue';
 
   type HostTopoInfo = ServiceReturnType<typeof getHostTopoInfos>['hosts_topo_info'][number];
 
   interface Props {
     modelValue?: IHostData;
-    domain?: string;
-    disabled: boolean;
-    cloudId: null | number;
+    clusterData?: IDataRow['clusterData'];
   }
 
   interface Exposes {
@@ -58,11 +60,12 @@
 
   const genHostKey = (hostData: HostTopoInfo) => `#${hostData.bk_cloud_id}#${hostData.ip}`;
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const inputRef = ref();
   const localIpText = ref('');
+
+  const disableTips = computed(() => (props.clusterData ? '' : t('请先选择集群')));
 
   let hostMemo = {} as HostTopoInfo;
 
@@ -78,17 +81,17 @@
             bk_host_innerip: [value],
             mode: 'idle_only',
           },
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           const [newHost] = data.hosts_topo_info;
           if (!newHost) {
             return t('ips不在空闲机中', { ips: value });
           }
 
-          if (newHost.bk_cloud_id !== props.cloudId) {
+          if (newHost.bk_cloud_id !== props.clusterData!.cloudId) {
             return t('新主机xx跟目标集群xx须在同一个管控区域', {
               ip: value,
-              cluster: props.domain,
+              cluster: props.clusterData!.domain,
             });
           }
 
@@ -137,7 +140,7 @@
   defineExpose<Exposes>({
     getValue() {
       const formatHost = (item: HostTopoInfo) => ({
-        bk_biz_id: currentBizId,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_host_id: item.bk_host_id,
         bk_cloud_id: item.bk_cloud_id,
         ip: item.ip,

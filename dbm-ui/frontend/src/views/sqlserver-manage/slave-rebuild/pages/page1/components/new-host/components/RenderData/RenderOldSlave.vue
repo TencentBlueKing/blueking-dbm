@@ -41,7 +41,6 @@
         ip: string;
         bk_host_id: number;
         port: number;
-        instance_address: string;
       };
     }>;
   }
@@ -78,7 +77,6 @@
             bkHostId: instanceData.bk_host_id,
             ip: instanceData.ip,
             port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
             clusterId: instanceData.cluster_id,
             dbModuleId: instanceData.db_module_id,
           };
@@ -118,7 +116,6 @@
             ip: modelValue.value.ip,
             bk_host_id: modelValue.value.bkHostId,
             port: modelValue.value.port,
-            instance_address: modelValue.value.instanceAddress,
           },
         };
       });

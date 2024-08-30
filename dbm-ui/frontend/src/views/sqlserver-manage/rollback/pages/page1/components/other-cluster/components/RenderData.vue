@@ -32,8 +32,8 @@
         {{ t('目标集群') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
-        :min-width="350"
-        :width="350">
+        :min-width="400"
+        :width="400">
         {{ t('回档类型') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>

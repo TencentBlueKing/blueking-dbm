@@ -47,16 +47,6 @@
           ref="editorRef"
           style="height: 100%" />
       </template>
-      <template #aside>
-        <SyntaxChecking
-          v-if="isChecking"
-          class="syntax-checking" />
-        <RenderMessageList
-          v-else
-          v-model="isMessageListFolded"
-          class="editor-error"
-          :data="messageList" />
-      </template>
     </BkResizeLayout>
   </div>
 </template>
@@ -65,92 +55,29 @@
   import screenfull from 'screenfull';
   import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
-  import { grammarCheck } from '@services/source/mysqlSqlImport';
-
   import { getSQLFilename } from '@utils';
-
-  import RenderMessageList, { type IMessageList } from './MessageList.vue';
-  import SyntaxChecking from './SyntaxChecking.vue';
 
   interface Props {
     modelValue: string;
     title: string;
-    readonly?: boolean;
   }
 
-  interface Emits {
-    (e: 'update:modelValue', value: string): void;
-    (e: 'change', value: string): void;
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    readonly: false,
-    messageList: () => [],
-    syntaxChecking: false,
-  });
-
-  const emits = defineEmits<Emits>();
-
-  const handleGrammarCheck = () => {
-    isChecking.value = true;
-    const params = new FormData();
-    params.append('sql_content', props.modelValue);
-    grammarCheck(params)
-      .then((data) => {
-        const grammarCheckData = data;
-        if (!grammarCheckData) {
-          return;
-        }
-
-        const [checkResult] = Object.values(grammarCheckData);
-        messageList.value = checkResult.messageList;
-        if (checkResult.messageList.length > 0) {
-          isMessageListFolded.value = false;
-        }
-      })
-      .finally(() => {
-        isChecking.value = false;
-      });
-  };
+  const props = defineProps<Props>();
 
   const rootRef = ref();
   const editorRef = ref();
   const isFullscreen = ref(false);
   const isMessageListFolded = ref(true);
-  const isChecking = ref(true);
   const resizeLayoutInitialDivide = ref(0);
-  const messageList = ref<IMessageList>([]);
 
   let editor: monaco.editor.IStandaloneCodeEditor;
 
   watch(
     () => props.modelValue,
     () => {
-      if (!props.modelValue) {
-        return;
-      }
-
-      handleGrammarCheck();
       setTimeout(() => {
-        if (props.modelValue !== editor.getValue()) {
-          editor.setValue(props.modelValue);
-          isMessageListFolded.value = true;
-        }
+        editor.setValue(props.modelValue);
       });
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    isMessageListFolded,
-    () => {
-      if (isMessageListFolded.value && messageList.value.length === 0) {
-        resizeLayoutInitialDivide.value = 0;
-        return;
-      }
-      resizeLayoutInitialDivide.value = Math.min(24 + messageList.value.length * 24, 200);
     },
     {
       immediate: true,
@@ -194,7 +121,7 @@
     editor = monaco.editor.create(editorRef.value, {
       language: 'sql',
       theme: 'vs-dark',
-      readOnly: props.readonly,
+      readOnly: true,
       minimap: {
         enabled: false,
       },
@@ -203,11 +130,6 @@
         alwaysConsumeMouseWheel: false,
       },
       automaticLayout: true,
-    });
-    editor.onDidChangeModelContent(() => {
-      const value = editor.getValue();
-      emits('update:modelValue', value);
-      emits('change', value);
     });
     screenfull.on('change', handleToggleScreenfull);
     window.addEventListener('resize', handleReize);

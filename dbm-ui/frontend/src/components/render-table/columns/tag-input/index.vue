@@ -137,7 +137,7 @@
   };
 
   const handleBlur = () => {
-    // isFocus.value = false;
+    isFocus.value = false;
   };
 
   onMounted(() => {

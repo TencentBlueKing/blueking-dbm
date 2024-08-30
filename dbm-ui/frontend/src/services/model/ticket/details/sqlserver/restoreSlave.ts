@@ -18,5 +18,6 @@ export interface RestoreSlave extends DetailBase {
       ip: string;
       port: number;
     };
+    system_version: string;
   }[];
 }
