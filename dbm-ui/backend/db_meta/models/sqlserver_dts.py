@@ -99,7 +99,7 @@ class SqlserverDtsInfo(AuditedModel):
                     DtsStatus.IncrOnline,
                 ]
             )
-        )
+        ).exclude(ticket_id=ticket_id)
         for dts_info in dts_infos:
             raise ClusterExclusiveOperateException(
                 _("当前操作「{}(单据：{})」与迁移记录(关联单据：{})存在执行互斥").format(
