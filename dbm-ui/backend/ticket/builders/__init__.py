@@ -129,39 +129,22 @@ class ItsmParamBuilder(CallBackBuilderMixin):
     def get_params(self):
         self.format()
         # clusters只是为了给服务单详情展示的信息，不需要在单据中体现
-        self.details.pop("clusters", None)
+        cluster_domains = [cluster["immute_domain"] for cluster in self.details.pop("clusters", {}).values()]
         service_id = SystemSettings.get_setting_value(SystemSettingsEnum.BK_ITSM_SERVICE_ID.value)
-        title = self.ticket.get_ticket_type_display()
+        title = _("【DBM单据审批】{}").format(self.ticket.get_ticket_type_display())
         app = AppCache.objects.get(bk_biz_id=self.ticket.bk_biz_id)
         params = {
             "service_id": service_id,
             "creator": self.ticket.creator,
             "fields": [
                 {"key": "title", "value": title},
-                {"key": "bk_biz_id", "value": self.ticket.bk_biz_id},
+                {"key": "app", "value": f"{app.bk_biz_name}(#{app.bk_biz_id}, {app.db_app_abbr})"},
+                {"key": "domain", "value": "\n".join(cluster_domains)},
+                {"key": "summary", "value": self.ticket.remark},
                 {"key": "approver", "value": self.get_approvers()},
-                {
-                    "key": "summary",
-                    "value": _("{creator}提交了{title}的单据，请查看详情后进行审批").format(creator=self.ticket.creator, title=title),
-                },
+                {"key": "ticket_url", "value": f"{self.ticket.url}&isFullscreen=true"},
             ],
-            "dynamic_fields": [
-                {
-                    "name": _("单据链接"),
-                    "type": "LINK",
-                    "value": self.ticket.url,
-                },
-                {
-                    "name": _("需求信息"),
-                    "type": "LINK",
-                    "value": f"{self.ticket.url}&isFullscreen=true",
-                },
-                {
-                    "name": _("业务名"),
-                    "type": "STRING",
-                    "value": f"{app.bk_biz_name}(#{app.bk_biz_id}, {app.db_app_abbr})",
-                },
-            ],
+            "dynamic_fields": [],
             "meta": {
                 "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/tickets/{self.ticket.id}/callback/",
                 "state_processors": {},

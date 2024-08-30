@@ -22,7 +22,6 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_services.dbpermission.constants import AUTHORIZE_DATA_EXPIRE_TIME, AccountType
 from backend.db_services.dbpermission.db_authorize.dataclass import AuthorizeMeta, ExcelAuthorizeMeta
-from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 from backend.utils.cache import data_cache
 from backend.utils.excel import ExcelHandler
 
@@ -195,8 +194,7 @@ class AuthorizeHandler(object):
         # 单据走来的excel下载
         if excel_authorize.ticket_id:
             excel_name = "authorize_results.xlsx"
-            record_queryset = AuthorizeRecord.get_authorize_records_by_ticket(excel_authorize.ticket_id)
-            excel_data_dict__list = self.authorize_meta.serializer_record_data(record_queryset)
+            excel_data_dict__list = self.authorize_meta.serializer_record_data(excel_authorize.ticket_id)
 
         # 授权ID走来的excel下载
         if excel_authorize.authorize_uid:

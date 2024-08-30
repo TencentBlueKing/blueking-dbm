@@ -19,9 +19,10 @@ from iam.resource.utils import FancyDict
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_services.dbpermission.constants import DPRIV_PARAMETER_MAP, AccountType
+from backend.db_services.dbpermission.constants import DPRIV_PARAMETER_MAP, AccountType, RuleActionType
 from backend.db_services.dbpermission.db_account.dataclass import AccountMeta, AccountRuleMeta
 from backend.db_services.dbpermission.db_account.signals import create_account_signal
+from backend.db_services.dbpermission.db_authorize.models import DBRuleActionLog
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
 
@@ -141,6 +142,7 @@ class AccountHandler(object):
                 "dbname": account_rule.access_db,
             }
         )
+        # DBRuleActionLog.create_log(account_rule, self.operator, action=RuleActionType.CHANGE)
         return resp
 
     def query_account_rules(self, account_rule: AccountRuleMeta):
@@ -205,7 +207,6 @@ class AccountHandler(object):
         - 修改账号规则
         :param account_rule: 账号规则元信息
         """
-
         resp = DBPrivManagerApi.modify_account_rule(
             {
                 "bk_biz_id": self.bk_biz_id,
@@ -217,6 +218,7 @@ class AccountHandler(object):
                 "priv": account_rule.privilege,
             }
         )
+        DBRuleActionLog.create_log(account_rule, self.operator, action=RuleActionType.CHANGE)
         return resp
 
     def delete_account_rule(self, account_rule: AccountRuleMeta) -> Optional[Any]:
@@ -237,6 +239,7 @@ class AccountHandler(object):
                 "id": [account_rule.rule_id],
             }
         )
+        DBRuleActionLog.create_log(account_rule, self.operator, action=RuleActionType.DELETE)
         return resp
 
     @classmethod

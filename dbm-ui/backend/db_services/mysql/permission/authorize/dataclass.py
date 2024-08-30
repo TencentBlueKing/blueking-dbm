@@ -10,59 +10,24 @@ specific language governing permissions and limitations under the License.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict
 
-from backend.db_services.dbpermission.constants import EXCEL_DIVIDER, AuthorizeExcelHeader
 from backend.db_services.dbpermission.db_authorize.dataclass import AuthorizeMeta as BaseAuthorizeMeta
 from backend.db_services.dbpermission.db_authorize.dataclass import ExcelAuthorizeMeta as BaseExcelAuthorizeMeta
-from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 
 
 @dataclass
 class MySQLAuthorizeMeta(BaseAuthorizeMeta):
     """授权元信息的数据模型"""
 
-    @classmethod
-    def from_excel_data(cls, excel_data: Dict, cluster_type: str) -> "MySQLAuthorizeMeta":
-        """从权限excel数据解析为AuthorizeMeta"""
-        return cls(
-            user=excel_data[AuthorizeExcelHeader.USER],
-            access_dbs=excel_data[AuthorizeExcelHeader.ACCESS_DBS].split(EXCEL_DIVIDER),
-            source_ips=MySQLExcelAuthorizeMeta.format_ip(excel_data[AuthorizeExcelHeader.SOURCE_IPS]),
-            target_instances=excel_data[AuthorizeExcelHeader.TARGET_INSTANCES].split(EXCEL_DIVIDER),
-            cluster_type=cluster_type,
-        )
-
-    @classmethod
-    def serializer_record_data(cls, record_queryset: List[AuthorizeRecord]) -> List[Dict]:
-        """从授权记录解析为data数据"""
-        record_data_list = [
-            {
-                AuthorizeExcelHeader.USER: record.user,
-                AuthorizeExcelHeader.SOURCE_IPS: record.source_ips,
-                AuthorizeExcelHeader.TARGET_INSTANCES: record.target_instances,
-                AuthorizeExcelHeader.ACCESS_DBS: record.access_dbs,
-                AuthorizeExcelHeader.ERROR: record.error,
-            }
-            for record in record_queryset
-        ]
-        return record_data_list
+    pass
 
 
 @dataclass
 class MySQLExcelAuthorizeMeta(BaseExcelAuthorizeMeta):
     """excel授权信息的数据模型"""
 
-    @classmethod
-    def serialize_excel_data(cls, data: Dict) -> Dict:
-        """将数据解析为权限excel data类的数据"""
-        return {
-            AuthorizeExcelHeader.USER: data["user"],
-            AuthorizeExcelHeader.SOURCE_IPS: EXCEL_DIVIDER.join(data["source_ips"]),
-            AuthorizeExcelHeader.TARGET_INSTANCES: EXCEL_DIVIDER.join(data["target_instances"]),
-            AuthorizeExcelHeader.ACCESS_DBS: EXCEL_DIVIDER.join([rule["dbname"] for rule in data["account_rules"]]),
-            AuthorizeExcelHeader.ERROR: data["message"],
-        }
+    pass
 
 
 @dataclass

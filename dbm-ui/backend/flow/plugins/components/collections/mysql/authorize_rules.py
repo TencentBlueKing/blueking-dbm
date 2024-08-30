@@ -19,7 +19,6 @@ from pipeline.core.flow.activity import Service
 from backend import env
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.configuration.constants import DBType
-from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.constants import TicketType
 
@@ -62,15 +61,6 @@ class AuthorizeRules(BaseService):
         authorize_success_count: int = 0
 
         for authorize_data in authorize_data_list:
-            # 将授权信息存入record
-            record = AuthorizeRecord(
-                ticket_id=ticket_id,
-                user=authorize_data["user"],
-                source_ips=",".join(authorize_data["source_ips"]),
-                target_instances=",".join(authorize_data["target_instances"]),
-                access_dbs=",".join(authorize_data["access_dbs"]),
-            )
-
             # 生成规则描述
             rules_description = self._generate_rule_desc(authorize_data)
             self.log_info(_("授权规则明细:\n{}\n").format(rules_description))
@@ -80,18 +70,17 @@ class AuthorizeRules(BaseService):
                 resp = DBPrivManagerApi.authorize_rules(
                     params=authorize_data, raw=True, timeout=DBPrivManagerApi.TIMEOUT
                 )
-                record.status = int(resp["code"]) == 0
-                authorize_success_count += record.status
-                record.error = resp["message"]
+                if int(resp["code"]) == 0:
+                    authorize_success_count += 1
+                authorize_results = resp["message"]
                 self.log_info(f"{resp['message']}\n")
-
             except Exception as e:  # pylint: disable=broad-except
-                record.status = False
                 error_message = getattr(e, "message", None) or e
-                record.error = _("「授权接口调用异常」{}").format(error_message)
-                self.log_error(_("授权异常，相关信息: {}\n").format(record.error))
+                authorize_results = _("「授权接口调用异常」{}").format(error_message)
+                self.log_error(_("授权异常，相关信息: {}\n").format(authorize_results))
 
-            record.save()
+            # 作为结果输出到flow
+            self.set_flow_output(root_id=kwargs.get("root_id"), key="authorize_results", value=authorize_results)
 
         # 授权结果汇总
         overall_result = authorize_success_count == len(authorize_data_list)
