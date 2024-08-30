@@ -25,7 +25,9 @@
         v-db-console="'pulsar.clusterManage.export'"
         :ids="selectedIds"
         type="pulsar" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'pulsar.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"
