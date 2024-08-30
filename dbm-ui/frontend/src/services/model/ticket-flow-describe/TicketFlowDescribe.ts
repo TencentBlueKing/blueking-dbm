@@ -45,6 +45,11 @@ export default class TicketFlowDescribe {
     return utcDisplayTime(this.update_at);
   }
 
+  // 是否内置目标
+  get isDefaultTarget() {
+    return this.bk_biz_id === 0;
+  }
+
   // 是否自定义目标
   get isCustomTarget() {
     return this.bk_biz_id !== 0;
@@ -52,9 +57,15 @@ export default class TicketFlowDescribe {
 
   // 是否集群目标
   get isClusterTarget() {
-    return this.cluster_ids.length > 0;
+    return this.isCustomTarget && this.cluster_ids.length > 0;
   }
 
+  // 是否为业务全部目标
+  get isCurrentBizTarget() {
+    return this.isCustomTarget && !this.isClusterTarget;
+  }
+
+  // 集群列表
   get clusterDomainList() {
     return this.clusters.map((cluster) => cluster.immute_domain);
   }

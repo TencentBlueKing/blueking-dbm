@@ -7,6 +7,7 @@
         'is-error': Boolean(errorMessage),
       }"
       :clearable="false"
+      :disabled="disabled"
       filterable
       :input-search="false"
       @change="handleChange">
@@ -43,6 +44,10 @@
 
   import useValidtor from '@components/render-table/hooks/useValidtor';
 
+  interface Props {
+    disabled: boolean;
+  }
+
   interface Emits {
     (e: 'change', value: number): void;
     (e: 'add'): void;
@@ -51,6 +56,10 @@
   interface Exposes {
     getValue: () => Promise<number>;
   }
+
+  withDefaults(defineProps<Props>(), {
+    disabled: false,
+  });
 
   const emits = defineEmits<Emits>();
 
