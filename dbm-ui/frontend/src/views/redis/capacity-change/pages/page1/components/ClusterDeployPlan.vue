@@ -510,7 +510,7 @@
           qps: row.qps,
           storage_spec: row.storage_spec
         },
-        groupNum: updateInfo.require_machine_group_num,
+        groupNum: row.machine_pair,
         requireMachineGroupNum: updateInfo.require_machine_group_num,
         shardNum: row.cluster_shard_num,
         updateMode: updateInfo.capacity_update_type

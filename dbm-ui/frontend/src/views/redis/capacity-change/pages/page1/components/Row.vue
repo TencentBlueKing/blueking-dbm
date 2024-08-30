@@ -22,7 +22,7 @@
     </td>
     <td style="padding: 0">
       <RenderText
-        :data="data.cluster_type_name"
+        :data="data.clusterTypeName"
         :is-loading="data.isLoading"
         :placeholder="t('选择集群后自动生成')" />
     </td>
@@ -86,7 +86,7 @@
     targetCluster: string;
     clusterId: number;
     bkCloudId: number;
-    cluster_type_name: string;
+    clusterTypeName: string;
     clusterStats: RedisModel['cluster_stats'];
     shardNum?: number;
     groupNum?: number;
@@ -131,7 +131,7 @@
     targetCluster: '',
     clusterId: 0,
     bkCloudId: 0,
-    cluster_type_name: '',
+    clusterTypeName: '',
     clusterStats: {} as IDataRow['clusterStats'],
   });
 </script>
