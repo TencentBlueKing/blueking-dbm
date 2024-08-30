@@ -53,7 +53,7 @@
   const columns = [
     {
       label: t('目标集群'),
-      field: 'cluster_name',
+      field: 'master_domain',
       showOverflowTooltip: true,
     },
     {
@@ -157,7 +157,7 @@
             title: t('机器组数'),
             render: () => (
               <>
-                <span>{data.group_num }</span>
+                <span>{data.group_num}</span>
                 <ValueDiff
                   currentValue={data.machine_pair_cnt}
                   show-rate={false}

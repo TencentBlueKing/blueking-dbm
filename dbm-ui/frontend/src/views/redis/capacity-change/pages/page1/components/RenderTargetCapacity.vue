@@ -215,7 +215,7 @@
       return Promise.resolve({
         shard_num: props.rowData!.shardNum, // localValue.value.cluster_shard_num,
         group_num: localValue.value.machine_pair,
-        capacity: props.rowData?.currentCapacity?.total ?? 1,
+        capacity: futureCapacity.value ?? 1,
         future_capacity: futureCapacity.value ?? 1,
         update_mode: targetObj.value?.updateMode,
         resource_spec: {
