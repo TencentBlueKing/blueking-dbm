@@ -64,6 +64,7 @@ ROUTING_WHITELIST_PATTERNS = [
     r"/apis/monitor/grafana/get_dashboard/",
     # 制品库
     r"/apis/core/storage/create_bkrepo_access_token/",
+    r"/apis/core/storage/generic/temporary/download/*",
     r"/apis/generic/temporary/download/*",
 ]
 
