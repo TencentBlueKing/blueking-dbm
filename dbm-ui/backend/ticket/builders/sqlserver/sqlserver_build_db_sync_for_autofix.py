@@ -60,3 +60,5 @@ class SQLServerClearFlowBuilder(BaseSQLServerTicketFlowBuilder):
     inner_flow_builder = SQLServerClearFlowParamBuilder
     inner_flow_name = _("SQLServer 同步数据")
     retry_type = FlowRetryType.MANUAL_RETRY
+    default_need_itsm = False
+    default_need_manual_confirm = False
