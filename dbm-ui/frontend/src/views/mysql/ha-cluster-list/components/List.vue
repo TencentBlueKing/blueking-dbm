@@ -59,7 +59,9 @@
         v-db-console="'mysql.haClusterList.export'"
         :ids="selectedIds"
         type="tendbha" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'mysql.haClusterList.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -786,7 +788,7 @@
               { t('导出数据') }
             </auth-button>
           </OperationBtnStatusTips>
-          <MoreActionExtend>
+          <MoreActionExtend v-db-console="mysql.haClusterList.moreOperation">
             {{
               default: () => <>
                 {isShowDumperEntry.value && (
