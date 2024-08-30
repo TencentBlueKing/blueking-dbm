@@ -14,7 +14,6 @@ import (
 	"bufio"
 	"context"
 	"database/sql"
-	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"fmt"
 	"os"
 	"path"
@@ -24,6 +23,7 @@ import (
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"

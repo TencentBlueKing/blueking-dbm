@@ -11,11 +11,11 @@
 package spiderctl
 
 import (
-	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"errors"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )

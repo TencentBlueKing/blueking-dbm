@@ -366,6 +366,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     Deploy = EnumField("deploy", _("deploy"))
     AppendDeploy = EnumField("append-deploy", _("append-deploy"))
     ImportSchemaToTdbctl = EnumField("import-schema-to-tdbctl", _("import-schema-to-tdbctl"))
+    CheckTdbctlWithSpiderSchema = EnumField("check-tdbctl-with-spider-schema", _("icheck-tdbctl-with-spider-schema"))
     GetBackupFile = EnumField("find-local-backup", _("find-local-backup"))
     RestoreSlave = EnumField("restore-dr", _("restore-dr"))
     RecoverBinlog = EnumField("recover-binlog", _("recover-binlog"))
