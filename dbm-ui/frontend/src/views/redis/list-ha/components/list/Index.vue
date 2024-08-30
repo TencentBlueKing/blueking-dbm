@@ -68,7 +68,9 @@
         <DropdownExportExcel
           :ids="selectedIds"
           type="redis" />
-        <ClusterIpCopy :selected="selected" />
+        <ClusterIpCopy
+          v-db-console="'redis.haClusterManage.batchCopy'"
+          :selected="selected" />
       </div>
       <DbSearchSelect
         class="operations-right mb-16"
@@ -172,6 +174,7 @@
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
+  import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -895,7 +898,9 @@
         return (
           <div class="operations-box">
             {getOperations()}
-            <MoreActionExtend class="ml-8">
+            <MoreActionExtend
+              v-db-console="redis.haClusterManage.moreOperation"
+              class="ml-8">
               {{
                 default: () => <>
                   <bk-dropdown-item v-db-console="redis.haClusterManage.getAccess">
