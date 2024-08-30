@@ -52,7 +52,12 @@
                 {{ data.ticket_type_display }}
                 <template #append>
                   <BkButton
+                    v-bk-tooltips="{
+                      content: t('已经存在两条生效策略时 ，禁用【追加配置】'),
+                      disabled: data.rowSpan === 1,
+                    }"
                     class="append-config-btn"
+                    :disabled="data.rowSpan > 1"
                     size="small"
                     @click="(event: PointerEvent) => handleShowAppendConfig(data, event)">
                     {{ t('追加配置') }}
@@ -66,16 +71,11 @@
             :width="200">
             <template #default="{ data }">
               <RenderRow
-                v-if="data.isCustomTarget"
+                v-if="data.isClusterTarget"
                 :data="data.clusterDomainList"
                 show-all>
                 <template #prepend>
-                  <span
-                    v-if="data.isClusterTarget"
-                    class="mr-4">
-                    {{ t('集群') }} :
-                  </span>
-                  <span v-else>{{ t('业务下全部对象') }}</span>
+                  <span class="mr-4"> {{ t('集群') }} : </span>
                 </template>
                 <template #append>
                   <BkTag
@@ -100,6 +100,14 @@
                 {{ t('业务下全部对象') }}
                 <template #append>
                   <BkTag
+                    v-if="data.isCustomTarget"
+                    class="ml-4"
+                    size="small"
+                    theme="success">
+                    {{ t('自定义') }}
+                  </BkTag>
+                  <BkTag
+                    v-else
                     class="ml-4"
                     size="small">
                     {{ t('内置') }}
@@ -316,20 +324,30 @@
       pagination.value.count = data.count;
       const resultsMap = _.groupBy(data.results, 'ticket_type');
       allTableData.value = Object.values(resultsMap).flatMap(values => {
-        const rowSpan = values.length;
-        return values
-          .map(item => ({
-            ..._.cloneDeep(item),
-            updateAtDisplay: item.updateAtDisplay,
-            isCustomTarget: item.isCustomTarget,
-            isClusterTarget: item.isClusterTarget,
-            clusterDomainList: item.clusterDomainList,
-            // 多个目标时，将内置目标隐藏
-            hidden: rowSpan > 1 && !item.isCustomTarget,
-            // 多个目标时，将rowSpan-1
-            rowSpan: rowSpan > 1 ? rowSpan - 1 : 1,
-          }))
-          .filter(item => !item.hidden);
+        const hasCurrentBizTarget = values.some((item) => item.isCurrentBizTarget);
+        const rows = values.reduce<TicketFlowDescribeModel[]>((acc, item) => {
+          // 1、存在多条生效策略
+          // 2、存在业务全部目标
+          // 3、满足前两条，且当前为内置目标，隐藏内置目标
+          const isHidden = values.length > 1 && hasCurrentBizTarget && item.isDefaultTarget;
+          if (!isHidden) {
+            acc.push(item);
+          }
+          return acc;
+        }, []);
+        rows.sort((_, b) => b.isClusterTarget ? 1 : -1);// 集群目标排前面;
+
+        const result = rows.map((item) => ({
+          ..._.cloneDeep(item),
+          updateAtDisplay: item.updateAtDisplay,
+          isDefaultTarget: item.isDefaultTarget,
+          isCustomTarget: item.isCustomTarget,
+          isClusterTarget: item.isClusterTarget,
+          isCurrentBizTarget: item.isCurrentBizTarget,
+          clusterDomainList: item.clusterDomainList,
+          rowSpan: rows.length
+        }));
+        return result;
       });
       isAnomalies.value = false;
     },
@@ -405,7 +423,7 @@
     const cloneData = _.cloneDeep(data);
     if (!isEdit) {
       appendConfig.data = Object.assign(cloneData, {
-        bk_biz_id: 0,
+        bk_biz_id: currentBizId,
         cluster_ids: [],
         configs: {
           need_itsm: false,

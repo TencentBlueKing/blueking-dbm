@@ -13,6 +13,7 @@
       <SelectBiz
         ref="selectBizRef"
         v-model="currentBizId"
+        disabled
         @add="showSelectClusters = true"
         @change="handleChangeBizId" />
       <SelectClusters

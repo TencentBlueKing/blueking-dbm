@@ -92,7 +92,7 @@
 
   const targetData = computed(() => ({
     dbType: (props.data.group as DBTypes) || DBTypes.MYSQL,
-    bizId: props.data.bk_biz_id || 0,
+    bizId: props.data.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
     clusterIds: props.data.cluster_ids || [],
   }));
 
