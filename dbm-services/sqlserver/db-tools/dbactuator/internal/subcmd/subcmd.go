@@ -140,7 +140,6 @@ func (b *BaseOptions) DeserializeAndValidate(s interface{}) (err error) {
 		logger.Warn("env parse error, ignore environment variables for payload:%s", err.Error())
 		// env: expected a pointer to a Struct
 	}
-	defer logger.Info("payload parsed: %+v", s)
 	if err = json.Unmarshal(bp, s); err != nil {
 		logger.Error("json.Unmarshal failed, %v", s, err)
 		return
