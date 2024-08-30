@@ -63,9 +63,7 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
-  import { queryClusters } from '@services/source/mysqlCluster';
-
-  import { useGlobalBizs } from '@stores';
+  import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
 
@@ -78,7 +76,6 @@
 
   defineProps<Props>();
 
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const modelValue = defineModel<number[]>({
@@ -160,11 +157,9 @@
 
   const fetchClusterData = (clusterIds: number[]) => {
     isLoading.value = true;
-    queryClusters({
-      cluster_filters: clusterIds.map(id => ({
-        id,
-      })),
-      bk_biz_id: currentBizId,
+    filterClusters<TendbhaModel>({
+      cluster_ids: clusterIds.join(','),
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     })
       .then((data) => {
         targetClusterList.value = data;

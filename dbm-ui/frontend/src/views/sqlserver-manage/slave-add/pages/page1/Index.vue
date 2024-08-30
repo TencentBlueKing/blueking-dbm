@@ -70,6 +70,8 @@
   import { getHaClusterList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -109,6 +111,23 @@
   const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
     [ClusterTypes.SQLSERVER_HA]: [],
     [ClusterTypes.SQLSERVER_SINGLE]: [],
+  });
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_ADD_SLAVE,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.map((item) =>
+        createRowData({
+          clusterData: {
+            id: item.clusters[0].id,
+            domain: item.clusters[0].immute_domain,
+            cloudId: item.clusters[0].bk_cloud_id,
+          },
+          newSlaveHost: item.new_slave_host,
+        }),
+      );
+      console.log(' tableData = ', tableData);
+    },
   });
 
   // 批量选择

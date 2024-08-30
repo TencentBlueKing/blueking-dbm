@@ -66,6 +66,8 @@
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector from '@components/instance-selector/Index.vue';
@@ -79,7 +81,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.masterData && !firstRow.slaveData && !firstRow.clusterData;
+    return !firstRow.masterData && !firstRow.slaveData;
   };
 
   const router = useRouter();
@@ -93,6 +95,17 @@
   });
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.map((item) =>
+        createRowData({
+          masterData: item.master,
+        }),
+      );
+    },
+  });
 
   // Master 批量选择
   const handleShowMasterBatchSelector = () => {

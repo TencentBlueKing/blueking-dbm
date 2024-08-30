@@ -34,10 +34,10 @@
     <InfoItem :label="t('执行时间:')">
       {{ ticketDetails.details.ticket_mode.trigger_time }}
     </InfoItem>
-    <InfoItem :label="t('目标集群:')">
-      <BkTable
-        :data="targetClusterData"
-        style="width: 800px">
+    <InfoItem
+      :label="t('目标集群:')"
+      style="flex: 1 0 100%">
+      <BkTable :data="targetClusterData">
         <BkTableColumn :label="t('集群')">
           <template #default="{ data }: { data: TargerCluster }">
             {{ ticketDetails.details.clusters[data.id].immute_domain }}
@@ -60,10 +60,10 @@
         </BkTableColumn>
       </BkTable>
     </InfoItem>
-    <InfoItem :label="t('目标DB:')">
-      <BkTable
-        :data="ticketDetails.details.execute_objects"
-        style="width: 800px">
+    <InfoItem
+      :label="t('目标DB:')"
+      style="flex: 1 0 100%">
+      <BkTable :data="ticketDetails.details.execute_objects">
         <BkTableColumn :label="t('变更的 DB')">
           <template #default="{ data }: { data: TargetDbRow }">
             <BkTag
@@ -139,6 +139,7 @@
   type TargetDbRow = Props['ticketDetails']['details']['execute_objects'][number];
 
   const props = defineProps<Props>();
+  console.log('props = ', props.ticketDetails);
 
   const { t } = useI18n();
 

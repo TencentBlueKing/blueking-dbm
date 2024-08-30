@@ -36,7 +36,9 @@
   import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
 
-  import { ClusterTypes } from '@common/const';
+  import { useTicketCloneInfo } from '@hooks';
+
+  import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
@@ -72,6 +74,30 @@
   });
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_ROLLBACK,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.infos.map((item) =>
+        createRowData({
+          clusterData: {
+            id: item.src_cluster.id,
+            domain: item.src_cluster.immute_domain,
+            cloudId: item.src_cluster.bk_cloud_id,
+          },
+          dstClusterData: {
+            id: item.dst_cluster.id,
+            domain: item.dst_cluster.immute_domain,
+            cloudId: item.dst_cluster.bk_cloud_id,
+          },
+          restoreBackupFile: item.restore_backup_file,
+          dbName: item.db_list,
+          dbIgnoreName: item.ignore_db_list,
+          renameDbName: item.rename_infos,
+        }),
+      );
+    },
+  });
 
   // 批量选择
   const handleShowBatchSelector = () => {

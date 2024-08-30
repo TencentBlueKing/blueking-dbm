@@ -75,7 +75,7 @@
 
 
   interface Props {
-    data: TicketModel
+    data: TicketModel<unknown>
   }
 
   const props = defineProps<Props>();

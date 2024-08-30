@@ -13,14 +13,14 @@
 
 <template>
   <div class="render-mode">
-    <div class="action-item">
+    <div style="width: 140px">
       <TableEditSelect
         v-model="localBackupType"
         :disabled="editDisabled"
         :list="targetList"
         @change="hanldeBackupTypeChange" />
     </div>
-    <div class="action-item">
+    <div style="flex: 1">
       <TableEditDateTime
         v-if="localBackupType === 'time'"
         ref="localRollbackTimeRef"
@@ -33,13 +33,9 @@
       <div
         v-else
         class="local-backup-select">
-        <DbIcon
-          class="file-flag"
-          type="wenjian" />
         <RecordSelector
           ref="localBackupFileRef"
-          :backup-source="backupSource"
-          :backupid="backupid"
+          :backupid="localBackupId"
           :cluster-id="clusterId"
           :disabled="editDisabled" />
       </div>
@@ -50,6 +46,8 @@
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { queryBackupLogs } from '@services/source/sqlserver';
+
   import { useTimeZoneFormat } from '@hooks';
 
   import TableEditDateTime from '@components/render-table/columns//DateTime.vue';
@@ -58,9 +56,8 @@
   import RecordSelector from './RecordSelector.vue';
 
   interface Props {
-    clusterId: number;
-    backupid?: string;
-    backupSource?: string;
+    clusterId?: number;
+    restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
     rollbackTime?: string;
   }
 
@@ -99,8 +96,9 @@
   const localBackupFileRef = ref<InstanceType<typeof RecordSelector>>();
   const localBackupType = ref('record');
   const localRollbackTime = ref('');
+  const localBackupId = ref('');
 
-  const editDisabled = computed(() => !props.clusterId || !props.backupSource);
+  const editDisabled = computed(() => !props.clusterId);
 
   const hanldeBackupTypeChange = () => {
     localRollbackTime.value = '';
@@ -122,10 +120,11 @@
   );
 
   watch(
-    () => props.backupid,
-    (newVal) => {
-      if (newVal) {
+    () => props.restoreBackupFile,
+    () => {
+      if (props.restoreBackupFile) {
         localBackupType.value = 'record';
+        localBackupId.value = props.restoreBackupFile.backup_id;
       }
     },
     {
@@ -137,12 +136,10 @@
     getValue() {
       if (localBackupType.value === 'record') {
         return localBackupFileRef.value!.getValue().then((data) => ({
-          rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
           backupinfo: data,
         }));
       }
       return localRollbackTimeRef.value!.getValue().then(() => ({
-        rollback_type: `${props.backupSource?.toLocaleUpperCase()}_AND_${localBackupType.value}`,
         rollback_time: formatDateToUTC(localRollbackTime.value),
       }));
     },

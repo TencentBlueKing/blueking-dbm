@@ -30,6 +30,7 @@
         :max-data="single ? 1 : -1"
         :paste-fn="tagInputPasteFn"
         :placeholder="placeholder"
+        @blur="handleBlur"
         @change="handleChange"
         @focus="handleFocus" />
       <div
@@ -132,6 +133,10 @@
     isFocus.value = true;
   };
 
+  const handleBlur = () => {
+    isFocus.value = false;
+  };
+
   onMounted(() => {
     if (slots.tip) {
       tippyIns = tippy(rootRef.value as SingleTarget, {
@@ -209,8 +214,8 @@
 
         .placeholder {
           top: 0;
-          padding-left: 8px;
           height: 42px;
+          padding-left: 8px;
           line-height: 42px;
         }
       }

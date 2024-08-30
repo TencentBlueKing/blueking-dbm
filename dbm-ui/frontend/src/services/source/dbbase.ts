@@ -35,7 +35,7 @@ export function filterClusters<
     cluster_name: string;
     cluster_type: string;
   },
->(params: { bk_biz_id: number; exact_domain: string }) {
+>(params: { bk_biz_id: number; exact_domain?: string; cluster_ids?: string }) {
   return http.get<T[]>(`${path}/filter_clusters/`, params);
 }
 

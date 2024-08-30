@@ -12,48 +12,56 @@
 -->
 
 <template>
-  <tr>
-    <td style="padding: 0">
-      <RenderSrcCluster
-        ref="srcClusterRef"
-        v-model="localSrcClusterData" />
-    </td>
-    <td style="padding: 0">
-      <RenderDstCluster
-        ref="dstClusterRef"
-        v-model="localDstClusterData"
-        :src-cluster-data="localSrcClusterData" />
-    </td>
-    <td style="padding: 0">
-      <RenderDbName
-        ref="dbNameRef"
-        check-not-exist
-        :cluster-id="localSrcClusterData?.id"
-        :model-value="localDbName"
-        @change="handleDbNameChange" />
-    </td>
-    <td style="padding: 0">
-      <RenderDbName
-        ref="ignoreDbNameRef"
-        :cluster-id="localSrcClusterData?.id"
-        :model-value="localDbIgnoreName"
-        :required="false"
-        @change="handleTargerNameChange" />
-    </td>
-    <td style="padding: 0">
-      <RenderRename
-        ref="renameDbNameRef"
-        v-model:db-ignore-name="localDbIgnoreName"
-        v-model:db-name="localDbName"
-        :cluster-data="localSrcClusterData"
-        :dst-cluster-data="localDstClusterData" />
-    </td>
-    <td>
-      <div class="action-box">
-        <div
-          class="action-btn"
-          @click="handleAppend">
-          <DbIcon type="plus-fill" />
+  <tbody>
+    <tr>
+      <td style="padding: 0">
+        <RenderSrcCluster
+          ref="srcClusterRef"
+          v-model="localSrcClusterData" />
+      </td>
+      <td style="padding: 0">
+        <RenderDstCluster
+          ref="dstClusterRef"
+          v-model="localDstClusterData"
+          :src-cluster-data="localSrcClusterData" />
+      </td>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="dbNameRef"
+          v-model="localDbName"
+          check-not-exist
+          :cluster-id="localSrcClusterData?.id" />
+      </td>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="ignoreDbNameRef"
+          v-model="localDbIgnoreName"
+          :cluster-id="localSrcClusterData?.id"
+          :required="false" />
+      </td>
+      <td style="padding: 0">
+        <RenderRename
+          ref="renameDbNameRef"
+          v-model:db-ignore-name="localDbIgnoreName"
+          v-model:db-name="localDbName"
+          :cluster-data="localSrcClusterData"
+          :dst-cluster-data="localDstClusterData" />
+      </td>
+      <td>
+        <div class="action-box">
+          <div
+            class="action-btn"
+            @click="handleAppend">
+            <DbIcon type="plus-fill" />
+          </div>
+          <div
+            class="action-btn"
+            :class="{
+              disabled: removeable,
+            }"
+            @click="handleRemove">
+            <DbIcon type="minus-fill" />
+          </div>
         </div>
         <div
           class="action-btn"
@@ -63,9 +71,9 @@
           @click="handleRemove">
           <DbIcon type="minus-fill" />
         </div>
-      </div>
-    </td>
-  </tr>
+      </td>
+    </tr>
+  </tbody>
 </template>
 <script lang="ts">
   import { random } from '@utils';
@@ -83,9 +91,13 @@
       domain: string;
       cloudId: number;
     };
-    dbList?: string;
-    ignoreDbList?: string;
-    renameInfos?: string;
+    dbList: string[];
+    ignoreDbList: string[];
+    renameInfos: {
+      db_name: string;
+      target_db_name: string;
+      rename_db_name: string;
+    }[];
   }
 
   // 创建表格数据
@@ -93,9 +105,9 @@
     rowKey: random(),
     srcClusterData: data.srcClusterData,
     dstClusterData: data.dstClusterData,
-    dbList: data.dbList,
-    ignoreDbList: data.ignoreDbList,
-    renameInfos: data.renameInfos,
+    dbList: data.dbList || [],
+    ignoreDbList: data.ignoreDbList || [],
+    renameInfos: data.renameInfos || [],
   });
 </script>
 <script setup lang="ts">
@@ -138,24 +150,15 @@
   watch(
     () => props.data,
     () => {
-      if (props.data.srcClusterData) {
-        localSrcClusterData.value = props.data.srcClusterData;
-      }
-      if (props.data.dstClusterData) {
-        localDstClusterData.value = props.data.dstClusterData;
-      }
+      localSrcClusterData.value = props.data.srcClusterData;
+      localDstClusterData.value = props.data.dstClusterData;
+      localDbName.value = props.data.dbList;
+      localDbIgnoreName.value = props.data.ignoreDbList;
     },
     {
       immediate: true,
     },
   );
-
-  const handleDbNameChange = (value: string[]) => {
-    localDbName.value = value;
-  };
-  const handleTargerNameChange = (value: string[]) => {
-    localDbIgnoreName.value = value;
-  };
 
   const handleAppend = () => {
     emits('add', [createRowData()]);
