@@ -54,6 +54,8 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
         #     instance_ids_getter = self.instance_influxdb_ids_getter
         if resource_meta == ResourceEnum.BUSINESS:
             instance_ids_getter = self.instance_biz_ids_getter
+        elif resource_meta in [ResourceEnum.TENDBCLUSTER_ACCOUNT, ResourceEnum.MYSQL_ACCOUNT]:
+            instance_ids_getter = self.instance_account_ids_getter
         elif action in ActionEnum.get_match_actions("tbinlogdumper"):
             # 对应dumper相关操作，需要根据dumper的实例ID反查出相关的集群
             instance_ids_getter = self.instance_dumper_cluster_ids_getter
@@ -65,6 +67,10 @@ class CreateTicketOneResourcePermission(ResourceActionPermission):
     @staticmethod
     def instance_biz_ids_getter(request, view):
         return [request.data["bk_biz_id"]]
+
+    @staticmethod
+    def instance_account_ids_getter(request, view):
+        return [request.data["details"]["account_id"]]
 
     @staticmethod
     def instance_cluster_ids_getter(request, view):

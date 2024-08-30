@@ -43,6 +43,7 @@ class MysqlOpenAreaDetailSerializer(MySQLBaseOperateDetailSerializer):
         target_instances = serializers.ListField(help_text=_("目标集群列表"), child=serializers.CharField())
         account_rules = serializers.ListSerializer(help_text=_("授权DB列表"), child=AccountRulesSerializer())
         cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
+        privileges = serializers.JSONField(help_text=_("授权详情"), required=False)
         access_dbs = serializers.ListField(help_text=_("准入DB列表"), child=serializers.CharField())
 
     cluster_id = serializers.IntegerField(help_text=_("源集群ID"))

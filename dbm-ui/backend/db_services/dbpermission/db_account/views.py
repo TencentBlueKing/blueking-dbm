@@ -34,7 +34,7 @@ from backend.db_services.dbpermission.db_account.serializers import (
     FilterAccountRulesSerializer,
     FilterPrivSerializer,
     ListAccountRulesSerializer,
-    ModifyMySQLAccountRuleSerializer,
+    ModifyAccountRuleSerializer,
     PageAccountRulesSerializer,
     QueryAccountRulesSerializer,
     UpdateAccountPasswordSerializer,
@@ -177,9 +177,9 @@ class BaseDBAccountViewSet(viewsets.SystemViewSet):
         )
 
     @common_swagger_auto_schema(
-        operation_summary=_("修改账号规则"), request_body=ModifyMySQLAccountRuleSerializer(), tags=[SWAGGER_TAG]
+        operation_summary=_("修改账号规则"), request_body=ModifyAccountRuleSerializer(), tags=[SWAGGER_TAG]
     )
-    @action(methods=["POST"], detail=False, serializer_class=ModifyMySQLAccountRuleSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=ModifyAccountRuleSerializer)
     def modify_account_rule(self, request, bk_biz_id):
         return self._view_common_handler(
             request=request,

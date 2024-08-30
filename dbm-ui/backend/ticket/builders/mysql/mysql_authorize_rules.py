@@ -33,7 +33,7 @@ class MySQLPluginInfoSerializer(serializers.Serializer):
 
 
 class MySQLAuthorizeDataSerializer(PreCheckAuthorizeRulesSerializer):
-    pass
+    privileges = serializers.JSONField(help_text=_("授权详情"), required=False)
 
 
 class MySQLAuthorizeRulesSerializer(serializers.Serializer):
@@ -59,6 +59,7 @@ class MySQLAuthorizeRulesSerializer(serializers.Serializer):
 
 class MySQLExcelAuthorizeDataSerializer(PreCheckAuthorizeRulesSerializer):
     source_ips = serializers.ListField(help_text=_("ip列表"), child=serializers.CharField())
+    privileges = serializers.JSONField(help_text=_("授权详情"), required=False)
 
 
 class MySQLExcelAuthorizeRulesSerializer(serializers.Serializer):
@@ -86,7 +87,7 @@ class MySQLAuthorizeRulesFlowParamBuilder(builders.FlowParamBuilder):
 class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLAuthorizeRulesSerializer
     inner_flow_builder = MySQLAuthorizeRulesFlowParamBuilder
-    inner_flow_name = _("授权执行")
+    inner_flow_name = _("MySQL 授权执行")
     editable = False
 
     @property
@@ -104,11 +105,10 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
         data = cache.get(details.get("authorize_uid")) or details.get("authorize_plugin_infos")
         if not data:
             raise AuthorizeDataHasExpiredException(_("授权数据不存在/已过期，请重新提交授权表单或excel文件"))
-
         self.ticket.update_details(rules_set=data)
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_EXCEL_AUTHORIZE_RULES)
 class MySQLExcelAuthorizeRulesFlowBuilder(MySQLAuthorizeRulesFlowBuilder):
     serializer = MySQLExcelAuthorizeRulesSerializer
-    inner_flow_name = _("Excel 授权执行")
+    inner_flow_name = _("MySQL Excel授权执行")

@@ -53,7 +53,7 @@ class MySQLAccountHandler(AccountHandler):
         @param rule_sets: 授权列表，数据结构与MySQLPrivManagerApi.authorize_rules接口相同
         """
         risk_priv_set = set(PrivilegeType.MySQL.GLOBAL.get_values())
-        user_db__rules = self.aggregate_user_db_privileges(self.bk_biz_id, self.account_type)
+        user_db__rules = self.aggregate_user_db_rules(self.bk_biz_id, self.account_type)
         # 判断是否有高危权限
         for rule_set in rule_sets:
             for rule in rule_set["account_rules"]:

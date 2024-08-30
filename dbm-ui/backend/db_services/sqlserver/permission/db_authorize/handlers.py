@@ -69,7 +69,7 @@ class SQLServerAuthorizeHandler(AuthorizeHandler):
 
     def pre_check_excel_rules(self, excel_authorize: ExcelAuthorizeMeta, **kwargs) -> Dict:
         """sqlserver的excel导入授权"""
-        user_db__rules = AccountHandler.aggregate_user_db_privileges(self.bk_biz_id, self.account_type)
+        user_db__rules = AccountHandler.aggregate_user_db_rules(self.bk_biz_id, self.account_type)
         user_info_map = self._get_user_info_map(self.account_type, self.bk_biz_id)
         return super().pre_check_excel_rules(
             excel_authorize, user_info_map=user_info_map, user_db__rules=user_db__rules, **kwargs
@@ -77,7 +77,7 @@ class SQLServerAuthorizeHandler(AuthorizeHandler):
 
     def multi_user_pre_check_rules(self, authorize: SQLServerDBAuthorizeMeta, **kwargs):
         """多个账号的前置检查，适合sqlserver的授权"""
-        user_db__rules = AccountHandler.aggregate_user_db_privileges(self.bk_biz_id, self.account_type)
+        user_db__rules = AccountHandler.aggregate_user_db_rules(self.bk_biz_id, self.account_type)
         user_info_map = self._get_user_info_map(self.account_type, self.bk_biz_id)
         authorize_check_result = self._multi_user_pre_check_rules(
             authorize, users_key="sqlserver_users", user_db__rules=user_db__rules, user_info_map=user_info_map

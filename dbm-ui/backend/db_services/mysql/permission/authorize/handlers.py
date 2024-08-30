@@ -23,6 +23,7 @@ from backend.components.scr.client import ScrApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterEntryType, ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.dbpermission.db_authorize.dataclass import AuthorizeMeta, ExcelAuthorizeMeta
 from backend.db_services.dbpermission.db_authorize.handlers import AuthorizeHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -52,18 +53,27 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
         """sqlserver的excel导入授权"""
         account_type = ClusterType.cluster_type_to_db_type(excel_authorize.cluster_type)
         user_info_map = self._get_user_info_map(account_type, self.bk_biz_id)
-        return super().pre_check_excel_rules(excel_authorize, user_info_map=user_info_map, **kwargs)
+        user_db_map = AccountHandler.aggregate_user_db_rules(self.bk_biz_id, account_type)
+        return super().pre_check_excel_rules(
+            excel_authorize, user_info_map=user_info_map, user_db_map=user_db_map, **kwargs
+        )
 
     def pre_check_rules(self, authorize: AuthorizeMeta, task_index: int = None, **kwargs) -> Dict:
         # 如果没有user_info_map，则请求一次。
         account_type = ClusterType.cluster_type_to_db_type(authorize.cluster_type)
+
         if not kwargs.get("user_info_map"):
             kwargs["user_info_map"] = super()._get_user_info_map(account_type, self.bk_biz_id)
+        if not kwargs.get("user_db_map"):
+            kwargs["user_db_map"] = AccountHandler.aggregate_user_db_rules(self.bk_biz_id, account_type)
 
         pre_check_data = super().pre_check_rules(authorize, task_index, **kwargs)
         account_id = pre_check_data["authorize_data"]["account_id"]
+        # 补充授权详情
+        user, access_dbs, user_db_map = authorize.user, authorize.access_dbs, kwargs["user_db_map"]
+        privileges = [{"user": user, "access_db": db, "priv": user_db_map[user][db]} for db in access_dbs]
         # mysql的授权数据和输入的authorize保持一致
-        pre_check_data["authorize_data"] = {"account_id": account_id, **authorize.to_dict()}
+        pre_check_data["authorize_data"] = {"account_id": account_id, "privileges": privileges, **authorize.to_dict()}
         return pre_check_data
 
     def _pre_check_rules(
@@ -72,6 +82,7 @@ class MySQLAuthorizeHandler(AuthorizeHandler):
         """前置校验的具体实现逻辑"""
         account_rules = [{"bk_biz_id": self.bk_biz_id, "dbname": dbname} for dbname in authorize.access_dbs]
         source_ips = [item["ip"] if isinstance(item, dict) else item for item in authorize.source_ips]
+
         authorize_data = {
             "bk_biz_id": self.bk_biz_id,
             "operator": self.operator,

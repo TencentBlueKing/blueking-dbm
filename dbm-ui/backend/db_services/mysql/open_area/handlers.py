@@ -151,8 +151,13 @@ class OpenAreaHandler:
         )
         # 根据用户名和db将授权规则分批
         user__dbs_rules: Dict[str, List[str]] = defaultdict(list)
+        user__privileges: Dict[str, List[Dict]] = defaultdict(list)
         for rule_data in authorize_rules["items"]:
-            user__dbs_rules[rule_data["account"]["user"]].extend([r["dbname"] for r in rule_data["rules"]])
+            user = rule_data["account"]["user"]
+            user__dbs_rules[user].extend([r["dbname"] for r in rule_data["rules"]])
+            user__privileges[user].extend(
+                [{"user": user, "access_db": r["dbname"], "priv": r["priv"]} for r in rule_data["rules"]]
+            )
         # 根据当前的规则生成授权数据
         authorize_details: List[Dict[str, Any]] = [
             {
@@ -162,6 +167,7 @@ class OpenAreaHandler:
                 "source_ips": data["authorize_ips"],
                 "target_instances": [cluster_id__cluster[data["cluster_id"]].immute_domain],
                 "access_dbs": user__dbs_rules[user],
+                "privileges": user__privileges[user],
                 "account_rules": [
                     {"bk_biz_id": config.bk_biz_id, "dbname": dbname} for dbname in user__dbs_rules[user]
                 ],

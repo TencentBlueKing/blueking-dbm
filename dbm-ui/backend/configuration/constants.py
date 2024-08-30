@@ -99,6 +99,7 @@ class SystemSettingsEnum(str, StructuredEnum):
     BKM_DBM_TOKEN = EnumField("BKM_DBM_TOKEN", _("监控数据源token"))
     BKM_DBM_REPORT = EnumField("BKM_DBM_REPORT", _("mysql/redis-监控自定义上报: dataid/token"))
     FREE_BK_MODULE_ID = EnumField("FREE_BK_MODULE_ID", _("业务空闲模块ID"))
+    VIRTUAL_USERS = EnumField("VIRTUAL_USERS", _("平台调用的虚拟账号列表"))
     # 主机默认统一转移到 DBM 业务下托管，若业务 ID 属于这个列表，则转移到对应的业务下
     INDEPENDENT_HOSTING_BIZS = EnumField("INDEPENDENT_HOSTING_BIZS", _("独立托管机器的业务列表"))
     BF_WHITELIST_BIZS = EnumField("BF_WHITELIST_BIZS", _("BF业务白名单"))
@@ -213,6 +214,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.AFFINITY, "list", [], _("环境的容灾要求")],
     [SystemSettingsEnum.SYSTEM_MSG_TYPE, "list", ["weixin", "mail"], _("系统消息通知方式")],
     [SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST, "list", [], _("补全proxy的集群域名列表")],
+    [SystemSettingsEnum.VIRTUAL_USERS, "list", [], _("平台调用的虚拟账户列表")],
 ]
 
 # 环境配置项 是否支持DNS解析 pulsar flow used

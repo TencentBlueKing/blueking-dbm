@@ -41,4 +41,4 @@ class TendbClusterAuthorizeRulesFlowBuilder(BaseTendbTicketFlowBuilder, MySQLAut
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES)
 class TendbClusterAuthorizeRulesFlowBuilder(TendbClusterAuthorizeRulesFlowBuilder):
     serializer = MySQLExcelAuthorizeRulesSerializer
-    inner_flow_name = _("TenDB Cluster 授权执行")
+    inner_flow_name = _("TenDB Cluster Excel授权执行")

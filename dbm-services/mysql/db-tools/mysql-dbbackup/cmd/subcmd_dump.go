@@ -195,13 +195,12 @@ func backupData(cnf *config.BackupConfig) (err error) {
 	}
 	logger.Log.Info("parse config file: end")
 	if cnf.Public.DataSchemaGrant == cst.BackupNone {
-		logger.Log.Info("backup nothing, exit")
+		logger.Log.Infof("backup nothing for %d, exit", cnf.Public.MysqlPort)
 		return nil
 	}
 	if err := precheck.BeforeDump(cnf); err != nil {
 		return err
 	}
-
 	// 备份权限 backup priv info
 	// 注意：如果只备份权限，则走 backupexe.ExecuteBackup(cnf) 逻辑
 	//  如果还备份 schema/data，则走下面这个逻辑

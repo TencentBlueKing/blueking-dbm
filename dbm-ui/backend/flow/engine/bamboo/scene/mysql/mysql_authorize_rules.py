@@ -15,11 +15,12 @@ from django.utils.translation import ugettext as _
 
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
+from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
 
 logger = logging.getLogger("flow")
 
 
-class MySQLAuthorizeRules(object):
+class MySQLAuthorizeRulesFlows(object):
     """
     授权mysql权限的流程抽象类
     todo 后续需要兼容跨云管理 bk_cloud_id
@@ -42,3 +43,12 @@ class MySQLAuthorizeRules(object):
             act_name=_("添加mysql规则授权"), act_component_code=AuthorizeRulesComponent.code, kwargs=self.data
         )
         mysql_authorize_rules.run_pipeline()
+
+    def clone_mysql_rules(self):
+        """定义mysql授权流程"""
+
+        mysql_clone_rules = Builder(root_id=self.root_id, data=self.data)
+        mysql_clone_rules.add_act(
+            act_name=_("添加mysql权限克隆"), act_component_code=CloneRulesComponent.code, kwargs=self.data
+        )
+        mysql_clone_rules.run_pipeline()

@@ -122,14 +122,15 @@ func GetBinlogFormat(dbh *sql.DB) (string, string) {
 	return binlogFormat, binlogRowImage
 }
 
-// GetStorageEngine Get the storage engine from mysql server
+// GetStorageEngine Get the storage engine from mysql server, to lower
 func GetStorageEngine(dbh *sql.DB) (string, error) {
 	version, err := MysqlSingleColumnQuery("select @@default_storage_engine", dbh)
 	if err != nil {
 		logger.Log.Error("can't get default storage_engine, error :", err)
 		return "", err
 	}
-	return version[0], nil
+
+	return strings.ToLower(version[0]), nil
 }
 
 // GetDataDir get datadir from mysql server
