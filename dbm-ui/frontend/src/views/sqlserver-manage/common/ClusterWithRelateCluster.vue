@@ -21,10 +21,8 @@
       v-show="isShowEdit"
       ref="editRef"
       v-model="localDomain"
-      multi-input
-      placeholder="请输入集群，使用换行分割一次可输入多个"
+      :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
-      @multi-input="handleMultiInput"
       @submit="handleEditSubmit" />
     <div v-show="!isShowEdit">
       <div
@@ -105,7 +103,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -347,10 +345,6 @@
   // 显示管理集群列表
   const handleShowRelateMemu = () => {
     isShowRelateMemo.value = true;
-  };
-
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
   };
 
   // 选中关联集群

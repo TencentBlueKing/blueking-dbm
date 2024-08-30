@@ -23,7 +23,7 @@
         v-model="localValue"
         allow-auto-match
         allow-create
-        :clearable="false"
+        clearable
         v-bind="$attrs"
         :disabled="disabled"
         has-delete-icon
@@ -180,6 +180,10 @@
         .bk-tag-input-trigger {
           background: #fff0f1;
 
+          .clear-icon {
+            margin-right: 28px;
+          }
+
           .placeholder {
             height: 42px;
             line-height: 42px;
@@ -197,6 +201,10 @@
         &:hover {
           background-color: #fafbfd;
           border-color: #a3c5fd !important;
+
+          .clear-icon {
+            display: block !important;
+          }
         }
 
         &.active {
@@ -210,6 +218,10 @@
         .tag-list {
           height: auto;
           max-height: 400px;
+        }
+
+        .clear-icon {
+          display: none !important;
         }
 
         .placeholder {

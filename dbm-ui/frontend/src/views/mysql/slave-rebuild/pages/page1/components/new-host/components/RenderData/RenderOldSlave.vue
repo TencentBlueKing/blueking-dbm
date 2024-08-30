@@ -12,14 +12,12 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <TableEditInput
-      ref="editRef"
-      v-model="localValue"
-      :placeholder="t('请输入IP或从表头批量选择')"
-      :rules="rules"
-      @input="handleInput" />
-  </BkLoading>
+  <TableEditInput
+    ref="editRef"
+    v-model="localValue"
+    :placeholder="t('请输入IP或从表头批量选择')"
+    :rules="rules"
+    @input="handleInput" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -32,7 +30,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -56,7 +54,6 @@
 
   const editRef = ref<InstanceType<typeof TableEditInput>>();
   const localValue = ref('');
-  const isLoading = ref(false);
 
   const rules = [
     {
@@ -77,15 +74,20 @@
             return false;
           }
           const [instanceData] = data;
-          modelValue.value = {
-            bkCloudId: instanceData.bk_cloud_id,
-            bkCloudName: instanceData.bk_cloud_name,
-            bkHostId: instanceData.bk_host_id,
-            ip: instanceData.ip,
-            port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
-            clusterId: instanceData.cluster_id,
-          };
+          if (
+            !modelValue.value?.instanceAddress ||
+            modelValue.value.instanceAddress !== instanceData.instance_address
+          ) {
+            modelValue.value = {
+              bkCloudId: instanceData.bk_cloud_id,
+              bkCloudName: instanceData.bk_cloud_name,
+              bkHostId: instanceData.bk_host_id,
+              ip: instanceData.ip,
+              port: instanceData.port,
+              instanceAddress: instanceData.instance_address,
+              clusterId: instanceData.cluster_id,
+            };
+          }
           return true;
         }),
       message: t('目标从库实例不存在'),

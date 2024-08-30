@@ -12,15 +12,12 @@
 -->
 
 <template>
-  <div class="render-target-proxy-ip">
-    <TableEditInput
-      ref="inputRef"
-      v-model="localValue"
-      :disabled="disabled"
-      :placeholder="t('请输入单个IP')"
-      :rules="rules"
-      textarea />
-  </div>
+  <TableEditInput
+    ref="inputRef"
+    v-model="localValue"
+    :disabled="disabled"
+    :placeholder="t('请输入单个IP')"
+    :rules="rules" />
 </template>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
@@ -32,7 +29,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import type { IHostData } from './Row.vue';
 
@@ -119,31 +116,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-target-proxy-ip {
-    position: relative;
-
-    &.is-repeat {
-      .input-error {
-        display: none;
-      }
-    }
-
-    .repeat-flag {
-      position: absolute;
-      top: 0;
-      right: 0;
-      display: flex;
-      height: 20px;
-      padding: 0 5px;
-      font-size: 12px;
-      line-height: 20px;
-      color: #fff;
-      background-color: #ea3636;
-      border-radius: 2px;
-      align-self: center;
-      transform: scale(0.8);
-      transform-origin: right top;
-    }
-  }
-</style>

@@ -16,10 +16,9 @@
     <TableEditInput
       ref="editRef"
       v-model="localDomain"
-      multi-input
       :placeholder="placeholder || t('请输入集群域名或从表头批量选择')"
       :rules="rules"
-      @multi-input="handleMultiInput" />
+      @submit="handleInputFinish" />
   </div>
 </template>
 <script lang="ts">
@@ -151,8 +150,12 @@
     },
   );
 
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
+  const handleInputFinish = (value: string) => {
+    if (!value) {
+      return;
+    }
+
+    emits('inputCreate', [value]);
   };
 
   onBeforeUnmount(() => {
