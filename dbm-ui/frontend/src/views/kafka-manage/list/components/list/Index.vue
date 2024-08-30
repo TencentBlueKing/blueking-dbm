@@ -25,7 +25,9 @@
         v-db-console="'kafka.clusterManage.export'"
         :ids="selectedIds"
         type="kafka" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'kafka.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         :data="serachData"
         :get-menu-list="getMenuList"

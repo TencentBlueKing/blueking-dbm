@@ -45,7 +45,9 @@
         v-db-console="'mysql.singleClusterList.export'"
         :ids="selectedIds"
         type="tendbsingle" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'mysql.singleClusterList.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         :data="searchSelectData"
         :get-menu-list="getMenuList"
@@ -607,7 +609,7 @@
               { t('导出数据') }
             </auth-button>
           </OperationBtnStatusTips>
-          <MoreActionExtend>
+          <MoreActionExtend v-db-console="mysql.singleClusterList.moreOperation">
             {{
               default: () => <>
                 {data.isOnline ? (
