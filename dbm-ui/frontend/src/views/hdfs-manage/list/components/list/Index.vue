@@ -26,7 +26,9 @@
         v-db-console="'hdfs.clusterManage.export'"
         :ids="selectedIds"
         type="hdfs" />
-      <ClusterIpCopy :selected="selected" />
+      <ClusterIpCopy
+        v-db-console="'hdfs.clusterManage.batchCopy'"
+        :selected="selected" />
       <DbSearchSelect
         class="mb16"
         :data="serachData"
