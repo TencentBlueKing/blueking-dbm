@@ -350,6 +350,16 @@ class AppendDeployCTLFlow(object):
                 act_component_code=ExecuteDBActuatorScriptComponent.code,
                 kwargs=asdict(exec_act_kwargs),
             )
+            # 校验spider节点和tdbctldb表的数量
+            exec_act_kwargs.cluster = {"ctl_port": ctl_port, "spider_port": leader_spider.port}
+            exec_act_kwargs.exec_ip = primary_ctl_ip
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_check_schema_payload.__name__
+            migrate_pipeline.add_act(
+                act_name=_("校验spider和tdbctl节点表的数量"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
             # 最后刷新其他路由，这样做的目标的是安全起见
             cluster_info["only_init_ctl"] = False
             exec_act_kwargs.cluster = cluster_info
