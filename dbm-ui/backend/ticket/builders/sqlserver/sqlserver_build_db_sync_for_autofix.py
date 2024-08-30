@@ -55,7 +55,7 @@ class SQLServerClearFlowParamBuilder(builders.FlowParamBuilder):
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_BUILD_DB_SYNC, is_apply=False)
 class SQLServerClearFlowBuilder(BaseSQLServerTicketFlowBuilder):
-    serializer = SQLServerBuildDBSyncForAutofixSerializer
+    serializer = SQLServerBuildDBSyncForSerializer
     alarm_transform_serializer = SQLServerBuildDBSyncForAutofixSerializer
     inner_flow_builder = SQLServerClearFlowParamBuilder
     inner_flow_name = _("SQLServer 同步数据")
