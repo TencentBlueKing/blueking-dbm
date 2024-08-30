@@ -68,6 +68,10 @@ func (s *SysInitAct) Run() (err error) {
 			Func:    s.Service.CreateSysUser,
 		},
 		{
+			FunName: "检测本地的ssh服务",
+			Func:    s.Service.CheckSSHForLocal,
+		},
+		{
 			FunName: "执行sysInit脚本",
 			Func:    s.Service.SysInitMachine,
 		},

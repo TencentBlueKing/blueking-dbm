@@ -14,6 +14,7 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_package.models import Package
+from backend.env import WINDOW_SSH_PORT
 from backend.flow.consts import SQLSERVER_CUSTOM_SYS_USER, DBActuatorTypeEnum, MediumEnum, SqlserverActuatorActionEnum
 from backend.flow.utils.sqlserver.payload_handler import PayloadHandler
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos, get_sqlserver_config
@@ -26,11 +27,11 @@ class SqlserverActPayload(PayloadHandler):
         """
         系统初始化payload
         """
-
+        payload = {"ssh_port": WINDOW_SSH_PORT}
         return {
             "db_type": DBActuatorTypeEnum.Default.value,
             "action": SqlserverActuatorActionEnum.SysInit.value,
-            "payload": self.get_init_system_account(),
+            "payload": {**self.get_init_system_account(), **payload},
         }
 
     def get_install_sqlserver_payload(self, **kwargs) -> dict:

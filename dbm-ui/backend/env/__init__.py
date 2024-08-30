@@ -174,3 +174,6 @@ MYSQL_CHATID = get_type_env(key="MYSQL_CHATID", _type=str, default="")
 # django DebugToolbar是否开启。开启后会对接口进行SQL分析和统计，将大幅度降低接口效率
 # 需要开启DEBUG_TOOL_BAR和DEBUG模式，DebugToolbar才会生效
 DEBUG_TOOL_BAR = get_type_env(key="DEBUG_TOOL_BAR", _type=bool, default=False)
+
+# window ssh服务远程端口
+WINDOW_SSH_PORT = get_type_env(key="WINDOW_SSH_PORT", _type=int, default=22)

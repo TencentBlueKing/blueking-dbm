@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/core/cst"
@@ -22,10 +23,12 @@ import (
 	"dbm-services/sqlserver/db-tools/dbactuator/pkg/util/osutil"
 
 	"github.com/shirou/gopsutil/mem"
+	"golang.org/x/crypto/ssh"
 )
 
 // SysInitParam TODO
 type SysInitParam struct {
+	SSHPort       int    `json:"ssh_port" validate:"required,gt=0"`
 	OSMssqlUser   string `json:"mssql_user"`
 	OSMssqlPwd    string `json:"mssql_pwd"`
 	SQLServerUser string `json:"sqlserver_user"`
@@ -219,5 +222,38 @@ func (s *SysInitParam) SysInitMachine() error {
 	} else {
 		logger.Info("delete sysinit-file success")
 	}
+	return nil
+}
+
+// CheckSSHForLocal 本地模拟ssh连接检测是否正常，模拟dbha做一次ssh校验
+func (s *SysInitParam) CheckSSHForLocal() error {
+	checkStr := fmt.Sprintf("echo 1 > %s", fmt.Sprintf("%s\\\\%s\\\\%s", cst.BASE_DATA_PATH, cst.MSSQL_DBHA_NAME, "test"))
+	conf := &ssh.ClientConfig{
+		Timeout:         time.Second * time.Duration(10), // ssh 连接time out 时间10秒钟, 如果ssh验证错误 会在一秒内返回
+		User:            s.OSMssqlUser,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // 这个可以， 但是不够安全
+		Config: ssh.Config{
+			Ciphers: []string{"arcfour"}, // 指定加密算法，目前利用sygwin联调
+		},
+	}
+	conf.Auth = []ssh.AuthMethod{ssh.Password(s.OSMssqlPwd)}
+	addr := fmt.Sprintf("127.0.0.1:%d", s.SSHPort)
+	sshClient, err := ssh.Dial("tcp", addr, conf)
+	if err != nil {
+		panic(err)
+	}
+	defer sshClient.Close()
+
+	session, err := sshClient.NewSession()
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	_, err = session.CombinedOutput(checkStr)
+	if err != nil {
+		return err
+	}
+	logger.Info("ssh check successfully")
 	return nil
 }
