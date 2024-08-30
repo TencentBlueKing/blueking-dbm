@@ -22,7 +22,7 @@
       <td style="padding: 0">
         <RenderClearMode
           ref="clearModeRef"
-          :model-value="data.cleanMode" />
+          :model-value="localCleanMode" />
       </td>
       <td style="padding: 0">
         <RenderDbName
@@ -143,21 +143,17 @@
   const cleanDbsRef = ref<InstanceType<typeof RenderClearDbName>>();
 
   const localClusterData = ref<IDataRow['clusterData']>();
+  const localCleanMode = ref<IDataRow['cleanMode']>('');
   const localCleanDbsPatterns = ref<IDataRow['cleanDbsPatterns']>([]);
   const localCleanIgnoreDbsPatterns = ref<IDataRow['cleanIgnoreDbsPatterns']>([]);
 
   watch(
     () => props.data,
     () => {
-      if (props.data.clusterData) {
-        localClusterData.value = props.data.clusterData;
-      }
-      if (props.data.cleanDbsPatterns) {
-        localCleanDbsPatterns.value = props.data.cleanDbsPatterns;
-      }
-      if (props.data.cleanIgnoreDbsPatterns) {
-        localCleanIgnoreDbsPatterns.value = props.data.cleanIgnoreDbsPatterns;
-      }
+      localClusterData.value = props.data.clusterData;
+      localCleanMode.value = props.data.cleanMode;
+      localCleanDbsPatterns.value = props.data.cleanDbsPatterns;
+      localCleanIgnoreDbsPatterns.value = props.data.cleanIgnoreDbsPatterns;
     },
     {
       immediate: true,

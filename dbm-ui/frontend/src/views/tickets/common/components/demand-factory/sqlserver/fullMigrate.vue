@@ -28,6 +28,6 @@
   defineProps<Props>();
 
   defineOptions({
-    name: TicketTypes.SQLSERVER_DATA_MIGRATE,
+    name: TicketTypes.SQLSERVER_FULL_MIGRATE,
   });
 </script>

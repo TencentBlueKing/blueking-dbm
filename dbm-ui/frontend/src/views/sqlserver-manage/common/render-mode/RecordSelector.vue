@@ -12,34 +12,26 @@
 -->
 
 <template>
-  <div
-    ref="rootRef"
-    class="rollback-mode-select"
-    :class="{
-      'is-focused': isShowPop,
-      'is-seleced': !!localValue,
-    }">
-    <div
-      v-bk-tooltips="{
-        content: renderText,
-        disabled: !renderText,
-      }"
-      class="select-result-text">
-      <span>{{ renderText }}</span>
-    </div>
-    <DbIcon
-      v-if="localValue"
-      class="remove-btn"
-      type="delete-fill"
-      @click.self="handleRemove" />
-    <DbIcon
-      class="focused-flag"
-      type="down-big" />
-    <div
-      v-if="localValue === ''"
-      class="select-placeholder">
-      {{ t('请选择文件') }}
-    </div>
+  <div ref="rootRef">
+    <TableEditElement
+      ref="editElementRef"
+      :disabled="disabled"
+      :placeholder="t('请选择文件')"
+      :rules="rules"
+      :value="selectBackupId"
+      @clear="handleValueClear">
+      {{ renderText }}
+      <template #prepend>
+        <DbIcon
+          class="file-flag"
+          type="wenjian" />
+      </template>
+      <template #append>
+        <DbIcon
+          class="focused-flag"
+          type="down-big" />
+      </template>
+    </TableEditElement>
     <div style="display: none">
       <div ref="popRef">
         <div class="tab-header">
@@ -47,7 +39,7 @@
             v-for="item in tabOptions"
             :key="item.name"
             v-bk-tooltips="{
-              content: item.hoverText,
+              content: item.hoverText || '',
               disabled: !item.hoverText,
             }"
             class="tab-header-item"
@@ -73,7 +65,7 @@
           <div
             v-if="renderList.length < 1"
             style="color: #63656e; text-align: center">
-            数据为空
+            {{ t('') }}
           </div>
           <div
             v-else
@@ -83,7 +75,7 @@
               :key="item.value"
               class="option-item"
               :class="{
-                active: item.value === localValue,
+                active: item.value === selectBackupId,
               }"
               @click="handleSelect(item)">
               <span>{{ item.label }}</span>
@@ -100,7 +92,7 @@
             :clearable="false"
             :open="open"
             type="datetime"
-            :value="localValue"
+            :value="selectBackupId"
             @change="handleDatePickerChange"
             @pick-success="handlePickSuccess">
             <template #trigger>
@@ -119,31 +111,33 @@
   import dayjs from 'dayjs';
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, ref, type UnwrapRef, watch } from 'vue';
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
-  import { queryBackupLogs } from '@services/source/sqlserver';
+  import { queryBackupLogs, queryLatestBackupLog } from '@services/source/sqlserver';
 
   import { useDebouncedRef } from '@hooks';
 
   import { useTimeZone } from '@stores';
 
+  import TableEditElement from '@components/render-table/columns/element/Index.vue';
+
   import { encodeRegexp } from '@utils';
 
-  interface IListItem {
-    value: string;
-    label: string;
+  interface Props {
+    clusterId?: number;
+    backupid?: string;
+    disabled: boolean;
   }
 
-  interface Props {
-    clusterId: number;
-    backupid?: string;
+  interface Expose {
+    getValue: () => Promise<ServiceReturnType<typeof queryBackupLogs>[number]>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    clusterId: undefined,
     backupid: '',
-    backupSource: '',
-    modelValue: '',
     disabled: false,
   });
 
@@ -171,51 +165,80 @@
 
   const rootRef = ref();
   const popRef = ref();
+  const editElementRef = ref<ComponentExposed<typeof TableEditElement>>();
   const dateTriggerRef = ref();
   const datePickerRef = ref();
   const dateRenderRef = ref();
-  const localValue = ref<string>('');
+  const selectBackupId = ref<string>('');
   const isShowPop = ref(false);
   const isError = ref(false);
   const open = ref(false);
   const recordType = ref(OperateType.MANUAL);
 
   const logRecordOptions = shallowRef<Array<{ value: string; label: string }>>([]);
-  const logRecordList = shallowRef<ServiceReturnType<typeof queryBackupLogs>>([]);
+  const backupLogListMemo = shallowRef<ServiceReturnType<typeof queryBackupLogs>>([]);
 
   const renderList = computed(() =>
-    logRecordOptions.value.reduce((result, item) => {
+    logRecordOptions.value.reduce<UnwrapRef<typeof logRecordOptions>>((result, item) => {
       const reg = new RegExp(encodeRegexp(searchKey.value), 'i');
       if (reg.test(item.label)) {
         result.push(item);
       }
       return result;
-    }, [] as Array<IListItem>),
+    }, []),
   );
 
   const renderText = computed(() => {
-    const item = _.find(logRecordOptions.value, (item) => item.value === localValue.value);
+    const item = _.find(logRecordOptions.value, (item) => item.value === selectBackupId.value);
     return !item ? '' : item.label;
   });
 
+  const rules = [
+    {
+      validator: () => Boolean(selectBackupId.value),
+      message: t('备份记录不能为空'),
+    },
+    {
+      validator: () => {
+        // 非日期输入无需调接口匹配最近记录，跳过该校验
+        if (!isDateType(selectBackupId.value)) {
+          return true;
+        }
+        return queryLatestBackupLog({
+          cluster_id: props.clusterId as number,
+          rollback_time: selectBackupId.value,
+        }).then((data) => {
+          if (!data) {
+            selectBackupId.value = '';
+            return false;
+          }
+          backupLogListMemo.value.push(data);
+          selectBackupId.value = data.backup_id;
+          return true;
+        });
+      },
+      message: t('暂无与指定时间最近的备份记录'),
+    },
+  ];
+
   const fetchLogData = () => {
     logRecordOptions.value = [];
-    logRecordList.value = [];
+    backupLogListMemo.value = [];
     queryBackupLogs({
-      cluster_id: props.clusterId,
+      cluster_id: props.clusterId as number,
     }).then((dataList) => {
       logRecordOptions.value = dataList.map((item) => ({
         value: item.backup_id,
         label: `${item.role} ${dayjs(item.start_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
       }));
-      logRecordList.value = dataList;
+      backupLogListMemo.value = dataList;
     });
   };
 
   const hanldeChangeTab = (tabName: OperateType) => {
     recordType.value = tabName;
     if (tabName === OperateType.MATCH) {
-      localValue.value = '';
+      selectBackupId.value = '';
       nextTick(() => {
         dateTriggerRef.value.click();
       });
@@ -224,13 +247,13 @@
     }
   };
   // 手动选择
-  const handleSelect = (item: IListItem) => {
-    localValue.value = item.value;
+  const handleSelect = (item: UnwrapRef<typeof logRecordOptions>[number]) => {
+    selectBackupId.value = item.value;
     tippyIns.hide();
   };
   // 删除值
-  const handleRemove = () => {
-    localValue.value = '';
+  const handleValueClear = () => {
+    selectBackupId.value = '';
   };
   // 触发日期选择器
   const handleDatePickerTrigger = () => {
@@ -245,7 +268,7 @@
     });
   };
   const handleDatePickerChange = (date: string) => {
-    localValue.value = date;
+    selectBackupId.value = date;
   };
   // 选择日期回调
   const handlePickSuccess = () => {
@@ -257,36 +280,6 @@
     // 非日期输入无需调接口匹配最近记录，跳过该校验
     return isDate.test(value);
   };
-
-  onMounted(() => {
-    tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'bottom',
-      appendTo: () => document.body,
-      theme: 'rollback-mode-select light',
-      maxWidth: 'none',
-      trigger: 'click',
-      interactive: true,
-      arrow: false,
-      offset: [0, 8],
-      onShow: () => {
-        isShowPop.value = true;
-        isError.value = false;
-      },
-      onHide: () => {
-        isShowPop.value = false;
-        searchKey.value = '';
-      },
-    });
-  });
-
-  onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-    }
-  });
 
   watch(
     () => [props.clusterId, timeZoneStore.label],
@@ -307,34 +300,56 @@
       if (newVal) {
         const currentRecordType = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
         hanldeChangeTab(currentRecordType);
-        localValue.value = newVal;
+        selectBackupId.value = newVal;
       }
     },
     {
       immediate: true,
     },
   );
-  defineExpose({
-    getValue: () => localValue.value,
+
+  onMounted(() => {
+    tippyIns = tippy(rootRef.value as SingleTarget, {
+      content: popRef.value,
+      placement: 'bottom-start',
+      appendTo: () => document.body,
+      theme: 'rollback-mode-select light',
+      maxWidth: 'none',
+      trigger: 'click',
+      interactive: true,
+      arrow: false,
+      offset: [0, 8],
+      onShow: () => {
+        isShowPop.value = true;
+        isError.value = false;
+      },
+      onHide: () => {
+        isShowPop.value = false;
+        searchKey.value = '';
+        editElementRef.value!.getValue();
+      },
+    });
+  });
+
+  onBeforeUnmount(() => {
+    if (tippyIns) {
+      tippyIns.hide();
+      tippyIns.unmount();
+      tippyIns.destroy();
+    }
+  });
+
+  defineExpose<Expose>({
+    getValue() {
+      return editElementRef.value!.getValue().then(() => {
+        const backupLog = _.find(backupLogListMemo.value, (item) => item.backup_id === selectBackupId.value);
+        return backupLog ? backupLog : Promise.reject();
+      });
+    },
   });
 </script>
 <style lang="less">
   .rollback-mode-select {
-    position: relative;
-    display: flex;
-    height: 42px;
-    overflow: hidden;
-    color: #63656e;
-    cursor: pointer;
-    border: 1px solid transparent;
-    transition: all 0.15s;
-    align-items: center;
-
-    &:hover {
-      background-color: #fafbfd;
-      border-color: #a3c5fd;
-    }
-
     &.is-seleced {
       &:hover {
         .remove-btn {
@@ -353,25 +368,6 @@
       .focused-flag {
         transform: rotateZ(-90deg);
       }
-    }
-
-    &.is-error {
-      background: rgb(255 221 221 / 20%);
-
-      .focused-flag {
-        display: none;
-      }
-    }
-
-    .select-result-text {
-      width: 100%;
-      height: 100%;
-      margin-right: 16px;
-      margin-left: 16px;
-      overflow: hidden;
-      line-height: 42px;
-      text-overflow: ellipsis;
-      white-space: pre;
     }
 
     .focused-flag {
@@ -393,34 +389,6 @@
       &:hover {
         color: #979ba5;
       }
-    }
-
-    .select-error {
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      padding-right: 4px;
-      font-size: 14px;
-      color: #ea3636;
-      align-items: center;
-    }
-
-    .select-placeholder {
-      position: absolute;
-      top: 10px;
-      right: 20px;
-      left: 18px;
-      z-index: 1;
-      height: 20px;
-      overflow: hidden;
-      font-size: 12px;
-      line-height: 20px;
-      color: #c4c6cc;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      pointer-events: none;
     }
   }
 

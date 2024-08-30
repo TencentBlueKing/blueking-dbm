@@ -70,6 +70,8 @@
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
@@ -105,6 +107,27 @@
       firstRow.ignoreCleanTables.length < 1
     );
   };
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_CLEAR_DBS,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.map((item) =>
+        createRowData({
+          clusterData: {
+            id: item.cluster.id,
+            domain: item.cluster.immute_domain,
+            cloudId: item.cluster.bk_cloud_id,
+          },
+          cleanMode: item.clean_mode,
+          cleanDbsPatterns: item.clean_dbs_patterns,
+          cleanIgnoreDbsPatterns: item.clean_ignore_dbs_patterns,
+          cleanTables: item.clean_tables,
+          ignoreCleanTables: item.ignore_clean_tables,
+          cleanDbs: item.clean_dbs,
+        }),
+      );
+    },
+  });
 
   // 批量选择
   const handleShowBatchSelector = () => {

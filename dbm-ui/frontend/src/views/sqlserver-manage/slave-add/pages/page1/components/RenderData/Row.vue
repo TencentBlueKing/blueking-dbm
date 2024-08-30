@@ -17,16 +17,13 @@
       <td style="padding: 0">
         <RenderCluster
           ref="clusterRef"
-          :model-value="data.clusterData"
-          @id-change="handleClusterIdChange" />
+          v-model="localClusterData" />
       </td>
       <td style="padding: 0">
         <RenderSlaveHost
           ref="hostRef"
-          :cloud-id="cloudId"
-          :disabled="!localClusterId"
-          :domain="data.clusterData?.domain"
-          :model-value="data.newSlaveHost" />
+          :cluster-data="localClusterData"
+          :model-value="localNewSlaveHost" />
       </td>
       <td>
         <div class="action-box">
@@ -62,7 +59,7 @@
     clusterData?: {
       id: number;
       domain: string;
-      cloudId: number | null;
+      cloudId: number;
     };
     newSlaveHost?: IHostData;
   }
@@ -77,7 +74,8 @@
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
-  import RenderCluster from './RenderCluster.vue';
+  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
+
   import RenderSlaveHost from './RenderSlaveHost.vue';
 
   interface Props {
@@ -100,25 +98,19 @@
   const clusterRef = ref<InstanceType<typeof RenderSlaveHost>>();
   const hostRef = ref<InstanceType<typeof RenderSlaveHost>>();
 
-  const localClusterId = ref(0);
-  const cloudId = ref<number | null>(null);
+  const localClusterData = ref<IDataRow['clusterData']>();
+  const localNewSlaveHost = ref<IDataRow['newSlaveHost']>();
 
   watch(
     () => props.data,
     () => {
-      if (props.data.clusterData) {
-        localClusterId.value = props.data.clusterData.id;
-        cloudId.value = props.data.clusterData.cloudId;
-      }
+      localClusterData.value = props.data.clusterData;
+      localNewSlaveHost.value = props.data.newSlaveHost;
     },
     {
       immediate: true,
     },
   );
-  const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
-    localClusterId.value = idData.id;
-    cloudId.value = idData.cloudId;
-  };
 
   const handleAppend = () => {
     emits('add', [createRowData()]);

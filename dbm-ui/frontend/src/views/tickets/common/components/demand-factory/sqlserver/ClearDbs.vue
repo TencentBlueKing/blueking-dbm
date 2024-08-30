@@ -13,7 +13,9 @@
 
 <template>
   <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn :label="t('集群')">
+    <BkTableColumn
+      :label="t('集群')"
+      :width="240">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>

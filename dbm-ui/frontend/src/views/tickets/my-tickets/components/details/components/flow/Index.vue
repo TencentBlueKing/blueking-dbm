@@ -41,12 +41,7 @@
   }
 
   interface Emits {
-    (e: 'fetchData'): void;
-    (e: 'mounted'): void;
-  }
-
-  interface Expose {
-    fetchFlowData: () => void;
+    (e: 'refresh'): void;
   }
 
   const props = defineProps<Props>();
@@ -85,7 +80,9 @@
       state.flows = [];
       fetchTicketFlows(id);
     },
-    // { immediate: true },
+    {
+      immediate: true,
+    },
   );
 
   /**
@@ -113,18 +110,8 @@
 
   const handleFecthData = () => {
     fetchTicketFlows(props.data.id);
-    emits('fetchData'); // 操作单据后立即查询基本信息
+    emits('refresh'); // 操作单据后立即查询基本信息
   };
-
-  onMounted(() => {
-    emits('mounted');
-  });
-
-  defineExpose<Expose>({
-    fetchFlowData() {
-      fetchTicketFlows(props.data.id);
-    },
-  });
 </script>
 
 <style lang="less" scoped>

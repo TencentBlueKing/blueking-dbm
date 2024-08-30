@@ -63,7 +63,8 @@
   import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
-  // import { useTicketCloneInfo } from '@hooks';
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, TicketTypes } from '@common/const';
 
   import InstanceSelector, {
@@ -109,6 +110,31 @@
     const [firstRow] = list;
     return !firstRow.oldSlave;
   };
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_RESTORE_SLAVE,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.map((item) =>
+        createRowData({
+          oldSlave: {
+            bkCloudId: item.old_slave_host.bk_cloud_id,
+            bkCloudName: item.clusters[0].bk_cloud_name,
+            bkHostId: item.old_slave_host.bk_host_id,
+            ip: item.old_slave_host.ip,
+            port: item.old_slave_host.port,
+            clusterId: item.clusters[0].id,
+            dbModuleId: item.clusters[0].db_module_id,
+          },
+          newSlave: {
+            bkCloudId: item.new_slave_host.bk_cloud_id,
+            bkHostId: item.new_slave_host.bk_host_id,
+            ip: item.new_slave_host.ip,
+            port: item.new_slave_host.port,
+          },
+        }),
+      );
+    },
+  });
 
   // Master 批量选择
   const handleShowIpSelector = () => {

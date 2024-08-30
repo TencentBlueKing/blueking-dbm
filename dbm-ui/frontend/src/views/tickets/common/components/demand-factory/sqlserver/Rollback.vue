@@ -14,15 +14,18 @@
 <template>
   <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn
+      fixed="left"
       :label="t('待回档集群')"
-      :width="180">
+      :width="220">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.src_cluster].immute_domain }}
       </template>
     </BkTableColumn>
     <BkTableColumn
+      v-if="!ticketDetails.details.is_local"
+      fixed="left"
       :label="t('目标集群')"
-      :width="180">
+      :width="220">
       <template #default="{ data }: { data: RowData }">
         {{ ticketDetails.details.clusters[data.dst_cluster].immute_domain }}
       </template>

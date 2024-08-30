@@ -115,6 +115,8 @@
   import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -164,6 +166,26 @@
   });
 
   const isBackupTypeFull = computed(() => formData.backup_type === 'full_backup');
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_BACKUP_DBS,
+    onSuccess(cloneData) {
+      formData.backup_type = cloneData.backup_type;
+      formData.backup_place = cloneData.backup_place;
+      formData.file_tag = cloneData.file_tag;
+      tableData.value = cloneData.info.map((item) =>
+        createRowData({
+          clusterData: {
+            id: item.cluster.id,
+            domain: item.cluster.immute_domain,
+            cloudId: item.cluster.bk_cloud_id,
+          },
+          dbList: item.db_list,
+          ignoreDbList: item.ignore_db_list,
+        }),
+      );
+    },
+  });
 
   watch(
     () => formData.backup_type,

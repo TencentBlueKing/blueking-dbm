@@ -56,8 +56,11 @@ export function queryBackupLogs(params: { cluster_id: number; days?: number }) {
   return http.post<
     {
       backup_id: string;
+      complete: boolean;
       end_time: string;
+      expected_cnt: number;
       logs: any[];
+      real_cnt: number;
       role: string;
       start_time: string;
     }[]
@@ -79,10 +82,8 @@ export function queryDbsByBackupLog(params: {
 
 // 根据回档时间集群最近备份记录
 export function queryLatestBackupLog(params: { cluster_id: number; rollback_time: string }) {
-  return http.post<{
-    backup_id: string;
-    end_time: string;
-    start_time: string;
-    logs: unknown[];
-  }>(`${path}/rollback/query_latest_backup_log/`, params);
+  return http.post<ServiceReturnType<typeof queryBackupLogs>[number]>(
+    `${path}/rollback/query_latest_backup_log/`,
+    params,
+  );
 }

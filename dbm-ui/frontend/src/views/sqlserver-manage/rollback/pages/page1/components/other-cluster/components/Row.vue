@@ -29,8 +29,8 @@
       <td style="padding: 0">
         <RenderMode
           ref="modeRef"
-          v-model:restore-backup-file="localRestoreBackupFile"
           v-model:restore-time="localRestoreTime"
+          v-model:restoreBackupFile="localRestoreBackupFile"
           :cluster-id="localSrcClusterData?.id" />
       </td>
       <td style="padding: 0">
@@ -96,10 +96,14 @@
       cloudId: number | null;
     };
     restoreBackupFile?: ServiceReturnType<typeof queryBackupLogs>[number];
-    restoreTime?: string;
-    dbName?: string;
-    dbIgnoreName?: string;
-    renameDbName?: string;
+    restoreTime: string;
+    dbName: string[];
+    dbIgnoreName: string[];
+    renameDbName: {
+      db_name: string;
+      target_db_name: string;
+      rename_db_name: string;
+    }[];
   }
 
   // 创建表格数据
@@ -109,17 +113,17 @@
     dstClusterData: data.dstClusterData,
     restoreBackupFile: data.restoreBackupFile,
     restoreTime: data.restoreTime || '',
-    dbName: data.dbName,
-    dbIgnoreName: data.dbIgnoreName,
-    renameDbName: data.renameDbName,
+    dbName: data.dbName || [],
+    dbIgnoreName: data.dbIgnoreName || [],
+    renameDbName: data.renameDbName || [],
   });
 </script>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
 
   import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
+  import RenderMode from '@views/sqlserver-manage/common/render-mode/Index.vue';
   import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
-  import RenderMode from '@views/sqlserver-manage/common/RenderMode.vue';
 
   import RenderRename from './RenderRename.vue';
 
@@ -166,9 +170,9 @@
       if (props.data.restoreBackupFile) {
         localRestoreBackupFile.value = props.data.restoreBackupFile;
       }
-      if (props.data.restoreTime) {
-        localRestoreTime.value = props.data.restoreTime;
-      }
+      localRestoreTime.value = props.data.restoreTime;
+      localDbName.value = props.data.dbName;
+      localDbIgnoreName.value = props.data.dbIgnoreName;
     },
     {
       immediate: true,

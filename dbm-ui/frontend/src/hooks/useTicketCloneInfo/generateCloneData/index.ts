@@ -119,9 +119,9 @@ const sqlserverTicketModule = importSqlserverModule<{
   [TicketTypes.SQLSERVER_ADD_SLAVE]: typeof import('./sqlserver/SQLSERVER_ADD_SLAVE').default;
   [TicketTypes.SQLSERVER_BACKUP_DBS]: typeof import('./sqlserver/SQLSERVER_BACKUP_DBS').default;
   [TicketTypes.SQLSERVER_CLEAR_DBS]: typeof import('./sqlserver/SQLSERVER_CLEAR_DBS').default;
-  [TicketTypes.SQLSERVER_DATA_MIGRATE]: typeof import('./sqlserver/SQLSERVER_DATA_MIGRATE').default;
   [TicketTypes.SQLSERVER_DBRENAME]: typeof import('./sqlserver/SQLSERVER_DBRENAME').default;
   [TicketTypes.SQLSERVER_FULL_MIGRATE]: typeof import('./sqlserver/SQLSERVER_FULL_MIGRATE').default;
+  [TicketTypes.SQLSERVER_IMPORT_SQLFILE]: typeof import('./sqlserver/SQLSERVER_IMPORT_SQLFILE').default;
   [TicketTypes.SQLSERVER_INCR_MIGRATE]: typeof import('./sqlserver/SQLSERVER_INCR_MIGRATE').default;
   [TicketTypes.SQLSERVER_MASTER_FAIL_OVER]: typeof import('./sqlserver/SQLSERVER_MASTER_FAIL_OVER').default;
   [TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH]: typeof import('./sqlserver/SQLSERVER_MASTER_SLAVE_SWITCH').default;

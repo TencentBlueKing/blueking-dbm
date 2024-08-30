@@ -67,6 +67,8 @@
   import { querySemanticData } from '@services/source/mysqlSqlImport';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
@@ -100,6 +102,22 @@
   const clusterVersionList = ref<string[]>([]);
 
   const formData = reactive(createDefaultData());
+
+  useTicketCloneInfo({
+    type: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
+    onSuccess(cloneData) {
+      console.log(cloneData);
+      Object.assign(formData, {
+        charset: cloneData.charset,
+        cluster_ids: cloneData.cluster_ids,
+        execute_objects: cloneData.execute_objects,
+        backup: cloneData.backup,
+        ticket_mode: cloneData.ticket_mode,
+      });
+      uploadFilePath.value = cloneData.path;
+      console.log('formData = ', formData);
+    },
+  });
 
   // 模拟执行日志重新修改
   const { loading: isEditLoading } = useRequest(querySemanticData, {
