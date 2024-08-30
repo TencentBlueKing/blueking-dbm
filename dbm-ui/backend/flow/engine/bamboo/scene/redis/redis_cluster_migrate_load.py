@@ -739,7 +739,7 @@ class RedisInsMigrateLoadFlow(object):
                     "slave_ip": slave_ip,
                     "port": ins["backends"]["master"]["port"],
                     "created_by": self.data["created_by"],
-                    "region": ins.get("city_code", ""),
+                    "region": ins["clusterinfo"]["region"],
                     "meta_func_name": RedisDBMeta.redis_instance.__name__,
                     "disaster_tolerance_level": self.data.get("disaster_tolerance_level", AffinityEnum.CROS_SUBZONE),
                 }
