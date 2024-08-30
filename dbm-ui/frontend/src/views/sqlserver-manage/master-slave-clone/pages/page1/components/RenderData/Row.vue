@@ -18,8 +18,7 @@
         <RenderCluster
           ref="clusterRef"
           :model-value="data.clusterData"
-          @id-change="handleClusterIdChange"
-          @input-create="handleCreate" />
+          @id-change="handleClusterIdChange" />
       </td>
       <td style="padding: 0">
         <RenderMasterSlave
@@ -127,20 +126,20 @@
     cloudId.value = idData.cloudId;
   };
 
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((domain) =>
-        createRowData({
-          clusterData: {
-            id: 0,
-            domain,
-            cloudId: null,
-          },
-        }),
-      ),
-    );
-  };
+  // const handleCreate = (list: Array<string>) => {
+  //   emits(
+  //     'add',
+  //     list.map((domain) =>
+  //       createRowData({
+  //         clusterData: {
+  //           id: 0,
+  //           domain,
+  //           cloudId: null,
+  //         },
+  //       }),
+  //     ),
+  //   );
+  // };
 
   const handleAppend = () => {
     emits('add', [createRowData()]);

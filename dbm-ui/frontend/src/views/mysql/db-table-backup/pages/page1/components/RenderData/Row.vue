@@ -20,11 +20,6 @@
         @id-change="handleClusterIdChange"
         @input-create="handleCreate" />
     </FixedColumn>
-    <!-- <td style="padding: 0;">
-      <RenderBackupSource
-        ref="backupSourceRef"
-        :model-value="data.backupOn" />
-    </td> -->
     <td style="padding: 0">
       <RenderDbName
         ref="dbPatternsRef"

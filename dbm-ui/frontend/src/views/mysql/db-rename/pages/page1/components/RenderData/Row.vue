@@ -135,7 +135,7 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value!.getValue(true),
+        clusterRef.value!.getValue(),
         fromDatabaseRef.value!.getValue('from_database'),
         toDatabaseRef.value!.getValue('to_database'),
       ]).then(([clusterData, backupLocalData, dbPatternsData]) => ({

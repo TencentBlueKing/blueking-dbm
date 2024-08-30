@@ -19,6 +19,7 @@
       'is-error': Boolean(errorMessage),
       'is-disabled': disabled,
       'is-password': isPassword,
+      'is-clearable': clearable,
     }">
     <BkInput
       class="input-box"
@@ -35,8 +36,12 @@
       @input="handleInput"
       @keydown="handleKeydown"
       @paste="handlePaste">
-      <template #suffix />
     </BkInput>
+    <DbIcon
+      v-if="clearable && modelValue"
+      class="clear-icon"
+      type="close-circle-shape"
+      @click="handleClear" />
     <DbIcon
       v-if="errorMessage"
       v-bk-tooltips="errorMessage"
@@ -62,12 +67,18 @@
     min?: number;
     max?: number;
     isShowBlur?: boolean;
+    clearable?: boolean;
+    ignoreSameInput?: boolean;
+    pasteFn?: (value: string) => string;
   }
 
   interface Emits {
+    (e: 'blur', value: string): void;
+    (e: 'input', value: string): void;
     (e: 'submit', value: string): void;
     (e: 'error', result: boolean): void;
     (e: 'focus'): void;
+    (e: 'clear'): void;
   }
 
   interface Exposes {
@@ -84,6 +95,9 @@
     min: Number.MIN_SAFE_INTEGER,
     max: Number.MAX_SAFE_INTEGER,
     isShowBlur: false,
+    clearable: true,
+    ignoreSameInput: false,
+    pasteFn: undefined,
   });
 
   const emits = defineEmits<Emits>();
@@ -118,6 +132,7 @@
     isBlur.value = false;
     window.changeConfirm = true;
     modelValue.value = value;
+    emits('input', value);
   };
 
   const handleFocus = () => {
@@ -125,28 +140,40 @@
     emits('focus');
   };
 
+  const handleClear = () => {
+    modelValue.value = '';
+    validator('')
+      .catch(() => emits('error', true))
+      .finally(() => {
+        emits('clear');
+      });
+  };
+
   // 失去焦点
   const handleBlur = (event: FocusEvent) => {
-    isBlur.value = true;
-    if (props.disabled) {
-      event.preventDefault();
-      return;
-    }
-    if (modelValue.value) {
-      if (oldInputText === modelValue.value) {
+    setTimeout(() => {
+      emits('blur', modelValue.value);
+      isBlur.value = true;
+      if (props.disabled) {
+        event.preventDefault();
         return;
       }
-      oldInputText = modelValue.value;
-      validator(modelValue.value)
-        .then(() => {
-          window.changeConfirm = true;
-          emits('error', false);
-          emits('submit', modelValue.value);
-        })
-        .catch(() => emits('error', true));
-      return;
-    }
-    emits('submit', modelValue.value);
+      if (modelValue.value) {
+        if (oldInputText === modelValue.value && props.ignoreSameInput) {
+          return;
+        }
+        oldInputText = modelValue.value;
+        validator(modelValue.value)
+          .then(() => {
+            window.changeConfirm = true;
+            emits('error', false);
+            emits('submit', modelValue.value);
+          })
+          .catch(() => emits('error', true));
+        return;
+      }
+      emits('submit', modelValue.value);
+    }, 100);
   };
 
   // enter键提交
@@ -160,7 +187,7 @@
       return;
     }
     if (event.which === 13 || event.key === 'Enter') {
-      if (oldInputText === modelValue.value) {
+      if (oldInputText === modelValue.value && props.ignoreSameInput) {
         return;
       }
       oldInputText = modelValue.value;
@@ -182,7 +209,8 @@
     event.preventDefault();
     let paste = (event.clipboardData || window.clipboardData).getData('text');
     paste = encodeMult(paste);
-    modelValue.value = paste.replace(/^\s+|\s+$/g, '');
+    paste = paste.replace(/^\s+|\s+$/g, '');
+    modelValue.value = props.pasteFn ? props.pasteFn(paste) : paste;
     window.changeConfirm = true;
   };
 
@@ -203,6 +231,12 @@
 </script>
 <style lang="less" scoped>
   .is-error {
+    &.is-clearable {
+      :deep(input) {
+        padding-right: 45px;
+      }
+    }
+
     :deep(input) {
       padding: 0 16px;
       background-color: #fff0f1;
@@ -226,6 +260,10 @@
 
     :deep(.bk-input--suffix-icon) {
       display: none !important;
+    }
+
+    .clear-icon {
+      right: 28px !important;
     }
   }
 
@@ -256,11 +294,23 @@
     }
   }
 
+  .is-clearable {
+    :deep(input) {
+      padding-right: 25px;
+    }
+  }
+
   .table-edit-input {
     position: relative;
     min-height: 42px;
     cursor: pointer;
     background: #fff;
+
+    &:hover {
+      .clear-icon {
+        display: block;
+      }
+    }
 
     .input-box {
       width: 100%;
@@ -290,6 +340,19 @@
         position: absolute;
         right: 1px;
         background: transparent;
+      }
+    }
+
+    .clear-icon {
+      position: absolute;
+      top: 14px;
+      right: 10px;
+      font-size: 14px;
+      color: #c4c6cc;
+      display: none;
+
+      &:hover {
+        color: #979ba5;
       }
     }
 

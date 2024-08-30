@@ -16,7 +16,6 @@
     <TableEditInput
       ref="editRef"
       v-model="localDomain"
-      :multi-input="false"
       :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
       @submit="handleEditSubmit" />
@@ -37,7 +36,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 

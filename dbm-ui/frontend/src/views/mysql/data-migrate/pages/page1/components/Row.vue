@@ -185,7 +185,7 @@
   defineExpose<Exposes>({
     async getValue() {
       await Promise.all([
-        sourceClusterRef.value!.getValue(true),
+        sourceClusterRef.value!.getValue(),
         targetClustersRef.value!.getValue(),
         dbPatternsRef.value!.getValue('db_patterns'),
         ignoreDbsRef.value!.getValue('ignore_dbs'),

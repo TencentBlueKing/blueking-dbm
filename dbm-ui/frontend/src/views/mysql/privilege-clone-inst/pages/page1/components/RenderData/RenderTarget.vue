@@ -16,7 +16,7 @@
     ref="editRef"
     v-model="localInstanceAddress"
     multi-input
-    :placeholder="$t('请输入IP_Port')"
+    :placeholder="t('请输入IP_Port')"
     :rules="rules" />
 </template>
 <script lang="ts">

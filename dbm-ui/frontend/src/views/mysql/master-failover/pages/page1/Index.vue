@@ -17,11 +17,11 @@
       <BkAlert
         closable
         theme="info"
-        :title="$t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
+        :title="t('Slave提升成主库_断开同步_切换后集成成单点状态_一般用于紧急切换')" />
       <div class="page-action-box">
         <BkButton @click="handleShowBatchEntry">
           <DbIcon type="add" />
-          {{ $t('批量录入') }}
+          {{ t('批量录入') }}
         </BkButton>
       </div>
       <RenderData
@@ -67,16 +67,16 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('提交') }}
+        {{ t('提交') }}
       </BkButton>
       <DbPopconfirm
         :confirm-handler="handleReset"
-        :content="$t('重置将会清空当前填写的所有内容_请谨慎操作')"
-        :title="$t('确认重置页面')">
+        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
+        :title="t('确认重置页面')">
         <BkButton
           class="ml8 w-88"
           :disabled="isSubmitting">
-          {{ $t('重置') }}
+          {{ t('重置') }}
         </BkButton>
       </DbPopconfirm>
     </template>

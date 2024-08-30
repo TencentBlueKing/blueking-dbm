@@ -16,8 +16,7 @@
     ref="editRef"
     v-model="localDomain"
     :placeholder="t('请输入集群域名或从表头批量选择')"
-    :rules="rules"
-    @focus="handleFocus" />
+    :rules="rules" />
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -46,7 +45,7 @@
   }
 
   interface Exposes {
-    getValue: (isSubmit?: boolean) => Promise<{
+    getValue: () => Promise<{
       cluster_id: number;
     }>;
   }
@@ -166,20 +165,19 @@
     },
   );
 
-  const handleFocus = () => {
-    isSkipInputFinish = false;
-  };
-
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
   });
 
   defineExpose<Exposes>({
-    getValue(isSubmit = false) {
-      isSkipInputFinish = isSubmit;
-      return editRef.value.getValue().then(() => ({
-        cluster_id: localClusterId.value,
-      }));
+    getValue() {
+      isSkipInputFinish = true;
+      return editRef.value.getValue().then(() => {
+        isSkipInputFinish = false;
+        return {
+          cluster_id: localClusterId.value,
+        };
+      });
     },
   });
 </script>

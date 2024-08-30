@@ -21,7 +21,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   interface Props {
     name: string;

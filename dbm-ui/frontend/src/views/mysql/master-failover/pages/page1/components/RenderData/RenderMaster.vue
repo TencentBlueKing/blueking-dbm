@@ -12,14 +12,11 @@
 -->
 
 <template>
-  <div class="render-master-box">
-    <TableEditInput
-      ref="editRef"
-      v-model="localValue"
-      :placeholder="t('请输入IP或从表头批量选择')"
-      :rules="rules"
-      textarea />
-  </div>
+  <TableEditInput
+    ref="editRef"
+    v-model="localValue"
+    :placeholder="t('请输入IP或从表头批量选择')"
+    :rules="rules" />
 </template>
 <script lang="ts">
   const singleHostSelectMemo: { [key: string]: Record<string, boolean> } = {};
@@ -35,7 +32,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -78,6 +75,10 @@
   let oldLocalProxyData = {} as IHostData;
 
   const rules = [
+    {
+      validator: (value: string) => !!value,
+      message: t('不能为空'),
+    },
     {
       validator: (value: string) => ipv4.test(_.trim(value)),
       message: t('IP格式不正确'),
@@ -151,8 +152,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-master-box {
-    position: relative;
-  }
-</style>
