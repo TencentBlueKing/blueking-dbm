@@ -190,24 +190,21 @@ class AddAccountRuleSerializer(serializers.Serializer):
         )
 
     account_id = serializers.IntegerField(help_text=_("账号ID"))
-    access_db = serializers.CharField(help_text=_("访问DB"))
-    privilege = RuleTypeSerializer(help_text=_("授权规则"))
+    access_db = serializers.CharField(help_text=_("访问DB"), required=False)
+    privilege = RuleTypeSerializer(help_text=_("授权规则"), required=False)
     account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.ADD_MYSQL_ACCOUNT_RULE_REQUEST}
 
 
-class ModifyMySQLAccountRuleSerializer(AddAccountRuleSerializer):
+class ModifyAccountRuleSerializer(AddAccountRuleSerializer):
     rule_id = serializers.IntegerField(help_text=_("规则ID"))
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.MODIFY_MYSQL_ACCOUNT_RULE_REQUEST}
 
 
-class DeleteAccountRuleSerializer(serializers.Serializer):
-    rule_id = serializers.IntegerField(help_text=_("规则ID"))
-    account_type = serializers.ChoiceField(help_text=_("账号类型"), choices=AccountType.get_choices())
-
+class DeleteAccountRuleSerializer(ModifyAccountRuleSerializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.DELETE_MYSQL_ACCOUNT_RULE_REQUEST}

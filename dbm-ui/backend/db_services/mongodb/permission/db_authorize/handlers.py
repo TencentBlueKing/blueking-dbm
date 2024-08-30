@@ -80,7 +80,7 @@ class MongoDBAuthorizeHandler(AuthorizeHandler):
 
     def _get_user_rules_and_password_map(self, users: List[str]):
         """提前查询权限规则表和密码表"""
-        user_db__rules = AccountHandler.aggregate_user_db_privileges(self.bk_biz_id, AccountType.MONGODB)
+        user_db__rules = AccountHandler.aggregate_user_db_rules(self.bk_biz_id, AccountType.MONGODB)
 
         params = {"bk_biz_id": self.bk_biz_id, "users": users, "cluster_type": AccountType.MONGODB.value}
         user_password_data = DBPrivManagerApi.get_account_include_password(params)["items"]

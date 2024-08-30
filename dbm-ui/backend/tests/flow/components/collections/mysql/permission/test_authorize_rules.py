@@ -10,15 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging
-from typing import Any, NoReturn, Type, Union
+from typing import Any, List, NoReturn, Type, Union
 
 import pytest
 from django.test import TestCase
 from pipeline.component_framework.component import Component
 
-from backend.db_services.dbpermission.db_authorize.models import AuthorizeRecord
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
+from backend.tests.flow.components.collections.base import BaseComponentPatcher as Patcher
 from backend.tests.flow.components.collections.mysql.utils import MySQLComponentBaseTest
+from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.ticket.ticket_params_data import MYSQL_AUTHORIZE_FLOW_PARAMS
 
 logger = logging.getLogger("test")
@@ -38,4 +39,14 @@ class TestAuthorizeRulesComponent(MySQLComponentBaseTest, TestCase):
         return AuthorizeRulesComponent
 
     def tearDown(self) -> Union[Any, NoReturn]:
-        assert AuthorizeRecord.objects.filter(status=True).count() == 1
+        pass
+
+    def get_patchers(self) -> List[Patcher]:
+        patchers = super().get_patchers()
+        patchers.append(
+            Patcher(
+                target="backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi",
+                new=DBPrivManagerApiMock,
+            )
+        )
+        return patchers

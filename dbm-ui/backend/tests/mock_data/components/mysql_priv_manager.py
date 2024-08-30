@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
@@ -58,7 +59,8 @@ class DBPrivManagerApiMock(object):
     @classmethod
     @raw_response
     def list_account_rules(cls, *args, **kwargs):
-        return LIST_MYSQL_ACCOUNT_RULE_RESPONSE
+        data = copy.deepcopy(LIST_MYSQL_ACCOUNT_RULE_RESPONSE)
+        return data
 
     @classmethod
     @raw_response

@@ -14,7 +14,7 @@ from backend import env
 BK_BIZ_ID = env.DBA_APP_BK_BIZ_ID
 BK_USERNAME = "admin"
 
-ACCESS_DBS = ["user", "group"]
+ACCESS_DBS = ["datamain"]
 TARGET_INSTANCES = ["blueking.db1.com", "blueking.db2.com"]
 SOURCE_IPS = ["127.0.0.1", "127.0.0.2"]
 

@@ -107,6 +107,15 @@ class FormatType(str, StructuredEnum):
     CLUSTER = EnumField("cluster", _("cluster"))
 
 
+class RuleActionType(str, StructuredEnum):
+    """权限操作类型"""
+
+    AUTH = EnumField("auth", _("授权"))
+    CREATE = EnumField("create", _("创建"))
+    CHANGE = EnumField("change", _("修改"))
+    DELETE = EnumField("delete", _("删除"))
+
+
 class AuthorizeExcelHeader(str, StructuredEnum):
     """授权excel的头部信息"""
 
@@ -117,6 +126,14 @@ class AuthorizeExcelHeader(str, StructuredEnum):
     ERROR = EnumField("错误信息/提示信息", _("错误信息/提示信息"))
 
 
+# 授权字段和授权excel头的映射
+AUTHORIZE_KEY__EXCEL_FIELD_MAP = {
+    "user": AuthorizeExcelHeader.USER,
+    "access_dbs": AuthorizeExcelHeader.ACCESS_DBS,
+    "source_ips": AuthorizeExcelHeader.SOURCE_IPS,
+    "target_instances": AuthorizeExcelHeader.TARGET_INSTANCES,
+}
+
 # 授权数据过期时间
 AUTHORIZE_DATA_EXPIRE_TIME = 60 * 60 * 6
 
@@ -125,6 +142,5 @@ EXCEL_DIVIDER = ","
 
 # 账号名称最大长度
 MAX_ACCOUNT_LENGTH = 31
-
 
 DPRIV_PARAMETER_MAP = {"account_type": "cluster_type", "rule_ids": "ids", "privilege": "privs", "access_db": "dbname"}

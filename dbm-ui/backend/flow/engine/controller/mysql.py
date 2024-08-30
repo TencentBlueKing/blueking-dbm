@@ -11,14 +11,14 @@ specific language governing permissions and limitations under the License.
 
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.bamboo.scene.cloud.mysql_machine_clear_flow import ClearMysqlMachineFlow
+from backend.flow.engine.bamboo.scene.common.account_rule_manage import AccountRulesFlows
 from backend.flow.engine.bamboo.scene.common.download_dbactor import DownloadDbactorFlow
 from backend.flow.engine.bamboo.scene.common.download_file import DownloadFileFlow
 from backend.flow.engine.bamboo.scene.common.transfer_cluster_to_other_biz import TransferMySQLClusterToOtherBizFlow
 from backend.flow.engine.bamboo.scene.mysql.dbconsole import DbConsoleDumpSqlFlow
 from backend.flow.engine.bamboo.scene.mysql.import_sqlfile_flow import ImportSQLFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRules
+from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRulesFlows
 from backend.flow.engine.bamboo.scene.mysql.mysql_checksum import MysqlChecksumFlow
-from backend.flow.engine.bamboo.scene.mysql.mysql_clone_rules import MySQLCloneRules
 from backend.flow.engine.bamboo.scene.mysql.mysql_data_migrate_flow import MysqlDataMigrateFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_edit_config_flow import MysqlEditConfigFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_fake_sql_semantic_check import MySQLFakeSemanticCheck
@@ -219,7 +219,7 @@ class MySQLController(BaseController):
     def mysql_authorize_rules(self):
         """授权mysql权限场景"""
 
-        flow = MySQLAuthorizeRules(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLAuthorizeRulesFlows(root_id=self.root_id, data=self.ticket_data)
         flow.authorize_mysql_rules()
 
     def mysql_clone_rules(self):
@@ -229,8 +229,20 @@ class MySQLController(BaseController):
         - 客户端权限克隆
         """
 
-        flow = MySQLCloneRules(root_id=self.root_id, data=self.ticket_data)
+        flow = MySQLAuthorizeRulesFlows(root_id=self.root_id, data=self.ticket_data)
         flow.clone_mysql_rules()
+
+    def mysql_account_rules_change(self):
+        """修改mysql账号规则模板场景"""
+
+        flow = AccountRulesFlows(root_id=self.root_id, data=self.ticket_data)
+        flow.modify_account_rule()
+
+    def mysql_account_rules_delete(self):
+        """修改mysql账号规则模板场景"""
+
+        flow = AccountRulesFlows(root_id=self.root_id, data=self.ticket_data)
+        flow.delete_account_rule()
 
     def mysql_proxy_add_scene(self):
         """

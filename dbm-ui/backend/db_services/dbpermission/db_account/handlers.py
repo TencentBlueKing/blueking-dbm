@@ -19,7 +19,7 @@ from iam.resource.utils import FancyDict
 from backend.components.mysql_priv_manager.client import DBPrivManagerApi
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_services.dbpermission.constants import DPRIV_PARAMETER_MAP, AccountType
+from backend.db_services.dbpermission.constants import DPRIV_PARAMETER_MAP, AccountType, RuleActionType
 from backend.db_services.dbpermission.db_account.dataclass import (
     AccountMeta,
     AccountPrivMeta,
@@ -27,8 +27,11 @@ from backend.db_services.dbpermission.db_account.dataclass import (
     AccountUserMeta,
 )
 from backend.db_services.dbpermission.db_account.signals import create_account_signal
+from backend.db_services.dbpermission.db_authorize.models import DBRuleActionLog
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.db_services.mysql.permission.exceptions import DBPermissionBaseException
+from backend.ticket.constants import TicketStatus, TicketType
+from backend.ticket.models import Ticket
 from backend.utils.excel import ExcelHandler
 
 logger = logging.getLogger("root")
@@ -63,6 +66,17 @@ class AccountHandler(object):
 
     def _format_account_rules(self, account_rules_list: Dict) -> Dict:
         """格式化账号权限列表信息"""
+        # 查询规则变更的单据，补充规则正在运行的状态
+        try:
+            ticket_type = getattr(TicketType, f"{self.account_type.upper()}_ACCOUNT_RULE_CHANGE")
+            priv_tickets = Ticket.objects.filter(status=TicketStatus.RUNNING, ticket_type=ticket_type)
+            rule__action_map = {}
+            for t in priv_tickets:
+                rule__action_map[t.details["rule_id"]] = {"action": t.details["action"], "ticket_id": t.id}
+        except (AttributeError, Exception):
+            rule__action_map = {}
+
+        # 格式化账号规则的字段信息
         for account_rules in account_rules_list["items"]:
             account_rules["account"]["account_id"] = account_rules["account"].pop("id")
 
@@ -74,6 +88,7 @@ class AccountHandler(object):
                 rule["rule_id"] = rule.pop("id")
                 rule["access_db"] = rule.pop("dbname")
                 rule["privilege"] = rule.pop("priv")
+                rule["priv_ticket"] = rule__action_map.get(rule["rule_id"], {})
 
         return account_rules_list
 
@@ -147,6 +162,7 @@ class AccountHandler(object):
                 "dbname": account_rule.access_db,
             }
         )
+        # DBRuleActionLog.create_log(account_rule, self.operator, action=RuleActionType.CHANGE)
         return resp
 
     def query_account_rules(self, account_rule: AccountRuleMeta):
@@ -211,7 +227,6 @@ class AccountHandler(object):
         - 修改账号规则
         :param account_rule: 账号规则元信息
         """
-
         resp = DBPrivManagerApi.modify_account_rule(
             {
                 "bk_biz_id": self.bk_biz_id,
@@ -223,6 +238,9 @@ class AccountHandler(object):
                 "priv": account_rule.privilege,
             }
         )
+        DBRuleActionLog.create_log(
+            account_rule.account_id, account_rule.rule_id, self.operator, action=RuleActionType.CHANGE
+        )
         return resp
 
     def delete_account_rule(self, account_rule: AccountRuleMeta) -> Optional[Any]:
@@ -233,7 +251,7 @@ class AccountHandler(object):
         # 如果账号规则与其他地方耦合，需要进行判断
         config = TendbOpenAreaConfig.objects.filter(related_authorize__contains=[account_rule.rule_id])
         if config.exists():
-            raise DBPermissionBaseException(_("当前授权规则已被开区模板{}引用，不允许删除").format(config.first().name))
+            raise DBPermissionBaseException(_("当前规则已被开区模板{}引用，不允许删除").format(config.first().config_name))
 
         resp = DBPrivManagerApi.delete_account_rule(
             {
@@ -243,18 +261,22 @@ class AccountHandler(object):
                 "id": [account_rule.rule_id],
             }
         )
+        DBRuleActionLog.create_log(
+            account_rule.account_id, account_rule.rule_id, self.operator, action=RuleActionType.DELETE
+        )
         return resp
 
     @classmethod
-    def aggregate_user_db_privileges(cls, bk_biz_id: int, account_type: AccountType) -> Dict[str, Dict[str, List]]:
-        account_rules = DBPrivManagerApi.list_account_rules({"bk_biz_id": bk_biz_id, "cluster_type": account_type})[
-            "items"
-        ]
-        # 按照user，accessdb进行聚合
+    def aggregate_user_db_rules(
+        cls, bk_biz_id: int, account_type: AccountType, rule_key: str = "priv"
+    ) -> Dict[str, Dict[str, Any]]:
+        """获得user和db对应的规则对象"""
+        account_rules = DBPrivManagerApi.list_account_rules({"bk_biz_id": bk_biz_id, "cluster_type": account_type})
+        # 按照user，accessdb进行聚合规则
         user_db__rules = defaultdict(dict)
-        for account_rule in account_rules:
+        for account_rule in account_rules["items"]:
             account, rules = account_rule["account"], account_rule["rules"]
-            user_db__rules[account["user"]] = {rule["dbname"]: rule["priv"] for rule in rules}
+            user_db__rules[account["user"]] = {rule["dbname"]: rule[rule_key] if rule_key else rule for rule in rules}
         return user_db__rules
 
     def paginate_match_ips(self, data, privs_format, offset, limit):
