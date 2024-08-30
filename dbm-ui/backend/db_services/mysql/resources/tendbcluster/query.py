@@ -273,3 +273,15 @@ class ListRetrieveResource(query.ListRetrieveResource):
         cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
         graph = scan_cluster(cluster).to_dict()
         return graph
+
+    @classmethod
+    def retrieve_instance(cls, bk_biz_id: int, cluster_id: int, instance: str) -> dict:
+        """查询实例详情. 具体方法可在子类中自定义"""
+        instance_details = cls.list_instances(
+            bk_biz_id, {"instance": instance, "spider_ctl": True}, limit=1, offset=0
+        ).data
+        if not instance_details:
+            raise Exception(
+                "Error: Instance %s of cluster %s under %s is not exist" % (instance, cluster_id, bk_biz_id)
+            )
+        return cls._retrieve_instance(instance_details[0], cluster_id)

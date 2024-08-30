@@ -288,8 +288,10 @@ class BaseListRetrieveResource(CommonQueryResourceMixin):
     @classmethod
     def retrieve_instance(cls, bk_biz_id: int, cluster_id: int, instance: str) -> dict:
         """查询实例详情. 具体方法可在子类中自定义"""
-        instance_details = cls.list_instances(bk_biz_id, {"instance": instance}, limit=1, offset=0).data[0]
-        return cls._retrieve_instance(instance_details, cluster_id)
+        instance_details = cls.list_instances(bk_biz_id, {"instance": instance}, limit=1, offset=0).data
+        if not instance_details:
+            raise Exception("Error: Instance %s of cluster %s under %s not exist" % (instance, cluster_id, bk_biz_id))
+        return cls._retrieve_instance(instance_details[0], cluster_id)
 
     @classmethod
     def _retrieve_instance(cls, instance, cluster_id):
