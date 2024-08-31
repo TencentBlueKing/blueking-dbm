@@ -17,7 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('集群主从节点成对迁移到新的机器上_旧机器会下架掉')" />
+        :title="t('添加从库：同机的所有集群会统一新增从库，仅支持 always on 集群')" />
       <RenderData
         class="mt16"
         @batch-select-cluster="handleShowBatchSelector">
@@ -126,7 +126,6 @@
           newSlaveHost: item.new_slave_host,
         }),
       );
-      console.log(' tableData = ', tableData);
     },
   });
 

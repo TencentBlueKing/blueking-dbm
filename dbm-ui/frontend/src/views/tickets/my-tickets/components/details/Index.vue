@@ -19,14 +19,7 @@
       <SmartAction :offset-target="getOffsetTarget">
         <div class="ticket-details-page">
           <template v-if="state.ticketData">
-            <DbCard
-              mode="collapse"
-              :title="t('基本信息')">
-              <Baseinfo
-                :columns="baseColumns"
-                :data="state.ticketData"
-                width="30%" />
-            </DbCard>
+            <BaseInfo :ticket-data="state.ticketData" />
             <Teleport
               :disabled="!isFullscreen"
               to="body">
@@ -35,9 +28,7 @@
                 :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
                 mode="collapse"
                 :title="t('需求信息')">
-                <DemandInfo
-                  :data="state.ticketData"
-                  :is-loading="state.isLoading" />
+                <DemandInfo :data="state.ticketData" />
                 <div class="mt-10">
                   <span>{{ t('备注') }}:</span>
                   <span class="ml-5">{{ state.ticketData.remark || '--' }}</span>
@@ -64,10 +55,6 @@
     </PermissionCatch>
   </BkLoading>
 </template>
-<script lang="tsx">
-  let myTicketsDetailTimer = 0;
-</script>
-
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
   import type { LocationQueryValue } from 'vue-router';
@@ -76,13 +63,10 @@
   import { getTicketDetails } from '@services/source/ticket';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
-  import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import Baseinfo, { type InfoColumn } from '@views/tickets/common/components/baseinfo/Index.vue';
   import TicketClone from '@views/tickets/common/components/TicketClone.vue';
 
-  import { utcDisplayTime, utcTimeToSeconds } from '@utils';
-
+  import BaseInfo from './components/BaseInfo.vue';
   import DemandInfo from './components/Demand.vue';
   import FlowInfo from './components/flow/Index.vue';
 
@@ -95,18 +79,25 @@
   /**
    * 获取单据详情
    */
+  let myTicketsDetailTimer = 0;
   const fetchTicketDetails = (id: number, isPoll = false) => {
     state.isLoading = !isPoll;
-    getTicketDetails({ id }, {
-      permission: 'catch'
-    })
+    getTicketDetails(
+      { id },
+      {
+        permission: 'catch',
+      },
+    )
       .then((ticketData) => {
+        if (props.ticketId !== ticketData.id) {
+          return;
+        }
         state.ticketData = ticketData;
 
-        if (currentScope?.active && ['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {
+        if (['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {
           myTicketsDetailTimer = setTimeout(() => {
             fetchTicketDetails(id, true);
-          }, 10000)
+          }, 10000);
         }
       })
       .catch(() => {
@@ -117,90 +108,52 @@
       });
   };
 
-  const currentScope = getCurrentScope();
   const { t } = useI18n();
   const route = useRoute();
 
   const isFullscreen = ref<LocationQueryValue | LocationQueryValue[]>();
   const demandCollapse = ref(false);
-  const flowInfoRef = ref<InstanceType<typeof FlowInfo>>()
+  const flowInfoRef = ref<InstanceType<typeof FlowInfo>>();
 
   const state = reactive({
     isLoading: false,
     ticketData: null as TicketModel<unknown> | null,
   });
 
-  /**
-   * 基础信息配置
-   */
-  const baseColumns: InfoColumn[][] = [
-    [
-      {
-        label: t('单号'),
-        key: 'id',
-      },
-      {
-        label: t('单据类型'),
-        key: 'ticket_type_display',
-      },
-    ],
-    [
-      {
-        label: t('单据状态'),
-        key: 'status',
-        render: () => {
-          if (state.ticketData) {
-            return <bk-tag theme={state.ticketData.tagTheme}>{t(state.ticketData.statusText)}</bk-tag>;
-          }
-          return <bk-tag theme={undefined} />;
-        },
-      },
-      {
-        label: t('申请人'),
-        key: 'creator',
-      },
-    ],
-    [
-      {
-        label: t('已耗时'),
-        key: 'cost_time',
-        render: () => (
-          <CostTimer
-            value={state.ticketData?.cost_time || 0}
-            isTiming={state.ticketData?.status === 'RUNNING'}
-            startTime={utcTimeToSeconds(state.ticketData?.create_at)} />
-        ),
-      },
-      {
-        label: t('申请时间'),
-        key: 'create_at',
-        render: () => (state.ticketData?.create_at ? utcDisplayTime(state.ticketData.create_at) : '--'),
-      },
-    ],
-  ];
+  watch(
+    () => props.ticketId,
+    () => {
+      if (props.ticketId) {
+        clearTimeout(myTicketsDetailTimer);
+        fetchTicketDetails(props.ticketId);
+      }
+    },
+    { immediate: true },
+  );
 
-  watch(() => props.ticketId, () => {
-    if (props.ticketId) {
-      clearTimeout(myTicketsDetailTimer);
-      fetchTicketDetails(props.ticketId);
-    }
-  }, { immediate: true });
+  watch(
+    isFullscreen,
+    (isFullscreen) => {
+      if (isFullscreen) {
+        demandCollapse.value = true;
+      }
+    },
+    { immediate: true },
+  );
 
-  watch(isFullscreen, (isFullscreen) => {
-    if (isFullscreen) {
-      demandCollapse.value = true;
-    }
-  }, { immediate: true });
+  watch(
+    () => route.query.isFullscreen,
+    (value) => {
+      setTimeout(() => {
+        isFullscreen.value = value;
+      });
+    },
+    {
+      immediate: true,
+    },
+  );
 
-  watch(() => route.query.isFullscreen, (value) => {
-    setTimeout(() => {
-      isFullscreen.value = value;
-    });
-  }, {
-    immediate: true,
-  });
-
-  const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card')
+  const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
 
   const exitFullscreen = (e: KeyboardEvent) => {
     if (e.keyCode === 27) {

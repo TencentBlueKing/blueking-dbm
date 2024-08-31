@@ -13,29 +13,25 @@
 
 <template>
   <BkTable :data="ticketDetails.details.infos">
-    <BkTableColumn
-      field="master.ip"
-      :label="t('目标主库IP')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="slave.ip"
-      :label="t('目标从库IP')">
-    </BkTableColumn>
-    <BkTableColumn
-      field="slave.ip"
-      :label="t('同机关联的集群')">
+    <BkTableColumn :label="t('目标集群')">
       <template #default="{ data }: { data: RowData }">
-        <div
-          v-for="clusterId in data.cluster_ids"
-          :key="clusterId"
-          style="line-height: 20px">
-          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
-        </div>
+        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+      </template>
+    </BkTableColumn>
+    <BkTableColumn
+      field="from_database"
+      :label="t('同步 DB')">
+      <template #default="{ data }: { data: RowData }">
+        <BkTag
+          v-for="dbName in data.sync_dbs"
+          :key="dbName">
+          {{ dbName }}
+        </BkTag>
+        <span v-if="data.sync_dbs.length < 1">--</span>
       </template>
     </BkTableColumn>
   </BkTable>
 </template>
-
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -44,15 +40,14 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Sqlserver.MasterSlaveSwitch>;
+    ticketDetails: TicketModel<Sqlserver.DbRename>;
   }
-
-  defineProps<Props>();
 
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
+  defineProps<Props>();
   defineOptions({
-    name: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
+    name: TicketTypes.SQLSERVER_BUILD_DB_SYNC,
   });
 
   const { t } = useI18n();

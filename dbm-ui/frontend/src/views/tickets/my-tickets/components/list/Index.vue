@@ -188,7 +188,7 @@
 
   const getFetchTicketsParams = () => {
     const params = {
-      status: ticketStatus.value === 'ALL' ? '' : ticketStatus.value,
+      status: ticketStatus.value === 'ALL' ? '' : (ticketStatus.value as string),
       limit: pagination.limit,
       offset: (pagination.current - 1) * pagination.limit,
       ...getSearchSelectorParams(searachSelectValue.value),
@@ -230,15 +230,14 @@
         list.value = results;
         pagination.total = count;
 
-        if (results.length > 0 && !modelValue.value) {
-          handleChange(results[0].id);
-        }
-
         nextTick(() => {
+          sideListRef.value!.scrollTop = 0;
           if (results.length > 0) {
             const activeItem = sideListRef.value!.querySelector('.side-item-active');
             if (activeItem) {
               activeItem.scrollIntoView();
+            } else {
+              handleChange(results[0].id);
             }
           }
         });
@@ -270,8 +269,8 @@
     },
   );
 
-  const handlePaginationChange = () => {
-    pagination.current = 1;
+  const handlePaginationChange = (value: number) => {
+    pagination.current = value;
     fetchTicketList();
   };
 

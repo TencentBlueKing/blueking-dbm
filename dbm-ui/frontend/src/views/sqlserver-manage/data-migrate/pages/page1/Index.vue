@@ -17,8 +17,7 @@
       <BkAlert
         closable
         theme="info"
-        :title="t('DB 重命名：database 重命名')" />
-
+        :title="t('数据迁移：数据同步复制到新集群，迁移后将会对原库进行')" />
       <BkForm
         class="mt-24"
         form-type="vertical">

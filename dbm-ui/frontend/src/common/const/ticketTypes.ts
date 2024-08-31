@@ -159,6 +159,7 @@ export enum TicketTypes {
   SQLSERVER_IMPORT_SQLFILE = 'SQLSERVER_IMPORT_SQLFILE', // sqlserver SQL变更执行'
   SQLSERVER_FULL_MIGRATE = 'SQLSERVER_FULL_MIGRATE', // sqlserver 全量迁移
   SQLSERVER_INCR_MIGRATE = 'SQLSERVER_INCR_MIGRATE', // sqlserver 增量迁移
+  SQLSERVER_BUILD_DB_SYNC = 'SQLSERVER_BUILD_DB_SYNC', // DB建立同步
 }
 
 export enum TicketTypes {

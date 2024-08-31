@@ -532,13 +532,6 @@
       render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.major_version || '--'}</span>,
     },
     {
-      label: t('同步模式'),
-      field: 'sync_mode',
-      minWidth: 120,
-      width: 120,
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.sync_mode || '--'}</span>,
-    },
-    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,

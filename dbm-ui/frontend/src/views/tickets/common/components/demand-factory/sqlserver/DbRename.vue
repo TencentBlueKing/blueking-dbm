@@ -18,16 +18,20 @@
         {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('源 DB 名')">
+    <BkTableColumn
+      field="from_database"
+      :label="t('源 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag>
+        <BkTag v-if="data">
           {{ data.from_database }}
         </BkTag>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新 DB 名')">
+    <BkTableColumn
+      field="to_database"
+      :label="t('新 DB 名')">
       <template #default="{ data }: { data: RowData }">
-        <BkTag>
+        <BkTag v-if="data">
           {{ data.to_database }}
         </BkTag>
       </template>
