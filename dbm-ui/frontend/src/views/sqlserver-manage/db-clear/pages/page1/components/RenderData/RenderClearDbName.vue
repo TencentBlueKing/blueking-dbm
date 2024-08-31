@@ -68,6 +68,8 @@
 
   import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
+  import { makeMap } from '@utils';
+
   import type { IDataRow } from './Row.vue';
 
   interface Props {
@@ -108,8 +110,10 @@
     },
     {
       validator: () => {
-        const cleanDbsPatternList = cleanDbsPatterns.value.filter((item) => !/\*/.test(item) && !/%/.test(item));
-        console.log('from rule = ', cleanDbsPatternList, localDbList.value);
+        const cleanIgnoreDbsPatternsMap = makeMap(cleanIgnoreDbsPatterns.value);
+        const cleanDbsPatternList = cleanDbsPatterns.value.filter(
+          (item) => !/\*/.test(item) && !/%/.test(item) && !cleanIgnoreDbsPatternsMap[item],
+        );
         return cleanDbsPatternList.length <= localDbList.value.length;
       },
       message: t('最终 DB 和指定 DB 数量不匹配'),
@@ -126,7 +130,6 @@
   watch(
     () => [props.clusterData, cleanDbsPatterns.value, cleanIgnoreDbsPatterns.value],
     () => {
-      console.log('cleanDbsPatterns = ', cleanDbsPatterns.value);
       if (!props.clusterData || cleanDbsPatterns.value.length < 1) {
         localDbList.value = [];
         return;

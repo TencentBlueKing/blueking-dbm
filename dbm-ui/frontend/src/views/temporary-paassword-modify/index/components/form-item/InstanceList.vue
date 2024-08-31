@@ -31,7 +31,9 @@
       ClusterTypes.SQLSERVER_HA,
       ClusterTypes.SQLSERVER_SINGLE,
     ]"
+    hide-manual-input
     :selected="instanceSelectorValue"
+    :unqiue-panel-tips="t('仅可选择一种类型修改密码')"
     unqiue-panel-value
     @change="handleInstanceSelectChange" />
 </template>

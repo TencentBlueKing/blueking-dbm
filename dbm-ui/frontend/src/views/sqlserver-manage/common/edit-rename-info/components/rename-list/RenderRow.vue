@@ -12,7 +12,7 @@
           :model-value="localValue.target_db_name"
           :rules="targetDbNamerules"
           @error="handleTargetDbNameError"
-          @submit="handleTargetDbChange" />
+          @update:model-value="handleTargetDbChange" />
       </td>
       <td
         :class="{
@@ -25,7 +25,7 @@
           :model-value="localValue.rename_db_name"
           :rules="renameDbNamerules"
           @error="handleRenameDbNameError"
-          @submit="handleRenameDbChange" />
+          @update:model-value="handleRenameDbChange" />
       </td>
     </tr>
   </tbody>

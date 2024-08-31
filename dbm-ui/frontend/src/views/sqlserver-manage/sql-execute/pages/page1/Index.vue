@@ -106,7 +106,6 @@
   useTicketCloneInfo({
     type: TicketTypes.SQLSERVER_IMPORT_SQLFILE,
     onSuccess(cloneData) {
-      console.log(cloneData);
       Object.assign(formData, {
         charset: cloneData.charset,
         cluster_ids: cloneData.cluster_ids,
@@ -115,7 +114,6 @@
         ticket_mode: cloneData.ticket_mode,
       });
       uploadFilePath.value = cloneData.path;
-      console.log('formData = ', formData);
     },
   });
 

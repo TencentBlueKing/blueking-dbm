@@ -68,6 +68,8 @@
 
   import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
 
+  import { makeMap } from '@utils';
+
   import type { IDataRow } from './RenderRow.vue';
 
   interface Props {
@@ -108,7 +110,10 @@
     },
     {
       validator: () => {
-        const cleanDbsPatternList = dbList.value.filter((item) => !/\*/.test(item) && !/%/.test(item));
+        const ignoreDbListMap = makeMap(ignoreDbList.value);
+        const cleanDbsPatternList = dbList.value.filter(
+          (item) => !/\*/.test(item) && !/%/.test(item) && !ignoreDbListMap[item],
+        );
         return cleanDbsPatternList.length <= localDbList.value.length;
       },
       message: t('最终 DB 和指定的备份 DB 数量不匹配'),

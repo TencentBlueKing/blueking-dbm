@@ -17,5 +17,4 @@ export interface MasterFailOver extends DetailBase {
       ip: string;
     };
   }[];
-  is_safe: boolean;
 }

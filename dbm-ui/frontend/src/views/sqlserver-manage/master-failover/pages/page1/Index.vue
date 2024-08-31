@@ -34,6 +34,7 @@
         v-model:is-show="isShowMasterInstanceSelector"
         :cluster-types="[ClusterTypes.SQLSERVER_HA]"
         :selected="instanceSelectValue"
+        :tab-list-config="tabListConfig"
         @change="handelMasterProxyChange" />
     </div>
     <template #action>
@@ -64,13 +65,14 @@
   import { useRouter } from 'vue-router';
 
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
+  import { getSqlServerInstanceList } from '@services/source/sqlserveHaCluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import InstanceSelector from '@components/instance-selector/Index.vue';
+  import InstanceSelector, { type PanelListType } from '@components/instance-selector/Index.vue';
 
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -83,6 +85,20 @@
     const [firstRow] = list;
     return !firstRow.masterData && !firstRow.slaveData;
   };
+
+  const tabListConfig = {
+    [ClusterTypes.SQLSERVER_HA as string]: [
+      {
+        tableConfig: {
+          getTableList: (params: ServiceParameters<typeof getSqlServerInstanceList>) =>
+            getSqlServerInstanceList({
+              ...params,
+              role: 'backend_master',
+            }),
+        },
+      },
+    ],
+  } as Record<string, PanelListType>;
 
   const router = useRouter();
   const { t } = useI18n();

@@ -90,9 +90,7 @@
   useTicketCloneInfo({
     type: TicketTypes.SQLSERVER_ROLLBACK,
     onSuccess(data) {
-      console.log(data);
       isLocal.value = data.is_local;
-      console.log('islocal = ', isLocal.value);
     },
   });
 

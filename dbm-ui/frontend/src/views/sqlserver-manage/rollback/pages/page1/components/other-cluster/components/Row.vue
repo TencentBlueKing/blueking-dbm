@@ -29,8 +29,8 @@
       <td style="padding: 0">
         <RenderMode
           ref="modeRef"
+          v-model:restore-backup-file="localRestoreBackupFile"
           v-model:restore-time="localRestoreTime"
-          v-model:restoreBackupFile="localRestoreBackupFile"
           :cluster-id="localSrcClusterData?.id" />
       </td>
       <td style="padding: 0">

@@ -15,11 +15,11 @@
   <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn
       field="master.ip"
-      :label="t('目标主库IP')">
+      :label="t('故障主库主机')">
     </BkTableColumn>
     <BkTableColumn
       field="slave.ip"
-      :label="t('目标从库IP')">
+      :label="t('从库主机')">
     </BkTableColumn>
     <BkTableColumn
       field="slave.ip"
@@ -44,7 +44,7 @@
   import { TicketTypes } from '@common/const';
 
   interface Props {
-    ticketDetails: TicketModel<Sqlserver.MasterSlaveSwitch>;
+    ticketDetails: TicketModel<Sqlserver.MasterFailOver>;
   }
 
   defineProps<Props>();
@@ -52,7 +52,7 @@
   type RowData = Props['ticketDetails']['details']['infos'][number];
 
   defineOptions({
-    name: TicketTypes.SQLSERVER_MASTER_SLAVE_SWITCH,
+    name: TicketTypes.SQLSERVER_MASTER_FAIL_OVER,
   });
 
   const { t } = useI18n();

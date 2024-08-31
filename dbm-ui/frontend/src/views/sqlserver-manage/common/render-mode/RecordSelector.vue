@@ -18,9 +18,9 @@
       :disabled="disabled"
       :placeholder="t('请选择文件')"
       :rules="rules"
-      :value="selectBackupId"
+      :value="modelValue"
       @clear="handleValueClear">
-      {{ renderText }}
+      {{ formatLogName(modelValue) }}
       <template #prepend>
         <DbIcon
           class="file-flag"
@@ -75,9 +75,9 @@
               :key="item.value"
               class="option-item"
               :class="{
-                active: item.value === selectBackupId,
+                active: item.value === modelValue?.backup_id,
               }"
-              @click="handleSelect(item)">
+              @click="handleLogListSelect(item)">
               <span>{{ item.label }}</span>
             </div>
           </div>
@@ -89,11 +89,10 @@
           class="date-picker-render">
           <BkDatePicker
             ref="datePickerRef"
+            v-model="autoMatchDateTime"
             :clearable="false"
             :open="open"
             type="datetime"
-            :value="selectBackupId"
-            @change="handleDatePickerChange"
             @pick-success="handlePickSuccess">
             <template #trigger>
               <a
@@ -127,7 +126,6 @@
 
   interface Props {
     clusterId?: number;
-    backupid?: string;
     disabled: boolean;
   }
 
@@ -137,7 +135,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     clusterId: undefined,
-    backupid: '',
     disabled: false,
   });
 
@@ -163,17 +160,23 @@
   const timeZoneStore = useTimeZone();
   const searchKey = useDebouncedRef('');
 
+  const modelValue = defineModel<ServiceReturnType<typeof queryBackupLogs>[number]>();
+
+  const formatLogName = (logData: UnwrapRef<typeof modelValue>) =>
+    logData
+      ? `${logData.role} ${dayjs(logData.start_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`
+      : '';
+
   const rootRef = ref();
   const popRef = ref();
   const editElementRef = ref<ComponentExposed<typeof TableEditElement>>();
   const dateTriggerRef = ref();
   const datePickerRef = ref();
   const dateRenderRef = ref();
-  const selectBackupId = ref<string>('');
   const isShowPop = ref(false);
-  const isError = ref(false);
   const open = ref(false);
   const recordType = ref(OperateType.MANUAL);
+  const autoMatchDateTime = ref('');
 
   const logRecordOptions = shallowRef<Array<{ value: string; label: string }>>([]);
   const backupLogListMemo = shallowRef<ServiceReturnType<typeof queryBackupLogs>>([]);
@@ -188,32 +191,27 @@
     }, []),
   );
 
-  const renderText = computed(() => {
-    const item = _.find(logRecordOptions.value, (item) => item.value === selectBackupId.value);
-    return !item ? '' : item.label;
-  });
-
   const rules = [
     {
-      validator: () => Boolean(selectBackupId.value),
+      validator: () => (recordType.value === OperateType.MANUAL ? Boolean(modelValue.value) : true),
       message: t('备份记录不能为空'),
     },
     {
       validator: () => {
         // 非日期输入无需调接口匹配最近记录，跳过该校验
-        if (!isDateType(selectBackupId.value)) {
+        if (recordType.value === OperateType.MANUAL) {
           return true;
         }
         return queryLatestBackupLog({
           cluster_id: props.clusterId as number,
-          rollback_time: selectBackupId.value,
+          rollback_time: autoMatchDateTime.value,
         }).then((data) => {
           if (!data) {
-            selectBackupId.value = '';
+            modelValue.value = undefined;
             return false;
           }
           backupLogListMemo.value.push(data);
-          selectBackupId.value = data.backup_id;
+          modelValue.value = data;
           return true;
         });
       },
@@ -229,56 +227,10 @@
     }).then((dataList) => {
       logRecordOptions.value = dataList.map((item) => ({
         value: item.backup_id,
-        label: `${item.role} ${dayjs(item.start_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
+        label: formatLogName(item),
       }));
       backupLogListMemo.value = dataList;
     });
-  };
-
-  const hanldeChangeTab = (tabName: OperateType) => {
-    recordType.value = tabName;
-    if (tabName === OperateType.MATCH) {
-      selectBackupId.value = '';
-      nextTick(() => {
-        dateTriggerRef.value.click();
-      });
-    } else {
-      fetchLogData();
-    }
-  };
-  // 手动选择
-  const handleSelect = (item: UnwrapRef<typeof logRecordOptions>[number]) => {
-    selectBackupId.value = item.value;
-    tippyIns.hide();
-  };
-  // 删除值
-  const handleValueClear = () => {
-    selectBackupId.value = '';
-  };
-  // 触发日期选择器
-  const handleDatePickerTrigger = () => {
-    open.value = true;
-    nextTick(() => {
-      const pickerElement = datePickerRef.value.$el;
-      const pickerBody = pickerElement!.querySelector('.bk-picker-panel-body');
-      if (pickerElement && pickerBody) {
-        dateRenderRef.value.replaceChild(pickerBody, pickerElement);
-        open.value = false;
-      }
-    });
-  };
-  const handleDatePickerChange = (date: string) => {
-    selectBackupId.value = date;
-  };
-  // 选择日期回调
-  const handlePickSuccess = () => {
-    tippyIns.hide();
-  };
-  const isDateType = (value: string) => {
-    const YYYYMMDDHHmmssReg = /[\d]{4}[\\/-]{1}[\d]{1,2}[\\/-]{1}[\d]{1,2}\s[\d]{1,2}[:][\d]{1,2}[:][\d]{1,2}/g;
-    const isDate = new RegExp(YYYYMMDDHHmmssReg);
-    // 非日期输入无需调接口匹配最近记录，跳过该校验
-    return isDate.test(value);
   };
 
   watch(
@@ -295,18 +247,58 @@
   );
 
   watch(
-    () => props.backupid,
-    (newVal) => {
-      if (newVal) {
-        const currentRecordType = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
-        hanldeChangeTab(currentRecordType);
-        selectBackupId.value = newVal;
-      }
+    modelValue,
+    () => {
+      recordType.value = OperateType.MANUAL;
+      autoMatchDateTime.value = '';
     },
     {
       immediate: true,
     },
   );
+
+  watch(
+    () => props.disabled,
+    () => {
+      props.disabled ? tippyIns?.disable() : tippyIns?.enable();
+    },
+  );
+
+  const hanldeChangeTab = (tabName: OperateType) => {
+    recordType.value = tabName;
+    autoMatchDateTime.value = '';
+    if (tabName === OperateType.MATCH) {
+      nextTick(() => {
+        dateTriggerRef.value.click();
+      });
+    }
+  };
+
+  // 手动选择
+  const handleLogListSelect = (item: UnwrapRef<typeof logRecordOptions>[number]) => {
+    modelValue.value = _.find(backupLogListMemo.value, (logItem) => logItem.backup_id === item.value);
+    tippyIns.hide();
+  };
+  // 删除值
+  const handleValueClear = () => {
+    modelValue.value = undefined;
+  };
+  // 触发日期选择器
+  const handleDatePickerTrigger = () => {
+    open.value = true;
+    nextTick(() => {
+      const pickerElement = datePickerRef.value.$el;
+      const pickerBody = pickerElement!.querySelector('.bk-picker-panel-body');
+      if (pickerElement && pickerBody) {
+        dateRenderRef.value.replaceChild(pickerBody, pickerElement);
+        open.value = false;
+      }
+    });
+  };
+  // 选择日期回调
+  const handlePickSuccess = () => {
+    tippyIns.hide();
+  };
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {
@@ -321,7 +313,6 @@
       offset: [0, 8],
       onShow: () => {
         isShowPop.value = true;
-        isError.value = false;
       },
       onHide: () => {
         isShowPop.value = false;
@@ -329,6 +320,7 @@
         editElementRef.value!.getValue();
       },
     });
+    tippyIns.disable();
   });
 
   onBeforeUnmount(() => {
@@ -341,10 +333,7 @@
 
   defineExpose<Expose>({
     getValue() {
-      return editElementRef.value!.getValue().then(() => {
-        const backupLog = _.find(backupLogListMemo.value, (item) => item.backup_id === selectBackupId.value);
-        return backupLog ? backupLog : Promise.reject();
-      });
+      return editElementRef.value!.getValue().then(() => (modelValue.value ? modelValue.value : Promise.reject()));
     },
   });
 </script>

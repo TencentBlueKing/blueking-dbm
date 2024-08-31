@@ -142,9 +142,11 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import { InfoBox } from 'bkui-vue';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
+  import { useRouter } from 'vue-router'
 
   import MigrateRecordModel from '@services/model/sqlserver/migrate-record';
   import { forceFailedMigrate, getList, manualTerminateSync } from '@services/source/sqlServerMigrate';
@@ -152,6 +154,7 @@
   import { messageSuccess } from '@utils';
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const pagination = reactive({
     count: 100,
@@ -163,25 +166,6 @@
 
   const { loading: isLoading, data, run: fetchList } = useRequest(getList);
 
-  const { run: runForceFailedMigrate } = useRequest(forceFailedMigrate, {
-    manual: true,
-    onSuccess() {
-      messageSuccess(t('操作成功'));
-      fetchList({
-        cluster_name: searchKeyword.value,
-      });
-    },
-  });
-  const { run: runManualTerminateSynce } = useRequest(manualTerminateSync, {
-    manual: true,
-    onSuccess() {
-      messageSuccess(t('操作成功'));
-      fetchList({
-        cluster_name: searchKeyword.value,
-      });
-    },
-  });
-
   const handelChange = (value: string) => {
     fetchList({
       cluster_name: value,
@@ -189,12 +173,40 @@
   };
 
   const handleForcedTermination = (data: MigrateRecordModel) =>
-    runForceFailedMigrate({
+    forceFailedMigrate({
       dts_id: data.id,
+    }).then(() => {
+      messageSuccess(t('操作成功'));
+      fetchList({
+        cluster_name: searchKeyword.value,
+      });
     });
 
   const handleStopSync = (data: MigrateRecordModel) =>
-    runManualTerminateSynce({
+    manualTerminateSync({
       ticket_id: data.ticket_id,
+    }).then((data) => {
+      fetchList({
+        cluster_name: searchKeyword.value,
+      });
+
+      const {href} = router.resolve({
+        name: 'SelfServiceMyTickets',
+        query: {
+          id: data.ticket_id,
+        }
+      })
+      InfoBox({
+        title: t('操作成功'),
+        content: () => (
+          <div>
+            提交成功，请可前往“<a href={href} target="_blank">单据</a>”确认执行
+          </div>
+        ),
+        type: 'success',
+        onConfirm(){
+          window.open(href)
+        }
+      })
     });
 </script>

@@ -13,17 +13,24 @@
 
 <template>
   <div class="instance-selector-panel-tab">
-    <div
-      v-for="item in panelList"
-      :key="item.id"
-      class="tab-item"
-      :class="{
-        active: modelValue === item.id,
-        disabled: modelValue !== item.id && disabled,
-      }"
-      @click="handleClick(item)">
-      {{ item.name }}
-    </div>
+    <template v-for="item in panelList">
+      <div
+        v-if="!(hideManualInput && item.id === 'manualInput')"
+        :key="item.id"
+        v-bk-tooltips="{
+          content: unqiuePanelTips,
+          disabled: !disabled,
+          theme: 'light',
+        }"
+        class="tab-item"
+        :class="{
+          active: modelValue === item.id,
+          disabled: modelValue !== item.id && disabled,
+        }"
+        @click="handleClick(item)">
+        {{ item.name }}
+      </div>
+    </template>
   </div>
 </template>
 <script setup lang="ts">
@@ -34,6 +41,8 @@
   interface Props {
     panelList: PanelListItem[];
     disabled: boolean;
+    hideManualInput: boolean;
+    unqiuePanelTips: string;
   }
   interface Emits {
     (e: 'change', value: PanelListItem): void;
