@@ -16,13 +16,13 @@ from django.utils.translation import ugettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.models import Cluster
 from backend.db_package.models import Package
-from backend.db_services.redis.redis_dts.util import common_cluster_precheck
 from backend.db_services.redis.util import is_predixy_proxy_type, is_twemproxy_proxy_type
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import ClusterProxysUpgradeAtomJob
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
+from backend.flow.utils.redis.redis_proxy_util import async_multi_clusters_precheck
 
 logger = logging.getLogger("flow")
 
@@ -46,12 +46,12 @@ class RedisProxyVersionUpgradeSceneFlow(object):
         5. 连接 redis 是否正常;
         6. 是否所有master 都有 slave;
         """
-        bk_biz_id = self.data["bk_biz_id"]
+        to_precheck_cluster_ids = []
         for input_item in self.data["infos"]:
             if not input_item["target_version_file"]:
                 raise Exception(_("redis集群 {} 目标版本文件为空?").format(input_item["cluster_id"]))
-            common_cluster_precheck(bk_biz_id=bk_biz_id, cluster_id=input_item["cluster_id"])
             cluster = Cluster.objects.get(id=input_item["cluster_id"])
+            to_precheck_cluster_ids.append(cluster.id)
 
             # 目标版本文件 是否在 "版本文件"中
             proxy_pkg: Package = None
@@ -74,6 +74,8 @@ class RedisProxyVersionUpgradeSceneFlow(object):
                         cluster.immute_domain, input_item["target_version_file"], proxy_pkg.name
                     )
                 )
+        # 并发检查多个cluster的proxy、redis实例状态
+        async_multi_clusters_precheck(cluster_ids=to_precheck_cluster_ids)
 
     def batch_clusters_proxys_upgrade(self):
         """集群proxy整体升级版本

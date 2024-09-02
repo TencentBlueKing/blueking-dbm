@@ -38,7 +38,6 @@ from backend.db_services.redis.redis_dts.enums import (
 )
 from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
 from backend.db_services.redis.redis_dts.util import (
-    common_cluster_precheck,
     complete_redis_dts_kwargs_dst_data,
     complete_redis_dts_kwargs_src_data,
     get_cluster_info_by_id,
@@ -89,6 +88,7 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, RedisDtsContext, RedisDtsOnlineSwitchContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import (
+    async_multi_clusters_precheck,
     check_cluster_proxy_backends_consistent,
     get_cache_backup_mode,
     get_storage_versions_by_cluster_type,
@@ -241,6 +241,7 @@ class RedisClusterDataCopyFlow(object):
         dts_copy_type = self.__get_dts_copy_type()
         src_cluster: Cluster = None
         dst_cluster: Cluster = None
+        to_precheck_cluster_ids = []
         for info in self.data["infos"]:
             if info["src_cluster"] in src_cluster_set:
                 raise Exception(_("源集群{}重复了").format(info["src_cluster"]))
@@ -255,7 +256,7 @@ class RedisClusterDataCopyFlow(object):
                     src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
                 except Cluster.DoesNotExist:
                     raise Exception("src_cluster {} does not exist".format(info["src_cluster"]))
-                common_cluster_precheck(bk_biz_id, src_cluster.id)
+                to_precheck_cluster_ids.append(src_cluster.id)
 
                 # 检查源集群 bk_cloud_id 是否有dns nameserver
                 self.__get_dns_nameserver(src_cluster.bk_cloud_id)
@@ -265,8 +266,7 @@ class RedisClusterDataCopyFlow(object):
                     dst_cluster = Cluster.objects.get(id=int(info["dst_cluster"]))
                 except Cluster.DoesNotExist:
                     raise Exception(_("目标集群 {} 不存在").format(info["dst_cluster"]))
-
-                common_cluster_precheck(dst_cluster.bk_biz_id, dst_cluster.id)
+                to_precheck_cluster_ids.append(dst_cluster.id)
                 # 检查目标集群 bk_cloud_id 是否有dns nameserver
                 self.__get_dns_nameserver(dst_cluster.bk_cloud_id)
 
@@ -317,6 +317,8 @@ class RedisClusterDataCopyFlow(object):
                     raise Exception(
                         _("数据构造临时集群存在 redis 访问失败的情况,临时集群 redis:{}, {}").format(rollback_task.temp_instance_range, err)
                     )
+        # 并发检查多个cluster的proxy、redis实例状态
+        async_multi_clusters_precheck(to_precheck_cluster_ids)
 
     def __get_domain_prefix_by_cluster_type(self, cluster_type: str) -> str:
         if is_redis_instance_type(cluster_type):
@@ -370,12 +372,13 @@ class RedisClusterDataCopyFlow(object):
     def shard_num_or_cluster_type_update_precheck(self):
         src_cluster_set: set = set()
         bk_biz_id = self.data["bk_biz_id"]
+        to_precheck_cluster_ids = []
         for info in self.data["infos"]:
             if info["src_cluster"] in src_cluster_set:
                 raise Exception(_("源集群{}重复了").format(info["src_cluster"]))
             src_cluster_set.add(info["src_cluster"])
 
-            common_cluster_precheck(bk_biz_id, int(info["src_cluster"]))
+            to_precheck_cluster_ids.append(int(info["src_cluster"]))
             src_cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=int(info["src_cluster"]))
 
             # 检查源集群 bk_cloud_id 是否有dns nameserver
@@ -429,6 +432,9 @@ class RedisClusterDataCopyFlow(object):
                     )
             # 检查所有 src proxys backends 一致
             check_cluster_proxy_backends_consistent(cluster_id=int(info["src_cluster"]))
+
+        # 并发检查多个cluster的proxy、redis实例状态
+        async_multi_clusters_precheck(to_precheck_cluster_ids)
 
     def is_dst_cluster_installed(self, info: dict, taregt_param: dict) -> bool:
         """

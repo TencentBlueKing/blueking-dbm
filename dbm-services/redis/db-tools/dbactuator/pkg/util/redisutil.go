@@ -191,3 +191,31 @@ func ClearUsrLocalPredixy(clearTarget bool) (err error) {
 	}
 	return nil
 }
+
+// SaveKvToConfigFile 保存key/value到配置文件
+func SaveKvToConfigFile(confFile, item, value string) (err error) {
+	var ret string
+	grepCmd := fmt.Sprintf("grep -iP '^%s' %s|awk '{print $2}'", item, confFile)
+	mylog.Logger.Info(grepCmd)
+	ret, _ = RunBashCmd(grepCmd, "", nil, 10*time.Second)
+	if ret == value {
+		return nil
+	}
+	if ret != "" {
+		// 如果存在,但值不对
+		// 先删除
+		sedCmd := fmt.Sprintf("sed -i -e '/^%s/d' %s", item, confFile)
+		mylog.Logger.Info(sedCmd)
+		_, err = RunBashCmd(sedCmd, "", nil, 10*time.Second)
+		// 再添加
+		echoCmd := fmt.Sprintf("echo '%s %s' >> %s", item, value, confFile)
+		mylog.Logger.Info(echoCmd)
+		_, err = RunBashCmd(echoCmd, "", nil, 10*time.Second)
+	} else {
+		// 直接添加
+		echoCmd := fmt.Sprintf("echo '%s %s' >> %s", item, value, confFile)
+		mylog.Logger.Info(echoCmd)
+		_, err = RunBashCmd(echoCmd, "", nil, 10*time.Second)
+	}
+	return err
+}

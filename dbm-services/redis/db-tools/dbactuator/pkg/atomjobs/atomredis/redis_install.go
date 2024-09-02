@@ -222,7 +222,9 @@ func (job *RedisInstall) UntarMedia() (err error) {
 		return
 	}
 	redisBaseName := filepath.Base(realLink)
-	if pkgBaseName != redisBaseName {
+	isAdditionalDeployAndMajorVersionSame, _ := job.IsAdditionalDeployAndMajorVersionSame(redisBaseName, pkgBaseName)
+	if pkgBaseName != redisBaseName && isAdditionalDeployAndMajorVersionSame == false {
+		// 不是追加部署,且大版本相同,则报错
 		err = fmt.Errorf("%s 指向 %s 而不是 %s", redisSoftLink, redisBaseName, pkgBaseName)
 		job.runtime.Logger.DPanic(err.Error())
 		return
@@ -255,6 +257,22 @@ fi
 		}
 	}
 	return nil
+}
+
+// IsAdditionalDeployAndMajorVersionSame 是否是追加部署,是否是大版本相同
+// 以前系统上Redis很多6.2.7版本,现在打包的是 6.2.14版本
+// 会导致无法追加部署。所以追加部署,只判断 大版本相同即可
+func (job *RedisInstall) IsAdditionalDeployAndMajorVersionSame(currentVer, targetVer string) (ok bool, err error) {
+	// 先判断是否是 追加部署,追加部署只在 主从版本上存在,所以直接判断 redis-server进程存在与否即可
+	psCmd := "ps aux|grep 'redis-server'|grep -v grep"
+	job.runtime.Logger.Info(psCmd)
+	ret, _ := util.RunBashCmd(psCmd, "", nil, 10*time.Second)
+	if ret == "" {
+		// 判断没有 redis-server,说明不是追加部署,返回false
+		return false, nil
+	}
+	// 判断 当前版本 和 目标版本 主版本是否相同
+	return util.IsMajorVersionSame(targetVer, currentVer)
 }
 
 // GetRealDataDir 确认redis Data Dir,依次检查 /data1、/data、用户输入的dirs, 如果是挂载点则返回
@@ -399,7 +417,9 @@ func (job *RedisInstall) IsRedisInstalled(port int) (installed bool, err error) 
 	// tendisSSD 包名 redis-2.8.17-rocksdb-v1.2.20.tar.gz, 版本名(redis_version) 2.8.17-TRedis-v1.2.20
 	serverVer = strings.ReplaceAll(serverVer, "TRedis", "rocksdb")
 	pkgBaseName := job.params.GePkgBaseName()
-	if !strings.Contains(pkgBaseName, serverVer) {
+	isAdditionalDeployAndMajorVersionSame, _ := job.IsAdditionalDeployAndMajorVersionSame(serverVer, pkgBaseName)
+	if !strings.Contains(pkgBaseName, serverVer) && isAdditionalDeployAndMajorVersionSame == false {
+		// 不是追加部署,且大版本相同,则报错
 		err = fmt.Errorf("redis:%s installed but version(%s) not %s", redisAddr, serverVer, pkgBaseName)
 		job.runtime.Logger.Error(err.Error())
 		return

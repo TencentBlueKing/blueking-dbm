@@ -92,6 +92,19 @@ func VersionParse(version string) (baseVersion, subVersion uint64, err error) {
 	return baseVersion, subVersion, nil
 }
 
+// IsMajorVersionSame 判断两个版本,主版本是否相同
+func IsMajorVersionSame(ver1, ver2 string) (ok bool, err error) {
+	bVer1, _, err := VersionParse(ver1)
+	if err != nil {
+		return false, err
+	}
+	bVer2, _, err := VersionParse(ver2)
+	if err != nil {
+		return false, err
+	}
+	return (bVer1 / 1000000) == (bVer2 / 1000000), nil
+}
+
 // RedisCliVersion redis-cli 的版本解析
 func RedisCliVersion(cliBin string) (baseVersion, subVersion uint64, err error) {
 	cmd := cliBin + " -v"
