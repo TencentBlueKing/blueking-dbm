@@ -176,7 +176,7 @@
 
     & > .scroll-faker-content {
       height: 100%;
-      overflow: scroll scroll;
+      overflow: scroll;
 
       &::-webkit-scrollbar {
         width: 0;

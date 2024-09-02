@@ -19,9 +19,6 @@
     <InfoItem :label="t('业务英文名:')">
       {{ ticketDetails.db_app_abbr }}
     </InfoItem>
-    <InfoItem :label="t('SQL来源:')">
-      {{ ticketDetails.details.import_mode === 'manual' ? t('手动输入') : t('文件导入') }}
-    </InfoItem>
     <InfoItem :label="t('字符集:')">
       {{ ticketDetails.details.charset }}
     </InfoItem>
@@ -31,7 +28,9 @@
       <DbIcon :type="ticketModeData.icon" />
       <span v-bk-tooltips="ticketModeData.tips">{{ ticketModeData.text }}</span>
     </InfoItem>
-    <InfoItem :label="t('执行时间:')">
+    <InfoItem
+      v-if="ticketDetails.details.ticket_mode.mode === 'timer'"
+      :label="t('执行时间:')">
       {{ ticketDetails.details.ticket_mode.trigger_time }}
     </InfoItem>
     <InfoItem
@@ -86,6 +85,7 @@
         <BkTableColumn :label="t('执行的 SQL')">
           <template #default="{ data }: { data: TargetDbRow }">
             <BkButton
+              v-if="data.sql_files"
               text
               theme="primary"
               @click="handleSelectFile(data.sql_files[0], data)">
@@ -139,7 +139,7 @@
   type TargetDbRow = Props['ticketDetails']['details']['execute_objects'][number];
 
   const props = defineProps<Props>();
-  console.log('props = ', props.ticketDetails);
+  console.log('props = \n\n\n\n\n\nn\n\nn\n\n\n\n\n\nn\n\nn\n\n\n\nnn\n', props.ticketDetails);
 
   const { t } = useI18n();
 

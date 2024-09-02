@@ -32,7 +32,9 @@
         <PanelTab
           v-model="panelTabActive"
           :disabled="!isEmpty && unqiuePanelValue"
+          :hide-manual-input="hideManualInput"
           :panel-list="panelList"
+          :unqiue-panel-tips="unqiuePanelTips"
           @change="handleChangePanel" />
         <Component
           :is="renderCom"
@@ -274,6 +276,8 @@
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
     unqiuePanelValue?: boolean;
+    unqiuePanelTips?: string;
+    hideManualInput?: boolean;
   }
 
   interface Emits {
@@ -285,6 +289,8 @@
     tabListConfig: undefined,
     selected: undefined,
     unqiuePanelValue: false,
+    unqiuePanelTips: t('仅可选择一种实例类型'),
+    hideManualInput: false,
   });
 
   const emits = defineEmits<Emits>();
@@ -654,7 +660,7 @@
     [ClusterTypes.SQLSERVER_HA]: [
       {
         id: ClusterTypes.SQLSERVER_HA,
-        name: t('SQL Server 主从'),
+        name: t('SqlServer 主从'),
         topoConfig: {
           getTopoList: getSqlServerHaCluster,
           countFunc: (item: ServiceReturnType<typeof getSqlServerHaCluster>[number]) => item.masters.length,
@@ -691,7 +697,7 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [
       {
         id: ClusterTypes.SQLSERVER_SINGLE,
-        name: t('SQL Server 单节点'),
+        name: t('SqlServer 单节点'),
         topoConfig: {
           getTopoList: (params: ServiceParameters<typeof getSingleClusterList>) =>
             getSingleClusterList(params).then((data) => data.results),

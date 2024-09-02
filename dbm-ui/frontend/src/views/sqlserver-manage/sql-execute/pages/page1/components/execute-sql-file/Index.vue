@@ -72,7 +72,6 @@
   // 文件列表
   const handleChange = (value: string[]) => {
     modelValue.value = value;
-    console.log('file list = ', value);
   };
 
   // 语法检测状态
