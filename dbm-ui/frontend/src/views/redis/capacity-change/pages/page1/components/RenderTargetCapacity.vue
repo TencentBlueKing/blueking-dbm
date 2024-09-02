@@ -213,8 +213,8 @@
         return selectRef.value.getValue().then(() => true);
       }
       return Promise.resolve({
-        shard_num: props.rowData!.shardNum, // localValue.value.cluster_shard_num,
-        group_num: localValue.value.machine_pair,
+        shard_num: localValue.value.cluster_shard_num, // props.rowData!.shardNum
+        group_num: targetObj.value!.requireMachineGroupNum,
         capacity: futureCapacity.value ?? 1,
         future_capacity: futureCapacity.value ?? 1,
         update_mode: targetObj.value?.updateMode,

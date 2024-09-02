@@ -155,27 +155,33 @@
           },
           {
             title: t('机器组数'),
-            render: () => (
-              <>
-                <span>{data.group_num}</span>
-                <ValueDiff
-                  currentValue={data.machine_pair_cnt}
-                  show-rate={false}
-                  targetValue={data.group_num} />
-              </>
-            )
+            render: () => {
+              const targetValue = data.machine_pair_cnt + data.group_num
+              return (
+                <>
+                  <span>{targetValue}</span>
+                  <ValueDiff
+                    currentValue={data.machine_pair_cnt}
+                    show-rate={false}
+                    targetValue={targetValue} />
+                </>
+              )
+            }
           },
           {
             title: t('机器数量'),
-            render: () => (
-              <>
-                <span>{data.group_num * 2}</span>
-                <ValueDiff
-                  currentValue={data.machine_pair_cnt * 2}
-                  show-rate={false}
-                  targetValue={data.group_num * 2} />
-              </>
-            )
+            render: () => {
+              const targetValue = (data.machine_pair_cnt + data.group_num) * 2
+              return (
+                <>
+                  <span>{targetValue}</span>
+                  <ValueDiff
+                    currentValue={data.machine_pair_cnt * 2}
+                    show-rate={false}
+                    targetValue={targetValue} />
+                </>
+              )
+            }
           },
           {
             title: t('分片数'),
@@ -191,7 +197,12 @@
           },
           {
             title: t('变更方式'),
-            render: () => data.update_mode === 'keep_current_machines' ? t('原地变更') : t('替换变更')
+            render: () => {
+              if (data.update_mode) {
+                return data.update_mode === 'keep_current_machines' ? t('原地变更') : t('替换变更')
+              }
+              return '--'
+            }
           }
         ]
         return <TableGroupContent columns={columns} />
