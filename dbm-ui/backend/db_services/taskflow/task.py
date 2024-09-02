@@ -34,6 +34,7 @@ from pipeline.eri.signals import post_set_state
 
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.sqlserver_dts import SqlserverDtsInfo
 from backend.db_services.taskflow.constants import MAX_AUTO_RETRY_TIMES, RETRY_INTERVAL
 from backend.db_services.taskflow.exceptions import RetryNodeException
 from backend.flow.consts import StateType
@@ -41,7 +42,7 @@ from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.models import FlowNode, FlowTree
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.constants import FlowRetryType
+from backend.ticket.constants import FlowRetryType, TicketType
 from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("flow")
@@ -78,6 +79,13 @@ def retry_node(root_id: str, node_id: str, retry_times: int) -> Union[EngineAPIR
     # 判断重试任务关联单据是否存在执行互斥
     try:
         ticket = Ticket.objects.get(id=flow_node.uid)
+        ticket_type = ticket.ticket_type
+        if ticket_type == TicketType.SQLSERVER_DISABLE.value or ticket_type in [
+            TicketType.SQLSERVER_INCR_MIGRATE,
+            TicketType.SQLSERVER_FULL_MIGRATE,
+        ]:
+            # 判断sqlserver禁用、迁移集群跟迁移记录是否互斥
+            SqlserverDtsInfo.dts_info_clusive(ticket_id=ticket.id, ticket_type=ticket_type, details=ticket.details)
         cluster_ids = fetch_cluster_ids(ticket.details)
         Cluster.handle_exclusive_operations(cluster_ids, ticket.ticket_type, exclude_ticket_ids=[ticket.id])
     except ClusterExclusiveOperateException as e:
