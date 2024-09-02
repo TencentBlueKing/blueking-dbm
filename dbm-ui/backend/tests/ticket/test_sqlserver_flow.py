@@ -167,6 +167,9 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
         mock_get_drs_api_patch = patch(
             "backend.flow.utils.sqlserver.sqlserver_db_function.DRSApi", new_callable=lambda: DRSApiMock()
         )
+        mock_clear_drs_api_patch = patch(
+            "backend.db_services.sqlserver.handlers.DRSApi", new_callable=lambda: DRSApiMock()
+        )
         mock_single_module_infos_patch = patch(
             "backend.ticket.builders.sqlserver.sqlserver_single_apply.get_module_infos",
             return_value={"mocked_key": "mocked_value"},
@@ -180,6 +183,7 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
             [
                 mock_resource_apply_patch.start(),
                 mock_get_drs_api_patch.start(),
+                mock_clear_drs_api_patch.start(),
                 mock_single_module_infos_patch.start(),
                 mock_restore_slave_module_infos_patch.start(),
             ]

@@ -11,7 +11,8 @@ from django.db import transaction
 
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, InstanceRole, MachineType
+from backend.db_meta.models import StorageInstance
 from backend.flow.utils.sqlserver.sqlserver_module_operate import SqlserverCCTopoOperator
 
 
@@ -99,3 +100,9 @@ class SqlserverSingleClusterHandler(ClusterHandler):
     def topo_graph(self):
         """「必须」提供集群关系拓扑图"""
         pass
+
+    def get_remote_address(self) -> StorageInstance:
+        """查询DRS访问远程数据库的地址"""
+        return StorageInstance.objects.get(
+            cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
+        ).ip_port

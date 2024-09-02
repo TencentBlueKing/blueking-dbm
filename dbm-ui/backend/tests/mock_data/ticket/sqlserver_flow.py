@@ -230,7 +230,9 @@ SQLSERVER_BACKUP_TICKET_DATA = {
         "backup_place": "master",
         "file_tag": "DBFILE1M",
         "backup_type": "full_backup",
-        "infos": [{"cluster_id": CLUSTER_ID, "backup_dbs": ["test_database"]}],
+        "infos": [
+            {"cluster_id": CLUSTER_ID, "backup_dbs": ["test_database"], "db_list": ["M%"], "ignore_db_list": []}
+        ],
     },
 }
 
@@ -263,7 +265,9 @@ SQLSERVER_CLEAR_DBS_TICKET_DATA = {
                 "cluster_id": CLUSTER_ID,
                 "clean_dbs": ["test_database"],
                 "clean_dbs_patterns": ["test%"],
+                "clean_ignore_dbs_patterns": [],
                 "clean_tables": ["t1"],
+                "ignore_clean_tables": [],
                 "clean_mode": "clean_tables",
             }
         ]
@@ -623,7 +627,7 @@ SQLSERVER_STORAGE_INSTANCE_DATA = [
         "machine_id": 1,
         "phase": "online",
         "instance_role": "orphan",
-        "instance_inner_role": "orphan",
+        "instance_inner_role": "master",
     },
     {
         "id": 2,

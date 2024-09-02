@@ -40,6 +40,8 @@ class SQLServerClearDetailSerializer(SQLServerBaseOperateDetailSerializer):
         super().validate(attrs)
         # 校验集群是否可用
         super().validate_cluster_can_access(attrs)
+        # 库表选择器校验
+        super().validate_database_table_selector(attrs)
         return attrs
 
 
