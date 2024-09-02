@@ -161,7 +161,7 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 			_ = db.Close()
 		}()
 		if originVal, err := mysqlconn.SetGlobalVarAndReturnOrigin("slave_parallel_workers", "0", db); err != nil {
-			logger.Log.Error("set global slave_parallel_workers=0 failed, err: %s", err.Error())
+			logger.Log.Errorf("set global slave_parallel_workers=0 failed, err: %s", err.Error())
 			return err
 		} else {
 			logger.Log.Infof("will set global slave_parallel_workers=%s after backup finished", originVal)

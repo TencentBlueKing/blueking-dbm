@@ -11,3 +11,6 @@ pre-*-bkcodeai
 
 bkcodeai.json
 package-lock.json
+
+### PreCI ###
+.codecc
