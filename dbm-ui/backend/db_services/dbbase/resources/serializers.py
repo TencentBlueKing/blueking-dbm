@@ -152,3 +152,10 @@ class ListTendbClusterMachineResourceSLZ(ListMachineSLZ):
     spider_role = serializers.ChoiceField(
         help_text=_("spider角色"), choices=TenDBClusterSpiderRole.get_choices(), required=False
     )
+
+
+class SearchMySQLResourceSLZ(serializers.Serializer):
+    cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices(), required=False)
+    immute_domain = serializers.CharField(help_text=_("访问入口"), required=False)
+    status = serializers.ChoiceField(help_text=_("状态"), choices=ClusterStatus.get_choices(), required=False)
+    db_module_id = serializers.IntegerField(help_text=_("模块ID"), required=False)
