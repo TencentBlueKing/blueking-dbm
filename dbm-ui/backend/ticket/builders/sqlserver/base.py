@@ -97,6 +97,14 @@ class SQLServerBaseOperateDetailSerializer(SkipToRepresentationMixin, serializer
         cluster_ids = fetch_cluster_ids(attrs)
         CommonValidate.validated_cluster_type(cluster_ids, cluster_type)
 
+    def validate_database_table_selector(self, attrs, role_key=None):
+        """校验库表选择器的数据是否合法"""
+        is_valid, message = CommonValidate.validate_sqlserver_table_selector(
+            bk_biz_id=self.context["bk_biz_id"], infos=attrs["infos"], role_key=role_key
+        )
+        if not is_valid:
+            raise serializers.ValidationError(message)
+
     def validate(self, attrs):
         # 默认全局校验只需要校验集群的状态
         return attrs

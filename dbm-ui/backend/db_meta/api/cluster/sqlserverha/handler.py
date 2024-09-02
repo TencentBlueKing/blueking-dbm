@@ -416,3 +416,9 @@ class SqlserverHAClusterHandler(ClusterHandler):
                 cc_manage.recycle_host([old_slave_obj.machine.bk_host_id])
                 # 删除主机信息
                 old_slave_obj.machine.delete(keep_parents=True)
+
+    def get_remote_address(self) -> StorageInstance:
+        """查询DRS访问远程数据库的地址"""
+        return StorageInstance.objects.get(
+            cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
+        ).ip_port

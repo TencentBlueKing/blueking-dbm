@@ -39,7 +39,8 @@ class SQLServerBackupDetailSerializer(SQLServerBaseOperateDetailSerializer):
     def validate(self, attrs):
         """验证库表数据库的数据"""
         super().validate(attrs)
-
+        # 库表选择器校验
+        super().validate_database_table_selector(attrs)
         # 校验集群是否可用
         try:
             self.validate_cluster_can_access(attrs)

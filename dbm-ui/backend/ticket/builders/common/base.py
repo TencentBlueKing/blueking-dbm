@@ -28,6 +28,7 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
 from backend.db_services.mysql.dumper.handlers import DumperHandler
 from backend.db_services.mysql.remote_service.handlers import RemoteServiceHandler
+from backend.db_services.sqlserver.handlers import RemoteSqlserverServiceHandler
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.db_table_filter.tools import contain_glob
 from backend.ticket import builders
@@ -304,6 +305,45 @@ class CommonValidate(object):
                 ignore_dbs=info["ignore_dbs"],
                 table_patterns=info["table_patterns"],
                 ignore_tables=info["ignore_tables"],
+                cluster_id=info["cluster_id"],
+                dbs_in_cluster_map=dbs_in_cluster_map,
+            )
+            if not is_valid:
+                return is_valid, f"line {index}: {message}"
+
+        return True, ""
+
+    @classmethod
+    def validate_sqlserver_table_selector(cls, bk_biz_id: int, infos: Dict, role_key: None) -> Tuple[bool, str]:
+        """校验sqlserver库表选择器的数据是否合法"""
+
+        cluster_ids = [info["cluster_id"] for info in infos]
+        # 如果想验证特定角色的库表，则传入集群ID与角色映射表
+        cluster_id__role_map = {}
+        if role_key:
+            cluster_id__role_map = {info["cluster_id"]: info[role_key] for info in infos}
+
+        dbs_in_cluster = RemoteSqlserverServiceHandler(bk_biz_id).show_databases(cluster_ids, cluster_id__role_map)
+        dbs_in_cluster_map = {db["cluster_id"]: db["databases"] for db in dbs_in_cluster}
+
+        # sqlserver 备份只有库正则、忽略库正则（db_list，ignore_db_list）
+        for index, info in enumerate(infos):
+            ignore_dbs = (
+                info.get("clean_ignore_dbs_patterns", [])
+                if "clean_ignore_dbs_patterns" in info
+                else info.get("ignore_db_list", [])
+            )
+            db_patterns = (
+                info.get("clean_dbs_patterns", []) if "clean_dbs_patterns" in info else info.get("db_list", [])
+            )
+            ignore_tables = (
+                info.get("ignore_clean_tables", [""]) if ignore_dbs else info.get("ignore_clean_tables", [])
+            )
+            is_valid, message = CommonValidate._validate_single_database_table_selector(
+                db_patterns=db_patterns,
+                ignore_dbs=ignore_dbs,
+                table_patterns=info.get("clean_tables", ["*"]),
+                ignore_tables=ignore_tables,
                 cluster_id=info["cluster_id"],
                 dbs_in_cluster_map=dbs_in_cluster_map,
             )
