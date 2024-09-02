@@ -96,7 +96,7 @@
 
         if (['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {
           myTicketsDetailTimer = setTimeout(() => {
-            fetchTicketDetails(id, true);
+            // fetchTicketDetails(id, true);
           }, 10000);
         }
       })
@@ -179,6 +179,18 @@
   .ticket-details-page {
     padding: 24px;
     font-size: 12px;
+
+    .bk-table {
+      .bk-table-body {
+        height: unset !important;
+        max-height: unset !important;
+      }
+
+      td {
+        height: unset !important;
+        min-height: 42px;
+      }
+    }
 
     .db-card {
       .db-card__content {
