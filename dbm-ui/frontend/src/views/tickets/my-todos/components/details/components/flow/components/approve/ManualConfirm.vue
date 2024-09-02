@@ -109,10 +109,9 @@
     <div
       v-else
       class="flow-todo__infos">
-      {{ data.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：<span :class="String(data.status).toLowerCase()">{{
-        getOperation(data)
-      }}</span
-      >， {{ t('耗时') }}：{{ getCostTimeDisplay(data.cost_time) }}
+      {{ data.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：
+      <span :class="String(data.status).toLowerCase()">{{ getOperation(data) }} </span>
+      ， {{ t('耗时') }}：{{ getCostTimeDisplay(data.cost_time) }}
       <template v-if="content.url">
         ，<a :href="content.url">{{ t('查看详情') }} &gt;</a>
       </template>

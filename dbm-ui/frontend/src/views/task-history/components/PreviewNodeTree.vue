@@ -87,6 +87,12 @@
     (e: 'after-show', value: typeof treeRef): void;
   }
 
+  interface Exposes {
+    close: () => void;
+    getTreeRef: () => typeof treeRef;
+    isOpen: () => boolean;
+  }
+
   withDefaults(defineProps<Props>(), {
     theme: 'error',
     children: 'children',
@@ -112,6 +118,18 @@
   const handleShowFailNodePanel = () => {
     isShowNodePanel.value = true;
   };
+
+  defineExpose<Exposes>({
+    close() {
+      isShowNodePanel.value = false;
+    },
+    getTreeRef() {
+      return treeRef;
+    },
+    isOpen() {
+      return isShowNodePanel.value === true;
+    },
+  });
 </script>
 
 <style lang="less">

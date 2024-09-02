@@ -14,14 +14,14 @@
 <template>
   <div>
     <template v-if="content.status === 'RUNNING'">
-      {{ t('任务待确认') }}
+      <span style="color: #ff9c01">{{ t('任务“待确认”') }}</span>
     </template>
     <template v-else>
       <span
         :style="{
-          color: content.status === 'TERMINATED' ? '#ea3636' : '#63656e',
+          color: getStatusColor(content.status) || '#63656e',
         }">
-        {{ content.summary }}
+        {{ getStatusText(content.status) || content.summary }}
       </span>
       <template v-if="content.err_msg">
         <span>，{{ t('处理人') }}: </span>
@@ -69,4 +69,21 @@
   defineProps<Props>();
 
   const { t } = useI18n();
+
+  const getStatusText = (status: string) => {
+    const infoMap: Record<string, string> = {
+      SUCCEEDED: t('任务_执行成功'),
+      FAILED: t('任务_执行失败'),
+    };
+    return infoMap[status] ? infoMap[status] : null;
+  };
+
+  const getStatusColor = (status: string) => {
+    const infoMap: Record<string, string> = {
+      SUCCEEDED: '#14a568',
+      FAILED: '#ea3636',
+      TERMINATED: '#ea3636',
+    };
+    return infoMap[status] ? infoMap[status] : null;
+  };
 </script>
