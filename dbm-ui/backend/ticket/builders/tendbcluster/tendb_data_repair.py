@@ -13,7 +13,11 @@ from django.utils.translation import ugettext_lazy as _
 
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.mysql_data_repair import MySQLDataRepairDetailSerializer
+from backend.ticket.builders.mysql.mysql_data_repair import (
+    MySQLDataRepairDetailSerializer,
+    MySQLDataRepairFlowParamBuilder,
+    MySQLDataRepairPauseParamBuilder,
+)
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
@@ -22,15 +26,22 @@ class TendbDataRepairDetailSerializer(MySQLDataRepairDetailSerializer):
     pass
 
 
-class TendbDataRepairFlowParamBuilder(builders.FlowParamBuilder):
-    """MySQL 数据校验执行单据参数"""
+class TendbDataRepairFlowParamBuilder(MySQLDataRepairFlowParamBuilder):
+    """TendbCluster 数据校验执行单据参数"""
 
     controller = MySQLController.mysql_pt_table_sync_scene
+
+
+class TendbDataRepairPauseParamBuilder(MySQLDataRepairPauseParamBuilder):
+    """TendbCluster 数据校验暂停参数"""
+
+    pass
 
 
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DATA_REPAIR)
 class TendbDataRepairFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbDataRepairDetailSerializer
+    pause_node_builder = TendbDataRepairPauseParamBuilder
     inner_flow_builder = TendbDataRepairFlowParamBuilder
     inner_flow_name = _("Tendb Cluster 数据修复执行")
     default_need_itsm = False

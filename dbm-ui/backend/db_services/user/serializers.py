@@ -14,5 +14,6 @@ from rest_framework import serializers
 
 class ListUsersSerializer(serializers.Serializer):
     fuzzy_lookups = serializers.CharField(help_text=_("模糊搜索"), required=False, default="")
+    exact_lookups = serializers.CharField(help_text=_("精确搜索"), required=False)
     # TODO 待前端vue3 组件改造后下线不分页功能
     no_page = serializers.CharField(help_text=_("不分页，即将下架，请不要使用，并尽快迁移"), required=False, default=False)

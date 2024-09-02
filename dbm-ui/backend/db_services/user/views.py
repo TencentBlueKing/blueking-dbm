@@ -31,11 +31,5 @@ class UserViewSet(viewsets.SystemViewSet):
     )
     @action(methods=["GET"], detail=False, serializer_class=ListUsersSerializer)
     def list_users(self, request, *args, **kwargs):
-        validated_data = self.params_validate(self.get_serializer_class())
-        fuzzy_lookups = validated_data["fuzzy_lookups"]
-        no_page = validated_data["no_page"]
-        return Response(
-            UserManagerApi.list_users(
-                {"fields": "username,display_name", "fuzzy_lookups": fuzzy_lookups, "no_page": no_page}
-            )
-        )
+        data = self.params_validate(self.get_serializer_class())
+        return Response(UserManagerApi.list_users({"fields": "username,display_name", **data}))

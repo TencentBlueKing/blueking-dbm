@@ -42,7 +42,7 @@ class MySQLDataRepairFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_pt_table_sync_scene
 
 
-class MySQLPauseParamBuilder(builders.PauseParamBuilder):
+class MySQLDataRepairPauseParamBuilder(builders.PauseParamBuilder):
     """MySQL 数据校验暂停参数"""
 
     def format(self):
@@ -54,7 +54,7 @@ class MySQLPauseParamBuilder(builders.PauseParamBuilder):
 @builders.BuilderFactory.register(TicketType.MYSQL_DATA_REPAIR)
 class MySQLDataRepairFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLDataRepairDetailSerializer
-    pause_node_builder = MySQLPauseParamBuilder
+    pause_node_builder = MySQLDataRepairPauseParamBuilder
     inner_flow_builder = MySQLDataRepairFlowParamBuilder
     inner_flow_name = _("数据修复执行")
     default_need_itsm = False
