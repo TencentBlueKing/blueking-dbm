@@ -322,6 +322,8 @@
   const { baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
 
   const isSingleType = route.name === 'SqlServiceSingleApply';
+  console.log('isSingleType', route);
+
   const clusterType = isSingleType ? 'sqlserver_single' : 'sqlserver_ha';
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');

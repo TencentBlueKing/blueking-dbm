@@ -61,8 +61,8 @@
 
   interface Exposes {
     getValue: () => Promise<{
-      backupinfo?: any;
-      rollback_time?: string;
+      restore_backup_file?: any;
+      restore_time?: string;
     }>;
   }
 
@@ -134,11 +134,11 @@
     getValue() {
       if (localBackupType.value === 'record') {
         return localBackupFileRef.value!.getValue().then((data) => ({
-          backupinfo: data,
+          restore_backup_file: data,
         }));
       }
       return localRollbackTimeRef.value!.getValue().then(() => ({
-        rollback_time: formatDateToUTC(resotreTime.value),
+        restore_time: formatDateToUTC(resotreTime.value),
       }));
     },
   });

@@ -139,7 +139,7 @@
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.srcClusterData && !firstRow.dstClusterData && !firstRow.dbList;
+    return !firstRow.srcClusterData && !firstRow.dstClusterData;
   };
 
   useTicketCloneInfo({
