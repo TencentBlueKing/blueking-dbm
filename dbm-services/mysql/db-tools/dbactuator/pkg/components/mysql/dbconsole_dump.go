@@ -173,7 +173,9 @@ func (c *DbConsoleDumpComp) Init() (err error) {
 			return err
 		}
 		for k, v := range res {
-			c.realIgnoreTables = append(c.realIgnoreTables, fmt.Sprintf("%s.%s", k, v))
+			for _, tb := range v {
+				c.realIgnoreTables = append(c.realIgnoreTables, fmt.Sprintf("%s.%s", k, tb))
+			}
 		}
 	}
 	logger.Info("special tables %v", c.realTables)
