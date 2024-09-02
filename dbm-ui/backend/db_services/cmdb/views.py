@@ -98,3 +98,19 @@ class CMDBViewSet(viewsets.SystemViewSet):
     @action(methods=["GET"], detail=True)
     def list_cc_obj_user(self, request, bk_biz_id):
         return Response(biz.list_cc_obj_user(bk_biz_id))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("业务模块树信息"),
+        query_serializer=serializers.ListBIZModulesSLZ(),
+        responses={status.HTTP_200_OK: serializers.BIZModuleSLZ(label=_("业务模块树信息"), many=True)},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=serializers.ListBIZModulesSLZ)
+    def list_biz_module_trees(self, request):
+        cluster_type = self.params_validate(self.get_serializer_class()).get("cluster_type")
+        bk_biz_name = self.params_validate(self.get_serializer_class()).get("bk_biz_name")
+        module_name = self.params_validate(self.get_serializer_class()).get("module_name")
+        serializer = serializers.BIZModuleSLZ(
+            biz.list_biz_module_trees(cluster_type, bk_biz_name, module_name), many=True
+        )
+        return Response(serializer.data)
