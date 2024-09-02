@@ -16,6 +16,10 @@ const (
 	BackupNone = "none"
 )
 
+const (
+	StorageEnginRocksdb = "rocksdb"
+)
+
 // backup role: dbm-services/mysql/db-tools/dbactuator/pkg/core/cst/mysql.go
 const (
 	// RoleMaster lower case
@@ -112,8 +116,9 @@ const MysqlCrondUrl = "http://127.0.0.1:9999"
 const MysqlRotateBinlogInstallPath = "/home/mysql/mysql-rotatebinlog"
 
 const (
-	ToolMydumper   = "mydumper"
-	ToolMysqldump  = "mysqldump"
-	ToolXtrabackup = "xtrabackup"
-	ToolTmysqldump = "tmysqldump"
+	ToolMydumper         = "mydumper"
+	ToolMysqldump        = "mysqldump"
+	ToolXtrabackup       = "xtrabackup"
+	ToolTmysqldump       = "tmysqldump"
+	ToolMyrocksHotbackup = "myrocks_hotbackup"
 )
