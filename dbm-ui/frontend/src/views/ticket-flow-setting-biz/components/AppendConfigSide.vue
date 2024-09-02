@@ -4,7 +4,7 @@
     :before-close="handleClose"
     class="append-config-side"
     render-directive="if"
-    :title="t('追加配置')"
+    :title="t('添加免审批')"
     :width="840"
     @closed="handleClose">
     <DbForm
@@ -22,18 +22,6 @@
         <RenderTarget
           ref="targetRef"
           v-model="targetData" />
-      </BkFormItem>
-      <BkFormItem
-        :label="t('可增加的流程节点')"
-        required>
-        <BkCheckbox
-          v-for="item in configList"
-          :key="item.value"
-          v-model="item.checked"
-          :disabled="item.disabled"
-          @change="handleChangeCheckbox">
-          {{ item.label }}
-        </BkCheckbox>
       </BkFormItem>
     </DbForm>
     <template #footer>
@@ -88,28 +76,12 @@
 
   const formRef = ref();
   const targetRef = ref<InstanceType<typeof RenderTarget>>();
-  const needItsm = ref(false);
 
   const targetData = computed(() => ({
     dbType: (props.data.group as DBTypes) || DBTypes.MYSQL,
     bizId: props.data.bk_biz_id || window.PROJECT_CONFIG.BIZ_ID,
     clusterIds: props.data.cluster_ids || [],
   }));
-
-  const configList = computed(() => [
-    {
-      value: 'need_itsm',
-      label: t('单据审批'),
-      checked: props.data.configs.need_itsm,
-      disabled: false,
-    },
-    {
-      value: 'need_manual_confirm',
-      label: t('人工确认'),
-      checked: props.data.configs.need_manual_confirm,
-      disabled: true,
-    },
-  ]);
 
   const { run: createTicketFlowConfigRun, loading: isSubmitting } = useRequest(createTicketFlowConfig, {
     manual: true,
@@ -119,10 +91,6 @@
       emits('success');
     },
   });
-
-  const handleChangeCheckbox = (value: boolean) => {
-    needItsm.value = value;
-  };
 
   const handleClose = async () => {
     window.changeConfirm = true;
@@ -140,7 +108,7 @@
       ticket_types: [props.data.ticket_type],
       configs: {
         need_manual_confirm: props.data.configs.need_manual_confirm,
-        need_itsm: needItsm.value,
+        need_itsm: false,
       },
     };
     createTicketFlowConfigRun(params);

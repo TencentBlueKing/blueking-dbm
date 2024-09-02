@@ -35,12 +35,14 @@
           disabled: hasSelected,
           content: t('请选择单据'),
         }">
-        <BkButton
+        <AuthButton
+          action-id="ticket_config_set"
           :disabled="!hasSelected"
+          :resource="dbType"
           theme="primary"
           @click="handleBatchEdit">
           {{ t('批量编辑') }}
-        </BkButton>
+        </AuthButton>
       </span>
       <BkSearchSelect
         v-model="searchValue"
@@ -78,9 +80,8 @@
 
   import type { DBTypes } from '@common/const';
 
-  import RenderFlowPreview from '@views/ticket-flow-setting-biz/components/RenderFlowPreview.vue';
-
   import BatchConfigDialog from './BatchConfigDialog.vue';
+  import RenderFlowPreview from './RenderFlowPreview.vue';
 
   interface Props {
     dbType: DBTypes;
