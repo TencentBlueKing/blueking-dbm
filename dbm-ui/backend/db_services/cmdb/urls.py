@@ -16,6 +16,7 @@ from .views import CMDBViewSet
 urlpatterns = [
     path("bizs/", CMDBViewSet.as_view({"get": "list_bizs"})),
     path("bizs/<int:bk_biz_id>/modules/", CMDBViewSet.as_view({"get": "list_modules"})),
+    path("biz_module_trees/", CMDBViewSet.as_view({"get": "list_biz_module_trees"})),
 ]
 
 routers = DefaultRouter(trailing_slash=True)
