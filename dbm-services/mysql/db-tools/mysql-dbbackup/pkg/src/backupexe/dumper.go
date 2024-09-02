@@ -24,7 +24,7 @@ type Dumper interface {
 }
 
 // BuildDumper return logical or physical dumper
-func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
+func BuildDumper(cnf *config.BackupConfig, storageEngine string) (dumper Dumper, err error) {
 	if err = precheck.CheckBackupType(cnf); err != nil {
 		return nil, err
 	}
@@ -66,13 +66,21 @@ func BuildDumper(cnf *config.BackupConfig) (dumper Dumper, err error) {
 		if err := validate.GoValidateStruct(cnf.PhysicalBackup, false, false); err != nil {
 			return nil, err
 		}
-		dumper = &PhysicalDumper{
-			cnf: cnf,
+
+		if cst.StorageEnginRocksdb == storageEngine {
+			dumper = &PhysicalRocksdbDumper{
+				cfg: cnf,
+			}
+		} else {
+			dumper = &PhysicalDumper{
+				cnf: cnf,
+			}
 		}
 	} else {
 		logger.Log.Error(fmt.Sprintf("Unknown BackupType: %s", cnf.Public.BackupType))
 		err := fmt.Errorf("unknown BackupType: %s", cnf.Public.BackupType)
 		return nil, err
 	}
+
 	return dumper, nil
 }
