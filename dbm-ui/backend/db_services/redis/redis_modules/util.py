@@ -25,6 +25,8 @@ def get_redis_moudles_detail(major_version: str, module_names: list = []) -> lis
     """
     if not major_version:
         return []
+    if not module_names:
+        return []
     where = Q(major_version=major_version)
     if module_names:
         where = where & Q(module_name__in=module_names)

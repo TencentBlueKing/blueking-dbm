@@ -40,7 +40,7 @@ from backend.db_services.redis.redis_dts.enums import (
 )
 from backend.db_services.redis.redis_dts.models import TbTendisDTSJob, TbTendisDtsTask
 from backend.db_services.redis.redis_dts.util import get_safe_regex_pattern
-from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal
+from backend.db_services.redis.util import is_predixy_proxy_type, is_redis_cluster_protocal, is_twemproxy_proxy_type
 from backend.flow.consts import GB, MB, StateType
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_check_repair import RedisClusterDataCheckRepairFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_shutdown import RedisClusterShutdownFlow
@@ -949,13 +949,10 @@ class NewDstClusterInstallJobAndWatchStatus(BaseService):
                 ticket_data["proxy_admin_pwd"] = ticket_data["proxy_pwd"]
         self.log_info("NewDstClusterInstallJobAndWatchStatus ticket_data==>:{}".format(ticket_data))
         root_id = generate_root_id()
-        if ticket_data["cluster_type"] == ClusterType.TendisPredixyTendisplusCluster.value:
+        if is_predixy_proxy_type(ticket_data["cluster_type"]):
             flow = TendisPlusApplyFlow(root_id=root_id, data=ticket_data)
             flow.deploy_predixy_cluster_flow()
-        elif ticket_data["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance.value:
-            flow = RedisClusterApplyFlow(root_id=root_id, data=ticket_data)
-            flow.deploy_twemproxy_cluster_flow()
-        elif ticket_data["cluster_type"] == ClusterType.TwemproxyTendisSSDInstance.value:
+        elif is_twemproxy_proxy_type(ticket_data["cluster_type"]):
             flow = RedisClusterApplyFlow(root_id=root_id, data=ticket_data)
             flow.deploy_twemproxy_cluster_flow()
         else:
