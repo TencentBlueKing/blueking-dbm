@@ -34,14 +34,8 @@ const Fail string = "failed"
 
 const Success string = "succeeded"
 
-// ExecuteAsynchronous TODO
-const ExecuteAsynchronous string = "UNKNOWN"
-
 // BackendMaster TODO
 const BackendMaster string = "backend_master"
-
-// RemoteMaster TODO
-const RemoteMaster string = "remote_master"
 
 // Orphan TODO
 const Orphan string = "orphan"
@@ -71,8 +65,7 @@ func CreateDbmTicket(config Ticket) (int, error) {
 	}
 
 	var resp Data
-	c := util.NewClientByHosts(viper.GetString("dbm_ticket_service"))
-	result, err := c.Do(http.MethodPost, "tickets/", config)
+	result, err := util.TicketClient.Do(http.MethodPost, "tickets/", config)
 	if err != nil {
 		slog.Error("msg", err)
 		return ticketId, err
@@ -164,9 +157,8 @@ type DownloadPartitionPara struct {
 
 // DownloadDbactor 下载dbactor
 func DownloadDbactor(bkCloudId int, ips []string) error {
-	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	url := "/apis/v1/flow/scene/download_dbactor"
-	_, err := c.Do(http.MethodPost, url, DownloadPara{TicketType: "download_dbactor",
+	_, err := util.DbmetaClient.Do(http.MethodPost, url, DownloadPara{TicketType: "download_dbactor",
 		BkBizId:   viper.GetInt64("dba.bk_biz_id"),
 		BkCloudId: bkCloudId, DbType: "mysql", Ips: ips, CreatedBy: "admin"})
 	if err != nil {
@@ -178,9 +170,8 @@ func DownloadDbactor(bkCloudId int, ips []string) error {
 
 func DownloadFiles(files []Info) error {
 	path := "mysql/partition"
-	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	url := "/apis/v1/flow/scene/download_file"
-	_, err := c.Do(http.MethodPost, url, DownloadPartitionPara{TicketType: "download_file",
+	_, err := util.DbmetaClient.Do(http.MethodPost, url, DownloadPartitionPara{TicketType: "download_file",
 		BkBizId: viper.GetInt64("dba.bk_biz_id"),
 		Files:   files, CreatedBy: "admin", Path: path})
 	if err != nil {
@@ -192,10 +183,9 @@ func DownloadFiles(files []Info) error {
 
 // GetCluster 根据域名获取集群信息
 func GetCluster(dns Domain, ClusterType string) (Instance, error) {
-	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	var resp Instance
 	url := fmt.Sprintf("/apis/proxypass/dbmeta/priv_manager/mysql/%s/cluster_instances/", ClusterType)
-	result, err := c.Do(http.MethodPost, url, dns)
+	result, err := util.DbmetaClient.Do(http.MethodPost, url, dns)
 	if err != nil {
 		slog.Error("msg", url, err)
 		return resp, errno.DomainNotExists.Add(fmt.Sprintf(" %s: %s", dns.EntryName, err.Error()))
@@ -210,10 +200,9 @@ func GetCluster(dns Domain, ClusterType string) (Instance, error) {
 
 // GetAllClustersInfo 获取业务下所有集群信息
 func GetAllClustersInfo(id BkBizId) ([]Cluster, error) {
-	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	var resp []Cluster
 	url := "/apis/proxypass/dbmeta/priv_manager/biz_clusters/"
-	result, err := c.Do(http.MethodPost, url, id)
+	result, err := util.DbmetaClient.Do(http.MethodPost, url, id)
 	if err != nil {
 		slog.Error("msg", url, err)
 		return resp, err
@@ -226,10 +215,9 @@ func GetAllClustersInfo(id BkBizId) ([]Cluster, error) {
 }
 
 func ListBizs() ([]Biz, error) {
-	c := util.NewClientByHosts(viper.GetString("db_meta_service"))
 	var resp []Biz
 	url := "/apis/cmdb/list_bizs/"
-	result, err := c.Do(http.MethodGet, url, nil)
+	result, err := util.DbmetaClient.Do(http.MethodGet, url, nil)
 	if err != nil {
 		slog.Error("msg", url, err)
 		return resp, err

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log/slog"
-	"math/rand"
 	"net/http"
 	"net/http/httputil"
 	"strings"
@@ -73,8 +72,7 @@ func (c *Client) DoNew(method, url string, params interface{}, headers map[strin
 		response, err = c.doNewInner(method, url, params, headers)
 		if err != nil {
 			slog.Error(fmt.Sprintf("DoNew failed, retryIdx:%d", retryIdx), err)
-			wait := retryIdx*retryIdx*1000 + rand.Intn(1000)
-			time.Sleep(time.Duration(wait) * time.Millisecond)
+			time.Sleep(time.Second)
 			continue
 		}
 		break
@@ -146,10 +144,8 @@ func (c *Client) doNewInner(method, url string, params interface{}, headers map[
 		if resp.Body != nil {
 			resp.Body.Close()
 		}
-
-		wait := i*i*1000 + rand.Intn(1000)
-		time.Sleep(time.Duration(wait) * time.Millisecond)
-		slog.Warn(fmt.Sprintf("client.Do result with %s, wait %d milliSeconds and retry, url: %s", resp.Status, wait,
+		time.Sleep(time.Second)
+		slog.Warn(fmt.Sprintf("client.Do result with %s, wait 1 second and retry, url: %s", resp.Status,
 			req.URL.String()))
 		resp, err = c.client.Do(req)
 		if err != nil {
