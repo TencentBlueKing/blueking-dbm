@@ -119,6 +119,7 @@
               @click.stop>
               <PreviewNodeTree
                 v-if="todoNodesCount > 0"
+                ref="todoToolPreviewNodeTreeRef"
                 children="todoChildren"
                 margin-right
                 :nodes-count="todoNodesCount"
@@ -127,17 +128,18 @@
                 theme="warning"
                 title-keypath="人工确认节点（n）"
                 :tooltips="t('人工确认节点列表')"
-                @after-show="(treeRef: Ref) => handleNodeTreeAfterShow(treeRef, false)"
+                @after-show="(treeRef: Ref) => handleToolNodeTreeAfterShow(treeRef, false)"
                 @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef, false)" />
               <PreviewNodeTree
                 v-if="flowState.details.flow_info?.status === 'FAILED'"
+                ref="failedToolPreviewNodeTreeRef"
                 children="failedChildren"
                 :nodes-count="failNodesCount"
                 :nodes-tree-data="failNodesTreeData"
                 status-keypath="失败n"
                 title-keypath="失败节点（n）"
                 :tooltips="t('失败节点列表')"
-                @after-show="(treeRef: Ref) => handleNodeTreeAfterShow(treeRef)"
+                @after-show="(treeRef: Ref) => handleToolNodeTreeAfterShow(treeRef)"
                 @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef)" />
               <i
                 v-bk-tooltips="t('放大')"
@@ -266,6 +268,7 @@
           <span>
             <PreviewNodeTree
               v-if="flowState.details.flow_info?.status === 'FAILED'"
+              ref="todoTopPreviewNodeTreeRef"
               children="failedChildren"
               :nodes-count="failNodesCount"
               :nodes-tree-data="failNodesTreeData"
@@ -276,6 +279,7 @@
               @node-click="(node: TaskflowList[number], treeRef: Ref) => handleTreeNodeClick(node, treeRef)" />
             <PreviewNodeTree
               v-else-if="todoNodesCount > 0"
+              ref="failedTopPreviewNodeTreeRef"
               children="todoChildren"
               :nodes-count="todoNodesCount"
               :nodes-tree-data="todoNodesTreeData"
@@ -426,6 +430,10 @@
   const todoNodesTreeData = ref<TaskflowList>([]);
   const failNodesTreeData = ref<TaskflowList>([]);
   const failNodesCount = ref(0);
+  const todoTopPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>()
+  const failedTopPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>()
+  const todoToolPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>()
+  const failedToolPreviewNodeTreeRef = ref<InstanceType<typeof PreviewNodeTree>>()
   // const failNodeTreeRef = ref();
   // const topFailNodeTreeRef = ref();
   // const isShowFailNodePanel = ref(false);
@@ -625,12 +633,88 @@
    */
   const { isFullscreen, toggle } = useFullscreen(flowTopoRef);
 
-  const expandNodes:string[] = [];
-  const expandFailedNodeObjects: TaskflowList = [];
-  const expandTodoNodeObjects: TaskflowList = [];
+  let expandFailedNodeObjects: TaskflowList = [];
+  let expandTodoNodeObjects: TaskflowList = [];
+  const expandNodes: string[] = [];
   const showResultFileTypes: TicketTypesStrings[] = [TicketTypes.REDIS_KEYS_EXTRACT, TicketTypes.REDIS_KEYS_DELETE];
 
-  const generateFailNodesTree = (activities: TaskflowDetails['activities'] ) => {
+  watch(() => flowState.details, () => {
+    // if (failNodesTreeData.value.length > 0 || todoNodesTreeData.value.length > 0) {
+    //   return
+    // };
+    // failNodesCount.value = 0;
+
+    // if (flowState.details.activities) {
+    //   failNodesTreeData.value = flowState.details.flow_info?.status === 'FAILED' ? generateFailNodesTree(flowState.details.activities) : [];
+
+    //   const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+    //   todoNodesTreeData.value = todoNodeIdList.length ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList) : [];
+    // }
+
+    // 只计算数量，当 待确认节点数 或 失败节点数 变化时，才刷新树结构
+    if (flowState.details.activities) {
+      let failNodesNum = 0
+
+      const getFailNodesNum = (activities: TaskflowDetails['activities']) => {
+        const flowList: TaskflowList = []
+        Object.values(activities).forEach(item  => {
+          if (item.status === 'FAILED') {
+            if (item.pipeline) {
+               getFailNodesNum(item.pipeline.activities)
+            } else {
+              failNodesNum = failNodesNum + 1;
+            }
+          }
+        })
+        return flowList;
+      }
+      getFailNodesNum(flowState.details.activities)
+
+      failNodesCount.value = failNodesNum
+    }
+  })
+
+  watch(failNodesCount, () => {
+    isFindFirstLeafFailNode = false;
+    failLeafNodes.value = []
+    expandFailedNodeObjects = []
+    failNodesTreeData.value = flowState.details.flow_info?.status === 'FAILED' ? generateFailNodesTree(flowState.details.activities) : [];
+
+    setTreeOpen([
+      failedTopPreviewNodeTreeRef,
+      failedToolPreviewNodeTreeRef
+    ])
+  })
+
+  watch(todoNodesCount, () => {
+    isFindFirstLeafTodoNode = false
+    expandTodoNodeObjects = []
+    const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+    todoNodesTreeData.value = todoNodeIdList.length ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList) : [];
+
+    setTreeOpen([
+      todoTopPreviewNodeTreeRef,
+      todoToolPreviewNodeTreeRef,
+    ], false)
+  })
+
+  watch(() => baseInfo.value.status, (status) => {
+    if (status && flowState.instance === null) {
+      setTimeout(() => {
+        const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+        flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value, todoNodeIdList);
+        flowState.instance
+          .on('nodeClick', handleNodeClick)
+          .on('nodeMouseEnter', handleNodeMouseEnter)
+          .on('nodeMouseLeave', handleNodeMouseLeave);
+        retryRenderFailedTips();
+      });
+    }
+  }, {
+    immediate: true,
+  });
+
+  const generateFailNodesTree = (activities: TaskflowDetails['activities']) => {
     const flowList: TaskflowList = []
     Object.values(activities).forEach(item  => {
       if (item.status === 'FAILED') {
@@ -645,7 +729,7 @@
           });
         } else {
           isFindFirstLeafFailNode = true;
-          failNodesCount.value = failNodesCount.value + 1;
+          // failNodesCount.value = failNodesCount.value + 1;
           failLeafNodes.value.push({ data: _.cloneDeep(item) } as GraphNode)
         }
       }
@@ -678,38 +762,22 @@
     return flowList;
   }
 
-  watch(() => flowState.details, () => {
-    if (failNodesTreeData.value.length > 0 || todoNodesTreeData.value.length > 0) {
-      return
-    };
-
-    failNodesCount.value = 0;
-    if (flowState.details.activities) {
-      if (flowState.details.flow_info?.status === 'FAILED') {
-        failNodesTreeData.value = generateFailNodesTree(flowState.details.activities);
+  const setTreeOpen = (refList: Array<typeof failedTopPreviewNodeTreeRef>, isFailed = true) => {
+    refList.forEach((refItem) => {
+      if (refItem.value?.isOpen()) {
+        handleNodeTreeAfterShow(refItem.value.getTreeRef(), isFailed)
       }
-      const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
-      if (todoNodeIdList.length) {
-        todoNodesTreeData.value = generateTodoNodesTree(flowState.details.activities, todoNodeIdList);
-      }
-    }
-  })
+    })
+  }
 
-  watch(() => baseInfo.value.status, (status) => {
-    if (status && flowState.instance === null) {
-      setTimeout(() => {
-        const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
-        flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value, todoNodeIdList);
-        flowState.instance
-          .on('nodeClick', handleNodeClick)
-          .on('nodeMouseEnter', handleNodeMouseEnter)
-          .on('nodeMouseLeave', handleNodeMouseLeave);
-        retryRenderFailedTips();
-      });
+  const handleToolNodeTreeAfterShow = (treeRef: Ref, isFailed = true) => {
+    if (isFailed) {
+      todoToolPreviewNodeTreeRef.value?.close()
+    } else {
+      failedToolPreviewNodeTreeRef.value?.close()
     }
-  }, {
-    immediate: true,
-  });
+    handleNodeTreeAfterShow(treeRef, isFailed)
+  }
 
   const handleNodeTreeAfterShow = (treeRef: Ref, isFailed = true) => {
     setTimeout(() => {

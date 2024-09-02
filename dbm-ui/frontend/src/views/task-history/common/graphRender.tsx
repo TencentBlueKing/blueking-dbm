@@ -228,7 +228,7 @@ export default class GraphRender {
 
           {flowInfo.status !== 'REVOKED' && node.children === undefined && (
             <div class='node-ractangle__operations'>
-              {status === 'RUNNING' && (
+              {!todoNodeIdList.includes(node.id) && status === 'RUNNING' && (
                 <i
                   class='operation-icon db-icon-qiangzhizhongzhi'
                   v-bk-tooltips={t('强制失败')}
