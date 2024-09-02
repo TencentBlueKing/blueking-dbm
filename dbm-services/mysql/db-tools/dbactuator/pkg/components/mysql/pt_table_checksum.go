@@ -389,7 +389,9 @@ func (c *PtTableChecksumComp) transformExclude(
 		c.GeneralParam.RuntimeAccountParam.MonitorPwd,
 	)
 	for k, v := range res {
-		ptFilters.IgnoreTables = append(ptFilters.IgnoreTables, fmt.Sprintf("%s.%s", k, v))
+		for _, tb := range v {
+			ptFilters.IgnoreTables = append(ptFilters.IgnoreTables, fmt.Sprintf("%s.%s", k, tb))
+		}
 	}
 
 	return err
