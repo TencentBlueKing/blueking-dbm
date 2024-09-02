@@ -197,3 +197,12 @@ class SqlserverDBMeta(object):
             )
         # 任务结束后变更状态
         SqlserverDtsInfo.objects.filter(id=self.global_data["dts_id"]).update(status=status)
+
+    def modify_status_for_not_joined_dbha(self):
+        """
+        对未接入DBHA的主从集群，如果实例出现故障主动修改实例的状态
+        """
+        SqlserverHAClusterHandler.modify_status(
+            cluster_id=int(self.global_data["cluster_id"]),
+            ip_list=self.global_data["ip_list"],
+        )

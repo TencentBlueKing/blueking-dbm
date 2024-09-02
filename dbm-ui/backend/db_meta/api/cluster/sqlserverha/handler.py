@@ -422,3 +422,18 @@ class SqlserverHAClusterHandler(ClusterHandler):
         return StorageInstance.objects.get(
             cluster=self.cluster, instance_inner_role=InstanceInnerRole.MASTER.value
         ).ip_port
+
+    @classmethod
+    @transaction.atomic
+    def modify_status(
+        cls,
+        cluster_id: int,
+        ip_list: list,
+    ):
+        cluster = Cluster.objects.get(id=cluster_id)
+        if cluster.is_dbha_disabled() or cluster.cluster_type == ClusterType.SqlserverSingle:
+            # 对未接入dbha的主从集群做处理
+            # 获取对单节点集群做处理
+            StorageInstance.objects.filter(cluster=cluster, machine__ip__in=ip_list).update(
+                status=InstanceStatus.UNAVAILABLE
+            )

@@ -236,7 +236,8 @@
     },
     "labels": [
       "DBM",
-      "DBM_SQLSERVER"
+      "DBM_SQLSERVER",
+      "NEED_AUTOFIX/SQLSERVER_MODIFY_STATUS"
     ],
     "app": "",
     "path": "",

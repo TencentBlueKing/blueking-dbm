@@ -24,8 +24,10 @@ from backend.flow.consts import (
     SqlserverBackupFileTagEnum,
     SqlserverBackupJobExecMode,
     SqlserverBackupMode,
+    SqlserverCleanMode,
     SqlserverRestoreMode,
     SqlserverSyncMode,
+    SqlserverSyncModeMaps,
     SqlserverVersion,
 )
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
@@ -459,6 +461,12 @@ def sync_dbs_for_cluster_sub_flow(
         "target_backup_dir": backup_path,
         "is_set_full_model": True,
         "job_id": f"restore_dr_{root_id}_{master_instance.port}",
+        "clean_dbs": sync_dbs,
+        "clean_mode": SqlserverCleanMode.DROP_DBS.value,
+        "clean_tables": ["*"],
+        "ignore_clean_tables": [],
+        "sync_mode": SqlserverSyncModeMaps[cluster_sync_mode],
+        "slaves": [],
     }
 
     # 声明子流程
@@ -483,6 +491,24 @@ def sync_dbs_for_cluster_sub_flow(
             ),
         ),
     )
+    # 清理从库对应的数据库
+    acts_list = []
+    for slave in sync_slaves:
+        acts_list.append(
+            {
+                "act_name": _("清理slave实例数据库[{}]".format(slave.ip)),
+                "act_component_code": SqlserverActuatorScriptComponent.code,
+                "kwargs": asdict(
+                    ExecActuatorKwargs(
+                        exec_ips=[slave],
+                        get_payload_func=SqlserverActPayload.get_clean_dbs_payload.__name__,
+                        custom_params={"is_force": True},
+                    )
+                ),
+            }
+        )
+    sub_pipeline.add_parallel_acts(acts_list=acts_list)
+
     # 执行备份
     sub_pipeline.add_act(
         act_name=_("执行数据库备份"),
