@@ -19,7 +19,7 @@ const routes = [
     name: 'TicketFlowSetting',
     path: 'ticket-flow-setting',
     meta: {
-      navName: t('单据流程设置'),
+      navName: t('单据免审批设置'),
       fullscreen: true,
     },
     component: () => import('@views/ticket-flow-setting-biz/Index.vue'),

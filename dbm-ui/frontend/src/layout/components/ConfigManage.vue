@@ -59,7 +59,7 @@
             <span
               v-overflow-tips.right
               class="text-overflow">
-              {{ t('单据流程设置') }}
+              {{ t('单据免审批设置') }}
             </span>
           </BkMenuItem>
         </BkMenuGroup>
