@@ -1113,6 +1113,24 @@ func (db *RedisClient) ConfigGet(confName string) (ret map[string]string, err er
 	return ret, nil
 }
 
+// ModuleLoad tendis执行module load
+func (db *RedisClient) ModuleLoad(soFile string) (err error) {
+	// 执行 module load 命令只能用 普通redis client
+	if db.InstanceClient == nil {
+		err = fmt.Errorf("ConfigRewrite redis:%s must create a standalone client", db.Addr)
+		mylog.Logger.Error(err.Error())
+		return err
+	}
+	cmd := []interface{}{"module", "load", soFile}
+	_, err = db.InstanceClient.Do(context.TODO(), cmd...).Result()
+	if err != nil {
+		err = fmt.Errorf("%+v fail,err:%v,addr:%s", cmd, err, db.Addr)
+		mylog.Logger.Error(err.Error())
+		return err
+	}
+	return nil
+}
+
 // ConfigRewrite tendis执行confxx rewrite
 func (db *RedisClient) ConfigRewrite() (string, error) {
 	var err error

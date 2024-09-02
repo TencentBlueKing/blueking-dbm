@@ -118,7 +118,7 @@ func (test *PredixyInstallTest) SetToLoadModules(toLoadModules []string) *Predix
 	if test.Err != nil {
 		return test
 	}
-	test.LoadModules = strings.Join(toLoadModules, ",")
+	test.LoadModules = toLoadModules
 	return test
 }
 

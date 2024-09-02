@@ -125,10 +125,8 @@ class RedisActPayload(object):
         self.tools_pkg = Package.get_latest_package(
             version=MediumEnum.Latest, pkg_type=MediumEnum.RedisTools, db_type=DBType.Redis
         )
-        self.redis_modules_pkg = (
-            Package.objects.filter(pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis, enable=True)
-            .order_by("-update_at")
-            .first()
+        self.redis_modules_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
         )
 
         self.__init_dbconfig_params()
@@ -2268,6 +2266,68 @@ class RedisActPayload(object):
                 "sync_to_config_file": params.get("sync_to_config_file", True),
             },
         }
+
+    def redis_load_modules(self, **kwargs) -> dict:
+        """
+        Redis加载模块
+        """
+        params = kwargs["params"]
+        redis_modules_pkg = Package.get_latest_package(
+            version=MediumEnum.Latest, pkg_type=MediumEnum.RedisModules, db_type=DBType.Redis
+        )
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.LOAD_MODULES.value,
+            "payload": {
+                "redis_modules_pkg": {"pkg": redis_modules_pkg.name, "pkg_md5": redis_modules_pkg.md5},
+                "ip": params["ip"],
+                "ports": params["ports"],
+                "load_modules_detail": params["load_modules_detail"],
+            },
+        }
+
+    def predixy_add_modules_cmds(self, **kwargs) -> dict:
+        """
+        Predixy添加模块命令
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.PREDIXY_ADD_MODULES_CMDS.value,
+            "payload": {
+                "ip": params["ip"],
+                "port": params["port"],
+                "load_modules": params["load_modules"],
+                "cluster_type": params["cluster_type"],
+            },
+        }
+
+    def redis_cluster_add_modules_update_dbconfig(self, cluster_map: dict) -> dict:
+        """
+        Redis集群添加模块更新dbconfig
+        """
+        cluster_id = cluster_map["cluster_id"]
+        load_modules = cluster_map["load_modules"]
+        cluster = Cluster.objects.get(id=cluster_id)
+        dst_conf_upsert_items = [
+            {"conf_name": "loadmodule", "conf_value": ",".join(load_modules), "op_type": "update"}
+        ]
+
+        upsert_param = {
+            "conf_file_info": {
+                "conf_file": cluster.major_version,
+                "conf_type": ConfigTypeEnum.DBConf,
+                "namespace": cluster.cluster_type,
+            },
+            "conf_items": dst_conf_upsert_items,
+            "level_info": {"module": str(DEFAULT_DB_MODULE_ID)},
+            "confirm": DEFAULT_CONFIG_CONFIRM,
+            "req_type": ReqType.SAVE_AND_PUBLISH,
+            "bk_biz_id": str(cluster.bk_biz_id),
+            "level_name": LevelName.CLUSTER,
+            "level_value": cluster.immute_domain,
+        }
+        DBConfigApi.upsert_conf_item(upsert_param)
 
     def redis_client_conns_kill(self, **kwargs) -> dict:
         """

@@ -111,30 +111,7 @@ func (job *RedisConfigSet) Run() (err error) {
 
 // syncToConfigFile 同步到本地配置文件
 func (job *RedisConfigSet) syncToConfigFile(confFile, item, value string) (err error) {
-	var ret string
-	grepCmd := fmt.Sprintf("grep -iP '^%s' %s|awk '{print $2}'", item, confFile)
-	job.runtime.Logger.Info(grepCmd)
-	ret, _ = util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
-	if ret == value {
-		return nil
-	}
-	if ret != "" {
-		// 如果存在,但值不对
-		// 先删除
-		sedCmd := fmt.Sprintf("sed -i -e '/^%s/d' %s", item, confFile)
-		job.runtime.Logger.Info(sedCmd)
-		_, err = util.RunBashCmd(sedCmd, "", nil, 10*time.Second)
-		// 再添加
-		echoCmd := fmt.Sprintf("echo '%s %s' >> %s", item, value, confFile)
-		job.runtime.Logger.Info(echoCmd)
-		_, err = util.RunBashCmd(echoCmd, "", nil, 10*time.Second)
-	} else {
-		// 直接添加
-		echoCmd := fmt.Sprintf("echo '%s %s' >> %s", item, value, confFile)
-		job.runtime.Logger.Info(echoCmd)
-		_, err = util.RunBashCmd(echoCmd, "", nil, 10*time.Second)
-	}
-	return err
+	return util.SaveKvToConfigFile(confFile, item, value)
 }
 
 // allInstsAbleToConnect 检查所有实例可连接

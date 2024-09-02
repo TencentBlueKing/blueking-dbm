@@ -18,6 +18,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_cluster_data_copy import Redis
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_instance_shutdown import (
     RedisClusterInstanceShutdownSceneFlow,
 )
+from backend.flow.engine.bamboo.scene.redis.redis_cluster_load_modules import RedisClusterLoadModulesSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_maxmemory_set import RedisClusterMaxmemorySetSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_compair import RedisClusterMigrateCompairFlow
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_migrate_load import (
@@ -380,5 +381,15 @@ class RedisController(BaseController):
         flow.dirty_machine_clear_flow()
 
     def redis_cluster_rename_domain(self):
+        """
+        redis 集群域名重命名
+        """
         flow = RedisClusterRenameDomainFlow(root_id=self.root_id, data=self.ticket_data)
         flow.redis_cluster_rename_domain()
+
+    def redis_cluster_load_modules(self):
+        """
+        redis 集群加载模块
+        """
+        flow = RedisClusterLoadModulesSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.batch_clusters_load_modules()

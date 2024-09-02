@@ -131,7 +131,8 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 
 // RedisModulesMediaPkg modules 包
 type RedisModulesMediaPkg struct {
-	MediaPkg
+	Pkg    string `json:"pkg"`     // 安装包名
+	PkgMd5 string `json:"pkg_md5"` // 安装包MD5
 }
 
 // UnTar 解压
@@ -141,7 +142,7 @@ type RedisModulesMediaPkg struct {
 // - /data/install/redis_modules.tar.gz 不存在 or md5不一致 则用最新 /data/install/redis_modules.tar.gz 工具覆盖 {REDIS_BACKUP_DIR}/dbbak/redis_modules
 // 3. 创建 /home/mysql/redis_modules -> /data/dbbak/redis_modules 软链接
 // 4. cp  /data/install/redis_modules.tar.gz {REDIS_BACKUP_DIR}/dbbak/redis_modules.tar.gz
-func (pkg *RedisModulesMediaPkg) UnTar() (err error) {
+func (m *RedisModulesMediaPkg) UnTar() (err error) {
 	var fileMd5 string
 	var overrideLocal bool = true
 	var newMysqlHomeLink bool = true
@@ -149,13 +150,13 @@ func (pkg *RedisModulesMediaPkg) UnTar() (err error) {
 	moduleBasename := filepath.Base(consts.RedisModulePath)
 	backupDir := filepath.Join(consts.GetRedisBackupDir(), "dbbak")       // 如 /data/dbbak
 	bakdirModuleTar := filepath.Join(backupDir, moduleBasename+".tar.gz") // 如 /data/dbbak/redis_modules.tar.gz
-	installModuleTar := pkg.GetAbsolutePath()
+	installModuleTar := filepath.Join(consts.PackageSavePath, m.Pkg)
 	if util.FileExists(bakdirModuleTar) {
 		fileMd5, err = util.GetFileMd5(bakdirModuleTar)
 		if err != nil {
 			return
 		}
-		if fileMd5 == pkg.PkgMd5 {
+		if fileMd5 == m.PkgMd5 {
 			overrideLocal = false
 		}
 	}

@@ -21,7 +21,6 @@ from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.redis_dts.constants import REDIS_CONF_DEL_SLAVEOF
-from backend.db_services.redis.redis_dts.util import common_cluster_precheck
 from backend.db_services.redis.util import is_redis_cluster_protocal, is_twemproxy_proxy_type
 from backend.flow.consts import (
     DEFAULT_LAST_IO_SECOND_AGO,
@@ -45,6 +44,7 @@ from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 from backend.flow.utils.redis.redis_proxy_util import (
+    async_multi_clusters_precheck,
     get_cache_backup_mode,
     get_cluster_info_by_cluster_id,
     get_cluster_info_by_ip,
@@ -85,6 +85,13 @@ class RedisClusterVersionUpdateOnline(object):
         7. 是否所有master 都有 slave;
         """
         bk_biz_id = self.data["bk_biz_id"]
+        to_precheck_cluster_ids = []
+        for input_item in self.data["infos"]:
+            cluster_ids = RedisClusterVersionUpdateOnline.get_cluster_ids_from_info_item(input_item)
+            to_precheck_cluster_ids.extend(cluster_ids)
+        # 并发检查多个cluster的proxy、redis实例状态
+        async_multi_clusters_precheck(to_precheck_cluster_ids)
+
         for input_item in self.data["infos"]:
             cluster_ids = []
             if "cluster_ids" in input_item and input_item["cluster_ids"]:
@@ -95,7 +102,6 @@ class RedisClusterVersionUpdateOnline(object):
             if not input_item["target_version"]:
                 raise Exception(_("redis集群 {} 目标版本为空?").format(cluster_ids))
             for cluster_id in cluster_ids:
-                common_cluster_precheck(bk_biz_id, cluster_id)
                 cluster = Cluster.objects.get(bk_biz_id=bk_biz_id, id=cluster_id)
 
                 # 检查版本是否合法

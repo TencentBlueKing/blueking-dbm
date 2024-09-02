@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import asyncio
+import concurrent.futures
 import hashlib
 import json
 import logging.config
@@ -922,6 +924,32 @@ def get_cluster_info_by_cluster_id(cluster_id):
     }
 
 
+def async_get_multi_cluster_info_by_cluster_ids(cluster_ids: List[int]) -> Dict[int, Any]:
+    """
+    根据集群id批量获取集群信息
+    """
+
+    async def async_hanlder(cluster_ids: List[int]) -> Dict[int, Any]:
+        loop = asyncio.get_running_loop()
+
+        # 自定义线程池
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # 将所有的任务提交到线程池
+            tasks = [
+                loop.run_in_executor(executor, get_cluster_info_by_cluster_id, cluster_id)
+                for cluster_id in cluster_ids
+            ]
+            # 等待所有任务完成并收集结果
+            results = await asyncio.gather(*tasks)
+
+        ret_dict = {}
+        for result in results:
+            ret_dict[result["cluster_id"]] = result
+        return ret_dict
+
+    return asyncio.run(async_hanlder(cluster_ids))
+
+
 def get_cluster_info_by_ip(ip: str) -> Dict[str, Any]:
     """
     根据redis ip获取集群信息
@@ -999,3 +1027,83 @@ def get_cluster_remote_address(cluster_id: int) -> str:
         raise InstanceNotExistException(_("集群{}不存在DRS可访问的实例").format(cluster.immute_domain))
 
     return f"{inst.machine.ip}:{inst.port}"
+
+
+def common_cluster_precheck(cluster_id: int):
+    try:
+        cluster = Cluster.objects.get(id=cluster_id)
+    except Cluster.DoesNotExist:
+        raise Exception(_("redis集群 {} 不存在").format(cluster_id))
+
+    not_running_proxy = cluster.proxyinstance_set.exclude(status=InstanceStatus.RUNNING)
+    if not_running_proxy.exists():
+        raise Exception(
+            _("redis集群 {} 存在 {} 个状态非 running 的 proxy").format(cluster.immute_domain, len(not_running_proxy))
+        )
+
+    not_running_redis = cluster.storageinstance_set.exclude(status=InstanceStatus.RUNNING)
+    if not_running_redis.exists():
+        raise Exception(
+            _("redis集群 {} 存在 {} 个状态非 running 的 redis").format(cluster.immute_domain, len(not_running_redis))
+        )
+
+    passwd_ret = PayloadHandler.redis_get_cluster_password(cluster)
+    proxy_addrs = [r.ip_port for r in cluster.proxyinstance_set.all()]
+    try:
+        DRSApi.redis_rpc(
+            {
+                "addresses": proxy_addrs,
+                "db_num": 0,
+                "password": passwd_ret["redis_proxy_password"],
+                "command": "ping",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+    except Exception:
+        raise Exception(_("redis集群:{} proxy:{} ping失败").format(cluster.immute_domain, proxy_addrs))
+
+    redis_addrs = [r.ip_port for r in cluster.storageinstance_set.all()]
+    try:
+        DRSApi.redis_rpc(
+            {
+                "addresses": redis_addrs,
+                "db_num": 0,
+                "password": passwd_ret["redis_password"],
+                "command": "ping",
+                "bk_cloud_id": cluster.bk_cloud_id,
+            }
+        )
+    except Exception:
+        raise Exception(_("redis集群:{} redis:{} ping失败").format(cluster.immute_domain, redis_addrs))
+    master_insts = cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value)
+    if not master_insts:
+        raise Exception(_("redis集群 {} 没有master??").format(cluster.immute_domain))
+    for master_obj in master_insts:
+        if not master_obj.as_ejector or not master_obj.as_ejector.first():
+            raise Exception(
+                _("redis集群{} master {} 没有 slave").format(
+                    cluster.immute_domain,
+                    master_obj.ip_port,
+                )
+            )
+
+
+def async_multi_clusters_precheck(cluster_ids: List[int]):
+    """
+    异步批量检查集群
+    """
+
+    async def async_handler(cluster_ids: List[int]):
+        """
+        异步批量检查集群
+        """
+        loop = asyncio.get_running_loop()
+
+        # 自定义线程池
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            # 将所有的任务提交到线程池
+            tasks = [loop.run_in_executor(executor, common_cluster_precheck, cluster_id) for cluster_id in cluster_ids]
+            # 等待所有任务完成并收集结果
+            await asyncio.gather(*tasks)
+
+    return asyncio.run(async_handler(cluster_ids))
