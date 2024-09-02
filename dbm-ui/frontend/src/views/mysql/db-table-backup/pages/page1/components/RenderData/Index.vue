@@ -34,14 +34,14 @@
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="240"
-      :width="240">
-      {{ t('备份表名') }}
-    </RenderTableHeadColumn>
-    <RenderTableHeadColumn
-      :min-width="240"
       :required="false"
       :width="240">
       {{ t('忽略DB名') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="240"
+      :width="240">
+      {{ t('备份表名') }}
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="240"

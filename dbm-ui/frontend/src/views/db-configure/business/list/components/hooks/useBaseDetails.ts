@@ -63,8 +63,8 @@ export const useBaseDetails = (immediateFetch = true) => {
 
   const treeNode = inject<ComputedRef<TreeData>>('treeNode');
   const route = useRoute();
-  const clusterType = computed(() => route.params.clusterType as ClusterTypes);
-  const dbType = computed(() => clusterTypeInfos[clusterType.value]?.dbType);
+  const clusterType = computed(() => (route.params.clusterType as ClusterTypes) || ClusterTypes.TENDBSINGLE);
+  const dbType = computed(() => clusterTypeInfos[clusterType.value].dbType);
   const state = reactive<State>({
     loading: false,
     loadingDetails: false,
@@ -148,7 +148,7 @@ export const useBaseDetails = (immediateFetch = true) => {
         }
       }
     },
-    { deep: true, immediate: true }
+    { deep: true, immediate: true },
   );
 
   return {

@@ -12,68 +12,72 @@
 -->
 
 <template>
-  <tr>
-    <td style="padding: 0">
-      <RenderCluster
-        ref="clusterRef"
-        :model-value="localClusterData"
-        @change="handleClusterChange"
-        @input-create="handleCreate" />
-    </td>
-    <td style="padding: 0">
-      <RenderClusterInputSelect
-        ref="targetClustersRef"
-        :source-cluster-id="localClusterData!.id"
-        :target-cluster-id="data.targetClusterId" />
-    </td>
-    <td style="padding: 0">
-      <RenderBackup
-        ref="backupSourceRef"
-        :list="selectList.backupSource"
-        :model-value="localBackupSource"
-        @change="handleBackupSourceChange" />
-    </td>
-    <td style="padding: 0">
-      <RenderMode
-        ref="modeRef"
-        :backup-source="localBackupSource"
-        :backupid="data.backupid"
-        :cluster-id="localClusterData!.id"
-        :rollback-time="data.rollbackTime" />
-    </td>
-    <td style="padding: 0">
-      <RenderDbName
-        ref="databasesRef"
-        :cluster-id="localClusterData!.id"
-        disabled-model-value-init
-        :model-value="data.databases" />
-    </td>
-    <td style="padding: 0">
-      <RenderDbName
-        ref="databasesIgnoreRef"
-        :cluster-id="localClusterData!.id"
-        :model-value="data.databasesIgnore"
-        :required="false" />
-    </td>
-    <td style="padding: 0">
-      <RenderTableName
-        ref="tablesRef"
-        :cluster-id="localClusterData!.id"
-        disabled-model-value-init
-        :model-value="data.tables" />
-    </td>
-    <td style="padding: 0">
-      <RenderTableName
-        ref="tablesIgnoreRef"
-        :cluster-id="localClusterData!.id"
-        :model-value="data.tablesIgnore"
-        :required="false" />
-    </td>
-    <OperateColumn
-      :removeable="removeable"
-      @add="handleAppend"
-      @remove="handleRemove" />
-  </tr>
+  <tbody>
+    <tr>
+      <td style="padding: 0">
+        <RenderCluster
+          ref="clusterRef"
+          :model-value="localClusterData"
+          @change="handleClusterChange"
+          @input-create="handleCreate" />
+      </td>
+      <td style="padding: 0">
+        <RenderClusterInputSelect
+          ref="targetClustersRef"
+          :source-cluster-id="localClusterData!.id"
+          :target-cluster-id="data.targetClusterId" />
+      </td>
+      <td style="padding: 0">
+        <RenderBackup
+          ref="backupSourceRef"
+          :list="selectList.backupSource"
+          :model-value="localBackupSource"
+          @change="handleBackupSourceChange" />
+      </td>
+      <td style="padding: 0">
+        <RenderMode
+          ref="modeRef"
+          :backup-source="localBackupSource"
+          :backupid="data.backupid"
+          :cluster-id="localClusterData!.id"
+          :rollback-time="data.rollbackTime" />
+      </td>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="databasesRef"
+          :cluster-id="localClusterData!.id"
+          :init-value="['*']"
+          :model-value="data.databases" />
+      </td>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="databasesIgnoreRef"
+          :allow-asterisk="false"
+          :cluster-id="localClusterData!.id"
+          :model-value="data.databasesIgnore"
+          :required="false" />
+      </td>
+      <td style="padding: 0">
+        <RenderTableName
+          ref="tablesRef"
+          :cluster-id="localClusterData!.id"
+          :init-value="['*']"
+          :model-value="data.tables" />
+      </td>
+      <td style="padding: 0">
+        <RenderTableName
+          ref="tablesIgnoreRef"
+          :allow-asterisk="false"
+          :cluster-id="localClusterData!.id"
+          :model-value="data.tablesIgnore"
+          :required="false" />
+      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
+    </tr>
+  </tbody>
 </template>
 <script setup lang="ts">
   import { ref, watch } from 'vue';

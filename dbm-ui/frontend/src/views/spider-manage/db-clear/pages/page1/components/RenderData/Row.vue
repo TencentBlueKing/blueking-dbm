@@ -34,15 +34,9 @@
         :model-value="data.dbPatterns" />
     </td>
     <td style="padding: 0">
-      <RenderTableName
-        ref="tablePatternsRef"
-        :cluster-id="localClusterId"
-        :disabled="isDropDatabase"
-        :model-value="tablePatterns" />
-    </td>
-    <td style="padding: 0">
       <RenderDbName
         ref="ignoreDbsRef"
+        :allow-asterisk="false"
         :cluster-id="localClusterId"
         :model-value="data.ignoreDbs"
         :required="false"
@@ -50,7 +44,15 @@
     </td>
     <td style="padding: 0">
       <RenderTableName
+        ref="tablePatternsRef"
+        :cluster-id="localClusterId"
+        :disabled="isDropDatabase"
+        :model-value="tablePatterns" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
         ref="ignoreTablesRef"
+        :allow-asterisk="false"
         :cluster-id="localClusterId"
         :disabled="isDropDatabase"
         :model-value="ignoreTables"

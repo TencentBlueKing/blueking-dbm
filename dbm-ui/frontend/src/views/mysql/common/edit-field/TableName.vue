@@ -35,6 +35,7 @@
     required?: boolean;
     placeholder?: string;
     single?: boolean;
+    allowAsterisk?: boolean; // 是否允许单个 *
     rules?: {
       validator: (value: string[]) => boolean;
       message: string;
@@ -60,6 +61,7 @@
     rules: undefined,
     disabledModelValueInit: false,
     disabled: false,
+    allowAsterisk: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -85,15 +87,23 @@
         message: t('表名不能为空'),
       },
       {
+        validator: (value: string[]) => {
+          if (props.allowAsterisk) {
+            return true;
+          }
+
+          return _.every(value, (item) => item !== '*');
+        },
+        message: t('不允许为 *'),
+      },
+      {
         validator: (value: string[]) =>
           !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
         message: t('* 只能独立使用'),
-        trigger: 'change',
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
-        message: t('% 不允许单独使用'),
-        trigger: 'change',
+        validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
+        message: t('% 或 ? 不允许单独使用'),
       },
       {
         validator: (value: string[]) => {
@@ -103,7 +113,6 @@
           return true;
         },
         message: t('含通配符的单元格仅支持输入单个对象'),
-        trigger: 'change',
       },
       // TODO: 表不存在
     ];
