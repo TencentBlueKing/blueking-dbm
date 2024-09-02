@@ -14,7 +14,7 @@ func CreateDB(conn *sqlx.Conn, dbName string) error {
 
 	_, err := conn.ExecContext(
 		ctx,
-		fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName),
+		fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s`", dbName),
 	)
 	return err
 }
