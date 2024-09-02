@@ -24,13 +24,13 @@
       <RenderText
         :data="data.clusterTypeName"
         :is-loading="data.isLoading"
-        :placeholder="$t('选择集群后自动生成')" />
+        :placeholder="t('选择集群后自动生成')" />
     </td>
     <td style="padding: 0">
       <RenderText
         :data="data.srcClusterType"
         :is-loading="data.isLoading"
-        :placeholder="$t('选择集群后自动生成')" />
+        :placeholder="t('选择集群后自动生成')" />
     </td>
     <td style="padding: 0">
       <RenderTargetClusterType
@@ -44,7 +44,7 @@
       <RenderText
         :data="data.currentSepc"
         :is-loading="data.isLoading"
-        :placeholder="$t('选择集群后自动生成')" />
+        :placeholder="t('选择集群后自动生成')" />
     </td>
     <td style="padding: 0">
       <RenderDeployPlan
@@ -57,14 +57,14 @@
     <td style="padding: 0">
       <RenderTargetClusterVersion
         ref="versionRef"
-        :cluster-type="data.clusterType"
+        :cluster-type="selectClusterType"
         :data="data.dbVersion" />
     </td>
     <td style="padding: 0">
       <RenderText
         :data="data.switchMode"
         :is-loading="data.isLoading"
-        :placeholder="$t('选择集群后自动生成')" />
+        :placeholder="t('选择集群后自动生成')" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -199,6 +199,8 @@
   });
 </script>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -221,11 +223,23 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
   const deployPlanRef = ref<InstanceType<typeof RenderDeployPlan>>();
   const targetClusterTypeRef = ref<InstanceType<typeof RenderTargetClusterType>>();
   const versionRef = ref<InstanceType<typeof RenderTargetClusterVersion>>();
   const selectClusterType = ref('');
+
+  watch(
+    () => props.data.clusterType,
+    (clusterType) => {
+      selectClusterType.value = clusterType;
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClusterTypeChange = (value: string) => {
     selectClusterType.value = value;
