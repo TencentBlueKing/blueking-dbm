@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"dbm-services/mysql/db-partition/util"
-
-	"github.com/spf13/viper"
 )
 
 // OneAddressExecuteSqlBasic OneAddressExecuteSql 通过db-remote-service服务连接mysql实例执行sql语句
@@ -18,14 +16,13 @@ func OneAddressExecuteSqlBasic(vtype string, queryRequest QueryRequest) (oneAddr
 	var errMsg []string
 	var result oneAddressResult
 	var temp []oneAddressResult
-	c := util.NewClientByHosts(viper.GetString("db_remote_service"))
 	var url string
 	if vtype == "mysql" {
 		url = "mysql/rpc/"
 	} else if vtype == "proxy" {
 		url = "proxy-admin/rpc/"
 	}
-	apiResp, err := c.Do(http.MethodPost, url, queryRequest)
+	apiResp, err := util.DrsClient.Do(http.MethodPost, url, queryRequest)
 	if err != nil {
 		slog.Error("drs err", err)
 		return result, err
@@ -82,17 +79,6 @@ type QueryRequest struct {
 	QueryTimeout int `form:"query_timeout" json:"query_timeout" url:"query_timeout"` // sql执行超时时间
 	BkCloudId    int `form:"bk_cloud_id" json:"bk_cloud_id" url:"bk_cloud_id"`       // mysql服务所在的云域
 }
-
-// queryResponse db-remote-service服务/mysql/rpc接口返回的结构
-type queryResponse struct {
-	Code      int               `json:"code"`
-	Data      queryResponseData `json:"data"`
-	Msg       string            `json:"message"`
-	RequestId string            `json:"request_id"`
-}
-
-// queryResponseData 在多个ip:port执行sql返回的结果
-type queryResponseData []oneAddressResult
 
 // oneAddressResult 在一个ip:port执行sql返回的结果
 type oneAddressResult struct {

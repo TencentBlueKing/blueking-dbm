@@ -3,6 +3,7 @@ package main
 import (
 	"dbm-services/mysql/db-partition/monitor"
 	"dbm-services/mysql/db-partition/service"
+	"dbm-services/mysql/db-partition/util"
 	"net/http"
 	"os"
 
@@ -32,6 +33,10 @@ func main() {
 			os.Exit(0)
 		}
 	}
+
+	util.DbmetaClient = util.NewClientByHosts(viper.GetString("db_meta_service"))
+	util.DrsClient = util.NewClientByHosts(viper.GetString("db_remote_service"))
+	util.TicketClient = util.NewClientByHosts(viper.GetString("dbm_ticket_service"))
 
 	// 获取监控配置，多次尝试，获取监控配置失败
 	monitor.InitMonitor()
