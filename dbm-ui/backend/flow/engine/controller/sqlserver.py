@@ -20,6 +20,7 @@ from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_cluster_standardizatio
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_db_construct import SqlserverDataConstruct
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_dts import SqlserverDTSFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_ha_deploy import SqlserverHAApplyFlow
+from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_inst_modify_status import SqlserverModifyStatusFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_master_slave_failover import SqlserverFailOverFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_master_slave_switch import SqlserverSwitchFlow
 from backend.flow.engine.bamboo.scene.sqlserver.sqlserver_rename_dbs import SqlserverRenameDBSFlow
@@ -116,4 +117,9 @@ class SqlserverController(BaseController):
 
     def sqlserver_standardization_scene(self):
         flow = SqlserverStandardizationFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()
+
+    def sqlserver_modify_inst_status_scene(self):
+        # 实例告警自愈触发单据
+        flow = SqlserverModifyStatusFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()

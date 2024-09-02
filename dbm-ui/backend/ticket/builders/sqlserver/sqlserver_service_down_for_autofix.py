@@ -23,25 +23,27 @@ from backend.ticket.constants import FlowRetryType, TicketType
 logger = logging.getLogger("flow")
 
 
-class SQLServerBuildDBSyncForAutofixSerializer(AlarmCallBackDataSerializer):
+class SQLServerDownForAutoFixSerializer(AlarmCallBackDataSerializer):
     """
-    接收告警事件,确认是否要做自动同步
+    接收sqlserver_service状态告警事件，处理自愈逻辑
+    目前会对未接入dbha的实例，修复实例状态
     """
 
     def to_internal_value(self, data):
         data = super().to_internal_value(data)
         dimensions = data["callback_message"]["event"]["dimensions"]
         cluster = Cluster.objects.get(immute_domain=dimensions["cluster_domain"])
-        ticket_detail = {"infos": [{"cluster_id": cluster.id, "sync_dbs": []}]}
+        ip = dimensions["instance"].split("-")[0]
+        ticket_detail = {"infos": [{"cluster_id": cluster.id, "ip_list": [ip]}]}
         return ticket_detail
 
 
-class SQLServerBuildDBSyncForSerializer(SQLServerBaseOperateDetailSerializer):
-    class BuildDBSyncInfoSerializer(serializers.Serializer):
+class SQLServerModifyInstStatusSerializer(SQLServerBaseOperateDetailSerializer):
+    class ModifyInstStatusSerializer(serializers.Serializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-        sync_dbs = serializers.ListField(help_text=_("同步的数据库"), required=False, default=[])
+        ip_list = serializers.ListField(help_text=_("待修改主机ip"), required=True)
 
-    infos = serializers.ListSerializer(help_text=_("同步信息列表"), child=BuildDBSyncInfoSerializer())
+    infos = serializers.ListSerializer(help_text=_("实例修改列表"), child=ModifyInstStatusSerializer())
 
     def validate(self, attrs):
         """验证库表数据库的数据"""
@@ -49,16 +51,16 @@ class SQLServerBuildDBSyncForSerializer(SQLServerBaseOperateDetailSerializer):
         return attrs
 
 
-class SQLServerBuildDBSyncParamBuilder(builders.FlowParamBuilder):
-    controller = SqlserverController.ha_build_db_sync_scene
+class SQLServerModifyInstStatusParamBuilder(builders.FlowParamBuilder):
+    controller = SqlserverController.sqlserver_modify_inst_status_scene
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_BUILD_DB_SYNC, is_apply=False)
-class SQLServerBuildDBSyncBuilder(BaseSQLServerTicketFlowBuilder):
-    serializer = SQLServerBuildDBSyncForSerializer
-    alarm_transform_serializer = SQLServerBuildDBSyncForAutofixSerializer
-    inner_flow_builder = SQLServerBuildDBSyncParamBuilder
-    inner_flow_name = _("SQLServer 同步数据")
+@builders.BuilderFactory.register(TicketType.SQLSERVER_MODIFY_STATUS, is_apply=False)
+class SQLServerModifyInstStatusBuilder(BaseSQLServerTicketFlowBuilder):
+    serializer = SQLServerModifyInstStatusSerializer
+    alarm_transform_serializer = SQLServerDownForAutoFixSerializer
+    inner_flow_builder = SQLServerModifyInstStatusParamBuilder
+    inner_flow_name = _("SQLServer 修改故障实例状态")
     retry_type = FlowRetryType.MANUAL_RETRY
     default_need_itsm = False
     default_need_manual_confirm = False
