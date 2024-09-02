@@ -39,6 +39,14 @@
         required />
     </td>
     <td style="padding: 0">
+      <RenderDbName
+        ref="databasesIgnoreRef"
+        v-model="localDatabaseIgnore"
+        :allow-asterisk="false"
+        :cluster-id="localClusterId"
+        :rules="ingoredbAndTableNameBaseRules" />
+    </td>
+    <td style="padding: 0">
       <RenderTableName
         ref="tablesRef"
         v-model="localTables"
@@ -46,16 +54,10 @@
         required />
     </td>
     <td style="padding: 0">
-      <RenderDbName
-        ref="databasesIgnoreRef"
-        v-model="localDatabaseIgnore"
-        :cluster-id="localClusterId"
-        :rules="ingoredbAndTableNameBaseRules" />
-    </td>
-    <td style="padding: 0">
       <RenderTableName
         ref="tablesIgnoreRef"
         v-model="localTablesIgnore"
+        :allow-asterisk="false"
         :cluster-id="localClusterId"
         :rules="ingoredbAndTableNameBaseRules" />
     </td>

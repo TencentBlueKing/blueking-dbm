@@ -53,14 +53,14 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"
-          :width="190">
-          {{ t('目标表名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="100"
           :required="false"
           :width="190">
           {{ t('忽略DB名') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="100"
+          :width="190">
+          {{ t('目标表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="100"

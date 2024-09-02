@@ -50,6 +50,7 @@
     <td style="padding: 0">
       <RenderDbName
         ref="databasesIgnoreRef"
+        :allow-asterisk="false"
         :cluster-id="localClusterData!.id"
         :model-value="data.databasesIgnore"
         :required="false" />
@@ -64,6 +65,7 @@
     <td style="padding: 0">
       <RenderTableName
         ref="tablesIgnoreRef"
+        :allow-asterisk="false"
         :cluster-id="localClusterData!.id"
         :model-value="data.tablesIgnore"
         :required="false" />
