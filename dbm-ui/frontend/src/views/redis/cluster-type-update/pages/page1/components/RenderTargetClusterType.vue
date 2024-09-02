@@ -62,15 +62,19 @@
   const selectList = [
     {
       value: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-      label: t('TendisCache'),
+      label: 'TendisCache',
     },
     {
       value: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      label: t('TendisSSD'),
+      label: 'TendisSSD',
     },
     {
       value: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-      label: t('Tendisplus'),
+      label: 'Tendisplus',
+    },
+    {
+      value: ClusterTypes.PREDIXY_REDIS_CLUSTER,
+      label: t('RedisCluster集群'),
     },
   ];
 
