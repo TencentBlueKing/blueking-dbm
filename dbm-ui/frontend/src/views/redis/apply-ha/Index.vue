@@ -440,6 +440,11 @@
               count: Math.ceil(machineCount.value),
               spec_id: details.resource_spec!.spec_id,
               ...specRef.value!.getData(),
+              affinity: details.disaster_tolerance_level,
+              location_spec: {
+                city: details.city_code,
+                sub_zone_ids: [],
+              },
             },
           },
           infos: details.infos!.map((infoItem) => ({
