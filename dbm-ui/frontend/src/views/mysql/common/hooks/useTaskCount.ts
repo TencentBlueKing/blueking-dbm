@@ -19,6 +19,8 @@ import { deleteUserSemanticTasks, getUserSemanticTasks } from '@services/source/
 
 import { useSQLTaskCount } from '@stores';
 
+import { checkDbConsole } from '@utils';
+
 import { useTimeoutPoll } from '@vueuse/core';
 
 export const useTaskCount = (clusterType: string) => {
@@ -60,19 +62,21 @@ export const useTaskCount = (clusterType: string) => {
   };
 
   const fetchData = () => {
-    getUserSemanticTasks({
-      cluster_type: clusterType,
-    }).then((data) => {
-      if (taskCountStore.isPolling === false) {
-        resume();
-        taskCountStore.isPolling = true;
-      }
+    if (checkDbConsole('mysql.toolbox.sqlExecute') || checkDbConsole('tendbCluster.toolbox.sqlExecute')) {
+      getUserSemanticTasks({
+        cluster_type: clusterType,
+      }).then((data) => {
+        if (taskCountStore.isPolling === false) {
+          resume();
+          taskCountStore.isPolling = true;
+        }
 
-      taskCountStore.taskList = data;
-      nextTick(() => {
-        initPopover();
+        taskCountStore.taskList = data;
+        nextTick(() => {
+          initPopover();
+        });
       });
-    });
+    }
   };
 
   fetchData();

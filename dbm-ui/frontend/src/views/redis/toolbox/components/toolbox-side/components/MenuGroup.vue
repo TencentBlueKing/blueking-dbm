@@ -38,9 +38,6 @@
                 class="text-overflow">
                 {{ item.name }}
               </span>
-              <TaskCount
-                v-if="item.id === 'MySQLExecute'"
-                class="count" />
             </div>
             <DbIcon
               v-bk-tooltips="favorMap[item.id] ? t('从导航移除') : t('收藏至导航')"
@@ -67,8 +64,6 @@
   import MenuConfig, { type MenuChild } from '@views/redis/toolbox-menu';
 
   import { encodeRegexp, messageSuccess } from '@utils';
-
-  import TaskCount from './TaskCount.vue';
 
   interface Props {
     id: string;

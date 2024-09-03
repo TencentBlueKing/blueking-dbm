@@ -766,7 +766,7 @@
             action-id="mysql_webconsole"
             resource={data.id}
             permission={data.permission.mysql_webconsole}
-            disabled={data.operationDisabled}
+            disabled={data.isOffline}
             text
             theme="primary"
             class="mr-8"
