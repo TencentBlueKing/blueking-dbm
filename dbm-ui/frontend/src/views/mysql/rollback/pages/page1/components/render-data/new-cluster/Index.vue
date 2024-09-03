@@ -15,8 +15,8 @@
   <RenderTable>
     <RenderTableHeadColumn
       fixed="left"
-      :min-width="270"
-      :width="280">
+      :min-width="300"
+      :width="350">
       {{ t('待回档集群') }}
       <template #append>
         <BatchOperateIcon

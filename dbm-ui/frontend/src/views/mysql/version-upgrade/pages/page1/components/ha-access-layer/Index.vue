@@ -18,8 +18,8 @@
         <template #default>
           <RenderTableHeadColumn
             fixed="left"
-            :min-width="120"
-            :width="220">
+            :min-width="300"
+            :width="350">
             <span>{{ t('目标集群') }}</span>
             <template #append>
               <BatchOperateIcon

@@ -16,8 +16,8 @@
     <template #default>
       <RenderTableHeadColumn
         fixed="left"
-        :min-width="200"
-        :width="280">
+        :min-width="300"
+        :width="350">
         {{ t('源集群') }}
         <template #append>
           <BatchOperateIcon
