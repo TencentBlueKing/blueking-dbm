@@ -6,7 +6,7 @@
     "bk_biz_id": "",
     "name": "MySQL 日志监控-预警",
     "source": "dbm",
-    "scenario": "other_rt",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
@@ -242,7 +242,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(mysql-err-notice)",
-  "version": 22,
+  "version": 23,
   "alert_source": "event",
   "custom_conditions": []
 }

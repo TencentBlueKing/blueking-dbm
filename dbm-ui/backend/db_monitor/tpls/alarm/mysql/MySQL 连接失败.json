@@ -6,7 +6,7 @@
     "bk_biz_id": "",
     "name": "MySQL 连接失败",
     "source": "dbm",
-    "scenario": "other_rt",
+    "scenario": "os",
     "type": "monitor",
     "items": [
       {
@@ -36,6 +36,7 @@
               "instance_port",
               "cluster_domain",
               "bk_cloud_id",
+              "bk_target_ip",
               "machine_type",
               "instance_role",
               "appid"
@@ -241,7 +242,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(db-up)",
-  "version": 22,
+  "version": 23,
   "alert_source": "event",
   "custom_conditions": []
 }

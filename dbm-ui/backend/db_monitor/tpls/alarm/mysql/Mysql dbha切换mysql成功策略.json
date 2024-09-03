@@ -237,7 +237,8 @@
     },
     "labels": [
       "DBM",
-      "DBM_MYSQL"
+      "DBM_MYSQL",
+      "DBHA_SWITCH"
     ],
     "app": "",
     "path": "",
@@ -249,7 +250,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "a",
-  "version": 22,
+  "version": 23,
   "alert_source": "event",
   "custom_conditions": []
 }

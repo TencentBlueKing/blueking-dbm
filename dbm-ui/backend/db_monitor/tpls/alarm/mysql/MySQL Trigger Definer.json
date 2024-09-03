@@ -6,7 +6,7 @@
     "bk_biz_id": "",
     "name": "MySQL Trigger Definer",
     "source": "dbm",
-    "scenario": "other_rt",
+    "scenario": "component",
     "type": "monitor",
     "items": [
       {
@@ -242,7 +242,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(trigger-definer)",
-  "version": 22,
+  "version": 23,
   "alert_source": "event",
   "custom_conditions": []
 }
