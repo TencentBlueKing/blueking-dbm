@@ -854,21 +854,17 @@
       render: ({ data }: ColumnRenderData) => {
         const getOperations = (theme = 'primary') => {
           const baseOperations = [
-            <OperationBtnStatusTips
-              v-db-console="redis.clusterManage.webconsole"
-              data={data}>
-              <auth-button
-                action-id="redis_webconsole"
-                resource={data.id}
-                permission={data.permission.redis_webconsole}
-                disabled={data.operationDisabled}
-                text
-                theme="primary"
-                class="mr-8"
-                onClick={() => handleGoWebconsole(data.id)}>
-                Webconsole
-              </auth-button>
-            </OperationBtnStatusTips>,
+            <auth-button
+              action-id="redis_webconsole"
+              resource={data.id}
+              permission={data.permission.redis_webconsole}
+              disabled={data.isOffline}
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleGoWebconsole(data.id)}>
+              Webconsole
+            </auth-button>,
             <OperationBtnStatusTips
               v-db-console="redis.clusterManage.backup"
               data={data}
