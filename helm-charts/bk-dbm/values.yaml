@@ -180,16 +180,21 @@ dbm:
       pullPolicy: IfNotPresent
       tag: ""
     installEnable:
-      mysql: false
-      es: false
-      kafka: false
-      hdfs: false
-      pulsar: false
-      influxdb: false
-      redis: false
-      mongodb: false
-      riak: false
-      sqlserver: false
+      mysql:
+        enable: false
+        tag: 1.0.0
+      es:
+        enable: false
+        tag: 1.0.0
+      kafka:
+        enable: false
+        tag: 1.0.0
+      hdfs:
+        enable: false
+        tag: 1.0.0
+      redis:
+        enable: false
+        tag: 1.0.0
 
 # bk-dbconfig values
 dbconfig:

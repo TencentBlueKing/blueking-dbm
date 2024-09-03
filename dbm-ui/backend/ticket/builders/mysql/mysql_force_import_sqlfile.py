@@ -62,6 +62,13 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
         self.ticket.update_details(execute_sql_files=list(set(execute_sql_files)), path=upload_sql_path)
         super().patch_ticket_detail()
 
+    @property
+    def need_itsm(self):
+        # 自动执行不需要审批
+        if self.ticket.details["ticket_mode"]["mode"] == SQLExecuteTicketMode.AUTO.value:
+            return False
+        return super().need_itsm
+
     def init_ticket_flows(self):
         """
         sql导入根据执行模式可分为三种执行流程：
