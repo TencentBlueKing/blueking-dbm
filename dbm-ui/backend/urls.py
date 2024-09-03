@@ -85,7 +85,7 @@ if getattr(settings, "ENVIRONMENT", "") not in []:
     urlpatterns.append(path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"))
 
 # 外部路由转发仅提供给外部环境使用
-if env.ENABLE_EXTERNAL_PROXY:
+if env.ENABLE_EXTERNAL_PROXY or env.ENABLE_OPEN_EXTERNAL_PROXY:
     methods_map = {method: "external_proxy" for method in views.APIView.http_method_names}
     urlpatterns.append(
         re_path(

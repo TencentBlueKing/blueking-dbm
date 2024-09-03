@@ -213,8 +213,9 @@ class ExternalProxyMiddleware(MiddlewareMixin):
         """外部转发接口进行路由映射"""
         if self.__check_non_proxy_routing(request):
             return
-        self.__verify_request_url(request)
-        self.__check_specific_request_params(request)
+        if env.ENABLE_EXTERNAL_PROXY:
+            self.__verify_request_url(request)
+            self.__check_specific_request_params(request)
         request.path = f"/external/{request.path.lstrip('/')}"
         request.path_info = request.path
         setattr(request, "_dont_enforce_csrf_checks", True)
@@ -222,7 +223,7 @@ class ExternalProxyMiddleware(MiddlewareMixin):
     @error_handler(return_response=True)
     def __call__(self, request):
         # 外部路由转发仅提供给外部环境使用
-        if env.ENABLE_EXTERNAL_PROXY:
+        if env.ENABLE_EXTERNAL_PROXY or env.ENABLE_OPEN_EXTERNAL_PROXY:
             self.__parser_request_url(request)
         else:
             # 解析来自外部转发的header
