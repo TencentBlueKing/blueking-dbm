@@ -523,6 +523,9 @@ def install_mysql_in_cluster_sub_flow(
     @param new_mysql_list: 新机器列表，每个元素是ip
     @param install_ports: 每台机器按照的实例端口列表
     @param bk_host_ids: 新机器列表，每个元素是bk_host_id
+    @param pkg_id: 指定安装包
+    @param db_module_id: 指定的db_module_id
+    @param db_config: 数据库配置信息 {3306:{"key":val},3307:{"key":val}}
     """
 
     # 目前先根据cluster对应，请求bk-config服务去获取对应的
