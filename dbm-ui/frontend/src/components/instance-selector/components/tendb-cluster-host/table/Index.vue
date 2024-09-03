@@ -30,7 +30,8 @@
         style="margin-top: 12px"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
-        @refresh="fetchResources" />
+        @refresh="fetchResources"
+        @row-click.stop.prevent="handleRowClick" />
     </BkLoading>
   </div>
 </template>
@@ -311,6 +312,15 @@
     for (const item of list) {
       handleTableSelectOne(checked, item);
     }
+  };
+
+  const handleRowClick = (row: unknown, data: T) => {
+    if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
+      return;
+    }
+
+    const isChecked = !!checkedMap.value[data[firstColumnFieldId.value]];
+    handleTableSelectOne(!isChecked, data);
   };
 
   const handleTableSelectOne = (checked: boolean, data: T) => {

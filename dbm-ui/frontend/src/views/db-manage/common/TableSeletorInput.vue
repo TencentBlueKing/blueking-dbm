@@ -314,6 +314,10 @@
       .inner-input {
         background-color: #fff1f1;
       }
+
+      .edit-btn {
+        right: 25px;
+      }
     }
 
     .inner-input {
@@ -373,10 +377,8 @@
 
     .input-error {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translateY(-50%);
-      padding-bottom: 4px;
+      top: -2px;
+      right: 10px;
       z-index: 10;
       font-size: 14px;
       color: #ea3636;

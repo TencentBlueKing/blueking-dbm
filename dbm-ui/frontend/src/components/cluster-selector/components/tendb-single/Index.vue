@@ -122,7 +122,7 @@
 
   const columns = computed(() => [
     {
-      minWidth: 60,
+      minWidth: 70,
       fixed: 'left',
       label: () => props.multiple && (
         <div style="display:flex;align-items:center">
@@ -188,7 +188,7 @@
     {
       label: t('访问入口'),
       field: 'cluster_name',
-      minWidth: 220,
+      minWidth: 250,
       fixed: 'left',
       showOverflowTooltip: true,
       render: ({ data }: { data: ResourceItem }) => (
@@ -225,7 +225,7 @@
     {
       label: t('状态'),
       field: 'status',
-      minWidth: 90,
+      minWidth: 100,
       filter: {
         list: [
           {
