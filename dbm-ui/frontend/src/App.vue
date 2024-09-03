@@ -64,13 +64,15 @@
 
   import { useSQLTaskNotify } from '@hooks';
 
-  import { useFunController, useUserProfile } from '@stores';
+  import { useUserProfile } from '@stores';
 
   import DbRouterView from '@components/db-router-view/Index.vue';
   import LocaleSwitch from '@components/locale-switch/Index.vue';
   import RouterBack from '@components/router-back/Index.vue';
   import SystemSearch from '@components/system-search/Index.vue';
   import SystemVersionLog from '@components/system-version-log/Index.vue';
+
+  import { checkDbConsole } from '@utils';
 
   import NoticeComponent from '@blueking/notice-component';
 
@@ -81,7 +83,6 @@
   const userProfileStore = useUserProfile();
   userProfileStore.fetchProfile();
   const { t, locale } = useI18n();
-  const { funControllerData } = useFunController();
 
   const documentTitles: Record<string, string> = {
     en: 'DBM | Tencent BlueKing',
@@ -123,7 +124,7 @@
   };
 
   onMounted(() => {
-    if (funControllerData.getFlatData('mysql').toolbox) {
+    if (checkDbConsole('mysql.toolbox.sqlExecute') || checkDbConsole('tendbCluster.toolbox.sqlExecute')) {
       useSQLTaskNotify();
     }
   });
