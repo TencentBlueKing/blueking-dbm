@@ -345,27 +345,29 @@
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
 
+  const createDefaultTargetInfo = () => ({
+      capacity: 0,
+      spec: {
+        name: '',
+        cpu: {} as ClusterSpecModel['cpu'],
+        id: 0,
+        mem: {} as ClusterSpecModel['mem'],
+        qps: {} as ClusterSpecModel['qps'],
+        storage_spec: [] as ClusterSpecModel['storage_spec']
+      },
+      groupNum: 0,
+      requireMachineGroupNum: 0,
+      shardNum: 0,
+      updateMode: ''
+    })
+
   const capacityNeed = ref();
   const radioValue = ref(-1);
   const radioChoosedId  = ref(''); // 标记，sort重新定位index用
   const isTableLoading = ref(false);
   const isConfirmLoading = ref(false);
   const tableData = ref<ClusterSpecModel[]>([]);
-  const targetInfo = ref({
-    capacity: 0,
-    spec: {
-      name: '',
-      cpu: {} as ClusterSpecModel['cpu'],
-      id: 0,
-      mem: {} as ClusterSpecModel['mem'],
-      qps: {} as ClusterSpecModel['qps'],
-      storage_spec: [] as ClusterSpecModel['storage_spec']
-    },
-    groupNum: 0,
-    requireMachineGroupNum: 0,
-    shardNum: 0,
-    updateMode: ''
-  });
+  const targetInfo = ref(createDefaultTargetInfo());
 
   const specDisabledMap = shallowRef<Record<number, boolean>>({})
 
@@ -418,7 +420,7 @@
             label={index}
             v-model={radioValue.value}
             disabled={specDisabledMap.value[row.spec_id]}>
-            {row.spec_name}
+            <span style="font-size: 12px">{row.spec_name}</span>
           </bk-radio>
         </div>
       ),
@@ -442,6 +444,12 @@
 
   let rawTableData: ClusterSpecModel[] = [];
 
+  watch(radioValue, () => {
+    if (radioValue.value !== -1) {
+      getUpdateInfo(tableData.value[radioValue.value])
+    }
+  })
+
   const handleSearchClusterSpec = async () => {
     if (capacityNeed.value === undefined) {
       return;
@@ -463,6 +471,7 @@
         isTableLoading.value = false;
       });
       radioValue.value = -1
+      targetInfo.value = createDefaultTargetInfo()
       tableData.value = retArr;
       rawTableData = _.cloneDeep(retArr);
       specDisabledMap.value = {}
@@ -485,7 +494,7 @@
     emits('clickCancel');
   }
 
-  const getUpdateInfo = (row: ClusterSpecModel, index: number) => {
+  const getUpdateInfo = (row: ClusterSpecModel) => {
     getRedisClusterCapacityUpdateInfo({
       cluster_id: props.clusterId!,
       new_storage_version: props.targetVerison!,
@@ -515,20 +524,16 @@
         shardNum: row.cluster_shard_num,
         updateMode: updateInfo.capacity_update_type
       }
-      radioValue.value = index;
       radioChoosedId.value = row.spec_name;
     })
   }
-
-  const getUpdateInfoDebounce = _.debounce(getUpdateInfo, 200)
 
   const handleRowClick = (event: PointerEvent, row: ClusterSpecModel, index: number) => {
     if (index === radioValue.value || specDisabledMap.value[row.spec_id]) {
       return
     }
 
-    // TODO 这里暂时通过防抖，来防止触发两次请求
-    getUpdateInfoDebounce(row, index)
+    radioValue.value = index
   };
 
   const handleColumnSort = (data: { column: { field: string }, index: number, type: string }) => {

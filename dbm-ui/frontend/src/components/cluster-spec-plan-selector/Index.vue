@@ -234,8 +234,14 @@
         <bk-radio
           label={data.spec_id}
           modelValue={modelValue.value}
-          style="display: flex">
-          <div class="text-overflow" v-overflow-tips>{data.spec_name}</div>
+          style="display: flex"
+          onClick={() => handleRowClick(data)}>
+          <div
+            class="text-overflow"
+            v-overflow-tips
+            onClick={(event: Event) => event.stopPropagation()}>
+            {data.spec_name}
+          </div>
         </bk-radio>
       ),
     },
