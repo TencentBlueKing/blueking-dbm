@@ -246,7 +246,9 @@ class MySQLRollbackDataFlow(object):
             storages = rollback_class.storageinstance_set.all()
             rollback_pipeline_list = []
             for rollback_storage in storages:
-                if not check_storage_database(rollback_class, rollback_storage.machine.ip, rollback_storage.port):
+                if not check_storage_database(
+                    rollback_class.bk_cloud_id, rollback_storage.machine.ip, rollback_storage.port
+                ):
                     logger.error("cluster {} check database fail".format(rollback_class.id))
                     raise NormalSpiderFlowException(
                         message=_("回档集群 {} 空闲检查不通过，请确认回档集群是否存在非系统数据库".format(rollback_class.id))

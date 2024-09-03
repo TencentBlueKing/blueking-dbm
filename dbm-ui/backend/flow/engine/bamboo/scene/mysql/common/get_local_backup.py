@@ -112,22 +112,23 @@ def get_local_backup(instances: list, cluster: Cluster, end_time: str = None):
         return None
 
 
-def check_storage_database(cluster: Cluster, ip: str, port: int) -> bool:
+def check_storage_database(bk_cloud_id: int, ip: str, port: int) -> bool:
     """
     检查数据库是否为空实例
     @param ip: 实例ip
     @param port: 实例端口
-    @param cluster: 集群
+    @param bk_cloud_id: bk_cloud_id
     @return:
     """
     query_cmds = """select SCHEMA_NAME from information_schema.schemata where SCHEMA_NAME not in
-     ('information_schema','db_infobase','infodba_schema','mysql','test','sys','performance_schema')"""
+    ('information_schema','db_infobase','infodba_schema','mysql','test',
+    'sys','performance_schema','__cdb_recycle_bin__')"""
     res = DRSApi.rpc(
         {
             "addresses": ["{}{}{}".format(ip, IP_PORT_DIVIDER, port)],
             "cmds": [query_cmds],
             "force": False,
-            "bk_cloud_id": cluster.bk_cloud_id,
+            "bk_cloud_id": bk_cloud_id,
         }
     )
     if res[0]["error_msg"]:

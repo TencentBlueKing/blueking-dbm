@@ -22,7 +22,11 @@ from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbac
 from backend.flow.consts import RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
-from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBackupInfoFailedException
+from backend.flow.engine.bamboo.scene.mysql.common.get_local_backup import check_storage_database
+from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
+    NormalSpiderFlowException,
+    TendbGetBackupInfoFailedException,
+)
 from backend.flow.engine.bamboo.scene.spider.spider_recover import remote_node_rollback, spider_recover_sub_flow
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
@@ -118,7 +122,11 @@ class TenDBRollBackDataFlow(object):
                     raise TendbGetBackupInfoFailedException(message=_("获取spider节点备份信息不存在"))
                 if backup_info["spider_node"] == "":
                     raise TendbGetBackupInfoFailedException(message=_("获取spider节点备份信息为空"))
-
+                if not check_storage_database(target_cluster.bk_cloud_id, spider_node["ip"], spider_node["port"]):
+                    logger.error("cluster {} check database fail".format(target_cluster.id))
+                    raise NormalSpiderFlowException(
+                        message=_("回档集群 {} 空闲检查不通过，请确认回档集群是否存在非系统数据库".format(target_cluster.id))
+                    )
                 target_spider = target_cluster.proxyinstance_set.get(
                     machine__ip=spider_node["ip"], port=spider_node["port"]
                 )
