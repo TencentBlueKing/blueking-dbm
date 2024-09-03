@@ -12,22 +12,22 @@ package mysqlcomm
 
 import (
 	"regexp"
-	"strings"
 )
 
 var (
-	mysqlRegex           = regexp.MustCompile(`mysql.*-u(\s*)\w+.*\s-p(\S+).*`)
-	mysqlAdminRegex      = regexp.MustCompile(`mysqladmin.*-u\w+.*\s-p(\S+).*`)
-	mysqlPasswordRegex   = regexp.MustCompile(`\s-p[^\s]+`)
-	masterPasswordRegexp = regexp.MustCompile(`master_password="[^\s]*"`)
+	mysqlRegex           = regexp.MustCompile(`(?i)mysql.*-u(\s*)\w+.*\s-p(\S+).*`)
+	mysqlAdminRegex      = regexp.MustCompile(`(?i)mysqladmin.*-u\w+.*\s-p(\S+).*`)
+	mysqlPasswordRegex   = regexp.MustCompile(`(?i)\s-p\S+`)
+	masterPasswordRegexp = regexp.MustCompile(`(?i)master_password="\S+"`)
 	// identifyByRegex identified by ''  or IDENTIFIED WITH mysql_native_password BY 'aa'
-	identifyByRegex     = regexp.MustCompile(`identified by '[^\s]*'`)
-	identifyWithByRegex = regexp.MustCompile(`identified (with.*password )?by '[^\s]*'`)
-	userPasswordRegex   = regexp.MustCompile(`\s-u\w+.*\s-p(\S+).*`)
-	dsnRegex            = regexp.MustCompile(`\w+:[^\s]*@tcp\([^\s]+\)`)
-	dsnPasswordRegex    = regexp.MustCompile(`:[^\s]*@tcp\(`)
-	passwordRegex       = regexp.MustCompile(`password ['|"]*\S+['|"]*`)
-	passwordGrantRegex  = regexp.MustCompile(`password\(['|"]\S+['|"]\)`)
+	identifyByRegex     = regexp.MustCompile(`(?i)identified by '\S+'`)
+	identifyWithByRegex = regexp.MustCompile(`(?i)identified (with.*password'? )?by '\S+'`)
+	identifyWithAsRegex = regexp.MustCompile(`(?i)identified (with.*password'? )?as '\S+'`)
+	userPasswordRegex   = regexp.MustCompile(`(?i)\s-u\S+\s-p(\S+)`)
+	dsnRegex            = regexp.MustCompile(`(?i)\w+:\S+@tcp\(\S+\)`)
+	dsnPasswordRegex    = regexp.MustCompile(`:\S+@tcp\(`)
+	passwordRegex       = regexp.MustCompile(`(?i)password ['"]?\S+['"]?`)
+	passwordGrantRegex  = regexp.MustCompile(`(?i)password\(['"]?\S+['"]?\)`)
 )
 
 // ClearSensitiveInformation clear sensitive information from input
@@ -44,18 +44,19 @@ func ClearSensitiveInformation(input string) string {
 
 // CleanSvrPassword TODO
 func CleanSvrPassword(input string) string {
-	return passwordRegex.ReplaceAllString(strings.ToLower(input), "password 'xxxx'")
+	return passwordRegex.ReplaceAllString(input, "password 'xxxx'")
 }
 
 // CleanGrantPassword clean grant sql password
 func CleanGrantPassword(input string) string {
-	return passwordGrantRegex.ReplaceAllString(strings.ToLower(input), "password('xxxx')")
+	return passwordGrantRegex.ReplaceAllString(input, "password('xxxx')")
 }
 
 // clearIdentifyByInSQL TODO
 func clearIdentifyByInSQL(input string) string {
-	output := identifyByRegex.ReplaceAllString(strings.ToLower(input), `identified by 'xxxx'`)
+	output := identifyByRegex.ReplaceAllString(input, `identified by 'xxxx'`)
 	output = identifyWithByRegex.ReplaceAllString(output, "identified ${1}by 'xxxx'")
+	output = identifyWithAsRegex.ReplaceAllString(output, "identified ${1}as '*xxxx'")
 	return output
 }
 

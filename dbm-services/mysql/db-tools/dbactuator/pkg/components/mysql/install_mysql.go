@@ -587,7 +587,6 @@ func (i *InstallMySQLComp) Install() (err error) {
 	var isSudo = mysqlutil.IsSudo()
 	for _, port := range i.InsPorts {
 		var initialMysql string
-		var output string
 		myCnf := util.GetMyCnfFileName(port)
 		initialLogFile := fmt.Sprintf("/tmp/install_mysql_%d.log", port)
 
@@ -610,9 +609,9 @@ func (i *InstallMySQLComp) Install() (err error) {
 				"su - mysql -c \"cd %s && ./bin/mysqld --defaults-file=%s  --tc-admin=0 --initialize-insecure --user=mysql &>%s\"",
 				i.TdbctlInstallDir, myCnf, initialLogFile)
 		}
-
-		if output, err = osutil.ExecShellCommand(isSudo, initialMysql); err != nil {
-			logger.Error("%s execute failed, %s", initialMysql, output)
+		// 避免错误: /etc/profile: line 87: ulimit: open files: cannot modify limit: Operation not permitted
+		if _, errStr, err := cmutil.ExecBashCommand(isSudo, "", initialMysql); err != nil {
+			logger.Error("%s execute failed, err:%s, stderr:%s", initialMysql, err.Error(), errStr)
 			// 如果存在初始化的日志文件，才初始化错误的时间，将日志cat出来
 			if osutil.FileExist(initialLogFile) {
 				ldat, e := os.ReadFile(initialLogFile)

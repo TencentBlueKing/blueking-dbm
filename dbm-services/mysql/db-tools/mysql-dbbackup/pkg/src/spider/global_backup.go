@@ -186,6 +186,6 @@ func migrateBackupSchema(err error, db *sqlx.DB) error {
 			return errors.WithMessage(err, "recreate backupSchema failed")
 		}
 	}
-	logger.Log.Info("migrate table success: global_backup")
+	//logger.Log.Info("migrate table success: global_backup")
 	return nil
 }
