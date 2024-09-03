@@ -95,7 +95,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,
         }
         # 非外部环境，补充额外环境变量
-        if not env.ENABLE_EXTERNAL_PROXY:
+        if not env.ENABLE_EXTERNAL_PROXY and not env.ENABLE_OPEN_EXTERNAL_PROXY:
             envs.update(
                 {
                     "CC_IDLE_MODULE_ID": CcManage(env.DBA_APP_BK_BIZ_ID, "").get_biz_internal_module(

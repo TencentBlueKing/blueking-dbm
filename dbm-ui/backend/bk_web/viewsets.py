@@ -193,6 +193,10 @@ class ExternalProxyViewSet(viewsets.ViewSet):
         if ".css" in request.path:
             return HttpResponse(response, headers={"Content-Type": "text/css"})
 
+        # 仅转发，提前返回response
+        if env.ENABLE_OPEN_EXTERNAL_PROXY:
+            return HttpResponse(response)
+
         # 屏蔽iam申请的内部路由
         if "/iam/get_apply_data/" in request.path or "/iam/simple_get_apply_data/" in request.path:
             data = response.json()["data"]

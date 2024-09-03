@@ -54,6 +54,8 @@ BK_COMPONENT_API_URL = get_type_env(key="BK_COMPONENT_API_URL", _type=str, defau
 
 # 开启外部路由，供外部环境使用(DBConsole)
 ENABLE_EXTERNAL_PROXY = get_type_env(key="ENABLE_EXTERNAL_PROXY", _type=bool, default=False)
+# 开启所有路由，不屏蔽。！！这里只用在合作伙伴环境！！
+ENABLE_OPEN_EXTERNAL_PROXY = get_type_env(key="ENABLE_OPEN_EXTERNAL_PROXY", _type=bool, default=False)
 
 # ITSM 服务ID
 BK_ITSM_PROJECT_KEY = get_type_env(key="BK_ITSM_PROJECT_KEY", _type=str, default="0")
