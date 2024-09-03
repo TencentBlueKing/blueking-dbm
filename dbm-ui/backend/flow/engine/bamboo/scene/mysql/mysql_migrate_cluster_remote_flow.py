@@ -150,6 +150,7 @@ class MySQLMigrateClusterRemoteFlow(object):
             tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
             # 整机安装数据库
             master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            # db_config example {3306:{"key":val},3307:{"key":val}}
             db_config = get_instance_config(cluster_class.bk_cloud_id, master.machine.ip, self.data["ports"])
             install_sub_pipeline_list = []
             install_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))

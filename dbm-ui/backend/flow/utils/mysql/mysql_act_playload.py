@@ -125,6 +125,41 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "payload": {"user": self.account["os_mysql_user"], "pwd": self.account["os_mysql_pwd"]},
         }
 
+    def deal_mysql_config(self, db_version: str, origin_configs: dict, init_configs: dict) -> dict:
+        """
+        处理不同介质的之间的mysql配置
+        """
+        cfg = copy.deepcopy(init_configs)
+        cfg["mysqld"].update(origin_configs)
+
+        if db_version >= "8.0.0":
+            if "log_warnings" in cfg["mysqld"]:
+                value = cfg["mysqld"]["log_warnings"]
+                if value == "0":
+                    cfg["mysqld"]["log_error_verbosity"] = 1
+                elif value == "1":
+                    cfg["mysqld"]["log_error_verbosity"] = 2
+                else:
+                    cfg["mysqld"]["log_error_verbosity"] = 3
+                del cfg["mysqld"]["log_warnings"]
+        # 这里应该是社区版本等非Tendb数据库的版本需要处理的参数
+        # 介质管理暂未记录介质来源属性
+        if db_version >= "8.0.30":
+            for key in [
+                "log_bin_compress",
+                "relay_log_uncompress",
+                "blob_compressed",
+                "innodb_min_blob_compress_length",
+                "innodb_table_drop_mode",
+                "read_binlog_speed_limit",
+                "datetime_precision_use_v1",
+            ]:
+                if key in cfg["mysqld"]:
+                    loose_key = "loose_" + key
+                    cfg["mysqld"][loose_key] = cfg["mysqld"][key]
+                    del cfg["mysqld"][key]
+        return cfg
+
     def get_install_mysql_payload(self, **kwargs) -> dict:
         """
         拼接安装MySQL的payload参数, 分别兼容集群申请、集群实例重建、集群实例添加单据的获取方式
@@ -158,7 +193,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             mysql_config[port] = copy.deepcopy(init_mysql_config[port])
             port_str = str(port)
             if port_str in old_configs.keys():
-                mysql_config[port]["mysqld"].update(old_configs[port_str])
+                mysql_config[port] = self.deal_mysql_config(
+                    db_version=version_no, init_configs=mysql_config[port], origin_configs=old_configs[port_str]
+                )
         logger.debug("install  config:", mysql_config)
 
         drs_account, dbha_account = self.get_super_account()
