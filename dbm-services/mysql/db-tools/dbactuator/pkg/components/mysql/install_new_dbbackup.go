@@ -334,49 +334,6 @@ func (i *InstallNewDbBackupComp) DecompressPkg() (err error) {
 	return nil
 }
 
-// InitBackupUserPriv 创建备份用户
-// TODO 用户初始化考虑在部署 mysqld 的时候进行
-func (i *InstallNewDbBackupComp) InitBackupUserPriv() (err error) {
-	if i.Params.UntarOnly {
-		logger.Info("untar_only=true do not need InitBackupUserPriv")
-		return nil
-	}
-	for _, port := range i.Params.Ports {
-		err := i.initPriv(port, false)
-		if err != nil {
-			return err
-		}
-
-		if i.Params.Role == cst.BackupRoleSpiderMaster {
-			err := i.initPriv(mysqlcomm.GetTdbctlPortBySpider(port), true)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-func (i *InstallNewDbBackupComp) initPriv(port int, isTdbCtl bool) (err error) {
-	ver := i.versionMap[port]
-	privs := i.GeneralParam.RuntimeAccountParam.MySQLDbBackupAccount.GetAccountPrivs(ver, i.Params.Host)
-	var sqls []string
-	if isTdbCtl {
-		logger.Info("tdbctl port %d need tc_admin=0, binlog_format=off", port)
-		sqls = append(sqls, "set session tc_admin=0;", "set session sql_log_bin=off;")
-	}
-	sqls = append(sqls, privs.GenerateInitSql(ver)...)
-	dc, ok := i.dbConn[port]
-	if !ok {
-		return fmt.Errorf("from dbConns 获取%d连接失败", port)
-	}
-	if _, err = dc.ExecMore(sqls); err != nil {
-		logger.Error("初始化备份账户失败%s", err.Error())
-		return
-	}
-	return err
-}
-
 // GenerateDbbackupConfig TODO
 func (i *InstallNewDbBackupComp) GenerateDbbackupConfig() (err error) {
 	if i.Params.UntarOnly {

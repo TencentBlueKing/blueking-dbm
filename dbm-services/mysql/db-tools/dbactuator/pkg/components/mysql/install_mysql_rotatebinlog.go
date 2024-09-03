@@ -174,15 +174,15 @@ func (c *InstallMysqlRotateBinlogComp) InstallCrontab() (err error) {
 
 // RunMigrateOld 迁移老的 rotate_logbin 数据
 func (c *InstallMysqlRotateBinlogComp) RunMigrateOld() (err error) {
+	chownCmd := fmt.Sprintf(`mkdir -p %s ; chown -R mysql.mysql %s ; chown -R mysql.mysql %s `,
+		cst.DBAReportBase, cst.DBAReportBase, c.installPath)
+	_, _ = osutil.ExecShellCommand(false, chownCmd)
+
 	cmdArgs := []string{"migrate-old", "-c", c.configFile}
 	_, stdErr, err := cmutil.ExecCommand(false, c.installPath, c.binPath, cmdArgs...)
 
-	chownCmd := fmt.Sprintf(`chown -R mysql.mysql %s ; mkdir -p %s ;chown -R mysql.mysql %s`, c.installPath,
-		cst.DBAReportBase, cst.DBAReportBase)
-	_, err = osutil.ExecShellCommand(false, chownCmd)
-
 	if err != nil {
-		logger.Error("migrate-old failed", err.Error())
+		logger.Error("migrate-old failed: %s", err.Error())
 		return errors.WithMessagef(err, "run migrate-old failed:%s", stdErr)
 	} else {
 		logger.Info("migrate-old success")

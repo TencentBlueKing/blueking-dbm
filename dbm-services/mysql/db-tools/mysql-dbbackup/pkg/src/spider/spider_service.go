@@ -65,10 +65,37 @@ func (g GlobalBackup) prepareBackup(tdbctlInst mysqlconn.InsObject) (string, []M
 	return backupId, backupServers, nil
 }
 
+// uniqMysqlServers servers 去重，但优先选择 remote master
+func uniqMysqlServers(backupServers []MysqlServer) (servers []MysqlServer) {
+	uniqServer := map[string]string{}
+	for _, s := range backupServers {
+		if !strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
+			key := fmt.Sprintf("%s:%d", s.Host, s.Port)
+			if _, ok := uniqServer[key]; !ok {
+				servers = append(servers, s)
+				uniqServer[key] = s.ServerName
+			}
+		}
+	}
+	for _, s := range backupServers {
+		if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
+			key := fmt.Sprintf("%s:%d", s.Host, s.Port)
+			if _, ok := uniqServer[key]; !ok {
+				servers = append(servers, s)
+				uniqServer[key] = s.ServerName
+			}
+		}
+	}
+	return
+}
+
 func (g GlobalBackup) initializeBackup(backupServers []MysqlServer, dbw *mysqlconn.DbWorker) error {
 	createdAt := time.Now().Format(time.DateTime)
 	sqlI := sq.Insert(g.GlobalBackupModel.TableName()).
 		Columns("ServerName", "Wrapper", "Host", "Port", "ShardValue", "BackupId", "BackupStatus", "CreatedAt")
+
+	// 这里要按照 ip:port 去重，以免出现重复记录
+	backupServers = uniqMysqlServers(backupServers)
 	for _, s := range backupServers {
 		if strings.HasPrefix(s.ServerName, "SPT_SLAVE") {
 			sqlI = sqlI.Values(s.ServerName, s.Wrapper, s.Host, s.Port, s.PartValue, g.BackupId,

@@ -31,8 +31,29 @@ func ExecShellCommand(isSudo bool, param string) (stdoutStr string, err error) {
 		err = fmt.Errorf("execute shell command(%s) has stderr:%s", param, stderr.String())
 		return stderr.String(), err
 	}
-
 	return stdout.String(), nil
+}
+
+// ExecBashCommand stderr returned in error
+// 如果 Run 返回 0，则error返回 nil，不检查 stderr
+// 如果 Run 返回>0，则 error 返回 err.Error() 与 stderr 的结合
+func ExecBashCommand(isSudo bool, cwd string, cmdStr string) (string, string, error) {
+	if isSudo {
+		cmdStr = "sudo " + cmdStr
+	}
+	var stdout, stderr bytes.Buffer
+	cmd := exec.Command("bash", "-c", cmdStr)
+	if cwd != "" {
+		cmd.Dir = cwd
+	}
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if err != nil {
+		// return stderr.String(), err
+		return stdout.String(), stderr.String(), err
+	}
+	return stdout.String(), "", nil
 }
 
 // ExecCommand bash=true: bash -c 'cmdName args', bash=false: ./cmdName args list
