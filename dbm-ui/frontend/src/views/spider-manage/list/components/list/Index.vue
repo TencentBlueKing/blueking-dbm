@@ -903,20 +903,18 @@
               onClick={() => handleShowAuthorize([data])}>
               { t('授权') }
             </bk-button>,
-            <OperationBtnStatusTips data={data}>
-              <auth-button
-                v-db-console="tendbCluster.clusterManage.webconsole"
-                action-id="tendbcluster_webconsole"
-                resource={data.id}
-                permission={data.permission.tendbcluster_webconsole}
-                disabled={data.operationDisabled}
-                text
-                theme="primary"
-                class="mr-8"
-                onClick={() => handleGoWebconsole(data.id)}>
-                Webconsole
-              </auth-button>
-            </OperationBtnStatusTips>,
+            <auth-button
+              v-db-console="tendbCluster.clusterManage.webconsole"
+              action-id="tendbcluster_webconsole"
+              resource={data.id}
+              permission={data.permission.tendbcluster_webconsole}
+              disabled={data.isOffline}
+              text
+              theme="primary"
+              class="mr-8"
+              onClick={() => handleGoWebconsole(data.id)}>
+              Webconsole
+            </auth-button>,
             <OperationBtnStatusTips
               data={data}
               v-db-console="tendbCluster.clusterManage.exportData">
