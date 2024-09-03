@@ -260,7 +260,12 @@
   watch(
     () => props.disabled,
     () => {
-      props.disabled ? tippyIns?.disable() : tippyIns?.enable();
+      nextTick(() => {
+        props.disabled ? tippyIns?.disable() : tippyIns?.enable();
+      });
+    },
+    {
+      immediate: true,
     },
   );
 
