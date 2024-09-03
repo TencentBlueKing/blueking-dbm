@@ -130,11 +130,16 @@ class SqlserverDBMeta(object):
         """
         原地重建后，实例状态保持running状态
         """
-        StorageInstance.objects.filter(
+        instances = StorageInstance.objects.filter(
             machine__ip=self.global_data["slave_host"]["ip"],
             machine__bk_cloud_id=self.global_data["slave_host"]["bk_cloud_id"],
             port=self.global_data["port"],
-        ).update(status=InstanceStatus.RUNNING)
+        )
+
+        # 更新状态并保存 触发信号机制
+        for instance in instances:
+            instance.status = InstanceStatus.RUNNING
+            instance.save()
 
     def rebuild_in_new_slave(self):
         """
