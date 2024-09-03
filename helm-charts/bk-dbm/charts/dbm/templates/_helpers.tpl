@@ -182,10 +182,11 @@ initContainers:
 {{- end }}
 
 {{- define "dbm.initContainerMediumInstall" -}}
-{{- $root := first . -}}
-{{- $db_type := last . -}}
+{{- $root := index . 0 -}}
+{{- $db_type := index . 1 -}}
+{{- $tag := index . 2 -}}
 - name: dbm-medium-install-{{ $db_type }}
-  image: "{{ $root.Values.global.imageRegistry | default $root.Values.dbmedium.installImage.registry }}/{{ $root.Values.dbmedium.installImage.repository }}-{{ $db_type }}:{{ $root.Values.dbmedium.installImage.tag | default $root.Chart.AppVersion }}"
+  image: "{{ $root.Values.global.imageRegistry | default $root.Values.dbmedium.installImage.registry }}/{{ $root.Values.dbmedium.installImage.repository }}-{{ $db_type }}:{{ $tag }}"
   imagePullPolicy: {{ $root.Values.dbmedium.installImage.pullPolicy }}
   volumeMounts:
     - mountPath: /install

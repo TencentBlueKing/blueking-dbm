@@ -19,9 +19,9 @@ spec:
       restartPolicy: Never
       initContainers:
         {{- include "dbm.initContainersWaitForSaaS" . | nindent 8 }}
-        {{- range $db_type, $enable := .Values.dbmedium.installEnable }}
-          {{- if $enable -}}
-            {{- include "dbm.initContainerMediumInstall" (list $ $db_type) | nindent 8 }}
+        {{- range $db_type, $config := .Values.dbmedium.installEnable }}
+          {{- if $config.enable -}}
+            {{- include "dbm.initContainerMediumInstall" (list $ $db_type $config.tag) | nindent 8 }}
           {{- end }}
         {{- end }}
       containers:
