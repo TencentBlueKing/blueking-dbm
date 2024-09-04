@@ -25,11 +25,12 @@ from backend.ticket.builders.common.base import (
     fetch_cluster_ids,
 )
 from backend.ticket.builders.mysql.base import MySQLClustersTakeDownDetailsSerializer
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class BaseSQLServerTicketFlowBuilder(SQLServerTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Sqlserver.value
+    retry_type = FlowRetryType.MANUAL_RETRY
 
 
 class SQLServerBasePauseParamBuilder(builders.PauseParamBuilder):

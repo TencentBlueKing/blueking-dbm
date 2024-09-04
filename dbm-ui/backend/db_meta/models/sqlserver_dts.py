@@ -14,6 +14,7 @@ from typing import Any, Dict
 
 from django.db import models
 from django.db.models import Q
+from django.utils.timezone import localtime
 from django.utils.translation import ugettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
@@ -80,7 +81,8 @@ class SqlserverDtsInfo(AuditedModel):
         for f in opts.concrete_fields:
             value = f.value_from_object(self)
             if isinstance(value, datetime):
-                value = value.strftime("%Y-%m-%d %H:%M:%S")
+                # value = value.strftime("%Y-%m-%d %H:%M:%S")
+                value = localtime(value).isoformat(timespec="seconds")
             elif isinstance(f, models.FileField):
                 value = value.url if value else None
             data[f.name] = value
