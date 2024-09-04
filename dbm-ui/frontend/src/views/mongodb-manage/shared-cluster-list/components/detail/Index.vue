@@ -120,7 +120,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getMongoClusterDetails } from '@services/source/mongodb';
+  import { getMongoClusterDetails, getMongoPassword } from '@services/source/mongodb';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
 
   import { useCopy, useStretchLayout } from '@hooks';
@@ -239,7 +239,20 @@
   );
 
   const handleCopyMasterDomainDisplayName = () => {
-    copy(data.value!.masterDomainDisplayName);
+    const row = data.value;
+    if (row) {
+      const getUrl = (username: string, password: string) =>
+        `mongodb://${username}:${password}@${row.master_domain}/?authSource=admin`;
+
+      getMongoPassword({ cluster_id: row.id }).then((passwordResult) => {
+        const { username, password } = passwordResult;
+        if (username && password) {
+          copy(getUrl(username, password));
+        } else {
+          copy(getUrl('username', 'password'));
+        }
+      });
+    }
   };
 
   const handleCapacityChange = () => {

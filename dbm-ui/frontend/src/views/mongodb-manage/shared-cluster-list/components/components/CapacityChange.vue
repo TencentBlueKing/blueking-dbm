@@ -134,6 +134,9 @@
                 isChange.value = false;
                 resolve(true);
               })
+              .catch(() => {
+                reject()
+              })
           },
         });
       });

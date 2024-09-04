@@ -109,6 +109,7 @@
   import {
     getMongoInstancesList,
     getMongoList,
+    getMongoPassword
   } from '@services/source/mongodb';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
@@ -752,18 +753,17 @@
   };
 
   const handleCopyMasterDomainDisplayName = (row: MongodbModel) => {
-    copy(row.masterDomainDisplayName);
-    // const getUrl = (username: string, password: string) => `mongodb://${username}:${password}@${row.master_domain}/?authSource=admin`
+    const getUrl = (username: string, password: string) => `mongodb://${username}:${password}@${row.master_domain}/?authSource=admin`
 
-    // getMongoPassword({ cluster_id: row.id })
-    //   .then((passwordResult) => {
-    //     const { username, password } = passwordResult
-    //     if (username && password) {
-    //       copy(getUrl(username, password));
-    //     } else {
-    //       copy(getUrl('username', 'password'));
-    //     }
-    //   })
+    getMongoPassword({ cluster_id: row.id })
+      .then((passwordResult) => {
+        const { username, password } = passwordResult
+        if (username && password) {
+          copy(getUrl(username, password));
+        } else {
+          copy(getUrl('username', 'password'));
+        }
+      })
   };
 
   const handleToDetails = (id: number) => {
