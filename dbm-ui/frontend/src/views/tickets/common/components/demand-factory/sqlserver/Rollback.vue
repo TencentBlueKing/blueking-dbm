@@ -12,6 +12,11 @@
 -->
 
 <template>
+  <InfoList>
+    <InfoItem :label="t('构造类型：')">
+      {{ ticketDetails.details.is_local ? t('原地定点构造') : t('定点构造到其他集群') }}
+    </InfoItem>
+  </InfoList>
   <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn
       fixed="left"
@@ -78,6 +83,10 @@
   import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
+
+  import InfoList, {
+    Item as InfoItem,
+  } from '@views/tickets/common/components/demand-factory/components/info-list/Index.vue';
 
   interface Props {
     ticketDetails: TicketModel<Sqlserver.Rollback>;

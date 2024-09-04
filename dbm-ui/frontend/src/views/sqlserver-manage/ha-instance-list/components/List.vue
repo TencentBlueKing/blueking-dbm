@@ -309,7 +309,7 @@
       {
         label: t('操作'),
         field: '',
-        fixed: 'right',
+        fixed: isStretchLayoutOpen.value ? false : 'right',
         width: 140,
         render: ({ data }: { data: SqlServerHaInstanceModel }) => (
           <bk-button

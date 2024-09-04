@@ -63,14 +63,6 @@
             <DbIcon type="minus-fill" />
           </div>
         </div>
-        <div
-          class="action-btn"
-          :class="{
-            disabled: removeable,
-          }"
-          @click="handleRemove">
-          <DbIcon type="minus-fill" />
-        </div>
       </td>
     </tr>
   </tbody>

@@ -25,7 +25,7 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ t('新主从主机') }}
+        {{ t('新从库主机') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
         :required="false"

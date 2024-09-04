@@ -151,6 +151,8 @@
   .scroll-faker {
     position: relative;
     height: 100%;
+    max-width: inherit;
+    max-height: inherit;
 
     &:hover {
       & > .scrollbar-vertical,
@@ -175,7 +177,9 @@
     }
 
     & > .scroll-faker-content {
-      height: 100%;
+      height: inherit;
+      max-width: inherit;
+      max-height: inherit;
       overflow: scroll;
 
       &::-webkit-scrollbar {

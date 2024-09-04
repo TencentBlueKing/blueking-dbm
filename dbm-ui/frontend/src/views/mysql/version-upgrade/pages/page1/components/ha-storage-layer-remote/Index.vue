@@ -36,7 +36,7 @@
           <RenderTableHeadColumn
             :min-width="130"
             :width="300">
-            <span>{{ t('新主从主机') }}</span>
+            <span>{{ t('新从库主机') }}</span>
           </RenderTableHeadColumn>
           <RenderTableHeadColumn
             fixed="right"

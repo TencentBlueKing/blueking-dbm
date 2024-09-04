@@ -15,10 +15,15 @@
   <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn :label="t('集群')">
       <template #default="{ data }: { data: RowData }">
-        {{ ticketDetails.details.clusters[data.cluster_id].immute_domain }}
+        <div
+          v-for="clusterId in data.cluster_ids"
+          :key="clusterId"
+          style="line-height: 20px">
+          {{ ticketDetails.details.clusters[clusterId].immute_domain }}
+        </div>
       </template>
     </BkTableColumn>
-    <BkTableColumn :label="t('新主从主机')">
+    <BkTableColumn :label="t('新从库主机')">
       <template #default="{ data }: { data: RowData }">
         {{ data.new_slave_host.ip }}
       </template>
