@@ -40,8 +40,8 @@
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    data: string[],
-    showAll?: boolean,
+    data: string[];
+    showAll?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -54,7 +54,9 @@
   const textRef = ref<HTMLParagraphElement>();
   const overflowIndex = ref<number | null>(null);
   const overflowData = computed(() => {
-    if (overflowIndex.value === null) return [];
+    if (overflowIndex.value === null) {
+      return [];
+    }
 
     return props.data.slice(overflowIndex.value);
   });
@@ -70,7 +72,7 @@
         const { left, width } = textRef.value.getBoundingClientRect();
         const max = left + width;
         const spans: HTMLSpanElement[] = Array.from(textRef.value.getElementsByTagName('span'));
-        for (let i = 0;i < spans.length; i++) {
+        for (let i = 0; i < spans.length; i++) {
           const span = spans[i];
           const { left: spanLeft, width: spanWidth } = span.getBoundingClientRect();
 

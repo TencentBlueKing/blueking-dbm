@@ -342,12 +342,12 @@
         <TextOverflowLayout>
           {{
             default: () => (
-              <auth-button
+              <bk-button
                 text
                 theme="primary"
                 onClick={() => handleToDetails(data)}>
                 {data.masterDomainDisplayName}
-              </auth-button>
+              </bk-button>
             ),
             append: () => (
               <>
@@ -681,7 +681,7 @@
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,
-      fixed: 'right',
+      fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: SqlServerHaClusterModel }) => (
         <>
           {

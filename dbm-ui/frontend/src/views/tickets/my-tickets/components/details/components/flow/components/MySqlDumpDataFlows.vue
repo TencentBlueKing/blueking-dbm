@@ -92,6 +92,7 @@
     .bk-button-text {
       display: inline;
     }
+
     .download-line-button {
       font-size: 16px;
     }

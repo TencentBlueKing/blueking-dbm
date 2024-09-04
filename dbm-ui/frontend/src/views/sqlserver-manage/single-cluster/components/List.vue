@@ -569,7 +569,7 @@
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,
-      fixed: 'right',
+      fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: SqlServerSingleClusterModel }) => (
         <>
           {

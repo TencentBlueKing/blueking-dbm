@@ -13,13 +13,13 @@
 
 <template>
   <BkLoading
-    :loading="state.isLoading"
+    :loading="isLoading"
     style="min-height: calc(100vh - 120px)">
     <PermissionCatch :key="ticketId">
       <SmartAction :offset-target="getOffsetTarget">
         <div class="ticket-details-page">
-          <template v-if="state.ticketData">
-            <BaseInfo :ticket-data="state.ticketData" />
+          <template v-if="ticketData">
+            <BaseInfo :ticket-data="ticketData" />
             <Teleport
               :disabled="!isFullscreen"
               to="body">
@@ -28,10 +28,19 @@
                 :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
                 mode="collapse"
                 :title="t('需求信息')">
-                <DemandInfo :data="state.ticketData" />
-                <div class="mt-10">
-                  <span>{{ t('备注') }}:</span>
-                  <span class="ml-5">{{ state.ticketData.remark || '--' }}</span>
+                <DemandInfo :data="ticketData" />
+                <div>
+                  <span
+                    style="
+                      display: inline-block;
+                      min-width: 100px;
+                      padding-right: 4px;
+                      line-height: 32px;
+                      text-align: right;
+                    ">
+                    {{ t('备注：') }}
+                  </span>
+                  <span>{{ ticketData.remark || '--' }}</span>
                 </div>
               </DbCard>
             </Teleport>
@@ -41,15 +50,15 @@
               :title="t('实施进度')">
               <FlowInfo
                 ref="flowInfoRef"
-                :data="state.ticketData"
+                :data="ticketData"
                 @refresh="handleRefreshTicketData" />
             </DbCard>
           </template>
         </div>
         <template
-          v-if="state.ticketData"
+          v-if="ticketData"
           #action>
-          <TicketClone :data="state.ticketData" />
+          <TicketClone :data="ticketData" />
         </template>
       </SmartAction>
     </PermissionCatch>
@@ -57,7 +66,7 @@
 </template>
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-  import type { LocationQueryValue } from 'vue-router';
+  import { useRequest } from 'vue-request';
 
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
@@ -65,6 +74,8 @@
   import PermissionCatch from '@components/apply-permission/Catch.vue';
 
   import TicketClone from '@views/tickets/common/components/TicketClone.vue';
+
+  import { useTimeoutFn } from '@vueuse/core';
 
   import BaseInfo from './components/BaseInfo.vue';
   import DemandInfo from './components/Demand.vue';
@@ -76,93 +87,78 @@
 
   const props = defineProps<Props>();
 
-  /**
-   * 获取单据详情
-   */
-  let myTicketsDetailTimer = 0;
-  const fetchTicketDetails = (id: number, isPoll = false) => {
-    state.isLoading = !isPoll;
-    getTicketDetails(
-      { id },
-      {
-        permission: 'catch',
-      },
-    )
-      .then((ticketData) => {
-        if (props.ticketId !== ticketData.id) {
-          return;
-        }
-        state.ticketData = ticketData;
-
-        if (['PENDING', 'RUNNING'].includes(state.ticketData?.status)) {
-          myTicketsDetailTimer = setTimeout(() => {
-            // fetchTicketDetails(id, true);
-          }, 10000);
-        }
-      })
-      .catch(() => {
-        state.ticketData = null;
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  };
-
   const { t } = useI18n();
   const route = useRoute();
 
-  const isFullscreen = ref<LocationQueryValue | LocationQueryValue[]>();
+  const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
+
+  const isFullscreen = ref<boolean>(Boolean(route.query.isFullscreen));
   const demandCollapse = ref(false);
   const flowInfoRef = ref<InstanceType<typeof FlowInfo>>();
 
-  const state = reactive({
-    isLoading: false,
-    ticketData: null as TicketModel<unknown> | null,
-  });
+  const isLoading = ref(true);
+  const ticketData = ref<TicketModel<unknown>>();
+
+  const { run: fetchTicketDetails } = useRequest(
+    (params: ServiceParameters<typeof getTicketDetails>) =>
+      getTicketDetails(params, {
+        permission: 'catch',
+      }),
+    {
+      onSuccess(data, params) {
+        if (params[0].id !== props.ticketId) {
+          return;
+        }
+        isLoading.value = false;
+        ticketData.value = data;
+        loopFetchTicketDetails();
+      },
+    },
+  );
+
+  const { start: loopFetchTicketDetails } = useTimeoutFn(() => {
+    fetchTicketDetails({
+      id: props.ticketId,
+    });
+  }, 10000);
 
   watch(
     () => props.ticketId,
     () => {
       if (props.ticketId) {
-        clearTimeout(myTicketsDetailTimer);
-        fetchTicketDetails(props.ticketId);
+        ticketData.value = undefined;
+        fetchTicketDetails({
+          id: props.ticketId,
+        });
       }
-    },
-    { immediate: true },
-  );
-
-  watch(
-    isFullscreen,
-    (isFullscreen) => {
-      if (isFullscreen) {
-        demandCollapse.value = true;
-      }
-    },
-    { immediate: true },
-  );
-
-  watch(
-    () => route.query.isFullscreen,
-    (value) => {
-      setTimeout(() => {
-        isFullscreen.value = value;
-      });
     },
     {
       immediate: true,
     },
   );
 
-  const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
+  watch(
+    isFullscreen,
+    () => {
+      if (isFullscreen.value) {
+        demandCollapse.value = true;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const exitFullscreen = (e: KeyboardEvent) => {
     if (e.keyCode === 27) {
-      isFullscreen.value = undefined;
+      isFullscreen.value = false;
     }
   };
 
   const handleRefreshTicketData = () => {
-    fetchTicketDetails(props.ticketId);
+    fetchTicketDetails({
+      id: props.ticketId,
+    });
   };
 
   onMounted(() => {
@@ -170,7 +166,6 @@
   });
 
   onBeforeUnmount(() => {
-    clearTimeout(myTicketsDetailTimer);
     window.removeEventListener('keydown', exitFullscreen);
   });
 </script>

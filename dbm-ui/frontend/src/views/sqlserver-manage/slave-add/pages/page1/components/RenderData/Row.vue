@@ -95,7 +95,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const clusterRef = ref<InstanceType<typeof RenderSlaveHost>>();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
   const hostRef = ref<InstanceType<typeof RenderSlaveHost>>();
 
   const localClusterData = ref<IDataRow['clusterData']>();
@@ -125,10 +125,12 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all([clusterRef.value!.getValue(), hostRef.value!.getValue()]).then(([clusterData, hostData]) => ({
-        ...clusterData,
-        ...hostData,
-      }));
+      return Promise.all([clusterRef.value!.getValue('cluster_ids'), hostRef.value!.getValue()]).then(
+        ([, hostData]) => ({
+          cluster_ids: [localClusterData.value!.id],
+          ...hostData,
+        }),
+      );
     },
   });
 </script>

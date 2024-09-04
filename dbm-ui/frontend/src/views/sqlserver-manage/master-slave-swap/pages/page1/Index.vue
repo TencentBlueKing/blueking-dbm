@@ -43,7 +43,6 @@
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        <DbIcon type="invisible1" />
         {{ t('提交') }}
       </BkButton>
       <DbPopconfirm

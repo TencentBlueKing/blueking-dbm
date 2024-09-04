@@ -12,24 +12,22 @@
 -->
 
 <template>
-  <BkLoading :loading="state.isLoading">
+  <BkLoading :loading="isLoading">
     <Component
       :is="flowComponent"
       :key="data.id"
-      :flows="state.flows"
+      :flows="flowList"
       :ticket-data="data"
       @fetch-data="handleFecthData" />
   </BkLoading>
 </template>
-<script lang="ts"></script>
 <script setup lang="ts">
+  import { useRequest } from 'vue-request';
+
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketFlows } from '@services/source/ticket';
-  import type { FlowItem } from '@services/types/ticket';
 
   import { TicketTypes } from '@common/const';
-
-  import { useTimeoutPoll } from '@vueuse/core';
 
   import CommonFlows from './components/Common.vue';
   import MySqlDumpDataFlows from './components/MySqlDumpDataFlows.vue';
@@ -47,12 +45,8 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const currentScope = getCurrentScope();
-
-  const state = reactive({
-    isLoading: false,
-    flows: [] as FlowItem[],
-  });
+  const isLoading = ref(true);
+  const flowList = ref<ServiceReturnType<typeof getTicketFlows>>([]);
 
   const flowComponent = computed(() => {
     if ([TicketTypes.REDIS_KEYS_DELETE, TicketTypes.REDIS_KEYS_EXTRACT].includes(props.data.ticket_type)) {
@@ -67,49 +61,36 @@
     return CommonFlows;
   });
 
-  const needPollStatus = ['PENDING', 'RUNNING'];
-
-  // 轮询
-  const { isActive, resume, pause } = useTimeoutPoll(() => {
-    fetchTicketFlows(props.data.id, true);
-  }, 10000);
+  const { run: fetchTicketFlows, cancel: cancelFetchTicketFlows } = useRequest(getTicketFlows, {
+    manual: true,
+    onSuccess(data, params) {
+      if (params[0].id !== props.data.id) {
+        return;
+      }
+      isLoading.value = false;
+      flowList.value = data;
+    },
+  });
 
   watch(
-    () => props.data.id,
-    (id) => {
-      state.flows = [];
-      fetchTicketFlows(id);
+    () => props.data,
+    () => {
+      if (props.data.id) {
+        cancelFetchTicketFlows();
+        fetchTicketFlows({
+          id: props.data.id,
+        });
+      }
     },
     {
       immediate: true,
     },
   );
 
-  /**
-   * 获取单据流程
-   */
-  function fetchTicketFlows(id: number, isPoll = false) {
-    state.isLoading = !isPoll;
-    getTicketFlows({ id })
-      .then((res) => {
-        state.flows = res || [];
-        // 设置轮询
-        if (currentScope?.active) {
-          !isActive.value && needPollStatus.includes(props.data?.status) && resume();
-        } else {
-          pause();
-        }
-      })
-      .catch(() => {
-        state.flows = [];
-      })
-      .finally(() => {
-        state.isLoading = false;
-      });
-  }
-
   const handleFecthData = () => {
-    fetchTicketFlows(props.data.id);
+    fetchTicketFlows({
+      id: props.data.id,
+    });
     emits('refresh'); // 操作单据后立即查询基本信息
   };
 </script>

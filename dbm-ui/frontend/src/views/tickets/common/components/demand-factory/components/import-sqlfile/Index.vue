@@ -139,7 +139,6 @@
   type TargetDbRow = Props['ticketDetails']['details']['execute_objects'][number];
 
   const props = defineProps<Props>();
-  console.log('props = \n\n\n\n\n\nn\n\nn\n\n\n\n\n\nn\n\nn\n\n\n\nnn\n', props.ticketDetails);
 
   const { t } = useI18n();
 
