@@ -291,10 +291,10 @@ export function queryTicketFlowDescribe(params: {
  * 创建单据流程规则
  */
 export function createTicketFlowConfig(params: {
-  bk_biz_id: number;
-  cluster_ids: number[];
   ticket_types: string[];
   configs: Record<string, boolean>;
+  bk_biz_id: number;
+  cluster_ids?: number[];
 }) {
   return http.post<{
     ticket_types: string[];
@@ -307,7 +307,7 @@ export function createTicketFlowConfig(params: {
 export function updateTicketFlowConfig(params: {
   ticket_types: string[];
   configs: Record<string, boolean>;
-  bk_biz_id?: number;
+  bk_biz_id: number;
   cluster_ids?: number[];
   config_ids?: number[];
 }) {
