@@ -145,6 +145,7 @@ def instances(
                 queries |= Q(**{"cluster__clusterentry__entry": ad})
             else:
                 logger.warning("{} is not a valid ip, instance or domain".format(ad))
+                raise ValueError("{} is not a valid ip, instance or domain".format(ad))
 
     if logical_city_ids:
         queries &= Q(**{"machine__bk_city__logical_city_id__in": logical_city_ids})
