@@ -87,13 +87,13 @@ func init() {
 			},
 			Enable: true,
 		},
-		//{
-		//	Name: "chunk-size",
-		//	Value: func(checker *Checker) interface{} {
-		//		return "10M"
-		//	},
-		//	Enable: true,
-		//},
+		{
+			Name: "max-load",
+			Value: func(checker *Checker) interface{} {
+				return "Threads_running=500"
+			},
+			Enable: true,
+		},
 	}
 
 	/*
