@@ -144,6 +144,7 @@ class BaseTicketFlow(ABC):
     def flush_revoke_status_handler(self, operator):
         """终止节点，更新相关状态和错误信息"""
         self.flow_obj.status = TicketFlowStatus.TERMINATED
+        self.flow_obj.err_code = FlowErrCode.GENERAL_ERROR
         if operator == DEFAULT_SYSTEM_USER:
             self.flow_obj.err_code = FlowErrCode.SYSTEM_TERMINATED_ERROR
             self.flow_obj.context = {FlowContext.EXPIRE_TIME: self.get_current_config_expire_time()}
