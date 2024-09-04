@@ -79,12 +79,10 @@
 
   const { run: updateTicketFlowConfigRun } = useRequest(updateTicketFlowConfig, {
     manual: true,
-    onSuccess: (data) => {
-      if (!data) {
-        isShow.value = false;
-        messageSuccess(t('操作成功'));
-        emits('success');
-      }
+    onSuccess() {
+      isShow.value = false;
+      messageSuccess(t('操作成功'));
+      emits('success');
     },
   });
 

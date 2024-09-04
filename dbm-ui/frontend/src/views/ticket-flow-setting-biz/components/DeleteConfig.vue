@@ -63,11 +63,9 @@
 
   const { run: deleteTicketFlowConfigRun } = useRequest(deleteTicketFlowConfig, {
     manual: true,
-    onSuccess: (data) => {
-      if (!data) {
-        messageSuccess(t('操作成功'));
-        emits('success');
-      }
+    onSuccess() {
+      messageSuccess(t('操作成功'));
+      emits('success');
     },
   });
 

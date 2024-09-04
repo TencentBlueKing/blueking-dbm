@@ -44,6 +44,7 @@
           @page-value-change="handleChangePage">
           <BkTableColumn
             :label="t('单据类型')"
+            :rowspan="rowSpan"
             :width="240">
             <template #default="{ data }">
               <TextOverflowLayout>
@@ -51,12 +52,12 @@
                 <template #append>
                   <AuthButton
                     v-bk-tooltips="{
-                      content: t('所有集群已免审批'),
-                      disabled: data.configs.need_itsm,
+                      content: appendBtnTipMap[appendBtnController[data.ticket_type]],
+                      disabled: !appendBtnController[data.ticket_type],
                     }"
                     action-id="biz_ticket_config_set"
                     class="append-config-btn"
-                    :disabled="!data.configs.need_itsm"
+                    :disabled="appendBtnController[data.ticket_type]"
                     :permission="data.permission.biz_ticket_config_set"
                     :resource="dbType"
                     size="small"
@@ -196,7 +197,7 @@
             <template #default="{ data }">
               <AuthButton
                 v-bk-tooltips="{
-                  content: t('内置目标不支持编辑'),
+                  content: t('内置策略不支持编辑'),
                   disabled: data.isCustomTarget,
                 }"
                 action-id="biz_ticket_config_set"
@@ -239,6 +240,7 @@
   <AppendConfigSide
     v-model:isShow="appendConfig.isShow"
     :data="appendConfig.data"
+    :is-edit="appendConfig.isEdit"
     @success="fetchData" />
 </template>
 <script setup lang="tsx">
@@ -267,6 +269,10 @@
   import DeleteConfig from "./DeleteConfig.vue";
   import EditConfig from './EditConfig.vue';
 
+  interface IDataRow extends TicketFlowDescribeModel {
+    rowSpan: number;
+  }
+
   interface Props {
     dbType: DBTypes;
   }
@@ -281,11 +287,25 @@
   const showEditConfig = ref<Record<string, boolean>>({});
   const isAnomalies = ref(false);
   const pagination = ref(useDefaultPagination());
-  const tableData = shallowRef<TicketFlowDescribeModel[]>([]);
+  const allTableData = shallowRef<IDataRow[]>([]);
   const appendConfig = reactive({
     isShow: false,
+    isEdit: false,
     data: {} as TicketFlowDescribeModel,
   });
+  /*
+  * 单据类型下是否所有集群已免审批
+  * 0、只有内置免审批
+  * 1、部分集群免审批
+  * 2、业务下所有集群免审批
+  * 非0都禁用追加按钮
+  */
+  const appendBtnController = ref<Record<string, 0 | 1 | 2>>({});
+  const appendBtnTipMap = {
+    0: '',
+    1: t('已存在自定义的免审批'),
+    2: t('所有集群已免审批'),
+  }
 
   const reqParams = computed(() =>
     searchValue.value.reduce<Record<string, string>>((obj, item) => {
@@ -303,6 +323,14 @@
       children: ticketTypeList.value,
     },
   ]);
+  const tableData = computed(() => {
+    const { current, limit } = pagination.value;
+    // 计算起始索引
+    const startIndex = (current - 1) * limit;
+    // 计算结束索引
+    const endIndex = startIndex + limit;
+    return allTableData.value.slice(startIndex, endIndex);
+  })
 
   useRequest(getTicketTypes, {
     onSuccess: (data) => {
@@ -320,29 +348,45 @@
     manual: true,
     onSuccess(data) {
       pagination.value.count = data.count;
-      const ticketTypeMemo: Record<string, number> = {};
-      tableData.value = data.results.reduce<TicketFlowDescribeModel[]>((acc, item, index) => {
-        const existIndex = ticketTypeMemo[item.ticket_type];
-        const row = {
+      const resultsMap = _.groupBy(data.results, 'ticket_type');
+      allTableData.value = Object.values(resultsMap).flatMap(values => {
+        const hasCurrentBizTarget = values.some((item) => item.isCurrentBizTarget);
+        const rows = values.reduce<TicketFlowDescribeModel[]>((acc, item) => {
+          // 1、存在多条生效策略
+          // 2、存在业务全部目标
+          // 3、满足前两条，且当前为内置目标，隐藏内置目标
+          const isHidden = values.length > 1 && hasCurrentBizTarget && item.isDefaultTarget;
+          const level = Math.max(
+            item.isCurrentBizTarget ? 2 : 0,
+            item.isClusterTarget ? 1 : 0
+          );
+          appendBtnController.value[item.ticket_type] = Math.max(
+            appendBtnController.value[item.ticket_type] ?? 0,
+            level
+          ) as 0 | 1 | 2;
+          if (!isHidden) {
+            acc.push(item);
+          }
+          return acc;
+        }, []);
+        rows.sort((_, b) => b.isClusterTarget ? 1 : -1);// 集群目标排前面;
+        const result = rows.map((item) => ({
           ..._.cloneDeep(item),
           updateAtDisplay: item.updateAtDisplay,
+          isDefaultTarget: item.isDefaultTarget,
           isCustomTarget: item.isCustomTarget,
           isClusterTarget: item.isClusterTarget,
+          isCurrentBizTarget: item.isCurrentBizTarget,
           clusterDomainList: item.clusterDomainList,
-        }
-        if (existIndex !== undefined) {
-          acc.splice(existIndex, 1, row);
-        } else {
-          acc.push(row);
-        }
-        ticketTypeMemo[item.ticket_type] = index;
-        return acc;
-      }, []);
+          rowSpan: rows.length
+        }));
+        return result;
+      });
       isAnomalies.value = false;
     },
     onError() {
       pagination.value.count = 0;
-      tableData.value = [];
+      allTableData.value = [];
       isAnomalies.value = true;
     },
   });
@@ -383,6 +427,13 @@
     )
   }
 
+  const rowSpan = ({ row }: {
+    column: any;
+    colIndex: number;
+    row: IDataRow;
+    rowIndex: number;
+  }) => row.rowSpan;
+
   const fetchData = () => {
     queryTicketFlowDescribeRun({
       ...reqParams.value,
@@ -400,7 +451,7 @@
     handleChangePage(1);
   };
 
-  const handleShowAppendConfig = (data: TicketFlowDescribeModel, e: PointerEvent, isEdit = false) => {
+  const handleShowAppendConfig = (data: IDataRow, e: PointerEvent, isEdit = false) => {
     e?.stopPropagation();
     const cloneData = _.cloneDeep(data);
     if (!isEdit) {
@@ -415,6 +466,7 @@
     } else {
       appendConfig.data = cloneData;
     }
+    appendConfig.isEdit = isEdit;
     appendConfig.isShow = true;
   }
 

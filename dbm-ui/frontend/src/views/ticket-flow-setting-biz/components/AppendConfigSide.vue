@@ -4,7 +4,7 @@
     :before-close="handleClose"
     class="append-config-side"
     render-directive="if"
-    :title="t('添加免审批')"
+    :title="isEdit ? t('编辑免审批') : t('添加免审批')"
     :width="840"
     @closed="handleClose">
     <DbForm
@@ -14,7 +14,7 @@
       <BkAlert
         class="mb16"
         closable>
-        {{ t('追加的配置不能与已存在的') }}
+        {{ t('免审批目标，支持业务下全部集群或部分集群') }}
       </BkAlert>
       <BkFormItem
         :label="t('目标')"
@@ -27,14 +27,14 @@
     <template #footer>
       <BkButton
         class="w-88 mr-8"
-        :loading="isSubmitting"
+        :loading="isCreateSubmitting || isUpdateSubmitting"
         theme="primary"
         @click="handleSubmit">
         {{ t('确定') }}
       </BkButton>
       <BkButton
         class="w-88"
-        :disabled="isSubmitting"
+        :disabled="isCreateSubmitting || isUpdateSubmitting"
         @click="handleClose">
         {{ t('取消') }}
       </BkButton>
@@ -47,15 +47,18 @@
   import { useRequest } from 'vue-request';
 
   import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
-  import { createTicketFlowConfig } from '@services/source/ticket';
+  import { createTicketFlowConfig, updateTicketFlowConfig } from '@services/source/ticket';
 
   import { useBeforeClose } from '@hooks';
 
   import { DBTypes } from '@common/const';
 
+  import { messageSuccess } from '@utils';
+
   import RenderTarget from './render-target/Index.vue';
 
   interface Props {
+    isEdit?: boolean;
     data: TicketFlowDescribeModel;
   }
 
@@ -63,7 +66,9 @@
     (e: 'success'): void;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    isEdit: false,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -83,11 +88,22 @@
     clusterIds: props.data.cluster_ids || [],
   }));
 
-  const { run: createTicketFlowConfigRun, loading: isSubmitting } = useRequest(createTicketFlowConfig, {
+  const { run: createTicketFlowConfigRun, loading: isCreateSubmitting } = useRequest(createTicketFlowConfig, {
     manual: true,
     onSuccess() {
       isShow.value = false;
       window.changeConfirm = false;
+      messageSuccess(t('操作成功'));
+      emits('success');
+    },
+  });
+
+  const { run: updateTicketFlowConfigRun, loading: isUpdateSubmitting } = useRequest(updateTicketFlowConfig, {
+    manual: true,
+    onSuccess() {
+      isShow.value = false;
+      window.changeConfirm = false;
+      messageSuccess(t('操作成功'));
       emits('success');
     },
   });
@@ -103,7 +119,7 @@
 
   const handleSubmit = async () => {
     const targetData = await targetRef.value!.getValue();
-    const params = {
+    const params: ServiceParameters<typeof updateTicketFlowConfig> = {
       ...targetData,
       ticket_types: [props.data.ticket_type],
       configs: {
@@ -111,6 +127,11 @@
         need_itsm: false,
       },
     };
+    if (props.isEdit) {
+      params.config_ids = [props.data.id];
+      updateTicketFlowConfigRun(params);
+      return;
+    }
     createTicketFlowConfigRun(params);
   };
 </script>
