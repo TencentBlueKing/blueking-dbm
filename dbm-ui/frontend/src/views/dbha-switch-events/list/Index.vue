@@ -18,7 +18,7 @@
         v-model="filterDateRang"
         append-to-body
         clearable
-        :placeholder="$t('请选择')"
+        :placeholder="t('请选择')"
         style="width: 340px"
         type="datetimerange"
         @change="fetchTableData" />
@@ -56,7 +56,7 @@
             </BkTag>
           </template>
           <span>
-            {{ $t('总耗时') }}:
+            {{ t('总耗时') }}:
             {{ logState.data.cost_time }}
           </span>
         </div>
