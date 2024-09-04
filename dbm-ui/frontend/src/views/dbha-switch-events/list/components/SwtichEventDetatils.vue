@@ -87,7 +87,8 @@
 
 <style lang="less" scoped>
   .switch-event-details {
-    height: 100%;
+    height: calc(100vh - 52px);
+    max-height: calc(100vh - 52px);
     padding: 16px;
   }
 </style>

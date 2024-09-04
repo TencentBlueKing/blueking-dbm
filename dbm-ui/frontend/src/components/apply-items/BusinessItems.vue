@@ -113,7 +113,7 @@
     },
     {
       validator: (val: string) => {
-        if (hasEnglishName.value) {
+        if (hasEnglishName.value || val === '') {
           return true;
         }
         return !bizList.value!.find((item) => item.english_name === val);
