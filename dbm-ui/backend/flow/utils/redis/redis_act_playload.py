@@ -2312,6 +2312,9 @@ class RedisActPayload(object):
         dst_conf_upsert_items = [
             {"conf_name": "loadmodule", "conf_value": ",".join(load_modules), "op_type": "update"}
         ]
+        # 如果 load_modules中包含 jlsy-b2,则 appendonly 为no
+        if "jlsy-b2" in load_modules:
+            dst_conf_upsert_items.append({"conf_name": "appendonly", "conf_value": "no", "op_type": "update"})
 
         upsert_param = {
             "conf_file_info": {

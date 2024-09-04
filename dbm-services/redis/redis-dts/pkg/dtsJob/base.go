@@ -191,9 +191,9 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithoutLimit(taskType, dbType string) {
 
 // BgOldRunningSyncTaskWatcher 目的:
 // 很多时候 redis-sync 已经拉起,状态为runnig(taskrow.status==1 taskrow.taskType="makeSync")
-// 而此时我们需要暂停 dbm-services/redis/redis-dts 升级 dbm-services/redis/redis-dts的介质
-// 再次拉起后, 以前(taskrow.status==1 taskrow.taskType="makeSync")的task其相关状态依然需要我们不断watch
-// 注意: 该函数只在 dbm-services/redis/redis-dts 被拉起时执行,启动goroutine监听属于当前dts_server的属于running状态的tasks
+// 而此时我们需要关闭 redis_dts_server进程，进行 redis_dts_server 的介质升级
+// 再次拉起redis_dts_server进程后, 以前处于增量同步的(taskrow.status==1 taskrow.taskType="makeSync")的task其相关状态依然需要我们不断watch
+// 注意: 该函数只在 redis_dts_server 被拉起时执行一次,启动goroutine监听处于 增量同步的(taskrow.status==1 taskrow.taskType="makeSync")的task
 // 对于后续新增的 (taskrow.status==1 taskrow.taskType="makeSync")的task,不归该函数处理
 func (job *DtsJobBase) BgOldRunningSyncTaskWatcher(taskType, dbType string, status int) {
 	limit := 100000
@@ -243,7 +243,7 @@ func (job *DtsJobBase) IsMyselfInBlacklist() bool {
 }
 
 // CheckSrcSlaveServerConcurrency 检查源slave机器是否还能新增迁移task
-// 如源slave机器上有20个redis,同时启动迁移是危险的,需做并发控制
+// 如源slave机器上有20个redis,同时启动迁移所有redis是危险的,需做并发控制
 func (job *DtsJobBase) CheckSrcSlaveServerConcurrency(taskRow *tendisdb.TbTendisDTSTask, taskTypes []string) (ok bool,
 	err error) {
 

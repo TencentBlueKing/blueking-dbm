@@ -10,10 +10,10 @@ import (
 
 	"github.com/go-playground/validator/v10"
 
-	"dbm-services/mongodb/db-tools/dbmon/util"
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
+	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
 
 // PredixyAddModulesCmdsParams 参数
@@ -68,7 +68,7 @@ func (job *PredixyAddModulesCmds) Init(m *jobruntime.JobGenericRuntime) error {
 
 // Name 原子任务名
 func (job *PredixyAddModulesCmds) Name() string {
-	return "predixy_add_modules_cmds"
+	return "redis_predixy_add_modules_cmds"
 }
 
 // Run 执行
@@ -98,11 +98,19 @@ func (job *PredixyAddModulesCmds) Run() (err error) {
 			job.params.LoadModules)
 		return nil
 	}
+	// 备份配置文件
+	bakConfFile := job.configFile + "_old_" + time.Now().Format(consts.FilenameTimeLayout)
+	cpCmd := fmt.Sprintf(`cp %s %s`, job.configFile, bakConfFile)
+	job.runtime.Logger.Info(cpCmd)
+	_, err = util.RunBashCmd(cpCmd, "", nil, 10*time.Second)
+	if err != nil {
+		return err
+	}
 	// 删除配置文件中 CustomCommand 配置中的内容
 	// sed命令意思是删除 CustomCommand 到 ###### 所有行
 	sedCmd := fmt.Sprintf(`sed -i '/CustomCommand/,/######/d' %s`, job.configFile)
 	job.runtime.Logger.Info(sedCmd)
-	_, err = util.RunBashCmd(sedCmd, job.configFile, nil, 10*time.Second)
+	_, err = util.RunBashCmd(sedCmd, "", nil, 10*time.Second)
 	if err != nil {
 		return err
 	}
@@ -114,7 +122,7 @@ cat >>%s<<EOF
 EOF
 	`, job.configFile, customCmdData)
 	job.runtime.Logger.Info(catCmd)
-	_, err = util.RunBashCmd(catCmd, job.configFile, nil, 10*time.Second)
+	_, err = util.RunBashCmd(catCmd, "", nil, 10*time.Second)
 	if err != nil {
 		return err
 	}
@@ -135,12 +143,12 @@ EOF
 // (对于用户自定义的module,很多时候我们也不知道对应command,此时不用在predixy的customCommands中增加这些module的命令)
 // moduleCmdInFile: true 表示 在配置文件中包含该module的命令.
 func (job *PredixyAddModulesCmds) IsModuleCmdInConfFile(confFile, module string) (knownModule, moduleCmdInFile bool) {
-	if module != consts.ModuleRedisBloom && module != consts.ModuleRedisJson && module != consts.ModuleRedisCell {
-		// 目前只认识这三个module的命令
+	if !consts.IsKnownModule(module) {
 		return false, false
 	}
 	knownModule = true
-	grepCmd := fmt.Sprintf(`grep -i %q %s`, module, confFile)
+	firstCmd := consts.GetFirstCommandByModule(module)
+	grepCmd := fmt.Sprintf(`grep -i %q %s`, firstCmd, confFile)
 	ret, _ := util.RunBashCmd(grepCmd, "", nil, 10*time.Second)
 	if ret != "" {
 		moduleCmdInFile = true

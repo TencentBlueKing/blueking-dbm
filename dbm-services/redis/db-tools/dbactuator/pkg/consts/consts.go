@@ -1,6 +1,8 @@
 // Package consts 常量
 package consts
 
+import "strings"
+
 const (
 	// TendisTypePredixyRedisCluster predixy + RedisCluster架构
 	TendisTypePredixyRedisCluster = "PredixyRedisCluster"
@@ -240,6 +242,25 @@ const (
 	ModuleRedisCell  = "rediscell"
 	ModuleRedisJson  = "redisjson"
 )
+
+// IsKnownModule 是否是认识的module
+func IsKnownModule(module string) bool {
+	return module == ModuleRedisCell ||
+		module == ModuleRedisJson ||
+		module == ModuleRedisBloom
+}
+
+// ConfItemWithMultiLines  redis存在多行的配置项
+// 如:
+// rename-command config  xxxx
+// rename-command flushdb  yyyy
+func ConfItemWithMultiLines(confItem string) bool {
+	confItem = strings.ToLower(confItem)
+	return confItem == "rename-command" ||
+		confItem == "save" ||
+		confItem == "loadmodule" ||
+		confItem == "client-output-buffer-limit"
+}
 
 // IsClusterDbType 存储端是否是cluster类型
 func IsClusterDbType(dbType string) bool {

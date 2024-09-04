@@ -493,6 +493,10 @@ func (job *RedisInstall) getRedisConfTemplate() error {
 	// 加载module
 	soFile := ""
 	for _, moduleItem := range job.params.LoadModulesDetail {
+		if strings.Contains(moduleItem.SoFile, "libB2RedisModule") {
+			// libB2RedisModule 相关module需要关闭 aof,否则会报错
+			sb.WriteString("appendonly no\n")
+		}
 		soFile = filepath.Join(consts.RedisModulePath, moduleItem.SoFile)
 		sb.WriteString("loadmodule " + soFile + "\n")
 	}
