@@ -54,7 +54,7 @@
     </template>
     <ClusterSelector
       v-model:is-show="isShowSelector"
-      :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
+      :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER, ClusterTypes.MONGO_REPLICA_SET]"
       :selected="selectedClusters"
       :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
