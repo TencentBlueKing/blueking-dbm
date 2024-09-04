@@ -14,7 +14,7 @@ from typing import Dict, List
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import MachineType
+from backend.db_meta.enums import ClusterType, MachineType
 from backend.db_meta.models import AppCache, Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
@@ -99,6 +99,9 @@ class MongoDBScaleUpDownResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
                 cluster = id__cluster[info["cluster_id"]]
                 info["db_version"] = cluster.major_version
                 info["disaster_tolerance_level"] = cluster.disaster_tolerance_level
+                # 处理副本集聚合mongodb[[{}],[{}],[{}]] 转为[{},{},{}]
+                if cluster.cluster_type == ClusterType.MongoReplicaSet.value:
+                    info["mongodb"] = [item for sublist in info["mongodb"] for item in sublist]
                 # 根据mongo集群类型归类
                 mongo_type__apply_infos[cluster.cluster_type].append(info)
 

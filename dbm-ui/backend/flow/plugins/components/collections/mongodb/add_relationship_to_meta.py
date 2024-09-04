@@ -55,7 +55,7 @@ class ExecAddRelationshipOperation(BaseService):
                     skip_machine=kwargs["skip_machine"],
                     spec_id=kwargs["spec_id"],
                     spec_config=kwargs["spec_config"],
-                    disaster_tolerance_level=kwargs.get("disaster_tolerance_level", ""),
+                    disaster_tolerance_level=kwargs.get("disaster_tolerance_level", "NONE"),
                 )
             elif kwargs["cluster_type"] == ClusterType.MongoShardedCluster.value:
                 pkg_create_mongo_cluster(
@@ -72,7 +72,7 @@ class ExecAddRelationshipOperation(BaseService):
                     bk_cloud_id=kwargs["bk_cloud_id"],
                     region=kwargs["region"],
                     machine_specs=kwargs["machine_specs"],
-                    disaster_tolerance_level=kwargs.get("disaster_tolerance_level", ""),
+                    disaster_tolerance_level=kwargs.get("disaster_tolerance_level", "NONE"),
                 )
         except Exception as e:
             self.log_error("add relationship to meta fail, error:{}".format(str(e)))
