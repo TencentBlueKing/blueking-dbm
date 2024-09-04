@@ -109,3 +109,20 @@ CustomCommand {
 	`)
 	return builder.String()
 }
+
+// GetFirstCommandByModule 获取module的第一个命令
+func GetFirstCommandByModule(module string) string {
+	if !IsKnownModule(module) {
+		return ""
+	}
+	if module == ModuleRedisBloom {
+		return RedisBloomCmdItems[0].Command
+	}
+	if module == ModuleRedisJson {
+		return RedisJsonCmdItems[0].Command
+	}
+	if module == ModuleRedisCell {
+		return RedisCellCmdItems[0].Command
+	}
+	return ""
+}

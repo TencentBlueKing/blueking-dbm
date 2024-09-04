@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -88,16 +89,23 @@ func (job *RedisLoadModules) Run() (err error) {
 	if err != nil {
 		return err
 	}
+	// 加载b2 module时,需要先关闭aof
+	err = job.disableAofWhenB2Module()
+	if err != nil {
+		return err
+	}
+
 	soFile := ""
 	for _, cli := range job.AddrMapCli {
 		for _, moduleItem := range job.params.LoadModulesDetail {
 			soFile = filepath.Join(consts.RedisModulePath, moduleItem.SoFile)
 			err = cli.ModuleLoad(soFile)
-			if err != nil {
+			if err != nil && !strings.Contains(err.Error(), "loading the extension") {
 				job.runtime.Logger.Error(fmt.Sprintf("redis:%s load module(%s) fail,err:%v",
 					cli.Addr, moduleItem.SoFile, err))
 				return
 			}
+			job.runtime.Logger.Info(fmt.Sprintf("redis:%s load module(%s) success", cli.Addr, moduleItem.SoFile))
 		}
 	}
 	for addr, cli := range job.AddrMapCli {
@@ -116,6 +124,26 @@ func (job *RedisLoadModules) Run() (err error) {
 					cli.Addr, moduleItem.SoFile, err))
 				return
 			}
+		}
+	}
+	return nil
+}
+
+// disableAofWhenB2Module 如果需要加载 libB2RedisModule,则先关闭aof
+func (job *RedisLoadModules) disableAofWhenB2Module() (err error) {
+	if len(job.params.LoadModulesDetail) == 0 {
+		return nil
+	}
+	for _, moduleItem := range job.params.LoadModulesDetail {
+		if strings.Contains(moduleItem.SoFile, "libB2RedisModule") {
+			for _, cli := range job.AddrMapCli {
+				// 关闭aof
+				_, err = cli.ConfigSet("appendonly", "no")
+				if err != nil {
+					return err
+				}
+			}
+			return nil
 		}
 	}
 	return nil

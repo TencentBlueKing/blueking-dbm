@@ -12,7 +12,7 @@ from django.utils.translation import ugettext_lazy as _
 class TbRedisModuleSupport(models.Model):
     major_version = models.CharField(_("主版本号"), max_length=32, default="")
     module_name = models.CharField(_("module名"), max_length=32, default="")
-    so_file = models.CharField(_("so文件名"), max_length=32, default="")
+    so_file = models.CharField(_("so文件名"), max_length=64, default="")
 
     class Meta:
         verbose_name = _("Redis module支持")
