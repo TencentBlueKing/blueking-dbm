@@ -129,8 +129,7 @@
                   class="ml-8"
                   :disabled="Boolean(rowData.terminateSynceDisableTips)"
                   text
-                  theme="primary"
-                  @click="handleStopSync(rowData)">
+                  theme="primary">
                   {{ t('断开同步') }}
                 </BkButton>
               </DbPopconfirm>

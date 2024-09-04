@@ -14,55 +14,6 @@ import { TicketTypes } from '@common/const';
 
 import type { IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
 
-import type { HostSubmitParams } from './ip';
-
-/**
- * 部署地域信息
- */
-export interface CitiyItem {
-  city_code: string;
-  city_name: string;
-  inventory: number;
-  inventory_tag: string;
-}
-
-/**
- * 机型信息
- */
-export interface HostSpec {
-  cpu: string;
-  mem: string;
-  spec: string;
-  type: string;
-}
-
-/**
- * redis 容量信息
- */
-export interface CapSepcs {
-  group_num: number;
-  maxmemory: number;
-  shard_num: number;
-  spec: string;
-  total_memory: number;
-  cap_key: string;
-  selected: boolean;
-  max_disk: number;
-  total_disk: string;
-}
-
-/**
- * 获取 redis 容量信息参数
- */
-export interface CapSpecsParams {
-  nodes: {
-    master: Array<HostSubmitParams>;
-    slave: Array<HostSubmitParams>;
-  };
-  ip_source: string;
-  cluster_type: string;
-}
-
 /**
  * 获取单据列表过滤参数
  */
@@ -190,59 +141,10 @@ export interface FlowItemTodo {
   url: string;
 }
 
-/**
- *  创建业务英文缩写参数
- */
-export interface CreateAbbrParams {
-  db_app_abbr: string;
-}
-
-/**
- * 创建模块参数
- */
-export interface CreateModuleParams {
-  db_module_name: string;
-  cluster_type: string;
-}
-
-/**
- * 创建模块返回结果
- */
-export interface CreateModuleResult {
-  db_module_id: number;
-  db_module_name: string;
-  cluster_type: string;
-  bk_biz_id: number;
-  bk_set_id: number;
-  bk_modules: { bk_module_name: string; bk_module_id: string }[];
-  name: string;
-}
-
-/**
- * 保存模块部署配置
- */
-export interface CreateModuleDeployInfo {
-  bk_biz_id: number;
-  conf_items: ConfItems[];
-  version: string;
-  meta_cluster_type: string;
-  level_name: string;
-  level_value: number;
-  conf_type: string;
-}
-
 export interface ConfItems {
   conf_name: string;
   conf_value: string;
   op_type: string;
-}
-
-/**
- * 单据类型
- */
-export interface TicketType {
-  key: string;
-  value: string;
 }
 
 /**
@@ -621,16 +523,6 @@ export interface MySQLChecksumDetails {
   is_sync_non_innodb: boolean;
   runtime_hour: number;
   timing: string;
-}
-
-/**
- * 变更事件项
- */
-export interface ClusterOperateRecord {
-  create_at: string;
-  ticket_id: number;
-  op_type: string;
-  op_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'REVOKED';
 }
 
 /**

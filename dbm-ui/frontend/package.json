@@ -27,7 +27,7 @@
     "@icon-cool/bk-icon-bk-biz-components": "0.0.4",
     "@vueuse/core": "11.0.1",
     "axios": "1.7.4",
-    "bkui-vue": "2.0.1-beta.62",
+    "bkui-vue": "2.0.1-beta.63",
     "date-fns": "3.6.0",
     "dayjs": "1.11.12",
     "html-to-image": "1.11.11",

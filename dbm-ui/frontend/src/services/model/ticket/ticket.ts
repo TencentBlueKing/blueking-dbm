@@ -16,41 +16,34 @@ import { TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
 
+import { t } from '@locales/index';
+
 import type { DetailBase } from './details/common';
 
 export type * as Mysql from './details/mysql';
 export type * as Redis from './details/redis';
 export type * as Sqlserver from './details/sqlserver';
 
-/**
- * 单据状态类型
- */
-export enum StatusTypes {
-  ALL = '全部',
-  PENDING = '审批中',
-  RUNNING = '进行中',
-  SUCCEEDED = '已完成',
-  FAILED = '已失败',
-  TERMINATED = '已终止',
-  REVOKED = '已撤销',
-}
-
-export type StatusTypeKeys = keyof typeof StatusTypes;
-
-/**
- * 状态 theme 映射
- */
-const tagTheme = {
-  PENDING: 'warning',
-  RUNNING: 'info',
-  SUCCEEDED: 'success',
-  FAILED: 'danger',
-  REVOKED: 'danger',
-  TERMINATED: 'danger',
-  ALL: undefined,
-};
-
 export default class Ticket<T extends unknown | DetailBase> {
+  static themeMap = {
+    PENDING: 'warning',
+    RUNNING: 'info',
+    SUCCEEDED: 'success',
+    FAILED: 'danger',
+    REVOKED: 'danger',
+    TERMINATED: 'danger',
+    ALL: undefined,
+  };
+  static statusTextMap = {
+    ALL: t('全部'),
+    PENDING: t('审批中'),
+    RUNNING: t('进行中'),
+    SUCCEEDED: t('已完成'),
+    FAILED: t('已失败'),
+    TERMINATED: t('已终止'),
+    REVOKED: t('已撤销'),
+  };
+
   bk_biz_id: number;
   bk_biz_name: string;
   cost_time: number;
@@ -63,7 +56,7 @@ export default class Ticket<T extends unknown | DetailBase> {
   ignore_duplication: boolean;
   is_reviewed: boolean;
   remark: string;
-  status: StatusTypeKeys;
+  status: keyof typeof Ticket.statusTextMap;
   status_display: string;
   ticket_type: TicketTypes;
   ticket_type_display: string;
@@ -98,11 +91,11 @@ export default class Ticket<T extends unknown | DetailBase> {
 
   // 获取状态对应文案
   get tagTheme() {
-    return tagTheme[this.status] as BKTagTheme;
+    return Ticket.themeMap[this.status] as BKTagTheme;
   }
 
   get statusText() {
-    return StatusTypes[this.status];
+    return Ticket.statusTextMap[this.status];
   }
 
   get formatCreateAt() {

@@ -23,20 +23,7 @@ import { locale, t } from '@locales/index';
 
 import http, { type IRequestPayload } from '../http';
 import type { HostNode, ListBase } from '../types';
-import type {
-  CapSepcs,
-  CapSpecsParams,
-  CitiyItem,
-  ClusterOperateRecord,
-  CreateAbbrParams,
-  CreateModuleDeployInfo,
-  CreateModuleParams,
-  CreateModuleResult,
-  FlowItem,
-  FlowItemTodo,
-  HostSpec,
-  TicketType,
-} from '../types/ticket';
+import type { FlowItem, FlowItemTodo } from '../types/ticket';
 
 const path = '/apis/tickets';
 
@@ -168,21 +155,44 @@ export function createTicket(formData: Record<string, any>) {
  * 获取单据类型列表
  */
 export function getTicketTypes(params?: { is_apply: 0 | 1 }) {
-  return http.get<TicketType[]>(`${path}/flow_types/`, params ?? {});
+  return http.get<
+    {
+      key: string;
+      value: string;
+    }[]
+  >(`${path}/flow_types/`, params ?? {});
 }
 
 /**
  * 查询集群变更单据事件
  */
 export function getClusterOperateRecords(params: Record<string, unknown> & { cluster_id: number }) {
-  return http.get<ListBase<ClusterOperateRecord[]>>(`${path}/get_cluster_operate_records/`, params);
+  return http.get<
+    ListBase<
+      {
+        create_at: string;
+        ticket_id: number;
+        op_type: string;
+        op_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'REVOKED';
+      }[]
+    >
+  >(`${path}/get_cluster_operate_records/`, params);
 }
 
 /**
  * 查询集群实例变更单据事件
  */
 export function getInstanceOperateRecords(params: Record<string, unknown> & { instance_id: number }) {
-  return http.get<ListBase<ClusterOperateRecord[]>>(`${path}/get_instance_operate_records/`, params);
+  return http.get<
+    ListBase<
+      {
+        create_at: string;
+        ticket_id: number;
+        op_type: string;
+        op_status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'REVOKED';
+      }[]
+    >
+  >(`${path}/get_instance_operate_records/`, params);
 }
 
 /**
@@ -306,6 +316,10 @@ export function updateTicketFlowConfig(params: {
   }>(`${path}/update_ticket_flow_config/`, params);
 }
 
+export function getTicketStatus(params: { ticket_ids: string }) {
+  return http.get<Record<string, string>>(`${path}/list_ticket_status/`, params);
+}
+
 /**
  * 删除单据流程规则
  */
@@ -318,36 +332,122 @@ export function deleteTicketFlowConfig(params: { config_ids: number[] }) {
 /**
  * 查询服务器资源的城市信息
  */
-export const getInfrasCities = () => http.get<CitiyItem[]>('/apis/infras/cities/');
+export const getInfrasCities = () =>
+  http.get<
+    {
+      city_code: string;
+      city_name: string;
+      inventory: number;
+      inventory_tag: string;
+    }[]
+  >('/apis/infras/cities/');
 
 /**
  * 服务器规格列表
  */
-export const getInfrasHostSpecs = () => http.get<HostSpec[]>('/apis/infras/cities/host_specs/');
+export const getInfrasHostSpecs = () =>
+  http.get<
+    {
+      cpu: string;
+      mem: string;
+      spec: string;
+      type: string;
+    }[]
+  >('/apis/infras/cities/host_specs/');
 
 /**
  * redis 容量列表
  */
-export const getCapSpecs = (params: CapSpecsParams & { cityCode: string }) =>
-  http.post<CapSepcs[]>('/apis/infras/cities/cap_specs/', params);
+export const getCapSpecs = (params: {
+  nodes: {
+    master: Array<{
+      ip: string;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      bk_cpu?: number;
+      bk_mem?: number;
+      bk_disk?: number;
+      bk_biz_id: number;
+    }>;
+    slave: Array<{
+      ip: string;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      bk_cpu?: number;
+      bk_mem?: number;
+      bk_disk?: number;
+      bk_biz_id: number;
+    }>;
+  };
+  ip_source: string;
+  cluster_type: string;
+  cityCode: string;
+}) =>
+  http.post<
+    {
+      group_num: number;
+      maxmemory: number;
+      shard_num: number;
+      spec: string;
+      total_memory: number;
+      cap_key: string;
+      selected: boolean;
+      max_disk: number;
+      total_disk: string;
+    }[]
+  >('/apis/infras/cities/cap_specs/', params);
 
 /**
  * 创建业务英文缩写
  */
-export const createAppAbbr = (params: CreateAbbrParams & { id: number }) =>
-  http.post<CreateAbbrParams>(`/apis/cmdb/${params.id}/set_db_app_abbr/`, params);
+export const createAppAbbr = (params: { db_app_abbr: string; id: number }) =>
+  http.post<{
+    db_app_abbr: string;
+  }>(`/apis/cmdb/${params.id}/set_db_app_abbr/`, params);
 
 /**
  * 创建模块
  */
-export const createModules = (params: CreateModuleParams & { id: number }) =>
-  http.post<CreateModuleResult>(`/apis/cmdb/${params.id}/create_module/`, params);
+export const createModules = (params: { db_module_name: string; cluster_type: string; id: number }) =>
+  http.post<{
+    db_module_id: number;
+    db_module_name: string;
+    cluster_type: string;
+    bk_biz_id: number;
+    bk_set_id: number;
+    bk_modules: { bk_module_name: string; bk_module_id: string }[];
+    name: string;
+  }>(`/apis/cmdb/${params.id}/create_module/`, params);
 
 /**
  * 保存模块配置
  */
-export const saveModulesDeployInfo = (params: CreateModuleDeployInfo) =>
-  http.post<CreateModuleDeployInfo>('/apis/configs/save_module_deploy_info/', params);
+export const saveModulesDeployInfo = (params: {
+  bk_biz_id: number;
+  conf_items: {
+    conf_name: string;
+    conf_value: string;
+    op_type: string;
+  }[];
+  version: string;
+  meta_cluster_type: string;
+  level_name: string;
+  level_value: number;
+  conf_type: string;
+}) =>
+  http.post<{
+    bk_biz_id: number;
+    conf_items: {
+      conf_name: string;
+      conf_value: string;
+      op_type: string;
+    }[];
+    version: string;
+    meta_cluster_type: string;
+    level_name: string;
+    level_value: number;
+    conf_type: string;
+  }>('/apis/configs/save_module_deploy_info/', params);
 
 /**
  * 查询访问源列表

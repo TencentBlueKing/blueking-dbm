@@ -40,6 +40,9 @@
   }
 
   watch(activeTicketId, () => {
+    if (!activeTicketId.value) {
+      return;
+    }
     appendSearchParams({
       viewId: activeTicketId.value,
     });

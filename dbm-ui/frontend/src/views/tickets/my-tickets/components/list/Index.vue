@@ -36,61 +36,62 @@
         :placeholder="searchPlaceholder"
         unique-select />
     </div>
-    <div class="side-main">
+    <div class="ticket-list">
       <div
         ref="sideListRef"
-        class="side-list db-scroll-y">
-        <BkLoading :loading="isLoading">
-          <EmptyStatus
-            v-if="list.length === 0"
-            :is-anomalies="isAnomalies"
-            :is-searching="isSearching"
-            @clear-search="handleClearSearch"
-            @refresh="fetchTicketList" />
-          <template v-else>
+        class="ticket-wrapper">
+        <ScrollFaker>
+          <BkLoading :loading="isLoading">
             <div
               v-for="item of list"
               :key="item.id"
-              class="side-item"
-              :class="[{ 'side-item-active': modelValue === item.id }]"
+              class="ticket-box"
+              :class="{
+                'is-active': modelValue === item.id,
+              }"
               @click="handleChange(item.id)">
-              <div class="side-item-title">
-                <strong
+              <div class="ticket-header">
+                <div
                   v-overflow-tips
-                  class="side-item-name text-overflow">
+                  class="ticket-type-name text-overflow">
                   {{ item.ticket_type_display }}
-                </strong>
+                </div>
                 <BkTag
-                  class="side-item-tag"
+                  class="ticket-status-tag"
                   :theme="item.tagTheme">
-                  {{ t(item.statusText) }}
+                  {{ item.statusText }}
                 </BkTag>
               </div>
               <div
                 v-if="item.related_object"
-                class="side-item-info is-single">
-                <span class="info-item-label">{{ item.related_object.title }}：</span>
+                class="ticket-info-more">
+                <div class="ticket-info-label">{{ item.related_object.title }}：</div>
                 <RenderRow
-                  class="info-item-value"
                   :data="item.related_object.objects"
                   show-all
                   style="overflow: hidden" />
               </div>
-              <div class="side-item-info is-single">
-                <span class="info-item-label">{{ t('业务') }}：</span>
-                <span
+              <div class="ticket-info-more">
+                <div class="ticket-info-label">{{ t('业务') }}：</div>
+                <div
                   v-overflow-tips
-                  class="info-item-value text-overflow">
+                  class="text-overflow">
                   {{ item.bk_biz_name }}
-                </span>
+                </div>
               </div>
-              <div class="side-item-info">
-                <span>{{ t('申请人') }}： {{ item.creator }}</span>
-                <span>{{ item.formatCreateAt }}</span>
+              <div class="ticket-info-more">
+                <div>{{ t('申请人') }}： {{ item.creator }}</div>
+                <div style="margin-left: auto">{{ item.formatCreateAt }}</div>
               </div>
             </div>
-          </template>
-        </BkLoading>
+            <EmptyStatus
+              v-if="list.length < 1"
+              :is-anomalies="isAnomalies"
+              :is-searching="isSearching"
+              @clear-search="handleClearSearch"
+              @refresh="fetchTicketList" />
+          </BkLoading>
+        </ScrollFaker>
       </div>
       <BkPagination
         v-model="pagination.current"
@@ -105,12 +106,13 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { reactive, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute } from 'vue-router';
 
-  import { getTickets, getTicketTypes } from '@services/source/ticket';
+  import { getTickets, getTicketStatus, getTicketTypes } from '@services/source/ticket';
 
   import { useUrlSearch } from '@hooks';
 
@@ -122,12 +124,15 @@
 
   import { getSearchSelectorParams } from '@utils';
 
+  import { useTimeoutFn } from '@vueuse/core';
+
   import TicketStatus from './components/TicketStatus.vue';
 
   const { t } = useI18n();
   const route = useRoute();
   const globalBizsStore = useGlobalBizs();
   const { replaceSearchParams } = useUrlSearch();
+  const paginationLimit = 10;
 
   const isBizTicketManagePage = route.name === 'bizTicketManage';
   const searchPlaceholder = isBizTicketManagePage ? t('单号_单据类型_申请人') : t('单号_单据类型_业务');
@@ -143,8 +148,8 @@
   const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
 
   const pagination = reactive({
-    current: route.query.offset ? Math.ceil(Number(route.query.offset) / 20) + 1 : 1,
-    limit: route.query.limit ? Number(route.query.limit) : 20,
+    current: route.query.offset ? Math.ceil(Number(route.query.offset) / paginationLimit) + 1 : 1,
+    limit: route.query.limit ? Number(route.query.limit) : paginationLimit,
     total: 0,
   });
 
@@ -186,42 +191,55 @@
     },
   });
 
-  const getFetchTicketsParams = () => {
-    const params = {
-      status: ticketStatus.value === 'ALL' ? '' : (ticketStatus.value as string),
-      limit: pagination.limit,
-      offset: (pagination.current - 1) * pagination.limit,
-      ...getSearchSelectorParams(searachSelectValue.value),
-    };
-    if (isBizTicketManagePage) {
-      Object.assign(params, {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      });
-    } else {
-      Object.assign(params, {
-        self_manage: selfManage.value,
-      });
-    }
-    return params;
-  };
-
-  const { run: fetchTicketListStatus } = useRequest(
+  const { run: fetchTicketStatus } = useRequest(
     () => {
-      const params = getFetchTicketsParams();
-      return getTickets(params);
+      if (list.value.length < 1) {
+        return Promise.reject();
+      }
+      return getTicketStatus({
+        ticket_ids: list.value.map((item) => item.id).join(','),
+      });
     },
     {
+      manual: true,
       onSuccess(data) {
-        list.value = data.results;
+        list.value.forEach((ticketData) => {
+          if (data[ticketData.id]) {
+            Object.assign(ticketData, {
+              status: data[ticketData.id],
+            });
+          }
+        });
+        loopFetchTicketStatus();
       },
     },
   );
+
+  const { start: loopFetchTicketStatus } = useTimeoutFn(() => {
+    fetchTicketStatus();
+  }, 10000);
+
   /**
    * 获取单据列表
    */
+  let params: Record<string, any>;
   const { loading: isLoading, run: fetchTicketList } = useRequest(
     () => {
-      const params = getFetchTicketsParams();
+      params = {
+        status: ticketStatus.value === 'ALL' ? '' : (ticketStatus.value as string),
+        limit: pagination.limit,
+        offset: (pagination.current - 1) * pagination.limit,
+        ...getSearchSelectorParams(searachSelectValue.value),
+      };
+      if (isBizTicketManagePage) {
+        Object.assign(params, {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+        });
+      } else {
+        Object.assign(params, {
+          self_manage: selfManage.value,
+        });
+      }
       return getTickets(params);
     },
     {
@@ -229,25 +247,22 @@
         const { results = [], count = 0 } = data;
         list.value = results;
         pagination.total = count;
+        loopFetchTicketStatus();
+        replaceSearchParams(params);
 
         nextTick(() => {
           sideListRef.value!.scrollTop = 0;
           if (results.length > 0) {
-            const activeItem = sideListRef.value!.querySelector('.side-item-active');
+            const activeItem = sideListRef.value!.querySelector('.is-active');
             if (activeItem) {
-              activeItem.scrollIntoView();
-            } else {
+              activeItem.scrollIntoView({
+                block: 'center',
+              });
+            }
+            if (!modelValue.value) {
               handleChange(results[0].id);
             }
           }
-        });
-
-        setTimeout(() => {
-          fetchTicketListStatus();
-        }, 10000);
-
-        replaceSearchParams({
-          ...getFetchTicketsParams(),
         });
 
         isAnomalies.value = false;
@@ -261,6 +276,7 @@
   watch(
     [selfManage, ticketStatus, searachSelectValue],
     () => {
+      modelValue.value = undefined;
       pagination.current = 1;
       fetchTicketList();
     },
@@ -269,12 +285,13 @@
     },
   );
 
-  const handlePaginationChange = (value: number) => {
-    pagination.current = value;
+  const handlePaginationChange = _.debounce(() => {
+    modelValue.value = undefined;
     fetchTicketList();
-  };
+  }, 100);
 
   const handleClearSearch = () => {
+    modelValue.value = undefined;
     ticketStatus.value = 'ALL';
     searachSelectValue.value = [];
   };
@@ -380,13 +397,13 @@
       }
     }
 
-    .side-main {
+    .ticket-list {
       width: 100%;
       flex: 1;
       min-height: 0;
     }
 
-    .side-list {
+    .ticket-wrapper {
       width: 100%;
       height: calc(100% - 32px);
 
@@ -396,7 +413,7 @@
       }
     }
 
-    .side-item {
+    .ticket-box {
       padding: 16px;
       font-size: @font-size-mini;
       cursor: pointer;
@@ -414,27 +431,30 @@
         }
       }
 
-      .side-item-title {
+      .ticket-header {
         display: flex;
         align-items: center;
         padding-bottom: 8px;
         overflow: hidden;
       }
 
-      .side-item-name {
+      .ticket-type-name {
         padding-right: 8px;
+        font-weight: bold;
       }
 
-      .side-item-tag {
+      .ticket-status-tag {
         flex-shrink: 0;
       }
 
-      .side-item-info {
+      .ticket-info-more {
         .flex-center();
 
-        justify-content: space-between;
+        & ~ .ticket-info-more {
+          margin-top: 8px;
+        }
 
-        .info-item-label {
+        .ticket-info-label {
           flex-shrink: 0;
         }
 
@@ -449,19 +469,14 @@
           }
         }
       }
-
-      .is-single {
-        justify-content: flex-start;
-        margin-bottom: 8px;
-      }
     }
 
-    .side-item:hover,
-    .side-item-active {
+    .ticket-box:hover,
+    .is-active {
       background-color: #ebf2ff;
 
-      .side-item-title {
-        .side-item-name {
+      .ticket-header {
+        .ticket-type-name {
           font-weight: 700;
           color: #313238;
         }

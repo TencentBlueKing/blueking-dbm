@@ -13,16 +13,19 @@
 
 <template>
   <div class="render-cluster-box">
-    <span v-bk-tooltips="disabledTips">
+    <span
+      v-bk-tooltips="{
+        content: disabledTips,
+        disabled: !disabledTips,
+      }">
       <TableEditInput
         ref="editRef"
-        :disabled="!disabledTips.disabled"
+        :disabled="Boolean(disabledTips)"
         :model-value="localDomain"
         :placeholder="t('请输入集群')"
         :rules="rules" />
     </span>
     <DbIcon
-      v-if="disabledTips.disabled"
       class="cluster-btn"
       type="host-select"
       @click="handleShowClusterSelector" />
@@ -93,18 +96,7 @@
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
 
-  const disabledTips = computed(() => {
-    if (!props.srcClusterData) {
-      return {
-        disabled: false,
-        content: t('请先选择源集群'),
-      };
-    }
-    return {
-      disabled: true,
-      content: '',
-    };
-  });
+  const disabledTips = computed(() => (!props.srcClusterData ? t('请先选择源集群') : ''));
 
   const clusterSelectorTabConfig = {
     [ClusterTypes.SQLSERVER_HA]: {
@@ -197,6 +189,9 @@
   );
 
   const handleShowClusterSelector = () => {
+    if (disabledTips.value) {
+      return;
+    }
     isShowBatchSelector.value = true;
   };
 

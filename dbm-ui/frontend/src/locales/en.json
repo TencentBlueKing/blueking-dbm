@@ -789,7 +789,7 @@
   "克隆主从任务提交成功": "Clone Master-Slave task submitted successfully",
   "克隆主从执行": "Clone Master-Slave execution",
   "新_主从_主机_2台": "New (Master-Slave) hosts: 2",
-  "新主从主机": "New Master-Slave host",
+  "新从库主机": "New Master-Slave host",
   "添加从库_批量录入": "Add Slave - multi-entry",
   "请分别输入集群_新_主从_主机_多个对象_换行分隔": "Please enter the cluster, new (Master and Slave) hosts respectively\nMultiple objects, separated by newlines",
   "集群主从节点成对迁移到新的机器上_旧机器会下架掉": "The Master and Slave nodes of the cluster are migrated to new hosts in pairs, and the old hosts will be taken off the shelf",

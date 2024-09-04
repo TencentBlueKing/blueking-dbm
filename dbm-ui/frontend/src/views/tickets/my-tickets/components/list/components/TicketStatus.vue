@@ -24,26 +24,24 @@
   </BkDropdown>
 </template>
 <script setup lang="ts">
-  import { ref } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  import _ from 'lodash';
+  import { computed, ref } from 'vue';
 
-  import { type StatusTypeKeys, StatusTypes } from '@services/model/ticket/ticket';
+  import TicketModel from '@services/model/ticket/ticket';
 
   const emits = defineEmits<{
     (e: 'change', value: string): void;
   }>();
 
-  const { t } = useI18n();
-
   const modelValue = defineModel<string>();
 
-  const statusList = Object.keys(StatusTypes).map((key: string) => ({
-    label: t(StatusTypes[key as StatusTypeKeys]),
+  const statusList = Object.keys(TicketModel.statusTextMap).map((key) => ({
+    label: TicketModel.statusTextMap[key as keyof typeof TicketModel.statusTextMap],
     value: key,
   }));
 
   const isShowDropdown = ref(false);
-  const activeItem = ref();
+  const activeItem = computed(() => _.find(statusList, (item) => item.value === modelValue.value));
 
   const handleToggle = () => {
     isShowDropdown.value = !isShowDropdown.value;
@@ -57,7 +55,6 @@
     if (activeItem.value === item) {
       return;
     }
-    activeItem.value = item;
     modelValue.value = item.value;
     emits('change', item.value);
   };

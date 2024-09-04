@@ -55,7 +55,7 @@ export default [
     icon: 'db-icon-rollback',
     children: [
       {
-        name: t('定点回档'),
+        name: t('定点构造'),
         id: 'sqlServerDBRollback',
         parentId: 'fileback',
       },

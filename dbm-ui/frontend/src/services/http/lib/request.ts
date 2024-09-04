@@ -104,8 +104,6 @@ export default class Request {
       baseURL: window.PROJECT_ENV.VITE_AJAX_URL_PREFIX,
       url: this.config.url,
       method: this.config.method,
-      data: {},
-      params: {},
       payload: this.config.payload || {},
     });
 
