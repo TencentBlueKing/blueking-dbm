@@ -80,7 +80,10 @@ type Checker struct {
 func (c *Checker) Run() (msg string, err error) {
 	var cnfFile string
 	if config.MonitorConfig.Port == 3306 {
-		cnfFile = "/etc/my.cnf"
+		cnfFile = "etc/my.cnf.3306"
+		if _, err := os.Stat(cnfFile); os.IsNotExist(err) {
+			cnfFile = "/etc/my.cnf"
+		}
 	} else {
 		cnfFile = fmt.Sprintf("/etc/my.cnf.%d", config.MonitorConfig.Port)
 	}

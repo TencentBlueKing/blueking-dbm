@@ -167,9 +167,25 @@ func (c *OnMySQLComponent) instanceRenameTables(port int) error {
 			fromDB = fmt.Sprintf("%s_%d", fromDB, c.Param.PortShardIdMap[port])
 			toDB = fmt.Sprintf("%s_%d", toDB, c.Param.PortShardIdMap[port])
 		}
-		err := pkg.TransDBTables(c.dbConn, fromDB, toDB, c.dbTablesMap[fromDB])
+		createTriggers, err := pkg.TransDBTables(c.dbConn, fromDB, toDB, c.dbTablesMap[fromDB])
 		if err != nil {
 			return err
+		}
+
+		// 源的触发器已经没了
+		// 这里要在目的把触发器恢复
+		for _, trigger := range createTriggers {
+			_, err = c.dbConn.ExecContext(context.Background(), fmt.Sprintf("USE `%s`", toDB))
+			if err != nil {
+				logger.Error("change db to %s failed: %v", toDB, err)
+				return err
+			}
+			_, err = c.dbConn.ExecContext(context.Background(), trigger)
+			if err != nil {
+				logger.Error("create trigger %s in %s failed: %v", trigger, toDB, err)
+				return err
+			}
+			logger.Info("create trigger %s in %s success", trigger, toDB)
 		}
 	}
 	return nil
