@@ -31,6 +31,9 @@ class SpiderVersion(str, StructuredEnum):
 
     Spider1 = EnumField("Spider-1", _("Spider-1"))
     Spider3 = EnumField("Spider-3", _("Spider-3"))
+    Spider36 = EnumField("Spider-3.6", _("Spider-3.6"))
+    Spider37 = EnumField("Spider-3.7", _("Spider-3.7"))
+    Spider38 = EnumField("Spider-3.8", _("Spider-3.8"))
 
 
 class RedisVersion(str, StructuredEnum):
