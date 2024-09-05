@@ -245,9 +245,10 @@ class JWTUserModelBackend(UserModelBackend):
 
     def __init__(self):
         super().__init__()
+        self.user_maker = self.jwt_user_maker
 
     @staticmethod
-    def user_maker(username):
+    def jwt_user_maker(username):
         user_model = get_user_model()
         if hasattr(user_model.objects, "get_by_natural_key"):
             _user_maker = user_model.objects.get_by_natural_key  # type: ignore
