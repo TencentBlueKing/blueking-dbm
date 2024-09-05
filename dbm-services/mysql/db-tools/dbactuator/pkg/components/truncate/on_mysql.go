@@ -98,7 +98,7 @@ func (c *OnMySQLComponent) oneInstance(port int) error {
 	//}
 	//logger.Info("rename others to stage on instance %d finished", port)
 
-	err = c.instanceRenameTables(port)
+	dbTriggers, err := c.instanceRenameTables(port)
 	if err != nil {
 		logger.Error("rename tables to stage on instance %d failed: %s", port, err.Error())
 		return err
@@ -113,6 +113,24 @@ func (c *OnMySQLComponent) oneInstance(port int) error {
 			return err
 		}
 		logger.Info("truncate source table on instance %d finished", port)
+
+		for db, triggers := range dbTriggers {
+			for _, trigger := range triggers {
+				_, err = c.dbConn.ExecContext(context.Background(), fmt.Sprintf("USE `%s`", db))
+				if err != nil {
+					logger.Error("change db to %s failed: %s", db, err.Error())
+					return err
+				}
+				_, err = c.dbConn.ExecContext(context.Background(), trigger)
+				if err != nil {
+					logger.Error("create trigger %s in %s on instance %d failed: %s",
+						trigger, db, port, err.Error())
+					return err
+				}
+				logger.Info("create trigger %s in %s on instance %d success",
+					trigger, db, port)
+			}
+		}
 	} else if c.Param.TruncateDataType == "drop_database" {
 		err = c.instanceDropSourceDBs(port)
 		if err != nil {
@@ -194,17 +212,19 @@ func (c *OnMySQLComponent) instanceCreateStageDBs(port int) error {
 	return nil
 }
 
-func (c *OnMySQLComponent) instanceRenameTables(port int) error {
+func (c *OnMySQLComponent) instanceRenameTables(port int) (map[string][]string, error) {
+	res := map[string][]string{}
 	for db := range c.dbTablesMap {
 		stageDBName := generateStageDBName(c.Param.StageDBHeader, c.Param.FlowTimeStr, db)
-		err := rpkg.TransDBTables(c.dbConn, db, stageDBName, c.dbTablesMap[db])
+		triggers, err := rpkg.TransDBTables(c.dbConn, db, stageDBName, c.dbTablesMap[db])
 		if err != nil {
 			logger.Error("rename tables to stage on instance %d failed: %s", port, err.Error())
-			return err
+			return nil, err
 		}
+		res[db] = triggers
 	}
 	logger.Info("rename table on instance %d success", port)
-	return nil
+	return res, nil
 }
 
 func (c *OnMySQLComponent) instanceRenameOthers(port int) error {
