@@ -349,6 +349,7 @@
     onSuccess(data) {
       pagination.value.count = data.count;
       const resultsMap = _.groupBy(data.results, 'ticket_type');
+      appendBtnController.value = {};
       allTableData.value = Object.values(resultsMap).flatMap(values => {
         const hasCurrentBizTarget = values.some((item) => item.isCurrentBizTarget);
         const rows = values.reduce<TicketFlowDescribeModel[]>((acc, item) => {
