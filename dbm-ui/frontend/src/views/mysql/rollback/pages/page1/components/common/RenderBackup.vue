@@ -24,7 +24,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   import { BackupSources, selectList } from './const';
 
@@ -54,10 +54,7 @@
       message: t('备份源不能为空'),
     },
   ];
-  const targetList = (props.list || selectList.backupSource).map((item) => ({
-    id: item.value,
-    name: item.label,
-  }));
+  const targetList = props.list || selectList.backupSource;
 
   const editSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const localValue = ref(BackupSources.REMOTE);

@@ -16,10 +16,8 @@
     <TableEditInput
       ref="editRef"
       v-model="localDomain"
-      multi-input
-      :placeholder="$t('请输入集群域名或从表头批量选择')"
-      :rules="rules"
-      @multi-input="handleMultiInput" />
+      :placeholder="t('请输入集群域名或从表头批量选择')"
+      :rules="rules" />
   </div>
 </template>
 <script lang="ts">
@@ -33,7 +31,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -44,7 +42,6 @@
   }
 
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void;
     (e: 'idChange', value: number): void;
   }
 
@@ -154,10 +151,6 @@
       immediate: true,
     },
   );
-
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
-  };
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];

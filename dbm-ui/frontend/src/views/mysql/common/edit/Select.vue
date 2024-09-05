@@ -101,9 +101,9 @@
 
   import { useDebouncedRef } from '@hooks';
 
-  import { encodeRegexp } from '@utils';
+  import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
-  import useValidtor, { type Rules } from './hooks/useValidtor';
+  import { encodeRegexp } from '@utils';
 
   type IKey = string | number;
 

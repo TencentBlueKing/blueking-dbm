@@ -18,7 +18,6 @@
         <RenderOriginalProxy
           ref="targetRef"
           :model-value="data.originProxyIp"
-          @input-create="handleCreate"
           @input-finish="handleOriginProxyInputFinish" />
       </td>
       <td style="padding: 0">
@@ -96,24 +95,6 @@
 
   const handleOriginProxyInputFinish = (value: IProxyData) => {
     emits('originProxyInputFinish', value);
-  };
-
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((instanceAddress) =>
-        createRowData({
-          originProxyIp: {
-            cluster_id: 0,
-            bk_host_id: 0,
-            bk_cloud_id: null,
-            port: 0,
-            ip: '',
-            instance_address: instanceAddress,
-          },
-        }),
-      ),
-    );
   };
 
   const handleAppend = () => {

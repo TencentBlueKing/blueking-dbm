@@ -17,8 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="localClusterData"
-        @change="handleClusterChange"
-        @input-create="handleCreate" />
+        @change="handleClusterChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderHostSource
@@ -145,20 +144,6 @@
 
   const handleBackupSourceChange = (value: string) => {
     localBackupSource.value = value as BackupSources;
-  };
-
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((domain) =>
-        createRowData({
-          clusterData: {
-            id: 0,
-            domain,
-          },
-        }),
-      ),
-    );
   };
 
   const handleAppend = () => {

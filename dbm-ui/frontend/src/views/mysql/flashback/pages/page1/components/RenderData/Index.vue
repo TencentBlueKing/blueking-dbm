@@ -15,8 +15,8 @@
   <RenderTable>
     <RenderTableHeadColumn
       fixed="left"
-      :min-width="270"
-      :width="270">
+      :min-width="300"
+      :width="350">
       {{ t('目标集群') }}
       <template #append>
         <BatchOperateIcon

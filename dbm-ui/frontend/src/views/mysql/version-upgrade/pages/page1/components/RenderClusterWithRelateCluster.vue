@@ -21,10 +21,9 @@
       v-show="isShowEdit"
       ref="editRef"
       v-model="localDomain"
-      :multi-input="false"
       :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
-      @error-message-change="handleErrorMessageChange"
+      @error="handleErrorMessageChange"
       @submit="handleEditSubmit" />
     <div
       v-show="!isShowEdit"
@@ -60,7 +59,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -216,12 +215,16 @@
   };
 
   // 提交编辑
-  const handleEditSubmit = () => {
+  const handleEditSubmit = (value: string) => {
+    if (!value) {
+      return;
+    }
+
     isShowEdit.value = false;
   };
 
-  const handleErrorMessageChange = (value: string) => {
-    isShowEdit.value = !!value;
+  const handleErrorMessageChange = (isError: boolean) => {
+    isShowEdit.value = isError;
   };
 
   onBeforeUnmount(() => {

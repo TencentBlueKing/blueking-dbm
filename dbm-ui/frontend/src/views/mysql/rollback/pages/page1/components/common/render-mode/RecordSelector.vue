@@ -417,7 +417,7 @@
     }
 
     &.is-error {
-      background: rgb(255 221 221 / 20%);
+      background: #fff0f1;
 
       .focused-flag {
         display: none;

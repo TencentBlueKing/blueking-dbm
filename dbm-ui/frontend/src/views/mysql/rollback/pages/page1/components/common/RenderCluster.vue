@@ -12,15 +12,11 @@
 -->
 
 <template>
-  <div class="render-cluster-box">
-    <TableEditInput
-      ref="editRef"
-      v-model="localDomain"
-      multi-input
-      :placeholder="placeholder || t('请输入集群域名或从表头批量选择')"
-      :rules="rules"
-      @multi-input="handleMultiInput" />
-  </div>
+  <TableEditInput
+    ref="editRef"
+    v-model="localDomain"
+    :placeholder="placeholder || t('请输入集群域名或从表头批量选择')"
+    :rules="rules" />
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -29,7 +25,6 @@
     placeholder?: string;
   }
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void;
     (e: 'change', data: Props['modelValue']): void;
   }
   interface Exposes {
@@ -151,10 +146,6 @@
     },
   );
 
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
-  };
-
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
   });
@@ -176,59 +167,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  @keyframes rotate-loading {
-    0% {
-      transform: rotateZ(0);
-    }
-
-    100% {
-      transform: rotateZ(360deg);
-    }
-  }
-
-  .render-cluster-box {
-    position: relative;
-
-    &.is-editing {
-      padding: 0;
-    }
-
-    .render-cluster-domain {
-      display: flex;
-      height: 20px;
-      padding-left: 16px;
-      line-height: 20px;
-      align-items: center;
-
-      .relate-loading {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-left: 4px;
-        color: #3a84ff;
-        animation: rotate-loading 1s linear infinite;
-      }
-
-      .relate-btn {
-        display: flex;
-        width: 20px;
-        height: 20px;
-        margin-left: 4px;
-        color: #3a84ff;
-        cursor: pointer;
-        background: #e1ecff;
-        border-radius: 2px;
-        align-items: center;
-        justify-content: center;
-      }
-    }
-
-    .related-cluster-list {
-      padding-left: 24px;
-      font-size: 12px;
-      line-height: 22px;
-      color: #979ba5;
-    }
-  }
-</style>
