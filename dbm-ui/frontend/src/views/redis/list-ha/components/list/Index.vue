@@ -133,6 +133,7 @@
 <script setup lang="tsx">
   import { Message } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
 
@@ -192,11 +193,6 @@
     getSearchSelectorParams,
     messageWarn,
   } from '@utils';
-
-  import type {
-    SearchSelectData,
-    SearchSelectItem,
-  } from '@/types/bkui-vue';
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -379,7 +375,7 @@
       multiple: true,
       children: searchAttrs.value.time_zone,
     },
-  ] as SearchSelectData);
+  ]);
 
   const paginationExtra = computed(() => {
     if (isStretchLayoutOpen.value) {
@@ -1008,7 +1004,7 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.REDIS_HA_TABLE_SETTINGS, defaultSettings);
 
-  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }

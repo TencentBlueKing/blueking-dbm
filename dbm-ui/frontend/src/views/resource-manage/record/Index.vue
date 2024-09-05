@@ -5,7 +5,7 @@
         v-model="operationDateTime"
         append-to-body
         clearable
-        :placeholder="$t('请选择操作时间')"
+        :placeholder="t('请选择操作时间')"
         type="datetimerange"
         @change="handleDateChange" />
       <DbSearchSelect
@@ -30,6 +30,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -45,9 +46,6 @@
   import { getMenuListSearch, getSearchSelectorParams } from '@utils';
 
   import HostDetail from './components/HostDetail.vue';
-
-  // const router = useRouter();
-  import type { SearchSelectItem } from '@/types/bkui-vue';
 
   const route = useRoute();
   const { t } = useI18n();
@@ -141,7 +139,7 @@
       name: t('操作人'),
       id: 'operator',
     },
-  ]);
+  ] as ISearchItem[]);
 
   const tableColumn = computed(() => [
     {
@@ -299,7 +297,7 @@
     },
   });
 
-  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'operator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }
