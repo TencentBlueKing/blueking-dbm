@@ -114,18 +114,6 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
     )
 
     sub_pipeline.add_act(
-        act_name=_("下发db-actor到节点{}".format(cluster["master_ip"])),
-        act_component_code=TransFileComponent.code,
-        kwargs=asdict(
-            DownloadMediaKwargs(
-                bk_cloud_id=cluster["bk_cloud_id"],
-                exec_ip=[cluster["master_ip"], cluster["new_slave_ip"]],
-                file_list=GetFileList(db_type=DBType.MySQL).get_db_actuator_package(),
-            )
-        ),
-    )
-
-    sub_pipeline.add_act(
         act_name=_("下载全库备份介质到 {}".format(cluster["new_slave_ip"])),
         act_component_code=MySQLDownloadBackupfileComponent.code,
         kwargs=asdict(download_kwargs),

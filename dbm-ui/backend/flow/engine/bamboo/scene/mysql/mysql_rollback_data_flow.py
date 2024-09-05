@@ -14,6 +14,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Dict, Optional
 
+from django.db.models import Q
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
@@ -74,7 +75,11 @@ class MySQLRollbackDataFlow(object):
         for info in self.ticket_data["infos"]:
             self.data = copy.deepcopy(info)
             cluster_class = Cluster.objects.get(id=self.data["cluster_id"])
-            master = cluster_class.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+            filters = Q(cluster_type=ClusterType.TenDBSingle.value, instance_inner_role=InstanceInnerRole.ORPHAN.value)
+            filters = filters | Q(
+                cluster_type=ClusterType.TenDBHA.value, instance_inner_role=InstanceInnerRole.MASTER.value
+            )
+            master = cluster_class.storageinstance_set.get(filters)
             self.data["bk_biz_id"] = cluster_class.bk_biz_id
             self.data["bk_cloud_id"] = cluster_class.bk_cloud_id
             self.data["db_module_id"] = cluster_class.db_module_id

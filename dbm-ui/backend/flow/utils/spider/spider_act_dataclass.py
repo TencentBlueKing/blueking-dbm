@@ -91,3 +91,25 @@ class SwitchRemoteSlaveRoutingKwargs:
 
     cluster_id: int
     switch_remote_instance_pairs: Optional[List[InstancePairs]]
+
+
+@dataclass()
+class InstanceServerName:
+    """
+    定义需要替换的实例信息对
+    """
+
+    server_name: str
+    new_ip: str
+    new_port: int
+    tdbctl_pass: str
+
+
+@dataclass
+class SwitchRemoteShardRoutingKwargs:
+    """
+    定义spider节点remote slave替换操作的私有变量结构体
+    """
+
+    cluster_id: int
+    switch_remote_shard: Optional[List[InstanceServerName]]

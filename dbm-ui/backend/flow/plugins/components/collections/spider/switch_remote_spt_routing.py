@@ -16,7 +16,7 @@ from backend.flow.consts import TDBCTL_USER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 
-class SwitchRemoteSlaveRoutingService(BaseService):
+class SwitchRemoteShardRoutingService(BaseService):
     """
     定义spider(tenDB cluster)集群的替换remote slave实例的路由关系
     """
@@ -25,6 +25,18 @@ class SwitchRemoteSlaveRoutingService(BaseService):
         """
         再新的实例对中控primary授权
         """
+        # 删除已经存在的spider账号
+        rpc_params = {
+            "addresses": [f"{new_ip}{IP_PORT_DIVIDER}{new_port}"],
+            "cmds": [
+                f"drop user '{TDBCTL_USER}'@'{ctl_primary.split(IP_PORT_DIVIDER)[0]}'",
+            ],
+            "force": False,
+            "bk_cloud_id": cluster.bk_cloud_id,
+        }
+        # drs服务远程请求
+        res = DRSApi.rpc(rpc_params)
+        self.log_info(res)
         # 添加临时账号
         DBPrivManagerApi.add_priv_without_account_rule(
             params={
@@ -43,13 +55,12 @@ class SwitchRemoteSlaveRoutingService(BaseService):
         self.log_info(f"add tdbctl user in instance [f'{new_ip}{IP_PORT_DIVIDER}{new_port}'] success")
 
     def _alter_remote_slave_routing(
-        self, cluster: Cluster, old_ip: str, old_port: int, new_ip: str, new_port: int, tdbctl_pass: str
+        self, cluster: Cluster, server_name: str, new_ip: str, new_port: int, tdbctl_pass: str
     ):
         """
         替换实例的路由信息的具体逻辑
         @param cluster: 关联操作的cluster对象
-        @param old_ip: 待替换实例的ip
-        @param old_port: 待替换实例的port
+        @param server_name: 待更新的server_name
         @param new_ip: 新实例的ip
         @param new_port: 新实例的port
         @param tdbctl_pass: 新实例
@@ -57,12 +68,11 @@ class SwitchRemoteSlaveRoutingService(BaseService):
 
         # 获取最新cluster的中控 primary节点
         ctl_primary = cluster.tendbcluster_ctl_primary_address()
-
         rpc_params = {
             "addresses": [ctl_primary],
             "cmds": [
                 "set tc_admin=1",
-                f"select Server_name from mysql.servers where host = '{old_ip}' and port = {old_port}",
+                f"select Server_name from mysql.servers where Server_name = '{server_name}'",
             ],
             "force": False,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -75,7 +85,7 @@ class SwitchRemoteSlaveRoutingService(BaseService):
             return False
 
         if not res[0]["cmd_results"][1]["table_data"]:
-            self.log_error(f"Node [{old_ip}{IP_PORT_DIVIDER}{old_port}] no longer has routing information")
+            self.log_error(f"Node [{server_name}] no longer has routing information")
             return False
 
         # 添加tdbctl账号
@@ -99,21 +109,20 @@ class SwitchRemoteSlaveRoutingService(BaseService):
             self.log_error(f"exec TDBCTL-ALTER-NODE failed: {res[0]['error_msg']}")
             return False
 
-        self.log_info(f"exec TDBCTL-ALTER-NODE success: [{server_name}->{new_ip}:{new_port}]")
+        self.log_info(f"exec TDBCTL-ALTER-NODE success: [{server_name}->{new_ip}{IP_PORT_DIVIDER}{new_port}]")
         return True
 
     def _execute(self, data, parent_data):
         kwargs = data.get_one_of_inputs("kwargs")
 
-        switch_remote_instance_pairs = kwargs["switch_remote_instance_pairs"]
+        switch_remote_shard = kwargs["switch_remote_shard"]
 
         # 获取cluster对象，包括中控实例、 spider端口等
         cluster = Cluster.objects.get(id=kwargs["cluster_id"])
-        for pairs in switch_remote_instance_pairs:
+        for pairs in switch_remote_shard:
             if not self._alter_remote_slave_routing(
                 cluster=cluster,
-                old_ip=pairs["old_ip"],
-                old_port=pairs["old_port"],
+                server_name=pairs["server_name"],
                 new_ip=pairs["new_ip"],
                 new_port=pairs["new_port"],
                 tdbctl_pass=pairs["tdbctl_pass"],
@@ -123,7 +132,7 @@ class SwitchRemoteSlaveRoutingService(BaseService):
         return True
 
 
-class SwitchRemoteSlaveRoutingComponent(Component):
+class SwitchRemoteShardRoutingComponent(Component):
     name = __name__
-    code = "switch_remote_slave_routing"
-    bound_service = SwitchRemoteSlaveRoutingService
+    code = "switch_remote_shard_routing"
+    bound_service = SwitchRemoteShardRoutingService
