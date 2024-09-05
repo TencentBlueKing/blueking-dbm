@@ -205,7 +205,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value!.getValue(true);
+      await clusterRef.value!.getValue();
       return Promise.all([
         slaveRef.value!.getValue(),
         dbPatternsRef.value!.getValue('db_patterns'),

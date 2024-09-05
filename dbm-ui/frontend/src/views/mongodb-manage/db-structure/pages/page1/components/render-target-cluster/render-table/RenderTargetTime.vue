@@ -24,7 +24,7 @@
 
   import { useTimeZoneFormat } from '@hooks';
 
-  import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
+  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
 
   interface Exposes {
     getValue: () => Promise<{ rollback_time: string }>;

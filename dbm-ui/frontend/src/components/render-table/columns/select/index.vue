@@ -32,8 +32,8 @@
       v-model="localValue"
       auto-focus
       class="select-box"
+      clearable
       v-bind="$attrs"
-      :clearable="false"
       :disabled="disabled"
       :filterable="filterable"
       :input-search="false"
@@ -211,6 +211,10 @@
     :deep(.angle-up) {
       display: none !important;
     }
+
+    :deep(.angle-down) {
+      display: none !important;
+    }
   }
 
   .is-disable {
@@ -244,12 +248,12 @@
 
         .bk-input {
           height: 100%;
-          padding-left: 8px;
           border: none;
           outline: none;
 
           input {
             background: transparent;
+            margin-left: 8px;
           }
         }
       }
@@ -258,11 +262,10 @@
     .select-error {
       position: absolute;
       top: 0;
-      right: 0;
+      right: 4px;
       bottom: 0;
       z-index: 99;
       display: flex;
-      padding-right: 6px;
       font-size: 14px;
       color: #ea3636;
       align-items: center;

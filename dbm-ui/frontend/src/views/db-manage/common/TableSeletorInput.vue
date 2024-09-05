@@ -314,6 +314,10 @@
       .inner-input {
         background-color: #fff1f1;
       }
+
+      .edit-btn {
+        right: 25px;
+      }
     }
 
     .inner-input {
@@ -373,13 +377,11 @@
 
     .input-error {
       position: absolute;
-      top: 50%;
+      top: -2px;
       right: 10px;
       z-index: 10;
-      padding-bottom: 3px;
       font-size: 14px;
       color: #ea3636;
-      transform: translate(-50%, -50%);
     }
 
     .count-tag {

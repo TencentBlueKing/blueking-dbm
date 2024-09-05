@@ -12,15 +12,11 @@
 -->
 
 <template>
-  <div class="render-cluster-box">
-    <TableEditInput
-      ref="editRef"
-      v-model="localDomain"
-      multi-input
-      :placeholder="$t('请输入集群域名或从表头批量选择')"
-      :rules="rules"
-      @multi-input="handleMultiInput" />
-  </div>
+  <TableEditInput
+    ref="editRef"
+    v-model="localDomain"
+    :placeholder="t('请输入集群域名或从表头批量选择')"
+    :rules="rules" />
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -33,7 +29,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -44,7 +40,6 @@
   }
 
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void;
     (e: 'idChange', value: number): void;
   }
 
@@ -65,7 +60,6 @@
 
   const localClusterId = ref(0);
   const localDomain = ref('');
-  const isShowEdit = ref(true);
 
   const rules = [
     {
@@ -130,9 +124,6 @@
       if (props.modelValue) {
         localClusterId.value = props.modelValue.id;
         localDomain.value = props.modelValue.domain;
-        isShowEdit.value = false;
-      } else {
-        isShowEdit.value = true;
       }
     },
     {
@@ -154,10 +145,6 @@
     },
   );
 
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
-  };
-
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
   });
@@ -170,8 +157,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-cluster-box {
-    position: relative;
-  }
-</style>

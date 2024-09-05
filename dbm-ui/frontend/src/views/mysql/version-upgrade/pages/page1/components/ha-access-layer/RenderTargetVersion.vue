@@ -19,12 +19,12 @@
       :disabled="!data.clusterData"
       :list="versionList"
       :rules="rules">
-      <template #default="{ item, index }">
+      <template #default="{ optionItem, index }">
         <div class="target-version-select-option">
           <div
             v-overflow-tips
             class="option-name">
-            {{ item.name }}
+            {{ optionItem.label }}
           </div>
           <BkTag
             v-if="index === 0"
@@ -46,7 +46,7 @@
 
   import { versionRegex } from '@common/regex';
 
-  import TableEditSelect, { type IListItem } from '@views/mysql/common/edit/Select.vue';
+  import TableEditSelect, { type IListItem } from '@components/render-table/columns/select/index.vue';
 
   import { compareVersions } from '@utils';
 
@@ -83,8 +83,8 @@
         const version = versionItem.name.match(versionRegex);
         if (version && compareVersions(version[0], currentVersion) === 1) {
           prevList.push({
-            id: versionItem.id,
-            name: versionItem.name,
+            value: versionItem.id,
+            label: versionItem.name,
           });
           return prevList;
         }

@@ -17,8 +17,7 @@
       ref="editRef"
       v-model="localValue"
       :placeholder="t('请输入IP或从表头批量选择')"
-      :rules="rules"
-      textarea />
+      :rules="rules" />
   </div>
 </template>
 <script lang="ts">
@@ -36,7 +35,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -78,6 +77,10 @@
   let localProxyData = {} as InstanceInfos;
 
   const rules = [
+    {
+      validator: (value: string) => !!value,
+      message: t('不能为空'),
+    },
     {
       validator: (value: string) => ipv4.test(_.trim(value)),
       message: t('IP格式不正确'),

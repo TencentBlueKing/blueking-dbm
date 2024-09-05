@@ -988,7 +988,6 @@
                   v-db-console="tendbCluster.clusterManage.enable"
                   resource={data.id}
                   text
-                  theme="primary"
                   disabled={data.isStarting}
                   class="mr-8"
                   onClick={() => handleChangeClusterOnline(TicketTypes.TENDBCLUSTER_ENABLE, data)}>
@@ -1004,7 +1003,6 @@
                   v-db-console="tendbCluster.clusterManage.delete"
                   resource={data.id}
                   text
-                  theme="primary"
                   disabled={Boolean(data.operationTicketId)}
                   class="mr-8"
                   onClick={() => handleDeleteCluster(data)}>

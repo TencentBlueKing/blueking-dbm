@@ -16,8 +16,8 @@
     <template #default>
       <RenderTableHeadColumn
         fixed="left"
-        :min-width="120"
-        :width="225">
+        :min-width="250"
+        :width="280">
         {{ t('源实例') }}
         <template #append>
           <BatchOperateIcon
