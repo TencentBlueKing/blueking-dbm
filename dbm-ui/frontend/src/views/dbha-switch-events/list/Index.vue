@@ -104,8 +104,8 @@
   const isLoading = ref(false);
   const filterDateRang = ref<[string, string]>([
     dayjs().day(-6)
-      .toISOString(),
-    dayjs().toISOString(),
+      .format('YYYY-MM-DD HH:mm:ss'),
+    dayjs().format('YYYY-MM-DD HH:mm:ss'),
   ]);
 
   const logState = reactive({
