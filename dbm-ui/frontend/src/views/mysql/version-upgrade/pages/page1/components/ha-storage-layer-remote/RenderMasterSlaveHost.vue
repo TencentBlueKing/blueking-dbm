@@ -16,9 +16,9 @@
     ref="inputRef"
     v-model="localIpText"
     :disabled="disabled"
+    :paste-fn="pasteFunc"
     :placeholder="t('请输入2台IP_英文逗号或换行分隔')"
-    :rules="rules"
-    textarea />
+    :rules="rules" />
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -31,7 +31,7 @@
 
   import { ipv4 } from '@common/regex';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -174,6 +174,8 @@
       immediate: true,
     },
   );
+
+  const pasteFunc = (value: string) => value.split(splitReg).join(',');
 
   defineExpose<Exposes>({
     getValue() {

@@ -15,6 +15,7 @@
   <TagInput
     ref="tagInputRef"
     v-model="modelValue"
+    clearable
     :disabled="disabled"
     :placeholder="placeholder"
     :rules="rules"

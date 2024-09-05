@@ -269,7 +269,9 @@
 
       .input-error {
         position: absolute;
-        inset: 0;
+        top: 50%;
+        left: 50%;
+        transform: translateY(-50%);
         display: flex;
         padding-right: 35px;
         font-size: 14px;

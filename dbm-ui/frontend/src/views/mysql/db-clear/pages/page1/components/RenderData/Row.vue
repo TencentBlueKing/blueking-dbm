@@ -178,7 +178,7 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value.getValue(true),
+        clusterRef.value.getValue(),
         truncateDataTypeRef.value.getValue(),
         dbPatternsRef.value.getValue('db_patterns'),
         tablePatternsRef.value.getValue('table_patterns'),

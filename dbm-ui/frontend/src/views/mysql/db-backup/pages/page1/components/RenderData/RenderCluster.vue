@@ -12,17 +12,13 @@
 -->
 
 <template>
-  <div class="render-cluster-box">
-    <TableEditInput
-      ref="editRef"
-      v-model="localDomain"
-      multi-input
-      :placeholder="t('请输入集群域名或从表头批量选择')"
-      :rules="rules"
-      @input="handleInputChange"
-      @multi-input="handleMultiInput"
-      @submit="handleInputFinish" />
-  </div>
+  <TableEditInput
+    ref="editRef"
+    v-model="localDomain"
+    :placeholder="t('请输入集群域名或从表头批量选择')"
+    :rules="rules"
+    @input="handleInputChange"
+    @submit="handleInputFinish" />
 </template>
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
@@ -34,7 +30,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -46,7 +42,6 @@
 
   interface Emits {
     (e: 'inputClusterFinish', value: string): void;
-    (e: 'inputCreate', value: Array<string>): void;
   }
 
   interface Exposes {
@@ -157,10 +152,6 @@
     emits('inputClusterFinish', value);
   };
 
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
-  };
-
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
   });
@@ -173,8 +164,3 @@
     },
   });
 </script>
-<style lang="less" scoped>
-  .render-cluster-box {
-    position: relative;
-  }
-</style>

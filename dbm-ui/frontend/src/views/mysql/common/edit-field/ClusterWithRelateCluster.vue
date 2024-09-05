@@ -21,10 +21,8 @@
       v-show="isShowEdit"
       ref="editRef"
       v-model="localDomain"
-      multi-input
       :placeholder="t('请输入集群域名或从表头批量选择')"
       :rules="rules"
-      @multi-input="handleMultiInput"
       @submit="handleEditSubmit" />
     <div v-show="!isShowEdit">
       <div
@@ -105,7 +103,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import TableEditInput from '@views/mysql/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
@@ -119,7 +117,6 @@
   }
 
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void;
     (e: 'idChange', value: { id: number; cloudId: number | null }): void;
   }
 
@@ -337,7 +334,11 @@
   };
 
   // 提交编辑
-  const handleEditSubmit = () => {
+  const handleEditSubmit = (value: string) => {
+    if (!value) {
+      return;
+    }
+
     isShowEdit.value = false;
     nextTick(() => {
       initRelateClusterPopover();
@@ -347,10 +348,6 @@
   // 显示管理集群列表
   const handleShowRelateMemu = () => {
     isShowRelateMemo.value = true;
-  };
-
-  const handleMultiInput = (list: Array<string>) => {
-    emits('inputCreate', list);
   };
 
   // 选中关联集群

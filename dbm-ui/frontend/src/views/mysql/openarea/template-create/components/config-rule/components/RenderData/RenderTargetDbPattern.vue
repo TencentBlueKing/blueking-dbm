@@ -37,7 +37,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   interface Props {
     dbName?: string;
