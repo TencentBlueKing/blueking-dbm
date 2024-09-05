@@ -68,6 +68,10 @@
 
   const rules = [
     {
+      validator: (value: string) => !!value,
+      message: t('不能为空'),
+    },
+    {
       validator: (value: string) => ipv4.test(_.trim(value)),
       message: t('IP格式不正确'),
     },

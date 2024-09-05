@@ -20,7 +20,7 @@
     }">
     <BkDatePicker
       append-to-body
-      :clearable="false"
+      clearable
       :model-value="localValue"
       :placeholder="placeholder"
       style="width: 100%"

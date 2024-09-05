@@ -17,14 +17,8 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="data.clusterData"
-        @id-change="handleClusterIdChange"
-        @input-create="handleCreate" />
+        @id-change="handleClusterIdChange" />
     </FixedColumn>
-    <!-- <td style="padding: 0;">
-      <RenderBackupSource
-        ref="backupSourceRef"
-        :model-value="data.backupOn" />
-    </td> -->
     <td style="padding: 0">
       <RenderDbName
         ref="dbPatternsRef"
@@ -135,20 +129,6 @@
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
-  };
-
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((domain) =>
-        createRowData({
-          clusterData: {
-            id: 0,
-            domain,
-          },
-        }),
-      ),
-    );
   };
 
   const handleAppend = () => {

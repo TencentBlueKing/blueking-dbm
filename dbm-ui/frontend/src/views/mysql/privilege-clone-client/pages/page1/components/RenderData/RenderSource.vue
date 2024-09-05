@@ -27,7 +27,7 @@
 
   import { netIp } from '@common/regex';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -79,6 +79,10 @@
   );
 
   const handleChange = (value: string) => {
+    if (!value) {
+      return;
+    }
+
     const [bkCloudId, ip] = value.split(':');
     modelValue.value = {
       ip,

@@ -33,7 +33,7 @@
 
   import { ipPort } from '@common/regex';
 
-  import TableEditInput from '@views/spider-manage/common/edit/Input.vue';
+  import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -69,14 +69,19 @@
             return false;
           }
           const [instanceData] = data;
-          modelValue.value = {
-            bkCloudId: instanceData.bk_cloud_id,
-            bkHostId: instanceData.bk_host_id,
-            ip: instanceData.ip,
-            port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
-            clusterId: instanceData.cluster_id,
-          };
+          if (
+            !modelValue.value?.instanceAddress ||
+            modelValue.value.instanceAddress !== instanceData.instance_address
+          ) {
+            modelValue.value = {
+              bkCloudId: instanceData.bk_cloud_id,
+              bkHostId: instanceData.bk_host_id,
+              ip: instanceData.ip,
+              port: instanceData.port,
+              instanceAddress: instanceData.instance_address,
+              clusterId: instanceData.cluster_id,
+            };
+          }
           return true;
         }),
       message: t('目标从库实例不存在'),

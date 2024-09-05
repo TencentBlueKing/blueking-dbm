@@ -22,7 +22,7 @@
         class="clone-instance-batch mt16"
         @click="() => (isShowBatchInput = true)">
         <i class="db-icon-add" />
-        {{ $t('批量录入') }}
+        {{ t('批量录入') }}
       </BkButton>
       <RenderData
         class="mt16"

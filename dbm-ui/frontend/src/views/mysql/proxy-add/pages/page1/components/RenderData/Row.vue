@@ -18,8 +18,7 @@
         ref="clusterRef"
         :model-value="data.clusterData"
         relate-cluster-tips="同主机关联的其他集群，勾选后一并添加"
-        @id-change="handleClusterIdChange"
-        @input-create="handleCreate" />
+        @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderProxy
@@ -106,23 +105,10 @@
       immediate: true,
     },
   );
+
   const handleClusterIdChange = (idData: { id: number; cloudId: number | null }) => {
     localClusterId.value = idData.id;
     cloudId.value = idData.cloudId;
-  };
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((domain) =>
-        createRowData({
-          clusterData: {
-            id: 0,
-            domain,
-            cloudId: null,
-          },
-        }),
-      ),
-    );
   };
 
   const handleAppend = () => {

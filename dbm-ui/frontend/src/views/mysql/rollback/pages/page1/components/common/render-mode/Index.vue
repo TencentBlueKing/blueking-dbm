@@ -17,7 +17,8 @@
       <TableEditSelect
         v-model="localBackupType"
         :disabled="editDisabled"
-        :list="targetList"
+        :list="selectList.mode"
+        :rules="rules"
         @change="hanldeBackupTypeChange" />
     </div>
     <div class="action-item">
@@ -27,7 +28,7 @@
         v-model="localRollbackTime"
         :disabled="editDisabled"
         :disabled-date="disableDate"
-        :rules="timerRules"
+        :rules="rules"
         type="datetime" />
 
       <div
@@ -54,8 +55,8 @@
 
   import { useTimeZoneFormat } from '@hooks';
 
-  import TableEditDateTime from '@views/mysql/common/edit/DateTime.vue';
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   import { BackupTypes, selectList } from '../const';
 
@@ -82,16 +83,12 @@
   const { t } = useI18n();
   const formatDateToUTC = useTimeZoneFormat();
 
-  const timerRules = [
+  const rules = [
     {
       validator: (value: string) => !!value,
-      message: t('回档时间不能为空'),
+      message: t('不能为空'),
     },
   ];
-  const targetList = selectList.mode.map((item) => ({
-    id: item.value,
-    name: item.label,
-  }));
 
   const localRollbackTimeRef = ref<InstanceType<typeof TableEditDateTime>>();
   const localBackupFileRef = ref<InstanceType<typeof RecordSelector>>();
