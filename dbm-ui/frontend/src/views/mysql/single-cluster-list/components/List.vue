@@ -99,6 +99,7 @@
 
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -157,11 +158,6 @@
     getSearchSelectorParams,
     isRecentDays,
   } from '@utils';
-
-  import type {
-    SearchSelectData,
-    SearchSelectItem,
-  } from '@types/bkui-vue';
 
   interface ColumnData {
     cell: string,
@@ -594,21 +590,18 @@
             onClick={() => handleGoWebconsole(data.id)}>
             Webconsole
           </auth-button>
-          <OperationBtnStatusTips
-            data={data}
-            v-db-console="mysql.singleClusterList.exportData">
-            <auth-button
-              action-id="mysql_dump_data"
-              permission={data.permission.mysql_dump_data}
-              resource={data.id}
-              disabled={data.operationDisabled}
-              text
-              theme="primary"
-              class="mr-16"
-              onClick={() => handleShowDataExportSlider(data)}>
-              { t('导出数据') }
-            </auth-button>
-          </OperationBtnStatusTips>
+          <auth-button
+            v-db-console="mysql.singleClusterList.exportData"
+            action-id="mysql_dump_data"
+            permission={data.permission.mysql_dump_data}
+            resource={data.id}
+            disabled={data.isOffline}
+            text
+            theme="primary"
+            class="mr-16"
+            onClick={() => handleShowDataExportSlider(data)}>
+            { t('导出数据') }
+          </auth-button>
           <MoreActionExtend v-db-console="mysql.singleClusterList.moreOperation">
             {{
               default: () => <>
@@ -692,9 +685,9 @@
     updateTableSettings,
   } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, defaultSettings);
 
-  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
-      return getMenuListSearch(item, keyword, searchSelectData.value as SearchSelectData, searchValue.value);
+      return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }
 
     // 没有选中过滤标签

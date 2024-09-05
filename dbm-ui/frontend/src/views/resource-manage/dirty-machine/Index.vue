@@ -78,6 +78,7 @@
 </template>
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import {
     onMounted,
     ref,
@@ -108,8 +109,6 @@
     getSearchSelectorParams,
     messageSuccess,
   } from '@utils';
-
-  import type { SearchSelectItem } from '@/types/bkui-vue';
 
   const router = useRouter();
   const copy = useCopy();
@@ -340,7 +339,7 @@
     });
   };
 
-  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'operator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }
