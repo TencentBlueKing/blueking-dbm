@@ -28,9 +28,6 @@ import (
 // DB TODO
 var DB *gorm.DB
 
-// SqlDB TODO
-var SqlDB *sql.DB
-
 func init() {
 	user := config.GAppConfig.DbConf.User
 	pwd := config.GAppConfig.DbConf.Pwd
@@ -75,14 +72,13 @@ func openDB(username, password, addr, name string) *gorm.DB {
 		true,
 		"Local")
 	var err error
-	// SqlDB是上面定义了全局变量
-	SqlDB, err = sql.Open("mysql", dsn)
+	dbc, err := sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatalf("connect to mysql failed %s", err.Error())
 		return nil
 	}
 	db, err := gorm.Open(mysql.New(mysql.Config{
-		Conn: SqlDB,
+		Conn: dbc,
 	}), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
 		Logger:                                   newLogger,

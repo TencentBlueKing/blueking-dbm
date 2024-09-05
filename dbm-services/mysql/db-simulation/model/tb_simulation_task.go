@@ -104,7 +104,7 @@ func CreateTask(taskid, requestid, version string, billTaskId string) (err error
 		return fmt.Errorf("this task exists:%s", taskid)
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		logger.Error("")
+		logger.Error("create task failed %s", err.Error())
 		return err
 	}
 	return DB.Create(&TbSimulationTask{

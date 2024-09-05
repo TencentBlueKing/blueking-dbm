@@ -33,11 +33,10 @@ func ParseGetShardKeyForSpider(tableComment string) (string, error) {
 	}
 
 	// find the beginning "
-	if pos < len(tableComment) && tableComment[pos] == '"' {
-		pos++
-	} else {
+	if !(pos < len(tableComment) && tableComment[pos] == '"') {
 		return "", errors.New("parse error")
 	}
+	pos++
 
 	// find the ending "
 	end := strings.Index(tableComment[pos:], "\"")

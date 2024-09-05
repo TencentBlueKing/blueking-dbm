@@ -121,7 +121,7 @@ func TendbClusterSimulation(r *gin.Context) {
 		BaseParam: &param.BaseParam,
 		Version:   version,
 	}
-	rootPwd := cmutil.RandStr(10)
+	rootPwd := cmutil.RandomString(10)
 	if !service.DelPod {
 		logger.Info("the pwd %s", rootPwd)
 	}

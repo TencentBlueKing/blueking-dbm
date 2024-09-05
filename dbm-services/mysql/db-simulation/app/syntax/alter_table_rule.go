@@ -11,8 +11,7 @@
 package syntax
 
 import (
-	util "dbm-services/common/go-pubpkg/cmutil"
-	"dbm-services/common/go-pubpkg/logger"
+	"github.com/samber/lo"
 )
 
 // Checker syntax checker
@@ -24,7 +23,6 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 		r.Parse(R.AlterTableRule.AlterUseAfter, altercmd.After, "")
 		// 如果是增加字段，需要判断增加的字段名称是否是关键字
 		if altercmd.Type == AlterTypeAddColumn {
-			logger.Info("col name is %s", altercmd.ColDef.ColName)
 			r.ParseBultinRisk(func() (bool, string) {
 				return KeyWordValidator(mysqlVersion, altercmd.ColDef.ColName)
 			})
@@ -41,11 +39,11 @@ func (c AlterTableResult) Checker(mysqlVersion string) (r *CheckerResult) {
 // 去重后得到所有的alter types
 func (c AlterTableResult) GetAllAlterType() (alterTypes []string) {
 	for _, a := range c.AlterCommands {
-		if !util.StringsHas([]string{"algorithm", "lock"}, a.Type) {
+		if !lo.Contains([]string{"algorithm", "lock"}, a.Type) {
 			alterTypes = append(alterTypes, a.Type)
 		}
 	}
-	return util.RemoveDuplicate(alterTypes)
+	return lo.Uniq(alterTypes)
 }
 
 // GetPkAlterType  get the primary key change type

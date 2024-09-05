@@ -10,7 +10,13 @@
 
 package syntax
 
-import util "dbm-services/common/go-pubpkg/cmutil"
+import (
+	"strings"
+
+	"github.com/samber/lo"
+
+	util "dbm-services/common/go-pubpkg/cmutil"
+)
 
 const (
 	// AlterTypeAddColumn add_column
@@ -39,7 +45,7 @@ const (
 	SQLTypeUpdate = "update"
 )
 
-// ColDef TODO
+// ColDef mysql column definition
 type ColDef struct {
 	Type        string `json:"type"`
 	ColName     string `json:"col_name"`
@@ -59,7 +65,7 @@ type ColDef struct {
 	ReferenceDefinition interface{} `json:"reference_definition"`
 }
 
-// KeyDef TODO
+// KeyDef mysql index definition
 type KeyDef struct {
 	Type     string `json:"type"`
 	KeyName  string `json:"key_name"`
@@ -75,13 +81,13 @@ type KeyDef struct {
 	ReferenceDefinition interface{} `json:"reference_definition"`
 }
 
-// TableOption TODO
+// TableOption mysql table option definition
 type TableOption struct {
 	Key   string      `json:"key"`
 	Value interface{} `json:"value"`
 }
 
-// ConverTableOptionToMap TODO
+// ConverTableOptionToMap convert table option to map
 func ConverTableOptionToMap(options []TableOption) map[string]interface{} {
 	r := make(map[string]interface{})
 	for _, v := range options {
@@ -92,7 +98,7 @@ func ConverTableOptionToMap(options []TableOption) map[string]interface{} {
 	return r
 }
 
-// CommDDLResult TODO
+// CommDDLResult mysql common ddl tmysqlparse result
 type CommDDLResult struct {
 	QueryID   int    `json:"query_id"`
 	Command   string `json:"command"`
@@ -100,7 +106,7 @@ type CommDDLResult struct {
 	TableName string `json:"table_name"`
 }
 
-// CreateTableResult TODO
+// CreateTableResult  tmysqlparse create table result
 type CreateTableResult struct {
 	QueryID             int    `json:"query_id"`
 	Command             string `json:"command"`
@@ -119,7 +125,7 @@ type CreateTableResult struct {
 	PartitionOptions interface{}            `json:"partition_options"`
 }
 
-// CreateDBResult TODO
+// CreateDBResult tmysqlparse create db result
 type CreateDBResult struct {
 	QueryID      int    `json:"query_id"`
 	Command      string `json:"command"`
@@ -128,7 +134,7 @@ type CreateDBResult struct {
 	Collate      string `json:"collate"`
 }
 
-// AlterTableResult TODO
+// AlterTableResult tmysqlparse alter table result
 type AlterTableResult struct {
 	QueryID          int            `json:"query_id"`
 	Command          string         `json:"command"`
@@ -138,7 +144,7 @@ type AlterTableResult struct {
 	PartitionOptions interface{}    `json:"partition_options"`
 }
 
-// AlterCommand TODO
+// AlterCommand tmysqlparse alter table result
 type AlterCommand struct {
 	Type         string        `json:"type"`
 	ColDef       ColDef        `json:"col_def,omitempty"`
@@ -155,14 +161,14 @@ type AlterCommand struct {
 	Lock         string        `json:"lock,omitempty"`
 }
 
-// ChangeDbResult TODO
+// ChangeDbResult mysqlparse change db result
 type ChangeDbResult struct {
 	QueryID int    `json:"query_id"`
 	Command string `json:"command"`
 	DbName  string `json:"db_name"`
 }
 
-// ErrorResult TODO
+// ErrorResult syntax error result
 type ErrorResult struct {
 	QueryID   int    `json:"query_id"`
 	Command   string `json:"command"`
@@ -170,17 +176,18 @@ type ErrorResult struct {
 	ErrorMsg  string `json:"error_msg,omitempty"`
 }
 
-// ParseBase TODO
+// ParseBase parse base
 type ParseBase struct {
 	QueryId     int    `json:"query_id"`
 	Command     string `json:"command"`
 	QueryString string `json:"query_string,omitempty"`
 }
 
-// ParseLineQueryBase TODO
+// ParseLineQueryBase parse line query base
 type ParseLineQueryBase struct {
 	QueryId         int    `json:"query_id"`
 	Command         string `json:"command"`
+	DbName          string `json:"db_name,omitempty"`
 	QueryString     string `json:"query_string,omitempty"`
 	ErrorCode       int    `json:"error_code,omitempty"`
 	ErrorMsg        string `json:"error_msg,omitempty"`
@@ -188,7 +195,12 @@ type ParseLineQueryBase struct {
 	MaxMySQLVersion int    `json:"max_my_sql_version"`
 }
 
-// UserHost TODO
+// IsSysDb sql modify target db is sys db
+func (p ParseLineQueryBase) IsSysDb() bool {
+	return lo.Contains([]string{"mysql", "information_schema", "performance_schema", "sys"}, strings.ToLower(p.DbName))
+}
+
+// UserHost user host
 type UserHost struct {
 	User string `json:"user"`
 	Host string `json:"host"`
