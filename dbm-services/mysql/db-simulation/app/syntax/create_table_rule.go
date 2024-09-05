@@ -11,10 +11,10 @@
 package syntax
 
 import (
-	"fmt"
 	"strings"
 
-	"dbm-services/common/go-pubpkg/cmutil"
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/logger"
 )
 
@@ -85,24 +85,27 @@ func (c CreateTableResult) GetTableCharset() (engine string) {
 // GetAllColCharsets get columns define charset
 func (c CreateTableResult) GetAllColCharsets() (charsets []string) {
 	for _, colDef := range c.CreateDefinitions.ColDefs {
-		if !cmutil.IsEmpty(colDef.CharacterSet) {
+		if lo.IsNotEmpty(colDef.CharacterSet) {
 			charsets = append(charsets, colDef.CharacterSet)
 		}
 	}
-	return cmutil.RemoveDuplicate(charsets)
+	return lo.Uniq(charsets)
 }
 
 // ColCharsetNotEqTbCharset 字段的字符集合和表的字符集合相同
 func (c CreateTableResult) ColCharsetNotEqTbCharset() bool {
 	colCharsets := c.GetAllColCharsets()
-	fmt.Println("colCharsets", colCharsets, len(colCharsets))
 	if len(colCharsets) == 0 {
 		return false
 	}
 	if len(colCharsets) > 1 {
 		return true
 	}
-	if strings.Compare(strings.ToUpper(colCharsets[0]), c.GetTableCharset()) == 0 {
+	tableDefineCharset := c.GetTableCharset()
+	if lo.IsEmpty(tableDefineCharset) {
+		return false
+	}
+	if strings.Compare(strings.ToUpper(colCharsets[0]), tableDefineCharset) == 0 {
 		return false
 	}
 	return true

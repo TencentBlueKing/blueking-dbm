@@ -14,7 +14,8 @@ import (
 	"slices"
 	"strings"
 
-	"dbm-services/common/go-pubpkg/cmutil"
+	"github.com/samber/lo"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-simulation/pkg/util"
 )
@@ -67,7 +68,7 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 	}
 	tableComment := c.GetComment()
 	logger.Info("tableComment is %s", tableComment)
-	if cmutil.IsNotEmpty(tableComment) {
+	if lo.IsNotEmpty(tableComment) {
 		// table comment 不为空的时候 先校验comment 格式是否合法
 		legal, msg := c.validateSpiderComment(tableComment)
 		if !legal {

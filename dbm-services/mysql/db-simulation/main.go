@@ -12,9 +12,12 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/gin-contrib/pprof"
@@ -52,13 +55,38 @@ func main() {
 		ctx.SecureJSON(http.StatusOK, map[string]interface{}{"buildstamp": buildstamp, "githash": githash,
 			"version": version})
 	})
-	if err := app.Run(config.GAppConfig.ListenAddr); err != nil {
-		logger.Fatal("app run error: %v", err)
+
+	srv := &http.Server{
+		Addr:              config.GAppConfig.ListenAddr,
+		Handler:           app,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Fatal("listen: %s\n", err)
+		}
+	}()
+	// Wait for interrupt signal to gracefully shutdown the server with
+	// a timeout of 5 seconds.
+	quit := make(chan os.Signal, 1)
+	// kill (no param) default send syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall.SIGKILL but can't be catch, so don't need add it
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	logger.Info("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		//nolint
+		logger.Fatal("Server forced to shutdown: %v ", err)
+	}
+	logger.Info("Server exiting\n")
 }
 
 func init() {
 	logger.New(os.Stdout, true, logger.InfoLevel, map[string]string{})
+	//nolint: errcheck
 	defer logger.Sync()
 }
 

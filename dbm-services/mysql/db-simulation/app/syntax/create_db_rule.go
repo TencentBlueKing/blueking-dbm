@@ -10,9 +10,7 @@
 
 package syntax
 
-import "dbm-services/common/go-pubpkg/cmutil"
-
-// Checker TODO
+// Checker create db syntax checker
 func (c CreateDBResult) Checker(mysqlVersion string) (r *CheckerResult) {
 	r = &CheckerResult{}
 	// 检查库名规范
@@ -26,17 +24,10 @@ func (c CreateDBResult) Checker(mysqlVersion string) (r *CheckerResult) {
 			return SpecialCharValidator(c.DbName)
 		})
 	}
-	// 不允许包含系统库
-	r.ParseBultinBan(func() (bool, string) {
-		if cmutil.HasElem(c.DbName, cmutil.GetGcsSystemDatabasesIgnoreTest(mysqlVersion)) {
-			return true, "不允许操作系统库" + c.DbName
-		}
-		return false, ""
-	})
 	return
 }
 
-// SpiderChecker TODO
+// SpiderChecker spider create db syntax checker
 func (c CreateDBResult) SpiderChecker(mysqlVersion string) (r *CheckerResult) {
 	return c.Checker(mysqlVersion)
 }
