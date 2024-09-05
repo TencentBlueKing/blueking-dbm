@@ -14,9 +14,9 @@ from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import MYSQL_DATA_RESTORE_TIME
 from backend.db_meta.enums import ClusterType
-from backend.db_services.mysql.fixpoint_rollback.handlers import FixPointRollbackHandler
 from backend.flow.consts import RollbackType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
+from backend.flow.engine.bamboo.scene.mysql.common.get_binlog_backup import get_backup_binlog
 from backend.flow.engine.bamboo.scene.spider.common.exceptions import TendbGetBinlogFailedException
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile import (
@@ -24,7 +24,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_download_backupfile
 )
 from backend.flow.utils.mysql.mysql_act_dataclass import DownloadBackupFileKwargs, ExecActuatorKwargs
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
-from backend.utils.time import compare_time, str2datetime
+from backend.utils.time import str2datetime
 
 
 def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
@@ -80,25 +80,19 @@ def spider_recover_sub_flow(root_id: str, ticket_data: dict, cluster: dict):
     if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value and False:
         spider_has_binlog = cluster.get("spider_has_binlog", False)
         if spider_has_binlog:
-            if compare_time(backup_info["backup_time"], cluster["rollback_time"]):
-                raise TendbGetBinlogFailedException(message=_("{} 备份时间点大于回滚时间点".format(cluster["master_ip"])))
-            rollback_handler = FixPointRollbackHandler(cluster["cluster_id"])
-            backup_binlog = rollback_handler.query_binlog_from_bklog(
-                str2datetime(backup_info["backup_time"]),
-                str2datetime(cluster["rollback_time"]),
-                minute_range=30,
-                host_ip=cluster["rollback_ip"],
-                port=cluster["rollback_port"],
+            binlog_result = get_backup_binlog(
+                cluster_id=cluster["cluster_id"],
+                start_time=str2datetime(backup_info["backup_time"]),
+                end_time=str2datetime(cluster["rollback_time"]),
+                binlog_info=backup_info["binlog_info"],
             )
-            if backup_binlog is None:
-                raise TendbGetBinlogFailedException(message=_("获取实例 {} binlog失败".format(cluster["rollback_ip"])))
+            if "query_binlog_error" in binlog_result.keys():
+                raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
+            cluster.update(binlog_result)
 
-            task_ids = [i["task_id"] for i in backup_binlog["file_list_details"]]
-            binlog_files = [i["file_name"] for i in backup_binlog["file_list_details"]]
-            cluster["binlog_files"] = ",".join(binlog_files)
             download_kwargs = DownloadBackupFileKwargs(
                 bk_cloud_id=cluster["bk_cloud_id"],
-                task_ids=task_ids,
+                task_ids=binlog_result["binlog_task_ids"],
                 dest_ip=cluster["rollback_ip"],
                 dest_dir=cluster["file_target_path"],
                 reason="spider node rollback binlog",
@@ -182,27 +176,21 @@ def remote_node_rollback(root_id: str, ticket_data: dict, cluster: dict):
             write_payload_var="change_master_info",
         )
         #  指定时间点的定点回档则需要执行binlog前滚。滚动到指定的时间点。
-        if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
-            if compare_time(backup_info["backup_time"], cluster["rollback_time"]):
-                raise TendbGetBinlogFailedException(message=_("{} 备份时间点大于回滚时间点".format(cluster["master_ip"])))
 
-            rollback_handler = FixPointRollbackHandler(cluster["cluster_id"])
-            backup_binlog = rollback_handler.query_binlog_from_bklog(
+        if cluster["rollback_type"] == RollbackType.REMOTE_AND_TIME.value:
+            binlog_result = get_backup_binlog(
+                cluster_id=cluster["cluster_id"],
                 start_time=str2datetime(backup_info["backup_time"]),
                 end_time=str2datetime(cluster["rollback_time"]),
-                minute_range=30,
-                host_ip=cluster["master_ip"],
-                port=cluster["master_port"],
+                binlog_info=backup_info["binlog_info"],
             )
-            if backup_binlog is None:
-                raise TendbGetBinlogFailedException(message=_("获取实例 {} 的备份信息失败".format(cluster["master_ip"])))
+            if "query_binlog_error" in binlog_result.keys():
+                raise TendbGetBinlogFailedException(message=binlog_result["query_binlog_error"])
+            cluster.update(binlog_result)
 
-            task_ids = [i["task_id"] for i in backup_binlog["file_list_details"]]
-            binlog_files = [i["file_name"] for i in backup_binlog["file_list_details"]]
-            cluster["binlog_files"] = ",".join(binlog_files)
             download_kwargs = DownloadBackupFileKwargs(
                 bk_cloud_id=cluster["bk_cloud_id"],
-                task_ids=task_ids,
+                task_ids=binlog_result["binlog_task_ids"],
                 dest_ip=cluster["rollback_ip"],
                 dest_dir=cluster["file_target_path"],
                 reason="tenDB rollback binlog",

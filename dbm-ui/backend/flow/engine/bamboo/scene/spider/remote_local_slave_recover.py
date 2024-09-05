@@ -13,6 +13,7 @@ import logging
 from dataclasses import asdict
 from typing import Dict, Optional
 
+from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
 
 from backend.configuration.constants import DBType
@@ -23,11 +24,15 @@ from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import build_surrounding_apps_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
 from backend.flow.plugins.components.collections.mysql.mysql_db_meta import MySQLDBMetaComponent
 from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
+from backend.flow.plugins.components.collections.spider.switch_remote_spt_routing import (
+    SwitchRemoteShardRoutingComponent,
+)
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CrondMonitorKwargs,
@@ -39,6 +44,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.flow.utils.spider.spider_act_dataclass import InstanceServerName, SwitchRemoteShardRoutingKwargs
 from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
@@ -140,7 +146,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     exec_ip=target_slave.machine.ip,
                 )
 
-                tendb_migrate_pipeline.add_act(
+                sync_data_sub_pipeline.add_act(
                     act_name=_("屏蔽监控 {}").format(target_slave.ip_port),
                     act_component_code=MysqlCrondMonitorControlComponent.code,
                     kwargs=asdict(
@@ -152,7 +158,7 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     ),
                 )
 
-                tendb_migrate_pipeline.add_act(
+                sync_data_sub_pipeline.add_act(
                     act_name=_("从库reset slave {}").format(target_slave.ip_port),
                     act_component_code=MySQLExecuteRdsComponent.code,
                     kwargs=asdict(
@@ -220,6 +226,23 @@ class TenDBRemoteSlaveLocalRecoverFlow(object):
                     )
                 )
             tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=sync_data_sub_pipeline_list)
+            tdbctl_pass = get_random_string(length=10)
+            switch_slave_class = SwitchRemoteShardRoutingKwargs(cluster_id=cluster_class.id, switch_remote_shard=[])
+            for shard_id in self.data["shard_ids"]:
+                shard = cluster_class.tendbclusterstorageset_set.get(shard_id=shard_id)
+                inst_pairs = InstanceServerName(
+                    server_name=f"SPT_SLAVE{shard_id}",
+                    new_ip=shard.storage_instance_tuple.receiver.machine.ip,
+                    new_port=shard.storage_instance_tuple.receiver.port,
+                    tdbctl_pass=tdbctl_pass,
+                )
+                switch_slave_class.switch_remote_shard.append(inst_pairs)
+            tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
+            tendb_migrate_pipeline.add_act(
+                act_name=_("切换回原slave节点"),
+                act_component_code=SwitchRemoteShardRoutingComponent.code,
+                kwargs=asdict(switch_slave_class),
+            )
 
             #  安装周边
             tendb_migrate_pipeline.add_sub_pipeline(

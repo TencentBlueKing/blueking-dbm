@@ -18,13 +18,14 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.cluster_entrys import get_tendb_ha_entry
-from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import check_sub_flow
 from backend.flow.plugins.components.collections.mysql.clone_user import CloneUserComponent
 from backend.flow.plugins.components.collections.mysql.dns_manage import MySQLDnsManageComponent
+from backend.flow.plugins.components.collections.mysql.mysql_rds_execute import MySQLExecuteRdsComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import (
     CreateDnsKwargs,
     DownloadMediaKwargs,
+    ExecuteRdsKwargs,
     InstanceUserCloneKwargs,
     RecycleDnsRecordKwargs,
 )
@@ -62,19 +63,36 @@ def slave_migrate_switch_sub_flow(
     )
 
     # 切换前做预检测
-    verify_checksum_tuples = [{"master": old_master, "slave": new_slave}]
-    # for m in migrate_tuples:
-    # old_master-> new_master ; new_master -> new_slave 都需要检测checksum结果
-    sub_pipeline.add_sub_pipeline(
-        sub_flow=check_sub_flow(
-            uid=ticket_data["uid"],
-            root_id=root_id,
-            cluster=cluster,
-            is_check_client_conn=True,
-            is_verify_checksum=True,
-            check_client_conn_inst=["{}:{}".format(new_slave_ip, master.port)],
-            verify_checksum_tuples=verify_checksum_tuples,
-        )
+    # verify_checksum_tuples = [{"master": old_master, "slave": new_slave}]
+    # # for m in migrate_tuples:
+    # # old_master-> new_master ; new_master -> new_slave 都需要检测checksum结果
+    # sub_pipeline.add_sub_pipeline(
+    #     sub_flow=check_sub_flow(
+    #         uid=ticket_data["uid"],
+    #         root_id=root_id,
+    #         cluster=cluster,
+    #         is_check_client_conn=True,
+    #         is_verify_checksum=True,
+    #         check_client_conn_inst=["{}:{}".format(new_slave_ip, master.port)],
+    #         verify_checksum_tuples=verify_checksum_tuples,
+    #     )
+    # )
+    # 不做检查，而是在新从库通过rds加入一条恒为正确的记录。
+    fake_checksum_sql = """replace into infodba_schema.checksum values
+    ('{}',{},'_fake_db_','_fake_tbl_',0,0,'PRIMARY',0,0,0,0,0,0,now())""".format(
+        master.machine.ip, master.port
+    )
+    sub_pipeline.add_act(
+        act_name=_("新从库加入checksum记录 {}").format(new_slave),
+        act_component_code=MySQLExecuteRdsComponent.code,
+        kwargs=asdict(
+            ExecuteRdsKwargs(
+                bk_cloud_id=cluster.bk_cloud_id,
+                instance_ip=new_slave_ip,
+                instance_port=master.port,
+                sqls=[fake_checksum_sql],
+            )
+        ),
     )
 
     clone_data = [

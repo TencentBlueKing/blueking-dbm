@@ -1835,14 +1835,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         MYSQL 实例 前滚binglog
         """
-        # if self.cluster.get("rollback_type", "") == RollbackType.LOCAL_AND_TIME:
-        #     binlog_files = kwargs["trans_data"]["binlog_files"]
-        #     backup_time = kwargs["trans_data"]["backup_time"]
-        # else:
         binlog_files = self.cluster["binlog_files"]
         backup_time = self.cluster["backup_time"]
         binlog_files_list = binlog_files.split(",")
-        binlog_start_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
+        # binlog_start_file = kwargs["trans_data"]["change_master_info"]["master_log_file"]
+        # binlog_start_pos = int(kwargs["trans_data"]["change_master_info"]["master_log_pos"])
+        binlog_start_file = self.cluster["binlog_start_file"]
+        binlog_start_pos = int(self.cluster["binlog_start_pos"])
         if binlog_start_file not in binlog_files_list:
             logger.error("start binlog {} not exist".format(binlog_start_file))
             raise TendbGetBackupInfoFailedException(message=_("start binlog  {} not exist".format(binlog_start_file)))
@@ -1874,7 +1873,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "tables": self.cluster["tables"],
                         "databases_ignore": self.cluster["databases_ignore"],
                         "tables_ignore": self.cluster["tables_ignore"],
-                        "start_pos": int(kwargs["trans_data"]["change_master_info"]["master_log_pos"]),
+                        "start_pos": binlog_start_pos,
                     },
                     "parse_only": False,
                     "binlog_start_file": binlog_start_file,

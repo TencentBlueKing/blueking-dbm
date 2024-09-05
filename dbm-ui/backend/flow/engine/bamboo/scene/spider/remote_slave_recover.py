@@ -122,12 +122,13 @@ class TenDBRemoteSlaveRecoverFlow(object):
             slaves = StorageInstance.objects.filter(
                 machine__bk_cloud_id=cluster_class.bk_cloud_id, machine__ip=self.data["source_ip"]
             )
-            slave_tuple = StorageInstanceTuple.objects.filter(receiver=slaves[0]).first()
-            if slave_tuple is None:
+            slave_tuple = StorageInstanceTuple.objects.filter(receiver=slaves[0])
+            if slave_tuple is None or len(slave_tuple) == 0:
                 raise MasterInstanceNotExistException(
                     cluster_type=cluster_class.cluster_type, cluster_id=cluster_class.id
                 )
-            master = StorageInstance.objects.get(slave_tuple.ejector)
+            master = StorageInstance.objects.get(slave_tuple[0].ejector_id)
+
             db_config = get_instance_config(cluster_class.bk_cloud_id, master.machine.ip, cluster_info["ports"])
 
             install_sub_pipeline_list = []
