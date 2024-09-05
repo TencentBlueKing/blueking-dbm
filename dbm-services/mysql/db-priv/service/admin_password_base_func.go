@@ -27,6 +27,7 @@ func CheckOrGetPassword(psw string, security SecurityRule) (string, error) {
 		password = psw
 		check := CheckPassword(security, []byte(psw))
 		if !check.IsStrength {
+			slog.Error("msg", "check", check)
 			return "", errno.NotMeetComplexity
 		}
 	} else {

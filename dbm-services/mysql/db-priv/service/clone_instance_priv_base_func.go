@@ -51,9 +51,9 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 	wg := sync.WaitGroup{}
 	finishChan := make(chan bool, 1)
 	errorChan := make(chan error, 1)
-	//tokenBucket := make(chan int, 50)
-	limit := rate.Every(time.Millisecond * 20) // QPS：50
-	burst := 50                                // 桶容量 50
+	// 权限并行过高，引起实例Waiting for table metadata lock；并行过低，效率低
+	limit := rate.Every(time.Millisecond * 50) // QPS：20
+	burst := 20                                // 桶容量 20
 	limiter := rate.NewLimiter(limit, burst)
 	version, errOuter = GetMySQLVersion(address, bkCloudId)
 	if errOuter != nil {
