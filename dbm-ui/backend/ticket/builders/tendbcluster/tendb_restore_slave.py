@@ -76,4 +76,4 @@ class TendbClusterRestoreSlaveFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterRestoreSlaveDetailSerializer
     inner_flow_builder = TendbClusterRestoreSlaveParamBuilder
     inner_flow_name = _("TenDB Cluster Slave重建")
-    resource_apply_builder = TendbClusterRestoreSlaveResourceParamBuilder
+    resource_batch_apply_builder = TendbClusterRestoreSlaveResourceParamBuilder

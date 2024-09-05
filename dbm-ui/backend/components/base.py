@@ -420,27 +420,20 @@ class DataAPI(object):
         bkapi_auth_headers = {
             "bk_app_code": params.pop("bk_app_code", env.APP_CODE),
             "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
+            # 如果既不是use_admin，也非local_request请求，则用户先置为匿名
+            "bk_username": "Anonymous",
         }
         if use_admin or self.is_backend_request():
             # 使用管理员/平台身份调用接口
             bkapi_auth_headers["bk_username"] = env.DEFAULT_USERNAME
         elif local_request and local_request.COOKIES:
             # 根据不同环境，传递认证信息
+            bkapi_auth_headers["bk_username"] = local_request.user.username
             oath_cookies_params = getattr(settings, "OAUTH_COOKIES_PARAMS", {"bk_token": "bk_token"})
             for key, value in oath_cookies_params.items():
                 if value in local_request.COOKIES:
                     bkapi_auth_headers.update({key: local_request.COOKIES[value]})
-        session.headers.update(
-            {
-                "X-Bkapi-Authorization": json.dumps(
-                    {
-                        "bk_app_code": params.pop("bk_app_code", env.APP_CODE),
-                        "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
-                        "bk_username": params.pop("bk_username", env.DEFAULT_USERNAME),
-                    }
-                ),
-            }
-        )
+        session.headers.update({"X-Bkapi-Authorization": json.dumps(bkapi_auth_headers)})
         # headers 申明重载请求方法
         if self.method_override is not None:
             session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
