@@ -13,8 +13,10 @@ import logging
 import re
 
 import wrapt
+from apigw_manager.apigw.authentication import UserModelBackend
 from blueapps.account.middlewares import LoginRequiredMiddleware
 from blueapps.account.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.http import JsonResponse
 from django.urls import resolve
@@ -157,6 +159,7 @@ class ExternalProxyMiddleware(MiddlewareMixin):
 
     def __check_specific_request_params(self, request):
         """校验特殊接口的参数是否满足要求"""
+
         # 单据创建校验函数
         def check_create_ticket():
             data = json.loads(request.body.decode("utf-8"))
@@ -235,3 +238,29 @@ class ExternalProxyMiddleware(MiddlewareMixin):
     @staticmethod
     def replace_ip(text):
         return re.sub(IP_RE, "*.*.*.*", text)
+
+
+class JWTUserModelBackend(UserModelBackend):
+    """dbm jwt用户认证后端"""
+
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def user_maker(username):
+        user_model = get_user_model()
+        if hasattr(user_model.objects, "get_by_natural_key"):
+            _user_maker = user_model.objects.get_by_natural_key  # type: ignore
+        else:
+            _user_maker = lambda x: user_model.objects.get(username=x)  # noqa: E731
+
+        # 如果找不到用户，则自动注册用户
+        try:
+            user = _user_maker(username)
+        except User.DoesNotExist:
+            user = user_model.objects.create(username=username)
+
+        return user
+
+    def authenticate(self, request, api_name, bk_username, verified, **credentials):
+        super().authenticate(request, api_name, bk_username, verified, **credentials)

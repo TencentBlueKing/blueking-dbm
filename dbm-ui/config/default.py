@@ -168,7 +168,7 @@ MIDDLEWARE = (
 
 AUTHENTICATION_BACKENDS = [
     *AUTHENTICATION_BACKENDS,
-    "apigw_manager.apigw.authentication.UserModelBackend",
+    "backend.bk_web.middleware.JWTUserModelBackend",
 ]
 
 RIO_TOKEN = env.RIO_TOKEN
