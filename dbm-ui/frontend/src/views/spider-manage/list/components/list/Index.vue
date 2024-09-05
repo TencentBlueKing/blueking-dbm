@@ -137,6 +137,10 @@
 <script setup lang="tsx">
   import { Checkbox, Message } from 'bkui-vue';
   import InfoBox from 'bkui-vue/lib/info-box';
+  // import CapacityChange from './components/CapacityChange.vue';
+  // import ScaleUp from './components/ScaleUp.vue';
+  // import Shrink from './components/Shrink.vue';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import {
     useRoute,
@@ -195,11 +199,6 @@
     isRecentDays,
     messageWarn,
   } from '@utils';
-
-  // import CapacityChange from './components/CapacityChange.vue';
-  // import ScaleUp from './components/ScaleUp.vue';
-  // import Shrink from './components/Shrink.vue';
-  import type { SearchSelectItem } from '@/types/bkui-vue';
 
   interface IColumn {
     data: TendbClusterModel
@@ -915,21 +914,18 @@
               onClick={() => handleGoWebconsole(data.id)}>
               Webconsole
             </auth-button>,
-            <OperationBtnStatusTips
-              data={data}
-              v-db-console="tendbCluster.clusterManage.exportData">
-              <auth-button
-                action-id="tendbcluster_dump_data"
-                permission={data.permission.tendbcluster_dump_data}
-                resource={data.id}
-                disabled={data.operationDisabled}
-                text
-                theme="primary"
-                class="mr-16"
-                onClick={() => handleShowDataExportSlider(data)}>
-                { t('导出数据') }
-              </auth-button>
-            </OperationBtnStatusTips>
+            <auth-button
+              v-db-console="tendbCluster.clusterManage.exportData"
+              action-id="tendbcluster_dump_data"
+              permission={data.permission.tendbcluster_dump_data}
+              resource={data.id}
+              disabled={data.isOffline}
+              text
+              theme="primary"
+              class="mr-16"
+              onClick={() => handleShowDataExportSlider(data)}>
+              { t('导出数据') }
+            </auth-button>
           ];
           return operations;
         };
@@ -1034,7 +1030,7 @@
     },
   ]);
 
-  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }

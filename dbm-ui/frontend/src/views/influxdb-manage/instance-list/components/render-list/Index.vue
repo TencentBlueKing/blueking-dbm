@@ -148,6 +148,7 @@
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import _ from 'lodash';
   import type { Emitter } from 'mitt';
   import { useI18n } from 'vue-i18n';
@@ -182,8 +183,6 @@
   import { useTimeoutPoll } from '@vueuse/core';
 
   import ClusterReplace from './components/Replace.vue';
-
-  import type { SearchSelectItem } from '@/types/bkui-vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -569,7 +568,7 @@
     resumeFetchTableData();
   });
 
-  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }
