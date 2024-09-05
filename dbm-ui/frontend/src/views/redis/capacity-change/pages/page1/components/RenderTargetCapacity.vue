@@ -155,7 +155,7 @@
 
   const currentCapacity = computed(() => {
     if (!props.rowData || _.isEmpty(props.rowData?.clusterStats)) {
-      return 0;
+      return props.rowData?.currentCapacity?.total ?? 0;
     }
     return convertStorageUnits(props.rowData.clusterStats.total, 'B', 'GB');
   });

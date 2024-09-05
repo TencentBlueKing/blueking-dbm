@@ -186,6 +186,7 @@
         <div class="title-spot">{{ t('集群部署方案') }}<span class="required" /></div>
         <div class="input-box">
           <BkInput
+            ref="capacityInputRef"
             class="mb10"
             :min="0"
             :model-value="capacityNeed"
@@ -194,7 +195,8 @@
             suffix="G"
             type="number"
             @blur="handleSearchClusterSpec"
-            @change="(value) => (capacityNeed = Number(value))" />
+            @change="(value) => (capacityNeed = Number(value))"
+            @enter="handleCapacityNeedEnter" />
           <div class="uint-text ml-12">
             <span>{{ t('当前') }}</span>
             <span class="spec-text">{{ props.data.capacity.total ?? 0 }}</span>
@@ -361,6 +363,7 @@
       updateMode: ''
     })
 
+  const capacityInputRef = ref()
   const capacityNeed = ref();
   const radioValue = ref(-1);
   const radioChoosedId  = ref(''); // 标记，sort重新定位index用
@@ -395,7 +398,7 @@
 
   const currentCapacity = computed(() => {
     if (_.isEmpty(props.clusterStats)) {
-      return 0
+      return props.data.capacity.total ?? 0
     }
     return convertStorageUnits(props.clusterStats.total, 'B', 'GB')
   })
@@ -444,6 +447,16 @@
 
   let rawTableData: ClusterSpecModel[] = [];
 
+  watch(() => props.isShow, () => {
+    if (props.isShow) {
+      capacityNeed.value = ''
+      radioValue.value = -1
+      tableData.value = [];
+      rawTableData = []
+      specDisabledMap.value = {}
+    }
+  })
+
   watch(radioValue, () => {
     if (radioValue.value !== -1) {
       getUpdateInfo(tableData.value[radioValue.value])
@@ -477,6 +490,10 @@
       specDisabledMap.value = {}
     }
   };
+
+  const handleCapacityNeedEnter = () => {
+    capacityInputRef.value.blur()
+  }
 
   // 点击确定
   const handleConfirm = () => {

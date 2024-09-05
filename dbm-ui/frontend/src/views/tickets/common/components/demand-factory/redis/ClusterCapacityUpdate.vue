@@ -119,7 +119,7 @@
             render: () => {
               const { used = 0, total = 0 } = data.cluster_stats;
               const targetTotal = convertStorageUnits(data.future_capacity, 'GB', 'B')
-              const currentValue = convertStorageUnits(total, 'B', 'GB')
+              const currentValue = data.cluster_capacity || convertStorageUnits(total, 'B', 'GB')
 
               let stats = {}
               if (!_.isEmpty(data.cluster_stats)) {
