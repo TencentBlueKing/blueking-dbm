@@ -87,6 +87,10 @@
         message: t('表名不能为空'),
       },
       {
+        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
+        message: t('库表只能由[0-9],[a-z],[A-Z],-,_ 组成，支持* % ?通配符，最大35字符'),
+      },
+      {
         validator: (value: string[]) => {
           if (props.allowAsterisk) {
             return true;

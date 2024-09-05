@@ -63,13 +63,13 @@
       showOverflowTooltip: true,
     },
     {
-      label: t('备份表名'),
-      field: 'tableName',
+      label: t('忽略DB名'),
+      field: 'ignoreDbName',
       showOverflowTooltip: true,
     },
     {
-      label: t('忽略DB名'),
-      field: 'ignoreDbName',
+      label: t('备份表名'),
+      field: 'tableName',
       showOverflowTooltip: true,
     },
     {
