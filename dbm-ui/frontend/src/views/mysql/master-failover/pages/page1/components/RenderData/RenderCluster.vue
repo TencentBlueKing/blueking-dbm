@@ -24,17 +24,13 @@
         v-if="relatedClusterList.length < 1"
         key="empty"
         style="color: #c4c6cc">
-        {{ $t('输入主库后自动生成') }}
+        {{ t('输入主库后自动生成') }}
       </span>
     </div>
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import {
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
   import type { InstanceInfos } from '@services/types/clusters';
@@ -44,53 +40,61 @@
   import type { IHostData } from './Row.vue';
 
   interface Props {
-    masterData?: IHostData
+    masterData?: IHostData;
   }
 
   interface Emits {
-    (e: 'change', value: number[]): void
+    (e: 'change', value: number[]): void;
   }
   interface Exposes {
-    getValue: () => Promise<Record<'cluster_ids', number[]>>
+    getValue: () => Promise<Record<'cluster_ids', number[]>>;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const { currentBizId } = useGlobalBizs();
+  const { t } = useI18n();
 
   const isLoading = ref(false);
   const relatedClusterList = shallowRef<InstanceInfos['related_clusters']>([]);
 
-  watch(() => props.masterData, () => {
-    relatedClusterList.value = [];
-    emits('change', []);
-    if (props.masterData && props.masterData.ip) {
-      isLoading.value = true;
-      checkMysqlInstances({
-        bizId: currentBizId,
-        instance_addresses: [props.masterData.ip],
-      })
-        .then((data) => {
-          if (data.length < 1) {
-            return;
-          }
-          const [currentProxyData] = data;
-          relatedClusterList.value = currentProxyData.related_clusters;
-          emits('change', relatedClusterList.value.map(item => item.id));
+  watch(
+    () => props.masterData,
+    () => {
+      relatedClusterList.value = [];
+      emits('change', []);
+      if (props.masterData && props.masterData.ip) {
+        isLoading.value = true;
+        checkMysqlInstances({
+          bizId: currentBizId,
+          instance_addresses: [props.masterData.ip],
         })
-        .finally(() => {
-          isLoading.value = false;
-        });
-    }
-  }, {
-    immediate: true,
-  });
+          .then((data) => {
+            if (data.length < 1) {
+              return;
+            }
+            const [currentProxyData] = data;
+            relatedClusterList.value = currentProxyData.related_clusters;
+            emits(
+              'change',
+              relatedClusterList.value.map((item) => item.id),
+            );
+          })
+          .finally(() => {
+            isLoading.value = false;
+          });
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   defineExpose<Exposes>({
     getValue() {
       return Promise.resolve({
-        cluster_ids: relatedClusterList.value.map(item => item.id),
+        cluster_ids: relatedClusterList.value.map((item) => item.id),
       });
     },
   });

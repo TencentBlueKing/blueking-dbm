@@ -18,7 +18,7 @@
       :disabled="!clusterData"
       :list="backupList"
       :model-value="modelValue"
-      :placeholder="$t('请选择')"
+      :placeholder="t('请选择xx', [t('备份位置')])"
       :rules="rules"
       @change="(value) => handleChange(value as string)" />
   </BkLoading>
@@ -29,7 +29,7 @@
 
   import { getSpiderList } from '@services/source/spider';
 
-  import TableEditSelect from '@views/redis/common/edit/Select.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -48,7 +48,7 @@
   const rules = [
     {
       validator: (value: string) => Boolean(value),
-      message: t('备份源不能为空'),
+      message: t('不能为空'),
     },
   ];
 

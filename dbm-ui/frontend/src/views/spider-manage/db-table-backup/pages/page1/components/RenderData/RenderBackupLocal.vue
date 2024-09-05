@@ -18,7 +18,7 @@
       :disabled="!clusterData"
       :list="backupList"
       :model-value="modelValue"
-      :placeholder="$t('请选择')"
+      :placeholder="t('请选择')"
       :rules="rules"
       @change="(value) => handleChange(value as string)" />
   </BkLoading>

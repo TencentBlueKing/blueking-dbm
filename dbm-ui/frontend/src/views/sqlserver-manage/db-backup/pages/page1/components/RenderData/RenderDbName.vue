@@ -14,7 +14,7 @@
 <template>
   <TableTagInput
     ref="tagRef"
-    :model-value="modelValue"
+    v-model="localValue"
     :placeholder="t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
     :rules="rules"
     @change="handleChange" />
@@ -27,8 +27,6 @@
   import { checkSqlserverDbExist } from '@services/source/sqlserver';
 
   import TableTagInput from '@components/render-table/columns/db-table-name/Index.vue';
-
-  import TableEditTag from '@views/mysql/common/edit/Tag.vue';
 
   interface Props {
     clusterId: number;
@@ -93,7 +91,7 @@
     });
   }
 
-  const tagRef = ref<InstanceType<typeof TableEditTag>>();
+  const tagRef = ref<InstanceType<typeof TableTagInput>>();
   const localValue = ref(props.modelValue || []);
 
   // 集群改变时 DB 需要重置
@@ -129,9 +127,3 @@
     },
   });
 </script>
-
-<style lang="less">
-  .render-db-name {
-    display: block;
-  }
-</style>

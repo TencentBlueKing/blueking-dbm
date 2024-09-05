@@ -17,8 +17,7 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="data.clusterData"
-        @input-cluster-finish="handleInputFinish"
-        @input-create="handleCreate" />
+        @input-cluster-finish="handleInputFinish" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderBackupLocal
@@ -88,20 +87,6 @@
           domain,
         },
       }),
-    );
-  };
-
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((domain) =>
-        createRowData({
-          clusterData: {
-            id: 0,
-            domain,
-          },
-        }),
-      ),
     );
   };
 
