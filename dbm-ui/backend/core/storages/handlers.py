@@ -65,7 +65,7 @@ class StorageHandler(object):
             file_content_list.append(
                 {
                     "path": unzip_file_name,
-                    "content": unzip_files.read(unzip_file_name).decode("utf-8"),
+                    "content": unzip_files.read(unzip_file_name).decode("utf-8", errors="replace"),
                     "url": self.storage.url(unzip_file_name),
                 }
             )

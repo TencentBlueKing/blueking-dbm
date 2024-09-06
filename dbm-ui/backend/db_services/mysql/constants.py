@@ -27,4 +27,6 @@ QUERY_SCHEMA_TABLES_SQL = (
 )
 
 # 根据库名查询表名的sql语句
-QUERY_TABLES_FROM_DB_SQL = "select table_schema, table_name from information_schema.tables where {db_sts}"
+QUERY_TABLES_FROM_DB_SQL = (
+    "select table_schema as table_schema, table_name as table_name from information_schema.tables where {db_sts}"
+)
