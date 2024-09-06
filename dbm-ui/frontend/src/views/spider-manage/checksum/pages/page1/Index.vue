@@ -153,7 +153,7 @@
   const { t } = useI18n();
   const router = useRouter();
   const { currentBizId } = useGlobalBizs();
-  const formatDateToUTC = useTimeZoneFormat();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const rowRefs = ref();
   const isShowBatchSelector = ref(false);
@@ -170,7 +170,7 @@
   });
 
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{[key: string]: Array<SpiderModel>}>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};

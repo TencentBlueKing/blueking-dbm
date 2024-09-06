@@ -48,6 +48,7 @@
     @change="handleHostChange" />
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
@@ -88,9 +89,15 @@
       return t('获取从库主机操作系统失败');
     }
     const osName = hostData.os_name.replace(/ /g, '');
-    if (!hostModuleRelatedSystemVersion.value.split(',').includes(osName)) {
+    if (
+      !_.some(
+        hostModuleRelatedSystemVersion.value.split(','),
+        (moduleSystemVersion) => osName.indexOf(moduleSystemVersion) > -1,
+      )
+    ) {
       return t('操作系统仅支持 n', { n: hostModuleRelatedSystemVersion.value });
     }
+
     return false;
   };
 

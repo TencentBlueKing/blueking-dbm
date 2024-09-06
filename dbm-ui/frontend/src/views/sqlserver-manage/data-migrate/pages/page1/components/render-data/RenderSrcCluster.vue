@@ -177,9 +177,6 @@
   };
 
   onBeforeUnmount(() => {
-    if (modelValue.value) {
-      delete clusterIdMemo[modelValue.value.id];
-    }
     delete clusterIdMemo[instanceKey];
   });
 
