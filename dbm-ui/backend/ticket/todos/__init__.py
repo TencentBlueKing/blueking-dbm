@@ -16,6 +16,8 @@ from typing import Callable
 
 from django.utils.translation import ugettext_lazy as _
 
+from backend.constants import DEFAULT_SYSTEM_USER
+from backend.ticket.exceptions import TodoWrongOperatorException
 from backend.ticket.models import Todo
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
@@ -38,7 +40,12 @@ class TodoActor:
         return cls.__name__
 
     def process(self, username, action, params):
-        """处理操作"""
+        if username not in self.todo.operators and username != DEFAULT_SYSTEM_USER:
+            raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
+        self._process(username, action, params)
+
+    def _process(self, username, action, params):
+        """处理操作的具体实现"""
         raise NotImplementedError
 
 
@@ -98,7 +105,6 @@ class ActionType(str, StructuredEnum):
 
     APPROVE = EnumField("APPROVE", _("确认执行"))
     TERMINATE = EnumField("TERMINATE", _("终止单据"))
-    RESOURCE_REAPPLY = EnumField("RESOURCE_REAPPLY", _("资源重新申请"))
 
 
 @dataclass

@@ -25,12 +25,13 @@ from backend.ticket.constants import (
     FLOW_FINISHED_STATUS,
     FLOW_NOT_EXECUTE_STATUS,
     FLOW_TYPE__EXPIRE_TYPE_CONFIG,
+    TICKET_EXPIRE_DEFAULT_CONFIG,
     FlowContext,
     FlowErrCode,
     FlowTypeConfig,
     TicketFlowStatus,
 )
-from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, TicketFlowsConfig
+from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, TicketFlowsConfig, Todo
 
 logger = logging.getLogger("root")
 
@@ -70,7 +71,7 @@ class BaseTicketFlow(ABC):
 
         if not self.flow_obj.flow_obj_id:
             # 任务流程未创建时未PENDING状态
-            return constants.TicketStatus.PENDING
+            return constants.TicketFlowStatus.PENDING
 
         # 其他情况暂时认为在PENDING状态
         return TicketFlowStatus.PENDING
@@ -144,10 +145,11 @@ class BaseTicketFlow(ABC):
     def flush_revoke_status_handler(self, operator):
         """终止节点，更新相关状态和错误信息"""
         self.flow_obj.status = TicketFlowStatus.TERMINATED
-        self.flow_obj.err_code = FlowErrCode.GENERAL_ERROR
         if operator == DEFAULT_SYSTEM_USER:
             self.flow_obj.err_code = FlowErrCode.SYSTEM_TERMINATED_ERROR
             self.flow_obj.context = {FlowContext.EXPIRE_TIME: self.get_current_config_expire_time()}
+        else:
+            self.flow_obj.err_code = FlowErrCode.GENERAL_ERROR
         self.flow_obj.save(update_fields=["status", "err_code", "context", "update_at"])
         # 更新操作者
         self.ticket.updater = operator
@@ -157,8 +159,9 @@ class BaseTicketFlow(ABC):
         """获取当前配置的flow过期时间"""
         if self.flow_obj.flow_type not in FLOW_TYPE__EXPIRE_TYPE_CONFIG:
             return -1
-        config = TicketFlowsConfig.get_config(ticket_type=self.ticket.ticket_type)
-        expire_time = config[FlowTypeConfig.EXPIRE_CONFIG][FLOW_TYPE__EXPIRE_TYPE_CONFIG[self.flow_obj.flow_type]]
+        config = TicketFlowsConfig.get_config(ticket_type=self.ticket.ticket_type).configs
+        expire_config = config.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)
+        expire_time = expire_config[FLOW_TYPE__EXPIRE_TYPE_CONFIG[self.flow_obj.flow_type]]
         return expire_time
 
     def create_operate_records(self, object_key, record_model, object_ids):
@@ -259,4 +262,11 @@ class BaseTicketFlow(ABC):
         self.run()
 
     def _revoke(self, operator) -> Any:
+        # 停止相关联的todo
+        from backend.ticket.todos import ActionType, TodoActorFactory
+
+        todos = Todo.objects.filter(ticket=self.ticket, flow=self.flow_obj)
+        for todo in todos:
+            TodoActorFactory.actor(todo).process(operator, ActionType.TERMINATE, params={})
+        # 刷新flow和单据状态 --> 终止
         self.flush_revoke_status_handler(operator)

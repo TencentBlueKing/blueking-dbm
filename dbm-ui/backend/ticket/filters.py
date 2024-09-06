@@ -13,6 +13,7 @@ from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 
 from backend.db_meta.models import Cluster
+from backend.ticket.constants import TODO_RUNNING_STATUS
 from backend.ticket.models import ClusterOperateRecord, Ticket
 
 
@@ -20,6 +21,7 @@ class TicketListFilter(filters.FilterSet):
     remark = filters.CharFilter(field_name="remark", lookup_expr="icontains", label=_("备注"))
     cluster = filters.CharFilter(field_name="cluster", method="filter_cluster", label=_("集群域名"))
     ids = filters.CharFilter(field_name="ids", method="filter_ids", label=_("单据ID列表"))
+    todo = filters.CharFilter(field_name="todo", method="filter_todo", label=_("代办状态"))
 
     class Meta:
         model = Ticket
@@ -40,3 +42,12 @@ class TicketListFilter(filters.FilterSet):
     def filter_ids(self, queryset, name, value):
         ids = list(map(int, value.split(",")))
         return queryset.filter(id__in=ids)
+
+    def filter_todo(self, queryset, name, value):
+        user = self.request.user.username
+        if value == "running":
+            return queryset.filter(
+                todo_of_ticket__operators__contains=user, todo_of_ticket__status__in=TODO_RUNNING_STATUS
+            )
+        else:
+            return queryset.filter(todo_of_ticket__done_by=user)
