@@ -17,7 +17,15 @@ from django.utils.translation import ugettext_lazy as _
 from backend import env
 from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
 from backend.bk_web.models import AuditedModel
-from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TodoStatus, TodoType
+from backend.ticket.constants import (
+    TODO_RUNNING_STATUS,
+    FlowMsgStatus,
+    FlowMsgType,
+    TicketFlowStatus,
+    TicketStatus,
+    TodoStatus,
+    TodoType,
+)
 from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
 
 logger = logging.getLogger("root")
@@ -25,7 +33,7 @@ logger = logging.getLogger("root")
 
 class TodoManager(models.Manager):
     def exist_unfinished(self):
-        return self.filter(status__in=[TodoStatus.TODO, TodoStatus.RUNNING]).exists()
+        return self.filter(status__in=TODO_RUNNING_STATUS).exists()
 
     def create(self, **kwargs):
         todo = super().create(**kwargs)
@@ -91,7 +99,7 @@ class Todo(AuditedModel):
 
     def set_terminated(self, username, action):
         self.set_status(username, TodoStatus.DONE_FAILED)
-        self.ticket.set_terminated()
+        self.ticket.set_status(status=TicketStatus.TERMINATED)
         self.flow.update_status(TicketFlowStatus.TERMINATED)
         TodoHistory.objects.create(creator=username, todo=self, action=action)
 
