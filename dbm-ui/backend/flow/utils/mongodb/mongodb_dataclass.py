@@ -495,6 +495,7 @@ class ActKwargs:
             "creator": self.payload["created_by"],
             "region": self.payload["city"],
             "db_module_id": 0,
+            "disaster_tolerance_level": self.payload["disaster_tolerance_level"],
         }
 
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
