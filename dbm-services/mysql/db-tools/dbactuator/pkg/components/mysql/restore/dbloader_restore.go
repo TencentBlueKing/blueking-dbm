@@ -25,6 +25,7 @@ type DBLoader struct {
 
 	taskDir      string // 依赖 BackupInfo.WorkDir ${work_dir}/doDr_${id}/${port}/
 	targetDir    string // 备份解压后的目录，${taskDir}/<backupBaseName>/
+	LogDir       string `json:"-"`
 	dbLoaderUtil *dbloader.LoaderUtil
 	// dbLoader is interface
 	dbLoader dbloader.DBBackupLoader
@@ -47,11 +48,7 @@ func (m *DBLoader) Init() error {
 			logger.Warn("fail to get mysqld socket: %s", cnfFileName)
 		}
 	}
-	/*
-		if err = m.BackupInfo.indexObj.ValidateFiles(); err != nil {
-			return err
-		}
-	*/
+
 	if err = m.initDirs(); err != nil {
 		return err
 	}
@@ -86,6 +83,7 @@ func (m *DBLoader) chooseDBBackupLoader() error {
 		IndexObj:      m.BackupInfo.indexObj,
 		LoaderDir:     m.targetDir,
 		TaskDir:       m.taskDir,
+		LogDir:        m.LogDir,
 		//EnableBinlog:  m.RestoreOpt.EnableBinlog,
 	}
 	if m.RestoreOpt == nil {

@@ -107,12 +107,13 @@ func (d *DbMigrateDumpComp) DbMigrateDump() (err error) {
 	dumper = &mysqlutil.DbMigrateDumper{
 		DumpDir:         d.dumpDirPath,
 		DbBackupUser:    d.GeneralParam.RuntimeAccountParam.DbBackupUser,
-		DbBackuoPwd:     d.GeneralParam.RuntimeAccountParam.DbBackupPwd,
+		DbBackupPwd:     d.GeneralParam.RuntimeAccountParam.DbBackupPwd,
 		Ip:              d.Params.Host,
 		Port:            d.Params.Port,
 		BackupCmdPath:   d.backupCmdPath,
 		DbNames:         sourceDb,
 		DataSchemaGrant: d.Params.DataSchemaGrant,
+		LogDir:          filepath.Join(d.GeneralParam.ActuatorWorkDir(), "logs"),
 	}
 	if err = dumper.DumpbackupLogical(); err != nil {
 		logger.Error("dbbackup dump failed: %s", err.Error())

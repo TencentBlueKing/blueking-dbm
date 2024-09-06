@@ -1,17 +1,20 @@
 package restore
 
 import (
-	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"text/template"
 	"time"
+
+	"dbm-services/common/go-pubpkg/mysqlcomm"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 
 	"github.com/spf13/cast"
 
@@ -539,17 +542,9 @@ func (r *RecoverBinlog) initDirs() error {
 	return nil
 }
 
-// PreCheck TODO
-// r.BinlogFiles 是已经过滤后的 binlog 文件列表
-func (r *RecoverBinlog) PreCheck() error {
-	var err error
-	if err = r.buildMysqlOptions(); err != nil {
-		return err
-	}
-	// init mysqlbinlog options
-	if err = r.buildBinlogOptions(); err != nil {
-		return err
-	}
+var ErrorBinlogMissing = errors.New("binlog missing")
+
+func (r *RecoverBinlog) checkBinlogFiles() error {
 	// 检查 binlog 是否存在
 	var binlogFilesErrs []error
 	for _, f := range r.BinlogFiles {
@@ -571,11 +566,8 @@ func (r *RecoverBinlog) PreCheck() error {
 		logger.Warn("binlog leak number: %v", leakInts)
 		// 如果文件不连续，会尝试从本机器恢复目录下查找。用于手动补全了 binlog 的情况
 		var leakFiles []string
-		file0Arr := strings.Split(r.BinlogFiles[0], ".")
-		file0Arr1Len := cast.ToString(len(file0Arr[1]))
 		for _, intVal := range leakInts {
-			fileNameFmt := "%s." + "%0" + file0Arr1Len + "d"
-			binlogFileName := fmt.Sprintf(fileNameFmt, file0Arr[0], intVal)
+			binlogFileName := constructBinlogFilename(r.BinlogFiles[0], intVal)
 			leakFiles = append(leakFiles, binlogFileName)
 			logger.Warn("check leak binlog file exists: %s", filepath.Join(r.BinlogDir, binlogFileName))
 			if err := cmutil.FileExistsErr(filepath.Join(r.BinlogDir, binlogFileName)); err != nil {
@@ -595,7 +587,7 @@ func (r *RecoverBinlog) PreCheck() error {
 	// 检查第一个 binlog 是否存在
 	if r.BinlogStartFile != "" {
 		if !util.StringsHas(r.BinlogFiles, r.BinlogStartFile) {
-			return errors.Errorf("binlog_start_file %s not found", r.BinlogStartFile)
+			return errors.WithMessagef(ErrorBinlogMissing, "binlog_start_file %s not found", r.BinlogStartFile)
 		}
 		// 如果 start_datetime 为空，依赖 start_file, start_pos 选择起始 binlog pos
 		for i, f := range r.BinlogFiles {
@@ -612,11 +604,58 @@ func (r *RecoverBinlog) PreCheck() error {
 	if err := r.checkTimeRange(); err != nil {
 		return err
 	}
-
 	return nil
 }
 
-// FilterBinlogFiles 对 binlog 列表多余是时间，掐头去尾，并返回文件总大小
+// GetBinlogFilesFromDir 获取指定目录下的 binlog 文件列表
+// 合法的 binlog 格式 binlog\d*\.\d+$
+func (r *RecoverBinlog) GetBinlogFilesFromDir(binlogDir, namePrefix string) ([]string, error) {
+	// 临时关闭 binlog 删除
+	files, err := os.ReadDir(binlogDir) // 已经按文件名排序
+	if err != nil {
+		return nil, errors.Wrap(err, "read binlog dir")
+	}
+
+	var binlogFiles []string
+	reFilename := regexp.MustCompile(cst.ReBinlogFilename)
+	for _, fi := range files {
+		if reFilename.MatchString(fi.Name()) {
+			if namePrefix == "" {
+				binlogFiles = append(binlogFiles, fi.Name())
+			} else if strings.HasPrefix(fi.Name(), namePrefix) {
+				binlogFiles = append(binlogFiles, fi.Name())
+			}
+		}
+	}
+	return binlogFiles, nil
+}
+
+// PreCheck TODO
+// r.BinlogFiles 是已经过滤后的 binlog 文件列表
+func (r *RecoverBinlog) PreCheck() error {
+	var err error
+	if err = r.buildMysqlOptions(); err != nil {
+		return err
+	}
+	// init mysqlbinlog options
+	if err = r.buildBinlogOptions(); err != nil {
+		return err
+	}
+	err = r.checkBinlogFiles()
+	logger.Warn("check binlog files error: %s. try to get binlog file from recover dir", err.Error())
+	if errors.Is(err, ErrorBinlogMissing) {
+		nameParts := strings.Split(r.BinlogFiles[0], ".")
+		if binlogFiles, err := r.GetBinlogFilesFromDir(r.BinlogDir, nameParts[0]+"."); err != nil {
+			return errors.WithMessagef(err, "get binlog files from %s", r.BinlogDir)
+		} else {
+			r.BinlogFiles = binlogFiles
+		}
+		return r.checkBinlogFiles()
+	}
+	return err
+}
+
+// FilterBinlogFiles 对 binlog 列表根据时间，掐头去尾，并返回文件总大小
 // binlog开始点：如果 start_file 不为空，以 start_file 为优先
 // binlog结束点：最后一个binlog end_time > 过滤条件 stop_time
 func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
@@ -626,7 +665,7 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	// 如果传入了 start_file，第一个binlog很好找
 	if r.BinlogStartFile != "" {
 		if !util.StringsHas(r.BinlogFiles, r.BinlogStartFile) {
-			return 0, errors.Errorf("first binlog %s not found", r.BinlogStartFile)
+			return 0, errors.WithMessagef(ErrorBinlogMissing, "first binlog %s not found", r.BinlogStartFile)
 		}
 		// 如果 start_datetime 为空，依赖 start_file, start_pos 选择起始 binlog pos
 		for i, f := range r.BinlogFiles {
@@ -650,7 +689,7 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	var firstBinlogSize int64 = 0
 	// 过滤 binlog time < stop_time
 	// 如果有需要 也会过滤 binlog time > start_time
-	var startTimeMore, stopTimeMore time.Time
+	var startTimeMore, stopTimeMore time.Time // 前后时间偏移 20分钟
 	var startTimeFilter, stopTimeFilter string
 	if r.RecoverOpt.StartTime != "" {
 		startTimeMore, _ = time.ParseInLocation(time.RFC3339, r.RecoverOpt.StartTime, time.Local)
@@ -668,17 +707,9 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 		fileName := filepath.Join(r.BinlogDir, f)
 		// **** get binlog time
 		// todo 如果是闪回模式，只从本地binlog获取，也可以读取 file mtime，确保不会出错
-		events, err := bp.GetTime(fileName, true, true)
+		events, err := bp.GetTimeIgnoreStopErr(fileName, true, true)
 		if err != nil {
-			logger.Warn("binlog get time failed %s : %s", fileName, err.Error())
-			// 有一种情况，获取 binlog rotate event 失败
-			events, err = bp.GetTime(fileName, true, false)
-			if err == nil {
-				logger.Warn("use start_time as binlog end_time %s : %s", fileName, events[0])
-				events = append(events, events[0])
-			} else {
-				return 0, err
-			}
+			return 0, err
 		}
 		startTime := events[0].EventTime
 		stopTime := events[1].EventTime
@@ -697,8 +728,6 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 					firstBinlogFound = true
 					firstBinlogFile = lastBinlogFile
 					firstBinlogSize = lastBinlogSize
-					//binlogFiles = append(binlogFiles, lastBinlogFile)
-					//totalSize += lastBinlogSize
 				}
 				binlogFiles = append(binlogFiles, f)
 				totalSize += fileSize
@@ -720,6 +749,19 @@ func (r *RecoverBinlog) FilterBinlogFiles() (totalSize int64, err error) {
 	return totalSize, nil
 }
 
+func getSequenceFromFilename(binlogFileName string) int {
+	file0Arr := strings.Split(binlogFileName, ".")
+	return cast.ToInt(strings.TrimLeft(file0Arr[1], "0"))
+}
+
+func constructBinlogFilename(fileNameTmpl string, sequenceSuffix int) string {
+	file0Arr := strings.Split(fileNameTmpl, ".")
+	file0Arr1Len := cast.ToString(len(file0Arr[1]))
+	fileNameFmt := "%s." + "%0" + file0Arr1Len + "d"
+	newFileName := fmt.Sprintf(fileNameFmt, file0Arr[0], sequenceSuffix)
+	return newFileName
+}
+
 // checkTimeRange 再次检查 binlog 时间
 func (r *RecoverBinlog) checkTimeRange() error {
 	startTime := r.RecoverOpt.StartTime
@@ -735,13 +777,13 @@ func (r *RecoverBinlog) checkTimeRange() error {
 		}
 		evStartTime := events[0].EventTime
 		if evStartTime > startTime {
-			return errors.Errorf(
+			return errors.WithMessagef(ErrorBinlogMissing,
 				"the first binlog %s start-datetime [%s] is greater then start_time [%s]",
 				r.BinlogFiles[0], evStartTime, startTime,
 			)
 		} else {
 			logger.Info(
-				"the first binlog %s start-datetime [%s] is lte start time[%s]",
+				"the first binlog %s start-datetime [%s] is lte start time[%s]. ok",
 				r.BinlogFiles[0], evStartTime, startTime,
 			)
 		}
@@ -756,13 +798,13 @@ func (r *RecoverBinlog) checkTimeRange() error {
 		}
 		evStopTime := events[0].EventTime
 		if evStopTime < stopTime {
-			return errors.Errorf(
+			return errors.WithMessagef(ErrorBinlogMissing,
 				"the last binlog %s stop-datetime [%s] is little then target_time [%s]",
 				lastBinlog, evStopTime, stopTime,
 			)
 		} else {
 			logger.Info(
-				"the last binlog %s stop-datetime [%s] gte target_time [%s]",
+				"the last binlog %s stop-datetime [%s] gte target_time [%s]. ok",
 				lastBinlog, evStopTime, stopTime,
 			)
 		}

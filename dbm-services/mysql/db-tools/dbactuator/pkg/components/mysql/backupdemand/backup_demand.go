@@ -200,10 +200,16 @@ func (c *Component) GenerateBackupConfig() error {
 	return nil
 }
 
+func (c *Component) ActuatorWorkDir() string {
+	executable, _ := os.Executable()
+	return filepath.Dir(executable)
+}
+
 func (c *Component) DoBackup() error {
 	for _, port := range c.backupPort {
 		backupConfigPath := c.backupConfigPaths[port]
 		cmdArgs := []string{c.tools.MustGet(tools.ToolDbbackupGo), "dumpbackup", "--config", backupConfigPath}
+		cmdArgs = append(cmdArgs, "--log-dir", filepath.Join(c.ActuatorWorkDir(), "logs"))
 		logger.Info("backup command: %s", strings.Join(cmdArgs, " "))
 
 		_, errStr, err := cmutil.ExecCommand(false, "",

@@ -105,6 +105,12 @@ func GetMysqlVersion(dbh *sql.DB) (string, error) {
 	return version[0], nil
 }
 
+func GetBinlogFormat(dbh *sql.DB) (string, string) {
+	binlogFormat, _ := GetSingleGlobalVar("binlog_format", dbh)
+	binlogRowImage, _ := GetSingleGlobalVar("binlog_row_image", dbh)
+	return binlogFormat, binlogRowImage
+}
+
 // GetStorageEngine Get the storage engine from mysql server
 func GetStorageEngine(dbh *sql.DB) (string, error) {
 	version, err := MysqlSingleColumnQuery("select @@default_storage_engine", dbh)

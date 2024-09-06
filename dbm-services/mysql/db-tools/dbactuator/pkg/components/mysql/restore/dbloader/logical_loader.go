@@ -115,6 +115,9 @@ func (l *LogicalLoader) Load() error {
 
 func (l *LogicalLoader) loadBackup() error {
 	cmdArgs := []string{"loadbackup", "--config", l.cfgFilePath}
+	if l.LogDir != "" {
+		cmdArgs = append(cmdArgs, "--log-dir", l.LogDir)
+	}
 	cmd := []string{l.Client}
 	cmd = append(cmd, cmdArgs...)
 	logger.Info("dbLoader cmd: %s", strings.Join(cmd, " "))

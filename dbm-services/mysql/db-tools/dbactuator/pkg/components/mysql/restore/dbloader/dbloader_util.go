@@ -25,6 +25,7 @@ type LoaderUtil struct {
 	ExcludeDatabases []string `json:"exclude_databases"`
 	ExcludeTables    []string `json:"exclude_tables"`
 
+	LogDir string `json:"-"`
 	// 内部检查相关
 	cfgFilePath string
 	doDr        bool

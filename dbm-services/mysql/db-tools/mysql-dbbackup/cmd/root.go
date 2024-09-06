@@ -14,6 +14,7 @@ import (
 var DbbackupVersion = "undef"
 
 var cnfFile string
+var logFile string
 
 var rootCmd = &cobra.Command{
 	Use:     "dbbackup",
@@ -33,8 +34,9 @@ func Execute() {
 
 func init() {
 	// rootCmd
-	// rootCmd.PersistentFlags().StringVarP(&cnfFile, "config", "c", "", "config file")
-	// _ = rootCmd.MarkPersistentFlagRequired("config")
+	rootCmd.PersistentFlags().StringVar(&logFile, "log-dir", "",
+		"log file path. default empty will log files to dir dbbackup/logs/")
+	_ = viper.BindPFlag("log-dir", rootCmd.PersistentFlags().Lookup("log-dir"))
 
 	// overwrite -h option
 	rootCmd.PersistentFlags().BoolP("help", "", false, "help for this command")

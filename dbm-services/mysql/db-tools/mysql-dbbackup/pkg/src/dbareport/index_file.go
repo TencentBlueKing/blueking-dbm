@@ -120,10 +120,12 @@ type ExtraFields struct {
 	StorageEngine string `json:"storage_engine" db:"storage_engine"`
 	TimeZone      string `json:"time_zone" db:"time_zone"`
 	// BackupCharset 逻辑备份使用
-	BackupCharset string `json:"backup_charset" db:"backup_charset"`
-	SqlMode       string `json:"sql_mode" db:"time_zone"`
+	BackupCharset  string `json:"backup_charset" db:"backup_charset"`
+	SqlMode        string `json:"sql_mode" db:"sql_mode"`
+	BinlogFormat   string `json:"binlog_format" db:"binlog_format"`
+	BinlogRowImage string `json:"binlog_row_image" db:"binlog_row_image"`
 	// BackupTool command name xtrabackup / mydumper / mysqldump
-	BackupTool string `json:"backup_tool" db:"time_zone"`
+	BackupTool string `json:"backup_tool" db:"backup_tool"`
 }
 
 // JudgeIsFullBackup 是否是带所有数据的全备
@@ -163,6 +165,9 @@ func (r *BackupLogReport) BuildMetaInfo(cnf *config.Public, metaInfo *IndexConte
 	if err != nil {
 		return err
 	}
+	binlogFormat, rowImage := mysqlconn.GetBinlogFormat(db)
+	sqlMode, _ := mysqlconn.GetSingleGlobalVar("sql_mode", db)
+
 	metaInfo.BackupType = cnf.BackupType
 	metaInfo.BackupHost = cnf.MysqlHost
 	metaInfo.BackupPort = cnf.MysqlPort
@@ -176,6 +181,9 @@ func (r *BackupLogReport) BuildMetaInfo(cnf *config.Public, metaInfo *IndexConte
 	metaInfo.BkCloudId = cnf.BkCloudId
 	metaInfo.BackupCharset = cnf.MysqlCharset
 	metaInfo.StorageEngine = storageEngineStr
+	metaInfo.BinlogFormat = binlogFormat
+	metaInfo.BinlogRowImage = rowImage
+	metaInfo.SqlMode = sqlMode
 	metaInfo.TimeZone, _ = time.Now().Zone()
 	metaInfo.ConsistentBackupTime = metaInfo.BackupConsistentTime
 	// BeginTime, EndTime, ConsistentTime, BinlogInfo,storageEngineStr build in PrepareBackupMetaInfo

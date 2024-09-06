@@ -10,6 +10,11 @@
 
 package components
 
+import (
+	"os"
+	"path/filepath"
+)
+
 // BaseInputParam TODO
 type BaseInputParam struct {
 	GeneralParam *GeneralParam `json:"general"`
@@ -62,4 +67,12 @@ func GetAccountRepl(g *GeneralParam) MySQLReplAccount {
 	default:
 		return g.RuntimeAccountParam.MySQLReplAccount
 	}
+}
+
+// ActuatorWorkDir 返回 actor 的执行所在目录
+// 例如 /data/install/dbactuator-123/dbactuator args
+// 则返回 /data/install/dbactuator-123/
+func (g *GeneralParam) ActuatorWorkDir() string {
+	executable, _ := os.Executable()
+	return filepath.Dir(executable)
 }

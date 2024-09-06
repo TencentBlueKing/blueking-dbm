@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -40,6 +41,7 @@ type DbMigrateImportParam struct {
 	WorkDir       string `json:"work_dir"` // 数据迁移工作的目录名称 mysql_data_migration
 	ImportDirName string `json:"import_dir_name"`
 	IndexFileName string `json:"index_file_name"`
+	LogDir        string `json:"-"`
 }
 
 type DbMigrateImportRunTimeCtx struct {
@@ -82,8 +84,9 @@ func (d *DbMigrateImportComp) Init() (err error) {
 	d.importDirPath = path.Join(d.workDirPath, d.Params.ImportDirName)
 	d.indexFilePath = path.Join(d.importDirPath, d.Params.IndexFileName)
 	if _, err := os.Stat(d.indexFilePath); os.IsNotExist(err) {
-		return fmt.Errorf("Index file %s dose not exist! %s", d.importDirPath, err.Error())
+		return fmt.Errorf("index file %s does not exist: %s", d.importDirPath, err.Error())
 	}
+	d.Params.LogDir = filepath.Join(d.GeneralParam.ActuatorWorkDir(), "logs")
 	return nil
 }
 
@@ -95,7 +98,7 @@ func (d *DbMigrateImportComp) Precheck() (err error) {
 	return nil
 }
 
-// 解压备份目录
+// DecompressDumpDir 解压备份目录
 func (d *DbMigrateImportComp) DecompressDumpDir() (err error) {
 	// 读取index文件，获取待解压文件信息
 	err = d.IndexFileParse()
@@ -111,7 +114,7 @@ func (d *DbMigrateImportComp) DecompressDumpDir() (err error) {
 	return nil
 }
 
-// 数据导入
+// DbMigrateImport 数据导入
 func (d *DbMigrateImportComp) DbMigrateImport() (err error) {
 	loadCmd := d.GetLoadCmd()
 	logger.Info("loadbackup cmd is :%s", loadCmd)
@@ -121,7 +124,7 @@ func (d *DbMigrateImportComp) DbMigrateImport() (err error) {
 	return nil
 }
 
-// 解析index文件，获取备份文件信息
+// IndexFileParse 解析index文件，获取备份文件信息
 func (d *DbMigrateImportComp) IndexFileParse() (err error) {
 	data, err := os.ReadFile(d.indexFilePath)
 	if err != nil {
@@ -134,7 +137,7 @@ func (d *DbMigrateImportComp) IndexFileParse() (err error) {
 	return nil
 }
 
-// 解压
+// UntarFiles 解压
 func (d *DbMigrateImportComp) UntarFiles() (err error) {
 	if len(d.dmBackupIndexFile.FileList) > 0 {
 		for _, tarFile := range d.dmBackupIndexFile.FileList {
@@ -154,15 +157,18 @@ func (d *DbMigrateImportComp) UntarFiles() (err error) {
 	return
 }
 
-// 获取loadbackup命令
+// GetLoadCmd 获取loadbackup命令
 func (d *DbMigrateImportComp) GetLoadCmd() string {
-	cmd := fmt.Sprintf(`cd %s && %s loadbackup logical -u %s -p %s --host %s --port %d %s`, d.importDirPath,
+	loadCmd := fmt.Sprintf(`cd %s && %s loadbackup logical -u %s -p %s --host %s --port %d %s`, d.importDirPath,
 		d.backupCmdPath, d.GeneralParam.RuntimeAccountParam.AdminUser,
 		d.GeneralParam.RuntimeAccountParam.AdminPwd, d.Params.Host, d.Params.Port, d.GetLoadCmdOption())
-	return cmd
+	if d.Params.LogDir != "" {
+		loadCmd += fmt.Sprintf(" --log-dir %s", d.Params.LogDir)
+	}
+	return loadCmd
 }
 
-// 获取loadbackup命令需要参数
+// GetLoadCmdOption 获取loadbackup命令需要参数
 func (d *DbMigrateImportComp) GetLoadCmdOption() string {
 	opt := fmt.Sprintf(`--load-dir %s -i %s --enable-binlog `, d.unTarDirPath, d.indexFilePath)
 	return opt
