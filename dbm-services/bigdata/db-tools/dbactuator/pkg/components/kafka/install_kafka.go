@@ -579,7 +579,7 @@ func (i *InstallKafkaComp) InstallBroker() error {
 		templateData := kafkautil.TemplateData{
 			NumNetWorkThreads:        processors,
 			LogRetentionHours:        retentionHours,
-			DefaultReplicationFactor: factor,
+			DefaultReplicationFactor: replicationNum,
 			NumPartitions:            partitionNum,
 			NumIOThreads:             processors * 2,
 			NumReplicaFetchers:       processors,
