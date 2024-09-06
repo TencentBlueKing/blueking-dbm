@@ -97,11 +97,11 @@
       },
       {
         validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
-        message: t('库表只能由[0-9],[a-z],[A-Z],-,_ 组成，支持* % ?通配符，最大35字符'),
+        message: t('库表名支持数字、字母、中划线、下划线，最大35字符'),
       },
       {
         validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
-        message: t('不允许填写系统库'),
+        message: t('不允许输入系统库和特殊库'),
       },
       {
         validator: (value: string[]) => {
