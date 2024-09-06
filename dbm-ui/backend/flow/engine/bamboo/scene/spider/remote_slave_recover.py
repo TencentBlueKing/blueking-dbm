@@ -127,7 +127,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                 raise MasterInstanceNotExistException(
                     cluster_type=cluster_class.cluster_type, cluster_id=cluster_class.id
                 )
-            master = StorageInstance.objects.get(slave_tuple[0].ejector_id)
+            master = StorageInstance.objects.get(id=slave_tuple[0].ejector_id)
 
             db_config = get_instance_config(cluster_class.bk_cloud_id, master.machine.ip, cluster_info["ports"])
 
