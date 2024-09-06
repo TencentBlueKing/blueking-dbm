@@ -27,6 +27,7 @@
             :cluster-type-list="[ClusterTypes.TENDBCLUSTER]" />
           <ExecuteObjects
             v-model="formData.execute_objects"
+            cluster-type="tendbcluster"
             :cluster-version-list="clusterVersionList"
             :db-type="DBTypes.TENDBCLUSTER"
             style="margin-top: 16px"
