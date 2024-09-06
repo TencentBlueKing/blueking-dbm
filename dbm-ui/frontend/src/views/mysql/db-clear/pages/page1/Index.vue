@@ -34,9 +34,11 @@
           v-for="(item, index) in tableData"
           :key="item.rowKey"
           ref="rowRefs"
+          :cluster-types="clusterTypes"
           :data="item"
           :removeable="tableData.length < 2"
           @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
+          @cluster-input-finish="(clusterId: number) => handleChangeCluster(index, clusterId)"
           @remove="handleRemove(index)" />
       </RenderData>
       <div class="page-action-box">
@@ -98,8 +100,6 @@
 
   import ClusterSelector from '@components/cluster-selector/Index.vue';
 
-  import { messageError } from '@utils';
-
   import BatchInput, { type InputItem } from './components/BatchInput.vue';
   import RenderData from './components/RenderData/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
@@ -141,6 +141,8 @@
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
   });
+
+  const clusterTypes = computed(() => tableData.value.map((item) => item.clusterData?.type as string));
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -218,6 +220,37 @@
     });
   };
 
+  // 输入集群后查询集群信息并填充到table
+  const handleChangeCluster = async (index: number, clusterId: number) => {
+    if (tableData.value[index].clusterData?.id === clusterId) {
+      return;
+    }
+
+    const resultList = await queryClusters({
+      cluster_filters: [
+        {
+          id: clusterId,
+        },
+      ],
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+    });
+    if (resultList.length < 1) {
+      return;
+    }
+    const item = resultList[0];
+    const domain = item.master_domain;
+    const row = createRowData({
+      clusterData: {
+        id: item.id,
+        domain,
+        type: item.cluster_type,
+      },
+    });
+    tableData.value[index] = row;
+    domainMemo[domain] = true;
+    selectedClusters.value[item.cluster_type].push(item);
+  };
+
   // 批量选择
   const handelClusterChange = (selected: { [key: string]: Array<TendbhaModel> }) => {
     selectedClusters.value = selected;
@@ -271,11 +304,6 @@
     Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()))
       .then((data) => {
         const clusterTypes = _.uniq(tableData.value.map((item) => item.clusterData?.type));
-        // 限制只能提同一种类型的集群，否则提示
-        if (clusterTypes.length > 1) {
-          messageError('只允许提交一种集群类型');
-          return Promise.reject();
-        }
         return createTicket({
           ticket_type:
             clusterTypes[0] === ClusterTypes.TENDBHA
