@@ -78,7 +78,43 @@
                 active: item.value === modelValue?.backup_id,
               }"
               @click="handleLogListSelect(item)">
-              <span>{{ item.label }}</span>
+              <BkPopover
+                boundary="document.body"
+                :offset="26"
+                placement="right"
+                theme="light"
+                :z-index="999999">
+                <div>{{ item.label }}</div>
+                <template #content>
+                  <div style="line-height: 20px; color: #63656e">
+                    <div style="font-weight: bold">{{ t('起止时间：') }}</div>
+                    <div>
+                      {{ item.payload.role }}
+                      <span>:</span>
+                      {{ formatDateToUTC(item.payload.start_time) }}
+                      <span>~</span>
+                      {{ formatDateToUTC(item.payload.end_time) }}
+                    </div>
+                    <div style="display: flex; align-items: center">
+                      <DbIcon
+                        svg
+                        :type="item.isMissed ? 'sync-waiting-01' : 'sync-success'" />
+                      <I18nT keypath="备份记录（d）：预期返回 n 个 DB 的备份记录，实际返回 m 个">
+                        <span>{{ item.isMissed ? t('缺失') : t('完整') }}</span>
+                        <span style="padding: 0 4px; font-weight: bold">{{ item.payload.expected_cnt }}</span>
+                        <span
+                          :style="{
+                            padding: '0 4px',
+                            'font-weight': 'bold',
+                            color: item.isMissed ? '#ff9c01' : '#2DCB56',
+                          }">
+                          {{ item.payload.real_cnt }}
+                        </span>
+                      </I18nT>
+                    </div>
+                  </div>
+                </template>
+              </BkPopover>
             </div>
           </div>
         </div>
@@ -107,7 +143,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import dayjs from 'dayjs';
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { computed, onBeforeUnmount, onMounted, ref, type UnwrapRef, watch } from 'vue';
@@ -116,9 +151,7 @@
 
   import { queryBackupLogs, queryLatestBackupLog } from '@services/source/sqlserver';
 
-  import { useDebouncedRef } from '@hooks';
-
-  import { useTimeZone } from '@stores';
+  import { useDebouncedRef, useTimeZoneFormat } from '@hooks';
 
   import TableEditElement from '@components/render-table/columns/element/Index.vue';
 
@@ -157,15 +190,13 @@
     },
   ];
 
-  const timeZoneStore = useTimeZone();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
   const searchKey = useDebouncedRef('');
 
   const modelValue = defineModel<ServiceReturnType<typeof queryBackupLogs>[number]>();
 
   const formatLogName = (logData: UnwrapRef<typeof modelValue>) =>
-    logData
-      ? `${logData.role} ${dayjs(logData.start_time).tz(timeZoneStore.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`
-      : '';
+    logData ? `${logData.role} ${formatDateToUTC(logData.start_time)}` : '';
 
   const rootRef = ref();
   const popRef = ref();
@@ -178,8 +209,16 @@
   const recordType = ref(OperateType.MANUAL);
   const autoMatchDateTime = ref('');
 
-  const logRecordOptions = shallowRef<Array<{ value: string; label: string }>>([]);
   const backupLogListMemo = shallowRef<ServiceReturnType<typeof queryBackupLogs>>([]);
+
+  const logRecordOptions = computed(() =>
+    backupLogListMemo.value.map((item) => ({
+      value: item.backup_id,
+      label: formatLogName(item),
+      payload: item,
+      isMissed: item.expected_cnt < item.real_cnt,
+    })),
+  );
 
   const renderList = computed(() =>
     logRecordOptions.value.reduce<UnwrapRef<typeof logRecordOptions>>((result, item) => {
@@ -220,21 +259,16 @@
   ];
 
   const fetchLogData = () => {
-    logRecordOptions.value = [];
     backupLogListMemo.value = [];
     queryBackupLogs({
       cluster_id: props.clusterId as number,
     }).then((dataList) => {
-      logRecordOptions.value = dataList.map((item) => ({
-        value: item.backup_id,
-        label: formatLogName(item),
-      }));
       backupLogListMemo.value = dataList;
     });
   };
 
   watch(
-    () => [props.clusterId, timeZoneStore.label],
+    () => [props.clusterId],
     () => {
       if (!props.clusterId) {
         return;

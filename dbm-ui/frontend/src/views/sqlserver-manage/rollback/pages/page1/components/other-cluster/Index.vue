@@ -84,6 +84,7 @@
             id: item.src_cluster.id,
             domain: item.src_cluster.immute_domain,
             cloudId: item.src_cluster.bk_cloud_id,
+            majorVersion: item.src_cluster.major_version,
           },
           dstClusterData: {
             id: item.dst_cluster.id,
@@ -119,6 +120,7 @@
           id: item.id,
           domain: item.master_domain,
           cloudId: item.bk_cloud_id,
+          majorVersion: item.major_version,
         },
       });
       result.push(row);

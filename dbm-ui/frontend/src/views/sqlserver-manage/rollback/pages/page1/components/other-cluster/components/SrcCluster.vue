@@ -31,7 +31,7 @@
     @change="handelClusterChange" />
 </template>
 <script lang="ts">
-  const clusterIdMemo: { [key: string]: Record<string, number> } = {};
+  const clusterIdMemo: Record<string, number> = {};
 </script>
 <script setup lang="ts">
   import { onBeforeUnmount, ref, watch } from 'vue';
@@ -48,30 +48,16 @@
 
   import { random } from '@utils';
 
-  interface Props {
-    name?: string;
-    unique?: boolean;
-  }
+  import type { IDataRow } from './Row.vue';
 
   interface Exposes {
     getValue: (field: string) => Promise<Record<string, number>>;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    name: 'renderCluster',
-    unique: true,
-  });
+  const modelValue = defineModel<IDataRow['clusterData']>();
 
-  const modelValue = defineModel<{
-    id: number;
-    domain: string;
-    cloudId: null | number;
-  }>();
-
-  const instanceKey = `${props.name}_${random()}`;
-  clusterIdMemo[props.name] = {
-    [instanceKey]: 0,
-  };
+  const instanceKey = `render_src_cluster_${random()}`;
+  clusterIdMemo[instanceKey] = 0;
 
   const { t } = useI18n();
 
@@ -126,11 +112,12 @@
               id: data[0].id,
               cloudId: data[0].bk_cloud_id,
               domain: data[0].master_domain,
+              majorVersion: data[0].major_version,
             };
-            clusterIdMemo[props.name][instanceKey] = data[0].id;
+            clusterIdMemo[instanceKey] = data[0].id;
             return true;
           }
-          clusterIdMemo[props.name][instanceKey] = 0;
+          clusterIdMemo[instanceKey] = 0;
           modelValue.value = undefined;
           return false;
         }),
@@ -138,13 +125,12 @@
     },
     {
       validator: () => {
-        if (!props.unique) {
-          return true;
+        const otherClusterIdMemo = { ...clusterIdMemo };
+        delete otherClusterIdMemo[instanceKey];
+        if (Object.values(otherClusterIdMemo).includes(modelValue.value!.id)) {
+          return false;
         }
-        const otherClusterMemoMap = { ...clusterIdMemo[props.name] };
-        delete otherClusterMemoMap[instanceKey];
-
-        return !Object.values(otherClusterMemoMap).includes(modelValue.value!.id);
+        return true;
       },
       message: t('目标集群重复'),
     },
@@ -155,8 +141,8 @@
     modelValue,
     () => {
       if (modelValue.value) {
-        clusterIdMemo[props.name][instanceKey] = modelValue.value.id;
         localDomain.value = modelValue.value.domain;
+        clusterIdMemo[instanceKey] = modelValue.value.id;
       } else {
         localDomain.value = '';
       }
@@ -179,11 +165,12 @@
       id: clusterData.id,
       cloudId: clusterData.bk_cloud_id,
       domain: clusterData.master_domain,
+      majorVersion: clusterData.major_version,
     };
   };
 
   onBeforeUnmount(() => {
-    delete clusterIdMemo[props.name][instanceKey];
+    delete clusterIdMemo[instanceKey];
   });
 
   defineExpose<Exposes>({
