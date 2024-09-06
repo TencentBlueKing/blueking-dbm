@@ -57,48 +57,48 @@
       field: 'databases',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.map(item => <bk-tag>{item}</bk-tag>)}
-      </div>
-    ),
-    },
-    {
-      label: t('目标表'),
-      field: 'tables',
-      showOverflowTooltip: false,
-      render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.map(item => <bk-tag>{item}</bk-tag>)}
-      </div>
-    ),
+        <div
+          class="text-overflow"
+          v-overflow-tips={{ content: cell }}>
+          {cell.map(item => <bk-tag>{item}</bk-tag>)}
+        </div>
+      ),
     },
     {
       label: t('忽略库'),
       field: 'databases_ignore',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
+        <div
+          class="text-overflow"
+          v-overflow-tips={{ content: cell }}>
+          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
+        </div>
+      ),
+    },
+    {
+      label: t('目标表'),
+      field: 'tables',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
+        <div
+          class="text-overflow"
+          v-overflow-tips={{ content: cell }}>
+          {cell.map(item => <bk-tag>{item}</bk-tag>)}
+        </div>
+      ),
     },
     {
       label: t('忽略表'),
       field: 'tables_ignore',
       showOverflowTooltip: false,
       render: ({ cell }: { cell: string[] }) => (
-      <div class="text-overflow" v-overflow-tips={{
-          content: cell,
-        }}>
-        {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
-      </div>
-    ),
+        <div
+          class="text-overflow"
+          v-overflow-tips={{ content: cell }}>
+          {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
+        </div>
+      ),
     },
   ];
 

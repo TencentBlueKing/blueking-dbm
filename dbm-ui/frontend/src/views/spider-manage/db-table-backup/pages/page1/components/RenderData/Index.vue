@@ -53,14 +53,14 @@
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="90"
-          :width="210">
-          {{ t('备份表名') }}
-        </RenderTableHeadColumn>
-        <RenderTableHeadColumn
-          :min-width="90"
           :required="false"
           :width="210">
           {{ t('忽略DB名') }}
+        </RenderTableHeadColumn>
+        <RenderTableHeadColumn
+          :min-width="90"
+          :width="210">
+          {{ t('备份表名') }}
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
           :min-width="90"
@@ -89,9 +89,9 @@
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  interface Emits{
-    (e: 'batchSelectCluster'): void,
-    (e: 'batchEditBackupLocal', value: string): void,
+  interface Emits {
+    (e: 'batchSelectCluster'): void;
+    (e: 'batchEditBackupLocal', value: string): void;
   }
 
   const emits = defineEmits<Emits>();
