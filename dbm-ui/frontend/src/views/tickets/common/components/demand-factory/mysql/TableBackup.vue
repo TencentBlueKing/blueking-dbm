@@ -44,19 +44,17 @@
     name: string,
   }
 
-  /**
-   * mysql 库表备份
-   */
-
-  const columns: any = [{
-    label: t('集群ID'),
-    field: 'cluster_id',
-    render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('集群名称'),
-    field: 'immute_domain',
-    showOverflowTooltip: false,
-    render: ({ data }: { data: any }) => (
+  const columns = [
+    {
+      label: t('集群ID'),
+      field: 'cluster_id',
+      render: ({ cell }: { cell: number }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('集群名称'),
+      field: 'immute_domain',
+      showOverflowTooltip: false,
+      render: ({ data }: { data: backupItem }) => (
       <div class="cluster-name text-overflow"
         v-overflow-tips={{
           content: `
@@ -69,55 +67,61 @@
         <span class="cluster-name__alias">{data.name}</span>
       </div>
     ),
-  }, {
-    label: t('备份源'),
-    field: 'backup_on',
-    render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
-  }, {
-    label: t('备份DB名'),
-    field: 'db_patterns',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('备份源'),
+      field: 'backup_on',
+      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('备份DB名'),
+      field: 'db_patterns',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('忽略DB名'),
-    field: 'ignore_dbs',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('忽略DB名'),
+      field: 'ignore_dbs',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
       </div>
     ),
-  }, {
-    label: t('备份表名'),
-    field: 'table_patterns',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('备份表名'),
+      field: 'table_patterns',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.map(item => <bk-tag>{item}</bk-tag>)}
       </div>
     ),
-  }, {
-    label: t('忽略表名'),
-    field: 'ignore_tables',
-    showOverflowTooltip: false,
-    render: ({ cell }: { cell: string[] }) => (
+    },
+    {
+      label: t('忽略表名'),
+      field: 'ignore_tables',
+      showOverflowTooltip: false,
+      render: ({ cell }: { cell: string[] }) => (
       <div class="text-overflow" v-overflow-tips={{
           content: cell,
         }}>
         {cell.length > 0 ? cell.map(item => <bk-tag>{item}</bk-tag>) : '--'}
       </div>
     ),
-  }];
+    }
+  ];
 
   const dataList = computed(() => {
     const list: backupItem[] = [];

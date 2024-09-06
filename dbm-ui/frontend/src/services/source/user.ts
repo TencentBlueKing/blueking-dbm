@@ -24,6 +24,7 @@ export function getUserList(
     limit?: number;
     offset?: number;
     fuzzy_lookups?: string;
+    exact_lookups?: string;
   } = {},
 ) {
   return http.get<
