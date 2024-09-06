@@ -21,16 +21,20 @@
       @submit="handleInputFinish" />
   </div>
 </template>
+
 <script lang="ts">
   const clusterIdMemo: { [key: string]: Record<string, boolean> } = {};
+
   interface Props {
     modelValue?: IDataRow['clusterData'];
     placeholder?: string;
   }
+
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void;
-    (e: 'change', data: Props['modelValue']): void;
+    (e: 'inputCreate', value: string[]): void;
+    (e: 'change', data: IDataRow['clusterData']): void;
   }
+
   interface Exposes {
     getValue: () => Promise<{
       cluster_id: number;
@@ -43,30 +47,30 @@
 
   import { queryClusters } from '@services/source/mysqlCluster';
 
-  import { useGlobalBizs } from '@stores';
-
   import TableEditInput from '@components/render-table/columns/input/index.vue';
 
   import { random } from '@utils';
 
-  import type { IDataRow } from '../render-data/Index.vue';
+  import type { IDataRow } from '../Index.vue';
 
   const props = withDefaults(defineProps<Props>(), {
-    modelValue: undefined,
+    modelValue: () => ({
+      id: 0,
+      domain: '',
+    }),
     placeholder: '',
   });
+
   const emits = defineEmits<Emits>();
 
-  const instanceKey = `render_cluster_${random()}`;
-  clusterIdMemo[instanceKey] = {};
-
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const editRef = ref<InstanceType<typeof TableEditInput>>();
-
   const localClusterId = ref(0);
   const localDomain = ref('');
+
+  const instanceKey = `render_cluster_${random()}`;
+  clusterIdMemo[instanceKey] = {};
 
   const rules = [
     {
@@ -86,7 +90,7 @@
               immute_domain: domain,
             },
           ],
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         }).then((data) => {
           if (data.length > 0) {
             const {
@@ -137,6 +141,14 @@
     },
   ];
 
+  const handleInputFinish = (value: string) => {
+    if (!value) {
+      return;
+    }
+
+    emits('inputCreate', [value]);
+  };
+
   // 同步外部值
   watch(
     () => props.modelValue,
@@ -149,14 +161,6 @@
       immediate: true,
     },
   );
-
-  const handleInputFinish = (value: string) => {
-    if (!value) {
-      return;
-    }
-
-    emits('inputCreate', [value]);
-  };
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
@@ -179,6 +183,7 @@
     },
   });
 </script>
+
 <style lang="less" scoped>
   @keyframes rotate-loading {
     0% {

@@ -22,13 +22,12 @@
       @click-seletor="handleShowIpSelector" />
   </div>
   <IpSelector
-    v-if="clusterData"
     v-model:show-dialog="isShowIpSelector"
     :biz-id="currentBizId"
     button-text=""
     :cloud-info="{
-      id: clusterData.cloudId,
-      name: clusterData.cloudName,
+      id: clusterData!.cloudId,
+      name: clusterData!.cloudName,
     }"
     :data="localHostList"
     :os-types="[OSTypes.Linux]"
@@ -37,46 +36,41 @@
     :single-host-select="single"
     @change="handleHostChange" />
 </template>
+
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
+  import type { RollbackHost } from '@services/model/ticket/details/mysql';
   import { checkHost } from '@services/source/ipchooser';
   import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
   import { OSTypes } from '@common/const';
+  import { batchSplitRegex, ipv4 } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import TableSeletorInput from '@views/db-manage/common/TableSeletorInput.vue';
 
-  import type { IDataRow } from '../render-data/Index.vue';
+  import { messageWarn } from '@utils';
 
-  import { batchSplitRegex, ipv4 } from '@/common/regex';
-
-  export interface HostDataItem {
-    bk_host_id: number;
-    ip: string;
-    bk_cloud_id: number;
-    bk_biz_id: number;
-  }
+  import type { IDataRow } from '../Index.vue';
 
   interface Props {
     clusterData: IDataRow['clusterData'];
     single?: boolean;
-    hostData: HostDataItem[];
+    hostData: RollbackHost[];
   }
 
   interface Exposes {
     getValue: () => Promise<{
-      hosts: HostDataItem[];
+      hosts: RollbackHost[];
     }>;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     single: false,
-    hostData: undefined,
   });
 
   const { t } = useI18n();
@@ -84,7 +78,7 @@
 
   const rules = [
     {
-      validator: (value: string) => value.split(',').every((ip) => Boolean(ip)),
+      validator: (value: string) => !!value,
       message: t('IP 不能为空'),
     },
     {
@@ -93,12 +87,12 @@
     },
     {
       validator: async (value: string) => {
-        const list = value.split(batchSplitRegex);
+        const ips = value.split(batchSplitRegex);
         return await checkHost({
-          ip_list: list,
+          ip_list: ips,
         }).then((data) => {
-          if (data.length === list.length) {
-            dataEcho(data);
+          if (data.length === ips.length) {
+            localHostList.value = data;
             return true;
           }
           return false;
@@ -108,39 +102,40 @@
     },
   ];
 
-  const editRef = ref();
+  const editRef = ref<InstanceType<typeof TableSeletorInput>>();
   const isShowIpSelector = ref(false);
-  const localValue = ref();
+  const localValue = ref('');
   const localHostList = shallowRef<HostDetails[]>([]);
 
   const placeholder = computed(() => (props.single ? t('请输入或选择 (1台)') : t('请输入或选择')));
 
   const handleShowIpSelector = () => {
+    if (!props.clusterData?.id) {
+      messageWarn(t('请先选择待回档集群'));
+      return;
+    }
     isShowIpSelector.value = true;
   };
 
   // 批量选择
-  const handleHostChange = (hostList: HostDetails[]) => {
-    dataEcho(hostList);
-    window.changeConfirm = true;
-    setTimeout(() => {
-      editRef.value.getValue();
-    });
-  };
-
-  const dataEcho = (data: HostDetails[]) => {
-    localValue.value = data.map((item) => item?.ip).join(',');
+  const handleHostChange = (data: HostDetails[]) => {
+    localValue.value = data.map((item) => item.ip).join(',');
     localHostList.value = data;
+    window.changeConfirm = true;
   };
 
   watch(
     () => props.hostData,
     (data) => {
-      const fristHost = data?.[0];
-      if (!fristHost?.ip) {
-        return;
+      if (data.length > 0) {
+        const ips = data.map((item) => item.ip).join(',');
+        if (ips) {
+          localValue.value = ips;
+          setTimeout(() => {
+            editRef.value!.getValue();
+          });
+        }
       }
-      dataEcho(data as unknown as HostDetails[]);
     },
     {
       immediate: true,
@@ -153,8 +148,8 @@
         hostList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,
-          bk_cloud_id: item.cloud_area.id,
-          bk_biz_id: currentBizId,
+          bk_cloud_id: item.cloud_area?.id,
+          bk_biz_id: item.biz?.id,
         }));
 
       return Promise.resolve({
@@ -163,6 +158,7 @@
     },
   });
 </script>
+
 <style lang="less" scoped>
   .render-host-box {
     position: relative;

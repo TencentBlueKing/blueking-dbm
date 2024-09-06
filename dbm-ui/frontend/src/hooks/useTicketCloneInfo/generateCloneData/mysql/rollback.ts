@@ -13,6 +13,8 @@
 import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
 
+import { type BackupSources, BackupTypes } from '@views/mysql/rollback/pages/page1/const';
+
 import { random } from '@utils';
 
 // MySQL 定点构造
@@ -28,8 +30,9 @@ export function generateMysqlRollbackCloneData(ticketData: TicketModel<MySQLRoll
     },
     targetClusterId: item.target_cluster_id,
     rollbackHost: item.rollback_host,
-    backupSource: item.backup_source,
-    rollbackType: `${item.backup_source?.toLocaleUpperCase()}_AND_${item.backupinfo.backup_id ? 'BACKUPID' : 'TIME'}`,
+    backupSource: item.backup_source as BackupSources,
+    rollbackType:
+      `${item.backup_source?.toLocaleUpperCase()}_AND_${item.backupinfo.backup_id ? BackupTypes.BACKUPID : BackupTypes.TIME}` as BackupTypes,
     backupid: item.backupinfo.backup_id,
     rollbackTime: item.rollback_time,
     databases: item.databases,

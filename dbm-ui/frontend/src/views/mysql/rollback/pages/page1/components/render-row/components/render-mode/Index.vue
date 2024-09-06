@@ -17,7 +17,7 @@
       <TableEditSelect
         v-model="localBackupType"
         :disabled="editDisabled"
-        :list="selectList.mode"
+        :list="backupTypeList"
         :rules="rules"
         @change="hanldeBackupTypeChange" />
     </div>
@@ -47,7 +47,8 @@
     </div>
   </div>
 </template>
-<script setup lang="tsx">
+
+<script setup lang="ts">
   import { computed, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -58,7 +59,7 @@
   import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
-  import { BackupTypes, selectList } from '../const';
+  import { backupTypeList, BackupTypes } from '../../../../const';
 
   import RecordSelector from './RecordSelector.vue';
 
@@ -78,8 +79,6 @@
 
   const props = defineProps<Props>();
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
-
   const { t } = useI18n();
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
@@ -97,6 +96,8 @@
 
   const editDisabled = computed(() => !props.clusterId || !props.backupSource);
 
+  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
+
   const hanldeBackupTypeChange = () => {
     localRollbackTime.value = '';
   };
@@ -105,8 +106,8 @@
     () => props.rollbackTime,
     (newVal) => {
       if (newVal) {
-        localRollbackTime.value = newVal;
         localBackupType.value = BackupTypes.TIME;
+        localRollbackTime.value = newVal;
       } else {
         localBackupType.value = BackupTypes.BACKUPID;
       }

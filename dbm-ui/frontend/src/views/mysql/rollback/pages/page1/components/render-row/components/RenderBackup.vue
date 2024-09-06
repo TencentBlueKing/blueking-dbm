@@ -20,13 +20,14 @@
     :rules="rules"
     @change="(value) => handleChange(value as BackupSources)" />
 </template>
+
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
-  import { BackupSources, selectList } from './const';
+  import { backupSourceList, BackupSources } from '../../../const';
 
   interface Props {
     modelValue: BackupSources;
@@ -45,19 +46,26 @@
   }
 
   const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+
   const rules = [
     {
       validator: (value: string) => Boolean(value),
       message: t('备份源不能为空'),
     },
   ];
-  const targetList = props.list || selectList.backupSource;
+  const targetList = props.list || backupSourceList;
 
   const editSelectRef = ref<InstanceType<typeof TableEditSelect>>();
   const localValue = ref(BackupSources.REMOTE);
+
+  const handleChange = (value: BackupSources) => {
+    localValue.value = value;
+    emits('change', localValue.value);
+  };
 
   watch(
     () => props.modelValue,
@@ -68,11 +76,6 @@
       immediate: true,
     },
   );
-
-  const handleChange = (value: BackupSources) => {
-    localValue.value = value;
-    emits('change', localValue.value);
-  };
 
   defineExpose<Exposes>({
     getValue() {

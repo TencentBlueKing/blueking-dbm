@@ -27,6 +27,7 @@
     </template>
   </TableEditSelect>
 </template>
+
 <script setup lang="ts">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -64,7 +65,6 @@
     justifyContent: 'center',
   };
 
-  const bizId = window.PROJECT_CONFIG.BIZ_ID;
   const rules = [
     {
       validator: (value: string) => Boolean(value),
@@ -82,23 +82,13 @@
     },
   ]);
 
-  watch(
-    () => props.modelValue,
-    () => {
-      localValue.value = props.modelValue;
-    },
-    {
-      immediate: true,
-    },
-  );
-
   const getHostsCount = () => {
     getHostTopo({
       mode: 'idle_only',
       all_scope: true,
       scope_list: [
         {
-          scope_id: bizId,
+          scope_id: window.PROJECT_CONFIG.BIZ_ID,
           scope_type: 'biz',
         },
       ],
@@ -109,11 +99,25 @@
       }
     });
   };
-  getHostsCount();
+
   const handleChange = (value: string) => {
     localValue.value = value;
     emits('change', localValue.value);
   };
+
+  watch(
+    () => props.modelValue,
+    () => {
+      localValue.value = props.modelValue;
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  onMounted(() => {
+    getHostsCount();
+  });
 
   defineExpose<Exposes>({
     getValue() {
