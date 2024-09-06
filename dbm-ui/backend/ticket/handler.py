@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import itertools
 import json
 import logging
+import time
 from typing import Dict, List
 
 from django.db import transaction
@@ -28,17 +29,22 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.common.base import fetch_cluster_ids, fetch_instance_ids
 from backend.ticket.constants import (
     FLOW_FINISHED_STATUS,
-    ITSM_FIELD_NAME__ITSM_KEY,
+    RUNNING_FLOW__TICKET_STATUS,
     FlowType,
     FlowTypeConfig,
     OperateNodeActionType,
     TicketFlowStatus,
+    TicketStatus,
     TicketType,
+    TodoStatus,
+    TodoType,
 )
 from backend.ticket.exceptions import TicketFlowsConfigException
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
-from backend.ticket.todos import ActionType, TodoActorFactory
+from backend.ticket.serializers import TodoSerializer
+from backend.ticket.todos import BaseTodoContext, TodoActorFactory
+from backend.ticket.todos.itsm_todo import ItsmTodoContext
 
 logger = logging.getLogger("root")
 
@@ -200,24 +206,20 @@ class TicketHandler:
         TicketFlowsConfig.objects.bulk_create(created_configs)
 
     @classmethod
-    def get_itsm_fields(cls, sample_sn=None):
+    def get_itsm_fields(cls, ticket_type):
         """获取单据审批需要的itsm字段"""
+        # 根据单据类型决定审批模式
+        approve_mode = str(TicketType.get_approve_mode_by_ticket(ticket_type))
         # 预先获取审批接口的field的审批意见和备注的key
         approval_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_APPROVAL_KEY)
         remark_key = SystemSettings.get_setting_value(key=SystemSettingsEnum.ITSM_REMARK_KEY)
-
-        # 如果未入库，则获取任意一个ticket的信息来初始化key
-        if not approval_key or not remark_key:
-            ticket_info_response = ItsmApi.get_ticket_info(params={"sn": sample_sn})
-            for field in ticket_info_response["fields"]:
-                SystemSettings.insert_setting_value(key=ITSM_FIELD_NAME__ITSM_KEY[field["name"]], value=field["key"])
-
-        return {SystemSettingsEnum.ITSM_APPROVAL_KEY: approval_key, SystemSettingsEnum.ITSM_REMARK_KEY: remark_key}
+        return approval_key[approve_mode], remark_key[approve_mode]
 
     @classmethod
     def approve_itsm_ticket(cls, ticket_id, action, operator, **kwargs):
         """审批 / 终止itsm中的单据"""
-        sn = Flow.objects.get(ticket_id=ticket_id, flow_type="BK_ITSM").flow_obj_id
+        flow = Flow.objects.get(ticket_id=ticket_id, flow_type="BK_ITSM")
+        sn = flow.flow_obj_id
         itsm_info = ItsmApi.get_ticket_info(params={"sn": sn})
 
         # 当前没有正在进行的步骤，退出
@@ -225,16 +227,23 @@ class TicketHandler:
             return
         state_id = itsm_info["current_steps"][0]["state_id"]
 
+        act_msg_tpl = _("{}对单据{}操作: {}").format(operator, ticket_id, OperateNodeActionType.get_choice_label(action))
+        act_msg = kwargs.get("action_message") or act_msg_tpl
+
         # 审批单据
+        params = {"action_message": act_msg}
         if action == OperateNodeActionType.TRANSITION:
             is_approved = kwargs["is_approved"]
-            fields = [{"key": field, "value": json.dumps(is_approved)} for field in cls.get_itsm_fields(sn).values()]
-            params = {"sn": sn, "state_id": state_id, "action_type": action, "operator": operator, "fields": fields}
+            itsm_fields = cls.get_itsm_fields(flow.ticket.ticket_type)
+            fields = [
+                {"key": itsm_fields[0], "value": json.dumps(is_approved)},
+                {"key": itsm_fields[1], "value": act_msg},
+            ]
+            params.update(sn=sn, state_id=state_id, action_type=action, operator=operator, fields=fields)
             ItsmApi.operate_node(params, use_admin=True)
-        # 终止单据
-        elif action == OperateNodeActionType.TERMINATE:
-            action_message = _("{} 终止了此单据").format(operator)
-            params = {"sn": sn, "action_type": action, "operator": operator, "action_message": action_message}
+        # 终止/撤销单据
+        elif action in [OperateNodeActionType.TERMINATE, OperateNodeActionType.WITHDRAW]:
+            params.update(sn=sn, action_type=action, operator=operator)
             ItsmApi.operate_ticket(params, use_admin=True)
 
         return sn
@@ -255,8 +264,8 @@ class TicketHandler:
         - 找到第一个非成功的flow 设置为终止
         - 如果有关联正在运行的todos，也设置为终止
         """
-        # 查询ticket，关联正在运行的flows(这里定义的"运行"指的就是非成功)
-        finished_status = [*FLOW_FINISHED_STATUS, Flow, TicketFlowStatus.TERMINATED]
+        # 查询ticket，关联正在运行的flows(这里定义的"运行"指的就是非成功/终止/撤销)
+        finished_status = [*FLOW_FINISHED_STATUS, TicketFlowStatus.TERMINATED, TicketFlowStatus.REVOKED]
         running_flows = Flow.objects.filter(ticket__in=ticket_ids).exclude(status__in=finished_status)
         tickets = Ticket.objects.prefetch_related(
             Prefetch("flows", queryset=running_flows, to_attr="running_flows")
@@ -265,22 +274,28 @@ class TicketHandler:
         # 对每个单据进行终止
         for ticket in tickets:
             if not ticket.running_flows:
-                logger.info(_("单据[{}]没有需要终止的流程，跳过...").format(ticket.id))
                 continue
+
             first_running_flow = ticket.running_flows[0]
-
-            # 如果有todo，则把所有todo终止
-            todos = Todo.objects.filter(ticket=ticket, flow=first_running_flow)
-            for todo in todos:
-                TodoActorFactory.actor(todo).process(operator, ActionType.TERMINATE, params={})
-
-            # 如果是处于审批阶段，需要关闭itsm单据
-            if first_running_flow.flow_type == FlowType.BK_ITSM:
-                cls.approve_itsm_ticket(ticket.id, OperateNodeActionType.TERMINATE, "admin", is_approved=False)
-
-            # 用户终止 / 系统终止flow
-            logger.info(_("操作人[{}]终止了单据[{}]").format(operator, ticket.id))
             cls.operate_flow(ticket.id, first_running_flow.id, func="revoke", operator=operator)
+            logger.info(_("操作人[{}]终止了单据[{}]").format(operator, ticket.id))
+
+    @classmethod
+    def batch_process_todo(cls, user, action, operations):
+        """
+        批量操作todo
+        @param user 用户
+        @param action 动作
+        @param operations: todo列表，每个item包含todo id和params
+        """
+
+        results = []
+        for operation in operations:
+            todo_id, params = operation["todo_id"], operation["params"]
+            todo = Todo.objects.get(id=todo_id)
+            TodoActorFactory.actor(todo).process(user, action, params)
+            results.append(todo)
+        return TodoSerializer(results, many=True).data
 
     @classmethod
     def create_ticket_flow_config(cls, bk_biz_id, cluster_ids, ticket_types, configs, operator):
@@ -400,3 +415,60 @@ class TicketHandler:
             flow_desc_list.append(flow_config_info)
 
         return flow_desc_list
+
+    @classmethod
+    def ticket_status_standardization(cls):
+        """
+        旧单据状态标准化。TODO: 迁移后此段代码可删除
+        """
+        batch = 50
+
+        # 标准化只针对running的单据，其他状态单据不影响
+        running_tickets = Ticket.objects.filter(status=TicketStatus.RUNNING)
+        count = running_tickets.count()
+        for current in range(0, count, batch):
+            for ticket in running_tickets[current : current + batch]:
+                raw_status = ticket.status
+                ticket.status = RUNNING_FLOW__TICKET_STATUS[ticket.current_flow().flow_type]
+                ticket.save()
+                print(f"ticket[{ticket.id}] status {raw_status} ---> {ticket.status}")
+            time.sleep(1)
+
+        # 失败的单据要增加一条todo关联
+        failed_tickets = Ticket.objects.prefetch_related("flows").filter(status=TicketStatus.FAILED)
+        for current in range(0, count, batch):
+            for ticket in failed_tickets[current : current + batch]:
+                inner_flow = ticket.flows.filter(flow_type=FlowType.INNER_FLOW, status=TicketFlowStatus.FAILED).first()
+                if not inner_flow or inner_flow.todo_of_flow.exists():
+                    continue
+                Todo.objects.create(
+                    name=_("【{}】单据任务执行失败，待处理").format(ticket.get_ticket_type_display()),
+                    flow=inner_flow,
+                    ticket=ticket,
+                    type=TodoType.INNER_FAILED,
+                    operators=[ticket.creator],
+                    context=BaseTodoContext(inner_flow.id, ticket.id).to_dict(),
+                    status=TodoStatus.TODO,
+                )
+                print(f"ticket[{ticket.id}] add a failed todo")
+            time.sleep(1)
+
+        # 待审批的单据要增加一条todo关联
+        itsm_tickets = Ticket.objects.prefetch_related("flows").filter(status=TicketStatus.FAILED)
+        for current in range(0, count, batch):
+            for ticket in itsm_tickets[current : current + batch]:
+                itsm_flow = ticket.flows.filter(flow_type=FlowType.BK_ITSM, status=TicketFlowStatus.RUNNING).first()
+                if not itsm_flow or itsm_flow.todo_of_flow.exists():
+                    continue
+                itsm_fields = {f["key"]: f["value"] for f in itsm_flow.details["fields"]}
+                operators = itsm_fields["approver"].split(",")
+                Todo.objects.create(
+                    name=_("【{}】单据等待审批").format(ticket.get_ticket_type_display()),
+                    flow=itsm_flow,
+                    ticket=ticket,
+                    type=TodoType.ITSM,
+                    operators=operators,
+                    context=ItsmTodoContext(itsm_flow.id, ticket.id).to_dict(),
+                )
+                print(f"ticket[{ticket.id}] add a itsm todo")
+            time.sleep(1)

@@ -45,7 +45,6 @@ from backend.ticket.constants import (
     TodoType,
 )
 from backend.ticket.exceptions import TicketTaskTriggerException
-from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.models.ticket import Flow, Ticket, TicketFlowsConfig
 from backend.utils.time import date2str, datetime2str
 
@@ -69,6 +68,8 @@ class TicketTask(object):
     @classmethod
     def retry_exclusive_inner_flow(cls) -> None:
         """重试互斥错误的inner flow"""
+        from backend.ticket.flow_manager.inner import InnerFlow
+
         to_retry_flows = Flow.objects.filter(err_code=FlowErrCode.AUTO_EXCLUSIVE_ERROR)
         if not to_retry_flows:
             return

@@ -58,7 +58,9 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     @property
     def _summary(self) -> str:
-        return _("资源申请状态{status_display}").format(status_display=constants.TicketStatus.get_choice_label(self.status))
+        return _("资源申请状态{status_display}").format(
+            status_display=constants.TicketFlowStatus.get_choice_label(self.status)
+        )
 
     @property
     def status(self) -> str:
@@ -73,24 +75,24 @@ class ResourceApplyFlow(BaseTicketFlow):
     def _status(self) -> str:
         # 任务流程未创建时未PENDING状态
         if not self.flow_obj.flow_obj_id:
-            return self.update_flow_status(constants.TicketStatus.PENDING.value)
+            return self.update_flow_status(constants.TicketFlowStatus.PENDING)
 
         # 如果资源申请成功，则直接返回success
         if self.resource_apply_status:
-            return self.update_flow_status(constants.TicketStatus.SUCCEEDED.value)
+            return self.update_flow_status(constants.TicketFlowStatus.SUCCEEDED)
 
         if self.flow_obj.err_msg:
             # 如果是其他情况引起的错误，则直接返回fail
             if not self.flow_obj.todo_of_flow.exists():
-                return self.update_flow_status(constants.TicketStatus.FAILED.value)
+                return self.update_flow_status(constants.TicketFlowStatus.FAILED)
             # 如果是资源申请的todo状态，则判断todo是否完成
             if self.ticket.todo_of_ticket.exist_unfinished():
-                return self.update_flow_status(constants.TicketStatus.RUNNING.value)
+                return self.update_flow_status(constants.TicketFlowStatus.RUNNING)
             else:
-                return self.update_flow_status(constants.TicketStatus.SUCCEEDED.value)
+                return self.flow_obj.status
 
         # 其他情况认为还在RUNNING状态
-        return self.update_flow_status(constants.TicketStatus.RUNNING.value)
+        return self.update_flow_status(constants.TicketFlowStatus.RUNNING)
 
     @property
     def _url(self) -> str:

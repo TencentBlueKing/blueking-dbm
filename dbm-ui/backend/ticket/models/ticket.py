@@ -25,6 +25,7 @@ from backend.configuration.models import SystemSettings
 from backend.db_monitor.exceptions import AutofixException
 from backend.ticket.constants import (
     EXCLUSIVE_TICKET_EXCEL_PATH,
+    TICKET_RUNNING_STATUS,
     FlowRetryType,
     FlowType,
     TicketFlowStatus,
@@ -117,13 +118,13 @@ class Ticket(AuditedModel):
     def url(self):
         return f"{env.BK_SAAS_HOST}/{self.bk_biz_id}/ticket-manage/index?id={self.id}"
 
-    def set_terminated(self):
-        self.status = TicketStatus.TERMINATED
+    def set_status(self, status):
+        self.status = status
         self.save()
 
     def get_cost_time(self):
         # 计算耗时
-        if self.status in [TicketStatus.PENDING, TicketStatus.RUNNING]:
+        if self.status in [TicketStatus.PENDING, *TICKET_RUNNING_STATUS]:
             return calculate_cost_time(timezone.now(), self.create_at)
         return calculate_cost_time(self.update_at, self.create_at)
 
@@ -266,11 +267,17 @@ class TicketFlowsConfig(AuditedModel):
         ]
         return cluster_configs
 
+    @classmethod
+    def get_config(cls, ticket_type):
+        """获取平台配置"""
+        global_cfg = cls.objects.get(bk_biz_id=PLAT_BIZ_ID, ticket_type=ticket_type)
+        return global_cfg
+
 
 class ClusterOperateRecordManager(models.Manager):
     def filter_actives(self, cluster_id, *args, **kwargs):
         """获得集群正在运行的单据记录"""
-        return self.filter(cluster_id=cluster_id, ticket__status=TicketFlowStatus.RUNNING, *args, **kwargs)
+        return self.filter(cluster_id=cluster_id, ticket__status=TicketStatus.RUNNING, *args, **kwargs)
 
     def filter_inner_actives(self, cluster_id, *args, **kwargs):
         """获取集群正在 运行/失败 的inner flow的单据记录。此时认为集群会在互斥阶段"""
@@ -355,7 +362,7 @@ class ClusterOperateRecord(AuditedModel):
     def get_cluster_records_map(cls, cluster_ids: List[int]):
         """获取集群与操作记录之间的映射关系"""
         records = cls.objects.select_related("ticket", "flow").filter(
-            cluster_id__in=cluster_ids, ticket__status=TicketFlowStatus.RUNNING
+            cluster_id__in=cluster_ids, ticket__status__in=TICKET_RUNNING_STATUS
         )
         cluster_operate_records_map: Dict[int, List] = defaultdict(list)
         for record in records:
@@ -377,7 +384,7 @@ class InstanceOperateRecordManager(models.Manager):
     def filter_actives(self, instance_id, **kwargs):
         return self.filter(
             instance_id=instance_id,
-            ticket__status__in=[TicketStatus.RUNNING, TicketStatus.PENDING],
+            ticket__status=TicketStatus.RUNNING,
             **kwargs,
         )
 
@@ -419,9 +426,9 @@ class InstanceOperateRecord(AuditedModel):
 
     @classmethod
     def get_instance_records_map(cls, instance_ids: List[Union[int, str]]):
-        """获取实例与操作记录之间的映射关系"""
+        """获取实例与操作记录之间的映射关系??????"""
         records = InstanceOperateRecord.objects.select_related("ticket").filter(
-            instance_id__in=instance_ids, ticket__status=TicketStatus.RUNNING
+            instance_id__in=instance_ids, ticket__status__in=TICKET_RUNNING_STATUS
         )
         instance_operator_record_map: Dict[int, List] = defaultdict(list)
         for record in records:

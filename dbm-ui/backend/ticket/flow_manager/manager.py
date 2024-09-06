@@ -89,23 +89,26 @@ class TicketFlowManager(object):
 
     def update_ticket_status(self):
         # 获取流程状态集合
-        statuses = {
-            self.get_ticket_flow_cls(flow_type=flow.flow_type)(flow).status for flow in self.ticket.flows.all()
+        flow_status_map = {
+            self.get_ticket_flow_cls(flow_type=flow.flow_type)(flow).status: flow for flow in self.ticket.flows.all()
         }
+        statuses = set(flow_status_map.keys())
         logger.info(f"update_ticket_status for ticket:{self.ticket.id}, statuses: {statuses}")
+        # 只要存在其中一个终止，则单据状态为已终止
         if constants.TicketFlowStatus.TERMINATED in statuses:
-            # 只要存在其中一个终止，则单据状态为已终止
             target_status = constants.TicketStatus.TERMINATED
+        # 只要存在其中一个失败，则单据状态为失败态
         elif constants.TicketFlowStatus.FAILED in statuses:
-            # 只要存在其中一个失败，则单据状态为失败态
             target_status = constants.TicketStatus.FAILED
+        # 只要存在其中一个撤销，则单据状态为撤销态
         elif constants.TicketFlowStatus.REVOKED in statuses:
-            # 只要存在其中一个撤销，则单据状态为撤销态
             target_status = constants.TicketStatus.REVOKED
+        # 只要有一个存在running，则需要根据flow的type决定单据的状态
         elif constants.TicketFlowStatus.RUNNING in statuses:
-            target_status = constants.TicketStatus.RUNNING
+            flow = flow_status_map[constants.TicketFlowStatus.RUNNING]
+            target_status = constants.RUNNING_FLOW__TICKET_STATUS.get(flow.flow_type, constants.TicketStatus.RUNNING)
+        # 如果所有flow的状态处于完成态，则单据为成功
         elif statuses.issubset(set(FLOW_FINISHED_STATUS)):
-            # 如果所有flow的状态处于完成态，则单据为成功
             target_status = constants.TicketStatus.SUCCEEDED
         else:
             # 其他场景下状态未变更，无需更新DB

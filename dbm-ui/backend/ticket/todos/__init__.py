@@ -14,8 +14,12 @@ import os
 from dataclasses import asdict, dataclass
 from typing import Callable
 
+from blueapps.account.models import User
 from django.utils.translation import ugettext_lazy as _
 
+from backend.constants import DEFAULT_SYSTEM_USER
+from backend.ticket.constants import TODO_RUNNING_STATUS
+from backend.ticket.exceptions import TodoWrongOperatorException
 from backend.ticket.models import Todo
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
@@ -37,8 +41,32 @@ class TodoActor:
     def name(cls):
         return cls.__name__
 
+    def update_context(self, params):
+        # 更新上下文信息
+        if "remark" in params:
+            self.todo.context.update(remark=params["remark"])
+        self.todo.save(update_fields=["context"])
+
     def process(self, username, action, params):
-        """处理操作"""
+        # 当状态已经被确认，则不允许重复操作
+        if self.todo.status not in TODO_RUNNING_STATUS:
+            raise TodoWrongOperatorException(_("当前代办操作已经处理，不能重复处理！"))
+
+        # 允许系统内置用户确认
+        if username == DEFAULT_SYSTEM_USER:
+            self._process(username, action, params)
+            return
+        # 允许超级用户和操作人确认
+        is_superuser = User.objects.get(username=username).is_superuser
+        if not is_superuser and username not in self.todo.operators:
+            raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
+
+        # 执行确认操作
+        self._process(username, action, params)
+        self.update_context(params)
+
+    def _process(self, username, action, params):
+        """处理操作的具体实现"""
         raise NotImplementedError
 
 

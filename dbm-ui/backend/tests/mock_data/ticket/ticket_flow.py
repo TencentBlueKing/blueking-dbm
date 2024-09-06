@@ -40,6 +40,19 @@ MYSQL_AUTHORIZE_TICKET_DATA = {
     "ticket_type": "MYSQL_AUTHORIZE_RULES",
 }
 
+MYSQL_FULL_BACKUP_TICKET_DATA = {
+    "bk_biz_id": constant.BK_BIZ_ID,
+    "details": {
+        "infos": {
+            "backup_type": "logical",
+            "file_tag": "DBFILE1M",
+            "clusters": [{"cluster_id": 1, "backup_local": "master"}],
+        }
+    },
+    "remark": "",
+    "ticket_type": "MYSQL_HA_FULL_BACKUP",
+}
+
 MYSQL_PERMISSION_ACCOUNT = {
     "items": [
         {

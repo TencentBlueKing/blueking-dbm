@@ -19,7 +19,14 @@ from backend.bk_web.constants import LEN_MIDDLE, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import BizSettingsEnum
 from backend.configuration.models import BizSettings
-from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TodoStatus, TodoType
+from backend.ticket.constants import (
+    TODO_RUNNING_STATUS,
+    FlowMsgStatus,
+    FlowMsgType,
+    TicketFlowStatus,
+    TodoStatus,
+    TodoType,
+)
 from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
 
 logger = logging.getLogger("root")
@@ -27,25 +34,18 @@ logger = logging.getLogger("root")
 
 class TodoManager(models.Manager):
     def exist_unfinished(self):
-        return self.filter(status__in=[TodoStatus.TODO, TodoStatus.RUNNING]).exists()
+        return self.filter(status__in=TODO_RUNNING_STATUS).exists()
 
     def create(self, **kwargs):
-        assistance_flag = (
-            BizSettings.get_setting_value(kwargs["ticket"].bk_biz_id, BizSettingsEnum.BIZ_ASSISTANCE_SWITCH) or False
-        )
+        bk_biz_id = kwargs["ticket"].bk_biz_id
+        assistance_flag = BizSettings.get_setting_value(bk_biz_id, key=BizSettingsEnum.BIZ_ASSISTANCE_SWITCH) or False
         if assistance_flag:
             # 获取业务协助人列表
-            biz_facilitators: list = (
-                BizSettings.get_setting_value(
-                    bk_biz_id=kwargs["ticket"].bk_biz_id, key=BizSettingsEnum.BIZ_ASSISTANCE_VARS
-                )
-                or []
-            )
-            operators = kwargs.get("operators", [])
-            # 过滤掉已经在 operators 中的协助人
-            unique_biz_facilitators = [facilitator for facilitator in biz_facilitators if facilitator not in operators]
-            # 按顺序合并
-            kwargs["operators"] = operators + unique_biz_facilitators
+            biz_helpers = BizSettings.get_setting_value(bk_biz_id, key=BizSettingsEnum.BIZ_ASSISTANCE_VARS, default=[])
+            # 合并单据处理人 + 业务协助人
+            kwargs["operators"] = kwargs.get("operators", []) + biz_helpers
+        # 对操作者去重
+        kwargs["operators"] = list(set(kwargs["operators"]))
         todo = super().create(**kwargs)
         send_msg_for_flow.apply_async(
             kwargs={
@@ -109,7 +109,6 @@ class Todo(AuditedModel):
 
     def set_terminated(self, username, action):
         self.set_status(username, TodoStatus.DONE_FAILED)
-        self.ticket.set_terminated()
         self.flow.update_status(TicketFlowStatus.TERMINATED)
         TodoHistory.objects.create(creator=username, todo=self, action=action)
 

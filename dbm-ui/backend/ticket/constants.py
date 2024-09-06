@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.constants import DBType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException
 from backend.flow.consts import StateType
 from backend.ticket.exceptions import TicketBaseException
@@ -29,7 +29,9 @@ class TodoType(str, StructuredEnum):
     待办类型
     """
 
+    ITSM = EnumField("ITSM", _("主流程-单据审批"))
     APPROVE = EnumField("APPROVE", _("主流程-人工确认"))
+    INNER_FAILED = EnumField("INNER_FAILED", _("主流程-失败后待确认"))
     INNER_APPROVE = EnumField("INNER_APPROVE", _("自动化流程-人工确认"))
     RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("资源补货"))
 
@@ -39,19 +41,24 @@ class CountType(str, StructuredEnum):
     单据计数类型
     """
 
-    MY_TODO = EnumField("MY_TODO", _("我的待办"))
     MY_APPROVE = EnumField("MY_APPROVE", _("我的申请"))
+    APPROVE = EnumField("APPROVE", _("待我审批"))
+    TODO = EnumField("TODO", _("待我确认执行"))
+    INNER_TODO = EnumField("INNER_TODO", _("待我继续"))
+    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("待我补货"))
+    FAILED = EnumField("FAILED", _("失败待处理"))
+    DONE = EnumField("DONE", _("我的已办"))
+    SELF_MANAGE = EnumField("SELF_MANAGE", _("我负责的业务"))
 
 
 class TodoStatus(str, StructuredEnum):
     """
     待办状态枚举
-       TODO -> (RUNNING，可选) -> DONE_SUCCESS
-                            | -> DONE_FAILED
+    TODO -> (RUNNING，可选) -> DONE_SUCCESS
+                        | -> DONE_FAILED
     """
 
     TODO = EnumField("TODO", _("待处理"))
-    RUNNING = EnumField("RUNNING", _("处理中"))
     DONE_SUCCESS = EnumField("DONE_SUCCESS", _("已处理"))
     DONE_FAILED = EnumField("DONE_FAILED", _("已终止"))
 
@@ -68,18 +75,44 @@ class ResourceApplyErrCode(int, StructuredEnum):
 
 
 TODO_DONE_STATUS = [TodoStatus.DONE_SUCCESS, TodoStatus.DONE_FAILED]
-TODO_RUNNING_STATUS = [TodoStatus.TODO, TodoStatus.RUNNING]
+TODO_RUNNING_STATUS = [TodoStatus.TODO]
 
 
 class TicketStatus(str, StructuredEnum):
     """单据状态枚举"""
 
     PENDING = EnumField("PENDING", _("等待中"))
+    APPROVE = EnumField("APPROVE", _("待审批"))
+    RESOURCE_REPLENISH = EnumField("RESOURCE_REPLENISH", _("待补货"))
+    TODO = EnumField("TODO", _("待执行"))
+    TIMER = EnumField("TIMER", _("定时中"))
     RUNNING = EnumField("RUNNING", _("执行中"))
-    SUCCEEDED = EnumField("SUCCEEDED", _("成功"))
+    SUCCEEDED = EnumField("SUCCEEDED", _("已完成"))
     FAILED = EnumField("FAILED", _("失败"))
-    REVOKED = EnumField("REVOKED", _("撤销"))
-    TERMINATED = EnumField("TERMINATED", _("终止"))
+    REVOKED = EnumField("REVOKED", _("已撤销"))
+    TERMINATED = EnumField("TERMINATED", _("已终止"))
+    # 仅展示，不参与状态流转，不落地db
+    INNER_TODO = EnumField("INNER_TODO", _("待继续"))
+
+
+# 单据[正在进行]的状态合集
+TICKET_RUNNING_STATUS = [
+    TicketStatus.APPROVE,
+    TicketStatus.TODO,
+    TicketStatus.RESOURCE_REPLENISH,
+    TicketStatus.RUNNING,
+    TicketStatus.TIMER,
+]
+# 单据[包含TODO]的状态合集
+TICKET_TODO_STATUS = [
+    TicketStatus.APPROVE,
+    TicketStatus.TODO,
+    TicketStatus.RESOURCE_REPLENISH,
+    TicketStatus.FAILED,
+    TicketStatus.RUNNING,
+]
+# 单据[失败]的状态合集
+TICKET_FAILED_STATUS = [TicketStatus.REVOKED, TicketStatus.TERMINATED, TicketStatus.FAILED]
 
 
 class TicketFlowStatus(str, StructuredEnum):
@@ -94,8 +127,8 @@ class TicketFlowStatus(str, StructuredEnum):
     SKIPPED = EnumField("SKIPPED", _("跳过"))
 
 
-FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED]
-FLOW_NOT_EXECUTE_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.PENDING]
+FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.SUCCEEDED]
+FLOW_NOT_EXECUTE_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.PENDING]
 
 BAMBOO_STATE__TICKET_STATE_MAP = {
     StateType.FINISHED.value: TicketFlowStatus.SUCCEEDED.value,
@@ -167,6 +200,12 @@ class TicketType(str, StructuredEnum):
             raise TicketBaseException(_("无法找到{}关联的集群类型").format(ticket_type))
         return builder.cluster_types
 
+    @classmethod
+    def get_approve_mode_by_ticket(cls, ticket_type):
+        if ticket_type in [cls.MYSQL_ACCOUNT_RULE_CHANGE, cls.TENDBCLUSTER_ACCOUNT_RULE_CHANGE]:
+            return ItsmApproveMode.CounterSign.value
+        return ItsmApproveMode.OrSign.value
+
     # fmt: off
     # MYSQL
     MYSQL_SINGLE_APPLY = TicketEnumField("MYSQL_SINGLE_APPLY", _("MySQL 单节点部署"), register_iam=False)
@@ -216,7 +255,7 @@ class TicketType(str, StructuredEnum):
     MYSQL_SLAVE_MIGRATE_UPGRADE = TicketEnumField("MYSQL_SLAVE_MIGRATE_UPGRADE", _("MySQL Slave 迁移升级"), _("版本升级"))
     MYSQL_RO_SLAVE_UNINSTALL = TicketEnumField("MYSQL_RO_SLAVE_UNINSTALL", _("MySQL非standby slave下架"), _("集群维护"))
     MYSQL_PROXY_UPGRADE = TicketEnumField("MYSQL_PROXY_UPGRADE", _("MySQL Proxy升级"), _("版本升级"))
-    MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False) # noqa
+    MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False)  # noqa
     MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"), register_iam=False)
     MYSQL_ACCOUNT_RULE_CHANGE = TicketEnumField("MYSQL_ACCOUNT_RULE_CHANGE", _("MySQL 授权规则变更"), register_iam=False)
 
@@ -432,7 +471,7 @@ class TicketType(str, StructuredEnum):
     MONGODB_DESTROY = TicketEnumField("MONGODB_DESTROY", _("MongoDB 集群删除"), _("集群管理"))
     MONGODB_CUTOFF = TicketEnumField("MONGODB_CUTOFF", _("MongoDB 整机替换"), _("集群维护"))
     MONGODB_AUTHORIZE_RULES = TicketEnumField("MONGODB_AUTHORIZE_RULES", _("MongoDB 授权"), _("权限管理"))
-    MONGODB_EXCEL_AUTHORIZE_RULES = TicketEnumField("MONGODB_EXCEL_AUTHORIZE_RULES", _("MongoDB Excel授权"), _("权限管理")) # noqa
+    MONGODB_EXCEL_AUTHORIZE_RULES = TicketEnumField("MONGODB_EXCEL_AUTHORIZE_RULES", _("MongoDB Excel授权"), _("权限管理"))  # noqa
     MONGODB_IMPORT = TicketEnumField("MONGODB_IMPORT", _("MongoDB 数据导入"), _("集群维护"))
     MONGODB_RESTORE = TicketEnumField("MONGODB_RESTORE", _("MongoDB 定点回档"), _("集群维护"))
     MONGODB_TEMPORARY_DESTROY = TicketEnumField("MONGODB_TEMPORARY_DESTROY", _("MongoDB 临时集群销毁"), _("集群维护"))
@@ -656,22 +695,12 @@ class OperateNodeActionType(str, StructuredEnum):
     DISTRIBUTE = EnumField("DISTRIBUTE", _("派单"))
     DELIVER = EnumField("DELIVER", _("转单"))
     TERMINATE = EnumField("TERMINATE", _("终止节点和单据"))
-
-
-class ItsmTicketNodeEnum(str, StructuredEnum):
-    ApprovalOption = EnumField("审批意见", "审批意见")
-    Remark = EnumField("备注", "备注")
+    WITHDRAW = EnumField("WITHDRAW", _("撤销单据"))
 
 
 class ItsmApproveMode(int, StructuredEnum):
     OrSign = EnumField(0, _("或签模式"))
     CounterSign = EnumField(1, _("会签模式"))
-
-
-ITSM_FIELD_NAME__ITSM_KEY = {
-    ItsmTicketNodeEnum.ApprovalOption.value: SystemSettingsEnum.ITSM_APPROVAL_KEY,
-    ItsmTicketNodeEnum.Remark.value: SystemSettingsEnum.ITSM_REMARK_KEY,
-}
 
 
 class FlowMsgType(str, StructuredEnum):
@@ -706,4 +735,14 @@ FLOW_TYPE__EXPIRE_TYPE_CONFIG = {
     FlowType.PAUSE: TicketExpireType.FLOW_TODO,
     FlowType.RESOURCE_APPLY: TicketExpireType.FLOW_TODO,
     FlowType.RESOURCE_BATCH_APPLY: TicketExpireType.FLOW_TODO,
+}
+
+# 根据流程类型来映射单据状态
+RUNNING_FLOW__TICKET_STATUS = {
+    FlowType.BK_ITSM: TicketStatus.APPROVE,
+    FlowType.RESOURCE_APPLY: TicketStatus.RESOURCE_REPLENISH,
+    FlowType.RESOURCE_BATCH_APPLY: TicketStatus.RESOURCE_REPLENISH,
+    FlowType.PAUSE: TicketStatus.TODO,
+    FlowType.INNER_FLOW: TicketStatus.RUNNING,
+    FlowType.TIMER: TicketStatus.TIMER,
 }

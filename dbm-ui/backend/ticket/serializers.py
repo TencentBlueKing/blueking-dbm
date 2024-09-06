@@ -23,7 +23,15 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.ticket import mock_data
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.constants import CountType, FlowType, TicketStatus, TicketType, TodoStatus
+from backend.ticket.constants import (
+    TICKET_RUNNING_STATUS,
+    TODO_RUNNING_STATUS,
+    FlowType,
+    TicketFlowStatus,
+    TicketStatus,
+    TicketType,
+    TodoStatus,
+)
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, Todo
 from backend.ticket.todos import ActionType
@@ -82,14 +90,15 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
     ticket_type = serializers.ChoiceField(
         help_text=_("单据类型"), choices=TicketType.get_choices(), default=TicketType.MYSQL_SINGLE_APPLY
     )
-    status = serializers.ChoiceField(help_text=_("状态"), choices=TicketStatus.get_choices(), read_only=True)
     remark = serializers.CharField(help_text=_("备注"), required=False, max_length=LEN_L_LONG, allow_blank=True)
     # 默认使用MySQL序列化器，不同单据类型不同字段序列化
     group = serializers.CharField(help_text=_("单据分组类型"), required=False)
     details = TicketDetailsSerializer(help_text=_("单据详情"))
     # 额外补充展示字段
-    ticket_type_display = serializers.SerializerMethodField(help_text=_("单据类型名称"))
+    todo_operators = serializers.SerializerMethodField(help_text=_("处理人列表"))
+    status = serializers.SerializerMethodField(help_text=_("状态"), read_only=True)
     status_display = serializers.SerializerMethodField(help_text=_("状态名称"))
+    ticket_type_display = serializers.SerializerMethodField(help_text=_("单据类型名称"))
     cost_time = serializers.SerializerMethodField(help_text=_("耗时"))
     bk_biz_name = serializers.SerializerMethodField(help_text=_("业务名"))
     db_app_abbr = serializers.SerializerMethodField(help_text=_("业务英文缩写"))
@@ -111,14 +120,24 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
             raise serializers.ValidationError(_("不允许提交敏感单据类型{}").format(value))
         return value
 
+    def get_todo_operators(self, obj):
+        # 任取一个运行中的todo，获取operators即可
+        obj.running_todos = [todo for todo in obj.todo_of_ticket.all() if todo.status == TodoStatus.TODO]
+        return obj.running_todos[0].operators if obj.running_todos else []
+
+    def get_status(self, obj):
+        if obj.status == TicketStatus.RUNNING and obj.running_todos:
+            obj.status = TicketStatus.INNER_TODO
+        return obj.status
+
     def get_ticket_type_display(self, obj):
         return obj.get_ticket_type_display()
 
     def get_status_display(self, obj):
-        return obj.get_status_display()
+        return TicketStatus.get_choice_label(obj.status)
 
     def get_cost_time(self, obj):
-        if obj.status in [TicketStatus.PENDING, TicketStatus.RUNNING]:
+        if obj.status in [TicketStatus.PENDING, *TICKET_RUNNING_STATUS]:
             return calculate_cost_time(timezone.now(), obj.create_at)
         return calculate_cost_time(obj.update_at, obj.create_at)
 
@@ -164,7 +183,7 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
     def get_cost_time(self, obj):
         start_time = strptime(self.get_start_time(obj))
         end_time = strptime(self.get_end_time(obj))
-        if self.get_status(obj) in [TicketStatus.PENDING, TicketStatus.RUNNING]:
+        if self.get_status(obj) in [TicketFlowStatus.PENDING, TicketFlowStatus.RUNNING]:
             return calculate_cost_time(timezone.now(), start_time)
         return calculate_cost_time(end_time, start_time)
 
@@ -215,7 +234,7 @@ class TodoSerializer(serializers.ModelSerializer):
     cost_time = serializers.SerializerMethodField(help_text=_("耗时"))
 
     def get_cost_time(self, obj):
-        if obj.status in [TodoStatus.TODO, TodoStatus.RUNNING]:
+        if obj.status in TODO_RUNNING_STATUS:
             return calculate_cost_time(timezone.now(), obj.create_at)
         return calculate_cost_time(obj.done_at, obj.create_at)
 
@@ -260,30 +279,38 @@ class RevokeFlowSLZ(serializers.Serializer):
     flow_id = serializers.IntegerField(help_text=_("单据流程的ID"))
 
 
+class RevokeTicketSLZ(serializers.Serializer):
+    ticket_ids = serializers.ListField(help_text=_("终止单据ID"), child=serializers.IntegerField())
+
+
 class GetTodosSLZ(serializers.Serializer):
     todo_status = serializers.ChoiceField(
         help_text=_("状态"), choices=TodoStatus.get_choices(), required=False, allow_blank=True
     )
 
 
-class CountTicketSLZ(serializers.Serializer):
-    count_type = serializers.ChoiceField(help_text=_("类型"), choices=CountType.get_choices(), default=CountType.MY_TODO)
+class OpRecordSerializer(serializers.Serializer):
+    start_time = serializers.DateTimeField(help_text=_("查询起始时间"), required=False)
+    end_time = serializers.DateTimeField(help_text=_("查询终止时间"), required=False)
+    op_type = serializers.ChoiceField(help_text=_("操作类型"), choices=TicketType.get_choices(), required=False)
+    op_status = serializers.ChoiceField(help_text=_("操作状态"), choices=TicketStatus.get_choices(), required=False)
+
+    def to_representation(self, instance):
+        return {
+            "create_at": instance.create_at,
+            "op_type": instance.ticket.ticket_type,
+            "op_status": instance.ticket.status,
+            "ticket_id": instance.ticket.id,
+            "creator": instance.creator,
+        }
 
 
-class ClusterModifyOpSerializer(serializers.Serializer):
+class ClusterModifyOpSerializer(OpRecordSerializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    start_time = serializers.DateTimeField(help_text=_("查询起始时间"), required=False)
-    end_time = serializers.DateTimeField(help_text=_("查询终止时间"), required=False)
-    op_type = serializers.ChoiceField(help_text=_("操作类型"), choices=TicketType.get_choices(), required=False)
-    op_status = serializers.ChoiceField(help_text=_("操作状态"), choices=TicketStatus.get_choices(), required=False)
 
 
-class InstanceModifyOpSerializer(serializers.Serializer):
+class InstanceModifyOpSerializer(OpRecordSerializer):
     instance_id = serializers.IntegerField(help_text=_("实例ID"))
-    start_time = serializers.DateTimeField(help_text=_("查询起始时间"), required=False)
-    end_time = serializers.DateTimeField(help_text=_("查询终止时间"), required=False)
-    op_type = serializers.ChoiceField(help_text=_("操作类型"), choices=TicketType.get_choices(), required=False)
-    op_status = serializers.ChoiceField(help_text=_("操作状态"), choices=TicketStatus.get_choices(), required=False)
 
 
 class QueryTicketFlowDescribeSerializer(serializers.Serializer):
@@ -383,3 +410,15 @@ class BatchTodoOperateSerializer(serializers.Serializer):
             if todo_id not in existing_todo_ids:
                 raise serializers.ValidationError(_("待办id{}不存在".format(attrs["todo_id"])))
         return attrs
+
+
+class BatchTicketOperateSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(
+        choices=[ActionType.APPROVE.value, ActionType.TERMINATE.value], help_text=_("统一动作")
+    )
+    ticket_ids = serializers.ListField(help_text=_("单据ID列表"), child=serializers.IntegerField())
+    params = serializers.JSONField(help_text=_("动作参数"), required=False, default={})
+
+
+class GetInnerFlowSerializer(serializers.Serializer):
+    ticket_ids = serializers.CharField(help_text=_("单据ID(逗号分隔)"))

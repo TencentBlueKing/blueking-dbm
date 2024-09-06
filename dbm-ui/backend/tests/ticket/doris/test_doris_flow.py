@@ -38,14 +38,14 @@ from backend.tests.mock_data.ticket.doris_flow import (
     SCALEUP_POOL_TICKET_DATA,
 )
 from backend.tests.ticket.server_base import TestFlowBase
-from backend.ticket.constants import TicketFlowStatus, TicketStatus
+from backend.ticket.constants import TicketFlowStatus
 
 logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
 client = APIClient()
 
-INITIAL_FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED]
-CHANGED_MOCK_STATUS = [TicketFlowStatus.SKIPPED, TicketStatus.SUCCEEDED, TicketFlowStatus.RUNNING]
+INITIAL_FLOW_FINISHED_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.SUCCEEDED]
+CHANGED_MOCK_STATUS = [TicketFlowStatus.SKIPPED, TicketFlowStatus.SUCCEEDED, TicketFlowStatus.RUNNING]
 
 
 @pytest.fixture(autouse=True)  # autouse=True 会自动应用这个fixture到所有的测试中

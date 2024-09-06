@@ -16,10 +16,11 @@ from django.utils.translation import gettext as _
 from backend.components import ItsmApi
 from backend.components.itsm.constants import ItsmTicketStatus
 from backend.exceptions import ApiResultError
-from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TicketStatus
+from backend.ticket.constants import FlowMsgStatus, FlowMsgType, TicketFlowStatus, TicketStatus, TodoStatus, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
-from backend.ticket.models import Flow
+from backend.ticket.models import Flow, Todo
 from backend.ticket.tasks.ticket_tasks import send_msg_for_flow
+from backend.ticket.todos.itsm_todo import ItsmTodoContext
 from backend.utils.time import datetime2str, standardized_time_str
 
 
@@ -56,44 +57,51 @@ class ItsmFlow(BaseTicketFlow):
         return self.flow_obj.update_at
 
     @property
-    def _summary(self) -> str:
+    def _summary(self) -> dict:
         try:
             logs = ItsmApi.get_ticket_logs({"sn": [self.flow_obj.flow_obj_id]})
         except ApiResultError:
             return _("未知单据")
+
+        # 获取单据审批状态
+        current_status = self.ticket_approval_result["current_status"]
+        approve_result = self.ticket_approval_result["approve_result"]
+        summary = {"status": current_status, "approve_result": approve_result}
+
         # 目前审批流程是固定的，取流程中第三个节点的日志作为概览即可
         try:
-            return logs["logs"][2]["message"]
+            summary.update(operator=logs["logs"][2]["operator"], message=logs["logs"][2]["message"])
         except (IndexError, KeyError):
             # 异常时根据状态取默认的概览
-            status_summary_map = {
-                TicketStatus.RUNNING.value: _("审批中"),
-                TicketStatus.SUCCEEDED.value: _("已通过"),
-                TicketStatus.REVOKED.value: _("已撤销"),
-                TicketStatus.FAILED.value: _("被拒绝"),
-                TicketStatus.TERMINATED.value: _("已终止"),
-            }
-            return status_summary_map.get(self.status, "")
+            msg = TicketStatus.get_choice_label(self.status)
+            summary.update(operator=logs["logs"][-1]["operator"], status=self.status, message=msg)
+        return summary
 
     @property
     def _status(self) -> str:
         # 把 ITSM 单据状态映射为本系统内的单据状态
         current_status = self.ticket_approval_result["current_status"]
         approve_result = self.ticket_approval_result["approve_result"]
+        updater = self.ticket_approval_result["updated_by"]
+        todo = self.flow_obj.todo_of_flow.first()
         # 进行中
         if current_status == ItsmTicketStatus.RUNNING:
             return self.flow_obj.update_status(TicketFlowStatus.RUNNING)
         # 撤单
         elif current_status == ItsmTicketStatus.REVOKED:
+            todo.set_status(username=updater, status=TodoStatus.DONE_FAILED)
             return self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
         # 审批通过
         elif current_status == ItsmTicketStatus.FINISHED and approve_result:
+            todo.set_status(username=updater, status=TodoStatus.DONE_SUCCESS)
             return self.flow_obj.update_status(TicketFlowStatus.SUCCEEDED)
         # 审批拒绝
         elif current_status == ItsmTicketStatus.FINISHED and not approve_result:
+            todo.set_status(username=updater, status=TodoStatus.DONE_FAILED)
             return self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
         # 终止
         elif current_status == ItsmTicketStatus.TERMINATED:
+            todo.set_status(username=updater, status=TodoStatus.DONE_FAILED)
             return self.flow_obj.update_status(TicketFlowStatus.TERMINATED)
 
     @property
@@ -104,9 +112,20 @@ class ItsmFlow(BaseTicketFlow):
         return ""
 
     def _run(self) -> str:
+        itsm_fields = {f["key"]: f["value"] for f in self.flow_obj.details["fields"]}
+        # 创建审批todo
+        operators = itsm_fields["approver"].split(",")
+        Todo.objects.create(
+            name=_("【{}】单据等待审批").format(self.ticket.get_ticket_type_display()),
+            flow=self.flow_obj,
+            ticket=self.ticket,
+            type=TodoType.ITSM,
+            operators=operators,
+            context=ItsmTodoContext(self.flow_obj.id, self.ticket.id).to_dict(),
+        )
+        # 创建单据
         data = ItsmApi.create_ticket(self.flow_obj.details)
         # 异步发送待审批消息
-        itsm_fields = {f["key"]: f["value"] for f in self.flow_obj.details["fields"]}
         send_msg_for_flow.apply_async(
             kwargs={
                 "flow_id": self.flow_obj.id,
@@ -117,3 +136,7 @@ class ItsmFlow(BaseTicketFlow):
             }
         )
         return data["sn"]
+
+    def _revoke(self, operator) -> Any:
+        # 父类通过触发todo的终止可以终止itsm单据
+        super()._revoke(operator)

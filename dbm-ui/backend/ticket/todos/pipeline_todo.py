@@ -11,13 +11,12 @@ specific language governing permissions and limitations under the License.
 import logging
 from dataclasses import dataclass
 
-from django.utils.translation import gettext as _
+from django.utils.translation import ugettext as _
 
-from backend.constants import DEFAULT_SYSTEM_USER
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.ticket import todos
-from backend.ticket.constants import TodoStatus, TodoType
-from backend.ticket.exceptions import TodoWrongOperatorException
+from backend.ticket.constants import TodoStatus
+from backend.ticket.constants import TodoType
 from backend.ticket.models import TodoHistory
 from backend.ticket.todos import ActionType, BaseTodoContext
 
@@ -34,11 +33,8 @@ class PipelineTodoContext(BaseTodoContext):
 class PipelineTodo(todos.TodoActor):
     """来自自动化流程中的待办"""
 
-    def process(self, username, action, params):
+    def _process(self, username, action, params):
         """确认/终止"""
-        if username not in self.todo.operators and username != DEFAULT_SYSTEM_USER:
-            raise TodoWrongOperatorException(_("{}不在处理人: {}中，无法处理").format(username, self.todo.operators))
-
         # 从todo的上下文获取pipeline节点信息
         root_id, node_id = self.context.get("root_id"), self.context.get("node_id")
         engine = BambooEngine(root_id=root_id)
@@ -66,3 +62,18 @@ class PipelineTodo(todos.TodoActor):
             raise Exception(",".join(res.exc.args))
 
         self.todo.set_success(username, action)
+
+    @classmethod
+    def create(cls, ticket, flow, root_id, node_id):
+        from backend.ticket.models import Todo
+
+        # 创建一条代办
+        Todo.objects.create(
+            name=_("【{}】流程待确认,是否继续？").format(ticket.get_ticket_type_display()),
+            flow=flow,
+            ticket=ticket,
+            type=TodoType.INNER_APPROVE,
+            # todo: 待办人暂定为提单人
+            operators=[ticket.creator],
+            context=PipelineTodoContext(flow.id, ticket.id, root_id, node_id).to_dict(),
+        )
