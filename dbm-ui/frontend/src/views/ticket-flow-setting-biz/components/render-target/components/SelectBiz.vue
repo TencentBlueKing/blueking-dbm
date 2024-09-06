@@ -1,5 +1,6 @@
 <template>
   <div class="target-form-item">
+    <div class="target-prefix">{{ t('业务') }}</div>
     <BkSelect
       v-model="modelValue"
       class="target-select"
@@ -11,9 +12,6 @@
       filterable
       :input-search="false"
       @change="handleChange">
-      <template #prefix>
-        <div class="target-prefix">{{ t('业务') }}</div>
-      </template>
       <BkOption
         v-for="item in bizList"
         :key="item.bk_biz_id"

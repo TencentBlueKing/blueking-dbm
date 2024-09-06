@@ -15,7 +15,7 @@
   <BkPopConfirm
     :confirm-text="t('删除')"
     placement="top"
-    :title="t('确认删除该类型配置？')"
+    :title="t('确定删除策略？')"
     trigger="click"
     width="270"
     @confirm="handleConfirm">
