@@ -12,32 +12,34 @@
 -->
 
 <template>
-  <tr>
-    <FixedColumn fixed="left">
-      <RenderDbName
-        ref="dbnamesRef"
-        v-model="localDbnames" />
-    </FixedColumn>
-    <td style="padding: 0">
-      <RenderIgnoreDbName
-        ref="ignoreDbnamesRef"
-        v-model="localIgnoreDbnames"
-        :required="false" />
-    </td>
-    <td style="padding: 0">
-      <RenderSql
-        ref="sqlFielsRef"
-        v-model="localSqlFiles"
-        v-model:importMode="localImportMode"
-        :cluster-version-list="clusterVersionList"
-        :db-names="localDbnames"
-        :ignore-db-names="localIgnoreDbnames" />
-    </td>
-    <OperateColumn
-      :removeable="removeable"
-      @add="handleAppend"
-      @remove="handleRemove" />
-  </tr>
+  <tbody>
+    <tr>
+      <FixedColumn fixed="left">
+        <RenderDbName
+          ref="dbnamesRef"
+          v-model="localDbnames"
+          check-duplicate />
+      </FixedColumn>
+      <td style="padding: 0">
+        <RenderDbName
+          ref="ignoreDbnamesRef"
+          v-model="localIgnoreDbnames" />
+      </td>
+      <td style="padding: 0">
+        <RenderSql
+          ref="sqlFielsRef"
+          v-model="localSqlFiles"
+          v-model:importMode="localImportMode"
+          :cluster-version-list="clusterVersionList"
+          :db-names="localDbnames"
+          :ignore-db-names="localIgnoreDbnames" />
+      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
+    </tr>
+  </tbody>
 </template>
 <script lang="ts">
   import { ref } from 'vue';
@@ -48,7 +50,6 @@
   import { random } from '@utils';
 
   import RenderDbName from './RenderDbName.vue';
-  import RenderIgnoreDbName from './RenderIgnoreDbName.vue';
 
   export interface IDataRow {
     rowKey: string;
