@@ -102,6 +102,7 @@
 
   interface Props {
     clusterVersionList: string[];
+    clusterType: 'mysql' | 'tendbcluster';
   }
 
   interface Emits {
@@ -228,6 +229,7 @@
     props.clusterVersionList.forEach((version, index) => {
       params.append(`versions[${index}]`, version);
     });
+    params.append('cluster_type', props.clusterType);
 
     grammarCheck(params)
       .then((data) => {

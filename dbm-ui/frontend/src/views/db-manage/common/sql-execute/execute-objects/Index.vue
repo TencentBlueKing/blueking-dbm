@@ -23,6 +23,7 @@
         v-for="(item, index) in modelValue"
         :key="item.rowKey"
         ref="rowRef"
+        :cluster-type="clusterType"
         :cluster-version-list="clusterVersionList"
         :data="item"
         :removeable="modelValue.length < 2"
@@ -41,6 +42,7 @@
 
   interface Props {
     clusterVersionList: string[];
+    clusterType: 'mysql' | 'tendbcluster';
   }
 
   defineProps<Props>();
