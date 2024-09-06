@@ -156,7 +156,7 @@
           {
             title: t('机器组数'),
             render: () => {
-              const targetValue = data.machine_pair_cnt + data.group_num
+              const targetValue = data?.display_info?.new_group_num || 0
               return (
                 <>
                   <span>{targetValue}</span>
@@ -171,7 +171,7 @@
           {
             title: t('机器数量'),
             render: () => {
-              const targetValue = (data.machine_pair_cnt + data.group_num) * 2
+              const targetValue = (data?.display_info?.new_group_num || 0) * 2
               return (
                 <>
                   <span>{targetValue}</span>

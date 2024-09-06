@@ -96,6 +96,9 @@ export interface RedisScaleUpDownDetails extends DetailBase {
         affinity: 'CROS_SUBZONE';
       };
     };
+    display_info?: {
+      new_group_num: number;
+    };
   }[];
   specs: DetailSpecs;
 }

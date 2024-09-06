@@ -226,6 +226,7 @@
             affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
           },
         },
+        new_group_num: localValue.value.machine_pair,
       });
     },
   });
