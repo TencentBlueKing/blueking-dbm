@@ -16,7 +16,9 @@
     <FixedColumn fixed="left">
       <RenderCluster
         ref="clusterRef"
+        :cluster-types="clusterTypes"
         :model-value="data.clusterData"
+        only-one-type
         @id-change="handleClusterIdChange" />
     </FixedColumn>
     <td style="padding: 0">
@@ -105,10 +107,12 @@
   interface Props {
     data: IDataRow;
     removeable: boolean;
+    clusterTypes?: string[];
   }
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
+    (e: 'clusterInputFinish', value: number): void;
   }
 
   interface Exposes {
@@ -148,6 +152,7 @@
 
   const handleClusterIdChange = (clusterId: number) => {
     localClusterId.value = clusterId;
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleTruncateDataTypeChange = (value: string) => {
