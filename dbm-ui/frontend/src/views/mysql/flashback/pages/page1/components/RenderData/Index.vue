@@ -41,14 +41,14 @@
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="200"
-      :width="250">
-      {{ t('目标表') }}
-    </RenderTableHeadColumn>
-    <RenderTableHeadColumn
-      :min-width="200"
       :required="false"
       :width="250">
       {{ t('忽略库') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="200"
+      :width="250">
+      {{ t('目标表') }}
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="200"

@@ -3,6 +3,7 @@
     class="entry-config-multi"
     :class="{ 'is-error': isError }">
     <BkInput
+      ref="inputRef"
       v-model.trim="localValue"
       class="input-box"
       :placeholder="t('请输入数值')"
@@ -26,10 +27,12 @@
 
   interface Exposes {
     getValue: () => string[];
+    focus: () => void;
   }
 
   const { t } = useI18n();
 
+  const inputRef = ref();
   const localValue = ref('');
   const isError = ref(false);
 
@@ -63,6 +66,9 @@
         return localValue.value.split('\n');
       }
       return [];
+    },
+    focus() {
+      inputRef.value?.focus();
     },
   });
 </script>

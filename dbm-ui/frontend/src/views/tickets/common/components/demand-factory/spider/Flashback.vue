@@ -70,13 +70,13 @@
       showOverflowTooltip: true,
     },
     {
-      label: t('目标表'),
-      field: 'tableName',
+      label: t('忽略库'),
+      field: 'ignoreDbName',
       showOverflowTooltip: true,
     },
     {
-      label: t('忽略库'),
-      field: 'ignoreDbName',
+      label: t('目标表'),
+      field: 'tableName',
       showOverflowTooltip: true,
     },
     {

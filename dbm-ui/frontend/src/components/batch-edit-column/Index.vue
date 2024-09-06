@@ -3,6 +3,7 @@
     :is-show="isShow"
     trigger="manual"
     width="395"
+    @after-show="handleAfterShow"
     @cancel="() => (isShow = false)"
     @confirm="handleConfirm">
     <slot />
@@ -26,6 +27,7 @@
             :list="dataList" />
           <BkInput
             v-else-if="type === 'textarea'"
+            ref="inputRef"
             v-model="localValue"
             :placeholder="placeholder"
             :rows="5"
@@ -53,7 +55,7 @@
     (e: 'change', value: string): void;
   }
 
-  withDefaults(defineProps<Props>(), {
+  const props = withDefaults(defineProps<Props>(), {
     dataList: () => [],
     type: 'select',
     placeholder: '',
@@ -68,11 +70,20 @@
 
   const { t } = useI18n();
 
+  const inputRef = ref();
   const localValue = ref('');
 
   const handleConfirm = () => {
     emits('change', localValue.value);
     isShow.value = false;
+  };
+
+  const handleAfterShow = () => {
+    if (props.type === 'textarea') {
+      nextTick(() => {
+        inputRef.value?.focus();
+      });
+    }
   };
 </script>
 
