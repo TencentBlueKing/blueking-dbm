@@ -305,7 +305,8 @@
     showTitleTag?: boolean,
     targetVerison?: string
     clusterId?: number,
-    clusterStats: RedisModel['cluster_stats']
+    clusterStats: RedisModel['cluster_stats'],
+    targetObject?: UnwrapRef<typeof targetInfo>
   }
 
   interface Emits {
@@ -339,7 +340,8 @@
     title: '',
     showTitleTag: true,
     targetVerison: undefined,
-    clusterId: undefined
+    clusterId: undefined,
+    targetObject: undefined
   });
 
   const emits = defineEmits<Emits>();
@@ -454,6 +456,7 @@
       tableData.value = [];
       rawTableData = []
       specDisabledMap.value = {}
+      targetInfo.value = props.targetObject || createDefaultTargetInfo()
     }
   })
 
