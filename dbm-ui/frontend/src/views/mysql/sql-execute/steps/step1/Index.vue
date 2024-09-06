@@ -27,6 +27,7 @@
             :cluster-type-list="[ClusterTypes.TENDBHA, ClusterTypes.TENDBSINGLE]" />
           <ExecuteObjects
             v-model="formData.execute_objects"
+            cluster-type="mysql"
             :cluster-version-list="clusterVersionList"
             :db-type="DBTypes.MYSQL"
             style="margin-top: 16px"

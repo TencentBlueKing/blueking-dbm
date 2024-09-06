@@ -30,6 +30,7 @@
           ref="sqlFielsRef"
           v-model="localSqlFiles"
           v-model:importMode="localImportMode"
+          :cluster-type="clusterType"
           :cluster-version-list="clusterVersionList"
           :db-names="localDbnames"
           :ignore-db-names="localIgnoreDbnames" />
@@ -73,6 +74,7 @@
     data: IDataRow;
     removeable: boolean;
     clusterVersionList: string[];
+    clusterType: 'mysql' | 'tendbcluster';
   }
   interface Emits {
     (e: 'add' | 'change', params: IDataRow): void;
