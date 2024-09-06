@@ -17,10 +17,11 @@
       <FixedColumn fixed="left">
         <RenderDbName
           ref="dbnamesRef"
-          v-model="localDbnames" />
+          v-model="localDbnames"
+          check-duplicate />
       </FixedColumn>
       <td style="padding: 0">
-        <RenderIgnoreDbName
+        <RenderDbName
           ref="ignoreDbnamesRef"
           v-model="localIgnoreDbnames" />
       </td>
@@ -51,7 +52,6 @@
   import { random } from '@utils';
 
   import RenderDbName from './RenderDbName.vue';
-  import RenderIgnoreDbName from './RenderIgnoreDbName.vue';
   import RenderSql from './RenderSql/Index.vue';
 
   export interface IDataRow {

@@ -67,6 +67,7 @@
         <RenderDbName
           ref="ignoreDbsRefs"
           v-model:model-value="backupInfoItem.ignoreDbs"
+          :allow-asterisk="false"
           :cluster-id="localClusterId"
           :required="false" />
       </td>
@@ -77,10 +78,10 @@
           :model-value="backupInfoItem.tablePatterns" />
       </td>
       <td style="padding: 0">
-        <RenderIgnoreTables
+        <RenderTableName
           ref="ignoreTablesRefs"
+          :allow-asterisk="false"
           :cluster-id="localClusterId"
-          :ignore-dbs="backupInfoItem.ignoreDbs"
           :model-value="backupInfoItem.ignoreTables" />
       </td>
       <OperateColumn
@@ -138,7 +139,7 @@
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
   import RenderCluster from './RenderCluster.vue';
-  import RenderIgnoreTables from './RenderIgnoreTables.vue';
+  // import RenderIgnoreTables from './RenderIgnoreTables.vue';
   import RenderMaster from './RenderMaster.vue';
   import RenderScope from './RenderScope.vue';
   import RenderSlave from './RenderSlave.vue';
