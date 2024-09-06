@@ -11,19 +11,30 @@
  * the specific language governing permissions and limitations under the License.
  */
 import dayjs from 'dayjs';
-
-import { useTimeZone } from '@stores';
+import { ref } from 'vue';
 
 export const useTimeZoneFormat = () => {
-  const timeZoneStore = useTimeZone();
-  return (date: string) => {
+  const timeZone = ref({
+    abbreviation: '',
+    country: '',
+    countryCode: '',
+    label: '',
+    utc: '',
+  });
+
+  const format = (date: string) => {
     if (!date) {
       return '';
     }
 
     const targetDate = dayjs(date).format('YYYY-MM-DD HH:mm:ss');
     const prefixStr = targetDate.split(' ').join('T');
-    const suffixStr = timeZoneStore.utc === '' ? '+00:00' : timeZoneStore.utc;
+    const suffixStr = timeZone.value.utc === '' ? '+00:00' : timeZone.value.utc;
     return `${prefixStr}${suffixStr}`;
+  };
+
+  return {
+    timeZone,
+    format,
   };
 };

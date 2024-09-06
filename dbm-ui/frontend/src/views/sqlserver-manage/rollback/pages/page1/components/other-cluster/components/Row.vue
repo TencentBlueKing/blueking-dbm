@@ -15,16 +15,17 @@
   <tbody>
     <tr>
       <td style="padding: 0">
-        <RenderCluster
+        <RenderSrcCluster
           ref="srcClusterRef"
           v-model="localSrcClusterData"
           name="srcCluster" />
       </td>
       <td style="padding: 0">
-        <RenderCluster
+        <RenderDstCluster
           ref="dstClusterRef"
           v-model="localDstClusterData"
-          name="dstCluster" />
+          name="dstCluster"
+          :src-cluster-data="localSrcClusterData" />
       </td>
       <td style="padding: 0">
         <RenderMode
@@ -89,6 +90,7 @@
       id: number;
       domain: string;
       cloudId: number | null;
+      majorVersion: string;
     };
     dstClusterData?: {
       id: number;
@@ -123,9 +125,10 @@
 
   import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
   import RenderMode from '@views/sqlserver-manage/common/render-mode/Index.vue';
-  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
 
+  import RenderDstCluster from './DstCluster.vue';
   import RenderRename from './RenderRename.vue';
+  import RenderSrcCluster from './SrcCluster.vue';
 
   interface Props {
     data: IDataRow;
@@ -144,8 +147,8 @@
 
   const emits = defineEmits<Emits>();
 
-  const srcClusterRef = ref<InstanceType<typeof RenderCluster>>();
-  const dstClusterRef = ref<InstanceType<typeof RenderCluster>>();
+  const srcClusterRef = ref<InstanceType<typeof RenderSrcCluster>>();
+  const dstClusterRef = ref<InstanceType<typeof RenderDstCluster>>();
   const modeRef = ref<InstanceType<typeof RenderMode>>();
   const dbNameRef = ref<InstanceType<typeof RenderDbName>>();
   const ignoreDbNameRef = ref<InstanceType<typeof RenderDbName>>();

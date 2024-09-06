@@ -80,7 +80,7 @@
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
   const { t } = useI18n();
-  const formatDateToUTC = useTimeZoneFormat();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const modelValue = defineModel<{
     mode: string;
