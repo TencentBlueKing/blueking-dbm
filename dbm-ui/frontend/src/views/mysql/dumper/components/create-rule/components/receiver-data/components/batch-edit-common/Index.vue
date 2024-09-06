@@ -2,6 +2,7 @@
   <BkPopConfirm
     trigger="click"
     width="330"
+    @after-show="handleAfterShow"
     @confirm="handleConfirm">
     <slot />
     <template #content>
@@ -16,6 +17,7 @@
         </div>
         <BkInput
           v-if="isShowInput"
+          ref="inputRef"
           v-model="localValue"
           class="input-box"
           :min="1"
@@ -36,14 +38,14 @@
 
   interface Props {
     config: {
-      type: 'text' | 'number' | 'password' | 'textarea' | string
-      title: string,
-      placeholder: string,
-    }
+      type: 'text' | 'number' | 'password' | 'textarea' | string;
+      title: string;
+      placeholder: string;
+    };
   }
 
   interface Emits {
-    (e: 'data-change', value: string[], isBatch: boolean): void,
+    (e: 'data-change', value: string[], isBatch: boolean): void;
   }
 
   const props = defineProps<Props>();
@@ -52,6 +54,7 @@
 
   const { t } = useI18n();
 
+  const inputRef = ref();
   const multipleInputRef = ref();
   const localValue = ref('');
 
@@ -67,6 +70,17 @@
       emits('data-change', [localValue.value], false);
     }
     localValue.value = '';
+  };
+
+  const handleAfterShow = () => {
+    nextTick(() => {
+      if (isShowInput.value) {
+        inputRef.value?.focus();
+        return;
+      }
+
+      multipleInputRef.value?.focus();
+    });
   };
 </script>
 

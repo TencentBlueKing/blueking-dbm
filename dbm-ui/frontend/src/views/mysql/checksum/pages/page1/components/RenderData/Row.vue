@@ -40,6 +40,7 @@
     <td style="padding: 0">
       <RenderDbName
         ref="ignoreDbsRef"
+        :allow-asterisk="false"
         :cluster-id="localClusterId"
         :model-value="data.ignoreDbs"
         :required="false"
@@ -52,10 +53,10 @@
         :model-value="data.tablePatterns" />
     </td>
     <td style="padding: 0">
-      <RenderIgnoreTables
+      <RenderTableName
         ref="ignoreTablesRef"
+        :allow-asterisk="false"
         :cluster-id="localClusterId"
-        :ignore-dbs="localRowData.ignoreDbs"
         :model-value="data.ignoreTables" />
     </td>
     <OperateColumn
@@ -132,7 +133,7 @@
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
 
-  import RenderIgnoreTables from './RenderIgnoreTables.vue';
+  // import RenderIgnoreTables from './RenderIgnoreTables.vue';
   import RenderSlave from './RenderSlave.vue';
 
   interface Props {

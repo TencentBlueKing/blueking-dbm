@@ -38,6 +38,7 @@
     single?: boolean;
     checkExist?: boolean;
     checkNotExist?: boolean;
+    allowAsterisk?: boolean;
     rules?: {
       validator: (value: string[]) => boolean;
       message: string;
@@ -62,6 +63,7 @@
     checkExist: false,
     checkNotExist: false,
     rules: undefined,
+    allowAsterisk: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -76,6 +78,8 @@
       return props.rules;
     }
 
+    const systemDbNames = ['mysql', 'db_infobase', 'information_schema', 'performance_schema', 'sys', 'infodba_schema'];
+
     return [
       {
         validator: (value: string[]) => {
@@ -87,15 +91,35 @@
         message: t('DB 名不能为空'),
       },
       {
+        validator: (value: string[]) => _.every(value, (item) => /^(?!stage_truncate)(?!.*dba_rollback$).*/.test(item)),
+        message: t('不能以stage_truncate开头或dba_rollback结尾'),
+      },
+      {
+        validator: (value: string[]) => _.every(value, (item) => /^[-_a-zA-Z0-9*?%]{0,35}$/.test(item)),
+        message: t('库表名支持数字、字母、中划线、下划线，最大35字符'),
+      },
+      {
+        validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
+        message: t('不允许输入系统库和特殊库'),
+      },
+      {
+        validator: (value: string[]) => {
+          if (props.allowAsterisk) {
+            return true;
+          }
+
+          return _.every(value, (item) => item !== '*');
+        },
+        message: t('不允许为 *'),
+      },
+      {
         validator: (value: string[]) =>
           !_.some(value, (item) => (/\*/.test(item) && item.length > 1) || (value.length > 1 && item === '*')),
         message: t('* 只能独立使用'),
-        trigger: 'change',
       },
       {
-        validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
-        message: t('% 不允许单独使用'),
-        trigger: 'change',
+        validator: (value: string[]) => _.every(value, (item) => !/^[%?]$/.test(item)),
+        message: t('% 或 ? 不允许单独使用'),
       },
       {
         validator: (value: string[]) => {
@@ -105,7 +129,6 @@
           return true;
         },
         message: t('含通配符的单元格仅支持输入单个对象'),
-        trigger: 'change',
       },
       {
         validator: (value: string[]) => {

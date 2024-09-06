@@ -37,21 +37,23 @@
         :model-value="data.databases" />
     </td>
     <td style="padding: 0">
-      <RenderTableName
-        ref="tablesRef"
-        :cluster-id="localClusterId"
-        :model-value="data.tables" />
-    </td>
-    <td style="padding: 0">
       <RenderDbName
         ref="databasesIgnoreRef"
+        :allow-asterisk="false"
         :cluster-id="localClusterId"
         :model-value="data.databasesIgnore"
         :required="false" />
     </td>
     <td style="padding: 0">
       <RenderTableName
+        ref="tablesRef"
+        :cluster-id="localClusterId"
+        :model-value="data.tables" />
+    </td>
+    <td style="padding: 0">
+      <RenderTableName
         ref="tablesIgnoreRef"
+        :allow-asterisk="false"
         :cluster-id="localClusterId"
         :model-value="data.tablesIgnore"
         :required="false" />

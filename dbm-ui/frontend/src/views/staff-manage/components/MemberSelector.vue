@@ -60,7 +60,7 @@
 
   const exactSearchMethod = () =>
     getUserList({
-      fuzzy_lookups: modelValue.value.join(','),
+      exact_lookups: modelValue.value.join(','),
     }).then((result) => result.results);
 
   const pasteValidator = (values: string[]) => values;
