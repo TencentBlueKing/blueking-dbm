@@ -91,9 +91,12 @@ func (l *PhysicalLoader) Load() error {
 }
 
 func (l *PhysicalLoader) loadBackup() error {
-	cmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s`, l.TaskDir, l.Client, l.cfgFilePath)
-	logger.Info("dbLoader cmd: %s", cmd)
-	errStr, err := osutil.ExecShellCommand(false, cmd)
+	loadCmd := fmt.Sprintf(`cd %s && %s loadbackup --config %s`, l.TaskDir, l.Client, l.cfgFilePath)
+	if l.LogDir != "" {
+		loadCmd += fmt.Sprintf(" --log-dir %s", l.LogDir)
+	}
+	logger.Info("dbLoader cmd: %s", loadCmd)
+	errStr, err := osutil.ExecShellCommand(false, loadCmd)
 	if err != nil {
 		logger.Error("physical dbbackup loadbackup stderr: ", errStr)
 		return errors.WithMessage(err, errStr)

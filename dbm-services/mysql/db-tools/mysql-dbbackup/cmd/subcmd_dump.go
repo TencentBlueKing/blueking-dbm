@@ -109,7 +109,6 @@ func dumpExecute(cmd *cobra.Command, args []string) (err error) {
 	body.Name = "dbbackup"
 	//body.Content = fmt.Sprintf("%s。单据号：%s", "分区任务执行失败", e.Params.Ticket)
 	body.Dimension = make(map[string]interface{})
-
 	if err = logger.InitLog("dbbackup_dump.log"); err != nil {
 		return err
 	}

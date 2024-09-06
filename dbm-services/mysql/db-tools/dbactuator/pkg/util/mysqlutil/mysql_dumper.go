@@ -631,12 +631,14 @@ type DbbackupDumper interface {
 type DbMigrateDumper struct {
 	DumpDir         string
 	DbBackupUser    string
-	DbBackuoPwd     string
+	DbBackupPwd     string
 	Ip              string
 	Port            int
 	BackupCmdPath   string
 	DbNames         string
 	DataSchemaGrant string
+	// LogDir mydumper 执行日志所放目录。为了解决目录权限问题
+	LogDir string `json:"-"`
 }
 
 // DumpbackupLogical 使用备份工具进行逻辑备份
@@ -653,7 +655,10 @@ func (d *DbMigrateDumper) DumpbackupLogical() (err error) {
 // getBackupCmd 拼接数据备份命令
 func (d *DbMigrateDumper) getBackupCmd() (backupCmd string) {
 	backupCmd = fmt.Sprintf("%s dumpbackup logical -u%s -p%s -h%s -P%d %s",
-		d.BackupCmdPath, d.DbBackupUser, d.DbBackuoPwd, d.Ip, d.Port, d.getBackupCmdOption())
+		d.BackupCmdPath, d.DbBackupUser, d.DbBackupPwd, d.Ip, d.Port, d.getBackupCmdOption())
+	if d.LogDir != "" {
+		backupCmd += fmt.Sprintf(" --log-dir %s", d.LogDir)
+	}
 	return backupCmd
 }
 

@@ -2,14 +2,11 @@ package rollback
 
 import (
 	"fmt"
-	"io/ioutil"
 	"regexp"
-	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/restore"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
@@ -97,22 +94,9 @@ func (f *Flashback) getBinlogFilesLocal() (string, []string, error) {
 	} else {
 		logger.Info("binlogDir=%s namePrefix=%s", binlogDir, namePrefix)
 	}
-	files, err := ioutil.ReadDir(binlogDir) // 已经按文件名排序
+	binlogFiles, err := f.recover.GetBinlogFilesFromDir(binlogDir, namePrefix)
 	if err != nil {
-		return "", nil, errors.Wrap(err, "read binlog dir")
-	}
-
-	var binlogFiles []string
-	reFilename := regexp.MustCompile(cst.ReBinlogFilename)
-	for _, fi := range files {
-		if !reFilename.MatchString(fi.Name()) {
-			if !strings.HasSuffix(fi.Name(), ".index") {
-				logger.Warn("illegal binlog file name %s", fi.Name())
-			}
-			continue
-		} else {
-			binlogFiles = append(binlogFiles, fi.Name())
-		}
+		return "", nil, err
 	}
 	return binlogDir, binlogFiles, nil
 }

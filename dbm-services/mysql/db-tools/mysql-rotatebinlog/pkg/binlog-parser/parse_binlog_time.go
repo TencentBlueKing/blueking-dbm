@@ -145,7 +145,9 @@ func (b *BinlogParse) init() error {
 func (b *BinlogParse) GetTimeIgnoreStopErr(fileName string, start, stop bool) ([]BinlogEventHeaderWrapper, error) {
 	events, err := b.GetTime(fileName, start, stop)
 	if err != nil {
-		if stop {
+		if stop && start {
+			events = append(events, events[0])
+		} else if stop && !start {
 			events, err = b.GetTime(fileName, true, false)
 			if err != nil {
 				return nil, errors.WithMessage(err, "fail to only get start time")

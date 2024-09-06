@@ -2,6 +2,7 @@
 package restore
 
 import (
+	"path/filepath"
 	"strings"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -190,6 +191,7 @@ func (r *RestoreDRComp) ChooseType() error {
 	} else if b.backupType == cst.BackupTypeLogical || b.backupType == cst.BackupTypePhysical {
 		dbloader := DBLoader{
 			RestoreParam: &r.Params,
+			LogDir:       filepath.Join(r.GeneralParam.ActuatorWorkDir(), "logs"),
 		}
 		r.restore = &dbloader
 		logger.Info("choose recover type [%s], indexObj.BackupType=%s", b.backupType, b.indexObj.BackupType)

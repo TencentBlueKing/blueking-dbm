@@ -36,7 +36,7 @@ const (
 	// BinLogFileMatch binlog 模式
 	BinLogFileMatch = `(.*)/binlog\d*.bin`
 	// ReBinlogFilename binlog 文件名
-	ReBinlogFilename = `binlog\d*\.\d+$`
+	ReBinlogFilename = `^binlog\d*\.\d+$`
 	// MysqlOsUserName 系统帐号
 	MysqlOsUserName = "mysql"
 	// MysqlOsUserGroup 系统组
