@@ -185,17 +185,11 @@ class SqlserverHAClusterHandler(ClusterHandler):
                 slave_entry.storageinstance_set.remove(new_master_storage_objs)
                 slave_entry.storageinstance_set.add(old_master_storage_objs)
 
-            cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
-            # 切换新master服务实例角色标签
-            cc_manage.add_label_for_service_instance(
-                bk_instance_ids=[new_master_storage_objs.bk_instance_id],
-                labels_dict={"instance_role": InstanceRole.BACKEND_MASTER.value},
-            )
-
-            # 切换新slave服务实例角色标签
-            cc_manage.add_label_for_service_instance(
-                bk_instance_ids=[old_master_storage_objs.bk_instance_id],
-                labels_dict={"instance_role": InstanceRole.BACKEND_SLAVE.value},
+            cc_topo_operator = SqlserverCCTopoOperator(cluster)
+            cc_topo_operator.is_bk_module_created = True
+            cc_topo_operator.transfer_instances_to_cluster_module(
+                instances=[new_master_storage_objs, old_master_storage_objs],
+                is_increment=True,
             )
 
     @classmethod
