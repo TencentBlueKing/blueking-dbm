@@ -40,9 +40,11 @@
         <BkTable
           :data="tableData"
           :pagination="pagination"
+          remote-pagination
           @page-limit-change="handeChangeLimit"
           @page-value-change="handleChangePage">
           <BkTableColumn
+            fixed="left"
             :label="t('单据类型')"
             :rowspan="rowSpan"
             :width="240">
@@ -147,12 +149,12 @@
             :width="120">
             <template #default="{ data }">
               <span v-if="data.configs.need_itsm">
-                {{ t('是') }}
+                {{ t('需审批') }}
               </span>
               <span
                 v-else
                 style="color: #ff9c01">
-                {{ t('否') }}
+                {{ t('免审批') }}
               </span>
             </template>
           </BkTableColumn>
@@ -162,12 +164,12 @@
             :width="120">
             <template #default="{ data }">
               <span v-if="data.configs.need_manual_confirm">
-                {{ t('是') }}
+                {{ t('需确认') }}
               </span>
               <span
                 v-else
                 style="color: #ff9c01">
-                {{ t('否') }}
+                {{ t('免确认') }}
               </span>
             </template>
           </BkTableColumn>
@@ -192,6 +194,7 @@
             sort
             :width="240" />
           <BkTableColumn
+            fixed="right"
             :label="t('操作')"
             :width="100">
             <template #default="{ data }">
@@ -216,7 +219,7 @@
                 @success="fetchData">
                 <AuthButton
                   action-id="biz_ticket_config_set"
-                  class="is-custom ml-8"
+                  class="ml-16"
                   :permission="data.permission.biz_ticket_config_set"
                   :resource="dbType"
                   text
@@ -295,9 +298,9 @@
   });
   /*
   * 单据类型下是否所有集群已免审批
-  * 0、只有内置免审批
+  * 0、非免审批
   * 1、部分集群免审批
-  * 2、业务下所有集群免审批
+  * 2、所有集群免审批
   * 非0都禁用追加按钮
   */
   const appendBtnController = ref<Record<string, 0 | 1 | 2>>({});
@@ -353,18 +356,21 @@
       allTableData.value = Object.values(resultsMap).flatMap(values => {
         const hasCurrentBizTarget = values.some((item) => item.isCurrentBizTarget);
         const rows = values.reduce<TicketFlowDescribeModel[]>((acc, item) => {
-          // 1、存在多条生效策略
-          // 2、存在业务全部目标
-          // 3、满足前两条，且当前为内置目标，隐藏内置目标
-          const isHidden = values.length > 1 && hasCurrentBizTarget && item.isDefaultTarget;
           const level = Math.max(
-            item.isCurrentBizTarget ? 2 : 0,
-            item.isClusterTarget ? 1 : 0
+            // 业务目标和全局（内置）目标，且是否审批为免审批状态，禁用等级为2，否则不禁用
+            (item.isCurrentBizTarget || item.isDefaultTarget ) && !item.configs.need_itsm ? 2 : 0,
+            // 集群目标，且是否审批为免审批状态，禁用等级为1，否则不禁用
+            item.isClusterTarget && !item.configs.need_itsm ? 1 : 0
           );
           appendBtnController.value[item.ticket_type] = Math.max(
             appendBtnController.value[item.ticket_type] ?? 0,
             level
           ) as 0 | 1 | 2;
+
+          // 1、存在多条生效策略
+          // 2、存在业务全部目标
+          // 3、满足前两条，且当前为内置目标，隐藏内置目标
+          const isHidden = values.length > 1 && hasCurrentBizTarget && item.isDefaultTarget;
           if (!isHidden) {
             acc.push(item);
           }
@@ -516,21 +522,11 @@
           display: none;
         }
 
-        .is-custom {
-          display: none;
-        }
-
         tr {
           &:hover {
             .append-config-btn {
               display: inline-flex;
               margin-left: 8px;
-            }
-
-            .is-custom {
-              display: inline;
-              color: var(--primary-color);
-              cursor: pointer;
             }
           }
         }

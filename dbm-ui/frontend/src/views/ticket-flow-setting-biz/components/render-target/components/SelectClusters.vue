@@ -1,5 +1,6 @@
 <template>
   <div class="target-form-item">
+    <div class="target-prefix">{{ t('集群') }}</div>
     <BkSelect
       v-model="modelValue"
       class="target-select"
@@ -13,9 +14,6 @@
       multiple
       multiple-mode="tag"
       @change="handleChange">
-      <template #prefix>
-        <div class="target-prefix">{{ t('集群') }}</div>
-      </template>
       <BkOption
         v-for="item in clusterList"
         :key="item.id"
@@ -125,10 +123,6 @@
 </script>
 
 <style lang="less" scoped>
-  :deep(.bk-select-tag-wrapper) {
-    padding-left: 8px !important;
-  }
-
   .is-error {
     :deep(.bk-select-tag) {
       background-color: #fff0f1 !important;

@@ -14,10 +14,14 @@
       <BkAlert
         class="mb16"
         closable>
-        {{ t('免审批目标，支持业务下全部集群或部分集群') }}
+        {{
+          t(
+            '添加免审批后，相关单据可直接进入下一环节，无需经过审批流程。免审批可应用于业务下的全部集群或特定部分集群。',
+          )
+        }}
       </BkAlert>
       <BkFormItem
-        :label="t('目标')"
+        :label="t('免审批目标')"
         required>
         <RenderTarget
           ref="targetRef"

@@ -123,17 +123,22 @@
         position: relative;
         display: flex;
 
+        .target-prefix {
+          display: flex;
+          width: 64px;
+          height: 32px;
+          padding-left: 8px;
+          font-size: 12px;
+          color: #63656e;
+          background: #fafbfd;
+          border: 1px solid #c4c6cc;
+          border-right: none;
+          border-radius: 2px 0 0 2px;
+          align-items: center;
+        }
+
         .target-select {
           flex: 1;
-
-          .target-prefix {
-            width: 64px;
-            height: 100%;
-            padding: 0 12px;
-            line-height: 32px;
-            background: #fafbfd;
-            border-right: 1px solid #c4c6cc;
-          }
         }
 
         .error-icon {
