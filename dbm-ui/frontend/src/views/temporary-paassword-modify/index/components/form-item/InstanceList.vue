@@ -33,6 +33,7 @@
     ]"
     hide-manual-input
     :selected="instanceSelectorValue"
+    :tab-list-config="tabListConfig"
     :unqiue-panel-tips="t('仅可选择一种类型修改密码')"
     unqiue-panel-value
     @change="handleInstanceSelectChange" />
@@ -51,7 +52,7 @@
 
   import { clusterTypeInfos,ClusterTypes } from '@common/const';
 
-  import InstanceSelector, { type InstanceSelectorValues, type IValue } from '@components/instance-selector/Index.vue';
+  import InstanceSelector, { type InstanceSelectorValues, type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
 
   type IRowData = TendbhaInstanceModel|TendbInstanceModel|SqlServerHaInstanceModel|SqlServerSingleInstanceModel
@@ -60,6 +61,21 @@
 
   const genInstanceKey = (instance: { bk_cloud_id: number; ip: string; port: number }) =>
     `${instance.bk_cloud_id}:${instance.ip}:${instance.port}`;
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBCLUSTER]: [
+      {
+        name: t('TendbCluster 主从'),
+        tableConfig: {
+          firsrColumn: {
+            label: 'instance_address',
+            field: 'instance_address',
+            role: '',
+          },
+        },
+      },
+    ],
+  } as unknown as Record<ClusterTypes, PanelListType>;
 
 
   const modelValue = defineModel<IValue[]>({

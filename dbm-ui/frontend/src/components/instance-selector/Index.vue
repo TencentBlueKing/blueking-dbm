@@ -562,7 +562,7 @@
     TendbClusterHost: [
       {
         id: 'TendbClusterHost',
-        name: t('Tendb Cluster 主从'),
+        name: t('TendbCluster 主从'),
         topoConfig: {
           getTopoList: queryMysqlCluster,
           countFunc: (clusterItem: { remote_db: { ip: string }[] }) => {
