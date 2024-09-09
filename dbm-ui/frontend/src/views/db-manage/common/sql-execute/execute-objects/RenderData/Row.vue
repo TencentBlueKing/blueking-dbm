@@ -23,7 +23,8 @@
       <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbnamesRef"
-          v-model="localIgnoreDbnames" />
+          v-model="localIgnoreDbnames"
+          allow-empty />
       </td>
       <td style="padding: 0">
         <RenderSql
