@@ -279,7 +279,6 @@ class TenDBClusterClusterHandler(ClusterHandler):
         对已有集群的remote存储对进行切换记录
         """
         cluster = Cluster.objects.get(id=cluster_id)
-        cc_manage = CcManage(cluster.bk_biz_id, cluster.cluster_type)
         for switch_tuple in switch_tuples:
             # 理论上remote机器专属一套TenDB-Cluster集群
 
@@ -293,16 +292,11 @@ class TenDBClusterClusterHandler(ClusterHandler):
             for obj in master_objs:
                 StorageInstanceTuple.objects.filter(ejector=obj).update(ejector=F("receiver"), receiver=obj)
 
-            # 切换新master服务实例角色标签
-            cc_manage.add_label_for_service_instance(
-                bk_instance_ids=[obj.bk_instance_id for obj in slave_objs],
-                labels_dict={"instance_role": InstanceRole.REMOTE_MASTER.value},
-            )
-
-            # 切换新slave服务实例角色标签
-            cc_manage.add_label_for_service_instance(
-                bk_instance_ids=[obj.bk_instance_id for obj in master_objs],
-                labels_dict={"instance_role": InstanceRole.REMOTE_SLAVE.value},
+            cc_topo_operator = MysqlCCTopoOperator(cluster)
+            cc_topo_operator.is_bk_module_created = True
+            cc_topo_operator.transfer_instances_to_cluster_module(
+                instances=list(master_objs) + list(slave_objs),
+                is_increment=True,
             )
 
     def get_remote_address(self, role=TenDBBackUpLocation.REMOTE) -> str:

@@ -396,13 +396,6 @@ class MySQLDBMeta(object):
         slave_ip = self.cluster["slave_ip"]["ip"]
         master_ip = self.cluster["master_ip"]["ip"]
 
-        # 获取cluster_types_list
-        cluster_types = (
-            Cluster.objects.filter(id__in=self.cluster["cluster_ids"])
-            .values_list("cluster_type", flat=True)
-            .distinct()
-        )
-        cluster_types_list = list(cluster_types)
         with atomic():
             for cluster_id in self.cluster["cluster_ids"]:
 
@@ -452,19 +445,12 @@ class MySQLDBMeta(object):
                     proxy.storageinstance.remove(master_storage_objs)
                     proxy.storageinstance.add(slave_storage_objs)
 
-                for cluster_type in cluster_types_list:
-                    cc_manage = CcManage(self.bk_biz_id, cluster_type)
-                    # 切换新master服务实例角色标签
-                    cc_manage.add_label_for_service_instance(
-                        bk_instance_ids=[slave_storage_objs.bk_instance_id],
-                        labels_dict={"instance_role": InstanceRole.BACKEND_MASTER.value},
-                    )
-
-                    # 切换新slave服务实例角色标签
-                    cc_manage.add_label_for_service_instance(
-                        bk_instance_ids=[master_storage_objs.bk_instance_id],
-                        labels_dict={"instance_role": InstanceRole.BACKEND_SLAVE.value},
-                    )
+                cc_topo_operator = MysqlCCTopoOperator(cluster)
+                cc_topo_operator.is_bk_module_created = True
+                cc_topo_operator.transfer_instances_to_cluster_module(
+                    instances=[master_storage_objs, slave_storage_objs],
+                    is_increment=True,
+                )
 
     def mysql_cluster_offline(self):
         """
