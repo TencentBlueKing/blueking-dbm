@@ -21,9 +21,9 @@
 ```
 ![export_dashboard.png](export_dashboard.png)
 
-# 添加tags
-
-"tags": ["{cluster_type}"]
+# 给仪表盘添加tags
+```
+"tags": ["{cluster_type}", "{custom_tag}"]
 ___________________________________
 "tags": ["es"],
 "tags": ["hdfs"],
@@ -36,6 +36,9 @@ ___________________________________
 "tags": ["TwemproxyRedisInstance"],
 "tags": ["PredixyTendisplusCluster"],
 "tags": ["TwemproxyTendisSSDInstance"],
+// 其中 “慢查询” 仪表盘，会适用于 "tendbsingle", "tendbha", "tendbcluster" 这三种集群类型
+"tags": ["tendbsingle", "tendbha", "tendbcluster", "慢查询"],
+```
 
 # 刷新监控数据源ID：bkmonitor_timeseries
 ```
@@ -57,7 +60,7 @@ find . -type f -name "*.json" -exec sed -i '' -e 's#"id": [0-9]*,#"id": null,#g'
 ```
 
 # 这里按需隐藏变量，不暴露所有变量
-templating.list.hide 设置为 2，这里一般把 需暴露
+templating.list.hide 设置为 2，这里一般把需暴露出来的变量设置为 0，不暴露的设置为 2
 
 # 替换 datasource 为 bkmonitor_timeseries 或者 bklog
 
