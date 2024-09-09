@@ -31,6 +31,7 @@
   import { makeMap, random } from '@utils';
 
   interface Props {
+    allowEmpty?: boolean;
     checkDuplicate?: boolean;
   }
 
@@ -39,6 +40,7 @@
   }
 
   const props = withDefaults(defineProps<Props>(), {
+    allowEmpty: false,
     checkDuplicate: false,
   });
 
@@ -57,7 +59,13 @@
 
   const rules = [
     {
-      validator: (value: string[]) => value && value.length > 0,
+      validator: (value: string[]) => {
+        if (props.allowEmpty) {
+          return true;
+        }
+
+        return value && value.length > 0;
+      },
       message: t('DB 名不能为空'),
     },
     {

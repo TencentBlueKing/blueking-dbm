@@ -17,8 +17,7 @@
       ref="editRef"
       v-model="localDomain"
       :placeholder="t('请输入集群域名或从表头批量选择')"
-      :rules="rules"
-      @submit="handleInputFinish" />
+      :rules="rules" />
   </div>
 </template>
 <script lang="ts">
@@ -43,7 +42,6 @@
   }
 
   interface Emits {
-    (e: 'inputCreate', value: Array<string>): void;
     (e: 'idChange', value: number): void;
   }
 
@@ -153,14 +151,6 @@
       immediate: true,
     },
   );
-
-  const handleInputFinish = (value: string) => {
-    if (!value) {
-      return;
-    }
-
-    emits('inputCreate', [value]);
-  };
 
   onBeforeUnmount(() => {
     delete clusterIdMemo[instanceKey];
