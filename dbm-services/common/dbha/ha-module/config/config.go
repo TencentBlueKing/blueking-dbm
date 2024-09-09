@@ -172,6 +172,7 @@ type SSHConfig struct {
 	SqlserverSSHPass string `yaml:"sqlserver_ssh_pass"`
 	Dest             string `yaml:"dest"`
 	Timeout          int    `yaml:"timeout"`
+	MaxUptime        int64  `yaml:"max_uptime"`
 }
 
 // NameServicesConfig dns api configure info

@@ -75,7 +75,7 @@ func (ins *RedisDetectBase) CheckSSH() error {
 	touchStr := fmt.Sprintf("touch %s && if [ -d \"/data1/dbha\" ]; then touch /data1/dbha/%s ; fi "+
 		"&& if [ -d \"/data/dbha\" ]; then touch /data/dbha/%s ; fi", touchFile, touchFile, touchFile)
 
-	if err := ins.DoSSH(touchStr); err != nil {
+	if err := ins.DoExtendSSH(touchStr); err != nil {
 		log.Logger.Errorf("RedisDetection do ssh failed. err:%s", err.Error())
 		return err
 	}
@@ -104,11 +104,12 @@ func GetDetectBaseByInfo(ins *RedisDetectInfoFromCmDB,
 			ClusterType:    ins.ClusterType,
 			ClusterId:      ins.ClusterId,
 			SshInfo: dbutil.Ssh{
-				Port:    conf.SSH.Port,
-				User:    conf.SSH.User,
-				Pass:    passwd,
-				Dest:    conf.SSH.Dest,
-				Timeout: conf.SSH.Timeout,
+				Port:      conf.SSH.Port,
+				User:      conf.SSH.User,
+				Pass:      passwd,
+				Dest:      conf.SSH.Dest,
+				Timeout:   conf.SSH.Timeout,
+				MaxUptime: conf.SSH.MaxUptime,
 			},
 		},
 		Pass:    ins.Pass,
@@ -133,11 +134,12 @@ func GetDetectBaseByRsp(ins *RedisDetectResponse,
 			ClusterType:    ins.ClusterType,
 			ClusterId:      ins.ClusterId,
 			SshInfo: dbutil.Ssh{
-				Port:    conf.SSH.Port,
-				User:    conf.SSH.User,
-				Pass:    passwd,
-				Dest:    conf.SSH.Dest,
-				Timeout: conf.SSH.Timeout,
+				Port:      conf.SSH.Port,
+				User:      conf.SSH.User,
+				Pass:      passwd,
+				Dest:      conf.SSH.Dest,
+				Timeout:   conf.SSH.Timeout,
+				MaxUptime: conf.SSH.MaxUptime,
 			},
 		},
 		Pass:    ins.Pass,
