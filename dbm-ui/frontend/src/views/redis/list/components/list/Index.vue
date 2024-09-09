@@ -113,7 +113,6 @@
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
-        :parse-url="false"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         :validate-values="validateSearchValues"
@@ -1187,8 +1186,8 @@
         ClusterTypes.PREDIXY_REDIS_CLUSTER,
       ].join(','),
       ...getSearchSelectorParams(searchValue.value),
-
     }
+
     tableRef.value!.fetchData(params, {
       ...sortValue,
     }, loading);
