@@ -3,7 +3,6 @@ package redis
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
@@ -25,10 +24,11 @@ func (ins *TwemproxyDetectInstance) Detection() error {
 		return nil
 	}
 
-	if err != nil && ins.Status == constvar.RedisAuthFailed {
-		log.Logger.Errorf("Twemproxy auth failed. %s#%d|%s:%s %+v",
-			ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
-		return err
+	if err != nil {
+		log.Logger.Errorf("Twemproxy detect failed. %s#%d|%s:%s %+v", ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
+		if ins.Status == constvar.RedisAuthFailed {
+			return err
+		}
 	}
 
 	sshErr := ins.CheckSSH()
@@ -62,10 +62,8 @@ func (ins *TwemproxyDetectInstance) DoTwemproxyDetection() error {
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
-	rsp, err := r.Type("twemproxy_mon")
-	if err != nil {
-		twemproxyErr = fmt.Errorf("do twemproxy cmd failed,err: %s,info;%s",
-			err.Error(), ins.ShowDetectionInfo())
+	if _, err := r.Type("twemproxy_mon"); err != nil {
+		twemproxyErr = fmt.Errorf("do twemproxy cmd failed,err: %s", err)
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.RedisAuthFailed
 		} else {
@@ -74,22 +72,7 @@ func (ins *TwemproxyDetectInstance) DoTwemproxyDetection() error {
 		return twemproxyErr
 	}
 
-	rspInfo, ok := rsp.(string)
-	if !ok {
-		twemproxyErr := fmt.Errorf("redis info response type is not string")
-		ins.Status = constvar.DBCheckFailed
-		return twemproxyErr
-	}
-
-	if strings.Contains(rspInfo, "none") {
-		ins.Status = constvar.DBCheckSuccess
-		return nil
-	} else {
-		twemproxyErr = fmt.Errorf("twemproxy exec detection failed,rsp:%s,info:%s",
-			rspInfo, ins.ShowDetectionInfo())
-		ins.Status = constvar.DBCheckFailed
-		return twemproxyErr
-	}
+	return nil
 }
 
 // Serialization serialize detect instance

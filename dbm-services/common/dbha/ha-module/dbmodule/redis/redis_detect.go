@@ -26,10 +26,11 @@ func (ins *RedisDetectInstance) Detection() error {
 		return nil
 	}
 
-	if err != nil && ins.Status == constvar.RedisAuthFailed {
-		log.Logger.Debugf("redis check auth failed.%s#%d|%s:%s %+v",
-			ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
-		return err
+	if err != nil {
+		log.Logger.Errorf("redis detect failed. %s#%d|%s:%s %+v", ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
+		if ins.Status == constvar.RedisAuthFailed {
+			return err
+		}
 	}
 
 	sshErr := ins.CheckSSH()
