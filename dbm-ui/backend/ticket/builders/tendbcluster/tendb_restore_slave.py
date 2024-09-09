@@ -53,6 +53,8 @@ class TendbClusterRestoreSlaveParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:
+            for info in self.ticket_data["infos"]:
+                info["resource_spec"]["remote"] = info["resource_spec"]["new_slave"]
             return
 
         for info in self.ticket_data["infos"]:

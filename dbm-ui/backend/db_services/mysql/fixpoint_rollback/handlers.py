@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import json
+import logging
 import re
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -35,6 +36,8 @@ from backend.flow.utils.script_template import dba_toolkit_actuator_template, fa
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.utils.string import base64_encode
 from backend.utils.time import compare_time, datetime2str, find_nearby_time
+
+logger = logging.getLogger("flow")
 
 
 class FixPointRollbackHandler:
@@ -192,10 +195,11 @@ class FixPointRollbackHandler:
 
         return valid_backup_logs
 
-    def aggregate_tendbcluster_dbbackup_logs(self, backup_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def aggregate_tendbcluster_dbbackup_logs(self, backup_logs: List[Dict], shard_list: List = None) -> List[Dict]:
         """
         聚合tendbcluster的mysql_backup_result日志，按照backup_id聚合tendb备份记录
         :param backup_logs: 备份记录列表
+        :param shard_list: 备份分片数
         """
 
         def insert_time_field(_back_log, _log):
@@ -298,17 +302,25 @@ class FixPointRollbackHandler:
             if backup_node:
                 insert_time_field(backup_id__backup_logs_map[backup_id], backup_node)
 
+        logger.info("backup info:", backup_id__backup_logs_map)
         # 获取合法的备份记录
-        cluster_shard_num = self.cluster.tendbclusterstorageset_set.count()
+        if shard_list is not None and len(shard_list) > 0:
+            shard_list = sorted(shard_list)
+        else:
+            cluster_shard_num = self.cluster.tendbclusterstorageset_set.count()
+            shard_list = list(range(0, cluster_shard_num))
+
         backup_id__valid_backup_logs = defaultdict(dict)
         for backup_id, backup_log in backup_id__backup_logs_map.items():
             # 获取合法分片ID，如果分片数不完整，则忽略
             shard_value_list = [
-                shard_value
+                int(shard_value)
                 for shard_value in backup_log["remote_node"].keys()
                 if backup_log["remote_node"][shard_value]
             ]
-            if sorted(shard_value_list) != list(range(0, cluster_shard_num)):
+            logger.info("backup shard list:", shard_value_list)
+            logger.info("user shard list:", shard_list)
+            if not set(shard_value_list).issuperset(set(shard_list)):
                 continue
 
             # 如果不存在spider master记录，则忽略
@@ -323,11 +335,12 @@ class FixPointRollbackHandler:
 
         return list(backup_id__valid_backup_logs.values())
 
-    def query_backup_log_from_bklog(self, start_time: datetime, end_time: datetime) -> List[Dict]:
+    def query_backup_log_from_bklog(self, start_time: datetime, end_time: datetime, **kwargs) -> List[Dict]:
         """
         通过日志平台查询集群的时间范围内的备份记录
         :param start_time: 开始时间
         :param end_time: 结束时间
+        :param shard_list: tendbcluster专属，备份分片数
         """
 
         backup_logs = self._get_log_from_bklog(
@@ -338,7 +351,8 @@ class FixPointRollbackHandler:
         )
 
         if self.cluster.cluster_type == ClusterType.TenDBCluster:
-            return self.aggregate_tendbcluster_dbbackup_logs(backup_logs)
+            shard_list = kwargs.get("shard_list", [])
+            return self.aggregate_tendbcluster_dbbackup_logs(backup_logs, shard_list)
         else:
             return self.aggregate_tendb_dbbackup_logs(backup_logs)
 
@@ -483,7 +497,7 @@ class FixPointRollbackHandler:
         return local_backup_logs
 
     def query_latest_backup_log(
-        self, rollback_time: datetime, backup_source: str = MySQLBackupSource.REMOTE.value
+        self, rollback_time: datetime, backup_source: str = MySQLBackupSource.REMOTE.value, **kwargs
     ) -> Dict[str, Any]:
         """
         根据回档时间查询最新一次的备份记录
@@ -495,7 +509,7 @@ class FixPointRollbackHandler:
             # 日志平台查询
             end_time = rollback_time
             start_time = end_time - timedelta(days=BACKUP_LOG_ROLLBACK_TIME_RANGE_DAYS)
-            backup_logs = self.query_backup_log_from_bklog(start_time, end_time)
+            backup_logs = self.query_backup_log_from_bklog(start_time, end_time, **kwargs)
 
         if not backup_logs:
             return None
