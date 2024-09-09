@@ -7979,7 +7979,7 @@
   "refresh": false,
   "schemaVersion": 37,
   "style": "dark",
-  "tags": [],
+  "tags": ["sqlserver_single", "sqlserver_ha"],
   "templating": {
     "list": [
       {
