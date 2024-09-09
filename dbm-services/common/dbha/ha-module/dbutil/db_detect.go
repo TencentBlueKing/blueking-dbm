@@ -1,7 +1,10 @@
 package dbutil
 
 import (
+	"bytes"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha/ha-module/constvar"
@@ -100,11 +103,12 @@ type BaseDetectDBResponse struct {
 
 // Ssh detect configure
 type Ssh struct {
-	Port    int
-	User    string
-	Pass    string
-	Dest    string
-	Timeout int
+	Port      int
+	User      string
+	Pass      string
+	Dest      string
+	Timeout   int
+	MaxUptime int64
 }
 
 // DoSSH do ssh detect
@@ -139,6 +143,80 @@ func (b *BaseDetectDB) DoSSH(shellStr string) error {
 	if err != nil {
 		log.Logger.Warnf("ssh run command failed. ip:%s, port:%d, err:%s", b.Ip, b.Port, err.Error())
 		return err
+	}
+
+	return nil
+}
+
+// DoExtendSSH establishes an SSH connection, executes a command, and fetches the system uptime
+func (b *BaseDetectDB) DoExtendSSH(shellStr string) error {
+	// 创建 SSH 配置
+	conf := &ssh.ClientConfig{
+		Timeout:         time.Second * time.Duration(b.SshInfo.Timeout),
+		User:            b.SshInfo.User,
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Auth: []ssh.AuthMethod{
+			ssh.KeyboardInteractive(b.ReturnSshInteractive()),
+			ssh.Password(b.SshInfo.Pass),
+		},
+	}
+
+	// 创建 SSH 连接
+	addr := fmt.Sprintf("%s:%d", b.Ip, b.SshInfo.Port)
+	sshClient, err := ssh.Dial("tcp", addr, conf)
+	if err != nil {
+		log.Logger.Warnf("SSH connect failed. IP: %s, Port: %d, Error: %s", b.Ip, b.SshInfo.Port, err.Error())
+		return err
+	}
+	defer sshClient.Close()
+
+	// 创建新的 SSH 会话以执行命令
+	session, err := sshClient.NewSession()
+	if err != nil {
+		log.Logger.Warnf("SSH new session failed. IP: %s, Port: %d, Error: %s", b.Ip, b.SshInfo.Port, err.Error())
+		return err
+	}
+	defer session.Close()
+
+	// 执行命令
+	if _, err := session.CombinedOutput(shellStr); err != nil {
+		log.Logger.Warnf("SSH run command failed. IP: %s, Port: %d, Error: %s", b.Ip, b.SshInfo.Port, err.Error())
+		return err
+	}
+
+	// 创建新的 SSH 会话以获取系统启动时间
+	session, err = sshClient.NewSession()
+	if err != nil {
+		log.Logger.Warnf("SSH new session for uptime failed. IP: %s, Port: %d, Error: %s", b.Ip, b.SshInfo.Port, err.Error())
+		return err
+	}
+	defer session.Close()
+
+	// 执行获取系统启动时间的命令
+	var output bytes.Buffer
+	session.Stdout = &output
+	if err := session.Run("cat /proc/uptime"); err != nil {
+		log.Logger.Warnf("Fetch machine uptime failed: %s", err.Error())
+		return err
+	}
+
+	// 解析命令输出，获取系统启动时间（以秒为单位）
+	fields := strings.Fields(output.String())
+	if len(fields) < 1 {
+		log.Logger.Warnf("Parse machine uptime failed, output: %s", output.String())
+		return fmt.Errorf("invalid uptime output: %s", output.String())
+	}
+
+	uptimeSeconds, err := strconv.ParseFloat(fields[0], 64)
+	if err != nil {
+		log.Logger.Warnf("Convert machine uptime failed: %s", err.Error())
+		return err
+	}
+
+	uptimeSecondsInt := int64(uptimeSeconds)
+	log.Logger.Warnf("Machine uptime seconds: %d", uptimeSecondsInt)
+	if uptimeSecondsInt < b.SshInfo.MaxUptime {
+		return fmt.Errorf("machine is running, uptime: %d less than max uptime: %d", uptimeSecondsInt, b.SshInfo.MaxUptime)
 	}
 
 	return nil
