@@ -113,7 +113,6 @@
         :data="searchSelectData"
         :get-menu-list="getMenuList"
         :model-value="searchValue"
-        :parse-url="false"
         :placeholder="t('请输入或选择条件搜索')"
         unique-select
         :validate-values="validateSearchValues"
