@@ -13,7 +13,9 @@
 
 <template>
   <div class="resource-spec-list-page">
-    <ClusterTab v-model="curTab" />
+    <ClusterTab
+      v-model="curTab"
+      :excludes="[ClusterTypes.SQLSERVER_SINGLE]" />
     <div
       :key="curTab"
       class="wrapper">

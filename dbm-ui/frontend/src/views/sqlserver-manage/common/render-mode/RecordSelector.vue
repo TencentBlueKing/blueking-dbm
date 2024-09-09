@@ -80,11 +80,17 @@
               @click="handleLogListSelect(item)">
               <BkPopover
                 boundary="document.body"
+                :disabled="!item.isMissed"
                 :offset="26"
                 placement="right"
                 theme="light"
                 :z-index="999999">
-                <div>{{ item.label }}</div>
+                <div style="display: flex; align-items: center">
+                  <DbIcon
+                    svg
+                    :type="item.isMissed ? 'sync-waiting-01' : 'sync-success'" />
+                  <span class="ml-4">{{ item.label }}</span>
+                </div>
                 <template #content>
                   <div style="line-height: 20px; color: #63656e">
                     <div style="font-weight: bold">{{ t('起止时间：') }}</div>
