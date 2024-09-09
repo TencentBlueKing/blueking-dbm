@@ -347,9 +347,9 @@
       position: absolute;
       top: 14px;
       right: 10px;
+      display: none;
       font-size: 14px;
       color: #c4c6cc;
-      display: none;
 
       &:hover {
         color: #979ba5;

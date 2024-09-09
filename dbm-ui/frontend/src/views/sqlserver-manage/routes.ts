@@ -111,14 +111,6 @@ const toolboxRouters: RouteRecordRaw[] = [
         component: () => import('@views/sqlserver-manage/slave-add/index.vue'),
       },
       {
-        name: 'sqlServerMasterSlaveClone',
-        path: 'master-slave-clone/:page?',
-        meta: {
-          navName: t('克隆主从'),
-        },
-        component: () => import('@views/sqlserver-manage/master-slave-clone/index.vue'),
-      },
-      {
         name: 'sqlServerMasterSlaveSwap',
         path: 'master-slave-swap/:page?',
         meta: {

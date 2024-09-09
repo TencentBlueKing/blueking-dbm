@@ -13,21 +13,21 @@
 
 <template>
   <BkFormItem
-    :label="$t('SQL 内容')"
+    :label="t('SQL 内容')"
     property="execute_sql_files"
     required
     :rules="rules">
     <template #labelAppend>
       <span style="font-size: 12px; font-weight: normal; color: #8a8f99">
-        （{{ $t('最终执行结果以 SQL 内容为准') }}）
+        （{{ t('最终执行结果以 SQL 内容为准') }}）
       </span>
     </template>
     <div class="sql-execute-manual-input">
       <BkLoading :loading="isLoading">
         <Editor
           v-model="content"
-          :message-list="[]"
-          :title="$t('SQL编辑器')"
+          :message-list="inputContentCheckResult.messageList"
+          :title="t('SQL编辑器')"
           @change="handleEditorChange" />
         <div
           v-if="!isSubmited"
@@ -38,7 +38,7 @@
             theme="primary"
             @click="handleGrammarCheck">
             <DbIcon type="right-shape" />
-            <span style="margin-left: 4px">{{ $t('语法检测') }}</span>
+            <span style="margin-left: 4px">{{ t('语法检测') }}</span>
           </BkButton>
         </div>
         <template v-else>
@@ -49,7 +49,7 @@
             v-else-if="isCheckError"
             class="syntax-error" />
           <SyntaxSuccess
-            v-else
+            v-else-if="inputContentCheckResult.messageList.length < 1"
             class="syntax-success" />
         </template>
       </BkLoading>
@@ -57,10 +57,11 @@
   </BkFormItem>
 </template>
 <script setup lang="ts">
-  import { onActivated, onDeactivated, ref, watch } from 'vue';
+  import { onActivated, onDeactivated, ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { uploadSql } from '@services/source/sqlServerImport';
+  import type GrammarCheckModel from '@services/model/sql-import/grammar-check';
+  import { grammarCheck } from '@services/source/mysqlSqlImport';
   import { getFileContent } from '@services/source/storage';
 
   import { updateFilePath } from '../../../Index.bak.vue';
@@ -91,7 +92,9 @@
   const isChecking = ref(false);
   const isCheckError = ref(false);
 
-  let uploadFileData: ServiceReturnType<typeof uploadSql>[number];
+  const inputContentCheckResult = shallowRef({} as GrammarCheckModel);
+
+  let grammarCheckData: Record<string, GrammarCheckModel>;
 
   const rules = [
     {
@@ -99,7 +102,8 @@
         if (!isKeepAliveActive) {
           return true;
         }
-        return isCheckError;
+        const { content, isError } = inputContentCheckResult.value;
+        return content && !isError;
       },
       message: t('SQL内容无效'),
       trigger: 'change',
@@ -124,7 +128,7 @@
   };
 
   watch(content, () => {
-    isCheckError.value = false;
+    inputContentCheckResult.value = {} as GrammarCheckModel;
   });
 
   let isInnerChange = false;
@@ -147,9 +151,15 @@
   );
 
   const triggerChange = () => {
+    if (!grammarCheckData) {
+      return;
+    }
     isInnerChange = true;
-    emits('change', uploadFileData ? [uploadFileData.raw_file_name] : []);
-    emits('grammar-check', true, true);
+    const [fileName] = Object.keys(grammarCheckData);
+    const [checkResult] = Object.values(grammarCheckData);
+    inputContentCheckResult.value = checkResult;
+    emits('change', [fileName]);
+    emits('grammar-check', true, !checkResult.isError);
   };
 
   const handleGrammarCheck = () => {
@@ -158,9 +168,9 @@
     isCheckError.value = false;
     const params = new FormData();
     params.append('sql_content', content.value);
-    uploadSql(params)
+    grammarCheck(params)
       .then((data) => {
-        [uploadFileData] = data;
+        grammarCheckData = data;
         triggerChange();
       })
       .catch(() => {
@@ -174,6 +184,7 @@
 
   const handleEditorChange = () => {
     isSubmited.value = false;
+    inputContentCheckResult.value = {} as GrammarCheckModel;
     emits('grammar-check', false, false);
   };
 

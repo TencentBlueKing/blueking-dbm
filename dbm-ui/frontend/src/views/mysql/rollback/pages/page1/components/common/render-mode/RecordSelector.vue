@@ -294,6 +294,34 @@
     });
   };
 
+  watch(
+    () => [props.backupSource, props.clusterId],
+    () => {
+      if (!props.clusterId || !props.backupSource) {
+        return;
+      }
+      fetchLogData();
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.backupid,
+    (newVal) => {
+      if (newVal) {
+        validator(newVal);
+        const currentRecordType = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
+        hanldeChangeTab(currentRecordType);
+        localValue.value = newVal;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
+
   const hanldeChangeTab = (tabName: OperateType) => {
     recordType.value = tabName;
     if (tabName === OperateType.MATCH) {

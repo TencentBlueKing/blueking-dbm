@@ -241,8 +241,8 @@
           outline: none;
 
           input {
-            background: transparent;
             margin-left: 8px;
+            background: transparent;
           }
         }
       }

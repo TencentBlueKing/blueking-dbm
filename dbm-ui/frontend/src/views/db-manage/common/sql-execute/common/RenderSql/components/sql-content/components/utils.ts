@@ -11,15 +11,4 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { defineStore } from 'pinia';
-
-export const useSqlImport = defineStore('useSqlImport', {
-  state: () => ({
-    uploadFilePath: '',
-  }),
-  actions: {
-    updateUploadFilePath(uploadFilePath: string) {
-      this.uploadFilePath = uploadFilePath;
-    },
-  },
-});
+export const getFileNameFromFilePath = (filePath: string) => filePath.replace(/[^_]+_/, '');
