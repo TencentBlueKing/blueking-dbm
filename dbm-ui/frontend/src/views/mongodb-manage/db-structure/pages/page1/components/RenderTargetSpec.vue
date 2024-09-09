@@ -24,7 +24,7 @@
         :biz-id="3"
         :cloud-id="0"
         :cluster-type="clusterType"
-        :machine-type="machineType"
+        machine-type="mongodb"
         :show-refresh="false" />
     </div>
   </DbFormItem>
@@ -34,8 +34,7 @@
 
   import MongoDBModel from '@services/model/mongodb/mongodb';
 
-  import { ClusterTypes } from '@common/const';
-
+  // import { ClusterTypes } from '@common/const';
   import RenderTargetSpec from '@components/apply-items/SpecSelector.vue';
 
   interface Props {
@@ -58,7 +57,7 @@
     default: '',
   });
 
-  const machineType = computed(() => (props.clusterType === ClusterTypes.MONGO_REPLICA_SET ? 'mongos' : 'mongodb'));
+  // const machineType = computed(() => (props.clusterType === ClusterTypes.MONGO_REPLICA_SET ? 'mongos' : 'mongodb'));
 
   const rules = [
     {
