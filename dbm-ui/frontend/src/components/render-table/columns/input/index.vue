@@ -38,7 +38,7 @@
       @paste="handlePaste">
     </BkInput>
     <DbIcon
-      v-if="clearable && modelValue"
+      v-if="clearable && modelValue && type !== 'number'"
       class="clear-icon"
       type="close-circle-shape"
       @click="handleClear" />
