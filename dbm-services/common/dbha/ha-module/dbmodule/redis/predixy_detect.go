@@ -3,7 +3,6 @@ package redis
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"dbm-services/common/dbha/ha-module/client"
 	"dbm-services/common/dbha/ha-module/config"
@@ -25,10 +24,11 @@ func (ins *PredixyDetectInstance) Detection() error {
 		return nil
 	}
 
-	if err != nil && ins.Status == constvar.RedisAuthFailed {
-		log.Logger.Debugf("predixy check auth failed. %s#%d|%s:%s %+v",
-			ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
-		return err
+	if err != nil {
+		log.Logger.Errorf("predixy detect failed. %s#%d|%s:%s %+v", ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
+		if ins.Status == constvar.RedisAuthFailed {
+			return err
+		}
 	}
 
 	sshErr := ins.CheckSSH()
@@ -61,10 +61,8 @@ func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 	r.Init(addr, ins.Pass, ins.Timeout, 0)
 	defer r.Close()
 
-	rsp, err := r.Type("twemproxy_mon")
-	if err != nil {
-		predixyErr := fmt.Errorf("do predixy cmd err,err: %s,info;%s",
-			err.Error(), ins.ShowDetectionInfo())
+	if _, err := r.Type("twemproxy_mon"); err != nil {
+		predixyErr := fmt.Errorf("do predixy cmd err,err: %s", err.Error())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.RedisAuthFailed
 		} else {
@@ -73,24 +71,7 @@ func (ins *PredixyDetectInstance) DoPredixyDetection() error {
 		return predixyErr
 	}
 
-	rspInfo, ok := rsp.(string)
-	if !ok {
-		predixyErr := fmt.Errorf("predixy info response type is not string")
-		log.Logger.Errorf(predixyErr.Error())
-		ins.Status = constvar.DBCheckFailed
-		return predixyErr
-	}
-
-	if strings.Contains(rspInfo, "none") {
-		ins.Status = constvar.DBCheckSuccess
-		return nil
-	} else {
-		predixyErr := fmt.Errorf("predixy exec detection failed,rsp:%s,info:%s",
-			rspInfo, ins.ShowDetectionInfo())
-		log.Logger.Errorf(predixyErr.Error())
-		ins.Status = constvar.DBCheckFailed
-		return predixyErr
-	}
+	return nil
 }
 
 // Serialization serialize predixy detect instance

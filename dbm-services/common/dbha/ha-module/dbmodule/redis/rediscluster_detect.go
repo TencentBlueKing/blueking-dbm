@@ -26,10 +26,11 @@ func (ins *RedisClusterDetectInstance) Detection() error {
 		return nil
 	}
 
-	if err != nil && ins.Status == constvar.RedisAuthFailed {
-		log.Logger.Debugf("redisC check auth failed. %s#%d|%s:%s %+v",
-			ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
-		return err
+	if err != nil {
+		log.Logger.Errorf("redisC detect failed. %s#%d|%s:%s %+v", ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
+		if ins.Status == constvar.RedisAuthFailed {
+			return err
+		}
 	}
 
 	sshErr := ins.CheckSSH()
@@ -64,7 +65,7 @@ func (ins *RedisClusterDetectInstance) DoTendisDetection() error {
 
 	infoMap, err := r.InfoV2("Replication")
 	if err != nil {
-		redisErr := fmt.Errorf("redisC exec detection failed,info:%s, err:%s", ins.ShowDetectionInfo(), err.Error())
+		redisErr := fmt.Errorf("redisC exec detection failed,err:%s", err.Error())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.RedisAuthFailed
 		} else {

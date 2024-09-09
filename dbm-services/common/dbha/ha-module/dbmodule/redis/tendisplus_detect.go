@@ -26,10 +26,11 @@ func (ins *TendisplusDetectInstance) Detection() error {
 		return nil
 	}
 
-	if err != nil && ins.Status == constvar.RedisAuthFailed {
-		log.Logger.Debugf("tendisplus check auth failed. %s#%d|%s:%s %+v",
-			ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
-		return err
+	if err != nil {
+		log.Logger.Errorf("tendisplus detect failed. %s#%d|%s:%s %+v", ins.Ip, ins.Port, ins.GetDBType(), ins.Pass, err)
+		if ins.Status == constvar.RedisAuthFailed {
+			return err
+		}
 	}
 
 	sshErr := ins.CheckSSH()
@@ -64,8 +65,7 @@ func (ins *TendisplusDetectInstance) DoTendisDetection() error {
 
 	rsp, err := r.Info()
 	if err != nil {
-		redisErr := fmt.Errorf("tendisplus exec detection failed,info:%s, err:%s",
-			ins.ShowDetectionInfo(), err.Error())
+		redisErr := fmt.Errorf("tendisplus exec detection failed, err:%s", err.Error())
 		if util.CheckRedisErrIsAuthFail(err) {
 			ins.Status = constvar.RedisAuthFailed
 		} else {
