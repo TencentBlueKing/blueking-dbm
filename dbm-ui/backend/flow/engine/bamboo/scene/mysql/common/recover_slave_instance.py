@@ -63,7 +63,10 @@ def slave_recover_sub_flow(root_id: str, ticket_data: dict, cluster_info: dict):
     # 查询备份
     rollback_time = datetime.now(timezone.utc)
     rollback_handler = FixPointRollbackHandler(cluster_id=cluster["cluster_id"])
-    backup_info = rollback_handler.query_latest_backup_log(rollback_time)
+    shard_list = []
+    if cluster["cluster_type"] == ClusterType.TenDBCluster:
+        shard_list = [int(cluster_info["shard_id"])]
+    backup_info = rollback_handler.query_latest_backup_log(rollback_time, shard_list=shard_list)
     if backup_info is None:
         logger.error("cluster {} backup info not exists".format(cluster["cluster_id"]))
         raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster["cluster_id"])))

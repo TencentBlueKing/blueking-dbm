@@ -117,25 +117,27 @@ class TendbClusterMigrateRemoteFlow(object):
                 db_module_id=cluster_class.db_module_id,
                 cluster_type=cluster_class.cluster_type,
             )
+
+            tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
+            cluster_info = get_master_slave_recover_info(
+                cluster_class.id, self.data["old_master_ip"], self.data["old_slave_ip"]
+            )
+            cluster_info["charset"] = self.data["charset"]
+            cluster_info["db_version"] = self.data["db_version"]
+            cluster_info["ports"] = []
             backup_info = {}
             if self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE.value:
                 # 先查询备份，如果备份不存在则退出
                 # restore_time = datetime.strptime("2023-07-31 17:40:00", "%Y-%m-%d %H:%M:%S")
                 backup_handler = FixPointRollbackHandler(cluster_class.id)
                 restore_time = datetime.now(timezone.utc)
-                backup_info = backup_handler.query_latest_backup_log(restore_time)
+                shard_list = [int(shard_id) for shard_id in cluster_info["my_shards"].keys()]
+                backup_info = backup_handler.query_latest_backup_log(restore_time, shard_list=shard_list)
                 logger.debug(backup_info)
                 if backup_info is None:
                     logger.error("cluster {} backup info not exists".format(cluster_class.id))
                     raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_class.id)))
-            tendb_migrate_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-            cluster_info = get_master_slave_recover_info(
-                cluster_class.id, self.data["old_master_ip"], self.data["old_slave_ip"]
-            )
 
-            cluster_info["charset"] = self.data["charset"]
-            cluster_info["db_version"] = self.data["db_version"]
-            cluster_info["ports"] = []
             for shard_id, shard in cluster_info["my_shards"].items():
                 master = {
                     "ip": self.data["new_master_ip"],

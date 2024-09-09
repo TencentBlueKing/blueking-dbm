@@ -95,7 +95,6 @@ class SwitchRemoteShardRoutingService(BaseService):
 
         # 获取待切换的分片信息，拼接alter node语句
         server_name = res[0]["cmd_results"][1]["table_data"][0]["Server_name"]
-
         # 执行替换节点路由信息
         exec_sql = [
             "set tc_admin=1",
@@ -103,6 +102,7 @@ class SwitchRemoteShardRoutingService(BaseService):
             f"{server_name} OPTIONS(host '{new_ip}', port {new_port}, password '{tdbctl_pass}', user '{TDBCTL_USER}')",
             "TDBCTL FLUSH ROUTING",
         ]
+        self.log_info(str(exec_sql))
         rpc_params["cmds"] = exec_sql
         res = DRSApi.rpc(rpc_params)
         if res[0]["error_msg"]:

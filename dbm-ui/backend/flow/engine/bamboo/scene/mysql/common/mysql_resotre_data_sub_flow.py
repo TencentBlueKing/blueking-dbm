@@ -60,7 +60,7 @@ def mysql_restore_data_sub_flow(
     backup_info = get_local_backup(ins_list, cluster_model)
     if backup_info is None:
         logger.error("cluster {} backup info not exists".format(cluster_model.id))
-        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的备份信息失败".format(cluster_model.id)))
+        raise TendbGetBackupInfoFailedException(message=_("获取集群 {} 的本地备份信息失败".format(cluster_model.id)))
     cluster["backupinfo"] = backup_info
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_model.bk_cloud_id,
