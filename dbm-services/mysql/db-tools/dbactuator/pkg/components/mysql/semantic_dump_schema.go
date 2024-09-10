@@ -185,6 +185,7 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 	}
 	if c.isSpider {
 		dumpOption.GtidPurgedOff = true
+		c.useTmysqldump = false
 	}
 	dumper = &mysqlutil.MySQLDumperTogether{
 		MySQLDumper: mysqlutil.MySQLDumper{
