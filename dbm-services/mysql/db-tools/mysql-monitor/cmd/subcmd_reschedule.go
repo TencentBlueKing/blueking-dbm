@@ -68,7 +68,6 @@ func init() {
 	_ = viper.BindPFlag("reschedule-config", subCmdReschedule.PersistentFlags().Lookup("config"))
 
 	subCmdReschedule.PersistentFlags().StringP("staff", "", "", "staff name")
-	_ = subCmdReschedule.MarkPersistentFlagRequired("staff")
 	_ = viper.BindPFlag("reschedule-staff", subCmdReschedule.PersistentFlags().Lookup("staff"))
 
 	rootCmd.AddCommand(subCmdReschedule)

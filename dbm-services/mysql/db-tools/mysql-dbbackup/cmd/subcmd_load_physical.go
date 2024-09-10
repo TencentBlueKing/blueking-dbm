@@ -42,7 +42,7 @@ var loadPhysicalCmd = &cobra.Command{
 		}
 		err = loadData(cnf, cst.BackupPhysical)
 		if err != nil {
-			logger.Log.Error("Load Dbbackup: Failure")
+			logger.Log.Error("Load Dbbackup: Failure. ", err.Error())
 			return errors.WithMessage(err, "load data physical")
 
 		}

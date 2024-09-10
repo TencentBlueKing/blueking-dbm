@@ -71,7 +71,7 @@ var loadLogicalCmd = &cobra.Command{
 		}
 		err = loadData(cnf, cst.BackupLogical)
 		if err != nil {
-			logger.Log.Error("Load Dbbackup: Failure")
+			logger.Log.Error("Load Dbbackup: Failure. ", err.Error())
 			return errors.WithMessage(err, "load data logical")
 		}
 		return nil

@@ -76,7 +76,6 @@ func init() {
 	_ = viper.BindPFlag("disable-config", subCmdDisableAll.PersistentFlags().Lookup("config"))
 
 	subCmdDisableAll.PersistentFlags().StringP("staff", "", "", "staff name")
-	_ = subCmdDisableAll.MarkPersistentFlagRequired("staff")
 	_ = viper.BindPFlag("disable-staff", subCmdDisableAll.PersistentFlags().Lookup("staff"))
 
 	subCmdDisableAll.PersistentFlags().BoolP("with-db-up", "", false, "also disable db-up")

@@ -116,7 +116,7 @@ var spiderScheduleCmd = &cobra.Command{
 		cnf.Public.BackupId, _ = cmd.Flags().GetString("backup-id")
 		err = spider.ScheduleBackup(&cnf.Public)
 		if err != nil {
-			logger.Log.Error("Spider Schedule: Failure")
+			logger.Log.Error("Spider Schedule: Failure. ", err.Error())
 			return err
 		}
 		return nil
@@ -141,7 +141,7 @@ var spiderCheckCmd = &cobra.Command{
 		}
 		err = spider.RunBackupTasks(publicConfigs)
 		if err != nil {
-			logger.Log.Error("Spider Check: Failure")
+			logger.Log.Error("Spider Check: Failure. ", err.Error())
 			return err
 		}
 		return nil
