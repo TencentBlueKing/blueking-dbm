@@ -10,6 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.decorators import method_decorator
 from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
@@ -102,3 +104,9 @@ class SpiderViewSet(viewsets.ResourceViewSet):
             ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
             ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
         }
+
+    @action(methods=["POST"], detail=False, url_path="get_cluster_primary")
+    def get_cluster_primary(self, request, bk_biz_id: int):
+        """获取集群primary"""
+        cluster_ids = request.data.get("cluster_ids")
+        return Response(self.query_class.get_cluster_primary(cluster_ids))

@@ -134,6 +134,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
             role: [inst.simple_desc for inst in cluster.proxies if inst.tendbclusterspiderext.spider_role == role]
             for role in TenDBClusterSpiderRole.get_values()
         }
+
         remote_db, remote_dr = get_remote_infos(cluster.storages)
         # 计算machine分组
         machine_list = list(set([inst["bk_host_id"] for inst in [*remote_db, *remote_dr]]))
@@ -285,3 +286,8 @@ class ListRetrieveResource(query.ListRetrieveResource):
                 "Error: Instance %s of cluster %s under %s is not exist" % (instance, cluster_id, bk_biz_id)
             )
         return cls._retrieve_instance(instance_details[0], cluster_id)
+
+    @classmethod
+    def get_cluster_primary(cls, cluster_ids: list) -> list:
+        cluster_id__primary_address_map = Cluster.get_cluster_id__primary_address_map(cluster_ids)
+        return [{"cluster_id": k, "primary": v} for k, v in cluster_id__primary_address_map.items()]

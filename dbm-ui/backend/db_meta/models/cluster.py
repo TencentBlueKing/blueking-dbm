@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+import itertools
 import json
 import logging
 from datetime import datetime, timezone
@@ -418,6 +418,61 @@ class Cluster(AuditedModel):
     def enable_dbha(self):
         ClusterDBHAExt.objects.filter(cluster=self).delete()
         self.refresh_from_db()
+
+    @classmethod
+    def get_cluster_id__primary_address_map(cls, cluster_ids: List[int]) -> Dict[int, str]:
+        """
+        通过集群id列表批量
+        查询并返回 tendbcluster 的中控 primary
+        集群类型不是 TenDBCluster 时会抛出异常
+        返回值是 {cluster_id:"ip:port"} 形式的字典
+        """
+        clusters = cls.objects.filter(id__in=cluster_ids).order_by("bk_cloud_id")
+
+        cluster_id__primary_address_map = {}
+        ctl_address__cluster_id_map = {}
+
+        grouped_clusters = itertools.groupby(clusters, key=lambda x: x.bk_cloud_id)
+        for bk_cloud_id, group in grouped_clusters:
+            addresses = []
+            for cluster in group:
+                if cluster.cluster_type != ClusterType.TenDBCluster.value:
+                    logger.error(_("集群id:{} {} 类型集群没有中控节点".format(cluster.id, cluster.cluster_type)))
+                    continue
+
+                spider_instance = cluster.proxyinstance_set.filter(
+                    tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
+                ).first()  # 随便拿一个spider-master接入层
+
+                ctl_address = "{}{}{}".format(spider_instance.machine.ip, IP_PORT_DIVIDER, spider_instance.port + 1000)
+                addresses.append(ctl_address)
+                ctl_address__cluster_id_map[ctl_address] = cluster.id
+
+            logger.info("addresses: {}".format(addresses))
+
+            res = DRSApi.rpc(
+                {
+                    "addresses": addresses,
+                    "cmds": ["tdbctl get primary"],
+                    "force": False,
+                    "bk_cloud_id": bk_cloud_id,
+                }
+            )
+            logger.info("tdbctl get primary res: {}".format(res))
+
+            for item in res:
+                if item["error_msg"]:
+                    logger.error(_("get primary failed: {}".format(item["error_msg"])))
+                    continue
+
+                primary_info_table_data = item["cmd_results"][0]["table_data"]
+                if primary_info_table_data:
+                    cluster_id__primary_address_map[ctl_address__cluster_id_map[item["address"]]] = "{}{}{}".format(
+                        primary_info_table_data[0]["HOST"], IP_PORT_DIVIDER, primary_info_table_data[0]["PORT"]
+                    )
+                else:
+                    cluster_id__primary_address_map[ctl_address__cluster_id_map[item["address"]]] = item["address"]
+        return cluster_id__primary_address_map
 
 
 class ClusterDBHAExt(AuditedModel):
