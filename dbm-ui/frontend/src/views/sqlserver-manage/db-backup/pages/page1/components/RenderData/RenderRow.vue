@@ -30,6 +30,7 @@
       <RenderDbName
         ref="ignoreDbsRef"
         v-model="localIgnoreDbList"
+        :allow-asterisk="false"
         :required="false" />
     </td>
     <td style="padding: 0">

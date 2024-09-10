@@ -43,8 +43,7 @@
       <td style="padding: 0">
         <RenderDbName
           ref="ignoreDbNameRef"
-          check-not-exist
-          :cluster-id="localSrcClusterData?.id"
+          :allow-asterisk="false"
           :model-value="localDbIgnoreName"
           :required="false"
           @change="handleTargerNameChange" />

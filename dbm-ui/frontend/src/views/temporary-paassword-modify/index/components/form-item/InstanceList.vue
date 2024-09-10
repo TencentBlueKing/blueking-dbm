@@ -75,6 +75,19 @@
         },
       },
     ],
+    [ClusterTypes.TENDBHA]: [
+      {
+        id: 'tendbha',
+        name: t('Mysql 主从'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('实例'),
+            field: 'instance_address',
+            role: '',
+          },
+        },
+      }
+    ]
   } as unknown as Record<ClusterTypes, PanelListType>;
 
 
