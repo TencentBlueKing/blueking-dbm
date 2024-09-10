@@ -181,7 +181,7 @@ func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, s
 		},
 	}
 
-	log.Logger.Debugf("update instance detect status param:%#v", updateReq)
+	log.Logger.Debugf("update instance detect status param:%#v", util.GraceStructString(updateReq))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.DbStatusUrl, ""), updateReq, nil)
@@ -218,7 +218,7 @@ func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, s
 		},
 	}
 
-	log.Logger.Debugf("insert instance status param:%v", updateReq)
+	log.Logger.Debugf("insert instance status param:%v", util.GraceStructString(updateReq))
 
 	response, err = c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.DbStatusUrl, ""), insertReq, nil)
@@ -257,7 +257,7 @@ func (c *HaDBClient) ReportHaLog(monIP, app, ip string, port int, module, commen
 		},
 	}
 
-	log.Logger.Debugf("ReportHaLog param:%#v", req)
+	log.Logger.Debugf("ReportHaLog param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaLogsUrl, ""), req, nil)
@@ -305,7 +305,7 @@ func (c *HaDBClient) RegisterDBHAInfo(
 		},
 	}
 
-	log.Logger.Debugf("RegisterDBHAInfo param:%#v", req)
+	log.Logger.Debugf("RegisterDBHAInfo param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -341,7 +341,7 @@ func (c *HaDBClient) GetAliveAgentInfo(cityID int, dbType string, interval int) 
 		},
 	}
 
-	log.Logger.Debugf("GetAliveAgentInfo param:%#v", req)
+	log.Logger.Debugf("GetAliveAgentInfo param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -372,7 +372,7 @@ func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]GMInfo,
 		},
 	}
 
-	log.Logger.Debugf("GetAliveHAInfo param:%#v", req)
+	log.Logger.Debugf("GetAliveHAInfo param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -416,7 +416,7 @@ func (c *HaDBClient) ReporterAgentHeartbeat(agentIP, detectType string, interval
 		},
 	}
 
-	log.Logger.Debugf("ReporterAgentHeartbeat param:%#v", req)
+	log.Logger.Debugf("ReporterAgentHeartbeat param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -453,7 +453,7 @@ func (c *HaDBClient) ReporterGMHeartbeat(gmIP, module string, interval int) erro
 		},
 	}
 
-	log.Logger.Debugf("ReporterGMHeartbeat param:%#v", req)
+	log.Logger.Debugf("ReporterGMHeartbeat param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.HaStatusUrl, ""), req, nil)
@@ -487,7 +487,7 @@ func (c *HaDBClient) QuerySingleTotal(ip string, port int, interval int) (int, e
 		},
 	}
 
-	log.Logger.Debugf("QuerySingleTotal param:%#v", req)
+	log.Logger.Debugf("QuerySingleTotal param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), req, nil)
@@ -520,7 +520,7 @@ func (c *HaDBClient) QueryIntervalTotal(interval int) (int, error) {
 		},
 	}
 
-	log.Logger.Debugf("QueryIntervalTotal param:%#v", req)
+	log.Logger.Debugf("QueryIntervalTotal param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), req, nil)
@@ -555,7 +555,7 @@ func (c *HaDBClient) QuerySingleIDC(ip string, idc int) (int, error) {
 		},
 	}
 
-	log.Logger.Debugf("QuerySingleIDC param:%#v", req)
+	log.Logger.Debugf("QuerySingleIDC param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), req, nil)
@@ -589,7 +589,7 @@ func (c *HaDBClient) UpdateTimeDelay(ip string, port int, app string) error {
 		},
 	}
 
-	log.Logger.Debugf("UpadteTimeDelay param:%#v", req)
+	log.Logger.Debugf("UpadteTimeDelay param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost, c.SpliceUrl(constvar.UpdateTimeDelay, ""), req, nil)
 	if err != nil {
@@ -602,9 +602,6 @@ func (c *HaDBClient) UpdateTimeDelay(ip string, port int, app string) error {
 	if err != nil {
 		return err
 	}
-	// if result.RowsNum != 1 {
-	// 	log.Logger.Fatalf("bug: ReporterAgentHeartbeat affect rows %d", result.RowsNum)
-	// }
 	return nil
 }
 
@@ -612,7 +609,7 @@ func (c *HaDBClient) UpdateTimeDelay(ip string, port int, app string) error {
 func (c *HaDBClient) InsertSwitchQueue(reqInfo *SwitchQueueRequest) (uint, error) {
 	var result SwitchQueueResponse
 
-	log.Logger.Debugf("InsertSwitchQueue param:%#v", reqInfo)
+	log.Logger.Debugf("InsertSwitchQueue param:%#v", util.GraceStructString(reqInfo))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), reqInfo, nil)
@@ -663,7 +660,7 @@ func (c *HaDBClient) QuerySlaveCheckConfig(ip string, port int, app string) (int
 func (c *HaDBClient) UpdateSwitchQueue(reqInfo *SwitchQueueRequest) error {
 	var result SwitchQueueResponse
 
-	log.Logger.Debugf("UpdateSwitchQueue param:%#v", reqInfo)
+	log.Logger.Debugf("UpdateSwitchQueue param:%#v", util.GraceStructString(reqInfo))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchQueueUrl, ""), reqInfo, nil)
@@ -700,7 +697,7 @@ func (c *HaDBClient) InsertSwitchLog(swId uint, ip string, port int, app, result
 		},
 	}
 
-	log.Logger.Debugf("InsertSwitchLog param:%#v", req)
+	log.Logger.Debugf("InsertSwitchLog param:%#v", util.GraceStructString(req))
 
 	response, err := c.DoNew(http.MethodPost,
 		c.SpliceUrlByPrefix(c.Conf.UrlPre, constvar.SwitchLogUrl, ""), req, nil)
