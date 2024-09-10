@@ -177,6 +177,12 @@ class StorageInstance(InstanceMixin, AuditedModel):
         address_filters = reduce(operator.or_, [Q(machine__ip=address) for address in addresses])
         return cls.objects.select_related("machine").filter(address_filters)
 
+    @property
+    def simple_desc(self):
+        desc = super().simple_desc
+        desc["is_stand_by"] = self.is_stand_by
+        return desc
+
 
 class ProxyInstance(InstanceMixin, AuditedModel):
     version = models.CharField(max_length=64, default="", help_text=_("版本号"), blank=True, null=True)
