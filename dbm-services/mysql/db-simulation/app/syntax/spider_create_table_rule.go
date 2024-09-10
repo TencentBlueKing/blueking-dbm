@@ -88,7 +88,7 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 		switch {
 		case hasPk:
 			return
-		case len(uks) > 1:
+		case len(uks) >= 1:
 			return
 		case len(keys) > 1:
 			// 如果没有唯一索引，如果包含多个普通索引，则必须指定shard_key,否则需要报错
@@ -107,7 +107,7 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 				r.Trigger(SR.SpiderCreateTableRule.NoPubColAtMultUniqueIndex, shardKeyCol)
 				return
 			}
-		//  如果存在 一个或者多个唯一索引(包含主键)
+		// 如果存在 一个或者多个唯一索引(包含主键)
 		case len(uks) > 1:
 			// shard_key只能是其中的共同部分；否则无法建表；
 			if !slices.Contains(pubCols, shardKeyCol) {
@@ -115,8 +115,8 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 				return
 			}
 		// 如果只存在多个普通索引，shard_key只能是其中任意一个的一部分
-		case len(uks) < 1 && len(uks) > 1:
-			if !c.shardKeyExistInKeys(shardKeyCol, uks) {
+		case len(uks) < 1 && len(keys) > 1:
+			if !c.shardKeyExistInKeys(shardKeyCol, keys) {
 				r.Trigger(SR.SpiderCreateTableRule.MustSpecialShardKeyOnlyHaveCommonIndex, shardKeyCol)
 				return
 			}
