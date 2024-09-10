@@ -11,9 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { MachineTypes } from '@common/const';
-
-import { t } from '@locales/index';
+import { clusterTypeInfos, ClusterTypes, MachineTypes } from '@common/const';
 
 export default class Summary {
   dedicated_biz: number;
@@ -21,6 +19,7 @@ export default class Summary {
   city: string;
   spec_id?: number;
   spec_name?: string;
+  spec_cluster_type?: ClusterTypes;
   spec_machine_type?: MachineTypes;
   device_class?: string;
   disk_summary?: string;
@@ -34,6 +33,7 @@ export default class Summary {
     this.city = payload.city;
     this.spec_id = payload.spec_id;
     this.spec_name = payload.spec_name;
+    this.spec_cluster_type = payload.spec_cluster_type;
     this.spec_machine_type = payload.spec_machine_type;
     this.device_class = payload.device_class;
     this.disk_summary = payload.disk_summary;
@@ -46,38 +46,13 @@ export default class Summary {
     return `${this.device_class} (${this.disk_summary})`;
   }
 
-  get spec_machine_display() {
-    const machineTypeMap: Record<MachineTypes, string> = {
-      [MachineTypes.SINGLE]: t('后端存储机型'),
-      [MachineTypes.SPIDER]: t('接入层Master'),
-      [MachineTypes.REMOTE]: t('后端存储规格'),
-      [MachineTypes.PROXY]: t('Proxy机型'),
-      [MachineTypes.BACKEND]: t('后端存储机型'),
-      [MachineTypes.PREDIXY]: t('Proxy机型'),
-      [MachineTypes.TWEMPROXY]: t('Proxy机型'),
-      [MachineTypes.INFLUXDB]: t('后端存储机型'),
-      [MachineTypes.RIAK]: t('后端存储机型'),
-      [MachineTypes.BROKER]: t('Broker节点规格'),
-      [MachineTypes.ZOOKEEPER]: t('Zookeeper节点规格'),
-      [MachineTypes.REDIS]: t('后端存储机型'),
-      [MachineTypes.TENDISCACHE]: t('后端存储机型'),
-      [MachineTypes.TENDISSSD]: t('后端存储机型'),
-      [MachineTypes.TENDISPLUS]: t('后端存储机型'),
-      [MachineTypes.ES_DATANODE]: t('冷_热节点规格'),
-      [MachineTypes.ES_MASTER]: t('Master节点规格'),
-      [MachineTypes.ES_CLIENT]: t('Client节点规格'),
-      [MachineTypes.HDFS_MASTER]: t('NameNode_Zookeeper_JournalNode节点规格'),
-      [MachineTypes.HDFS_DATANODE]: t('DataNode节点规格'),
-      [MachineTypes.MONGOS]: t('Mongos规格'),
-      [MachineTypes.MONGODB]: t('ShardSvr规格'),
-      [MachineTypes.MONGO_CONFIG]: t('ConfigSvr规格'),
-      [MachineTypes.SQLSERVER_HA]: t('后端存储机型'),
-      [MachineTypes.SQLSERVER_SINGLE]: t('后端存储机型'),
-      [MachineTypes.PULSAR_BROKER]: t('Broker节点规格'),
-      [MachineTypes.PULSAR_BOOKKEEPER]: t('Bookkeeper节点规格'),
-      [MachineTypes.PULSAR_ZOOKEEPER]: t('Zookeeper节点规格'),
-    };
-    return this.spec_machine_type ? machineTypeMap[this.spec_machine_type] : '';
+  get spec_type_display() {
+    if (!this.spec_cluster_type || !this.spec_machine_type) {
+      return '--';
+    }
+    const { name, machineList } = clusterTypeInfos[this.spec_cluster_type];
+    const matchMachine = machineList.find(({ id }) => id === this.spec_machine_type);
+    return matchMachine ? `${name} - ${matchMachine.name}` : '--';
   }
 
   get sub_zone_detail_display() {

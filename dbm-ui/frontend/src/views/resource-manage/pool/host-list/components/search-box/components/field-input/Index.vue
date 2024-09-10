@@ -195,9 +195,6 @@
   const handleChange = (name: string, value: any) => {
     const result = { ...localValueMemo.value };
     result[name] = value;
-
-    console.log(result[name], 'result[name]');
-
     localValueMemo.value = result;
     // 搜索项改变立即搜索
     handleSubmit();

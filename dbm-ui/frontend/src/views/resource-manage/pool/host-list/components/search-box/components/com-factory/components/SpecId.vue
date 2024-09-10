@@ -22,10 +22,10 @@
         style="width: 150px"
         @change="handleCluserChange">
         <BkOption
-          v-for="(item, index) in clusterList"
-          :key="`${item}#${index}`"
-          :label="item.label"
-          :value="item.name" />
+          v-for="item in Object.values(clusterTypeInfos)"
+          :key="item.id"
+          :label="item.name"
+          :value="item.id" />
       </BkSelect>
       <BkSelect
         :key="currentCluster"
@@ -37,9 +37,9 @@
         style="width: 150px">
         <BkOption
           v-for="item in clusterMachineList"
-          :key="item.label"
-          :label="item.label"
-          :value="item.name" />
+          :key="item.id"
+          :label="item.name"
+          :value="item.id" />
       </BkSelect>
       <BkSelect
         :key="currentMachine"
@@ -47,7 +47,7 @@
         filterable
         :input-search="false"
         :loading="isResourceSpecListLoading"
-        :model-value="defaultValue || undefined"
+        :model-value="defaultValue"
         :placeholder="t('请选择匹配规格')"
         @change="handleChange">
         <BkOption
@@ -60,14 +60,13 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
   import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getResourceSpec, getResourceSpecList } from '@services/source/dbresourceSpec';
 
-  import { ClusterTypes } from '@common/const';
+  import { type ClusterTypeInfoItem, clusterTypeInfos, ClusterTypes } from '@common/const';
 
   interface Props {
     defaultValue?: number;
@@ -89,220 +88,23 @@
 
   const { t } = useI18n();
 
-  const clusterList = [
-    {
-      moduleId: 'mysql',
-      label: t('MySQL单节点'),
-      name: ClusterTypes.TENDBSINGLE,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: 'single',
-        },
-      ],
-    },
-    {
-      moduleId: 'mysql',
-      label: t('MySQL主从'),
-      name: ClusterTypes.TENDBHA,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: 'backend',
-        },
-        {
-          label: t('Proxy机型'),
-          name: 'proxy',
-        },
-      ],
-    },
-    {
-      moduleId: 'redis',
-      label: 'TendisCache',
-      name: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: 'tendiscache',
-        },
-        {
-          label: t('Proxy机型'),
-          name: 'twemproxy',
-        },
-      ],
-    },
-    {
-      moduleId: 'redis',
-      label: 'TendisSSD',
-      name: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: 'tendisssd',
-        },
-        {
-          label: t('Proxy机型'),
-          name: 'twemproxy',
-        },
-      ],
-    },
-    {
-      moduleId: 'redis',
-      label: 'Tendisplus',
-      name: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: 'tendisplus',
-        },
-        {
-          label: t('Proxy机型'),
-          name: 'predixy',
-        },
-      ],
-    },
-    {
-      moduleId: 'redis',
-      label: 'RedisCluster',
-      name: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: 'tendiscache',
-        },
-        {
-          label: t('Proxy机型'),
-          name: 'predixy',
-        },
-      ],
-    },
-    {
-      moduleId: 'redis',
-      label: t('Redis主从'),
-      name: ClusterTypes.REDIS_INSTANCE,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: 'tendiscache',
-        },
-      ],
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'ES',
-      name: ClusterTypes.ES,
-      children: [
-        {
-          label: t('Master节点规格'),
-          name: 'es_master',
-        },
-        {
-          label: t('Client节点规格'),
-          name: 'es_client',
-        },
-        {
-          label: t('冷_热节点规格'),
-          name: 'es_datanode',
-        },
-      ],
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'HDFS',
-      name: ClusterTypes.HDFS,
-      children: [
-        {
-          label: t('DataNode节点规格'),
-          name: 'hdfs_datanode',
-        },
-        {
-          label: t('NameNode_Zookeeper_JournalNode节点规格'),
-          name: 'hdfs_master',
-        },
-      ],
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'Kafka',
-      name: ClusterTypes.KAFKA,
-      children: [
-        {
-          label: t('Zookeeper节点规格'),
-          name: 'zookeeper',
-        },
-        {
-          label: t('Broker节点规格'),
-          name: 'broker',
-        },
-      ],
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'InfluxDB',
-      name: ClusterTypes.INFLUXDB,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: 'influxdb',
-        },
-      ],
-    },
-    {
-      moduleId: 'bigdata',
-      label: 'Pulsar',
-      name: ClusterTypes.PULSAR,
-      children: [
-        {
-          label: t('Bookkeeper节点规格'),
-          name: 'pulsar_bookkeeper',
-        },
-        {
-          label: t('Zookeeper节点规格'),
-          name: 'pulsar_zookeeper',
-        },
-        {
-          label: t('Broker节点规格'),
-          name: 'pulsar_broker',
-        },
-      ],
-    },
-    {
-      moduleId: 'mysql',
-      label: 'TenDBCluster',
-      name: ClusterTypes.TENDBCLUSTER,
-      children: [
-        {
-          label: t('接入层Master'),
-          name: 'spider',
-        },
-        {
-          label: t('后端存储规格'),
-          name: 'remote',
-        },
-      ],
-    },
-  ];
-
   // 临时修复 bk-select 无法重置的问题
   const rerenderKey = ref(0);
 
   const currentCluster = ref('');
   const currentMachine = ref('');
-  const clusterMachineList = ref<Record<'label' | 'name', string>[]>([]);
+  const clusterMachineList = shallowRef<ClusterTypeInfoItem['machineList']>([]);
 
   const { loading: isResourceSpecLoading, run: fetchResourceSpecDetail } = useRequest(getResourceSpec, {
     manual: true,
     onSuccess(data) {
-      currentCluster.value = data.spec_cluster_type;
-
-      const clusterData = _.find(clusterList, (item) => item.name === currentCluster.value);
-      if (!clusterData) {
-        return;
-      }
-      currentMachine.value = data.spec_machine_type;
-      clusterMachineList.value = clusterData.children;
+      const { spec_cluster_type: clusterType, spec_machine_type: machineType } = data;
+      currentCluster.value = clusterType;
+      currentMachine.value = machineType;
+      clusterMachineList.value = clusterTypeInfos[clusterType]?.machineList || [];
     },
   });
+
   const {
     loading: isResourceSpecListLoading,
     data: resourceSpecList,
@@ -344,16 +146,10 @@
     },
   );
 
-  const handleCluserChange = () => {
-    const clusterData = _.find(clusterList, (item) => item.name === currentCluster.value);
-    defaultValue.value = 0;
+  const handleCluserChange = (value: ClusterTypes) => {
+    clusterMachineList.value = clusterTypeInfos[value]?.machineList || [];
     currentMachine.value = '';
-    if (!clusterData) {
-      clusterMachineList.value = [];
-      return;
-    }
-    currentMachine.value = clusterData.children[0].name;
-    clusterMachineList.value = clusterData.children;
+    defaultValue.value = '';
   };
 
   const handleChange = (value: Props['defaultValue']) => {

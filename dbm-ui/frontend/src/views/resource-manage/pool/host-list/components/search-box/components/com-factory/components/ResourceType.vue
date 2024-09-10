@@ -21,10 +21,6 @@
     show-selected-icon
     @change="handleChange">
     <BkOption
-      key="empty"
-      :label="t('无限制')"
-      value="all" />
-    <BkOption
       v-for="item in dbTypeList"
       :key="item.id"
       :label="item.name"

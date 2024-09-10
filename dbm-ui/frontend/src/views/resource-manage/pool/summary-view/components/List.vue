@@ -14,7 +14,6 @@
         @change="handleChangeDimension" />
       <Export
         :data="tableData"
-        :db-type="currentDbType"
         :dimension="currentDimension" />
     </div>
     <BkLoading :loading="loading">
@@ -26,18 +25,15 @@
         <BkTableColumn
           :label="t('专用业务')"
           prop="for_biz_name"
-          :width="100" />
+          :width="150" />
         <BkTableColumn
           :label="t('地域')"
-          prop="city" />
+          prop="city"
+          :width="150" />
         <BkTableColumn
           v-if="isSpec"
           :label="t('规格类型')"
-          prop="spec_machine_display">
-          <template #default="{ row }">
-            {{ row.spec_machine_display ? `${DBTypeInfos[currentDbType].name} - ${row.spec_machine_display}` : '--' }}
-          </template>
-        </BkTableColumn>
+          prop="spec_type_display" />
         <BkTableColumn
           v-if="isSpec"
           :label="t('规格')"
@@ -91,7 +87,7 @@
   import type SummaryModel from '@services/model/db-resource/summary';
   import { getSummaryList } from '@services/source/dbresourceResource';
 
-  import { DBTypeInfos, DBTypes } from '@common/const';
+  import { DBTypes } from '@common/const';
 
   import DimensionSelect from './DimensionSelect.vue';
   import Export from './Export.vue';
@@ -102,7 +98,7 @@
 
   const searchRef = ref<InstanceType<typeof SearchBox>>();
   const currentDbType = ref(DBTypes.MYSQL);
-  const currentDimension = ref('spec');
+  const currentDimension = ref<'spec' | 'device_class'>('spec');
   const isSpec = computed(() => currentDimension.value === 'spec');
 
   const {
@@ -127,7 +123,7 @@
   };
 
   const handleChangeDimension = (value: string) => {
-    currentDimension.value = value;
+    currentDimension.value = value as 'spec' | 'device_class';
     fetchListData();
   };
 

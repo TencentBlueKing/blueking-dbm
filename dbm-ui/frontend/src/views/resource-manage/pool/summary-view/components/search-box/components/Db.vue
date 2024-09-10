@@ -4,14 +4,18 @@
     :clearable="false"
     @change="handleChange">
     <BkOption
-      v-for="dbType in DBTypes"
-      :key="dbType"
-      :label="dbType"
-      :value="dbType" />
+      v-for="item in dbTypeList"
+      :key="item.id"
+      :label="item.name"
+      :value="item.id" />
   </BkSelect>
 </template>
 
 <script setup lang="ts">
+  import { useRequest } from 'vue-request';
+
+  import { fetchDbTypeList } from '@services/source/infras';
+
   import { DBTypes } from '@common/const';
 
   interface Emits {
@@ -30,6 +34,8 @@
     required: true,
     default: DBTypes.MYSQL,
   });
+
+  const { data: dbTypeList } = useRequest(fetchDbTypeList);
 
   const handleChange = (value: DBTypes) => {
     emits('change', value);

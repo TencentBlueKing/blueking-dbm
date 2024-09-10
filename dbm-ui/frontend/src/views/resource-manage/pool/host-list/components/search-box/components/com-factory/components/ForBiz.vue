@@ -21,10 +21,6 @@
     show-selected-icon
     @change="handleChange">
     <BkOption
-      key="empty"
-      :label="t('无限制')"
-      :value="0" />
-    <BkOption
       v-for="bizItem in bizList"
       :key="bizItem.bk_biz_id"
       :label="bizItem.display_name"
