@@ -125,7 +125,7 @@ class MediumHandler:
             for file in files:
                 if "?" in file:
                     continue
-                if os.getenv("RUN_VER") == "ieod" and "dbbackup-go" in file:
+                if os.getenv("RUN_VER") == "ieod" and "dbbackup-go-txsql" in file:
                     # 内部版本不自动上传 dbbackup
                     continue
 
