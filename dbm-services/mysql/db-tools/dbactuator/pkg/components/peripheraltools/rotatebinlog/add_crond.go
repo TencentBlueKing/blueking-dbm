@@ -1,9 +1,10 @@
 package rotatebinlog
 
 import (
+	"fmt"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
 )
 
 func (c *MySQLRotateBinlogComp) AddCrond() (err error) {
@@ -12,9 +13,7 @@ func (c *MySQLRotateBinlogComp) AddCrond() (err error) {
 		logger.Error("remove old rotate_logbin crontab failed: %s", err.Error())
 		return err
 	}
-	scheduleCmd := fmt.Sprintf("%s -c %s --addSchedule 2>/dev/null && chown -R mysql.mysql %s",
-		c.binPath, c.configFile, c.installPath) // TODO REMOVE
-	scheduleCmd = fmt.Sprintf("%s -c %s crond --add 2>/dev/null && chown -R mysql.mysql %s",
+	scheduleCmd := fmt.Sprintf("%s -c %s crond --add 2>/dev/null && chown -R mysql.mysql %s",
 		c.binPath, c.configFile, c.installPath)
 	str, err := osutil.ExecShellCommand(false, scheduleCmd)
 	if err != nil {
