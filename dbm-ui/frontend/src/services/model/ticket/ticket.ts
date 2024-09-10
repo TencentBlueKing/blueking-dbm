@@ -23,6 +23,7 @@ import type { DetailBase } from './details/common';
 export type * as Mysql from './details/mysql';
 export type * as Redis from './details/redis';
 export type * as Sqlserver from './details/sqlserver';
+export type * as TendbCluster from './details/tendbCluster';
 
 export default class Ticket<T extends unknown | DetailBase> {
   static themeMap = {

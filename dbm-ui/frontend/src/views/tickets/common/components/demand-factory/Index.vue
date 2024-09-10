@@ -139,6 +139,14 @@
     eager: true,
   });
 
+  const mysqlDetailModule = import.meta.glob<{ default: () => RouteRecordRaw[] }>('./mysql_/*.vue', {
+    eager: true,
+  });
+
+  const tendbClusterDetailModule = import.meta.glob<{ default: () => RouteRecordRaw[] }>('./tendbCluster/*.vue', {
+    eager: true,
+  });
+
   const mysqlTicketType = [TicketTypes.MYSQL_AUTHORIZE_RULES, TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES];
 
   const mysqlTruncateDataTypes = [TicketTypes.MYSQL_HA_TRUNCATE_DATA, TicketTypes.MYSQL_SINGLE_TRUNCATE_DATA];
@@ -374,6 +382,24 @@
 
     if (renderModule) {
       return renderModule.default;
+    }
+
+    const renderMysqlModule = _.find(
+      Object.values(mysqlDetailModule),
+      (moduleItem) => moduleItem.default.name === ticketType,
+    );
+
+    if (renderMysqlModule) {
+      return renderMysqlModule.default;
+    }
+
+    const renderTendbClusterModule = _.find(
+      Object.values(tendbClusterDetailModule),
+      (moduleItem) => moduleItem.default.name === ticketType,
+    );
+
+    if (renderTendbClusterModule) {
+      return renderTendbClusterModule.default;
     }
 
     // M权限克隆
