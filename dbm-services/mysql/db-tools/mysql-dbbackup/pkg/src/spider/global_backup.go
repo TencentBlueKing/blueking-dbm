@@ -106,12 +106,7 @@ func (e GlobalBackupList) Swap(i, j int) {
 	e[i], e[j] = e[j], e[i]
 }
 
-func buildSchema(db *sqlx.DB) string {
-	isSpider, _, err := mysqlconn.IsSpiderNode(db.DB)
-	if err != nil {
-		logger.Log.Error("buildSchema IsSpiderNode", err)
-		return ""
-	}
+func buildSchema(isSpider bool, db *sqlx.DB) string {
 	if isSpider {
 		s := MysqlServer{}
 		parts, err := s.GetMysqlServers(db)
@@ -165,24 +160,38 @@ CREATE TABLE IF NOT EXISTS %s.global_backup (
 }
 
 func migrateBackupSchema(err error, db *sqlx.DB) error {
-	backupSchema := buildSchema(db)
+	mysqlErr := cmutil.NewMySQLError(err).Code
+	isSpider, isTdbctl, err2 := mysqlconn.IsSpiderNode(db.DB)
+	if err2 != nil {
+		logger.Log.Error("buildSchema IsSpiderNode", err2)
+		return err2
+	}
+	backupSchema := buildSchema(isSpider, db)
 	if backupSchema == "" {
 		return errors.New("wrong backupSchema")
 	}
 	var sqlList []string
-	if strings.Contains(backupSchema, "PARTITION pt") { // spider node
+	if isSpider { // strings.Contains(backupSchema, "PARTITION pt")
 		sqlList = append(sqlList, "set session ddl_execute_by_ctl=OFF;")
 	}
-	if cmutil.NewMySQLError(err).Code == 1146 {
+	if isTdbctl {
+		sqlList = append(sqlList, "set session tc_admin=0;")
+	}
+	if mysqlErr == 1146 {
 		sqlList = append(sqlList, backupSchema)
-	} else if cmutil.NewMySQLError(err).Code == 1054 {
+	} else if mysqlErr == 1054 || mysqlErr == 1049 {
 		dropSchema := fmt.Sprintf(`DROP TABLE IF EXISTS %s.global_backup;`, cst.INFODBA_SCHEMA)
 		sqlList = append(sqlList, dropSchema)
 		sqlList = append(sqlList, backupSchema)
+	} else {
+		logger.Log.Error("migrateBackupSchema with err code:", mysqlErr, err.Error())
 	}
 	logger.Log.Infof("init global_backup: %v", sqlList)
 	for _, sqlStr := range sqlList {
 		if _, err = db.Exec(sqlStr); err != nil {
+			if strings.Contains(sqlStr, "ddl_execute_by_ctl") { // 忽略错误
+				continue
+			}
 			return errors.WithMessage(err, "recreate backupSchema failed")
 		}
 	}

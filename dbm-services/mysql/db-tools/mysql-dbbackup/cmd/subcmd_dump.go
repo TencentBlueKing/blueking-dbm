@@ -82,6 +82,7 @@ var dumpCmd = &cobra.Command{
 			cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", cst.DbbackupGoInstallPath)
 		}()
 		if err = dumpExecute(cmd, args); err != nil {
+			logger.Log.Error("dumpbackup failed", err.Error())
 			manager := ma.NewManager(cst.MysqlCrondUrl)
 			body := struct {
 				Name      string

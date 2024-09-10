@@ -19,6 +19,10 @@ var mysqlErrors = map[int]MySQLError{
 		Code:     1146,
 		Message:  "Table doesn't exists",
 		regexStr: regexp.MustCompile(`ERROR 1146 .*: Table '(.+)' doesn't exist`)},
+	1049: {
+		Code:     1049,
+		Message:  "Unknown database",
+		regexStr: regexp.MustCompile(`ERROR 1049 .*: Unknown database '(.+)'`)},
 	1054: {
 		Code:     1054,
 		Message:  "Unknown column",

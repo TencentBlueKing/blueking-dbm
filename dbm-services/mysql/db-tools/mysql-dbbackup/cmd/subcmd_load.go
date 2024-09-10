@@ -50,7 +50,7 @@ var loadCmd = &cobra.Command{
 		}
 		err = loadData(cnf, "")
 		if err != nil {
-			logger.Log.Error("Load Dbbackup: Failed")
+			logger.Log.Error("Load Dbbackup: Failed. ", err.Error())
 			return errors.WithMessage(err, "load data")
 		}
 		return nil
