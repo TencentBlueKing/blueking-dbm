@@ -20,11 +20,6 @@
         @input-finish="handleOriginProxyInputFinish" />
     </FixedColumn>
     <td style="padding: 0">
-      <RenderRelatedClusters
-        ref="relatedClustersRef"
-        :list="localRelatedClusters" />
-    </td>
-    <td style="padding: 0">
       <RenderTargetProxy
         ref="originRef"
         :cloud-id="data.originProxy?.bk_cloud_id ?? null"
@@ -102,7 +97,6 @@
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderOriginalProxy from './RenderOriginalProxy.vue';
-  import RenderRelatedClusters from './RenderRelatedClusters.vue';
   import RenderTargetProxy from './RenderTargetProxy.vue';
 
   interface Props {
