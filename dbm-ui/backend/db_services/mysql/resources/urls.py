@@ -14,7 +14,7 @@ from rest_framework.routers import DefaultRouter
 from .tendbcluster.views import SpiderViewSet
 from .tendbha.views import DBHAViewSet
 from .tendbsingle.views import DBSingleViewSet
-from .views import ListResourceViewSet, ResourceTreeViewSet
+from .views import ListResourceViewSet, ResourceTreeViewSet, TendbResourceViewSet
 
 router = DefaultRouter(trailing_slash=True)
 
@@ -26,6 +26,7 @@ urlpatterns = [
     # 提供资源(集群)通用属性的查询, 如集群名, 集群创建者等
     path("resources/", ListResourceViewSet.as_view({"get": "list"})),
     path("resource_tree/", ResourceTreeViewSet.as_view({"get": "get_resource_tree"})),
+    path("tendb_resource/", TendbResourceViewSet.as_view({"get": "get_tendb_resource"})),
 ]
 
 urlpatterns += router.urls
