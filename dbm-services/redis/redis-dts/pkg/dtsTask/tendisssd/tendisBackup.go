@@ -21,7 +21,7 @@ import (
 
 // TendisBackupTask src tendisssd备份task
 type TendisBackupTask struct {
-	dtsTask.FatherTask
+	dtsTask.TendisDtsFatherTask
 	srcClient *myredis.RedisWorker `json:"-"`
 	dstClient *myredis.RedisWorker `json:"-"`
 }
@@ -39,7 +39,7 @@ func (task *TendisBackupTask) NextTask() string {
 // NewTendisBackupTask 新建一个src tendisssd备份拉取task
 func NewTendisBackupTask(row *tendisdb.TbTendisDTSTask) *TendisBackupTask {
 	return &TendisBackupTask{
-		FatherTask: dtsTask.NewFatherTask(row),
+		TendisDtsFatherTask: dtsTask.NewDtsFatherTask(row),
 	}
 }
 
@@ -54,7 +54,7 @@ func (task *TendisBackupTask) Init() {
 			task.UpdateDbAndLogLocal(task.Err.Error())
 		}
 	}()
-	task.FatherTask.Init()
+	task.TendisDtsFatherTask.Init()
 	if task.Err != nil {
 		return
 	}

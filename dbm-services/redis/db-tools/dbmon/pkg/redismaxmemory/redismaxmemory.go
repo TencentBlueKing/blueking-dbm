@@ -260,6 +260,10 @@ func (job *Job) SetEventSender() {
 		job.Conf.BeatPath,
 		job.Conf.AgentAddress,
 	)
+	if job.Err != nil {
+		mylog.Logger.Error(fmt.Sprintf("set event sender fail,err:%v", job.Err))
+		return
+	}
 	if len(job.Conf.Servers) == 0 {
 		return
 	}
@@ -535,25 +539,25 @@ func (job *Job) ConcurrentlyConfigSetMaxmemory() {
 var resourceSpecOsMem = map[string]int64{
 	"2g_min":     consts.GiByte * 3 / 2,
 	"2g_max":     consts.GiByte * 2,
-	"2g_avail":   consts.GiByte * 2 * 6 / 10,
+	"2g_avail":   consts.GiByte * 2 * 5 / 10, // 1GB可用
 	"4g_min":     consts.GiByte * 7 / 2,
 	"4g_max":     consts.GiByte * 4,
-	"4g_avail":   consts.GiByte * 4 * 6 / 10,
+	"4g_avail":   consts.GiByte * 4 * 5 / 10, // 2GB可用
 	"8g_min":     consts.GiByte * 15 / 2,
 	"8g_max":     consts.GiByte * 8,
-	"8g_avail":   consts.GiByte * 8 * 8 / 10,
+	"8g_avail":   consts.GiByte * 8 * 75 / 100, // 6GB可用
 	"16g_min":    consts.GiByte * 15,
 	"16g_max":    consts.GiByte * 16,
-	"16g_avail":  consts.GiByte * 16 * 85 / 100,
+	"16g_avail":  consts.GiByte * 16 * 85 / 100, // 13.6GB可用
 	"32g_min":    consts.GiByte * 30,
 	"32g_max":    consts.GiByte * 32,
-	"32g_avail":  consts.GiByte * 32 * 85 / 100,
+	"32g_avail":  consts.GiByte * 32 * 85 / 100, // 27.2GB可用
 	"64g_min":    consts.GiByte * 61,
 	"64g_max":    consts.GiByte * 64,
-	"64g_avail":  consts.GiByte * 64 * 9 / 10,
+	"64g_avail":  consts.GiByte * 64 * 9 / 10, // 57.6GB可用
 	"128g_min":   consts.GiByte * 125,
 	"128g_max":   consts.GiByte * 128,
-	"128g_avail": consts.GiByte * 128 * 9 / 10,
+	"128g_avail": consts.GiByte * 128 * 9 / 10, // 115.2GB可用
 }
 
 // GetLocalHostAvailMemory TODO

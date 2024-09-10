@@ -46,9 +46,12 @@ from backend.flow.consts import (
     ConfigTypeEnum,
     MediumEnum,
     RedisCapacityUpdateType,
+    RedisRole,
 )
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_cluster_nodes import decode_cluster_nodes
 from backend.flow.utils.redis.redis_util import version_ge
+from backend.utils.string import base64_encode
 
 logger = logging.getLogger("flow")
 
@@ -1107,3 +1110,56 @@ def async_multi_clusters_precheck(cluster_ids: List[int]):
             await asyncio.gather(*tasks)
 
     return asyncio.run(async_handler(cluster_ids))
+
+
+def lightning_cluster_nodes(cluster_id: int) -> list:
+    """
+    解析redis 'cluster nodes'命令返回的信息
+    return:
+    [
+    {"master_addr":"a.a.a.a:30000","slave_addr":"b.b.b.b:30000","slots":"0-4095","redis_password":"xxxx"}
+    {"master_addr":"c.c.c.c:30000","slave_addr":"d.d.d.d:30000","slots":"4096-8191","redis_password":"xxxx"}
+    ]
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    one_master = cluster.storageinstance_set.filter(
+        instance_role=InstanceRole.REDIS_MASTER.value, status=InstanceStatus.RUNNING
+    ).first()
+    passwd_ret = PayloadHandler.redis_get_cluster_password(cluster)
+    master_addrs = ["{}:{}".format(one_master.machine.ip, one_master.port)]
+    resp = DRSApi.redis_rpc(
+        {
+            "addresses": master_addrs,
+            "db_num": 0,
+            "password": passwd_ret.get("redis_password"),
+            "command": "cluster nodes",
+            "bk_cloud_id": cluster.bk_cloud_id,
+        }
+    )
+    if len(resp) == 0 or (not resp[0]["result"]):
+        raise Exception(_("redis集群 {} master {} cluster nodes 命令执行失败").format(cluster.immute_domain, master_addrs))
+    cluster_nodes_raw_data = resp[0]["result"]
+    node_ret = decode_cluster_nodes(cluster_nodes_raw_data)
+    node_list = node_ret[0]
+    id_nodemap = {node.node_id: node for node in node_list}
+    master_to_item = {}
+    redis_password_encode = base64_encode(passwd_ret.get("redis_password"))
+    for node in node_list:
+        if node.get_role() == RedisRole.SLAVE.value and node.is_running():
+            master_id = node.master_id
+            master_node = id_nodemap.get(master_id)
+            master_to_item[master_node.addr] = {
+                "master_addr": master_node.addr,
+                "slave_addr": node.addr,
+                "slots": master_node.slot_src_str,
+                "redis_password_encode": redis_password_encode,
+            }
+    masters_with_slots = []
+    for node in node_list:
+        if node.get_role() == RedisRole.MASTER.value and node.slot_cnt > 0:
+            masters_with_slots.append(node)
+    for master in masters_with_slots:
+        master_addr = master.addr
+        if master_addr not in master_to_item:
+            raise Exception(_("redis集群 {} master {} 没有对应running的slave节点").format(cluster.immute_domain, master_addr))
+    return list(master_to_item.values())

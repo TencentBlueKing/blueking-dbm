@@ -2176,3 +2176,60 @@ func (db *RedisClient) TailRedisLogFile(tailNLine int) (data string, err error) 
 	}
 	return string(dataBytes), nil
 }
+
+// IsReshapeRunning 判断tendisplus/tendisssd是否正在执行reshape
+func (db *RedisClient) IsReshapeRunning() (ret bool, err error) {
+	compactInfo, err := db.Info("Compaction")
+	if err != nil {
+		return false, err
+	}
+	running := compactInfo["current-compaction-status"]
+	if running == "running" {
+		return true, nil
+	}
+	return false, nil
+}
+
+// WaitTendisReshapeDone 等待tendisplus/tendisssd reshape完成
+func (db *RedisClient) WaitTendisReshapeDone() (err error) {
+	var msg string
+	count := 0
+	for {
+		isReshaping, err := db.IsReshapeRunning()
+		if err != nil {
+			return err
+		}
+		if !isReshaping {
+			msg = fmt.Sprintf("redis:%s reshape done", db.Addr)
+			mylog.Logger.Info(msg)
+			return nil
+		}
+		count++
+		if (count % 12) == 0 {
+			msg = fmt.Sprintf("redis:%s reshape is running", db.Addr)
+			mylog.Logger.Info(msg)
+		}
+		time.Sleep(5 * time.Second)
+	}
+}
+
+// TendisReshapeAndWaitDone tendisplus/tendisssd reshape并等待reshape完成
+func (db *RedisClient) TendisReshapeAndWaitDone() (err error) {
+	if db.InstanceClient == nil {
+		err := fmt.Errorf("reshape redis:%s must create a standalone client", db.Addr)
+		mylog.Logger.Error(err.Error())
+		return err
+	}
+	isReshaping, err := db.IsReshapeRunning()
+	if err != nil {
+		return err
+	}
+	if isReshaping {
+		// 如果正在reshape,则等待reshape完成,不重复执行reshape
+		return db.WaitTendisReshapeDone()
+	}
+	cmd := []interface{}{"reshape"}
+	// reshape 是阻塞操作,可能会超时,所以不捕获错误
+	db.InstanceClient.Do(context.TODO(), cmd...).Result()
+	return db.WaitTendisReshapeDone()
+}

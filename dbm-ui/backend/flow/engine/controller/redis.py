@@ -57,6 +57,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_storages_client_conns_kill imp
 )
 from backend.flow.engine.bamboo.scene.redis.redis_twemproxy_cluster_apply_flow import RedisClusterApplyFlow
 from backend.flow.engine.bamboo.scene.redis.single_proxy_shutdown import SingleProxyShutdownFlow
+from backend.flow.engine.bamboo.scene.redis.tendisplus_lightning_data import TendisPlusLightningData
 from backend.flow.engine.controller.base import BaseController
 
 
@@ -393,3 +394,10 @@ class RedisController(BaseController):
         """
         flow = RedisClusterLoadModulesSceneFlow(root_id=self.root_id, data=self.ticket_data)
         flow.batch_clusters_load_modules()
+
+    def tendisplus_lightning_data(self):
+        """
+        tendisplus lightning 数据导入
+        """
+        flow = TendisPlusLightningData(root_id=self.root_id, data=self.ticket_data)
+        flow.lightning_data_flow()

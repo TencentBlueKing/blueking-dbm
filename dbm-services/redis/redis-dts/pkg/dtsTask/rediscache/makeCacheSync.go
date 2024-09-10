@@ -35,7 +35,7 @@ const (
 
 // MakeCacheSyncTask cache_task
 type MakeCacheSyncTask struct {
-	dtsTask.FatherTask
+	dtsTask.TendisDtsFatherTask
 	RedisShakeBin string `json:"redisSahkeBin"`
 	ShakeLogFile  string `json:"shakeLogFile"`
 	ShakeConfFile string `json:"shakeConfFile"`
@@ -61,7 +61,7 @@ func (task *MakeCacheSyncTask) NextTask() string {
 // NewMakeCacheSyncTask 新建一个 RedisShake启动task
 func NewMakeCacheSyncTask(row *tendisdb.TbTendisDTSTask) *MakeCacheSyncTask {
 	return &MakeCacheSyncTask{
-		FatherTask: dtsTask.NewFatherTask(row),
+		TendisDtsFatherTask: dtsTask.NewDtsFatherTask(row),
 	}
 }
 

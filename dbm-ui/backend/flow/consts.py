@@ -480,6 +480,8 @@ class RedisActuatorActionEnum(str, StructuredEnum):
     CONFIG_SET = EnumField("config_set", _("config_set"))
     LOAD_MODULES = EnumField("load_modules", _("load_modules"))
     PREDIXY_ADD_MODULES_CMDS = EnumField("predixy_add_modules_cmds", _("predixy_add_modules_cmds"))
+    RESHAPE = EnumField("reshape", _("reshape"))
+    CLUSTER_RESET_FLUSH_MEET = EnumField("cluster_reset_flush_meet", _("cluster_reset_flush_meet"))
 
 
 class MongoDBActuatorActionEnum(str, StructuredEnum):

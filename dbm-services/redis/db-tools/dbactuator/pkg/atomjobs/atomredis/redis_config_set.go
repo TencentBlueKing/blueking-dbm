@@ -136,7 +136,9 @@ func (job *RedisConfigSet) allInstsAbleToConnect() (err error) {
 		}
 		job.AddrMapConfigFile[addr] = confFile
 		// 获取密码
-		if job.params.Role == consts.MetaRolePredixy || job.params.Role == consts.MetaRoleTwemproxy {
+		if job.params.Role == consts.MetaRolePredixy {
+			password, err = myredis.GetPredixyAdminPasswdFromConfFlie(port)
+		} else if job.params.Role == consts.MetaRoleTwemproxy {
 			password, err = myredis.GetProxyPasswdFromConfFlie(port, job.params.Role)
 		} else {
 			password, err = myredis.GetRedisPasswdFromConfFile(port)

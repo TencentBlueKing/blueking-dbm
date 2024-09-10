@@ -29,8 +29,11 @@ from .models import (
     TbTendisDtsDistributeLock,
     TbTendisDTSJob,
     TbTendisDtsTask,
+    TendisplusLightningJob,
+    TendisplusLightningTask,
     dts_task_clean_pwd_and_fmt_time,
     dts_task_format_time,
+    lightning_task_format_time,
 )
 from .util import dts_job_cnt_and_status, dts_task_status, is_in_incremental_sync
 
@@ -559,3 +562,177 @@ def dts_test_redis_connections(payload: dict):
                 "test redis connection failed,redis_addr:{},please check redis and password is ok".format(redis_addr)
             )
     return True
+
+
+# tendisplus Lightning
+
+
+def lightning_dts_server_migrating_tasks(payload: dict) -> list:
+    """
+    获取dts server迁移中的任务
+    对Tendisplus Lightning 来说,'迁移中'指处于 status=1 状态的task
+    """
+
+    dts_server = payload.get("dts_server")
+    task_types = payload.get("task_types")
+    current_time = datetime.now(timezone.utc).astimezone()
+    thirty_days_ago = current_time - timedelta(days=30)
+
+    where = Q(bk_cloud_id=payload.get("bk_cloud_id"))
+    if dts_server:
+        where = where & Q(dts_server=dts_server)
+    if task_types:
+        where = where & Q(task_type__in=task_types)
+    where = where & Q(update_time__gt=thirty_days_ago)
+    where = where & Q(status__in=[0, 1])
+
+    rets = []
+    for task in TendisplusLightningTask.objects.filter(where):
+        json_data = model_to_dict(task)
+        lightning_task_format_time(json_data, task)
+        rets.append(json_data)
+    return rets
+
+
+def lightning_last_30days_to_exec_tasks(payload: dict) -> list:
+    """获取最近30天内task_type类型的等待执行的tasks"""
+
+    bk_cloud_id = payload.get("bk_cloud_id")
+    dts_server = payload.get("dts_server")
+    task_type = payload.get("task_type")
+    limit = payload.get("limit")
+    status = payload.get("status")
+    dts_server = dts_server.strip()
+    task_type = task_type.strip()
+    current_time = datetime.now(timezone.utc).astimezone()
+    thirty_days_ago = current_time - timedelta(days=30)
+
+    where = Q(bk_cloud_id=bk_cloud_id)
+    if dts_server:
+        where = where & Q(dts_server=dts_server)
+    if task_type:
+        where = where & Q(task_type=task_type)
+    if limit <= 0:
+        limit = 1
+    where = where & Q(status=status)
+    where = where & Q(create_time__gt=thirty_days_ago)
+    tasks = TendisplusLightningTask.objects.filter(where).order_by("-dst_cluster_priority", "create_time")[:limit]
+    if not tasks:
+        # logger.warning(
+        #     "lightning_last_30days_to_exec_tasks empty records"
+        #     ",bk_cloud_id:{},dts_server:{},task_type:{},status:{}".format(
+        #         bk_cloud_id, dts_server, task_type, status
+        #     )
+        # )
+        return []
+    rets = []
+    for task in tasks:
+        json_data = model_to_dict(task)
+        lightning_task_format_time(json_data, task)
+        rets.append(json_data)
+    return rets
+
+
+def lightning_last_30days_to_schedule_jobs(payload: dict) -> list:
+    """获取最近30天内的等待调度的jobs
+    ticket_id,dst_cluster唯一确定一个dts_job
+    获取的dts_jobs必须满足:
+    有一个待调度的task.dataSize < maxDataSize & status=0 & taskType="" & dtsServer="1.1.1.1"
+    """
+
+    max_data_size = payload.get("max_data_size")
+    zone_name = payload.get("zone_name")
+    current_time = datetime.now(timezone.utc).astimezone()
+    thirty_days_ago = current_time - timedelta(days=30)
+
+    where = Q(bk_cloud_id=payload.get("bk_cloud_id"))
+    where = where & Q(cos_file_size__lte=max_data_size)
+    if zone_name:
+        where = where & Q(dst_zonename=zone_name)
+    where = where & Q(dts_server="1.1.1.1") & Q(task_type="") & Q(status=0) & Q(create_time__gt=thirty_days_ago)
+    jobs = TendisplusLightningTask.objects.filter(where).order_by("-dst_cluster_priority", "create_time")
+    if not jobs:
+        # logger.warning(
+        #     "lightning_last_30days_to_schedule_jobs empty records,"
+        #     "bk_cloud_id={},max_data_size={},zone_name={}".format(
+        #         bk_cloud_id, max_data_size, zone_name
+        #     )
+        # )
+        return []
+    rets = []
+    unique_set = set()
+    for job in jobs:
+        job_uniq_key = "{}-{}".format(job.ticket_id, job.dst_cluster)
+        if job_uniq_key in unique_set:
+            continue
+        unique_set.add(job_uniq_key)
+        json_data = model_to_dict(job)
+        lightning_task_format_time(json_data, job)
+        rets.append(json_data)
+    return rets
+
+
+def get_lightning_job_detail(payload: dict) -> list:
+    """获取数据导入任务详情"""
+    ticket_id = payload.get("ticket_id")
+    dst_cluster = payload.get("dst_cluster")
+
+    return TendisplusLightningJob.objects.filter(Q(ticket_id=ticket_id) & Q(dst_cluster=dst_cluster)).values()
+
+
+def lightning_job_to_schedule_tasks(payload: dict) -> list:
+    """获取一个job的所有待调度的tasks"""
+    # ticket_id: int, dst_cluster: str
+    ticket_id = payload.get("ticket_id")
+    dst_cluster = payload.get("dst_cluster")
+    if not ticket_id or not dst_cluster:
+        raise Exception("invalid params,ticket_id={},dst_cluster={} all can't be empty".format(ticket_id, dst_cluster))
+    current_time = datetime.now(timezone.utc).astimezone()
+    thirty_days_ago = current_time - timedelta(days=30)
+
+    where = Q(ticket_id=ticket_id) & Q(dst_cluster=dst_cluster)
+    where = where & Q(update_time__gt=thirty_days_ago) & Q(dts_server="1.1.1.1") & Q(task_type="") & Q(status=0)
+    tasks = TendisplusLightningTask.objects.filter(where)
+    if not tasks:
+        logger.warning(
+            "lightning_job_to_schedule_tasks empty records,ticket_id={},dst_cluster={}".format(ticket_id, dst_cluster)
+        )
+        return []
+
+    rets = []
+    for task in tasks:
+        json_data = model_to_dict(task)
+        lightning_task_format_time(json_data, task)
+        rets.append(json_data)
+    return rets
+
+
+def lightning_dts_task_by_id(payload: dict) -> dict:
+    """根据task_id获取dts_task"""
+    task_id = payload.get("task_id")
+
+    try:
+        task = TendisplusLightningTask.objects.get(task_id=task_id)
+    except TendisplusLightningTask.DoesNotExist:
+        logger.warning("lightning task not found,task_id={}".format(task_id))
+        return None
+
+    json_data = model_to_dict(task)
+    lightning_task_format_time(json_data, task)
+    return json_data
+
+
+def lightning_tasks_updates(paylod: dict):
+    """批量更新dts_tasks
+    :param
+    task_ids: task_id列表
+    update_params: 列名和值的对应关系,如 {"status": 1,"message": "test"}
+    """
+    task_ids = paylod.get("task_ids")
+    col_to_val = paylod.get("col_to_val")
+    if not task_ids:
+        raise Exception("invalid params,task_ids can't be empty")
+    if not col_to_val:
+        raise Exception("invalid params,update_params can't be empty")
+    rows_affected = TendisplusLightningTask.objects.filter(task_id__in=task_ids).update(**col_to_val)
+    return rows_affected

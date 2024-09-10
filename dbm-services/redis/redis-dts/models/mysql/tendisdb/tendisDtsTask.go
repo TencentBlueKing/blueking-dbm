@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	tbTaskFiledToColunm map[string]string // struct filedName map to colunmName
-	once01              sync.Once
+	tbDtsTaskFiledToColunm map[string]string // struct filedName map to colunmName
+	tbDtsTaskOnce          sync.Once
 )
 
 // TbTendisDTSTask 迁移task
@@ -429,11 +429,11 @@ func GetJobSrcIPRunningTasks(billID int64, srcCluster, dstCluster, srcIP string,
 // DtsTaskStructFieldsToColumns 获取 TbTendisDTSTask 字段名 到 列名之间的对应关系
 // 如 filedNames=["BillID","App","User","SrcIP"] 对应的 columnNames=["bill_id","app","user","src_ip"]
 func DtsTaskStructFieldsToColumns(fieldNames []string, logger *zap.Logger) (columnNames []string, err error) {
-	once01.Do(func() {
+	tbDtsTaskOnce.Do(func() {
 		t01 := TbTendisDTSTask{}
 		reg01 := regexp.MustCompile(`column:(\w+)`)
 		getType := reflect.TypeOf(t01)
-		tbTaskFiledToColunm = make(map[string]string, getType.NumField())
+		tbDtsTaskFiledToColunm = make(map[string]string, getType.NumField())
 		for i := 0; i < getType.NumField(); i++ {
 			field := getType.Field(i)
 			gormTag := string(field.Tag.Get("gorm"))
@@ -441,12 +441,12 @@ func DtsTaskStructFieldsToColumns(fieldNames []string, logger *zap.Logger) (colu
 			if len(l01) < 2 {
 				continue
 			}
-			tbTaskFiledToColunm[field.Name] = l01[1]
+			tbDtsTaskFiledToColunm[field.Name] = l01[1]
 		}
 	})
 	columnNames = make([]string, 0, len(fieldNames))
 	for _, field01 := range fieldNames {
-		colName, ok := tbTaskFiledToColunm[field01]
+		colName, ok := tbDtsTaskFiledToColunm[field01]
 		if ok == false {
 			err = fmt.Errorf("struct TbTendisDTSTask have no field:%s", colName)
 			logger.Error(err.Error())
