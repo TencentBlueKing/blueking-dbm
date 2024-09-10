@@ -150,6 +150,7 @@ func (m *JobGenericManager) RegisterAtomJob() {
 			atommongodb.NewMongoStartProcess,
 			atommongodb.NewReplacePackage,
 			atommongodb.NewMongoSetFCV,
+			atommongodb.NewHelloJob,
 		} {
 			m.atomJobMapper[f().Name()] = f
 		}

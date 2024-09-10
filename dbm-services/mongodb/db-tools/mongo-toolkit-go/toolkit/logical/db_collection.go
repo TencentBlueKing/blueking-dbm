@@ -16,6 +16,8 @@ type DbCollection struct {
 	notMachCol []string
 }
 
+var ErrorNoMatchDb error = errors.New("NoMatchDb")
+
 // GetDbCollectionWithFilter 获取指定mongo的所有db和collection
 func GetDbCollectionWithFilter(ip, port, user, pass, authDb string, filter *NsFilter) ([]DbCollection, error) {
 	client, err := mymongo.Connect(ip, port, user, pass, authDb, 60*time.Second)
@@ -32,7 +34,7 @@ func GetDbCollectionWithFilter(ip, port, user, pass, authDb string, filter *NsFi
 	matchDbList, _ := filter.FilterDb(dbList)
 	// 如果按照输入的db过滤后，没有db了，就报错
 	if len(matchDbList) == 0 {
-		return nil, errors.New("no match db")
+		return nil, ErrorNoMatchDb
 	}
 
 	var dbColList []DbCollection

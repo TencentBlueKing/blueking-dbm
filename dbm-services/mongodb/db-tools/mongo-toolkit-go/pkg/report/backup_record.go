@@ -9,10 +9,12 @@ import (
 // 关联实例的维度信息
 // 备份系统中的关联信息 TaskId,是否已完成
 // 发起备份关联信息
-// 来自单据. 1. ReleateBillId, ReleateBillInfo:一个打包的Json
+// 来自单据. 1. RelatedBillId, ReleateBillInfo:一个打包的Json
 // 来自日常备份:
 type BackupRecord struct {
 	config.BkDbmLabel
+	ServerIp   string `json:"server_ip"`   // 值等于IP
+	ServerPort int    `json:"server_port"` // 值等于Port
 	ReportType string `json:"report_type"` // mongo_backup_result 日志平台
 	// File Info
 	StartTime string `json:"start_time"` // 备份起始时间，格式为"2023-12-27T13:00:15+08:00"
@@ -34,7 +36,7 @@ type BackupRecord struct {
 	PitrBinlogIndex uint32 `json:"pitr_binlog_index"` // 增量备份的index，是一个递增数字
 	PitrLastPos     uint32 `json:"pitr_last_pos"`     // UnixTime. binlog_last_time. src == daily时有值
 	// if src == bill
-	ReleateBillId   string `json:"releate_bill_id"`   //
+	RelatedBillId   string `json:"related_bill_id"`   // related_bill_id
 	TotalFileNum    int    `json:"total_file_num"`    //
 	MyFileNum       int    `json:"my_file_num"`       //
 	ReleateBillInfo string `json:"releate_bill_info"` // 关联的Bill的内容，是一个Json数据.
@@ -61,6 +63,8 @@ func (b *BackupRecord) AppendMetaLabel(meta *config.BkDbmLabel) error {
 		return nil
 	}
 	b.BkDbmLabel = *meta
+	b.ServerIp = b.BkDbmLabel.IP
+	b.ServerPort = b.BkDbmLabel.Port
 	return nil
 }
 
@@ -73,7 +77,7 @@ func (b *BackupRecord) AppendBsInfo(taskId, tag string) {
 // AppendBillSrc append bill src info
 func (b *BackupRecord) AppendBillSrc(billId, releateBillInfo string, totalFileNum, myFileIdx int) error {
 	b.Src = "bill"
-	b.ReleateBillId = billId
+	b.RelatedBillId = billId
 	b.ReleateBillInfo = releateBillInfo
 	b.TotalFileNum = totalFileNum
 	b.MyFileNum = myFileIdx

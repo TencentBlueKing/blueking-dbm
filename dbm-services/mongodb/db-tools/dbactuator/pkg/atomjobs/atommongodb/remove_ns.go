@@ -48,6 +48,7 @@ type removeNsJob struct {
 	MongoInst   *mymongo.MongoHost
 	MongoClient *mongo.Client
 	tmp         struct {
+		Err     error
 		NsList  []logical.DbCollection
 		NsIndex map[string][]*mongo.IndexSpecification
 	}
@@ -105,6 +106,12 @@ func connectPrimary(host *mymongo.MongoHost) (client *mongo.Client, err error) {
 }
 
 func (s *removeNsJob) dropCollection() (err error) {
+
+	if s.tmp.Err != nil && errors.Is(s.tmp.Err, logical.ErrorNoMatchDb) {
+		s.runtime.Logger.Info("no matched database and collection.")
+		return nil
+	}
+
 	err = s.backupIndex()
 	if err != nil {
 		return err
@@ -285,7 +292,15 @@ func (s *removeNsJob) getNsList() (err error) {
 
 		dbColList, err := logical.GetDbCollectionWithFilter(s.MongoInst.Host, s.MongoInst.Port,
 			s.MongoInst.User, s.MongoInst.Pass, s.MongoInst.AuthDb, filter)
+
+		s.runtime.Logger.Info(fmt.Sprintf("GetDbCollectionWithFilter: return %+v %v", dbColList, err))
+
 		if err != nil {
+			// 如果没有匹配的库表，算作成功. 返回Error给后面的流程处理.
+			if errors.Is(err, logical.ErrorNoMatchDb) {
+				s.tmp.Err = err
+				return nil
+			}
 			return errors.Wrap(err, "GetDbCollectionWithFilter")
 		}
 		// skip sys db
@@ -297,10 +312,9 @@ func (s *removeNsJob) getNsList() (err error) {
 		}
 
 		if len(s.tmp.NsList) == 0 {
-			return errors.Errorf("no matched db and col found")
+			s.tmp.Err = logical.ErrorNoMatchDb
 		}
 		s.runtime.Logger.Info(fmt.Sprintf("getNsList:%+v", s.tmp.NsList))
-
 		return nil
 	} else {
 		s.tmp.NsList, err = logical.GetDbCollection(s.MongoInst.Host, s.MongoInst.Port,

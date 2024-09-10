@@ -59,7 +59,7 @@ func Dump(option *DumpOption) {
 		filter := NewNsFilter(option.Args.PartialArgs.DbList, option.Args.PartialArgs.IgnoreDbList,
 			option.Args.PartialArgs.ColList, option.Args.PartialArgs.IgnoreColList)
 
-		cmdLineList, cmdLine, err := helper.DumpPartial(tmpPath, "dump.log", filter)
+		cmdLineList, cmdLine, err, _ := helper.DumpPartial(tmpPath, "dump.log", filter)
 		if err != nil {
 			log.Errorf("exec cmd fail, cmd: %s, error:%s", cmdLine, err)
 			return
@@ -108,9 +108,9 @@ type MongoDumpHelper struct {
 }
 
 // NewMongoDumpHelper 逻辑备份
-func NewMongoDumpHelper(mongoHost *mymongo.MongoHost, dumpBin, user, pass, authDb string, osUser string) *MongoDumpHelper {
+func NewMongoDumpHelper(host *mymongo.MongoHost, dumpBin, user, pass, authDb string, osUser string) *MongoDumpHelper {
 	return &MongoDumpHelper{
-		MongoHost:    mongoHost,
+		MongoHost:    host,
 		MongoDumpBin: dumpBin,
 		User:         user,
 		Pass:         pass,
@@ -130,7 +130,8 @@ func NewMongoDumpHelper(mongoHost *mymongo.MongoHost, dumpBin, user, pass, authD
 // 2. 备份多个表 :  --excludeCollection tableName1 --excludeCollection tableName2 ...
 
 // DumpPartial  逻辑备份 指定库表
-func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter *NsFilter) (cmdLineList []string, cmdLine string, err error) {
+func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter *NsFilter) (
+	cmdLineList []string, cmdLine string, err error, nCol int) {
 	// 如果filter为nil，请使用LogicalDumpAll
 	if filter == nil {
 		panic("filter is nil")
@@ -141,10 +142,7 @@ func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter 
 		err = errors.Wrap(err, "GetDbCollectionWithFilter")
 		return
 	}
-	if dbColList == nil {
-		err = errors.New("no match database or collection")
-		return
-	}
+
 	fmt.Printf("debug DumpPartial dbColList: %+v\n", dbColList)
 	for _, dbRow := range dbColList {
 		// 没有匹配的表，就不备份
@@ -161,17 +159,19 @@ func (m *MongoDumpHelper) DumpPartial(outDir string, logFileName string, filter 
 
 func (m *MongoDumpHelper) dumpDbCol(outDir string, logFileName string,
 	dbName string, colList []string, excludeColList []string) (cmdLine string, err error) {
-	dumpCmd := mycmd.New(m.MongoDumpBin, "-u", m.User,
+	dumpCmd := mycmd.New(m.MongoDumpBin,
+		"-u", m.User,
 		"-p", mycmd.Password(m.Pass),
-		"--host", m.MongoHost.Host, "--port", m.MongoHost.Port,
-		fmt.Sprintf("--authenticationDatabase=%s", m.AuthDb),
+		"--host", mycmd.Val(m.MongoHost.Host),
+		"--port", m.MongoHost.Port,
+		"--authenticationDatabase="+m.AuthDb,
 		"-d", dbName)
 
 	if len(colList) == 1 {
-		dumpCmd.Append("--collection", colList[0])
+		dumpCmd.Append("--collection", mycmd.Val(colList[0]))
 	} else if len(excludeColList) > 0 {
 		for _, col := range excludeColList {
-			dumpCmd.Append("--excludeCollection", col)
+			dumpCmd.Append("--excludeCollection", mycmd.Val(col))
 		}
 	}
 
@@ -186,7 +186,7 @@ func (m *MongoDumpHelper) dumpDbCol(outDir string, logFileName string,
 func (m *MongoDumpHelper) LogicalDumpAll(outDir string, logFileName string) (cmdLine string, err error) {
 	//
 	dumpCmd := mycmd.New(m.MongoDumpBin, "-u", m.User, "-p", mycmd.Password(m.Pass),
-		"--host", m.MongoHost.Host, "--port", m.MongoHost.Port,
+		"--host", mycmd.Val(m.MongoHost.Host), "--port", m.MongoHost.Port,
 		fmt.Sprintf("--authenticationDatabase=%s", m.AuthDb),
 		"-o", outDir, ">", path.Join(outDir, logFileName), "2>&1")
 	_, _, _, err = dumpCmd.RunByBash(m.OsUser, time.Hour*24)

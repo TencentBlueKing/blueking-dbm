@@ -15,21 +15,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-type arg struct {
-	v     string
-	isPwd bool
-}
-
 type Password string
+type Val string
 
-// CmdBuilder 用于生成给sh执行的命令行,支持标记密码参数，用于生成不带密码的命令行
+// CmdBuilder 用于生成给sh执行的命令行, 生成命令行时，Password和Val会添加单引号
 type CmdBuilder struct {
-	Args []arg
+	Args []interface{}
 }
 
 // New NewCmdBuilder and append v
 func New(v ...interface{}) *CmdBuilder {
-	return NewCmdBuilder().AppendArg(v...)
+	return NewCmdBuilder().Append(v...)
 }
 
 // NewCmdBuilder  New CmdBuilder
@@ -38,51 +34,64 @@ func NewCmdBuilder() *CmdBuilder {
 	return &c
 }
 
-func (c *CmdBuilder) appendOne(v string, isPwd bool) *CmdBuilder {
-	c.Args = append(c.Args, arg{v, isPwd})
+func (c *CmdBuilder) appendOne(v interface{}) *CmdBuilder {
+	c.Args = append(c.Args, v)
 	return c
 }
 
-// AppendArg Append interface arg
-func (c *CmdBuilder) AppendArg(v ...interface{}) *CmdBuilder {
+// Append  string arg
+func (c *CmdBuilder) Append(v ...interface{}) *CmdBuilder {
 	for _, vv := range v {
-		switch vv.(type) {
-		case Password:
-			_ = c.appendOne(string(vv.(Password)), true)
-		case string:
-			_ = c.appendOne(vv.(string), false)
-		default:
-			// 只接受string和Password类型。 不应该出现其他类型
-			_ = c.appendOne(fmt.Sprintf("%v", vv), false)
-		}
-
-	}
-	return c
-}
-
-// Append Append string arg
-func (c *CmdBuilder) Append(v ...string) *CmdBuilder {
-	for _, vv := range v {
-		_ = c.appendOne(vv, false)
+		c.appendOne(vv)
 	}
 	return c
 }
 
 // AppendPassword Append password arg
 func (c *CmdBuilder) AppendPassword(v string) *CmdBuilder {
-	return c.appendOne(v, true)
+	return c.appendOne(Password(v))
+}
+
+// argToString 生成命令行内容
+// @replacePassword 将密码替换成xxx
+// @isCmdLine 生成cmdline给bash调用的，为Val, Password添加”
+func argToString(v interface{}, replacePassword bool, isCmdLine bool) string {
+	switch v.(type) {
+	case string:
+		return fmt.Sprintf("%s", v)
+	case int, int8, int16, int32, int64:
+		return fmt.Sprintf("%d", v)
+	case Val:
+		if isCmdLine {
+			return fmt.Sprintf("'%s'", v)
+		} else {
+			return fmt.Sprintf("%s", v)
+		}
+	case Password:
+		if isCmdLine {
+			if replacePassword {
+				return "xxx"
+			} else {
+				return fmt.Sprintf(`'%s'`, v)
+			}
+		} else {
+			if replacePassword {
+				return "xxx"
+			} else {
+				return fmt.Sprintf(`%s`, v)
+			}
+		}
+	default:
+		panic(fmt.Sprintf("mycmd argToString bad type %T", v))
+	}
 }
 
 // GetCmdLine Get cmd line with suUser
 // replacePassword 是否替换密码
 func (c *CmdBuilder) GetCmdLine(suUser string, replacePassword bool) string {
 	tmpSlice := make([]string, 0, len(c.Args))
-	for _, argItem := range c.Args {
-		if replacePassword && argItem.isPwd {
-			tmpSlice = append(tmpSlice, "xxx")
-		} else {
-			tmpSlice = append(tmpSlice, argItem.v)
-		}
+	for _, v := range c.Args {
+		tmpSlice = append(tmpSlice, argToString(v, replacePassword, true))
 	}
 	cmdLine := strings.Join(tmpSlice, " ")
 	if suUser != "" {
@@ -98,10 +107,10 @@ func (c *CmdBuilder) GetCmdLine2(replacePassword bool) string {
 
 // GetCmd Get cmd and args
 func (c *CmdBuilder) GetCmd() (bin string, args []string) {
-	bin = c.Args[0].v
+	bin = c.Args[0].(string)
 	args = make([]string, 0, len(c.Args)-1)
 	for _, argItem := range c.Args[1:] {
-		args = append(args, argItem.v)
+		args = append(args, argToString(argItem, false, false))
 	}
 	return
 }
@@ -164,7 +173,7 @@ func (c *CmdBuilder) Run3(timeout time.Duration, stdout, stderr io.Writer) (*Exe
 
 }
 
-// RunBg run in background
+// RunBackground run in background
 func (c *CmdBuilder) RunBackground(outputFileName string) (pid int, err error) {
 	bin, args := c.GetCmd()
 	cmd := exec.Command(bin, args...)
