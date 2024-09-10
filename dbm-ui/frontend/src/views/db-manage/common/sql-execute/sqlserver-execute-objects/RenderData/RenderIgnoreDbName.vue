@@ -73,15 +73,25 @@
 
   const rules = [
     {
-      validator: (value: string[]) => {
-        const hasAllMatch = _.find(value, (item) => /%$/.test(item));
-        return !(value.length > 1 && hasAllMatch);
-      },
-      message: t('一格仅支持单个_对象'),
+      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
+      message: t('不允许为 *'),
     },
     {
       validator: (value: string[]) => _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]),
       message: t(`DB名不能支持 n`, { n: Object.keys(disabledTagMap).join(',') }),
+    },
+    {
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+    },
+    {
+      validator: (value: string[]) => {
+        if (_.some(value, (item) => /[*%?]/.test(item))) {
+          return value.length < 2;
+        }
+        return true;
+      },
+      message: t('含通配符的单元格仅支持输入单个对象'),
     },
   ];
 

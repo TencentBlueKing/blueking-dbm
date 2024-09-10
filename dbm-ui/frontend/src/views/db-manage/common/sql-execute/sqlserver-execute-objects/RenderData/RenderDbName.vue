@@ -12,33 +12,27 @@
 -->
 
 <template>
-  <div ref="rootRef">
-    <span @click="handleShowTips">
-      <TableEditTag
-        ref="editTagRef"
-        :model-value="modelValue"
-        :placeholder="t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
-        :rules="rules"
-        @change="handleChange" />
-    </span>
-    <div
-      ref="popRef"
-      style="font-size: 12px; line-height: 24px; color: #63656e">
-      <p>{{ t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
-      <p>{{ t('匹配任意单一字符_如a_d') }}</p>
-      <p>{{ t('专门指代ALL语义_只能独立使用') }}</p>
-      <p>{{ t('注_含通配符的单元格仅支持输入单个对象') }}</p>
-      <p>{{ t('Enter完成内容输入') }}</p>
-    </div>
-  </div>
+  <TableEditTag
+    ref="editTagRef"
+    :model-value="modelValue"
+    :placeholder="t('请输入DB名称_支持通配符_含通配符的仅支持单个')"
+    :rules="rules"
+    @change="handleChange">
+    <template #tip>
+      <div>{{ t('不允许输入系统库，如"msdb", "model", "tempdb", "Monitor"') }}</div>
+      <div>{{ t('DB名、表名不允许为空，忽略DB名、忽略表名不允许为 *') }}</div>
+      <div>{{ t('支持 %（指代任意长度字符串）,*（指代全部）2个通配符') }}</div>
+      <div>{{ t('单元格可同时输入多个对象，使用换行，空格或；，｜分隔，按 Enter 或失焦完成内容输入') }}</div>
+      <div>{{ t('包含通配符时, 每一单元格只允许输入单个对象。% 不能独立使用， * 只能单独使用') }}</div>
+    </template>
+  </TableEditTag>
 </template>
 <script lang="ts">
   const tagMemo = {} as Record<string, string[]>;
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
-  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
-  import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+  import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TableEditTag from '@components/render-table/columns/tag-input/index.vue';
@@ -57,9 +51,6 @@
   const modelValue = defineModel<string[]>({
     default: () => [],
   });
-
-  const rootRef = ref();
-  const popRef = ref();
 
   const disabledTagMap = {
     monitor: true,
@@ -84,11 +75,21 @@
       message: t(`DB名不能支持 n`, { n: Object.keys(disabledTagMap).join(',') }),
     },
     {
+      validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
+      message: t('* 只能独立使用'),
+    },
+    {
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+    },
+    {
       validator: (value: string[]) => {
-        const hasAllMatch = _.find(value, (item) => /%$/.test(item));
-        return !(value.length > 1 && hasAllMatch);
+        if (_.some(value, (item) => /[*%?]/.test(item))) {
+          return value.length < 2;
+        }
+        return true;
       },
-      message: t('一格仅支持单个_对象'),
+      message: t('含通配符的单元格仅支持输入单个对象'),
     },
     {
       validator: (value: string[]) => {
@@ -119,35 +120,7 @@
     tagMemo[instanceKey] = value;
   };
 
-  let tippyIns: Instance | undefined;
-
-  const handleShowTips = () => {
-    tippyIns?.show();
-  };
-
-  onMounted(() => {
-    tippyIns = tippy(rootRef.value as SingleTarget, {
-      content: popRef.value,
-      placement: 'top',
-      appendTo: () => document.body,
-      theme: 'light',
-      maxWidth: 'none',
-      trigger: 'manual',
-      interactive: true,
-      arrow: true,
-      offset: [0, 8],
-      zIndex: 999999,
-      hideOnClick: true,
-    });
-  });
-
   onBeforeUnmount(() => {
-    if (tippyIns) {
-      tippyIns.hide();
-      tippyIns.unmount();
-      tippyIns.destroy();
-      tippyIns = undefined;
-    }
     delete tagMemo[instanceKey];
   });
 
