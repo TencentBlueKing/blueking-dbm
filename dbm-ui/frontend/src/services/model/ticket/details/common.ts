@@ -79,3 +79,26 @@ export interface SpecInfo {
     type: string;
   }[];
 }
+
+export interface NodeInfo {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_cpu: number;
+  bk_disk: number;
+  bk_host_id: number;
+  bk_mem: number;
+  city: string;
+  device_class: string;
+  ip: string;
+  rack_id: string;
+  storage_device: {
+    [key: string]: {
+      size: number;
+      disk_id: string;
+      disk_type: string;
+      file_type: string;
+    };
+  };
+  sub_zone: string;
+  sub_zone_id: string;
+}

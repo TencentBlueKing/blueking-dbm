@@ -14,10 +14,10 @@
 <template>
   <div class="mb-20 ml-10">
     <span class="title-spot">{{ t('构造类型') }}</span>
-    <span>：{{ renderData.label }}</span>
+    <span>：{{ renderData?.label }}</span>
   </div>
   <component
-    :is="renderData.tableCom"
+    :is="renderData?.tableCom"
     :ticket-details="ticketDetails" />
 </template>
 
@@ -54,7 +54,6 @@
       tableCom: RollbackOriginCluster,
     },
   };
-
   const renderData = computed(
     () => rollbackInfo[props.ticketDetails.details.rollback_cluster_type as RollbackClusterTypes],
   );
