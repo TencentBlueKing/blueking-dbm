@@ -1,16 +1,17 @@
 package rotatebinlog
 
 import (
-	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
 	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
 
+	"dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/backup"
+
+	"github.com/ghodss/yaml"
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
-	"gopkg.in/yaml.v2"
 )
 
 func (c *MySQLRotateBinlogComp) GenerateRuntimeConfig() (err error) {
