@@ -53,6 +53,7 @@
       <div
         v-for="name in previewDataList"
         :key="name"
+        v-overflow-tips
         class="name-item">
         {{ name }}
       </div>
@@ -72,7 +73,7 @@
 
   import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
 
-  export type DbsType = Omit<Props['data'], 'sourceClusterId' | 'targetClusters'>
+  export type DbsType = Omit<Props['data'], 'sourceClusterId' | 'targetClusters'>;
 
   interface Props {
     data: {
@@ -147,38 +148,40 @@
   });
 </script>
 <style lang="less" scoped>
-.preview-main {
-  padding: 16px 24px;
+  .preview-main {
+    padding: 16px 24px;
 
-  .preview-header {
-    margin: 24px 0 16px;
-    display: flex;
-    .title {
-      font-weight: 700;
-      color: #313238;
+    .preview-header {
+      margin: 24px 0 16px;
+      display: flex;
+      .title {
+        font-weight: 700;
+        color: #313238;
+      }
+    }
+
+    .preview-copy {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+      margin-top: -24px;
+    }
+
+    .preview-content {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 16px;
+      background: #f5f7fa;
+
+      .name-item {
+        width: 260px;
+        line-height: 24px;
+        margin: 0 13px 0 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
     }
   }
-
-  .preview-copy {
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: 8px;
-    margin-top: -24px;
-  }
-
-  .preview-content {
-    display: flex;
-    flex-wrap: wrap;
-    padding: 16px;
-    background: #f5f7fa;
-
-    .name-item {
-      width: 260px;
-      line-height: 24px;
-      margin: 0 13px 0 0;
-    }
-  }
-}
-
 </style>

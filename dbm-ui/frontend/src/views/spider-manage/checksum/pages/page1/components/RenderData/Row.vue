@@ -82,7 +82,8 @@
           ref="ignoreTablesRefs"
           :allow-asterisk="false"
           :cluster-id="localClusterId"
-          :model-value="backupInfoItem.ignoreTables" />
+          :model-value="backupInfoItem.ignoreTables"
+          :required="false" />
       </td>
       <OperateColumn
         :removeable="removeable"
