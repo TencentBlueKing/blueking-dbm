@@ -179,24 +179,35 @@ func (job *ClusterMeetSlotsAssign) AddInstsToCluster() (err error) {
 	firstIP := job.params.ReplicaPairs[0].MasterIP
 	firstPort := job.params.ReplicaPairs[0].MasterPort
 	firstCli := job.AddrMapCli[firstAddr]
-	addrMap, err := firstCli.GetAddrMapToNodes()
-	if err != nil {
-		return
-	}
-	for add01, cli := range job.AddrMapCli {
-		if add01 == firstAddr {
-			continue
-		}
-		node01, ok := addrMap[add01]
-		if ok && myredis.IsRunningNode(node01) {
-			continue
-		}
-		_, err = cli.ClusterMeet(firstIP, strconv.Itoa(firstPort))
+	var addrMap map[string]*myredis.ClusterNodeData
+	maxRetryTimes := 5
+	for maxRetryTimes >= 0 {
+		maxRetryTimes--
+		isAllNodesKnown := true // 是否所有节点都被firstNode认识
+		addrMap, err = firstCli.GetAddrMapToNodes()
 		if err != nil {
-			return
+			continue
 		}
+		for add01, cli := range job.AddrMapCli {
+			if add01 == firstAddr {
+				continue
+			}
+			node01, ok := addrMap[add01]
+			if ok && myredis.IsRunningNode(node01) {
+				continue
+			}
+			isAllNodesKnown = false // 存在节点未被firstNode认识
+			job.runtime.Logger.Info("redis(%s) cluster meet %s:%d", cli.Addr, firstIP, firstPort)
+			_, err = cli.ClusterMeet(firstIP, strconv.Itoa(firstPort))
+			if err != nil {
+				return
+			}
+		}
+		if isAllNodesKnown {
+			break
+		}
+		time.Sleep(10 * time.Second)
 	}
-	time.Sleep(10 * time.Second)
 	job.runtime.Logger.Info("all redis instances add to cluster")
 	return nil
 }
