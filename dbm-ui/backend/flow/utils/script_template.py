@@ -36,11 +36,13 @@ trap 'rm -f "$lock_file"' EXIT
          cp /data/install/dbactuator /data/install/dbactuator-{{uid}}
       fi
    fi
-
+)  200>"$lock_file"
+   rm -f "$lock_file"
+   
    cd /data/install/dbactuator-{{uid}}
    chmod +x dbactuator
    ./dbactuator {{db_type}} {{action}} --uid {{uid}} --root_id {{root_id}} --node_id {{node_id}} --version_id {{version_id}} -c {{non_sensitive_payload}} --payload $1 
-)  200>"$lock_file"
+
 """  # noqa
 
 # riak actuator 执行的shell命令，引入文件MD5值的比较，避免并发执行过程中输出错误信息，误导日志的捕捉
