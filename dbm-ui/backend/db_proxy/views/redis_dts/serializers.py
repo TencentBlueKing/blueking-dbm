@@ -109,3 +109,47 @@ class DtsTestRedisConnectionSerializer(BaseProxyPassSerializer):
     infos = serializers.ListField(
         help_text=_("复制列表"), child=DtsDataCopyBaseItemSerializer(), allow_empty=False, required=True
     )
+
+
+# tendisplus Lightning
+class LightningDtsSvrMigatingTasksSerializer(BaseProxyPassSerializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
+    dts_server = serializers.IPAddressField(help_text=_("DTS_server IP"), required=True)
+    task_types = serializers.ListField(
+        help_text=_("task类型列表"), child=serializers.CharField(), allow_empty=False, required=True
+    )
+
+
+class LightningLast30DaysToExecTasksSerializer(BaseProxyPassSerializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
+    dts_server = serializers.IPAddressField(help_text=_("DTS_server IP"), required=True)
+    task_type = serializers.CharField(help_text=_("task类型"), required=True)
+    limit = serializers.IntegerField(help_text=_("限制条数"), required=False)
+    status = serializers.IntegerField(help_text=_("任务状态"), required=False)
+
+
+class LightningLast30DaysToScheJobsSerializer(BaseProxyPassSerializer):
+    bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"), required=True)
+    max_data_size = serializers.IntegerField(help_text=_("最大数据量"), required=True)
+    zone_name = serializers.CharField(help_text=_("城市名"), required=True)
+
+
+class LightningJobTasksSerializer(BaseProxyPassSerializer):
+    ticket_id = serializers.CharField(help_text=_("单据ID"), required=True)
+    dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
+
+
+class LightningJobToScheTasksSerializer(BaseProxyPassSerializer):
+    ticket_id = serializers.CharField(help_text=_("单据ID"), required=True)
+    dst_cluster = serializers.CharField(help_text=_("目标集群"), required=True)
+
+
+class LightningTaskByIDSerializer(BaseProxyPassSerializer):
+    task_id = serializers.CharField(help_text=_("task id"), required=True)
+
+
+class LightningTasksUpdateSerializer(BaseProxyPassSerializer):
+    task_ids = serializers.ListField(
+        help_text=_("子任务ID列表"), child=serializers.CharField(), allow_empty=False, required=True
+    )
+    col_to_val = serializers.DictField(child=serializers.CharField())

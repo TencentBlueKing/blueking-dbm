@@ -37,3 +37,15 @@ RsyncPullTimeout: 36000 # rsync timeout,10 hour
 WarnMessageNotifier: VAR_warning_msg_notifiers #告警通知人
 DtsServerDiskMaxUsgRatio: 85 #dtsserver磁盘最大使用90%,超过则发送告警
 DtsServerMemMaxUsgRatio: 80 #dtsserver内存最大使用90%,超过则发送告警
+
+# tendisplus lightning
+maxLocalDiskDataSizeRatioNLightning: 5 # 单台DTS最大迁移的Tendisplus lightning数据量为本地磁盘的 1/5
+lightningCosFileDownloadParallelLimit: 5
+lightningFileSplitParallelLimit: 5
+lightningGenerateSstParallelLimit: 5
+lightningScpSstParallelLimit: 5
+lightningSlaveLoadSstParallelLimit: 5
+txycos:
+  url: VAR_txycos_url
+  secret_id: VAR_txycos_secret_id
+  secret_key: VAR_txycos_secret_key

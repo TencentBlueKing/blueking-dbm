@@ -12,7 +12,7 @@ import (
 
 // BakcupFileFetchTask 备份拉取task
 type BakcupFileFetchTask struct {
-	dtsTask.FatherTask
+	dtsTask.TendisDtsFatherTask
 }
 
 // TaskType task类型
@@ -28,7 +28,7 @@ func (task *BakcupFileFetchTask) NextTask() string {
 // NewBakcupFileFetchTask 新建一个备份拉取task
 func NewBakcupFileFetchTask(row *tendisdb.TbTendisDTSTask) *BakcupFileFetchTask {
 	return &BakcupFileFetchTask{
-		FatherTask: dtsTask.NewFatherTask(row),
+		TendisDtsFatherTask: dtsTask.NewDtsFatherTask(row),
 	}
 }
 

@@ -18,7 +18,7 @@ import (
 
 // TredisdumpTask 对备份文件执行tredisdump
 type TredisdumpTask struct {
-	dtsTask.FatherTask
+	dtsTask.TendisDtsFatherTask
 }
 
 // TaskType task类型
@@ -34,7 +34,7 @@ func (task *TredisdumpTask) NextTask() string {
 // NewTredisdumpTask 新建tredisdump task
 func NewTredisdumpTask(row *tendisdb.TbTendisDTSTask) *TredisdumpTask {
 	return &TredisdumpTask{
-		FatherTask: dtsTask.NewFatherTask(row),
+		TendisDtsFatherTask: dtsTask.NewDtsFatherTask(row),
 	}
 }
 

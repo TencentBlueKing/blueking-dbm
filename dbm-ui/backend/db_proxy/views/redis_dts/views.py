@@ -27,6 +27,13 @@ from backend.db_proxy.views.redis_dts.serializers import (
     DtsTasksUpdateSerializer,
     DtsTestRedisConnectionSerializer,
     IsDtsserverInBlacklistSerializer,
+    LightningDtsSvrMigatingTasksSerializer,
+    LightningJobTasksSerializer,
+    LightningJobToScheTasksSerializer,
+    LightningLast30DaysToExecTasksSerializer,
+    LightningLast30DaysToScheJobsSerializer,
+    LightningTaskByIDSerializer,
+    LightningTasksUpdateSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
 from backend.db_services.redis.redis_dts.apis import (
@@ -43,7 +50,14 @@ from backend.db_services.redis.redis_dts.apis import (
     get_job_to_schedule_tasks,
     get_last_30days_to_exec_tasks,
     get_last_30days_to_schedule_jobs,
+    get_lightning_job_detail,
     is_dtsserver_in_blacklist,
+    lightning_dts_server_migrating_tasks,
+    lightning_dts_task_by_id,
+    lightning_job_to_schedule_tasks,
+    lightning_last_30days_to_exec_tasks,
+    lightning_last_30days_to_schedule_jobs,
+    lightning_tasks_updates,
 )
 
 
@@ -193,7 +207,7 @@ class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
         return Response(get_job_to_schedule_tasks(validated_data))
 
     @common_swagger_auto_schema(
-        operation_summary=_("获取一个job的所有待调度的tasks"),
+        operation_summary=_("获取一个job的中某个slave机器上运行中的tasks"),
         request_body=DtsJobSrcIPRunningTasksSerializer,
         tags=[SWAGGER_TAG],
     )
@@ -208,7 +222,7 @@ class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
         return Response(get_job_src_ip_running_tasks(validated_data))
 
     @common_swagger_auto_schema(
-        operation_summary=_("获取一个job的所有待调度的tasks"),
+        operation_summary=_("根据task_id获取task详情"),
         request_body=DtsTaskByTaskIDSerializer,
         tags=[SWAGGER_TAG],
     )
@@ -248,3 +262,109 @@ class DtsApiProxyPassViewSet(BaseProxyPassViewSet):
     def test_redis_connection(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(dts_test_redis_connections(validated_data))
+
+    # tendisplus Lightning
+    @common_swagger_auto_schema(
+        operation_summary=_("获取dts server迁移中的Lightning任务"),
+        request_body=LightningDtsSvrMigatingTasksSerializer,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=LightningDtsSvrMigatingTasksSerializer,
+        url_path="tendisplus_lightning/dts_server_migrating_tasks",
+    )
+    def lightning_dts_server_migrating_tasks(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(lightning_dts_server_migrating_tasks(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取最近30天内task_type类型的等待执行的tasks"),
+        request_body=LightningLast30DaysToExecTasksSerializer,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=LightningLast30DaysToExecTasksSerializer,
+        url_path="tendisplus_lightning/last_30_days_to_exec_tasks",
+    )
+    def lightning_last_30days_to_exec_tasks(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(lightning_last_30days_to_exec_tasks(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取最近30天内的等待调度的lightning jobs"),
+        request_body=LightningLast30DaysToScheJobsSerializer,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=LightningLast30DaysToScheJobsSerializer,
+        url_path="tendisplus_lightning/last_30_days_to_schedule_jobs",
+    )
+    def lightning_last_30days_to_schedule_jobs(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(lightning_last_30days_to_schedule_jobs(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取数据导入任务详情"),
+        request_body=LightningJobTasksSerializer,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=LightningJobTasksSerializer,
+        url_path="tendisplus_lightning/job_detail",
+    )
+    def lightning_job_detail(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(get_lightning_job_detail(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取一个job的所有待调度的tasks"),
+        request_body=LightningJobToScheTasksSerializer,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=LightningJobToScheTasksSerializer,
+        url_path="tendisplus_lightning/job_to_schedule_tasks",
+    )
+    def lightning_job_to_schedule_tasks(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(lightning_job_to_schedule_tasks(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("根据task_id获取task详情"),
+        request_body=LightningTaskByIDSerializer,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=LightningTaskByIDSerializer,
+        url_path="tendisplus_lightning/task_by_task_id",
+    )
+    def lightning_dts_task_by_id(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(lightning_dts_task_by_id(validated_data))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("批量更新dts_tasks"),
+        request_body=LightningTasksUpdateSerializer,
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=LightningTasksUpdateSerializer,
+        url_path="tendisplus_lightning/tasks_update",
+    )
+    def lightning_tasks_updates(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response({"rows_affected": lightning_tasks_updates(validated_data)})

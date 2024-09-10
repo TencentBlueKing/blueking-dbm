@@ -132,6 +132,7 @@ def redis_clusternodes_update_record():
                 TicketType.REDIS_MASTER_SLAVE_SWITCH.value,
                 TicketType.REDIS_CLUSTER_ADD_SLAVE.value,
                 TicketType.REDIS_VERSION_UPDATE_ONLINE.value,
+                TicketType.REDIS_TENDISPLUS_LIGHTNING_DATA.value,
             ]:
                 oper_title = oper["title"]
                 oper_type = oper["ticket_type"]

@@ -77,7 +77,8 @@ func main() {
 		constvar.GetZoneName(), tclog.Logger, wg))
 	jobers = append(jobers, dtsJob.NewRedisCacheDtsJob(constvar.GetBkCloudID(), localIP,
 		constvar.GetZoneName(), tclog.Logger, wg))
-
+	jobers = append(jobers, dtsJob.NewTendisplusLightningJob(constvar.GetBkCloudID(), localIP,
+		constvar.GetZoneName(), tclog.Logger, wg))
 	for _, jober := range jobers {
 		jober.StartBgWorkers()
 	}

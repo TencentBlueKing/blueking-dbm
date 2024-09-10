@@ -2095,12 +2095,12 @@ class RedisActPayload(object):
             "redis_password":"xxxx",
             "redis_master_slave_pairs":[
                 {
-                    "master": {"ip":"a.a.a.a","port":"30000"},
-                    "slave": {"ip":"b.b.b.b","port":"30000"}
+                    "master": {"ip":"a.a.a.a","port":30000},
+                    "slave": {"ip":"b.b.b.b","port":30000}
                 },
                 {
-                    "master": {"ip":"a.a.a.a","port":"30001"},
-                    "slave": {"ip":"b.b.b.b","port":"30001"}
+                    "master": {"ip":"a.a.a.a","port":30001},
+                    "slave": {"ip":"b.b.b.b","port":30001}
                 }
             ],
             "force":false
@@ -2445,3 +2445,30 @@ class RedisActPayload(object):
             "level_value": new_domain,
         }
         DBConfigApi.upsert_conf_item(upsert_param)
+
+    def tendisplus_reshape(self, **kwargs) -> dict:
+        """
+        tendisplus reshape
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.RESHAPE.value,
+            "payload": {
+                "instances": params["instances"],
+                "redis_password": params["redis_password"],
+            },
+        }
+
+    def redis_clsuter_reset_flush_meet(self, **kwargs) -> dict:
+        """
+        redis cluster reset+flush+meet
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CLUSTER_RESET_FLUSH_MEET.value,
+            "payload": {
+                "reset_flush_meet_params": params["reset_flush_meet_params"],
+            },
+        }

@@ -104,6 +104,30 @@ const (
 	TendisplusSendIncrTaskType = "tendisplusSendIncr"
 )
 
+// tendisplus lightning task type
+const (
+	TendisplusLightningCosFileDownload = "lightningCosFileDownload"
+	TendisplusLightningFileSplit       = "lightningFileSplit"
+	TendisplusLightningGenerateSst     = "lightningGenerateSst"
+	TendisplusLightningScpSst          = "lightningScpSst"
+	TendisplusLightningSlaveLoadSst    = "lightningSlaveLoadSst"
+)
+
+// tendisplus lightning tools
+const (
+	ToolLightningKVFileSplit  = "tendisplus_lightning_kvfile_split"
+	ToolLightningSstGenerator = "tendisplus_lightning_sst_generator"
+)
+
+const (
+	// ToolZstd tool
+	ToolZstd = "zstd"
+	// DbbakDir dir
+	DbbakDir = "/data/dbbak/"
+	// MysqlOSAccount os account
+	MysqlOSAccount = "mysql"
+)
+
 /*
 migrating tasks type
 '迁移中' 是指那些正在占用资源 或者 即将占用资源 阶段, 资源主要指磁盘 or 内存
@@ -123,6 +147,13 @@ var (
 	TendisplusMigratingTasksType = []string{
 		TendisplusMakeSyncTaskType,
 		TendisplusSendBulkTaskType,
+	}
+	LightningMigratingTasksType = []string{
+		TendisplusLightningCosFileDownload,
+		TendisplusLightningFileSplit,
+		TendisplusLightningGenerateSst,
+		TendisplusLightningScpSst,
+		// TendisplusLightningSlaveLoadSst
 	}
 )
 
@@ -223,6 +254,16 @@ const (
 	DbmJobApiGetJobInstanceStatusURL     = "/apis/proxypass/jobapi/get_job_instance_status/"
 	DbmJobApiBatchGetJobInstanceIPLogURL = "/apis/proxypass/jobapi/batch_get_job_instance_ip_log/"
 	DbmJobApiTransferFileURL             = "/apis/proxypass/jobapi/fast_transfer_file/"
+
+	// DbmLightningDtsServerMigratingTasksURL TODO
+	// tendisplus Lightning api
+	DbmLightningDtsServerMigratingTasksURL  = "/apis/proxypass/tendisplus_lightning/dts_server_migrating_tasks/"
+	DbmLightningLast30DaysToExecuteTasksURL = "/apis/proxypass/tendisplus_lightning/last_30_days_to_exec_tasks/"
+	DbmLightningLast30DaysToScheduleJobsURL = "/apis/proxypass/tendisplus_lightning/last_30_days_to_schedule_jobs/"
+	DbmLightningJobToScheduleTasksURL       = "/apis/proxypass/tendisplus_lightning/job_to_schedule_tasks/"
+	DbmLightningJobDetailURL                = "/apis/proxypass/tendisplus_lightning/job_detail/"
+	DbmLightningTaskRowByIDURL              = "/apis/proxypass/tendisplus_lightning/task_by_task_id/"
+	DbmLightningUpdateTaskRowsURL           = "/apis/proxypass/tendisplus_lightning/tasks_update/"
 )
 
 // ZonenameTransform 城市转换
@@ -230,7 +271,11 @@ func ZonenameTransform(zoneName string) string {
 	switch zoneName {
 	case "苏州":
 		return "上海"
+	case "昆山":
+		return "上海"
 	case "扬州":
+		return "南京"
+	case "仪征":
 		return "南京"
 	case "清远":
 		return "广州"

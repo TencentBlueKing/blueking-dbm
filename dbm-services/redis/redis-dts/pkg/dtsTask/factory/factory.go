@@ -6,6 +6,7 @@ import (
 	"dbm-services/redis/redis-dts/pkg/constvar"
 	"dbm-services/redis/redis-dts/pkg/dtsTask/rediscache"
 	"dbm-services/redis/redis-dts/pkg/dtsTask/tendisplus"
+	"dbm-services/redis/redis-dts/pkg/dtsTask/tendispluslightning"
 	"dbm-services/redis/redis-dts/pkg/dtsTask/tendisssd"
 )
 
@@ -17,8 +18,8 @@ type MyTasker interface {
 	Execute()
 }
 
-// MyTaskFactory task工厂
-func MyTaskFactory(taskRow *tendisdb.TbTendisDTSTask) MyTasker {
+// MyTendisDtsTaskFactory task工厂
+func MyTendisDtsTaskFactory(taskRow *tendisdb.TbTendisDTSTask) MyTasker {
 	if taskRow.TaskType == (&tendisssd.TendisBackupTask{}).TaskType() {
 		// tendis-ssd
 		return tendisssd.NewTendisBackupTask(taskRow)
@@ -41,6 +42,22 @@ func MyTaskFactory(taskRow *tendisdb.TbTendisDTSTask) MyTasker {
 	} else if taskRow.TaskType == constvar.TendisplusSendBulkTaskType ||
 		taskRow.TaskType == constvar.TendisplusSendIncrTaskType {
 		return tendisplus.NewWatchSyncTask(taskRow)
+	}
+	return nil
+}
+
+// MyTendisplusLightningTaskFactory task工厂
+func MyTendisplusLightningTaskFactory(taskRow *tendisdb.TbTendisplusLightningTask) MyTasker {
+	if taskRow.TaskType == (&tendispluslightning.CosFileDownloadTask{}).TaskType() {
+		return tendispluslightning.NewCosFileDownloadTask(taskRow)
+	} else if taskRow.TaskType == (&tendispluslightning.FileSplitTask{}).TaskType() {
+		return tendispluslightning.NewFileSplitTask(taskRow)
+	} else if taskRow.TaskType == (&tendispluslightning.GenerateSstTask{}).TaskType() {
+		return tendispluslightning.NewGenerateSstTask(taskRow)
+	} else if taskRow.TaskType == (&tendispluslightning.ScpSstTask{}).TaskType() {
+		return tendispluslightning.NewScpSstTask(taskRow)
+	} else if taskRow.TaskType == (&tendispluslightning.SlaveLoadSstTask{}).TaskType() {
+		return tendispluslightning.NewSlaveLoadSstTask(taskRow)
 	}
 	return nil
 }

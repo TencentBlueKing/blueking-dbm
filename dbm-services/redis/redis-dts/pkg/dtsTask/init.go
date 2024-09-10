@@ -23,8 +23,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// FatherTask 迁移父task
-type FatherTask struct {
+// TendisDtsFatherTask 迁移父task
+type TendisDtsFatherTask struct {
 	RowData            *tendisdb.TbTendisDTSTask `json:"rowData"`
 	valueChangedFields []string                  // 值已变化的字段名
 	TaskDir            string                    `json:"taskDir"`
@@ -32,27 +32,27 @@ type FatherTask struct {
 	Err                error                     `json:"-"`
 }
 
-// NewFatherTask  新建tredisdump task
-func NewFatherTask(row *tendisdb.TbTendisDTSTask) FatherTask {
-	ret := FatherTask{}
+// NewDtsFatherTask  新建tredisdump task
+func NewDtsFatherTask(row *tendisdb.TbTendisDTSTask) TendisDtsFatherTask {
+	ret := TendisDtsFatherTask{}
 	ret.RowData = row
 	return ret
 }
 
 // SetStatus 设置status的值
-func (t *FatherTask) SetStatus(status int) {
+func (t *TendisDtsFatherTask) SetStatus(status int) {
 	t.RowData.Status = status
 	t.valueChangedFields = append(t.valueChangedFields, "Status")
 }
 
 // SetTaskType 设置task_type的值
-func (t *FatherTask) SetTaskType(taskType string) {
+func (t *TendisDtsFatherTask) SetTaskType(taskType string) {
 	t.RowData.TaskType = taskType
 	t.valueChangedFields = append(t.valueChangedFields, "TaskType")
 }
 
 // SetMessage 设置message的值
-func (t *FatherTask) SetMessage(format string, args ...interface{}) {
+func (t *TendisDtsFatherTask) SetMessage(format string, args ...interface{}) {
 	if len(args) == 0 {
 		t.RowData.Message = format
 	} else {
@@ -62,92 +62,92 @@ func (t *FatherTask) SetMessage(format string, args ...interface{}) {
 }
 
 // SetFetchFile set function
-func (t *FatherTask) SetFetchFile(file string) {
+func (t *TendisDtsFatherTask) SetFetchFile(file string) {
 	t.RowData.FetchFile = file
 	t.valueChangedFields = append(t.valueChangedFields, "FetchFile")
 }
 
 // SetSqlfileDir set function
-func (t *FatherTask) SetSqlfileDir(dir string) {
+func (t *TendisDtsFatherTask) SetSqlfileDir(dir string) {
 	t.RowData.SqlfileDir = dir
 	t.valueChangedFields = append(t.valueChangedFields, "SqlfileDir")
 }
 
 // SetSyncOperate set function
-func (t *FatherTask) SetSyncOperate(op string) {
+func (t *TendisDtsFatherTask) SetSyncOperate(op string) {
 	t.RowData.SyncOperate = op
 	t.valueChangedFields = append(t.valueChangedFields, "SyncOperate")
 }
 
 // SetTendisBinlogLag set function
-func (t *FatherTask) SetTendisBinlogLag(lag int64) {
+func (t *TendisDtsFatherTask) SetTendisBinlogLag(lag int64) {
 	t.RowData.TendisBinlogLag = lag
 	t.valueChangedFields = append(t.valueChangedFields, "TendisBinlogLag")
 }
 
 // SetSrcNewLogCount set function
-func (t *FatherTask) SetSrcNewLogCount(logcnt int64) {
+func (t *TendisDtsFatherTask) SetSrcNewLogCount(logcnt int64) {
 	t.RowData.SrcNewLogCount = logcnt
 	t.valueChangedFields = append(t.valueChangedFields, "SrcNewLogCount")
 }
 
 // SetSrcOldLogCount set function
-func (t *FatherTask) SetSrcOldLogCount(logcnt int64) {
+func (t *TendisDtsFatherTask) SetSrcOldLogCount(logcnt int64) {
 	t.RowData.SrcOldLogCount = logcnt
 	t.valueChangedFields = append(t.valueChangedFields, "SrcOldLogCount")
 }
 
 // SetIsSrcLogCountRestored set function
-func (t *FatherTask) SetIsSrcLogCountRestored(isRestored int) {
+func (t *TendisDtsFatherTask) SetIsSrcLogCountRestored(isRestored int) {
 	t.RowData.IsSrcLogCountRestored = isRestored
 	t.valueChangedFields = append(t.valueChangedFields, "IsSrcLogCountRestored")
 }
 
 // SetIgnoreErrlist set function
-func (t *FatherTask) SetIgnoreErrlist(errlist string) {
+func (t *TendisDtsFatherTask) SetIgnoreErrlist(errlist string) {
 	t.RowData.IgnoreErrlist = errlist
 	t.valueChangedFields = append(t.valueChangedFields, "IgnoreErrlist")
 }
 
 // SetSyncerPort set function
-func (t *FatherTask) SetSyncerPort(syncport int) {
+func (t *TendisDtsFatherTask) SetSyncerPort(syncport int) {
 	t.RowData.SyncerPort = syncport
 	t.valueChangedFields = append(t.valueChangedFields, "SyncerPort")
 }
 
 // SetSyncerPid set function
-func (t *FatherTask) SetSyncerPid(syncpid int) {
+func (t *TendisDtsFatherTask) SetSyncerPid(syncpid int) {
 	t.RowData.SyncerPid = syncpid
 	t.valueChangedFields = append(t.valueChangedFields, "SyncerPid")
 }
 
 // SetSrcHaveListKeys set function
-func (t *FatherTask) SetSrcHaveListKeys(havelist int) {
+func (t *TendisDtsFatherTask) SetSrcHaveListKeys(havelist int) {
 	t.RowData.SrcHaveListKeys = havelist
 	t.valueChangedFields = append(t.valueChangedFields, "SrcHaveListKeys")
 }
 
 // SetTendisbackupFile set function
-func (t *FatherTask) SetTendisbackupFile(file string) {
+func (t *TendisDtsFatherTask) SetTendisbackupFile(file string) {
 	t.RowData.TendisbackupFile = file
 	t.valueChangedFields = append(t.valueChangedFields, "TendisbackupFile")
 }
 
 // SetDtsServer set function
-func (t *FatherTask) SetDtsServer(svrip string) {
+func (t *TendisDtsFatherTask) SetDtsServer(svrip string) {
 	t.RowData.DtsServer = svrip
 	t.valueChangedFields = append(t.valueChangedFields, "DtsServer")
 }
 
 // UpdateDbAndLogLocal update db相关字段 并记录本地日志
-func (t *FatherTask) UpdateDbAndLogLocal(format string, args ...interface{}) {
+func (t *TendisDtsFatherTask) UpdateDbAndLogLocal(format string, args ...interface{}) {
 	t.SetMessage(format, args...)
 	t.UpdateRow()
 	t.Logger.Info(t.RowData.Message)
 }
 
 // UpdateRow update tendisdb相关字段(值变化了的字段)
-func (t *FatherTask) UpdateRow() {
+func (t *TendisDtsFatherTask) UpdateRow() {
 	if len(t.valueChangedFields) == 0 {
 		return
 	}
@@ -156,7 +156,7 @@ func (t *FatherTask) UpdateRow() {
 }
 
 // Init 初始化
-func (t *FatherTask) Init() {
+func (t *TendisDtsFatherTask) Init() {
 	defer func() {
 		if t.Err != nil {
 			t.SetStatus(-1)
@@ -178,7 +178,7 @@ func (t *FatherTask) Init() {
 }
 
 // InitTaskDir 初始化本地任务目录
-func (t *FatherTask) InitTaskDir() error {
+func (t *TendisDtsFatherTask) InitTaskDir() error {
 	currExecPath, err := util.CurrentExecutePath()
 	if err != nil {
 		return err
@@ -195,7 +195,7 @@ func (t *FatherTask) InitTaskDir() error {
 }
 
 // InitLogger 初始化日志文件logger
-func (t *FatherTask) InitLogger() error {
+func (t *TendisDtsFatherTask) InitLogger() error {
 	err := t.InitTaskDir()
 	if err != nil {
 		return nil
@@ -213,7 +213,7 @@ func (t *FatherTask) InitLogger() error {
 }
 
 // IsSupportPipeImport 是否支持 redis-cli --pipe < $file 导入
-func (t *FatherTask) IsSupportPipeImport() bool {
+func (t *TendisDtsFatherTask) IsSupportPipeImport() bool {
 	// if strings.HasPrefix(t.RowData.DstCluster, "tendisx") || constvar.IsGlobalEnv() == true {
 	// 	return true
 	// }
@@ -221,7 +221,7 @@ func (t *FatherTask) IsSupportPipeImport() bool {
 }
 
 // TredisdumpOuputFormat tredisdump结果文件内容格式,resp格式 或 普通命令格式
-func (t *FatherTask) TredisdumpOuputFormat() string {
+func (t *TendisDtsFatherTask) TredisdumpOuputFormat() string {
 	if t.IsSupportPipeImport() {
 		return constvar.TredisdumpRespFormat
 	}
@@ -229,7 +229,7 @@ func (t *FatherTask) TredisdumpOuputFormat() string {
 }
 
 // TredisdumpOuputFileSize tredisdump结果文件大小
-func (t *FatherTask) TredisdumpOuputFileSize() uint64 {
+func (t *TendisDtsFatherTask) TredisdumpOuputFileSize() uint64 {
 	var fileSize uint64 = 0
 	var sizeStr string
 	if t.IsSupportPipeImport() {
@@ -253,7 +253,7 @@ func (t *FatherTask) TredisdumpOuputFileSize() uint64 {
 }
 
 // ImportParallelLimit 导入并发度
-func (t *FatherTask) ImportParallelLimit() int {
+func (t *TendisDtsFatherTask) ImportParallelLimit() int {
 	limit := 0
 	if t.IsSupportPipeImport() {
 		limit = viper.GetInt("respFileImportParallelLimit")
@@ -274,7 +274,7 @@ func (t *FatherTask) ImportParallelLimit() int {
 }
 
 // ImportTimeout 导入并发度
-func (t *FatherTask) ImportTimeout() int {
+func (t *TendisDtsFatherTask) ImportTimeout() int {
 	timeout := 0
 	if t.IsSupportPipeImport() {
 		timeout = viper.GetInt("respFileImportTimeout")
@@ -294,7 +294,7 @@ func (t *FatherTask) ImportTimeout() int {
 	return timeout
 }
 
-func (t *FatherTask) newSrcRedisClient() *myredis.RedisWorker {
+func (t *TendisDtsFatherTask) newSrcRedisClient() *myredis.RedisWorker {
 	srcAddr := fmt.Sprintf("%s:%d", t.RowData.SrcIP, t.RowData.SrcPort)
 	srcPasswd, err := base64.StdEncoding.DecodeString(t.RowData.SrcPassword)
 	if err != nil {
@@ -312,7 +312,7 @@ func (t *FatherTask) newSrcRedisClient() *myredis.RedisWorker {
 }
 
 // SaveSrcSSDKeepCount 保存source ssd的 slave-log-keep-count值
-func (t *FatherTask) SaveSrcSSDKeepCount() {
+func (t *TendisDtsFatherTask) SaveSrcSSDKeepCount() {
 	var logcnt int64
 	srcClient := t.newSrcRedisClient()
 	if t.Err != nil {
@@ -341,7 +341,7 @@ func (t *FatherTask) SaveSrcSSDKeepCount() {
 }
 
 // RestoreSrcSSDKeepCount 恢复source ssd的 slave-log-keep-count值
-func (t *FatherTask) RestoreSrcSSDKeepCount() {
+func (t *TendisDtsFatherTask) RestoreSrcSSDKeepCount() {
 	srcClient := t.newSrcRedisClient()
 	if t.Err != nil {
 		return
@@ -359,7 +359,7 @@ func (t *FatherTask) RestoreSrcSSDKeepCount() {
 }
 
 // ChangeSrcSSDKeepCount 修改source ssd的 slave-log-keep-count值
-func (t *FatherTask) ChangeSrcSSDKeepCount(dstKeepCount int64) {
+func (t *TendisDtsFatherTask) ChangeSrcSSDKeepCount(dstKeepCount int64) {
 	srcClient := t.newSrcRedisClient()
 	if t.Err != nil {
 		return
@@ -374,7 +374,7 @@ func (t *FatherTask) ChangeSrcSSDKeepCount(dstKeepCount int64) {
 }
 
 // GetSyncSeqFromFullBackup get sync pos from full backup
-func (t *FatherTask) GetSyncSeqFromFullBackup() (ret *SyncSeqItem) {
+func (t *TendisDtsFatherTask) GetSyncSeqFromFullBackup() (ret *SyncSeqItem) {
 	var err error
 	ret = &SyncSeqItem{}
 	syncPosFile := filepath.Join(t.RowData.SqlfileDir, "sync-pos.txt")
@@ -411,7 +411,7 @@ func (t *FatherTask) GetSyncSeqFromFullBackup() (ret *SyncSeqItem) {
 }
 
 // ConfirmSrcRedisBinlogOK confirm binlog seq is OK in src redis
-func (t *FatherTask) ConfirmSrcRedisBinlogOK(seq uint64) {
+func (t *TendisDtsFatherTask) ConfirmSrcRedisBinlogOK(seq uint64) {
 	srcAddr := fmt.Sprintf("%s:%d", t.RowData.SrcIP, t.RowData.SrcPort)
 	srcPasswd, err := base64.StdEncoding.DecodeString(t.RowData.SrcPassword)
 	if err != nil {
@@ -450,7 +450,7 @@ func (t *FatherTask) ConfirmSrcRedisBinlogOK(seq uint64) {
 }
 
 // ClearSrcHostBackup clear src redis remote backup
-func (t *FatherTask) ClearSrcHostBackup() {
+func (t *TendisDtsFatherTask) ClearSrcHostBackup() {
 	if strings.Contains(t.RowData.TendisbackupFile, "REDIS_FULL_rocksdb_") == false {
 		return
 	}
@@ -484,7 +484,7 @@ func (t *FatherTask) ClearSrcHostBackup() {
 }
 
 // ClearLocalFetchBackup clear src redis local backup
-func (t *FatherTask) ClearLocalFetchBackup() {
+func (t *TendisDtsFatherTask) ClearLocalFetchBackup() {
 	srcAddr := fmt.Sprintf("%s_%d", t.RowData.SrcIP, t.RowData.SrcPort)
 	if strings.Contains(t.RowData.FetchFile, srcAddr) == false {
 		// fetchFile 必须包含 srcAddr,否则不确定传入的是什么参数,对未知目录 rm -rf 很危险
@@ -502,7 +502,7 @@ func (t *FatherTask) ClearLocalFetchBackup() {
 }
 
 // ClearLocalSQLDir clear local sql dir(backup to commands)
-func (t *FatherTask) ClearLocalSQLDir() {
+func (t *TendisDtsFatherTask) ClearLocalSQLDir() {
 	srcAddr := fmt.Sprintf("%s_%d", t.RowData.SrcIP, t.RowData.SrcPort)
 	if strings.Contains(t.RowData.SqlfileDir, srcAddr) == false {
 		// fetchFile 必须包含 srcAddr,否则不确定传入的是什么参数,对未知目录 rm -rf 很危险
@@ -521,7 +521,7 @@ func (t *FatherTask) ClearLocalSQLDir() {
 
 // DealProcessPid 处理进程id;
 // 如用户发送 ForceKillTaskTodo '强制终止' 指令,则tredisdump、redis-cli等命令均执行kill操作
-func (t *FatherTask) DealProcessPid(pid int) error {
+func (t *TendisDtsFatherTask) DealProcessPid(pid int) error {
 	go func(pid01 int) {
 		bakTaskType := t.RowData.TaskType
 		bakStatus := t.RowData.Status
@@ -574,7 +574,7 @@ func (t *FatherTask) DealProcessPid(pid int) error {
 }
 
 // TredisdumpThreadCnt get tredisdump threadcnt
-func (t *FatherTask) TredisdumpThreadCnt() int {
+func (t *TendisDtsFatherTask) TredisdumpThreadCnt() int {
 	threadCnt := viper.GetInt("tredisdumpTheadCnt")
 	if threadCnt <= 0 {
 		threadCnt = 10 // default 10
@@ -585,7 +585,7 @@ func (t *FatherTask) TredisdumpThreadCnt() int {
 }
 
 // SaveIgnoreErrs 记录忽略的错误类型
-func (t *FatherTask) SaveIgnoreErrs(igErrs []string) {
+func (t *TendisDtsFatherTask) SaveIgnoreErrs(igErrs []string) {
 	isUpdated := false
 	for _, igErr := range igErrs {
 		if strings.Contains(t.RowData.IgnoreErrlist, igErr) == false {
@@ -603,12 +603,12 @@ func (t *FatherTask) SaveIgnoreErrs(igErrs []string) {
 }
 
 // IsMatchAny is match all
-func (t *FatherTask) IsMatchAny(reg01 string) bool {
+func (t *TendisDtsFatherTask) IsMatchAny(reg01 string) bool {
 	return reg01 == "*" || reg01 == ".*" || reg01 == "^.*$"
 }
 
 // RefreshRowData refresh task row data
-func (task *FatherTask) RefreshRowData() {
+func (task *TendisDtsFatherTask) RefreshRowData() {
 	row01, err := tendisdb.GetTaskByID(task.RowData.ID, task.Logger)
 	if err != nil {
 		task.Err = err
@@ -623,12 +623,12 @@ func (task *FatherTask) RefreshRowData() {
 }
 
 // GetSrcRedisAddr 源redis_addr
-func (task *FatherTask) GetSrcRedisAddr() string {
+func (task *TendisDtsFatherTask) GetSrcRedisAddr() string {
 	return task.RowData.SrcIP + ":" + strconv.Itoa(task.RowData.SrcPort)
 }
 
 // GetSrcRedisPasswd 源redis_password
-func (task *FatherTask) GetSrcRedisPasswd() string {
+func (task *TendisDtsFatherTask) GetSrcRedisPasswd() string {
 	srcPasswd, err := base64.StdEncoding.DecodeString(task.RowData.SrcPassword)
 	if err != nil {
 		task.Err = fmt.Errorf("decode srcPassword fail,err:%v,taskid:%d", err, task.RowData.ID)
@@ -639,12 +639,12 @@ func (task *FatherTask) GetSrcRedisPasswd() string {
 }
 
 // GetDstRedisAddr 目的redis_addr
-func (task *FatherTask) GetDstRedisAddr() string {
+func (task *TendisDtsFatherTask) GetDstRedisAddr() string {
 	return task.RowData.DstCluster
 }
 
 // GetDstRedisPasswd 目的redis_password
-func (task *FatherTask) GetDstRedisPasswd() string {
+func (task *TendisDtsFatherTask) GetDstRedisPasswd() string {
 	dstPasswd, err := base64.StdEncoding.DecodeString(task.RowData.DstPassword)
 	if err != nil {
 		task.Err = fmt.Errorf("decode DstPassword fail,err:%v,taskid:%d", err, task.RowData.ID)
@@ -655,7 +655,7 @@ func (task *FatherTask) GetDstRedisPasswd() string {
 }
 
 // DisableDstClusterSlowlog  dst cluster 'config set slowlog-log-slower-than -1'
-func (task *FatherTask) DisableDstClusterSlowlog() {
+func (task *TendisDtsFatherTask) DisableDstClusterSlowlog() {
 	dstProxyAddrs, err := util.LookupDbDNSIPs(task.RowData.DstCluster)
 	if err != nil {
 		task.Logger.Error(err.Error())
@@ -682,7 +682,7 @@ func (task *FatherTask) DisableDstClusterSlowlog() {
 }
 
 // EnableDstClusterSlowlog  dst cluster 'config set slowlog-log-slower-than 100000'
-func (task *FatherTask) EnableDstClusterSlowlog() {
+func (task *TendisDtsFatherTask) EnableDstClusterSlowlog() {
 	dstProxyAddrs, err := util.LookupDbDNSIPs(task.RowData.DstCluster)
 	if err != nil {
 		task.Logger.Error(err.Error())

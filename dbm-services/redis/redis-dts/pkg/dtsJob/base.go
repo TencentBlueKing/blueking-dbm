@@ -89,7 +89,7 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithConcurrency(taskType, dbType string) {
 						latestRow.ID, latestRow.SrcIP, latestRow.SrcPort, latestRow.Status, latestRow.TaskType, taskType))
 					continue
 				}
-				task01 := factory.MyTaskFactory(latestRow)
+				task01 := factory.MyTendisDtsTaskFactory(latestRow)
 				task01.Init() // 执行Init,成功则status=1,失败则status=-1
 				task01.Execute()
 			}
@@ -110,8 +110,7 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithConcurrency(taskType, dbType string) {
 				continue
 			}
 			if len(toExecuteRows) == 0 {
-				job.logger.Info(fmt.Sprintf("not found to be executed %q task,sleep 10s", taskType),
-					zap.String("serverIP", job.ServerIP))
+				job.logger.Info(fmt.Sprintf("serverIP:%s not found to be executed %s task,sleep 10s", job.ServerIP, taskType))
 				continue
 			}
 			for _, row := range toExecuteRows {
@@ -151,7 +150,7 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithoutLimit(taskType, dbType string) {
 						job.logger.Error(string(debug.Stack()))
 					}
 				}()
-				task01 := factory.MyTaskFactory(rowData)
+				task01 := factory.MyTendisDtsTaskFactory(rowData)
 				task01.Init()
 				task01.Execute()
 			}(rowItem)
@@ -175,7 +174,7 @@ func (job *DtsJobBase) BgDtsTaskRunnerWithoutLimit(taskType, dbType string) {
 				continue
 			}
 			if len(toExecuteRows) == 0 {
-				job.logger.Info(fmt.Sprintf("not found to be executed %q task,sleep 10s", taskType),
+				job.logger.Info(fmt.Sprintf("not found to be executed %s task,sleep 10s", taskType),
 					zap.String("serverIP", job.ServerIP))
 				continue
 			}

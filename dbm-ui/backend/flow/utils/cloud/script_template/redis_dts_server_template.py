@@ -38,6 +38,9 @@ system_user="{{system_user}}"
 system_password="{{system_password}}"
 city_name="{{city_name}}"
 warning_msg_notifiers="{{warning_msg_notifiers}}"
+txycos_url="{{txycos_url}}"
+txycos_secret_id="{{txycos_secret_id}}"
+txycos_secret_key="{{txycos_secret_key}}"
 
 dts_server_tool="redis_dts_server"
 
@@ -134,6 +137,9 @@ function generate_tmp_config_file(){
     sed -i -e "s#VAR_system_password#$system_password#g" $conf_tmp_file
     sed -i -e "s#VAR_city_name#$city_name#g" $conf_tmp_file
     sed -i -e "s#VAR_warning_msg_notifiers#$warning_msg_notifiers#g" $conf_tmp_file
+    sed -i -e "s#VAR_txycos_url#$txycos_url#g" $conf_tmp_file
+    sed -i -e "s#VAR_txycos_secret_id#$txycos_secret_id#g" $conf_tmp_file
+    sed -i -e "s#VAR_txycos_secret_key#$txycos_secret_key#g" $conf_tmp_file
     echo "generate tmp config file:$conf_tmp_file success"
 }
 

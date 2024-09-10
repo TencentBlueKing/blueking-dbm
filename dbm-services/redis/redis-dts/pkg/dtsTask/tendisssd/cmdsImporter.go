@@ -27,7 +27,7 @@ import (
 
 // CmdsImporterTask 命令导入task
 type CmdsImporterTask struct {
-	dtsTask.FatherTask
+	dtsTask.TendisDtsFatherTask
 	DelFiles               []string   `json:"delFiles"`
 	OutputFiles            []string   `json:"outputFiles"`
 	ListFiles              []string   `json:"listFiles"`
@@ -52,7 +52,7 @@ func (task *CmdsImporterTask) NextTask() string {
 // NewCmdsImporterTask 新建一个命令导入task
 func NewCmdsImporterTask(row *tendisdb.TbTendisDTSTask) *CmdsImporterTask {
 	return &CmdsImporterTask{
-		FatherTask: dtsTask.NewFatherTask(row),
+		TendisDtsFatherTask: dtsTask.NewDtsFatherTask(row),
 	}
 }
 

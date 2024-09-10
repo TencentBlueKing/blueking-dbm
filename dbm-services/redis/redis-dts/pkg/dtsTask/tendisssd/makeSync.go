@@ -29,7 +29,7 @@ const (
 
 // MakeSyncTask  启动redis-sync
 type MakeSyncTask struct {
-	dtsTask.FatherTask
+	dtsTask.TendisDtsFatherTask
 	RedisCliTool  string `json:"redisCliTool"`
 	RedisSyncTool string `json:"redisSyncTool"`
 	SyncLogFile   string `json:"syncLogFile"`
@@ -56,7 +56,7 @@ func (task *MakeSyncTask) NextTask() string {
 // NewMakeSyncTask 新建一个 redis-sync启动task
 func NewMakeSyncTask(row *tendisdb.TbTendisDTSTask) *MakeSyncTask {
 	return &MakeSyncTask{
-		FatherTask: dtsTask.NewFatherTask(row),
+		TendisDtsFatherTask: dtsTask.NewDtsFatherTask(row),
 	}
 }
 

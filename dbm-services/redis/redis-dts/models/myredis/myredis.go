@@ -18,11 +18,12 @@ import (
 
 // RedisWorker redis连接信息
 type RedisWorker struct {
-	Addr     string        `json:"addr"`
-	Password string        `json:"password"`
-	DB       int           `json:"db"`
-	Client   *redis.Client `json:"-"`
-	logger   *zap.Logger   `json:"-"`
+	Addr         string        `json:"addr"`
+	Password     string        `json:"password"`
+	DB           int           `json:"db"`
+	MaxRetryTime int           `json:"maxRetryTimes"`
+	Client       *redis.Client `json:"-"`
+	logger       *zap.Logger   `json:"-"`
 }
 
 // ParamsString 将连接信息返回为字符串
@@ -33,44 +34,86 @@ func (db *RedisWorker) ParamsString() string {
 
 // NewRedisClient 新建redis连接
 func NewRedisClient(addr, passwd string, db int, logger *zap.Logger) (conn *RedisWorker, err error) {
-	retry := 0 // 如果失败。重试12次，10秒一次
 	if logger == nil {
 		logger = tclog.NewFileLogger("log/main.log")
 	}
 	conn = &RedisWorker{
-		Addr:     addr,
-		Password: passwd,
-		DB:       db,
-		logger:   logger,
+		Addr:         addr,
+		Password:     passwd,
+		DB:           db,
+		logger:       logger,
+		MaxRetryTime: 60, // 默认重试次数
 	}
-RECONNCT:
-	if conn.Password == "" {
-		conn.Client = redis.NewClient(&redis.Options{
-			Addr:        conn.Addr,
-			DB:          conn.DB,
-			DialTimeout: 10 * time.Second,
-			MaxConnAge:  24 * time.Hour,
-		})
-	} else {
-		conn.Client = redis.NewClient(&redis.Options{
-			Addr:        conn.Addr,
-			Password:    conn.Password,
-			DB:          conn.DB,
-			DialTimeout: 10 * time.Second,
-			MaxConnAge:  24 * time.Hour,
-		})
-	}
-	_, err = conn.Client.Ping(context.TODO()).Result()
+	err = conn.newConn(1 * time.Minute)
 	if err != nil {
-		conn.logger.Error("redis new client fail,sleep 10s then retry.err:%v,addr:%s",
-			zap.Error(err), zap.String("params", conn.ParamsString()))
-		if retry < 12 {
-			retry++
-			time.Sleep(10 * time.Second)
-			goto RECONNCT
-		} else {
-			return nil, fmt.Errorf("redis new client fail,err:%v addr:%s", err, conn.Addr)
+		return
+	}
+	return
+}
+
+// NewRedisClientWithTimeout 新建redis连接,可制定超时时间
+func NewRedisClientWithTimeout(addr, passwd string, db int, timeout time.Duration,
+	logger *zap.Logger) (conn *RedisWorker, err error) {
+	if logger == nil {
+		logger = tclog.NewFileLogger("log/main.log")
+	}
+	conn = &RedisWorker{
+		Addr:         addr,
+		Password:     passwd,
+		DB:           db,
+		logger:       logger,
+		MaxRetryTime: int(timeout.Seconds()),
+	}
+	err = conn.newConn(timeout)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (db *RedisWorker) newConn(timeout time.Duration) (err error) {
+	// 执行命令失败重连,确保重连后,databases正确
+	var redisConnHook = func(ctx context.Context, cn *redis.Conn) error {
+		pipe01 := cn.Pipeline()
+		_, err := pipe01.Select(context.TODO(), db.DB).Result()
+		if err != nil {
+			err = fmt.Errorf("newConnct pipeline change db fail,err:%v", err)
+			db.logger.Error(err.Error())
+			return err
 		}
+		_, err = pipe01.Exec(context.TODO())
+		if err != nil {
+			err = fmt.Errorf("newConnct pipeline.exec db fail,err:%v", err)
+			db.logger.Error(err.Error())
+			return err
+		}
+		return nil
+	}
+	redisOpt := &redis.Options{
+		Addr:            db.Addr,
+		DB:              db.DB,
+		DialTimeout:     timeout,
+		ReadTimeout:     timeout,
+		MaxConnAge:      24 * time.Hour,
+		MaxRetries:      db.MaxRetryTime, // 失败自动重试,重试次数
+		MinRetryBackoff: 1 * time.Second, // 重试间隔
+		MaxRetryBackoff: 1 * time.Second,
+		PoolSize:        10,
+		OnConnect:       redisConnHook,
+	}
+	if db.Password != "" {
+		redisOpt.Password = db.Password
+	}
+	db.Client = redis.NewClient(redisOpt)
+	_, err = db.Client.Ping(context.TODO()).Result()
+	if err != nil && strings.Contains(err.Error(), "LOADING Redis is loading") {
+		db.logger.Warn(fmt.Sprintf("redis:%s conn warn,err:%v", db.Addr, err))
+		err = nil
+	}
+	if err != nil {
+		errStr := fmt.Sprintf("redis new conn fail,sleep 10s then retry.err:%v,addr:%s", err, db.Addr)
+		db.logger.Error(errStr)
+		return fmt.Errorf("redis new conn fail,err:%v addr:%s", err, db.Addr)
 	}
 	return
 }
@@ -390,6 +433,18 @@ func (db *RedisWorker) GetMasterAddrAndPasswd() (masterAddr, masterAuth string, 
 	} else {
 		masterAddr = db.Addr
 		masterAuth = db.Password
+	}
+	return
+}
+
+// Loadexternalfiles 加载外部sst文件
+func (db *RedisWorker) Loadexternalfiles(sstDir, slosStr, loadMode string) (err error) {
+	cmd := []interface{}{"loadexternalfiles", sstDir, slosStr, loadMode}
+	_, err = db.Client.Do(context.TODO(), cmd...).Result()
+	if err != nil {
+		err = fmt.Errorf("redis:%s %+v,err:%v", db.Addr, cmd, err)
+		db.logger.Error(err.Error())
+		return
 	}
 	return
 }

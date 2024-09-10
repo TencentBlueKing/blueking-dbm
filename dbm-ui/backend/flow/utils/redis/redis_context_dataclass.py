@@ -201,3 +201,15 @@ class DownloadBackupFileKwargs:
     login_passwd: str
     cluster: dict = None
     tendis_backup_info: list = None  # 占位：执行备份后的信息
+
+
+@dataclass()
+class TendisplusLightningContext:
+    """
+    定义tendisplus lightning 数据批量导入的变量结构体
+    """
+
+    redis_act_payload: Optional[Any] = None  # 代表获取payload参数的类
+    tendis_backup_info: list = None  # 执行备份后的信息
+    ticket_id: int = None  # 代表dts job id,对应表tb_tendis_dts_job
+    dst_cluster: str = None  # 代表目标集群

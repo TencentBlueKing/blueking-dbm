@@ -216,6 +216,16 @@ class CloudServiceActPayload(object):
         }
         paylod_json = json.dumps(paylod_obj)
         payload_base64 = base64_encode(paylod_json)
+        # update txy cos config
+        dts_config = SystemSettings.get_setting_value(key="TENDIS_DTS_CONFIG")
+        txycos_url = "not_found_url"
+        txycos_secret_id = "not_found_secret_id"
+        txycos_secret_key = "not_found_secret_key"
+        if dts_config and dts_config.get("txycos"):
+            txycos_url = dts_config["txycos"].get("url", "not_found_url")
+            txycos_secret_id = dts_config["txycos"].get("secret_id", "not_found_secret_id")
+            txycos_secret_key = dts_config["txycos"].get("secret_key", "not_found_secret_key")
+
         return {
             "bk_dbm_nginx_url": nginx_url,
             "bk_dbm_cloud_id": self.cloud_id,
@@ -226,6 +236,9 @@ class CloudServiceActPayload(object):
             "warning_msg_notifiers": "xxxxx",
             "sys_init_paylod": payload_base64,
             "dns_servers": dns_servers,
+            "txycos_url": txycos_url,
+            "txycos_secret_id": txycos_secret_id,
+            "txycos_secret_key": txycos_secret_key,
         }
 
     def get_redis_dts_server_reduce_payload(self):
