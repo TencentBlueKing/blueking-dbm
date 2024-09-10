@@ -18,7 +18,7 @@ from backend.flow.consts import MySQLBackupFileTagEnum, MySQLBackupTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import fetch_cluster_ids
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
@@ -61,7 +61,7 @@ class MySQLHaFullBackupFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_FULL_BACKUP)
-class MySQLHaFullBackupFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLHaFullBackupFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLHaFullBackupDetailSerializer
     inner_flow_builder = MySQLHaFullBackupFlowParamBuilder
     inner_flow_name = _("全库备份执行")

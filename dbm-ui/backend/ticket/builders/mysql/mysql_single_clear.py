@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_ha_clear import MySQLHaClearDetailSerializer, MySQLHaClearFlowParamBuilder
 from backend.ticket.constants import TicketType
 
@@ -40,7 +40,7 @@ class MySQLSingleClearFlowParamBuilder(MySQLHaClearFlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_TRUNCATE_DATA)
-class MySQLSingleClearFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLSingleClearFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MySQLSingleClearDetailSerializer
     inner_flow_builder = MySQLSingleClearFlowParamBuilder
     inner_flow_name = _("MySQL 单节点清档执行")

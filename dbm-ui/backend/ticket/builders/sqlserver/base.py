@@ -31,6 +31,19 @@ from backend.ticket.constants import FlowRetryType, TicketType
 class BaseSQLServerTicketFlowBuilder(SQLServerTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Sqlserver.value
     retry_type = FlowRetryType.MANUAL_RETRY
+    cluster_types = [ClusterType.SqlserverHA.value, ClusterType.SqlserverSingle.value]
+
+
+class BaseSQLServerHATicketFlowBuilder(SQLServerTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.Sqlserver.value
+    retry_type = FlowRetryType.MANUAL_RETRY
+    cluster_types = [ClusterType.SqlserverHA.value]
+
+
+class BaseSQLServerSingleTicketFlowBuilder(SQLServerTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.Sqlserver.value
+    retry_type = FlowRetryType.MANUAL_RETRY
+    cluster_types = [ClusterType.SqlserverSingle.value]
 
 
 class SQLServerBasePauseParamBuilder(builders.PauseParamBuilder):

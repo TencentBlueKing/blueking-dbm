@@ -18,7 +18,10 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.mongodb.base import BaseMongoDBOperateResourceParamBuilder, BaseMongoDBTicketFlowBuilder
+from backend.ticket.builders.mongodb.base import (
+    BaseMongoDBOperateResourceParamBuilder,
+    BaseMongoShardedTicketFlowBuilder,
+)
 from backend.ticket.constants import TicketType
 
 
@@ -95,7 +98,7 @@ class MongoShardedClusterResourceParamBuilder(BaseMongoDBOperateResourceParamBui
     cluster_type=ClusterType.MongoShardedCluster,
     iam=ActionEnum.MONGODB_APPLY,
 )
-class MongoShardedClusterApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoShardedClusterApplyFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoShardedClusterApplyDetailSerializer
     inner_flow_builder = MongoShardedClusterApplyFlowParamBuilder
     inner_flow_name = _("MongoDB 分片集群部署执行")

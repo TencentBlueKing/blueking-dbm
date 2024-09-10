@@ -20,8 +20,8 @@ from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
-    BaseMongoDBTicketFlowBuilder,
     BaseMongoOperateFlowParamBuilder,
+    BaseMongoShardedTicketFlowBuilder,
 )
 from backend.ticket.constants import TicketType
 
@@ -68,7 +68,7 @@ class MongoDBAddMongosResourceParamBuilder(BaseMongoDBOperateResourceParamBuilde
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_ADD_MONGOS, is_apply=True)
-class MongoDBAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoDBAddMongosApplyFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBAddMongosDetailSerializer
     inner_flow_builder = MongoDBAddMongosFlowParamBuilder
     inner_flow_name = _("MongoDB 扩容接入层执行")

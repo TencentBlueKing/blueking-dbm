@@ -18,7 +18,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
@@ -84,7 +84,7 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MIGRATE_CLUSTER, is_apply=True)
-class MysqlMigrateClusterFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlMigrateClusterFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlMigrateClusterDetailSerializer
     inner_flow_builder = MysqlMigrateClusterParamBuilder
     inner_flow_name = _("迁移主从执行")

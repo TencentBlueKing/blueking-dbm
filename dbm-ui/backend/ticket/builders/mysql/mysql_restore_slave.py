@@ -17,7 +17,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer, InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
@@ -70,7 +70,7 @@ class MysqlRestoreSlaveParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_SLAVE, is_apply=True)
-class MysqlRestoreSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlRestoreSlaveFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlRestoreSlaveDetailSerializer
     inner_flow_builder = MysqlRestoreSlaveParamBuilder
     inner_flow_name = _("Slave重建执行")

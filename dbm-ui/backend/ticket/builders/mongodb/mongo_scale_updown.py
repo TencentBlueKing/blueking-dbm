@@ -22,7 +22,7 @@ from backend.ticket import builders
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
-    BaseMongoDBTicketFlowBuilder,
+    BaseMongoShardedTicketFlowBuilder,
 )
 from backend.ticket.builders.mongodb.mongo_backup import MongoDBBackupFlowParamBuilder
 from backend.ticket.constants import TicketType
@@ -109,7 +109,7 @@ class MongoDBScaleUpDownResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_SCALE_UPDOWN, is_apply=True)
-class MongoDBScaleUpDownFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoDBScaleUpDownFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBScaleUpDownDetailSerializer
     inner_flow_builder = MongoDBScaleUpDownFlowParamBuilder
     inner_flow_name = _("MongoDB 集群容量变更执行")

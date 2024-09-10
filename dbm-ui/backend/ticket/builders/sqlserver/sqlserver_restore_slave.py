@@ -20,7 +20,7 @@ from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.sqlserver.base import (
-    BaseSQLServerTicketFlowBuilder,
+    BaseSQLServerHATicketFlowBuilder,
     SQLServerBaseOperateDetailSerializer,
     SQLServerBaseOperateResourceParamBuilder,
 )
@@ -109,7 +109,7 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_SLAVE)
-class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerTicketFlowBuilder):
+class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerRestoreSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerRestoreSlaveResourceParamBuilder
     inner_flow_builder = SQLServerRestoreSlaveFlowParamBuilder

@@ -20,7 +20,7 @@ from backend.ticket import builders
 from backend.ticket.builders.common.constants import MYSQL_BINLOG_ROLLBACK
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
+    BaseMySQLHATicketFlowBuilder,
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
@@ -72,7 +72,7 @@ class MySQLFlashbackFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_FLASHBACK)
-class MySQLFlashbackFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLFlashbackFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLFlashbackDetailSerializer
     inner_flow_builder = MySQLFlashbackFlowParamBuilder
     inner_flow_name = _("闪回执行")

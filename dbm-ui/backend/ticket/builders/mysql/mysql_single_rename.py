@@ -14,7 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_ha_rename import MySQLHaRenameFlowParamBuilder, MySQLHaRenameSerializer
 from backend.ticket.constants import TicketType
 
@@ -34,7 +34,7 @@ class MySQLSingleRenameFlowParamBuilder(MySQLHaRenameFlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_SINGLE_RENAME_DATABASE)
-class MySQLSingleClearFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLSingleClearFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MySQLSingleRenameDetailSerializer
     inner_flow_builder = MySQLSingleRenameFlowParamBuilder
     inner_flow_name = _("MySQL 单节点DB重命名执行")

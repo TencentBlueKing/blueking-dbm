@@ -156,6 +156,17 @@ class TicketType(str, StructuredEnum):
                 return ""
             raise TicketBaseException(_("无法找到{}关联的组件类型").format(ticket_type))
 
+    @classmethod
+    def get_cluster_type_by_ticket(cls, ticket_type):
+        """根据单据类型找到集群类型"""
+        # 延迟导入避免循环依赖
+        from backend.ticket.builders import BuilderFactory
+
+        builder = BuilderFactory.get_builder_cls(ticket_type)
+        if not builder.cluster_types:
+            raise TicketBaseException(_("无法找到{}关联的集群类型").format(ticket_type))
+        return builder.cluster_types
+
     # fmt: off
     # MYSQL
     MYSQL_SINGLE_APPLY = TicketEnumField("MYSQL_SINGLE_APPLY", _("MySQL 单节点部署"), register_iam=False)

@@ -15,7 +15,7 @@ from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
@@ -30,7 +30,7 @@ class MysqlHAEnableFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(
     TicketType.MYSQL_HA_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.MYSQL_ENABLE_DISABLE
 )
-class MysqlHaEnableFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlHaEnableFlowBuilder(BaseMySQLHATicketFlowBuilder):
     """Mysql下架流程的构建基类"""
 
     serializer = MysqlHAEnableDetailSerializer

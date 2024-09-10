@@ -28,7 +28,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder
 from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
 
@@ -198,7 +198,7 @@ class MysqlSingleApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
 @builders.BuilderFactory.register(
     TicketType.MYSQL_SINGLE_APPLY, is_apply=True, cluster_type=ClusterType.TenDBSingle, iam=ActionEnum.MYSQL_APPLY
 )
-class MysqlSingleApplyFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlSingleApplyFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MysqlSingleApplyDetailSerializer
     inner_flow_builder = MysqlSingleApplyFlowParamBuilder
     inner_flow_name = _("MySQL单节点部署执行")
