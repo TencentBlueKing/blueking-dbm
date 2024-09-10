@@ -23,9 +23,7 @@
       :name="item.name" />
   </BkTab>
   <div class="pool-content">
-    <KeepAlive>
-      <Component :is="renderComponent" />
-    </KeepAlive>
+    <Component :is="renderComponent" />
   </div>
 </template>
 
@@ -51,7 +49,7 @@
     },
   ];
 
-  const active = useDebouncedRef(route.query.tab || 'summary-view');
+  const active = useDebouncedRef((route.query.tab as string) || 'summary-view');
 
   const renderComponentMap = {
     'summary-view': SummaryView,
@@ -63,11 +61,7 @@
   watch(
     () => route.query,
     () => {
-      console.log(route.query, 'route.query');
-
-      if (route.query.tab) {
-        active.value = route.query.tab;
-      }
+      active.value = (route.query.tab as string) || 'summary-view';
     },
   );
 </script>

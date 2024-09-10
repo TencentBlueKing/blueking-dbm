@@ -3,10 +3,6 @@
     v-model="modelValue"
     @change="handleChange">
     <BkOption
-      key="default"
-      :label="t('无限制')"
-      :value="0" />
-    <BkOption
       v-for="biz in data"
       :key="biz.bk_biz_id"
       :label="biz.display_name"
@@ -15,7 +11,6 @@
 </template>
 
 <script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
   import { getBizs } from '@services/source/cmdb';
@@ -35,8 +30,6 @@
   const modelValue = defineModel<number>({
     default: 0,
   });
-
-  const { t } = useI18n();
 
   const { data } = useRequest(getBizs, {
     initialData: [],

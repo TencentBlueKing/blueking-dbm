@@ -13,12 +13,9 @@
 
   import type SummaryModel from '@services/model/db-resource/summary';
 
-  import { DBTypeInfos, type DBTypes } from '@common/const';
-
   interface Props {
     data: SummaryModel[];
     dimension: 'spec' | 'device_class';
-    dbType: DBTypes;
   }
 
   const props = defineProps<Props>();
@@ -44,7 +41,7 @@
         return props.data.map((item) => [
           item.for_biz_name,
           item.city,
-          `${DBTypeInfos[props.dbType].name} - ${item.spec_machine_display}`,
+          item.spec_type_display,
           item.spec_name,
           item.sub_zone_detail_display,
           item.count,

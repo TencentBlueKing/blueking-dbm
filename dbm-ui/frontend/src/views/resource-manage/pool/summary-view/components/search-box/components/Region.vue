@@ -2,8 +2,9 @@
   <BkComposeFormItem class="search-box-select-region">
     <BkSelect
       v-model="cityCode"
+      clearable
       style="width: 100px"
-      @change="handleChange">
+      @change="handleChangeCity">
       <BkOption
         v-for="item in citiyList"
         :key="item.city_code"
@@ -18,7 +19,7 @@
       multiple
       multiple-mode="tag"
       show-select-all
-      @change="handleChange">
+      @change="handleChangeSubzone">
       <BkOption
         v-for="item in subzoneList"
         :key="item.bk_sub_zone_id"
@@ -29,7 +30,6 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useRequest } from 'vue-request';
 
   import { getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
@@ -62,9 +62,7 @@
   useRequest(getInfrasCities, {
     initialData: [],
     onSuccess(data) {
-      const cloneData = _.cloneDeep(data);
-      cloneData.unshift(cloneData.pop() as CityItem);
-      citiyList.value = cloneData;
+      citiyList.value = data.filter((item) => item.city_code !== 'default');
     },
   });
   const { data: subzoneList, run: fetchData } = useRequest(getInfrasSubzonesByCity, {
@@ -89,7 +87,12 @@
     },
   );
 
-  const handleChange = () => {
+  const handleChangeCity = () => {
+    subzoneIds.value = [];
+    emits('change');
+  };
+
+  const handleChangeSubzone = () => {
     emits('change');
   };
 

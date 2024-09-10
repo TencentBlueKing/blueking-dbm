@@ -5,10 +5,10 @@
       style="width: 150px"
       @change="handleChangeCluster">
       <BkOption
-        v-for="(item, index) in currentClusterList"
-        :key="`${item}#${index}`"
-        :label="item.label"
-        :value="item.name" />
+        v-for="item in currentClusterList"
+        :key="item.id"
+        :label="item.name"
+        :value="item.id" />
     </BkSelect>
     <BkSelect
       :key="currentCluster"
@@ -18,9 +18,9 @@
       @change="handleChangeMachine">
       <BkOption
         v-for="item in clusterMachineList"
-        :key="item.label"
-        :label="item.label"
-        :value="item.name" />
+        :key="item.id"
+        :label="item.name"
+        :value="item.id" />
     </BkSelect>
     <BkSelect
       :key="currentMachine"
@@ -42,11 +42,9 @@
 </template>
 
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
+  import { type ClusterTypeInfoItem, clusterTypeInfos, ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 
   import { getResourceSpecList } from '@/services/source/dbresourceSpec';
 
@@ -76,208 +74,14 @@
 
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
-
-  const clusterList = [
-    {
-      label: t('MySQL单节点'),
-      name: ClusterTypes.TENDBSINGLE,
-      dbType: DBTypes.MYSQL,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: MachineTypes.SINGLE,
-        },
-      ],
-    },
-    {
-      label: t('MySQL主从'),
-      name: ClusterTypes.TENDBHA,
-      dbType: DBTypes.MYSQL,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: MachineTypes.BACKEND,
-        },
-        {
-          label: t('Proxy机型'),
-          name: MachineTypes.PROXY,
-        },
-      ],
-    },
-    {
-      label: 'TenDBCluster',
-      name: ClusterTypes.TENDBCLUSTER,
-      dbType: DBTypes.TENDBCLUSTER,
-      children: [
-        {
-          label: t('接入层Master'),
-          name: MachineTypes.SPIDER,
-        },
-        {
-          label: t('后端存储规格'),
-          name: MachineTypes.REMOTE,
-        },
-      ],
-    },
-    {
-      label: 'TendisCache',
-      name: ClusterTypes.TWEMPROXY_REDIS_INSTANCE,
-      dbType: DBTypes.REDIS,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: MachineTypes.TENDISCACHE,
-        },
-        {
-          label: t('Proxy机型'),
-          name: MachineTypes.TWEMPROXY,
-        },
-      ],
-    },
-    {
-      label: 'TendisSSD',
-      name: ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
-      dbType: DBTypes.REDIS,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: MachineTypes.TENDISSSD,
-        },
-        {
-          label: t('Proxy机型'),
-          name: MachineTypes.TWEMPROXY,
-        },
-      ],
-    },
-    {
-      label: 'Tendisplus',
-      name: ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
-      dbType: DBTypes.REDIS,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: MachineTypes.TENDISPLUS,
-        },
-        {
-          label: t('Proxy机型'),
-          name: MachineTypes.PREDIXY,
-        },
-      ],
-    },
-    {
-      label: 'RedisCluster',
-      name: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      dbType: DBTypes.REDIS,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: MachineTypes.TENDISCACHE,
-        },
-        {
-          label: t('Proxy机型'),
-          name: MachineTypes.PREDIXY,
-        },
-      ],
-    },
-    {
-      label: t('Redis主从'),
-      name: ClusterTypes.REDIS_INSTANCE,
-      dbType: DBTypes.REDIS,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: MachineTypes.TENDISCACHE,
-        },
-      ],
-    },
-    {
-      label: 'ES',
-      name: ClusterTypes.ES,
-      dbType: DBTypes.ES,
-      children: [
-        {
-          label: t('Master节点规格'),
-          name: MachineTypes.ES_MASTER,
-        },
-        {
-          label: t('Client节点规格'),
-          name: MachineTypes.ES_CLIENT,
-        },
-        {
-          label: t('冷_热节点规格'),
-          name: MachineTypes.ES_DATANODE,
-        },
-      ],
-    },
-    {
-      label: 'HDFS',
-      name: ClusterTypes.HDFS,
-      dbType: DBTypes.HDFS,
-      children: [
-        {
-          label: t('DataNode节点规格'),
-          name: MachineTypes.HDFS_DATANODE,
-        },
-        {
-          label: t('NameNode_Zookeeper_JournalNode节点规格'),
-          name: MachineTypes.HDFS_MASTER,
-        },
-      ],
-    },
-    {
-      label: 'Kafka',
-      name: ClusterTypes.KAFKA,
-      dbType: DBTypes.KAFKA,
-      children: [
-        {
-          label: t('Zookeeper节点规格'),
-          name: MachineTypes.ZOOKEEPER,
-        },
-        {
-          label: t('Broker节点规格'),
-          name: MachineTypes.BROKER,
-        },
-      ],
-    },
-    {
-      label: 'InfluxDB',
-      name: ClusterTypes.INFLUXDB,
-      dbType: DBTypes.INFLUXDB,
-      children: [
-        {
-          label: t('后端存储机型'),
-          name: MachineTypes.INFLUXDB,
-        },
-      ],
-    },
-    {
-      label: 'Pulsar',
-      name: ClusterTypes.PULSAR,
-      dbType: DBTypes.PULSAR,
-      children: [
-        {
-          label: t('Bookkeeper节点规格'),
-          name: MachineTypes.PULSAR_BOOKKEEPER,
-        },
-        {
-          label: t('Zookeeper节点规格'),
-          name: MachineTypes.PULSAR_ZOOKEEPER,
-        },
-        {
-          label: t('Broker节点规格'),
-          name: MachineTypes.PULSAR_BROKER,
-        },
-      ],
-    },
-  ];
-
   const currentCluster = ref('');
   const currentMachine = ref('');
   const currentSpecIdList = ref<number[]>([]);
-  const clusterMachineList = ref<Record<'label' | 'name', string>[]>([]);
+  const clusterMachineList = ref<ClusterTypeInfoItem['machineList']>([]);
 
-  const currentClusterList = computed(() => clusterList.filter((item) => item.dbType === props.dbType));
+  const currentClusterList = computed(
+    () => Object.values(clusterTypeInfos).filter((item) => item.dbType === props.dbType) || [],
+  );
 
   const {
     loading: isResourceSpecListLoading,
@@ -301,12 +105,7 @@
   );
 
   const handleChangeCluster = (value: ClusterTypes) => {
-    const clusterData = _.find(clusterList, (item) => item.name === value);
-    if (!clusterData) {
-      clusterMachineList.value = [];
-      return;
-    }
-    clusterMachineList.value = clusterData.children;
+    clusterMachineList.value = clusterTypeInfos[value]?.machineList || [];
     emits('change');
   };
 
