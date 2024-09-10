@@ -841,6 +841,9 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 			initAccountsql = append(initAccountsql,
 				fmt.Sprintf(
 					" GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s' ;", a.User, host))
+			initAccountsql = append(initAccountsql,
+				fmt.Sprintf(
+					"GRANT ALL ON mysql.servers TO '%s'@'%s' ;", a.User, host))
 
 		} else {
 			initAccountsql = append(initAccountsql,
@@ -852,6 +855,9 @@ func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql [
 				fmt.Sprintf(
 					"GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s' ;",
 					a.User, host))
+			initAccountsql = append(initAccountsql,
+				fmt.Sprintf(
+					"GRANT ALL ON mysql.servers TO '%s'@'%s' ;", a.User, host))
 		}
 	}
 	return
@@ -1150,7 +1156,7 @@ func (i *InstallMySQLComp) getSuperUserAccountForSpider() (initAccountsql []stri
 				i.Params.DBHAAccount.User, host, i.Params.DBHAAccount.Pwd))
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
-				"GRANT SELECT ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host))
+				"GRANT ALL ON mysql.servers TO '%s'@'%s' ;", i.Params.DBHAAccount.User, host))
 		initAccountsql = append(initAccountsql,
 			fmt.Sprintf(
 				" GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s';",
