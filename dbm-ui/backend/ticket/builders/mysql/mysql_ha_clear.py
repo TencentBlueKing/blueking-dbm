@@ -17,7 +17,7 @@ from backend.flow.consts import TruncateDataTypeEnum
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
+    BaseMySQLHATicketFlowBuilder,
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
@@ -56,7 +56,7 @@ class MySQLHaClearFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_TRUNCATE_DATA)
-class MySQLHaClearFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLHaClearFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLHaClearDetailSerializer
     inner_flow_builder = MySQLHaClearFlowParamBuilder
     inner_flow_name = _("清档执行")

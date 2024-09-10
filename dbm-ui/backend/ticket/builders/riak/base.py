@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
 from backend.ticket.builders import TicketFlowBuilder
 from backend.ticket.builders.common.base import BigDataTicketFlowBuilderPatchMixin
 
@@ -19,3 +20,4 @@ RIAK_VERSION = "2.2"
 
 class BaseRiakTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Riak.value
+    cluster_types = [ClusterType.Riak.value]

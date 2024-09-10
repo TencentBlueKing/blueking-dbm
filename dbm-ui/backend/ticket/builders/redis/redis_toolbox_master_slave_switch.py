@@ -17,7 +17,7 @@ from backend.db_services.redis.toolbox.handlers import ToolboxHandler
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
+from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, ClusterValidateMixin
 from backend.ticket.constants import SwitchConfirmType, TicketType
 
 
@@ -67,7 +67,7 @@ class RedisMasterSlaveSwitchParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_MASTER_SLAVE_SWITCH)
-class RedisMasterSlaveSwitchFlowBuilder(BaseRedisTicketFlowBuilder):
+class RedisMasterSlaveSwitchFlowBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisMasterSlaveSwitchDetailSerializer
     inner_flow_builder = RedisMasterSlaveSwitchParamBuilder
     inner_flow_name = _("Redis 主从切换")

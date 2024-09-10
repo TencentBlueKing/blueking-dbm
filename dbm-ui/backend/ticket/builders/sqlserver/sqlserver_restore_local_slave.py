@@ -16,7 +16,10 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import InstanceInfoSerializer
-from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
+from backend.ticket.builders.sqlserver.base import (
+    BaseSQLServerHATicketFlowBuilder,
+    SQLServerBaseOperateDetailSerializer,
+)
 from backend.ticket.constants import TicketType
 
 
@@ -51,7 +54,7 @@ class SQLServerRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_LOCAL_SLAVE)
-class SQLServerRestoreLocalSlaveFlowBuilder(BaseSQLServerTicketFlowBuilder):
+class SQLServerRestoreLocalSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerRestoreLocalSlaveDetailSerializer
     inner_flow_builder = SQLServerRestoreLocalSlaveParamBuilder
     inner_flow_name = _("SQLServer Slave原地重建执行")

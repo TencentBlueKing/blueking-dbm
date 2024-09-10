@@ -25,7 +25,7 @@ from backend.ticket.builders.common.base import InstanceInfoSerializer
 from backend.ticket.builders.common.constants import MySQLChecksumTicketMode, MySQLDataRepairTriggerMode
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
+    BaseMySQLHATicketFlowBuilder,
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
@@ -137,7 +137,7 @@ class MySQLDataRepairFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_CHECKSUM)
-class MySQLChecksumFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLChecksumDetailSerializer
     # 流程构造类
     checksum_flow_builder = MySQLChecksumFlowParamBuilder

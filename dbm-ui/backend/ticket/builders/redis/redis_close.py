@@ -16,7 +16,11 @@ from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, RedisSingleOpsBaseDetailSerializer
+from backend.ticket.builders.redis.base import (
+    BaseRedisInstanceTicketFlowBuilder,
+    BaseRedisTicketFlowBuilder,
+    RedisSingleOpsBaseDetailSerializer,
+)
 from backend.ticket.constants import TicketType
 
 
@@ -63,7 +67,7 @@ class RedisInstanceCloseFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(
     TicketType.REDIS_INSTANCE_CLOSE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.REDIS_OPEN_CLOSE
 )
-class RedisInstanceCloseFlowBuilder(BaseRedisTicketFlowBuilder):
+class RedisInstanceCloseFlowBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisInstanceCloseDetailSerializer
     inner_flow_builder = RedisInstanceCloseFlowParamBuilder
     inner_flow_name = _("禁用集群")

@@ -17,7 +17,7 @@ from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
@@ -66,7 +66,7 @@ class MysqlHaStandardizeFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_STANDARDIZE)
-class MysqlStandardizeFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlStandardizeFlowBuilder(BaseMySQLHATicketFlowBuilder):
     """Mysql下架流程的构建基类"""
 
     serializer = TenDBHAStandardizeDetailSerializer

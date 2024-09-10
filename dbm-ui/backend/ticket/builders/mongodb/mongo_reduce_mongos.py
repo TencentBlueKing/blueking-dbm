@@ -18,8 +18,8 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate, HostInfoSerializer
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
-    BaseMongoDBTicketFlowBuilder,
     BaseMongoOperateFlowParamBuilder,
+    BaseMongoShardedTicketFlowBuilder,
 )
 from backend.ticket.constants import TicketType
 
@@ -74,7 +74,7 @@ class MongoDBReduceMongosFlowParamBuilder(BaseMongoOperateFlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MONGODB_REDUCE_MONGOS)
-class MongoDBAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoDBAddMongosApplyFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBReduceMongosDetailSerializer
     inner_flow_builder = MongoDBReduceMongosFlowParamBuilder
     inner_flow_name = _("MongoDB 缩容接入层执行")

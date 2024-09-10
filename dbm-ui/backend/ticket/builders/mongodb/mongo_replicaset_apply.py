@@ -18,7 +18,10 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.mongodb.base import BaseMongoDBOperateResourceParamBuilder, BaseMongoDBTicketFlowBuilder
+from backend.ticket.builders.mongodb.base import (
+    BaseMongoDBOperateResourceParamBuilder,
+    BaseMongoReplicaSetTicketFlowBuilder,
+)
 from backend.ticket.constants import TicketType
 
 
@@ -95,7 +98,7 @@ class MongoReplicaSetResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder
     cluster_type=ClusterType.MongoReplicaSet,
     iam=ActionEnum.MONGODB_APPLY,
 )
-class MongoReplicaSetApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
     serializer = MongoReplicaSetApplyDetailSerializer
     inner_flow_builder = MongoReplicaSetApplyFlowParamBuilder
     inner_flow_name = _("MongoDB 副本集集群部署执行")

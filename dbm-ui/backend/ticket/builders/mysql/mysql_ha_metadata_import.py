@@ -21,7 +21,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, DBModule, Spec
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 logger = logging.getLogger("root")
@@ -237,7 +237,7 @@ class TenDBHAMetadataImportFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_METADATA_IMPORT)
-class TenDBHAMetadataImportFlowBuilder(BaseMySQLTicketFlowBuilder):
+class TenDBHAMetadataImportFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = TenDBHAMetadataImportDetailSerializer
     inner_flow_builder = TenDBHAMetadataImportFlowParamBuilder
     inner_flow_name = _("MySQL高可用元数据导入")

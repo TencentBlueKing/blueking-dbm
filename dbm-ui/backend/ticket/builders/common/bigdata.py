@@ -16,6 +16,7 @@ from rest_framework import serializers
 from rest_framework.serializers import ValidationError
 
 from backend.configuration.constants import AffinityEnum, DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.cluster_phase import ClusterPhase
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.instance import StorageInstance
@@ -269,26 +270,32 @@ class BigDataReplaceResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 class BaseEsTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Es.value
+    cluster_types = [ClusterType.Es.value]
 
 
 class BaseDorisTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Doris.value
+    cluster_types = [ClusterType.Doris.value]
 
 
 class BaseHdfsTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Hdfs.value
+    cluster_types = [ClusterType.Hdfs.value]
 
 
 class BaseKafkaTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Kafka.value
+    cluster_types = [ClusterType.Kafka.value]
 
 
 class BasePulsarTicketFlowBuilder(BigDataTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Pulsar.value
+    cluster_types = [ClusterType.Pulsar.value]
 
 
 class BaseInfluxDBTicketFlowBuilder(InfluxdbTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.InfluxDB.value
+    cluster_types = [ClusterType.Influxdb.value]
 
 
 class BaseCloudTicketFlowBuilder(TicketFlowBuilder):

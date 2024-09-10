@@ -16,6 +16,7 @@ from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import (
+    BaseRedisInstanceTicketFlowBuilder,
     BaseRedisTicketFlowBuilder,
     RedisBasePauseParamBuilder,
     RedisSingleOpsBaseDetailSerializer,
@@ -59,7 +60,7 @@ class RedisInstanceDestroyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_INSTANCE_DESTROY, phase=ClusterPhase.DESTROY)
-class RedisInstanceCloseFlowBuilder(BaseRedisTicketFlowBuilder):
+class RedisInstanceCloseFlowBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisInstanceDestroyDetailSerializer
     inner_flow_builder = RedisInstanceDestroyFlowParamBuilder
     inner_flow_name = _("下架集群")

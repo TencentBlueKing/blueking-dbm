@@ -29,7 +29,7 @@ from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.sqlserver.base import (
-    BaseSQLServerTicketFlowBuilder,
+    BaseSQLServerSingleTicketFlowBuilder,
     SQLServerBaseOperateResourceParamBuilder,
 )
 from backend.ticket.constants import TicketType
@@ -200,7 +200,7 @@ class SQLServerSingleApplyResourceParamBuilder(SQLServerBaseOperateResourceParam
     cluster_type=ClusterType.SqlserverSingle,
     iam=ActionEnum.SQLSERVER_APPLY,
 )
-class SQLServerSingleApplyFlowBuilder(BaseSQLServerTicketFlowBuilder):
+class SQLServerSingleApplyFlowBuilder(BaseSQLServerSingleTicketFlowBuilder):
     serializer = SQLServerSingleApplyDetailSerializer
     inner_flow_builder = SQLServerSingleApplyFlowParamBuilder
     inner_flow_name = _("SQLServer 单节点部署执行")

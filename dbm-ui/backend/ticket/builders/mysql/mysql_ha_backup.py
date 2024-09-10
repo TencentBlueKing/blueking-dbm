@@ -15,7 +15,7 @@ from rest_framework import serializers
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
+    BaseMySQLHATicketFlowBuilder,
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
@@ -51,7 +51,7 @@ class MySQLHaBackupFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_DB_TABLE_BACKUP)
-class MySQLHaBackupFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLHaBackupFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLHaBackupDetailSerializer
     inner_flow_builder = MySQLHaBackupFlowParamBuilder
     inner_flow_name = _("库表备份执行")

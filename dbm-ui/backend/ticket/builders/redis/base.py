@@ -16,7 +16,7 @@ from rest_framework import serializers
 
 from backend.configuration.constants import DBType
 from backend.core.storages.storage import get_storage
-from backend.db_meta.enums import ClusterPhase
+from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.constants import KeyDeleteType
 from backend.ticket import builders
@@ -29,6 +29,18 @@ KEY_FILE_PREFIX = "/redis/keyfiles/{biz}"
 
 class BaseRedisTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.Redis.value
+    cluster_types = [ClusterType.TendisRedisInstance.value]
+
+
+class BaseRedisInstanceTicketFlowBuilder(RedisTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.Redis.value
+    cluster_types = [
+        ClusterType.TendisPredixyRedisCluster.value,
+        ClusterType.TendisPredixyTendisplusCluster.value,
+        ClusterType.TendisTwemproxyRedisInstance.value,
+        ClusterType.TwemproxyTendisSSDInstance.value,
+        ClusterType.TendisRedisInstance.value,
+    ]
 
 
 class RedisSingleOpsBaseDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):

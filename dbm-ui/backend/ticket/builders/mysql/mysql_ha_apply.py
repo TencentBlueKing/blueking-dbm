@@ -23,7 +23,7 @@ from backend.db_services.mysql.constants import DEFAULT_ORIGIN_PROXY_PORT, SERVE
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.builders import BuilderFactory
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder
 from backend.ticket.builders.mysql.mysql_single_apply import (
     MysqlSingleApplyDetailSerializer,
     MysqlSingleApplyFlowParamBuilder,
@@ -124,7 +124,7 @@ class MysqlHaApplyResourceParamBuilder(MysqlSingleApplyResourceParamBuilder):
 @BuilderFactory.register(
     TicketType.MYSQL_HA_APPLY, is_apply=True, cluster_type=ClusterType.TenDBHA, iam=ActionEnum.MYSQL_APPLY
 )
-class MysqlHAApplyFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlHAApplyFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlHAApplyDetailSerializer
     inner_flow_builder = MysqlHAApplyFlowParamBuilder
     inner_flow_name = _("MySQL高可用部署执行")

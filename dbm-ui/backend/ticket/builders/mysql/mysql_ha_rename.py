@@ -18,7 +18,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
+    BaseMySQLHATicketFlowBuilder,
     DBTableField,
     MySQLBaseOperateDetailSerializer,
 )
@@ -61,7 +61,7 @@ class MySQLHaRenameFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_HA_RENAME_DATABASE)
-class MySQLHaRenameFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MySQLHaRenameFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MySQLHaRenameSerializer
     inner_flow_builder = MySQLHaRenameFlowParamBuilder
     inner_flow_name = _("DB重命名执行")

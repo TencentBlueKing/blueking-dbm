@@ -15,7 +15,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
-from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder
+from backend.ticket.builders.sqlserver.base import BaseSQLServerHATicketFlowBuilder
 from backend.ticket.builders.sqlserver.sqlserver_master_slave_switch import SQLServerMasterSlaveSwitchDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -38,7 +38,7 @@ class SQLServerMasterFailOverParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_MASTER_FAIL_OVER)
-class SQLServerMasterSlaveSwitchFlowBuilder(BaseSQLServerTicketFlowBuilder):
+class SQLServerMasterSlaveSwitchFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerMasterFailOverDetailSerializer
     inner_flow_builder = SQLServerMasterFailOverParamBuilder
     inner_flow_name = _("SQLServer 主故障切换执行")

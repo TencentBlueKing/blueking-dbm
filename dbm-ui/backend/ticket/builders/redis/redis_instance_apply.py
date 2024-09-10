@@ -21,7 +21,7 @@ from backend.flow.engine.controller.redis import RedisController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate, SkipToRepresentationMixin
-from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder
+from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
@@ -161,7 +161,7 @@ class RedisInstanceApplyResourceParamBuilder(builders.ResourceApplyParamBuilder)
 
 
 @builders.BuilderFactory.register(TicketType.REDIS_INS_APPLY, is_apply=True, iam=ActionEnum.REDIS_CLUSTER_APPLY)
-class RedisClusterApplyFlowBuilder(BaseRedisTicketFlowBuilder):
+class RedisClusterApplyFlowBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisInstanceApplyDetailSerializer
     inner_flow_builder = RedisInstanceApplyFlowParamBuilder
     inner_flow_name = _("Redis 主从部署")

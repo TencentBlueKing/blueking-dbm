@@ -13,7 +13,7 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend.configuration.constants import DBType
-from backend.db_meta.enums import ClusterTenDBClusterStatusFlag, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterTenDBClusterStatusFlag, ClusterType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.flow.consts import MAX_SPIDER_MASTER_COUNT, MIN_SPIDER_MASTER_COUNT, MIN_SPIDER_SLAVE_COUNT
 from backend.ticket import builders
@@ -30,10 +30,12 @@ from backend.ticket.constants import TicketType
 
 class BaseTendbTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.TenDBCluster.value
+    cluster_types = [ClusterType.TenDBCluster.value]
 
 
 class BaseDumperTicketFlowBuilder(DumperTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.MySQL.value
+    cluster_types = [ClusterType.TBinlogDumper]
 
 
 class TendbBasePauseParamBuilder(builders.PauseParamBuilder):

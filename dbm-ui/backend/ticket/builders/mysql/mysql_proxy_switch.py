@@ -22,7 +22,7 @@ from backend.ticket.builders.common.base import (
     InstanceInfoSerializer,
 )
 from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
+    BaseMySQLHATicketFlowBuilder,
     MySQLBaseOperateDetailSerializer,
     MySQLBasePauseParamBuilder,
 )
@@ -90,7 +90,7 @@ class MysqlProxySwitchResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_PROXY_SWITCH, is_apply=True)
-class MysqlProxySwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlProxySwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlProxySwitchDetailSerializer
     inner_flow_builder = MysqlProxySwitchParamBuilder
     inner_flow_name = _("替换PROXY执行")

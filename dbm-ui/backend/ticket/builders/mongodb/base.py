@@ -16,6 +16,7 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum, DBType
+from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.db_services.mongodb.resources.query import MongoDBListRetrieveResource
 from backend.flow.utils.mongodb.db_table_filter import MongoDbTableFilter
@@ -44,6 +45,17 @@ class DBTableSerializer(serializers.Serializer):
 
 class BaseMongoDBTicketFlowBuilder(MongoDBTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.MongoDB.value
+    cluster_types = [ClusterType.MongoReplicaSet.value, ClusterType.MongoShardedCluster.value]
+
+
+class BaseMongoReplicaSetTicketFlowBuilder(MongoDBTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.MongoDB.value
+    cluster_types = [ClusterType.MongoReplicaSet.value]
+
+
+class BaseMongoShardedTicketFlowBuilder(MongoDBTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.MongoDB.value
+    cluster_types = [ClusterType.MongoShardedCluster.value]
 
 
 class BaseMongoDBOperateDetailSerializer(SkipToRepresentationMixin, serializers.Serializer):

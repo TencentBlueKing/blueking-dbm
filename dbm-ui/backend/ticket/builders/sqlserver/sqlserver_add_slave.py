@@ -18,7 +18,7 @@ from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.sqlserver.base import (
-    BaseSQLServerTicketFlowBuilder,
+    BaseSQLServerHATicketFlowBuilder,
     SQLServerBaseOperateDetailSerializer,
     SQLServerBaseOperateResourceParamBuilder,
 )
@@ -59,7 +59,7 @@ class SQLServerAddSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBui
 
 
 @builders.BuilderFactory.register(TicketType.SQLSERVER_ADD_SLAVE)
-class SQLServerAddSlaveFlowBuilder(BaseSQLServerTicketFlowBuilder):
+class SQLServerAddSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerAddSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerAddSlaveResourceParamBuilder
     inner_flow_builder = SQLServerAddSlaveFlowParamBuilder

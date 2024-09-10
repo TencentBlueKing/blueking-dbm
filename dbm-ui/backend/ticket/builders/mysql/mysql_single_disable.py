@@ -15,7 +15,7 @@ from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.constants import TicketType
 
 
@@ -30,7 +30,7 @@ class MysqlSingleDisableFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(
     TicketType.MYSQL_SINGLE_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.MYSQL_ENABLE_DISABLE
 )
-class MysqlSingleDisableFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlSingleDisableFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MysqlSingleDisableDetailSerializer
     inner_flow_builder = MysqlSingleDisableFlowParamBuilder
     inner_flow_name = _("MySQL单节点禁用执行")

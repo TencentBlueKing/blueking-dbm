@@ -35,6 +35,17 @@ from backend.ticket.constants import TicketType
 
 class BaseMySQLTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
     group = DBType.MySQL.value
+    cluster_types = [ClusterType.TenDBSingle.value, ClusterType.TenDBHA.value]
+
+
+class BaseMySQLSingleTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.MySQL.value
+    cluster_types = [ClusterType.TenDBSingle.value]
+
+
+class BaseMySQLHATicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
+    group = DBType.MySQL.value
+    cluster_types = [ClusterType.TenDBHA.value]
 
 
 class MySQLBasePauseParamBuilder(builders.PauseParamBuilder):

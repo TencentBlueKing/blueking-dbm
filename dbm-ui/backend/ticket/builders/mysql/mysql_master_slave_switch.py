@@ -22,7 +22,7 @@ from backend.flow.engine.controller.tbinlogdumper import TBinlogDumperController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.mysql.base import (
-    BaseMySQLTicketFlowBuilder,
+    BaseMySQLHATicketFlowBuilder,
     MySQLBaseOperateDetailSerializer,
     MySQLBasePauseParamBuilder,
 )
@@ -98,7 +98,7 @@ class MysqlDumperMigrateParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_MASTER_SLAVE_SWITCH)
-class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlMasterSlaveSwitchFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlMasterSlaveSwitchDetailSerializer
     inner_flow_builder = MysqlMasterSlaveSwitchParamBuilder
     inner_flow_name = _("主从互换执行")

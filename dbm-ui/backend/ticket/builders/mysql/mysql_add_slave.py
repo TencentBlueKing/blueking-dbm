@@ -18,7 +18,7 @@ from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
+from backend.ticket.builders.mysql.base import BaseMySQLHATicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
@@ -82,7 +82,7 @@ class MysqlAddSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_ADD_SLAVE, is_apply=True)
-class MysqlAddSlaveFlowBuilder(BaseMySQLTicketFlowBuilder):
+class MysqlAddSlaveFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlAddSlaveDetailSerializer
     inner_flow_builder = MysqlAddSlaveParamBuilder
     inner_flow_name = _("添加从库执行")
