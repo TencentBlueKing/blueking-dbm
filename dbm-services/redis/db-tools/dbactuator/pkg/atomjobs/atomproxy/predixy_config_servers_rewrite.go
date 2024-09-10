@@ -80,7 +80,7 @@ func (job *PredixyConfServersRewrite) Run() (err error) {
 	var password string
 	password, err = myredis.GetPredixyAdminPasswdFromConfFlie(job.params.PredixyPort)
 	if err != nil {
-		return nil
+		return
 	}
 	err = job.newConn(password)
 	if err != nil {

@@ -124,7 +124,10 @@ def ProxyBatchInstallAtomJob(
         act_kwargs.cluster["dbconfig"] = param["conf_configs"]
         # 从dbconfig中获取load_modules
         cluster = Cluster.objects.get(immute_domain=act_kwargs.cluster["immute_domain"])
-        load_modules = get_cluster_redis_modules_detial(cluster_id=cluster.id)
+        load_modules = []
+        module_rows = get_cluster_redis_modules_detial(cluster_id=cluster.id)
+        for module_row in module_rows:
+            load_modules.append(module_row["module_name"])
 
     # 安装proxy实例
     if act_kwargs.cluster["cluster_type"] in [
