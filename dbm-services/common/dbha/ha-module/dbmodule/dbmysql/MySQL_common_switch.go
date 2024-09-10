@@ -616,6 +616,8 @@ func (ins *MySQLCommonSwitch) ResetSlave() (string, uint64, error) {
 		return "", 0, fmt.Errorf("reset slave failed. err:%s", err.Error())
 	}
 	log.Logger.Infof("executed %s on %s:%d successd", resetSql, slaveIp, slavePort)
+	ins.SetInfo(constvar.BinlogFile, masterStatus.File)
+	ins.SetInfo(constvar.BinlogPos, masterStatus.Position)
 
 	return masterStatus.File, masterStatus.Position, nil
 }

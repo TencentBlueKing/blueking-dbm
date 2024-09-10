@@ -16,14 +16,16 @@ import (
 
 // SwitchMonitor switch monitor information
 type SwitchMonitor struct {
-	ServerIp    string
-	ServerPort  int
-	Bzid        string
-	MachineType string
-	Role        string
-	Status      string
-	Cluster     string
-	IDC         string
+	ServerIp       string
+	ServerPort     int
+	Bzid           string
+	MachineType    string
+	Role           string
+	Status         string
+	Cluster        string
+	IDC            string
+	BinlogFile     string
+	BinlogPosition uint64
 }
 
 // DetectMonitor detect monitor information
@@ -107,6 +109,12 @@ func MonitorSend(content string, info MonitorInfo) error {
 		addDimension["cluster"] = info.Switch.Cluster
 		addDimension["machine_type"] = info.Switch.MachineType
 		addDimension["idc"] = info.Switch.IDC
+		if info.EventName == constvar.DBHAEventMysqlSwitchSucc &&
+			(info.Switch.Role == constvar.TenDBStorageMaster ||
+				info.Switch.Role == constvar.TenDBClusterStorageMaster) {
+			addDimension["binlog_file"] = info.Switch.BinlogFile
+			addDimension["binlog_pos"] = info.Switch.BinlogPosition
+		}
 	} else if info.MonitorInfoType == constvar.MonitorInfoDetect {
 		// detect monitor information dimension add
 		addDimension["appid"] = info.Detect.Bzid
@@ -132,6 +140,22 @@ func MonitorSend(content string, info MonitorInfo) error {
 // GetMonitorInfoBySwitch get MonitorInfo by switch instance
 func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 	var eventName string
+	addr, port := ins.GetAddress()
+	monInfo := MonitorInfo{
+		EventName:       eventName,
+		MonitorInfoType: constvar.MonitorInfoSwitch,
+		Switch: SwitchMonitor{
+			ServerIp:    addr,
+			ServerPort:  port,
+			Bzid:        ins.GetApp(),
+			MachineType: ins.GetMetaType(),
+			Role:        ins.GetRole(),
+			Status:      ins.GetStatus(),
+			Cluster:     ins.GetCluster(),
+			IDC:         strconv.Itoa(ins.GetIdcID()),
+		},
+	}
+
 	switch ins.GetMetaType() {
 	case constvar.RedisMetaType, constvar.TwemproxyMetaType,
 		constvar.TendisSSDMetaType:
@@ -150,6 +174,15 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 		constvar.TenDBClusterStorageType, constvar.TenDBClusterProxyType:
 		if succ {
 			eventName = constvar.DBHAEventMysqlSwitchSucc
+			if ins.GetRole() == constvar.TenDBStorageMaster ||
+				ins.GetRole() == constvar.TenDBClusterStorageMaster {
+				if ok, file := ins.GetInfo(constvar.BinlogFile); ok {
+					monInfo.Switch.BinlogFile = file.(string)
+				}
+				if ok, pos := ins.GetInfo(constvar.BinlogPos); ok {
+					monInfo.Switch.BinlogPosition = pos.(uint64)
+				}
+			}
 		} else {
 			eventName = constvar.DBHAEventMysqlSwitchErr
 		}
@@ -166,22 +199,9 @@ func GetMonitorInfoBySwitch(ins dbutil.DataBaseSwitch, succ bool) MonitorInfo {
 			eventName = constvar.DBHAEventMysqlSwitchErr
 		}
 	}
+	monInfo.EventName = eventName
 
-	addr, port := ins.GetAddress()
-	return MonitorInfo{
-		EventName:       eventName,
-		MonitorInfoType: constvar.MonitorInfoSwitch,
-		Switch: SwitchMonitor{
-			ServerIp:    addr,
-			ServerPort:  port,
-			Bzid:        ins.GetApp(),
-			MachineType: ins.GetMetaType(),
-			Role:        ins.GetRole(),
-			Status:      ins.GetStatus(),
-			Cluster:     ins.GetCluster(),
-			IDC:         strconv.Itoa(ins.GetIdcID()),
-		},
-	}
+	return monInfo
 }
 
 // GetMonitorInfoByDetect get MonitorInfo by detect instance
