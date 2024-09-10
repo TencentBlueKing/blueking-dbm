@@ -1,4 +1,4 @@
-$diskInfo = Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType=3" | ForEach-Object {
+$diskInfo = Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType=3" | Where-Object { $_.FreeSpace -lt $_.Size } | ForEach-Object {
     [PSCustomObject]@{
         DriveLetter = $_.DeviceID
         TotalSize   = $_.Size

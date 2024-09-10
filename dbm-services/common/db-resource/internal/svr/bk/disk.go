@@ -171,7 +171,7 @@ func GetDiskInfo(hosts []IPList, bk_biz_id int, hostOsMap map[string]string) (re
 			maps.Copy(ipFailedLogMap, ipFailedLogMapWin)
 			for _, d := range ipLogs.ScriptTaskLogs {
 				var dl PowerShellResCollection
-				jsonBody := jsonRe.FindString(d.LogContent)
+				jsonBody := d.LogContent
 				logger.Info("%s shell grab json body: %s", d.Ip, jsonBody)
 				if err = json.Unmarshal([]byte(jsonBody), &dl); err != nil {
 					logger.Error("unmarshal log content failed %s", err.Error())
