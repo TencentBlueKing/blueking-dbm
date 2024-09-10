@@ -48,7 +48,7 @@ DBM，数据库管理，集成了MySQL、Redis、ES、Kafka、HDFS、InfluxDB、
 
 [腾讯开源激励计划](https://opensource.tencent.com/contribution) 鼓励开发者的参与和贡献，期待你的加入。
 
-112
+11233
 
 ## License
 项目基于 MIT 协议， 详细请参考 [LICENSE](https://github.com/TencentBlueKing/blueking-dbm/blob/master/LICENSE) 。
