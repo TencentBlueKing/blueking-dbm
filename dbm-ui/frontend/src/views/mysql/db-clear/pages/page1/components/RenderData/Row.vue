@@ -163,11 +163,10 @@
   };
 
   const handleIgnoreDbsChange = (value: string[]) => {
-    if (isDropDatabase.value && value.length > 0) {
-      ignoreTables.value = ['*'];
-      return;
-    }
-
+    // if (isDropDatabase.value && value.length > 0) {
+    //   ignoreTables.value = ['*'];
+    //   return;
+    // }
     ignoreTables.value = [];
   };
 
