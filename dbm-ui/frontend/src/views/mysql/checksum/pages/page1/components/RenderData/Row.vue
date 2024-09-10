@@ -57,7 +57,8 @@
         ref="ignoreTablesRef"
         :allow-asterisk="false"
         :cluster-id="localClusterId"
-        :model-value="data.ignoreTables" />
+        :model-value="data.ignoreTables"
+        :required="false" />
     </td>
     <OperateColumn
       :removeable="removeable"
