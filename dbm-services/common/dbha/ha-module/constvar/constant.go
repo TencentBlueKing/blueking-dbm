@@ -413,6 +413,10 @@ const (
 	SlaveIpKey = "slave_ip"
 	// SlavePortKey use to set slave port
 	SlavePortKey = "slave_port"
+	//BinlogFile consistent switch binlog file
+	BinlogFile = "binlog_file"
+	//BinlogPos consistent switch binlog pos
+	BinlogPos = "binlog_pos"
 )
 
 // checksum sql
