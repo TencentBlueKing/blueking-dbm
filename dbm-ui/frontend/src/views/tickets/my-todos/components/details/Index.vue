@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="ticket-details">
+  <div class="ticket-details-page">
     <BkLoading
       :loading="state.isLoading"
       style="min-height: 200px">
