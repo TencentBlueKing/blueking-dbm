@@ -343,7 +343,6 @@ class MySQLRestoreSlaveFlow(object):
                     slave_ip_list=[self.data["new_slave_ip"]],
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
-                    is_init=True,
                     collect_sysinfo=True,
                     cluster_type=ClusterType.TenDBHA.value,
                 )
@@ -571,7 +570,6 @@ class MySQLRestoreSlaveFlow(object):
                     slave_ip_list=[target_slave.machine.ip],
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
-                    is_init=True,
                     cluster_type=ClusterType.TenDBHA.value,
                 )
             )
