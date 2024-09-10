@@ -54,6 +54,7 @@
       <div
         v-for="name in previewDataList"
         :key="name"
+        v-overflow-tips
         class="name-item">
         {{ name }}
       </div>
@@ -177,8 +178,11 @@
 
       .name-item {
         width: 260px;
-        margin: 0 13px 0 0;
         line-height: 24px;
+        margin: 0 13px 0 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
   }
