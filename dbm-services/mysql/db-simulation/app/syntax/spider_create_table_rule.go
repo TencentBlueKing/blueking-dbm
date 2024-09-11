@@ -47,17 +47,19 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 }
 
 // shardKeyChecker 分片键检查
+// nolint
 func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
-	var hasShardKey bool
+	var commentSpecialShardKey bool
 	var shardKeyCol string
 	var err error
+	var pubCols []string
+
 	if len(c.CreateDefinitions.KeyDefs) == 0 {
 		r.Trigger(SR.SpiderCreateTableRule.NoIndexExists, "")
 		return
 	}
-	hasPk, uks, keys := c.findTablesIndex()
+	_, uks, keys := c.findTablesIndex()
 	// 如果存在多个唯一健（含主键),多个唯一键都没有包含相同的字段也是不允许的
-	var pubCols []string
 	logger.Info("uniqueKeys is %v,len is %d", uks, len(uks))
 	if len(uks) > 1 {
 		pubCols = findCommonColByKeys(uks)
@@ -77,19 +79,23 @@ func (c CreateTableResult) shardKeyChecker(r *CheckerResult) {
 		}
 		shardKeyCol, err = util.ParseGetShardKeyForSpider(tableComment)
 		if err != nil {
-			// Todo 错误处理
 			logger.Error("parse %s comment %s shard key failed %s", c.TableName, tableComment, err.Error())
 			return
 		}
-		hasShardKey = true
+		commentSpecialShardKey = true
 	}
 	// 如果table comment 为空,表示没有指定shard key,或table comnent 没有指定shardkey 由中控自主选择
-	if !hasShardKey {
+	if !commentSpecialShardKey {
 		switch {
-		case hasPk:
+		case len(uks) == 1:
 			return
-		case len(uks) >= 1:
-			return
+		case len(uks) > 1:
+			// 如果没有显示的指定shard key,多个唯一键必须要包含相同的字段，且是第一个字段
+			pubPreCols := findCommonPreColByKeys(uks)
+			if len(pubPreCols) != 1 {
+				r.Trigger(SR.SpiderCreateTableRule.NoPubColAtMultUniqueIndex, "")
+				return
+			}
 		case len(keys) > 1:
 			// 如果没有唯一索引，如果包含多个普通索引，则必须指定shard_key,否则需要报错
 			r.Trigger(SR.SpiderCreateTableRule.MustSpecialShardKeyOnlyHaveCommonIndex, "")
@@ -136,6 +142,7 @@ func (c CreateTableResult) findTablesIndex() (hasPk bool, uks []KeyDef, keys []K
 		switch {
 		case key.PrimaryKey:
 			hasPk = true
+			uks = append(uks, key)
 		case key.UniqueKey:
 			uks = append(uks, key)
 		default:
@@ -159,6 +166,16 @@ func findCommonColByKeys(keys []KeyDef) (cols []string) {
 		}
 	}
 	return cols
+}
+
+// findCommonPreColByKeys 寻找多个唯一键中的公共前缀列
+func findCommonPreColByKeys(keys []KeyDef) (cols []string) {
+	for _, key := range keys {
+		if len(key.KeyParts) > 0 {
+			cols = append(cols, key.KeyParts[0].ColName)
+		}
+	}
+	return lo.Uniq(cols)
 }
 
 func (c CreateTableResult) validateSpiderComment(comment string) (legal bool, prompt string) {

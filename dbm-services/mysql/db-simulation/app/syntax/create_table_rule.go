@@ -84,8 +84,14 @@ func (c CreateTableResult) GetTableCharset() (engine string) {
 
 // GetAllColCharsets get columns define charset
 func (c CreateTableResult) GetAllColCharsets() (charsets []string) {
+	haveDefaultCharseTypes := []string{
+		"timestamp", "time", "datetime", "date",
+		"tinyblob", "blob", "mediumblob", "longblob",
+		"string", "varchar", "json",
+	}
 	for _, colDef := range c.CreateDefinitions.ColDefs {
-		if lo.IsNotEmpty(colDef.CharacterSet) {
+		// Mysql会对MYSQL_TYPE_TIME，MYSQL_TYPE_TIMESTAMP，MYSQL_TYPE_DATETIME这三种类型的字段默认设置字符集为latin1
+		if lo.IsNotEmpty(colDef.CharacterSet) && !lo.Contains(haveDefaultCharseTypes, colDef.DataType) {
 			charsets = append(charsets, colDef.CharacterSet)
 		}
 	}
@@ -105,7 +111,7 @@ func (c CreateTableResult) ColCharsetNotEqTbCharset() bool {
 	if lo.IsEmpty(tableDefineCharset) {
 		return false
 	}
-	if strings.Compare(strings.ToUpper(colCharsets[0]), tableDefineCharset) == 0 {
+	if strings.Compare(strings.ToLower(colCharsets[0]), strings.ToLower(tableDefineCharset)) == 0 {
 		return false
 	}
 	return true
