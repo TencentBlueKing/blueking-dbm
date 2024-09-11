@@ -15,7 +15,7 @@ log_conf:
   log_path: "./log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
-  log_maxbackups: 100
+  log_maxbackups: 1000
   log_maxage: 30
   log_compress: true
 agent_conf:
@@ -25,7 +25,10 @@ agent_conf:
     "tendbcluster",
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
-    "TwemproxyTendisSSDInstance"
+    "TwemproxyTendisSSDInstance",
+    "PredixyRedisCluster",
+    "RedisInstance",
+    "MongoShardedCluster"
   ]
   city_id: {{city}}
   campus: "{{campus}}"
@@ -88,6 +91,8 @@ db_conf:
     timeout: 10
   riak:
     timeout: 10
+  mongodb:
+    timeout: 5
 name_services:
   dns_conf:
     host: "{{nginx_domain}}"
@@ -132,6 +137,7 @@ monitor:
   agent_address: "{{mysql_crond_agent_address}}"
   local_ip: "{{local_ip}}"
 ssh:
+  max_uptime: 300
   port: 36000
   user: "mysql"
   pass: "{{mysql_os_password}}"
@@ -144,7 +150,7 @@ log_conf:
   log_path: "./log"
   log_level: "LOG_DEBUG"
   log_maxsize: 512
-  log_maxbackups: 100
+  log_maxbackups: 1000
   log_maxage: 30
   log_compress: true
 agent_conf:
@@ -154,7 +160,10 @@ agent_conf:
     "tendbcluster",
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
-    "TwemproxyTendisSSDInstance"
+    "TwemproxyTendisSSDInstance",
+    "PredixyRedisCluster",
+    "RedisInstance",
+    "MongoShardedCluster"
   ]
   city_id: {{city}}
   campus: "{{campus}}"
@@ -217,6 +226,8 @@ db_conf:
     timeout: 10
   riak:
     timeout: 10
+  mongodb:
+    timeout: 5
 name_services:
   dns_conf:
     host: "{{nginx_domain}}"
@@ -257,6 +268,7 @@ monitor:
   agent_address: "{{mysql_crond_agent_address}}"
   local_ip: "{{local_ip}}"
 ssh:
+  max_uptime: 300
   port: 36000
   user: "mysql"
   pass: "{{mysql_os_password}}"
