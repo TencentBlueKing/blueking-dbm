@@ -828,33 +828,29 @@ func (a *AdditionalAccount) GetWEBCONSOLERSAccount(realVersion string) (initAcco
 
 // GetDBHAAccount TODO
 // 获取生成DHBA-GM访问账号的生成语句
+// 统一给%授权
 func (a *AdditionalAccount) GetDBHAAccount(realVersion string) (initAccountsql []string) {
-	for _, host := range cmutil.RemoveDuplicate(a.AccessHosts) {
-		if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
-			initAccountsql = append(initAccountsql,
-				fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%s' IDENTIFIED WITH mysql_native_password BY '%s' ;",
-					a.User, host, a.Pwd))
-			initAccountsql = append(initAccountsql, fmt.Sprintf(
+	if cmutil.MySQLVersionParse(realVersion) >= cmutil.MySQLVersionParse("5.7.18") {
+		initAccountsql = append(initAccountsql,
+			fmt.Sprintf("CREATE USER IF NOT EXISTS '%s'@'%%' IDENTIFIED WITH mysql_native_password BY '%s' ;",
+				a.User, a.Pwd))
+		initAccountsql = append(initAccountsql, fmt.Sprintf(
+			"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
+				"ON *.* TO '%s'@'%%' WITH GRANT OPTION ;",
+			a.User))
+	} else {
+		initAccountsql = append(initAccountsql,
+			fmt.Sprintf(
 				"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
-					"ON *.* TO '%s'@'%s' WITH GRANT OPTION ;",
-				a.User, host))
-		} else {
-			initAccountsql = append(initAccountsql,
-				fmt.Sprintf(
-					"GRANT RELOAD, PROCESS, SHOW DATABASES, SUPER, REPLICATION CLIENT, SHOW VIEW "+
-						"ON *.* TO '%s'@'%s' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
-					a.User, host, a.Pwd))
-		}
-
-		initAccountsql = append(initAccountsql,
-			fmt.Sprintf(
-				"GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%s' ;",
-				a.User, host))
-
-		initAccountsql = append(initAccountsql,
-			fmt.Sprintf(
-				" GRANT SELECT ON `mysql`.* TO '%s'@'%s' ;", a.User, host))
+					"ON *.* TO '%s'@'%%' IDENTIFIED BY '%s' WITH GRANT OPTION ;",
+				a.User, a.Pwd))
 	}
+
+	initAccountsql = append(initAccountsql,
+		fmt.Sprintf("GRANT SELECT, INSERT, DELETE ON `infodba_schema`.* TO '%s'@'%%' ;", a.User))
+
+	initAccountsql = append(initAccountsql,
+		fmt.Sprintf(" GRANT SELECT ON `mysql`.* TO '%s'@'%%' ;", a.User))
 	return
 }
 
