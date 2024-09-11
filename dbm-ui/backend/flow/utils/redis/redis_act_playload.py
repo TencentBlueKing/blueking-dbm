@@ -997,14 +997,13 @@ class RedisActPayload(object):
         ip = kwargs["ip"]
         params = kwargs["params"]
         domain_name = params.get("domain_name", self.cluster.get("domain_name", ""))
-        db_version = params.get("db_version", self.cluster.get("db_version", ""))
         cluster_type = params.get("cluster_type", self.cluster.get("cluster_type", ""))
         ports = params.get("ports", self.cluster.get(ip, []))
         force = params.get("force", self.cluster.get("force", False))
         db_list = params.get("db_list", self.cluster.get("db_list", [0]))
         flushall = params.get("flushall", self.cluster.get("flushall", True))
 
-        redis_config = self.__get_cluster_config(domain_name, db_version, ConfigTypeEnum.DBConf)
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(domain_name)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.FlushData.value,
@@ -1013,7 +1012,7 @@ class RedisActPayload(object):
                 "db_type": cluster_type,
                 "ports": ports,
                 "is_force": force,
-                "password": redis_config["requirepass"],
+                "password": passwd_ret.get("redis_password"),
                 "db_list": db_list,
                 "is_flush_all": flushall,
             },
@@ -1561,22 +1560,16 @@ class RedisActPayload(object):
             "switch_condition":{},
         }
         """
-        params, proxy_version = kwargs["params"], ""
+        params = kwargs["params"]
         self.namespace = params["cluster_type"]
         cluster_meta = nosqlcomm.other.get_cluster_detail(cluster_id=params["cluster_id"])[0]
         if self.namespace == ClusterType.RedisInstance.value:
-            cluster_config = self.__get_cluster_config(
-                params["immute_domain"], params.get("db_version", ""), ConfigTypeEnum.DBConf
-            )
-            cluster_meta["storage_pass"] = cluster_config["requirepass"]
+            passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
+            cluster_meta["storage_pass"] = passwd_ret.get("redis_password")
         else:
-            if is_twemproxy_proxy_type(self.namespace):
-                proxy_version = ConfigFileEnum.Twemproxy
-            elif is_predixy_proxy_type(self.namespace):
-                proxy_version = ConfigFileEnum.Predixy
-            proxy_config = self.__get_cluster_config(params["immute_domain"], proxy_version, ConfigTypeEnum.ProxyConf)
-            cluster_meta["proxy_pass"] = proxy_config["password"]
-            cluster_meta["storage_pass"] = proxy_config["redis_password"]
+            passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
+            cluster_meta["proxy_pass"] = passwd_ret.get("redis_proxy_password")
+            cluster_meta["storage_pass"] = passwd_ret.get("redis_password")
 
         logger.info("switch cluster {}, switch infos : {}".format(params["immute_domain"], params["switch_info"]))
         return {
@@ -1767,18 +1760,17 @@ class RedisActPayload(object):
         """
         params = kwargs["params"]
         self.namespace = params["cluster_type"]
-        proxy_config = self.__get_cluster_config(params["immute_domain"], self.proxy_version, ConfigTypeEnum.ProxyConf)
-
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.TendisSSD.value + "_" + RedisActuatorActionEnum.DR_RESTORE.value,
             "payload": {
                 "master_ip": params["master_ip"],
                 "master_ports": params["master_ports"],
-                "master_auth": proxy_config["redis_password"],
+                "master_auth": passwd_ret.get("redis_password"),
                 "slave_ip": params["slave_ip"],
                 "slave_ports": params["slave_ports"],
-                "slave_password": proxy_config["redis_password"],
+                "slave_password": passwd_ret.get("redis_password"),
                 "task_dir": "/data/dbbak",
                 "backup_dir": "/data/dbbak",
             },
@@ -1853,7 +1845,7 @@ class RedisActPayload(object):
         数据构造 rediscluster 集群建立
         """
         params = kwargs["params"]
-        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
         bacth_pairs = []
         for instance in params["all_instance"]:
             ip, port = instance.split(":")
@@ -1866,7 +1858,7 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": RedisActuatorActionEnum.CLUSTER_MEET.value,
             "payload": {
-                "password": redis_config["requirepass"],
+                "password": passwd_ret.get("redis_password"),
                 "slots_auto_assign": True,
                 "replica_pairs": bacth_pairs,
             },
@@ -1898,7 +1890,7 @@ class RedisActPayload(object):
         数据构造 rediscluster meet建立集群关系并检查集群状态
         """
         params = kwargs["params"]
-        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
         bacth_pairs = []
         for instance in params["all_instance"]:
             ip, port = instance.split(IP_PORT_DIVIDER)
@@ -1912,7 +1904,7 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": RedisActuatorActionEnum.CLUSTER_MEET_CHECK.value,
             "payload": {
-                "password": redis_config["requirepass"],
+                "password": passwd_ret.get("redis_password"),
                 "replica_pairs": bacth_pairs,
             },
         }
@@ -1934,7 +1926,7 @@ class RedisActPayload(object):
         }
         """
         params = kwargs["params"]
-        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
         cluster = Cluster.objects.get(immute_domain=params["immute_domain"])
         cluster_info = metaApi.cluster.nosqlcomm.get_cluster_detail(cluster.id)[0]
         bacth_pairs = []
@@ -1950,7 +1942,7 @@ class RedisActPayload(object):
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": RedisActuatorActionEnum.CLUSTER_MEET.value,
             "payload": {
-                "password": redis_config["requirepass"],
+                "password": passwd_ret.get("redis_password"),
                 "replica_pairs": bacth_pairs,
                 "slots_auto_assign": False,
                 "use_for_expansion": False,
@@ -1966,7 +1958,7 @@ class RedisActPayload(object):
         }
         """
         params = kwargs["params"]
-        redis_config = self.__get_cluster_config(params["immute_domain"], params["db_version"], ConfigTypeEnum.DBConf)
+        passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
         cluster = Cluster.objects.get(immute_domain=params["immute_domain"])
         cluster_info = metaApi.cluster.nosqlcomm.get_cluster_detail(cluster.id)[0]
 
@@ -1975,7 +1967,7 @@ class RedisActPayload(object):
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.ClusterForget.value,
             "payload": {
                 "cluster_meta": {
-                    "storage_pass": redis_config["requirepass"],
+                    "storage_pass": passwd_ret.get("redis_password"),
                     "immute_domain": cluster_info["immute_domain"],
                     "cluster_type": cluster_info["cluster_type"],
                     "redis_master_set": cluster_info["redis_master_set"],

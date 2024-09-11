@@ -192,7 +192,7 @@ class RedisBackendScaleFlow(object):
         """
         计算新老实例对应关系
         可能一对多，也可能多对一
-        20250806 需要兼容本地扩缩容场景：多余的实例数，可能是在老机器上
+        20240806 需要兼容本地扩缩容场景：多余的实例数，可能是在老机器上
         - master_ips: 新机器master列表
         - slave_ips: 新机器slave列表
         - ins_num: 单台机器部署的最小实例数（有可能+1）
@@ -472,8 +472,6 @@ class RedisBackendScaleFlow(object):
 
             redis_sync_sub_pipelines = []
             for sync_params in sync_relations:
-                if act_kwargs.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance:
-                    pass
                 sub_builder = RedisMakeSyncAtomJob(self.root_id, self.data, act_kwargs, sync_params)
                 redis_sync_sub_pipelines.append(sub_builder)
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_sync_sub_pipelines)
@@ -490,8 +488,6 @@ class RedisBackendScaleFlow(object):
 
                 redis_sync_sub_pipelines = []
                 for sync_params in sync_relations2:
-                    if act_kwargs.cluster["cluster_type"] == ClusterType.TendisTwemproxyRedisInstance:
-                        pass
                     sub_builder = RedisMakeSyncAtomJob(self.root_id, self.data, act_kwargs, sync_params)
                     redis_sync_sub_pipelines.append(sub_builder)
                 sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=redis_sync_sub_pipelines)
