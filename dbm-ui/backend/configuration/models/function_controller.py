@@ -20,6 +20,7 @@ class CustomFuncNameEnum(str, StructuredEnum):
     BigData = EnumField("bigdata", _("大数据"))
     ToolBox = EnumField("toolbox", _("工具箱"))
     TenDBClusterToolBox = EnumField("tendbcluster_toolbox", _("TenDBCluster 工具箱"))
+    SqlserverToolBox = EnumField("sqlserver_tool", _("Sqlserver 工具箱"))
     AddOnServicePlugin = EnumField("addons", _("插件服务"))
     Monitor = EnumField("monitor", _("监控告警"))
 
@@ -52,7 +53,7 @@ FUNCTION_CONTROLLER_INIT_MAP = {
         "children": {
             ClusterType.SqlserverHA.value: {"is_enabled": True},
             ClusterType.SqlserverSingle.value: {"is_enabled": True},
-            CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
+            CustomFuncNameEnum.SqlserverToolBox.value: {"is_enabled": True},
         },
     },
     DBType.MongoDB.value: {
