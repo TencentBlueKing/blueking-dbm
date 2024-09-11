@@ -49,6 +49,8 @@
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import SqlServerSingleInstanceModel from '@services/model/sqlserver/sqlserver-single-instance';
   import { queryAdminPassword } from '@services/source/permission';
+  import { getSpiderInstanceList } from '@services/source/spider';
+  import { getTendbhaInstanceList } from '@services/source/tendbha';
 
   import { clusterTypeInfos,ClusterTypes } from '@common/const';
 
@@ -63,23 +65,15 @@
     `${instance.bk_cloud_id}:${instance.ip}:${instance.port}`;
 
   const tabListConfig = {
-    [ClusterTypes.TENDBCLUSTER]: [
-      {
-        name: 'TendbCluster',
-        tableConfig: {
-          firsrColumn: {
-            label: 'instance_address',
-            field: 'instance_address',
-            role: '',
-          },
-        },
-      },
-    ],
     [ClusterTypes.TENDBHA]: [
       {
         id: 'tendbha',
         name: t('Mysql 主从'),
         tableConfig: {
+          getTableList: (params: ServiceParameters<typeof getTendbhaInstanceList>) => getTendbhaInstanceList({
+            ...params,
+            role_exclude: 'proxy',
+          }),
           firsrColumn: {
             label: t('实例'),
             field: 'instance_address',
@@ -87,7 +81,23 @@
           },
         },
       }
-    ]
+    ],
+    [ClusterTypes.TENDBCLUSTER]: [
+      {
+        name: 'TendbCluster',
+        tableConfig: {
+          getTableList: (params: ServiceParameters<typeof getSpiderInstanceList>) => getSpiderInstanceList({
+            ...params,
+            spider_ctl: true,
+          }),
+          firsrColumn: {
+            label: t('实例'),
+            field: 'instance_address',
+            role: '',
+          },
+        },
+      },
+    ],
   } as unknown as Record<ClusterTypes, PanelListType>;
 
 
