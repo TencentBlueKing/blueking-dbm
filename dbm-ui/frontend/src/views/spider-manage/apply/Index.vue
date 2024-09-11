@@ -56,6 +56,7 @@
                   ref="specProxyRef"
                   v-model="formdata.details.resource_spec.spider.spec_id"
                   :biz-id="formdata.bk_biz_id"
+                  :city="formdata.details.city_code"
                   :cloud-id="formdata.details.bk_cloud_id"
                   cluster-type="tendbcluster"
                   machine-type="spider" />
