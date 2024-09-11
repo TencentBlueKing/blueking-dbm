@@ -384,7 +384,7 @@
                 )}
                 <db-icon
                   v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="bk-dbm-icon db-icon-visible1"
+                  type="visible1"
                   onClick={() => handleOpenEntryConfig(data)} />
               </>
             ),

@@ -32,31 +32,8 @@
   </BkDialog>
 </template>
 
-<script
-  setup
-  lang="tsx"
-  generic="
-    T extends
-      | ResourceItem
-      | ResourceRedisItem
-      | SpiderModel
-      | EsModel
-      | HdfsModel
-      | KafkaModel
-      | PulsarModel
-      | SqlServerHaClusterDetailModel
-      | SqlServerSingleClusterDetailModel
-  ">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
-
-  import EsModel from '@services/model/es/es';
-  import HdfsModel from '@services/model/hdfs/hdfs';
-  import KafkaModel from '@services/model/kafka/kafka';
-  import PulsarModel from '@services/model/pulsar/pulsar';
-  import SpiderModel from '@services/model/spider/spider';
-  import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-cluster-detail';
-  import SqlServerSingleClusterDetailModel from '@services/model/sqlserver/sqlserver-single-cluster-detail';
-  import type { ResourceItem, ResourceRedisItem } from '@services/types';
 
   import type { DBTypes } from '@common/const';
 
@@ -79,7 +56,17 @@
     dbConsole: string;
     resource: DBTypes;
     permission: boolean;
-    getDetailInfo: (params: any) => Promise<T>
+    getDetailInfo: (params: any) => Promise<{
+      cluster_entry_details: {
+        cluster_entry_type: string,
+        entry: string,
+        role: string,
+        target_details: {
+          ip: string,
+          port: number
+        }[]
+      }[]
+    }>
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -105,7 +92,7 @@
       field: 'entry',
       width: 263,
       showOverflowTooltip: true,
-      render: ({ data }: {data: RowData}) => {
+      render: ({ data }: { data: RowData }) => {
         if (data.role === 'master_entry') {
           return (
             <>
@@ -124,7 +111,7 @@
       label: 'Bind IP',
       field: 'ips',
       width: 263,
-      render: ({ data }: {data: RowData}) => (
+      render: ({ data }: { data: RowData }) => (
         <RenderBindIps
           v-model={props.id}
           data={data}
@@ -149,7 +136,7 @@
     props.getDetailInfo({
       id: props.id,
     })
-      .then((res: T) => {
+      .then((res) => {
         tableData.value = res.cluster_entry_details.map(item => ({
           type: item.cluster_entry_type,
           entry: item.entry,
@@ -166,7 +153,7 @@
       });
   };
 
-  const generateCellClass = (cell: { field: string}) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
+  const generateCellClass = (cell: { field: string }) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
 
   const handleClose = () => {
     isShow.value = false;
@@ -189,6 +176,7 @@
       line-height: normal !important;
     }
   }
+
   .entry-config-dialog {
     .bk-modal-footer {
       display: none;

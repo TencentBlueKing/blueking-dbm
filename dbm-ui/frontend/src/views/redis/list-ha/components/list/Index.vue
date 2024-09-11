@@ -465,17 +465,10 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-db-console="redis.haClusterManage.modifyEntryConfiguration"
+                <db-icon
                   v-bk-tooltips={t('查看域名/IP对应关系')}
-                  action-id="access_entry_edit"
-                  resource="redis"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="bk-dbm-icon db-icon-visible1" />
-                </auth-button>
+                  type="visible1"
+                  onClick={() => handleOpenEntryConfig(data)} />
               </>
             ),
           }}
@@ -639,20 +632,9 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-db-console="redis.haClusterManage.modifyEntryConfiguration"
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  action-id="access_entry_edit"
-                  resource="redis"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="bk-dbm-icon db-icon-visible1" />
-                </auth-button>
                 <db-icon
                   v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="bk-dbm-icon db-icon-visible1"
+                  type="visible1"
                   onClick={() => handleOpenEntryConfig(data)} />
               </>
             )

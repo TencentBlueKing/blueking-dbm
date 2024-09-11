@@ -32,7 +32,7 @@
         @click="handleShowPassword">
         <DbIcon
           v-if="!isShowPassword"
-          type="bk-dbm-icon db-icon-visible1" />
+          type="visible1" />
         <DbIcon
           v-else
           type="bk-dbm-icon db-icon-invisible1" />

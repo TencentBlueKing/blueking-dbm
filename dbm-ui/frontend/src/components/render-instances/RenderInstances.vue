@@ -130,31 +130,21 @@
 </template>
 <script lang="tsx">
   interface InstanceListData {
-    instance_address: string;
-    role: string;
-    status: string;
-    create_at: string;
-  }
-
-  interface InstanceData {
     bk_instance_id: number;
+    create_at: string;
+    instance_address: string;
     ip: string;
     name: string;
     port: number;
+    role: string;
     status: string;
     [key: string]: any;
-  }
-
-  interface DialogState {
-    isShow: boolean;
-    keyword: string;
-    data: Array<InstanceListData>;
   }
 
   interface Props {
     title: string;
     role: string;
-    data: Array<InstanceData>;
+    data: InstanceListData[];
     clusterId: number;
     dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>;
     highlightIps?: string[];
@@ -213,10 +203,10 @@
   const renderData = computed(() => props.data.slice(0, 10));
   const hasMore = computed(() => props.data.length > 10);
 
-  const dialogState = reactive<DialogState>({
+  const dialogState = reactive({
     isShow: false,
     keyword: '',
-    data: [],
+    data: [] as InstanceListData[],
   });
 
   const columns = [
