@@ -101,7 +101,6 @@ export default class GraphRender {
   renderRactangle(args: any[] = []) {
     const node: GraphNode = args[0];
     const flowInfo = args[1];
-    const todoNodeIdList = args[2];
     const {
       component,
       pipeline,
@@ -137,7 +136,7 @@ export default class GraphRender {
     }
 
     const getNodeCls = (nodeStatus: string, isSkip: boolean) => {
-      if (todoNodeIdList.includes(node.id)) {
+      if (node.isTodoNode) {
         return 'node-ractangle--todo';
       }
       if (isSkip) {
@@ -147,6 +146,9 @@ export default class GraphRender {
     };
 
     const getNodeStatusText = (isSkip: boolean) => {
+      if (node.isTodoNode) {
+        return t('待执行');
+      }
       if (isSkip) {
         return t('忽略错误');
       }
@@ -228,7 +230,7 @@ export default class GraphRender {
 
           {flowInfo.status !== 'REVOKED' && node.children === undefined && (
             <div class='node-ractangle__operations'>
-              {!todoNodeIdList.includes(node.id) && status === 'RUNNING' && (
+              {!node.isTodoNode && status === 'RUNNING' && (
                 <i
                   class='operation-icon db-icon-qiangzhizhongzhi'
                   v-bk-tooltips={t('强制失败')}
@@ -253,7 +255,7 @@ export default class GraphRender {
               ) : (
                 ''
               )}
-              {todoNodeIdList.includes(node.id) ? (
+              {node.isTodoNode ? (
                 <i
                   class='operation-icon db-icon-check'
                   v-bk-tooltips={t('人工确认')}

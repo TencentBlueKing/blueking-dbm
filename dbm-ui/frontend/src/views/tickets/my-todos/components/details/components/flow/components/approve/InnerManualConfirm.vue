@@ -14,15 +14,28 @@
 <template>
   <div>
     <template v-if="content.status === 'RUNNING'">
-      <span style="color: #ff9c01">{{ t('任务“待确认”') }}</span>
+      {{ t('任务') }}“
+      <span
+        v-if="isTodo"
+        style="color: #ff9c01">
+        {{ t('待确认') }}
+      </span>
+      <span
+        v-else
+        style="color: #3a84ff">
+        {{ t('执行中') }}
+      </span>
+      ”
     </template>
     <template v-else>
+      <span v-if="getStatusText(content.status)"> {{ t('任务') }}“ </span>
       <span
         :style="{
-          color: getStatusColor(content.status) || '#63656e',
+          color: getStatusColor(content.status) || 'inhert',
         }">
         {{ getStatusText(content.status) || content.summary }}
       </span>
+      ”
       <template v-if="content.err_msg">
         <span>，{{ t('处理人') }}: </span>
         <span>{{ ticketData.updater }}</span>
@@ -66,14 +79,17 @@
     ticketData: TicketModel<unknown>;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
+  const isTodo = computed(() => props.content.todos.some((todoItem) => todoItem.status === 'TODO'));
+
   const getStatusText = (status: string) => {
     const infoMap: Record<string, string> = {
-      SUCCEEDED: t('任务_执行成功'),
-      FAILED: t('任务_执行失败'),
+      SUCCEEDED: t('执行成功'),
+      FAILED: t('执行失败'),
+      TERMINATED: t('终止'),
     };
     return infoMap[status] ? infoMap[status] : null;
   };
