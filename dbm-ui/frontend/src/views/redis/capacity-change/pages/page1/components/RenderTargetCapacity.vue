@@ -215,7 +215,7 @@
       }
       return Promise.resolve({
         shard_num: localValue.value.cluster_shard_num, // props.rowData!.shardNum
-        group_num: targetObj.value!.requireMachineGroupNum,
+        group_num: localValue.value.machine_pair, // targetObj.value!.requireMachineGroupNum,
         capacity: futureCapacity.value ?? 1,
         future_capacity: futureCapacity.value ?? 1,
         update_mode: targetObj.value?.updateMode,
@@ -226,7 +226,6 @@
             affinity: AffinityType.CROS_SUBZONE, // 暂时固定 'CROS_SUBZONE',
           },
         },
-        new_group_num: localValue.value.machine_pair,
       });
     },
   });
