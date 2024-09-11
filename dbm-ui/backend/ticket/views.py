@@ -114,14 +114,15 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         elif self.action == "get_instance_operate_records":
             return [InstanceDetailPermission()]
         # 单据详情，关联单据查看动作
-        elif self.action in ["retrieve", "flows", "retry_flow", "revoke_flow", "process_todo"]:
+        elif self.action in ["retrieve", "flows", "retry_flow", "revoke_flow"]:
             instance_getter = lambda request, view: [request.parser_context["kwargs"]["pk"]]  # noqa
             return [ResourceActionPermission([ActionEnum.TICKET_VIEW], ResourceEnum.TICKET, instance_getter)]
         # 单据流程设置，关联单据流程设置动作
-        elif self.action in ["update_ticket_flow_config", "create_ticket_flow_config"]:
+        elif self.action in ["update_ticket_flow_config", "create_ticket_flow_config", "delete_ticket_flow_config"]:
             return ticket_flows_config_permission(self.action, self.request)
-        elif self.action == "delete_ticket_flow_config":
-            return ticket_flows_config_permission(self.action, self.request)
+        # 对于处理todo的接口，可以不用鉴权，todo本身会判断是否是确认人
+        elif self.action in ["process_todo", "batch_process_todo"]:
+            return []
         # 其他非敏感GET接口，不鉴权
         elif self.action in [
             "list",
@@ -130,6 +131,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             "get_todo_tickets",
             "get_tickets_count",
             "query_ticket_flow_describe",
+            "list_ticket_status",
         ]:
             return []
         # 回调和处理无需鉴权
