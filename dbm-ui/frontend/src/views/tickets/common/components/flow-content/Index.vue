@@ -126,18 +126,30 @@
           </template>
         </I18nT>
       </template>
-      <template
-        v-else-if="
-          content.flow_type === 'INNER_FLOW' &&
-          content.todos.length > 0 &&
-          content.todos.every((todoItem) => todoItem.type !== 'RESOURCE_REPLENISH')
-        ">
-        <span
-          :style="{
-            color: getStatusColor(content.status) || '#63656e',
-          }">
-          {{ getStatusText(content.status) || content.summary }}
-        </span>
+      <template v-else-if="content.flow_type === 'INNER_FLOW'">
+        <template
+          v-if="
+            content.status === 'RUNNING' &&
+            content.todos.length > 0 &&
+            content.todos.some((todoItem) => todoItem.status === 'TODO' && todoItem.type !== 'RESOURCE_REPLENISH')
+          ">
+          <span>{{ t('任务') }}</span
+          >“
+          <span style="color: #ff9c01">{{ t('待确认') }}</span>
+          ”
+        </template>
+        <template v-else-if="getStatusText(content.status)">
+          <span>{{ t('任务') }}</span
+          >“
+          <span
+            :style="{
+              color: getStatusColor(content.status) || '#63656e',
+            }">
+            {{ getStatusText(content.status) || content.summary }}
+          </span>
+          ”
+        </template>
+        <span v-if="content.err_msg"> ，{{ content.summary }} </span>
       </template>
       <template v-else-if="isPause && isTodos === false">
         <span>{{ t('处理人') }}: </span>
@@ -299,9 +311,10 @@
 
   const getStatusText = (status: string) => {
     const infoMap: Record<string, string> = {
-      SUCCEEDED: t('任务_执行成功'),
-      FAILED: t('任务_执行失败'),
-      RUNNING: t('任务_待确认'),
+      SUCCEEDED: t('执行成功'),
+      FAILED: t('执行失败'),
+      RUNNING: t('执行中'),
+      TERMINATED: t('终止'),
     };
     return infoMap[status] ? infoMap[status] : null;
   };
@@ -310,10 +323,10 @@
     const infoMap: Record<string, string> = {
       SUCCEEDED: '#14a568',
       FAILED: '#ea3636',
-      RUNNING: '#ff9c01',
+      RUNNING: '#3a84ff',
       TERMINATED: '#ea3636',
     };
-    return infoMap[status] ? infoMap[status] : null;
+    return infoMap[status] ? infoMap[status] : 'inhert';
   };
 
   const handleConfirmTerminal = (item: FlowItem) => {

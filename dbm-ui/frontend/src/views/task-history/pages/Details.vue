@@ -514,7 +514,13 @@
 
   const rootId = computed(() => route.params.root_id as string);
 
-  const todoNodesCount = computed(() => flowState.details.todos?.length || 0)
+  const todoNodesCount = computed(() => {
+    if (flowState.details.flow_info) {
+      const { status } = flowState.details.flow_info
+      return (flowState.details.todos || []).filter(todoItem => (status === 'RUNNING' || status === 'FAILED') && todoItem.status === 'TODO').length
+    }
+    return 0
+  })
 
   const isShowRevokePipelineButton = computed(() => !['REVOKED', 'FINISHED'].includes(flowState.details?.flow_info?.status));
   const isShowFailedPipelineButton = computed(() => flowState.details?.flow_info?.status === 'FAILED');
@@ -689,7 +695,7 @@
   watch(todoNodesCount, () => {
     isFindFirstLeafTodoNode = false
     expandTodoNodeObjects = []
-    const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+    const todoNodeIdList = getTodoNodeIdList(flowState.details)
     todoNodesTreeData.value = todoNodeIdList.length ? generateTodoNodesTree(flowState.details.activities, todoNodeIdList) : [];
 
     setTreeOpen([
@@ -701,8 +707,7 @@
   watch(() => baseInfo.value.status, (status) => {
     if (status && flowState.instance === null) {
       setTimeout(() => {
-        const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
-        flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value, todoNodeIdList);
+        flowState.instance = new GraphCanvas(`#${flowState.flowSelectorId}`, baseInfo.value);
         flowState.instance
           .on('nodeClick', handleNodeClick)
           .on('nodeMouseEnter', handleNodeMouseEnter)
@@ -713,6 +718,16 @@
   }, {
     immediate: true,
   });
+
+  const getTodoNodeIdList = (details: TaskflowDetails) => {
+    const { status } = details.flow_info;
+    return (details.todos || []).reduce<string[]>((prevList, todoItem) => {
+      if ((status === 'RUNNING' || status === 'FAILED') && todoItem.status === 'TODO') {
+        prevList.push(todoItem.context.node_id)
+      }
+      return prevList
+    }, [])
+  }
 
   const generateFailNodesTree = (activities: TaskflowDetails['activities']) => {
     const flowList: TaskflowList = []
@@ -874,12 +889,12 @@
    * 渲染画布节点
    */
   const renderNodes = (updateLogData = false) => {
-    const { locations, lines } = formatGraphData(flowState.details, expandNodes);
-    const todoNodeIdList = flowState.details.todos.map(todoItem => todoItem.context.node_id)
+    const todoNodeIdList = getTodoNodeIdList(flowState.details)
+    const { locations, lines } = formatGraphData(flowState.details, expandNodes, todoNodeIdList);
     flowState.instance.update({
       locations,
       lines,
-    }, todoNodeIdList);
+    });
     flowState.minimap.windowWidth = Math.max(...locations.map(item => item.x || 0)) + 400;
     flowState.minimap.windowHeight = Math.max(...locations.map(item => item.y || 0)) + 400;
     // 如果打开侧栏需要更新侧栏的节点状态
@@ -965,7 +980,7 @@
    * 继续节点
    */
    const handleTodo = (node: GraphNode) => {
-    const todoItem = flowState.details.todos.find(todoItem => todoItem.context.node_id === node.id)
+    const todoItem = flowState.details.todos!.find(todoItem => todoItem.context.node_id === node.id)
     if (todoItem) {
       ticketBatchProcessTodo({
         action: "APPROVE",
@@ -1014,7 +1029,7 @@
   const handleTodoAllPipeline = () => {
     ticketBatchProcessTodo({
       action: "APPROVE",
-      operations: flowState.details.todos.map(todoItem => ({
+      operations: flowState.details.todos!.map(todoItem => ({
         todo_id: todoItem.id,
         params: {}
       }))

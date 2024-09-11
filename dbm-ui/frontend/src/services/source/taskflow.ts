@@ -155,7 +155,7 @@ interface FlowsDetail {
   gateways: { [key: string]: FlowsDetail['end_event'] };
   id: string;
   start_event: FlowsDetail['end_event'];
-  todos: FlowItemTodo[];
+  todos?: FlowItemTodo[];
 }
 
 /**

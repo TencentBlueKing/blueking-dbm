@@ -30,13 +30,8 @@ export default class GraphCanvas {
   graphData: GraphData;
   expandNodes: string[]; // 展开节点
   flowInfo: ServiceReturnType<typeof getTaskflowDetails>['flow_info'];
-  todoNodeIdList: string[];
 
-  constructor(
-    selector: string,
-    flowInfo: ServiceReturnType<typeof getTaskflowDetails>['flow_info'],
-    todoNodeIdList: string[],
-  ) {
+  constructor(selector: string, flowInfo: ServiceReturnType<typeof getTaskflowDetails>['flow_info']) {
     this.expandNodes = [];
     this.flowInstance = null;
     this.selector = selector;
@@ -46,12 +41,11 @@ export default class GraphCanvas {
       lines: [],
     };
     this.flowInfo = flowInfo;
-    this.todoNodeIdList = todoNodeIdList;
     this.renderCanvas();
   }
 
   renderCanvas() {
-    const { flowInfo, todoNodeIdList } = this;
+    const { flowInfo } = this;
     this.flowInstance = new D3Graph(this.selector, {
       mode: 'readonly',
       nodeTemplateKey: 'tpl',
@@ -71,7 +65,7 @@ export default class GraphCanvas {
         scaleExtent: [0.5, 1.5],
         controlPanel: false,
       },
-      onNodeRender: (node: any) => this.tplRender.render(node.tpl, [node, flowInfo, todoNodeIdList]),
+      onNodeRender: (node: any) => this.tplRender.render(node.tpl, [node, flowInfo]),
     });
     this.flowInstance.renderGraph(this.graphData, false);
     this.updateLinePosition();
@@ -81,9 +75,8 @@ export default class GraphCanvas {
     this.flowInstance.updateCallback = callback;
   }
 
-  update(graphData: GraphData, todoNodeIdList: string[]) {
+  update(graphData: GraphData) {
     this.graphData = graphData;
-    this.todoNodeIdList = todoNodeIdList;
     this.flowInstance.clear();
     this.flowInstance.renderGraph(this.graphData, false);
     this.updateLinePosition();
