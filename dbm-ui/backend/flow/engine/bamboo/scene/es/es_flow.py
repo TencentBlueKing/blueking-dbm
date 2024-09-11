@@ -62,7 +62,7 @@ class EsFlow(object):
                     "conf_file": self.db_version,
                     "conf_type": ConfType.DBCONF,
                     "namespace": NameSpaceEnum.Es,
-                    "format": FormatType.MAP_LEVEL,
+                    "format": FormatType.MAP,
                 }
             )
             self.es_config = dbconfig["content"]
