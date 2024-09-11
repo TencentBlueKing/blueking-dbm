@@ -24,7 +24,9 @@
       <template v-else>
         <div
           v-for="item in renderMasters"
-          :key="item">
+          :key="item"
+          v-overflow-tips
+          class="cluster-item">
           {{ item }}
         </div>
       </template>
@@ -55,8 +57,15 @@
     color: #63656e;
 
     &.placeholder {
-      background: #fafbfd;
       color: #c4c6cc;
+      background: #fafbfd;
+    }
+
+    .cluster-item {
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 </style>
