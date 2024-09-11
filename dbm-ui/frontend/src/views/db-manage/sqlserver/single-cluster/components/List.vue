@@ -73,13 +73,6 @@
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
     :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
-  <EditEntryConfig
-    :id="showEnterConfigClusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="sqlserver.singleClusterList.modifyEntryConfiguration"
-    :get-detail-info="getSingleClusterDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.SQLSERVER" />
   <ClusterReset
     v-if="currentData"
     v-model:is-show="isShowClusterReset"
@@ -201,9 +194,6 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false)
-  const showEditEntryConfig = ref(false);
-  const entryEditable = ref(false);
-  const showEnterConfigClusterId = ref(0);
   const currentData = ref<SqlServerSingleClusterModel>()
   const selected = ref<SqlServerSingleClusterModel[]>([])
 
@@ -374,10 +364,13 @@
                       data-text="NEW" />
                   )
                 }
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="sqlserver.singleClusterList.modifyEntryConfiguration"
+                  getDetailInfo={getSingleClusterDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.SQLSERVER}
+                  onSuccess={fetchData} />
               </>
             ),
           }}
@@ -798,12 +791,6 @@
     }, [] as string[]);
     copy(copyList.join('\n'));
   }
-
-  const handleOpenEntryConfig = (row: SqlServerSingleClusterModel) => {
-    showEditEntryConfig.value  = true;
-    showEnterConfigClusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
-  };
 
   // 获取列表数据下的实例子列表
   const getInstanceListByRole = (dataList: SqlServerSingleClusterModel[], field: keyof SqlServerSingleClusterModel) => dataList.reduce((result, curRow) => {

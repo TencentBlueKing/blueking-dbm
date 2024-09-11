@@ -23,6 +23,7 @@ interface TendbhaInstance {
   bk_instance_id: number;
   instance: string;
   ip: string;
+  is_stand_by: boolean;
   name: string;
   phase: string;
   port: number;
@@ -61,6 +62,11 @@ export default class Tendbha {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_entry: {
+    cluster_entry_type: string;
+    entry: string;
+    role: 'master_entry' | 'slave_entry';
+  }[];
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_type: string;
@@ -104,6 +110,7 @@ export default class Tendbha {
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
+    this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name || '';
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
@@ -217,6 +224,11 @@ export default class Tendbha {
     const port = this.slaves[0]?.port;
     const displayName = port ? `${this.slave_domain}:${port}` : this.slave_domain;
     return this.slave_domain ? displayName : '--';
+  }
+
+  get slaveEntryList() {
+    const port = this.slaves[0]?.port;
+    return this.cluster_entry.filter((item) => item.role === 'slave_entry').map((item) => `${item.entry}:${port}`);
   }
 
   get createAtDisplay() {

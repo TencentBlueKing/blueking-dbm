@@ -108,13 +108,6 @@
         :cluster-id="operationData.id" />
     </BkSideslider>
   </div>
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="hdfs.clusterManage.modifyEntryConfiguration"
-    :get-detail-info="getHdfsDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.HDFS" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -231,8 +224,6 @@
   const isShowPassword = ref(false);
   const isShowSettings = ref(false);
   const isInit = ref(true);
-  const showEditEntryConfig = ref(false);
-  const entryEditable = ref(false);
   const operationData = shallowRef<HdfsModel>();
   const selected = ref<HdfsModel[]>([])
   const selectedIds = computed(() => selected.value.map(item => item.id));
@@ -395,10 +386,13 @@
                       ]
                     } />
                   )}
-                  <db-icon
-                    v-bk-tooltips={t('查看域名/IP对应关系')}
-                    type="visible1"
-                    onClick={() => handleOpenEntryConfig(data)} />
+                  <EditEntryConfig
+                    id={data.id}
+                    dbConsole="hdfs.clusterManage.modifyEntryConfiguration"
+                    getDetailInfo={getHdfsDetail}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.HDFS}
+                    onSuccess={fetchTableData} />
                 </>
               ),
             }}
@@ -857,12 +851,6 @@
 
     // 不需要远层加载
     return serachData.value.find(set => set.id === item.id)?.children || [];
-  };
-
-  const handleOpenEntryConfig = (row: HdfsModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const fetchTableData = (loading?:boolean) => {

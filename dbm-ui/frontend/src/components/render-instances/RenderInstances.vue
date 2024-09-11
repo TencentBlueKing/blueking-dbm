@@ -35,18 +35,9 @@
             size="small">
             {{ t('不可用') }}
           </BkTag>
-          <span
-            v-for="item in tagKeyConfig"
-            :key="item.name">
-            <BkTag
-              v-if="(item.name && inst[item.name] === item.value) || (item.ipMatch && item.mapData?.[inst.ip])"
-              :class="item.className"
-              size="small"
-              :style="item.style"
-              :theme="item.theme">
-              {{ item.displayName }}
-            </BkTag>
-          </span>
+          <slot
+            :data="inst"
+            name="append" />
           <template v-if="index === 0">
             <DbIcon
               ref="copyRootRef"
@@ -128,42 +119,23 @@
     </template>
   </BkDialog>
 </template>
-<script lang="tsx">
-  interface InstanceListData {
-    bk_instance_id: number;
-    create_at: string;
-    instance_address: string;
-    ip: string;
-    name: string;
-    port: number;
-    role: string;
-    status: string;
-    [key: string]: any;
-  }
 
-  interface Props {
-    title: string;
-    role: string;
-    data: InstanceListData[];
-    clusterId: number;
-    dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>;
-    highlightIps?: string[];
-    tagKeyConfig?: {
-      displayName: string;
-      name?: string;
-      value?: boolean | number | string;
-      className?: string;
-      style?: string;
-      theme?: 'success' | 'warning' | 'danger' | 'info';
-      // ip匹配模式
-      ipMatch?: boolean;
-      // ip是否展示tag的映射关系
-      mapData?: Record<string, boolean>;
-    }[];
-  }
-</script>
-<script setup lang="tsx" generic="T extends InstanceListData">
+<script
+  setup
+  lang="tsx"
+  generic="
+    T extends {
+      bk_instance_id: number;
+      create_at: string;
+      instance_address: string;
+      ip: string;
+      port: number;
+      role: string;
+      status: string;
+    }
+  ">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type {
@@ -184,6 +156,15 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import { messageWarn } from '@utils';
+
+  interface Props {
+    title: string;
+    role: string;
+    data: T[];
+    clusterId: number;
+    dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>;
+    highlightIps?: string[];
+  }
 
   const props = withDefaults(defineProps<Props>(), {
     highlightIps: () => ([]),
@@ -206,7 +187,7 @@
   const dialogState = reactive({
     isShow: false,
     keyword: '',
-    data: [] as InstanceListData[],
+    data: [] as T[],
   });
 
   const columns = [
@@ -257,8 +238,8 @@
     fetchInstance();
   }
 
-  const handleRequestFinished = (data: InstanceListData[]) => {
-    dialogState.data = data;
+  const handleRequestFinished = (data: T[]) => {
+    dialogState.data = data as UnwrapRef<T[]>;
   }
 
   /**

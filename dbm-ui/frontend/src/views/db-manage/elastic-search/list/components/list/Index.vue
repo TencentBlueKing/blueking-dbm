@@ -97,13 +97,6 @@
       </template>
     </BkDialog>
   </div>
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="es.clusterManage.modifyEntryConfiguration"
-    :get-detail-info="getEsDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.ES" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -279,8 +272,6 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
-  const showEditEntryConfig = ref(false);
-  const entryEditable = ref(false);
   const selected = ref<EsModel[]>([])
   const operationData = shallowRef<EsModel>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
@@ -382,10 +373,13 @@
                     ]
                   } />
                 )}
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="es.clusterManage.modifyEntryConfiguration"
+                  getDetailInfo={getEsDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.ES}
+                  onSuccess={fetchTableData} />
               </>
             ),
           }}
@@ -833,12 +827,6 @@
 
     // 不需要远层加载
     return serachData.value.find(set => set.id === item.id)?.children || [];
-  };
-
-  const handleOpenEntryConfig = (row: EsModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const fetchTableData = (loading?:boolean) => {

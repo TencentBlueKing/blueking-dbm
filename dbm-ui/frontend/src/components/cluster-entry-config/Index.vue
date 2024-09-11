@@ -12,14 +12,19 @@
 -->
 
 <template>
+  <DbIcon
+    v-bk-tooltips="t('查看域名/IP对应关系')"
+    type="visible1"
+    @click="() => (isShow = true)" />
   <BkDialog
     class="entry-config-dialog"
+    draggable
     :is-show="isShow"
     :quick-close="false"
     :show-mask="false"
     :title="t('查看域名/IP对应关系')"
     :width="640"
-    @closed="handleClose">
+    @closed="() => (isShow = false)">
     <BkLoading :loading="isLoading">
       <BkTable
         ref="tableRef"
@@ -123,12 +128,10 @@
     },
   ];
 
-  watch(() => props.id, (id) => {
-    if (id) {
+  watch(isShow, () => {
+    if (isShow.value && props.id !== 0) {
       fetchResources();
     }
-  }, {
-    immediate: true,
   });
 
   const fetchResources = () => {
@@ -154,10 +157,6 @@
   };
 
   const generateCellClass = (cell: { field: string }) => (cell.field === 'ips' ? 'entry-config-ips-column' : '');
-
-  const handleClose = () => {
-    isShow.value = false;
-  };
 
   const handleSuccess = () => {
     emits('success');
