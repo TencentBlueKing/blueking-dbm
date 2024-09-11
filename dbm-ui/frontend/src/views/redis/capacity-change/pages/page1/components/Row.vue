@@ -191,17 +191,12 @@
         targetCapacityRef.value!.getValue(),
       ]).then((data) => {
         const [version, switchMode, targetCapacity] = data;
-        const displayInfo = {
-          new_group_num: targetCapacity.new_group_num,
-        };
-        delete targetCapacity.new_group_num;
         return {
           cluster_id: props.data.clusterId,
           db_version: version,
           bk_cloud_id: props.data.bkCloudId,
           online_switch_type: switchMode,
           ...targetCapacity,
-          display_info: displayInfo,
         };
       });
     },
