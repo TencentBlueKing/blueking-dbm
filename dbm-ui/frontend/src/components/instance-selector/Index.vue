@@ -214,7 +214,7 @@
   import MysqlContent from './components/mysql/Index.vue';
   import RedisContent from './components/redis/Index.vue';
   import RenderRedisHost from './components/redis-host/Index.vue';
-  import SqlServerContent from './components/sql-server/Index.vue';
+  import SqlServerContent from './components/sqlserver/Index.vue';
   import TendbClusterContent from './components/tendb-cluster/Index.vue';
   import TendbClusterHostContent from './components/tendb-cluster-host/Index.vue';
 
