@@ -406,7 +406,8 @@ class CcManage(object):
                     "bk_biz_id": self.hosting_biz_id,
                     "instance_ids": bk_instance_ids,
                     "labels": labels_dict,
-                }
+                },
+                use_admin=True,
             )
 
     def delete_service_instance(self, bk_instance_ids: List[int]):
@@ -416,7 +417,8 @@ class CcManage(object):
                 {
                     "bk_biz_id": self.hosting_biz_id,
                     "service_instance_ids": bk_instance_ids,
-                }
+                },
+                use_admin=True,
             )
         except Exception as error:
             logger.warning(error)

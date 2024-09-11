@@ -51,12 +51,12 @@ class StoragePermission(ResourceActionPermission):
             if is_all_pkg.pop():
                 self.actions = [ActionEnum.PACKAGE_MANAGE]
                 self.resource_meta = ResourceEnum.DBTYPE
-                db_types = set([path.split("/")[0] for path in file_path_list])
+                db_types = set([path.strip("/").split("/")[0] for path in file_path_list])
                 return list(db_types)
             else:
                 self.actions = [ActionEnum.DB_MANAGE]
                 self.resource_meta = ResourceEnum.BUSINESS
-                bk_biz_ids = set([int(path.split("/")[2]) for path in file_path_list])
+                bk_biz_ids = set([int(path.strip("/").split("/")[2]) for path in file_path_list])
                 return list(bk_biz_ids)
         except Exception:
             logger.error(_("文件操作路径{}不合法，请联系管理员").format(file_path_list))
