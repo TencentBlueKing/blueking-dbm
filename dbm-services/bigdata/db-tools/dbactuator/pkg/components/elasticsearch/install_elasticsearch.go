@@ -91,6 +91,7 @@ type ESYaml struct {
 	XpackMonitoringCollectionEnabled      bool   `yaml:"xpack.monitoring.collection.enabled"`
 	ClusterRoutingAllocationSameShardHost bool   `yaml:"cluster.routing.allocation.same_shard.host"`
 	DiscoveryZenPingUnicastHosts          string `yaml:"discovery.zen.ping.unicast.hosts"` // 兼容5.4
+	NodeRoles                             string `yaml:"node.roles"`                       // 8.0参数
 }
 
 // RenderConfig 需要替换的配置值 Todo
@@ -283,8 +284,8 @@ func (i *InstallEsComp) InstallCold() (err error) {
  */
 func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 	var (
-		nodeIP         = i.Params.Host
-		nodeName       = fmt.Sprintf("%s-%s_1", role, nodeIP)
+		nodeIP = i.Params.Host
+		// nodeName       = fmt.Sprintf("%s-%s_1", role, nodeIP)
 		ver            = i.Params.EsVersion
 		processors     = runtime.NumCPU() / instances
 		clusterName    = i.Params.ClusterName
@@ -295,6 +296,7 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 		esConfig       = i.Params.EsConfigs
 	)
 	isMaster, isData := esutil.GetTfByRole(role)
+	roleSet := esutil.GetTfByRole8(role)
 	esLink := fmt.Sprintf("%s/es", cst.DefaulEsEnv)
 	extraCmd := fmt.Sprintf("ln -s %s %s ", esBaseDir, esLink)
 	if output, err := osutil.ExecShellCommand(false, extraCmd); err != nil {
@@ -358,7 +360,7 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			return err
 		}
 
-		nodeName = fmt.Sprintf("%s-%s_%d", role, nodeIP, ins)
+		nodeName := fmt.Sprintf("%s-%s_%d", role, nodeIP, ins)
 		// cp /data/esenv/elasticsearch-$version /data/esenv/elasticsearch-$version_1
 		esBaseDirIns := fmt.Sprintf("%s_%d", esBaseDir, ins)
 		if output, err := osutil.ExecShellCommand(false, fmt.Sprintf("cp -a %s %s", esBaseDir, esBaseDirIns)); err != nil {
@@ -401,6 +403,7 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			XpackMonitoringCollectionEnabled:      i.XpackMonitoringCollectionEnabled,
 			ClusterRoutingAllocationSameShardHost: true,
 			DiscoveryZenPingUnicastHosts:          masterIP,
+			NodeRoles:                             roleSet,
 		}
 
 		var buf bytes.Buffer
@@ -430,6 +433,7 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			logger.Error("%s execute failed, %v", extraCmd, err)
 			return err
 		}
+
 		// master格式: m1,m2,m3 -> [m1,m2,m3]
 		masterIPA := fmt.Sprintf("[%s]", masterIP)
 		masterNodenameA := fmt.Sprintf("[%s]", masterNodename)
@@ -447,7 +451,17 @@ func (i *InstallEsComp) InstallEsBase(role string, instances int) error {
 			logger.Error("%s execute failed, %v", extraCmd, err)
 			return err
 		}
-
+		// 格式化 node.roles, eg: master,ingest -> [master, igest]
+		roleSetA := fmt.Sprintf("[%s]", roleSet)
+		v8, _ := version.NewVersion("8.0")
+		if v1.GreaterThan(v8) {
+			extraCmd = fmt.Sprintf(`sed -i -e '/node.roles/s/%s/%s/' %s`, roleSet, roleSetA, esYamlFile)
+			logger.Info("Exec command [%s]", extraCmd)
+			if _, err = osutil.ExecShellCommand(false, extraCmd); err != nil {
+				logger.Error("%s execute failed, %v", extraCmd, err)
+				return err
+			}
+		}
 		// 如果节点是client, 增加 node.attr.node_type: client
 		if role == cst.EsClient {
 			extraCmd = fmt.Sprintf(`sed -i '/node.attr.node_type/d' %s ;
