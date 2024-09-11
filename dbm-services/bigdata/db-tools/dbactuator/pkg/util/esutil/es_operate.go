@@ -122,6 +122,23 @@ func GetTfByRole(role string) (isMaster bool, isData bool) {
 	return isMaster, isData
 }
 
+// GetTfByRole8 根据角色设置参数, version above 8
+func GetTfByRole8(role string) (roleSet string) {
+	switch role {
+	case cst.EsHot:
+		roleSet = "data,data_content,data_hot,ml,ingest,transform,remote_cluster_client"
+	case cst.EsCold:
+		roleSet = "data,data_content,data_cold,ml,ingest,transform,remote_cluster_client"
+	case cst.EsMaster:
+		roleSet = "master,ingest"
+	case cst.EsClient:
+		roleSet = "ml,ingest,transform,remote_cluster_client"
+	default:
+		roleSet = "ml,ingest,transform,remote_cluster_client"
+	}
+	return roleSet
+}
+
 // WriteCerToYaml710 TODO
 // es证书配置, /data/esenv/es*/config/elasticsearch.yml
 func WriteCerToYaml710(filePath string) error {
@@ -536,9 +553,25 @@ func GenPath(seq int, seed int, diskPath []string) []string {
 func (k KibanaParam) GenKibanaYaml() []byte {
 	var yamldata []byte
 	v, _ := version.NewVersion(k.Version)
-	v7, _ := version.NewVersion("7.0")
+	v7, _ := version.NewVersion("7.11")
+	v8, _ := version.NewVersion("8.0")
 	switch {
-	case k.Version == cst.ES7142:
+	case v.GreaterThanOrEqual(v8):
+		yamldata = []byte(fmt.Sprintf(`
+server.name: kibana
+server.host: "0.0.0.0"
+server.basePath: "/%d/%s/%s/%s"
+server.rewriteBasePath: false
+elasticsearch.hosts: "http://%s:%d"
+elasticsearch.ssl.verificationMode: none
+elasticsearch.requestTimeout: 60000
+elasticsearch.shardTimeout: 60000
+i18n.locale: "zh-CN"
+csp.strict: false
+elasticsearch.username: "%s"
+elasticsearch.password: "%s"`, k.BkBizID, k.DbType, k.ClusterName,
+			k.ServiceType, k.Host, k.HTTPPort, "kibana_system", k.Password))
+	case v.GreaterThan(v7) && v.LessThan(v8):
 		yamldata = []byte(fmt.Sprintf(`
 server.name: kibana
 server.host: "0"
@@ -550,7 +583,7 @@ elasticsearch.username: "%s"
 elasticsearch.password: "%s"
 xpack.security.enabled: true`, k.BkBizID, k.DbType, k.ClusterName,
 			k.ServiceType, k.Host, k.HTTPPort, k.Username, k.Password))
-	case v.GreaterThan(v7):
+	case k.Version == cst.ES7102:
 		yamldata = []byte(fmt.Sprintf(`
 server.name: kibana
 server.host: "0"
@@ -605,13 +638,18 @@ func GenBoostScript() []byte {
 	esdirs=$(ls -F|grep 'es.*@'|awk -F @ '{print $1}')
 	http_port=$(grep -w 'port:' /data/esenv/es_1/config/elasticsearch.yml|awk '{print $2}'|sed 's/"//g')
 	
-	if [[ $version =~ "7.14" ]];then
+	if [[ $version =~ "7.14" || $version =~ ^8\. ]];then
 		adminPassword=$(cat /data/esenv/es_1/config/es_passfile)
 		curl -s -u "elastic:${adminPassword}" \
 		-XPOST "http://${local_ip}:${http_port}/_security/user/${creater_user}" \
 		-H "Content-Type: application/json" -d'{
 			"password" : "'"${passwd}"'",
 			"roles" : [ "superuser" ]
+		}'
+		curl -s -u "elastic:${adminPassword}" \
+		-XPOST "http://${local_ip}:${http_port}/_security/user/kibana_system/_password" \
+		-H "Content-Type: application/json" -d'{
+			"password" : "'"${passwd}"'"
 		}'
     else 
         if [[ $version > "7.0.0" ]];then
@@ -651,8 +689,8 @@ $creater_user:
             cd /data/esenv/es_1
             f1="$sgdir/sgconfig/sg_internal_users.yml.tml"
             f2="$sgdir/sgconfig/sg_internal_users.yml"
-            [[ ! -e $f1 ]] && cp $f2 $f1
-            cp $f1  $f2
+			[[ ! -e $f1 ]] && cp $f2 $f1
+			cp $f1 $f2
             echo "
 $creater_user:
   hash: $userpasswd
