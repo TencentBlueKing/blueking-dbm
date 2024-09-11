@@ -187,7 +187,7 @@ func (b *BkRepoClient) QueryFileNodeInfo(filepath, filename string) (realData Fi
 	return
 }
 
-// UploadRespData TODO
+// UploadRespData upload respone data
 type UploadRespData struct {
 	Sha256           string `json:"sha256"`
 	Md5              string `json:"md5"`
