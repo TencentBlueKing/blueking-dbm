@@ -149,7 +149,7 @@ class BambooEngine:
             if key == "inputs":
                 copy_data.pop(key)
                 continue
-            if type(value) == dict:
+            if isinstance(value, dict):
                 self.hide_sensitive_data(value)
         return copy_data
 
