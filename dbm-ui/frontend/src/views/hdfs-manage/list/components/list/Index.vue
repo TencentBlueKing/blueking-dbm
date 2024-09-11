@@ -111,7 +111,10 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getHdfsDetail" />
+    db-console="hdfs.clusterManage.modifyEntryConfiguration"
+    :get-detail-info="getHdfsDetail"
+    :permission="entryEditable"
+    :resource="DBTypes.HDFS" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -142,6 +145,7 @@
 
   import {
     ClusterTypes,
+    DBTypes,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -228,7 +232,7 @@
   const isShowSettings = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
-
+  const entryEditable = ref(false);
   const operationData = shallowRef<HdfsModel>();
   const selected = ref<HdfsModel[]>([])
   const selectedIds = computed(() => selected.value.map(item => item.id));
@@ -391,17 +395,10 @@
                       ]
                     } />
                   )}
-                  <auth-button
-                    v-bk-tooltips={t('修改入口配置')}
-                    v-db-console="hdfs.clusterManage.modifyEntryConfiguration"
-                    action-id="access_entry_edit"
-                    resource="hdfs"
-                    permission={data.permission.access_entry_edit}
-                    text
-                    theme="primary"
-                    onClick={() => handleOpenEntryConfig(data)}>
-                    <db-icon type="edit" />
-                  </auth-button>
+                  <db-icon
+                    v-bk-tooltips={t('查看域名/IP对应关系')}
+                    type="bk-dbm-icon db-icon-visible1"
+                    onClick={() => handleOpenEntryConfig(data)} />
                 </>
               ),
             }}
@@ -864,6 +861,7 @@
   const handleOpenEntryConfig = (row: HdfsModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
+    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const fetchTableData = (loading?:boolean) => {
@@ -1082,7 +1080,7 @@
         align-items: center;
       }
 
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-left: 4px;
         color: @primary-color;
@@ -1091,7 +1089,7 @@
     }
 
     :deep(tr:hover) {
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }

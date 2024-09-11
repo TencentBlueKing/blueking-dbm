@@ -76,7 +76,10 @@
   <EditEntryConfig
     :id="showEnterConfigClusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getSingleClusterDetail" />
+    db-console="sqlserver.singleClusterList.modifyEntryConfiguration"
+    :get-detail-info="getSingleClusterDetail"
+    :permission="entryEditable"
+    :resource="DBTypes.SQLSERVER" />
   <ClusterReset
     v-if="currentData"
     v-model:is-show="isShowClusterReset"
@@ -114,6 +117,7 @@
   import {
     AccountTypes,
     ClusterTypes,
+    DBTypes,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -198,6 +202,7 @@
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false)
   const showEditEntryConfig = ref(false);
+  const entryEditable = ref(false);
   const showEnterConfigClusterId = ref(0);
   const currentData = ref<SqlServerSingleClusterModel>()
   const selected = ref<SqlServerSingleClusterModel[]>([])
@@ -369,14 +374,10 @@
                       data-text="NEW" />
                   )
                 }
-                <bk-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  class="ml-4"
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </bk-button>
+                <db-icon
+                  v-bk-tooltips={t('查看域名/IP对应关系')}
+                  type="bk-dbm-icon db-icon-visible1"
+                  onClick={() => handleOpenEntryConfig(data)} />
               </>
             ),
           }}
@@ -801,6 +802,7 @@
   const handleOpenEntryConfig = (row: SqlServerSingleClusterModel) => {
     showEditEntryConfig.value  = true;
     showEnterConfigClusterId.value = row.id;
+    entryEditable.value = row.permission.access_entry_edit;
   };
 
   // 获取列表数据下的实例子列表
@@ -916,7 +918,7 @@
 
       .db-icon-copy,
       .db-icon-link,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-top: 1px;
         margin-left: 4px;
@@ -943,7 +945,7 @@
     td:hover {
       .db-icon-copy,
       .db-icon-link,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }
