@@ -385,7 +385,8 @@ class FixPointRollbackHandler:
         )
 
         if not binlogs:
-            raise AppBaseException(_("无法查找在时间范围内{}-{}，主机{}的binlog日志").format(start_time, end_time, host_ip))
+            return {}
+            # raise AppBaseException(_("无法查找在时间范围内{}-{}，主机{}的binlog日志").format(start_time, end_time, host_ip))
 
         # 根据stop_time和host进行过滤(字典外层参数cluster_domain,cluster_id,host,port都一样)
         binlog_record: Dict[str, Union[str, List]] = {
