@@ -217,6 +217,7 @@
                   ref="specBackendRef"
                   v-model="formData.details.resource_spec.backend.spec_id"
                   :biz-id="formData.bk_biz_id"
+                  :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="clusterType"
                   :machine-type="clusterType"
