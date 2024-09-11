@@ -106,11 +106,13 @@
     cloudId: number | string;
     showRefresh?: boolean;
     clearable?: boolean;
+    city?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     showRefresh: true,
     clearable: true,
+    city: undefined,
   });
   const emits = defineEmits<Emits>();
 
@@ -175,6 +177,7 @@
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
       spec_ids: list.value.map((item) => item.spec_id),
+      city: props.city,
     }).then((data) => {
       list.value = list.value.map((item) => ({
         ...item,
@@ -185,7 +188,7 @@
   }, 100);
 
   watch(
-    [() => props.bizId, () => props.cloudId, data],
+    [() => props.bizId, () => props.cloudId, () => props.city, data],
     () => {
       if (
         typeof props.bizId === 'number' &&

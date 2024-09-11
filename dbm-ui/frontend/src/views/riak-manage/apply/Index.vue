@@ -123,6 +123,7 @@
                 ref="specRef"
                 v-model="formData.spec_id"
                 :biz-id="formData.bk_biz_id"
+                :city="formData.details.city_code"
                 :cloud-id="formData.details.bk_cloud_id"
                 :cluster-type="ClusterTypes.RIAK"
                 machine-type="riak"

@@ -281,6 +281,7 @@
                   ref="specSingleRef"
                   v-model="formdata.details.resource_spec.single.spec_id"
                   :biz-id="formdata.bk_biz_id"
+                  :city="formdata.details.city_code"
                   :cloud-id="formdata.details.bk_cloud_id"
                   :cluster-type="ClusterTypes.TENDBSINGLE"
                   machine-type="single"
@@ -295,6 +296,7 @@
                     ref="specProxyRef"
                     v-model="formdata.details.resource_spec.proxy.spec_id"
                     :biz-id="formdata.bk_biz_id"
+                    :city="formdata.details.city_code"
                     :cloud-id="formdata.details.bk_cloud_id"
                     :cluster-type="ClusterTypes.TENDBHA"
                     machine-type="proxy"
@@ -308,6 +310,7 @@
                     ref="specBackendRef"
                     v-model="formdata.details.resource_spec.backend.spec_id"
                     :biz-id="formdata.bk_biz_id"
+                    :city="formdata.details.city_code"
                     :cloud-id="formdata.details.bk_cloud_id"
                     :cluster-type="ClusterTypes.TENDBHA"
                     machine-type="backend"
@@ -387,7 +390,7 @@
 
   import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
-  import { ClusterTypes, mysqlType,type MysqlTypeString, TicketTypes } from '@common/const';
+  import { ClusterTypes, mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
   import { OSTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
@@ -473,7 +476,7 @@
         // nodes,
         remark,
         startMysqlPort,
-        singleSpecId
+        singleSpecId,
       } = cloneData;
 
       formdata.details.resource_spec.backend.affinity = affinity;
@@ -581,7 +584,10 @@
   });
   const hostNums = computed(() => {
     const { cluster_count: clusterCount, inst_num: instCount } = formdata.details;
-    if (clusterCount <= 0 || instCount <= 0) return 0;
+
+    if (clusterCount <= 0 || instCount <= 0) {
+      return 0;
+    }
     const nums = Math.ceil(clusterCount / instCount);
     return isSingleType ? nums : nums * 2;
   });
@@ -638,16 +644,16 @@
     proxy: (hostList: Array<any>) =>
       hostList.length !== hostNums.value
         ? t('xx共需n台', {
-          title: 'Proxy',
-          n: hostNums.value,
-        })
+            title: 'Proxy',
+            n: hostNums.value,
+          })
         : false,
     backend: (hostList: Array<any>) =>
       hostList.length !== hostNums.value
         ? t('xx共需n台', {
-          title: 'Master / Slave',
-          n: hostNums.value,
-        })
+            title: 'Master / Slave',
+            n: hostNums.value,
+          })
         : false,
   };
   const makeMapByHostId = (hostList: HostDetails[]) =>
@@ -869,8 +875,8 @@
     const moduleName = moduleInfo?.name ?? '';
     const moduleNameQuery = moduleName
       ? {
-        module_name: moduleName,
-      }
+          module_name: moduleName,
+        }
       : {};
     isBindModule.value = true;
     const url = router.resolve({
