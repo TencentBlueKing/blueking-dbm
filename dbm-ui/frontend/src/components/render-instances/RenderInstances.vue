@@ -35,6 +35,18 @@
             size="small">
             {{ t('不可用') }}
           </BkTag>
+          <span
+            v-for="item in tagKeyConfig"
+            :key="item.name">
+            <BkTag
+              v-if="(item.name && inst[item.name] === item.value) || (item.ipMatch && item.mapData?.[inst.ip])"
+              :class="item.className"
+              size="small"
+              :style="item.style"
+              :theme="item.theme">
+              {{ item.displayName }}
+            </BkTag>
+          </span>
           <template v-if="index === 0">
             <DbIcon
               ref="copyRootRef"
@@ -123,6 +135,42 @@
     status: string;
     create_at: string;
   }
+
+  interface InstanceData {
+    bk_instance_id: number;
+    ip: string;
+    name: string;
+    port: number;
+    status: string;
+    [key: string]: any;
+  }
+
+  interface DialogState {
+    isShow: boolean;
+    keyword: string;
+    data: Array<InstanceListData>;
+  }
+
+  interface Props {
+    title: string;
+    role: string;
+    data: Array<InstanceData>;
+    clusterId: number;
+    dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>;
+    highlightIps?: string[];
+    tagKeyConfig?: {
+      displayName: string;
+      name?: string;
+      value?: boolean | number | string;
+      className?: string;
+      style?: string;
+      theme?: 'success' | 'warning' | 'danger' | 'info';
+      // ip匹配模式
+      ipMatch?: boolean;
+      // ip是否展示tag的映射关系
+      mapData?: Record<string, boolean>;
+    }[];
+  }
 </script>
 <script setup lang="tsx" generic="T extends InstanceListData">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
@@ -147,31 +195,9 @@
 
   import { messageWarn } from '@utils';
 
-  interface InstanceData {
-    bk_instance_id: number,
-    ip: string,
-    name: string,
-    port: number,
-    status: string
-  }
-
-
-  interface DialogState {
-    isShow: boolean,
-    keyword: string,
-    data: Array<InstanceListData>,
-  }
-
-  interface Props {
-    title: string,
-    role: string,
-    data: Array<InstanceData>;
-    clusterId: number,
-    dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>,
-    highlightIps?: string[],
-  }
   const props = withDefaults(defineProps<Props>(), {
     highlightIps: () => ([]),
+    tagKeyConfig: () => ([]),
   });
 
   const copy = useCopy();

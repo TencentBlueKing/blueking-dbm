@@ -85,6 +85,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     title: string;
   }>;
   permission: {
+    access_entry_edit: boolean;
     sqlserver_view: boolean;
   };
   phase: string;

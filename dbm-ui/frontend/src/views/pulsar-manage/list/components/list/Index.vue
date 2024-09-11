@@ -96,7 +96,10 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getPulsarDetail" />
+    db-console="pulsar.clusterManage.modifyEntryConfiguration"
+    :get-detail-info="getPulsarDetail"
+    :permission="entryEditable"
+    :resource="DBTypes.PULSAR" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -124,7 +127,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
@@ -219,6 +222,7 @@
   const isShowPassword = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
+  const entryEditable = ref(false);
   const selected = ref<PulsarModel[]>([])
   const operationData = shallowRef<PulsarModel>();
 
@@ -308,17 +312,10 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  v-db-console="pulsar.clusterManage.modifyEntryConfiguration"
-                  action-id="access_entry_edit"
-                  resource="pulsar"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <db-icon
+                  v-bk-tooltips={t('查看域名/IP对应关系')}
+                  type="bk-dbm-icon db-icon-visible1"
+                  onClick={() => handleOpenEntryConfig(data)} />
               </>
             ),
           }}
@@ -803,6 +800,7 @@
   const handleOpenEntryConfig = (row: PulsarModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
+    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const fetchTableData = (loading?:boolean) => {
@@ -1120,7 +1118,7 @@
         align-items: center;
       }
 
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-top: 2px;
         margin-left: 4px;
@@ -1130,7 +1128,7 @@
     }
 
     :deep(tr:hover) {
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }

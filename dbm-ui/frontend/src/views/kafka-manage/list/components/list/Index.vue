@@ -99,7 +99,10 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getKafkaDetail" />
+    db-console="kafka.clusterManage.modifyEntryConfiguration"
+    :get-detail-info="getKafkaDetail"
+    :permission="entryEditable"
+    :resource="DBTypes.KAFKA" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -219,6 +222,7 @@
   const isShowPassword = ref(false);
   const isInit = ref(true);
   const showEditEntryConfig = ref(false);
+  const entryEditable = ref(false);
   const selected = ref<KafkaModel[]>([])
   const operationData = shallowRef<KafkaModel>();
 
@@ -375,17 +379,10 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  v-db-console="kafka.clusterManage.modifyEntryConfiguration"
-                  action-id="access_entry_edit"
-                  resource="kafka"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <db-icon
+                  v-bk-tooltips={t('查看域名/IP对应关系')}
+                  type="bk-dbm-icon db-icon-visible1"
+                  onClick={() => handleOpenEntryConfig(data)} />
               </>
             ),
           }}
@@ -790,6 +787,7 @@
   const handleOpenEntryConfig = (row: KafkaModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
+    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const fetchTableData = (loading?:boolean) => {
@@ -1088,7 +1086,7 @@
         align-items: center;
       }
 
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-top: 2px;
         margin-left: 4px;
@@ -1098,7 +1096,7 @@
     }
 
     :deep(tr:hover) {
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }

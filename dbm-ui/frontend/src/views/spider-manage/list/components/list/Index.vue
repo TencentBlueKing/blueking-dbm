@@ -74,7 +74,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getTendbClusterList"
+        :data-source="fetchData"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         selectable
@@ -126,7 +126,10 @@
   <EditEntryConfig
     :id="clusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getSpiderDetail" />
+    db-console="tendbCluster.clusterManage.modifyEntryConfiguration"
+    :get-detail-info="getSpiderDetail"
+    :permission="entryEditable"
+    :resource="DBTypes.TENDBCLUSTER" />
   <ClusterExportData
     v-if="currentData"
     v-model:is-show="showDataExportSlider"
@@ -142,6 +145,7 @@
   // import Shrink from './components/Shrink.vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
   import {
     useRoute,
     useRouter,
@@ -149,6 +153,7 @@
 
   import TendbClusterModel from '@services/model/spider/tendbCluster';
   import {
+    getSpiderClusterPrimary,
     getSpiderDetail,
     getSpiderInstanceList,
     getTendbClusterList,
@@ -170,6 +175,7 @@
   import {
     AccountTypes,
     ClusterTypes,
+    DBTypes,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -254,10 +260,12 @@
   const removeMNTInstanceIds = ref<number[]>([]);
   const excelAuthorizeShow = ref(false);
   const showEditEntryConfig = ref(false);
+  const entryEditable = ref(false);
   const clusterAuthorizeShow = ref(false);
   const showDataExportSlider = ref(false)
   const currentData = ref<IColumn['data']>()
   const selected = ref<TendbClusterModel[]>([]);
+  const clusterPrimaryMap = ref<Record<string, boolean>>({});
   // const operationData = shallowRef({} as TendbClusterModel);
 
   const hasSelected = computed(() => selected.value.length > 0);
@@ -413,17 +421,10 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration"
-                  action-id="access_entry_edit"
-                  resource="tendbcluster"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <db-icon
+                  v-bk-tooltips={t('查看域名/IP对应关系')}
+                  type="bk-dbm-icon db-icon-visible1"
+                  onClick={() => handleOpenEntryConfig(data)} />
               </>
             ),
           }}
@@ -557,17 +558,10 @@
                 onClick={() => copy(data.slaveDomainDisplayName)} />
             )
           }
-          <auth-button
-            v-bk-tooltips={t('修改入口配置')}
-            v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration"
-            action-id="access_entry_edit"
-            resource="tendbcluster"
-            permission={data.permission.access_entry_edit}
-            text
-            theme="primary"
-            onClick={() => handleOpenEntryConfig(data)}>
-            <db-icon type="edit" />
-          </auth-button>
+          <db-icon
+            v-bk-tooltips={t('查看域名/IP对应关系')}
+            type="bk-dbm-icon db-icon-visible1"
+            onClick={() => handleOpenEntryConfig(data)} />
         </div>
       ),
     },
@@ -649,6 +643,16 @@
           <RenderInstances
             highlightIps={searchIp.value}
             data={data.spider_master}
+            tagKeyConfig={
+              [
+                {
+                  displayName: 'Primary',
+                  style: 'color: #531dab;background: #f9f0ff;',
+                  ipMatch: true,
+                  mapData: clusterPrimaryMap.value,
+                }
+              ]
+            }
             title={t('【inst】实例预览', {
               inst: data.master_domain, title: 'Spider Master',
             })}
@@ -1030,6 +1034,33 @@
     },
   ]);
 
+  const { run: getSpiderClusterPrimaryRun } = useRequest(getSpiderClusterPrimary, {
+    manual: true,
+    onSuccess(data) {
+      if (data.length > 0) {
+        clusterPrimaryMap.value = data.reduce<Record<string, boolean>>((acc, cur) => {
+          const ip = cur.primary.split(':')[0];
+          if (ip) {
+            acc[ip] = true;
+          }
+          return acc;
+        }, {});
+      }
+    },
+  });
+
+  const { runAsync: fetchData } = useRequest(getTendbClusterList, {
+    manual: true,
+    onSuccess(data) {
+      const clusterIds = data.results.map(item => item.id);
+      if (clusterIds.length > 0) {
+        getSpiderClusterPrimaryRun({
+          cluster_ids: clusterIds,
+        });
+      }
+    },
+  });
+
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
@@ -1062,6 +1093,7 @@
   const handleOpenEntryConfig = (row: TendbClusterModel) => {
     showEditEntryConfig.value  = true;
     clusterId.value = row.id;
+    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const handleClickRelatedTicket = (billId: number) => {
@@ -1412,7 +1444,7 @@
       }
 
       .db-icon-copy,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-top: 2px;
         margin-left: 4px;
@@ -1438,7 +1470,7 @@
     :deep(th:hover),
     :deep(td:hover) {
       .db-icon-copy,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }
@@ -1480,7 +1512,7 @@
         }
 
         .db-icon-copy,
-        .db-icon-edit {
+        .db-icon-visible1 {
           display: none;
           margin-top: 2px;
           margin-left: 4px;
@@ -1506,7 +1538,7 @@
       :deep(th:hover),
       :deep(td:hover) {
         .db-icon-copy,
-        .db-icon-edit {
+        .db-icon-visible1 {
           display: inline-block !important;
         }
       }

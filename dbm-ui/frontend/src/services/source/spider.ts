@@ -272,3 +272,14 @@ export const listSpiderResourceInstances = (params: { bk_biz_id: number } & Reco
     `/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/list_instances/`,
     params,
   );
+
+/**
+ * 获取集群primary关系映射
+ */
+export const getSpiderClusterPrimary = (params: { cluster_ids: number[] }) =>
+  http.post<
+    {
+      cluster_id: number;
+      primary: string;
+    }[]
+  >(`${getRootPath()}/get_cluster_primary/`, params);

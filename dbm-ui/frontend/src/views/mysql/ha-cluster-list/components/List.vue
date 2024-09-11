@@ -103,7 +103,10 @@
   <EditEntryConfig
     :id="showEnterConfigClusterId"
     v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getTendbhaDetail" />
+    db-console="mysql.haClusterList.modifyEntryConfiguration"
+    :get-detail-info="getTendbhaDetail"
+    :permission="entryEditable"
+    :resource="DBTypes.MYSQL" />
   <CreateSubscribeRuleSlider
     v-model="showCreateSubscribeRuleSlider"
     :selected-clusters="selectedClusterList"
@@ -146,6 +149,7 @@
   import {
     AccountTypes,
     ClusterTypes,
+    DBTypes,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -239,10 +243,11 @@
   const isInit = ref(false);
   const showEditEntryConfig = ref(false);
   const showEnterConfigClusterId = ref(0);
+  const entryEditable = ref(false);
   const showCreateSubscribeRuleSlider = ref(false);
   const showDataExportSlider = ref(false)
   const selectedClusterList = ref<ColumnData['data'][]>([]);
-  const currentData = ref<ColumnData['data']>()
+  const currentData = ref<ColumnData['data']>();
 
   const selected = ref<TendbhaModel[]>([])
   /** 集群授权 */
@@ -400,17 +405,10 @@
                     }
                   ]
                 } />
-                <auth-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  v-db-console="mysql.haClusterList.modifyEntryConfiguration"
-                  action-id="access_entry_edit"
-                  resource="mysql"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <db-icon
+                  v-bk-tooltips={t('查看域名/IP对应关系')}
+                  type="bk-dbm-icon db-icon-visible1"
+                  onClick={() => handleOpenEntryConfig(data)} />
               </>
             ),
           }}
@@ -557,17 +555,10 @@
                     }
                   ]
                 } />
-                <auth-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  v-db-console="mysql.haClusterList.modifyEntryConfiguration"
-                  action-id="access_entry_edit"
-                  resource="mysql"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <db-icon
+                  v-bk-tooltips={t('查看域名/IP对应关系')}
+                  type="bk-dbm-icon db-icon-visible1"
+                  onClick={() => handleOpenEntryConfig(data)} />
               </>
             )
           }}
@@ -681,6 +672,16 @@
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
           data={data.slaves || []}
+          tagKeyConfig={
+            [
+              {
+                name: 'is_stand_by',
+                displayName: 'Standby',
+                value: true,
+                className: 'is-stand-by'
+              }
+            ]
+          }
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
           role="slave"
           clusterId={data.id}
@@ -958,6 +959,7 @@
   const handleOpenEntryConfig = (row: TendbhaModel) => {
     showEditEntryConfig.value  = true;
     showEnterConfigClusterId.value = row.id;
+    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const handleSelection = (data: TendbhaModel, list: TendbhaModel[]) => {
@@ -1155,8 +1157,13 @@
         }
       }
 
+      .is-stand-by {
+        color: #531dab;
+        background: #f9f0ff;
+      }
+
       .db-icon-copy,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-top: 1px;
         margin-left: 4px;
@@ -1218,7 +1225,7 @@
 
     :deep(td:hover) {
       .db-icon-copy,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }
