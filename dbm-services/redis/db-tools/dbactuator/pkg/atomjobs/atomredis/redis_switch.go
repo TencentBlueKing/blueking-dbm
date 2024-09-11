@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -116,20 +117,35 @@ type SwitchParam struct {
 	SyncCondition  SwitchSyncCheckParam  `json:"switch_condition"`
 }
 
+type SwitchInstacne struct {
+	IP     string `json:"ip"`
+	Port   int    `json:"port"`
+	Target struct {
+		IP          string `json:"ip"`
+		Port        int    `json:"port"`
+		IsSwitched  bool   `json:"is_switched"`
+		SwitchTime  int64  `json:"switch_time"`
+		SwitchCount int    `json:"switch_times"`
+	} `json:"target"`
+}
+
 // RedisSwitch entry
 type RedisSwitch struct {
 	runtime *jobruntime.JobGenericRuntime
 	params  *SwitchParam
 
+	SwitchRstFile string
+	SwitchFeild   map[string]*SwitchInstacne
+
 	errChan chan error
 }
 
-// NewRedisSwitch 创建一个redis switch对象
-// TODO 1. cluster模式下， cluster forget
-// TODO 2. cluster模式下， 切换逻辑验证
-// TODO 3. cluster模式下， 同步状态校验
+// NewRedisSwitch 创建一个redis switch对象, 支持切换重试
+// 1. cluster模式下， cluster forget, 2.  切换逻辑验证, 3. 同步状态校验
 func NewRedisSwitch() jobruntime.JobRunner {
-	return &RedisSwitch{}
+	return &RedisSwitch{
+		SwitchFeild: map[string]*SwitchInstacne{},
+	}
 }
 
 var supportedClusterType map[string]struct{}
@@ -174,12 +190,37 @@ func (job *RedisSwitch) Init(m *jobruntime.JobGenericRuntime) error {
 		job.runtime.Logger.Error("unsupported cluster type :%s", job.params.ClusterMeta.ClusterType)
 		return fmt.Errorf("unsupported cluster type :%s", job.params.ClusterMeta.ClusterType)
 	}
+
+	// 尝试加载，切换结果
+	job.SwitchRstFile = fmt.Sprintf("%s.%s", job.runtime.UID, job.runtime.RootID)
+	if _, err := os.Stat(job.SwitchRstFile); err == nil {
+		if fc, err := os.ReadFile(job.SwitchRstFile); err != nil {
+			job.runtime.Logger.Warn("read switch result file %s:%+v", job.SwitchRstFile, err)
+		} else {
+			if err := json.Unmarshal(fc, &job.SwitchFeild); err != nil {
+				job.runtime.Logger.Warn("load switch result from file %s:%+v", job.SwitchRstFile, err)
+			}
+			x, _ := json.Marshal(job.SwitchFeild)
+			job.runtime.Logger.Info("load switch result from file %s:%s", job.SwitchRstFile, x)
+		}
+	}
 	return nil
 }
 
 // Run 运行切换逻辑
 func (job *RedisSwitch) Run() (err error) {
-	job.runtime.Logger.Info("redisswitch start; params:%+v", job.params)
+	xx, _ := json.Marshal(job.params)
+	job.runtime.Logger.Info("redisswitch start; params:%s", xx)
+
+	// 保存切换结果 .
+	defer func() {
+		x, _ := json.Marshal(job.SwitchFeild)
+		job.runtime.Logger.Info("save switch result 2 file %s:%s !", job.SwitchRstFile, x)
+		//WriteFile truncates it before writing
+		if err := os.WriteFile(job.SwitchRstFile, x, 0666); err != nil {
+			job.runtime.Logger.Warn("rewrite switch result 2 file:%+v !", err)
+		}
+	}()
 
 	// 前置检查
 	if err := job.precheckForSwitch(); err != nil {
@@ -191,6 +232,27 @@ func (job *RedisSwitch) Run() (err error) {
 	job.runtime.Logger.Info("redisswitch begin do storages switch .")
 	// 执行切换， proxy并行，instance 窜行
 	for idx, storagePair := range job.params.SwitchRelation {
+		switchMaster := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
+		if _, ok := job.SwitchFeild[switchMaster]; !ok {
+			job.SwitchFeild[switchMaster] = &SwitchInstacne{
+				IP:   storagePair.MasterInfo.IP,
+				Port: storagePair.MasterInfo.Port,
+				Target: struct {
+					IP          string `json:"ip"`
+					Port        int    `json:"port"`
+					IsSwitched  bool   `json:"is_switched"`
+					SwitchTime  int64  `json:"switch_time"`
+					SwitchCount int    `json:"switch_times"`
+				}{IP: storagePair.SlaveInfo.IP, Port: storagePair.SlaveInfo.Port},
+			}
+		}
+		// 跳过已切换的实例
+		if job.SwitchFeild[switchMaster].Target.IsSwitched {
+			x, _ := json.Marshal(job.SwitchFeild[switchMaster])
+			job.runtime.Logger.Info("instance aleardy switched success, skip 4 this time:%d||%#v||%s", idx, storagePair, x)
+			continue
+		}
+
 		if job.params.SyncCondition.CanWriteBeforeSwitch &&
 			consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
 			if err := job.enableWrite4Slave(storagePair.SlaveInfo.IP,
@@ -312,42 +374,51 @@ func (job *RedisSwitch) doTendisStorageSwitch4Cluster(storagePair InstanceSwitch
 	}
 	defer newMasterConn.Close()
 
-	// 该命令只能在群集slave节点执行，让slave节点进行一次人工故障切换。
-	if job.params.SyncCondition.SwitchOpt == "" {
-		if rst := newMasterConn.InstanceClient.ClusterFailover(context.TODO()); rst.Err() != nil {
-			job.runtime.Logger.Error("on [%s] exec %s  failed:%+v", newMasterAddr, rst.String(), err)
-			return err
+	for i := 0; i < 10; i++ {
+		// 该命令只能在群集slave节点执行，让slave节点进行一次人工故障切换。
+		if job.params.SyncCondition.SwitchOpt == "" {
+			if rst := newMasterConn.InstanceClient.ClusterFailover(context.TODO()); rst.Err() != nil {
+				job.runtime.Logger.Error("on [%s] exec %s  failed:%+v", newMasterAddr, rst.String(), err)
+			}
+		} else {
+			if _, err = newMasterConn.DoCommand([]string{"CLUSTER", "FAILOVER",
+				job.params.SyncCondition.SwitchOpt}, 0); err != nil {
+				job.runtime.Logger.Error("exec cluster FAILOVER %s for %s failed:%+v",
+					newMasterAddr, job.params.SyncCondition.SwitchOpt, err)
+			}
 		}
-	} else {
-		if _, err := newMasterConn.DoCommand([]string{"CLUSTER", "FAILOVER",
-			job.params.SyncCondition.SwitchOpt}, 0); err != nil {
-			job.runtime.Logger.Error("exec cluster FAILOVER %s for %s failed:%+v",
-				newMasterAddr, job.params.SyncCondition.SwitchOpt, err)
-			return err
+
+		time.Sleep(time.Second * 5) // 预留足够的投票时间
+		infomap := map[string]string{}
+		if infomap, err = newMasterConn.Info("replication"); err != nil {
+			job.runtime.Logger.Error("exec info replication for %s failed:%s", newMasterAddr, err)
+			job.setSwitchRst(storagePair, false) // 这里基本不应该有的结果.
+			err = fmt.Errorf("ErrInfo:%s", err)
+		} else {
+			job.runtime.Logger.Info("on [%s] info replication : %+v", newMasterAddr, infomap)
+			if strings.ToUpper(infomap["role"]) == "SLAVE" {
+				job.runtime.Logger.Error("on [%s] exec cluster failover %s with no err, but role is <SLAVE>",
+					newMasterAddr, job.params.SyncCondition.SwitchOpt)
+				job.setSwitchRst(storagePair, false)
+				err = fmt.Errorf("Err:SwitchFailed4Role<SLAVE>")
+			} else {
+				job.setSwitchRst(storagePair, true)
+				job.runtime.Logger.Info("on [%s] exec cluster failover %s with no err, and role is <MASTER>",
+					newMasterAddr, job.params.SyncCondition.SwitchOpt)
+				break
+			}
 		}
 	}
-
-	time.Sleep(time.Second) // 预留足够的投票时间
-	if infomap, err := newMasterConn.Info("replication"); err != nil {
-		job.runtime.Logger.Error("exec info replication for %s failed:%s", newMasterAddr, err)
-		return fmt.Errorf("ErrInfo:%s", err)
-	} else {
-		job.runtime.Logger.Info("on [%s] info replication : %+v", newMasterAddr, infomap)
-		if strings.ToUpper(infomap["role"]) == "SLAVE" {
-			job.runtime.Logger.Error("on [%s] exec cluster failover %s with no err, but role is <SLAVE>",
-				newMasterAddr, job.params.SyncCondition.SwitchOpt)
-			return fmt.Errorf("Err:SwitchFailed4Role<SLAVE>")
-		} else {
-			job.runtime.Logger.Info("on [%s] exec cluster failover %s with no err, and role is <MASTER>",
-				newMasterAddr, job.params.SyncCondition.SwitchOpt)
-		}
+	if err != nil {
+		return err
 	}
 
 	clusterNodes, _ := newMasterConn.GetClusterNodes()
 	job.runtime.PipeContextData = clusterNodes
-	job.runtime.Logger.Info("switch succ from:%s:%d to:%s:%d ^_^",
+	x, _ := json.Marshal(clusterNodes)
+	job.runtime.Logger.Info("switch succ from:%s:%d to:%s:%d ^_^ ; current clusterNodes:%s",
 		storagePair.MasterInfo.IP, storagePair.MasterInfo.Port,
-		storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
+		storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, x)
 	return nil
 }
 
@@ -381,6 +452,7 @@ func (job *RedisSwitch) doTendisStorageSwitch4Twemproxy(storagePair InstanceSwit
 	for someErr := range errCh {
 		return someErr
 	}
+	job.setSwitchRst(storagePair, true)
 	job.runtime.Logger.Info("[%s:%d]all proxy switch succ to:%s:%d ^_^",
 		storagePair.MasterInfo.IP, storagePair.MasterInfo.Port,
 		storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port)
@@ -401,6 +473,15 @@ func (job *RedisSwitch) precheckForSwitch() error {
 	// 	}
 	// }
 
+	runtimeMaster, err := job.GetClusterRuntimeMasters()
+	if err != nil {
+		return fmt.Errorf("err precheck get cluster {%s} runtime failed:%+v",
+			job.params.ClusterMeta.ImmuteDomain, err)
+	}
+	xx, _ := json.Marshal(runtimeMaster)
+	job.runtime.Logger.Info("precheck cluster current runtime masterS %s:%s",
+		job.params.ClusterMeta.ImmuteDomain, xx)
+
 	// 2. 检查old master 是集群的master节点
 	oldmasters := map[string]struct{}{}
 	for _, oldmaster := range job.params.ClusterMeta.RedisMasterSet {
@@ -412,6 +493,18 @@ func (job *RedisSwitch) precheckForSwitch() error {
 	for _, pair := range job.params.SwitchRelation {
 		switchFrom := fmt.Sprintf("%s:%d", pair.MasterInfo.IP, pair.MasterInfo.Port)
 		if _, ok := oldmasters[switchFrom]; !ok {
+			// 1. Old master 是集群Master
+			// 2. old master 不原集群Master, 但新Master在集群里边 （需要获取当前集群Master 列表的函数）
+			if segs, ok := runtimeMaster[switchFrom]; ok {
+				if srst, ok := job.SwitchFeild[switchFrom]; ok {
+					x, _ := json.Marshal(srst)
+					job.runtime.Logger.Info("precheck instance is aleardy master yet %s.segs:%s", x, segs)
+				} else {
+					xx, _ := json.Marshal(pair)
+					job.runtime.Logger.Info("precheck instance is aleardy master yet (NoSwitched??)%s.segs:%s", xx, segs)
+				}
+				continue
+			}
 			return fmt.Errorf("err switch from storage {%s} not in cluster {%s}",
 				switchFrom, job.params.ClusterMeta.ImmuteDomain)
 		}
@@ -433,12 +526,56 @@ func (job *RedisSwitch) precheckForSwitch() error {
 	}
 	job.runtime.Logger.Info("precheck for [switchlink storages sync] login succ !")
 
-	// 5. 检查同步状态
+	// 5. 检查同步状态 [跳过NewMaster已经是Master角色的实例检查]
 	job.runtime.Logger.Info("precheck for [switchlink storages sync] status .")
 	if err := job.precheckStorageSync(); err != nil {
 		return err
 	}
 	return nil
+}
+
+// 获取集群当前运行状态的 Master 列表
+func (job *RedisSwitch) GetClusterRuntimeMasters() (map[string]string, error) {
+	runtimeMasters := map[string]string{}
+	if len(job.params.SwitchRelation) < 1 {
+		return runtimeMasters, fmt.Errorf("where is switch todo ??:%s", job.params.ClusterMeta.ImmuteDomain)
+	}
+	oneSwitch := job.params.SwitchRelation[0]
+	addr := fmt.Sprintf("%s:%d", oneSwitch.MasterInfo.IP, oneSwitch.MasterInfo.Port)
+
+	// Twemproxy架构
+	if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
+		if len(job.params.ClusterMeta.ProxySet) < 1 {
+			return runtimeMasters, fmt.Errorf("where is proxies ??:%s", job.params.ClusterMeta.ImmuteDomain)
+		}
+		oneNutracker := job.params.ClusterMeta.ProxySet[0]
+		pinfo := strings.Split(oneNutracker, ":")
+		port, _ := strconv.Atoi(pinfo[1])
+		return util.GetTwemproxyBackends(pinfo[0], port)
+
+		// gossip cluster模式
+	} else if consts.IsPredixyClusterType(job.params.ClusterMeta.ClusterType) {
+		rconn, err := myredis.NewRedisClientWithTimeout(addr,
+			job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
+		if err != nil {
+			return runtimeMasters, fmt.Errorf("conn redis failed:%s;%+v", job.params.ClusterMeta.ImmuteDomain, err)
+		}
+		defer rconn.Close()
+		if nodes, err := rconn.GetClusterNodes(); err != nil {
+			return runtimeMasters, fmt.Errorf("get cluster nodes failed:%s;%+v", job.params.ClusterMeta.ImmuteDomain, err)
+		} else {
+			for _, node := range nodes {
+				runtimeMasters[node.Addr] = node.SlotSrcStr
+			}
+		}
+		// 单实例主从模式
+	} else if job.params.ClusterMeta.ClusterType == consts.TendisTypeRedisInstance {
+		runtimeMasters[addr] = "single-instance"
+		// 不知道撒情况
+	} else {
+		return runtimeMasters, fmt.Errorf("unKnown clusterType:%s", job.params.ClusterMeta.ClusterType)
+	}
+	return runtimeMasters, nil
 }
 
 func (job *RedisSwitch) precheckForProxy() error {
@@ -515,6 +652,11 @@ func (job *RedisSwitch) precheckStorageSync() error {
 				return
 			}
 			job.runtime.Logger.Info("[%s]new master node replication info :%+v", newMasterAddr, replic)
+
+			if replic["role"] == "master" {
+				job.runtime.Logger.Warn("[%s]is aleardy master, skip check syncStatus. maybe switched before.", newMasterAddr)
+				return
+			}
 
 			if _, ok := replic["slave0"]; !ok {
 				job.runtime.Logger.Warn("[%s]new master node got no slave connected or replication , please note.", newMasterAddr)
@@ -744,6 +886,13 @@ func (job *RedisSwitch) precheckLogin(addr, pass, clusterType string) error {
 		return fmt.Errorf("do cmd failed %s:%+v", addr, err)
 	}
 	return nil
+}
+
+func (job *RedisSwitch) setSwitchRst(storagePair InstanceSwitchParam, isSucc bool) {
+	switchMaster := fmt.Sprintf("%s:%d", storagePair.MasterInfo.IP, storagePair.MasterInfo.Port)
+	job.SwitchFeild[switchMaster].Target.SwitchCount += 1
+	job.SwitchFeild[switchMaster].Target.IsSwitched = isSucc
+	job.SwitchFeild[switchMaster].Target.SwitchTime = time.Now().Unix()
 }
 
 // Name 原子任务名
