@@ -174,6 +174,7 @@
                     ref="specMasterRef"
                     v-model="formData.details.resource_spec.master.spec_id"
                     :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_master" />
@@ -199,6 +200,7 @@
                     ref="specClientRef"
                     v-model="formData.details.resource_spec.client.spec_id"
                     :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_client" />
@@ -233,6 +235,7 @@
                     ref="specHotRef"
                     v-model="formData.details.resource_spec.hot.spec_id"
                     :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_datanode" />
@@ -257,6 +260,7 @@
                     ref="specColdRef"
                     v-model="formData.details.resource_spec.cold.spec_id"
                     :biz-id="formData.bk_biz_id"
+                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_datanode" />
@@ -331,17 +335,11 @@
   import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
-  import type {
-    BizItem,
-    HostDetails,
-  } from '@services/types';
+  import type { BizItem, HostDetails } from '@services/types';
 
-  import { useApplyBase  } from '@hooks';
+  import { useApplyBase } from '@hooks';
 
   import { OSTypes } from '@common/const';
 
@@ -365,10 +363,14 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  const makeMapByHostId = (hostList: HostDetails[]) =>  hostList.reduce((result, item) => ({
-    ...result,
-    [item.host_id]: true,
-  }), {} as Record<number, boolean>);
+  const makeMapByHostId = (hostList: HostDetails[]) =>
+    hostList.reduce(
+      (result, item) => ({
+        ...result,
+        [item.host_id]: true,
+      }),
+      {} as Record<number, boolean>,
+    );
 
   const genDefaultFormData = () => ({
     bk_biz_id: '' as number | '',
@@ -411,11 +413,11 @@
     },
   });
 
-  const formatIpDataWidthInstance = (data: HostDetails[]) => data.map(item => ({
-    instance_num: 1,
-    ...item,
-  }));
-
+  const formatIpDataWidthInstance = (data: HostDetails[]) =>
+    data.map((item) => ({
+      instance_num: 1,
+      ...item,
+    }));
 
   const formRef = ref();
   const specMasterRef = ref();
@@ -437,19 +439,17 @@
   const tipTheme = computed(() => {
     if (isClickSubmit.value === false) {
       return 'info';
-    };
+    }
 
-    const {
-      hot,
-      cold,
-    } = formData.details.resource_spec;
+    const { hot, cold } = formData.details.resource_spec;
 
-    const {
-      hot: hotNodes,
-      cold: coldNodes,
-    } = formData.details.nodes;
-    const isPass = Boolean(hot.spec_id && hot.count) || Boolean(cold.spec_id && cold.count) || hotNodes.length > 0 || coldNodes.length > 0;
-    return (isPass ? 'info' : 'danger');
+    const { hot: hotNodes, cold: coldNodes } = formData.details.nodes;
+    const isPass =
+      Boolean(hot.spec_id && hot.count) ||
+      Boolean(cold.spec_id && cold.count) ||
+      hotNodes.length > 0 ||
+      coldNodes.length > 0;
+    return isPass ? 'info' : 'danger';
   });
 
   // const isDefaultCity = computed(() => formData.details.city_code === 'default');
@@ -485,34 +485,31 @@
     ],
   };
 
-  watch([
-    () => formData.details.resource_spec.hot,
-    () => formData.details.resource_spec.cold,
-  ], () => {
-    const hotCount = Number(formData.details.resource_spec.hot.count);
-    const coldCount = Number(formData.details.resource_spec.cold.count);
-    if (specHotRef.value && specColdRef.value) {
-      const { storage_spec: hotStorageSpec = [] } = specHotRef.value.getData();
-      const { storage_spec: coldStorageSpec = [] } = specColdRef.value.getData();
-      const hotDisk = hotStorageSpec.reduce((total: number, item: { size: number }) => (
-        total + Number(item.size || 0)
-      ), 0);
-      const coldDisk = coldStorageSpec.reduce((total: number, item: { size: number }) => (
-        total + Number(item.size || 0)
-      ), 0);
-      totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
-    }
-  }, { flush: 'post', deep: true });
+  watch(
+    [() => formData.details.resource_spec.hot, () => formData.details.resource_spec.cold],
+    () => {
+      const hotCount = Number(formData.details.resource_spec.hot.count);
+      const coldCount = Number(formData.details.resource_spec.cold.count);
+      if (specHotRef.value && specColdRef.value) {
+        const { storage_spec: hotStorageSpec = [] } = specHotRef.value.getData();
+        const { storage_spec: coldStorageSpec = [] } = specColdRef.value.getData();
+        const hotDisk = hotStorageSpec.reduce(
+          (total: number, item: { size: number }) => total + Number(item.size || 0),
+          0,
+        );
+        const coldDisk = coldStorageSpec.reduce(
+          (total: number, item: { size: number }) => total + Number(item.size || 0),
+          0,
+        );
+        totalCapacity.value = hotDisk * hotCount + coldCount * coldDisk;
+      }
+    },
+    { flush: 'post', deep: true },
+  );
 
   const getSmartActionOffsetTarget = () => document.querySelector('.bk-form-content');
 
-  const {
-    baseState,
-    bizState,
-    handleCreateAppAbbr,
-    handleCreateTicket,
-    handleCancel,
-  } = useApplyBase();
+  const { baseState, bizState, handleCreateAppAbbr, handleCreateTicket, handleCancel } = useApplyBase();
 
   // 切换业务，需要重置 IP 相关的选择
   function handleChangeBiz(info: BizItem) {
@@ -528,7 +525,7 @@
   /**
    * 变更所属管控区域
    */
-  function handleChangeCloud(info: {id: number | string, name: string}) {
+  function handleChangeCloud(info: { id: number | string; name: string }) {
     cloudInfo.id = info.id;
     cloudInfo.name = info.name;
 
@@ -610,7 +607,8 @@
   };
 
   // master 节点 IP 选择器提交
-  const masterDisableDialogSubmitMethod = (hostList: Array<any>) => (hostList.length >= 3 ? false : t('至少n台', { n: 3 }));
+  const masterDisableDialogSubmitMethod = (hostList: Array<any>) =>
+    hostList.length >= 3 ? false : t('至少n台', { n: 3 });
   // 更新 master 节点
   const handleMasterIpListChange = (data: HostDetails[]) => {
     formData.details.nodes.master = data;
@@ -631,20 +629,21 @@
   // 提交
   const handleSubmit = () => {
     isClickSubmit.value = true;
-    formRef.value.validate()
-      .then(() => {
-        if (tipTheme.value === 'danger' && formData.details.ip_source === 'resource_pool') {
-          return Promise.reject(t('请确保冷节点和热节点的总数至少为一台'));
-        }
-        baseState.isSubmitting = true;
+    formRef.value.validate().then(() => {
+      if (tipTheme.value === 'danger' && formData.details.ip_source === 'resource_pool') {
+        return Promise.reject(t('请确保冷节点和热节点的总数至少为一台'));
+      }
+      baseState.isSubmitting = true;
 
-        const mapIpField = (ipList: Array<IHostTableData>) => ipList.map(item => ({
+      const mapIpField = (ipList: Array<IHostTableData>) =>
+        ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,
           bk_cloud_id: item.cloud_area.id,
           bk_biz_id: item.biz.id,
         }));
-        const mapIpFieldWithInstance = (ipList: Array<IHostTableDataWithInstance>) => ipList.map(item => ({
+      const mapIpFieldWithInstance = (ipList: Array<IHostTableDataWithInstance>) =>
+        ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,
           bk_cloud_id: item.cloud_area.id,
@@ -652,82 +651,82 @@
           bk_biz_id: item.biz.id,
         }));
 
-        const getDetails = () => {
-          const details: Record<string, any> = _.cloneDeep(formData.details);
-          const { cityCode } = regionItemRef.value.getValue();
+      const getDetails = () => {
+        const details: Record<string, any> = _.cloneDeep(formData.details);
+        const { cityCode } = regionItemRef.value.getValue();
 
-          if (formData.details.ip_source === 'resource_pool') {
-            delete details.nodes;
+        if (formData.details.ip_source === 'resource_pool') {
+          delete details.nodes;
 
-            const regionAndDisasterParams = {
-              affinity: details.disaster_tolerance_level,
-              location_spec: {
-                city: cityCode,
-                sub_zone_ids: [],
-              },
-            };
-
-            const result: Record<string, any> = {
-              ...details,
-              resource_spec: {
-                master: {
-                  ...details.resource_spec.master,
-                  ...specMasterRef.value.getData(),
-                  ...regionAndDisasterParams,
-                  count: Number(details.resource_spec.master.count),
-                },
-              },
-            };
-
-            const clientCount = Number(details.resource_spec.client.count);
-            const hotCount = Number(details.resource_spec.hot.count);
-            const coldCount = Number(details.resource_spec.cold.count);
-            if (clientCount > 0) {
-              result.resource_spec.client = {
-                ...details.resource_spec.client,
-                ...specClientRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: clientCount,
-              };
-            }
-            if (hotCount > 0) {
-              result.resource_spec.hot = {
-                ...details.resource_spec.hot,
-                ...specHotRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: hotCount,
-              };
-            }
-            if (coldCount > 0) {
-              result.resource_spec.cold = {
-                ...details.resource_spec.cold,
-                ...specColdRef.value.getData(),
-                ...regionAndDisasterParams,
-                count: coldCount,
-              };
-            }
-            return result;
-          }
-
-          delete details.resource_spec;
-          return {
-            ...details,
-            nodes: {
-              master: mapIpField(formData.details.nodes.master),
-              client: mapIpField(formData.details.nodes.client),
-              hot: mapIpFieldWithInstance(formData.details.nodes.hot),
-              cold: mapIpFieldWithInstance(formData.details.nodes.cold),
+          const regionAndDisasterParams = {
+            affinity: details.disaster_tolerance_level,
+            location_spec: {
+              city: cityCode,
+              sub_zone_ids: [],
             },
           };
-        };
 
-        const params = {
-          ...formData,
-          details: getDetails(),
+          const result: Record<string, any> = {
+            ...details,
+            resource_spec: {
+              master: {
+                ...details.resource_spec.master,
+                ...specMasterRef.value.getData(),
+                ...regionAndDisasterParams,
+                count: Number(details.resource_spec.master.count),
+              },
+            },
+          };
+
+          const clientCount = Number(details.resource_spec.client.count);
+          const hotCount = Number(details.resource_spec.hot.count);
+          const coldCount = Number(details.resource_spec.cold.count);
+          if (clientCount > 0) {
+            result.resource_spec.client = {
+              ...details.resource_spec.client,
+              ...specClientRef.value.getData(),
+              ...regionAndDisasterParams,
+              count: clientCount,
+            };
+          }
+          if (hotCount > 0) {
+            result.resource_spec.hot = {
+              ...details.resource_spec.hot,
+              ...specHotRef.value.getData(),
+              ...regionAndDisasterParams,
+              count: hotCount,
+            };
+          }
+          if (coldCount > 0) {
+            result.resource_spec.cold = {
+              ...details.resource_spec.cold,
+              ...specColdRef.value.getData(),
+              ...regionAndDisasterParams,
+              count: coldCount,
+            };
+          }
+          return result;
+        }
+
+        delete details.resource_spec;
+        return {
+          ...details,
+          nodes: {
+            master: mapIpField(formData.details.nodes.master),
+            client: mapIpField(formData.details.nodes.client),
+            hot: mapIpFieldWithInstance(formData.details.nodes.hot),
+            cold: mapIpFieldWithInstance(formData.details.nodes.cold),
+          },
         };
-        // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
-        bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
-      });
+      };
+
+      const params = {
+        ...formData,
+        details: getDetails(),
+      };
+      // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
+      bizState.hasEnglishName ? handleCreateTicket(params) : handleCreateAppAbbr(params);
+    });
   };
 
   // 重置表单
