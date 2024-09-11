@@ -123,13 +123,6 @@
     v-model:is-show="excelAuthorizeShow"
     :cluster-type="ClusterTypes.TENDBCLUSTER"
     :ticket-type="TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES" />
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="tendbCluster.clusterManage.modifyEntryConfiguration"
-    :get-detail-info="getSpiderDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.TENDBCLUSTER" />
   <ClusterExportData
     v-if="currentData"
     v-model:is-show="showDataExportSlider"
@@ -259,8 +252,6 @@
   // const isChangeCapacityForm = ref(false);
   const removeMNTInstanceIds = ref<number[]>([]);
   const excelAuthorizeShow = ref(false);
-  const showEditEntryConfig = ref(false);
-  const entryEditable = ref(false);
   const clusterAuthorizeShow = ref(false);
   const showDataExportSlider = ref(false)
   const currentData = ref<IColumn['data']>()
@@ -421,10 +412,13 @@
                     ]
                   } />
                 )}
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="tendbCluster.clusterManage.modifyEntryConfiguration"
+                  getDetailInfo={getSpiderDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.TENDBCLUSTER}
+                  onSuccess={fetchData} />
               </>
             ),
           }}
@@ -558,10 +552,13 @@
                 onClick={() => copy(data.slaveDomainDisplayName)} />
             )
           }
-          <db-icon
-            v-bk-tooltips={t('查看域名/IP对应关系')}
-            type="visible1"
-            onClick={() => handleOpenEntryConfig(data)} />
+          <EditEntryConfig
+            id={data.id}
+            dbConsole="tendbCluster.clusterManage.modifyEntryConfiguration"
+            getDetailInfo={getSpiderDetail}
+            permission={data.permission.access_entry_edit}
+            resource={DBTypes.TENDBCLUSTER}
+            onSuccess={fetchData} />
         </div>
       ),
     },
@@ -637,31 +634,24 @@
           {'Spider Master'}
         </RenderHeadCopy>
       ),
-      render: ({ data }: IColumn) => {
-        if (data.spider_master.length === 0) return '--';
-        return (
+      render: ({ data }: IColumn) => (
           <RenderInstances
             highlightIps={searchIp.value}
             data={data.spider_master}
-            tagKeyConfig={
-              [
-                {
-                  displayName: 'Primary',
-                  style: 'color: #531dab;background: #f9f0ff;',
-                  ipMatch: true,
-                  mapData: clusterPrimaryMap.value,
-                }
-              ]
-            }
             title={t('【inst】实例预览', {
               inst: data.master_domain, title: 'Spider Master',
             })}
             role="spider_master"
             clusterId={data.id}
             dataSource={getSpiderInstanceList}
-          />
-        );
-      },
+          >
+            {{
+              append: ({ data }: { data: TendbClusterModel['spider_master'][number] }) =>
+                clusterPrimaryMap.value[data.ip] &&
+                (<bk-tag class="is-primary" size="small">Primary</bk-tag>)
+            }}
+          </RenderInstances>
+        )
     },
     {
       label: 'Spider Slave',
@@ -1090,12 +1080,6 @@
     return searchSelectData.value.find(set => set.id === item.id)?.children || [];
   };
 
-  const handleOpenEntryConfig = (row: TendbClusterModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
-  };
-
   const handleClickRelatedTicket = (billId: number) => {
     const route = router.resolve({
       name: 'bizTicketManage',
@@ -1429,6 +1413,18 @@
       }
     }
 
+    .table-wrapper {
+      background-color: white;
+
+      .bk-table {
+        height: 100% !important;
+      }
+
+      :deep(.bk-table-body) {
+        max-height: calc(100% - 100px);
+      }
+    }
+
     .is-shrink-table {
       :deep(.bk-table-body) {
         overflow: hidden auto;
@@ -1440,7 +1436,19 @@
 
       .domain {
         display: flex;
-        align-items: center;
+        flex-wrap: wrap;
+
+        .bk-search-select {
+          flex: 1;
+          max-width: 320px;
+          min-width: 320px;
+          margin-left: auto;
+        }
+      }
+
+      .is-primary {
+        color: #531dab !important;
+        background: #f9f0ff !important;
       }
 
       .db-icon-copy,
@@ -1450,107 +1458,6 @@
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
-      }
-
-      .operations-more {
-        .db-icon-more {
-          display: block;
-          font-size: @font-size-normal;
-          color: @default-color;
-          cursor: pointer;
-
-          &:hover {
-            background-color: @bg-disable;
-            border-radius: 2px;
-          }
-        }
-      }
-    }
-
-    :deep(th:hover),
-    :deep(td:hover) {
-      .db-icon-copy,
-      .db-icon-visible1 {
-        display: inline-block !important;
-      }
-    }
-
-    :deep(.is-offline) {
-      a {
-        color: @gray-color;
-      }
-
-      .cell {
-        color: @disable-color;
-      }
-    }
-
-    :deep(.cluster-name-container) {
-      display: flex;
-      align-items: center;
-      padding: 8px 0;
-      overflow: hidden;
-
-      .operations {
-        display: flex;
-        margin-bottom: 16px;
-        flex-wrap: wrap;
-      }
-
-      .is-shrink-table {
-        :deep(.bk-table-body) {
-          overflow: hidden auto;
-        }
-      }
-
-      :deep(td .cell) {
-        line-height: normal !important;
-
-        .domain {
-          display: flex;
-          align-items: center;
-        }
-
-        .db-icon-copy,
-        .db-icon-visible1 {
-          display: none;
-          margin-top: 2px;
-          margin-left: 4px;
-          color: @primary-color;
-          cursor: pointer;
-        }
-
-        .operations-more {
-          .db-icon-more {
-            display: block;
-            font-size: @font-size-normal;
-            color: @default-color;
-            cursor: pointer;
-
-            &:hover {
-              background-color: @bg-disable;
-              border-radius: 2px;
-            }
-          }
-        }
-      }
-
-      :deep(th:hover),
-      :deep(td:hover) {
-        .db-icon-copy,
-        .db-icon-visible1 {
-          display: inline-block !important;
-        }
-      }
-
-      :deep(.is-offline) {
-        a {
-          color: @gray-color;
-        }
-
-        .cell {
-          color: @disable-color;
-        }
       }
 
       :deep(.cluster-name-container) {
@@ -1575,8 +1482,39 @@
         }
 
         .cluster-tag {
-          margin: 2px;
+          margin: 2px 0;
           flex-shrink: 0;
+        }
+      }
+    }
+
+    :deep(th:hover),
+    :deep(td:hover) {
+      .db-icon-copy,
+      .db-icon-visible1 {
+        display: inline-block !important;
+      }
+    }
+
+    :deep(.is-offline) {
+      a {
+        color: @gray-color;
+      }
+
+      .cell {
+        color: @disable-color;
+      }
+    }
+
+    :deep(.operations-more) {
+      .db-icon-more {
+        font-size: 16px;
+        color: @default-color;
+        cursor: pointer;
+
+        &:hover {
+          background-color: @bg-disable;
+          border-radius: 2px;
         }
       }
     }

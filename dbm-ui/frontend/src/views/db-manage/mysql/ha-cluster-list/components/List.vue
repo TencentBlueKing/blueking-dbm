@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <div class="mysql-ha-cluster-list">
+  <div class="mysql-ha-cluster-list-page">
     <div class="operation-box">
       <AuthButton
         v-db-console="'mysql.haClusterList.instanceApply'"
@@ -100,13 +100,6 @@
   <ExcelAuthorize
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.TENDBHA" />
-  <EditEntryConfig
-    :id="showEnterConfigClusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="mysql.haClusterList.modifyEntryConfiguration"
-    :get-detail-info="getTendbhaDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.MYSQL" />
   <CreateSubscribeRuleSlider
     v-model="showCreateSubscribeRuleSlider"
     :selected-clusters="selectedClusterList"
@@ -241,9 +234,6 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isInit = ref(false);
-  const showEditEntryConfig = ref(false);
-  const showEnterConfigClusterId = ref(0);
-  const entryEditable = ref(false);
   const showCreateSubscribeRuleSlider = ref(false);
   const showDataExportSlider = ref(false)
   const selectedClusterList = ref<ColumnData['data'][]>([]);
@@ -405,10 +395,13 @@
                     }
                   ]
                 } />
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="mysql.haClusterList.modifyEntryConfiguration"
+                  getDetailInfo={getTendbhaDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.MYSQL}
+                  onSuccess={fetchData} />
               </>
             ),
           }}
@@ -461,10 +454,13 @@
                       data-text="NEW" />
                   )
                 }
-                <db-icon
-                  v-bk-tooltips={t('复制集群名称')}
-                  type="copy"
-                  onClick={() => copy(data.cluster_name)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="mysql.haClusterList.modifyEntryConfiguration"
+                  getDetailInfo={getTendbhaDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.MYSQL}
+                  onSuccess={fetchData} />
               </>
             ),
           }}
@@ -537,33 +533,35 @@
           {t('从访问入口')}
         </RenderHeadCopy>
       ),
-      render: ({ data }: ColumnData) => (
-        <TextOverflowLayout>
+      render: ({ data }: ColumnData) => data.slaveEntryList.length === 0 ? '--' : data.slaveEntryList.map((item, index) => (
+        <TextOverflowLayout class="slave-entry">
           {{
-            default: () => data.slaveDomainDisplayName || '--',
-            append: () => (
-              <>
-                <RenderCellCopy copyItems={
-                  [
-                    {
-                      value: data.slave_domain,
-                      label: t('域名')
-                    },
-                    {
-                      value: data.slaveDomainDisplayName,
-                      label: t('域名:端口')
-                    }
-                  ]
-                } />
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
-              </>
-            )
+            default: () => item,
+            append: () => index === 0 && (
+            <>
+              <RenderCellCopy copyItems={
+                [
+                  {
+                    value: data.slave_domain,
+                    label: t('域名')
+                  },
+                  {
+                    value: data.slaveDomainDisplayName,
+                    label: t('域名:端口')
+                  }
+                ]
+              } />
+              <EditEntryConfig
+                id={data.id}
+                dbConsole="mysql.haClusterList.modifyEntryConfiguration"
+                getDetailInfo={getTendbhaDetail}
+                permission={data.permission.access_entry_edit}
+                resource={DBTypes.MYSQL}
+                onSuccess={fetchData} />
+            </>)
           }}
         </TextOverflowLayout>
-      ),
+      ))
     },
     {
       label: 'Proxy',
@@ -672,21 +670,17 @@
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
           data={data.slaves || []}
-          tagKeyConfig={
-            [
-              {
-                name: 'is_stand_by',
-                displayName: 'Standby',
-                value: true,
-                className: 'is-stand-by'
-              }
-            ]
-          }
           title={t('【inst】实例预览', { inst: data.master_domain, title: 'Slave' })}
           role="slave"
           clusterId={data.id}
           dataSource={getTendbhaInstanceList}
-        />
+        >
+          {{
+            append: ({ data }: { data: TendbhaModel['slaves'][number] }) =>
+              data.is_stand_by &&
+              (<bk-tag class="is-stand-by" size="small">Standby</bk-tag>)
+          }}
+        </RenderInstances>
       ),
     },
     {
@@ -956,12 +950,6 @@
     handleCopy(allData as T[], field)
   }
 
-  const handleOpenEntryConfig = (row: TendbhaModel) => {
-    showEditEntryConfig.value  = true;
-    showEnterConfigClusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
-  };
-
   const handleSelection = (data: TendbhaModel, list: TendbhaModel[]) => {
     selected.value = list;
     selectedClusterList.value = list;
@@ -1105,7 +1093,7 @@
 <style lang="less" scoped>
   @import '@styles/mixins.less';
 
-  .mysql-ha-cluster-list {
+  .mysql-ha-cluster-list-page {
     height: 100%;
     padding: 24px 0;
     margin: 0 24px;
@@ -1157,9 +1145,13 @@
         }
       }
 
+      .slave-entry {
+        line-height: 22px;
+      }
+
       .is-stand-by {
-        color: #531dab;
-        background: #f9f0ff;
+        color: #531dab !important;
+        background: #f9f0ff !important;
       }
 
       .db-icon-copy,
@@ -1169,24 +1161,6 @@
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
-      }
-
-      .table-wrapper {
-        background-color: white;
-
-        .bk-table {
-          height: 100% !important;
-        }
-
-        :deep(.bk-table-body) {
-          max-height: calc(100% - 100px);
-        }
-      }
-
-      .is-shrink-table {
-        :deep(.bk-table-body) {
-          overflow: hidden auto;
-        }
       }
 
       :deep(.cluster-name-container) {

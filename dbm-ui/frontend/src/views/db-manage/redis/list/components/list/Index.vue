@@ -163,13 +163,6 @@
   <RedisPurge
     v-model:is-show="purgeState.isShow"
     :data="purgeState.data" />
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="redis.clusterManage.modifyEntryConfiguration"
-    :get-detail-info="getRedisDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.REDIS" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -335,8 +328,6 @@
 
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowDropdown = ref(false);
-  const showEditEntryConfig = ref(false);
-  const entryEditable = ref(false);
   const selected = ref<RedisModel[]>([]);
 
   /** 查看密码 */
@@ -549,10 +540,13 @@
                     ]
                   } />
                 )}
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="redis.clusterManage.modifyEntryConfiguration"
+                  getDetailInfo={getRedisDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.REDIS}
+                  onSuccess={fetchData} />
               </>
             ),
           }}
@@ -1264,12 +1258,6 @@
   const handleToDetails = (id: number) => {
     stretchLayoutSplitScreen();
     clusterId.value = id;
-  };
-
-  const handleOpenEntryConfig = (row: RedisModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const handleShowPassword = (id: number) => {

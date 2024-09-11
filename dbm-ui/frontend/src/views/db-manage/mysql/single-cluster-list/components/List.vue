@@ -86,13 +86,6 @@
   <ExcelAuthorize
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.TENDBSINGLE" />
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="mysql.singleClusterList.modifyEntryConfiguration"
-    :get-detail-info="getTendbsingleDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.MYSQL" />
   <ClusterExportData
     v-if="currentData"
     v-model:is-show="showDataExportSlider"
@@ -212,8 +205,6 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const showDataExportSlider = ref(false)
-  const showEditEntryConfig = ref(false);
-  const entryEditable = ref(false);
   const selected = ref<TendbsingleModel[]>([])
   const currentData = ref<ColumnData['data']>();
 
@@ -364,10 +355,13 @@
                     }
                   ]
                 } />
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="mysql.singleClusterList.modifyEntryConfiguration"
+                  getDetailInfo={getTendbsingleDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.MYSQL}
+                  onSuccess={fetchData} />
               </>
             ),
           }}
@@ -803,12 +797,6 @@
   };
   const handleShowExcelAuthorize = () => {
     isShowExcelAuthorize.value = true;
-  };
-
-  const handleOpenEntryConfig = (row: TendbsingleModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const handleShowDataExportSlider = (data: TendbsingleModel) => {

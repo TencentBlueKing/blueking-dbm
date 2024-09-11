@@ -93,13 +93,6 @@
       </template>
     </BkDialog>
   </div>
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="pulsar.clusterManage.modifyEntryConfiguration"
-    :get-detail-info="getPulsarDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.PULSAR" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -221,8 +214,6 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
-  const showEditEntryConfig = ref(false);
-  const entryEditable = ref(false);
   const selected = ref<PulsarModel[]>([])
   const operationData = shallowRef<PulsarModel>();
 
@@ -312,10 +303,13 @@
                     ]
                   } />
                 )}
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="pulsar.clusterManage.modifyEntryConfiguration"
+                  getDetailInfo={getPulsarDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.PULSAR}
+                  onSuccess={fetchTableData} />
               </>
             ),
           }}
@@ -796,12 +790,6 @@
 
   const handleSelection = (data: PulsarModel, list: PulsarModel[]) => {
     selected.value = list;
-  };
-
-  const handleOpenEntryConfig = (row: PulsarModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const fetchTableData = (loading?:boolean) => {

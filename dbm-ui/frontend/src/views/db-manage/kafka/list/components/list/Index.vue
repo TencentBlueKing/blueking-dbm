@@ -96,13 +96,6 @@
       </template>
     </BkDialog>
   </div>
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    db-console="kafka.clusterManage.modifyEntryConfiguration"
-    :get-detail-info="getKafkaDetail"
-    :permission="entryEditable"
-    :resource="DBTypes.KAFKA" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -221,8 +214,6 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
-  const showEditEntryConfig = ref(false);
-  const entryEditable = ref(false);
   const selected = ref<KafkaModel[]>([])
   const operationData = shallowRef<KafkaModel>();
 
@@ -379,10 +370,13 @@
                     ]
                   } />
                 )}
-                <db-icon
-                  v-bk-tooltips={t('查看域名/IP对应关系')}
-                  type="visible1"
-                  onClick={() => handleOpenEntryConfig(data)} />
+                <EditEntryConfig
+                  id={data.id}
+                  dbConsole="kafka.clusterManage.modifyEntryConfiguration"
+                  getDetailInfo={getKafkaDetail}
+                  permission={data.permission.access_entry_edit}
+                  resource={DBTypes.KAFKA}
+                  onSuccess={fetchTableData} />
               </>
             ),
           }}
@@ -783,12 +777,6 @@
 
   const handleSelection = (data: KafkaModel, list: KafkaModel[]) => {
     selected.value = list;
-  };
-
-  const handleOpenEntryConfig = (row: KafkaModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-    entryEditable.value = row.permission.access_entry_edit;
   };
 
   const fetchTableData = (loading?:boolean) => {
