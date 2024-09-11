@@ -99,21 +99,21 @@
 <style lang="less" scoped>
   .db-table-tag-tip {
     display: flex;
-    flex-direction: column;
-    line-height: 24px;
     padding: 3px 7px;
+    line-height: 24px;
+    flex-direction: column;
 
     div {
       display: flex;
       align-items: center;
 
       .circle-dot {
+        display: inline-block;
         width: 4px;
         height: 4px;
+        margin-right: 6px;
         background-color: #63656e;
         border-radius: 50%;
-        display: inline-block;
-        margin-right: 6px;
       }
     }
   }

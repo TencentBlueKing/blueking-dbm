@@ -38,8 +38,7 @@
         <RenderDbName
           ref="ignoreDbNameRef"
           v-model="localDbIgnoreName"
-          check-not-exist
-          :cluster-id="localClusterData?.id"
+          :allow-asterisk="false"
           :required="false"
           @change="handleTargerNameChange" />
       </td>

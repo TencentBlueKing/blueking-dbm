@@ -36,7 +36,7 @@
         <RenderDbName
           ref="ignoreDbNameRef"
           v-model="localDbIgnoreName"
-          :cluster-id="localSrcClusterData?.id"
+          :allow-asterisk="false"
           :required="false" />
       </td>
       <td style="padding: 0">
