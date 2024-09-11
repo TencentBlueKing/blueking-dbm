@@ -364,7 +364,7 @@
     [ClusterTypes.TENDBCLUSTER]: [
       {
         id: 'tendbcluster',
-        name: t('Tendb Cluster'),
+        name: 'Tendb Cluster',
         topoConfig: {
           getTopoList: getMysqlClusterList,
         },

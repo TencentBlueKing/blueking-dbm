@@ -35,8 +35,7 @@
         <RenderDbName
           ref="cleanIgnoreDbsPatternsRef"
           v-model="localCleanIgnoreDbsPatterns"
-          check-not-exist
-          :cluster-id="localClusterData?.id"
+          :allow-asterisk="false"
           :required="false" />
       </td>
       <td style="padding: 0">
@@ -48,6 +47,7 @@
       <td style="padding: 0">
         <RenderTableName
           ref="ignoreCleanTablesRef"
+          :allow-asterisk="false"
           :cluster-id="localClusterData?.id"
           :model-value="data.ignoreCleanTables"
           :required="false" />
