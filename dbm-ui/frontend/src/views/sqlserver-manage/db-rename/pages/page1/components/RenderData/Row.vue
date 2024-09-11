@@ -14,12 +14,12 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0">
+      <FixedColumn fixed="left">
         <RenderCluster
           ref="clusterRef"
           v-model="localClusterData"
           :unique="false" />
-      </td>
+      </FixedColumn>
       <td style="padding: 0">
         <RenderDbName
           ref="fromDatabaseRef"
@@ -38,27 +38,20 @@
           :placeholder="$t('请输入单个新 DB 名')"
           single />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
+  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
+
   import { random } from '@utils';
 
   export interface IDataRow {
@@ -81,9 +74,6 @@
   });
 </script>
 <script setup lang="ts">
-  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
-  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
-
   interface Props {
     data: IDataRow;
     removeable: boolean;

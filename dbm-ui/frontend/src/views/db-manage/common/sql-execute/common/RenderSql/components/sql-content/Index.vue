@@ -37,7 +37,6 @@
           :is="renderCom"
           ref="fileRef"
           v-model="localModelValue"
-          :cluster-type="clusterType"
           v-bind="attrs"
           :cluster-version-list="clusterVersionList"
           @grammar-check="handleGrammarCheck" />
@@ -74,7 +73,6 @@
 
   interface Props {
     clusterVersionList: string[];
-    clusterType: 'mysql' | 'tendbcluster';
   }
 
   defineProps<Props>();

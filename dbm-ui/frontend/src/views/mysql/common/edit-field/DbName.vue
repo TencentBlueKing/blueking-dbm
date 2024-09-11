@@ -36,8 +36,8 @@
     required?: boolean;
     single?: boolean;
     checkExist?: boolean;
-    checkNotExist?: boolean;
     allowAsterisk?: boolean;
+    checkNotExist?: boolean;
     rules?: {
       validator: (value: string[]) => boolean;
       message: string;
@@ -56,7 +56,6 @@
 
   const props = withDefaults(defineProps<Props>(), {
     modelValue: undefined,
-    initValue: undefined,
     clusterId: undefined,
     required: true,
     single: false,

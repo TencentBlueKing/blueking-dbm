@@ -19,7 +19,15 @@
     :placeholder="t('请输入DB 名称，支持通配符“%”，含通配符的仅支持单个')"
     :rules="rules"
     :single="single"
-    @change="handleChange" />
+    @change="handleChange">
+    <template #tip>
+      <div>{{ t('不允许输入系统库，如"master", "msdb", "model", "tempdb", "Monitor"') }}</div>
+      <div>{{ t('DB名、表名不允许为空，忽略DB名、忽略表名不允许为 *') }}</div>
+      <div>{{ t('支持 %（指代任意长度字符串）,*（指代全部）2个通配符') }}</div>
+      <div>{{ t('单元格可同时输入多个对象，使用换行，空格或；，｜分隔，按 Enter 或失焦完成内容输入') }}</div>
+      <div>{{ t('包含通配符时, 每一单元格只允许输入单个对象。% 不能独立使用， * 只能单独使用') }}</div>
+    </template>
+  </TableTagInput>
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
@@ -37,10 +45,7 @@
     single?: boolean;
     checkExist?: boolean;
     checkNotExist?: boolean;
-    rules?: {
-      validator: (value: string[]) => boolean | string;
-      message: string;
-    }[];
+    allowAsterisk?: boolean;
   }
 
   interface Emits {
@@ -61,7 +66,7 @@
     checkExist: false,
     // db 不存在报错
     checkNotExist: false,
-    rules: undefined,
+    allowAsterisk: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -71,111 +76,121 @@
   const tagRef = ref();
   const localValue = ref(props.modelValue);
 
-  const rules = computed(() => {
-    if (props.rules && props.rules.length > 0) {
-      return props.rules;
-    }
+  const systemDbNames = ['master', 'msdb', 'model', 'tempdb', 'Monitor'];
 
-    return [
-      {
-        validator: (value: string[]) => {
-          if (!props.required) {
-            return true;
-          }
-          return value && value.length > 0;
-        },
-        message: t('DB 名不能为空'),
-      },
-      {
-        validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
-        message: t('* 只能独立使用'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
-        message: t('% 不允许单独使用'),
-        trigger: 'change',
-      },
-      {
-        validator: (value: string[]) => {
-          if (_.some(value, (item) => /[*%?]/.test(item))) {
-            return value.length < 2;
-          }
+  const rules = [
+    {
+      validator: (value: string[]) => {
+        if (!props.required) {
           return true;
-        },
-        message: t('含通配符的单元格仅支持输入单个对象'),
-        trigger: 'change',
+        }
+        return value && value.length > 0;
       },
-      {
-        validator: (value: string[]) => {
-          if (!props.checkExist) {
-            return true;
-          }
-          if (!props.clusterId) {
-            return false;
-          }
-          // % 通配符不需要校验存在
-          if (/%$/.test(value[0]) || value[0] === '*') {
-            return true;
-          }
-          const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
-          if (clearDbList.length < 1) {
-            return true;
-          }
-          return checkClusterDatabase({
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            cluster_id: props.clusterId,
-            db_list: value,
-          }).then((data) => {
-            const existDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
-              if (data[dbName]) {
-                result.push(dbName);
-              }
-              return result;
-            }, []);
-            if (existDbList.length > 0) {
-              return t('n 已存在', { n: existDbList.join('、') });
-            }
+      message: t('DB 名不能为空'),
+    },
+    {
+      validator: (value: string[]) => _.every(value, (item) => !systemDbNames.includes(item)),
+      message: t('不允许输入系统库和特殊库 n', { n: systemDbNames.join(',') }),
+    },
+    {
+      validator: (value: string[]) => !_.some(value, (item) => /\*/.test(item) && item.length > 1),
+      message: t('* 只能独立使用'),
+      trigger: 'change',
+    },
+    {
+      validator: (value: string[]) => {
+        if (props.allowAsterisk) {
+          return true;
+        }
 
-            return true;
-          });
-        },
-        message: t('DB 已存在'),
+        return _.every(value, (item) => item !== '*');
       },
-      {
-        validator: (value: string[]) => {
-          if (!props.checkNotExist) {
-            return true;
-          }
-          if (!props.clusterId) {
-            return false;
-          }
-          const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
-          if (clearDbList.length < 1) {
-            return true;
-          }
-          return checkClusterDatabase({
-            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-            cluster_id: props.clusterId,
-            db_list: value,
-          }).then((data) => {
-            const notExistDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
-              if (!data[dbName]) {
-                result.push(dbName);
-              }
-              return result;
-            }, []);
-            if (notExistDbList.length > 0) {
-              return t('n 不存在', { n: notExistDbList.join('、') });
+      message: t('不允许为 *'),
+    },
+    {
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+      trigger: 'change',
+    },
+    {
+      validator: (value: string[]) => {
+        if (_.some(value, (item) => /[*%?]/.test(item))) {
+          return value.length < 2;
+        }
+        return true;
+      },
+      message: t('含通配符的单元格仅支持输入单个对象'),
+      trigger: 'change',
+    },
+    {
+      validator: (value: string[]) => {
+        if (!props.checkExist) {
+          return true;
+        }
+        if (!props.clusterId) {
+          return false;
+        }
+        // % 通配符不需要校验存在
+        if (/%$/.test(value[0]) || value[0] === '*') {
+          return true;
+        }
+        const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
+        if (clearDbList.length < 1) {
+          return true;
+        }
+        return checkClusterDatabase({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.clusterId,
+          db_list: value,
+        }).then((data) => {
+          const existDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
+            if (data[dbName]) {
+              result.push(dbName);
             }
+            return result;
+          }, []);
+          if (existDbList.length > 0) {
+            return t('n 已存在', { n: existDbList.join('、') });
+          }
 
-            return true;
-          });
-        },
-        message: t('DB 不存在'),
+          return true;
+        });
       },
-    ];
-  });
+      message: t('DB 已存在'),
+    },
+    {
+      validator: (value: string[]) => {
+        if (!props.checkNotExist) {
+          return true;
+        }
+        if (!props.clusterId) {
+          return false;
+        }
+        const clearDbList = _.filter(value, (item) => !/[*%]/.test(item));
+        if (clearDbList.length < 1) {
+          return true;
+        }
+        return checkClusterDatabase({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          cluster_id: props.clusterId,
+          db_list: value,
+        }).then((data) => {
+          const notExistDbList = Object.keys(data).reduce<string[]>((result, dbName) => {
+            if (!data[dbName]) {
+              result.push(dbName);
+            }
+            return result;
+          }, []);
+          if (notExistDbList.length > 0) {
+            return t('n 不存在', { n: notExistDbList.join('、') });
+          }
+
+          return true;
+        });
+      },
+      message: t('DB 不存在'),
+    },
+  ];
 
   // 集群改变时 DB 需要重置
   watch(

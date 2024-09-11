@@ -14,7 +14,10 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        fixed="left"
+        :min-width="350"
+        :width="350">
         {{ t('目标集群（always on 集群）') }}
         <template #append>
           <span
@@ -28,8 +31,9 @@
         {{ t('新从库主机') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        fixed="right"
         :required="false"
-        :width="90">
+        :width="100">
         {{ t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
@@ -56,12 +60,3 @@
     emits('batchSelectCluster');
   };
 </script>
-<style lang="less">
-  .render-data {
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

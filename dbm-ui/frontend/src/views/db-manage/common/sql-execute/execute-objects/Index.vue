@@ -23,7 +23,6 @@
         v-for="(item, index) in modelValue"
         :key="item.rowKey"
         ref="rowRef"
-        :cluster-type="clusterType"
         :cluster-version-list="clusterVersionList"
         :data="item"
         :removeable="modelValue.length < 2"
@@ -48,7 +47,6 @@
     dbType: DBTypes;
     uploadFilePath: string;
     clusterVersionList: string[];
-    clusterType: 'mysql' | 'tendbcluster';
   }
 
   const props = defineProps<Props>();

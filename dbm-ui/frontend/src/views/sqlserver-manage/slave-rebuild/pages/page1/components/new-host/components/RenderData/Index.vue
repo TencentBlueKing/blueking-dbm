@@ -16,8 +16,9 @@
     <RenderTable>
       <template #default>
         <RenderTableHeadColumn
-          :min-width="120"
-          :width="330">
+          fixed="left"
+          :min-width="350"
+          :width="350">
           {{ t('待重建从库主机') }}
           <template #append>
             <span
@@ -68,14 +69,3 @@
     emits('showIpSelector');
   };
 </script>
-<style lang="less">
-  .render-data {
-    display: block;
-
-    .batch-edit-btn {
-      margin-left: 4px;
-      color: #3a84ff;
-      cursor: pointer;
-    }
-  }
-</style>

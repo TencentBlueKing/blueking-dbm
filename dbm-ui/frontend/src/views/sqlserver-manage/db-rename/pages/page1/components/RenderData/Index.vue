@@ -16,8 +16,9 @@
     <RenderTable>
       <template #default>
         <RenderTableHeadColumn
+          fixed="left"
           :min-width="120"
-          :width="240">
+          :width="350">
           {{ t('目标集群') }}
           <template #append>
             <span

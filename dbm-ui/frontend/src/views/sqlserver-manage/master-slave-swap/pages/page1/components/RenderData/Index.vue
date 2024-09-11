@@ -14,8 +14,11 @@
 <template>
   <div class="render-data">
     <RenderTable>
-      <RenderTableHeadColumn>
-        {{ $t('目标主库') }}
+      <RenderTableHeadColumn
+        fixed="left"
+        :min-width="350"
+        :width="350">
+        {{ t('目标主库') }}
         <template #append>
           <span
             class="batch-edit-btn"
@@ -25,15 +28,16 @@
         </template>
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('目标从库') }}
+        {{ t('目标从库') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn>
-        {{ $t('同机关联的集群') }}
+        {{ t('同机关联的集群') }}
       </RenderTableHeadColumn>
       <RenderTableHeadColumn
+        fixed="right"
         :required="false"
-        :width="90">
-        {{ $t('操作') }}
+        :width="100">
+        {{ t('操作') }}
       </RenderTableHeadColumn>
       <template #data>
         <slot />
@@ -42,6 +46,8 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
@@ -50,6 +56,8 @@
   }
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const handleShowMasterBatchSelector = () => {
     emits('showMasterBatchSelector');

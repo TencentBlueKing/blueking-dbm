@@ -14,11 +14,11 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0">
+      <FixedColumn fixed="left">
         <RenderDbName
           ref="dbnamesRef"
           v-model="localDbnames" />
-      </td>
+      </FixedColumn>
       <td style="padding: 0">
         <RenderIgnoreDbName
           ref="ignoreDbnamesRef"
@@ -34,29 +34,19 @@
           :db-names="localDbnames"
           :ignore-db-names="localIgnoreDbnames" />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn ml-2"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
   import { ref } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
+
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderSql from '@views/db-manage/common/sql-execute/common/RenderSql/Index.vue';
 

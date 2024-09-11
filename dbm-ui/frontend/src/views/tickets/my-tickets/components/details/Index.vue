@@ -61,6 +61,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
@@ -88,20 +89,21 @@
   const demandCollapse = ref(false);
   const flowInfoRef = ref<InstanceType<typeof FlowInfo>>();
 
-  const {
-    run: fetchTicketDetails,
-    data: ticketData,
-    loading: isLoading,
-  } = useRequest(
+  const isLoading = ref(true);
+  const ticketData = ref<TicketModel<unknown>>();
+
+  const { run: fetchTicketDetails } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
       getTicketDetails(params, {
         permission: 'catch',
       }),
     {
-      onSuccess(_, params) {
+      onSuccess(data, params) {
         if (params[0].id !== props.ticketId) {
           return;
         }
+        isLoading.value = false;
+        ticketData.value = data;
         loopFetchTicketDetails();
       },
     },

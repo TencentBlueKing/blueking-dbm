@@ -14,11 +14,11 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0">
+      <FixedColumn fixed="left">
         <RenderCluster
           ref="clusterRef"
           v-model="localClusterData" />
-      </td>
+      </FixedColumn>
       <td style="padding: 0">
         <RenderMode
           ref="modeRef"
@@ -38,8 +38,7 @@
         <RenderDbName
           ref="ignoreDbNameRef"
           v-model="localDbIgnoreName"
-          check-not-exist
-          :cluster-id="localClusterData?.id"
+          :allow-asterisk="false"
           :required="false"
           @change="handleTargerNameChange" />
       </td>
@@ -52,30 +51,28 @@
           :restore-backup-file="localRestoreBackupFile"
           :restore-time="localRestoreTime" />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
+  import { ref, watch } from 'vue';
+
   import { queryBackupLogs } from '@services/source/sqlserver';
 
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
+  import RenderMode from '@views/sqlserver-manage/common/render-mode/Index.vue';
+  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
+
   import { random } from '@utils';
+
+  import RenderRename from './RenderRename.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -107,14 +104,6 @@
   });
 </script>
 <script setup lang="ts">
-  import { ref, watch } from 'vue';
-
-  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
-  import RenderMode from '@views/sqlserver-manage/common/render-mode/Index.vue';
-  import RenderCluster from '@views/sqlserver-manage/common/RenderCluster.vue';
-
-  import RenderRename from './RenderRename.vue';
-
   interface Props {
     data: IDataRow;
     removeable: boolean;

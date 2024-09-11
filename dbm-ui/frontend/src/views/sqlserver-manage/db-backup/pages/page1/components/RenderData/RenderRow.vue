@@ -13,11 +13,11 @@
 
 <template>
   <tr>
-    <td style="padding: 0">
+    <FixedColumn fixed="left">
       <RenderCluster
         ref="clusterRef"
         v-model="localClusterData" />
-    </td>
+    </FixedColumn>
     <td style="padding: 0">
       <RenderDbName
         ref="backupDbsRef"
@@ -30,6 +30,7 @@
       <RenderDbName
         ref="ignoreDbsRef"
         v-model="localIgnoreDbList"
+        :allow-asterisk="false"
         :required="false" />
     </td>
     <td style="padding: 0">
@@ -46,6 +47,7 @@
   </tr>
 </template>
 <script lang="ts">
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';

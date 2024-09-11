@@ -14,12 +14,12 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0">
+      <FixedColumn fixed="left">
         <RenderMaster
           ref="masterHostRef"
           :model-value="data.masterData"
           @change="handleMasterHostChange" />
-      </td>
+      </FixedColumn>
       <td style="padding: 0">
         <RenderHost
           ref="slaveHostRef"
@@ -32,28 +32,18 @@
           :master-data="localMasterData"
           @change="handleClusterChange" />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
   import { ref, shallowRef, watch } from 'vue';
+
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import { random } from '@utils';
 

@@ -65,7 +65,7 @@
   const tabListConfig = {
     [ClusterTypes.TENDBCLUSTER]: [
       {
-        name: t('TendbCluster 主从'),
+        name: 'TendbCluster',
         tableConfig: {
           firsrColumn: {
             label: 'instance_address',
@@ -75,6 +75,19 @@
         },
       },
     ],
+    [ClusterTypes.TENDBHA]: [
+      {
+        id: 'tendbha',
+        name: t('Mysql 主从'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('实例'),
+            field: 'instance_address',
+            role: '',
+          },
+        },
+      }
+    ]
   } as unknown as Record<ClusterTypes, PanelListType>;
 
 
@@ -83,7 +96,7 @@
   });
 
   const isShowInstanceSelector = shallowRef(false);
-  const instanceSelectorValue = shallowRef({
+  const instanceSelectorValue = shallowRef<Record<string, IValue[]>>({
     [ClusterTypes.TENDBSINGLE]: [] as TendbhaInstanceModel[],
     [ClusterTypes.TENDBHA]: [] as TendbhaInstanceModel[],
     [ClusterTypes.TENDBCLUSTER]: [] as TendbInstanceModel[],

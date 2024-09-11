@@ -14,11 +14,11 @@
 <template>
   <tbody>
     <tr>
-      <td style="padding: 0">
+      <FixedColumn fixed="left">
         <RenderCluster
           ref="clusterRef"
           v-model="localClusterData" />
-      </td>
+      </FixedColumn>
       <td style="padding: 0">
         <RenderClearMode
           ref="clearModeRef"
@@ -35,8 +35,7 @@
         <RenderDbName
           ref="cleanIgnoreDbsPatternsRef"
           v-model="localCleanIgnoreDbsPatterns"
-          check-not-exist
-          :cluster-id="localClusterData?.id"
+          :allow-asterisk="false"
           :required="false" />
       </td>
       <td style="padding: 0">
@@ -48,6 +47,7 @@
       <td style="padding: 0">
         <RenderTableName
           ref="ignoreCleanTablesRef"
+          :allow-asterisk="false"
           :cluster-id="localClusterData?.id"
           :model-value="data.ignoreCleanTables"
           :required="false" />
@@ -59,28 +59,25 @@
           v-model:cleanIgnoreDbsPatterns="localCleanIgnoreDbsPatterns"
           :cluster-data="localClusterData" />
       </td>
-      <td>
-        <div class="action-box">
-          <div
-            class="action-btn"
-            @click="handleAppend">
-            <DbIcon type="plus-fill" />
-          </div>
-          <div
-            class="action-btn"
-            :class="{
-              disabled: removeable,
-            }"
-            @click="handleRemove">
-            <DbIcon type="minus-fill" />
-          </div>
-        </div>
-      </td>
+      <OperateColumn
+        :removeable="removeable"
+        @add="handleAppend"
+        @remove="handleRemove" />
     </tr>
   </tbody>
 </template>
 <script lang="ts">
+  import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
+  import RenderTableName from '@views/sqlserver-manage/common/TableName.vue';
+
   import { random } from '@utils';
+
+  import RenderClearDbName from './RenderClearDbName.vue';
+  import RenderClearMode from './RenderClearMode.vue';
+  import RenderCluster from './RenderCluster.vue';
 
   export interface IDataRow {
     rowKey: string;
@@ -110,13 +107,6 @@
   });
 </script>
 <script setup lang="ts">
-  import RenderDbName from '@views/sqlserver-manage/common/DbName.vue';
-  import RenderTableName from '@views/sqlserver-manage/common/TableName.vue';
-
-  import RenderClearDbName from './RenderClearDbName.vue';
-  import RenderClearMode from './RenderClearMode.vue';
-  import RenderCluster from './RenderCluster.vue';
-
   interface Props {
     data: IDataRow;
     removeable: boolean;

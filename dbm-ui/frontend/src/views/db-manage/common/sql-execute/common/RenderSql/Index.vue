@@ -20,7 +20,6 @@
     v-model="modelValue"
     v-model:importMode="importMode"
     v-model:is-show="isShowSql"
-    :cluster-type="clusterType"
     :cluster-version-list="clusterVersionList">
     <template #header>
       <span style="margin-left: 30px; font-size: 12px; font-weight: normal; color: #63656e">
@@ -59,7 +58,6 @@
     clusterVersionList: string[];
     dbNames: string[];
     ignoreDbNames: string[];
-    clusterType: 'mysql' | 'tendbcluster';
   }
 
   interface Expose {

@@ -30,12 +30,11 @@
     <div
       ref="popRef"
       style="font-size: 12px; line-height: 24px; color: #63656e">
-      <p>{{ t('%：匹配任意长度字符串，如 a%， 不允许独立使用') }}</p>
-      <p>{{ t('？： 匹配任意单一字符，如 a%?%d') }}</p>
-      <p>{{ t('* ：专门指代 ALL 语义, 只能独立使用') }}</p>
-      <p>{{ t('注：含通配符的单元格仅支持输入单个对象') }}</p>
-      <p>{{ t('按Enter或失焦可完成内容输入') }}</p>
-      <p>{{ t('粘贴多个对象可用换行，空格或；，｜分隔') }}</p>
+      <p>{{ t('匹配任意长度字符串_如a_不允许独立使用') }}</p>
+      <p>{{ t('匹配任意单一字符_如a_d') }}</p>
+      <p>{{ t('专门指代ALL语义_只能独立使用') }}</p>
+      <p>{{ t('注_含通配符的单元格仅支持输入单个对象') }}</p>
+      <p>{{ t('Enter完成内容输入') }}</p>
     </div>
   </div>
 </template>
@@ -74,15 +73,25 @@
 
   const rules = [
     {
-      validator: (value: string[]) => {
-        const hasAllMatch = _.find(value, (item) => /%$/.test(item));
-        return !(value.length > 1 && hasAllMatch);
-      },
-      message: t('一格仅支持单个_对象'),
+      validator: (value: string[]) => _.every(value, (item) => item !== '*'),
+      message: t('不允许为 *'),
     },
     {
       validator: (value: string[]) => _.every(value, (item) => !disabledTagMap[item as keyof typeof disabledTagMap]),
       message: t(`DB名不能支持 n`, { n: Object.keys(disabledTagMap).join(',') }),
+    },
+    {
+      validator: (value: string[]) => _.every(value, (item) => !/^%$/.test(item)),
+      message: t('% 不允许单独使用'),
+    },
+    {
+      validator: (value: string[]) => {
+        if (_.some(value, (item) => /[*%?]/.test(item))) {
+          return value.length < 2;
+        }
+        return true;
+      },
+      message: t('含通配符的单元格仅支持输入单个对象'),
     },
   ];
 
