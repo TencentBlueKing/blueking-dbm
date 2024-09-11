@@ -47,6 +47,22 @@ FUNCTION_CONTROLLER_INIT_MAP = {
             CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
         },
     },
+    DBType.Sqlserver.value: {
+        "is_enabled": True,
+        "children": {
+            ClusterType.SqlserverHA.value: {"is_enabled": True},
+            ClusterType.SqlserverSingle.value: {"is_enabled": True},
+            CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
+        },
+    },
+    DBType.MongoDB.value: {
+        "is_enabled": True,
+        "children": {
+            ClusterType.MongoShardedCluster.value: {"is_enabled": True},
+            ClusterType.MongoReplicaSet.value: {"is_enabled": True},
+            CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
+        },
+    },
     CustomFuncNameEnum.BigData.value: {
         "is_enabled": True,
         "children": {
