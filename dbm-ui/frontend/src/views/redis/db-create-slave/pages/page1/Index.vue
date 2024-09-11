@@ -134,7 +134,7 @@
   const isSubmitting  = ref(false);
   const tableData = ref([createRowData()]);
 
-  const selected = shallowRef({ createSlaveIdleHosts: [] } as InstanceSelectorValues<IValue>);
+  const selected = shallowRef({ redis: [] } as InstanceSelectorValues<IValue>);
 
   const totalNum = computed(() => tableData.value.filter(item => Boolean(item.slaveIp)).length);
   const inputedIps = computed(() => tableData.value.map(item => item.slaveIp));
@@ -145,7 +145,7 @@
   const tabListConfig = {
     [ClusterTypes.REDIS]: [
       {
-        id: 'createSlaveIdleHosts',
+        id: 'redis',
         name: t('待重建的主机'),
         topoConfig: {
           getTopoList: listClustersCreateSlaveProxy,
@@ -184,7 +184,7 @@
           statusFilter: (data: RedisHostModel) => !data.isMasterFailover,
         },
         manualConfig: {
-          activePanelId: 'createSlaveIdleHosts',
+          activePanelId: 'redis',
         },
       },
     ],
@@ -226,7 +226,7 @@
   const handelMasterProxyChange = async (data: InstanceSelectorValues<IValue>) => {
     selected.value = data;
     const newList: IDataRow[] = [];
-    const ips = data.createSlaveIdleHosts.map(item => item.ip);
+    const ips = data.redis.map(item => item.ip);
     const listResult = await getRedisMachineList({
       ip: ips.join(','),
       add_role_count: true,
@@ -243,7 +243,7 @@
 
     await updateSlaveMasterMap(clusterIds);
 
-    data.createSlaveIdleHosts.forEach((item) => {
+    data.redis.forEach((item) => {
       const { ip } = item;
       if (!ipMemo[ip] && machineIpMap[ip].isSlaveFailover) {
         newList.push({
@@ -355,8 +355,8 @@
     tableData.value.splice(index, 1);
     delete ipMemo[removeIp];
     sortTableByCluster();
-    const arr = selected.value.createSlaveIdleHosts;
-    selected.value.createSlaveIdleHosts = arr.filter(item => item.ip !== removeIp);
+    const arr = selected.value.redis;
+    selected.value.redis = arr.filter(item => item.ip !== removeIp);
   };
 
   // 根据表格数据生成提交单据请求参数
@@ -438,7 +438,7 @@
   // 重置
   const handleReset = () => {
     tableData.value = [createRowData()];
-    selected.value.createSlaveIdleHosts = [];
+    selected.value.redis = [];
     ipMemo = {};
     window.changeConfirm = false;
   };
