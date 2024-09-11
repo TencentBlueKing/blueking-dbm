@@ -277,8 +277,8 @@ class TicketFlowBuilder:
     resource_apply_builder: ResourceApplyParamBuilder = None
     resource_batch_apply_builder: ResourceApplyParamBuilder = None
 
-    # inner flow互斥的重试类型，默认为自动重试
-    retry_type: FlowRetryType = FlowRetryType.AUTO_RETRY
+    # inner flow互斥的重试类型，默认为手动重试
+    retry_type: FlowRetryType = FlowRetryType.MANUAL_RETRY
     # 默认是否需要审批,人工确认。后续用于初始化单据配置表
     default_need_itsm: bool = True
     default_need_manual_confirm: bool = True
