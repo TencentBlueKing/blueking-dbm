@@ -1,16 +1,6 @@
 <template>
   <FunController module-id="sqlserver">
     <BkMenuGroup name="SqlServer">
-      <BkMenuItem key="SqlServerSingle">
-        <template #icon>
-          <DbIcon type="node" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('单节点') }}
-        </span>
-      </BkMenuItem>
       <BkSubmenu
         key="SqlServerHaClusterManage"
         :title="t('主从')">
@@ -32,6 +22,16 @@
           </span>
         </BkMenuItem>
       </BkSubmenu>
+      <BkMenuItem key="SqlServerSingle">
+        <template #icon>
+          <DbIcon type="node" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('单节点') }}
+        </span>
+      </BkMenuItem>
       <BkSubmenu
         key="sqlserver-permission"
         :title="t('权限管理')">
