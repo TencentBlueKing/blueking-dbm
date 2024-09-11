@@ -19,6 +19,8 @@ exclude =
 per-file-ignores =
     */__init__.py: F401,F403,F405
     nginx_template.py: W605
+    dbm-ui/backend/db_services/mysql/remote_service/handlers.py: W605
+    dbm-ui/backend/flow/plugins/components/collections/mysql/filter_database_table_by_flashback_input.py: W605
 max-line-length=129
 max-complexity=21
 format=pylint

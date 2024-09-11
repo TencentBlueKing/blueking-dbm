@@ -157,7 +157,7 @@ class Builder(object):
             raise Exception(_("传入的acts_list参数不合法，请检测"))
 
         for act_info in acts_list:
-            if type(act_info) == SubProcess:
+            if isinstance(act_info, SubProcess):
                 acts.append(act_info)
                 continue
             act = ServiceActivity(name=act_info["act_name"], component_code=act_info["act_component_code"])
@@ -246,7 +246,7 @@ class Builder(object):
             if key == "inputs":
                 copy_data.pop(key)
                 continue
-            if type(value) == dict:
+            if isinstance(value, dict):
                 self.hide_sensitive_data(value)
         return copy_data
 
