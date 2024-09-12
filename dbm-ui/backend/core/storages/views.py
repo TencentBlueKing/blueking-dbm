@@ -31,6 +31,7 @@ SWAGGER_TAG = "storage"
 
 class StorageViewSet(viewsets.SystemViewSet):
     default_permission_class = [StoragePermission()]
+    action_permission_map = {("temporary_download",): []}
 
     @common_swagger_auto_schema(
         operation_summary=_("批量获取文件内容"), request_body=BatchDownloadFileSerializer(), tags=[SWAGGER_TAG]
