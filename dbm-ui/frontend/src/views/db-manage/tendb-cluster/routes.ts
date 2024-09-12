@@ -12,12 +12,10 @@
  */
 import type { RouteRecordRaw } from 'vue-router';
 
-import {
+import FunctionControllModel, {
   type ExtractedControllerDataKeys,
   type MySQLFunctions,
 } from '@services/model/function-controller/functionController';
-
-import { useFunController } from '@stores';
 
 import { checkDbConsole } from '@utils';
 
@@ -29,8 +27,8 @@ const spiderSqlExecuteRoute = {
   meta: {
     navName: t('SQL变更执行'),
   },
-  component: () => import('@views/spider-manage/sql-execute/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/sql-execute/Index.vue'),
+};
 
 const spiderDbRenameRoute = {
   path: 'db-rename/:page?',
@@ -38,8 +36,8 @@ const spiderDbRenameRoute = {
   meta: {
     navName: t('DB 重命名'),
   },
-  component: () => import('@views/spider-manage/db-rename/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/db-rename/Index.vue'),
+};
 
 const spiderMasterSlaveSwapRoute = {
   path: 'master-slave-swap/:page?',
@@ -47,8 +45,8 @@ const spiderMasterSlaveSwapRoute = {
   meta: {
     navName: t('主从互切'),
   },
-  component: () => import('@views/spider-manage/master-slave-swap/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/master-slave-swap/Index.vue'),
+};
 
 const spiderMasterFailoverRoute = {
   path: 'master-failover/:page?',
@@ -56,8 +54,8 @@ const spiderMasterFailoverRoute = {
   meta: {
     navName: t('主库故障切换'),
   },
-  component: () => import('@views/spider-manage/master-failover/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/master-failover/Index.vue'),
+};
 
 const spiderCapacityChangeRoute = {
   path: 'capacity-change/:page?',
@@ -65,8 +63,8 @@ const spiderCapacityChangeRoute = {
   meta: {
     navName: t('集群容量变更'),
   },
-  component: () => import('@views/spider-manage/capacity-change/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/capacity-change/Index.vue'),
+};
 
 const spiderProxyScaleUpRoute = {
   name: 'SpiderProxyScaleUp',
@@ -74,8 +72,8 @@ const spiderProxyScaleUpRoute = {
   meta: {
     navName: t('扩容接入层'),
   },
-  component: () => import('@views/spider-manage/proxy-scale-up/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/proxy-scale-up/Index.vue'),
+};
 
 const spiderProxyScaleDownRoute = {
   name: 'SpiderProxyScaleDown',
@@ -83,8 +81,8 @@ const spiderProxyScaleDownRoute = {
   meta: {
     navName: t('缩容接入层'),
   },
-  component: () => import('@views/spider-manage/proxy-scale-down/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/proxy-scale-down/Index.vue'),
+};
 
 const spiderProxySlaveApplyRoute = {
   name: 'SpiderProxySlaveApply',
@@ -92,8 +90,8 @@ const spiderProxySlaveApplyRoute = {
   meta: {
     navName: t('部署只读接入层'),
   },
-  component: () => import('@views/spider-manage/proxy-slave-apply/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/proxy-slave-apply/Index.vue'),
+};
 
 const spiderAddMntRoute = {
   path: 'add-mnt/:page?',
@@ -101,8 +99,8 @@ const spiderAddMntRoute = {
   meta: {
     navName: t('添加运维节点'),
   },
-  component: () => import('@views/spider-manage/add-mnt/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/add-mnt/Index.vue'),
+};
 
 const spiderDbTableBackupRoute = {
   path: 'db-table-backup/:page?',
@@ -110,8 +108,8 @@ const spiderDbTableBackupRoute = {
   meta: {
     navName: t('库表备份'),
   },
-  component: () => import('@views/spider-manage/db-table-backup/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/db-table-backup/Index.vue'),
+};
 
 const spiderDbBackupRoute = {
   path: 'db-backup/:page?',
@@ -119,8 +117,8 @@ const spiderDbBackupRoute = {
   meta: {
     navName: t('全库备份'),
   },
-  component: () => import('@views/spider-manage/db-backup/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/db-backup/Index.vue'),
+};
 
 const spiderFlashbackRoute = {
   path: 'flashback/:page?',
@@ -128,8 +126,8 @@ const spiderFlashbackRoute = {
   meta: {
     navName: t('闪回'),
   },
-  component: () => import('@views/spider-manage/flashback/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/flashback/Index.vue'),
+};
 
 const spiderRollbackRoute = {
   path: 'rollback/:page?',
@@ -137,8 +135,8 @@ const spiderRollbackRoute = {
   meta: {
     navName: t('定点构造'),
   },
-  component: () => import('@views/spider-manage/rollback/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/rollback/Index.vue'),
+};
 
 const spiderRollbackRecordRoute = {
   path: 'rollback-record',
@@ -146,8 +144,8 @@ const spiderRollbackRecordRoute = {
   meta: {
     navName: t('构造实例'),
   },
-  component: () => import('@views/spider-manage/rollback-record/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/rollback-record/Index.vue'),
+};
 
 const spiderDbClearRoute = {
   path: 'db-clear/:page?',
@@ -155,8 +153,8 @@ const spiderDbClearRoute = {
   meta: {
     navName: t('清档'),
   },
-  component: () => import('@views/spider-manage/db-clear/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/db-clear/Index.vue'),
+};
 
 const spiderChecksumRoute = {
   path: 'checksum/:page?',
@@ -164,8 +162,8 @@ const spiderChecksumRoute = {
   meta: {
     navName: t('数据校验修复'),
   },
-  component: () => import('@views/spider-manage/checksum/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/checksum/Index.vue'),
+};
 
 const spiderPrivilegeCloneClientRoute = {
   path: 'privilege-clone-client/:page?',
@@ -173,8 +171,8 @@ const spiderPrivilegeCloneClientRoute = {
   meta: {
     navName: t('客户端权限克隆'),
   },
-  component: () => import('@views/spider-manage/privilege-clone-client/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/privilege-clone-client/Index.vue'),
+};
 
 const spiderPrivilegeCloneInstRoute = {
   path: 'privilege-clone-inst/:page?',
@@ -182,8 +180,8 @@ const spiderPrivilegeCloneInstRoute = {
   meta: {
     navName: t('DB 实例权限克隆'),
   },
-  component: () => import('@views/spider-manage/privilege-clone-inst/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/privilege-clone-inst/Index.vue'),
+};
 
 const spiderOpenareaTemplateRoute = {
   path: 'openarea-template',
@@ -191,8 +189,8 @@ const spiderOpenareaTemplateRoute = {
   meta: {
     navName: t('开区模版'),
   },
-  component: () => import('@views/spider-manage/openarea-template/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/openarea-template/Index.vue'),
+};
 
 const spiderMasterSlaveCloneRoute = {
   path: 'master-slave-clone/:page?',
@@ -201,8 +199,8 @@ const spiderMasterSlaveCloneRoute = {
     navName: t('迁移主从'),
     activeMenu: 'spiderToolbox',
   },
-  component: () => import('@views/spider-manage/master-slave-clone/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/master-slave-clone/Index.vue'),
+};
 
 const spiderSlaveRebuildRoute = {
   path: 'slave-rebuild/:page?',
@@ -211,8 +209,17 @@ const spiderSlaveRebuildRoute = {
     navName: t('重建从库'),
     activeMenu: 'spiderToolbox',
   },
-  component: () => import('@views/spider-manage/slave-rebuild/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/slave-rebuild/Index.vue'),
+};
+
+const spiderWebconsoleRoute = {
+  name: 'SpiderWebconsole',
+  path: 'webconsole',
+  meta: {
+    navName: 'Webconsole',
+  },
+  component: () => import('@views/db-manage/tendb-cluster/webconsole/Index.vue'),
+};
 
 const toolboxDbConsoleRouteMap = {
   'tendbCluster.toolbox.sqlExecute': spiderSqlExecuteRoute,
@@ -236,17 +243,18 @@ const toolboxDbConsoleRouteMap = {
   'tendbCluster.toolbox.openareaTemplate': spiderOpenareaTemplateRoute,
   'tendbCluster.toolbox.slaveRebuild': spiderSlaveRebuildRoute,
   'tendbCluster.toolbox.masterSlaveClone': spiderMasterSlaveCloneRoute,
-}
+  'tendbCluster.toolbox.webconsole': spiderWebconsoleRoute,
+};
 
 const tendbClusterInstanceRoute = {
   name: 'tendbClusterInstance',
-  path: 'list-instance',
+  path: 'instance-list',
   meta: {
     navName: t('TendbCluster分布式集群_实例视图'),
     fullscreen: true,
   },
-  component: () => import('@views/spider-manage/list-instance/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/list-instance/Index.vue'),
+};
 
 const spiderPartitionManageRoute = {
   path: 'partition-manage',
@@ -254,8 +262,8 @@ const spiderPartitionManageRoute = {
   meta: {
     navName: t('【TenDB Cluster】分区管理'),
   },
-  component: () => import('@views/spider-manage/partition-manage/Index.vue'),
-}
+  component: () => import('@views/db-manage/tendb-cluster/partition-manage/Index.vue'),
+};
 
 const permissionManageRoutes = [
   {
@@ -264,7 +272,7 @@ const permissionManageRoutes = [
     meta: {
       navName: t('授权规则'),
     },
-    component: () => import('@views/spider-manage/permission/Index.vue'),
+    component: () => import('@views/db-manage/tendb-cluster/permission/Index.vue'),
   },
   // {
   //   path: 'permission-list',
@@ -272,7 +280,7 @@ const permissionManageRoutes = [
   //   meta: {
   //     navName: t('授权列表'),
   //   },
-  //   component: () => import('@views/spider-manage/permission-list/Index.vue'),
+  //   component: () => import('@views/db-manage/tendb-cluster/permission-list/Index.vue'),
   // },
   {
     path: 'whitelist',
@@ -282,7 +290,7 @@ const permissionManageRoutes = [
     },
     component: () => import('@views/whitelist/list/Index.vue'),
   },
-]
+];
 
 const spiderToolboxRoute = {
   path: 'toolbox',
@@ -294,13 +302,13 @@ const spiderToolboxRoute = {
   redirect: {
     name: '',
   },
-  component: () => import('@views/spider-manage/toolbox/Index.vue'),
+  component: () => import('@views/db-manage/tendb-cluster/toolbox/Index.vue'),
   children: [] as RouteRecordRaw[],
-}
+};
 
 const renderRoutes = [
   {
-    path: 'spider-manage',
+    path: 'tendb-cluster',
     name: 'SpiderManage',
     meta: {
       navName: t('Spider_集群管理'),
@@ -308,7 +316,7 @@ const renderRoutes = [
     redirect: {
       name: 'tendbClusterList',
     },
-    component: () => import('@views/spider-manage/Index.vue'),
+    component: () => import('@views/db-manage/tendb-cluster/Index.vue'),
     children: [
       // {
       //   name: 'createSpiderModule',
@@ -316,7 +324,7 @@ const renderRoutes = [
       //   meta: {
       //     navName: t('新建模块'),
       //   },
-      //   component: () => import('@views/spider-manage/apply/CreateModule.vue'),
+      //   component: () => import('@views/db-manage/tendb-cluster/apply/CreateModule.vue'),
       // },
       {
         name: 'tendbClusterList',
@@ -325,7 +333,7 @@ const renderRoutes = [
           navName: t('TendbCluster分布式集群_集群管理'),
           fullscreen: true,
         },
-        component: () => import('@views/spider-manage/list/Index.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/list/Index.vue'),
       },
       {
         path: 'openarea-template-create',
@@ -333,7 +341,7 @@ const renderRoutes = [
         meta: {
           navName: t('新建开区模板'),
         },
-        component: () => import('@views/spider-manage/openarea-template-create/Index.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/openarea-template-create/Index.vue'),
       },
       {
         path: 'openarea-template-edit/:id',
@@ -341,7 +349,7 @@ const renderRoutes = [
         meta: {
           navName: t('编辑开区模板'),
         },
-        component: () => import('@views/spider-manage/openarea-template-create/Index.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/openarea-template-create/Index.vue'),
       },
       {
         path: 'openarea-create/:id',
@@ -349,16 +357,13 @@ const renderRoutes = [
         meta: {
           navName: t('新建开区'),
         },
-        component: () => import('@views/spider-manage/openarea-create/Index.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/openarea-create/Index.vue'),
       },
-    ],
+    ] as RouteRecordRaw[],
   },
 ];
 
-export default function getRoutes() {
-
-  const { funControllerData } = useFunController();
-
+export default function getRoutes(funControllerData: FunctionControllModel) {
   const mysqlController = funControllerData.getFlatData<MySQLFunctions, 'mysql'>('mysql');
 
   if (mysqlController.tendbcluster_toolbox) {
@@ -367,13 +372,13 @@ export default function getRoutes() {
       if (!funControllerData[dbConsoleValue] || funControllerData[dbConsoleValue].is_enabled) {
         spiderToolboxRoute.children!.push(routeItem);
         if (routeItem.name === 'spiderSqlExecute') {
-          spiderToolboxRoute.redirect!.name = 'spiderSqlExecute'
+          spiderToolboxRoute.redirect!.name = 'spiderSqlExecute';
         }
       }
     });
 
     if (!spiderToolboxRoute.redirect!.name) {
-      spiderToolboxRoute.redirect!.name = spiderToolboxRoute.children![0]?.name as string ?? '';
+      spiderToolboxRoute.redirect!.name = (spiderToolboxRoute.children![0]?.name as string) ?? '';
     }
 
     renderRoutes[0].children.push(spiderToolboxRoute);

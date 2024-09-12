@@ -54,7 +54,7 @@
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
 
-  import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
+  import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const';
 
   interface Props {
     ticketDetails: TicketModel<RedisClusterShardUpdateDetails>

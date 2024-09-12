@@ -78,7 +78,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           navName: t('新建模块'),
         },
-        component: () => import('@views/spider-manage/apply/CreateModule.vue'),
+        component: () => import('@views/db-manage/tendb-cluster/apply/CreateModule.vue'),
       },
     ],
   },
