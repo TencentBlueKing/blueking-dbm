@@ -467,7 +467,7 @@ def redis_rebalance_slots_4_expansion(root_id: str, flow_data: dict, act_kwargs:
     sub_pipeline.add_act(
         act_name=_("元数据更新"),
         act_component_code=RedisDBMetaComponent.code,
-        kwargs=asdict(cluster_kwargs),
+        kwargs=asdict(dbmeta_kwargs),
     )
     # ###元数据加入集群完成
 
