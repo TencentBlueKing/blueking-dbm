@@ -147,20 +147,21 @@
       ),
     })
   }
-
-  config[2].list.splice(3, 0, {
+  if (nodes){
+    config[2].list.splice(3, 0, {
     label: t('集群设置'),
     isTable: true,
     render: () => (
-      <PreviewTable
-        data={tableData.value}
-        is-show-nodes={!isFromResourcePool}
-        is-single-type={isSingleType}
-        max-height={240}
-        min-height={0}
-        nodeList={nodes[ClusterTypes.SQLSERVER_HA]} />
-    ),
-  })
+        <PreviewTable
+          data={tableData.value}
+          is-show-nodes={!isFromResourcePool}
+          is-single-type={isSingleType}
+          max-height={240}
+          min-height={0}
+          nodeList={nodes[ClusterTypes.SQLSERVER_HA]} />
+      ),
+    })
+  }
 
   const cityName = ref('--');
 
