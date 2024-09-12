@@ -24,7 +24,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import TableEditSelect from '@views/mysql/common/edit/Select.vue';
+  import TableEditSelect from '@views/db-manage/mysql/common/edit/Select.vue';
 
   interface Props {
     modelValue: string;

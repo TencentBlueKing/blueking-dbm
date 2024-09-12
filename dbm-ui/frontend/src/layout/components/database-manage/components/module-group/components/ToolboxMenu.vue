@@ -25,7 +25,7 @@
   import _ from 'lodash';
   import { ref, watch } from 'vue';
 
-  import mysqlToolboxMenuConfig from '@views/mysql/toolbox-menu';
+  import mysqlToolboxMenuConfig from '@views/db-manage/mysql/toolbox-menu';
 
   interface Props {
     id: string;

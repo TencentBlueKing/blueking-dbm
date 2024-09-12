@@ -155,7 +155,7 @@
 
   import { mysqlType, type MysqlTypeString, TicketTypes } from '@common/const';
 
-  import PreviewTable from '@views/mysql/apply/components/PreviewTable.vue';
+  import PreviewTable from '@views/db-manage/mysql/apply/components/PreviewTable.vue';
 
   import { useAffinity } from '../../../hooks/useAffinity';
   import SpecInfos from '../../SpecInfos.vue';

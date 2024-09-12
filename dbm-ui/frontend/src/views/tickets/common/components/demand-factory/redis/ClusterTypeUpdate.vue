@@ -55,7 +55,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/redis/common/const';
+  import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const';
 
   interface Props {
     ticketDetails: TicketModel<RedisClusterTypeUpdateDetails>

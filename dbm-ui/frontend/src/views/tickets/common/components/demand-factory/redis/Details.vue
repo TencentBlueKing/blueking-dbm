@@ -172,7 +172,7 @@
     redisClusterTypes,
     type RedisIpSources,
     redisIpSources,
-  } from '@views/redis/apply/common/const';
+  } from '@views/db-manage/redis/apply/common/const';
 
   import { firstLetterToUpper } from '@utils';
 

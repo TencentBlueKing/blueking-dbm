@@ -13,35 +13,22 @@
 import _ from 'lodash';
 import { createRouter, createWebHistory, type Router, type RouteRecordRaw } from 'vue-router';
 
-import type { BigdataFunctions, MongoFunctions } from '@services/model/function-controller/functionController';
-
-import { useFunController, useGlobalBizs } from '@stores';
+import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
 import getDbConfRoutes from '@views/db-configure/routes';
-// import getDbManageRoutes from '@views/db-manage/routes';
+import getDbManageRoutes from '@views/db-manage/routes';
 import getDbhaSwitchEventsRouters from '@views/dbha-switch-events/routes';
 import getDutyRuleManageRoutes from '@views/duty-rule-manage/routes';
-import getESRoutes from '@views/es-manage/routes';
-import getHDFSRoutes from '@views/hdfs-manage/routes';
-import getInfluxDBRoutes from '@views/influxdb-manage/routes';
 import getInspectionRoutes from '@views/inspection-manage/routes';
-import getKafkaRoutes from '@views/kafka-manage/routes';
-import getMongoRoutes from '@views/mongodb-manage/routes';
 import getDBMonitorAlarmRoutes from '@views/monitor-alarm-db/routes';
 import getPlatMonitorAlarmRoutes from '@views/monitor-alarm-plat/routes';
-import getMysqlRoutes from '@views/mysql/routes';
 import getNotificationSettingRoutes from '@views/notification-setting/routes';
 import getPasswordManageRoutes from '@views/password-manage/routes';
 import getPlatformDbConfigureRoutes from '@views/platform-db-configure/routes';
-import getPulsarRoutes from '@views/pulsar-manage/routes';
 import getQuickSearchRoutes from '@views/quick-search/routes';
-import getRedisRoutes from '@views/redis/routes';
 import getResourceManageRoutes from '@views/resource-manage/routes';
-import getRiakManage from '@views/riak-manage/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
-import getSpiderManageRoutes from '@views/spider-manage/routes';
-import getSqlServerRouters from '@views/sqlserver-manage/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
@@ -101,12 +88,7 @@ export default () => {
     bizPermission = true;
   }
 
-  const { funControllerData } = useFunController();
-  const bigdataController = funControllerData.getFlatData<BigdataFunctions, 'bigdata'>('bigdata');
-  const mongdbController = funControllerData.getFlatData<MongoFunctions, 'mongodb'>('mongodb');
-
-  // getDbManageRoutes();
-
+  console.log('getDbManageRoutes = ', getDbManageRoutes());
   const routes = [
     {
       path: rootPath,
@@ -128,30 +110,20 @@ export default () => {
     {
       path: `${rootPath}${currentBiz}`,
       children: [
+        ...getDbManageRoutes(),
         ...getDbConfRoutes(),
-        ...getESRoutes(bigdataController),
         ...getDbhaSwitchEventsRouters(),
-        ...getHDFSRoutes(bigdataController),
-        ...getInfluxDBRoutes(bigdataController),
         ...getInspectionRoutes(),
-        ...getKafkaRoutes(bigdataController),
         ...getDBMonitorAlarmRoutes(),
         ...getPlatMonitorAlarmRoutes(),
-        ...getMysqlRoutes(funControllerData),
         ...getNotificationSettingRoutes(),
-        ...getPulsarRoutes(bigdataController),
-        ...getRedisRoutes(funControllerData),
-        ...getSpiderManageRoutes(funControllerData),
         ...getStaffManageRoutes(),
         ...getTaskHistoryRoutes(),
         ...getWhitelistRoutes(),
         ...getTicketManageRoutes(),
         ...getTemporaryPasswordModify(),
-        ...getRiakManage(bigdataController),
         ...getTicketFlowSettingBizRoutes(),
         ...getTicketFlowSettingGlobalRoutes(),
-        ...getMongoRoutes(mongdbController),
-        ...getSqlServerRouters(funControllerData),
       ],
     },
     {
