@@ -28,9 +28,7 @@
                 :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
                 mode="collapse"
                 :title="t('需求信息')">
-                <DemandInfo
-                  :data="ticketData"
-                  :is-loading="isLoading" />
+                <DemandInfo :data="ticketData" />
                 <div class="ticket-details-item">
                   <span class="ticket-details-item-label">{{ t('备注') }}：</span>
                   <span class="ticket-details-item-value">{{ ticketData.remark || '--' }}</span>
@@ -86,19 +84,17 @@
 
   const isFullscreen = ref<boolean>(Boolean(route.query.isFullscreen));
   const demandCollapse = ref(false);
+  const isLoading = ref(true);
   const flowInfoRef = ref<InstanceType<typeof FlowInfo>>();
 
-  const {
-    run: fetchTicketDetails,
-    data: ticketData,
-    loading: isLoading,
-  } = useRequest(
+  const { run: fetchTicketDetails, data: ticketData } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
       getTicketDetails(params, {
         permission: 'catch',
       }),
     {
       onSuccess(_, params) {
+        isLoading.value = false;
         if (params[0].id !== props.ticketId) {
           return;
         }
@@ -117,6 +113,7 @@
     () => props.ticketId,
     () => {
       if (props.ticketId) {
+        isLoading.value = true;
         ticketData.value = undefined;
         fetchTicketDetails({
           id: props.ticketId,
