@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -227,6 +228,12 @@ func (s *SysInitParam) SysInitMachine() error {
 
 // CheckSSHForLocal 本地模拟ssh连接检测是否正常，模拟dbha做一次ssh校验
 func (s *SysInitParam) CheckSSHForLocal() error {
+	host, err := osutil.StandardPowerShellCommand(
+		`(Get-NetIPAddress -InterfaceAlias "Ethernet" -AddressFamily IPv4).IPAddress`,
+	)
+	if err != nil {
+		return err
+	}
 	checkStr := fmt.Sprintf("echo 1 > %s", fmt.Sprintf("%s\\\\%s\\\\%s", cst.BASE_DATA_PATH, cst.MSSQL_DBHA_NAME, "test"))
 	conf := &ssh.ClientConfig{
 		Timeout:         time.Second * time.Duration(10), // ssh 连接time out 时间10秒钟, 如果ssh验证错误 会在一秒内返回
@@ -237,7 +244,8 @@ func (s *SysInitParam) CheckSSHForLocal() error {
 		},
 	}
 	conf.Auth = []ssh.AuthMethod{ssh.Password(s.OSMssqlPwd)}
-	addr := fmt.Sprintf("127.0.0.1:%d", s.SSHPort)
+	addr := fmt.Sprintf("%s:%d", strings.ReplaceAll(strings.ReplaceAll(host, "\r", ""), "\n", ""), s.SSHPort)
+	logger.Info(addr)
 	sshClient, err := ssh.Dial("tcp", addr, conf)
 	if err != nil {
 		panic(err)
