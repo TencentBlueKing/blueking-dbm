@@ -400,6 +400,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
                     collect_sysinfo=True,
+                    is_install_backup=False,
                     cluster_type=ClusterType.TenDBHA.value,
                     db_backup_pkg_type=MysqlVersionToDBBackupForMap[self.data["db_version"]],
                 )

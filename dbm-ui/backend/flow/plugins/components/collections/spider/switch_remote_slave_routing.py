@@ -43,7 +43,14 @@ class SwitchRemoteSlaveRoutingService(BaseService):
         self.log_info(f"add tdbctl user in instance [f'{new_ip}{IP_PORT_DIVIDER}{new_port}'] success")
 
     def _alter_remote_slave_routing(
-        self, cluster: Cluster, old_ip: str, old_port: int, new_ip: str, new_port: int, tdbctl_pass: str
+        self,
+        cluster: Cluster,
+        server_name: str,
+        old_ip: str,
+        old_port: int,
+        new_ip: str,
+        new_port: int,
+        tdbctl_pass: str,
     ):
         """
         替换实例的路由信息的具体逻辑
@@ -62,7 +69,7 @@ class SwitchRemoteSlaveRoutingService(BaseService):
             "addresses": [ctl_primary],
             "cmds": [
                 "set tc_admin=1",
-                f"select Server_name from mysql.servers where host = '{old_ip}' and port = {old_port}",
+                f"select Server_name from mysql.servers where Server_name = '{server_name}'",
             ],
             "force": False,
             "bk_cloud_id": cluster.bk_cloud_id,
@@ -116,6 +123,7 @@ class SwitchRemoteSlaveRoutingService(BaseService):
                 old_port=pairs["old_port"],
                 new_ip=pairs["new_ip"],
                 new_port=pairs["new_port"],
+                server_name=pairs["server_name"],
                 tdbctl_pass=pairs["tdbctl_pass"],
             ):
                 return False

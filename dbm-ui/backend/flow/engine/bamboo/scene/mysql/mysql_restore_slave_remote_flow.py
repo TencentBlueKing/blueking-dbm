@@ -314,6 +314,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     master_ip_list=None,
                     slave_ip_list=[self.data["new_slave_ip"]],
                     root_id=self.root_id,
+                    is_install_backup=False,
                     parent_global_data=copy.deepcopy(self.data),
                     cluster_type=ClusterType.TenDBHA.value,
                 )
