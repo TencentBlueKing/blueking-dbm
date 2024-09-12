@@ -28,9 +28,7 @@
                 :class="{ 'tickets-main-is-fullscreen': isFullscreen }"
                 mode="collapse"
                 :title="t('需求信息')">
-                <DemandInfo
-                  :data="ticketData"
-                  :is-loading="isLoading" />
+                <DemandInfo :data="ticketData" />
                 <div class="ticket-details-item">
                   <span class="ticket-details-item-label">{{ t('备注') }}：</span>
                   <span class="ticket-details-item-value">{{ ticketData.remark || '--' }}</span>
@@ -61,7 +59,6 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import TicketModel from '@services/model/ticket/ticket';
   import { getTicketDetails } from '@services/source/ticket';
 
   import PermissionCatch from '@components/apply-permission/Catch.vue';
@@ -87,22 +84,20 @@
 
   const isFullscreen = ref<boolean>(Boolean(route.query.isFullscreen));
   const demandCollapse = ref(false);
+  const isLoading = ref(true);
   const flowInfoRef = ref<InstanceType<typeof FlowInfo>>();
 
-  const isLoading = ref(true);
-  const ticketData = ref<TicketModel<unknown>>();
-
-  const { run: fetchTicketDetails } = useRequest(
+  const { run: fetchTicketDetails, data: ticketData } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
       getTicketDetails(params, {
         permission: 'catch',
       }),
     {
       onSuccess(data, params) {
+        isLoading.value = false;
         if (params[0].id !== props.ticketId) {
           return;
         }
-        isLoading.value = false;
         ticketData.value = data;
         loopFetchTicketDetails();
       },
@@ -119,6 +114,7 @@
     () => props.ticketId,
     () => {
       if (props.ticketId) {
+        isLoading.value = true;
         ticketData.value = undefined;
         fetchTicketDetails({
           id: props.ticketId,
