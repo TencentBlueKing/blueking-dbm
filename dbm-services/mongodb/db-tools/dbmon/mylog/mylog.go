@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
-
-	"dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
@@ -63,10 +60,6 @@ func InitRotateLoger() {
 	logDir := filepath.Join(currDir, "logs")
 	mkdirIfNotExistsWithPerm(logDir, 0750)
 
-	chownCmd := fmt.Sprintf("chown -R %s.%s %s", consts.MysqlAaccount, consts.MysqlGroup, logDir)
-	cmd := exec.Command("bash", "-c", chownCmd)
-	cmd.Run()
-
 	cfg := zap.NewProductionConfig()
 	cfg.EncoderConfig = zapcore.EncoderConfig{
 		MessageKey:     "msg",
@@ -86,9 +79,9 @@ func InitRotateLoger() {
 
 	lj := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   filepath.Join(logDir, "bk-dbmon.log"),
-		MaxSize:    256, // 单个日志文件大小,单位MB
-		MaxBackups: 10,  // 最多保存10个文件
-		MaxAge:     15,  // 最多保存15天内的日志
+		MaxSize:    64, // 单个日志文件大小,单位MB
+		MaxBackups: 7,  // 最多保存10个文件
+		MaxAge:     15, // 最多保存15天内的日志
 		LocalTime:  true,
 		Compress:   true,
 	})

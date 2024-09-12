@@ -72,7 +72,7 @@ type deleteReason struct {
 }
 
 func (d deleteReason) String() string {
-	return fmt.Sprintf("%s:%t", d.Reason, d.Flag)
+	return fmt.Sprintf("%s:%d", d.Reason, d.Flag)
 }
 
 // RemoveOldFileFirst 删除过期的备份文件

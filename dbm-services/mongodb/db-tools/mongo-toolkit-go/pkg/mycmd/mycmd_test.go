@@ -15,14 +15,18 @@ func TestCmd(t *testing.T) {
 	}
 	for _, v := range input {
 		cb := NewCmdBuilder()
-		cb.Append(v.cmd).Append(v.args...)
+		for _, vv := range v.args {
+			cb.Append(v.cmd).Append(vv)
+		}
+
 		o, err := cb.Run2(5 * time.Second)
+		t.Logf("cmd %s stdout %q stderr %q err %v",
+			cb.GetCmdLine("", false), o.OutBuf.String(), o.ErrBuf.String(), err)
 		if err != nil {
 			t.Errorf("cmd %s err %v", cb.GetCmdLine("", false), err)
 			continue
 		}
-		t.Logf("cmd %s stdout %q stderr %q err %v",
-			cb.GetCmdLine("", false), o.OutBuf.String(), o.ErrBuf.String(), err)
+
 	}
 
 }

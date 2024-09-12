@@ -445,7 +445,7 @@ func buildDumpIncrCmd(connInfo *mymongo.MongoHost, zip bool, lastBackup *BackupF
 		dumpCmd.Append("-u", connInfo.User)
 	}
 	if len(connInfo.Pass) > 0 {
-		dumpCmd.Append("-p").AppendPassword(connInfo.Pass)
+		dumpCmd.Append("-p", mycmd.Password(connInfo.Pass))
 	}
 	if zip {
 		dumpCmd.Append("--gzip")
@@ -469,7 +469,8 @@ func buildDumpIncrCmd(connInfo *mymongo.MongoHost, zip bool, lastBackup *BackupF
 }
 
 func buildDumpFullCmd(connInfo *mymongo.MongoHost, zip bool, lastBackup *BackupFileName, maxTs *TS) (*mycmd.CmdBuilder, error) {
-	// ./mongotools/mongodump.2.4  mongodump.3.0  mongodump.3.2  mongodump.3.4  mongodump.3.6  mongodump.4.0  mongodump.4.2
+	// ./mongotools/mongodump.2.4  mongodump.3.0  mongodump.3.2  mongodump.3.4
+	// mongodump.3.6  mongodump.4.0  mongodump.4.2
 	version, err := GetVersion(connInfo)
 	if err != nil {
 		return nil, errors.Wrap(err, "get version")
@@ -492,7 +493,7 @@ func buildDumpFullCmd(connInfo *mymongo.MongoHost, zip bool, lastBackup *BackupF
 		dumpCmd.Append("-u", connInfo.User)
 	}
 	if len(connInfo.Pass) > 0 {
-		dumpCmd.Append("-p").AppendPassword(connInfo.Pass)
+		dumpCmd.Append("-p", mycmd.Password(connInfo.Pass))
 	}
 	if zip {
 		dumpCmd.Append("--gzip")

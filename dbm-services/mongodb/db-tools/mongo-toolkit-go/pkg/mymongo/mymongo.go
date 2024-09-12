@@ -4,6 +4,7 @@ package mymongo
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -23,7 +24,7 @@ type MongoHost struct {
 
 // Connect return mongo client
 func Connect(host, port, user, pass, authdb string, timeout time.Duration) (*mongo.Client, error) {
-	mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s", user, pass, host, port, authdb)
+	mongoURI := fmt.Sprintf("mongodb://%s:%s@%s:%s/%s", user, url.QueryEscape(pass), host, port, authdb)
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	return mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
