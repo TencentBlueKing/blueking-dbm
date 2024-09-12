@@ -18,7 +18,7 @@ global:
   serviceMonitor:
     enabled: true
   ## 云区域容器化
-  cloudContainer: false
+  cloudContainer: true
 
 # bk public
 bk:
@@ -192,19 +192,19 @@ dbm:
       tag: ""
     installEnable:
       mysql:
-        enable: false
+        enable: true
         tag: 1.0.0
       es:
-        enable: false
+        enable: true
         tag: 1.0.0
       kafka:
-        enable: false
+        enable: true
         tag: 1.0.0
       hdfs:
-        enable: false
+        enable: true
         tag: 1.0.0
       redis:
-        enable: false
+        enable: true
         tag: 1.0.0
 
 # bk-dbconfig values
