@@ -10,6 +10,7 @@ package backupdemand
 
 import (
 	"bufio"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -25,7 +26,6 @@ import (
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
@@ -49,13 +49,15 @@ type Param struct {
 	ShardID    int      `json:"shard_id"`
 	BackupType string   `json:"backup_type" validate:"required"`
 	BackupGSD  []string `json:"backup_gsd" validate:"required"` // [grant, schema, data]
-	// Regex database or tables to backup, only logical. set to empty if it's full backup
 	// BackupFileTag file tag for backup system to file expires
-	BackupFileTag   string `json:"backup_file_tag"`
-	Regex           string `json:"regex"`
-	BackupId        string `json:"backup_id" validate:"required"`
-	BillId          string `json:"bill_id" validate:"required"`
-	CustomBackupDir string `json:"custom_backup_dir"`
+	BackupFileTag   string   `json:"backup_file_tag"`
+	BackupId        string   `json:"backup_id" validate:"required"`
+	BillId          string   `json:"bill_id" validate:"required"`
+	CustomBackupDir string   `json:"custom_backup_dir"`
+	DbPatterns      []string `json:"db_patterns"`
+	IgnoreDbs       []string `json:"ignore_dbs"`
+	TablePatterns   []string `json:"table_patterns"`
+	IgnoreTables    []string `json:"ignore_tables"`
 }
 
 type context struct {
@@ -147,17 +149,24 @@ func (c *Component) GenerateBackupConfig() error {
 
 		backupConfig.LogicalBackup.Regex = ""
 		if c.Params.BackupType == "logical" {
-			if c.Params.Regex == "" {
-				ignoreDbs := slices.DeleteFunc(native.DBSys, func(s string) bool {
-					return s == "infodba_schema"
-				})
-				tf, _ := db_table_filter.NewFilter([]string{"*"}, []string{"*"}, ignoreDbs, nil)
-				myloaderRegex := tf.TableFilterRegex()
-				//myloaderRegex := tf.MyloaderRegex(true) ToDo xiaog 确认
-				backupConfig.LogicalBackup.Regex = myloaderRegex
-			} else {
-				backupConfig.LogicalBackup.Regex = c.Params.Regex
+			ignoreDbs := slices.DeleteFunc(native.DBSys, func(s string) bool {
+				return s == "infodba_schema"
+			})
+			ignoreDbs = append(ignoreDbs, c.Params.IgnoreDbs...)
+			backupConfig.LogicalBackup.Databases = strings.Join(c.Params.DbPatterns, ",")
+			backupConfig.LogicalBackup.ExcludeDatabases = strings.Join(ignoreDbs, ",")
+			backupConfig.LogicalBackup.Tables = strings.Join(c.Params.IgnoreTables, ",")
+			backupConfig.LogicalBackup.ExcludeTables = strings.Join(c.Params.IgnoreTables, ",")
+
+			tf, err := db_table_filter.NewFilter(
+				c.Params.DbPatterns, c.Params.TablePatterns,
+				ignoreDbs, c.Params.IgnoreTables,
+			)
+			if err != nil {
+				logger.Error("create table filter failed: %s", err.Error())
+				return err
 			}
+			backupConfig.LogicalBackup.Regex = tf.TableFilterRegex()
 		}
 
 		if c.Params.CustomBackupDir != "" {
@@ -314,11 +323,11 @@ func (c *Component) OutPut() error {
 func (c *Component) Example() interface{} {
 	return Component{
 		Params: &Param{
-			Host:            "x.x.x.x",
-			Port:            20000,
-			BackupType:      "logical",
-			BackupGSD:       []string{"grant", "schema", "data"},
-			Regex:           "",
+			Host:       "x.x.x.x",
+			Port:       20000,
+			BackupType: "logical",
+			BackupGSD:  []string{"grant", "schema", "data"},
+			//Regex:           "",
 			BackupId:        "uuid",
 			BillId:          "12234",
 			CustomBackupDir: "backupDatabaseTable",
