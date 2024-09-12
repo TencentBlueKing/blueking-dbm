@@ -55,7 +55,7 @@
   }
 
   interface Props {
-    data: TicketDetails<T>;
+    data: TicketDetails<any>;
     config: DemandInfoConfig[];
   }
 
