@@ -31,6 +31,7 @@ data:
   BROKER_URL: "{{ .Values.dbm.envs.brokerUrl }}"
   DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
   CORS_ALLOWED_ORIGINS: "{{ .Values.dbm.envs.corsAllowedOrigins | default "" }}"
+  WINDOW_SSH_PORT: "{{ .Values.dbm.envs.windowSSHPort | default 36000 }}"
   # REDIS
   REDIS_HOST: "{{ .Values.externalRedis.host }}"
   REDIS_PORT: "{{ .Values.externalRedis.port }}"

@@ -27,7 +27,7 @@ from backend.ticket.builders.common.constants import (
     TendbChecksumScope,
 )
 from backend.ticket.builders.common.field import DBTimezoneField
-from backend.ticket.builders.mysql.base import DBTableField
+from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, DBTableField
 from backend.ticket.builders.mysql.mysql_checksum import (
     MySQLChecksumFlowBuilder,
     MySQLChecksumFlowParamBuilder,
@@ -202,7 +202,7 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
     data_repair_flow_builder = TendbDataRepairFlowParamBuilder
 
     def patch_ticket_detail(self):
-        pass
+        BaseMySQLTicketFlowBuilder.patch_ticket_detail(self)
 
     def custom_ticket_flows(self):
         return super().custom_ticket_flows()
