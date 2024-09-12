@@ -55,18 +55,18 @@ func NewLogReporter(reportDir string) (*ReportLogger, error) {
 	}
 	resultReport, err := reportlog.NewReporter(reportDir, "backup_result.log", &logOpt)
 	if err != nil {
-		logger.Log.Warn("fail to init resultReporter:%s", err.Error())
+		logger.Log.Warn("fail to init resultReporter:", err.Error())
 		return nil, errors.WithMessage(err, "fail to init resultReporter")
 	}
 	filesReport, err := reportlog.NewReporter(filepath.Join(reportDir, "result"), "dbareport_result.log", &logOpt)
 	if err != nil {
-		logger.Log.Warn("fail to init statusReporter:%s", err.Error())
+		logger.Log.Warn("fail to init statusReporter:", err.Error())
 		//filesReport.Disable = true
 		return nil, errors.WithMessage(err, "fail to init statusReporter")
 	}
 	statusReport, err := reportlog.NewReporter(filepath.Join(reportDir, "status"), "backup_status.log", &logOpt)
 	if err != nil {
-		logger.Log.Warn("fail to init statusReporter:%s", err.Error())
+		logger.Log.Warn("fail to init statusReporter:", err.Error())
 		//statusReport.Disable = true
 		return nil, errors.WithMessage(err, "fail to init statusReporter")
 	}

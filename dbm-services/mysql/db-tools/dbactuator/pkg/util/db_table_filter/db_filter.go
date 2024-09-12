@@ -36,7 +36,6 @@ func (c *DbTableFilter) GetDbsByConn(conn *sqlx.Conn) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	var dbs []string
 	err = conn.SelectContext(context.Background(), &dbs, `SHOW DATABASES`)
 	if err != nil {

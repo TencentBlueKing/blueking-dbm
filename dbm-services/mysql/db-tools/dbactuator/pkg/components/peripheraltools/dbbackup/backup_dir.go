@@ -1,10 +1,15 @@
 package dbbackup
 
 import (
-	"dbm-services/common/go-pubpkg/logger"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 	"fmt"
 	"os"
+
+	"github.com/pkg/errors"
+
+	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/common/go-pubpkg/logger"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
 func (c *NewDbBackupComp) InitBackupDir() (err error) {
@@ -22,6 +27,30 @@ func (c *NewDbBackupComp) InitBackupDir() (err error) {
 		}
 	}
 	cmd := fmt.Sprintf("chown -R mysql.mysql %s", backupdir)
+	output, err := osutil.ExecShellCommand(false, cmd)
+	if err != nil {
+		return fmt.Errorf("execute [%s] get an error:%s,%w", cmd, output, err)
+	}
+	return c.initReportDir()
+}
+
+func (c *NewDbBackupComp) initReportDir() (err error) {
+	if c.Params.UntarOnly {
+		logger.Info("untar_only=true do not need initReportDir")
+		return nil
+	}
+	// redis 会污染 /home/mysql/dbareport，建立成软连
+	if isLink, _ := cmutil.IsSymLinkFile(cst.DBAReportBase); isLink {
+		_ = os.Remove(cst.DBAReportBase)
+	}
+	reportDir := c.Params.Configs["Public"]["ReportPath"]
+	if _, err := os.Stat(reportDir); os.IsNotExist(err) {
+		err := os.MkdirAll(reportDir, 0755)
+		if err != nil {
+			return errors.WithMessagef(err, "execute [mkdir -p %s]", reportDir)
+		}
+	}
+	cmd := fmt.Sprintf("chown -R mysql.mysql %s", reportDir)
 	output, err := osutil.ExecShellCommand(false, cmd)
 	if err != nil {
 		return fmt.Errorf("execute [%s] get an error:%s,%w", cmd, output, err)

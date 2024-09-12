@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
@@ -35,6 +36,16 @@ func InitConn(cfg *config.Public) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+// InitConnx create mysql connection of sqlx
+func InitConnx(cfg *config.Public, ctx context.Context) (*sqlx.Conn, error) {
+	if db, err := InitConn(cfg); err != nil {
+		return nil, err
+	} else {
+		dbx := sqlx.NewDb(db, "mysql")
+		return dbx.Connx(ctx)
+	}
 }
 
 // GetSingleGlobalVar get single global variable

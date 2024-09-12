@@ -55,6 +55,18 @@ func IsDirectory(path string) bool {
 	return fileInfo.IsDir()
 }
 
+// IsSymLinkFile 文件是否是软连
+func IsSymLinkFile(path string) (bool, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return false, err
+	} else if info.Mode()&os.ModeSymlink > 0 { // 是软链
+		return true, nil
+	} else {
+		return false, nil
+	}
+}
+
 // GetFileSize get file size from os
 func GetFileSize(path string) int64 {
 	f, err := os.Stat(path)

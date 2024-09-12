@@ -39,14 +39,19 @@ func defaultLoggerOpt() *LoggerOption {
 }
 
 // NewReporter init reporter for logFile path
+// reportDir maybe like '/home/mysql/dbareport/mysql/dbbackup'
 func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, error) {
 	logFilePath := filepath.Join(reportDir, filename)
 	var reporter *Reporter = &Reporter{
 		log: &log.Logger{},
 	}
+
 	if reportDir == "" {
 		return nil, errors.Errorf("invalid reportDir:%s", reportDir)
-	} else if !cmutil.IsDirectory(reportDir) {
+	} else if link, _ := cmutil.IsSymLinkFile(reportDir); link {
+		_ = os.Remove(reportDir) // /home/mysql/dbareport 不使用软连
+	}
+	if !cmutil.IsDirectory(reportDir) {
 		if err := os.MkdirAll(reportDir, 0755); err != nil {
 			return nil, errors.Wrap(err, "create report path")
 		}
@@ -59,19 +64,7 @@ func NewReporter(reportDir, filename string, logOpt *LoggerOption) (*Reporter, e
 			f.Close()
 		}
 	}
-	/*
-		statusFile := "binlog_status.log"
-		statusLogger := &lumberjack.Logger{
-			Filename:   filepath.Join(viper.GetString("report.filepath"), statusFile),
-			MaxSize:    5, // MB
-			MaxBackups: 10,
-			MaxAge:     30,   // days
-			Compress:   true, // disabled by default
-		}
-		statusReporter := new(log.Logger)
-		statusReporter.SetOutput(statusLogger)
-		reporter.Status = &logPrint{log: statusReporter}
-	*/
+
 	if logOpt == nil {
 		logOpt = defaultLoggerOpt()
 	}

@@ -641,8 +641,9 @@ func (r *RecoverBinlog) PreCheck() error {
 	if err = r.buildBinlogOptions(); err != nil {
 		return err
 	}
-	err = r.checkBinlogFiles()
-	logger.Warn("check binlog files error: %s. try to get binlog file from recover dir", err.Error())
+	if err = r.checkBinlogFiles(); err != nil {
+		logger.Warn("check binlog files error: %s. try to get binlog file from recover dir", err.Error())
+	}
 	if errors.Is(err, ErrorBinlogMissing) {
 		nameParts := strings.Split(r.BinlogFiles[0], ".")
 		if binlogFiles, err := r.GetBinlogFilesFromDir(r.BinlogDir, nameParts[0]+"."); err != nil {
