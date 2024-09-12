@@ -89,7 +89,7 @@
     const infoMap: Record<string, string> = {
       SUCCEEDED: t('执行成功'),
       FAILED: t('执行失败'),
-      TERMINATED: t('终止'),
+      TERMINATED: t('已终止'),
     };
     return infoMap[status] ? infoMap[status] : null;
   };

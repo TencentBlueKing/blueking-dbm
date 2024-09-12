@@ -29,8 +29,8 @@
         node-key="id"
         selectable
         :show-node-type-icon="false"
-        @node-click="handleFailNodeClick"
-        @node-expand="handleFailNodeClick">
+        @node-click="handleNodeClick"
+        @node-expand="handleNodeClick">
         <template #node="item">
           <div class="custom-tree-node">
             <div
@@ -51,7 +51,7 @@
       v-bk-tooltips="tooltips"
       class="task-preview-node-tree-num-tip"
       :class="[`task-preview-node-tree-num-tip-${theme}`, marginRight ? 'mr-8' : '']"
-      @click="() => handleShowFailNodePanel()">
+      @click="() => handleNodePanelSwich()">
       <I18nT
         :keypath="statusKeypath"
         tag="span">
@@ -111,12 +111,12 @@
     });
   };
 
-  const handleFailNodeClick = (node: Props['nodesTreeData'][number]) => {
+  const handleNodeClick = (node: Props['nodesTreeData'][number]) => {
     emits('node-click', node, treeRef);
   };
 
-  const handleShowFailNodePanel = () => {
-    isShowNodePanel.value = true;
+  const handleNodePanelSwich = () => {
+    isShowNodePanel.value = !isShowNodePanel.value;
   };
 
   defineExpose<Exposes>({

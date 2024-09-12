@@ -146,9 +146,9 @@ export default class GraphRender {
     };
 
     const getNodeStatusText = (isSkip: boolean) => {
-      if (node.isTodoNode) {
-        return t('待执行');
-      }
+      // if (node.isTodoNode) {
+      //   return t('待执行');
+      // }
       if (isSkip) {
         return t('忽略错误');
       }
