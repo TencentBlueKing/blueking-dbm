@@ -18,10 +18,6 @@ EXEC(@SQL)
 GO
 
 USE [master]
-GO
-IF EXISTS(select 1 from master.sys.syslogins where name='BUILTIN\Administrators')
-        DROP LOGIN [BUILTIN\Administrators]
-GO
 
 EXEC SP_CONFIGURE 'SHOW ADVANCED OPTIONS',1
 GO
