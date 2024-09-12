@@ -380,6 +380,7 @@ func (i *InstallMySQLProxyComp) initOneProxyAdminAccount(port Port) (err error) 
 // 回档也会调用 install_mysql，但可能不会 install_monitor，为了避免健康误报，这个 install_mysql 阶段也渲染 exporter cnf
 func (i *InstallMySQLProxyComp) CreateExporterCnf() (err error) {
 	for _, port := range i.InsPorts {
+		logger.Info("generate exporter config for %d", port)
 		err = i.createExporterCnfIns(port)
 		if err != nil {
 			logger.Error("create exporter cnf failed %s", err.Error())
@@ -396,7 +397,7 @@ func (i *InstallMySQLProxyComp) createExporterCnfIns(port int) (err error) {
 		fmt.Sprintf("exporter_%d.cnf", port),
 	)
 
-	f, err := os.OpenFile(exporterConfigPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(exporterConfigPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		logger.Error(err.Error())
 		return err

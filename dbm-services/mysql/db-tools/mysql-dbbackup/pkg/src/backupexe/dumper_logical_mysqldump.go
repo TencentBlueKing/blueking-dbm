@@ -12,7 +12,6 @@ package backupexe
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,10 +20,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/cmutil"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/db_table_filter"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
@@ -37,7 +38,7 @@ type LogicalDumperMysqldump struct {
 	cnf          *config.BackupConfig
 	dbbackupHome string
 	backupInfo   dbareport.IndexContent // for mysqldump backup
-	dbConn       *sql.DB
+	dbConn       *sqlx.Conn
 }
 
 // initConfig initializes the configuration for the logical dumper[mysqldump]
@@ -60,39 +61,44 @@ func (l *LogicalDumperMysqldump) buildArgsTableFilter() (args []string, err erro
 	dbListExclude := strings.Split(l.cnf.LogicalBackup.ExcludeDatabases, ",")
 	tbListExclude := strings.Split(l.cnf.LogicalBackup.ExcludeTables, ",")
 
-	if len(l.cnf.LogicalBackup.Databases) > 0 && len(dbList) >= 2 {
-		if len(l.cnf.LogicalBackup.Tables) == 0 { // 仅有 databases
-			args = append(args, "--databases")
-			args = append(args, dbList...)
-		} else {
-			return nil, errors.Errorf("mysqldump --tables cannot be used with multi databases")
+	var dbListFiltered []string
+	if filter, err := db_table_filter.NewFilter(dbList, tbList, dbListExclude, tbListExclude); err != nil {
+		return nil, err
+	} else {
+		l.dbConn, err = mysqlconn.InitConnx(&l.cnf.Public, context.Background())
+		if err != nil {
+			return nil, err
 		}
-	} else if len(l.cnf.LogicalBackup.Databases) > 0 && len(dbList) == 1 { // 只有一个 db，可以指定 table
-		args = append(args, l.cnf.LogicalBackup.Databases)
+		defer func() {
+			_ = l.dbConn.Close()
+		}()
+		dbListFiltered, err = filter.GetDbsByConn(l.dbConn)
+		if err != nil {
+			return nil, errors.WithMessage(err, "get database from instance")
+		}
+	}
+	logger.Log.Infof("database filtered:%v, tables:%v, excludeTables:%v", dbListFiltered, tbList, tbListExclude)
+
+	// mysqldump 条件：
+	// databases, exclude-databases 允许模糊匹配
+	// tables 不允许模糊匹配
+	// exclude-tables 只能为空
+	// 简单说 mysqldump 支持 --database db1 db2 db3, 或者 db1 table1 table2
+	if l.cnf.LogicalBackup.Tables == "*" && l.cnf.LogicalBackup.ExcludeTables == "" {
+		args = append(args, "--databases")
+		args = append(args, dbListFiltered...)
+	} else if len(dbListFiltered) == 1 && l.cnf.LogicalBackup.ExcludeTables == "" { // 只有一个 db，可以指定 table
+		args = append(args, dbListFiltered...)
 		args = append(args, tbList...)
-	} else if len(l.cnf.LogicalBackup.ExcludeDatabases) > 0 {
-		if len(l.cnf.LogicalBackup.ExcludeTables) == 0 {
-			logger.Log.Info("get database list from db to exclude:")
-			l.dbConn, err = mysqlconn.InitConn(&l.cnf.Public)
-			if err != nil {
-				return nil, err
-			}
-			defer func() {
-				_ = l.dbConn.Close()
-			}()
-			if allDatabases, err := mysqlconn.GetDatabases("", l.dbConn); err != nil {
-				return nil, err
-			} else {
-				dbListExclude = append(dbListExclude, "information_schema", "performance_schema")
-				for _, d := range dbListExclude {
-					allDatabases = cmutil.StringsRemove(allDatabases, d)
-				}
-				args = append(args, "--databases", strings.Join(allDatabases, " "))
-			}
-		} else {
-			return nil, errors.Errorf("mysqldump exclude is not allowed, exclude-databases=%s, exclude-tables=%s",
-				dbListExclude, tbListExclude)
-		}
+	} else if strings.Contains(l.cnf.LogicalBackup.Tables, "%") {
+		return nil, errors.Errorf("mysqldump does not support table like %s", l.cnf.LogicalBackup.Tables)
+	} else if l.cnf.LogicalBackup.ExcludeTables != "" {
+		return nil, errors.Errorf("mysqldump does not support table exclude %s", l.cnf.LogicalBackup.ExcludeTables)
+	} else if len(dbListFiltered) >= 2 && len(tbList) > 0 {
+		return nil, errors.Errorf("mysqldump --tables cannot be used with multi databases %v", dbListFiltered)
+	} else {
+		return nil, errors.Errorf("mysqldump exclude not not support, exclude-databases=%s, exclude-tables=%s",
+			dbListExclude, tbListExclude)
 	}
 	return args, nil
 }
@@ -169,9 +175,10 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		"--skip-opt", "--create-options", "--extended-insert", "--quick",
 		"--single-transaction", "--master-data=2",
 		"--max-allowed-packet=1G", "--no-autocommit",
-		"--set-gtid-purged=off",
-		//"--default-character-set  //
+		"--hex-blob",
+		// "--set-gtid-purged=off", // 5.7 需要
 	}
+	args = append(args, "--default-character-set", l.cnf.Public.MysqlCharset)
 	if l.cnf.Public.MysqlRole == cst.RoleSlave {
 		args = append(args, []string{
 			"--dump-slave=2", // will stop slave sql_thread
