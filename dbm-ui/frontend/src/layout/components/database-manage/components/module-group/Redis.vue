@@ -88,7 +88,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import toolboxMenuConfig from '@views/redis/toolbox-menu';
+  import toolboxMenuConfig from '@views/db-manage/redis/toolbox-menu';
 
   import { makeMap } from '@utils';
 

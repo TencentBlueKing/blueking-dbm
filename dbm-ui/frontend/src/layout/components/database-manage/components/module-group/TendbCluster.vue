@@ -95,7 +95,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import toolboxMenuConfig from '@views/spider-manage/toolbox-menu';
+  import toolboxMenuConfig from '@views/db-manage/tendb-cluster/toolbox-menu';
 
   import { makeMap } from '@utils';
 

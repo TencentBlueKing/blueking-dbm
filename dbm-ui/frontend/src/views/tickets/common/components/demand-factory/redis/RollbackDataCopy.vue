@@ -29,7 +29,7 @@
   import type { RedisRollbackDataCopyDetails } from '@services/model/ticket/details/redis';
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { writeTypeList } from '@views/redis/common/const';
+  import { writeTypeList } from '@views/db-manage/redis/common/const';
 
   interface Props {
     ticketDetails: TicketModel<RedisRollbackDataCopyDetails>

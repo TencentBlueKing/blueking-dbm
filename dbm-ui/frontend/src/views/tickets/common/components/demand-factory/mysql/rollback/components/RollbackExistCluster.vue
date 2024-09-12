@@ -26,7 +26,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { queryClusters } from '@services/source/mysqlCluster';
 
-  import { type BackupSources, selectList } from '@views/mysql/rollback/pages/page1/components/common/const';
+  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
 
   import { utcDisplayTime } from '@utils';
 
