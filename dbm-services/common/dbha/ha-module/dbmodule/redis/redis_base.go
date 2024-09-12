@@ -156,9 +156,9 @@ func (ins *RedisProxySwitchInfo) ShowSwitchInstanceInfo() string {
 
 // KickOffDns kick instance from dns
 func (ins *RedisProxySwitchInfo) KickOffDns() error {
-	if !ins.ApiGw.DNSFlag {
-		log.Logger.Infof("no need kickDNS,info:%s",
-			ins.ShowSwitchInstanceInfo())
+	if !ins.ApiGw.DNSFlag || ins.ApiGw.DNSForword {
+		log.Logger.Infof("switch proxy ignore dns , 4 {WithDNS:%+v, DNSForword:%+v}; info:%s",
+			ins.ApiGw.DNSFlag, ins.ApiGw.DNSForword, ins.ShowSwitchInstanceInfo())
 		return nil
 	}
 

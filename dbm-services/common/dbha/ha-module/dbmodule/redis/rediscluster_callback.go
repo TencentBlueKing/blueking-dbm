@@ -25,11 +25,11 @@ func RedisClusterNewIns(instances []interface{}, conf *config.Config) ([]dbutil.
 		return nil, err
 	}
 
-	var predixyIns, redisIns []dbutil.DataBaseDetect
+	var predixyIns []dbutil.DataBaseDetect
 	for _, uIns := range unmarshalIns {
 		// check the cluster_type should be PredixyRedisCluster
 		if uIns.ClusterType != constvar.PredixyRedisCluster {
-			redisIns = append(redisIns, NewRedisClusterDetectInstance(uIns, conf))
+			continue
 		}
 
 		// create detect instance by machine_type
@@ -41,7 +41,6 @@ func RedisClusterNewIns(instances []interface{}, conf *config.Config) ([]dbutil.
 	// get pass from config system.
 	GetInstancePass(predixyIns, conf)
 
-	ret = append(ret, redisIns...)
 	ret = append(ret, predixyIns...)
 	return ret, err
 }
