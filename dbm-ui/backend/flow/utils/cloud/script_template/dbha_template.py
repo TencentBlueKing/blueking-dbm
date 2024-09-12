@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+# flake8: noqa
 
 ha_gm_conf_template = """
 log_conf:
@@ -272,7 +272,8 @@ dbha_pid=`ps -aux | grep {{dbha_conf}} | grep -v grep | awk '{print $2}'`;
 if [ "$dbha_pid" != "" ]; then
     kill -9 $dbha_pid;
 fi
-rm -rf $path/dbha/{{dbha_type}}
+# 备份上次的二进制和日志
+mv $path/dbha/{{dbha_type}} $path/dbha/old_{{dbha_type}}
 
 # 准备相关文件
 mkdir -p $path/dbha/{{dbha_type}};
@@ -286,6 +287,25 @@ nohup ./dbha -config_file={{dbha_conf}} -type={{dbha_type}} -> dbha-apply.log 2>
 echo "--------------------------dbha process info---------------------";
 ps -ef | grep dbha;
 echo "----------------------------------------------------------------";
+
+# 增加定期拉起任务
+dbha_cron="$path/dbha/{{dbha_type}}/cron.sh";
+echo -e "
+# 检查进程是否存在
+is_process_running() {
+    ps aux | grep {{dbha_type}} | grep -v grep | awk '{print \$2}' > /dev/null
+}
+if is_process_running; then
+    echo "Process {{dbha_type}} is not running. Restarting..."
+    cd /usr/local/bkdb/dbha/{{dbha_type}}
+    # 启动进程的命令
+    nohup ./dbha -config_file=ha-{{dbha_type}}.conf -type={{dbha_type}} -> dbha-apply.log 2>&1 &
+    echo "Process {{dbha_type}} restarted successfully."
+fi
+" > $dbha_cron
+
+chmod +x $dbha_cron;
+(crontab -l ; echo "* * * * * $dbha_cron") 2>&1 | grep -v "no crontab" | sort | uniq | crontab -
 """
 
 dbha_stop_script_template = """
