@@ -23,8 +23,8 @@
   import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
 
-  import { type BackupSources, selectList } from '@views/mysql/rollback/pages/page1/components/common/const';
-  import type { IDataRow } from '@views/mysql/rollback/pages/page1/components/render-data/Index.vue';
+  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
+  import type { IDataRow } from '@views/db-manage/mysql/rollback/pages/page1/components/render-data/Index.vue';
 
   import { utcDisplayTime } from '@utils';
 

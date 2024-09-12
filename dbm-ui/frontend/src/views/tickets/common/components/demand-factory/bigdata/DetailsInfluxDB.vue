@@ -107,7 +107,7 @@
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
 
-  import { redisIpSources } from '@views/redis/apply/common/const';
+  import { redisIpSources } from '@views/db-manage/redis/apply/common/const';
 
   import SpecInfos, { type SpecInfo } from '../../SpecInfos.vue';
 

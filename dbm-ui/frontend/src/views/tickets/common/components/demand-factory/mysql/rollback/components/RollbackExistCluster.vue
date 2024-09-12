@@ -26,9 +26,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { queryClusters } from '@services/source/mysqlCluster';
 
-  import { useGlobalBizs } from '@stores';
-
-  import { type BackupSources, selectList } from '@views/mysql/rollback/pages/page1/components/common/const';
+  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
 
   import { utcDisplayTime } from '@utils';
 
@@ -39,7 +37,6 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const columns = [
     {
@@ -149,7 +146,7 @@
       const targetClusterIds = props.ticketDetails.details.infos.map(item => ({ id: Number(item.target_cluster_id) }));
       queryClusters({
         cluster_filters: targetClusterIds,
-        bk_biz_id: currentBizId,
+        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       }).then((data) => {
         targetClusters.value = data
       })

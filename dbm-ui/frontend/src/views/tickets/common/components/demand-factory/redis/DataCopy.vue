@@ -82,7 +82,7 @@
     repairAndVerifyFrequencyList,
     repairAndVerifyTypeList,
     writeTypeList,
-  } from '@views/redis/common/const';
+  } from '@views/db-manage/redis/common/const';
 
   interface Props {
     ticketDetails: TicketModel<RedisDataCopyDetails>
