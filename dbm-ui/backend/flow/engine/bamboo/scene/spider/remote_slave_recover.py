@@ -264,6 +264,7 @@ class TenDBRemoteSlaveRecoverFlow(object):
                     old_port=node["slave"]["port"],
                     new_ip=node["new_slave"]["ip"],
                     new_port=node["new_slave"]["port"],
+                    server_name=f"SPT_SLAVE{shard_id}",
                     tdbctl_pass=tdbctl_pass,
                 )
                 switch_slave_class.switch_remote_instance_pairs.append(inst_pairs)

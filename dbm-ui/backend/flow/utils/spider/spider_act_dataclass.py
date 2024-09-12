@@ -80,6 +80,7 @@ class InstancePairs:
     new_ip: str
     old_port: int
     new_port: int
+    server_name: str
     tdbctl_pass: str
 
 

@@ -344,6 +344,7 @@ class MySQLRestoreSlaveFlow(object):
                     root_id=self.root_id,
                     parent_global_data=copy.deepcopy(self.data),
                     collect_sysinfo=True,
+                    is_install_backup=False,
                     cluster_type=ClusterType.TenDBHA.value,
                 )
             )
@@ -575,7 +576,7 @@ class MySQLRestoreSlaveFlow(object):
             )
 
             tendb_migrate_pipeline_list.append(
-                tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}").format(target_slave.machine.ip))
+                tendb_migrate_pipeline.build_sub_process(_("slave原地重建{}").format(target_slave.ip_port))
             )
 
         tendb_migrate_pipeline_all.add_parallel_sub_pipeline(sub_flow_list=tendb_migrate_pipeline_list)
