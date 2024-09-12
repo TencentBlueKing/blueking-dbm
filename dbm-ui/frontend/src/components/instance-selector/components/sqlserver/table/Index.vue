@@ -305,7 +305,7 @@
   }, { immediate: true, deep: true });
 
   watch(() => props.clusterId, () => {
-        fetchResources();
+    fetchResources();
   });
 
   const triggerChange = () => {

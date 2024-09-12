@@ -129,6 +129,7 @@
     })
   }
 
+  if (nodes){
     config[2].list.splice(3, 0, {
       label: t('集群设置'),
       isTable: true,
@@ -142,6 +143,7 @@
           nodeList={nodes[ClusterTypes.SQLSERVER_SINGLE]} />
       ),
     })
+  }
 
   const cityName = ref('--');
 
