@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -355,6 +356,9 @@ func (c *HaDBClient) GetAliveAgentInfo(cityID int, dbType string, interval int) 
 	if err != nil {
 		return nil, err
 	}
+
+	//after unmarshal, need to sort, otherwise hash value may incorrect
+	sort.Strings(result)
 	return result, nil
 }
 
