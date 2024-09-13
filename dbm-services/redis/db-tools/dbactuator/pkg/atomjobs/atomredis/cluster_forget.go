@@ -171,20 +171,12 @@ func (job *RedisClusterForget) clusterForgetNode(
 		if node.NodeID == fnode.NodeID {
 			continue
 		}
+		x, _ := json.Marshal(node)
 		job.runtime.Logger.Info("exec {cluster forget %s:%s} from [%s]", fnode.Addr, fnode.NodeID, node.Addr)
-		var ignoreErr bool
-		if len(node.FailStatus) != 0 {
-			ignoreErr = true
-			job.runtime.Logger.Warn("exec forget node maybe fail,will ignore err,%s:%+v", node.Addr, node.FailStatus)
-		}
-
 		nodeConn, err := myredis.NewRedisClientWithTimeout(node.Addr,
 			job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second)
 		if err != nil {
-			if ignoreErr {
-				job.runtime.Logger.Warn("current node status maybe fail, ignore %s:%+v", node.Addr, err)
-				continue
-			}
+			job.runtime.Logger.Warn("connect node failed %s:%+v", x, err)
 			return err
 		}
 		defer nodeConn.Close()
@@ -192,8 +184,8 @@ func (job *RedisClusterForget) clusterForgetNode(
 		if err := nodeConn.ClusterForget(fnode.NodeID); err != nil {
 			// // (error) ERR:18,msg:forget node unkown  传了不存在的NodeID  1. 节点表中找不到指定的节点标识。 !!! 这里和官方版本返回错误不一致 !!!
 			job.runtime.Logger.Error("forget node %s:%s failed :+%v [just Ignore::%+v]", fnode.Addr, fnode.NodeID, err, fnode)
-			if ignoreErr && (strings.Contains(err.Error(), "Unknown node") || strings.Contains(err.Error(), "node unkown")) {
-				job.runtime.Logger.Warn("current node status maybe fail, ignore %s:%+v", node.Addr, err)
+			if strings.Contains(err.Error(), "Unknown node") || strings.Contains(err.Error(), "node unkown") {
+				job.runtime.Logger.Warn("forgeted node status maybe fail, ignore %s:%+v", x, err)
 				continue
 			}
 			return fmt.Errorf("ErrForgetNode:%s:%+v", fnode.Addr, err)
