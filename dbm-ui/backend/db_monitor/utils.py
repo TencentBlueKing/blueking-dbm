@@ -12,6 +12,7 @@ import re
 
 from backend import env
 from backend.components import BKMonitorV3Api
+from backend.db_monitor.constants import AUTOFIX_ACTION_NAME
 from backend.db_monitor.exceptions import BkMonitorDeleteAlarmException, BkMonitorSaveAlarmException
 
 logger = logging.getLogger("root")
@@ -99,9 +100,12 @@ def render_promql_sql(prom_sql, wheres):
     return prom_sql
 
 
-if __name__ == "__main__":
-    sql = """ioutil{cluster_type="a"}[1m] by cpu{appid="5"} by disk{db_module="2"}"""
-    # Conditions to modify or add to the original SQL query
-    new_conditions = {"appid": ["2", "3"], "cluster_domain": ["hello.2"], "db_module": ["1"]}
-    # Render the modified PromQL query
-    print(render_promql_sql(sql, new_conditions))
+def get_dbm_autofix_action_id() -> int:
+    """获取 dbm 故障自愈套餐 id"""
+    actions = BKMonitorV3Api.search_action_config({"bk_biz_id": env.DBA_APP_BK_BIZ_ID})["data"]
+
+    action_id = None
+    for action in actions:
+        if action["name"] == AUTOFIX_ACTION_NAME:
+            action_id = action["id"]
+    return action_id

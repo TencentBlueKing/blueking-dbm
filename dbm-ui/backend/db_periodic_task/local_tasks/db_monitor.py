@@ -25,6 +25,7 @@ from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS, T
 from backend.db_monitor.exceptions import BkMonitorSaveAlarmException
 from backend.db_monitor.models import CollectInstance, DispatchGroup, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
+from backend.db_monitor.utils import get_dbm_autofix_action_id
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 
@@ -72,8 +73,10 @@ def update_dba_notice_group(dba_id: int):
 
 
 @register_periodic_task(run_every=crontab(minute="*/5"))
-def sync_plat_monitor_policy():
+def sync_plat_monitor_policy(action_id=None):
     """同步平台告警策略"""
+    if action_id is None:
+        action_id = get_dbm_autofix_action_id()
     skip_dir = "v1"
     now = datetime.datetime.now(timezone.utc)
     logger.warning("[sync_plat_monitor_policy] sync bkm alarm policy start: %s", now)
@@ -103,11 +106,29 @@ def sync_plat_monitor_policy():
                     continue
 
                 # patch template
-                template_dict["details"]["labels"] = list(set(template_dict["details"]["labels"]))
+                labels = list(set(template_dict["details"]["labels"]))
+                template_dict["details"]["labels"] = labels
                 template_dict["details"]["name"] = policy_name
                 template_dict["details"]["priority"] = TargetPriority.PLATFORM.value
                 # 平台策略仅开启基于分派通知
                 template_dict["details"]["notice"]["options"]["assign_mode"] = ["by_rule"]
+                for label in labels:
+                    if label.startswith("NEED_AUTOFIX") and action_id is not None:
+                        template_dict["details"]["actions"] = [
+                            {
+                                "config_id": action_id,
+                                "signal": ["abnormal"],
+                                "user_groups": [],
+                                "options": {
+                                    "converge_config": {
+                                        "is_enabled": False,
+                                        "converge_func": "skip_when_success",
+                                        "timedelta": 60,
+                                        "count": 1,
+                                    }
+                                },
+                            }
+                        ]
 
                 policy = MonitorPolicy(**template_dict)
 

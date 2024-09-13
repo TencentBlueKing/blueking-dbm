@@ -175,6 +175,21 @@ class _BKMonitorV3Api(BaseApi):
             url="proxy_host_info/",
             description=_("获取自定义上报的 proxy 主机信息"),
         )
+        self.search_action_config = self.generate_data_api(
+            method="GET",
+            url="search_action_config/",
+            description=_("查询处理套餐"),
+        )
+        self.save_action_config = self.generate_data_api(
+            method="POST",
+            url="save_action_config/",
+            description=_("保存处理套餐"),
+        )
+        self.edit_action_config = self.generate_data_api(
+            method="POST",
+            url="edit_action_config/",
+            description=_("编辑处理套餐"),
+        )
 
 
 BKMonitorV3Api = _BKMonitorV3Api()
