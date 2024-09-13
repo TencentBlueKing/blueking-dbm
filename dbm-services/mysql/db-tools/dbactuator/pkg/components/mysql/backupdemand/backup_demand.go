@@ -10,7 +10,6 @@ package backupdemand
 
 import (
 	"bufio"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -19,6 +18,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 
 	"github.com/pkg/errors"
 
@@ -149,6 +150,7 @@ func (c *Component) GenerateBackupConfig() error {
 
 		backupConfig.LogicalBackup.Regex = ""
 		if c.Params.BackupType == "logical" {
+			//backupConfig.LogicalBackup.UseMysqldump = "auto"
 			ignoreDbs := slices.DeleteFunc(native.DBSys, func(s string) bool {
 				return s == "infodba_schema"
 			})

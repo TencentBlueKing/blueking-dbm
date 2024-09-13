@@ -5,11 +5,21 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/logger"
 )
 
 // GetDatadir Get the datadir of mysql server
 func GetDatadir(port int) (string, error) {
+	cnfFileName := util.GetMyCnfFileName(port)
+	cnfFile := &util.CnfFile{FileName: cnfFileName}
+	if err := cnfFile.Load(); err != nil {
+		return "", errors.WithMessage(err, "get data dir")
+	}
+	return cnfFile.GetMySQLDataDir()
+
 	cmdStr := "ps -ef|grep mysqld|grep " + strconv.Itoa(port) + "|grep datadir|grep -o '\\-\\-datadir=\\S*'"
 	res, err := exec.Command("/bin/bash", "-c", cmdStr).CombinedOutput()
 	if err != nil {
