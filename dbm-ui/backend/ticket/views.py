@@ -48,7 +48,6 @@ from backend.ticket.constants import (
 )
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
-from backend.ticket.filters import TicketListFilter
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
 from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
@@ -90,7 +89,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    filter_class = TicketListFilter
+    # filter_class = TicketListFilter
     filter_fields = {
         "id": ["exact", "in"],
         "bk_biz_id": ["exact"],
