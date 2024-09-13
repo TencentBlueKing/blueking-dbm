@@ -19,7 +19,7 @@ logger = logging.getLogger("root")
 
 
 def get_backup_binlog(
-        cluster_id: int, start_time: datetime, end_time: datetime, binlog_info: dict, minute_range=30
+    cluster_id: int, start_time: datetime, end_time: datetime, binlog_info: dict, minute_range=30
 ) -> dict:
     result = {}
     if start_time > end_time:

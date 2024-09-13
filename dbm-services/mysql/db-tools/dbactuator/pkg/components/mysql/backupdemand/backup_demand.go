@@ -155,7 +155,7 @@ func (c *Component) GenerateBackupConfig() error {
 			ignoreDbs = append(ignoreDbs, c.Params.IgnoreDbs...)
 			backupConfig.LogicalBackup.Databases = strings.Join(c.Params.DbPatterns, ",")
 			backupConfig.LogicalBackup.ExcludeDatabases = strings.Join(ignoreDbs, ",")
-			backupConfig.LogicalBackup.Tables = strings.Join(c.Params.IgnoreTables, ",")
+			backupConfig.LogicalBackup.Tables = strings.Join(c.Params.TablePatterns, ",")
 			backupConfig.LogicalBackup.ExcludeTables = strings.Join(c.Params.IgnoreTables, ",")
 
 			tf, err := db_table_filter.NewFilter(
