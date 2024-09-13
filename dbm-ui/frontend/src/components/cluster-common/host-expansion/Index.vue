@@ -77,6 +77,7 @@
       <BkFormItem>
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
+          ref="resourcePoolSelector"
           :cloud-info="cloudInfo"
           :data="data"
           @change="handleResourcePoolChange" />
@@ -140,7 +141,7 @@
     disableHostMethod?: (params: HostDetails) => string | boolean;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const targetDisk = defineModel<TExpansionNode['targetDisk']>('targetDisk', {
     required: true,
@@ -157,9 +158,14 @@
 
   const { t } = useI18n();
 
+  const resourcePoolSelector = ref<InstanceType<typeof ResourcePoolSelector>>();
+
   const handleTargetDiskChange = (value: TExpansionNode['targetDisk']) => {
     targetDisk.value = Math.floor(value);
     window.changeConfirm = true;
+    if (props.ipSource === 'resource_pool') {
+      resourcePoolSelector.value!.triggerLatestValue();
+    }
   };
 
   const handleHoseSelectChange = (
