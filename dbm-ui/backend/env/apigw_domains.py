@@ -27,6 +27,7 @@ BKMONITORV3_APIGW_DOMAIN = get_type_env(key="BKMONITORV3_APIGW_DOMAIN", _type=st
 
 DRS_APIGW_DOMAIN = get_type_env(key="DRS_APIGW_DOMAIN", _type=str)
 NAMESERVICE_APIGW_DOMAIN = get_type_env(key="NAMESERVICE_APIGW_DOMAIN", _type=str)
+HCM_APIGW_DOMAIN = get_type_env(key="HCM_APIGW_DOMAIN", _type=str)
 
 DBCONFIG_APIGW_DOMAIN = get_type_env(key="DBCONFIG_APIGW_DOMAIN", _type=str, default="http://bk-dbm-dbconfig")
 DNS_APIGW_DOMAIN = get_type_env(key="DNS_APIGW_DOMAIN", _type=str, default="http://bk-dbm-db-dns-api")
