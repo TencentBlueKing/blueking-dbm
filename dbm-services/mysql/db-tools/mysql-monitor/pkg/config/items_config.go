@@ -4,11 +4,11 @@ import "slices"
 
 // MonitorItem 监控项
 type MonitorItem struct {
-	Name        string   `yaml:"name" validate:"required"`
-	Enable      *bool    `yaml:"enable" validate:"required"`
-	Schedule    *string  `yaml:"schedule"`
-	MachineType []string `yaml:"machine_type"`
-	Role        []string `yaml:"role"`
+	Name        string   `json:"name" yaml:"name" validate:"required"`
+	Enable      *bool    `json:"enable" yaml:"enable" validate:"required"`
+	Schedule    *string  `json:"schedule" yaml:"schedule"`
+	MachineType []string `json:"machine_type" yaml:"machine_type"`
+	Role        []string `json:"role" yaml:"role"`
 }
 
 // IsEnable 监控项启用

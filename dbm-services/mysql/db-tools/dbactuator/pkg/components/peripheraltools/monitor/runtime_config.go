@@ -25,7 +25,7 @@ func (c *MySQLMonitorComp) GenerateRuntimeConfig() (err error) {
 	return nil
 }
 
-func generateRuntimeConfigIns(mmp *MySQLMonitorParam, instance *instanceInfo, rtap *components.RuntimeAccountParam) (err error) {
+func generateRuntimeConfigIns(mmp *MySQLMonitorParam, instance *internal.InstanceInfo, rtap *components.RuntimeAccountParam) (err error) {
 	if instance.BkInstanceId <= 0 {
 		err = errors.Errorf(
 			"%s:%d invalid bk_instance_id: %d",

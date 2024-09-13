@@ -243,6 +243,7 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
+                        cluster={"cluster_ids": self.data["infos"]["cluster_ids"]},
                         cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),
@@ -308,6 +309,7 @@ class MySQLHAStandardizeFlow(object):
                         exec_ip=ip,
                         bk_cloud_id=bk_cloud_id,
                         get_mysql_payload_func=MysqlActPayload.get_deploy_mysql_monitor_payload.__name__,
+                        cluster={"cluster_ids": self.data["infos"]["cluster_ids"]},
                         cluster_type=ClusterType.TenDBHA.value,
                     )
                 ),

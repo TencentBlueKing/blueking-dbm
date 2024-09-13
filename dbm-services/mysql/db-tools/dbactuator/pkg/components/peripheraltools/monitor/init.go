@@ -27,15 +27,11 @@ func (c *MySQLMonitorComp) Init() (err error) {
 
 type MySQLMonitorParam struct {
 	components.Medium
-	SystemDbs     []string        `json:"system_dbs"`
-	ExecUser      string          `json:"exec_user"`
-	ApiUrl        string          `json:"api_url"`
-	InstancesInfo []*instanceInfo `json:"instances_info"`
-	MachineType   string          `json:"machine_type"`
-	BkCloudId     int             `json:"bk_cloud_id"`
-}
-
-type instanceInfo struct {
-	internal.InstanceInfo
-	ItemsConfig map[string]*config.MonitorItem `json:"items_config" yaml:"items_config"`
+	SystemDbs     []string                       `json:"system_dbs"`
+	ExecUser      string                         `json:"exec_user"`
+	ApiUrl        string                         `json:"api_url"`
+	InstancesInfo []*internal.InstanceInfo       `json:"instances_info"`
+	MachineType   string                         `json:"machine_type"`
+	BkCloudId     int                            `json:"bk_cloud_id"`
+	ItemsConfig   map[string]*config.MonitorItem `json:"items_config" yaml:"items_config"`
 }

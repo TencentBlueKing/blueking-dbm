@@ -3,6 +3,7 @@ package monitor
 import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
@@ -21,7 +22,7 @@ func (c *MySQLMonitorComp) GenerateExporterConfig() (err error) {
 	return nil
 }
 
-func generateExporterConfigIns(mmp *MySQLMonitorParam, instance *instanceInfo, rtap *components.RuntimeAccountParam) (err error) {
+func generateExporterConfigIns(mmp *MySQLMonitorParam, instance *internal.InstanceInfo, rtap *components.RuntimeAccountParam) (err error) {
 	exporterConfigPath := filepath.Join(
 		"/etc",
 		fmt.Sprintf("exporter_%d.cnf", instance.Port),
