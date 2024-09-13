@@ -51,17 +51,17 @@
   );
 
   const tableData = computed(() =>
-    _.sortBy(
-      _.flatMap(
-        props.ticketDetails.details.config_data.map((item) => {
-          const clusterName = clustersMap[item.cluster_id]?.immute_domain;
-          return item.execute_objects.map((executeObject) => ({
-            targetCluster: clusterName,
-            newDb: executeObject.target_db,
-            ips: rulesSetMap[clusterName]?.source_ips ?? [],
-          }));
-        }),
-      ), 'newDb'),
+    _.flatMap(
+      _.sortBy(
+      props.ticketDetails.details.config_data.map((item) => {
+        const clusterName = clustersMap[item.cluster_id]?.immute_domain;
+        return item.execute_objects.map((executeObject) => ({
+          targetCluster: clusterName,
+          newDb: executeObject.target_db,
+          ips: rulesSetMap[clusterName]?.source_ips ?? [],
+        }));
+      }), 'newDb')
+    ),
   );
 
   const columns = computed(() => [
