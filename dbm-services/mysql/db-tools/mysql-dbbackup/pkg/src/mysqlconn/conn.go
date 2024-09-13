@@ -132,6 +132,17 @@ func GetStorageEngine(dbh *sql.DB) (string, error) {
 	return version[0], nil
 }
 
+// GetDataDir get datadir from mysql server
+// if failed, try to get datadir from my.cnf -- todo not implemented
+func GetDataDir(dbh *sql.DB, myCnfPath string) (string, error) {
+	dataDir, err := MysqlSingleColumnQuery("select @@datadir", dbh)
+	if err != nil {
+		logger.Log.Error("can't select @@datadir, error :", err)
+		return "", err
+	}
+	return dataDir[0], nil
+}
+
 // GetDatabases show databases like
 // like == ” means all
 func GetDatabases(like string, dbh *sql.DB) ([]string, error) {

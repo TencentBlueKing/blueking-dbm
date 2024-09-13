@@ -63,7 +63,19 @@ func (f *TableFilter) GetFilterType() FilterType {
 
 func (f *TableFilter) ValidateFilter() error {
 	if f.Databases != "" || f.Tables != "" || f.ExcludeDatabases != "" || f.ExcludeTables != "" { // FilterTypeForm
-		logger.Log.Warnf("filter type 'form' will ignore regex=%s or tables-list=%s", f.Regex, f.TablesList)
+		if f.Regex == "" {
+			filter, err := db_table_filter.NewFilter(
+				strings.Split(f.Databases, ","),
+				strings.Split(f.Tables, ","),
+				strings.Split(f.ExcludeDatabases, ","),
+				strings.Split(f.ExcludeTables, ","),
+			)
+			if err != nil {
+				return err
+			}
+			f.Regex = filter.TableFilterRegex()
+		}
+		//logger.Log.Warnf("filter type 'form' will ignore regex=%s or tables-list=%s", f.Regex, f.TablesList)
 	} else {
 		if f.Regex != "" && f.TablesList != "" {
 			return errors.Errorf("regex and tables-list filter cannot be used together")
@@ -85,9 +97,7 @@ func (f *TableFilter) BuildArgsTableFilterForMydumper() (args []string, err erro
 		if databases == "" {
 			databases = "*"
 		}
-		if excludeTables == "" && excludeDatabases != "" {
-			excludeTables = "*"
-		}
+
 		dbList := strings.Split(databases, ",")
 		tbList := strings.Split(tables, ",")
 		dbListExclude := strings.Split(excludeDatabases, ",")

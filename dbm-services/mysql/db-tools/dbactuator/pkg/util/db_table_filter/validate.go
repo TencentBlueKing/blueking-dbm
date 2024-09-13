@@ -12,12 +12,19 @@ import (
 ToDo
 */
 func (c *DbTableFilter) validate() error {
-	if len(c.IncludeDbPatterns) == 0 || len(c.IncludeTablePatterns) == 0 {
-		return fmt.Errorf("include patterns can't be empty")
+	if len(c.IncludeDbPatterns) == 0 {
+		return fmt.Errorf("include databases patterns can't be empty")
+	}
+	if len(c.IncludeTablePatterns) == 0 {
+		return fmt.Errorf("include tables patterns can't be empty")
 	}
 
-	if slices.Index(c.ExcludeDbPatterns, "*") >= 0 || slices.Index(c.ExcludeTablePatterns, "*") >= 0 {
-		return fmt.Errorf("exclude patterns can't be *")
+	if slices.Index(c.ExcludeDbPatterns, "*") >= 0 {
+		return fmt.Errorf("exclude databases patterns can't be *")
+
+	}
+	if slices.Index(c.ExcludeTablePatterns, "*") >= 0 {
+		return fmt.Errorf("exclude tables patterns can't be *")
 	}
 
 	if err := globCheck(c.IncludeDbPatterns); err != nil {
