@@ -22,7 +22,14 @@ class TicketListFilter(filters.FilterSet):
 
     class Meta:
         model = Ticket
-        fields = ["remark", "cluster"]
+        fields = {
+            "id": ["exact", "in"],
+            "bk_biz_id": ["exact"],
+            "ticket_type": ["exact", "in"],
+            "status": ["exact", "in"],
+            "create_at": ["gte", "lte"],
+            "creator": ["exact"],
+        }
 
     def filter_cluster(self, queryset, name, value):
         clusters = Cluster.objects.filter(immute_domain__icontains=value).values_list("id", flat=True)
