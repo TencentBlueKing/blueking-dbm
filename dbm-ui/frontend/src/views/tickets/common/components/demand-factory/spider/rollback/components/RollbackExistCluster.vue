@@ -29,7 +29,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { type BackupSources, selectList } from '@views/mysql/rollback/pages/page1/components/common/const';
+  import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
 
   import { utcDisplayTime } from '@utils';
 

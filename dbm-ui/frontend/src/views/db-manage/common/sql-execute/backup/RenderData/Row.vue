@@ -60,8 +60,8 @@
 <script setup lang="ts">
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderDbName from '@views/mysql/common/edit-field/DbName.vue';
-  import RenderTableName from '@views/mysql/common/edit-field/TableName.vue';
+  import RenderDbName from '@views/db-manage/mysql/common/edit-field/DbName.vue';
+  import RenderTableName from '@views/db-manage/mysql/common/edit-field/TableName.vue';
 
   import RenderBackupSource from './RenderBackupSource.vue';
 

@@ -79,7 +79,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import toolboxMenuConfig from '@views/sqlserver-manage/toolbox-menu';
+  import toolboxMenuConfig from '@views/db-manage/sqlserver/toolbox-menu';
 
   import { makeMap } from '@utils';
 
