@@ -37,7 +37,6 @@ def cluster_increase_node(root_id: str, ticket_data: Optional[Dict], sub_kwargs:
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
     # 设置变量
-    sub_get_kwargs.payload["app"] = sub_get_kwargs.payload["bk_app_abbr"]
     sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoShardedCluster.value
     info["target"] = info["add_shard_nodes"][0]
 

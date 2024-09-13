@@ -136,7 +136,7 @@ class MongoDBInstallFlow(object):
         for replicaset_info in self.data["sets"]:
             kwargs = self.get_kwargs.get_add_relationship_to_meta_kwargs(replicaset_info=replicaset_info)
             pipeline.add_act(
-                act_name=_("MongoDB--添加复制集{}-{}关系到meta".format(self.data["app"], replicaset_info["set_id"])),
+                act_name=_("MongoDB--添加复制集{}关系到meta".format(replicaset_info["set_id"])),
                 act_component_code=ExecAddRelationshipOperationComponent.code,
                 kwargs=kwargs,
             )

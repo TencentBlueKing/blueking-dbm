@@ -101,12 +101,13 @@ def replicase_calc(payload: dict, payload_clusters: dict, app: str, domain_prefi
                 else:
                     domain = "{}.{}.{}.db".format(domain_prefix[machine_index], replica_set["set_id"], app)
                 nodes.append({"ip": machine["ip"], "bk_cloud_id": machine["bk_cloud_id"], "domain": domain})
+            set_id_key_file = "{}-{}".format(app, replica_set["set_id"])
             sets.append(
                 {
-                    "set_id": replica_set["set_id"],
+                    "set_id": set_id_key_file,
                     "alias": replica_set["name"],
                     "port": port,
-                    "key_file": "{}-{}".format(app, replica_set["set_id"]),
+                    "key_file": set_id_key_file,
                     "cacheSizeGB": avg_mem_size_gb,
                     "oplogSizeMB": oplog_size_mb,
                     "skip_machine": skip_machine,
@@ -122,7 +123,7 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     """cluster进行计算"""
 
     payload_clusters["alias"] = payload["cluster_alias"]
-    payload_clusters["cluster_id"] = payload["cluster_name"]
+    payload_clusters["cluster_id"] = "{}-{}".format(app, payload["cluster_name"])
     payload_clusters["machine_specs"] = payload["machine_specs"]
     oplog_percent = payload["oplog_percent"] / 100
     disaster_tolerance_level = payload["disaster_tolerance_level"]
@@ -180,7 +181,7 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
     # 分配机器
     # mongo_config
     config = {}
-    config["set_id"] = "{}-{}".format(payload["cluster_name"], "conf")  # 设置常量
+    config["set_id"] = "{}-{}".format(payload_clusters["cluster_id"], "conf")  # 设置常量
     config["port"] = config_port  # 设置常量
     config["cacheSizeGB"] = config_mem_size_gb
     config["oplogSizeMB"] = config_oplog_size_mb
@@ -198,7 +199,7 @@ def cluster_calc(payload: dict, payload_clusters: dict, app: str) -> dict:
             shard_port += 1
         shard_info.append(
             {
-                "set_id": "{}-s{}".format(payload["cluster_name"], str(i + 1)),
+                "set_id": "{}-s{}".format(payload_clusters["cluster_id"], str(i + 1)),
                 "port": shard_port,
                 "cacheSizeGB": shard_avg_mem_size_gb,
                 "oplogSizeMB": shard_oplog_size_mb,
@@ -244,7 +245,7 @@ def calculate_cluster(payload: dict) -> dict:
     payload_clusters["ticket_type"] = payload["ticket_type"]
     payload_clusters["cluster_type"] = payload["cluster_type"]
     payload_clusters["city"] = payload["city_code"]
-    payload_clusters["app"] = payload["bk_app_abbr"]
+    payload_clusters["bk_app_abbr"] = payload["bk_app_abbr"]
     payload_clusters["disaster_tolerance_level"] = payload["disaster_tolerance_level"]
     app = payload["bk_app_abbr"]
     payload_clusters["db_version"] = payload["db_version"]

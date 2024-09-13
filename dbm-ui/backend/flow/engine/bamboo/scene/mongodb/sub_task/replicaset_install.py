@@ -126,7 +126,5 @@ def replicaset_install(
     # 安装监控
 
     return sub_pipeline.build_sub_process(
-        sub_name=_(
-            "MongoDB--安装复制集--{}-{}".format(sub_get_kwargs.payload["app"], sub_get_kwargs.replicaset_info["set_id"])
-        )
+        sub_name=_("MongoDB--安装复制集-{}".format(sub_get_kwargs.replicaset_info["set_id"]))
     )

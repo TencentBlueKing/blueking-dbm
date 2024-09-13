@@ -38,7 +38,6 @@ def replicaset_set_increase_node(
     sub_pipeline = SubBuilder(root_id=root_id, data=ticket_data)
 
     # 设置变量
-    sub_get_kwargs.payload["app"] = sub_get_kwargs.payload["bk_app_abbr"]
     info["target"] = info["add_shard_nodes"][0]
 
     # 计算cacheSize oplogSize

@@ -65,9 +65,6 @@ def replicaset_replace(
             act_name=_("MongoDB-机器初始化"), act_component_code=ExecuteDBActuatorJobComponent.code, kwargs=kwargs
         )
 
-    # config计算参数
-    # if cluster_role == MongoDBClusterRole.ConfigSvr.value:
-    #     sub_get_kwargs.calc_param_replace(info=info, instance_num=0)
     # 进行替换——并行 以ip为维度
     sub_sub_pipelines = []
     for mongodb_instance in info["instances"]:
