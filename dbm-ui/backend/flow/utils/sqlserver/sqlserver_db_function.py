@@ -28,7 +28,6 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.mysql.db_table_filter import DbTableFilter
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
-from backend.flow.utils.sqlserver.payload_handler import PayloadHandler
 
 
 def sqlserver_match_dbs(
@@ -343,8 +342,6 @@ def exec_instance_app_login(cluster: Cluster, exec_type: SqlserverLoginExecMode,
 
     # 获取系统账号
     sys_users = SQLSERVER_CUSTOM_SYS_USER
-    sys_users.append(PayloadHandler.get_sqlserver_drs_account(cluster.bk_cloud_id)["drs_user"])
-    sys_users.append(PayloadHandler.get_sqlserver_dbha_account(cluster.bk_cloud_id)["dbha_user"])
     sys_users_str = ",".join([f"'{i}'" for i in sys_users])
 
     # 查询所有的业务账号名称，这里会隐藏过滤掉job的临时账号

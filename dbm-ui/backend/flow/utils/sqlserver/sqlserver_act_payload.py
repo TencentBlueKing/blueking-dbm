@@ -267,10 +267,6 @@ class SqlserverActPayload(PayloadHandler):
         """
         实例之间克隆用户
         """
-        # 获取系统账号
-        sys_users = SQLSERVER_CUSTOM_SYS_USER
-        sys_users.append(self.get_sqlserver_drs_account(kwargs["ips"][0]["bk_cloud_id"])["drs_user"])
-        sys_users.append(self.get_sqlserver_dbha_account(kwargs["ips"][0]["bk_cloud_id"])["dbha_user"])
 
         return {
             "db_type": DBActuatorTypeEnum.Sqlserver.value,
@@ -282,7 +278,7 @@ class SqlserverActPayload(PayloadHandler):
                     "port": self.global_data["port"],
                     "source_host": self.global_data["source_host"],
                     "source_port": self.global_data["source_port"],
-                    "system_logins": sys_users,
+                    "system_logins": SQLSERVER_CUSTOM_SYS_USER,
                 },
             },
         }
