@@ -26,6 +26,8 @@
   "[css]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "typescript.tsserver.log": "verbose",
+  "typescript.tsserver.traceResolution": true,
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
   "css.validate": false,
@@ -55,5 +57,6 @@
     "titleBar.activeForeground": "#15202b",
     "titleBar.inactiveBackground": "#45e35f99",
     "titleBar.inactiveForeground": "#15202b99"
-  }
+  },
+  "typescript.tsdk": "node_modules/typescript/lib"
 }
