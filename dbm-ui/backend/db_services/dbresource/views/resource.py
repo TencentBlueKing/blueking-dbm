@@ -23,6 +23,7 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
+from backend.components.hcm.client import HCMApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.models import AppCache
@@ -36,6 +37,8 @@ from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (
     GetDiskTypeResponseSerializer,
     GetMountPointResponseSerializer,
+    ListCvmDeviceClassResponseSerializer,
+    ListCvmDeviceClassSerializer,
     ListDBAHostsSerializer,
     ListSubzonesSerializer,
     QueryDBAHostsSerializer,
@@ -58,6 +61,7 @@ from backend.db_services.ipchooser.handlers.host_handler import HostHandler
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.ipchooser.types import ScopeList
+from backend.exceptions import ApiRequestError
 from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
@@ -306,11 +310,26 @@ class DBResourceViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("获取机型列表"),
+        request_body=ListCvmDeviceClassSerializer(),
+        responses={status.HTTP_200_OK: ListCvmDeviceClassResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(detail=False, methods=["GET"])
+    @action(detail=False, methods=["POST"], serializer_class=ListCvmDeviceClassSerializer)
     def get_device_class(self, request):
-        return Response(DBResourceApi.get_device_class())
+        data = self.params_validate(self.get_serializer_class())
+        page = {"start": data["offset"], "limit": data["limit"]}
+        # 默认过滤条件是支持申请的机型
+        dvc_filter = {"condition": "AND", "rules": [{"field": "enable_apply", "operator": "equal", "value": True}]}
+        if data.get("name"):
+            dvc_filter["rules"].append({"field": "device_type", "operator": "contains", "value": data["name"]})
+        # 请求hcm平台获取机型列表，若报错则忽略
+        try:
+            device_list = HCMApi.list_cvm_device(params={"filter": dvc_filter, "page": page})
+            device_list["results"] = device_list.pop("info")
+        except (Exception, ApiRequestError):
+            device_list = {"count": 0, "results": []}
+
+        return Response(device_list)
 
     @common_swagger_auto_schema(
         operation_summary=_("资源预申请"),

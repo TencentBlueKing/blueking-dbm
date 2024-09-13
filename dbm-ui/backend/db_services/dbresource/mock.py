@@ -110,3 +110,24 @@ RESOURCE_SUMMARY_DATA = [
         "sub_zone_detail": {"上海-宝信": 1},
     },
 ]
+
+DEVICE_CLASS_DATA = {
+    "count": 1,
+    "results": [
+        {
+            "require_type": 1,
+            "region": "ap-nanjing",
+            "zone": "ap-nanjing-1",
+            "device_type": "xxxxxx",
+            "cpu": 10,
+            "mem": 100,
+            "disk": 100,
+            "remark": "",
+            "label": {"device_group": "标准型", "device_size": "大核心"},
+            "capacity_flag": 0,
+            "enable_apply": False,
+            "score": 0,
+            "comment": "xxxx",
+        }
+    ],
+}

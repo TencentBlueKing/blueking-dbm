@@ -20,10 +20,10 @@ from backend.bk_web import viewsets
 from backend.bk_web.models import AuditedModel
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, StorageInstance
 from backend.db_meta.models.spec import Spec
-from backend.db_services.dbresource.constants import CLUSTER_TYPE__SPEC_FILTER, SWAGGER_TAG
+from backend.db_services.dbresource.constants import SPEC_FILTER_FACTORY, SWAGGER_TAG
 from backend.db_services.dbresource.exceptions import SpecFilterClassDoesNotExistException, SpecOperateException
 from backend.db_services.dbresource.filters import SpecListFilter
 from backend.db_services.dbresource.serializers import (
@@ -74,14 +74,13 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     @staticmethod
     def instance_getter(request, view):
         # 如果是单个操作
-        convert = ClusterType.cluster_type_to_db_type
         if view.kwargs.get("pk"):
-            return [convert(Spec.objects.get(spec_id=view.kwargs["pk"]).spec_cluster_type)]
+            return [Spec.objects.get(spec_id=view.kwargs["pk"]).spec_cluster_type]
         elif request.data.get("spec_ids"):
             specs = Spec.objects.filter(pk__in=request.data["spec_ids"])
-            return list(set([convert(spec.spec_cluster_type) for spec in specs]))
+            return list(set([spec.spec_cluster_type for spec in specs]))
         elif request.data.get("spec_cluster_type"):
-            return [convert(request.data["spec_cluster_type"])]
+            return [request.data["spec_cluster_type"]]
         return []
 
     def _remove_spec_fields(self, machine_type, data):
@@ -156,7 +155,7 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
         tags=[SWAGGER_TAG],
     )
     @Permission.decorator_external_permission_field(
-        param_field=lambda d: ClusterType.cluster_type_to_db_type(d["spec_cluster_type"]),
+        param_field=lambda d: d["spec_cluster_type"],
         actions=[ActionEnum.SPEC_CREATE, ActionEnum.SPEC_DESTROY, ActionEnum.SPEC_UPDATE],
         resource_meta=ResourceEnum.DBTYPE,
     )
@@ -307,9 +306,12 @@ class DBSpecViewSet(viewsets.AuditedModelViewSet):
     )
     def filter_cluster_spec(self, request, *args, **kwargs):
         data = self.params_validate(self.get_serializer_class())
+        spec_cluster_type, spec_machine_type = data["spec_cluster_type"], data["spec_machine_type"]
         try:
-            specs = CLUSTER_TYPE__SPEC_FILTER[data["spec_cluster_type"]](**data).get_target_specs()
+            specs = SPEC_FILTER_FACTORY[spec_cluster_type][spec_machine_type](**data).get_target_specs()
         except KeyError:
-            raise SpecFilterClassDoesNotExistException(_("集群:{}的规格筛选类不存在，请实现相应接口").format(data["spec_cluster_type"]))
+            raise SpecFilterClassDoesNotExistException(
+                _("集群:{}-{}的规格筛选类不存在，请实现相应接口").format(spec_cluster_type, spec_machine_type)
+            )
 
         return Response(specs)

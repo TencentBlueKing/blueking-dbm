@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 
 
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums.spec import SpecClusterType
 from backend.ticket.constants import TicketType
 
 BK_USERNAME = "admin"
@@ -217,7 +218,7 @@ MANGODB_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
-        "spec_cluster_type": ClusterType.MongoShardedCluster,
+        "spec_cluster_type": SpecClusterType.MongoDB,
         "spec_machine_type": "mongos",
         "qps": {"max": 0, "min": 0},
         "enable": 1,
@@ -228,7 +229,7 @@ MANGODB_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
-        "spec_cluster_type": ClusterType.MongoShardedCluster,
+        "spec_cluster_type": SpecClusterType.MongoDB,
         "spec_machine_type": "mongos",
         "qps": {"max": 0, "min": 0},
         "enable": 1,
@@ -239,7 +240,7 @@ MANGODB_SPEC_DATA = [
         "cpu": {"max": 256, "min": 1},
         "mem": {"max": 256, "min": 1},
         "storage_spec": [{"size": 10, "type": "ALL", "mount_point": "/data"}],
-        "spec_cluster_type": ClusterType.MongoShardedCluster,
+        "spec_cluster_type": SpecClusterType.MongoDB,
         "spec_machine_type": "mongos",
         "qps": {"max": 0, "min": 0},
         "enable": 1,

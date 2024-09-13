@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from django.utils.translation import ugettext_lazy as _
 
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_services.dbresource.handlers import (
     MongoDBShardSpecFilter,
     RedisClusterSpecFilter,
@@ -31,14 +31,15 @@ RESOURCE_IMPORT_EXPIRE_TIME = 7 * 24 * 60 * 60
 GSE_AGENT_RUNNING_CODE = 2
 
 # 集群对应的规格筛选类
-CLUSTER_TYPE__SPEC_FILTER = {
-    ClusterType.TenDBCluster: TenDBClusterSpecFilter,
-    ClusterType.TendisPredixyRedisCluster: RedisClusterSpecFilter,
-    ClusterType.TendisPredixyTendisplusCluster: TendisPlusSpecFilter,
-    ClusterType.TendisTwemproxyRedisInstance: TendisCacheSpecFilter,
-    ClusterType.TwemproxyTendisSSDInstance: TendisSSDSpecFilter,
-    ClusterType.MongoShardedCluster: MongoDBShardSpecFilter,
-    ClusterType.MongoReplicaSet: MongoDBShardSpecFilter,
+SPEC_FILTER_FACTORY = {
+    SpecClusterType.TenDBCluster: {SpecMachineType.BACKEND: TenDBClusterSpecFilter},
+    SpecClusterType.Redis: {
+        SpecMachineType.TendisPredixyRedisCluster: RedisClusterSpecFilter,
+        SpecMachineType.TendisPredixyTendisplusCluster: TendisPlusSpecFilter,
+        SpecMachineType.TendisTwemproxyRedisInstance: TendisCacheSpecFilter,
+        SpecMachineType.TwemproxyTendisSSDInstance: TendisSSDSpecFilter,
+    },
+    SpecClusterType.MongoDB: {SpecMachineType.MONGODB: MongoDBShardSpecFilter},
 }
 
 

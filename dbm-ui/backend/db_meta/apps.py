@@ -33,7 +33,8 @@ def init_db_meta(sender, **kwargs):
 
     # 初始化规格配置
     try:
-        Spec.init_spec()
+        if not Spec.objects.count():
+            Spec.init_spec()
     except (IntegrityError, Exception) as err:  # pylint: disable=broad-except:
         logger.warning(f"Spec init occur error: {err}, maybe already init, ignore...")
 

@@ -15,7 +15,6 @@ from django.db.models import Q, QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
-from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.rediscluster.handler import RedisClusterHandler
 from backend.db_meta.api.cluster.redisinstance.handler import RedisInstanceHandler
 from backend.db_meta.api.cluster.tendiscache.handler import TendisCacheClusterHandler
@@ -23,6 +22,7 @@ from backend.db_meta.api.cluster.tendispluscluster.handler import TendisPlusClus
 from backend.db_meta.api.cluster.tendisssd.handler import TendisSSDClusterHandler
 from backend.db_meta.enums import ClusterEntryType, InstanceRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums.spec import SpecClusterType
 from backend.db_meta.models import AppCache, Machine, Spec
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources import query
@@ -105,8 +105,7 @@ class RedisListRetrieveResource(query.ListRetrieveResource):
         **kwargs,
     ) -> ResourceList:
         # 预取remote的spec
-        redis_types = ClusterType.db_type_to_cluster_types(DBType.Redis)
-        redis_spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type__in=redis_types)}
+        redis_spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type=SpecClusterType.Redis)}
         return super()._filter_cluster_hook(
             bk_biz_id,
             cluster_queryset,

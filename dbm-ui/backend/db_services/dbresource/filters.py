@@ -12,7 +12,6 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 
-from backend.db_meta.enums import ClusterType
 from backend.db_meta.models.spec import Spec
 
 
@@ -31,8 +30,7 @@ class SpecListFilter(filters.FilterSet):
         return queryset.order_by(time_field)
 
     def filter_spec_db_type(self, queryset, name, value):
-        cluster_types = ClusterType.db_type_to_cluster_types(value)
-        return queryset.filter(spec_cluster_type__in=cluster_types)
+        return queryset.filter(spec_cluster_type=value)
 
     def filter_spec_ids(self, queryset, name, value):
         ids = value.split(",")

@@ -19,6 +19,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.api.cluster.tendbcluster.detail import scan_cluster
 from backend.db_meta.enums import InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.enums.spec import SpecClusterType
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import AppCache, Spec
 from backend.db_meta.models.cluster import Cluster
@@ -86,7 +87,7 @@ class ListRetrieveResource(query.ListRetrieveResource):
         proxy_queryset = proxy_queryset.prefetch_related("tendbclusterspiderext")
         # 预取remote的spec
         remote_spec_map = {
-            spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type=ClusterType.TenDBCluster)
+            spec.spec_id: spec for spec in Spec.objects.filter(spec_cluster_type=SpecClusterType.TenDBCluster)
         }
         return super()._filter_cluster_hook(
             bk_biz_id,

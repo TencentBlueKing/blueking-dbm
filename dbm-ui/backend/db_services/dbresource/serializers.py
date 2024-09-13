@@ -15,7 +15,8 @@ from rest_framework import serializers
 
 from backend import env
 from backend.constants import INT_MAX
-from backend.db_meta.enums import ClusterType, InstanceRole, MachineType
+from backend.db_meta.enums import InstanceRole
+from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource import mock
 from backend.db_services.dbresource.constants import ResourceGroupByEnum, ResourceOperation
@@ -248,10 +249,10 @@ class ResourceSummarySerializer(serializers.Serializer):
     # 聚合过滤字段
     db_type = serializers.CharField(help_text=_("db类型"))
     machine_type = serializers.ChoiceField(
-        help_text=_("机器类型"), choices=MachineType.get_choices(), required=False, default=""
+        help_text=_("机器类型"), choices=SpecMachineType.get_choices(), required=False, default=""
     )
     cluster_type = serializers.ChoiceField(
-        help_text=_("集群类型"), choices=ClusterType.get_choices(), required=False, default=""
+        help_text=_("集群类型"), choices=SpecClusterType.get_choices(), required=False, default=""
     )
     spec_id_list = serializers.CharField(help_text=_("规格ID"), required=False, default="")
 
@@ -286,10 +287,16 @@ class SpecSerializer(serializers.ModelSerializer):
         swagger_schema_fields = {"example": SPEC_DATA}
 
     def get_spec_db_type(self, obj):
-        db_type = ClusterType.cluster_type_to_db_type(obj.spec_cluster_type)
+        db_type = obj.spec_cluster_type
         return db_type
 
     def validate_valid_cpu_mem(self, attrs):
+        # 校验cpu,mem的值是int
+        try:
+            attrs["cpu"]["min"], attrs["cpu"]["max"] = int(attrs["cpu"]["min"]), int(attrs["cpu"]["max"])
+            attrs["mem"]["min"], attrs["mem"]["max"] = float(attrs["mem"]["min"]), float(attrs["mem"]["max"])
+        except ValueError:
+            raise serializers.ValidationError(_("请保证CPU/MEM的取值为数字"))
         # 校验cpu, mem是正确的范围
         if attrs["cpu"]["min"] > attrs["cpu"]["max"] or attrs["mem"]["min"] > attrs["mem"]["max"]:
             raise serializers.ValidationError(_("请保证CPU/MEM的最小最大范围合理"))
@@ -324,18 +331,20 @@ class SpecSerializer(serializers.ModelSerializer):
         standard_mount_points = ["/data", "/data1"]
         mount_points = [storage["mount_point"] for storage in attrs["storage_spec"]]
         # TenDBCluster 磁盘录入只能是/data or /data和/data1
-        if attrs["spec_cluster_type"] == ClusterType.TenDBCluster and attrs["spec_machine_type"] == MachineType.REMOTE:
+        if (
+            attrs["spec_cluster_type"] == SpecClusterType.TenDBCluster
+            and attrs["spec_machine_type"] == SpecMachineType.BACKEND
+        ):
             if not ("/data" in mount_points and set(mount_points).issubset(standard_mount_points)):
                 raise serializers.ValidationError(
                     _("【{}】后端磁盘挂载点必须包含/data，可选/data1").format(attrs["spec_cluster_type"])
                 )
         # TendisPlus/TendisSSD 磁盘必须包含/data，/data1可选
-        if attrs["spec_cluster_type"] in [
-            ClusterType.TwemproxyTendisSSDInstance,
-            ClusterType.TendisPredixyTendisplusCluster,
-        ] and attrs["spec_machine_type"] in [MachineType.TENDISPLUS, MachineType.TENDISSSD]:
-            if "/data" not in set(mount_points):
-                raise serializers.ValidationError(_("【{}】后端磁盘挂载点必须包含/data").format(attrs["spec_cluster_type"]))
+        if attrs["spec_machine_type"] in [
+            SpecMachineType.TwemproxyTendisSSDInstance,
+            SpecMachineType.TendisPredixyTendisplusCluster,
+        ] and "/data" not in set(mount_points):
+            raise serializers.ValidationError(_("【{}】后端磁盘挂载点必须包含/data").format(attrs["spec_machine_type"]))
 
     def validate(self, attrs):
         self.validate_valid_cpu_mem(attrs)
@@ -357,8 +366,8 @@ class SpecEnableDisableSerializer(serializers.Serializer):
 
 
 class VerifyDuplicatedSpecNameSerializer(serializers.Serializer):
-    spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
-    spec_machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=MachineType.get_choices())
+    spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=SpecClusterType.get_choices())
+    spec_machine_type = serializers.ChoiceField(help_text=_("机器类型"), choices=SpecMachineType.get_choices())
     spec_name = serializers.CharField(help_text=_("规格名称"))
     spec_id = serializers.IntegerField(help_text=_("规格ID(更新时传递)"), required=False)
 
@@ -379,8 +388,8 @@ class RecommendResponseSpecSerializer(serializers.Serializer):
 
 
 class QueryQPSRangeSerializer(serializers.Serializer):
-    spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices())
-    spec_machine_type = serializers.ChoiceField(help_text=_("角色类型"), choices=MachineType.get_choices())
+    spec_cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=SpecClusterType.get_choices())
+    spec_machine_type = serializers.ChoiceField(help_text=_("角色类型"), choices=SpecMachineType.get_choices())
     capacity = serializers.FloatField(help_text=_("当前容量需求"))
     future_capacity = serializers.IntegerField(help_text=_("未来容量需求"), required=False)
     shard_num = serializers.IntegerField(help_text=_("所需分片数"), required=False, default=0)
@@ -420,3 +429,14 @@ class SpecCountResourceSerializer(serializers.Serializer):
 class SpecCountResourceResponseSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": {"spec1": 10, "spec2": 10}}
+
+
+class ListCvmDeviceClassSerializer(serializers.Serializer):
+    offset = serializers.IntegerField(help_text=_("起始位置"), required=False, default=0)
+    limit = serializers.IntegerField(help_text=_("分页限制"), required=False, default=10, max_value=200)
+    name = serializers.CharField(help_text=_("名称"), required=False, default="", allow_null=True, allow_blank=True)
+
+
+class ListCvmDeviceClassResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.DEVICE_CLASS_DATA}
