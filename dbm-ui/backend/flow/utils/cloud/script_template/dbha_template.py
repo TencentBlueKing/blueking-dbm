@@ -28,7 +28,8 @@ agent_conf:
     "TwemproxyTendisSSDInstance",
     "PredixyRedisCluster",
     "RedisInstance",
-    "MongoShardedCluster"
+    "MongoShardedCluster",
+    "sqlserver_ha",
   ]
   city_id: {{city}}
   campus: "{{campus}}"
@@ -93,6 +94,10 @@ db_conf:
     timeout: 10
   mongodb:
     timeout: 5
+  sqlserver:
+    user: "mssql_dbha"
+    pass: "{{dbha_password}}"
+    timeout: 10
 name_services:
   dns_conf:
     host: "{{nginx_domain}}"
@@ -141,6 +146,8 @@ ssh:
   port: 36000
   user: "mysql"
   pass: "{{mysql_os_password}}"
+  sqlserver_ssh_user: "{{sqlserver_os_user}}"
+  sqlserver_ssh_pass: "{{sqlserver_os_password}}"
   dest: "agent"
   timeout: 10
 """
@@ -163,7 +170,8 @@ agent_conf:
     "TwemproxyTendisSSDInstance",
     "PredixyRedisCluster",
     "RedisInstance",
-    "MongoShardedCluster"
+    "MongoShardedCluster",
+    "sqlserver_ha",
   ]
   city_id: {{city}}
   campus: "{{campus}}"
@@ -228,6 +236,10 @@ db_conf:
     timeout: 10
   mongodb:
     timeout: 5
+  sqlserver:
+    user: "mssql_dbha"
+    pass: "{{dbha_password}}"
+    timeout: 10
 name_services:
   dns_conf:
     host: "{{nginx_domain}}"
@@ -272,6 +284,8 @@ ssh:
   port: 36000
   user: "mysql"
   pass: "{{mysql_os_password}}"
+  sqlserver_ssh_user: "{{sqlserver_os_user}}"
+  sqlserver_ssh_pass: "{{sqlserver_os_password}}"
   dest: "agent"
   timeout: 10
 """

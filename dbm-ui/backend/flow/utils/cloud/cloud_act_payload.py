@@ -27,6 +27,8 @@ from backend.flow.consts import (
     CloudServiceConfFileEnum,
     CloudServiceName,
     MySQLPrivComponent,
+    SqlserverComponent,
+    SqlserverUserName,
     UserName,
 )
 from backend.flow.engine.exceptions import ServiceDoesNotApply
@@ -127,6 +129,7 @@ class CloudServiceActPayload(object):
             components=[
                 {"username": UserName.PROXY, "component": MySQLPrivComponent.PROXY},
                 {"username": UserName.OS_MYSQL, "component": MySQLPrivComponent.MYSQL},
+                {"username": SqlserverUserName.MSSQL.value, "component": SqlserverComponent.SQLSERVER.value},
             ]
         )
         return {
@@ -144,6 +147,8 @@ class CloudServiceActPayload(object):
             "mysql_crond_beat_path": env.MYSQL_CROND_BEAT_PATH,
             "proxy_password": dbha_password_map[UserName.PROXY][MySQLPrivComponent.PROXY],
             "mysql_os_password": dbha_password_map[UserName.OS_MYSQL][MySQLPrivComponent.MYSQL],
+            "sqlserver_os_user": SqlserverUserName.MSSQL.value,
+            "sqlserver_os_password": dbha_password_map[SqlserverUserName.MSSQL][SqlserverComponent.SQLSERVER],
             "local_ip": self.kwargs["exec_ip"]["ip"],
         }
 
