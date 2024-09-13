@@ -48,6 +48,7 @@ from backend.ticket.constants import (
 )
 from backend.ticket.contexts import TicketContext
 from backend.ticket.exceptions import TicketDuplicationException
+from backend.ticket.filters import TicketListFilter
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import TicketHandler
 from backend.ticket.models import ClusterOperateRecord, InstanceOperateRecord, Ticket, TicketFlowsConfig, Todo
@@ -89,15 +90,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    # filter_class = TicketListFilter
-    filter_fields = {
-        "id": ["exact", "in"],
-        "bk_biz_id": ["exact"],
-        "ticket_type": ["exact", "in"],
-        "status": ["exact", "in"],
-        "create_at": ["gte", "lte"],
-        "creator": ["exact"],
-    }
+    filter_class = TicketListFilter
 
     def _get_custom_permissions(self):
         # 创建单据，关联单据类型的动作
@@ -275,7 +268,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         auto_schema=PaginatedResponseSwaggerAutoSchema,
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, serializer_class=ListTicketStatusSerializer, filter_fields=None)
+    @action(methods=["GET"], detail=False, serializer_class=ListTicketStatusSerializer, filter_class=None)
     def list_ticket_status(self, request, *args, **kwargs):
         ticket_ids = self.params_validate(self.get_serializer_class())["ticket_ids"].split(",")
         ticket_status_map = {ticket.id: ticket.status for ticket in Ticket.objects.filter(id__in=ticket_ids)}
@@ -352,7 +345,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         responses={status.HTTP_200_OK: TicketTypeResponseSLZ(many=True)},
         tags=[TICKET_TAG],
     )
-    @action(methods=["GET"], detail=False, filter_fields=None, pagination_class=None, serializer_class=TicketTypeSLZ)
+    @action(methods=["GET"], detail=False, filter_class=None, pagination_class=None, serializer_class=TicketTypeSLZ)
     def flow_types(self, request, *args, **kwargs):
         is_apply = self.params_validate(self.get_serializer_class())["is_apply"]
         ticket_type_list = []
@@ -556,7 +549,7 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         methods=["GET"],
         detail=False,
         serializer_class=QueryTicketFlowDescribeSerializer,
-        filter_fields=None,
+        filter_class=None,
         pagination_class=None,
     )
     @Permission.decorator_external_permission_field(
