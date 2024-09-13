@@ -94,6 +94,10 @@
     (e: 'change', value: TExpansionNode['resourceSpec'], expansionDisk: TExpansionNode['expansionDisk']): void;
   }
 
+  interface Exposes {
+    triggerLatestValue: () => void;
+  }
+
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
@@ -180,6 +184,12 @@
     machinePairCnt.value = value;
     triggerChange();
   };
+
+  defineExpose<Exposes>({
+    triggerLatestValue() {
+      triggerChange();
+    },
+  });
 </script>
 <style lang="less">
   .es-cluster-expansion-resource-pool-selector {
