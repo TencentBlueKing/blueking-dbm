@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import datetime
 import json
 import logging
@@ -31,6 +32,8 @@ from backend.core.storages.constants import FileCredentialType, StorageType
 from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
+from backend.db_monitor.constants import AUTOFIX_ACTION_TEMPLATE
+from backend.db_monitor.utils import get_dbm_autofix_action_id
 from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DEFAULT_CLOUD, DIRTY_MODULE, RESOURCE_MODULE
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
@@ -420,6 +423,20 @@ class Services:
         )
 
     @staticmethod
+    def auto_create_bkmonitor_action() -> int:
+        """初始化监控处理套餐"""
+        action_id = get_dbm_autofix_action_id()
+        action_config = copy.deepcopy(AUTOFIX_ACTION_TEMPLATE)
+
+        if action_id is None:
+            BKMonitorV3Api.save_action_config(action_config)
+        else:
+            action_config["id"] = action_id
+            BKMonitorV3Api.edit_action_config(action_config)
+
+        return action_id
+
+    @staticmethod
     def auto_create_bkmonitor_alarm() -> bool:
         """初始化bkmonitor配置"""
 
@@ -428,11 +445,13 @@ class Services:
 
         logger.info("auto_create_bkmonitor_service")
 
+        action_id = Services.auto_create_bkmonitor_action()
+
         # 加载采集策略
         CollectInstance.sync_collect_strategy()
 
         # 加载告警策略
-        sync_plat_monitor_policy()
+        sync_plat_monitor_policy(action_id)
 
         return True
 
