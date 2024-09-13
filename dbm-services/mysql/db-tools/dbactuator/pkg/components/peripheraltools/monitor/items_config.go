@@ -4,8 +4,11 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"fmt"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v2"
@@ -13,7 +16,7 @@ import (
 
 func (c *MySQLMonitorComp) GenerateItemsConfig() (err error) {
 	for _, inst := range c.Params.InstancesInfo {
-		err = generateItemsConfigIns(inst)
+		err = generateItemsConfigIns(inst, c.Params.ItemsConfig)
 		if err != nil {
 			return err
 		}
@@ -21,8 +24,13 @@ func (c *MySQLMonitorComp) GenerateItemsConfig() (err error) {
 	return nil
 }
 
-func generateItemsConfigIns(instance *instanceInfo) (err error) {
-	b, err := yaml.Marshal(maps.Values(instance.ItemsConfig))
+func generateItemsConfigIns(instance *internal.InstanceInfo, itemsConfig map[string]*config.MonitorItem) (err error) {
+	itemList := maps.Values(itemsConfig)
+	slices.SortFunc(itemList, func(a, b *config.MonitorItem) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+
+	b, err := yaml.Marshal(itemList)
 	if err != nil {
 		logger.Error(err.Error())
 		return err

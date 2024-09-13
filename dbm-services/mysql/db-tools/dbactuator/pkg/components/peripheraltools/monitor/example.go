@@ -23,25 +23,23 @@ func (c *MySQLMonitorComp) Example() interface{} {
 			SystemDbs: native.DBSys,
 			ExecUser:  "whoru",
 			ApiUrl:    `http://x.x.x.x:yyyy`,
-			InstancesInfo: []*instanceInfo{
+			ItemsConfig: map[string]*config.MonitorItem{
+				"character-consistency": {
+					Name:        "",
+					Enable:      nil,
+					Schedule:    nil,
+					MachineType: nil,
+					Role:        nil,
+				},
+			},
+			InstancesInfo: []*internal.InstanceInfo{
 				{
-					internal.InstanceInfo{
-						BkBizId:      1,
-						Ip:           "127.0.0.1",
-						Port:         123,
-						Role:         "master",
-						ClusterId:    12,
-						ImmuteDomain: "aaa.bbb.com",
-					},
-					map[string]*config.MonitorItem{
-						"character-consistency": {
-							Name:        "",
-							Enable:      nil,
-							Schedule:    nil,
-							MachineType: nil,
-							Role:        nil,
-						},
-					},
+					BkBizId:      1,
+					Ip:           "127.0.0.1",
+					Port:         123,
+					Role:         "master",
+					ClusterId:    12,
+					ImmuteDomain: "aaa.bbb.com",
 				},
 			},
 			MachineType: "backend",

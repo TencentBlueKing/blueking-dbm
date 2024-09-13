@@ -14,6 +14,7 @@ import os
 from typing import Any, List
 
 from django.conf import settings
+from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from backend import env
@@ -1493,6 +1494,15 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         部署mysql/proxy/spider事件监控程序
         """
         mysql_monitor_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLMonitor)
+        cluster_ids = self.cluster.get("cluster_ids", [])
+        if not cluster_ids:
+            cluster_ids = list(
+                set(
+                    Cluster.objects.filter(
+                        Q(storageinstance__machine__ip=kwargs["ip"]) | Q(proxyinstance__machine__ip=kwargs["ip"])
+                    ).values_list("id", flat=True)
+                )
+            )
 
         instances_info = []
         machine = Machine.objects.get(ip=kwargs["ip"])
@@ -1513,7 +1523,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         logger.info("config_items: {}".format(config_items))
 
         if machine.machine_type == MachineType.PROXY.value:
-            for instance in ProxyInstance.objects.filter(machine__ip=kwargs["ip"]):
+            for instance in ProxyInstance.objects.filter(machine__ip=kwargs["ip"], cluster__id__in=cluster_ids):
                 cluster = instance.cluster.get()
                 instances_info.append(
                     {
@@ -1524,12 +1534,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "immute_domain": cluster.immute_domain,
                         "bk_instance_id": instance.bk_instance_id,
                         "db_module_id": instance.db_module_id,
-                        "items_config": config_items["content"],  # 监控配置放到实例信息里面, 为后面个性化配置做准备
+                        # "items_config": config_items["content"],  # 监控配置放到实例信息里面, 为后面个性化配置做准备
                     }
                 )
         # 增加对安装spider监控的适配
         elif machine.machine_type == MachineType.SPIDER.value:
-            for instance in ProxyInstance.objects.filter(machine__ip=kwargs["ip"]):
+            for instance in ProxyInstance.objects.filter(machine__ip=kwargs["ip"], cluster__id__in=cluster_ids):
                 cluster = instance.cluster.get()
                 instances_info.append(
                     {
@@ -1541,13 +1551,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "immute_domain": cluster.immute_domain,
                         "bk_instance_id": instance.bk_instance_id,
                         "db_module_id": instance.db_module_id,
-                        "items_config": config_items["content"],  # 监控配置放到实例信息里面, 为后面个性化配置做准备
+                        # "items_config": config_items["content"],  # 监控配置放到实例信息里面, 为后面个性化配置做准备
                     }
                 )
 
         # 不同角色的mysql实例，role是否传对应的instance_inner_role ？
         elif machine.machine_type in (MachineType.BACKEND.value, MachineType.SINGLE.value, MachineType.REMOTE.value):
-            for instance in StorageInstance.objects.filter(machine__ip=kwargs["ip"]):
+            for instance in StorageInstance.objects.filter(machine__ip=kwargs["ip"], cluster__id__in=cluster_ids):
                 cluster = instance.cluster.get()
                 instances_info.append(
                     {
@@ -1559,7 +1569,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "immute_domain": cluster.immute_domain,
                         "bk_instance_id": instance.bk_instance_id,
                         "db_module_id": instance.db_module_id,
-                        "items_config": config_items["content"],  # 监控配置放到实例信息里面, 为后面个性化配置做准备
+                        # "items_config": config_items["content"],  # 监控配置放到实例信息里面, 为后面个性化配置做准备
                     }
                 )
         else:
@@ -1579,7 +1589,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "machine_type": machine.machine_type,
                     "bk_cloud_id": int(self.bk_cloud_id),
                     "instances_info": instances_info,
-                    # "items_config": config_items["content"],
+                    "items_config": config_items["content"],
                 },
             },
         }
