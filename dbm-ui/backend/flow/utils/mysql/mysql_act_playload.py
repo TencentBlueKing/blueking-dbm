@@ -1862,9 +1862,9 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "shard_id": self.ticket_data.get("shard_id", 0),
                     "backup_file_tag": self.ticket_data.get("file_tag", ""),
                     "db_patterns": self.ticket_data.get("db_patterns", ["*"]),
-                    "ignore_dbs": self.ticket_data.get("ignore_dbs", ""),
+                    "ignore_dbs": self.ticket_data.get("ignore_dbs", []),
                     "table_patterns": self.ticket_data.get("table_patterns", ["*"]),
-                    "ignore_tables": self.ticket_data.get("ignore_tables", ""),
+                    "ignore_tables": self.ticket_data.get("ignore_tables", []),
                 },
             },
         }
