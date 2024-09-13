@@ -19,7 +19,15 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_proxy.constants import ExtensionType
 from backend.db_proxy.models import DBExtension
-from backend.flow.consts import DEFAULT_INSTANCE, MSSQL_ADMIN, MSSQL_EXPORTER, SqlserverComponent, SqlserverUserName
+from backend.flow.consts import (
+    DEFAULT_INSTANCE,
+    MSSQL_ADMIN,
+    MSSQL_DBHA,
+    MSSQL_DRS,
+    MSSQL_EXPORTER,
+    SqlserverComponent,
+    SqlserverUserName,
+)
 from backend.flow.utils.mysql.get_mysql_sys_user import generate_mysql_tmp_user
 
 logger = logging.getLogger("flow")
@@ -37,13 +45,13 @@ class PayloadHandler(object):
         """
         获取sqlserver在drs的admin账号密码
         """
-        if env.DRS_USERNAME:
-            return {"drs_user": env.DRS_USERNAME, "drs_pwd": env.DRS_PASSWORD}
+        if env.DRS_PASSWORD:
+            return {"drs_user": MSSQL_DRS, "drs_pwd": env.DRS_PASSWORD}
 
         bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
         drs = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DRS)
         return {
-            "drs_user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["user"]),
+            "drs_user": MSSQL_DRS,
             "drs_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
         }
 
@@ -52,13 +60,13 @@ class PayloadHandler(object):
         """
         获取sqlserver在dbha账号密码
         """
-        if env.DBHA_USERNAME:
-            return {"dbha_user": env.DBHA_USERNAME, "dbha_pwd": env.DBHA_PASSWORD}
+        if env.DBHA_PASSWORD:
+            return {"dbha_user": MSSQL_DBHA, "dbha_pwd": env.DBHA_PASSWORD}
 
         bk_cloud_name = AsymmetricCipherConfigType.get_cipher_cloud_name(bk_cloud_id)
         drs = DBExtension.get_latest_extension(bk_cloud_id=bk_cloud_id, extension_type=ExtensionType.DBHA)
         return {
-            "dbha_user": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["user"]),
+            "dbha_user": MSSQL_DBHA,
             "dbha_pwd": AsymmetricHandler.decrypt(name=bk_cloud_name, content=drs.details["pwd"]),
         }
 

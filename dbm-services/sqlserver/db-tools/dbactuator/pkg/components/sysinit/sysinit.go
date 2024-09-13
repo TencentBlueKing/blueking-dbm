@@ -138,6 +138,20 @@ func (s *SysInitParam) CreateSysUser() error {
 		return err
 	}
 	logger.Info("create system-user [%s] successfully ", s.SQLServerUser)
+	// 创建backupman账号
+	backupman := osutil.WINSOSUser{
+		User:    "backupman",
+		Pass:    osutil.GenerateRandomString(12),
+		Comment: "BACKUP ACCOUNT",
+	}
+	if backupman.UserExists() {
+		logger.Info("backupman is exist,skip")
+		return nil
+	} else {
+		if err := backupman.CreateUser(false); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

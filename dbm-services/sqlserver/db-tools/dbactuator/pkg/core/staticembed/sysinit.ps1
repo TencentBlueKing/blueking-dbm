@@ -35,3 +35,7 @@ FOREACH($DISK IN $DISKLIST)
 # 导入 ServerManager 模块
 IMPORT-MODULE SERVERMANAGER
 
+
+# 添加路径
+$NewPath = [System.Environment]::GetEnvironmentVariable("Path", [System.EnvironmentVariableTarget]::Machine) + ";C:\cygwinroot\usr\local\bin;C:\cygwinroot\bin"
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" -Name "Path" -Value $NewPath

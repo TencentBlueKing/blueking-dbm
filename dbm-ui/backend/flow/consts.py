@@ -771,11 +771,17 @@ SQLSERVER_CUSTOM_SYS_DB = "Monitor"
 # sqlserver的exporter账号名称
 MSSQL_EXPORTER = "mssql_exporter"
 
+# sqlserver的DBHA账号名称
+MSSQL_DBHA = "mssql_dbha"
+
+# sqlserver的DRS账号名称
+MSSQL_DRS = "mssql_drs"
+
 # sqlserver的用户登录admin账号名称
 MSSQL_ADMIN = SQLSERVER_ADMIN_USER
 
 # sqlserver自定义系统账号列表
-SQLSERVER_CUSTOM_SYS_USER = [MSSQL_EXPORTER, MSSQL_ADMIN, "sa"]
+SQLSERVER_CUSTOM_SYS_USER = [MSSQL_EXPORTER, MSSQL_ADMIN, MSSQL_DBHA, MSSQL_DRS, "sa"]
 
 # tbinlogdumper连接kafka的global config的定义
 TBINLOGDUMPER_KAFKA_GLOBAL_CONF = {

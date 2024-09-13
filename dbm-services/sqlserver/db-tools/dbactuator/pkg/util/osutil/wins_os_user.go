@@ -82,7 +82,7 @@ func (w *WINSOSUser) RemoveGroupMember(groupName string) error {
 func (w *WINSOSUser) CreateUser(isTranAdmin bool) error {
 	// 创建账号，账号默认在内置的Users组
 	if _, err := StandardPowerShellCommand(
-		fmt.Sprintf("net user %s %s /add /comment:'%s' /passwordchg:no /expires:NEVER", w.User, w.Pass, w.Comment),
+		fmt.Sprintf("net user %s %s /add /comment:'%s' /expires:NEVER", w.User, w.Pass, w.Comment),
 	); err != nil {
 		return err
 	}
