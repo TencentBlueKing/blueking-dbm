@@ -136,7 +136,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[],
         group=_("全局设置"),
-        subgroup=_(""),
+        subgroup="",
         hidden=True,
     )
 
@@ -181,7 +181,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[],
         group=_("资源管理"),
-        subgroup=_(""),
+        subgroup="",
         hidden=True,
     )
 
@@ -1727,7 +1727,7 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务配置"),
-        subgroup=_(""),
+        subgroup="",
     )
 
     GLOBAL_DBA_ADMINISTRATOR_EDIT = ActionMeta(
@@ -1738,7 +1738,7 @@ class ActionEnum:
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[ResourceEnum.DBTYPE],
         group=_("全局设置"),
-        subgroup=_(""),
+        subgroup="",
         hidden=True,
     )
 
@@ -1774,7 +1774,7 @@ class ActionEnum:
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[],
         group=_("全局设置"),
-        subgroup=_(""),
+        subgroup="",
         hidden=True,
     )
 
@@ -1870,7 +1870,7 @@ class ActionEnum:
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
         group=_("业务配置"),
-        subgroup=_(""),
+        subgroup="",
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
@@ -1882,7 +1882,7 @@ class ActionEnum:
         related_actions=[GLOBAL_MANAGE.id],
         related_resource_types=[],
         group=_("全局设置"),
-        subgroup=_(""),
+        subgroup="",
         hidden=True,
     )
 

@@ -1801,7 +1801,7 @@ class RedisDBMeta(object):
                 cluster_entry.storageinstance_set.add(*storageinstances)
                 cluster_entry.save()
                 logger.info(
-                    _("redis集群:%s cluster_type:%s 新增 %s cluster_entry").format(
+                    _("redis集群:{} cluster_type:{} 新增 {} cluster_entry").format(
                         cluster.immute_domain, cluster.cluster_type, nodes_domain
                     )
                 )
@@ -1811,7 +1811,7 @@ class RedisDBMeta(object):
                 cluster_entry.storageinstance_set.add(*storageinstances)
                 cluster_entry.save()
                 logger.info(
-                    _("redis集群:%s cluster_type:%s 更新 cluster_entry:%s").format(
+                    _("redis集群:{} cluster_type:{} 更新 cluster_entry:{}").format(
                         cluster.immute_domain, cluster.cluster_type, cluster_entry.entry
                     )
                 )
