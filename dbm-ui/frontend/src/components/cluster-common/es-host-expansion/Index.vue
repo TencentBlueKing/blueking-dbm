@@ -27,7 +27,7 @@
               <BkInput
                 clearable
                 :min="data.totalDisk"
-                :model-value="targetDisk > 0 ? targetDisk : undefined"
+                :model-value="targetDisk"
                 :placeholder="t('请输入')"
                 style="width: 156px; margin-right: 8px"
                 type="number"
@@ -72,6 +72,7 @@
       <BkFormItem :label="t('服务器')">
         <ResourcePoolSelector
           v-if="ipSource === 'resource_pool'"
+          ref="resourcePoolSelectorRef"
           :cloud-info="cloudInfo"
           :data="data"
           @change="handleResourcePoolChange" />
@@ -134,7 +135,7 @@
     disableHostMethod?: (params: HostDetails) => string | boolean;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const targetDisk = defineModel<TExpansionNode['targetDisk']>('targetDisk', {
     required: true,
@@ -151,9 +152,14 @@
 
   const { t } = useI18n();
 
+  const resourcePoolSelectorRef = ref<InstanceType<typeof ResourcePoolSelector>>();
+
   const handleTargetDiskChange = (value: TExpansionNode['targetDisk']) => {
     targetDisk.value = ~~value;
     window.changeConfirm = true;
+    if (props.ipSource === 'resource_pool') {
+      resourcePoolSelectorRef.value!.triggerLatestValue();
+    }
   };
 
   const handleHoseSelectChange = (
