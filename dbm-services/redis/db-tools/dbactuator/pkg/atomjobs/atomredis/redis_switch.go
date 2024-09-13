@@ -403,6 +403,7 @@ func (job *RedisSwitch) doTendisStorageSwitch4Cluster(storagePair InstanceSwitch
 				err = fmt.Errorf("Err:SwitchFailed4Role<SLAVE>")
 			} else {
 				job.setSwitchRst(storagePair, true)
+				job.trySetMasterAuth(storagePair)
 				job.runtime.Logger.Info("on [%s] exec cluster failover %s with no err, and role is <MASTER>",
 					newMasterAddr, job.params.SyncCondition.SwitchOpt)
 				break
@@ -420,6 +421,25 @@ func (job *RedisSwitch) doTendisStorageSwitch4Cluster(storagePair InstanceSwitch
 		storagePair.MasterInfo.IP, storagePair.MasterInfo.Port,
 		storagePair.SlaveInfo.IP, storagePair.SlaveInfo.Port, x)
 	return nil
+}
+
+// cluster模式下，执行互切，尝试给新slave（OldMaster）设置密码
+func (job *RedisSwitch) trySetMasterAuth(sp InstanceSwitchParam) {
+	oldAddr := fmt.Sprintf("%s:%d", sp.MasterInfo.IP, sp.MasterInfo.Port)
+	conn, err := myredis.NewRedisClientWithTimeout(oldAddr,
+		job.params.ClusterMeta.StoragePassword, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
+	if err != nil {
+		job.runtime.Logger.Warn("try conn old master :%s:%d failed:%+v", sp.MasterInfo.IP, sp.MasterInfo.Port, err)
+		return
+	}
+	defer conn.Close()
+	if _, err := conn.ConfigSet("masterauth", job.params.ClusterMeta.StoragePassword); err != nil {
+		job.runtime.Logger.Warn("try set old master :%s:%d failed:%+v", sp.MasterInfo.IP, sp.MasterInfo.Port, err)
+	}
+	if _, err := conn.ConfigRewrite(); err != nil {
+		job.runtime.Logger.Warn("try rewrite old master :%s:%d failed:%+v", sp.MasterInfo.IP, sp.MasterInfo.Port, err)
+	}
+	job.runtime.Logger.Info("try set new slave masterAuth :%s:%d success ^_^", sp.MasterInfo.IP, sp.MasterInfo.Port)
 }
 
 // doTendisStorageSwitch4Twemproxy 刷新twemproxy 后端
@@ -565,7 +585,9 @@ func (job *RedisSwitch) GetClusterRuntimeMasters() (map[string]string, error) {
 			return runtimeMasters, fmt.Errorf("get cluster nodes failed:%s;%+v", job.params.ClusterMeta.ImmuteDomain, err)
 		} else {
 			for _, node := range nodes {
-				runtimeMasters[node.Addr] = node.SlotSrcStr
+				if node.Role == "master" && node.SlotSrcStr != "" { //需要是Master，并且承担Slot的节点
+					runtimeMasters[node.Addr] = node.SlotSrcStr
+				}
 			}
 		}
 		// 单实例主从模式
