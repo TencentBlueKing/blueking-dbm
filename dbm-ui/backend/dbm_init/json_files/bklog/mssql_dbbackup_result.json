@@ -1,7 +1,7 @@
 {
     "bk_biz_id": null,
-    "collector_config_name": "mssql_binlog_result",
-    "collector_config_name_en": "mssql_binlog_result",
+    "collector_config_name": "mssql_dbbackup_result",
+    "collector_config_name_en": "mssql_dbbackup_result",
     "collector_scenario_id": "row",
     "category_id": "host_process",
     "etl_config": "bk_log_json",
