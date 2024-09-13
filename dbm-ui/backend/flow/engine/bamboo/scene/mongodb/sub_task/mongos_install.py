@@ -71,7 +71,5 @@ def mongos_install(
     # 安装监控
 
     return sub_pipeline.build_sub_process(
-        sub_name=_(
-            "MongoDB--安装mongos--{}-{}".format(sub_get_kwargs.payload["app"], sub_get_kwargs.payload["cluster_id"])
-        )
+        sub_name=_("MongoDB--安装mongos--{}".format(sub_get_kwargs.payload["cluster_id"]))
     )

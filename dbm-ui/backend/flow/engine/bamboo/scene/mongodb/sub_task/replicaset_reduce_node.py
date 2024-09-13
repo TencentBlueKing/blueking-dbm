@@ -39,7 +39,6 @@ def replicaset_reduce_node(
 
     if not cluster:
         # 设置变量
-        sub_get_kwargs.payload["app"] = sub_get_kwargs.payload["bk_app_abbr"]
         sub_get_kwargs.payload["cluster_type"] = ClusterType.MongoReplicaSet.value
 
         # 获取集群信息并计算对应关系

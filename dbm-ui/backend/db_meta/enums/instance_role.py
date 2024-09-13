@@ -65,17 +65,17 @@ class InstanceRole(str, StructuredEnum):
     DORIS_OBSERVER = EnumField("doris_observer", _("Observer"))
 
     # MongoDB
-    MONGO_M1 = EnumField("mongo_m1", _("mongo_m1"))
-    MONGO_M2 = EnumField("mongo_m2", _("mongo_m2"))
-    MONGO_M3 = EnumField("mongo_m3", _("mongo_m3"))
-    MONGO_M4 = EnumField("mongo_m4", _("mongo_m4"))
-    MONGO_M5 = EnumField("mongo_m5", _("mongo_m5"))
-    MONGO_M6 = EnumField("mongo_m6", _("mongo_m6"))
-    MONGO_M7 = EnumField("mongo_m7", _("mongo_m7"))
-    MONGO_M8 = EnumField("mongo_m8", _("mongo_m8"))
-    MONGO_M9 = EnumField("mongo_m9", _("mongo_m9"))
-    MONGO_M10 = EnumField("mongo_m10", _("mongo_m10"))
-    MONGO_BACKUP = EnumField("mongo_backup", _("mongo_backup"))
+    MONGO_M1 = EnumField("m1", _("m1"))
+    MONGO_M2 = EnumField("m2", _("m2"))
+    MONGO_M3 = EnumField("m3", _("m3"))
+    MONGO_M4 = EnumField("m4", _("m4"))
+    MONGO_M5 = EnumField("m5", _("m5"))
+    MONGO_M6 = EnumField("m6", _("m6"))
+    MONGO_M7 = EnumField("m7", _("m7"))
+    MONGO_M8 = EnumField("m8", _("m8"))
+    MONGO_M9 = EnumField("m9", _("m9"))
+    MONGO_M10 = EnumField("m10", _("m10"))
+    MONGO_BACKUP = EnumField("backup", _("backup"))
 
     # Riak
     RIAK_NODE = EnumField("riak_node", _("Riak"))

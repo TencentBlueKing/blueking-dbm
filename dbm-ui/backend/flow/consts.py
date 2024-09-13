@@ -1161,7 +1161,7 @@ class MongoDBPasswordRule(str, StructuredEnum):
     mongodb密码规则名
     """
 
-    RULE = EnumField("mongo_password", _("MongoDB密码规则"))
+    RULE = EnumField("mongodb_password", _("MongoDB密码规则"))
 
 
 class MongoDBClusterRole(str, StructuredEnum):

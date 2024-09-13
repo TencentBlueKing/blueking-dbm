@@ -119,7 +119,7 @@ func (e *ExecScript) Init(runtime *jobruntime.JobGenericRuntime) error {
 
 	// 获取各种目录
 	e.Mongo = filepath.Join(e.BinDir, "mongodb", "bin", "mongo")
-	e.ScriptDir = filepath.Join("/", "home", e.OsUser, e.runtime.UID)
+	e.ScriptDir = filepath.Join("/", "data", "dbbak", "mongoscript", e.runtime.UID)
 	e.ScriptFilePath = filepath.Join(e.ScriptDir, strings.Join([]string{"script", "js"}, "."))
 	e.ResultFileName = strings.Join([]string{
 		e.ConfParams.ScriptName, strings.Join([]string{"result", "txt"}, ".")}, "_")

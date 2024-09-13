@@ -391,7 +391,6 @@ class ActKwargs:
                     "port": self.replicaset_info["port"],
                     "dbVersion": self.payload["db_version"],
                     "instanceType": MongoDBInstanceType.MongoD,
-                    "app": self.payload["app"],
                     "setId": self.replicaset_info["set_id"],
                     "keyFile": key_file,
                     "auth": True,
@@ -439,7 +438,6 @@ class ActKwargs:
                     "port": self.mongos_info["port"],
                     "dbVersion": self.payload["db_version"],
                     "instanceType": MongoDBInstanceType.MongoS,
-                    "app": self.payload["app"],
                     "setId": self.mongos_info["conf_set_id"],
                     "keyFile": self.payload["key_file"],
                     "auth": True,
@@ -476,7 +474,6 @@ class ActKwargs:
                 "payload": {
                     "ip": self.replicaset_info["nodes"][0]["ip"],
                     "port": self.replicaset_info["port"],
-                    "app": self.payload["app"],
                     "setId": self.replicaset_info["set_id"],
                     "configSvr": config_svr,
                     "ips": instances,
@@ -638,7 +635,7 @@ class ActKwargs:
         create_extra_manager_user_status = False
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
             mongo_type = "replicaset"
-            set_name = "{}-{}".format(self.payload["app"], self.replicaset_info["set_id"])
+            set_name = self.replicaset_info["set_id"]
         else:
             mongo_type = "cluster"
             set_name = ""
@@ -685,7 +682,7 @@ class ActKwargs:
         """创建dba用户"""
 
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
-            set_name = "{}-{}".format(self.payload["app"], self.replicaset_info["set_id"])
+            set_name = self.replicaset_info["set_id"]
         else:
             set_name = ""
         if float(".".join(self.payload["db_version"].split(".")[0:2])) < 2.6:
@@ -731,7 +728,7 @@ class ActKwargs:
         """获取用户密码"""
 
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
-            set_name = "{}-{}".format(self.payload["app"], self.replicaset_info["set_id"])
+            set_name = self.replicaset_info["set_id"]
         else:
             set_name = ""
         return {"set_trans_data_dataclass": CommonContext.__name__, "set_name": set_name, "users": self.manager_users}
@@ -740,7 +737,7 @@ class ActKwargs:
         """添加密码到db"""
 
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:
-            set_name = "{}-{}".format(self.payload["app"], self.replicaset_info["set_id"])
+            set_name = self.replicaset_info["set_id"]
         else:
             set_name = ""
 
@@ -1012,7 +1009,6 @@ class ActKwargs:
                 "payload": {
                     "ip": node_info["ip"],
                     "port": node_info["port"],
-                    "app": self.payload["app"],
                     "setId": self.payload["set_id"],
                     "nodeInfo": nodes,
                     "instanceType": instance_type,
@@ -1123,7 +1119,7 @@ class ActKwargs:
         bk_cloud_id = host["bk_cloud_id"]
         port = instance["port"]
         username = MongoDBManagerUser.DbaUser.value
-        if instance["role"] == MongoDBInstanceType.MongoS:
+        if instance["role"] == MongoDBInstanceType.MongoS.value:
             instance_type = MongoDBInstanceType.MongoS.value
         else:
             instance_type = MongoDBInstanceType.MongoD.value
@@ -1560,10 +1556,16 @@ class ActKwargs:
                 self.get_cluster_info_deinstall(cluster_id=cluster_id)
                 port = self.payload["nodes"][0]["port"]
                 role = self.instance_role[current_shard_nodes_num - 1 + index]
-                node_name = role.split("_")[1]
+                node_name = role
                 ip = add_shard_node["ip"]
                 bk_cloud_id = add_shard_node["bk_cloud_id"]
-                domain = "{}.{}.{}.db".format(node_name, self.payload["cluster_name"], self.payload["app"])
+                # self.payload["cluster_name"] 为 "app-clustername"
+
+                domain = "{}.{}.{}.db".format(
+                    node_name,
+                    self.payload["cluster_name"].replace("{}-".format(self.payload["bk_app_abbr"]), ""),
+                    self.payload["bk_app_abbr"],
+                )
                 db_instance = {
                     "cluster_id": cluster_id,
                     "role": role,
@@ -1803,7 +1805,7 @@ class ActKwargs:
         self.payload["hosts"] = list_hosts
 
     def get_mongo_start_kwargs(self, node_info: dict, instance_type: str) -> dict:
-        """卸载mongo的kwargs"""
+        """启动mongo进程的kwargs"""
 
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
