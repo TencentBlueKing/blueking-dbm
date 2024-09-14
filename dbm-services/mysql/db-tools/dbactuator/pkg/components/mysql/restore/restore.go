@@ -42,6 +42,7 @@ type RestoreParam struct {
 	// work_id 标识本次恢复，若为0则为当前时间戳
 	WorkID string `json:"work_id"`
 	// 恢复选项，比如恢复库表、是否导入binlog等。目前只对逻辑恢复有效
+	// 重建 slave时，这里可不传
 	RestoreOpt *RestoreOpt `json:"restore_opts"`
 }
 

@@ -47,7 +47,7 @@ type Public struct {
 	// DataSchemaGrant data,grant,schema,priv,all，写了 data 则只备data，不备份 schema
 	DataSchemaGrant string `ini:"DataSchemaGrant" validate:"required"`
 	// BackupDir backup files to save
-	BackupDir    string `ini:"BackupDir" validate:"required"`
+	BackupDir    string `ini:"BackupDir" validate:"required,dir"`
 	MysqlRole    string `ini:"MysqlRole"` // oneof=master slave
 	MysqlCharset string `ini:"MysqlCharset"`
 	// BackupTimeOut 备份时间阈值，格式 09:00:01

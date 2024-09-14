@@ -65,8 +65,18 @@ func (m *DBLoader) PreCheck() error {
 		return err
 	}
 	// validateBackupInfo before run import
-	if _, err := m.getChangeMasterPos(m.SrcInstance); err != nil {
-		return err
+	// 重建模式，不需要 restore_opt 选项，但要校验位点信息
+	// 回档模式，如果是备份记录回档则不需要位点，如果是需要基于 binlog 回档，则要检验位点信息
+	if m.RestoreParam.RestoreOpt == nil {
+		m.RestoreParam.RestoreOpt = &RestoreOpt{
+			EnableBinlog:      false,
+			WillRecoverBinlog: true,
+		}
+	}
+	if m.RestoreParam.RestoreOpt.WillRecoverBinlog {
+		if _, err := m.getChangeMasterPos(m.SrcInstance); err != nil {
+			return err
+		}
 	}
 	// 工具可执行权限
 	// 本地实例是否可联通
@@ -163,7 +173,11 @@ func (m *DBLoader) PostCheck() error {
 
 // ReturnChangeMaster TODO
 func (m *DBLoader) ReturnChangeMaster() (*mysqlutil.ChangeMaster, error) {
-	return m.getChangeMasterPos(m.SrcInstance)
+	if m.RestoreParam.RestoreOpt != nil && m.RestoreParam.RestoreOpt.WillRecoverBinlog { //
+		return m.getChangeMasterPos(m.SrcInstance)
+	} else {
+		return &mysqlutil.ChangeMaster{}, nil
+	}
 }
 
 func (m *DBLoader) initDirs() error {
