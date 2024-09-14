@@ -13,13 +13,21 @@
 
 import type { RouteRecordRaw } from 'vue-router';
 
+import FunctionControllModel from '@services/model/function-controller/functionController';
+
+import { useFunController } from '@stores';
+
 import { t } from '@locales/index';
 
-const modules = import.meta.glob<{ default: () => RouteRecordRaw[] }>('./*/routes.ts', { eager: true });
+const modules = import.meta.glob<{ default: (params: FunctionControllModel) => RouteRecordRaw[] }>('./*/routes.ts', {
+  eager: true,
+});
 
 export default function getRoutes() {
+  const { funControllerData } = useFunController();
+
   const children = Object.values(modules).reduce((result, item) => {
-    const routes = item.default();
+    const routes = item.default(funControllerData);
     if (Array.isArray(routes) && routes.length > 0) {
       result.push(routes[0]);
     }
@@ -37,8 +45,6 @@ export default function getRoutes() {
       children,
     },
   ];
-
-  console.log('routes = ', routes);
 
   return routes;
 }

@@ -73,7 +73,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import toolboxMenuConfig from '@views/mongodb-manage/toolbox-menu';
+  import toolboxMenuConfig from '@views/db-manage/mongodb/toolbox-menu';
 
   import { makeMap } from '@utils';
 

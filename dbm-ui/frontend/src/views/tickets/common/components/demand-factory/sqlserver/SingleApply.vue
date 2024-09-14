@@ -26,7 +26,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import PreviewTable from '@views/sqlserver-manage/apply/components/PreviewTable.vue';
+  import PreviewTable from '@views/db-manage/sqlserver/apply/components/PreviewTable.vue';
 
   import SpecInfos from '../../SpecInfos.vue';
   import DemandInfo, {

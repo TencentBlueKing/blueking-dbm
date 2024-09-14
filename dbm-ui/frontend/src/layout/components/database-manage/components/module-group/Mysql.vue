@@ -135,7 +135,7 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import toolboxMenuConfig from '@views/mysql/toolbox-menu';
+  import toolboxMenuConfig from '@views/db-manage/mysql/toolbox-menu';
 
   import { makeMap } from '@utils';
 
