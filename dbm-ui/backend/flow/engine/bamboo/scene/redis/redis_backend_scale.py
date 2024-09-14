@@ -341,7 +341,7 @@ class RedisBackendScaleFlow(object):
             "resource_spec": {"redis": new_cluster_info["redis_spec_config"]},
         }
         new_ip_group = []
-        for group_info in info["backend_group"]:
+        for group_info in info.get("backend_group", []):
             new_ip_group.append({"master": group_info["master"]["ip"], "slave": group_info["slave"]["ip"]})
         new_info["new_ip_group"] = new_ip_group
         logger.info("tendisplus_shards_update_and_keep_machine_flow new_info:{}".format(new_info))

@@ -66,6 +66,8 @@ class RedisScaleUpDownParamBuilder(builders.FlowParamBuilder):
 
 
 class RedisScaleUpDownResourceParamBuilder(BaseOperateResourceParamBuilder):
+    allow_resource_empty = True
+
     def format(self):
         self.patch_info_affinity_location(roles=["backend_group"])
 

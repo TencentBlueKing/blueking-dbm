@@ -207,6 +207,9 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
     职责：为资源申请提供额外参数，并为后继的inner flow节点更新信息
     """
 
+    # 是否运行申请资源为空，运行的情况下跳过该item的资源申请
+    allow_resource_empty: bool = False
+
     def __init__(self, ticket: Ticket):
         self.ticket = ticket
         self.ticket_data = copy.deepcopy(ticket.details)
@@ -220,6 +223,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
 
     def get_params(self):
         self.format()
+        self.ticket_data.update(allow_resource_empty=self.allow_resource_empty)
         super().add_common_params()
         super().inject_callback_in_params(params=self.ticket_data)
         return self.ticket_data
