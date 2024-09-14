@@ -67,9 +67,12 @@ class RedisClusterApplyDetailSerializer(SkipToRepresentationMixin, serializers.S
         # 判断主机角色是否互斥
         super().validate(attrs)
 
-        # 集群分片数至少>=3
-        if attrs["cluster_shard_num"] < 3:
-            raise serializers.ValidationError(_("redis集群部署的集群分片数至少大于3"))
+        # predixyRedisCluster， tendisplus集群分片数至少>=3
+        if attrs["cluster_shard_num"] < 3 and attrs["cluster_type"] in [
+            ClusterType.TendisPredixyRedisCluster,
+            ClusterType.TendisPredixyTendisplusCluster,
+        ]:
+            raise serializers.ValidationError(_("{}集群部署的集群分片数至少大于3").format(attrs["cluster_type"]))
 
         # 集群名校验
         bk_biz_id, ticket_type = self.context["bk_biz_id"], self.context["ticket_type"]
