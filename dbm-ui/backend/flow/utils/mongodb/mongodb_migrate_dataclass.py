@@ -245,6 +245,7 @@ class MigrateActKwargs:
             "region": self.source_cluster_info.get("region"),
             "db_module_id": DEFAULT_DB_MODULE_ID,
             "cluster_type": self.source_cluster_info.get("cluster_type"),
+            "disaster_tolerance_level": self.source_cluster_info.get("disaster_tolerance_level"),
         }
         if self.source_cluster_info.get("cluster_type") == ClusterType.MongoReplicaSet.value:
             # role转换
