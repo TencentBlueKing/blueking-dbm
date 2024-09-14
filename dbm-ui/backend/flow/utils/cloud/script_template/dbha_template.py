@@ -319,9 +319,9 @@ dbha_cron="$path/dbha/{{dbha_type}}/cron.sh";
 echo -e "
 # 检查进程是否存在
 is_process_running() {
-    ps aux | grep {{dbha_type}} | grep -v grep | awk '{print \$2}' > /dev/null
+    ps aux | grep {{dbha_conf}} | grep -v grep | awk '{print \$2}' > /dev/null
 }
-if is_process_running; then
+if ! is_process_running; then
     echo "Process {{dbha_type}} is not running. Restarting..."
     cd /usr/local/bkdb/dbha/{{dbha_type}}
     # 启动进程的命令
