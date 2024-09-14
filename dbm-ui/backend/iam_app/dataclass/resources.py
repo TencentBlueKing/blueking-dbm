@@ -89,7 +89,7 @@ class ResourceMeta(metaclass=abc.ABCMeta):
         try:
             instance = instance or model.objects.get(pk=instance_id)
         except model.DoesNotExist:
-            return resource, None
+            raise ResourceNotExistError(_("未找到模型[{}]的实例[{}]").format(model.__name__, instance_id))
 
         display_fields = ResourceEnum.get_resource_by_id(cls.id).display_fields
         instance_name_values = [str(getattr(instance, _field)) for _field in display_fields]

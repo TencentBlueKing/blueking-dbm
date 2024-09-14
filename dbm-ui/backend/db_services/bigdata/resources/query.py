@@ -81,6 +81,23 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         )
 
     @classmethod
+    def _filter_instance_qs_hook(cls, storage_queryset, proxy_queryset, inst_fields, query_filters, query_params):
+        # 大数据只有storage_queryset，忽略proxy_queryset
+        inst_fields.append("instance_name")
+        instance_queryset = (
+            StorageInstance.objects.select_related("machine")
+            .prefetch_related("cluster")
+            .annotate(role=F("instance_inner_role"), instance_name=F("name"))
+            .filter(query_filters)
+            .values(*inst_fields)
+            .order_by("create_at")
+        )
+        #  部署时间表头排序
+        if query_params.get("ordering"):
+            instance_queryset = instance_queryset.order_by(query_params.get("ordering"))
+        return instance_queryset
+
+    @classmethod
     def _to_cluster_representation(
         cls,
         cluster: Cluster,
@@ -126,6 +143,7 @@ class BigDataBaseListRetrieveResource(query.ListRetrieveResource):
         # 补充重启时间和操作记录
         restart_at = kwargs["restart_map"].get(instance["id"])
         instance_info.update(
+            instance_name=instance["instance_name"],
             restart_at=datetime2str(restart_at) if restart_at else "",
             operations=kwargs["instance_operate_records_map"].get(instance["id"], []),
         )
