@@ -46,6 +46,7 @@ class ResourceApplyFlow(BaseTicketFlow):
     def __init__(self, flow_obj: Flow):
         super().__init__(flow_obj=flow_obj)
         self.resource_apply_status = flow_obj.details.get("resource_apply_status", None)
+        self.allow_resource_empty = flow_obj.details.get("allow_resource_empty", False)
 
     @property
     def _start_time(self) -> str:
@@ -157,6 +158,10 @@ class ResourceApplyFlow(BaseTicketFlow):
             "details": self.fetch_apply_params(ticket_data),
         }
 
+        # 如果无资源申请，则返回空
+        if not apply_params["details"]:
+            return "", {}
+
         # 向资源池申请机器
         resp = DBResourceApi.resource_pre_apply(params=apply_params, raw=True)
         if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
@@ -242,7 +247,10 @@ class ResourceApplyFlow(BaseTicketFlow):
                 )
             )
 
-        if not details:
+        # 如果允许跳过资源申请，则返回空，否则报错
+        if not details and self.allow_resource_empty:
+            return []
+        elif not details and not self.allow_resource_empty:
             raise ResourceApplyException(_("申请的资源总数为0，资源申请不合法"))
 
         # 如果有额外的过滤条件，则补充到每个申请group的details中
@@ -367,6 +375,12 @@ class ResourceDeliveryFlow(DeliveryFlow):
         resource_request_id: str = ticket_data["resource_request_id"]
         nodes: Dict[str, List] = ticket_data.get("nodes")
         host_ids: List[int] = []
+
+        # 无资源确认，跳过
+        if not nodes:
+            return
+
+        # 统计资源确认的主机ID
         for role, role_info in nodes.items():
             # 批量后台申请的角色为: {index}_backend_group
             if "backend_group" in role:
