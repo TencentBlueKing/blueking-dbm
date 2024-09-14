@@ -19,16 +19,6 @@ func GetDatadir(port int) (string, error) {
 		return "", errors.WithMessage(err, "get data dir")
 	}
 	return cnfFile.GetMySQLDataDir()
-
-	cmdStr := "ps -ef|grep mysqld|grep " + strconv.Itoa(port) + "|grep datadir|grep -o '\\-\\-datadir=\\S*'"
-	res, err := exec.Command("/bin/bash", "-c", cmdStr).CombinedOutput()
-	if err != nil {
-		logger.Log.Error("cant get mysql datadir")
-		return "", err
-	}
-	datadir := strings.Replace(string(res), "\n", "", -1)
-	words := strings.Split(datadir, "=")
-	return words[1], err
 }
 
 // GetTableNum get table number of mysql server

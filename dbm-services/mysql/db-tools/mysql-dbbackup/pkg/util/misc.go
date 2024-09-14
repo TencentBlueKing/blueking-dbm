@@ -111,7 +111,7 @@ func CalServerDataSize(port int) (uint64, error) {
 	cmdStr := "du -sb " + datadir + "/.."
 	res, err := exec.Command("/bin/bash", "-c", cmdStr).CombinedOutput()
 	if err != nil {
-		return 0, err
+		return 0, errors.WithMessage(err, string(res))
 	}
 	datasize := strings.Replace(string(res), "\n", "", -1)
 	words := strings.Fields(datasize)
