@@ -21,6 +21,8 @@ const NotRowFound = "not row found"
 const (
 	// INFODBA_SCHEMA TODO
 	INFODBA_SCHEMA = "infodba_schema"
+	// old info_dba_schema old platform db
+	OLD_INFO_DBA_SCHEMA = "db_infobase"
 	// TEST_DB TODO
 	TEST_DB = "test"
 	// INFO_SCHEMA TODO

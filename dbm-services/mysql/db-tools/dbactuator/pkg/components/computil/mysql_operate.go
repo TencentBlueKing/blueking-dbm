@@ -350,6 +350,7 @@ func GetGcsSystemDatabases(version string) []string {
 	DBs := GetMysqlSystemDatabases(version)
 	DBs = append(DBs, native.INFODBA_SCHEMA)
 	DBs = append(DBs, native.TEST_DB)
+	DBs = append(DBs, native.OLD_INFO_DBA_SCHEMA)
 	return DBs
 }
 
@@ -357,5 +358,6 @@ func GetGcsSystemDatabases(version string) []string {
 func GetGcsSystemDatabasesIgnoreTest(version string) []string {
 	DBs := GetMysqlSystemDatabases(version)
 	DBs = append(DBs, native.INFODBA_SCHEMA)
+	DBs = append(DBs, native.OLD_INFO_DBA_SCHEMA)
 	return DBs
 }
