@@ -15,8 +15,10 @@ from rest_framework.response import Response
 
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
+from backend.iam_app.dataclass import assign_auth_to_dba, flush_groups_auth
 from backend.iam_app.handlers.permission import Permission
 from backend.iam_app.serializers import (
+    AssignAuthToDBASerializer,
     CheckAllowedResSerializer,
     GetApplyDataResSerializer,
     IamActionResourceRequestSerializer,
@@ -97,3 +99,23 @@ class IAMViewSet(viewsets.SystemViewSet):
         resources = client.batch_make_resource_instance(self.validated_data["resources"])
         apply_data, apply_url = client.get_apply_data([self.validated_data["action_id"]], [resources])
         return Response({"permission": apply_data, "apply_url": apply_url})
+
+    @common_swagger_auto_schema(
+        operation_summary=_("自动分配权限给DBA"),
+        request_body=AssignAuthToDBASerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"], serializer_class=AssignAuthToDBASerializer)
+    def assign_auth_to_dba(self, request, *args, **kwargs):
+        data = self.validated_data
+        assign_auth_to_dba(bk_biz_id=data["bk_biz_id"], group_name=data["group_name"], members=data["members"])
+        return Response(_("权限分配成功!"))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("存量用户组刷新权限"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(detail=False, methods=["POST"])
+    def flush_groups_auth(self, request, *args, **kwargs):
+        flush_groups_auth()
+        return Response(_("存量用户组权限刷新成功!"))
