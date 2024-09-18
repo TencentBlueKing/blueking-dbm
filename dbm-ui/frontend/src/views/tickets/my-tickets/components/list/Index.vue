@@ -81,7 +81,7 @@
               </div>
               <div class="ticket-info-more">
                 <div>{{ t('申请人') }}： {{ item.creator }}</div>
-                <div style="margin-left: auto">{{ item.formatCreateAt }}</div>
+                <div style="margin-left: auto">{{ item.createAtDisplay }}</div>
               </div>
             </div>
             <EmptyStatus

@@ -20,14 +20,14 @@
             keypath="共n个文件，含有m个高危语句"
             tag="div">
             <span style="font-weight: 700; color: #63656e">
-              {{ ticketData.details.execute_sql_files.length }}
+              {{ executeSqlFileList.length }}
             </span>
             <span style="font-weight: 700; color: #ea3636">
               {{ totalWarnCount }}
             </span>
           </I18nT>
           <div
-            v-for="fileName in sqlFileNames"
+            v-for="fileName in renderSqlFileList"
             :key="fileName">
             <BkButton
               text
@@ -37,7 +37,7 @@
                 type="file" />
               <span>
                 <span style="color: #3a84ff">
-                  {{ fileName.replace(/[^_]+_/, '') }}
+                  {{ fileName?.replace(/[^_]+_/, '') }}
                 </span>
                 ，
                 <span v-if="ticketData.details.grammar_check_info[fileName].highrisk_warnings?.length > 0">
@@ -72,14 +72,10 @@
       <template v-if="content.flow_type === 'DESCRIBE_TASK'">
         <p>
           <span
-            v-if="content.status === 'SUCCEEDED'"
-            style="color: #2dcb56">
-            {{ t('执行成功') }}
-          </span>
-          <span
-            v-else
-            style="color: #ea3636">
-            {{ t('执行失败') }}
+            :style="{
+              color: content.status === 'SUCCEEDED' ? '#2dcb56' : 'inherit',
+            }">
+            {{ content.summary }}
           </span>
           <template v-if="content.summary"> ，{{ t('耗时') }}：{{ getCostTimeDisplay(content.cost_time) }}， </template>
           <BkButton
@@ -102,19 +98,38 @@
   <BkSideslider
     class="sql-log-sideslider"
     :is-show="isShowSqlFile"
-    render-directive="if"
-    :title="t('执行SQL变更_内容详情')"
     :width="960"
-    :z-index="99999"
     @closed="() => (isShowSqlFile = false)">
-    <div
-      v-if="uploadFileList.length > 1"
-      class="editor-layout">
+    <template
+      v-if="currentFileExecuteObject"
+      #header>
+      <span>{{ t('SQL 内容') }}</span>
+      <span style="margin-left: 30px; font-size: 12px; font-weight: normal; color: #63656e">
+        <span>{{ t('变更的 DB:') }}</span>
+        <span class="ml-4">
+          <BkTag
+            v-for="item in currentFileExecuteObject.dbnames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+          <template v-if="currentFileExecuteObject.dbnames.length < 1">--</template>
+        </span>
+        <span class="ml-25">{{ t('忽略的 DB:') }}</span>
+        <span class="ml-4">
+          <BkTag
+            v-for="item in currentFileExecuteObject.ignore_dbnames"
+            :key="item">
+            {{ item }}
+          </BkTag>
+          <template v-if="currentFileExecuteObject.ignore_dbnames.length < 1">--</template>
+        </span>
+      </span>
+    </template>
+    <div class="editor-layout">
       <div class="editor-layout-left">
         <RenderFileList
           v-model="selectFileName"
-          :data="uploadFileList"
-          @sort="handleFileSortChange" />
+          :data="executeSqlFileList" />
       </div>
       <div class="editor-layout-right">
         <RenderFileContent
@@ -123,22 +138,18 @@
           :title="selectFileName" />
       </div>
     </div>
-    <template v-else>
-      <RenderFileContent
-        :model-value="currentFileContent"
-        readonly
-        :title="uploadFileList.toString()" />
-    </template>
   </BkSideslider>
 </template>
 
 <script setup lang="tsx">
+  import _ from 'lodash'
   import { useI18n } from 'vue-i18n';
   import { useRouter} from 'vue-router'
 
   import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
+  import type { FlowItem } from '@services/types/ticket';
 
   import RenderFileContent from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/RenderFileContent.vue';
   import RenderFileList from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/SqlFileList.vue';
@@ -161,23 +172,23 @@
   });
   const emits = defineEmits<Emits>();
 
-  const { t } = useI18n();
   const router = useRouter();
+  const { t } = useI18n();
 
   const isShowCollapse = ref(false);
   const isShowSqlFile = ref(false);
   const selectFileName = ref('');
 
   const fileContentMap = shallowRef<Record<string, string>>({});
-  const uploadFileList = shallowRef<Array<string>>([]);
+  const executeSqlFileList = computed(() => _.flatten(props.ticketData.details.execute_objects.map(item => item.sql_files)))
 
-  const isShowMore = computed(() => props.ticketData.details.execute_sql_files.length > 6);
+  const isShowMore = computed(() => executeSqlFileList.value.length > 6);
 
-  const sqlFileNames = computed(() => {
+  const renderSqlFileList = computed(() => {
     if (isShowMore.value && !isShowCollapse.value) {
-      return props.ticketData.details.execute_sql_files.slice(0, 6);
+      return executeSqlFileList.value.slice(0, 6);
     }
-    return props.ticketData.details.execute_sql_files;
+    return executeSqlFileList.value;
   });
 
   const totalWarnCount = computed(() => Object.values(props.ticketData.details.grammar_check_info)
@@ -188,17 +199,16 @@
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
+  const currentFileExecuteObject = computed(() => _.find(props.ticketData.details.execute_objects, item => item.sql_files.includes(selectFileName.value)));
+
 
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem) => ({
     tag: flow.flow_type === 'PAUSE' ? `${t('确认是否执行')}“${flow.flow_type_display}”` : flow.flow_type_display,
     type: 'default',
     filled: true,
     content: flow,
-    // color,
     icon: () => <FlowIcon data={flow} />,
   })));
-
-  const rootId = computed(() => props.ticketData.details.root_id);
 
   const handleToggleShowMore = () => {
     isShowCollapse.value = !isShowCollapse.value;
@@ -208,11 +218,6 @@
   const handleClickFile = (value: string) => {
     isShowSqlFile.value = true;
     selectFileName.value = value;
-  };
-
-
-  const handleFileSortChange = (list: string[]) => {
-    uploadFileList.value = list;
   };
 
   const handleFetchData = () => {
@@ -226,17 +231,14 @@
         step: 'result'
       },
       query: {
-        rootId: rootId.value,
+        rootId: props.ticketData.details.root_id,
       }
     })
     window.open(href)
   };
 
   onMounted(() => {
-    const uploadSQLFileList = props.ticketData.details.execute_sql_files;
-    uploadFileList.value = uploadSQLFileList;
-
-    const filePathList = uploadSQLFileList.reduce((result, item) => {
+    const filePathList = executeSqlFileList.value.reduce((result, item) => {
       result.push(`${props.ticketData.details.path}/${item}`);
       return result;
     }, [] as string[]);
@@ -250,6 +252,7 @@
           [fileName]: fileInfo.content,
         });
       }, {} as Record<string, string>);
+      [selectFileName.value] = executeSqlFileList.value;
     });
   });
 </script>

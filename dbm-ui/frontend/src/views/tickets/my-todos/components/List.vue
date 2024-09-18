@@ -100,7 +100,7 @@
               </div>
               <div class="side-item-info">
                 <span>{{ t('申请人') }}： {{ item.creator }}</span>
-                <span>{{ item.formatCreateAt }}</span>
+                <span>{{ item.createAtDisplay }}</span>
               </div>
             </div>
           </template>
@@ -123,10 +123,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
-  import {
-    getTicketTypes,
-    getTodoTickets,
-  } from '@services/source/ticket';
+  import { getTicketTypes, getTodoTickets } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
 
@@ -140,12 +137,12 @@
   import { useTimeoutPoll } from '@vueuse/core';
 
   interface StatusItem {
-    label: string,
-    value: string
+    label: string;
+    value: string;
   }
 
   interface Emits {
-    (e: 'change', value: TicketModel | null): void
+    (e: 'change', value: TicketModel | null): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -211,7 +208,7 @@
 
   // 状态选择设置
   const isShowDropdown = ref(false);
-  const activeItemInfo = computed(() => filters.find(item => item.value === state.filters.status));
+  const activeItemInfo = computed(() => filters.find((item) => item.value === state.filters.status));
   const handleToggle = () => {
     isShowDropdown.value = !isShowDropdown.value;
   };
@@ -242,25 +239,30 @@
     fetchTicketTypes();
 
     state.page.current = route.query.current ? Number(route.query.current) : 1;
-    state.page.limit =  route.query.limit ? Number(route.query.limit) : 20;
+    state.page.limit = route.query.limit ? Number(route.query.limit) : 20;
 
     // 任务历史跳转过来需要过滤出对应单据。
     if (filterId.value) {
       state.filters.search.push({
         name: t('单号'),
         id: 'id',
-        values: [{
-          id: filterId.value as string,
-          name: filterId.value as string,
-        }],
+        values: [
+          {
+            id: filterId.value as string,
+            name: filterId.value as string,
+          },
+        ],
       });
     }
     fetchTickets();
   });
 
-  watch(() => state.activeTicket, () => {
-    emits('change', state.activeTicket);
-  });
+  watch(
+    () => state.activeTicket,
+    () => {
+      emits('change', state.activeTicket);
+    },
+  );
 
   /**
    * 视图定位到激活项
@@ -280,7 +282,7 @@
    */
   function fetchTicketTypes() {
     return getTicketTypes().then((res) => {
-      state.ticketTypes = res.map(item => ({
+      state.ticketTypes = res.map((item) => ({
         id: item.key,
         name: item.value,
       }));
@@ -292,7 +294,7 @@
    * 获取业务列表
    */
   function getBizIdList() {
-    state.bkBizIdList = globalBizsStore.bizs.map(item => ({
+    state.bkBizIdList = globalBizsStore.bizs.map((item) => ({
       id: item.bk_biz_id,
       name: item.name,
     }));
@@ -322,12 +324,14 @@
           pause();
         }
 
-        if (isPoll) return;
+        if (isPoll) {
+          return;
+        }
 
         if (results.length > 0) {
           // 刷新界面自动选中
           const id = initId.value || filterId.value;
-          const activeItem = results.find(item => item.id === Number(id));
+          const activeItem = results.find((item) => item.id === Number(id));
           if (activeItem) {
             state.activeTicket = activeItem;
           } else {

@@ -13,7 +13,7 @@
     </div>
     <div
       v-if="isShowExpand"
-      class="mt-8">
+      style="margin-top: 8; line-height: 20px">
       <BkButton
         text
         theme="primary"
@@ -78,21 +78,21 @@
   .db-mult-line-text {
     .db-mult-line-text-wrapper {
       position: relative;
-      white-space: normal;
-      overflow: hidden;
       display: -webkit-box;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: normal;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: v-bind('line');
-      text-overflow: ellipsis;
     }
 
     .placeholder {
       position: absolute;
       top: 0;
-      left: 0;
       right: 0;
-      word-break: normal;
+      left: 0;
       z-index: -1;
+      word-break: normal;
     }
   }
 </style>

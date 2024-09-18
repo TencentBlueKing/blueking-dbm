@@ -16,7 +16,7 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t("服务申请") }}
+          {{ t('服务申请') }}
         </span>
       </BkMenuItem>
       <BkMenuItem
@@ -28,7 +28,7 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t("单据") }}
+          {{ t('我的申请') }}
         </span>
       </BkMenuItem>
       <BkMenuItem
@@ -40,7 +40,19 @@
         <span
           v-overflow-tips.right
           class="text-overflow">
-          {{ t("我的待办") }}
+          {{ t('我的待办') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem
+        key="ticketSelfManage"
+        v-db-console="'personalWorkbench.myTickets'">
+        <template #icon>
+          <DbIcon type="todos" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('我负责的业务') }}
         </span>
       </BkMenuItem>
     </BkMenuGroup>

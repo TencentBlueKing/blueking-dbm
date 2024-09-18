@@ -35,7 +35,9 @@ import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes
 import getTicketFlowSettingBizRoutes from '@views/ticket-flow-setting-biz/routes';
 import getTicketFlowSettingGlobalRoutes from '@views/ticket-flow-setting-global/routes';
 import getTicketManageRoutes from '@views/ticket-manage/routes';
-import getTicketsRoutes from '@views/tickets/routes';
+import getTicketSelfApplyRoutes from '@views/ticket-self-apply/routes';
+import getTicketSelfManageRoutes from '@views/ticket-self-manage/routes';
+import getTicketSelfTodoRoutes from '@views/ticket-self-todo/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
@@ -88,7 +90,6 @@ export default () => {
     bizPermission = true;
   }
 
-  console.log('getDbManageRoutes = ', getDbManageRoutes());
   const routes = [
     {
       path: rootPath,
@@ -103,8 +104,10 @@ export default () => {
         ...getPasswordManageRoutes(),
         ...getServiceApplyRoutes(),
         ...getQuickSearchRoutes(),
-        ...getTicketsRoutes(),
         ...getDutyRuleManageRoutes(),
+        ...getTicketSelfApplyRoutes(),
+        ...getTicketSelfTodoRoutes(),
+        ...getTicketSelfManageRoutes(),
       ],
     },
     {
@@ -163,8 +166,6 @@ export default () => {
       }
     });
   }
-
-  console.log('router = ', appRouter);
 
   return appRouter;
 };
