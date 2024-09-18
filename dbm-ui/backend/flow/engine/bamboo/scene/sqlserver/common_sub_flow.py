@@ -206,6 +206,7 @@ def switch_domain_sub_flow_for_cluster(
     cluster: Cluster,
     old_master: StorageInstance,
     new_master: StorageInstance,
+    is_force: bool = False,
 ):
     """
     主从切换后做域名切换处理
@@ -214,6 +215,7 @@ def switch_domain_sub_flow_for_cluster(
     @param old_master: 集群原主实例
     @param new_master: 集群新主实例
     @param cluster: 集群id
+    @param is_force: 是否属于强切行为，默认不是，强切行为认为主故障，从域名不切换到旧主上
     """
     # 构造只读上下文
     global_data = {"uid": uid, "bk_biz_id": cluster.bk_biz_id}
@@ -232,30 +234,31 @@ def switch_domain_sub_flow_for_cluster(
                 "kwargs": asdict(
                     UpdateDnsRecordKwargs(
                         bk_cloud_id=cluster.bk_cloud_id,
-                        old_instance=f"{new_master.machine.ip}#{new_master.port}",
-                        new_instance=f"{old_master.machine.ip}#{old_master.port}",
+                        old_instance=f"{old_master.machine.ip}#{old_master.port}",
+                        new_instance=f"{new_master.machine.ip}#{new_master.port}",
                         update_domain_name=old_master_dns.entry,
                     ),
                 ),
             }
         )
     # 并发替换从域名映射
-    slave_dns_list = new_master.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
-    for slave_dns in slave_dns_list:
-        acts_list.append(
-            {
-                "act_name": _("[{}]替换从域名映射".format(slave_dns.entry)),
-                "act_component_code": MySQLDnsManageComponent.code,
-                "kwargs": asdict(
-                    UpdateDnsRecordKwargs(
-                        bk_cloud_id=cluster.bk_cloud_id,
-                        old_instance=f"{new_master.machine.ip}#{new_master.port}",
-                        new_instance=f"{old_master.machine.ip}#{old_master.port}",
-                        update_domain_name=slave_dns.entry,
+    if not is_force:
+        slave_dns_list = new_master.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+        for slave_dns in slave_dns_list:
+            acts_list.append(
+                {
+                    "act_name": _("[{}]替换从域名映射".format(slave_dns.entry)),
+                    "act_component_code": MySQLDnsManageComponent.code,
+                    "kwargs": asdict(
+                        UpdateDnsRecordKwargs(
+                            bk_cloud_id=cluster.bk_cloud_id,
+                            old_instance=f"{new_master.machine.ip}#{new_master.port}",
+                            new_instance=f"{old_master.machine.ip}#{old_master.port}",
+                            update_domain_name=slave_dns.entry,
+                        ),
                     ),
-                ),
-            }
-        )
+                }
+            )
     sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
     return sub_pipeline.build_sub_process(sub_name=_("变更集群[{}]域名映射".format(cluster.name)))

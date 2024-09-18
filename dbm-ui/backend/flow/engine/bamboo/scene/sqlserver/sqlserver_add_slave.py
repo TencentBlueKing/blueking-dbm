@@ -20,6 +20,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.sqlserver.base_flow import BaseFlow
 from backend.flow.engine.bamboo.scene.sqlserver.common_sub_flow import (
     build_always_on_sub_flow,
+    clone_configs_sub_flow,
     install_sqlserver_sub_flow,
     install_surrounding_apps_sub_flow,
     sync_dbs_for_cluster_sub_flow,
@@ -185,6 +186,18 @@ class SqlserverAddSlaveFlow(BaseFlow):
                             sync_dbs=sync_dbs,
                         )
                     )
+
+                # 先做克隆周边配置
+                cluster_sub_pipeline.add_sub_pipeline(
+                    sub_flow=clone_configs_sub_flow(
+                        uid=self.data["uid"],
+                        root_id=self.root_id,
+                        source_host=Host(ip=master_instance.machine.ip, bk_cloud_id=cluster.bk_cloud_id),
+                        source_port=master_instance.port,
+                        target_host=Host(**info["new_slave_host"]),
+                        target_port=master_instance.port,
+                    )
+                )
 
                 # 删除随机账号
                 cluster_sub_pipeline.add_act(

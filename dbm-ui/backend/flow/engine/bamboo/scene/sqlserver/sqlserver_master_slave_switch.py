@@ -188,6 +188,7 @@ class SqlserverSwitchFlow(BaseFlow):
                         cluster=cluster,
                         old_master=old_master,
                         new_master=new_master,
+                        is_force=self.data["force"],
                     )
                 )
 

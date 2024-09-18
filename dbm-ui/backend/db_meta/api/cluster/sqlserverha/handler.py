@@ -309,6 +309,12 @@ class SqlserverHAClusterHandler(ClusterHandler):
             new_slave_obj.machine.save(update_fields=["db_module_id"])
             cluster.storageinstance_set.add(new_slave_obj)
 
+            # 切换slave域名信息
+            slave_entry_list = old_slave_obj.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
+            for slave_entry in slave_entry_list:
+                slave_entry.storageinstance_set.remove(old_slave_obj)
+                slave_entry.storageinstance_set.add(new_slave_obj)
+
             # 添加对应cmdb服务实例信息
             SqlserverCCTopoOperator(cluster).transfer_instances_to_cluster_module([new_slave_obj])
 
@@ -397,7 +403,7 @@ class SqlserverHAClusterHandler(ClusterHandler):
             old_slave_obj = cluster.storageinstance_set.get(machine__ip=old_slave_host.ip)
 
             # 替换域名关联信息
-            entry_list = old_slave_obj.bind_entry.all()
+            entry_list = old_slave_obj.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
             for entry in entry_list:
                 entry.storageinstance_set.remove(old_slave_obj)
 
