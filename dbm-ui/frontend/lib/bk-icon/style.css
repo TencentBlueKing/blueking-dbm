@@ -35,6 +35,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-help-document:before {
 	content: "\e1fa";
 }
+.db-icon-check:before {
+	content: "\e205";
+}
 .db-icon-auth:before {
 	content: "\e152";
 }
@@ -272,7 +275,7 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-node:before {
 	content: "\e13d";
 }
-.db-icon-check:before {
+.db-icon-check-search:before {
 	content: "\e13f";
 }
 .db-icon-deploy:before {
@@ -652,4 +655,13 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-yuandezhongjian:before {
 	content: "\e1fd";
+}
+.db-icon-daihuishou-2:before {
+	content: "\e202";
+}
+.db-icon-daihuishou:before {
+	content: "\e203";
+}
+.db-icon-guzhangji:before {
+	content: "\e204";
 }

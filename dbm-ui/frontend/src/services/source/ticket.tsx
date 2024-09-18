@@ -482,3 +482,16 @@ export const getHostInAuthorize = (params: {
 export function revokeTicketFlow(params: { ticketId: number; flow_id: number }) {
   return http.post(`${path}/${params.ticketId}/revoke_flow/`, params);
 }
+
+/**
+ * 批量待办处理
+ */
+export function ticketBatchProcessTodo(params: {
+  action: 'APPROVE' | 'TERMINATE';
+  operations: {
+    todo_id: number;
+    params: Record<string, never>; // 暂时为空对象
+  }[];
+}) {
+  return http.post(`${path}/batch_process_todo/`, params);
+}
