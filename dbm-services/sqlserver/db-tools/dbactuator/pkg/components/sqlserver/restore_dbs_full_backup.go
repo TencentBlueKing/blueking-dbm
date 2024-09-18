@@ -144,7 +144,7 @@ func (r *RestoreDBSForFullComp) PreCheck() error {
 }
 
 // GetRestorePath 获取这次恢复路径
-// 全量备份恢复的路径的优先级：app_setting表[RESTORE_PATH] > app_setting表[DATA_PATH] > 默认
+// 全量备份恢复的路径的优先级：app_setting表[RESTORE_PATH] > 默认
 func (r *RestoreDBSForFullComp) GetRestorePath() error {
 	var infos []AppSettingInfo
 	checkSQL := fmt.Sprintf(
@@ -154,17 +154,21 @@ func (r *RestoreDBSForFullComp) GetRestorePath() error {
 	if err := r.LocalDB.Queryx(&infos, checkSQL); err != nil {
 		return fmt.Errorf("select APP_SETTING failed: %v", err)
 	}
-	if infos[0].RestorePath.Valid && infos[0].RestorePath.String != "" {
-		r.RestoreDataPath = infos[0].RestorePath.String
-		r.RestoreLogPath = infos[0].RestorePath.String
-		return nil
+	// 如果aap_setting没有记录，则走默认
+	if len(infos) > 0 {
+		if infos[0].RestorePath.Valid && infos[0].RestorePath.String != "" {
+			r.RestoreDataPath = infos[0].RestorePath.String
+			r.RestoreLogPath = infos[0].RestorePath.String
+			return nil
+		}
+		if infos[0].DataPath.Valid && infos[0].LogPath.Valid &&
+			infos[0].DataPath.String != "" && infos[0].LogPath.String != "" {
+			r.RestoreDataPath = infos[0].DataPath.String
+			r.RestoreLogPath = infos[0].LogPath.String
+			return nil
+		}
 	}
-	if infos[0].DataPath.Valid && infos[0].LogPath.Valid &&
-		infos[0].DataPath.String != "" && infos[0].LogPath.String != "" {
-		r.RestoreDataPath = infos[0].DataPath.String
-		r.RestoreLogPath = infos[0].LogPath.String
-		return nil
-	}
+	// 获取默认值
 	if defaultPath, err := r.LocalDB.GetDefaultPath(); err != nil {
 		return fmt.Errorf("get default path failed: %v", err)
 	} else {
