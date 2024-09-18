@@ -61,24 +61,26 @@
     return CommonFlows;
   });
 
-  const { run: fetchTicketFlows, cancel: cancelFetchTicketFlows } = useRequest(getTicketFlows, {
+  const { runAsync: fetchTicketFlows, cancel: cancelFetchTicketFlows } = useRequest(getTicketFlows, {
     manual: true,
     onSuccess(data, params) {
       if (params[0].id !== props.data.id) {
         return;
       }
-      isLoading.value = false;
       flowList.value = data;
     },
   });
 
   watch(
-    () => props.data,
+    () => props.data.id,
     () => {
       if (props.data.id) {
+        isLoading.value = true;
         cancelFetchTicketFlows();
         fetchTicketFlows({
           id: props.data.id,
+        }).finally(() => {
+          isLoading.value = false;
         });
       }
     },
