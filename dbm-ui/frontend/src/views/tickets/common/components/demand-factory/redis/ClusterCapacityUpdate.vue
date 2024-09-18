@@ -186,7 +186,7 @@
     {
       title: t('机器组数'),
       render: () => {
-        const targetValue = data.shard_num
+        const targetValue = data.group_num
         return (
           <>
             <span>{targetValue}</span>
@@ -201,7 +201,7 @@
     {
       title: t('机器数量'),
       render: () => {
-        const targetValue = data.shard_num * 2
+        const targetValue = data.group_num * 2
         return (
           <>
             <span>{targetValue}</span>
