@@ -69,7 +69,7 @@
   const { t } = useI18n();
 
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem) => ({
-    tag: flow.flow_type_display,
+    tag: flow.flow_type === 'PAUSE' ? `${t('确认是否执行')}“${flow.flow_type_display}”` : flow.flow_type_display,
     type: 'default',
     filled: true,
     content: flow,

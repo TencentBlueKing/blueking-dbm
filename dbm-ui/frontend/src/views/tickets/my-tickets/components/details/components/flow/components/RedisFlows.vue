@@ -38,6 +38,8 @@
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+
   import TicketModel from '@services/model/ticket/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
@@ -46,7 +48,7 @@
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
   interface Props {
-    ticketData: TicketModel<unknown>,
+    ticketData: TicketModel,
     flows?: FlowItem[]
   }
 
@@ -59,6 +61,8 @@
   });
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const fileState = reactive({
     isShow: false,
     id: '',
@@ -68,7 +72,7 @@
     // const prevFlow = props.flows[index - 1];
     // const flowObjId = isLast && prevFlow ? prevFlow.flow_obj_id : flow.flow_obj_id;
     return {
-      tag: flow.flow_type_display,
+      tag: flow.flow_type === 'PAUSE' ? `${t('确认是否执行')}“${flow.flow_type_display}”` : flow.flow_type_display,
       type: 'default',
       filled: true,
       content: Object.assign(flow, { isLast }),

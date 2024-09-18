@@ -9,40 +9,38 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import _ from 'lodash';
 
-import {
-  FlowTypes,
-  getTaskflowDetails,
-} from '@services/source/taskflow';
+import { FlowTypes, getTaskflowDetails } from '@services/source/taskflow';
 
 import type { RenderCollectionKey } from './graphRender';
 
 type FlowDetail = ServiceReturnType<typeof getTaskflowDetails>;
-type FlowLine = FlowDetail['flows'][string]
-type FlowType = FlowDetail['end_event']['type']
+type FlowLine = FlowDetail['flows'][string];
+type FlowType = FlowDetail['end_event']['type'];
 
 export type RenderKey = 'start_event' | 'end_event' | 'activities' | 'gateways';
 export interface GraphNode {
-  id: string,
-  tpl: RenderCollectionKey,
-  data: FlowDetail & FlowDetail['activities'][string],
-  width: number,
-  height: number,
-  level: number,
-  isExpand: boolean,
-  index: number,
-  parent: null | GraphNode
-  x?: number,
-  y?: number,
-  children?: GraphNode[][],
+  id: string;
+  tpl: RenderCollectionKey;
+  data: FlowDetail & FlowDetail['activities'][string];
+  width: number;
+  height: number;
+  level: number;
+  isExpand: boolean;
+  index: number;
+  parent: null | GraphNode;
+  isTodoNode: boolean;
+  x?: number;
+  y?: number;
+  children?: GraphNode[][];
 }
 export interface GraphLine {
-  id: string,
-  source: { id: string, x?: number, y?: number },
-  target: { id: string, x?: number, y?: number },
+  id: string;
+  source: { id: string; x?: number; y?: number };
+  target: { id: string; x?: number; y?: number };
 }
 
 const getewayTypes: FlowType[] = [FlowTypes.ParallelGateway, FlowTypes.ConvergeGateway];
@@ -71,7 +69,9 @@ const getLineTargets = (
     return targets;
   }
 
-  if (outgoing === '') return targets;
+  if (outgoing === '') {
+    return targets;
+  }
 
   if (Array.isArray(outgoing)) {
     outgoing.forEach((id: string) => {
@@ -98,13 +98,7 @@ const getLineTargets = (
  * @returns lines
  */
 const formartLines = (data: FlowDetail, level = 0, lines: GraphLine[] = []) => {
-  const {
-    gateways,
-    activities,
-    end_event: endNode,
-    start_event: startNode,
-    flows,
-  } = data;
+  const { gateways, activities, end_event: endNode, start_event: startNode, flows } = data;
   // 当层节点映射
   const nodesMap = {
     ...gateways,
@@ -179,20 +173,20 @@ const formartLines = (data: FlowDetail, level = 0, lines: GraphLine[] = []) => {
  *  lines
  * }
  */
-export const formatGraphData = (data: FlowDetail, expandNodes: string[] = []) => {
+export const formatGraphData = (data: FlowDetail, expandNodes: string[] = [], todoNodeIdList: string[] = []) => {
   const rootNodes = getLevelNodes(data, null, 0, expandNodes); // 所有根节点
   const bothEndNodes = []; // 开始、结束根节点
   const roots = []; // 非开始、结束的根节点
   // 分离开始、结束根节点
   for (const nodes of rootNodes) {
-    if (nodes.some(node => bothEndTypes.includes(node.data.type))) {
+    if (nodes.some((node) => bothEndTypes.includes(node.data.type))) {
       bothEndNodes.push(nodes);
     } else {
       roots.push(nodes);
     }
   }
   // 获取子节点
-  getNodeChildren(roots, expandNodes);
+  getNodeChildren(roots, expandNodes, todoNodeIdList);
   // 初始化根节点 x 位置
   initRootNodesX(rootNodes);
   // 计算节点位置
@@ -225,7 +219,7 @@ function getRenderLines(lines: GraphLine[], nodes: GraphNode[]) {
       const isLowerLevel = sourceNode.level !== targetNode.level; // 节点不属于同一层
       const { x: sourceX = 0, y: sourceY = 0, width: sourceWidth } = sourceNode;
       const { x: targetX = 0, y: targetY = 0, width: targetWidth, height: targetHeight } = targetNode;
-      const sourceOffsetX = (sourceWidth / 2) - 14 - 24;
+      const sourceOffsetX = sourceWidth / 2 - 14 - 24;
       const targetOffsetX = targetWidth / 2;
       Object.assign(source, {
         x: isLowerLevel ? sourceX - sourceOffsetX : sourceX,
@@ -233,7 +227,7 @@ function getRenderLines(lines: GraphLine[], nodes: GraphNode[]) {
       });
       Object.assign(target, {
         x: isLowerLevel ? targetX - targetOffsetX : targetX,
-        y: isLowerLevel ? targetY + (targetHeight / 2) : targetY,
+        y: isLowerLevel ? targetY + targetHeight / 2 : targetY,
       });
       renderLines.push(newLine);
     }
@@ -247,7 +241,7 @@ function getRenderLines(lines: GraphLine[], nodes: GraphNode[]) {
  * @returns 返回目标节点 | undefined
  */
 function findTargetNode(id: string, nodes: GraphNode[]) {
-  return nodes.find(node => node.id === id);
+  return nodes.find((node) => node.id === id);
 }
 
 /**
@@ -289,6 +283,7 @@ function addNode(
   index: number,
   level: number,
   expandNodes: string[] = [],
+  todoNodeIdList: string[] = [],
 ) {
   const isRoundType = bothEndTypes.includes(node.type);
   const len = nodes[index].length;
@@ -302,6 +297,7 @@ function addNode(
     level,
     parent,
     isExpand: expandNodes.includes(node.id),
+    isTodoNode: todoNodeIdList.includes(node.id),
   };
   nodes[index].push(graphNode);
 }
@@ -321,16 +317,11 @@ function getLevelNodes(
   level = 0,
   expandNodes: string[] = [],
   includesBothEnd = true,
+  todoNodeIdList: string[] = [],
 ) {
   const nodes: GraphNode[][] = [];
 
-  const {
-    gateways = {},
-    activities = {},
-    end_event: endNode,
-    start_event: startNode,
-    flows,
-  } = data;
+  const { gateways = {}, activities = {}, end_event: endNode, start_event: startNode, flows } = data;
 
   // 当层节点映射
   const nodesMap = {
@@ -340,18 +331,20 @@ function getLevelNodes(
     [endNode.id]: endNode,
   };
 
-
   let index = 0;
 
   // 处理开始节点
   nodes[index] = [];
-  addNode(startNode as any as FlowDetail, parent, nodes, index, level, expandNodes);
+  addNode(startNode as any as FlowDetail, parent, nodes, index, level, expandNodes, todoNodeIdList);
 
   const queue = [[startNode]];
   while (queue.length > 0) {
     // 同层同列节点
     const columnNodes = queue.shift();
-    if (!columnNodes) break;
+
+    if (!columnNodes) {
+      break;
+    }
     const nextColumnNodes = [];
     index += 1;
     nodes[index] = [];
@@ -362,7 +355,8 @@ function getLevelNodes(
           const targetNode = nodesMap[flows[targetId].target];
           // 网关节点不处理
           const isGetewaysType = getewayTypes.includes(targetNode.type);
-          !isGetewaysType && addNode(targetNode as any as FlowDetail, parent, nodes, index, level, expandNodes);
+          !isGetewaysType &&
+            addNode(targetNode as any as FlowDetail, parent, nodes, index, level, expandNodes, todoNodeIdList);
           nextColumnNodes.push(targetNode);
         }
       }
@@ -374,12 +368,16 @@ function getLevelNodes(
 
   return nodes.filter((nodes) => {
     // 为空则过滤掉
-    if (nodes.length === 0) return false;
+    if (nodes.length === 0) {
+      return false;
+    }
 
-    if (includesBothEnd) return true;
+    if (includesBothEnd) {
+      return true;
+    }
 
     // 需要过滤掉开始、结束节点
-    return !nodes.some(node => bothEndTypes.includes(node.data.type));
+    return !nodes.some((node) => bothEndTypes.includes(node.data.type));
   });
 }
 
@@ -388,13 +386,13 @@ function getLevelNodes(
  * @param nodes 当层节点信息
  * @param expandNodes 展开节点ID列表
  */
-function getNodeChildren(nodes: GraphNode[][], expandNodes: string[] = []) {
+function getNodeChildren(nodes: GraphNode[][], expandNodes: string[] = [], todoNodeIdList: string[] = []) {
   for (const columnNodes of nodes) {
     for (const node of columnNodes) {
       const { data, level } = node;
       if (data.pipeline) {
-        const childrenNodes = getLevelNodes(data.pipeline, node, level + 1, expandNodes, false);
-        getNodeChildren(childrenNodes, expandNodes);
+        const childrenNodes = getLevelNodes(data.pipeline, node, level + 1, expandNodes, false, todoNodeIdList);
+        getNodeChildren(childrenNodes, expandNodes, todoNodeIdList);
         node.children = childrenNodes;
       }
     }
@@ -406,7 +404,7 @@ function initRootNodesX(nodes: GraphNode[][]) {
   let preMaxEndX = 0; // 记录节点左侧的节点最大结束 x 位置
   for (let index = 0; index < len; index++) {
     const columnNodes = nodes[index];
-    const x = (index === 0 ? preMaxEndX : config.horizontalSep + preMaxEndX);
+    const x = index === 0 ? preMaxEndX : config.horizontalSep + preMaxEndX;
     for (const node of columnNodes) {
       node.x = x + node.width / 2; // 渲染的时候x坐标是在width的一半位置
       preMaxEndX = Math.max(x + node.width, preMaxEndX);
@@ -479,7 +477,7 @@ function getNodeDepthY(nodes: GraphNode[]) {
  */
 function calcEndNodeLocationX(nodes: GraphNode[]) {
   const customOffset = 185;
-  const endNode = nodes.find(node => node.data.type === 'EmptyEndEvent');
+  const endNode = nodes.find((node) => node.data.type === 'EmptyEndEvent');
   // x值为最大的节点信息
   const maxXNode = nodes.reduce((resNode, node) => {
     if (resNode.x !== undefined && node.x !== undefined && resNode.x > node.x) {

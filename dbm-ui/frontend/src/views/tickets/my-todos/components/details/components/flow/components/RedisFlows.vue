@@ -13,118 +13,129 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{ content }">
+    <template #content="{ content } : { content: FlowItem & { isLast: boolean } }">
       <template v-if="content?.todos?.length > 0">
-        <div
-          v-for="item in content.todos"
-          :key="item.id"
-          class="flow-todo">
-          <div class="flow-todo__title">
-            {{ item.name }}
-            <template v-if="isShowResourceApply(item)">
-              ，
-              <BkButton
-                text
-                theme="primary"
-                @click="handleToApply">
-                {{ t('请前往补货') }}
-              </BkButton>
-            </template>
-          </div>
+        <template
+          v-if="
+            content.flow_type === 'INNER_FLOW' &&
+            content.todos.some((todoItem) => todoItem.type !== 'RESOURCE_REPLENISH')
+          ">
+          <InnerManualConfirm
+            :content="content"
+            :ticket-data="ticketData" />
+        </template>
+        <template v-else>
           <div
-            v-if="item.status === 'TODO'"
-            class="operations">
-            <BkPopover
-              v-model:is-show="state.confirmTips"
-              theme="light"
-              trigger="manual"
-              :width="320">
-              <BkButton
-                class="w-88 mr-8"
-                :disabled="state.isTerminateLoading"
-                :loading="state.isApproveLoading"
-                theme="primary"
-                @click="handleConfirmToggle(true)">
-                {{ getConfirmText(item) }}
-              </BkButton>
-              <template #content>
-                <div class="todos-tips-content">
-                  <div class="todos-tips-content__desc">
-                    {{ getConfirmTips(item) }}
-                  </div>
-                  <div class="todos-tips-content__buttons">
-                    <BkButton
-                      :loading="state.isApproveLoading"
-                      size="small"
-                      theme="primary"
-                      @click="handleConfirm('APPROVE', item)">
-                      {{ getConfirmText(item) }}
-                    </BkButton>
-                    <BkButton
-                      :disabled="state.isApproveLoading"
-                      size="small"
-                      @click="handleConfirmToggle(false)">
-                      {{ t('取消') }}
-                    </BkButton>
-                  </div>
-                </div>
+            v-for="item in content.todos"
+            :key="item.id"
+            class="flow-todo">
+            <div class="flow-todo__title">
+              <!-- {{ item.name }} -->
+              <template v-if="isShowResourceApply(item)">
+                ，
+                <BkButton
+                  text
+                  theme="primary"
+                  @click="handleToApply">
+                  {{ t('请前往补货') }}
+                </BkButton>
               </template>
-            </BkPopover>
-            <BkPopover
-              v-model:is-show="state.cancelTips"
-              theme="light"
-              trigger="manual"
-              :width="320">
-              <BkButton
-                class="w-88 mr-8"
-                :disabled="state.isApproveLoading"
-                :loading="state.isTerminateLoading"
-                theme="danger"
-                @click="handleCancelToggle(true)">
-                {{ t('终止单据') }}
-              </BkButton>
-              <template #content>
-                <div class="todos-tips-content">
-                  <div class="todos-tips-content__desc">
-                    {{ t('是否确认终止单据') }}
+            </div>
+            <div
+              v-if="item.status === 'TODO'"
+              class="operations">
+              <BkPopover
+                v-model:is-show="state.confirmTips"
+                theme="light"
+                trigger="manual"
+                :width="320">
+                <BkButton
+                  class="w-88 mr-8"
+                  :disabled="state.isTerminateLoading"
+                  :loading="state.isApproveLoading"
+                  theme="primary"
+                  @click="handleConfirmToggle(true)">
+                  {{ getConfirmText(item) }}
+                </BkButton>
+                <template #content>
+                  <div class="todos-tips-content">
+                    <div class="todos-tips-content__desc">
+                      {{ getConfirmTips(item) }}
+                    </div>
+                    <div class="todos-tips-content__buttons">
+                      <BkButton
+                        :loading="state.isApproveLoading"
+                        size="small"
+                        theme="primary"
+                        @click="handleConfirm('APPROVE', item)">
+                        {{ getConfirmText(item) }}
+                      </BkButton>
+                      <BkButton
+                        :disabled="state.isApproveLoading"
+                        size="small"
+                        @click="handleConfirmToggle(false)">
+                        {{ t('取消') }}
+                      </BkButton>
+                    </div>
                   </div>
-                  <div class="todos-tips-content__buttons">
-                    <BkButton
-                      :loading="state.isTerminateLoading"
-                      size="small"
-                      theme="danger"
-                      @click="handleConfirm('TERMINATE', item)">
-                      {{ t('终止单据') }}
-                    </BkButton>
-                    <BkButton
-                      :disabled="state.isTerminateLoading"
-                      size="small"
-                      @click="handleCancelToggle(false)">
-                      {{ t('取消') }}
-                    </BkButton>
+                </template>
+              </BkPopover>
+              <BkPopover
+                v-model:is-show="state.cancelTips"
+                theme="light"
+                trigger="manual"
+                :width="320">
+                <BkButton
+                  class="w-88 mr-8"
+                  :disabled="state.isApproveLoading"
+                  :loading="state.isTerminateLoading"
+                  theme="danger"
+                  @click="handleCancelToggle(true)">
+                  {{ t('终止单据') }}
+                </BkButton>
+                <template #content>
+                  <div class="todos-tips-content">
+                    <div class="todos-tips-content__desc">
+                      {{ t('是否确认终止单据') }}
+                    </div>
+                    <div class="todos-tips-content__buttons">
+                      <BkButton
+                        :loading="state.isTerminateLoading"
+                        size="small"
+                        theme="danger"
+                        @click="handleConfirm('TERMINATE', item)">
+                        {{ t('终止单据') }}
+                      </BkButton>
+                      <BkButton
+                        :disabled="state.isTerminateLoading"
+                        size="small"
+                        @click="handleCancelToggle(false)">
+                        {{ t('取消') }}
+                      </BkButton>
+                    </div>
                   </div>
-                </div>
+                </template>
+              </BkPopover>
+            </div>
+            <div
+              v-else
+              class="flow-todo__infos">
+              {{ item.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：
+              <span :class="String(item.status).toLowerCase()">
+                {{ getOperation(item) }}
+              </span>
+              ， {{ t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
+              <template v-if="item.url">
+                ，<a :href="item.url">{{ t('查看详情') }} &gt;</a>
               </template>
-            </BkPopover>
+              <p
+                v-if="item.done_at"
+                class="flow-time">
+                {{ utcDisplayTime(item.done_at) }}
+              </p>
+            </div>
           </div>
-          <div
-            v-else
-            class="flow-todo__infos">
-            {{ item.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：
-            <span :class="String(item.status).toLowerCase()">
-              {{ getOperation(item) }}
-            </span>
-            ， {{ t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
-            <template v-if="item.url">
-              ，<a :href="item.url">{{ t('查看详情') }} &gt;</a>
-            </template>
-            <p
-              v-if="item.done_at"
-              class="flow-time">
-              {{ utcDisplayTime(item.done_at) }}
-            </p>
-          </div>
-        </div>
+        </template>
       </template>
       <template v-else>
         <FlowContent
@@ -169,6 +180,8 @@
 
   import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
+  import InnerManualConfirm from './approve/InnerManualConfirm.vue';
+
   interface Props {
     ticketData: TicketModel<unknown>,
     flows?: FlowItem[]
@@ -205,7 +218,7 @@
     // const prevFlow = props.flows[index - 1];
     // const flowObjId = isLast && prevFlow ? prevFlow.flow_obj_id : flow.flow_obj_id;
     return {
-      tag: flow.flow_type_display,
+      tag: flow.flow_type === 'PAUSE' ? `${t('确认是否执行')}“${flow.flow_type_display}”` : flow.flow_type_display,
       type: 'default',
       filled: true,
       content: Object.assign(flow, { isLast }),

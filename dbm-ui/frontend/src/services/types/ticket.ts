@@ -122,6 +122,7 @@ export interface FlowItemTodo {
   context: {
     flow_id: number;
     ticket_id: number;
+    node_id: string;
     administrators?: string[];
     user?: string;
   };
