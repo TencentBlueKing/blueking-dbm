@@ -234,7 +234,7 @@
     } else {
       // 其它类型的节点数不能全部被缩容，至少保留一个
       let brokerNum = 0;
-      tableData.value.forEach((nodeItem) => {
+      totalTableData.forEach((nodeItem) => {
         if (nodeItem.isBroker) {
           brokerNum = brokerNum + 1;
         }
@@ -272,6 +272,8 @@
       name: 'IP',
     }
   });
+
+  let totalTableData: KafkaNodeModel[] = [];
 
   const isAnomalies = ref(false);
   const isShowReplace = ref(false);
@@ -312,7 +314,7 @@
       return options;
     }
     let brokerNum = 0;
-    tableData.value.forEach((nodeItem) => {
+    totalTableData.forEach((nodeItem) => {
       if (checkedNodeMap.value[nodeItem.bk_host_id]) {
         return;
       }
@@ -516,6 +518,9 @@
     }).then((data) => {
       tableData.value = data.results;
       isAnomalies.value = false;
+      if (searchValue.value.length === 0) {
+        totalTableData = _.cloneDeep(tableData.value);
+      }
     })
       .catch(() => {
         tableData.value = [];
