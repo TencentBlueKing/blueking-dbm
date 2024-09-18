@@ -1,9 +1,9 @@
 <template>
   <StretchLayout
-    :min-left-width="368"
+    :left-width="368"
     name="sqlserverSingleClusterList">
     <template #list>
-      <List v-model:singleClusterData="singleClusterData" />
+      <List v-model:single-cluster-data="singleClusterData" />
     </template>
     <template
       v-if="singleClusterData"

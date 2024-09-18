@@ -20,6 +20,7 @@
       class="stretch-layout-left"
       :style="{
         width: `${renderLeftWidth}px`,
+        overflow: renderLeftWidth === 0 ? 'hidden' : '',
       }">
       <slot name="list" />
     </div>
@@ -39,10 +40,11 @@
   </div>
 </template>
 <script lang="ts">
-  import { type InjectionKey, provide, type Ref } from 'vue';
+  import { type InjectionKey, nextTick, provide, type Ref } from 'vue';
 
   export const provideKey: InjectionKey<{
     isOpen: Ref<boolean>;
+    isSplited: Ref<boolean>;
     splitScreen: () => void;
     handleOpenChange: (direction: string) => void;
   }> = Symbol.for('stretch-layout');
@@ -52,14 +54,17 @@
 
   import DragResize from './components/DragResize.vue';
 
-  interface Props {
-    name: string;
-    minLeftWidth?: number;
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    minLeftWidth: 456,
-  });
+  const props = withDefaults(
+    defineProps<{
+      name: string;
+      leftWidth?: number;
+      minLeftWidth?: number;
+    }>(),
+    {
+      leftWidth: 456,
+      minLeftWidth: 200,
+    },
+  );
 
   defineSlots<{
     list(): any;
@@ -67,48 +72,63 @@
     right(): any;
   }>();
 
+  const getMaxWidth = () => rootRef.value.getBoundingClientRect().width;
+
   const rootRef = ref();
   const isShowTrigger = ref(false);
   const isOpen = ref(false);
   const renderLeftWidth = ref(0);
   const isRightHidden = ref(true);
+  const isSplited = ref(false);
 
-  const getMaxWidth = () => rootRef.value.getBoundingClientRect().width;
+  const calcSplited = () => {
+    nextTick(() => {
+      if (!isShowTrigger.value) {
+        isSplited.value = false;
+      }
+      isSplited.value = renderLeftWidth.value < getMaxWidth();
+    });
+  };
+
   // 拖动改变左侧宽度
   const handleLeftWidthChange = (newLeftWidth: number) => {
     const maxWidth = getMaxWidth();
-    if (newLeftWidth < 100) {
+    if (newLeftWidth < props.minLeftWidth) {
       isOpen.value = false;
       renderLeftWidth.value = 0;
-    } else if (newLeftWidth > maxWidth - 100) {
+    } else if (newLeftWidth > maxWidth - props.minLeftWidth) {
       isOpen.value = false;
       renderLeftWidth.value = maxWidth;
     } else {
       renderLeftWidth.value = newLeftWidth;
     }
+    calcSplited();
   };
 
   // 切换展开收起
   const handleOpenChange = (direction: string) => {
-    renderLeftWidth.value = isOpen.value ? 0 : props.minLeftWidth;
+    renderLeftWidth.value = isOpen.value ? 0 : props.leftWidth;
     if (isOpen.value) {
       renderLeftWidth.value = direction === 'left' ? 0 : getMaxWidth();
     } else {
-      renderLeftWidth.value = props.minLeftWidth;
+      renderLeftWidth.value = props.leftWidth;
     }
     isOpen.value = !isOpen.value;
     isRightHidden.value = renderLeftWidth.value === getMaxWidth();
+    calcSplited();
   };
 
   // 拖拽改变浏览器大小
   const handleWindowResize = () => {
     if (!isOpen.value) {
       renderLeftWidth.value = renderLeftWidth.value === 0 ? 0 : getMaxWidth();
+      calcSplited();
     }
   };
 
   provide(provideKey, {
     isOpen: readonly(isOpen),
+    isSplited,
     splitScreen() {
       isShowTrigger.value = true;
       if (isOpen.value) {

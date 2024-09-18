@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import dayjs from 'dayjs';
 
 import { TicketTypes } from '@common/const';
 
@@ -62,7 +61,7 @@ export default class Ticket<T extends unknown | DetailBase> {
   ticket_type_display: string;
   update_at: string;
   updater: string;
-  related_object?: {
+  related_object: {
     title: string;
     objects: string[];
   };
@@ -86,7 +85,7 @@ export default class Ticket<T extends unknown | DetailBase> {
     this.ticket_type_display = payload.ticket_type_display;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-    this.related_object = payload.related_object;
+    this.related_object = payload.related_object || {};
   }
 
   // 获取状态对应文案
@@ -96,10 +95,6 @@ export default class Ticket<T extends unknown | DetailBase> {
 
   get statusText() {
     return Ticket.statusTextMap[this.status];
-  }
-
-  get formatCreateAt() {
-    return dayjs(this.create_at).format('YYYY-MM-DD');
   }
 
   get createAtDisplay() {

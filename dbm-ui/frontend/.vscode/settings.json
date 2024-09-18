@@ -26,8 +26,6 @@
   "[css]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "typescript.tsserver.log": "verbose",
-  "typescript.tsserver.traceResolution": true,
   "editor.formatOnSave": true,
   "editor.tabSize": 2,
   "css.validate": false,
