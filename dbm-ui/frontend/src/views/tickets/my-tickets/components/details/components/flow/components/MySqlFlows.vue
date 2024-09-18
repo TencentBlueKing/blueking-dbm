@@ -185,7 +185,6 @@
   const isShowMore = computed(() => executeSqlFileList.value.length > 6);
 
   const renderSqlFileList = computed(() => {
-    console.log('props.ticketData = ', props.ticketData);
     if (isShowMore.value && !isShowCollapse.value) {
       return executeSqlFileList.value.slice(0, 6);
     }

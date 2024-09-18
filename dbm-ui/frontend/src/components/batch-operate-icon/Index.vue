@@ -48,9 +48,8 @@
 </script>
 <style lang="less">
   .batch-edit-btn {
-    // margin-left: 4px;
+    font-size: 16px;
     color: #3a84ff;
     cursor: pointer;
-    font-size: 16px;
   }
 </style>

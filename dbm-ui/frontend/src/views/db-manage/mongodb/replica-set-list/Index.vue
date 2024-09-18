@@ -13,10 +13,10 @@
 
 <template>
   <StretchLayout
-    :min-left-width="320"
+    :left-width="320"
     name="mongodbReplicaSetList">
     <template #list>
-      <List v-model:clusterId="clusterId" />
+      <List v-model:cluster-id="clusterId" />
     </template>
     <template
       v-if="clusterId"

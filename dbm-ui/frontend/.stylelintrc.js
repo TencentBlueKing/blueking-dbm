@@ -19,7 +19,7 @@ module.exports = {
     'function-no-unknown': [
       true,
       {
-        ignoreFunctions: ['extend'],
+        ignoreFunctions: ['extend', 'v-bind'],
       },
     ],
     'at-rule-no-unknown': [

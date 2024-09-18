@@ -104,7 +104,7 @@
   import { getOffset } from '@utils';
 
   interface Props {
-    columns: InstanceType<typeof Table>['$props']['columns'],
+    columns?: InstanceType<typeof Table>['$props']['columns'],
     dataSource: (params: any, payload?: IRequestPayload)=> Promise<any>,
     fixedPagination?: boolean,
     clearSelection?: boolean,
@@ -133,7 +133,7 @@
   }
 
   interface Exposes {
-    fetchData: (params: Record<string, any>, baseParams: Record<string, any>, loading?: boolean) => void,
+    fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void,
     getData: <T>() => Array<T>,
     getAllData: <T>() => Promise<Array<T>>,
     clearSelected: () => void,
