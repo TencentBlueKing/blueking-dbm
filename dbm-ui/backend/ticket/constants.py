@@ -211,6 +211,8 @@ class TicketType(str, StructuredEnum):
     MYSQL_DUMP_DATA = TicketEnumField("MYSQL_DUMP_DATA", _("MySQL 数据导出"), _("数据处理"))
     MYSQL_LOCAL_UPGRADE = TicketEnumField("MYSQL_LOCAL_UPGRADE", _("MySQL 原地升级"), _("版本升级"))
     MYSQL_MIGRATE_UPGRADE = TicketEnumField("MYSQL_MIGRATE_UPGRADE", _("MySQL 迁移升级"), _("版本升级"))
+    MYSQL_SLAVE_MIGRATE_UPGRADE = TicketEnumField("MYSQL_SLAVE_MIGRATE_UPGRADE", _("MySQL Slave 迁移升级"), _("版本升级"))
+    MYSQL_RO_SLAVE_UNINSTALL = TicketEnumField("MYSQL_RO_SLAVE_UNINSTALL", _("MySQL非stanby slave下架"), _("集群维护"))
     MYSQL_PROXY_UPGRADE = TicketEnumField("MYSQL_PROXY_UPGRADE", _("MySQL Proxy升级"), _("版本升级"))
     MYSQL_HA_TRANSFER_TO_OTHER_BIZ = TicketEnumField("MYSQL_HA_TRANSFER_TO_OTHER_BIZ", _("TendbHA集群迁移至其他业务"), register_iam=False)# noqa
     MYSQL_PUSH_PERIPHERAL_CONFIG = TicketEnumField("MYSQL_PUSH_PERIPHERAL_CONFIG", _("推送周边配置"), register_iam=False)

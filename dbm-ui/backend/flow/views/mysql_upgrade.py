@@ -49,3 +49,33 @@ class MigrateUpgradeMySQLSceneApiView(FlowTestView):
         test = MySQLController(root_id=root_id, ticket_data=request.data)
         test.mysql_migrate_upgrade_scene()
         return Response({"root_id": root_id})
+
+
+class NonStanbySlavesUpgradeMySQLSceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/migrate_upgrade_mysql
+    """
+
+    @staticmethod
+    def post(request):
+        logger.info(_("开始测试迁移升级非standy mysql实例场景"))
+        root_id = generate_root_id()
+        logger.info("define root_id: {}".format(root_id))
+        test = MySQLController(root_id=root_id, ticket_data=request.data)
+        test.non_standby_slaves_upgrade_scene()
+        return Response({"root_id": root_id})
+
+
+class NonStanbySlavesDestorySceneApiView(FlowTestView):
+    """
+    api: /apis/v1/flow/scene/uninstall_non_standby_slave
+    """
+
+    @staticmethod
+    def post(request):
+        logger.info(_("开始下架非standy slave实例场景"))
+        root_id = generate_root_id()
+        logger.info("define root_id: {}".format(root_id))
+        test = MySQLController(root_id=root_id, ticket_data=request.data)
+        test.non_standby_slaves_destory_scene()
+        return Response({"root_id": root_id})
