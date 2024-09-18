@@ -12,9 +12,7 @@
 -->
 
 <template>
-  <BkLoading :loading="isLoading">
-    <DemandFactory :data="data" />
-  </BkLoading>
+  <DemandFactory :data="data" />
 </template>
 
 <script setup lang="ts">
@@ -23,8 +21,7 @@
   import DemandFactory from '@views/tickets/common/components/demand-factory/Index.vue';
 
   interface Props {
-    data: TicketModel;
-    isLoading: boolean;
+    data: TicketModel<unknown>;
   }
 
   defineProps<Props>();

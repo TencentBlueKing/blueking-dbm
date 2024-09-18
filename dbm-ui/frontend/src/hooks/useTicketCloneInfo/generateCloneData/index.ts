@@ -105,8 +105,6 @@ const importSqlserverModule = <T extends Record<string, any>>() => {
     eager: true,
   });
 
-  console.log('sqlserver modules:', modules);
-
   return Object.keys(modules).reduce((result, item) => {
     const [, ticketType] = item.match(/([^/]+)\.ts$/) as [string, string];
     return Object.assign(result, {
