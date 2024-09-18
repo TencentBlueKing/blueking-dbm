@@ -159,7 +159,7 @@ func (c *HaDBClient) GetDBDetectInfo() ([]model.HAAgentLogs, error) {
 }
 
 // ReportDBStatus report detected instance's status
-func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, status string) error {
+func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, status, bindGM string) error {
 	var result DbStatusResponse
 	currentTime := time.Now()
 
@@ -179,6 +179,7 @@ func (c *HaDBClient) ReportDBStatus(app, agentIp, ip string, port int, dbType, s
 			Status:   status,
 			CloudID:  c.CloudId,
 			LastTime: &currentTime,
+			ReportGM: bindGM,
 		},
 	}
 
@@ -401,7 +402,7 @@ func (c *HaDBClient) GetAliveHAComponent(module string, interval int) ([]GMInfo,
 }
 
 // ReporterAgentHeartbeat report agent heartbeat to ha_status table
-func (c *HaDBClient) ReporterAgentHeartbeat(agentIP, detectType string, interval int, gmInfo string) error {
+func (c *HaDBClient) ReporterAgentHeartbeat(agentIP, detectType string, interval, mod, modValue int) error {
 	var result HaStatusResponse
 
 	currentTime := time.Now()
@@ -416,7 +417,8 @@ func (c *HaDBClient) ReporterAgentHeartbeat(agentIP, detectType string, interval
 		SetArgs: &model.HaStatus{
 			ReportInterval: interval,
 			LastTime:       &currentTime,
-			TakeOverGm:     gmInfo,
+			HashMod:        &mod,
+			HashValue:      &modValue,
 		},
 	}
 
@@ -751,7 +753,8 @@ func (c *HaDBClient) AgentGetHashValue(agentIP string, cityID int, dbType string
 	if !find {
 		err = fmt.Errorf("bug: can't find in agent list. agentIP:%s, dbType:%s", agentIP, dbType)
 		log.Logger.Errorf(err.Error())
-		_ = c.ReporterAgentHeartbeat(agentIP, dbType, interval, "N/A")
+		//report invalid mod info
+		_ = c.ReporterAgentHeartbeat(agentIP, dbType, interval, 0, 0)
 
 		return mod, modValue, err
 	}

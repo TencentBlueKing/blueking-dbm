@@ -36,6 +36,11 @@ func InitHaDB() *gorm.DB {
 		log.Logger.Errorf("connect to %s%d failed:%s", haDBInfo.Host, haDBInfo.Port, err.Error())
 	}
 
+	//should do this, otherwise go time.Time to mysql datetime may cause error 1292
+	//the real causes sql_mode is STRICT_TRANS_TABLES
+	log.Logger.Debugf("set sql_mode to null")
+	hadb.Exec("set sql_mode=''")
+
 	err = DoAutoMigrate(hadb)
 	if err != nil {
 		log.Logger.Errorf("hadb auto migrate failed, err:%s", err.Error())
