@@ -387,6 +387,12 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         query_serializer=GetTodosSLZ(),
         tags=[TICKET_TAG],
     )
+    @Permission.decorator_permission_field(
+        id_field=lambda d: d["id"],
+        data_field=lambda d: d["results"],
+        actions=[ActionEnum.TICKET_VIEW],
+        resource_meta=ResourceEnum.TICKET,
+    )
     @action(methods=["GET"], detail=False, serializer_class=GetTodosSLZ)
     def get_todo_tickets(self, request, *args, **kwargs):
         """待办视图单据列表"""
@@ -394,7 +400,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         # 获取我的待办
         validated_data = self.params_validate(self.get_serializer_class())
         todo_status = validated_data.get("todo_status")
-
         my_todos = Todo.objects.filter(operators__contains=request.user.username)
 
         # 状态筛选：已处理/未处理
@@ -412,13 +417,10 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
 
         # 分页处理
         page = self.paginate_queryset(my_todo_tickets)
-        if page is not None:
-            serializer = TicketSerializer(page, many=True, context=context)
-            return self.get_paginated_response(serializer.data)
-
         serializer = TicketSerializer(page, many=True, context=context)
-        serializer.data["results"] = TicketHandler.add_related_object(serializer.data["results"])
-        return Response(serializer.data)
+        resp = self.get_paginated_response(serializer.data)
+        resp.data["results"] = TicketHandler.add_related_object(resp.data["results"])
+        return resp
 
     @swagger_auto_schema(
         operation_summary=_("待办处理"),
