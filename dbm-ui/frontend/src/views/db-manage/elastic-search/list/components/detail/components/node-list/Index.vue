@@ -235,7 +235,7 @@
       let clientNodeNum = 0;
       let hotNodeNum = 0;
       let coldNodeNum = 0;
-      tableData.value.forEach((nodeItem) => {
+      totalTableData.forEach((nodeItem) => {
         if (nodeItem.isClient) {
           clientNodeNum = clientNodeNum + 1;
         } else if (nodeItem.isHot) {
@@ -285,6 +285,8 @@
       name: 'IP',
     }
   });
+
+  let totalTableData: EsNodeModel[] = [];
 
   const isAnomalies = ref(false);
   const isShowReplace = ref(false);
@@ -341,7 +343,7 @@
     let hotNodeNum = 0;
     let coldNodeNumTotal = 0;
     let coldNodeNum = 0;
-    tableData.value.forEach((nodeItem) => {
+    totalTableData.forEach((nodeItem) => {
       if (nodeItem.isHot) {
         hotNodeNumTotal = hotNodeNumTotal + 1;
       } else if (nodeItem.isCold) {
@@ -566,6 +568,9 @@
     }).then((data) => {
       tableData.value = data.results;
       isAnomalies.value = false;
+      if (searchValue.value.length === 0) {
+        totalTableData = _.cloneDeep(tableData.value);
+      }
     })
       .catch(() => {
         tableData.value = [];
