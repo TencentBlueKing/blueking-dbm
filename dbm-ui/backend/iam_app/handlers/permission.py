@@ -17,7 +17,7 @@ from typing import Any, Callable, Dict, List, Tuple, Union
 from blueapps.account.models import User
 from django.conf import settings
 from django.utils.translation import ugettext as _
-from iam import IAM, DummyIAM, MultiActionRequest, ObjectSet, Request, Resource, Subject, make_expression
+from iam import DummyIAM, MultiActionRequest, ObjectSet, Request, Resource, Subject, make_expression
 from iam.apply.models import (
     ActionWithoutResources,
     ActionWithResources,
@@ -36,6 +36,7 @@ from backend.env import BK_IAM_SYSTEM_ID
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta, _all_actions
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta, _all_resources
 from backend.iam_app.exceptions import ActionNotExistError, GetSystemInfoError, PermissionDeniedError
+from backend.iam_app.handlers.client import IAM
 from backend.utils.local import local
 
 logger = logging.getLogger("root")

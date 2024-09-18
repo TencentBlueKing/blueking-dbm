@@ -8165,7 +8165,7 @@
                 "version": 1,
                 "hidden": false,
                 "group": "Redis",
-                "subgroup": "工具箱",
+                "subgroup": "集群维护",
                 "description": "Redis集群域名重命名",
                 "description_en": "REDIS_CLUSTER_RENAME_DOMAIN"
             }
@@ -8197,6 +8197,64 @@
                 "subgroup": "工具箱",
                 "description": "Redis 集群设置maxmemory",
                 "description_en": "REDIS_CLUSTER_MAXMEMORY_SET"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_cluster_load_modules",
+                "name": "Redis 集群加载modules",
+                "name_en": "REDIS_CLUSTER_LOAD_MODULES",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "工具箱",
+                "description": "Redis 集群加载modules",
+                "description_en": "REDIS_CLUSTER_LOAD_MODULES"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
+                "id": "redis_tendisplus_lightning_data",
+                "name": "Tendisplus闪电导入数据",
+                "name_en": "REDIS_TENDISPLUS_LIGHTNING_DATA",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "redis",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "redis_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "Redis",
+                "subgroup": "集群维护",
+                "description": "Tendisplus闪电导入数据",
+                "description_en": "REDIS_TENDISPLUS_LIGHTNING_DATA"
             }
         },
         {
@@ -9420,6 +9478,35 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mongodb_import",
+                "name": "MongoDB 数据导入",
+                "name_en": "MONGODB_IMPORT",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "集群维护",
+                "description": "MongoDB 数据导入",
+                "description_en": "MONGODB_IMPORT"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mongodb_restore",
                 "name": "MongoDB 定点回档",
                 "name_en": "MONGODB_RESTORE",
@@ -10432,6 +10519,12 @@
                                 },
                                 {
                                     "id": "redis_cluster_add_slave"
+                                },
+                                {
+                                    "id": "redis_cluster_rename_domain"
+                                },
+                                {
+                                    "id": "redis_tendisplus_lightning_data"
                                 }
                             ]
                         },
@@ -10473,10 +10566,10 @@
                                     "id": "redis_cluster_reinstall_dbmon"
                                 },
                                 {
-                                    "id": "redis_cluster_rename_domain"
+                                    "id": "redis_cluster_maxmemory_set"
                                 },
                                 {
-                                    "id": "redis_cluster_maxmemory_set"
+                                    "id": "redis_cluster_load_modules"
                                 }
                             ]
                         }
@@ -10808,6 +10901,9 @@
                                 },
                                 {
                                     "id": "mongodb_cutoff"
+                                },
+                                {
+                                    "id": "mongodb_import"
                                 },
                                 {
                                     "id": "mongodb_restore"
@@ -11706,6 +11802,12 @@
                             "id": "redis_cluster_maxmemory_set"
                         },
                         {
+                            "id": "redis_cluster_load_modules"
+                        },
+                        {
+                            "id": "redis_tendisplus_lightning_data"
+                        },
+                        {
                             "id": "kafka_scale_up"
                         },
                         {
@@ -11830,6 +11932,9 @@
                         },
                         {
                             "id": "mongodb_cutoff"
+                        },
+                        {
+                            "id": "mongodb_import"
                         },
                         {
                             "id": "mongodb_restore"
@@ -12539,6 +12644,14 @@
                             {
                                 "id": "redis_cluster_maxmemory_set",
                                 "required": true
+                            },
+                            {
+                                "id": "redis_cluster_load_modules",
+                                "required": true
+                            },
+                            {
+                                "id": "redis_tendisplus_lightning_data",
+                                "required": true
                             }
                         ]
                     },
@@ -12821,6 +12934,10 @@
                             },
                             {
                                 "id": "mongodb_cutoff",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_import",
                                 "required": true
                             },
                             {

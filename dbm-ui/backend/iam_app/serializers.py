@@ -61,3 +61,9 @@ class GetApplyDataResSerializer(serializers.Serializer):
 class CheckAllowedResSerializer(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": mock_data.ACTION_CHECK_ALLOWED}
+
+
+class AssignAuthToDBASerializer(serializers.Serializer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    group_name = serializers.CharField(help_text=_("组名"))
+    members = serializers.ListField(help_text=_("成员列表"), child=serializers.CharField())
