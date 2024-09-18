@@ -12,9 +12,11 @@
 -->
 
 <template>
-  <div class="mb-20 ml-10">
-    <span class="title-spot">{{ t('构造类型') }}</span>
-    <span>：{{ renderData.label }}</span>
+  <div class="ticket-details-list">
+    <div class="ticket-details-item">
+      <span class="ticket-details-item-label">{{ t('构造类型') }}：</span>
+      <span class="ticket-details-item-value">{{ renderData.label }}</span>
+    </div>
   </div>
   <component
     :is="renderData.tableCom"
@@ -24,8 +26,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
+  import type { SpiderRollbackDetails } from '@services/model/ticket/details/spider';
   import TicketModel from '@services/model/ticket/ticket';
 
   import RollbackExistCluster from './components/RollbackExistCluster.vue';
@@ -33,7 +35,7 @@
   import RollbackOriginCluster from './components/RollbackOriginCluster.vue';
 
   interface Props {
-    ticketDetails: TicketModel<MySQLRollbackDetails>;
+    ticketDetails: TicketModel<SpiderRollbackDetails>;
   }
 
   const props = defineProps<Props>();
