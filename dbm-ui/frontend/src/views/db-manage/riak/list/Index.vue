@@ -58,12 +58,12 @@
     </div>
   </Teleport>
   <StretchLayout
-    :min-left-width="368"
+    :left-width="368"
     name="riakClusterList">
     <template #list>
       <List
         ref="listRef"
-        v-model:clusterId="clusterId"
+        v-model:cluster-id="clusterId"
         show-add-nodes
         @detail-open-change="handleOpenChange" />
     </template>

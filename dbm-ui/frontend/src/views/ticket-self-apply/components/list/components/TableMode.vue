@@ -4,7 +4,6 @@
       <BkDatePicker
         v-model="datePickerValue"
         format="yyyy-MM-dd HH:mm:ss"
-        :shortcut-selected-index="1"
         :shortcuts="shortcutsRange"
         style="margin-left: auto"
         type="datetimerange"
@@ -52,14 +51,17 @@
           :label="t('集群')"
           min-width="250">
           <template #default="{ data }: { data: IRowData }">
-            <template v-if="data.related_object.objects">
+            <MultLineText
+              v-if="data.related_object.objects"
+              :line="3"
+              style="padding: 8px 0">
               <div
                 v-for="item in data.related_object.objects"
                 :key="item"
                 style="line-height: 20px">
                 {{ item }}
               </div>
-            </template>
+            </MultLineText>
             <template v-else> -- </template>
           </template>
         </BkTableColumn>
@@ -81,8 +83,12 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
-          field="update_at"
-          :label="t('处理时间')"
+          field="creator"
+          :label="t('申请人')"
+          width="250" />
+        <BkTableColumn
+          field="createAtDisplay"
+          :label="t('申请时间')"
           width="250" />
       </BkTable>
     </div>
@@ -132,7 +138,12 @@
     });
   };
 
-  watch([formatDateValue, formatSearchValue, pagination], () => {
+  watch([formatDateValue, formatSearchValue], () => {
+    pagination.current = 1;
+    fetchData();
+  });
+
+  watch(pagination, () => {
     fetchData();
   });
 

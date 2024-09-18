@@ -13,10 +13,10 @@
 
 <template>
   <StretchLayout
-    :min-left-width="368"
+    :left-width="368"
     name="myClusterHaList">
     <template #list>
-      <List v-model:clusterId="clusterId" />
+      <List v-model:cluster-id="clusterId" />
     </template>
     <template
       v-if="clusterId"

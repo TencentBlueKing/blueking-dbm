@@ -7,7 +7,7 @@ interface IPicker {
   value: () => [Date, Date];
 }
 
-const value = ref<[Date, Date]>([dayjs().subtract(7, 'day').toDate(), dayjs().toDate()]);
+const value = ref<[Date, Date] | [string, string]>(['', '']);
 
 export default () => {
   const { getSearchParams } = useUrlSearch();
@@ -56,10 +56,15 @@ export default () => {
     },
   ];
 
-  const formatValue = computed(() => ({
-    create_at__gte: dayjs(value.value[0]).format('YYYY-MM-DD HH:mm:ss'),
-    create_at__lte: dayjs(value.value[1]).format('YYYY-MM-DD HH:mm:ss'),
-  }));
+  const formatValue = computed(() => {
+    if (value.value[0] && value.value[1]) {
+      return {
+        create_at__gte: dayjs(value.value[0]).format('YYYY-MM-DD HH:mm:ss'),
+        create_at__lte: dayjs(value.value[1]).format('YYYY-MM-DD HH:mm:ss'),
+      };
+    }
+    return {};
+  });
 
   return {
     value,

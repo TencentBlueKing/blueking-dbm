@@ -13,10 +13,10 @@
 
 <template>
   <StretchLayout
-    :min-left-width="368"
+    :left-width="368"
     name="myClusterHaInstanceList">
     <template #list>
-      <List v-model:instanceData="instanceData" />
+      <List v-model:instance-data="instanceData" />
     </template>
     <template
       v-if="instanceData"

@@ -1,7 +1,9 @@
 <template>
-  <Component
-    :is="renderCom"
-    v-bind="attrs" />
+  <KeepAlive>
+    <Component
+      :is="renderCom"
+      v-bind="attrs" />
+  </KeepAlive>
 </template>
 <script setup lang="ts">
   import { useAttrs } from 'vue';
@@ -13,7 +15,7 @@
 
   const attrs = useAttrs();
 
-  const { isOpen: isStretchLayoutOpen } = useStretchLayout();
+  const { isSplited: isStretchLayoutOpen } = useStretchLayout();
 
   const renderCom = computed(() => (isStretchLayoutOpen.value ? CardMode : TableMode));
 </script>

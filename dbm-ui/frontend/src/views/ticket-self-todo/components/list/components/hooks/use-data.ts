@@ -1,5 +1,6 @@
 import { reactive, ref } from 'vue';
 import { useRequest } from 'vue-request';
+import { useRoute } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketStatus, getTodoTickets } from '@services/source/ticket';
@@ -17,7 +18,13 @@ const pagination = reactive({
 });
 
 export default (options?: { onSuccess?: (data: TicketModel<unknown>[]) => void }) => {
+  const route = useRoute();
   const { replaceSearchParams } = useUrlSearch();
+
+  if (route.query.limit && route.query.current) {
+    pagination.limit = Number(route.query.limit);
+    pagination.current = Number(route.query.current);
+  }
 
   const { run: fetchTicketStatus } = useRequest(
     () => {
@@ -50,6 +57,7 @@ export default (options?: { onSuccess?: (data: TicketModel<unknown>[]) => void }
   const { run: fetchTicketList } = useRequest(
     (params: ServiceParameters<typeof getTodoTickets>) =>
       getTodoTickets({
+        todo_status: 'TODO',
         limit: pagination.limit,
         offset: (pagination.current - 1) * pagination.limit,
         ...params,

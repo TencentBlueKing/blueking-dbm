@@ -19,7 +19,7 @@ const route = {
   name: 'MyTodos',
   path: 'ticket-self-todo',
   meta: {
-    navName: t('我的代办'),
+    navName: t('我的待办'),
     fullscreen: true,
   },
   component: () => import('@views/ticket-self-todo/Index.vue'),

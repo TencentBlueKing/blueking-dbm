@@ -10,7 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import dayjs from 'dayjs';
 
 import { TicketTypes } from '@common/const';
 
@@ -96,10 +95,6 @@ export default class Ticket<T extends unknown | DetailBase> {
 
   get statusText() {
     return Ticket.statusTextMap[this.status];
-  }
-
-  get formatCreateAt() {
-    return dayjs(this.create_at).format('YYYY-MM-DD');
   }
 
   get createAtDisplay() {

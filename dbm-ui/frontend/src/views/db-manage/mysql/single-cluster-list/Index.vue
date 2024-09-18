@@ -13,10 +13,10 @@
 
 <template>
   <StretchLayout
-    :min-left-width="400"
+    :left-width="400"
     name="myClusterSingleList">
     <template #list>
-      <List v-model:clusterId="clusterId" />
+      <List v-model:cluster-id="clusterId" />
     </template>
     <template
       v-if="clusterId"

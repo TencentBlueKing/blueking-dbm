@@ -13,7 +13,7 @@
 
   const attrs = useAttrs();
 
-  const { isOpen: isStretchLayoutOpen } = useStretchLayout();
+  const { isSplited: isStretchLayoutOpen } = useStretchLayout();
 
   const renderCom = computed(() => (isStretchLayoutOpen.value ? CardMode : TableMode));
 </script>
