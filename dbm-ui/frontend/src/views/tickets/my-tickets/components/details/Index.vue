@@ -87,14 +87,13 @@
   const isLoading = ref(true);
   const flowInfoRef = ref<InstanceType<typeof FlowInfo>>();
 
-  const { run: fetchTicketDetails, data: ticketData } = useRequest(
+  const { runAsync: fetchTicketDetails, data: ticketData } = useRequest(
     (params: ServiceParameters<typeof getTicketDetails>) =>
       getTicketDetails(params, {
         permission: 'catch',
       }),
     {
-      onSuccess(data, params) {
-        isLoading.value = false;
+      onSuccess(_, params) {
         if (params[0].id !== props.ticketId) {
           return;
         }
@@ -118,6 +117,8 @@
         ticketData.value = undefined;
         fetchTicketDetails({
           id: props.ticketId,
+        }).finally(() => {
+          isLoading.value = false;
         });
       }
     },

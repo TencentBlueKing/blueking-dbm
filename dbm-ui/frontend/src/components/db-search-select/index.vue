@@ -58,15 +58,16 @@
     props.data?.forEach((item) => {
       if (_.has(searchParams, item.id)) {
         const searchValue = searchParams[item.id];
-        const child = (item.children || []).find((child) => child.id === searchValue);
+        const childNameMap = (item.children || []).reduce<Record<string, string>>(
+          (result, item) => Object.assign(result, { [item.id]: item.name }),
+          {},
+        );
+
         defaultValue.push({
           ...item,
-          values: [
-            {
-              id: searchValue,
-              name: child?.name ?? searchValue,
-            },
-          ],
+          values: item.multiple
+            ? searchValue.split(',').map((item) => ({ id: item, name: childNameMap[item] ?? item }))
+            : [{ id: searchValue, name: searchValue }],
         });
       }
     });
