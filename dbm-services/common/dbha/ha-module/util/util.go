@@ -150,10 +150,10 @@ func IntSlice2String(elements []int, sep string) string {
 // GraceStructString grace struct info to string
 func GraceStructString(v interface{}) string {
 	// 使用 json.MarshalIndent 序列化结构体，便于阅读
-	data, err := json.MarshalIndent(v, "", "  ")
+	data, err := json.Marshal(v)
 	if err != nil {
 		log.Logger.Debugf("Failed to marshal struct: %v", err)
 		return ""
 	}
-	return fmt.Sprintf("%s", data)
+	return string(data)
 }

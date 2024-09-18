@@ -20,6 +20,8 @@ type HaStatus struct {
 	Status         string     `gorm:"column:status;type:varchar(32);NOT NULL" json:"status,omitempty"`
 	TakeOverGm     string     `gorm:"column:take_over_gm;type:varchar(32)" json:"take_over_gm,omitempty"`
 	ReportInterval int        `gorm:"column:report_interval;type:tinyint" json:"report_interval,omitempty"`
+	HashMod        *int       `gorm:"column:hash_mod;type:int(11)" json:"hash_mod,omitempty"`
+	HashValue      *int       `gorm:"column:hash_value;type:int(11)" json:"hash_value,omitempty"`
 }
 
 // TableName TODO

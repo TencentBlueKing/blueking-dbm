@@ -25,6 +25,7 @@ type HAAgentLogs struct {
 	Status   string     `gorm:"column:status;type:varchar(32);NOT NULL" json:"status,omitempty"`
 	CloudID  int        `gorm:"column:cloud_id;type:int(11);NOT NULL;default:0" json:"cloud_id,omitempty"`
 	LastTime *time.Time `gorm:"column:last_time;type:datetime;default:CURRENT_TIMESTAMP;NOT NULL" json:"last_time,omitempty"`
+	ReportGM string     `gorm:"column:report_gm;type:varchar(32)" json:"report_gm,omitempty"`
 }
 
 // TableName TODO
