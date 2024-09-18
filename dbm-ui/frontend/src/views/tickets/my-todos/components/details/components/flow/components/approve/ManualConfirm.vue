@@ -14,9 +14,9 @@
 <template>
   <div class="flow-todo">
     <div>
-      <div class="flow-todo__title">
+      <!-- <div class="flow-todo__title">
         {{ data.name }}
-      </div>
+      </div> -->
       <div
         v-if="content.err_msg"
         class="mb-8">
@@ -109,9 +109,9 @@
     <div
       v-else
       class="flow-todo__infos">
-      {{ data.done_by }} {{ t('处理完成') }}，
-      {{ t('操作') }}：<span :class="String(data.status).toLowerCase()">{{ getOperation(data) }}</span>，
-      {{ t('耗时') }}：{{ getCostTimeDisplay(data.cost_time) }}
+      {{ data.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：
+      <span :class="String(data.status).toLowerCase()">{{ getOperation(data) }} </span>
+      ， {{ t('耗时') }}：{{ getCostTimeDisplay(data.cost_time) }}
       <template v-if="content.url">
         ，<a :href="content.url">{{ t('查看详情') }} &gt;</a>
       </template>
@@ -127,15 +127,9 @@
   import { useI18n } from 'vue-i18n';
 
   import { processTicketTodo } from '@services/source/ticket';
-  import type {
-    FlowItem,
-    FlowItemTodo,
-  } from '@services/types/ticket';
+  import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
-  import {
-    useMenu,
-    useUserProfile,
-  } from '@stores';
+  import { useMenu, useUserProfile } from '@stores';
 
   import { getCostTimeDisplay, utcDisplayTime } from '@utils';
 
@@ -145,7 +139,7 @@
   }
 
   interface Emits {
-    (e: 'processed'): void
+    (e: 'processed'): void;
   }
 
   defineProps<Props>();
@@ -171,7 +165,8 @@
   };
 
   const getConfirmText = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('重试') : t('确认执行'));
-  const getConfirmTips = (item: FlowItemTodo) => (item.type === 'RESOURCE_REPLENISH' ? t('是否确认重试') : t('是否确认继续执行单据'));
+  const getConfirmTips = (item: FlowItemTodo) =>
+    item.type === 'RESOURCE_REPLENISH' ? t('是否确认重试') : t('是否确认继续执行单据');
 
   const getOperation = (item: FlowItemTodo) => {
     const text = {

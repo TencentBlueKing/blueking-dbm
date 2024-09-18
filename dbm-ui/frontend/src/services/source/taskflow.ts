@@ -15,6 +15,7 @@ import TaskFlowModel from '@services/model/taskflow/taskflow';
 
 import http, { type IRequestPayload } from '../http';
 import type { ListBase } from '../types';
+import type { FlowItemTodo } from '../types/ticket';
 
 const path = '/apis/taskflow';
 
@@ -109,6 +110,7 @@ interface FlowsDetail {
       outgoing: string;
       pipeline?: FlowsDetail;
       retryable: boolean;
+      skip: boolean;
       skippable: boolean;
       started_at: number;
       status: 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED' | 'SKIPPED';
@@ -153,6 +155,7 @@ interface FlowsDetail {
   gateways: { [key: string]: FlowsDetail['end_event'] };
   id: string;
   start_event: FlowsDetail['end_event'];
+  todos?: FlowItemTodo[];
 }
 
 /**
@@ -219,8 +222,6 @@ export function forceFailflowNode(params: { root_id: string; node_id: string }) 
 /**
  * 批量重试
  */
-export function batchRetryNodes(params: {
-  root_id: string,
-}) {
+export function batchRetryNodes(params: { root_id: string }) {
   return http.post<{ root_id: string }>(`${path}/${params.root_id}/batch_retry_nodes/`, params);
 }

@@ -13,14 +13,25 @@
 
 <template>
   <BkTimeline :list="flowTimeline">
-    <template #content="{content}">
+    <template #content="{content}: { content: FlowItem }">
       <template v-if="content.todos?.length > 0">
-        <ManualConfirm
-          v-for="item in content.todos"
-          :key="item.id"
-          :content="content"
-          :data="item"
-          @processed="handleProcessed" />
+        <template
+          v-if="
+            content.flow_type === 'INNER_FLOW' &&
+            content.todos.some((todoItem) => todoItem.type !== 'RESOURCE_REPLENISH')
+          ">
+          <InnerManualConfirm
+            :content="content"
+            :ticket-data="ticketData" />
+        </template>
+        <template v-else>
+          <ManualConfirm
+            v-for="item in content.todos"
+            :key="item.id"
+            :content="content"
+            :data="item"
+            @processed="handleProcessed" />
+        </template>
       </template>
       <template v-else>
         <FlowContent
@@ -34,12 +45,15 @@
 </template>
 
 <script setup lang="tsx">
+  import { useI18n } from 'vue-i18n';
+
   import TicketModel from '@services/model/ticket/ticket';
   import type { FlowItem } from '@services/types/ticket';
 
   import FlowIcon from '@views/tickets/common/components/flow-content/components/FlowIcon.vue';
   import FlowContent from '@views/tickets/common/components/flow-content/Index.vue';
 
+  import InnerManualConfirm from './InnerManualConfirm.vue';
   import ManualConfirm from './ManualConfirm.vue';
 
   interface Props {
@@ -57,8 +71,10 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem) => ({
-    tag: flow.flow_type_display,
+    tag: flow.flow_type === 'PAUSE' ? `${t('确认是否执行')}“${flow.flow_type_display}”` : flow.flow_type_display,
     type: 'default',
     filled: true,
     content: flow,
