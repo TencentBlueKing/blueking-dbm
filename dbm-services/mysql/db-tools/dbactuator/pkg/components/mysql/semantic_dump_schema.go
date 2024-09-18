@@ -134,12 +134,17 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 	}
 	finaldbs := []string{}
 	reg := regexp.MustCompile(`^bak_cbs`)
-	for _, db := range util.FilterOutStringSlice(alldbs, computil.GetGcsSystemDatabasesIgnoreTest(version)) {
+	ignoreDBs := computil.GetGcsSystemDatabasesIgnoreTest(version)
+	if c.isSpider {
+		ignoreDBs = computil.GetGcsSystemDatabases(version)
+	}
+	for _, db := range util.FilterOutStringSlice(alldbs, ignoreDBs) {
 		if reg.MatchString(db) {
 			continue
 		}
 		finaldbs = append(finaldbs, db)
 	}
+
 	if len(finaldbs) == 0 {
 		return fmt.Errorf("变更实例排除系统库后，再也没有可以变更的库")
 	}
