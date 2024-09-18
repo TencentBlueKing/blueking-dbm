@@ -446,6 +446,7 @@
       label: t('部署时间'),
       field: 'create_at',
       sort: true,
+      width: 250,
       render: ({ data }: {data: EsNodeModel}) => <span>{data.createAtDisplay}</span>,
     },
     {

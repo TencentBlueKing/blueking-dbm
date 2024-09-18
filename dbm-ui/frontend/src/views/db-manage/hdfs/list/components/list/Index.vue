@@ -821,6 +821,7 @@
       'hdfs_journalnode',
       'hdfs_datanode',
     ],
+    showLineHeight: false,
     trigger: 'manual' as const,
   };
 
