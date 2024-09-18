@@ -16,35 +16,33 @@ import { checkDbConsole } from '@utils';
 
 import { t } from '@locales/index';
 
-export default function getRoutes() {
-  const bizTicketManageComponent = checkDbConsole('databaseManage.missionManage')
-    ? () => import('@views/tickets/my-tickets/Index.vue')
-    : Promise.resolve(null);
-
-  const routes: RouteRecordRaw[] = [
-    {
-      name: 'ticketManage',
-      path: 'ticket-manage',
-      component: () => import('@views/ticket-manage/Index.vue'),
-      meta: {
-        navName: t('单据管理'),
-      },
-      redirect: {
-        name: 'bizTicketManage',
-      },
-      children: [
-        {
-          name: 'bizTicketManage',
-          path: 'index',
-          meta: {
-            navName: t('单据'),
-            fullscreen: true,
-          },
-          component: bizTicketManageComponent,
-        },
-      ],
+const routes: RouteRecordRaw[] = [
+  {
+    name: 'ticketManage',
+    path: 'ticket-manage',
+    component: () => import('@views/ticket-manage/Index.vue'),
+    meta: {
+      navName: t('单据管理'),
     },
-  ];
+    redirect: {
+      name: 'bizTicketManage',
+    },
+    children: [],
+  },
+];
+
+export default function getRoutes() {
+  if (checkDbConsole('databaseManage.missionManage')) {
+    routes[0].children.push({
+      name: 'bizTicketManage',
+      path: 'index',
+      meta: {
+        navName: t('单据'),
+        fullscreen: true,
+      },
+      component: () => import('@views/ticket-manage/list/Index.vue'),
+    });
+  }
 
   return routes;
 }

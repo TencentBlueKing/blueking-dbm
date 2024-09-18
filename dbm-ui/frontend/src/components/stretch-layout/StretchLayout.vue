@@ -52,14 +52,15 @@
 
   import DragResize from './components/DragResize.vue';
 
-  interface Props {
-    name: string;
-    minLeftWidth?: number;
-  }
-
-  const props = withDefaults(defineProps<Props>(), {
-    minLeftWidth: 456,
-  });
+  const props = withDefaults(
+    defineProps<{
+      name: string;
+      minLeftWidth?: number;
+    }>(),
+    {
+      minLeftWidth: 456,
+    },
+  );
 
   defineSlots<{
     list(): any;
