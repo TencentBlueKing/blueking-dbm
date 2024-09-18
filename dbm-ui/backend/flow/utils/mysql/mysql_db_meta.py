@@ -27,7 +27,7 @@ from backend.db_meta.enums import (
     InstanceStatus,
     MachineType,
 )
-from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance, StorageInstanceTuple
+from backend.db_meta.models import Cluster, ClusterEntry, Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
@@ -775,6 +775,99 @@ class MySQLDBMeta(object):
                 machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=cluster.bk_cloud_id
             ).exists():
                 api.machine.delete(machines=[self.cluster["uninstall_ip"]], bk_cloud_id=cluster.bk_cloud_id)
+
+    def ro_slave_recover_del_instance(self):
+        """
+        ro slave 实例卸载完毕修改元数据
+        """
+
+        with atomic():
+            for cluster_id in self.cluster["cluster_ids"]:
+                cluster = Cluster.objects.get(id=cluster_id)
+                master = cluster.main_storage_instances()[0]
+                old_slave = cluster.storageinstance_set.get(machine__ip=self.cluster["uninstall_ip"], port=master.port)
+                api.cluster.tendbha.remove_storage_tuple(
+                    master_ip=master.machine.ip,
+                    slave_ip=old_slave.machine.ip,
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    port_list=[master.port],
+                )
+                api.cluster.tendbha.remove_slave(cluster_id=cluster.id, target_slave_ip=old_slave.machine.ip)
+                CcManage(cluster.bk_biz_id, cluster_type=cluster.cluster_type).delete_service_instance(
+                    bk_instance_ids=[old_slave.bk_instance_id]
+                )
+                # 删除实例元数据信息
+                api.storage_instance.delete(
+                    [
+                        {
+                            "ip": old_slave.machine.ip,
+                            "port": old_slave.port,
+                            "bk_cloud_id": cluster.bk_cloud_id,
+                        }
+                    ]
+                )
+            if not StorageInstance.objects.filter(
+                machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=cluster.bk_cloud_id
+            ).exists():
+                api.machine.delete(machines=[self.cluster["uninstall_ip"]], bk_cloud_id=cluster.bk_cloud_id)
+            # 删除cluster entry
+            for ce in ClusterEntry.objects.filter(cluster=cluster).all():
+                ce.delete(keep_parents=True)
+
+    def update_upgrade_slaves_dbmodule(self):
+        """
+        更新升级后slave的db moudule id
+        """
+        with atomic():
+            new_slave_ip = self.cluster["new_slave_ip"]
+            db_module_id = self.cluster["db_module_id"]
+            Machine.objects.filter(ip=new_slave_ip).update(db_module_id=db_module_id)
+            StorageInstance.objects.filter(machine__ip=new_slave_ip).update(db_module_id=db_module_id)
+
+    def dissolve_master_slave_relationship(self):
+        """
+        解绑主从关系
+        """
+        with atomic():
+            for cluster_id in self.cluster["cluster_ids"]:
+                cluster = Cluster.objects.get(id=cluster_id)
+                master = cluster.main_storage_instances()[0]
+                old_slave = cluster.storageinstance_set.get(machine__ip=self.cluster["old_slave_ip"], port=master.port)
+                api.cluster.tendbha.remove_storage_tuple(
+                    master_ip=master.machine.ip,
+                    slave_ip=old_slave.machine.ip,
+                    bk_cloud_id=cluster.bk_cloud_id,
+                    port_list=[master.port],
+                )
+                api.cluster.tendbha.remove_slave(cluster_id=cluster.id, target_slave_ip=old_slave.machine.ip)
+
+    def del_old_slave_meta(self):
+        """
+        删除旧从节点的元数据
+        """
+        with atomic():
+            for cluster_id in self.cluster["cluster_ids"]:
+                cluster = Cluster.objects.get(id=cluster_id)
+                master = cluster.main_storage_instances()[0]
+                old_slave = StorageInstance.objects.get(machine__ip=self.cluster["uninstall_ip"], port=master.port)
+                # 删除服务实例
+                CcManage(cluster.bk_biz_id, cluster_type=cluster.cluster_type).delete_service_instance(
+                    bk_instance_ids=[old_slave.bk_instance_id]
+                )
+                # 删除实例元数据信息
+                api.storage_instance.delete(
+                    [
+                        {
+                            "ip": old_slave.machine.ip,
+                            "port": old_slave.port,
+                            "bk_cloud_id": cluster.bk_cloud_id,
+                        }
+                    ]
+                )
+                if not StorageInstance.objects.filter(
+                    machine__ip=self.cluster["uninstall_ip"], machine__bk_cloud_id=cluster.bk_cloud_id
+                ).exists():
+                    api.machine.delete(machines=[self.cluster["uninstall_ip"]], bk_cloud_id=cluster.bk_cloud_id)
 
     def tendb_modify_storage_status(self):
         storage = StorageInstance.objects.get(id=self.cluster["storage_id"])

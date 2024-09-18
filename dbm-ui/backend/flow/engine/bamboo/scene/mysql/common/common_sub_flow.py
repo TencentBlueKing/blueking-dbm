@@ -638,6 +638,7 @@ def install_mysql_in_cluster_sub_flow(
     # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
     acts_list = []
     if db_config is not None:
+        exec_act_kwargs.cluster["pkg_id"] = pkg_id
         exec_act_kwargs.cluster["old_instance_configs"] = db_config
     logger.debug("instance dbconfig", db_config)
     for mysql_ip in new_mysql_list:

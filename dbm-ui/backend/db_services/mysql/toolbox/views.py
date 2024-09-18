@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import traceback
 from typing import Any
 
 from django.utils.translation import ugettext_lazy as _
@@ -19,13 +20,15 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
-from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import Cluster, DBModule
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceInnerRole
+from backend.db_meta.models import Cluster, ClusterEntry, DBModule
 from backend.db_services.mysql.toolbox.handlers import ToolboxHandler
 from backend.db_services.mysql.toolbox.serializers import (
     QueryPkgListByCompareVersionSerializer,
+    TendbhaAddSlaveDomainSerializer,
     TendbhaTransferToOtherBizSerializer,
 )
+from backend.flow.utils.dns_manage import DnsManage
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -52,7 +55,53 @@ class ToolboxViewSet(viewsets.SystemViewSet):
         return Response(ToolboxHandler().query_higher_version_pkg_list(cluster_id, higher_major_version))
 
 
+class TendbHaSlaveInstanceAddDomainSet(viewsets.SystemViewSet):
+    """
+    给从库添加域名
+    """
+
+    action_permission_map = {}
+    default_permission_class = [DBManagePermission()]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("给从库添加域名"),
+        request_body=TendbhaAddSlaveDomainSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=TendbhaAddSlaveDomainSerializer)
+    def slave_ins_add_domain(self, request, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        cluster_id = data["cluster_id"]
+        domain = data["domain_name"]
+        slave_ip = data["slave_ip"]
+        slave_port = data["slave_port"]
+        if ClusterEntry.objects.filter(cluster_entry_type=ClusterEntryType.DNS.value, entry=domain).exists():
+            return Response({"result": False, "message": _("{}域名已经存在".format(domain))})
+        cluster_obj = Cluster.objects.get(id=cluster_id)
+        cluster_entry = ClusterEntry.objects.create(
+            cluster=cluster_obj,
+            cluster_entry_type=ClusterEntryType.DNS.value,
+            entry=domain,
+            role=ClusterEntryRole.SLAVE_ENTRY.value,
+        )
+        dns_manage = DnsManage(bk_biz_id=cluster_obj.bk_biz_id, bk_cloud_id=cluster_obj.bk_cloud_id)
+        slave_ins = cluster_obj.storageinstance_set.filter(
+            instance_inner_role=InstanceInnerRole.SLAVE.value, machine__ip=slave_ip, port=slave_port
+        )
+        cluster_entry.storageinstance_set.add(*slave_ins)
+        try:
+            dns_manage.create_domain(instance_list=["{}#{}".format(slave_ip, str(slave_port))], add_domain_name=domain)
+        except Exception as e:
+            logger.error(traceback.format_exc())
+            return Response({"result": False, "message": _("添加dns记录失败{}".format(e))})
+        return Response({"result": True, "message": _("success")})
+
+
 class TendbhaTransferToOtherBizViewSet(viewsets.SystemViewSet):
+    """
+    转移tendbha 集群到其他业务
+    """
+
     action_permission_map = {}
     default_permission_class = [DBManagePermission()]
 

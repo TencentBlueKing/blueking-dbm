@@ -52,3 +52,18 @@ class TendbhaTransferToOtherBizFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbhaTransferToOtherBizFlowParamBuilder
     inner_flow_name = _("TenDBHa集群迁移到其他业务")
     retry_type = FlowRetryType.MANUAL_RETRY
+
+
+class TendbhaAddSlaveDomainSerializer(serializers.Serializer):
+    cluster_id = serializers.IntegerField(help_text=_("集群id"))
+    slave_ip = serializers.CharField(help_text=_("slave ip"))
+    slave_port = serializers.IntegerField(help_text=_("slave port"))
+    domain_name = serializers.CharField(help_text=_("slave domain"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "bk_biz_id": 11,
+            "slave_ip": "1.1.1.1",
+            "slave_port": 3306,
+            "domain_name": "",
+        }

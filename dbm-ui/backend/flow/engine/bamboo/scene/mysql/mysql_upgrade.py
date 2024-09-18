@@ -25,7 +25,6 @@ from backend.flow.consts import InstanceStatus, MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.mysql.common.master_and_slave_switch import master_and_slave_switch
-from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_flow import MySQLMigrateClusterFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
@@ -36,7 +35,6 @@ from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs, Downloa
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
 from backend.flow.utils.mysql.mysql_version_parse import get_sub_version_by_pkg_name, mysql_version_parse
-from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
 
@@ -66,24 +64,26 @@ def convert_mysql8_version_num(verno: int) -> int:
 
 # MySQLMigrateClusterRemoteFlow: 使用远程备份来恢复
 # MySQLMigrateClusterFlow： 使用本地备份来恢复
-class MySQMigrateUpgradeFlow(MySQLMigrateClusterRemoteFlow, MySQLMigrateClusterFlow):
+class MySQMigrateUpgradeFlow(MySQLMigrateClusterRemoteFlow):
     """
     构建mysql主从成对迁移的方式来升级MySQL
+    # new_non_standy_slave_ip_list:[
+        {
+            "old_slave": {"ip": "127.0.0.2", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 2005000002},
+            "new_slave":  {"ip": "127.0.0.3", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 2005000003},
+        },
+        {
+            "old_slave":  {"ip": "127.0.1.2", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 2005000004},
+            "new_slave":   {"ip": "127.0.1.3", "bk_cloud_id": 0, "bk_host_id": 1, "bk_biz_id": 2005000005},
+        }
+        ]
+    ]
     """
-
-    def __init__(self, root_id: str, ticket_data: Optional[Dict]):
-        self.root_id = root_id
-        self.ticket_data = ticket_data
 
     def upgrade(self):
         # 进行模块的版本检查
         self.__pre_check()
-        if self.ticket_data["backup_source"] == MySQLBackupSource.LOCAL:
-            # 使用本地备份来做迁移
-            self.deploy_migrate_cluster_flow(use_for_upgrade=True)
-        elif self.ticket_data["backup_source"] == MySQLBackupSource.REMOTE:
-            # 使用远程备份来做迁移
-            self.migrate_cluster_flow(use_for_upgrade=True)
+        self.migrate_cluster_flow(use_for_upgrade=True)
 
     def __pre_check(self):
         for info in self.ticket_data["infos"]:
@@ -103,18 +103,22 @@ class MySQMigrateUpgradeFlow(MySQLMigrateClusterRemoteFlow, MySQLMigrateClusterF
             )
             # 判断是否存在一组多从的情况
             slave = cluster_class.storageinstance_set.filter(
-                instance_inner_role=InstanceInnerRole.SLAVE.value, is_stand_by=True
+                instance_inner_role=InstanceInnerRole.SLAVE.value,
+                is_stand_by=True,
+                db_module_id=cluster_class.db_module_id,
             ).first()
 
             if slave is None:
                 raise DBMetaException(message=_("查询集群{}stanb_by slave实例为None").format(cluster_class.immute_domain))
 
             mysql_storage_slave = cluster_class.storageinstance_set.filter(
-                instance_inner_role=InstanceInnerRole.SLAVE.value, status=InstanceStatus.RUNNING.value
+                instance_inner_role=InstanceInnerRole.SLAVE.value,
+                status=InstanceStatus.RUNNING.value,
+                is_stand_by=False,
             )
-            other_slave = [y.machine.ip for y in mysql_storage_slave.exclude(machine__ip=slave.machine.ip)]
-            if len(other_slave) > 0:
-                raise DBMetaException(message=_("请先升级{}stanb_by的其他slave实例").format(cluster_class.immute_domain))
+            for other_slave in mysql_storage_slave:
+                if other_slave.db_module_id != info["new_db_module_id"]:
+                    raise DBMetaException(message=_("请先升级{}stanb_by的其他slave实例").format(cluster_class.immute_domain))
             if new_charset != origin_chaset:
                 raise DBMetaException(
                     message=_("{}升级前后字符集不一致,原字符集：{},新模块的字符集{}").format(

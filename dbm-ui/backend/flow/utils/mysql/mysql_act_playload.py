@@ -126,47 +126,70 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "payload": {"user": self.account["os_mysql_user"], "pwd": self.account["os_mysql_pwd"]},
         }
 
-    def deal_mysql_config(self, db_version: str, origin_configs: dict, init_configs: dict) -> dict:
+    def deal_with_upgrade_to_mysql57(self, cfg: dict) -> dict:
+        del_keys = [
+            "secure_auth",
+            "innodb_additional_mem_pool_size",
+            "innodb_create_use_gcs_real_format",
+            "thread_concurrency",
+            "storage_engine",
+            "old_passwords",
+            "innodb_file_io_threads",
+        ]
+        for key in del_keys:
+            if key in cfg["mysqld"]:
+                del cfg["mysqld"][key]
+
+        # 需要rename key 的配置
+        if "thread_cache" in cfg["mysqld"]:
+            cfg["mysqld"]["thread_cache_size"] = cfg["mysqld"]["thread_cache"]
+            del cfg["mysqld"]["thread_cache"]
+        if "key_buffer" in cfg["mysqld"]:
+            cfg["mysqld"]["key_buffer_size"] = cfg["mysqld"]["key_buffer"]
+            del cfg["mysqld"]["key_buffer"]
+        if "log_warnings" in cfg["mysqld"]:
+            cfg["mysqld"]["log_error_verbosity"] = "1"
+            del cfg["mysqld"]["log_warnings"]
+
+        return cfg
+
+    def deal_with_upgrade_to_mysql80(self, is_community: bool, cfg: dict) -> dict:
         """
         处理不同介质的之间的mysql配置
         """
-        cfg = copy.deepcopy(init_configs)
-        cfg["mysqld"].update(origin_configs)
-
-        if db_version >= "8.0.0":
-            if "log_warnings" in cfg["mysqld"]:
-                value = cfg["mysqld"]["log_warnings"]
-                if value == "0":
-                    cfg["mysqld"]["log_error_verbosity"] = "1"
-                elif value == "1":
-                    cfg["mysqld"]["log_error_verbosity"] = "2"
-                else:
-                    cfg["mysqld"]["log_error_verbosity"] = "3"
-                del cfg["mysqld"]["log_warnings"]
-            # mysql8.0 无法识别这些参数
-            for key in [
-                "innodb_file_format",
-                "query_cache_size",
-                "query_cache_type",
-                "show_compatibility_56",
-                "query_response_time_stats",
-                "userstat",
-            ]:
-                if key in cfg["mysqld"]:
-                    del cfg["mysqld"][key]
-            if "thread_handling" in cfg["mysqld"]:
-                val = cfg["mysqld"]["thread_handling"]
-                # thread_handling = 2 是tmysql参数。社区版本和txsql 都不能识别
-                if val == "1":
-                    cfg["mysqld"]["thread_handling"] = "no-threads"
-                elif val == "2":
-                    cfg["mysqld"]["thread_handling"] = "one-thread-per-connection"
-                elif val == "3":
-                    cfg["mysqld"]["thread_handling"] = "loaded-dynamically"
+        if "log_warnings" in cfg["mysqld"]:
+            value = cfg["mysqld"]["log_warnings"]
+            if value == "0":
+                cfg["mysqld"]["log_error_verbosity"] = "1"
+            elif value == "1":
+                cfg["mysqld"]["log_error_verbosity"] = "2"
+            else:
+                cfg["mysqld"]["log_error_verbosity"] = "3"
+            del cfg["mysqld"]["log_warnings"]
+        # mysql8.0 无法识别这些参数
+        for key in [
+            "innodb_file_format",
+            "query_cache_size",
+            "query_cache_type",
+            "show_compatibility_56",
+            "query_response_time_stats",
+            "userstat",
+        ]:
+            if key in cfg["mysqld"]:
+                del cfg["mysqld"][key]
+        if "thread_handling" in cfg["mysqld"]:
+            val = cfg["mysqld"]["thread_handling"]
+            # thread_handling = 2 是tmysql参数。社区版本和txsql 都不能识别
+            if val == "1":
+                cfg["mysqld"]["thread_handling"] = "no-threads"
+            elif val == "2":
+                cfg["mysqld"]["thread_handling"] = "one-thread-per-connection"
+            elif val == "3":
+                cfg["mysqld"]["thread_handling"] = "loaded-dynamically"
 
         # 这里应该是社区版本等非Tendb数据库的版本需要处理的参数
         # 介质管理暂未记录介质来源属性
-        if db_version >= "8.0.30":
+        if is_community:
             for key in [
                 "log_bin_compress",
                 "relay_log_uncompress",
@@ -180,6 +203,24 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     loose_key = "loose_" + key
                     cfg["mysqld"][loose_key] = cfg["mysqld"][key]
                     del cfg["mysqld"][key]
+        return cfg
+
+    def deal_mysql_config(self, db_version: str, origin_configs: dict, init_configs: dict) -> dict:
+        """
+        处理不同介质的之间的mysql配置
+        """
+        cfg = copy.deepcopy(init_configs)
+        cfg["mysqld"].update(origin_configs)
+        if db_version >= "5.7.0":
+            cfg = self.deal_with_upgrade_to_mysql57(cfg)
+        is_community = False
+        if db_version >= "8.0.0":
+            # 这里应该是社区版本等非Tendb数据库的版本需要处理的参数
+            # 介质管理暂未记录介质来源属性
+            if db_version >= "8.0.30":
+                is_community = True
+        cfg = self.deal_with_upgrade_to_mysql80(is_community=is_community, cfg=cfg)
+
         return cfg
 
     def get_install_mysql_payload(self, **kwargs) -> dict:
@@ -199,10 +240,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             init_mysql_config[cluster["mysql_port"]] = self.__get_mysql_config(
                 immutable_domain=cluster["master"], db_version=db_version
             )
-
         mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
+        if self.cluster.get("pkg_id"):
+            pkg_id = self.cluster["pkg_id"]
+            if pkg_id > 0:
+                mysql_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.MySQL)
         version_no = get_mysql_real_version(mysql_pkg.name)
-
         install_mysql_ports = self.ticket_data.get("mysql_ports")
         mysql_config = {}
         if not isinstance(install_mysql_ports, list) or len(install_mysql_ports) == 0:

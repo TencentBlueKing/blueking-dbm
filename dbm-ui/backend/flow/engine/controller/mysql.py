@@ -34,6 +34,10 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_master_fail_over import MySQLM
 from backend.flow.engine.bamboo.scene.mysql.mysql_master_slave_switch import MySQLMasterSlaveSwitchFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_flow import MySQLMigrateClusterFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_migrate_cluster_remote_flow import MySQLMigrateClusterRemoteFlow
+from backend.flow.engine.bamboo.scene.mysql.mysql_non_standby_slaves_upgrade import (
+    DestroyNonStanbySlaveMySQLFlow,
+    MySQLNonStandbySlavesUpgradeFlow,
+)
 from backend.flow.engine.bamboo.scene.mysql.mysql_open_area_flow import MysqlOpenAreaFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition import MysqlPartitionFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_partition_cron import MysqlPartitionCronFlow
@@ -674,3 +678,17 @@ class MySQLController(BaseController):
 
         flow = MySQLPushPeripheralConfigFlow(root_id=self.root_id, data=self.ticket_data)
         flow.push_config()
+
+    def non_standby_slaves_upgrade_scene(self):
+        """
+        非Standby从库升级
+        """
+        flow = MySQLNonStandbySlavesUpgradeFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.upgrade()
+
+    def non_standby_slaves_destory_scene(self):
+        """
+        非Standby从库升级
+        """
+        flow = DestroyNonStanbySlaveMySQLFlow(root_id=self.root_id, ticket_data=self.ticket_data)
+        flow.destroy()
