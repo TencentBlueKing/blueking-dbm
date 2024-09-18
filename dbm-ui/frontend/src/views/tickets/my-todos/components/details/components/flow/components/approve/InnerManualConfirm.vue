@@ -28,12 +28,12 @@
       ”
     </template>
     <template v-else>
-      <span v-if="getStatusText(content.status)"> {{ t('任务') }}“ </span>
+      <span v-if="getStatusInfo(content.status)"> {{ t('任务') }}“ </span>
       <span
         :style="{
-          color: getStatusColor(content.status) || 'inhert',
+          color: getStatusInfo(content.status)?.color || 'inhert',
         }">
-        {{ getStatusText(content.status) || content.summary }}
+        {{ getStatusInfo(content.status)?.text || content.summary }}
       </span>
       ”
       <template v-if="content.err_msg">
@@ -85,20 +85,26 @@
 
   const isTodo = computed(() => props.content.todos.some((todoItem) => todoItem.status === 'TODO'));
 
-  const getStatusText = (status: string) => {
-    const infoMap: Record<string, string> = {
-      SUCCEEDED: t('执行成功'),
-      FAILED: t('执行失败'),
-      TERMINATED: t('已终止'),
-    };
-    return infoMap[status] ? infoMap[status] : null;
-  };
-
-  const getStatusColor = (status: string) => {
-    const infoMap: Record<string, string> = {
-      SUCCEEDED: '#14a568',
-      FAILED: '#ea3636',
-      TERMINATED: '#ea3636',
+  const getStatusInfo = (status: string) => {
+    const infoMap: Record<
+      string,
+      {
+        text: string;
+        color: string;
+      }
+    > = {
+      SUCCEEDED: {
+        text: t('执行成功'),
+        color: '#14a568',
+      },
+      FAILED: {
+        text: t('执行失败'),
+        color: '#ea3636',
+      },
+      TERMINATED: {
+        text: t('已终止'),
+        color: '#ea3636',
+      },
     };
     return infoMap[status] ? infoMap[status] : null;
   };

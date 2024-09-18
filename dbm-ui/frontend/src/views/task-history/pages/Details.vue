@@ -1234,7 +1234,9 @@
    * 取消继续节点
    */
    const handleTodoCancel = () => {
-    todoState.instance && todoState.instance.destroy();
+    if (todoState.instance) {
+      todoState.instance.destroy();
+    }
     todoState.isShow = false;
   };
 
@@ -1790,78 +1792,4 @@
       border-radius: 8px;
     }
   }
-
-  // .task-history-fail-nodes {
-  //   z-index: 999 !important;
-  //   max-height: 500px;
-  //   padding: 12px 0 !important;
-
-  //   .fail-top-main {
-  //     display: flex;
-  //     padding: 0 12px 10px;
-  //     font-size: 12px;
-  //     font-weight: 700;
-  //     color: #313238;
-  //     justify-content: space-between;
-  //     align-items: center;
-
-  //     .quick-operate {
-  //       display: flex;
-
-  //       .operate-item {
-  //         display: flex;
-  //         width: 20px;
-  //         height: 20px;
-  //         font-size: 16px;
-  //         color: #979ba5;
-  //         cursor: pointer;
-  //         background: #f0f1f5;
-  //         border-radius: 2px;
-  //         justify-content: center;
-  //         align-items: center;
-
-  //         &:hover {
-  //           color: #63656e;
-  //           background: #eaebf0;
-  //         }
-  //       }
-  //     }
-  //   }
-
-  //   .fail-node-tree-main {
-  //     max-height: 450px !important;
-
-  //     .bk-node-row {
-  //       padding: 0 12px;
-
-  //       &.is-selected {
-  //         .bk-node-prefix {
-  //           color: #3a84ff;
-  //         }
-  //       }
-  //     }
-
-  //     .custom-tree-node {
-  //       display: flex;
-  //       width: 100%;
-  //       align-items: center;
-
-  //       .file-icon {
-  //         display: flex;
-  //         width: 16px;
-  //         height: 16px;
-  //         margin-right: 8px;
-  //         color: #ea3636;
-  //         background: #fdd;
-  //         border-radius: 2px;
-  //         align-items: center;
-  //         justify-content: center;
-
-  //         .db-icon-file {
-  //           font-size: 10px;
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
 </style>

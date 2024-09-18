@@ -138,14 +138,14 @@
           <span style="color: #ff9c01">{{ t('待确认') }}</span>
           ”
         </template>
-        <template v-else-if="getStatusText(content.status)">
+        <template v-else-if="getStatusInfo(content.status)">
           <span>{{ t('任务') }}</span
           >“
           <span
             :style="{
-              color: getStatusColor(content.status) || '#63656e',
+              color: getStatusInfo(content.status)?.color || '#63656e',
             }">
-            {{ getStatusText(content.status) || content.summary }}
+            {{ getStatusInfo(content.status)?.text || content.summary }}
           </span>
           ”
         </template>
@@ -309,24 +309,32 @@
   //   return `${expireTime * 24} ${t('小时')}`;
   // });
 
-  const getStatusText = (status: string) => {
-    const infoMap: Record<string, string> = {
-      SUCCEEDED: t('执行成功'),
-      FAILED: t('执行失败'),
-      RUNNING: t('执行中'),
-      TERMINATED: t('已终止'),
+  const getStatusInfo = (status: string) => {
+    const infoMap: Record<
+      string,
+      {
+        text: string;
+        color: string;
+      }
+    > = {
+      SUCCEEDED: {
+        text: t('执行成功'),
+        color: '#14a568',
+      },
+      FAILED: {
+        text: t('执行失败'),
+        color: '#ea3636',
+      },
+      RUNNING: {
+        text: t('执行中'),
+        color: '#3a84ff',
+      },
+      TERMINATED: {
+        text: t('已终止'),
+        color: '#ea3636',
+      },
     };
     return infoMap[status] ? infoMap[status] : null;
-  };
-
-  const getStatusColor = (status: string) => {
-    const infoMap: Record<string, string> = {
-      SUCCEEDED: '#14a568',
-      FAILED: '#ea3636',
-      RUNNING: '#3a84ff',
-      TERMINATED: '#ea3636',
-    };
-    return infoMap[status] ? infoMap[status] : 'inhert';
   };
 
   const handleConfirmTerminal = (item: FlowItem) => {
