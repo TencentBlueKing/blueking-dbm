@@ -17,7 +17,7 @@
       <TableEditSelect
         v-model="localBackupType"
         :disabled="editDisabled"
-        :list="selectList.mode"
+        :list="backupTypeList"
         :rules="rules"
         @change="hanldeBackupTypeChange" />
     </div>
@@ -47,20 +47,25 @@
     </div>
   </div>
 </template>
-<script setup lang="tsx">
-  import { computed, ref, watch } from 'vue';
-  import { useI18n } from 'vue-i18n';
 
-  import type { BackupLogRecord } from '@services/source/fixpointRollback';
+<script lang="ts">
+  import { t } from '@locales/index';
 
-  import { useTimeZoneFormat } from '@hooks';
+  export enum BackupTypes {
+    BACKUPID = 'BACKUPID',
+    TIME = 'TIME',
+  }
 
-  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
-  import TableEditSelect from '@components/render-table/columns/select/index.vue';
-
-  import { BackupTypes, selectList } from '../const';
-
-  import RecordSelector from './RecordSelector.vue';
+  export const backupTypeList = [
+    {
+      value: BackupTypes.BACKUPID,
+      label: t('备份记录'),
+    },
+    {
+      value: BackupTypes.TIME,
+      label: t('回档到指定时间'),
+    },
+  ];
 
   interface Props {
     clusterId: number;
@@ -76,12 +81,21 @@
       rollback_time?: string;
     }>;
   }
+</script>
+<script setup lang="ts">
+  import { computed, ref, watch } from 'vue';
+
+  import type { BackupLogRecord } from '@services/source/fixpointRollback';
+
+  import { useTimeZoneFormat } from '@hooks';
+
+  import TableEditDateTime from '@components/render-table/columns/DateTime.vue';
+  import TableEditSelect from '@components/render-table/columns/select/index.vue';
+
+  import RecordSelector from './RecordSelector.vue';
 
   const props = defineProps<Props>();
 
-  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
-
-  const { t } = useI18n();
   const { format: formatDateToUTC } = useTimeZoneFormat();
 
   const rules = [
@@ -98,6 +112,8 @@
 
   const editDisabled = computed(() => !props.clusterId || !props.backupSource);
 
+  const disableDate = (date: Date) => date && date.valueOf() > Date.now();
+
   const hanldeBackupTypeChange = () => {
     localRollbackTime.value = '';
   };
@@ -106,8 +122,8 @@
     () => props.rollbackTime,
     (newVal) => {
       if (newVal) {
-        localRollbackTime.value = newVal;
         localBackupType.value = BackupTypes.TIME;
+        localRollbackTime.value = newVal;
       } else {
         localBackupType.value = BackupTypes.BACKUPID;
       }

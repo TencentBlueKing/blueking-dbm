@@ -24,13 +24,31 @@
           @click="handleShowBatchSelector" />
       </template>
     </RenderTableHeadColumn>
+    <template v-if="showHostColumn">
+      <RenderTableHeadColumn
+        :min-width="140"
+        :width="160">
+        {{ t('主机来源') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="180"
+        :width="180">
+        {{ t('回档到新主机') }}
+      </RenderTableHeadColumn>
+    </template>
+    <RenderTableHeadColumn
+      v-if="showTargetClusterColumn"
+      :min-width="200"
+      :width="250">
+      {{ t('目标集群') }}
+    </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="100"
       :width="120">
       <template #append>
         <BatchEditColumn
           v-model="isShowBatchEdit.backupSource"
-          :data-list="selectList.backupSource"
+          :data-list="backupSourceList"
           :title="t('备份源')"
           @change="(value) => handleBatchEdit('backupSource', value)">
           <BatchOperateIcon
@@ -59,7 +77,7 @@
               v-model="checkedModeType"
               :clearable="false"
               filterable
-              :list="selectList.mode"
+              :list="backupTypeList"
               @change="handleModeType" />
             <div v-if="checkedModeType === BackupTypes.TIME">
               <div
@@ -69,6 +87,7 @@
               </div>
               <BkDatePicker
                 :clearable="false"
+                :disabled-date="disableDate"
                 :placeholder="t('如：2019-01-30 12:12:21')"
                 style="width: 361px"
                 type="datetime"
@@ -83,6 +102,7 @@
               </div>
               <BkDatePicker
                 :clearable="false"
+                :disabled-date="disableDate"
                 :placeholder="t('如：2019-01-30 12:12:21')"
                 style="width: 361px"
                 type="datetime"
@@ -103,6 +123,82 @@
       </template>
       {{ t('回档类型') }}
     </RenderTableHeadColumn>
+    <template v-if="showDbIgnoreColumn">
+      <RenderTableHeadColumn
+        :min-width="150"
+        :width="200">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit.databases"
+            :placeholder="t('请输入,如需输入多个用回车换行')"
+            :title="t('回档DB')"
+            type="textarea"
+            @change="(value) => handleBatchEdit('databases', value, true)">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @click="handleShowBatchEdit('databases')" />
+          </BatchEditColumn>
+        </template>
+        {{ t('回档DB') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="150"
+        :required="false"
+        :width="200">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit.databasesIgnore"
+            :placeholder="t('请输入,如需输入多个用回车换行')"
+            :title="t('忽略DB')"
+            type="textarea"
+            @change="(value) => handleBatchEdit('databasesIgnore', value, true)">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @click="handleShowBatchEdit('databasesIgnore')" />
+          </BatchEditColumn>
+        </template>
+        {{ t('忽略DB') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="150"
+        :width="200">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit.tables"
+            :placeholder="t('请输入,如需输入多个用回车换行')"
+            :title="t('回档表名')"
+            type="textarea"
+            @change="(value) => handleBatchEdit('tables', value, true)">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @click="handleShowBatchEdit('tables')" />
+          </BatchEditColumn>
+        </template>
+        {{ t('回档表名') }}
+      </RenderTableHeadColumn>
+      <RenderTableHeadColumn
+        :min-width="150"
+        :required="false"
+        :width="200">
+        <template #append>
+          <BatchEditColumn
+            v-model="isShowBatchEdit.tablesIgnore"
+            :placeholder="t('请输入,如需输入多个用回车换行')"
+            :title="t('忽略表名')"
+            type="textarea"
+            @change="(value) => handleBatchEdit('tablesIgnore', value, true)">
+            <BatchOperateIcon
+              class="ml-4"
+              type="edit"
+              @click="handleShowBatchEdit('tablesIgnore')" />
+          </BatchEditColumn>
+        </template>
+        {{ t('忽略表名') }}
+      </RenderTableHeadColumn>
+    </template>
     <RenderTableHeadColumn
       fixed="right"
       :required="false"
@@ -114,21 +210,33 @@
     </template>
   </RenderTable>
 </template>
+
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+
+  import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
 
   import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
-  import { BackupTypes, selectList } from '../../common/const';
-  import type { IDataRow } from '../Index.vue';
+  import { backupTypeList, BackupTypes } from './render-row/components/render-mode/Index.vue';
+  import { backupSourceList } from './render-row/components/RenderBackup.vue';
+  import type { IDataRow } from './render-row/Index.vue';
+
+  interface Props {
+    rollbackClusterType: RollbackClusterTypes;
+  }
 
   interface Emits {
     (e: 'showSelector'): void;
     (e: 'batchEdit', obj: Record<string, any>): void;
   }
+
+  const props = withDefaults(defineProps<Props>(), {
+    rollbackClusterType: RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER,
+  });
 
   const emits = defineEmits<Emits>();
 
@@ -145,12 +253,28 @@
     tablesIgnore: false,
   });
 
+  const configMap = {
+    [RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER]: ['host', 'dbTableIgnore'],
+    [RollbackClusterTypes.BUILD_INTO_EXIST_CLUSTER]: ['targetCluster', 'dbTableIgnore'],
+    [RollbackClusterTypes.BUILD_INTO_METACLUSTER]: [] as string[],
+  };
+
+  const showColumn = (column: string) => computed(() => configMap[props.rollbackClusterType].includes(column));
+
+  const showHostColumn = showColumn('host');
+  const showTargetClusterColumn = showColumn('targetCluster');
+  const showDbIgnoreColumn = showColumn('dbTableIgnore');
+
+  const disableDate = (date: Date) => date?.valueOf() > Date.now();
+
   const handleModeType = (value: BackupTypes) => {
     checkedModeType.value = value;
   };
+
   const handleDatePickerChange = (date: string) => {
     datePickerValue.value = date;
   };
+
   const handleBatchModeEdit = () => {
     if (checkedModeType.value === BackupTypes.TIME) {
       handleBatchEdit('rollbackTime', datePickerValue.value);

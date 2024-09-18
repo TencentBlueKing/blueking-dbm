@@ -124,7 +124,9 @@
     </div>
   </div>
 </template>
+
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import _ from 'lodash';
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -138,16 +140,6 @@
   } from '@services/source/fixpointRollback';
 
   import { useDebouncedRef, useTimeZoneFormat } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
-
-  const props = withDefaults(defineProps<Props>(), {
-    backupid: '',
-    backupSource: '',
-    modelValue: '',
-    disabled: false,
-    clearable: false,
-  });
 
   import useValidtor, { type Rules } from '@components/render-table/hooks/useValidtor';
 
@@ -170,14 +162,24 @@
     getValue: () => Promise<BackupLogRecord>;
   }
 
-  let tippyIns: Instance;
+  const props = withDefaults(defineProps<Props>(), {
+    backupid: '',
+    backupSource: '',
+    modelValue: '',
+    disabled: false,
+    clearable: false,
+  });
+
   const { t } = useI18n();
-  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   enum OperateType {
     MANUAL = 'maunal',
     MATCH = 'match',
   }
+
+  const { timeZone } = useTimeZoneFormat();
+  const searchKey = useDebouncedRef('');
+
   const tabOptions = [
     {
       label: t('指定备份记录'),
@@ -189,6 +191,27 @@
       hoverText: t('自动匹配指定日期前的最新全库备份'),
     },
   ];
+  let tippyIns: Instance;
+  const rootRef = ref();
+  const popRef = ref();
+  const dateTriggerRef = ref();
+  const datePickerRef = ref();
+  const dateRenderRef = ref();
+  const localValue = ref<string>('');
+  const isShowPop = ref(false);
+  const isError = ref(false);
+  const open = ref(false);
+  const recordType = ref(OperateType.MANUAL);
+  const logRecordOptions = shallowRef<Array<{ id: string; name: string }>>([]);
+  const logRecordList = shallowRef<BackupLogRecord[]>([]);
+
+  const isDateType = (value: string) => {
+    const YYYYMMDDHHmmssReg = /[\d]{4}[\\/-]{1}[\d]{1,2}[\\/-]{1}[\d]{1,2}\s[\d]{1,2}[:][\d]{1,2}[:][\d]{1,2}/g;
+    const isDate = new RegExp(YYYYMMDDHHmmssReg);
+    // 非日期输入无需调接口匹配最近记录，跳过该校验
+    return isDate.test(value);
+  };
+
   const rules: Rules = [
     {
       validator: (value: string) => !!value,
@@ -201,7 +224,7 @@
           return true;
         }
         return queryLatesBackupLog({
-          bk_biz_id: currentBizId,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           cluster_id: props.clusterId,
           rollback_time: value,
         }).then((data) => {
@@ -209,8 +232,8 @@
             localValue.value = '';
             return false;
           }
-          logRecordList.value.push(data as BackupLogRecord);
-          localValue.value = (data as BackupLogRecord).backup_id;
+          logRecordList.value.push(data);
+          localValue.value = data.backup_id;
           return true;
         });
       },
@@ -219,22 +242,6 @@
   ];
 
   const { message: errorMessage, validator } = useValidtor(rules);
-  const { currentBizId } = useGlobalBizs();
-  const searchKey = useDebouncedRef('');
-
-  const rootRef = ref();
-  const popRef = ref();
-  const dateTriggerRef = ref();
-  const datePickerRef = ref();
-  const dateRenderRef = ref();
-  const localValue = ref<string>('');
-  const isShowPop = ref(false);
-  const isError = ref(false);
-  const open = ref(false);
-  const recordType = ref(OperateType.MANUAL);
-
-  const logRecordOptions = shallowRef<Array<{ id: string; name: string }>>([]);
-  const logRecordList = shallowRef<BackupLogRecord[]>([]);
 
   const renderList = computed(() =>
     logRecordOptions.value.reduce((result, item) => {
@@ -248,36 +255,10 @@
 
   const renderText = computed(() => {
     const item = _.find(logRecordList.value, (i) => i.backup_id === localValue.value) as BackupLogRecord;
-    return !item ? '' : `${item.mysql_role ? `${item.mysql_role} ` : ' '}${formatDateToUTC(item.backup_time)}`;
+    return !item
+      ? ''
+      : `${item.mysql_role ? `${item.mysql_role} ` : ' '}${dayjs(item.backup_time).tz(timeZone.value.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`;
   });
-
-  watch(
-    () => [props.backupSource, props.clusterId],
-    () => {
-      if (!props.clusterId || !props.backupSource) {
-        return;
-      }
-      fetchLogData();
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    () => props.backupid,
-    (newVal) => {
-      if (newVal) {
-        validator(newVal);
-        const currentRecordType = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
-        hanldeChangeTab(currentRecordType);
-        localValue.value = newVal;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   const fetchLogData = () => {
     logRecordOptions.value = [];
@@ -288,39 +269,11 @@
     }).then((dataList) => {
       logRecordOptions.value = dataList.map((item) => ({
         id: item.backup_id,
-        name: `${item.mysql_role ? `${item.mysql_role} ` : ' '} ${formatDateToUTC(item.backup_time)}`,
+        name: `${item.mysql_role ? `${item.mysql_role} ` : ' '} ${dayjs(item.backup_time).tz(timeZone.value.label).format('YYYY-MM-DD HH:mm:ss ZZ')}`,
       }));
       logRecordList.value = dataList;
     });
   };
-
-  watch(
-    () => [props.backupSource, props.clusterId],
-    () => {
-      if (!props.clusterId || !props.backupSource) {
-        return;
-      }
-      fetchLogData();
-    },
-    {
-      immediate: true,
-    },
-  );
-
-  watch(
-    () => props.backupid,
-    (newVal) => {
-      if (newVal) {
-        validator(newVal);
-        const currentRecordType = isDateType(newVal) ? OperateType.MATCH : OperateType.MANUAL;
-        hanldeChangeTab(currentRecordType);
-        localValue.value = newVal;
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   const hanldeChangeTab = (tabName: OperateType) => {
     recordType.value = tabName;
@@ -333,15 +286,18 @@
       fetchLogData();
     }
   };
+
   // 手动选择
   const handleSelect = (item: IListItem) => {
     localValue.value = item.id;
     tippyIns.hide();
   };
+
   // 删除值
   const handleRemove = () => {
     localValue.value = '';
   };
+
   // 触发日期选择器
   const handleDatePickerTrigger = () => {
     open.value = true;
@@ -354,19 +310,43 @@
       }
     });
   };
+
   const handleDatePickerChange = (date: string) => {
     localValue.value = date;
   };
+
   // 选择日期回调
   const handlePickSuccess = () => {
     tippyIns.hide();
   };
-  const isDateType = (value: string) => {
-    const YYYYMMDDHHmmssReg = /[\d]{4}[\\/-]{1}[\d]{1,2}[\\/-]{1}[\d]{1,2}\s[\d]{1,2}[:][\d]{1,2}[:][\d]{1,2}/g;
-    const isDate = new RegExp(YYYYMMDDHHmmssReg);
-    // 非日期输入无需调接口匹配最近记录，跳过该校验
-    return isDate.test(value);
-  };
+
+  watch(
+    () => [props.backupSource, props.clusterId, timeZone.value.label],
+    () => {
+      if (!props.clusterId || !props.backupSource) {
+        return;
+      }
+      fetchLogData();
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.backupid,
+    (backupid) => {
+      if (backupid) {
+        validator(backupid);
+        const currentRecordType = isDateType(backupid) ? OperateType.MATCH : OperateType.MANUAL;
+        hanldeChangeTab(currentRecordType);
+        localValue.value = backupid;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   onMounted(() => {
     tippyIns = tippy(rootRef.value as SingleTarget, {

@@ -474,6 +474,16 @@ export enum RollbackClusterTypes {
 }
 
 /**
+ * MySql 定点回档主机信息
+ */
+export interface RollbackHost {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_host_id: number;
+  ip: string;
+}
+
+/**
  * MySql 定点回档
  */
 export interface MySQLRollbackDetails extends DetailBase {
@@ -485,16 +495,9 @@ export interface MySQLRollbackDetails extends DetailBase {
     databases_ignore: string[];
     tables: string[];
     tables_ignore: string[];
-    rollback_host:
-      | {
-          bk_biz_id: number;
-          bk_cloud_id: number;
-          bk_host_id: number;
-          ip: string;
-        }
-      | boolean;
-    target_cluster_id: number | boolean;
-    rollback_type?: string;
+    rollback_host: RollbackHost;
+    target_cluster_id: number;
+    rollback_type: string;
     rollback_time: string;
     backupinfo: {
       backup_id: string;
