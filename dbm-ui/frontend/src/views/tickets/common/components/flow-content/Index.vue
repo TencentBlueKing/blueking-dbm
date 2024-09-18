@@ -12,7 +12,13 @@
 -->
 
 <template>
-  <template v-if="content.todos.length > 0 && content.flow_type === 'INNER_FLOW' && content.status === 'RUNNING'">
+  <template
+    v-if="
+      content.todos.length > 0 &&
+      content.flow_type === 'INNER_FLOW' &&
+      content.status === 'RUNNING' &&
+      content.todos.some((todoItem) => todoItem.type === 'RESOURCE_REPLENISH')
+    ">
     <ManualConfirm
       v-for="item in content.todos"
       :key="item.id"
@@ -21,7 +27,12 @@
       @processed="handleEmitFetchData" />
   </template>
   <template
-    v-else-if="content.todos.length > 0 && ['TERMINATED', 'SUCCEEDED'].includes(content.status) && isTodos === false">
+    v-else-if="
+      content.todos.length > 0 &&
+      ['TERMINATED', 'SUCCEEDED'].includes(content.status) &&
+      isTodos === false &&
+      !(content.flow_type === 'INNER_FLOW' && content.todos.every((todoItem) => todoItem.type !== 'RESOURCE_REPLENISH'))
+    ">
     <FlowContentTodo
       v-for="item of content.todos"
       :key="item.id"
@@ -107,6 +118,31 @@
             </RouterLink>
           </template>
         </I18nT>
+      </template>
+      <template v-else-if="content.flow_type === 'INNER_FLOW'">
+        <template
+          v-if="
+            content.status === 'RUNNING' &&
+            content.todos.length > 0 &&
+            content.todos.some((todoItem) => todoItem.status === 'TODO' && todoItem.type !== 'RESOURCE_REPLENISH')
+          ">
+          <span>{{ t('任务') }}</span
+          >“
+          <span style="color: #ff9c01">{{ t('待确认') }}</span>
+          ”
+        </template>
+        <template v-else-if="getStatusInfo(content.status)">
+          <span>{{ t('任务') }}</span
+          >“
+          <span
+            :style="{
+              color: getStatusInfo(content.status)?.color || '#63656e',
+            }">
+            {{ getStatusInfo(content.status)?.text || content.summary }}
+          </span>
+          ”
+        </template>
+        <span v-if="content.err_msg"> ，{{ content.summary }} </span>
       </template>
       <template v-else-if="isPause && isTodos === false">
         <span>{{ t('处理人') }}: </span>
@@ -265,6 +301,34 @@
 
   //   return `${expireTime * 24} ${t('小时')}`;
   // });
+
+  const getStatusInfo = (status: string) => {
+    const infoMap: Record<
+      string,
+      {
+        text: string;
+        color: string;
+      }
+    > = {
+      SUCCEEDED: {
+        text: t('执行成功'),
+        color: '#14a568',
+      },
+      FAILED: {
+        text: t('执行失败'),
+        color: '#ea3636',
+      },
+      RUNNING: {
+        text: t('执行中'),
+        color: '#3a84ff',
+      },
+      TERMINATED: {
+        text: t('已终止'),
+        color: '#ea3636',
+      },
+    };
+    return infoMap[status] ? infoMap[status] : null;
+  };
 
   const handleConfirmTerminal = (item: FlowItem) => {
     btnState.terminateLoading = true;

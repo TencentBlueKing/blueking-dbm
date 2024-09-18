@@ -117,10 +117,9 @@
           <div
             v-else
             class="flow-todo__infos">
-            {{ item.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：<span
-              :class="String(item.status).toLowerCase()"
-              >{{ getOperation(item) }}</span
-            >， {{ t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
+            {{ item.done_by }} {{ t('处理完成') }}， {{ t('操作') }}：
+            <span :class="String(item.status).toLowerCase()">{{ getOperation(item) }} </span>
+            ， {{ t('耗时') }}：{{ getCostTimeDisplay(item.cost_time) }}
             <template v-if="content.url">
               ，<a :href="content.url">{{ t('查看详情') }} &gt;</a>
             </template>
@@ -192,7 +191,7 @@
   });
 
   const flowTimeline = computed(() => props.flows.map((flow: FlowItem) => ({
-    tag: flow.flow_type_display,
+    tag: flow.flow_type === 'PAUSE' ? `${t('确认是否执行')}“${flow.flow_type_display}”` : flow.flow_type_display,
     type: 'default',
     filled: true,
     content: flow,
