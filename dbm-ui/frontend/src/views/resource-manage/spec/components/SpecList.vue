@@ -417,7 +417,7 @@
   watch(() => [
     props.clusterType,
     props.machineType,
-    searchKey,
+    searchKey.value,
   ], () => {
     fetchData();
   });

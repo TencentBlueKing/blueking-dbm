@@ -4,35 +4,37 @@
       {{ data.spec_name }}
     </div>
     <table class="info-box">
-      <tr>
-        <td>CPU:</td>
-        <td>
-          <span>{{ data.cpu.min }} ~ {{ data.cpu.max }} {{ t('核') }}</span>
-        </td>
-      </tr>
-      <tr>
-        <td>{{ t('内存') }}:</td>
-        <td>
-          <span>{{ data.mem.min }} ~ {{ data.mem.max }} G</span>
-        </td>
-      </tr>
-      <tr>
-        <td>{{ t('磁盘') }}:</td>
-        <td>
-          <BkTable
-            :border="['outer']"
-            :columns="tableColumns"
-            :data="data.storage_spec"
-            :max-height="200"
-            style="width: 420px" />
-        </td>
-      </tr>
-      <tr>
-        <td>{{ t('每台主机实例数量') }}:</td>
-        <td>
-          <span>{{ data.instance_num }}</span>
-        </td>
-      </tr>
+      <tbody>
+        <tr>
+          <td>CPU:</td>
+          <td>
+            <span>{{ data.cpu.min }} ~ {{ data.cpu.max }} {{ t('核') }}</span>
+          </td>
+        </tr>
+        <tr>
+          <td>{{ t('内存') }}:</td>
+          <td>
+            <span>{{ data.mem.min }} ~ {{ data.mem.max }} G</span>
+          </td>
+        </tr>
+        <tr>
+          <td>{{ t('磁盘') }}:</td>
+          <td>
+            <BkTable
+              :border="['outer']"
+              :columns="tableColumns"
+              :data="data.storage_spec"
+              :max-height="200"
+              style="width: 420px" />
+          </td>
+        </tr>
+        <tr>
+          <td>{{ t('每台主机实例数量') }}:</td>
+          <td>
+            <span>{{ data.instance_num }}</span>
+          </td>
+        </tr>
+      </tbody>
     </table>
   </div>
 </template>
