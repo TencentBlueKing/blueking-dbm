@@ -49,7 +49,6 @@
 <style lang="less">
   .batch-edit-btn {
     font-size: 16px;
-    // margin-left: 4px;
     color: #3a84ff;
     cursor: pointer;
   }

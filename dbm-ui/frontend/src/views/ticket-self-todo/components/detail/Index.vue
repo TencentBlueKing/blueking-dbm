@@ -12,7 +12,7 @@
 -->
 
 <template>
-  <ScrollFaker v-if="isStretchLayoutOpen">
+  <ScrollFaker v-if="isStretchLayoutSplited">
     <BkLoading
       class="ticket-details-page"
       :loading="isLoading"
@@ -82,7 +82,7 @@
 
   const { t } = useI18n();
   const route = useRoute();
-  const { isOpen: isStretchLayoutOpen } = useStretchLayout();
+  const { isSplited: isStretchLayoutSplited } = useStretchLayout();
 
   const getOffsetTarget = () => document.body.querySelector('.ticket-details-page .db-card');
 

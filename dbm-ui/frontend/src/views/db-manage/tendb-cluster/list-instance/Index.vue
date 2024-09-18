@@ -13,7 +13,7 @@
 
 <template>
   <StretchLayout
-    :min-left-width="368"
+    :left-width="368"
     name="spiderClusterInstanceList">
     <template #list>
       <List v-model:instance-data="instanceData" />

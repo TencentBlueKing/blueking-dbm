@@ -6,7 +6,6 @@
       <BkDatePicker
         v-model="datePickerValue"
         format="yyyy-MM-dd HH:mm:ss"
-        :shortcut-selected-index="1"
         :shortcuts="shortcutsRange"
         style="width: 100%"
         type="datetimerange"
@@ -53,7 +52,7 @@
         </div>
         <div class="ticket-info-more">
           <div>{{ t('申请人') }}： {{ ticketData.creator }}</div>
-          <div style="margin-left: auto">{{ ticketData.formatCreateAt }}</div>
+          <div style="margin-left: auto">{{ ticketData.createAtDisplay }}</div>
         </div>
       </div>
     </ScrollFaker>

@@ -1,9 +1,9 @@
 <template>
   <StretchLayout
-    :min-left-width="368"
+    :left-width="368"
     name="sqlserverHaClusterList">
     <template #list>
-      <List v-model:haClusterData="haClusterData" />
+      <List v-model:ha-cluster-data="haClusterData" />
     </template>
     <template
       v-if="haClusterData"

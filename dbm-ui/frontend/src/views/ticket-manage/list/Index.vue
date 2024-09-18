@@ -13,7 +13,8 @@
 
 <template>
   <StretchLayout
-    :min-left-width="400"
+    :left-width="400"
+    :min-left-width="300"
     name="ticketList"
     style="background: #fff">
     <template #list>
