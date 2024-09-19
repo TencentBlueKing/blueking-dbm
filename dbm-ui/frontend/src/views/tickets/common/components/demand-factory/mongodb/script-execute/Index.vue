@@ -78,7 +78,6 @@
   import type { TablePropTypes } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import type { ResourceItem } from '@services/types';
   import type { TicketDetails } from '@services/types/ticket';
 
   import { useDefaultPagination } from '@hooks';
@@ -138,7 +137,7 @@
   const clusterState = reactive({
     clusterType: '',
     tableProps: {
-      data: [] as ResourceItem[],
+      data: [] as MongoScriptExecuteDetails['clusters'][keyof MongoScriptExecuteDetails['clusters']][],
       pagination: useDefaultPagination(),
       columns: [
         {

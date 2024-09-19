@@ -21,12 +21,12 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { ResourceItem } from '@services/types';
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
 
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: ResourceItem;
+    data: TendbsingleModel;
   }
 
   const props = defineProps<Props>();

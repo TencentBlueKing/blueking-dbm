@@ -36,20 +36,19 @@
 
 <script setup lang="ts">
   import { getCloudList } from '@services/source/ipchooser';
-  import type { CloudAreaInfo } from '@services/types/ip';
 
   interface Props {
-    modelValue: number | string
+    modelValue: number | string;
   }
   interface Emits {
-    (e: 'update:modelValue', value: number): void
-    (e: 'change', value: { id: number | string, name: string }): void
+    (e: 'update:modelValue', value: number): void;
+    (e: 'change', value: { id: number | string; name: string }): void;
   }
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const cloudList = shallowRef<CloudAreaInfo[]>([]);
+  const cloudList = shallowRef<ServiceReturnType<typeof getCloudList>>([]);
   const isLoading = ref(true);
 
   const emitCloudInfo = (id: number | string) => {
@@ -58,7 +57,7 @@
       name: '',
     };
     if (id !== '' && Number(id) >= 0) {
-      const info = cloudList.value.find(item => item.bk_cloud_id === Number(id));
+      const info = cloudList.value.find((item) => item.bk_cloud_id === Number(id));
       if (info) {
         cloudInfo.id = info.bk_cloud_id;
         cloudInfo.name = info.bk_cloud_name;
@@ -71,9 +70,12 @@
     emits('update:modelValue', value);
   };
 
-  watch(() => props.modelValue, (value: number | string) => {
-    emitCloudInfo(value);
-  });
+  watch(
+    () => props.modelValue,
+    (value: number | string) => {
+      emitCloudInfo(value);
+    },
+  );
 
   getCloudList()
     .then((data) => {

@@ -15,39 +15,39 @@ import http, { type IRequestPayload } from '../http';
 
 const path = '/apis/event/dbha';
 
-interface EventSwtichItem {
-  app: string;
-  bk_biz_id: number;
-  bk_biz_name: string;
-  cloud: string;
-  cluster: string;
-  cluster_info: {
-    cluster_type: string;
-    id: number;
-    immute_domain: string;
-  };
-  confirm_check_time: string;
-  confirm_result: string;
-  db_role: string;
-  db_type: string;
-  idc: string;
-  ip: string;
-  port: number;
-  remark: string;
-  slave_ip: string;
-  slave_port: number;
-  status: string;
-  switch_finished_time: string;
-  switch_result: string;
-  switch_start_time: string;
-  uid: number;
-}
-
 /**
  * DBHA切换事件列表
  */
 export function getEventSwitchList(params: Record<string, any>, payload = {} as IRequestPayload) {
-  return http.get<EventSwtichItem[]>(`${path}/ls/`, params, payload);
+  return http.get<
+    {
+      app: string;
+      bk_biz_id: number;
+      bk_biz_name: string;
+      cloud: string;
+      cluster: string;
+      cluster_info: {
+        cluster_type: string;
+        id: number;
+        immute_domain: string;
+      };
+      confirm_check_time: string;
+      confirm_result: string;
+      db_role: string;
+      db_type: string;
+      idc: string;
+      ip: string;
+      port: number;
+      remark: string;
+      slave_ip: string;
+      slave_port: number;
+      status: string;
+      switch_finished_time: string;
+      switch_result: string;
+      switch_start_time: string;
+      uid: number;
+    }[]
+  >(`${path}/ls/`, params, payload);
 }
 
 /**

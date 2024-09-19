@@ -127,9 +127,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getClusterEntries } from '@services/source/cluster';
+  import { getClusterEntries } from '@services/source/clusterEntry';
   import { getRedisPassword } from '@services/source/redis';
-  import type { ClusterPasswordParams } from '@services/types/clusters';
 
   import { useCopy } from '@hooks';
 
@@ -137,7 +136,12 @@
 
   interface Props {
     title?: string;
-    fetchParams: ClusterPasswordParams;
+    fetchParams: {
+      bk_biz_id: number;
+      cluster_id: number;
+      db_type: string;
+      type: string;
+    };
     showClb?: boolean;
   }
 

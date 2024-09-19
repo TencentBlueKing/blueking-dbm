@@ -20,17 +20,16 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { TicketDetails } from '@services/types/ticket';
+  import TicketModel, { type Sqlserver } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
-  import type { SqlserverAuthorizeRules } from '../common/types'
   import DemandInfo, {
     type DemandInfoConfig,
   } from '../components/DemandInfo.vue';
 
   interface Props {
-    ticketDetails: TicketDetails<SqlserverAuthorizeRules>
+    ticketDetails: TicketModel<Sqlserver.authorizeRules>
   }
 
   type dataItem = {

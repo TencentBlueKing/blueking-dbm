@@ -38,7 +38,7 @@
       @row-click.stop="handleRowClick" />
   </BkLoading>
 </template>
-<script setup lang="tsx" generic="T extends SpiderModel">
+<script setup lang="tsx">
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -46,7 +46,6 @@
   import SpiderModel from '@services/model/spider/spider';
   import type {
     ListBase,
-    ResourceItem,
   } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -58,9 +57,9 @@
 
   interface Props {
     activeTab: string,
-    selected: Record<string, T[]>,
+    selected: Record<string, SpiderModel[]>,
     // eslint-disable-next-line vue/no-unused-properties
-    getResourceList: (params: Record<string, any>) => Promise<ListBase<T[]>>
+    getResourceList: (params: Record<string, any>) => Promise<ListBase<SpiderModel[]>>
   }
 
   interface Emits {
@@ -154,7 +153,7 @@
       label: t('集群'),
       field: 'cluster_name',
       showOverflowTooltip: true,
-      render: ({ data }: { data: ResourceItem }) => (
+      render: ({ data }: { data: SpiderModel }) => (
       <div class="cluster-name-box">
           <div class="cluster-name">{data.master_domain}</div>
           {data.operations && data.operations.length > 0 && <bk-popover
@@ -186,7 +185,7 @@
       label: t('状态'),
       field: 'status',
       minWidth: 100,
-      render: ({ data }: { data: ResourceItem }) => {
+      render: ({ data }: { data: SpiderModel }) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
