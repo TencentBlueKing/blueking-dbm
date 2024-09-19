@@ -188,7 +188,10 @@ class RedisClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
         proxy_pwd = self.ticket_data.get("proxy_pwd") or DBPasswordHandler.get_random_password(
             security_type=DBPrivSecurityType.REDIS_PASSWORD
         )
+        # 如果部署类型是RedisCluster、Tendisplus，则后端密码和proxy密码相同，以proxy为准
         ticket_type = self.ticket_data["cluster_type"]
+        if ticket_type in [ClusterType.TendisPredixyRedisCluster, ClusterType.TendisPredixyTendisplusCluster]:
+            redis_pwd = proxy_pwd
 
         # 默认db数量
         DEFAULT_DATABASES = 2
