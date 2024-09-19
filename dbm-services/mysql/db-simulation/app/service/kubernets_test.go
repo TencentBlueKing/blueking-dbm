@@ -18,7 +18,7 @@ func TestCreateClusterPod(t *testing.T) {
 	ps.TdbCtlImage = config.GAppConfig.Image.TdbCtlImg
 	ps.SpiderImage = config.GAppConfig.Image.SpiderImg
 	if err := ps.CreateClusterPod(); err != nil {
-		t.Fatalf(err.Error())
+		t.Fatalf("%s", err.Error())
 		return
 	}
 	t.Log("ending..")

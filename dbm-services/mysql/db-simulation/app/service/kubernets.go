@@ -483,7 +483,7 @@ func (k *DbPodSets) executeInPod(cmd, container string, extMap map[string]string
 		for sc.Scan() {
 			if !noLogger {
 				// 此方案打印的日志会在前端展示
-				xlogger.Info(sc.Text())
+				xlogger.Info("%s", sc.Text())
 			} else {
 				logger.Info(sc.Text())
 			}
