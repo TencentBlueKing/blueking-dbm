@@ -52,13 +52,7 @@ class MysqlAddSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 class MysqlAddSlaveParamBuilder(builders.FlowParamBuilder):
     # 复用重建 slave 的场景
-    controller_remote = MySQLController.mysql_add_slave_remote_scene
-    controller_local = MySQLController.mysql_add_slave_scene
-
-    def build_controller_info(self) -> dict:
-        backup_source = self.ticket_data.get("backup_source", MySQLBackupSource.LOCAL)
-        self.controller = getattr(self, f"controller_{backup_source}")
-        return super().build_controller_info()
+    controller = MySQLController.mysql_add_slave_remote_scene
 
     def format_ticket_data(self):
         self.ticket_data["add_slave_only"] = True

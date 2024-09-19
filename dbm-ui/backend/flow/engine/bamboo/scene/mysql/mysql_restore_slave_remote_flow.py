@@ -29,6 +29,7 @@ from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import (
     install_mysql_in_cluster_sub_flow,
 )
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_instance_config
+from backend.flow.engine.bamboo.scene.mysql.common.mysql_resotre_data_sub_flow import mysql_restore_data_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.recover_slave_instance import slave_recover_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.slave_recover_switch import slave_migrate_switch_sub_flow
 from backend.flow.engine.bamboo.scene.mysql.common.uninstall_instance import uninstall_instance_sub_flow
@@ -57,6 +58,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.flow.utils.mysql.mysql_context_dataclass import ClusterInfoContext
 from backend.flow.utils.mysql.mysql_db_meta import MySQLDBMeta
+from backend.ticket.builders.common.constants import MySQLBackupSource
 
 logger = logging.getLogger("flow")
 
@@ -76,6 +78,9 @@ class MySQLRestoreSlaveRemoteFlow(object):
         self.data = {}
         #  仅添加从库。不切换。不复制账号
         self.add_slave_only = self.ticket_data.get("add_slave_only", False)
+        self.local_backup = False
+        if self.ticket_data.get("backup_source") == MySQLBackupSource.LOCAL:
+            self.local_backup = True
 
     def tendb_ha_restore_slave_flow(self):
         """
@@ -200,13 +205,38 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     "file_target_path": f"/data/dbbak/{self.root_id}/{master.port}",
                     "charset": self.data["charset"],
                     "change_master_force": True,
+                    "change_master": True,
                 }
                 sync_data_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
-                sync_data_sub_pipeline.add_sub_pipeline(
-                    sub_flow=slave_recover_sub_flow(
-                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
+                if self.local_backup:
+                    # 获取本地备份并恢复
+                    inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
+                    stand_by_slaves = cluster_model.storageinstance_set.filter(
+                        instance_inner_role=InstanceInnerRole.SLAVE.value,
+                        is_stand_by=True,
+                        status=InstanceStatus.RUNNING.value,
+                    ).exclude(machine__ip__in=[self.data["new_slave_ip"]])
+                    if len(stand_by_slaves) > 0:
+                        inst_list.append(
+                            "{}{}{}".format(stand_by_slaves[0].machine.ip, IP_PORT_DIVIDER, stand_by_slaves[0].port)
+                        )
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=mysql_restore_data_sub_flow(
+                            root_id=self.root_id,
+                            ticket_data=copy.deepcopy(self.data),
+                            cluster=cluster,
+                            cluster_model=cluster_model,
+                            ins_list=inst_list,
+                        )
                     )
-                )
+
+                else:
+                    sync_data_sub_pipeline.add_sub_pipeline(
+                        sub_flow=slave_recover_sub_flow(
+                            root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
+                        )
+                    )
+
                 sync_data_sub_pipeline.add_act(
                     act_name=_("同步完毕,写入主从关系,设置节点为running状态"),
                     act_component_code=MySQLDBMetaComponent.code,
@@ -218,6 +248,7 @@ class MySQLRestoreSlaveRemoteFlow(object):
                         )
                     ),
                 )
+
                 sync_data_sub_pipeline_list.append(sync_data_sub_pipeline.build_sub_process(sub_name=_("恢复实例数据")))
 
             switch_sub_pipeline_list = []
@@ -319,6 +350,19 @@ class MySQLRestoreSlaveRemoteFlow(object):
                     cluster_type=ClusterType.TenDBHA.value,
                 )
             )
+            # tendb_migrate_pipeline.add_act(
+            #     act_name=_("屏蔽监控 {}").format(self.data["new_slave_ip"]),
+            #     act_component_code=MysqlCrondMonitorControlComponent.code,
+            #     kwargs=asdict(
+            #         CrondMonitorKwargs(
+            #             bk_cloud_id=cluster_class.bk_cloud_id,
+            #             exec_ips=[self.data["new_slave_ip"]],
+            #             port=0,
+            #             minutes=240,
+            #         )
+            #     ),
+            # )
+
             if not self.add_slave_only:
                 # 人工确认切换迁移实例
                 tendb_migrate_pipeline.add_act(act_name=_("人工确认切换"), act_component_code=PauseComponent.code, kwargs={})
@@ -473,12 +517,27 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 "charset": self.data["charset"],
                 "change_master_force": True,
                 "cluster_type": cluster_model.cluster_type,
+                "change_master": True,
             }
-            tendb_migrate_pipeline.add_sub_pipeline(
-                sub_flow=slave_recover_sub_flow(
-                    root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
+
+            if self.local_backup:
+                inst_list = ["{}{}{}".format(master.machine.ip, IP_PORT_DIVIDER, master.port)]
+                tendb_migrate_pipeline.add_sub_pipeline(
+                    sub_flow=mysql_restore_data_sub_flow(
+                        root_id=self.root_id,
+                        ticket_data=copy.deepcopy(self.data),
+                        cluster=cluster,
+                        cluster_model=cluster_model,
+                        ins_list=inst_list,
+                    )
                 )
-            )
+            else:
+                tendb_migrate_pipeline.add_sub_pipeline(
+                    sub_flow=slave_recover_sub_flow(
+                        root_id=self.root_id, ticket_data=copy.deepcopy(self.data), cluster_info=cluster
+                    )
+                )
+
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
             #  克隆权限

@@ -55,13 +55,7 @@ class MysqlMigrateClusterDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MysqlMigrateClusterParamBuilder(builders.FlowParamBuilder):
-    controller_remote = MySQLController.mysql_migrate_remote_scene
-    controller_local = MySQLController.mysql_migrate_cluster_scene
-
-    def build_controller_info(self) -> dict:
-        backup_source = self.ticket_data.get("backup_source", MySQLBackupSource.LOCAL)
-        self.controller = getattr(self, f"controller_{backup_source}")
-        return super().build_controller_info()
+    controller = MySQLController.mysql_migrate_remote_scene
 
     def format_ticket_data(self):
         if self.ticket_data["ip_source"] == IpSource.RESOURCE_POOL:

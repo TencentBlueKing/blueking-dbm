@@ -402,7 +402,8 @@ class CrondMonitorKwargs:
 
     bk_cloud_id: int
     exec_ips: list
-    port: int
+    name: str = ""
+    port: int = 0
     minutes: int = 1440
     enable: bool = False
 
