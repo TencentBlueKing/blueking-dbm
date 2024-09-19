@@ -270,18 +270,10 @@ const permissionManageRoutes = [
     path: 'permission',
     name: 'spiderPermission',
     meta: {
-      navName: t('授权规则'),
+      navName: t('【TendbCluster】授权规则'),
     },
     component: () => import('@views/db-manage/tendb-cluster/permission/Index.vue'),
   },
-  // {
-  //   path: 'permission-list',
-  //   name: 'spiderPermissionList',
-  //   meta: {
-  //     navName: t('授权列表'),
-  //   },
-  //   component: () => import('@views/db-manage/tendb-cluster/permission-list/Index.vue'),
-  // },
   {
     path: 'whitelist',
     name: 'spiderWhitelist',

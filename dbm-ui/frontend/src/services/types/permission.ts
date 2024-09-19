@@ -36,6 +36,7 @@ export interface PermissionRuleAccount {
   account_id: number;
   bk_biz_id: number;
   user: string;
+  password: string;
   creator: string;
   create_time: string;
 }
@@ -73,17 +74,16 @@ export interface PasswordStrength {
  * 密码强度校验项
  */
 export interface PasswordStrengthVerifyInfo {
+  number_of_types_valid: boolean;
+  allowed_valid: boolean;
+  out_of_range: string;
+  repeats_valid: boolean;
   follow_keyboards_valid: boolean;
   follow_letters_valid: boolean;
   follow_numbers_valid: boolean;
   follow_symbols_valid: boolean;
-  lowercase_valid: boolean;
-  max_length_valid: boolean;
   min_length_valid: boolean;
-  numbers_valid: boolean;
-  repeats_valid: boolean;
-  symbols_valid: boolean;
-  uppercase_valid: boolean;
+  max_length_valid: boolean;
 }
 
 // 密码策略
@@ -91,30 +91,18 @@ export interface PasswordPolicy {
   id: number;
   name: string;
   rule: {
-    include_rule: PasswordPolicyIncludeRule;
-    exclude_continuous_rule: {
-      limit: number;
-      letters: boolean;
-      numbers: boolean;
-      repeats: boolean;
-      symbols: boolean;
-      keyboards: boolean;
-    };
+    repeats: number;
     max_length: number;
     min_length: number;
+    include_rule: PasswordPolicyIncludeRule;
+    weak_password: boolean;
+    number_of_types: number;
+    symbols_allowed: string;
   };
   creator?: string;
   create_time?: string;
   operator?: string;
   update_time?: string;
-}
-
-// 密码策略 include_rule
-export interface PasswordPolicyIncludeRule {
-  numbers: boolean;
-  symbols: boolean;
-  lowercase: boolean;
-  uppercase: boolean;
 }
 
 // 密码策略 include_rule
@@ -143,6 +131,8 @@ export interface AccountRulePrivilege {
   dml: string[];
   glob: string[];
 }
+
+export type AccountRulePrivilegeKey = keyof AccountRulePrivilege;
 
 /**
  * 规则授权前置检查信息
