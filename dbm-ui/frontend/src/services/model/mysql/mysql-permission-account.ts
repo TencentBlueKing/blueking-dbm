@@ -11,33 +11,21 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { PermissionRule, PermissionRuleAccount, PermissionRuleInfo } from '@services/types';
+
 import { isRecentDays } from '@utils';
 
-export default class MysqlPermissonAccount {
-  account: {
-    account_id: number;
-    bk_biz_id: number;
-    create_time: string;
-    creator: string;
-    user: string;
-  };
+export default class MysqlPermissionAccount implements PermissionRule {
+  account: PermissionRuleAccount;
   permission: {
     mysql_account_delete: boolean;
     mysql_add_account_rule: boolean;
     tendbcluster_account_delete: boolean;
     tendbcluster_add_account_rule: boolean;
   };
-  rules: Array<{
-    access_db: string;
-    account_id: number;
-    bk_biz_id: number;
-    create_time: string;
-    creator: string;
-    privilege: string;
-    rule_id: number;
-  }>;
+  rules: PermissionRuleInfo[];
 
-  constructor(payload = {} as MysqlPermissonAccount) {
+  constructor(payload = {} as MysqlPermissionAccount) {
     this.account = payload.account;
     this.permission = payload.permission;
     this.rules = payload.rules;
