@@ -101,7 +101,7 @@ func QueryTask(c *gin.Context) {
 		switch task.Status {
 		case model.TaskFailed:
 			allSuccessful = false
-			SendResponse(c, fmt.Errorf(task.SysErrMsg), map[string]interface{}{
+			SendResponse(c, fmt.Errorf("%s", task.SysErrMsg), map[string]interface{}{
 				"simulation_version": task.MySQLVersion,
 				"stdout":             task.Stdout,
 				"stderr":             task.Stderr,

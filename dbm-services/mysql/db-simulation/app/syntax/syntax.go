@@ -111,10 +111,6 @@ type RiskInfo struct {
 const DdlMapFileSubffix = ".tbl.map"
 
 // Do  运行语法检查 For SQL 文件
-//
-//	@receiver tf
-//	@return result
-//	@return err
 func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[string]*CheckInfo, err error) {
 	logger.Info("doing....")
 	tf.result = make(map[string]*CheckInfo)
@@ -313,7 +309,7 @@ func (t *TmysqlParse) getCommand(filename, version string) (cmd string) {
 	outputFileName := getSQLParseResultFile(filename, version)
 	out = path.Join(t.tmpWorkdir, outputFileName)
 
-	cmd = fmt.Sprintf(`%s --sql-file=%s --output-path=%s --print-query-mode=2 --output-format='JSON_LINE_PER_OBJECT'`,
+	cmd = fmt.Sprintf(`%s --sql-file=%s --output-path=%s --print-query-mode=2 --output-format='JSON_LINE_PER_OBJECT' --sql-mode='' `,
 		t.TmysqlParseBinPath, in, out)
 
 	if lo.IsNotEmpty(version) {

@@ -37,7 +37,11 @@ func init() {
 	}
 	workdir = strings.TrimSpace(viper.GetString("workdir"))
 	if workdir == "" {
-		workdir = "/tmp"
+		if cmutil.FileExists("/tmp") {
+			workdir = "/tmp"
+			return
+		}
+		workdir = "/"
 	}
 }
 

@@ -217,16 +217,14 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 	// 关闭协程
 	defer func() { ticker.Stop(); doneChan <- struct{}{} }()
 	model.UpdatePhase(t.TaskId, t.MySQLVersion, model.PhaseLoadSchema)
-	stdout, stderr, err := t.DbPodSets.executeInPod(t.getLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
-		containerName,
-		t.getExtmap(t.SchemaSQLFile), true)
-	sstdout += stdout.String() + "\n"
-	sstderr += stderr.String() + "\n"
+	// Load schema SQL
+	sstdout, sstderr, err = t.loadSchemaSQL(containerName)
 	if err != nil {
-		logger.Error("load database schema sql failed %v", err)
-		return sstdout, sstderr, err
+		xlogger.Error("Failed to load schema SQL: %v", err)
+		return sstdout, sstderr, fmt.Errorf("failed to load schema SQL: %w", err)
 	}
-	xlogger.Info(stdout.String(), stderr.String())
+	xlogger.Info("Schema SQL loaded successfully")
+	xlogger.Info(sstdout, sstderr)
 	// load real databases
 	if err = t.getDbsExcludeSysDb(); err != nil {
 		logger.Error("getDbsExcludeSysDb faiked %v", err)
@@ -247,6 +245,35 @@ func (t *SimulationTask) SimulationRun(containerName string, xlogger *logger.Log
 		return sstdout, strings.Join(sstderrs, "\n"), errors.Join(errs...)
 	}
 	return sstdout, sstderr, nil
+}
+
+func (t *SimulationTask) loadSchemaSQL(containerName string) (sstdout, sstderr string,
+	err error) {
+	defer func() {
+		if err != nil {
+			errx := model.DB.Create(&model.TbSqlFileSimulationInfo{
+				TaskId:       t.TaskId,
+				BillTaskId:   t.Uid,
+				LineId:       0,
+				FileNameHash: fmt.Sprintf("%x", sha256.Sum256([]byte(t.SchemaSQLFile))),
+				FileName:     t.SchemaSQLFile,
+				MySQLVersion: t.MySQLVersion,
+				Status:       model.TaskFailed,
+				ErrMsg:       "导入表结构失败," + err.Error(),
+				CreateTime:   time.Now(),
+				UpdateTime:   time.Now(),
+			}).Error
+			if errx != nil {
+				logger.Warn("create exeute schema sqlfile simulation record failed %v", errx)
+			}
+		}
+	}()
+	stdout, stderr, err := t.DbPodSets.executeInPod(t.getLoadSchemaSQLCmd(t.Path, t.SchemaSQLFile),
+		containerName,
+		t.getExtmap(t.SchemaSQLFile), true)
+	sstdout += stdout.String() + "\n"
+	sstderr += stderr.String() + "\n"
+	return sstdout, sstderr, err
 }
 
 func (t *SimulationTask) executeOneObject(e ExcuteSQLFileObj, containerName string, xlogger *logger.Logger) (sstdout,
