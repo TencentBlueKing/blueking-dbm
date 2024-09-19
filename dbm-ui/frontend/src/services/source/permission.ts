@@ -52,8 +52,8 @@ interface AdminPasswordResultItem {
 /**
  * 查询密码安全策略
  */
-export const getPasswordPolicy = (params = {}, payload = {} as IRequestPayload) =>
-  http.get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/', params, payload);
+export const getPasswordPolicy = (params: { name: string }) =>
+  http.get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/', params);
 
 /**
  * 更新密码安全策略

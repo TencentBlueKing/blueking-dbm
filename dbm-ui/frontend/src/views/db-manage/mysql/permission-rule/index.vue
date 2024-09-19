@@ -140,7 +140,6 @@
 
   import { getSearchSelectorParams } from '@utils';
 
-  import { dbOperations } from './common/const';
   import AccountDialog from './components/AccountDialog.vue';
 
   const { t } = useI18n();
@@ -170,6 +169,25 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const tableSearch = ref([]);
   const clusterAuthorizeRef = ref<InstanceType<typeof ClusterAuthorize>>();
+
+  const dbOperations = {
+    dml: ['select', 'insert', 'update', 'delete', 'show view'],
+    ddl: [
+      'create',
+      'alter',
+      'drop',
+      'index',
+      'create view',
+      'execute',
+      'trigger',
+      'event',
+      'create routine',
+      'alter routine',
+      'references',
+      'create temporary tables',
+    ],
+    glob: ['file', 'reload', 'show databases', 'process', 'replication slave', 'replication client'],
+  };
 
   /**
    * search select 过滤参数

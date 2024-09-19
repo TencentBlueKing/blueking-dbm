@@ -110,11 +110,11 @@
       <div
         v-for="(item, index) of passwordState.strength"
         :key="index"
-        class="password-strength__item">
+        class="password-strength-item">
         <span
-          class="password-strength__status"
+          class="password-strength-status"
           :class="[getStrenthStatus(item)]" />
-        <span class="password-strength__content">{{ item.text }}</span>
+        <span class="password-strength-content">{{ item.text }}</span>
       </div>
     </div>
   </div>
@@ -134,6 +134,7 @@
     getRSAPublicKeys,
     verifyPasswordStrength,
   } from '@services/source/permission';
+  import type { PasswordPolicyIncludeRule } from '@services/types';
 
   import { useCopy } from '@hooks';
 
@@ -142,16 +143,11 @@
   import { AccountTypes } from '@common/const';
   import { dbTippy } from '@common/tippy';
 
-  import { PASSWORD_POLICY, type PasswordPolicyKeys } from '../common/const';
-
   interface StrengthItem {
     keys: string[];
     text: string;
   }
 
-  type PasswordPolicy = ServiceReturnType<typeof getPasswordPolicy>;
-  type IncludeRule = PasswordPolicy['rule']['include_rule'];
-  type ExcludeContinuousRule = PasswordPolicy['rule']['exclude_continuous_rule'];
   type PasswordStrength = ServiceReturnType<typeof verifyPasswordStrength>;
   type PasswordStrengthVerifyInfo = PasswordStrength['password_verify_info'];
 
@@ -186,26 +182,10 @@
       return passwordStrengthResult.is_strength;
     });
 
-  /**
-   * 拆分是否带有follow_前缀的keys
-   */
-  const keyArr = Object.keys(PASSWORD_POLICY).reduce<{ included: string[]; excluded: string[] }>(
-    (acc, key) => {
-      if (key.includes('follow_')) {
-        acc.included.push(key);
-      } else {
-        acc.excluded.push(key);
-      }
-      return acc;
-    },
-    { included: [], excluded: [] },
-  );
   const passwordState = reactive({
     instance: null as Instance | null,
     isShow: false,
     strength: [] as StrengthItem[],
-    keys: keyArr.excluded,
-    followKeys: keyArr.included,
     validate: {} as PasswordStrength,
   });
   const state = reactive({
@@ -230,6 +210,11 @@
       },
     ],
     password: [
+      {
+        trigger: 'blur',
+        message: t('密码不允许为空'),
+        validator: (value: string) => !!value,
+      },
       {
         trigger: 'blur',
         message: t('密码不满足要求'),
@@ -301,58 +286,55 @@
    * 获取密码安全策略
    */
   const fetchPasswordPolicy = () => {
-    getPasswordPolicy().then((passwordPolicyResult) => {
+    getPasswordPolicy({
+      name: 'mysql_password',
+    }).then((passwordPolicyResult) => {
       const {
+        repeats,
         min_length: minLength,
         max_length: maxLength,
         include_rule: includeRule,
-        exclude_continuous_rule: excludeContinuousRule,
+        weak_password: weakPassword,
+        number_of_types: numberOfType,
+        symbols_allowed: symbolsAllowed,
       } = passwordPolicyResult.rule;
+
+      const PASSWORD_POLICY = {
+        lowercase: '小写字母',
+        uppercase: '大写字母',
+        numbers: '数字',
+        symbols: '指定特殊字符（s）',
+      };
+
+      const texts = Object.entries(PASSWORD_POLICY).map(([key, text]) => {
+        const valid = includeRule[key as keyof PasswordPolicyIncludeRule];
+
+        if (!valid) {
+          return '';
+        }
+
+        if (key === 'symbols') {
+          return t(text, { s: symbolsAllowed });
+        }
+
+        return t(text);
+      });
+
       passwordState.strength = [
         {
           keys: ['min_length_valid', 'max_length_valid'],
           text: t('密码长度为_min_max', [minLength, maxLength]),
         },
+        {
+          keys: ['number_of_types_valid'],
+          text: t('包含') + texts.join('、') + t('中的任意 n 种', { n: numberOfType }),
+        },
       ];
-      // 常规提示
-      for (const key of passwordState.keys) {
-        if (includeRule[key as keyof IncludeRule]) {
-          passwordState.strength.push({
-            keys: [`${key}_valid`],
-            text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
-          });
-        }
-      }
 
-      // 重复提示
-      if (excludeContinuousRule.repeats) {
+      if (weakPassword) {
         passwordState.strength.push({
-          keys: ['repeats_valid'],
-          text: t('不能连续重复n位字母_数字_特殊符号', { n: excludeContinuousRule.limit }),
-        });
-      }
-
-      // 特殊提示（键盘序、字符序、数字序等）
-      const special = passwordState.followKeys.reduce<StrengthItem[]>((values: StrengthItem[], key: string) => {
-        const valueKey = key.replace('follow_', '') as keyof ExcludeContinuousRule;
-        if (excludeContinuousRule[valueKey]) {
-          values.push({
-            keys: [`${key}_valid`],
-            text: t(PASSWORD_POLICY[key as PasswordPolicyKeys]),
-          });
-        }
-        return values;
-      }, []);
-      if (special.length > 0) {
-        const keys: string[] = [];
-        const texts: string[] = [];
-        for (const item of special) {
-          keys.push(...item.keys);
-          texts.push(item.text);
-        }
-        passwordState.strength.push({
-          keys,
-          text: texts.join('、'),
+          keys: ['is_strength'],
+          text: t('不允许超过 x 位连续字符', { x: repeats }),
         });
       }
 
@@ -403,11 +385,17 @@
       return '';
     }
 
-    const isPass = item.keys.every((key) => {
-      const verifyInfo = passwordState.validate.password_verify_info || {};
-      return verifyInfo[key as keyof PasswordStrengthVerifyInfo];
-    });
-    return `password-strength__status--${isPass ? 'success' : 'failed'}`;
+    let isPass = false;
+    if (item.keys[0] === 'is_strength') {
+      isPass = passwordState.validate.is_strength;
+    } else {
+      isPass = item.keys.every((key) => {
+        const verifyInfo = passwordState.validate.password_verify_info || {};
+        return verifyInfo[key as keyof PasswordStrengthVerifyInfo];
+      });
+    }
+
+    return `password-strength-status--${isPass ? 'success' : 'failed'}`;
   };
 
   /**
@@ -487,12 +475,14 @@
     padding-top: 4px;
     font-size: @font-size-mini;
 
-    &__item {
+    .password-strength-item {
+      display: flex;
       padding-bottom: 4px;
-      .flex-center();
     }
 
-    &__status {
+    .password-strength-status {
+      position: relative;
+      top: 6px;
       width: 6px;
       height: 6px;
       margin-right: 8px;
@@ -506,6 +496,10 @@
       &--failed {
         background-color: @bg-danger;
       }
+    }
+
+    .password-strength-content {
+      width: 280px;
     }
   }
 </style>
