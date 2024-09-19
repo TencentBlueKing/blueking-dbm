@@ -230,7 +230,7 @@
       // 其它类型的节点数不能全部被缩容，至少保留一个
       let bookkeeperNodeNum = 0;
       let brokerNodeNum = 0;
-      tableData.value.forEach((nodeItem) => {
+      totalTableData.forEach((nodeItem) => {
         if (nodeItem.isBookkeeper) {
           bookkeeperNodeNum = bookkeeperNodeNum + 1;
         } else if (nodeItem.isBroker) {
@@ -266,7 +266,7 @@
     validateSearchValues,
     handleSearchValueChange,
   } = useLinkQueryColumnSerach({
-    searchType: ClusterTypes.PULSAE,
+    searchType: ClusterTypes.PULSAR,
     attrs: ['bk_cloud_id'],
     fetchDataFn: () => fetchNodeList(),
     defaultSearchItem: {
@@ -274,6 +274,8 @@
       name: 'IP',
     }
   });
+
+  let totalTableData: PulsarNodeModel[] = [];
 
   const isAnomalies = ref(false);
   const isShowReplace = ref(false);
@@ -320,7 +322,7 @@
     // 其它类型的节点数不能全部被缩容，至少保留一个
     let bookkeeperNodeNum = 0;
     let brokerNodeNum = 0;
-    tableData.value.forEach((nodeItem) => {
+    totalTableData.forEach((nodeItem) => {
       if (checkedNodeMap.value[nodeItem.bk_host_id]) {
         return;
       }
@@ -529,6 +531,9 @@
     }).then((data) => {
       tableData.value = data.results;
       isAnomalies.value = false;
+      if (searchValue.value.length === 0) {
+        totalTableData = _.cloneDeep(tableData.value);
+      }
     })
       .catch(() => {
         tableData.value = [];
