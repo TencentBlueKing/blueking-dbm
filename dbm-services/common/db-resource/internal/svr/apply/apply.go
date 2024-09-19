@@ -124,7 +124,12 @@ func (o *SearchContext) pickBase(db *gorm.DB) {
 				Value:  "%" + strings.TrimSpace(strings.ToLower(osname)) + "%",
 			})
 		}
-		db.Clauses(clause.OrConditions{Exprs: conditions})
+		if len(conditions) == 1 {
+			db.Clauses(clause.AndConditions{Exprs: conditions})
+		} else {
+			// 有多个条件，使用or，才会被用（）包括起来所有的or条件
+			db.Clauses(clause.OrConditions{Exprs: conditions})
+		}
 	}
 
 	// 如果没有指定资源类型，表示只能选择无资源类型标签的资源
