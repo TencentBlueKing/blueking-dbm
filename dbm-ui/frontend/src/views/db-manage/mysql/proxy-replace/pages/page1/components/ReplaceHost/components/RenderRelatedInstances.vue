@@ -13,7 +13,7 @@
 
 <template>
   <div
-    v-if="list?.length"
+    v-if="list.length"
     class="related-instances">
     <div
       v-for="(item, index) in list"
@@ -31,17 +31,20 @@
 
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
-  import type { IRelatedInstanceItem } from './Row.vue';
-
   interface Props {
-    list?: IRelatedInstanceItem[];
+    list: {
+      cluster_id: number;
+      instance: string;
+    }[];
   }
 
   interface Exposes {
     getValue: () => Promise<{ cluster_ids: number[] }>;
   }
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    list: () => [],
+  });
 
   const { t } = useI18n();
 

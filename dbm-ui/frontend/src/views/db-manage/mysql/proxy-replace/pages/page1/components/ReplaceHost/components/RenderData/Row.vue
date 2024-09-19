@@ -14,9 +14,9 @@
 <template>
   <tr>
     <FixedColumn fixed="left">
-      <RenderOriginalProxy
-        ref="targetRef"
-        :model-value="data.originProxy?.ip"
+      <RenderOriginalProxyHost
+        ref="originRef"
+        :model-value="data.originProxy.ip"
         @input-finish="handleOriginProxyInputFinish" />
     </FixedColumn>
     <td style="padding: 0">
@@ -26,11 +26,11 @@
     </td>
     <td style="padding: 0">
       <RenderTargetProxy
-        ref="originRef"
-        :cloud-id="data.originProxy?.bk_cloud_id ?? null"
-        :disabled="!data.originProxy?.ip"
+        ref="targetRef"
+        :cloud-id="data.originProxy.bk_cloud_id"
+        :disabled="!data.originProxy.ip"
         :model-value="data.targetProxy"
-        :target-ip="data.originProxy?.ip" />
+        :target-ip="data.originProxy.ip" />
     </td>
     <OperateColumn
       :removeable="removeable"
@@ -41,41 +41,64 @@
 <script lang="ts">
   import { random } from '@utils';
 
-  export interface IProxyData {
-    ip: string;
-    bk_cloud_id: number | null;
-    bk_host_id: number;
-    bk_biz_id: number;
-    port: number;
-  }
-
-  export interface IRelatedInstanceItem {
-    cluster_id: number;
-    instance: string;
-  }
-
-  export interface IHostData {
-    bk_cloud_id: number | null;
-    bk_host_id: number;
-    bk_biz_id: number;
-    cluster_id: number;
-    port: number;
-    ip: string;
-    instance_address: string;
-  }
-
   export interface IDataRow {
     rowKey: string;
-    originProxy?: IProxyData;
-    relatedInstances?: IRelatedInstanceItem[];
-    targetProxy?: IHostData;
+    originProxy: {
+      ip: string;
+      bk_cloud_id: number | null;
+      bk_host_id: number;
+      bk_biz_id: number;
+      port: number;
+    };
+    relatedInstances: {
+      cluster_id: number;
+      instance: string;
+    }[];
+    targetProxy: {
+      bk_cloud_id: number | null;
+      bk_host_id: number;
+      bk_biz_id: number;
+      cluster_id: number;
+      port: number;
+      ip: string;
+      instance_address: string;
+    };
+  }
+
+  interface Props {
+    data: IDataRow;
+    removeable: boolean;
+  }
+  interface Emits {
+    (e: 'add', params: IDataRow[]): void;
+    (e: 'remove'): void;
+  }
+
+  interface Exposes {
+    getValue: () => Promise<{
+      cluster_ids: number[];
+      origin_proxy: {
+        ip: string;
+        bk_cloud_id: number | null;
+        bk_host_id: number;
+        bk_biz_id: number;
+        port?: number;
+      };
+      target_proxy: {
+        ip: string;
+        bk_cloud_id: number | null;
+        bk_host_id: number;
+        bk_biz_id: number;
+        port?: number;
+      };
+    }>;
   }
 
   // 创建表格数据
   export const createRowData = (data = {} as Partial<IDataRow>) => ({
     rowKey: random(),
     originProxy:
-      data.originProxy ??
+      data.originProxy ||
       ({
         ip: '',
         bk_cloud_id: null,
@@ -85,7 +108,7 @@
       } as IDataRow['originProxy']),
     relatedInstances: data.relatedInstances || [],
     targetProxy:
-      data.targetProxy ??
+      data.targetProxy ||
       ({
         ip: '',
         bk_cloud_id: null,
@@ -101,30 +124,17 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
-  import RenderOriginalProxy from './RenderOriginalProxy.vue';
-  import RenderRelatedInstances from './RenderRelatedInstances.vue';
-  import RenderTargetProxy from './RenderTargetProxy.vue';
-
-  interface Props {
-    data: IDataRow;
-    removeable: boolean;
-  }
-  interface Emits {
-    (e: 'add', params: Array<IDataRow>): void;
-    (e: 'remove'): void;
-  }
-
-  interface Exposes {
-    getValue: () => Promise<any>;
-  }
+  import RenderTargetProxy from '../../../common/RenderTargetProxy.vue';
+  import RenderOriginalProxyHost from '../RenderOriginalProxyHost.vue';
+  import RenderRelatedInstances from '../RenderRelatedInstances.vue';
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
 
-  const targetRef = ref();
-  const relatedInstancesRef = ref();
-  const originRef = ref();
+  const originRef = ref<InstanceType<typeof RenderOriginalProxyHost>>();
+  const relatedInstancesRef = ref<InstanceType<typeof RenderRelatedInstances>>();
+  const targetRef = ref<InstanceType<typeof RenderTargetProxy>>();
 
   const localRelatedInstances = ref<IDataRow['relatedInstances']>([]);
 
@@ -143,26 +153,16 @@
     emits('remove');
   };
 
-  watch(
-    () => props.data.relatedInstances,
-    (newValue) => {
-      localRelatedInstances.value = newValue || [];
-    },
-    {
-      immediate: true,
-    },
-  );
-
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        targetRef.value.getValue(),
-        relatedInstancesRef.value.getValue(),
-        originRef.value.getValue(),
-      ]).then(([targetData, relatedInstancesData, originData]) => ({
-        ...targetData,
-        ...relatedInstancesData,
+        originRef.value!.getValue(),
+        relatedInstancesRef.value!.getValue(),
+        targetRef.value!.getValue(),
+      ]).then(([originData, relatedInstancesData, targetData]) => ({
         ...originData,
+        ...relatedInstancesData,
+        ...targetData,
       }));
     },
   });

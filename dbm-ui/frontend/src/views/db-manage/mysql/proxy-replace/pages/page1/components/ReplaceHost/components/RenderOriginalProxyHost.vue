@@ -14,12 +14,26 @@
 <template>
   <TableEditInput
     ref="editRef"
-    v-model="localInstanceAddress"
-    :placeholder="t('请输入IP:Port或从表头批量选择')"
+    v-model="localIp"
+    :placeholder="t('请输入或从表头批量选择')"
     :rules="rules" />
 </template>
 <script lang="ts">
-  const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
+  const proxyHostMemo: { [key: string]: Record<string, boolean> } = {};
+
+  interface Props {
+    modelValue?: string;
+  }
+
+  interface Emits {
+    (e: 'inputFinish', relatedInstances: IDataRow['relatedInstances']): void;
+  }
+
+  interface Exposes {
+    getValue: () => {
+      origin_proxy: IDataRow['originProxy'];
+    };
+  }
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -32,32 +46,20 @@
 
   import { random } from '@utils';
 
-  import type { IDataRow } from './Row.vue';
-
-  interface Props {
-    modelValue?: string;
-  }
-
-  interface Emits {
-    (e: 'inputFinish', relatedClusters: IDataRow['relatedClusters']): void;
-  }
-
-  interface Exposes {
-    getValue: () => Array<number>;
-  }
+  import type { IDataRow } from './RenderData/Row.vue';
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
   const instanceKey = `render_original_proxy_${random()}`;
-  instanceAddreddMemo[instanceKey] = {};
-  let proxyInstanceData = {} as IDataRow['originProxy'];
+  proxyHostMemo[instanceKey] = {};
+  let proxyHostData = {} as IDataRow['originProxy'];
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
   const editRef = ref();
-  const localInstanceAddress = ref('');
+  const localIp = ref('');
 
   const rules = [
     {
@@ -67,10 +69,10 @@
         }
         return false;
       },
-      message: t('目标Proxy不能为空'),
+      message: t('目标Proxy主机不能为空'),
     },
     {
-      validator: (value: string) =>
+      validator: (value: string): Promise<boolean> =>
         checkMysqlInstances({
           bizId: currentBizId,
           instance_addresses: [value],
@@ -80,29 +82,28 @@
             return false;
           }
           const [currentData] = data;
-          instanceAddreddMemo[instanceKey][currentData.instance_address] = true;
-          proxyInstanceData = {
+          localIp.value = currentData.ip;
+          proxyHostMemo[instanceKey][currentData.ip] = true;
+          proxyHostData = {
             ip: currentData.ip,
             bk_cloud_id: currentData.bk_cloud_id,
             bk_host_id: currentData.bk_host_id,
             bk_biz_id: currentBizId,
             port: currentData.port,
-            cluster_id: currentData.cluster_id,
-            instance_address: currentData.instance_address,
           };
-          const relatedClusters = currentData.related_clusters.map((item) => ({
-            cluster_id: item.id,
-            domain: item.master_domain,
+          const relatedInstances = data.map((item) => ({
+            cluster_id: item.cluster_id,
+            instance: item.instance_address,
           }));
-          emits('inputFinish', relatedClusters);
+          emits('inputFinish', relatedInstances);
           return true;
         }),
-      message: t('目标Proxy不存在'),
+      message: t('目标Proxy主机不存在'),
     },
     {
       validator: () => {
-        const currentClusterSelectMap = instanceAddreddMemo[instanceKey];
-        const otherClusterMemoMap = { ...instanceAddreddMemo };
+        const currentClusterSelectMap = proxyHostMemo[instanceKey];
+        const otherClusterMemoMap = { ...proxyHostMemo };
         delete otherClusterMemoMap[instanceKey];
 
         const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
@@ -122,15 +123,18 @@
         }
         return true;
       },
-      message: t('目标Proxy重复'),
+      message: t('目标Proxy主机重复'),
     },
   ];
 
   watch(
     () => props.modelValue,
-    (newValue) => {
-      if (newValue) {
-        localInstanceAddress.value = newValue;
+    () => {
+      if (props.modelValue) {
+        localIp.value = props.modelValue;
+        setTimeout(() => {
+          editRef.value!.getValue();
+        });
       }
     },
     {
@@ -139,13 +143,13 @@
   );
 
   onBeforeUnmount(() => {
-    delete instanceAddreddMemo[instanceKey];
+    delete proxyHostMemo[instanceKey];
   });
 
   defineExpose<Exposes>({
     getValue() {
       return editRef.value.getValue().then(() => ({
-        origin_proxy: proxyInstanceData,
+        origin_proxy: proxyHostData,
       }));
     },
   });
