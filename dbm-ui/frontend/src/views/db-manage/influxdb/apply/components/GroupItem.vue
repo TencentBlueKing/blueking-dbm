@@ -91,7 +91,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { createGroup, getGroupList } from '@services/source/influxdbGroup';
-  import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
   import { nameRegx } from '@common/regex';
 
@@ -119,7 +118,7 @@
 
   let isInit = true;
   const localGroupId = ref<number | string>('');
-  const groupList = shallowRef<Array<InfluxDBGroupItem>>([]);
+  const groupList = shallowRef<ServiceReturnType<typeof getGroupList>['results']>([]);
   const isLoading = ref(false);
 
   watch(

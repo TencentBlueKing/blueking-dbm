@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { SpecInfo } from '@services/model/ticket/details/common';
-import type { MySQLExportData } from '@services/model/ticket/details/mysql';
-import type { clustersItems } from '@services/types/ticket';
 
 import { ClusterTypes } from '@common/const';
 
@@ -127,30 +125,6 @@ export interface DetailsSqlserver {
   spec_display: string;
   start_mysql_port: number;
   start_mssql_port: number;
-}
-
-// Sqlserver 数据库备份
-export interface SqlserverDbBackup {
-  backup_place: string;
-  backup_type: string;
-  clusters: Record<number, clustersItems>;
-  file_tag: string;
-  infos: {
-    backup_dbs: string[];
-    cluster_id: number;
-  }[];
-}
-
-// Sqlserver 账号授权
-export interface SqlserverAuthorizeRules {
-  authorize_data?: {
-    user: string;
-    target_instances: string[];
-    access_dbs: string[];
-    cluster_type: string;
-  }[];
-  authorize_uid: string;
-  excel_url?: string;
 }
 
 // spider 迁移主从
@@ -291,15 +265,3 @@ export interface RedisHaApply {
     backend_group: SpecInfo;
   };
 }
-
-export type TicketDetailTypes =
-  | DetailsMongoDBReplicaSet
-  | DetailsMongoDBSharedCluster
-  | MongoDBAuthorizeRules
-  | DetailsSqlserver
-  | SqlserverDbBackup
-  | SqlserverAuthorizeRules
-  | SpiderMigrateCluster
-  | SpiderMigrateCluster
-  | RedisHaApply
-  | MySQLExportData;

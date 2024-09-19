@@ -69,7 +69,6 @@
 
   import RedisModel from '@services/model/redis/redis';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -192,7 +191,7 @@
       const infos = await Promise.all<InfoItem[]>(
         rowRefs.value.map((item: { getValue: () => Promise<InfoItem[]> }) => item.getValue()),
       );
-      const params: SubmitTicket<TicketTypes, InfoItem[]> = {
+      const params = {
         bk_biz_id: currentBizId,
         ticket_type: TicketTypes.REDIS_DATA_STRUCTURE,
         details: {

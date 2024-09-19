@@ -12,12 +12,13 @@
  */
 
 import RiakModel from '@services/model/riak/riak';
+import RiakInstanceModel from '@services/model/riak/riak-instance';
 import RiakNodeModel from '@services/model/riak/riak-node';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase, ResourceInstance, ResourceTopo } from '../types';
+import type { ListBase, ResourceTopo } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -49,41 +50,7 @@ export function getRiakInstanceList(params: {
   cluster_id: number;
   role: string;
 }) {
-  return http.get<ListBase<ResourceInstance[]>>(`${path}/list_instances/`, params);
-}
-
-/**
- * 集群实例详情
- */
-interface InstanceDetails {
-  bk_cloud_id: number;
-  bk_cpu: number;
-  bk_disk: number;
-  bk_host_id: number;
-  bk_host_innerip: string;
-  bk_mem: number;
-  bk_os_name: string;
-  cluster_id: number;
-  cluster_type: string;
-  create_at: string;
-  idc_city_id: string;
-  idc_city_name: string;
-  idc_id: number;
-  instance_address: string;
-  master_domain: string;
-  net_device_id: string;
-  rack: string;
-  rack_id: number;
-  role: string;
-  slave_domain: string;
-  status: string;
-  sub_zone: string;
-  db_module_id: number;
-  cluster_type_display: string;
-  bk_idc_name: string;
-  bk_cloud_name: string;
-  db_version: string;
-  version?: string;
+  return http.get<ListBase<RiakInstanceModel[]>>(`${path}/list_instances/`, params);
 }
 
 /**
@@ -95,7 +62,7 @@ export function retrieveRiakInstance(params: {
   instance_address: string;
   cluster_id?: number;
 }) {
-  return http.get<InstanceDetails>(`${path}/retrieve_instance/`, params);
+  return http.get<RiakInstanceModel>(`${path}/retrieve_instance/`, params);
 }
 
 /**

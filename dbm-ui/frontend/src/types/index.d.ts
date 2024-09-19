@@ -14,18 +14,12 @@
 import type { TablePropTypes } from 'bkui-vue/lib/table/props';
 import type { Router } from 'vue-router';
 
-import type { Permission } from '@services/types';
-
 declare global {
   interface Window {
     changeConfirm: boolean | 'popover';
     login: {
       showLogin: ({ src, width, height }) => void;
       hideLogin: () => void;
-      isShow: boolean;
-    };
-    permission: {
-      show: (permission: Permission) => void;
       isShow: boolean;
     };
   }

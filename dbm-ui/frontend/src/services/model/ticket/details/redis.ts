@@ -18,8 +18,7 @@ import {
   RepairAndVerifyModes,
   WriteModes,
 } from '@services/model/redis/redis-dst-history-job';
-import type { ExecuteModes, OnlineSwitchType, RepairModes } from '@services/types/common';
-import type { HostDetails } from '@services/types/ip';
+import type { ExecuteModes, HostDetails, OnlineSwitchType, RepairModes } from '@services/types';
 
 import type { ClusterTypes } from '@common/const';
 

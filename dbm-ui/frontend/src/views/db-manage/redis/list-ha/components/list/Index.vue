@@ -145,9 +145,6 @@
   } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-  import {
-    ClusterNodeKeys,
-  } from '@services/types/clusters';
 
   import {
     useCopy,
@@ -193,6 +190,12 @@
     getSearchSelectorParams,
     messageWarn,
   } from '@utils';
+
+  enum ClusterNodeKeys {
+    PROXY = 'proxy',
+    REDIS_MASTER = 'redis_master',
+    REDIS_SLAVE = 'redis_slave',
+  }
 
   const clusterId = defineModel<number>('clusterId');
 

@@ -59,9 +59,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbhaModel from '@services/model/mysql/tendbha';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import { getTendbhaDetail } from '@services/source/tendbha';
-  import type { ResourceItem } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -90,7 +90,7 @@
   const { currentBizId } = useGlobalBizs();
 
   const activePanelKey = ref('topo');
-  const data = ref<ResourceItem>();
+  const data = ref<TendbhaModel>();
 
   const monitorPanelList = ref<PanelItem[]>([]);
 
@@ -101,7 +101,7 @@
 
   const { loading: isLoading, run: fetchResourceDetails } = useRequest(getTendbhaDetail, {
     manual: true,
-    onSuccess(result: ResourceItem) {
+    onSuccess(result: TendbhaModel) {
       data.value = result;
     },
   });

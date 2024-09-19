@@ -59,9 +59,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import RedisModel from '@services/model/redis/redis';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import { getRedisDetail } from '@services/source/redis';
-  import type { ResourceRedisItem } from '@services/types/clusters';
 
   import { useGlobalBizs } from '@stores';
 
@@ -91,7 +91,7 @@
   const { currentBizId } = useGlobalBizs();
 
   const activePanelKey = ref('topo');
-  const data = ref<ResourceRedisItem>();
+  const data = ref<RedisModel>();
   const currentClusterType = ref('');
 
   const monitorPanelList = ref<PanelItem[]>([]);
@@ -103,7 +103,7 @@
 
   const { loading: isLoading, run: fetchResourceDetails } = useRequest(getRedisDetail, {
     manual: true,
-    onSuccess(result: ResourceRedisItem) {
+    onSuccess(result) {
       data.value = result;
       currentClusterType.value = result.cluster_type;
     },
@@ -148,9 +148,9 @@
 
 <style lang="less" scoped>
   .cluster-details {
+    z-index: 99;
     height: 100%;
     background: #fff;
-    z-index: 99;
 
     .content-tabs {
       :deep(.bk-tab-content) {

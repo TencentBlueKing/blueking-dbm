@@ -99,6 +99,6 @@ export default class DbResource {
   }
 
   get isAbnormal() {
-    return this.agent_status === 0
+    return this.agent_status === 0;
   }
 }

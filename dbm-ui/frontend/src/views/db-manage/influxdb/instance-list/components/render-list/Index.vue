@@ -158,7 +158,6 @@
   import { moveInstancesToGroup } from '@services/source/influxdbGroup';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-  import type { InfluxDBGroupItem } from '@services/types/influxdbGroup';
 
   import { useCopy, useLinkQueryColumnSerach, useTableSettings, useTicketMessage } from '@hooks';
 
@@ -183,6 +182,8 @@
   import { useTimeoutPoll } from '@vueuse/core';
 
   import ClusterReplace from './components/Replace.vue';
+
+  type InfluxDBGroupItem = ServiceReturnType<typeof getGroupList>['results'][number];
 
   const route = useRoute();
   const router = useRouter();
