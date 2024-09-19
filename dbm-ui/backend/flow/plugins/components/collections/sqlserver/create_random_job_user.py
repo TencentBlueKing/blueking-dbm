@@ -60,7 +60,7 @@ class SqlserverAddJobUserService(BaseService):
 
                 inst_status = storages.get(
                     machine__ip=info["address"].split(":")[0], port=int(info["address"].split(":")[1])
-                )
+                ).status
                 if inst_status == InstanceStatus.UNAVAILABLE:
                     # 如果实例的状态本身是unavailable，则失败可以忽略
                     self.log_warning(f"the instance [{info['address']}] is already unavailable, ignore")

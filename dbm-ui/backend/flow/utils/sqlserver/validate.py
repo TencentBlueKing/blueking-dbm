@@ -20,7 +20,7 @@ from backend.flow.utils.sqlserver.sqlserver_host import Host
 class SqlserverInstance:
     """
     sqlserver实例信息基类
-    @attributes ip 实例ip，ipv4格式
+    @attributes host 实例ip，ipv4格式
     @attributes port 实例端口
     @attributes bk_cloud_id 机器所在云区域
     @attributes is_new 是否是这次加入的
