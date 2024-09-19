@@ -91,30 +91,18 @@ export interface PasswordPolicy {
   id: number;
   name: string;
   rule: {
-    include_rule: PasswordPolicyIncludeRule;
-    exclude_continuous_rule: {
-      limit: number;
-      letters: boolean;
-      numbers: boolean;
-      repeats: boolean;
-      symbols: boolean;
-      keyboards: boolean;
-    };
+    repeats: number;
     max_length: number;
     min_length: number;
+    include_rule: PasswordPolicyIncludeRule;
+    weak_password: boolean;
+    number_of_types: number;
+    symbols_allowed: string;
   };
   creator?: string;
   create_time?: string;
   operator?: string;
   update_time?: string;
-}
-
-// 密码策略 include_rule
-export interface PasswordPolicyIncludeRule {
-  numbers: boolean;
-  symbols: boolean;
-  lowercase: boolean;
-  uppercase: boolean;
 }
 
 // 密码策略 include_rule
