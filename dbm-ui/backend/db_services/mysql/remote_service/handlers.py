@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
@@ -29,12 +30,13 @@ class RemoteServiceHandler:
 
     @classmethod
     def _format_db_tb_name(cls, _data_names):
-        for index in range(len(_data_names)):
+        _copied_data = copy.deepcopy(_data_names)
+        for index in range(len(_copied_data)):
             # mysql模糊匹配单个字符，用_，原本字符串里带的_，要\_转义，如果是*，则转为%表示like % --> 永真
-            _data_names[index] = (
-                _data_names[index].replace("_", "\_").replace("?", "_").replace("*", "%")  # noqa: W605
-            )
-        return _data_names
+            _copied_data[index] = (
+                _copied_data[index].replace("_", "\_").replace("?", "_").replace("*", "%")
+            )  # noqa: W605
+        return _copied_data
 
     @classmethod
     def _get_db_tb_sts(cls, _data_names, key, default):
