@@ -53,7 +53,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getModuleDetail } from '@services/source/cmdb';
+  import { getModuleDetail } from '@services/source/configs';
   import type { HostDetails } from '@services/types';
 
   import { useGlobalBizs } from '@stores';

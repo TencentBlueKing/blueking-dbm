@@ -11,8 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { PackageItem } from '@services/types/versionFiles';
-
 import type { IPagination } from '@hooks';
 
 /**
@@ -32,7 +30,23 @@ export interface IState {
   isAnomalies: boolean;
   isLoading: boolean;
   pagination: IPagination;
-  data: PackageItem[];
+  data: {
+    allow_biz_ids: number[];
+    create_at: string;
+    creator: string;
+    enable: boolean;
+    id: number;
+    md5: string;
+    mode: string;
+    name: string;
+    path: string;
+    pkg_type: string;
+    priority: number;
+    size: number;
+    update_at: string;
+    updater: string;
+    version: string;
+  }[];
   search: string;
 }
 

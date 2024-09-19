@@ -41,3 +41,15 @@ export const getClusterEntries = (params: {
       };
     }[]
   >('/apis/cluster_entry/get_cluster_entries/', params);
+
+/**
+ * 修改集群访问入口
+ */
+export const updateClusterEntryConfig = (params: {
+  cluster_id: number;
+  cluster_entry_details: {
+    cluster_entry_type: string;
+    domain_name: string;
+    target_instances: string[];
+  }[];
+}) => http.post<{ cluster_id?: number }>('/apis/cluster_entry/refresh_cluster_domain/', params);

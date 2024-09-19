@@ -14,12 +14,12 @@
 import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 import { useI18n } from 'vue-i18n';
 
+import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
+import TicketModel from '@services/model/ticket/ticket';
 import { getResourcesByBizId as getSpiderResources } from '@services/source/spider';
 import { getTendbhaListByBizId } from '@services/source/tendbha';
 import { getTendbsingleListByBizId } from '@services/source/tendbsingle';
-import type { ResourceItem, SearchFilterItem } from '@services/types';
-import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+
 import { useDefaultPagination } from '@hooks';
 
 import { ClusterTypes, DBTypes } from '@common/const';
@@ -37,12 +37,20 @@ export function useTargetClusterData(ticketDetails: TicketModel<MysqlAuthorizati
   const listState = reactive({
     isAnomalies: false,
     isLoading: false,
-    data: [] as ResourceItem[],
+    data: [] as {
+      master_domain: string;
+      cluster_name: string;
+      db_module_name: string;
+      status: string;
+    }[],
     pagination: useDefaultPagination(),
     filters: {
       search: [] as ISearchValue[],
     },
-    dbModuleList: [] as SearchFilterItem[],
+    dbModuleList: [] as {
+      id: number | string;
+      name: string;
+    }[],
   });
 
   /**
@@ -68,9 +76,11 @@ export function useTargetClusterData(ticketDetails: TicketModel<MysqlAuthorizati
    * 获取目标集群列表
    */
   const fetchCluster = () => {
-    const type = (ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
-      ? 'spider'
-      : ticketDetails?.details?.authorize_data?.cluster_type) as keyof typeof apiMap;
+    const type = (
+      ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
+        ? 'spider'
+        : ticketDetails?.details?.authorize_data?.cluster_type
+    ) as keyof typeof apiMap;
 
     if (!apiMap[type]) {
       return;
@@ -89,7 +99,7 @@ export function useTargetClusterData(ticketDetails: TicketModel<MysqlAuthorizati
     apiMap[type](params)
       .then((res) => {
         listState.pagination.count = res.count;
-        listState.data = res.results as ResourceItem[];
+        listState.data = res.results;
         listState.isAnomalies = false;
       })
       .catch(() => {

@@ -59,9 +59,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
   import { getTendbsingleDetail } from '@services/source/tendbsingle';
-  import type { ResourceItem } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -91,7 +91,7 @@
   const { currentBizId } = useGlobalBizs();
 
   const activePanelKey = ref('topo');
-  const data = ref<ResourceItem>();
+  const data = ref<TendbsingleModel>();
   const monitorPanelList = ref<PanelItem[]>([]);
 
   const activePanel = computed(() => {
@@ -101,7 +101,7 @@
 
   const { loading: isLoading, run: fetchResourceDetails } = useRequest(getTendbsingleDetail, {
     manual: true,
-    onSuccess(result: ResourceItem) {
+    onSuccess(result: TendbsingleModel) {
       data.value = result;
     },
   });

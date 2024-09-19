@@ -85,11 +85,8 @@
   import RedisRollbackModel from '@services/model/redis/redis-rollback';
   import { getRollbackList } from '@services/source/redisRollback';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
-
-  import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
 
@@ -99,11 +96,6 @@
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
 
-  type SubmitTicketType = SubmitTicket<TicketTypes, InfoItem[]> & {
-    details: { dts_copy_type: string; write_mode: WriteModes };
-  };
-
-  const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
   const router = useRouter();
 
@@ -314,7 +306,7 @@
       const infos = await Promise.all<InfoItem[]>(
         rowRefs.value.map((item: { getValue: () => Promise<InfoItem> }) => item.getValue()),
       );
-      const params: SubmitTicketType = {
+      const params = {
         bk_biz_id: currentBizId,
         ticket_type: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
         remark: remark.value,

@@ -148,7 +148,7 @@
   import { useRouter } from 'vue-router'
 
   import MigrateRecordModel from '@services/model/sqlserver/migrate-record';
-  import { forceFailedMigrate, getList, manualTerminateSync } from '@services/source/sqlServerMigrate';
+  import { forceFailedMigrate, getList, manualTerminateSync } from '@services/source/sqlserverMigrate';
 
   import { messageSuccess } from '@utils';
 

@@ -45,9 +45,9 @@ export function getPackages(
 }
 
 /**
- * 新建版本信息
+ * 新建版本
  */
-interface NewPackageParams {
+export function createPackage(params: {
   name: string;
   version: string;
   pkg_type: string;
@@ -57,13 +57,8 @@ interface NewPackageParams {
   md5: string;
   allow_biz_ids?: number[];
   mode?: string;
-}
-
-/**
- * 新建版本
- */
-export function createPackage(params: NewPackageParams) {
-  return http.post<NewPackageParams>(`${path}/`, params);
+}) {
+  return http.post(`${path}/`, params);
 }
 
 /**
@@ -76,14 +71,21 @@ export function deletePackage(params: { id: number }) {
 /**
  * 更新版本文件属性
  */
-export function updatePackage(
-  params: Partial<NewPackageParams> & {
-    id: number;
-    priority?: number;
-    enable?: boolean;
-  },
-) {
-  return http.patch<NewPackageParams>(`${path}/${params.id}/`, params);
+export function updatePackage(params: {
+  id: number;
+  priority?: number;
+  enable?: boolean;
+  name: string;
+  version: string;
+  pkg_type: string;
+  db_type: string;
+  path: string;
+  size: number;
+  md5: string;
+  allow_biz_ids?: number[];
+  mode?: string;
+}) {
+  return http.patch(`${path}/${params.id}/`, params);
 }
 
 /**

@@ -17,7 +17,7 @@ import TendbClusterModel from '@services/model/spider/tendbCluster';
 import TendbInstanceModel from '@services/model/spider/tendbInstance';
 
 import http from '../http';
-import type { ListBase, ResourceInstance, ResourceItem, ResourceTopo } from '../types';
+import type { ListBase, ResourceTopo } from '../types';
 
 const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/spider_resources`;
 
@@ -97,7 +97,7 @@ export function getResources(params: {
   cluster_ids?: number[] | number;
   dbType: string;
 }) {
-  return http.get<ListBase<ResourceItem[]>>(`${getRootPath()}/`, params);
+  return http.get<ListBase<TendbClusterModel[]>>(`${getRootPath()}/`, params);
 }
 
 /**
@@ -111,7 +111,7 @@ export function getResourcesByBizId(params: {
   cluster_ids?: number[] | number;
   dbType: string;
 }) {
-  return http.get<ListBase<ResourceItem[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/`, params);
+  return http.get<ListBase<TendbClusterModel[]>>(`/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/`, params);
 }
 
 /**
@@ -130,54 +130,10 @@ export function getSpiderTableFields() {
  * 获取集群实例列表
  */
 export function getSpiderInstanceList(params: Record<string, any>) {
-  return http.get<ListBase<TendbInstanceModel[]>>(`${getRootPath()}/list_instances/`, params);
-}
-
-/**
- * 集群实例详情
- */
-interface InstanceDetails {
-  bk_cloud_id: number;
-  bk_cpu: number;
-  bk_disk: number;
-  bk_host_id: number;
-  bk_host_innerip: string;
-  bk_mem: number;
-  bk_os_name: string;
-  cluster_id: number;
-  cluster_type: string;
-  create_at: string;
-  idc_city_id: string;
-  idc_city_name: string;
-  idc_id: number;
-  instance_address: string;
-  master_domain: string;
-  net_device_id: string;
-  rack: string;
-  rack_id: number;
-  role: string;
-  slave_domain: string;
-  status: string;
-  sub_zone: string;
-  db_module_id: number;
-  cluster_type_display: string;
-  bk_idc_name: string;
-  bk_cloud_name: string;
-  db_version: string;
-  version?: string;
-}
-
-/**
- * 获取集群实例详情
- */
-export function retrieveSpiderInstance(params: {
-  bk_biz_id: number;
-  type: string;
-  instance_address: string;
-  cluster_id?: number;
-  dbType: string;
-}) {
-  return http.get<InstanceDetails>(`${getRootPath()}/retrieve_instance/`, params);
+  return http.get<ListBase<TendbInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((res) => ({
+    ...res,
+    results: res.results.map((data) => new TendbInstanceModel(data)),
+  }));
 }
 
 /**
@@ -238,16 +194,6 @@ export const getSpiderDetails = (params: { id: number }) =>
   http.get<TendbClusterModel>(`${getRootPath()}/${params.id}/`);
 
 /**
- * 获取 spider 实例列表
- */
-export function getSpiderInstances(params: Record<string, any>) {
-  return http.get<ListBase<TendbInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((res) => ({
-    ...res,
-    results: res.results.map((data) => new TendbInstanceModel(data)),
-  }));
-}
-
-/**
  * 获取 spider 实例详情
  */
 export const getSpiderInstanceDetails = (params: { instance_address: string; cluster_id: number }) =>
@@ -263,15 +209,6 @@ export const getList = function (params: Record<string, any>) {
 export const getDetail = function (params: { id: number }) {
   return http.get<SpiderModel>(`${getRootPath()}/${params.id}/`).then((data) => new SpiderModel(data));
 };
-
-/**
- * 获取集群实例列表
- */
-export const listSpiderResourceInstances = (params: { bk_biz_id: number } & Record<string, any>) =>
-  http.get<ListBase<ResourceInstance[]>>(
-    `/apis/mysql/bizs/${params.bk_biz_id}/spider_resources/list_instances/`,
-    params,
-  );
 
 /**
  * 获取集群primary关系映射

@@ -44,25 +44,28 @@ export function getInfrasSubzonesByCity(params: { city_code: string }) {
 }
 
 /**
- * 主机提交格式
- */
-interface HostSubmitParams {
-  ip: string;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_cpu?: number;
-  bk_mem?: number;
-  bk_disk?: number;
-  bk_biz_id: number;
-}
-
-/**
  * redis 容量列表
  */
 export function getCapSpecs(params: {
   nodes: {
-    master: Array<HostSubmitParams>;
-    slave: Array<HostSubmitParams>;
+    master: Array<{
+      ip: string;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      bk_cpu?: number;
+      bk_mem?: number;
+      bk_disk?: number;
+      bk_biz_id: number;
+    }>;
+    slave: Array<{
+      ip: string;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      bk_cpu?: number;
+      bk_mem?: number;
+      bk_disk?: number;
+      bk_biz_id: number;
+    }>;
   };
   ip_source: string;
   cluster_type: string;

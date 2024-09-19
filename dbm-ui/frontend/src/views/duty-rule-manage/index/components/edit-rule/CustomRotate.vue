@@ -35,7 +35,7 @@
 
   import type { DutyCustomItem } from '@services/model/monitor/duty-rule';
   import DutyRuleModel from '@services/model/monitor/duty-rule';
-  import { getUseList } from '@services/source/common';
+  import { getUserList } from '@services/source/user';
 
   import { getDiffDays, random } from '@utils';
 
@@ -175,7 +175,7 @@
     },
   ]));
 
-  useRequest(getUseList, {
+  useRequest(getUserList, {
     onSuccess: (res) => {
       const list = res.results.map(item => ({ label: item.username, value: item.username }));
       contactList.value = list;

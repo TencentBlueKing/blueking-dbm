@@ -153,7 +153,6 @@
   } from '@services/source/spider';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
-  import type { ResourceItem } from '@services/types';
 
   import {
     useCopy,
@@ -1363,7 +1362,7 @@
     });
   };
 
-  const handleTableSelected = (data: ResourceItem, list: TendbClusterModel[]) => {
+  const handleTableSelected = (data: TendbClusterModel, list: TendbClusterModel[]) => {
     selected.value = list;
   };
 

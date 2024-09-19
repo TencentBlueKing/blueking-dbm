@@ -13,48 +13,7 @@
 
 import type { AccountTypesValues } from '@common/const';
 
-import type { ListBase } from './listBase';
-
-/**
- * 无权限返回
- */
-export interface Permission {
-  apply_url: string;
-  permission: {
-    actions: {
-      id: string;
-      name: string;
-      related_resource_types: {
-        instances: {
-          id: string;
-          name: string;
-          type: string;
-          type_name: string;
-        }[][];
-        system_id: string;
-        system_name: string;
-        type: string;
-        type_name: string;
-      }[];
-    }[];
-    system_id: string;
-    system_name: string;
-  };
-}
-
-/**
- * 查询账号规则列表参数
- */
-export interface PermissionRulesParams {
-  limit?: number;
-  offset?: number;
-  bk_biz_id: number;
-  rule_ids?: string;
-  user?: string;
-  access_db?: string;
-  privilege?: string;
-  account_type?: AccountTypesValues;
-}
+import type { ListBase } from './index';
 
 /**
  * 查询账号规则列表返回结果
@@ -133,7 +92,14 @@ export interface PasswordPolicy {
   name: string;
   rule: {
     include_rule: PasswordPolicyIncludeRule;
-    exclude_continuous_rule: PasswordPolicyExcludeContinuousRule;
+    exclude_continuous_rule: {
+      limit: number;
+      letters: boolean;
+      numbers: boolean;
+      repeats: boolean;
+      symbols: boolean;
+      keyboards: boolean;
+    };
     max_length: number;
     min_length: number;
   };
@@ -151,32 +117,12 @@ export interface PasswordPolicyIncludeRule {
   uppercase: boolean;
 }
 
-// 密码策略 exclude_continuous_rule
-export interface PasswordPolicyExcludeContinuousRule {
-  limit: number;
-  letters: boolean;
-  numbers: boolean;
-  repeats: boolean;
-  symbols: boolean;
-  keyboards: boolean;
-}
-
 // 密码策略 include_rule
 export interface PasswordPolicyIncludeRule {
   numbers: boolean;
   symbols: boolean;
   lowercase: boolean;
   uppercase: boolean;
-}
-
-// 密码策略 exclude_continuous_rule
-export interface PasswordPolicyExcludeContinuousRule {
-  limit: number;
-  letters: boolean;
-  numbers: boolean;
-  repeats: boolean;
-  symbols: boolean;
-  keyboards: boolean;
 }
 
 /**
@@ -224,18 +170,4 @@ export interface AuthorizePreCheckResult {
   pre_check: boolean;
   task_index: number;
   authorize_data_list: AuthorizePreCheckData[];
-}
-
-/**
- * 实例权限克隆
- */
-export interface PermissionCloneRes {
-  clone_data_list: Array<{
-    message: string;
-    source: string;
-    target: Array<string> | string;
-  }>;
-  clone_uid: string;
-  message: string;
-  pre_check: boolean;
 }

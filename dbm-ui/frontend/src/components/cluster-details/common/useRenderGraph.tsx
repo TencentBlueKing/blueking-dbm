@@ -23,11 +23,10 @@ import { retrieveKafkaInstance } from '@services/source/kafka';
 import { retrievePulsarInstance } from '@services/source/pulsar';
 import { retrieveRedisInstance } from '@services/source/redis';
 import { retrieveRiakInstance } from '@services/source/riak';
-import { retrieveSpiderInstance } from '@services/source/spider';
+import { getSpiderInstanceDetails } from '@services/source/spider';
 import { retrieveTendbhaInstance } from '@services/source/tendbha';
 import { retrieveTendbsingleInstance } from '@services/source/tendbsingle';
 import type { ResourceTopo } from '@services/types';
-import type { InstanceDetails } from '@services/types/clusters';
 
 import { useGlobalBizs } from '@stores';
 
@@ -52,6 +51,37 @@ import {
 } from './graphData';
 
 import { checkOverflow } from '@/directives/overflowTips';
+
+interface InstanceDetails {
+  bk_cloud_id: number;
+  bk_cpu: number;
+  bk_disk: number;
+  bk_host_id: number;
+  bk_host_innerip: string;
+  bk_mem: number;
+  bk_os_name: string;
+  cluster_id: number;
+  cluster_type: string;
+  create_at: string;
+  idc_city_id: string;
+  idc_city_name: string;
+  idc_id: number;
+  instance_address: string;
+  master_domain: string;
+  net_device_id: string;
+  rack: string;
+  rack_id: number;
+  role: string;
+  slave_domain: string;
+  status: string;
+  sub_zone: string;
+  db_module_id: number;
+  cluster_type_display: string;
+  bk_idc_name: string;
+  bk_cloud_name: string;
+  db_version: string;
+  version?: string;
+}
 
 interface ClusterTopoProps {
   dbType: string;
@@ -137,7 +167,7 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   redis: retrieveRedisInstance,
   tendbsingle: retrieveTendbsingleInstance,
   tendbha: retrieveTendbhaInstance,
-  tendbcluster: retrieveSpiderInstance,
+  tendbcluster: getSpiderInstanceDetails,
   riak: retrieveRiakInstance,
   doris: retrieveDorisInstance,
 };

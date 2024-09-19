@@ -14,33 +14,6 @@
 import type { TicketTypesStrings } from '@common/const';
 
 /**
- * 查询任务列表参数
- */
-export interface GetTaskflowParams {
-  bk_biz_id: number;
-  limit: number;
-  offset: number;
-  root_id?: string;
-  uid?: number;
-  status?: string;
-  status__in?: string;
-  ticket_type?: string;
-  ticket_type__in?: string;
-  created_at__gte?: string;
-  created_at__lte?: string;
-}
-
-/**
- * 任务列表返回结果
- */
-export interface TaskflowResult {
-  count: number;
-  next: string;
-  previous: string;
-  results: TaskflowItem[];
-}
-
-/**
  * 任务列表项
  */
 export interface TaskflowItem {
@@ -84,20 +57,20 @@ export type FlowStatus = 'FINISHED' | 'RUNNING' | 'FAILED' | 'READY' | 'CREATED'
  * 任务流程节点数据
  */
 export interface FlowItem {
-  id: string,
-  name: string | null,
-  incoming: string | string[],
-  outgoing: string | string[],
-  type: FlowType,
-  started_at: number,
-  updated_at: number,
-  error_ignorable?: boolean,
-  optional?: boolean,
-  retryable?: boolean,
-  skippable?: boolean,
-  status?: FlowStatus,
-  timeout?: number,
-  created_at?: number,
+  id: string;
+  name: string | null;
+  incoming: string | string[];
+  outgoing: string | string[];
+  type: FlowType;
+  started_at: number;
+  updated_at: number;
+  error_ignorable?: boolean;
+  optional?: boolean;
+  retryable?: boolean;
+  skippable?: boolean;
+  status?: FlowStatus;
+  timeout?: number;
+  created_at?: number;
   component?: {
     code: string;
   };
@@ -126,57 +99,4 @@ export interface FlowsData {
   gateways: { [key: string]: FlowItem };
   activities: { [key: string]: FlowItem };
   flow_info: TaskflowItem;
-}
-
-/**
- * 节点重试信息
- */
-export interface RetryNodeItem {
-  started_time: string;
-  version: string;
-  cost_time: number;
-}
-
-/**
- * 获取节点日志参数
- */
-export interface GetNodeLogParams {
-  root_id: string;
-  node_id: string;
-  version_id: string;
-}
-
-/**
- * 获取节点日志
- */
-export interface NodeLog {
-  timestamp: number;
-  message: string;
-  levelname: string;
-}
-
-/**
- * 结果文件列表信息
- */
-export interface KeyFileItem {
-  name: string;
-  size: number;
-  size_display: string;
-  domain: string;
-  created_time: string;
-  cluster_alias: string;
-  path: string;
-  cluster_id: number;
-  files: KeyFile[];
-}
-
-/**
- * 结果文件信息
- */
-export interface KeyFile {
-  size: string;
-  name: string;
-  md5: string;
-  full_path: string;
-  created_time: string;
 }
