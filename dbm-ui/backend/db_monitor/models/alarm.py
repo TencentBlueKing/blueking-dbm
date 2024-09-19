@@ -673,9 +673,9 @@ class MonitorPolicy(AuditedModel):
         items = details["items"]
         # 事件类告警，无需设置告警目标，否则要求上报的数据必须携带服务实例id（告警目标匹配依据）
         for item in items:
-            # 更新监控目标为db_type对应的cmdb拓扑，其中 DBHA 的策略，无需添加目标
+            # 更新监控目标为db_type对应的cmdb拓扑，其中标签 NO_MONITOR_TARGET 的策略，无需添加监控目标
             objs = AppMonitorTopo.get_set_by_dbtype(db_type=db_type)
-            if objs and "DBHA_SWITCH" not in details["labels"]:
+            if objs and "NO_MONITOR_TARGET" not in details["labels"]:
                 item["target"] = [
                     [
                         {

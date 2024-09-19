@@ -238,7 +238,7 @@
     "labels": [
       "DBM",
       "DBM_REDIS",
-      "DBHA_SWITCH"
+      "NO_MONITOR_TARGET"
     ],
     "app": "",
     "path": "",

@@ -37,7 +37,8 @@
               "cluster_domain",
               "instance",
               "instance_role",
-              "appid"
+              "appid",
+              "bk_target_service_instance_id"
             ],
             "agg_condition": [],
             "metric_field": "mssql_full_backup_fail",
@@ -248,7 +249,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(mssql_full_backup_fail)",
-  "version": 1,
+  "version": 2,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-04-02T16:01:58+08:00"

@@ -258,7 +258,8 @@
     },
     "labels": [
       "DBM",
-      "DBM_REDIS"
+      "DBM_REDIS",
+      "NO_MONITOR_TARGET"
     ],
     "app": "",
     "path": "",
@@ -271,7 +272,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "[TendisPlus]集群访问耗时超过1秒的请求数量每分钟",
-  "version": 3,
+  "version": 4,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-07-23T16:36:12+08:00"
