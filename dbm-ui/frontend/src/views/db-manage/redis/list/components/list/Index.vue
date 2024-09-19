@@ -45,7 +45,9 @@
           </BkButton>
           <template #content>
             <BkDropdownMenu>
-              <BkDropdownItem v-db-console="'redis.clusterManage.extractKey'">
+              <BkDropdownItem
+                v-db-console="'redis.clusterManage.extractKey'"
+                @click="handleShowExtract(selected)">
                 <BkButton
                   v-bk-tooltips="{
                     disabled: !hasDisabledRow,
@@ -53,12 +55,13 @@
                     placement: 'right',
                   }"
                   :disabled="hasDisabledRow"
-                  text
-                  @click="handleShowExtract(selected)">
+                  text>
                   {{ t('提取Key') }}
                 </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem v-db-console="'redis.clusterManage.deleteKey'">
+              <BkDropdownItem
+                v-db-console="'redis.clusterManage.deleteKey'"
+                @click="handlShowDeleteKeys(selected)">
                 <BkButton
                   v-bk-tooltips="{
                     disabled: !hasDisabledRow,
@@ -66,12 +69,13 @@
                     placement: 'right',
                   }"
                   :disabled="hasDisabledRow"
-                  text
-                  @click="handlShowDeleteKeys(selected)">
+                  text>
                   {{ t('删除Key') }}
                 </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem v-db-console="'redis.clusterManage.backup'">
+              <BkDropdownItem
+                v-db-console="'redis.clusterManage.backup'"
+                @click="handleShowBackup(selected)">
                 <BkButton
                   v-bk-tooltips="{
                     disabled: !hasDisabledRow,
@@ -79,12 +83,13 @@
                     placement: 'right',
                   }"
                   :disabled="hasDisabledRow"
-                  text
-                  @click="handleShowBackup(selected)">
+                  text>
                   {{ t('备份') }}
                 </BkButton>
               </BkDropdownItem>
-              <BkDropdownItem v-db-console="'redis.clusterManage.dbClear'">
+              <BkDropdownItem
+                v-db-console="'redis.clusterManage.dbClear'"
+                @click="handleShowPurge(selected)">
                 <BkButton
                   v-bk-tooltips="{
                     disabled: !hasDisabledRow,
@@ -92,8 +97,7 @@
                     placement: 'right',
                   }"
                   :disabled="hasDisabledRow"
-                  text
-                  @click="handleShowPurge(selected)">
+                  text>
                   {{ t('清档') }}
                 </BkButton>
               </BkDropdownItem>
