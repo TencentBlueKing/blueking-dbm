@@ -49,8 +49,7 @@
   lang="tsx"
   generic="
     T extends
-      | ResourceItem
-      | ResourceRedisItem
+      | RedisModel
       | SpiderModel
       | EsModel
       | HdfsModel
@@ -66,11 +65,11 @@
   import HdfsModel from '@services/model/hdfs/hdfs';
   import KafkaModel from '@services/model/kafka/kafka';
   import PulsarModel from '@services/model/pulsar/pulsar';
+  import RedisModel from '@services/model/redis/redis';
   import SpiderModel from '@services/model/spider/spider';
   import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-cluster-detail';
   import SqlServerSingleClusterDetailModel from '@services/model/sqlserver/sqlserver-single-cluster-detail';
-  import { updateClusterEntryConfig } from '@services/source/clusters';
-  import type { ResourceItem, ResourceRedisItem } from '@services/types';
+  import { updateClusterEntryConfig } from '@services/source/clusterEntry';
 
   import { messageError, messageSuccess } from '@utils';
 

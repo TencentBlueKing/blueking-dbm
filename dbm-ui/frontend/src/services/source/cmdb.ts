@@ -42,42 +42,37 @@ export function getBizs(params = {} as { action: string }) {
 }
 
 /**
- * 创建模块返回结果
- */
-interface CreateModuleResult {
-  db_module_id: number;
-  db_module_name: string;
-  cluster_type: string;
-  bk_biz_id: number;
-  bk_set_id: number;
-  bk_modules: {
-    bk_module_name: string;
-    bk_module_id: string;
-  }[];
-  name: string;
-}
-
-/**
  * 创建数据库模块
  */
 export function createModules(params: { db_module_name: string; cluster_type: string; biz_id: number }) {
-  return http.post<CreateModuleResult>(`${path}/${params.biz_id}/create_module/`, params);
-}
-
-interface UserGroup {
-  id: string;
-  display_name: string;
-  logo: string;
-  type: string;
-  members: string[];
-  disabled?: boolean;
+  return http.post<{
+    db_module_id: number;
+    db_module_name: string;
+    cluster_type: string;
+    bk_biz_id: number;
+    bk_set_id: number;
+    bk_modules: {
+      bk_module_name: string;
+      bk_module_id: string;
+    }[];
+    name: string;
+  }>(`${path}/${params.biz_id}/create_module/`, params);
 }
 
 /**
  * 查询 CC 角色对象
  */
 export function getUserGroupList(params: { bk_biz_id: number }) {
-  return http.get<UserGroup[]>(`${path}/${params.bk_biz_id}/list_cc_obj_user/`);
+  return http.get<
+    {
+      id: string;
+      display_name: string;
+      logo: string;
+      type: string;
+      members: string[];
+      disabled?: boolean;
+    }[]
+  >(`${path}/${params.bk_biz_id}/list_cc_obj_user/`);
 }
 
 /**
@@ -118,27 +113,10 @@ export function getModules(params: { bk_biz_id: number; cluster_type: string }) 
 }
 
 /**
- *  创建业务英文缩写参数
- */
-interface CreateAbbrParams {
-  db_app_abbr: string;
-}
-
-/**
  * 设置业务英文缩写
  */
-export function createAppAbbr(params: CreateAbbrParams & { id: number }) {
-  return http.post<CreateAbbrParams>(`${path}/${params.id}/set_db_app_abbr/`, params);
-}
-
-// 更具模块 id 获取模块信息
-export function getModuleDetail(params: { module_id: number }) {
+export function createAppAbbr(params: { db_app_abbr: string; id: number }) {
   return http.post<{
-    buffer_percent: string;
-    charset: string;
-    db_version: string;
-    max_remain_mem_gb: string;
-    sync_type: string;
-    system_version: string;
-  }>(`apis/configs/get_module_by_id/`, params);
+    db_app_abbr: string;
+  }>(`${path}/${params.id}/set_db_app_abbr/`, params);
 }

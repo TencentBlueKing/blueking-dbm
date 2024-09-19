@@ -24,9 +24,7 @@ import type {
   CreateAccountParams,
   PasswordPolicy,
   PasswordStrength,
-  PermissionCloneRes,
   PermissionRule,
-  PermissionRulesParams,
 } from '../types/permission';
 
 // 密码随机化周期
@@ -139,7 +137,19 @@ export const verifyPasswordStrength = (params: { password: string }) =>
 /**
  * 查询账号规则列表
  */
-export const getPermissionRules = (params: PermissionRulesParams, payload = {} as IRequestPayload) =>
+export const getPermissionRules = (
+  params: {
+    limit?: number;
+    offset?: number;
+    bk_biz_id: number;
+    rule_ids?: string;
+    user?: string;
+    access_db?: string;
+    privilege?: string;
+    account_type?: AccountTypesValues;
+  },
+  payload = {} as IRequestPayload,
+) =>
   http
     .get<
       ListBase<MysqlPermissonAccountModel[]>
@@ -222,4 +232,14 @@ export const precheckPermissionClone = (params: {
   clone_type: 'instance' | 'client';
   clone_list: Array<{ source: string; target: string }>;
   clone_cluster_type: 'mysql' | 'tendbcluster';
-}) => http.post<PermissionCloneRes>(`/apis/mysql/bizs/${params.bizId}/permission/clone/pre_check_clone/`, params);
+}) =>
+  http.post<{
+    clone_data_list: Array<{
+      message: string;
+      source: string;
+      target: Array<string> | string;
+    }>;
+    clone_uid: string;
+    message: string;
+    pre_check: boolean;
+  }>(`/apis/mysql/bizs/${params.bizId}/permission/clone/pre_check_clone/`, params);

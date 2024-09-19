@@ -1,4 +1,5 @@
 export * from './addSlave';
+export * from './authorizeRules';
 export * from './backupDb';
 export * from './clearDbs';
 export * from './dataMigrate';

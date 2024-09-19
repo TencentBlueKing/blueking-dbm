@@ -27,3 +27,13 @@ export const create = function (params: { bk_biz_id: number; type: string; key: 
 export const update = function (params: { id: number }) {
   return http.post(`${path}/`, params);
 };
+
+// 业务设置列表键值映射表
+export const getBizSettingList = function (params: { bk_biz_id: number; key?: string }) {
+  return http.get<Record<string, any>>(`${path}/simple/`, params);
+};
+
+// 更新业务设置列表键值
+export const updateBizSetting = function (params: { bk_biz_id: number; key: string; value: any; value_type?: string }) {
+  return http.post(`${path}/update_settings/`, params);
+};

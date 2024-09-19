@@ -42,8 +42,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  // import { getMonitorUrl } from '@services/source/common';
-  // import { useGlobalBizs } from '@stores';
   import { useFullscreen } from '@vueuse/core';
 
   interface Props {
@@ -56,42 +54,14 @@
 
   const monitorRef = ref<HTMLIFrameElement>();
   const { t } = useI18n();
-  // const { currentBizId } = useGlobalBizs();
   const { isFullscreen, toggle } = useFullscreen(monitorRef);
 
   const isLoading = ref(false);
-  // const link = ref('');
-
-  // const targetUrl = computed(() => (props.url ? props.url : link.value));
 
   const screenIcon = computed(() => ({
     icon: isFullscreen.value ? 'db-icon-un-full-screen' : 'db-icon-full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
-
-  // const fetchLink = (id: number) => {
-  //   if (props.url || !props.clusterType || !props.id) return;
-
-  //   isLoading.value = true;
-  //   const fetchKey = props.isFetchInstance ? 'instance_id' : 'cluster_id';
-  //   getMonitorUrl({
-  //     bk_biz_id: currentBizId,
-  //     cluster_type: props.clusterType,
-  //     [fetchKey]: id,
-  //   })
-  //     .then((res) => {
-  //       link.value = res.url;
-  //     })
-  //     .finally(() => {
-  //       isLoading.value = false;
-  //     });
-  // };
-
-  // watch([() => props.id, () => props.clusterType], () => {
-  //   if (props.id && props.clusterType) {
-  //     fetchLink(props.id);
-  //   }
-  // }, { immediate: true });
 </script>
 
 <style lang="less" scoped>
