@@ -61,18 +61,18 @@
   import { encodeMult } from '@utils';
 
   interface Props {
-    displayHeight?: number | string
-    maxHeight?: number,
-    teleportToBody?: boolean,
-    rowHeight?: number,
+    displayHeight?: number | string;
+    maxHeight?: number;
+    teleportToBody?: boolean;
+    rowHeight?: number;
   }
 
   interface Emits {
-    (e: 'focus', value: FocusEvent): void
-    (e: 'blur', value: FocusEvent): void
-    (e: 'change', value: string): void
-    (e: 'input', value: string): void
-    (e: 'clear'): void
+    (e: 'focus', value: FocusEvent): void;
+    (e: 'blur', value: FocusEvent): void;
+    (e: 'change', value: string): void;
+    (e: 'input', value: string): void;
+    (e: 'clear'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -104,14 +104,20 @@
   const rows = ref(1);
   // const height = computed(() => rows.value * rowHeight);
   // bk textarea style
-  const style = computed(() => Object.assign({ maxHeight: `${props.maxHeight}px`, '--row-height': `${props.rowHeight}px` }, attrs.style || {}));
+  const style = computed(() =>
+    Object.assign({ maxHeight: `${props.maxHeight}px`, '--row-height': `${props.rowHeight}px` }, attrs.style || {}),
+  );
   const renderValues = computed(() => modelValue.value.split('\n').join(', '));
   const placeholder = computed(() => {
-    if (renderValues.value) return '';
+    if (renderValues.value) {
+      return '';
+    }
 
     return (attrs.placeholder || t('请输入')) as string;
   });
-  const displayHeightValue = computed(() => (typeof props.displayHeight === 'string' ? props.displayHeight : `${props.displayHeight}px`));
+  const displayHeightValue = computed(() =>
+    typeof props.displayHeight === 'string' ? props.displayHeight : `${props.displayHeight}px`,
+  );
 
   // 初始化 rows
   if (typeof props.displayHeight === 'number') {
@@ -125,11 +131,7 @@
   const handleEdit = () => {
     // 为了解决第一次用 getBoundingClientRect 获取信息不准确问题
     if (dbTextareaRef.value) {
-      const {
-        x,
-        y,
-        width,
-      } = dbTextareaRef.value.getBoundingClientRect();
+      const { x, y, width } = dbTextareaRef.value.getBoundingClientRect();
       inputPosition.x = x;
       inputPosition.y = y;
       inputPosition.width = width;
@@ -147,7 +149,8 @@
 
     if (textareaRef.value?.$el) {
       const el = textareaRef.value.$el as HTMLDivElement;
-      const minHeight = typeof props.displayHeight === 'number' ? Math.max(props.displayHeight, props.rowHeight) : props.rowHeight;
+      const minHeight =
+        typeof props.displayHeight === 'number' ? Math.max(props.displayHeight, props.rowHeight) : props.rowHeight;
       const height = Math.max(rows.value * props.rowHeight + textareaPadding, minHeight);
       el.style.height = `${height}px`;
     }
@@ -214,11 +217,12 @@
     textareaRef.value?.focus?.();
   };
 
-  const handlePaste = (value: string, event: ClipboardEvent) => {
+  const handlePaste = (value: string, event: any) => {
+    const cursorPosition = event.target.selectionStart;
     event.preventDefault();
     let paste = (event.clipboardData || window.clipboardData).getData('text');
-    paste = encodeMult(paste);
-    modelValue.value = paste.replace(/^\s+|\s+$/g, '');
+    paste = encodeMult(paste).replace(/^\s+|\s+$/g, '');
+    modelValue.value = modelValue.value.slice(0, cursorPosition) + paste + modelValue.value.slice(cursorPosition);
   };
 
   defineExpose({
