@@ -45,7 +45,7 @@
 
   import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { queryAccountRules } from '@services/source/permission';
+  import { queryAccountRules } from '@services/source/mysqlPermissionAccount';
   import { getHostInAuthorize } from '@services/source/ticket';
 
   import {
@@ -176,7 +176,6 @@
         // api批量单据
         const resultList = await Promise.all(pluginInfos.map(async (info) => {
           const params = {
-            bizId: info.bk_biz_id,
             user: info.user,
             access_dbs: info.access_dbs,
             account_type: AccountTypes.MYSQL,
@@ -194,11 +193,9 @@
         return;
       }
       const {
-        bk_biz_id: bizId,
         details,
       } = props.ticketDetails;
       const params = {
-        bizId,
         user: details?.authorize_data?.user,
         access_dbs: details?.authorize_data?.access_dbs,
         account_type: AccountTypes.MYSQL,

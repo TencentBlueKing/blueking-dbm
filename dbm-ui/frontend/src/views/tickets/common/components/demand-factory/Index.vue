@@ -261,7 +261,7 @@
     TicketTypes.MONGODB_DESTROY,
   ];
 
-  const mongoAuthorizeRulesTypes = [TicketTypes.MONGODB_AUTHORIZE, TicketTypes.MONGODB_EXCEL_AUTHORIZE];
+  const mongoAuthorizeRulesTypes = [TicketTypes.MONGODB_AUTHORIZE_RULES, TicketTypes.MONGODB_EXCEL_AUTHORIZE];
 
   // const sqlserverAuthorizeRulesTypes = [
   //   TicketTypes.SQLSERVER_AUTHORIZE_RULES,

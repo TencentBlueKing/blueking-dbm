@@ -11,21 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 import AdminPasswordModel from '@services/model/admin-password/admin-password';
-import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
 import type { ListBase } from '@services/types';
 
-import type { AccountTypesValues, ClusterTypes, DBTypes } from '@common/const';
+import type { ClusterTypes, DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
-import type {
-  AccountRule,
-  AuthorizePreCheckData,
-  AuthorizePreCheckResult,
-  CreateAccountParams,
-  PasswordPolicy,
-  PasswordStrength,
-  PermissionRule,
-} from '../types/permission';
+import type { PasswordPolicy, PasswordStrength } from '../types/permission';
 
 // 密码随机化周期
 interface RamdomCycle {
@@ -52,13 +43,13 @@ interface AdminPasswordResultItem {
 /**
  * 查询密码安全策略
  */
-export const getPasswordPolicy = (params = {}, payload = {} as IRequestPayload) =>
-  http.get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/', params, payload);
+export const getPasswordPolicy = (params: { name: string }) =>
+  http.get<PasswordPolicy>('/apis/conf/password_policy/get_password_policy/', params);
 
 /**
  * 更新密码安全策略
  */
-export const updatePasswordPolicy = (params: PasswordPolicy) =>
+export const updatePasswordPolicy = (params: PasswordPolicy & { reset: boolean }) =>
   http.post('/apis/conf/password_policy/update_password_policy/', params);
 
 /**
@@ -76,7 +67,7 @@ export const modifyRandomCycle = (params: RamdomCycle) =>
 /**
  * 获取符合密码强度的字符串
  */
-export const getRandomPassword = (params?: { security_type: 'password' | 'redis_password' }) =>
+export const getRandomPassword = (params?: { security_type: string }) =>
   http.get<{
     password: string;
   }>('/apis/conf/password_policy/get_random_password/', params);
@@ -131,115 +122,5 @@ export const getRSAPublicKeys = (params: { names: string[] }) =>
 /**
  * 校验密码强度
  */
-export const verifyPasswordStrength = (params: { password: string }) =>
+export const verifyPasswordStrength = (params: { security_type: string; password: string }) =>
   http.post<PasswordStrength>('/apis/conf/password_policy/verify_password_strength/', params);
-
-/**
- * 查询账号规则列表
- */
-export const getPermissionRules = (
-  params: {
-    limit?: number;
-    offset?: number;
-    bk_biz_id: number;
-    rule_ids?: string;
-    user?: string;
-    access_db?: string;
-    privilege?: string;
-    account_type?: AccountTypesValues;
-  },
-  payload = {} as IRequestPayload,
-) =>
-  http
-    .get<
-      ListBase<MysqlPermissonAccountModel[]>
-    >(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/list_account_rules/`, params, payload)
-    .then((res) => ({
-      ...res,
-      results: res.results.map((item) => new MysqlPermissonAccountModel(item)),
-    }));
-/**
- * 创建账户
- */
-export const createAccount = (params: CreateAccountParams & { bk_biz_id: number }) =>
-  http.post(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/create_account/`, params);
-
-/**
- * 删除账号
- */
-export const deleteAccount = (params: { bizId: number; account_id: number; account_type?: AccountTypesValues }) =>
-  http.delete(`/apis/mysql/bizs/${params.bizId}/permission/account/delete_account/`, params);
-
-/**
- * 添加账号规则
- */
-export const createAccountRule = (params: AccountRule & { bk_biz_id: number }) =>
-  http.post(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/add_account_rule/`, params);
-
-/**
- * 修改账号规则
- */
-export const modifyAccountRule = (
-  params: AccountRule & {
-    rule_id: number;
-    bk_biz_id: number;
-  },
-) => http.post(`/apis/mysql/bizs/${params.bk_biz_id}/permission/account/modify_account_rule/`, params);
-
-/**
- * 授权规则前置检查
- */
-export const preCheckAuthorizeRules = (params: AuthorizePreCheckData & { bizId: number }) =>
-  http.post<AuthorizePreCheckResult>(`/apis/mysql/bizs/${params.bizId}/permission/authorize/pre_check_rules/`, params);
-
-/**
- * 查询账号规则
- */
-export const queryAccountRules = (params: {
-  bizId: number;
-  user: string;
-  access_dbs: string[];
-  account_type: AccountTypesValues;
-}) =>
-  http.post<ListBase<PermissionRule[]>>(
-    `/apis/mysql/bizs/${params.bizId}/permission/account/query_account_rules/`,
-    params,
-  );
-
-/**
- * 添加账号规则前置检查
- */
-export const preCheckAddAccountRule = (params: {
-  account_id: number | null;
-  access_db: string;
-  privilege: {
-    dml: string[];
-    ddl: string[];
-    glob: string[];
-  };
-  account_type: AccountTypesValues;
-}) =>
-  http.post<{
-    force_run: boolean;
-    warning: string | null;
-  }>(`/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/account/pre_check_add_account_rule/`, params);
-
-/**
- * 权限克隆前置检查
- */
-export const precheckPermissionClone = (params: {
-  bizId: number;
-  clone_type: 'instance' | 'client';
-  clone_list: Array<{ source: string; target: string }>;
-  clone_cluster_type: 'mysql' | 'tendbcluster';
-}) =>
-  http.post<{
-    clone_data_list: Array<{
-      message: string;
-      source: string;
-      target: Array<string> | string;
-    }>;
-    clone_uid: string;
-    message: string;
-    pre_check: boolean;
-  }>(`/apis/mysql/bizs/${params.bizId}/permission/clone/pre_check_clone/`, params);

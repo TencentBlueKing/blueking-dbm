@@ -26,6 +26,7 @@ const routes: RouteRecordRaw[] = [
         path: 'policy',
         meta: {
           navName: t('密码安全规则'),
+          fullscreen: true,
         },
         component: () => import('@views/password-manage/policy/Index.vue'),
       },

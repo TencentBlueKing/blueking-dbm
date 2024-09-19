@@ -1037,7 +1037,6 @@
   "进行中": "In progress",
   "DB实例权限克隆": "DB instance privileges clone",
   "DB重命名": "DB Rename",
-  "MySQL_授权规则": "'MySQL' grant rules",
   "MySQL单节点_集群管理": "'MySQL standalone' Management",
   "MySQL单节点详情": "MySQL standalone details",
   "MySQL主从集群_实例视图": "'MySQL HA' instance view",

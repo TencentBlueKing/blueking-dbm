@@ -11,18 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { useGlobalBizs } from '@stores';
-
 import http from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/sqlserver/bizs/${currentBizId}/permission/authorize`;
+const getRootPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/authorize`;
 
 /**
  * Sqlserver 授权规则前置检查
  */
-export function preCheckSqlserverAuthorizeRules(params: {
+export function preCheckAuthorizeRules(params: {
   sqlserver_users: {
     user: string;
     access_dbs: string[];
@@ -48,5 +44,5 @@ export function preCheckSqlserverAuthorizeRules(params: {
     authorize_uid: string;
     message: string;
     pre_check: boolean;
-  }>(`${path}/pre_check_rules/`, params);
+  }>(`${getRootPath()}/pre_check_rules/`, params);
 }

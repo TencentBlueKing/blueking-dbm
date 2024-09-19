@@ -110,9 +110,15 @@
               t('按主机分配（集群实例），系统将从“起始端口”开始自动分配')
             }}</span>
           </BkFormItem>
-          <PasswordInput
-            v-model="formData.details.redis_pwd"
-            property="details.redis_pwd" />
+          <BkFormItem
+            :label="t('访问密码')"
+            property="details.redis_pwd"
+            required>
+            <PasswordInput
+              ref="passwordRef"
+              v-model="formData.details.redis_pwd"
+              :db-type="DBTypes.REDIS" />
+          </BkFormItem>
           <BkFormItem
             v-if="!isAppend"
             :label="t('服务器选择')"
@@ -213,7 +219,7 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { ClusterTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, MachineTypes, TicketTypes } from '@common/const';
 
   import DbForm from '@components/db-form/index.vue';
 
@@ -223,7 +229,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
-  import PasswordInput from '@views/db-manage/redis/common/password-input/Index.vue';
+  import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
   import DomainTable, { type Domain } from './components/domain-table/Index.vue';
 
@@ -516,6 +522,10 @@
       margin-left: 12px;
       font-size: 12px;
       color: #63656e;
+    }
+
+    :deep(.password-form-item) {
+      width: 435px;
     }
 
     .resource-pool-item {

@@ -42,3 +42,5 @@ export enum ClusterTypes {
   SQLSERVER_SINGLE = 'sqlserver_single', // SQLServer单节点版
   SQLSERVER_HA = 'sqlserver_ha', // SQLServer主从版
 }
+
+export type ClusterTypeValues = keyof typeof ClusterTypes;

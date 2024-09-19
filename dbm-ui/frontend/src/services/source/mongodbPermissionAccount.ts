@@ -14,20 +14,16 @@
 import MongodbPermissonAccountModel from '@services/model/mongodb/mongodb-permission-account';
 import type { ListBase } from '@services/types';
 
-import { useGlobalBizs } from '@stores';
-
 import type { AccountTypesValues } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/mongodb/bizs/${currentBizId}/permission/account`;
+const getRootPath = () => `/apis/mongodb/bizs/${window.PROJECT_CONFIG.BIZ_ID}/permission/account`;
 
 /**
  * 添加账号规则
  */
-export function addMongodbAccountRule(params: {
+export function addAccountRule(params: {
   access_db: string;
   privilege: {
     mongo_user: string[];
@@ -36,27 +32,27 @@ export function addMongodbAccountRule(params: {
   account_id: number | null;
   account_type: AccountTypesValues;
 }) {
-  return http.post<null>(`${path}/add_account_rule/`, params);
+  return http.post<null>(`${getRootPath()}/add_account_rule/`, params);
 }
 
 /**
  * 创建账号
  */
-export function createMongodbAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
-  return http.post<null>(`${path}/create_account/`, params);
+export function createAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
+  return http.post<null>(`${getRootPath()}/create_account/`, params);
 }
 
 /**
  * 删除账号
  */
-export function deleteMongodbAccount(params: { bizId: number; account_id: number; account_type?: AccountTypesValues }) {
-  return http.delete<null>(`${path}/delete_account/`, params);
+export function deleteAccount(params: { bizId: number; account_id: number; account_type?: AccountTypesValues }) {
+  return http.delete<null>(`${getRootPath()}/delete_account/`, params);
 }
 
 /**
  * 查询账号规则列表
  */
-export function getMongodbPermissionRules(
+export function getPermissionRules(
   params: {
     limit?: number;
     offset?: number;
@@ -68,7 +64,7 @@ export function getMongodbPermissionRules(
   payload = {} as IRequestPayload,
 ) {
   return http
-    .get<ListBase<MongodbPermissonAccountModel[]>>(`${path}/list_account_rules/`, params, payload)
+    .get<ListBase<MongodbPermissonAccountModel[]>>(`${getRootPath()}/list_account_rules/`, params, payload)
     .then((res) => ({
       ...res,
       results: res.results.map((item) => new MongodbPermissonAccountModel(item)),
@@ -78,13 +74,11 @@ export function getMongodbPermissionRules(
 /**
  * 查询账号规则
  */
-export function queryMongodbAccountRules(params: {
-  user: string;
-  access_dbs: string[];
-  account_type?: AccountTypesValues;
-}) {
-  return http.post<ListBase<MongodbPermissonAccountModel[]>>(`${path}/query_account_rules/`, params).then((res) => ({
-    ...res,
-    results: res.results.map((item) => new MongodbPermissonAccountModel(item)),
-  }));
+export function queryAccountRules(params: { user: string; access_dbs: string[]; account_type?: AccountTypesValues }) {
+  return http
+    .post<ListBase<MongodbPermissonAccountModel[]>>(`${getRootPath()}/query_account_rules/`, params)
+    .then((res) => ({
+      ...res,
+      results: res.results.map((item) => new MongodbPermissonAccountModel(item)),
+    }));
 }

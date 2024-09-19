@@ -77,7 +77,7 @@
 
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { checkMysqlInstances } from '@services/source/instances';
-  import { precheckPermissionClone } from '@services/source/permission';
+  import { precheckPermissionClone } from '@services/source/mysqlPermissionAuthorize';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';

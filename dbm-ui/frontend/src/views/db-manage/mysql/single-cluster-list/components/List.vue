@@ -136,7 +136,7 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
-  import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/ClusterAuthorize.vue';
+  import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
   import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterExportData from '@views/db-manage/common/cluster-export-data/Index.vue'

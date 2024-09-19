@@ -71,8 +71,10 @@
   import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
 
-  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
-  import { getPermissionRules } from '@services/source/permission';
+  import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount';
+
+  import type { AccountTypes } from '@common/const';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
@@ -80,7 +82,7 @@
 
   interface Props {
     clusterId: number,
-    dbType: 'mysql' | 'tendbcluster',
+    accountType: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER,
   }
 
   interface Emits {
@@ -146,7 +148,7 @@
       field: 'user',
       width: 220,
       showOverflowTooltip: false,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => (
         <div class="account-box">
           {
             data.rules.length > 1
@@ -168,7 +170,7 @@
       field: 'access_db',
       showOverflowTooltip: true,
       sort: true,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return (
             <div class="inner-row">
@@ -204,7 +206,7 @@
       field: 'privilege',
       showOverflowTooltip: false,
       sort: true,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return <div class="inner-row">--</div>;
         }
@@ -241,7 +243,7 @@
     tableRef.value.fetchData({
       cluster_id: props.clusterId,
     }, {
-      account_type: props.dbType,
+      account_type: props.accountType,
     });
   }
 
@@ -254,7 +256,7 @@
       cluster_id: props.clusterId,
       ...params,
     }, {
-      account_type: props.dbType,
+      account_type: props.accountType,
     });
   }
 
@@ -286,7 +288,7 @@
         cluster_id: props.clusterId,
         rule_ids: ruleIds.join(',')
       }, {
-        account_type: props.dbType,
+        account_type: props.accountType,
       });
       return;
     }
