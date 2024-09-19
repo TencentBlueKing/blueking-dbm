@@ -19,8 +19,8 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
-  import { getPermissionRules } from '@services/source/permission';
+  import MysqlPermissionAccountModel from '@services/model/mysql/mysql-permission-account';
+  import { getPermissionRules } from '@services/source/mysqlPermissionAccount'
 
   interface Props {
     clusterId: number,
@@ -41,7 +41,7 @@
       field: 'user',
       width: 220,
       showOverflowTooltip: false,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => (
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => (
         <div class="account-box">
             <db-icon
               type="down-shape"
@@ -67,7 +67,7 @@
       field: 'access-db',
       showOverflowTooltip: true,
       sort: true,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length < 1) {
           return '--';
         }
@@ -88,7 +88,7 @@
       field: 'privilege',
       showOverflowTooltip: true,
       sort: true,
-      render: ({ data }: { data: MysqlPermissonAccountModel }) => {
+      render: ({ data }: { data: MysqlPermissionAccountModel }) => {
         if (data.rules.length === 0) {
           return <div class="inner-row">--</div>;
         }

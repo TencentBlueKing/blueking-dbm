@@ -11,29 +11,21 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { PermissionRule, PermissionRuleAccount, PermissionRuleInfo } from '@services/types';
+
 import { isRecentDays } from '@utils';
 
-export default class MongodbPermissonAccount {
-  account: {
-    account_id: number;
-    bk_biz_id: number;
-    create_time: string;
-    creator: string;
-    password: string;
-    user: string;
+export default class MongodbPermissonAccount implements PermissionRule {
+  account: PermissionRuleAccount;
+  permission: {
+    mongodb_account_delete: boolean;
+    mongodb_add_account_rule: boolean;
   };
-  rules: Array<{
-    access_db: string;
-    account_id: number;
-    bk_biz_id: number;
-    create_time: string;
-    creator: string;
-    privilege: string;
-    rule_id: number;
-  }>;
+  rules: PermissionRuleInfo[];
 
   constructor(payload = {} as MongodbPermissonAccount) {
     this.account = payload.account;
+    this.permission = payload.permission;
     this.rules = payload.rules;
   }
 

@@ -90,9 +90,15 @@
               db-type="redis"
               :query-key="typeInfos.pkg_type" />
           </BkFormItem>
-          <PasswordInput
-            v-model="state.formdata.details.proxy_pwd"
-            property="details.proxy_pwd" />
+          <BkFormItem
+            :label="t('访问密码')"
+            property="details.proxy_pwd"
+            required>
+            <PasswordInput
+              ref="passwordRef"
+              v-model="state.formdata.details.proxy_pwd"
+              :db-type="DBTypes.REDIS" />
+          </BkFormItem>
           <BkFormItem
             :label="t('服务器选择')"
             property="details.ip_source"
@@ -372,7 +378,7 @@
 
   import { useFunController } from '@stores';
 
-  import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -385,7 +391,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
-  import PasswordInput from '@views/db-manage/redis/common/password-input/Index.vue';
+  import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
 
   import { generateId } from '@utils';
 
@@ -472,6 +478,7 @@
   const specProxyRef = ref();
   const specBackendRef = ref();
   const regionItemRef = ref();
+  const passwordRef = ref<InstanceType<typeof PasswordInput>>();
   const capSpecsKey = ref(generateId('CLUSTER_APPLAY_CAP_'));
   const isShowRecommendArchitectrue = ref(false);
   const cloudInfo = ref({
@@ -516,6 +523,18 @@
         trigger: 'change',
         validator: (value: HostInfo[]) =>
           value.length > 0 && state.formdata.details.nodes.master.length === value.length,
+      },
+    ],
+    'details.proxy_pwd': [
+      {
+        trigger: 'blur',
+        message: t('密码不能为空'),
+        validator: (value: string) => !!value,
+      },
+      {
+        trigger: 'blur',
+        message: t('密码不满足要求'),
+        validator: () => passwordRef.value!.validate(),
       },
     ],
   };
@@ -869,6 +888,10 @@
       font-size: 12px;
       line-height: 20px;
       color: #63656e;
+    }
+
+    :deep(.password-form-item) {
+      width: 435px;
     }
 
     .resource-pool-item {
