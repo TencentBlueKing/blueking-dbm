@@ -124,6 +124,11 @@ func (ins *SqlserverSwitch) DoSwitch() error {
 			ins.StandBySlave.Port,
 		),
 	)
+	// delete dns for old_master
+	if err := ins.DeleteNameService(ins.Entry); err != nil {
+		return err
+	}
+
 	// create dns in new master
 	conf := ins.Config
 	ins.ReportLogs(
