@@ -181,7 +181,6 @@
   import type { RedisClusterType as ClusterType } from '@services/model/ticket/details/redis';
   import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
-  import type { SubmitTicket } from '@services/types/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -207,22 +206,6 @@
   import RenderWithinBusinessTable from './components/within-business/Index.vue';
 
   type InfoTypes = InfoItem | CrossBusinessInfoItem | IntraBusinessToThirdInfoItem | SelfbuiltClusterToIntraInfoItem;
-
-  // 提交单据类型
-  type DataCopySubmitTicket = SubmitTicket<TicketTypes, InfoTypes[]> & {
-    details: {
-      dts_copy_type: CopyModes;
-      write_mode: WriteModes;
-      sync_disconnect_setting: {
-        type: DisconnectModes;
-        reminder_frequency: RemindFrequencyModes | '';
-      };
-      data_check_repair_setting: {
-        type: RepairAndVerifyModes | '';
-        execution_frequency: RepairAndVerifyFrequencyModes | '';
-      };
-    };
-  };
 
   const router = useRouter();
   const { t } = useI18n();
@@ -309,7 +292,7 @@
   // 根据表格数据生成提交单据请求参数
   const generateRequestParam = (infos: InfoTypes[]) => {
     const isAutoDisconnect = disconnectType.value === DisconnectModes.AUTO_DISCONNECT_AFTER_REPLICATION;
-    const params: DataCopySubmitTicket = {
+    const params = {
       bk_biz_id: currentBizId,
       ticket_type: TicketTypes.REDIS_CLUSTER_DATA_COPY,
       remark: remark.value,

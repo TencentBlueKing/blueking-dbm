@@ -16,21 +16,16 @@ import http from '../http';
 const path = '/apis/conf/profile';
 
 /**
- * 个人配置信息
- */
-interface ProfileItem {
-  label: string;
-  values: any;
-}
-
-/**
  * 个人配置列表
  */
 export function getProfile() {
   return http.get<{
     global_manage: boolean;
     is_manager: boolean;
-    profile: ProfileItem[];
+    profile: {
+      label: string;
+      values: any;
+    }[];
     resource_manage: boolean;
     username: string;
   }>(`${path}/get_profile/`);
@@ -39,6 +34,6 @@ export function getProfile() {
 /**
  * 更新个人配置列表
  */
-export function upsertProfile(params: ProfileItem) {
+export function upsertProfile(params: { label: string; values: any }) {
   return http.post(`${path}/upsert_profile/`, params);
 }

@@ -99,7 +99,7 @@
   import { useRequest } from 'vue-request';
   import Vuedraggable from 'vuedraggable';
 
-  import { getBizSettingList, updateBizSetting } from '@services/source/system-setting';
+  import { getBizSettingList, updateBizSetting } from '@services/source/bizSetting';
 
   import { messageSuccess } from '@utils';
 

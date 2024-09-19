@@ -18,17 +18,12 @@ import http, { type IRequestPayload } from '../http';
 const path = '/apis/iam';
 
 /**
- * 校验资源权限参数
- */
-interface IAMParams {
-  action_ids: Array<string>;
-  resources?: Array<{ type: string; id?: string | number }>;
-}
-
-/**
  * 检查当前用户对该动作是否有权限
  */
-export function checkAuthAllowed(params: IAMParams) {
+export function checkAuthAllowed(params: {
+  action_ids: Array<string>;
+  resources?: Array<{ type: string; id?: string | number }>;
+}) {
   return http.post<
     {
       action_id: string;
@@ -40,24 +35,26 @@ export function checkAuthAllowed(params: IAMParams) {
 /**
  * 获取权限申请数据
  */
-export function getApplyDataLink(params: IAMParams) {
+export function getApplyDataLink(params: {
+  action_ids: Array<string>;
+  resources?: Array<{ type: string; id?: string | number }>;
+}) {
   return http.post<ApplyDataModel>(`${path}/get_apply_data/`, params).then((data) => new ApplyDataModel(data));
 }
 
-export function simpleCheckAllowed(params: {
-  action_id: string;
-  resource_id?: string | number;
-  bk_biz_id?: number;
-  is_raise_exception?: boolean;
-}, payload = {} as IRequestPayload) {
+export function simpleCheckAllowed(
+  params: {
+    action_id: string;
+    resource_id?: string | number;
+    bk_biz_id?: number;
+    is_raise_exception?: boolean;
+  },
+  payload = {} as IRequestPayload,
+) {
   return http.post<boolean>(`${path}/simple_check_allowed/`, params, payload);
 }
 
-export function simpleGetApplyData(params: {
-  action_id: string;
-  resource_id?: string | number;
-  bk_biz_id?: number;
-}) {
+export function simpleGetApplyData(params: { action_id: string; resource_id?: string | number; bk_biz_id?: number }) {
   return http
     .post<ApplyDataModel>(`${path}/simple_get_apply_data/`, {
       ...params,

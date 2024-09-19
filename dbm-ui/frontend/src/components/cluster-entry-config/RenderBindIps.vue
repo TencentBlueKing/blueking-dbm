@@ -77,7 +77,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { updateClusterEntryConfig } from '@services/source/clusters';
+  import { updateClusterEntryConfig } from '@services/source/clusterEntry';
 
   import { messageSuccess } from '@utils';
 

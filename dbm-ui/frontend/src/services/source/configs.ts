@@ -37,20 +37,6 @@ interface ParameterConfigItem {
 }
 
 /**
- * 查询配置发布历史记录 | 查询配置发布记录详情 参数
- */
-interface ConfigVersionParams {
-  meta_cluster_type: string;
-  conf_type: string;
-  version: string;
-  bk_biz_id?: number;
-  level_name?: string;
-  level_value?: number;
-  level_info?: any;
-  revision?: string;
-}
-
-/**
  * 发布历史版本详情
  */
 interface ConfigVersionDetails {
@@ -87,20 +73,17 @@ interface ConfigVersionDetails {
 /**
  * 查询配置发布记录详情
  */
-export function getConfigVersionDetails(params: ConfigVersionParams) {
-  return http.get<ConfigVersionDetails>(`${path}/get_config_version_detail/`, params);
-}
-
-/**
- * 配置基础信息
- */
-interface ConfigBaseDetails {
-  conf_items: ParameterConfigItem[];
+export function getConfigVersionDetails(params: {
+  meta_cluster_type: string;
+  conf_type: string;
   version: string;
-  name: string;
-  description: string;
-  updated_at?: string;
-  updated_by?: string;
+  bk_biz_id?: number;
+  level_name?: string;
+  level_value?: number;
+  level_info?: any;
+  revision?: string;
+}) {
+  return http.get<ConfigVersionDetails>(`${path}/get_config_version_detail/`, params);
 }
 
 /**
@@ -121,7 +104,14 @@ export function getLevelConfig(
   },
   payload = {} as IRequestPayload,
 ) {
-  return http.post<ConfigBaseDetails>(`${path}/get_level_config/`, params, payload);
+  return http.post<{
+    conf_items: ParameterConfigItem[];
+    version: string;
+    name: string;
+    description: string;
+    updated_at?: string;
+    updated_by?: string;
+  }>(`${path}/get_level_config/`, params, payload);
 }
 /**
  * 查询平台配置详情
@@ -134,7 +124,14 @@ export function getConfigBaseDetails(
   },
   payload = {} as IRequestPayload,
 ) {
-  return http.get<ConfigBaseDetails>(`${path}/get_platform_config/`, params, payload);
+  return http.get<{
+    conf_items: ParameterConfigItem[];
+    version: string;
+    name: string;
+    description: string;
+    updated_at?: string;
+    updated_by?: string;
+  }>(`${path}/get_platform_config/`, params, payload);
 }
 
 /**
@@ -174,31 +171,35 @@ export function getConfigNames(params: { meta_cluster_type: string; conf_type: s
 }
 
 /**
- * 配置发布历史返回
- */
-interface ConfigVersionListResult {
-  bk_biz_id: number | string;
-  conf_file: string;
-  level_name: string;
-  level_value: number | string;
-  namespace: string;
-  published: string;
-  versions: {
-    conf_file: string;
-    created_at: string;
-    created_by: string;
-    description: string;
-    is_published: number;
-    revision: string;
-    rows_affected: number;
-  }[];
-}
-
-/**
  * 查询配置发布历史记录
  */
-export function getConfigVersionList(params: ConfigVersionParams) {
-  return http.get<ConfigVersionListResult>(`${path}/list_config_version_history/`, params);
+export function getConfigVersionList(params: {
+  meta_cluster_type: string;
+  conf_type: string;
+  version: string;
+  bk_biz_id?: number;
+  level_name?: string;
+  level_value?: number;
+  level_info?: any;
+  revision?: string;
+}) {
+  return http.get<{
+    bk_biz_id: number | string;
+    conf_file: string;
+    level_name: string;
+    level_value: number | string;
+    namespace: string;
+    published: string;
+    versions: {
+      conf_file: string;
+      created_at: string;
+      created_by: string;
+      description: string;
+      is_published: number;
+      revision: string;
+      rows_affected: number;
+    }[];
+  }>(`${path}/list_config_version_history/`, params);
 }
 
 /**
@@ -249,9 +250,9 @@ export function saveModulesDeployInfo(params: {
 }
 
 /**
- * 修改业务配置信息
+ * 编辑层级（业务、模块、集群）配置
  */
-interface BizConfDetailsUpdateParams {
+export function updateBusinessConfig(params: {
   name: string;
   meta_cluster_type: string;
   conf_type: string;
@@ -264,12 +265,7 @@ interface BizConfDetailsUpdateParams {
   confirm: number;
   publish_description?: string;
   level_info?: any;
-}
-
-/**
- * 编辑层级（业务、模块、集群）配置
- */
-export function updateBusinessConfig(params: BizConfDetailsUpdateParams) {
+}) {
   return http.post<
     {
       name: string;
@@ -281,9 +277,9 @@ export function updateBusinessConfig(params: BizConfDetailsUpdateParams) {
 }
 
 /**
- * 编辑平台配置参数
+ * 编辑平台配置
  */
-interface PlatConfDetailsUpdateParams {
+export function updatePlatformConfig(params: {
   conf_items: ParameterConfigItem[];
   version: string;
   name: string;
@@ -292,12 +288,7 @@ interface PlatConfDetailsUpdateParams {
   confirm: number;
   meta_cluster_type: string;
   publish_description?: string;
-}
-
-/**
- * 编辑平台配置
- */
-export function updatePlatformConfig(params: PlatConfDetailsUpdateParams) {
+}) {
   return http.post<{
     conf_file: string;
     conf_type: string;
@@ -306,4 +297,16 @@ export function updatePlatformConfig(params: PlatConfDetailsUpdateParams) {
     namespace: string;
     revision: string;
   }>(`${path}/upsert_platform_config/`, params);
+}
+
+// 更具模块 id 获取模块信息
+export function getModuleDetail(params: { module_id: number }) {
+  return http.post<{
+    buffer_percent: string;
+    charset: string;
+    db_version: string;
+    max_remain_mem_gb: string;
+    sync_type: string;
+    system_version: string;
+  }>(`${path}/get_module_by_id/`, params);
 }

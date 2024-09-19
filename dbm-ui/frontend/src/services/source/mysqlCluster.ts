@@ -109,12 +109,3 @@ export function queryClusters(params: {
 }) {
   return http.post<TendbhaModel[]>(`${getRootPath()}/query_clusters/`, params);
 }
-
-/**
- * 通过集群域名获取集群详情
- */
-export function getClusterInfoByDomains(
-  params: Record<'cluster_filters', Array<{ immute_domain: string }>> & { bizId: number },
-) {
-  return http.post<TendbhaModel[]>(`${getRootPath()}/query_clusters/`, params);
-}

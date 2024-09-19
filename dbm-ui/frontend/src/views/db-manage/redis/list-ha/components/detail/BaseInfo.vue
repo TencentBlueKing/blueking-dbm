@@ -21,12 +21,12 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { ResourceRedisItem } from '@services/types/clusters';
+  import RedisModel from '@services/model/redis/redis';
 
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 
   interface Props {
-    data: ResourceRedisItem;
+    data: RedisModel;
   }
 
   defineProps<Props>();

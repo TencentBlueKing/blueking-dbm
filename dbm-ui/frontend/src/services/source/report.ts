@@ -1,5 +1,5 @@
 import http, { type IRequestPayload } from '../http';
-import type { ListBase } from '../types/common';
+import type { ListBase } from '../types';
 
 interface IResult {
   results: Record<string, unknown>[];

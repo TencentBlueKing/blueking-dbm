@@ -37,10 +37,30 @@
   </BkDialog>
 </template>
 
-<script setup lang="tsx">
+<script
+  setup
+  lang="tsx"
+  generic="
+    T extends
+      | RedisModel
+      | SpiderModel
+      | EsModel
+      | HdfsModel
+      | KafkaModel
+      | PulsarModel
+      | SqlServerHaClusterDetailModel
+      | SqlServerSingleClusterDetailModel
+  ">
   import { useI18n } from 'vue-i18n';
 
-  import type { DBTypes } from '@common/const';
+  import EsModel from '@services/model/es/es';
+  import HdfsModel from '@services/model/hdfs/hdfs';
+  import KafkaModel from '@services/model/kafka/kafka';
+  import PulsarModel from '@services/model/pulsar/pulsar';
+  import RedisModel from '@services/model/redis/redis';
+  import SpiderModel from '@services/model/spider/spider';
+  import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-cluster-detail';
+  import SqlServerSingleClusterDetailModel from '@services/model/sqlserver/sqlserver-single-cluster-detail';
 
   import RenderBindIps from './RenderBindIps.vue';
 
