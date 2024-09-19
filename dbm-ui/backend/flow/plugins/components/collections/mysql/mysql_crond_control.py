@@ -44,22 +44,22 @@ class MysqlCrondMonitorControlService(BkJobService):
         self.log_info("{} exec {}".format(target_ip_info, node_name))
 
         FlowNode.objects.filter(root_id=root_id, node_id=node_id).update(hosts=exec_ips)
+        cmd_str = "cd /home/mysql/mysql-crond && ./mysql-crond "
         if kwargs["enable"]:
-            monitor_command = (
-                "cd /home/mysql/mysql-crond && ./mysql-crond enable-job --name-match mysql-monitor-{}-.*".format(
-                    kwargs["port"]
-                )
-            )
+            cmd_str += " enable-job"
         else:
-            monitor_command = (
-                "cd /home/mysql/mysql-crond && ./mysql-crond pause-job --name-match mysql-monitor-{}-.* -r {}m".format(
-                    kwargs["port"], kwargs["minutes"]
-                )
-            )
+            cmd_str += " pause-job -r {}m".format(kwargs["minutes"])
+        if kwargs["port"] == 0:
+            cmd_str += " --name-match mysql-monitor-.*"
+        else:
+            cmd_str += " --name-match mysql-monitor-{}-.*".format(kwargs["port"])
+        if kwargs["name"] != "":
+            cmd_str += " --name {}".format(kwargs["name"])
+        self.log_info(cmd_str)
         body = {
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
-            "script_content": base64_encode(monitor_command),
+            "script_content": base64_encode(cmd_str),
             "script_language": 1,
             "target_server": {"ip_list": target_ip_info},
         }

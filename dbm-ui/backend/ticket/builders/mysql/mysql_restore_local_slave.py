@@ -49,13 +49,7 @@ class MysqlRestoreLocalSlaveDetailSerializer(MySQLBaseOperateDetailSerializer):
 
 
 class MysqlRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
-    controller_remote = MySQLController.mysql_restore_local_remote_scene
-    controller_local = MySQLController.mysql_restore_local_slave_scene
-
-    def build_controller_info(self) -> dict:
-        backup_source = self.ticket_data.get("backup_source", MySQLBackupSource.LOCAL)
-        self.controller = getattr(self, f"controller_{backup_source}")
-        return super().build_controller_info()
+    controller = MySQLController.mysql_restore_local_remote_scene
 
     def format_ticket_data(self):
         for index, info in enumerate(self.ticket_data["infos"]):

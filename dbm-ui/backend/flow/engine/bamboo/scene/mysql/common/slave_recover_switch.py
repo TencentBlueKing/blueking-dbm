@@ -151,4 +151,4 @@ def slave_migrate_switch_sub_flow(
             )
         ),
     )
-    return sub_pipeline.build_sub_process(sub_name=_("[{}]成对切换".format(cluster.name)))
+    return sub_pipeline.build_sub_process(sub_name=_("{}切换到新从库{}:{}".format(cluster.name, new_slave_ip, master.port)))
