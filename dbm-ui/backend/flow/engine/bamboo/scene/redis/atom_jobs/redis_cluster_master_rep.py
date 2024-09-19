@@ -200,7 +200,7 @@ def TwemproxyClusterMasterReplaceJob(
 
     # 刷新bkdbmon
     if act_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
-        for replace_link in master_replace_detail:
+        for replace_info in master_replace_detail:
             new_host_master = replace_info["target"]["master"]["ip"]
             act_kwargs.exec_ip = new_host_master
             act_kwargs.cluster["ip"] = new_host_master
