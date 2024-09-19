@@ -42,3 +42,8 @@ export function getSystemEnviron() {
     ENABLE_EXTERNAL_PROXY: boolean;
   }>(`${path}/environ/`);
 }
+
+// 查询机型类型
+export const getDeviceClassList = function () {
+  return http.get<string[]>(`${path}/device_classes/`);
+};

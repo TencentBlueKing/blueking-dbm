@@ -35,12 +35,10 @@
   </div>
 </template>
 
-<script setup lang="tsx" generic="T extends TicketDetailTypes">
+<script setup lang="tsx">
   import _ from 'lodash';
 
   import type { TicketDetails } from '@services/types/ticket';
-
-  import type { TicketDetailTypes } from '../common/types';
 
   export interface DemandInfoConfig {
     title?: string;

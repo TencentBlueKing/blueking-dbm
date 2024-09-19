@@ -136,9 +136,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter} from 'vue-router'
 
+  import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { batchFetchFile } from '@services/source/storage';
-  import type { FlowItem, MySQLImportSQLFileDetails } from '@services/types/ticket';
 
   import RenderFileContent from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/RenderFileContent.vue';
   import RenderFileList from '@views/tickets/common/components/demand-factory/mysql/import-sql-file/components/SqlFileList.vue';
@@ -261,15 +261,15 @@
   }
 
   .sql-risk-main {
+    display: flex;
     margin-bottom: 10px;
     gap: 8px;
-    display: flex;
     flex-direction: column;
 
     .danger-count {
-      color: #ea3636;
-      font-weight: 700;
       display: inline-block;
+      font-weight: 700;
+      color: #ea3636;
     }
 
     .collapse-dropdown-icon {

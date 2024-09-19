@@ -49,7 +49,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getClusterEntries } from '@services/source/cluster';
+  import { getClusterEntries } from '@services/source/clusterEntry';
 
   import { useCopy } from '@hooks';
 

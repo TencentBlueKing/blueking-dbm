@@ -46,7 +46,6 @@
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
   import { getTendbsingleInstanceList } from '@services/source/tendbsingle';
-  import type { ResourceInstance } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -70,11 +69,11 @@
       name: string
     },
     role?: string
-    lastValues: InstanceSelectorValues
+    lastValues: InstanceSelectorValues<TendbhaInstanceModel>
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues): void;
+    (e: 'change', value: InstanceSelectorValues<TendbhaInstanceModel>): void;
   }
 
   const props = defineProps<Props>();
@@ -85,7 +84,7 @@
     [ClusterTypes.TENDBHA]: getTendbhaInstanceList,
   };
 
-  const formatValue = (data: ResourceInstance) => ({
+  const formatValue = (data: TendbhaInstanceModel) => ({
     bk_host_id: data.bk_host_id,
     instance_address: data.instance_address,
     cluster_id: data.cluster_id,
@@ -130,7 +129,7 @@
     layout: ['total', 'limit', 'list'],
   });
   const isTableDataLoading = ref(false);
-  const tableData = shallowRef<ResourceInstance []>([]);
+  const tableData = shallowRef<TendbhaInstanceModel []>([]);
   const isSelectedAll = computed(() => (
     tableData.value.length > 0
     && tableData.value.length === tableData.value.filter(item => checkedMap.value[item.instance_address]).length
@@ -148,7 +147,7 @@
           onChange={handleSelectPageAll}
         />
       ),
-      render: ({ data }: {data: ResourceInstance}) => (
+      render: ({ data }: {data: TendbhaInstanceModel}) => (
         <bk-checkbox
           style="vertical-align: middle;"
           label={true}
@@ -296,7 +295,7 @@
     triggerChange();
   };
 
-  const handleTableSelectOne = (checked: boolean, data: ResourceInstance) => {
+  const handleTableSelectOne = (checked: boolean, data: TendbhaInstanceModel) => {
     const lastCheckMap = { ...checkedMap.value };
     if (checked) {
       lastCheckMap[data.instance_address] = formatValue(data);
@@ -307,7 +306,7 @@
     triggerChange();
   };
 
-  const handleRowClick = (key: number, data: ResourceInstance) => {
+  const handleRowClick = (key: number, data: TendbhaInstanceModel) => {
     const checked = checkedMap.value[data.instance_address];
     handleTableSelectOne(!checked, data);
   };

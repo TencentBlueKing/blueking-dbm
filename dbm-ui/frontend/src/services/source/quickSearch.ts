@@ -40,7 +40,7 @@ export function quickSearch(params: {
       machine: QuickSearchMachineModel[];
       resource_pool: DbResourceModel[];
       task: TaskFlowModel[];
-      ticket: TicketModel[];
+      ticket: TicketModel<unknown>[];
     }>('/apis/quick_search/search/', params)
     .then((res) => ({
       cluster_domain: (res.cluster_domain || []).map((item) => new QuickSearchClusterDomainModel(item)),

@@ -64,7 +64,7 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { getUseList } from '@services/source/common';
+  import { getUserList } from '@services/source/user';
 
   interface Props {
     list?: string[];
@@ -116,7 +116,7 @@
     },
   );
 
-  const { run: fetchUseList } = useRequest(getUseList, {
+  const { run: fetchUseList } = useRequest(getUserList, {
     manual: true,
     onSuccess: (res) => {
       contactList.value = res.results.reduce(
