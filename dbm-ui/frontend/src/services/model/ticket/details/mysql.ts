@@ -19,7 +19,7 @@ export interface MysqlIpItem extends DetailBase {
   bk_cloud_id: number;
   bk_host_id: number;
   ip: string;
-  port?: number;
+  port: number;
 }
 
 export interface MysqlMachineIpItem {

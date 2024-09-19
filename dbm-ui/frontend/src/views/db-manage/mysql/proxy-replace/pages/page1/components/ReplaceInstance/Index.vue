@@ -12,111 +12,57 @@
 -->
 
 <template>
-  <SmartAction>
-    <RenderData
-      class="mt16"
-      @batch-select-cluster="handleShowInstanceSelector">
-      <RenderDataRow
-        v-for="(item, index) in tableData"
-        :key="item.rowKey"
-        ref="rowRefs"
-        :data="item"
-        :removeable="tableData.length < 2"
-        @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-        @remove="handleRemove(index)" />
-    </RenderData>
-    <div class="safe-action">
-      <BkCheckbox
-        v-model="isSafe"
-        v-bk-tooltips="t('如忽略_在有连接的情况下Proxy也会执行替换')"
-        :false-label="1"
-        :true-label="0">
-        <span class="safe-action-text">{{ t('忽略业务连接') }}</span>
-      </BkCheckbox>
-    </div>
-    <template #action>
-      <BkButton
-        class="w-88"
-        :loading="isSubmitting"
-        theme="primary"
-        @click="handleSubmit">
-        {{ t('提交') }}
-      </BkButton>
-      <DbPopconfirm
-        :confirm-handler="handleReset"
-        :content="t('重置将会清空当前填写的所有内容_请谨慎操作')"
-        :title="t('确认重置页面')">
-        <BkButton
-          class="ml8 w-88"
-          :disabled="isSubmitting">
-          {{ t('重置') }}
-        </BkButton>
-      </DbPopconfirm>
-    </template>
-    <InstanceSelector
-      v-model:is-show="isShowInstanceSelecotr"
-      :cluster-types="[ClusterTypes.TENDBHA]"
-      :selected="selectedIntances"
-      :tab-list-config="tabListConfig"
-      @change="handelProxySelectorChange" />
-  </SmartAction>
+  <RenderData
+    class="mt16"
+    @batch-select-cluster="handleShowInstanceSelector">
+    <RenderRow
+      v-for="(item, index) in tableData"
+      :key="item.rowKey"
+      ref="rowRefs"
+      :data="item"
+      :removeable="tableData.length < 2"
+      @add="(payload: IDataRow[]) => handleAppend(index, payload)"
+      @remove="handleRemove(index)" />
+  </RenderData>
+  <InstanceSelector
+    v-model:is-show="isShowInstanceSelecotr"
+    :cluster-types="[ClusterTypes.TENDBHA]"
+    :selected="selectedIntances"
+    :tab-list-config="tabListConfig"
+    @change="handelProxySelectorChange" />
 </template>
 
 <script setup lang="tsx">
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRouter } from 'vue-router';
 
-  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
-  import { createTicket } from '@services/source/ticket';
-
-  import { useTicketCloneInfo } from '@hooks';
+  import type { MySQLProxySwitchDetails } from '@services/model/ticket/details/mysql';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes } from '@common/const';
 
   import InstanceSelector, {
     type InstanceSelectorValues,
+    type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
 
-  import { messageError } from '@utils';
-
   import RenderData from './components/RenderData/Index.vue';
-  import RenderDataRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
+  import RenderRow, { createRowData, type IDataRow } from './components/RenderData/Row.vue';
 
-  interface InfoItem {
-    cluster_ids: string[];
-    origin_proxy: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-      port: number;
-      cluster_id: number;
-      instance_address: string;
-    };
-    target_proxy: {
-      bk_biz_id: number;
-      bk_cloud_id: number;
-      bk_host_id: number;
-      ip: string;
-    };
+  interface Props {
+    data: MySQLProxySwitchDetails['infos'];
   }
 
-  // 单据克隆
-  useTicketCloneInfo({
-    type: TicketTypes.MYSQL_PROXY_SWITCH,
-    onSuccess(cloneData) {
-      const { force, tableDataList } = cloneData;
-      tableData.value = tableDataList;
-      isSafe.value = force ? 1 : 0;
-      window.changeConfirm = true;
-    },
-  });
+  interface Exposes {
+    getValue(): Promise<any>;
+    reset(): void;
+  }
+
+  const props = defineProps<Props>();
+
   const { t } = useI18n();
-  const router = useRouter();
   const { currentBizId } = useGlobalBizs();
 
   const tabListConfig = {
@@ -144,33 +90,52 @@
         },
       },
     ],
-  } as unknown as Record<ClusterTypes, PanelListType>;
+  } as Record<ClusterTypes, PanelListType>;
   // 实例是否已存在表格的映射表
   let instanceMemo: Record<string, boolean> = {};
 
   const isShowInstanceSelecotr = ref(false);
-  const rowRefs = ref([] as InstanceType<typeof RenderDataRow>[]);
-  const isSafe = ref(1);
-  const isSubmitting = ref(false);
+  const rowRefs = ref([] as InstanceType<typeof RenderRow>[]);
 
-  const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
+  const tableData = shallowRef<IDataRow[]>([createRowData({})]);
+  const selectedIntances = shallowRef<InstanceSelectorValues<IValue>>({ [ClusterTypes.TENDBHA]: [] });
+
+  watch(
+    () => props.data,
+    () => {
+      if (props.data.length > 0) {
+        tableData.value = props.data.map((item) =>
+          createRowData({
+            originProxy: {
+              cluster_id: item.cluster_ids[0],
+              ...item.origin_proxy,
+              instance_address: `${item.origin_proxy.ip}:${item.origin_proxy.port}`,
+            },
+            targetProxy: item.target_proxy,
+          }),
+        );
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleShowInstanceSelector = () => {
     isShowInstanceSelecotr.value = true;
   };
 
   // 检测列表是否为空
-  const checkListEmpty = (list: Array<IDataRow>) => {
+  const checkListEmpty = (list: IDataRow[]) => {
     if (list.length > 1) {
       return false;
     }
     const [firstRow] = list;
-    return !firstRow.originProxy?.instance_address;
+    return !firstRow.originProxy.instance_address;
   };
 
   // 批量选择
-  const handelProxySelectorChange = (data: InstanceSelectorValues<TendbhaInstanceModel>) => {
+  const handelProxySelectorChange = (data: InstanceSelectorValues<IValue>) => {
     selectedIntances.value = data;
     const newList = data.tendbha.reduce((results, item) => {
       const instance = item.instance_address;
@@ -204,17 +169,10 @@
   };
 
   // 追加一个集群
-  const handleAppend = (index: number, appendList: Array<IDataRow>) => {
+  const handleAppend = (index: number, appendList: IDataRow[]) => {
     const dataList = [...tableData.value];
     dataList.splice(index + 1, 0, ...appendList);
     tableData.value = dataList;
-
-    // 多行输入，新增行需要触发校验取到源Proxy信息后下发给目标Proxy
-    setTimeout(() => {
-      for (let i = index + 1; i <= appendList.length + index; i++) {
-        rowRefs.value[i].getValue();
-      }
-    });
   };
 
   // 删除一个集群
@@ -232,86 +190,19 @@
     tableData.value = dataList;
   };
 
-  const handleSubmit = () => {
-    isSubmitting.value = true;
-    Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue())).then(
-      (params: InfoItem[]) => {
-        const targetIpMap: Record<string, string[]> = {};
-        const infos: InfoItem[] = [];
-        const sourceIpMap: Record<string, InfoItem> = {};
-        let isMultipleSourceToSingleTarget = false;
-        for (const rowInfo of params) {
-          const targetProxyIp = rowInfo.target_proxy.ip;
-          const originProxyIp = rowInfo.origin_proxy.ip;
-          if (!sourceIpMap[originProxyIp]) {
-            sourceIpMap[originProxyIp] = rowInfo;
-            infos.push(rowInfo);
-          } else {
-            // 多个同IP不同Port的源Proxy与同一个目标Proxy IP进行合并
-            if (sourceIpMap[originProxyIp].target_proxy.ip !== targetProxyIp) {
-              infos.push(rowInfo);
-            } else {
-              // 集群ID去重合并
-              const targetInfo = infos.find((item) => item.origin_proxy.ip === originProxyIp)!;
-              const newClusterIds = Array.from(new Set([...targetInfo.cluster_ids, ...rowInfo.cluster_ids]));
-              targetInfo.cluster_ids = newClusterIds;
-            }
-          }
-          if (!targetIpMap[targetProxyIp]) {
-            targetIpMap[targetProxyIp] = [originProxyIp];
-          } else {
-            if (!targetIpMap[targetProxyIp].includes(originProxyIp)) {
-              isMultipleSourceToSingleTarget = true;
-              targetIpMap[targetProxyIp].push(originProxyIp);
-            }
-          }
-        }
-        // 多个不同的源IP对应同一个目标IP，不允许提单
-        if (isMultipleSourceToSingleTarget) {
-          let tipStr = '';
-          Object.entries(targetIpMap).forEach(([targetIp, sourceIpList]) => {
-            if (sourceIpList.length > 1) {
-              tipStr += `[${sourceIpList.join(',')}] -> ${targetIp}`;
-            }
-          });
-          messageError(t('不允许多台目标Proxy主机对应同一台新Proxy主机：x', { x: tipStr }), 5000);
-          isSubmitting.value = false;
-          return;
-        }
-
-        createTicket({
-          ticket_type: 'MYSQL_PROXY_SWITCH',
-          remark: '',
-          details: {
-            infos,
-            is_safe: Boolean(isSafe.value),
-          },
-          bk_biz_id: currentBizId,
-        })
-          .then((data) => {
-            window.changeConfirm = false;
-
-            router.push({
-              name: 'MySQLProxyReplace',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    );
-  };
-
   const handleReset = () => {
     tableData.value = [createRowData()];
     instanceMemo = {};
     selectedIntances.value[ClusterTypes.TENDBHA] = [];
     window.changeConfirm = false;
   };
+
+  defineExpose<Exposes>({
+    getValue() {
+      return Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+    },
+    reset() {
+      handleReset();
+    },
+  });
 </script>

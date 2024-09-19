@@ -20,6 +20,20 @@
 </template>
 <script lang="ts">
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
+
+  interface Props {
+    modelValue?: string;
+  }
+
+  interface Emits {
+    (e: 'inputFinish', relatedClusters: IDataRow['relatedClusters']): void;
+  }
+
+  interface Exposes {
+    getValue: () => {
+      origin_proxy: IDataRow['originProxy'];
+    };
+  }
 </script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -32,19 +46,7 @@
 
   import { random } from '@utils';
 
-  import type { IDataRow } from './Row.vue';
-
-  interface Props {
-    modelValue?: string;
-  }
-
-  interface Emits {
-    (e: 'inputFinish', relatedClusters: IDataRow['relatedClusters']): void;
-  }
-
-  interface Exposes {
-    getValue: () => Array<number>;
-  }
+  import type { IDataRow } from './RenderData/Row.vue';
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -128,9 +130,12 @@
 
   watch(
     () => props.modelValue,
-    (newValue) => {
-      if (newValue) {
-        localInstanceAddress.value = newValue;
+    () => {
+      if (props.modelValue) {
+        localInstanceAddress.value = props.modelValue;
+        setTimeout(() => {
+          editRef.value!.getValue();
+        });
       }
     },
     {

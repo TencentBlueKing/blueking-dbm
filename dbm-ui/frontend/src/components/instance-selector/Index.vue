@@ -105,7 +105,7 @@
     bk_cloud_id: number;
     bk_cloud_name: string;
     bk_host_id: number;
-    cluster_id?: number;
+    cluster_id: number;
     cluster_name?: string;
     cluster_type: string;
     create_at: string;
@@ -113,6 +113,7 @@
     db_module_name: string;
     host_info: any;
     id: number;
+    name: string;
     instance_address: string;
     instance_role: string;
     ip: string;
@@ -120,8 +121,27 @@
     status?: string;
     machine_type: string;
     master_domain: string;
-    related_clusters?: SpiderMachineModel['related_clusters'];
-    related_instances?: SpiderMachineModel['related_instances'];
+    related_clusters: {
+      id: number;
+      name: string;
+      master_domain: string;
+      immute_domain: string;
+      cluster_type: string;
+    }[];
+    related_instances: {
+      cluster_id: number;
+      ip: string;
+      name: string;
+      phase: string;
+      port: number;
+      status: string;
+      instance: string;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
+      bk_instance_id: number;
+      admin_port: number;
+    }[];
     spec_config?: SpiderMachineModel['spec_config'];
     spec_id?: number;
     role: string;
@@ -272,7 +292,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
+    clusterTypes: (ClusterTypes | 'TendbhaHost' | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
     unqiuePanelValue?: boolean;

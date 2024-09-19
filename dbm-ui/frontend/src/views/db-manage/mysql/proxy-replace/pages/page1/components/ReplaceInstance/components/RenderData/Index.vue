@@ -26,6 +26,12 @@
     </RenderTableHeadColumn>
     <RenderTableHeadColumn
       :min-width="200"
+      :required="false"
+      :width="240">
+      {{ t('同机关联集群') }}
+    </RenderTableHeadColumn>
+    <RenderTableHeadColumn
+      :min-width="200"
       :width="240">
       {{ t('新Proxy主机') }}
     </RenderTableHeadColumn>
