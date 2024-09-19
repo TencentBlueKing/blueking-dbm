@@ -370,21 +370,25 @@ class TicketHandler:
         ticket_flow_configs = TicketFlowsConfig.objects.filter(config_filter)
 
         # 获得单据flow配置映射表和集群映射表
-        flow_config_map = {config.ticket_type: config.configs for config in ticket_flow_configs}
+        biz_config_map = {cfg.ticket_type: cfg.configs for cfg in ticket_flow_configs if not cfg.cluster_ids}
+        cluster_config_map = {cfg.ticket_type: cfg.configs for cfg in ticket_flow_configs if cfg.cluster_ids}
+
+        # 获得集群映射表
         cluster_ids = list(itertools.chain(*ticket_flow_configs.values_list("cluster_ids", flat=True)))
         clusters_map = {c.id: c for c in Cluster.objects.filter(id__in=cluster_ids)}
 
         # 获取单据流程配置信息
         flow_desc_list: List[Dict] = []
         for flow_config in ticket_flow_configs:
-            # 获取当前单据的执行流程描述
-            flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(flow_config_map)
             # 获取集群的描述
             cluster_info = [
-                {"cluster_id": clusters_map[c].id, "immute_domain": clusters_map[c].immute_domain}
-                for c in flow_config.cluster_ids
-                if c in clusters_map
+                {"cluster_id": clusters_map[cluster_id].id, "immute_domain": clusters_map[cluster_id].immute_domain}
+                for cluster_id in flow_config.cluster_ids
+                if cluster_id in clusters_map
             ]
+            # 获取当前单据的执行流程描述
+            config_map = cluster_config_map if cluster_info else biz_config_map
+            flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(config_map)
             # 获取配置的基本信息
             flow_config_info = model_to_dict(flow_config)
             flow_config_info.update(
