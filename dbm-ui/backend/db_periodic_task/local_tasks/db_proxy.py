@@ -64,7 +64,7 @@ def fill_cluster_service_nginx_conf():
         job_payload["callback_url"] = f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/push_conf_callback/"
 
         logger.info(_("nginx配置文件下发参数：{}").format(job_payload))
-        _resp = JobApi.push_config_file(job_payload, raw=True)
+        _resp = JobApi.push_config_file(job_payload, raw=True, use_admin=True)
         if not _resp["result"]:
             raise ProxyPassBaseException(_("下发文件job启动失败，错误信息: {}").format(_resp["message"]))
 
