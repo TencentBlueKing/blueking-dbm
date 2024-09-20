@@ -20,10 +20,11 @@
       :placeholder="t('请选择')"
       :rules="rules"
       @change="handleChange">
-      <template #suffix="{ item, index }">
+      <template #default="{ optionItem, index }">
         <div>
+          {{ optionItem.label }}
           <BkTag
-            v-if="isCurrentVersion(item.label as string)"
+            v-if="isCurrentVersion(optionItem.label as string)"
             class="ml-4"
             size="small"
             theme="info">
@@ -47,7 +48,7 @@
 
   import { getClusterVersions } from '@services/source/redisToolbox';
 
-  import TableEditSelect, { type IListItem } from '@views/db-manage/redis/common/edit/Select.vue';
+  import TableEditSelect, { type IListItem } from '@components/render-table/columns/select/index.vue';
 
   import type { IDataRow } from './Row.vue';
 
@@ -56,7 +57,7 @@
   }
 
   interface Emits {
-    (e: 'change', value?: string): void;
+    (e: 'change', value: string): void;
   }
 
   interface Exposes {
@@ -90,7 +91,7 @@
   ];
 
   watch(
-    () => [props.data.clusterId],
+    () => props.data.clusterId,
     () => {
       if (props.data.clusterId) {
         fetchTargetClusterVersions({
@@ -140,7 +141,7 @@
   watch(
     () => props.data?.version,
     () => {
-      localValue.value = props.data?.version ? props.data.version : '';
+      localValue.value = props.data?.version || '';
       emits('change', localValue.value);
     },
     {
