@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
-from backend.bk_web.constants import LEN_MIDDLE
+from backend.bk_web.constants import LEN_L_LONG
 from backend.bk_web.serializers import AuditedSerializer, TranslationSerializerMixin
 from backend.components import CmsiApi
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
@@ -83,7 +83,7 @@ class TicketSerializer(AuditedSerializer, serializers.ModelSerializer):
         help_text=_("单据类型"), choices=TicketType.get_choices(), default=TicketType.MYSQL_SINGLE_APPLY
     )
     status = serializers.ChoiceField(help_text=_("状态"), choices=TicketStatus.get_choices(), read_only=True)
-    remark = serializers.CharField(help_text=_("备注"), required=False, max_length=LEN_MIDDLE, allow_blank=True)
+    remark = serializers.CharField(help_text=_("备注"), required=False, max_length=LEN_L_LONG, allow_blank=True)
     # 默认使用MySQL序列化器，不同单据类型不同字段序列化
     group = serializers.CharField(help_text=_("单据分组类型"), required=False)
     details = TicketDetailsSerializer(help_text=_("单据详情"))

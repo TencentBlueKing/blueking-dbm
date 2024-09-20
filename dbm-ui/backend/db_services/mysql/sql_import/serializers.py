@@ -98,6 +98,7 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
         help_text=_("集群类型，默认为mysql"), choices=DBType.get_choices(), required=False, default=DBType.MySQL
     )
     is_auto_commit = serializers.BooleanField(help_text=_("模拟执行成功后是否自动提单"), required=False, default=True)
+    remark = serializers.CharField(help_text=_("提单备注"), required=False, default="")
 
     class Meta:
         swagger_schema_fields = {"example": mock_data.SQL_SEMANTIC_CHECK_REQUEST_DATA}

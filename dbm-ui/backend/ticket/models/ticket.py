@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from backend import env
-from backend.bk_web.constants import LEN_LONG, LEN_MIDDLE, LEN_NORMAL, LEN_SHORT
+from backend.bk_web.constants import LEN_L_LONG, LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import PLAT_BIZ_ID, DBType
 from backend.db_monitor.exceptions import AutofixException
@@ -97,7 +97,7 @@ class Ticket(AuditedModel):
         max_length=LEN_SHORT,
         default=TicketStatus.PENDING,
     )
-    remark = models.CharField(_("备注"), max_length=LEN_MIDDLE)
+    remark = models.CharField(_("备注"), max_length=LEN_L_LONG)
     details = models.JSONField(_("单据差异化详情"), default=dict)
     send_msg_config = models.JSONField(_("单据通知设置"), default=dict)
     is_reviewed = models.BooleanField(_("单据是否审阅过"), default=False)

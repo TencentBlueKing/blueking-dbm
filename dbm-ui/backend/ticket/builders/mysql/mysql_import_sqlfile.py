@@ -144,6 +144,8 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
             [details.pop(field, None) for field in pop_fields]
 
         ticket.details.update(details)
+        # 补充备注信息
+        ticket.remark = ticket.remark or details.get("remark", _("由模拟执行任务[{}]发起").format(root_id))
 
     @classmethod
     def patch_sqlfile_grammar_check_info(cls, ticket, cluster_type):

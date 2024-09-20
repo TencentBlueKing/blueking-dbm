@@ -158,6 +158,7 @@ class SQLHandler(object):
         ticket_mode: Dict,
         backup: List[Dict],
         is_auto_commit: bool = True,
+        remark: str = "",
     ) -> Dict:
         """
         sql 模拟执行(sql 语义检查)
@@ -168,6 +169,7 @@ class SQLHandler(object):
         @param ticket_mode: sql导入单据的触发类型
         @param backup: 备份信息（和备份单据一样）
         @param is_auto_commit: 是否自动提单
+        @param remark: 提单备注
         """
 
         # 语义检查参数准备
@@ -187,6 +189,7 @@ class SQLHandler(object):
             "ticket_mode": ticket_mode,
             "backup": backup,
             "is_auto_commit": is_auto_commit,
+            "remark": remark,
         }
         try:
             if self.cluster_type == DBType.MySQL:
