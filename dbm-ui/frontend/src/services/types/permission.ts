@@ -50,6 +50,10 @@ export interface PermissionRuleInfo {
   bk_biz_id: number;
   create_time: string;
   creator: string;
+  priv_ticket: {
+    action: 'delete' | 'change';
+    ticket_id: number;
+  };
   privilege: string;
   rule_id: number;
 }
@@ -118,7 +122,7 @@ export interface PasswordPolicyIncludeRule {
  */
 export interface AccountRule {
   access_db: string;
-  privilege: AccountRulePrivilege;
+  privilege: AccountRulePrivilege | string;
   account_id: number | null;
   account_type?: AccountTypesValues;
 }
@@ -149,6 +153,11 @@ export interface AuthorizePreCheckData {
   user: string;
   cluster_type: string;
   cluster_ids?: number[];
+  privileges?: {
+    priv: string;
+    user: string;
+    access_db: string;
+  }[];
 }
 
 /**

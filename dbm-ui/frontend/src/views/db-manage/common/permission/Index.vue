@@ -48,12 +48,11 @@
         ref="tableRef"
         class="rules-table"
         :columns="columns"
-        :data-source="configMap[accountType].dataSource"
+        :data-source="dataSource"
         releate-url-query
         :row-class="setRowClass"
         row-hover="auto"
-        @clear-search="handleClearSearch"
-        @refresh="fetchData" />
+        @clear-search="handleClearSearch" />
     </div>
     <!-- 创建账户 -->
     <AccountCreate
@@ -88,14 +87,17 @@
   import { InfoBox, Message } from 'bkui-vue';
   import { differenceInHours } from 'date-fns';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import { deleteAccount as deleteMongodbAccount, getPermissionRules as getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { deleteAccount as deleteMysqlAccount, getPermissionRules as getMysqlPermissionRules } from '@services/source/mysqlPermissionAccount';
   import { deleteAccount as deleteSqlserverAccount, getPermissionRules as getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
+  import { createTicket } from '@services/source/ticket';
   import type { PermissionRule, PermissionRuleInfo } from '@services/types/permission';
 
   import {
     useTicketCloneInfo,
+    useTicketMessage,
   } from '@hooks';
   import type { CloneDataHandlerMapKeys } from '@hooks/useTicketCloneInfo/generateCloneData';
 
@@ -106,6 +108,7 @@
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import MongoCreateRule from '@views/db-manage/common/permission/components/mongo/CreateRule.vue';
   import MysqlCreateRule from '@views/db-manage/common/permission/components/mysql/create-rule/Index.vue';
   import SqlserverCreateRule from '@views/db-manage/common/permission/components/sqlserver/CreateRule.vue';
@@ -114,6 +117,7 @@
 
   import AccountCreate from './components/common/AccountCreate.vue';
   import AccountDetail from './components/common/AccountDetail.vue';
+  import RenderActionTag from './components/common/RenderActionTag.vue';
   import mongoDbOperations from './components/mongo/config';
   import mysqlDbOperations from './components/mysql/config';
   import sqlserverDbOperations from './components/sqlserver/config';
@@ -124,42 +128,78 @@
 
   const props = defineProps<Props>();
 
+  enum ButtonTypes {
+    EDIT_RULE = 'editRule',
+    DELETE_RULE = 'deleteRule',
+  }
+
+  /**
+   * 配置
+   * ticketType 单据类型
+   * clusterTypes 集群类型
+   * dbOperations 权限配置
+   * ddlSensitiveWords 敏感词
+   * dataSource 数据源
+   * deleteAccount 删除账号api
+   * createRuleComponent 创建规则组件
+   */
   const configMap = {
     [AccountTypes.MYSQL]: {
       ticketType: TicketTypes.MYSQL_AUTHORIZE_RULES,
       clusterTypes: [ClusterTypes.TENDBHA, 'tendbhaSlave', ClusterTypes.TENDBSINGLE],
       dbOperations: mysqlDbOperations[AccountTypes.MYSQL].dbOperations,
+      ddlSensitiveWords: mysqlDbOperations[AccountTypes.MYSQL].ddlSensitiveWords,
       dataSource: getMysqlPermissionRules,
       deleteAccount: deleteMysqlAccount,
       createRuleComponent: MysqlCreateRule,
+      buttonController: {
+        [ButtonTypes.EDIT_RULE]: true,
+        [ButtonTypes.DELETE_RULE]: true,
+      }
     },
     [AccountTypes.TENDBCLUSTER]: {
       ticketType: TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES,
       clusterTypes: [ClusterTypes.TENDBCLUSTER, 'tendbclusterSlave'],
       dbOperations: mysqlDbOperations[AccountTypes.TENDBCLUSTER].dbOperations,
+      ddlSensitiveWords: mysqlDbOperations[AccountTypes.TENDBCLUSTER].ddlSensitiveWords,
       dataSource: getMysqlPermissionRules,
       deleteAccount: deleteMysqlAccount,
       createRuleComponent: MysqlCreateRule,
+      buttonController: {
+        [ButtonTypes.EDIT_RULE]: true,
+        [ButtonTypes.DELETE_RULE]: true,
+      }
     },
     [AccountTypes.SQLSERVER]: {
       ticketType: TicketTypes.SQLSERVER_AUTHORIZE_RULES,
       clusterTypes: [ClusterTypes.SQLSERVER_HA, ClusterTypes.SQLSERVER_SINGLE],
       dbOperations: sqlserverDbOperations,
+      ddlSensitiveWords: [],
       dataSource: getSqlserverPermissionRules,
       deleteAccount: deleteSqlserverAccount,
       createRuleComponent: SqlserverCreateRule,
+      buttonController: {
+        [ButtonTypes.EDIT_RULE]: false,
+        [ButtonTypes.DELETE_RULE]: false,
+      }
     },
     [AccountTypes.MONGODB]: {
       ticketType: TicketTypes.MONGODB_AUTHORIZE_RULES,
       clusterTypes: [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
       dbOperations: mongoDbOperations,
+      ddlSensitiveWords: [],
       dataSource: getMongodbPermissionRules,
       deleteAccount: deleteMongodbAccount,
       createRuleComponent: MongoCreateRule,
+      buttonController: {
+        [ButtonTypes.EDIT_RULE]: false,
+        [ButtonTypes.DELETE_RULE]: false,
+      }
     },
   };
 
   const { t } = useI18n();
+  const ticketMessage = useTicketMessage();
 
   useTicketCloneInfo({
     type: configMap[props.accountType].ticketType as CloneDataHandlerMapKeys,
@@ -186,8 +226,41 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const tableSearch = ref([]);
   const clusterAuthorizeRef = ref<InstanceType<typeof ClusterAuthorize>>();
+  /**
+   * 集群授权
+   */
+  const authorizeState = reactive({
+    isShow: false,
+    user: '',
+    dbs: [] as string[],
+    rules: [] as PermissionRule['rules'],
+  });
+  // 新建账号功能
+  const accountDialog = reactive({
+    isShow: false,
+  });
+  // 账号信息查看
+  const accountDetailDialog = reactive({
+    isShow: false,
+    rowData: {} as PermissionRule,
+  });
+  /**
+   * 添加授权规则功能
+   */
+  const ruleState = reactive({
+    isShow: false,
+    accountId: -1,
+    rowData: {} as PermissionRuleInfo,
+  });
+  const rowExpandMap = shallowRef<Record<number, boolean>>({});
 
-  const isMysql = computed(() => props.accountType === AccountTypes.MYSQL || props.accountType === AccountTypes.TENDBCLUSTER);
+  /**
+   * ddl敏感词
+   */
+  const ddlSensitiveWordsMap = computed(() => configMap[props.accountType].ddlSensitiveWords.reduce<Record<string, boolean>>((acc, item) => {
+      acc[item] = true;
+      return acc;
+    }, {}));
 
   /**
    * search select 过滤参数
@@ -226,40 +299,12 @@
     return differenceInHours(today, createDay) <= 24;
   };
 
-  /**
-   * 集群授权
-   */
-  const authorizeState = reactive({
-    isShow: false,
-    user: '',
-    dbs: [] as string[],
-    rules: [] as PermissionRule['rules'],
-  });
-  // 新建账号功能
-  const accountDialog = reactive({
-    isShow: false,
-  });
-  // 账号信息查看
-  const accountDetailDialog = reactive({
-    isShow: false,
-    rowData: {} as PermissionRule,
-  });
-  /**
-   * 添加授权规则功能
-   */
-  const ruleState = reactive({
-    isShow: false,
-    accountId: -1,
-    rowData: {} as PermissionRuleInfo,
-  });
-
-  const rowExpandMap = shallowRef<Record<number, boolean>>({});
-
   const columns = [
     {
       label: t('账号名称'),
       field: 'user',
       showOverflowTooltip: false,
+      width: 350,
       render: ({ data }: { data: PermissionRule }) => (
         <TextOverflowLayout>
           {{
@@ -313,6 +358,7 @@
     {
       label: t('访问的DB名'),
       field: 'access_db',
+      width: 350,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -331,12 +377,12 @@
             </div>
           );
         }
-
         return (
           getRenderList(data)
             .map(rule => (
               <div class="cell-row">
                 <bk-tag>{rule.access_db || '--'}</bk-tag>
+                { rule.priv_ticket && <RenderActionTag data={rule.priv_ticket} /> }
               </div>
             ))
         );
@@ -349,10 +395,30 @@
       render: ({ data }: { data: PermissionRule }) => (
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
+          const privileges = privilege.split(',');
           return (
-            <div class="cell-row pr-12" v-overflow-tips>
+            <div
+              class="cell-row"
+              v-bk-tooltips={{
+                content: privilege.replace(/,/g, '，'),
+                disabled: privileges.length <= 10,
+              }}>
               {
-                !privilege ? '--' : privilege.replace(/,/g, '，')
+                privileges.map((item, index) =>
+                  <span>
+                    {index !== 0 && <span>， </span>}
+                    {item}
+                    {
+                      ddlSensitiveWordsMap.value[item] &&
+                      <bk-tag
+                        class='ml-4'
+                        size='small'
+                        theme='warning'>
+                        {t('敏感')}
+                      </bk-tag>
+                    }
+                  </span>
+                )
               }
             </div>
           );
@@ -361,7 +427,7 @@
     },
     {
       label: t('操作'),
-      width: 100,
+      width: 150,
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {
           return (
@@ -379,6 +445,11 @@
           );
         }
 
+        const actionMap = {
+          delete: t('删除'),
+          change: t('修改'),
+        }
+
         return (
           getRenderList(data).map((item, index) => (
             <div class="cell-row">
@@ -389,14 +460,42 @@
                 {t('授权')}
               </bk-button>
               {
-                isMysql.value &&
-                <bk-button
-                  theme="primary"
-                  class="ml-8"
-                  text
-                  onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
-                  {t('编辑')}
-                </bk-button>
+                <OperationBtnStatusTips
+                  disabled={!data.rules[index].priv_ticket}
+                  data={{
+                    operationStatusText: t('权限规则_t_任务正在进行中', { t: actionMap[data.rules[index].priv_ticket?.action] }),
+                    operationTicketId: data.rules[index].priv_ticket?.ticket_id,
+                  }}>
+                  {
+                    configMap[props.accountType].buttonController[ButtonTypes.EDIT_RULE] &&
+                    <bk-button
+                      theme="primary"
+                      class="ml-8"
+                      text
+                      disabled={data.rules[index].priv_ticket?.ticket_id}
+                      onClick={(event: PointerEvent) => handleShowEditRule(event, data, index)}>
+                      {t('编辑')}
+                    </bk-button>
+                  }
+                  {
+                    configMap[props.accountType].buttonController[ButtonTypes.DELETE_RULE] &&
+                    <bk-pop-confirm
+                      width="288"
+                      content={t('删除操作将发起单据，单据获得审批后才会执行删除')}
+                      title={t('确认删除该规则？')}
+                      trigger="click"
+                      onConfirm={() => handleShowDeleteRule(data, index)}
+                    >
+                      <bk-button
+                        theme="primary"
+                        class="ml-8"
+                        disabled={data.rules[index].priv_ticket?.ticket_id}
+                        text>
+                        {t('删除')}
+                      </bk-button>
+                    </bk-pop-confirm>
+                  }
+                </OperationBtnStatusTips>
               }
             </div>
           ))
@@ -405,19 +504,28 @@
     },
   ];
 
+  /**
+   * 规则变更走单据
+   */
+   const { run: createTicketRun } = useRequest(createTicket, {
+    manual: true,
+    onSuccess(data) {
+      ticketMessage(data.id);
+      fetchData();
+    },
+  })
+
   // 设置行样式
   const setRowClass = (row: PermissionRule) => (isNewUser(row) ? 'is-new' : '');
 
+  const dataSource = (params: ServiceParameters<typeof getMysqlPermissionRules>) => configMap[props.accountType].dataSource({
+    ...params,
+    ...getSearchSelectorParams(tableSearch.value),
+    account_type: props.accountType,
+  });
+
   const fetchData = () => {
-    tableRef.value!.fetchData(
-      {
-        ...getSearchSelectorParams(tableSearch.value),
-      },
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        account_type: props.accountType,
-      }
-    )
+    tableRef.value!.fetchData();
   };
 
   const handleSearchChange = () => {
@@ -428,6 +536,7 @@
     tableSearch.value = [];
     fetchData();
   };
+
   /**
    * 展开/收起渲染列表
    */
@@ -447,12 +556,16 @@
     rowExpandMap.value = expandMap;
   };
 
-
+  /**
+   * 新建账号
+   */
   const handleShowAccountDialog = () => {
     accountDialog.isShow = true;
   };
 
-
+  /**
+   * 浏览账号信息
+   */
   const handleViewAccount = (row: PermissionRule, e: MouseEvent) => {
     e?.stopPropagation();
     accountDetailDialog.rowData = row;
@@ -488,22 +601,9 @@
     });
   };
 
-
-  const handleShowCreateRule = (row: PermissionRule, e: PointerEvent) => {
-    e.stopPropagation();
-    ruleState.rowData = {} as PermissionRuleInfo;
-    ruleState.accountId = row.account.account_id;
-    ruleState.isShow = true;
-  };
-
-  const handleShowEditRule = (e: PointerEvent, row: PermissionRule, index: number) => {
-    e.stopPropagation();
-    ruleState.accountId = row.account.account_id;
-    ruleState.rowData = row.rules[index];
-    ruleState.isShow = true;
-  };
-
-
+  /*
+  * 授权
+  */
   const handleShowAuthorize = (row: PermissionRule, rule: PermissionRuleInfo, e: PointerEvent) => {
     e.stopPropagation();
     authorizeState.isShow = true;
@@ -512,9 +612,50 @@
     authorizeState.rules = [rule];
   };
 
-  onMounted(() => {
-    fetchData()
-  })
+  /**
+   * 创建规则
+   */
+  const handleShowCreateRule = (row: PermissionRule, e: PointerEvent) => {
+    e.stopPropagation();
+    ruleState.rowData = {} as PermissionRuleInfo;
+    ruleState.accountId = row.account.account_id;
+    ruleState.isShow = true;
+  };
+
+  /**
+   * 编辑规则
+   */
+  const handleShowEditRule = (e: PointerEvent, row: PermissionRule, index: number) => {
+    e.stopPropagation();
+    ruleState.accountId = row.account.account_id;
+    ruleState.rowData = row.rules[index];
+    ruleState.isShow = true;
+  };
+
+  /**
+   * 删除规则
+   */
+  const handleShowDeleteRule = (row: PermissionRule, index: number) => {
+    const ticketTypeMap = {
+      [AccountTypes.MYSQL]: TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE,
+      [AccountTypes.TENDBCLUSTER]: TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE,
+    }
+    createTicketRun({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      ticket_type: ticketTypeMap[props.accountType as AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER],
+      remark: '',
+      details: {
+        last_account_rules: {
+          userName: row.account.user,
+          ...row.rules[index],
+        },
+        action: 'delete',
+        account_type: props.accountType,
+        account_id: row.account.account_id,
+        rule_id: row.rules[index].rule_id,
+      },
+    });
+  };
 </script>
 
 <style lang="less" scoped>
