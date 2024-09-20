@@ -346,6 +346,7 @@
             isAnomalies.value = true;
           })
           .finally(() => {
+            isReady = false;
             isLoading.value = false;
             emits('requestFinished', tableData.value.results);
           });

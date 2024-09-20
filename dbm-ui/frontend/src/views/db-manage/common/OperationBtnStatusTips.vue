@@ -98,7 +98,6 @@
             appendTo: () => document.body,
             theme: 'light',
             maxWidth: 'none',
-            trigger: 'manual',
             interactive: true,
             arrow: true,
             offset: [0, 8],
