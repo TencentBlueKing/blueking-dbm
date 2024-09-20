@@ -32,7 +32,7 @@
       :cloud-id="data.bk_cloud_id"
       :cluster-shard-num="data.cluster_shard_num"
       cluster-type="tendbcluster"
-      machine-type="remote"
+      machine-type="backend"
       :plan-form-item-props="{
         property: 'specId',
         required: true,

@@ -48,10 +48,8 @@
   import { useRequest } from 'vue-request';
 
   import RedisModel from '@services/model/redis/redis';
-  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import type { RedisClusterShardUpdateDetails } from '@services/model/ticket/details/redis';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getResourceSpecList } from '@services/source/dbresourceSpec';
   import { getRedisListByBizId } from '@services/source/redis';
 
   import { repairAndVerifyFrequencyList, repairAndVerifyTypeList } from '@views/db-manage/redis/common/const';
@@ -136,25 +134,11 @@
       if (result.results.length < 1) {
         return;
       }
+
       const clusterMap = result.results.reduce((obj, item) => {
         Object.assign(obj, { [item.id]: item });
         return obj;
       }, {} as Record<string, RedisModel>);
-
-      // 避免重复查询
-      const clusterTypes = [...new Set(Object.values(clusterMap).map(item => item.cluster_spec.spec_cluster_type))];
-
-      const sepcMap: Record<string, ResourceSpecModel[]> = {};
-
-      await Promise.all(clusterTypes.map(async (type) => {
-        const ret = await getResourceSpecList({
-          spec_cluster_type: type,
-          limit: -1,
-          offset: 0,
-        });
-        sepcMap[type] = ret.results;
-      }));
-      loading.value = false;
       tableData.value = infos.map((item) => {
         const currentCluster = clusterMap[item.src_cluster];
         const specConfig = currentCluster.cluster_spec;

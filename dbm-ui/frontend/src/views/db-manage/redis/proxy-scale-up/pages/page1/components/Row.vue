@@ -144,20 +144,20 @@
 
   // 查询集群对应的规格列表
   const querySpecList = async (item: RedisModel) => {
-    const proxyMachineMap = {
-      TwemproxyRedisInstance: 'twemproxy',
-      TwemproxyTendisSSDInstance: 'twemproxy',
-      PredixyTendisplusCluster: 'predixy',
-      PredixyRedisCluster: 'predixy',
-      RedisInstance: '',
-    };
-    const type = item.cluster_spec.spec_cluster_type;
-    const machineType = proxyMachineMap[type];
+    // const proxyMachineMap = {
+    //   TwemproxyRedisInstance: 'twemproxy',
+    //   TwemproxyTendisSSDInstance: 'twemproxy',
+    //   PredixyTendisplusCluster: 'predixy',
+    //   PredixyRedisCluster: 'predixy',
+    //   RedisInstance: '',
+    // };
+    const type = item.cluster_type;
+    // const machineType = proxyMachineMap[type];
     const specId = item.cluster_spec.spec_id;
     const specCount = item.proxy.length;
     const ret = await getResourceSpecList({
-      spec_cluster_type: type,
-      spec_machine_type: machineType,
+      spec_cluster_type: 'redis',
+      spec_machine_type: type,
       limit: -1,
       offset: 0,
     });

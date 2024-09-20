@@ -71,7 +71,7 @@
   import { getFilterClusterSpec } from '@services/source/dbresourceSpec';
 
   import {
-    ClusterTypes,
+    DBTypes,
     MachineTypes,
   } from '@common/const';
 
@@ -98,7 +98,7 @@
     shardNodeCount?: number,
     isApply?: boolean
     originSpecId?: number | string
-    clusterType: ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER
+    // clusterType: ClusterTypes.MONGO_REPLICA_SET | ClusterTypes.MONGO_SHARED_CLUSTER
   }
 
   interface Emits {
@@ -339,7 +339,7 @@
     }
 
     getFilterClusterSpecRun({
-      spec_cluster_type: props.clusterType,
+      spec_cluster_type: DBTypes.MONGODB,
       spec_machine_type: MachineTypes.MONGODB,
       capacity: Number(modelValue.value.capacity),
       shard_num: props.shardNum,
