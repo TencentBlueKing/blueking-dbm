@@ -277,6 +277,8 @@ var (
 	END
 	CREATE USER ['+@username+'] FOR LOGIN ['+@username+']
 	EXEC sp_addrolemember N''db_datareader'', N'''+@username+'''
+	USE [master]
+	GRANT VIEW ANY DEFINITION TO ['+@username+']
 	USE [Monitor]
 	IF EXISTS (SELECT * FROM sys.sysusers WHERE name = '''+@username+''')
 	BEGIN

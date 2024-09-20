@@ -83,7 +83,7 @@ func (s *SysInitParam) PreCheck() error {
 	if err != nil {
 		return err
 	}
-	if mem.Total < 2*1024*1024*2024 {
+	if mem.Total < 2*1024*1024*1024 {
 		return fmt.Errorf("system  memory does not exceed 2GB")
 	}
 	logger.Info("System memory exceed 2GB, pass")
