@@ -708,6 +708,7 @@
                 text
                 theme="primary"
                 action-id="hdfs_enable_disable"
+                disabled={data.isStarting}
                 permission={data.permission.hdfs_enable_disable}
                 v-db-console="hdfs.clusterManage.enable"
                 resource={data.id}

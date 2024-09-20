@@ -680,6 +680,7 @@
               <auth-button
                 text
                 theme="primary"
+                disabled={data.isStarting}
                 action-id="es_enable_disable"
                 permission={data.permission.es_enable_disable}
                 v-db-console="es.clusterManage.enable"
