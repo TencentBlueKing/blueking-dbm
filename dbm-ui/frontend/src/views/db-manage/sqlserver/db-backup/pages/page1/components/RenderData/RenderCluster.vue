@@ -178,12 +178,12 @@
 
   onBeforeUnmount(() => {
     if (modelValue.value) {
-      delete clusterIdMemo[modelValue.value.id];
+      delete clusterIdMemo[instanceKey];
     }
   });
 
   defineExpose<Exposes>({
-    getValue(field) {
+    getValue() {
       // 用户输入未完成验证
       return editRef.value!.getValue().then(() => ({
         cluster_id: modelValue.value!.id,
