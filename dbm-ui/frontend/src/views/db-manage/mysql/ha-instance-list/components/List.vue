@@ -199,36 +199,6 @@
         ),
       },
       {
-        label: t('集群名称'),
-        field: 'cluster_name',
-        minWidth: 200,
-        showOverflowTooltip: false,
-        render: ({ cell, data }: ColumnData) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <auth-button
-                action-id="mysql_view"
-                resource={data.cluster_id}
-                permission={data.permission.mysql_view}
-                text
-                theme="primary"
-                onClick={() => handleToClusterDetails(data)}>
-                {cell}
-              </auth-button>
-            ),
-            append: () => (
-              <db-icon
-                v-bk-tooltips={t('复制集群名称')}
-                type="copy"
-                class="copy-btn"
-                onClick={() => copy(cell)} />
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
-      },
-      {
         label: t('状态'),
         field: 'status',
         width: 140,
@@ -255,7 +225,16 @@
         },
       },
       {
-        label: t('主访问入口'),
+        label: t('部署角色'),
+        field: 'role',
+        width: 100,
+        filter: {
+          list: columnAttrs.value.role,
+          checked: columnCheckedMap.value.role,
+        },
+      },
+      {
+        label: t('所属集群'),
         field: 'master_domain',
         minWidth: 200,
         showOverflowTooltip: false,
@@ -275,17 +254,27 @@
         ),
       },
       {
-        label: t('从访问入口'),
-        field: 'slave_domain',
+        label: t('集群名称'),
+        field: 'cluster_name',
         minWidth: 200,
         showOverflowTooltip: false,
-        render: ({ cell }: ColumnData) => (
+        render: ({ cell, data }: ColumnData) => (
           <TextOverflowLayout>
             {{
-              default: () => cell,
+              default: () => (
+                <auth-button
+                  action-id="mysql_view"
+                  resource={data.cluster_id}
+                  permission={data.permission.mysql_view}
+                  text
+                  theme="primary"
+                  onClick={() => handleToClusterDetails(data)}>
+                  {cell}
+                </auth-button>
+              ),
               append: () => (
                 <db-icon
-                  v-bk-tooltips={t('复制从访问入口')}
+                  v-bk-tooltips={t('复制集群名称')}
                   type="copy"
                   class="copy-btn"
                   onClick={() => copy(cell)} />
@@ -293,15 +282,6 @@
             }}
           </TextOverflowLayout>
         ),
-      },
-      {
-        label: t('部署角色'),
-        field: 'role',
-        width: 100,
-        filter: {
-          list: columnAttrs.value.role,
-          checked: columnCheckedMap.value.role,
-        },
       },
       {
         label: t('部署时间'),
