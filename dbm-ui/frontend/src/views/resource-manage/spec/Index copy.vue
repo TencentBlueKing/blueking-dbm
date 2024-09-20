@@ -258,7 +258,7 @@
         return false;
       }
 
-      const childItem = (data.children as Record<TabItem['name'], ControllerBaseInfo>)[item.moduleId];
+      const childItem = (data.children as Record<TabItem['name'], ControllerBaseInfo>)[item.name];
 
       // 若有对应的模块子功能，判断是否开启
       if (childItem) {

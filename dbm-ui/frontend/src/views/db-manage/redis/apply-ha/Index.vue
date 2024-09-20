@@ -145,8 +145,8 @@
               v-model="formData.details.resource_spec.spec_id"
               :biz-id="formData.bk_biz_id"
               :cloud-id="formData.details.bk_cloud_id"
-              :cluster-type="ClusterTypes.REDIS_INSTANCE"
-              :machine-type="MachineTypes.TENDISCACHE"
+              :cluster-type="DBTypes.REDIS"
+              :machine-type="ClusterTypes.REDIS_INSTANCE"
               style="width: 314px" />
           </BkFormItem>
           <BkFormItem
@@ -212,7 +212,7 @@
 
   import { useApplyBase } from '@hooks';
 
-  import { ClusterTypes, MachineTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';
   import BusinessItems from '@components/apply-items/BusinessItems.vue';

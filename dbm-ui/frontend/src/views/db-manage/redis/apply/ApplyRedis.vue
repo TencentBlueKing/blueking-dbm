@@ -270,8 +270,8 @@
                       v-model="state.formdata.details.resource_spec.proxy.spec_id"
                       :biz-id="state.formdata.bk_biz_id"
                       :cloud-id="state.formdata.details.bk_cloud_id"
-                      :cluster-type="typeInfos.cluster_type"
-                      :machine-type="typeInfos.machine_type"
+                      :cluster-type="DBTypes.REDIS"
+                      :machine-type="state.formdata.details.cluster_type"
                       style="width: 314px" />
                   </BkFormItem>
                   <BkFormItem
@@ -295,8 +295,8 @@
                   :biz-id="state.formdata.bk_biz_id"
                   :city-code="state.formdata.details.city_code"
                   :cloud-id="state.formdata.details.bk_cloud_id"
-                  :cluster-type="typeInfos.cluster_type"
-                  :machine-type="typeInfos.backend_machine_type" />
+                  db-type="redis"
+                  :machine-type="typeInfos.cluster_type" />
               </BkFormItem>
               <BkFormItem
                 :label="t('访问端口')"
@@ -372,7 +372,7 @@
 
   import { useFunController } from '@stores';
 
-  import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
+  import { ClusterTypes, DBTypes, OSTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
   import AffinityItem from '@components/apply-items/AffinityItem.vue';

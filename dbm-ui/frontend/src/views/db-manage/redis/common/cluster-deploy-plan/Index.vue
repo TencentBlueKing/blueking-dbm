@@ -318,13 +318,13 @@
   const isDataChange = computed(() => capacityNeed.value !== undefined || capacityFutureNeed.value !== undefined
     || radioValue.value !== -1);
 
-  const cluserMachineMap = {
-    [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
-    [RedisClusterTypes.PredixyRedisCluster]: 'tendiscache',
-    [RedisClusterTypes.RedisInstance]: 'tendiscache',
-    [RedisClusterTypes.TwemproxyRedisInstance]: 'tendiscache',
-    [RedisClusterTypes.TwemproxyTendisSSDInstance]: 'tendisssd',
-  };
+  // const cluserMachineMap = {
+  //   [RedisClusterTypes.PredixyTendisplusCluster]: 'tendisplus',
+  //   [RedisClusterTypes.PredixyRedisCluster]: 'tendiscache',
+  //   [RedisClusterTypes.RedisInstance]: 'tendiscache',
+  //   [RedisClusterTypes.TwemproxyRedisInstance]: 'tendiscache',
+  //   [RedisClusterTypes.TwemproxyTendisSSDInstance]: 'tendisssd',
+  // };
 
   const columns = computed(() => {
     const totalColums = [
@@ -395,8 +395,8 @@
       isTableLoading.value = true;
       const clusterType = props.data?.clusterType ?? RedisClusterTypes.TwemproxyRedisInstance;
       const params = {
-        spec_cluster_type: clusterType,
-        spec_machine_type: cluserMachineMap[clusterType],
+        spec_cluster_type: 'redis',
+        spec_machine_type: clusterType,
         shard_num: props.data.shardNum === 0 ? undefined : props.data.shardNum,
         capacity: capacityNeed.value,
         future_capacity: capacityNeed.value <= capacityFutureNeed.value ? capacityFutureNeed.value : capacityNeed.value,

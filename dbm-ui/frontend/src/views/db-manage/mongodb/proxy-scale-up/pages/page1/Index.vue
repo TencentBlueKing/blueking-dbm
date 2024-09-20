@@ -117,7 +117,7 @@
   useRequest(getResourceSpecList, {
     defaultParams: [
       {
-        spec_cluster_type: 'MongoShardedCluster',
+        spec_cluster_type: 'mongodb',
         spec_machine_type: 'mongos',
         limit: -1,
         offset: 0,
