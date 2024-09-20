@@ -227,45 +227,44 @@
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
   import AccountRulesTable from './accout-rules-preview-table/Index.vue';
-  // import AccountRulesTable from './accouter-rules-selector/components/AccountRulesTable.vue';
   import AccountRulesSelector from './accouter-rules-selector/Index.vue';
-</script>
 
-<script setup lang="tsx">
   type ResourceItem = NonNullable<Props['selected']>[number] & { isMaster?: boolean };
-  type MysqlPreCheckResulst = ServiceReturnType<typeof preCheckAuthorizeRules>
-  type MongoPreCheckResulst = ServiceReturnType<typeof preCheckMongodbAuthorizeRules>
-  type SqlserverPreCheckResulst = ServiceReturnType<typeof preCheckSqlserverAuthorizeRules>
+  type MysqlPreCheckResulst = ServiceReturnType<typeof preCheckAuthorizeRules>;
+  type MongoPreCheckResulst = ServiceReturnType<typeof preCheckMongodbAuthorizeRules>;
+  type SqlserverPreCheckResulst = ServiceReturnType<typeof preCheckSqlserverAuthorizeRules>;
 
   interface Props {
-    accountType: AccountTypes,
-    user?: string,
-    accessDbs?: string[],
+    accountType: AccountTypes;
+    user?: string;
+    accessDbs?: string[];
     selected?: {
-      master_domain: string,
-      cluster_name: string,
-      db_module_name?: string,
-    }[],
-    clusterTypes?: string[],
+      master_domain: string;
+      cluster_name: string;
+      db_module_name?: string;
+    }[];
+    clusterTypes?: string[];
     // tabList?: string[],
-    permissonRuleList?: MongodbPermissonAccountModel[]
+    permissonRuleList?: MongodbPermissonAccountModel[];
   }
 
   interface Emits {
-    (e: 'success'): void,
+    (e: 'success'): void;
   }
 
   interface Exposes {
     initSelectorData: (data: {
-      clusterType: ClusterTypes,
-      clusterList: ResourceItem[],
-      sourceIpList: ServiceReturnType<typeof checkHost>
-    }) => void,
+      clusterType: ClusterTypes;
+      clusterList: ResourceItem[];
+      sourceIpList: ServiceReturnType<typeof checkHost>;
+    }) => void;
   }
 
-  type ClusterSelectorResult = Record<string, Array<ResourceItem>>
+  type ClusterSelectorResult = Record<string, Array<ResourceItem>>;
+</script>
 
-    const props = withDefaults(defineProps<Props>(), {
+<script setup lang="tsx">
+  const props = withDefaults(defineProps<Props>(), {
     user: '',
     accessDbs: () => [],
     selected: () => [],

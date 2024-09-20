@@ -47,13 +47,11 @@
         property="access_db"
         required
         :rules="rules.access_db">
-        <DbTextarea
-          ref="textareaRef"
+        <BkInput
           v-model="formdata.access_db"
-          :disabled="isEdit"
-          :max-height="400"
           :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
-          :teleport-to-body="false" />
+          :rows="3"
+          type="textarea" />
       </BkFormItem>
       <BkFormItem
         class="form-item privilege"
@@ -268,28 +266,6 @@
     },
   });
 
-  const verifyAccountRulesExits = async () => {
-    existDBs.value = [];
-
-    const user = selectedUserInfo.value?.user;
-    const dbs = formdata.value.access_db.replace(replaceReg, ',')
-      .split(',')
-      .filter(db => db !== '');
-
-    if (!user || dbs.length === 0) return false;
-
-    const { results } = await queryAccountRules({
-      bizId: window.PROJECT_CONFIG.BIZ_ID,
-      user,
-      access_dbs: dbs,
-      account_type: TENDBCLUSTER,
-    })
-    const intersection = results.find(item => item.account.user === user)?.rules
-      .filter(ruleItem => dbs.includes(ruleItem.access_db)) || [];
-    existDBs.value = intersection.map(item => item.access_db);
-    return !intersection.length;
-  };
-
   const { t } = useI18n();
   const handleBeforeClose = useBeforeClose();
 
@@ -307,7 +283,7 @@
 
   const selectedUserInfo = computed(() => accounts.value.find(item => item.account_id === formdata.value.account_id));
 
-  const rules = computed(() => ({
+  const rules = {
     auth: [
       {
         trigger: 'change',
@@ -325,18 +301,41 @@
         message: t('访问DB不能为空'),
         validator: (value: string) => !!value,
       },
-      // {
-      //   trigger: 'blur',
-      //   message: t('访问DB格式错误'),
-      //   validator: verifyAccountRuleFormat,
-      // },
+      {
+        trigger: 'blur',
+        message: t('DB名称支持通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) => (!item ? true : /^[0-9a-zA-Z][0-9a-zA-Z%]*$/.test(item)));
+        },
+      },
       {
         trigger: 'blur',
         message: () => t('该账号下已存在xx规则', [existDBs.value.join('，')]),
-        validator: verifyAccountRulesExits,
+        validator: async () => {
+          existDBs.value = [];
+
+          const user = selectedUserInfo.value?.user;
+          const dbs = formdata.value.access_db.replace(replaceReg, ',')
+            .split(',')
+            .filter(db => db !== '');
+
+          if (!user || dbs.length === 0) return false;
+
+          const { results } = await queryAccountRules({
+            bizId: window.PROJECT_CONFIG.BIZ_ID,
+            user,
+            access_dbs: dbs,
+            account_type: TENDBCLUSTER,
+          })
+          const intersection = results.find(item => item.account.user === user)?.rules
+            .filter(ruleItem => dbs.includes(ruleItem.access_db)) || [];
+          existDBs.value = intersection.map(item => item.access_db);
+          return !intersection.length;
+        },
       },
     ],
-  }));
+  };
 
   const {
     loading: isSubmitting,
@@ -378,20 +377,6 @@
       }
     }
   });
-
-  // const verifyAccountRuleFormat = () => formdata.access_db
-  //   .replace(replaceReg, ',')
-  //   .split(',')
-  //   .every(db => /^[a-zA-Z]*%?$/g.test(db));
-
-  // const handleSelectAllPrivileges = (checked: boolean) => {
-  //   checkAllPrivileges.value = checked;
-  //   if (checked) {
-  //     formdata.value.privilege.ddl = [];
-  //     formdata.value.privilege.dml = [];
-  //     formdata.value.privilege.glob = [];
-  //   }
-  // };
 
   const getAccount = () => {
     isLoading.value = true;
