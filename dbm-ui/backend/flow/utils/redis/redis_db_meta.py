@@ -1199,6 +1199,7 @@ class RedisDBMeta(object):
                     for entry_obj in cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY):
                         slave_domain = entry_obj.entry
                         entry_obj.storageinstance_set.add(new_slave_obj)
+                        entry_obj.storageinstance_set.remove(master_obj)
                         if old_slave_obj and old_slave_obj.ip_port != new_slave_obj.ip_port:
                             entry_obj.storageinstance_set.remove(old_slave_obj)
                     if slave_domain != "":
