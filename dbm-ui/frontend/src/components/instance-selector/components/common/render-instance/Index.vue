@@ -1,14 +1,14 @@
 <template>
   <div class="instance-renderer">
     <div
-      v-for="item in displayList"
+      v-for="item in displayList.slice(0, showAll ? undefined : 3)"
       :key="item.instance"
       class="instance-renderer-item">
       <DbStatus :theme="item.theme" />
       <span>{{ item.instance }}</span>
     </div>
     <BkButton
-      v-if="data.length >= 3"
+      v-if="data.length > 3"
       class="ml-20"
       text
       theme="primary"

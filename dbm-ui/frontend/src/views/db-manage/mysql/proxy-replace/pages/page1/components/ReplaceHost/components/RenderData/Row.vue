@@ -16,8 +16,9 @@
     <FixedColumn fixed="left">
       <RenderOriginalProxyHost
         ref="originRef"
-        :model-value="data.originProxy.ip"
-        @input-finish="handleOriginProxyInputFinish" />
+        :model-value="localIp"
+        @input-finish="handleOriginProxyInputFinish"
+        @update:model-value="handleOriginProxyInput" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderRelatedInstances
@@ -28,7 +29,7 @@
       <RenderTargetProxy
         ref="targetRef"
         :cloud-id="data.originProxy.bk_cloud_id"
-        :disabled="!data.originProxy.ip"
+        :disabled="!localIp"
         :model-value="data.targetProxy"
         :target-ip="data.originProxy.ip" />
     </td>
@@ -136,7 +137,22 @@
   const relatedInstancesRef = ref<InstanceType<typeof RenderRelatedInstances>>();
   const targetRef = ref<InstanceType<typeof RenderTargetProxy>>();
 
+  const localIp = ref('');
   const localRelatedInstances = ref<IDataRow['relatedInstances']>([]);
+
+  watch(
+    () => props.data,
+    () => {
+      localIp.value = props.data.originProxy.ip;
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleOriginProxyInput = (value: string) => {
+    localIp.value = value;
+  };
 
   const handleOriginProxyInputFinish = (value: IDataRow['relatedInstances']) => {
     localRelatedInstances.value = value;

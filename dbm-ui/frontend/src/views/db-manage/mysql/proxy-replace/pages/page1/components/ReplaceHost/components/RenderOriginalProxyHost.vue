@@ -22,11 +22,12 @@
   const proxyHostMemo: { [key: string]: Record<string, boolean> } = {};
 
   interface Props {
-    modelValue?: string;
+    modelValue: string;
   }
 
   interface Emits {
     (e: 'inputFinish', relatedInstances: IDataRow['relatedInstances']): void;
+    (e: 'update:modelValue', value: string): void;
   }
 
   interface Exposes {
@@ -95,6 +96,7 @@
             cluster_id: item.cluster_id,
             instance: item.instance_address,
           }));
+          emits('update:modelValue', currentData.ip);
           emits('inputFinish', relatedInstances);
           return true;
         }),

@@ -22,11 +22,12 @@
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
 
   interface Props {
-    modelValue?: string;
+    modelValue: string;
   }
 
   interface Emits {
     (e: 'inputFinish', relatedClusters: IDataRow['relatedClusters']): void;
+    (e: 'update:modelValue', value: string): void;
   }
 
   interface Exposes {
@@ -96,6 +97,7 @@
             cluster_id: item.id,
             domain: item.master_domain,
           }));
+          emits('update:modelValue', currentData.instance_address);
           emits('inputFinish', relatedClusters);
           return true;
         }),

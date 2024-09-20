@@ -16,8 +16,9 @@
     <FixedColumn fixed="left">
       <RenderOriginalProxyInst
         ref="originRef"
-        :model-value="data.originProxy.instance_address"
-        @input-finish="handleOriginProxyInputFinish" />
+        :model-value="localInstanceAddress"
+        @input-finish="handleOriginProxyInputFinish"
+        @update:model-value="handleOriginProxyInput" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderRelatedClusters
@@ -28,7 +29,7 @@
       <RenderTargetProxy
         ref="targetRef"
         :cloud-id="data.originProxy.bk_cloud_id"
-        :disabled="!data.originProxy.instance_address"
+        :disabled="!localInstanceAddress"
         :model-value="data.targetProxy"
         :target-ip="data.originProxy.ip" />
     </td>
@@ -137,7 +138,22 @@
   const relatedClustersRef = ref<InstanceType<typeof RenderRelatedClusters>>();
   const targetRef = ref<InstanceType<typeof RenderTargetProxy>>();
 
+  const localInstanceAddress = ref('');
   const localRelatedClusters = ref<IDataRow['relatedClusters']>([]);
+
+  watch(
+    () => props.data,
+    () => {
+      localInstanceAddress.value = props.data.originProxy.instance_address;
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  const handleOriginProxyInput = (value: string) => {
+    localInstanceAddress.value = value;
+  };
 
   const handleOriginProxyInputFinish = (value: IDataRow['relatedClusters']) => {
     localRelatedClusters.value = value;
