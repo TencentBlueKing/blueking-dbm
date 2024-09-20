@@ -40,12 +40,14 @@ from backend.db_meta.models import (
     BKCity,
     Cluster,
     ClusterDBHAExt,
+    ClusterEntry,
     ProxyInstance,
     StorageInstance,
     StorageInstanceTuple,
 )
 from backend.db_meta.request_validator import DBHASwapRequestSerializer, DBHAUpdateStatusRequestSerializer
 from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.dns_manage import DnsManage
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 
 logger = logging.getLogger("root")
@@ -314,6 +316,8 @@ def tendis_cluster_swap(payload: Dict, bk_cloud_id: int):
         # 1. master 故障，需要把master 的entry 转移到 slave ，重建热备的时候，再纠正slave域名
         for bind_entry in ins1_obj.bind_entry.all():
             entry_obj = cluster_obj.clusterentry_set.get(id=bind_entry.id)
+            if entry_obj.cluster_entry_type == ClusterEntryType.DNS.value:
+                switch_instance_domain(ins1_obj, ins2_obj, entry_obj)
             ins1_obj.bind_entry.remove(entry_obj)
             ins2_obj.bind_entry.add(entry_obj)
         # 2. slave  故障，需要把slave 的entry 转移到master，重建热备的时候，再纠正slave域名 // TODO(update_status.)
@@ -346,6 +350,18 @@ def tendis_cluster_swap(payload: Dict, bk_cloud_id: int):
     ins2_obj.save(update_fields=["instance_role", "instance_inner_role"])
     # 切换CC 服务实例 角色，性能数据展示使用
     swap_cc_svr_instance_role(ins1_obj, ins2_obj)
+
+
+@transaction.atomic
+def switch_instance_domain(ins1, ins2: StorageInstance, entry_obj: ClusterEntry):
+    dns_manage = DnsManage(bk_biz_id=ins1.bk_biz_id, bk_cloud_id=ins1.machine.bk_cloud_id)
+    old_instance = "{}#{}".format(ins1.machine.ip, ins1.port)
+    new_instance = "{}#{}".format(ins2.machine.ip, ins2.port)
+    logger.info("try update dns pointer {} from {} to {}".format(entry_obj.entry, ins1, ins2))
+    if not dns_manage.update_domain(
+        old_instance=old_instance, new_instance=new_instance, update_domain_name=entry_obj.entry
+    ):
+        raise Exception("update domain {} failed ".format(entry_obj.domain))
 
 
 @transaction.atomic
