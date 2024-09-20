@@ -16,8 +16,11 @@
     <FixedColumn fixed="left">
       <RenderMaster
         ref="masterHostRef"
-        :model-value="data.masterData"
-        @change="handleMasterHostChange" />
+        v-model="localMasterData"
+        :placeholder="t('请输入IP或从表头批量选择')"
+        :tab-list-config="tabListConfig"
+        type="ip"
+        @instance-change="handleMasterHostChange" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderHost
@@ -41,14 +44,18 @@
 </template>
 <script lang="ts">
   import { ref, shallowRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
+  import { ClusterTypes } from '@common/const';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderMaster from '@views/db-manage/mysql/common/edit-field/InstanceWithSelector.vue';
+
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
-  import RenderMaster from './RenderMaster.vue';
   import RenderHost from './RenderSlave.vue';
 
   export type IHostData = {
@@ -94,14 +101,26 @@
 
   const emits = defineEmits<Emits>();
 
-  const masterHostRef = ref();
-  const slaveHostRef = ref();
-  const clusterRef = ref();
+  const { t } = useI18n();
 
+  const masterHostRef = ref<InstanceType<typeof RenderMaster>>();
+  const slaveHostRef = ref<InstanceType<typeof RenderHost>>();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
   const localMasterData = ref<IHostData>();
   const localSlaveData = ref<IHostData>();
 
   const relatedClusterList = shallowRef<number[]>([]);
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        name: t('故障主库主机'),
+        tableConfig: {
+          multiple: false,
+        },
+      },
+    ],
+  } as any;
 
   watch(
     () => props.data,
@@ -114,8 +133,7 @@
     },
   );
 
-  const handleMasterHostChange = (data: IHostData) => {
-    localMasterData.value = data;
+  const handleMasterHostChange = () => {
     localSlaveData.value = undefined;
   };
 
@@ -156,11 +174,16 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        masterHostRef.value.getValue('master_ip'),
-        slaveHostRef.value.getValue(),
-        clusterRef.value.getValue(),
+        masterHostRef.value!.getValue(),
+        slaveHostRef.value!.getValue(),
+        clusterRef.value!.getValue(),
       ]).then(([masterHostData, slaveHostData, clusterData]) => ({
-        ...masterHostData,
+        master_ip: {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_host_id: masterHostData.bk_host_id,
+          ip: masterHostData.ip,
+          bk_cloud_id: masterHostData.bk_cloud_id,
+        },
         ...slaveHostData,
         ...clusterData,
       }));

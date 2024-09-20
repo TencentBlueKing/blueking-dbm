@@ -21,7 +21,12 @@ const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/tend
 /**
  * 查询资源列表
  */
-export function getTendbsingleList(params: { limit?: number; offset?: number; cluster_ids?: number[] | number }) {
+export function getTendbsingleList(params: {
+  cluster_ids?: string;
+  id?: string | number;
+  limit?: number;
+  offset?: number;
+}) {
   return http.get<ListBase<TendbsingleModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,
     results: data.results.map(

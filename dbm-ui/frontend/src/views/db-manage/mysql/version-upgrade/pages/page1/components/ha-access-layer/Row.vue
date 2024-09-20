@@ -39,8 +39,6 @@
 <script lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
@@ -80,7 +78,7 @@
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
-    (e: 'clusterInputFinish', value: TendbhaModel | null): void;
+    (e: 'clusterInputFinish', clusterId: number): void;
   }
 
   interface Exposes {
@@ -106,8 +104,8 @@
     return undefined;
   });
 
-  const handleClusterIdChange = (value: TendbhaModel | null) => {
-    emits('clusterInputFinish', value);
+  const handleClusterIdChange = (clusterId: number) => {
+    emits('clusterInputFinish', clusterId);
   };
 
   const handleAppend = () => {

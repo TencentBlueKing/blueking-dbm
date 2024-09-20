@@ -14,7 +14,7 @@
 <template>
   <BkDialog
     :is-show="isShow"
-    :title="$t('添加从库_批量录入')"
+    :title="t('添加从库_批量录入')"
     :width="705"
     @closed="handleClosed">
     <div class="master-slave-swap-batch-entry">
@@ -22,8 +22,8 @@
         <table>
           <thead>
             <tr>
-              <th>{{ $t('主库主机') }}</th>
-              <th>{{ $t('从库主机') }}</th>
+              <th>{{ t('主库主机') }}</th>
+              <th>{{ t('从库主机') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -32,7 +32,7 @@
               <td>
                 <span>127.0.0.1</span>
                 <span
-                  v-bk-tooltips="$t('复制')"
+                  v-bk-tooltips="t('复制')"
                   class="copy-btn"
                   @click="handleCopy">
                   <DbIcon type="copy" />
@@ -53,7 +53,7 @@
       </div>
       <div class="error-box">
         <span v-if="inputInvalidStack.length > 0">
-          <span>{{ $t('n处格式错误', [inputInvalidStack.length]) }}</span>
+          <span>{{ t('n处格式错误', [inputInvalidStack.length]) }}</span>
           <DbIcon
             class="action-btn"
             type="audit"
@@ -61,7 +61,7 @@
         </span>
         <span v-if="inputErrorStack.length > 0">
           <span v-if="inputInvalidStack.length > 0">；</span>
-          <span>{{ $t('n处缺少匹配对象', [inputErrorStack.length]) }}</span>
+          <span>{{ t('n处缺少匹配对象', [inputErrorStack.length]) }}</span>
           <DbIcon
             class="action-btn"
             type="audit"
@@ -69,7 +69,7 @@
         </span>
         <span v-if="inputHostErrorStack.length > 0">
           <span v-if="inputInvalidStack.length > 0">；</span>
-          <span>{{ $t('n处主机IP不存在', [inputHostErrorStack.length]) }}</span>
+          <span>{{ t('n处主机IP不存在', [inputHostErrorStack.length]) }}</span>
           <DbIcon
             class="action-btn"
             type="audit"
@@ -82,12 +82,12 @@
         :loading="isChecking"
         theme="primary"
         @click="handleSubmit">
-        {{ $t('确定') }}
+        {{ t('确定') }}
       </BkButton>
       <BkButton
         class="ml8"
         @click="handleClosed">
-        {{ $t('取消') }}
+        {{ t('取消') }}
       </BkButton>
     </template>
   </BkDialog>
@@ -100,8 +100,8 @@
       ip: string;
     };
     slaveData: {
-      bk_cloud_id: number;
       bk_host_id: number;
+      bk_cloud_id: number;
       ip: string;
     };
   }

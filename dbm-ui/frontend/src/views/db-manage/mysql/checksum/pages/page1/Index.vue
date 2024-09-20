@@ -396,7 +396,7 @@
         return createTicket(params).then((data) => {
           window.changeConfirm = false;
           router.push({
-            name: 'spiderChecksum',
+            name: 'MySQLChecksum',
             params: {
               page: 'success',
             },

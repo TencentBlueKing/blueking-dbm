@@ -69,6 +69,7 @@
               :get-table-list="getTableList"
               :is-remote-pagination="isRemotePagination"
               :last-values="lastValues"
+              :multiple="multiple"
               :role-filter-list="roleFilterList"
               :status-filter="statusFilter"
               :table-setting="tableSetting"
@@ -99,6 +100,7 @@
   interface Props {
     lastValues: InstanceSelectorValues<T>;
     tableSetting: TableSetting;
+    multiple?: NonNullable<TableConfigType['multiple']>;
     firsrColumn?: TableConfigType['firsrColumn'];
     roleFilterList?: TableConfigType['roleFilterList'];
     isRemotePagination?: TableConfigType['isRemotePagination'];
@@ -127,6 +129,7 @@
     topoAlertContent: undefined,
     roleFilterList: undefined,
     filterClusterId: undefined,
+    multiple: true,
   });
   const emits = defineEmits<Emits>();
 

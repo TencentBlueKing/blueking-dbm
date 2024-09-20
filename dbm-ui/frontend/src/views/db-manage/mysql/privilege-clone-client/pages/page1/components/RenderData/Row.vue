@@ -16,7 +16,8 @@
     <FixedColumn fixed="left">
       <RenderSource
         ref="sourceRef"
-        v-model="localSource" />
+        v-model="localSource"
+        type="cloud-ip" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderModule
@@ -42,10 +43,11 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderSource from '@views/db-manage/mysql/common/edit-field/IpInputWithIpSelector.vue';
+
   import { random } from '@utils';
 
   import RenderModule from './RenderModule.vue';
-  import RenderSource from './RenderSource.vue';
   import RenderTarget from './RenderTarget.vue';
 
   export interface IDataRow {
@@ -134,7 +136,8 @@
     getValue() {
       return Promise.all([sourceRef.value!.getValue(), moduleRef.value!.getValue(), targetRef.value!.getValue()]).then(
         ([sourceData, moduleData, targetData]) => ({
-          ...sourceData,
+          source: sourceData.ip,
+          bk_cloud_id: sourceData.bk_cloud_id,
           ...moduleData,
           ...targetData,
         }),

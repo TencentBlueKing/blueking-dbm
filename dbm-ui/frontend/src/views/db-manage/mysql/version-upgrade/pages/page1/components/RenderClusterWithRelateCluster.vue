@@ -17,19 +17,18 @@
     :class="{
       'is-editing': isShowEdit,
     }">
-    <TableEditInput
-      v-show="isShowEdit"
-      ref="editRef"
-      v-model="localDomain"
-      :placeholder="t('请输入集群域名或从表头批量选择')"
-      :rules="rules"
-      @error="handleErrorMessageChange"
-      @submit="handleEditSubmit" />
+    <span v-show="isShowEdit">
+      <TableEditInput
+        ref="editRef"
+        :model-value="localClusterInfo"
+        @cluster-change="handleEditSubmit"
+        @error="handleErrorMessageChange" />
+    </span>
     <div
       v-show="!isShowEdit"
       @click="handleShowEdit">
       <div class="render-cluster-domain">
-        <span>{{ localDomain }}</span>
+        <span>{{ localClusterInfo.domain }}</span>
       </div>
       <div
         v-if="relatedClusterList.length > 0"
@@ -50,16 +49,12 @@
 
 <script setup lang="ts">
   import _ from 'lodash';
-  import { useI18n } from 'vue-i18n';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
-  import { findRelatedClustersByClusterIds, queryClusters } from '@services/source/mysqlCluster';
+  import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes } from '@common/const';
-
-  import TableEditInput from '@components/render-table/columns/input/index.vue';
+  import TableEditInput from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
 
   import { random } from '@utils';
 
@@ -71,7 +66,7 @@
   }
 
   interface Emits {
-    (e: 'idChange', value: TendbhaModel | null): void;
+    (e: 'idChange', clusterId: number): void;
   }
 
   interface Exposes {
@@ -84,13 +79,15 @@
   const instanceKey = `render_cluster_instance_${random()}`;
   clusterIdMemo[instanceKey] = {};
 
-  const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
   const editRef = ref();
 
-  const localClusterId = ref(0);
-  const localDomain = ref('');
+  const localClusterInfo = ref({
+    id: 0,
+    domain: '',
+  });
+
   const isShowEdit = ref(true);
   const isRelateLoading = ref(false);
   const relatedClusterList = shallowRef<
@@ -100,69 +97,11 @@
     }>
   >([]);
 
-  const rules = [
-    {
-      validator: (value: string) => {
-        if (value) {
-          return true;
-        }
-        emits('idChange', null);
-        return false;
-      },
-      message: '目标集群不能为空',
-    },
-    {
-      validator: (value: string) =>
-        queryClusters({
-          cluster_filters: [
-            {
-              immute_domain: value,
-              cluster_type: ClusterTypes.TENDBHA,
-            },
-          ],
-          bk_biz_id: currentBizId,
-        }).then((data) => {
-          if (data.length > 0) {
-            localClusterId.value = data[0].id;
-            emits('idChange', data[0]);
-            return true;
-          }
-          emits('idChange', null);
-          return false;
-        }),
-      message: '目标集群不存在',
-    },
-    {
-      validator: () => {
-        const currentClusterSelectMap = clusterIdMemo[instanceKey];
-        const otherClusterMemoMap = { ...clusterIdMemo };
-        delete otherClusterMemoMap[instanceKey];
-
-        const otherClusterIdMap = Object.values(otherClusterMemoMap).reduce(
-          (result, item) => ({
-            ...result,
-            ...item,
-          }),
-          {} as Record<string, boolean>,
-        );
-
-        const currentSelectClusterIdList = Object.keys(currentClusterSelectMap);
-        for (let i = 0; i < currentSelectClusterIdList.length; i++) {
-          if (otherClusterIdMap[currentSelectClusterIdList[i]]) {
-            return false;
-          }
-        }
-        return true;
-      },
-      message: '目标集群重复',
-    },
-  ];
-
   // 通过 ID 获取关联集群
   const fetchRelatedClustersByClusterIds = () => {
     isRelateLoading.value = true;
     findRelatedClustersByClusterIds({
-      cluster_ids: [localClusterId.value],
+      cluster_ids: [localClusterInfo.value.id],
       bk_biz_id: currentBizId,
     })
       .then((data) => {
@@ -182,8 +121,10 @@
     () => props.modelValue,
     () => {
       const { id = 0, domain = '' } = props.modelValue || {};
-      localClusterId.value = id;
-      localDomain.value = domain;
+      localClusterInfo.value = {
+        id,
+        domain,
+      };
       isShowEdit.value = !id;
     },
     {
@@ -193,12 +134,12 @@
 
   // 获取关联集群
   watch(
-    localClusterId,
-    () => {
-      if (!localClusterId.value) {
+    () => localClusterInfo.value.id,
+    (clusterId) => {
+      if (!clusterId) {
         return;
       }
-      clusterIdMemo[instanceKey][localClusterId.value] = true;
+      clusterIdMemo[instanceKey][clusterId] = true;
       fetchRelatedClustersByClusterIds();
     },
     {
@@ -215,11 +156,17 @@
   };
 
   // 提交编辑
-  const handleEditSubmit = (value: string) => {
-    if (!value) {
+  const handleEditSubmit = (info: { id: number; domain: string }) => {
+    if (!info.domain) {
       return;
     }
 
+    const { id, domain } = info;
+    localClusterInfo.value = {
+      id,
+      domain,
+    };
+    emits('idChange', id);
     isShowEdit.value = false;
   };
 
@@ -234,10 +181,17 @@
   defineExpose<Exposes>({
     getValue() {
       const result = {
-        cluster_ids: _.uniq([localClusterId.value, ...relatedClusterList.value.map((listItem) => listItem.id)]),
+        cluster_ids: _.uniq([localClusterInfo.value.id, ...relatedClusterList.value.map((listItem) => listItem.id)]),
       };
-
-      return editRef.value.getValue().then(() => result);
+      // 用户输入未完成验证
+      if (editRef.value) {
+        return editRef.value.getValue().then(() => result);
+      }
+      // 用户输入错误
+      if (!localClusterInfo.value.id) {
+        return Promise.reject();
+      }
+      return Promise.resolve(result);
     },
   });
 </script>

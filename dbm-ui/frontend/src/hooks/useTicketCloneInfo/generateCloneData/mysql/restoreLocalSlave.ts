@@ -21,12 +21,12 @@ export function generateMysqlRestoreLocalSlaveCloneData(ticketData: TicketModel<
   const tableDataList = infos.map((item) => ({
     rowKey: random(),
     slave: {
-      bkCloudId: item.slave.bk_cloud_id,
-      bkHostId: item.slave.bk_host_id,
+      bk_cloud_id: item.slave.bk_cloud_id,
+      bk_host_id: item.slave.bk_host_id,
       ip: item.slave.ip,
       port: item.slave.port,
-      instanceAddress: `${item.slave.ip}:${item.slave.port}`,
-      clusterId: item.cluster_id,
+      instance_address: `${item.slave.ip}:${item.slave.port}`,
+      cluster_id: item.cluster_id,
     },
   }));
   return Promise.resolve({

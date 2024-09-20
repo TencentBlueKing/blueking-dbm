@@ -50,6 +50,7 @@
           :is-remote-pagination="activePanelObj?.tableConfig?.isRemotePagination"
           :last-values="lastValues"
           :manual-config="activePanelObj?.manualConfig"
+          :multiple="activePanelObj?.tableConfig?.multiple"
           :role-filter-list="activePanelObj?.tableConfig?.roleFilterList"
           :status-filter="activePanelObj?.tableConfig?.statusFilter"
           :table-setting="tableSettings"
@@ -292,7 +293,7 @@
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number];
 
   interface Props {
-    clusterTypes: (ClusterTypes | 'TendbhaHost' | 'TendbClusterHost' | 'RedisHost' | 'mongoCluster')[];
+    clusterTypes: string[];
     tabListConfig?: Record<string, PanelListType>;
     selected?: InstanceSelectorValues<T>;
     unqiuePanelValue?: boolean;

@@ -52,7 +52,7 @@
             :data="item"
             :removeable="tableData.length < 2"
             @add="(payload: Array<IDataRow>) => handleAppend(index, payload)"
-            @cluster-input-finish="(domainObj: TendbhaModel | null) => handleChangeCluster(index, domainObj)"
+            @cluster-input-finish="(clusterId: number) => handleChangeCluster(index, clusterId)"
             @remove="handleRemove(index)" />
         </template>
       </RenderTable>
@@ -89,6 +89,7 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { findRelatedClustersByClusterIds } from '@services/source/mysqlCluster';
+  import { getTendbhaList } from '@services/source/tendbha';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -226,8 +227,13 @@
   };
 
   // 输入集群后查询集群信息并填充到table
-  const handleChangeCluster = async (index: number, domainObj: TendbhaModel | null) => {
-    if (domainObj) {
+  const handleChangeCluster = async (index: number, id: number) => {
+    tableData.value[index].isLoading = true;
+    const result = await getTendbhaList({ id }).finally(() => {
+      tableData.value[index].isLoading = false;
+    });
+    if (result.results.length > 0) {
+      const domainObj = result.results[0];
       const row = generateTableRow(domainObj);
       tableData.value[index] = row;
       domainMemo[domainObj.master_domain] = true;

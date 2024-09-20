@@ -19,9 +19,9 @@
       'is-error': Boolean(errorMessage),
       'is-disabled': disabled,
       'is-password': isPassword,
-      'is-clearable': clearable,
     }">
     <BkInput
+      ref="inputRef"
       class="input-box"
       :disabled="disabled"
       :max="max"
@@ -37,20 +37,18 @@
       @keydown="handleKeydown"
       @paste="handlePaste">
     </BkInput>
-    <DbIcon
-      v-if="clearable && modelValue"
-      class="clear-icon"
-      type="close-circle-shape"
-      @click="handleClear" />
-    <DbIcon
-      v-if="errorMessage"
-      v-bk-tooltips="errorMessage"
-      class="error-icon"
-      type="exclamation-fill" />
-    <div
-      v-if="isShowBlur && isBlur"
-      class="blur-dispaly-main">
-      <slot name="blur" />
+    <div class="suspend-main">
+      <DbIcon
+        v-if="clearable && modelValue"
+        class="clear-icon"
+        type="close-circle-shape"
+        @click="handleClear" />
+      <slot name="suspend" />
+      <DbIcon
+        v-if="errorMessage"
+        v-bk-tooltips="errorMessage"
+        class="error-icon"
+        type="exclamation-fill" />
     </div>
   </div>
 </template>
@@ -66,7 +64,6 @@
     type?: string;
     min?: number;
     max?: number;
-    isShowBlur?: boolean;
     clearable?: boolean;
     ignoreSameInput?: boolean;
     pasteFn?: (value: string) => string;
@@ -94,7 +91,6 @@
     type: 'text',
     min: Number.MIN_SAFE_INTEGER,
     max: Number.MAX_SAFE_INTEGER,
-    isShowBlur: false,
     clearable: true,
     ignoreSameInput: false,
     pasteFn: undefined,
@@ -106,8 +102,12 @@
     default: '',
   });
 
+  defineSlots<{
+    suspend: any;
+    default: any;
+  }>();
+
   const rootRef = ref<HTMLElement>();
-  const isBlur = ref(true);
 
   const isPassword = computed(() => props.type === 'password');
 
@@ -129,14 +129,12 @@
 
   // 响应输入
   const handleInput = (value: string) => {
-    isBlur.value = false;
     window.changeConfirm = true;
     modelValue.value = value;
     emits('input', value);
   };
 
   const handleFocus = () => {
-    isBlur.value = false;
     emits('focus');
   };
 
@@ -153,7 +151,6 @@
   const handleBlur = (event: FocusEvent) => {
     setTimeout(() => {
       emits('blur', modelValue.value);
-      isBlur.value = true;
       if (props.disabled) {
         event.preventDefault();
         return;
@@ -182,7 +179,7 @@
       event.preventDefault();
       return;
     }
-    if (event.isComposing) {
+    if (event.isComposing || props.type === 'textarea') {
       // 跳过输入法复合事件
       return;
     }
@@ -205,12 +202,15 @@
   };
 
   // 粘贴
-  const handlePaste = (value: string, event: ClipboardEvent) => {
+  const handlePaste = (value: string, event: any) => {
     event.preventDefault();
+    // 获取光标位置
+    const cursorPosition = event.target.selectionStart;
     let paste = (event.clipboardData || window.clipboardData).getData('text');
     paste = encodeMult(paste);
     paste = paste.replace(/^\s+|\s+$/g, '');
-    modelValue.value = props.pasteFn ? props.pasteFn(paste) : paste;
+    paste = props.pasteFn ? props.pasteFn(paste) : paste;
+    modelValue.value = modelValue.value.slice(0, cursorPosition) + paste + modelValue.value.slice(cursorPosition);
     window.changeConfirm = true;
   };
 
@@ -233,12 +233,6 @@
 </script>
 <style lang="less" scoped>
   .is-error {
-    &.is-clearable {
-      :deep(input) {
-        padding-right: 45px;
-      }
-    }
-
     :deep(input) {
       padding: 0 16px;
       background-color: #fff0f1;
@@ -256,16 +250,30 @@
       }
     }
 
+    :deep(textarea) {
+      background-color: #fff0f1 !important;
+
+      &:hover {
+        cursor: pointer;
+        background-color: #fafbfd;
+        border: 1px solid #a3c5fd;
+      }
+
+      &:focus {
+        border-color: #3a84ff;
+      }
+
+      textarea {
+        background-color: #fff0f1;
+      }
+    }
+
     :deep(.bk-input--number-control) {
       display: none !important;
     }
 
     :deep(.bk-input--suffix-icon) {
       display: none !important;
-    }
-
-    .clear-icon {
-      right: 28px !important;
     }
   }
 
@@ -296,12 +304,6 @@
     }
   }
 
-  .is-clearable {
-    :deep(input) {
-      padding-right: 25px;
-    }
-  }
-
   .table-edit-input {
     position: relative;
     min-height: 42px;
@@ -310,17 +312,34 @@
 
     &:hover {
       .clear-icon {
-        display: block;
+        display: block !important;
       }
     }
 
     .input-box {
       width: 100%;
-      height: 42px;
+      min-height: 42px;
       padding: 0;
       background: inherit;
       border: none;
       outline: none;
+
+      :deep(textarea) {
+        min-height: 42px !important;
+        line-height: 2.5 !important;
+        border: 1px solid transparent;
+        border-radius: 0;
+
+        &:hover {
+          cursor: pointer;
+          background-color: #fafbfd;
+          border: 1px solid #a3c5fd;
+        }
+
+        &:focus {
+          border-color: #3a84ff;
+        }
+      }
 
       :deep(input) {
         padding-left: 16px;
@@ -345,30 +364,28 @@
       }
     }
 
-    .clear-icon {
+    .suspend-main {
       position: absolute;
-      top: 14px;
-      right: 10px;
-      display: none;
-      font-size: 14px;
-      color: #c4c6cc;
-
-      &:hover {
-        color: #979ba5;
-      }
-    }
-
-    .error-icon {
-      position: absolute;
-      top: 14px;
+      top: 50%;
       right: 10px;
       display: flex;
       font-size: 14px;
-      color: #ea3636;
-    }
+      transform: translateY(-50%);
+      align-items: center;
+      gap: 8px;
 
-    .blur-dispaly-main {
-      padding: 0 16px;
+      .clear-icon {
+        display: none;
+        color: #c4c6cc;
+
+        &:hover {
+          color: #979ba5;
+        }
+      }
+
+      .error-icon {
+        color: #ea3636;
+      }
     }
   }
 </style>

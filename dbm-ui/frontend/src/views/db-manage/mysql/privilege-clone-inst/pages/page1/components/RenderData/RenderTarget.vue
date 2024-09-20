@@ -80,7 +80,7 @@
       message: t('新实例不存在'),
     },
     {
-      validator: () => !!props.source && props.source.bkCloudId === localInstanceData.bk_cloud_id,
+      validator: () => !!props.source && props.source.bk_cloud_id === localInstanceData.bk_cloud_id,
       message: t('新实例和源实例的管控区域不一致'),
     },
     {

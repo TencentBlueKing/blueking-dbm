@@ -34,7 +34,8 @@ export function getTendbhaList(params: {
   exact_domain?: string;
   master_domain?: string;
   slave_domain?: string;
-  id?: string;
+  exact_domain?: string;
+  id?: string | number;
 }) {
   return http.get<ListBase<TendbhaModel[]>>(`${getRootPath()}/`, params).then((data) => ({
     ...data,

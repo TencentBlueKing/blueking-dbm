@@ -164,13 +164,13 @@
       if (!ipMemo[ip]) {
         const row = createRowData({
           oldSlave: {
-            bkCloudId: instanceData.bk_cloud_id,
-            bkCloudName: instanceData.bk_cloud_name,
-            bkHostId: instanceData.bk_host_id,
+            bk_cloud_id: instanceData.bk_cloud_id,
+            bk_cloud_name: instanceData.bk_cloud_name,
+            bk_host_id: instanceData.bk_host_id,
             ip,
             port: instanceData.port,
-            instanceAddress: instanceData.instance_address,
-            clusterId: instanceData.cluster_id,
+            instance_address: instanceData.instance_address,
+            cluster_id: instanceData.cluster_id,
           },
         });
         newList.push(row);

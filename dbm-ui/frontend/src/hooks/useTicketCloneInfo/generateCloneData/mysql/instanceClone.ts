@@ -39,23 +39,8 @@ export async function generateMysqlInstanceCloneData(ticketData: TicketModel<MyS
     const targetInstance = instanceInfoMap[item.target];
     return {
       rowKey: random(),
-      source: {
-        bkCloudId: sourceInstance.bk_cloud_id,
-        clusterId: sourceInstance.cluster_id,
-        dbModuleId: sourceInstance.db_module_id,
-        dbModuleName: sourceInstance.db_module_name,
-        instanceAddress: sourceInstance.instance_address,
-        masterDomain: sourceInstance.master_domain,
-        clusterType: sourceInstance.cluster_type,
-      },
-      target: {
-        cluster_id: targetInstance.cluster_id,
-        bk_host_id: targetInstance.bk_host_id,
-        bk_cloud_id: targetInstance.bk_cloud_id,
-        port: targetInstance.port,
-        ip: targetInstance.ip,
-        instance_address: targetInstance.instance_address,
-      },
+      source: sourceInstance,
+      target: targetInstance,
     };
   });
   return Promise.resolve({

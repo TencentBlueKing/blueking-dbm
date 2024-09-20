@@ -62,7 +62,7 @@
             type="exclamation-fill" />
         </div>
       </div>
-      <template #content> {{ localHostData?.ip }}} </template>
+      <template #content> {{ localHostData?.ip }} </template>
     </BkPopover>
   </div>
   <IpSelector
@@ -71,8 +71,8 @@
     :biz-id="currentBizId"
     button-text=""
     :cloud-info="{
-      id: oldSlave.bkCloudId,
-      name: oldSlave.bkCloudName,
+      id: oldSlave.bk_cloud_id,
+      name: oldSlave.bk_cloud_name,
     }"
     :os-types="[OSTypes.Linux]"
     service-mode="all"
@@ -138,10 +138,10 @@
       if (props.newSlave) {
         localHostData.value = {
           biz: {
-            id: props.newSlave.bkBizId,
+            id: props.newSlave.bk_biz_id,
           },
-          cloud_id: props.newSlave.bkCloudId,
-          host_id: props.newSlave.bkHostId,
+          cloud_id: props.newSlave.bk_cloud_id,
+          host_id: props.newSlave.bk_host_id,
           ip: props.newSlave.ip,
         } as HostDetails;
       }
@@ -285,11 +285,11 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        transform: translateY(-50%);
         display: flex;
         padding-right: 35px;
         font-size: 14px;
         color: #ea3636;
+        transform: translateY(-50%);
         align-items: center;
         justify-content: flex-end;
       }
