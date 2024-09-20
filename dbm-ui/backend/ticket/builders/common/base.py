@@ -461,7 +461,7 @@ class BaseTicketFlowBuilderPatchMixin(object):
             self.patch_spec_details()
         if self.need_patch_instance_details:
             self.patch_instance_details()
-        self.ticket.save(update_fields=["details", "update_at"])
+        self.ticket.save(update_fields=["details", "update_at", "remark"])
 
 
 class RedisTicketFlowBuilderPatchMixin(BaseTicketFlowBuilderPatchMixin):
