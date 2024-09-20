@@ -41,6 +41,7 @@
           :data="tableData"
           :pagination="pagination"
           remote-pagination
+          row-key="rowKey"
           @page-limit-change="handeChangeLimit"
           @page-value-change="handleChangePage">
           <BkTableColumn
@@ -49,25 +50,21 @@
             :rowspan="rowSpan"
             :width="240">
             <template #default="{ data }">
-              <TextOverflowLayout>
-                {{ data.ticket_type_display }}
-                <template #append>
-                  <AuthButton
-                    v-bk-tooltips="{
-                      content: appendBtnTipMap[appendBtnController[data.ticket_type]],
-                      disabled: !appendBtnController[data.ticket_type],
-                    }"
-                    action-id="biz_ticket_config_set"
-                    class="append-config-btn"
-                    :disabled="appendBtnController[data.ticket_type]"
-                    :permission="data.permission.biz_ticket_config_set"
-                    :resource="dbType"
-                    size="small"
-                    @click="(event: PointerEvent) => handleShowAppendConfig(data, event)">
-                    {{ t('添加免审批') }}
-                  </AuthButton>
-                </template>
-              </TextOverflowLayout>
+              {{ data.ticket_type_display }}
+              <AuthButton
+                v-bk-tooltips="{
+                  content: appendBtnTipMap[appendBtnController[data.ticket_type]],
+                  disabled: !appendBtnController[data.ticket_type],
+                }"
+                action-id="biz_ticket_config_set"
+                class="append-config-btn"
+                :disabled="appendBtnController[data.ticket_type]"
+                :permission="data.permission.biz_ticket_config_set"
+                :resource="dbType"
+                size="small"
+                @click="(event: PointerEvent) => handleShowAppendConfig(data, event)">
+                {{ t('添加免审批') }}
+              </AuthButton>
             </template>
           </BkTableColumn>
           <BkTableColumn
@@ -89,7 +86,7 @@
                     {{ t('自定义') }}
                   </BkTag>
                   <EditConfig
-                    v-model:isShow="showEditConfig[data.id]"
+                    v-model:is-show="showEditConfig[data.id]"
                     :data="data"
                     @success="fetchData">
                     <AuthButton
@@ -117,7 +114,7 @@
                       {{ t('自定义') }}
                     </BkTag>
                     <EditConfig
-                      v-model:isShow="showEditConfig[data.id]"
+                      v-model:is-show="showEditConfig[data.id]"
                       :data="data"
                       @success="fetchData">
                       <AuthButton
@@ -241,7 +238,7 @@
     </div>
   </div>
   <AppendConfigSide
-    v-model:isShow="appendConfig.isShow"
+    v-model:is-show="appendConfig.isShow"
     :data="appendConfig.data"
     :is-edit="appendConfig.isEdit"
     @success="fetchData" />
@@ -267,6 +264,8 @@
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import RenderRow from '@components/render-row/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import { random } from '@utils';
 
   import AppendConfigSide from './AppendConfigSide.vue';
   import DeleteConfig from "./DeleteConfig.vue";
@@ -379,6 +378,7 @@
         rows.sort((_, b) => b.isClusterTarget ? 1 : -1);// 集群目标排前面;
         const result = rows.map((item) => ({
           ..._.cloneDeep(item),
+          rowKey: random(),
           updateAtDisplay: item.updateAtDisplay,
           isDefaultTarget: item.isDefaultTarget,
           isCustomTarget: item.isCustomTarget,
