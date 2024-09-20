@@ -176,7 +176,7 @@
         label: t('实例'),
         field: 'instance_address',
         fixed: 'left',
-        minWidth: 200,
+        width: 200,
         showOverflowTooltip: false,
         render: ({ cell, data }: ColumnData) => (
           <TextOverflowLayout>
@@ -227,7 +227,7 @@
       {
         label: t('部署角色'),
         field: 'role',
-        width: 100,
+        width: 140,
         filter: {
           list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
@@ -236,7 +236,7 @@
       {
         label: t('所属集群'),
         field: 'master_domain',
-        minWidth: 200,
+        width: 260,
         showOverflowTooltip: false,
         render: ({ cell }: ColumnData) => (
           <TextOverflowLayout>
@@ -256,7 +256,7 @@
       {
         label: t('集群名称'),
         field: 'cluster_name',
-        minWidth: 200,
+        width: 180,
         showOverflowTooltip: false,
         render: ({ cell, data }: ColumnData) => (
           <TextOverflowLayout>
@@ -286,7 +286,7 @@
       {
         label: t('部署时间'),
         field: 'create_at',
-        width: 250,
+        width: 240,
         sort: true,
         render: ({ data }: { data: TendbhaInstanceModel }) => data.createAtDisplay || '--',
       },

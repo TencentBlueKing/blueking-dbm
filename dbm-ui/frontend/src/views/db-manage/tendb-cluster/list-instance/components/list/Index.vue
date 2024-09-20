@@ -142,7 +142,7 @@
         label: t('实例'),
         field: 'instance',
         fixed: 'left',
-        minWidth: 200,
+        width: 200,
         showOverflowTooltip: false,
         render: ({ data }: IColumn) => (
           <TextOverflowLayout>
@@ -188,6 +188,7 @@
       {
         label: t('部署角色'),
         field: 'role',
+        width: 140,
         filter: {
           list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
@@ -196,7 +197,7 @@
       {
         label: t('所属集群'),
         field: 'master_domain',
-        minWidth: 200,
+        width: 260,
         showOverflowTooltip: false,
         render: ({ data }: {data: TendbInstanceModel}) => (
           <TextOverflowLayout>
@@ -215,7 +216,7 @@
       {
         label: t('集群名称'),
         field: 'cluster_name',
-        minWidth: 200,
+        width: 180,
         showOverflowTooltip: false,
         render: ({ data }: {data: TendbInstanceModel}) => (
           <TextOverflowLayout>
@@ -254,7 +255,7 @@
         label: t('操作'),
         field: '',
         fixed: 'right',
-        width: 140,
+        width: 100,
         render: ({ data }: { data: TendbInstanceModel }) => (
           <auth-button
             action-id="tendbcluster_view"
