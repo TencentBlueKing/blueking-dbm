@@ -265,4 +265,8 @@ export default class Pulsar {
 
     return payload;
   }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Pulsar.PULSAR_ENABLE));
+  }
 }
