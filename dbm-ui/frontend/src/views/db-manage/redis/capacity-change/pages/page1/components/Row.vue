@@ -66,7 +66,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
+  import RedisModel from '@services/model/redis/redis';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
@@ -102,7 +102,7 @@
       total: number;
     };
     version?: string;
-    clusterType?: RedisClusterTypes;
+    clusterType?: string;
     switchMode?: OnlineSwitchType;
     spec?: RedisModel['cluster_spec'];
   }

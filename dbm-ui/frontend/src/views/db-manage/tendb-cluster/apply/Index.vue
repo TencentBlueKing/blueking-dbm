@@ -58,7 +58,7 @@
                   :biz-id="formdata.bk_biz_id"
                   :cloud-id="formdata.details.bk_cloud_id"
                   cluster-type="tendbcluster"
-                  machine-type="spider" />
+                  machine-type="proxy" />
               </BkFormItem>
               <BkFormItem
                 :label="t('数量')"
@@ -80,8 +80,8 @@
               v-model="formdata.details.resource_spec.backend_group"
               :biz-id="formdata.bk_biz_id"
               :cloud-id="formdata.details.bk_cloud_id"
-              cluster-type="tendbcluster"
-              machine-type="remote" />
+              db-type="tendbcluster"
+              machine-type="backend" />
           </BkFormItem>
           <BkFormItem
             :label="t('访问端口')"

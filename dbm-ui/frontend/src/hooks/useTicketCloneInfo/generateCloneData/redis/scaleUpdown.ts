@@ -46,6 +46,7 @@ export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<
     groupNum: clusterListMap[item.cluster_id].machine_pair_cnt,
     version: item.db_version,
     clusterType: clusters[item.cluster_id].cluster_type as RedisClusterTypes,
+    clusterTypeName: clusters[item.cluster_id].cluster_type_name,
     currentCapacity: {
       used: 1,
       total: clusterListMap[item.cluster_id].cluster_capacity,

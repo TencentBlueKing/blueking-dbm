@@ -82,7 +82,7 @@
           :clearable="false"
           :cloud-id="cloudId"
           :cluster-type="ClusterTypes.TENDBCLUSTER"
-          machine-type="remote"
+          machine-type="backend"
           style="width: 314px" />
       </BkFormItem>
       <BkFormItem

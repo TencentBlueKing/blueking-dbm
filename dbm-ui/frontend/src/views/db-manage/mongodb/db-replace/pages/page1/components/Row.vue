@@ -175,7 +175,7 @@
     ([clusterType, machineType]) => {
       if (clusterType && machineType) {
         fetchResourceSpecList({
-          spec_cluster_type: clusterType,
+          spec_cluster_type: 'mongodb',
           spec_machine_type: machineType,
           limit: -1,
           offset: 0,
