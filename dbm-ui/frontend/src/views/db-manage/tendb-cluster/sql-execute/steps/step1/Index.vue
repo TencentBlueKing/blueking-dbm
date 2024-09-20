@@ -23,7 +23,7 @@
           :model="formData">
           <ClusterIds
             v-model="formData.cluster_ids"
-            v-model:clusterVersionList="clusterVersionList"
+            v-model:cluster-version-list="clusterVersionList"
             :cluster-type-list="[ClusterTypes.TENDBCLUSTER]" />
           <ExecuteObjects
             v-model="formData.execute_objects"
@@ -35,6 +35,7 @@
           <RenderCharset v-model="formData.charset" />
           <Backup v-model="formData.backup" />
           <TicketMode v-model="formData.ticket_mode" />
+          <TicketRemark v-model="formData.remark" />
         </DbForm>
       </div>
       <template #action>
@@ -69,8 +70,11 @@
   import { querySemanticData, semanticCheck } from '@services/source/mysqlSqlImport';
   import { getTicketDetails } from '@services/source/ticket';
 
-  // import { useTicketCloneInfo } from '@hooks';
+  import { useTicketCloneInfo } from '@hooks';
+
   import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
+
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import Backup from '@views/db-manage/common/sql-execute/backup/Index.vue';
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
@@ -98,44 +102,16 @@
     },
     ticket_type: TicketTypes.TENDBCLUSTER_SEMANTIC_CHECK,
     cluster_type: DBTypes.TENDBCLUSTER,
+    remark: '',
   });
 
-  // useTicketCloneInfo({
-  //   type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
-  //   onSuccess(cloneData) {
-  //     Object.assign(formData, {
-  //       backup: cloneData.backup,
-  //       charset: cloneData.charset,
-  //       cluster_ids: cloneData.cluster_ids,
-  //       execute_objects: cloneData.execute_objects,
-  //       ticket_mode: cloneData.ticket_mode,
-  //     });
-  //     window.changeConfirm = true;
-  //   },
-  // });
-
-  // useTicketCloneInfo({
-  //   type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
-  //   onSuccess(cloneData) {
-  //     const {
-  //       backup,
-  //       charset,
-  //       import_mode: importMode,
-  //       execute_db_infos: executeDbInfos,
-  //       cluster_ids: clusterIds,
-  //       ticket_mode: ticketMode,
-  //       remark,
-  //     } = cloneData;
-  //     formData.backup = backup;
-  //     formData.charset = charset;
-  //     formData.import_mode = importMode;
-  //     formData.execute_db_infos = executeDbInfos;
-  //     formData.cluster_ids = clusterIds;
-  //     formData.ticket_mode = ticketMode;
-  //     formData.remark = remark;
-  //     window.changeConfirm = true;
-  //   },
-  // });
+  useTicketCloneInfo({
+    type: TicketTypes.TENDBCLUSTER_IMPORT_SQLFILE,
+    onSuccess(cloneData) {
+      Object.assign(formData, cloneData);
+      window.changeConfirm = true;
+    },
+  });
 
   const formRef = ref();
   const resetFormKey = ref(0);

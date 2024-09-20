@@ -34,5 +34,5 @@ export function generateMysqlVersionProxyUpgradeCloneData(ticketData: TicketMode
     };
   });
 
-  return Promise.resolve({ tableList });
+  return Promise.resolve({ tableList, remark: ticketData.remark });
 }

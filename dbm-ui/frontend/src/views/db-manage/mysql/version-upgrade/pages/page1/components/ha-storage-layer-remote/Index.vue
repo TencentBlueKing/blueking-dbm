@@ -73,6 +73,7 @@
           </BkRadioGroup>
         </BkFormItem>
       </BkForm>
+      <TicketRemark v-model="localRemark" />
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
         :cluster-types="[ClusterTypes.TENDBHA]"
@@ -115,6 +116,7 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
+  import TicketRemark from '@components/ticket-remark/Index.vue';
 
   import type { InfoItem } from '@views/db-manage/redis/db-data-copy/pages/page1/Index.vue';
 
@@ -123,6 +125,7 @@
   interface Props {
     tableList: IDataRow[];
     backupSource: string;
+    remark: string;
   }
 
   interface Exposes {
@@ -140,6 +143,7 @@
   const rowRefs = ref();
   const isSubmitting = ref(false);
   const localBackupSource = ref('local');
+  const localRemark = ref('');
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
@@ -157,6 +161,16 @@
     () => props.backupSource,
     () => {
       localBackupSource.value = props.backupSource || 'local';
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  watch(
+    () => props.remark,
+    () => {
+      localRemark.value = props.remark;
     },
     {
       immediate: true,
@@ -267,7 +281,7 @@
       const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
       await createTicket({
         ticket_type: TicketTypes.MYSQL_MIGRATE_UPGRADE,
-        remark: '',
+        remark: localRemark.value,
         details: {
           ip_source: 'manual_input',
           backup_source: localBackupSource.value,
@@ -294,6 +308,7 @@
 
   const handleReset = () => {
     tableData.value = [createRowData()];
+    localRemark.value = '';
     domainMemo = {};
     selectedClusters.value[ClusterTypes.TENDBHA] = [];
     window.changeConfirm = false;

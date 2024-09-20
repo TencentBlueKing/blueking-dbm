@@ -71,6 +71,8 @@
   import { getRedisList } from '@services/source/redis';
   import { createTicket } from '@services/source/ticket';
 
+  import { useTicketCloneInfo } from '@hooks';
+
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -86,14 +88,14 @@
   const { t } = useI18n();
 
   // 单据克隆
-  // useTicketCloneInfo({
-  //   type: TicketTypes.REDIS_SCALE_UPDOWN,
-  //   onSuccess(cloneData) {
-  //     tableData.value = cloneData.tableDataList;
-  //     remark.value = cloneData.remark;
-  //     window.changeConfirm = true;
-  //   },
-  // });
+  useTicketCloneInfo({
+    type: TicketTypes.REDIS_SCALE_UPDOWN,
+    onSuccess(cloneData) {
+      tableData.value = cloneData.tableDataList;
+      remark.value = cloneData.remark;
+      window.changeConfirm = true;
+    },
+  });
 
   const rowRefs = ref();
   const isShowMasterInstanceSelector = ref(false);

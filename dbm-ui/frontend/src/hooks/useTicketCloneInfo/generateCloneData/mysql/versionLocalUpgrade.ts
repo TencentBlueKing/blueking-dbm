@@ -60,5 +60,5 @@ export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: Tick
     };
   });
 
-  return Promise.resolve({ tableList });
+  return Promise.resolve({ tableList, remark: ticketData.remark });
 }
