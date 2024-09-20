@@ -3517,5 +3517,15 @@
     "账号下已存在该规则": "账号下已存在该规则",
     "访问DB变更前后对比": "访问DB变更前后对比",
     "复制所属集群": "复制所属集群",
+    "后端存储": "后端存储",
+    "TendisCache后端存储": "TendisCache 后端存储",
+    "TendisSSD后端存储": "TendisSSD 后端存储",
+    "TendisPlus后端存储": "TendisPlus 后端存储",
+    "DataNode节点": "DataNode 节点",
+    "NameNode_Zookeeper_JournalNode节点": "NameNode_Zookeeper_JournalNode 节点",
+    "副本集/ShardSvr": "副本集/ShardSvr",
+    "必须要能除尽总分片数": "必须要能除尽总分片数",
+    "变更机器组数": "变更机器组数",
+    "DB名称支持通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔": "DB名称支持通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔",
     "这行勿动！新增翻译请在上一行添加！": ""
 }
