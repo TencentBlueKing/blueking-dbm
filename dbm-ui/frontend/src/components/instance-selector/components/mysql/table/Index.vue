@@ -69,6 +69,7 @@
   interface Props {
     lastValues: InstanceSelectorValues<T>,
     tableSetting: TableSetting,
+    multiple?: boolean,
     clusterId?: number,
     isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
@@ -92,6 +93,7 @@
     activePanelId: 'tendbcluster',
     disabledRowConfig: undefined,
     roleFilterList: undefined,
+    multiple: true,
   });
 
   const emits = defineEmits<Emits>();
@@ -165,7 +167,7 @@
     {
       minWidth: 70,
       fixed: 'left',
-      label: () => (
+      label: () => props.multiple && (
         <div style="display:flex;align-items:center">
           <bk-checkbox
             label={true}
@@ -202,11 +204,18 @@
             </bk-popover>
           );
         }
-        return (
+        return props.multiple ? (
           <bk-checkbox
             style="vertical-align: middle;"
             label={true}
             model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            onChange={(value: boolean) => handleTableSelectOne(value, data)}
+          />
+        ) : (
+          <bk-radio
+            style="vertical-align: middle;"
+            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            label={true}
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
         );
@@ -380,11 +389,16 @@
     }
 
     const isChecked = !!checkedMap.value[data[firstColumnFieldId.value]];
+    if (isChecked && !props.multiple) {
+      // 单选不允许取消
+      return;
+    }
+
     handleTableSelectOne(!isChecked, data);
   };
 
   const handleTableSelectOne = (checked: boolean, data: T) => {
-    const lastCheckMap = { ...checkedMap.value };
+    const lastCheckMap = props.multiple ? { ...checkedMap.value } : {};
     if (checked) {
       lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data) as T;
     } else {

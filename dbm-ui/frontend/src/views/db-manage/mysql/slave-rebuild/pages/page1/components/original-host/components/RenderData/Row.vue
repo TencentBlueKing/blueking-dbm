@@ -16,7 +16,8 @@
     <FixedColumn fixed="left">
       <RenderSlave
         ref="slaveRef"
-        v-model="localSlave" />
+        v-model="localSlave"
+        :tab-list-config="tabListConfig" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderCluster
@@ -32,23 +33,28 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import { ClusterTypes } from '@common/const';
+
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderSlave from '@views/db-manage/mysql/common/edit-field/InstanceWithSelector.vue';
 
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
-  import RenderSlave from './RenderSlave.vue';
 
   export interface IDataRow {
     rowKey: string;
     slave?: {
-      bkCloudId: number;
-      bkHostId: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
       ip: string;
       port: number;
-      instanceAddress: string;
-      clusterId: number;
+      instance_address: string;
+      cluster_id: number;
     };
     clusterId?: number;
   }
@@ -79,10 +85,26 @@
 
   const emits = defineEmits<Emits>();
 
-  const slaveRef = ref();
-  const clusterRef = ref();
+  const { t } = useI18n();
 
+  const slaveRef = ref<InstanceType<typeof RenderSlave>>();
+  const clusterRef = ref<InstanceType<typeof RenderCluster>>();
   const localSlave = ref<IDataRow['slave']>();
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        name: t('目标从库实例'),
+        tableConfig: {
+          firsrColumn: {
+            label: 'slave',
+            role: 'slave',
+          },
+          multiple: false,
+        },
+      },
+    ],
+  } as any;
 
   watch(
     () => props.data,
@@ -107,7 +129,7 @@
     emits('remove');
   };
 
-  const getRowData = () => [slaveRef.value.getValue('master_ip'), clusterRef.value.getValue()];
+  const getRowData = () => [slaveRef.value!.getValue(), clusterRef.value!.getValue()];
 
   const handleClone = () => {
     Promise.allSettled(getRowData()).then((rowData) => {
@@ -117,12 +139,12 @@
         createRowData({
           slave: sourceData
             ? {
-                bkCloudId: sourceData.slave.bk_cloud_id,
-                bkHostId: sourceData.slave.bk_host_id,
+                bk_cloud_id: sourceData.slave.bk_cloud_id,
+                bk_host_id: sourceData.slave.bk_host_id,
                 ip: sourceData.slave.ip,
                 port: sourceData.slave.port,
-                instanceAddress: sourceData.slave.instance_address,
-                clusterId: clusterData.cluster_id,
+                instance_address: sourceData.slave.instance_address,
+                cluster_id: clusterData.cluster_id,
               }
             : undefined,
           clusterId: clusterData.cluster_id,
@@ -133,10 +155,19 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(([sourceData, clusterData]) => ({
-        ...sourceData,
-        ...clusterData,
-      }));
+      return Promise.all([slaveRef.value!.getValue(), clusterRef.value!.getValue()]).then(
+        ([sourceData, moduleData]) => ({
+          slave: {
+            bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+            bk_cloud_id: sourceData.bk_cloud_id,
+            ip: sourceData.ip,
+            bk_host_id: sourceData.bk_host_id,
+            port: sourceData.port,
+            instance_address: sourceData.instance_address,
+          },
+          ...moduleData,
+        }),
+      );
     },
   });
 </script>

@@ -16,7 +16,10 @@
     <FixedColumn fixed="left">
       <RenderOldSlave
         ref="slaveRef"
-        v-model="localOldSlave" />
+        v-model="localOldSlave"
+        :placeholder="t('请输入IP或从表头批量选择')"
+        :tab-list-config="tabListConfig"
+        type="ip" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderCluster
@@ -38,31 +41,36 @@
   </tr>
 </template>
 <script lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import { ClusterTypes } from '@common/const';
+
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
+  import RenderOldSlave from '@views/db-manage/mysql/common/edit-field/InstanceWithSelector.vue';
 
   import { random } from '@utils';
 
   import RenderCluster from './RenderCluster.vue';
   import RenderNewSlave from './RenderNewSlave.vue';
-  import RenderOldSlave from './RenderOldSlave.vue';
 
   export interface IDataRow {
     rowKey: string;
     oldSlave?: {
-      bkCloudId: number;
-      bkCloudName: string;
-      bkHostId: number;
+      bk_cloud_id: number;
+      bk_cloud_name: string;
+      bk_host_id: number;
       ip: string;
       port: number;
-      instanceAddress: string;
-      clusterId: number;
+      instance_address: string;
+      cluster_id: number;
     };
     clusterId?: number;
     newSlave?: {
-      bkBizId: number;
-      bkCloudId: number;
-      bkHostId: number;
+      bk_biz_id: number;
+      bk_cloud_id: number;
+      bk_host_id: number;
       ip: string;
       // port: number;
     };
@@ -95,12 +103,28 @@
 
   const emits = defineEmits<Emits>();
 
+  const { t } = useI18n();
+
   const slaveRef = ref<InstanceType<typeof RenderOldSlave>>();
   const clusterRef = ref<InstanceType<typeof RenderCluster>>();
   const newSlaveRef = ref<InstanceType<typeof RenderNewSlave>>();
-
   const localOldSlave = ref<IDataRow['oldSlave']>();
   const localNewSlave = ref<IDataRow['newSlave']>();
+
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        name: t('待重建从库主机'),
+        tableConfig: {
+          firsrColumn: {
+            label: 'slave',
+            role: 'slave',
+          },
+          multiple: false,
+        },
+      },
+    ],
+  } as any;
 
   watch(
     () => props.data,
@@ -138,9 +162,9 @@
           clusterId: rowInfo[0]?.old_slave.cluster_id,
           newSlave: newSlaveData
             ? {
-                bkBizId: newSlaveData.new_slave.bk_biz_id,
-                bkCloudId: newSlaveData.new_slave.bk_cloud_id,
-                bkHostId: newSlaveData.new_slave.bk_host_id,
+                bk_biz_id: newSlaveData.new_slave.bk_biz_id,
+                bk_cloud_id: newSlaveData.new_slave.bk_cloud_id,
+                bk_host_id: newSlaveData.new_slave.bk_host_id,
                 ip: newSlaveData.new_slave.ip,
               }
             : undefined,
@@ -151,10 +175,21 @@
 
   defineExpose<Exposes>({
     getValue() {
-      return Promise.all(getRowData()).then(([sourceData, clusterData, newSlaveData]) => ({
-        ...sourceData,
-        ...clusterData,
+      return Promise.all([
+        slaveRef.value!.getValue(),
+        clusterRef.value!.getValue(),
+        newSlaveRef.value!.getValue(),
+      ]).then(([sourceData, moduleData, newSlaveData]) => ({
+        old_slave: {
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          bk_cloud_id: sourceData.bk_cloud_id,
+          ip: sourceData.ip,
+          bk_host_id: sourceData.bk_host_id,
+          port: sourceData.port,
+          instance_address: sourceData.instance_address,
+        },
         ...newSlaveData,
+        ...moduleData,
       }));
     },
   });

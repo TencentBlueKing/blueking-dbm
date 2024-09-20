@@ -17,7 +17,8 @@
       <ColumnCluster
         ref="clusterRef"
         :model-value="localClusterData"
-        @cluster-input-finish="handleClusterInputFinish" />
+        :tabs="tabs"
+        @cluster-change="handleClusterInputFinish" />
     </td>
     <td
       v-for="variableName in variableList"
@@ -60,9 +61,10 @@
 <script setup lang="ts">
   import { watch } from 'vue';
 
-  import TendbhaModel from '@services/model/mysql/tendbha';
+  import { ClusterTypes } from '@common/const';
 
-  import ColumnCluster from './ColumnCluster.vue';
+  import ColumnCluster from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
+
   import ColumnHost from './ColumnHost.vue';
   import ColumnVariable from './ColumnVariable.vue';
 
@@ -87,13 +89,14 @@
     removeable: boolean;
     variableList: string[];
     showIpCloumn: boolean;
+    clusterType: ClusterTypes;
   }
 
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
     (e: 'clone', value: IDataRow): void;
-    (e: 'clusterInputFinish', value: TendbhaModel): void;
+    (e: 'clusterInputFinish', clusterId: number): void;
   }
 
   interface Exposes {
@@ -107,21 +110,27 @@
   const clusterRef = ref<InstanceType<typeof ColumnCluster>>();
   const variableRefs = ref<InstanceType<typeof ColumnVariable>[]>([]);
   const hostRef = ref<InstanceType<typeof ColumnHost>>();
+  const localClusterData = ref<IData['clusterData'] & { domain: string }>();
 
-  const localClusterData = ref<IData['clusterData']>();
+  const tabs = computed(() => (props.clusterType === ClusterTypes.TENDBHA ? 'tendbha' : 'tendbsingle'));
 
   watch(
     () => props.data,
     () => {
-      localClusterData.value = props.data.clusterData;
+      if (props.data.clusterData) {
+        localClusterData.value = {
+          domain: props.data.clusterData.master_domain,
+          ...props.data.clusterData,
+        };
+      }
     },
     {
       immediate: true,
     },
   );
 
-  const handleClusterInputFinish = (value: TendbhaModel) => {
-    emits('clusterInputFinish', value);
+  const handleClusterInputFinish = (info: { id: number }) => {
+    emits('clusterInputFinish', info.id);
   };
 
   const handleAppend = () => {
@@ -137,7 +146,7 @@
 
   const handleClone = () => {
     Promise.allSettled([
-      clusterRef.value!.getValue(true),
+      clusterRef.value!.getValue(),
       Promise.allSettled(variableRefs.value.map((item) => item.getValue())),
       hostRef.value?.getValue(),
     ]).then((rowData) => {
@@ -158,7 +167,7 @@
   defineExpose<Exposes>({
     getValue() {
       return Promise.all([
-        clusterRef.value!.getValue(true),
+        clusterRef.value!.getValue(),
         Promise.all(variableRefs.value.map((item) => item.getValue())),
         hostRef.value?.getValue(),
       ]).then(([clusterData, variableData, hostData]) =>

@@ -85,17 +85,17 @@
           instanceAddreddMemo[instanceKey] = { [localValue.value]: true };
           const [instanceData] = data;
           if (
-            !modelValue.value?.instanceAddress ||
-            modelValue.value.instanceAddress !== instanceData.instance_address
+            !modelValue.value?.instance_address ||
+            modelValue.value.instance_address !== instanceData.instance_address
           ) {
             modelValue.value = {
-              bkCloudId: instanceData.bk_cloud_id,
-              bkCloudName: instanceData.bk_cloud_name,
-              bkHostId: instanceData.bk_host_id,
+              bk_cloud_id: instanceData.bk_cloud_id,
+              bk_cloud_name: instanceData.bk_cloud_name,
+              bk_host_id: instanceData.bk_host_id,
               ip: instanceData.ip,
               port: instanceData.port,
-              instanceAddress: instanceData.instance_address,
-              clusterId: instanceData.cluster_id,
+              instance_address: instanceData.instance_address,
+              cluster_id: instanceData.cluster_id,
             };
           }
           return true;
@@ -162,11 +162,11 @@
           return {
             old_slave: {
               bk_biz_id: currentBizId,
-              bk_cloud_id: modelValue.value.bkCloudId,
+              bk_cloud_id: modelValue.value.bk_cloud_id,
               ip: modelValue.value.ip,
-              bk_host_id: modelValue.value.bkHostId,
+              bk_host_id: modelValue.value.bk_host_id,
               port: modelValue.value.port,
-              instance_address: modelValue.value.instanceAddress,
+              instance_address: modelValue.value.instance_address,
             },
           };
         })
@@ -176,11 +176,11 @@
               ? {
                   old_slave: {
                     bk_biz_id: currentBizId,
-                    bk_cloud_id: modelValue.value.bkCloudId,
+                    bk_cloud_id: modelValue.value.bk_cloud_id,
                     ip: modelValue.value.ip,
-                    bk_host_id: modelValue.value.bkHostId,
+                    bk_host_id: modelValue.value.bk_host_id,
                     port: modelValue.value.port,
-                    instance_address: modelValue.value.instanceAddress,
+                    instance_address: modelValue.value.instance_address,
                   },
                 }
               : undefined,

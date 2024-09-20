@@ -408,6 +408,11 @@
     }
     const currentSelected = selectedMap.value[activeTab.value];
     const isChecked = !!(currentSelected && currentSelected[data.id]);
+    if (isChecked && !props.multiple) {
+      // 单选不允许取消
+      return;
+    }
+
     handleSelecteRow(data, !isChecked);
   };
 

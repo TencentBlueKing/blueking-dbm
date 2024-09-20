@@ -19,7 +19,7 @@
     :placeholder="t('请输入或选择集群')"
     :rules="rules"
     @submit="handleInputFinish">
-    <template #blur>
+    <template #suspend>
       <slot name="blur" />
     </template>
   </TableEditInput>

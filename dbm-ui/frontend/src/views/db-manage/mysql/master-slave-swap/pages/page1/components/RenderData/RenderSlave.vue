@@ -47,7 +47,7 @@
   }
 
   interface Exposes {
-    getValue: (field: string) => Promise<string>;
+    getValue: () => Promise<{ slave_ip: ISlaveHost }>;
   }
 
   interface ISlaveHost {
@@ -59,7 +59,7 @@
 
   const props = defineProps<Props>();
 
-  const genHostKey = (hostData: any) => `${hostData.bk_cloud_id}:${hostData.ip}`;
+  const genHostKey = (hostData: ISlaveHost) => `${hostData.bk_cloud_id}:${hostData.ip}`;
 
   const instanceKey = `render_slave_${random()}`;
   singleHostSelectMemo[instanceKey] = {};
@@ -86,7 +86,7 @@
     () => props.clusterList,
     () => {
       if (props.data) {
-        localValue.value = genHostKey(props.data);
+        localValue.value = `${props.data.bk_cloud_id}:${props.data.ip}`;
       } else {
         localValue.value = '';
       }

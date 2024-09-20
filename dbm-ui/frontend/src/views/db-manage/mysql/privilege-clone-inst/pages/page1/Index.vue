@@ -191,15 +191,7 @@
       const targetInstance = instanceInfoMap[item.target];
       return {
         ...createRowData(),
-        source: {
-          bkCloudId: sourceInstance.bk_cloud_id,
-          clusterId: sourceInstance.cluster_id,
-          dbModuleId: sourceInstance.db_module_id,
-          dbModuleName: sourceInstance.db_module_name,
-          instanceAddress: sourceInstance.instance_address,
-          masterDomain: sourceInstance.master_domain,
-          clusterType: sourceInstance.cluster_type,
-        },
+        source: sourceInstance,
         target: {
           cluster_id: targetInstance.cluster_id,
           bk_host_id: targetInstance.bk_host_id,
@@ -231,15 +223,7 @@
       const { instance_address: ip } = item;
       if (!instanceMemo[ip]) {
         const row = createRowData({
-          source: {
-            clusterId: item.cluster_id,
-            clusterType: item.cluster_type,
-            masterDomain: item.master_domain,
-            dbModuleId: item.db_module_id,
-            dbModuleName: item.db_module_name,
-            instanceAddress: item.instance_address,
-            bkCloudId: item.bk_cloud_id,
-          },
+          source: item,
         });
         results.push(row);
         instanceMemo[ip] = true;
@@ -264,7 +248,7 @@
   // 删除一个集群
   const handleRemove = (index: number) => {
     const dataList = [...tableData.value];
-    const { instanceAddress, clusterType } = dataList[index].source!;
+    const { instance_address: instanceAddress, cluster_type: clusterType } = dataList[index].source!;
     dataList.splice(index, 1);
     tableData.value = dataList;
     if (instanceAddress) {
