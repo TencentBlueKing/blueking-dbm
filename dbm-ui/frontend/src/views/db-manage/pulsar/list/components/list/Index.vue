@@ -567,6 +567,7 @@
                 text
                 theme="primary"
                 action-id="pulsar_enable_disable"
+                disabled={data.isStarting}
                 permission={data.permission.pulsar_enable_disable}
                 v-db-console="pulsar.clusterManage.enable"
                 resource={data.id}
