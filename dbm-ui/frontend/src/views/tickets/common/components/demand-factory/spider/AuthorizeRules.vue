@@ -57,7 +57,7 @@
       <span>{{ t('权限明细') }}：</span>
       <DbOriginalTable
         :columns="columns"
-        :data="accessData" />
+        :data="tableData" />
     </div>
   </div>
   <div v-else>
@@ -107,9 +107,15 @@
 
   import TargetClusterPreview from './TargetClusterPreview.vue';
 
+  interface IDataRow {
+    access_db: string;
+    privilege: string;
+  }
+
   interface Props {
     ticketDetails: TicketModel<MysqlAuthorizationDetails>
   }
+
   const props = defineProps<Props>();
 
   const { t } = useI18n();
@@ -124,9 +130,11 @@
       label: t('权限'),
       field: 'privilege',
       showOverflowTooltip: true,
-      render: ({ cell }: { cell: string }) => <span>{cell || '--'}</span>,
+      render: ({ cell }: { cell: string }) => <span>{cell.replace(/,/g, '，') || '--'}</span>,
     },
   ];
+
+  const tableData = shallowRef<IDataRow[]>([]);
 
   // 是否是添加授权
   const isAddAuth = computed(() => props.ticketDetails?.ticket_type === TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES);
@@ -147,25 +155,35 @@
   }));
 
   const {
-    data: rulesData,
     run: queryAccountRulesRun,
   } = useRequest(queryAccountRules, {
     manual: true,
+    onSuccess: (data) => {
+      tableData.value = data.results[0]?.rules.map((item) => ({
+        access_db: item.access_db,
+        privilege: item.privilege,
+    }));
+    }
   });
-
-  const accessData = computed(() => rulesData.value?.results[0]?.rules || []);
 
   watch(() => props.ticketDetails.ticket_type, (data) => {
     if (data === TicketTypes.TENDBCLUSTER_AUTHORIZE_RULES) {
       const {
         details,
       } = props.ticketDetails;
+      if (details?.authorize_data?.privileges?.length) {
+        tableData.value = details?.authorize_data?.privileges.map((item) => ({
+          access_db: item.access_db,
+          privilege: item.priv,
+        }));
+        return;
+      }
+
       const params = {
         user: details?.authorize_data?.user,
         access_dbs: details?.authorize_data?.access_dbs,
         account_type: AccountTypes.TENDBCLUSTER,
       };
-
       queryAccountRulesRun(params);
     }
   }, { immediate: true, deep: true });

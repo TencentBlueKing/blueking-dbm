@@ -12,9 +12,9 @@
 -->
 
 <template>
-  <AccountRuleChange
-    :account-type="AccountTypes.TENDBCLUSTER"
-    :ticket-details="ticketDetails" />
+  <Component
+    :is="comMap[ticketDetails.details.action]"
+    v-bind="props" />
 </template>
 
 <script setup lang="ts">
@@ -23,11 +23,20 @@
 
   import { AccountTypes } from '@common/const';
 
-  import AccountRuleChange from '@views/tickets/common/components/demand-factory/mysql/account-rule-change/Index.vue';
+  import PreviewDiff from './components/PreviewDiff.vue';
+  import RuleDeleteTable from './components/RuleDeleteTable.vue';
 
   interface Props {
     ticketDetails: TicketModel<MySQLAccountRuleChangeDetails>;
+    accountType?: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
   }
 
-  defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    accountType: AccountTypes.MYSQL,
+  });
+
+  const comMap = {
+    change: PreviewDiff,
+    delete: RuleDeleteTable,
+  } as Record<string, any>;
 </script>
