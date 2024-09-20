@@ -46,6 +46,8 @@
   import { ref } from 'vue';
   import type { ComponentProps } from 'vue-component-type-helpers';
 
+  import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
+
   import RenderSql from '@views/db-manage/common/sql-execute/common/RenderSql/Index.vue';
 
   import { random } from '@utils';
