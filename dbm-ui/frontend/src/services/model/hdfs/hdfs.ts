@@ -261,4 +261,8 @@ export default class Hdfs {
 
     return payload;
   }
+
+  get isStarting() {
+    return Boolean(this.operations.find((item) => item.ticket_type === Hdfs.HDFS_ENABLE));
+  }
 }
