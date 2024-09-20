@@ -161,13 +161,13 @@
 
   const { t } = useI18n();
 
-  const clusterRef = ref();
-  const versionRef = ref();
-  const switchModeRef = ref();
-  const targetCapacityRef = ref();
-  const localTargetVersion = ref<string>();
+  const clusterRef = ref<InstanceType<typeof RenderTargetCluster>>();
+  const versionRef = ref<InstanceType<typeof RenderTargetVersion>>();
+  const targetCapacityRef = ref<InstanceType<typeof RenderTargetCapacity>>();
+  const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
+  const localTargetVersion = ref<string>('');
 
-  const handleTargetVersionChange = (value?: string) => {
+  const handleTargetVersionChange = (value: string) => {
     localTargetVersion.value = value;
   };
 
