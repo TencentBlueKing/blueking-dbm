@@ -15,8 +15,7 @@
   <div class="mysql-table">
     <RenderTable
       v-bind="props"
-      :data="data"
-      :show-privilege="!showExcel" />
+      :data="data" />
   </div>
   <div
     v-if="showExcel"
@@ -55,14 +54,17 @@
   const showExcel = computed(() => props.ticketDetails.ticket_type === TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES);
 
   const data = computed(() => {
+    // 导入授权
     if (props.ticketDetails.ticket_type === TicketTypes.MYSQL_EXCEL_AUTHORIZE_RULES) {
       return props.ticketDetails.details.authorize_data_list.map((item) => ({
         ips: item.source_ips as string[],
         user: item.user,
         accessDbs: item.access_dbs,
         clusterDomains: item.target_instances,
+        privileges: item.privileges,
       }));
     }
+
     if (props.ticketDetails.ticket_type === TicketTypes.MYSQL_AUTHORIZE_RULES) {
       const { authorize_data: authorizeData } = props.ticketDetails.details;
       return [
@@ -71,6 +73,7 @@
           user: authorizeData.user,
           accessDbs: authorizeData.access_dbs,
           clusterDomains: authorizeData.target_instances,
+          privileges: authorizeData.privileges,
         },
       ];
     }

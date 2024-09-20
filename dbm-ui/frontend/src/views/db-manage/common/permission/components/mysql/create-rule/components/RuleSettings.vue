@@ -171,7 +171,10 @@
   }
 
   interface Exposes {
-    validate: () => Promise<AccountRule>;
+    getValue: () => Promise<{
+      userName: string;
+      accountRule: AccountRule;
+    }>;
   }
 
   const props = defineProps<Props>();
@@ -210,10 +213,10 @@
       },
       {
         trigger: 'blur',
-        message: t('DB名称不支持 *'),
+        message: t('DB名称支持通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔'),
         validator: (value: string) => {
           const dbs = value.split(/[\n;,]/);
-          return _.every(dbs, (item) => (!item ? true : !/\*/.test(item)));
+          return _.every(dbs, (item) => (!item ? true : /^[0-9a-zA-Z][0-9a-zA-Z%]*$/.test(item)));
         },
       },
       {
@@ -234,7 +237,6 @@
           }
 
           const { results } = await queryAccountRules({
-            bizId: window.PROJECT_CONFIG.BIZ_ID,
             user,
             access_dbs: dbs,
             account_type: props.accountType,
@@ -299,7 +301,13 @@
   });
 
   defineExpose<Exposes>({
-    validate: () => formRef.value.validate(),
+    getValue: async () => {
+      await formRef.value.validate();
+      return {
+        userName: accounts.value.find((item) => item.account_id === formData.value.account_id)?.user || '',
+        accountRule: formData.value,
+      };
+    },
   });
 </script>
 
