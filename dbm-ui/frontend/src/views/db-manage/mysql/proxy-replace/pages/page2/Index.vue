@@ -82,9 +82,6 @@
   const handleStepChange = () => {
     router.push({
       name: 'MySQLProxyReplace',
-      query: {
-        ticketId,
-      },
     });
   };
 </script>
