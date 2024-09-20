@@ -58,6 +58,7 @@
   import MongoShardScaleDown from './mongodb/ShardScaleDown.vue';
   import MongoShardScaleUp from './mongodb/ShardScaleUp.vue';
   import MongoTemporaryDestrot from './mongodb/TemporaryDestrot.vue';
+  import MySQLAccountRuleChange from './mysql/account-rule-change/Index.vue';
   import MySQLAuthorizeRule from './mysql/authorize-rule/Index.vue';
   import MySQLChecksum from './mysql/Checksum.vue';
   import MySQLClone from './mysql/Clone.vue';
@@ -107,6 +108,7 @@
   import RedisRollbackDataCopy from './redis/RollbackDataCopy.vue';
   import RedisStructureDelete from './redis/StructureDelete.vue';
   import RedisVersionUpgrade from './redis/VersionUpgrade.vue';
+  import SpiderAccountRuleChange from './spider/AccountRuleChange.vue';
   import SpiderAddNodes from './spider/AddNodes.vue';
   import SpiderAuthorizeRules from './spider/AuthorizeRules.vue';
   import SpiderCheckSum from './spider/CheckSum.vue';
@@ -307,6 +309,7 @@
     [TicketTypes.MYSQL_ADD_SLAVE]: MySQLAddSlave,
     [TicketTypes.MYSQL_DATA_MIGRATE]: MySQLDataMigrate,
     [TicketTypes.MYSQL_MASTER_SLAVE_SWITCH]: MySQLMasterSlaveSwitch,
+    [TicketTypes.MYSQL_ACCOUNT_RULE_CHANGE]: MySQLAccountRuleChange,
     [TicketTypes.TBINLOGDUMPER_INSTALL]: DumperInstall,
     [TicketTypes.TBINLOGDUMPER_SWITCH_NODES]: DumperSwitchNode,
     [TicketTypes.PULSAR_APPLY]: DetailsPulsar,
@@ -345,6 +348,7 @@
     [TicketTypes.TENDBCLUSTER_SPIDER_SLAVE_DESTROY]: SpiderSlaveDestroy,
     [TicketTypes.TENDBCLUSTER_DB_TABLE_BACKUP]: SpiderTableBackup,
     [TicketTypes.TENDBCLUSTER_TRUNCATE_DATABASE]: SpiderTruncateDatabase,
+    [TicketTypes.TENDBCLUSTER_ACCOUNT_RULE_CHANGE]: SpiderAccountRuleChange,
     [TicketTypes.RIAK_CLUSTER_APPLY]: DetailRiak,
     [TicketTypes.RIAK_CLUSTER_REBOOT]: RiakReboot,
     [TicketTypes.MONGODB_SHARD_APPLY]: DetailsMongoDBSharedCluster,

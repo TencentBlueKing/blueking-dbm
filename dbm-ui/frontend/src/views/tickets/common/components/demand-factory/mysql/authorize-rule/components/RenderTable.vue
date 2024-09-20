@@ -80,7 +80,6 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      v-if="showPrivilege"
       :label="t('权限')"
       :width="400">
       <template #default="{ data }: { data: IDataRow }">
@@ -116,7 +115,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { queryAccountRules } from '@services/source/mongodbPermissionAccount';
-  import type { AccountRulePrivilege } from '@services/types';
+  import type { AccountRulePrivilege, AuthorizePreCheckData } from '@services/types';
 
   import { useCopy } from '@hooks';
 
@@ -129,17 +128,15 @@
     user: string;
     accessDbs: string[];
     clusterDomains: string[];
+    privileges?: AuthorizePreCheckData['privileges'];
   }
 
   interface Props {
     accountType: AccountTypes.MYSQL | AccountTypes.TENDBCLUSTER;
     data: IDataRow[];
-    showPrivilege?: boolean;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    showPrivilege: true,
-  });
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const copy = useCopy();
@@ -157,14 +154,35 @@
     () => props.data,
     () => {
       tableData.value = props.data;
-      if (!props.showPrivilege) {
+
+      const { dbOperations: { ddl = [], dml = [], glob = [] } = {} } = configMap[props.accountType];
+
+      // 若权限快照存在
+      if (props.data[0].privileges?.length) {
+        userDbPrivilegeMap.value = props.data.reduce<Record<string, AccountRulePrivilege>>((acc, cur) => {
+          const { privileges } = cur;
+          privileges?.forEach((item) => {
+            const { user, access_db: accessDbs, priv } = item;
+            const privileageMap = new Set(priv.split(','));
+            acc[`${user}#${accessDbs}`] = {
+              ddl: ddl.filter((item) => privileageMap.has(item)),
+              dml: dml.filter((item) => privileageMap.has(item)),
+              glob: glob.filter((item) => privileageMap.has(item)),
+            };
+          });
+          return acc;
+        }, {});
         return;
       }
+
+      /**
+       * 兼容老数据
+       * 异步查询权限
+       */
       Promise.all(
         props.data.map(
           ({ user, accessDbs }) =>
             new Promise<Record<string, AccountRulePrivilege>>((resolve) => {
-              const { dbOperations: { ddl = [], dml = [], glob = [] } = {} } = configMap[props.accountType];
               queryAccountRules({
                 user,
                 access_dbs: accessDbs,
