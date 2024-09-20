@@ -14,16 +14,12 @@
 <template>
   <TableEditInput
     ref="editRef"
-    v-model="localInstanceAddress"
+    v-model="modelValue"
     :placeholder="t('请输入IP:Port或从表头批量选择')"
     :rules="rules" />
 </template>
 <script lang="ts">
   const instanceAddreddMemo: { [key: string]: Record<string, boolean> } = {};
-
-  interface Props {
-    modelValue?: string;
-  }
 
   interface Emits {
     (e: 'inputFinish', relatedClusters: IDataRow['relatedClusters']): void;
@@ -48,8 +44,11 @@
 
   import type { IDataRow } from './RenderData/Row.vue';
 
-  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<string>('modelValue', {
+    default: '',
+  });
 
   const instanceKey = `render_original_proxy_${random()}`;
   instanceAddreddMemo[instanceKey] = {};
@@ -59,7 +58,6 @@
   const { t } = useI18n();
 
   const editRef = ref();
-  const localInstanceAddress = ref('');
 
   const rules = [
     {
@@ -129,10 +127,9 @@
   ];
 
   watch(
-    () => props.modelValue,
+    () => modelValue.value,
     () => {
-      if (props.modelValue) {
-        localInstanceAddress.value = props.modelValue;
+      if (modelValue.value) {
         setTimeout(() => {
           editRef.value!.getValue();
         });

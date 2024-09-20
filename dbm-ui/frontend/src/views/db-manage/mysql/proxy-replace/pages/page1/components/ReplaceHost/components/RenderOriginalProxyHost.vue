@@ -14,16 +14,12 @@
 <template>
   <TableEditInput
     ref="editRef"
-    v-model="localIp"
+    v-model="modelValue"
     :placeholder="t('请输入或从表头批量选择')"
     :rules="rules" />
 </template>
 <script lang="ts">
   const proxyHostMemo: { [key: string]: Record<string, boolean> } = {};
-
-  interface Props {
-    modelValue?: string;
-  }
 
   interface Emits {
     (e: 'inputFinish', relatedInstances: IDataRow['relatedInstances']): void;
@@ -48,8 +44,11 @@
 
   import type { IDataRow } from './RenderData/Row.vue';
 
-  const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
+
+  const modelValue = defineModel<string>('modelValue', {
+    default: '',
+  });
 
   const instanceKey = `render_original_proxy_${random()}`;
   proxyHostMemo[instanceKey] = {};
@@ -59,7 +58,6 @@
   const { t } = useI18n();
 
   const editRef = ref();
-  const localIp = ref('');
 
   const rules = [
     {
@@ -82,7 +80,6 @@
             return false;
           }
           const [currentData] = data;
-          localIp.value = currentData.ip;
           proxyHostMemo[instanceKey][currentData.ip] = true;
           proxyHostData = {
             ip: currentData.ip,
@@ -128,10 +125,9 @@
   ];
 
   watch(
-    () => props.modelValue,
+    () => modelValue.value,
     () => {
-      if (props.modelValue) {
-        localIp.value = props.modelValue;
+      if (modelValue.value) {
         setTimeout(() => {
           editRef.value!.getValue();
         });
