@@ -178,7 +178,7 @@
   const { t } = useI18n();
   const globalBizsStore = useGlobalBizs();
   const router = useRouter();
-  const formatDateToUTC = useTimeZoneFormat();
+  const { format: formatDateToUTC } = useTimeZoneFormat();
 
   // 单据克隆
   useTicketCloneInfo({
