@@ -103,7 +103,7 @@ def fill_cluster_service_nginx_conf():
 
             for extension in cloud__db_type__extension[cloud_id][db_type]:
                 # 渲染配置
-                file_list.append(nginxconf_tpl.render_nginx_tpl(template, extension, encode=True))
+                file_list.append(nginxconf_tpl.render_nginx_tpl(extension=extension, template=template, encode=True))
                 # 这里先提前写入access url，至于是否执行成功根据is_flush
                 extension.save_access_url(nginx_url=f"{proxy.external_address}:{manage_port}")
                 extension_ids.append(extension.id)
