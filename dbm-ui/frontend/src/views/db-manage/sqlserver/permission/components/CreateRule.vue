@@ -4,7 +4,7 @@
     :is-show="isShow"
     render-directive="if"
     :title="t('添加授权规则')"
-    :width="640"
+    :width="840"
     @closed="handleClose">
     <DbForm
       ref="formRef"
@@ -33,12 +33,11 @@
         property="access_db"
         required
         :rules="rules.access_db">
-        <DbTextarea
-          ref="textareaRef"
+        <BkInput
           v-model="formData.access_db"
-          :max-height="400"
           :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
-          :teleport-to-body="false" />
+          :rows="3"
+          type="textarea" />
       </BkFormItem>
       <BkFormItem
         class="rule-form-item"
@@ -129,7 +128,6 @@
 
   interface Props {
     accountId: number;
-    // accountMapList: SqlserverPermissionAccountModel['account'][];
     dbOperations: string[];
   }
 
@@ -151,8 +149,6 @@
   const formRef = ref<InstanceType<typeof DbForm>>();
   const checkAllPrivileges = ref(false);
   const existDBs = ref<string[]>([]);
-  const textareaRef = ref();
-  const textareaHeight = ref(0);
 
   const { t } = useI18n();
 
@@ -164,33 +160,6 @@
     access_db: '',
     privilege: [] as string[],
   });
-
-  /**
-   *  校验规则重复性
-   */
-  const verifyAccountRules = () => {
-    existDBs.value = [];
-
-    const userInfo = accoutList.value.find((item) => item.account_id === formData.account_id);
-    const dbs = formData.access_db
-      .replace(/\n|;/g, ',')
-      .split(',')
-      .filter((db) => db);
-
-    if (!userInfo || dbs.length === 0) {
-      return false;
-    }
-
-    return querySqlserverAccountRules({
-      user: userInfo.user,
-      access_dbs: dbs,
-      account_type: AccountTypes.SQLSERVER,
-    }).then((res) => {
-      const rules = res.results[0]?.rules || [];
-      existDBs.value = rules.map((item) => item.access_db);
-      return rules.length === 0;
-    });
-  };
 
   const rules = {
     auth: [
@@ -209,8 +178,38 @@
       },
       {
         trigger: 'blur',
+        message: t('DB名称支持通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, (item) => (!item ? true : /^[0-9a-zA-Z][0-9a-zA-Z%]*$/.test(item)));
+        },
+      },
+      {
+        trigger: 'blur',
         message: () => t('该账号下已存在xx规则', [existDBs.value.join('，')]),
-        validator: verifyAccountRules,
+        validator: () => {
+          existDBs.value = [];
+
+          const userInfo = accoutList.value.find((item) => item.account_id === formData.account_id);
+          const dbs = formData.access_db
+            .replace(/\n|;/g, ',')
+            .split(',')
+            .filter((db) => db);
+
+          if (!userInfo || dbs.length === 0) {
+            return false;
+          }
+
+          return querySqlserverAccountRules({
+            user: userInfo.user,
+            access_dbs: dbs,
+            account_type: AccountTypes.SQLSERVER,
+          }).then((res) => {
+            const rules = res.results[0]?.rules || [];
+            existDBs.value = rules.map((item) => item.access_db);
+            return rules.length === 0;
+          });
+        },
       },
     ],
   };
@@ -259,20 +258,6 @@
       });
     }
   });
-
-  /**
-   * get textarea height
-   */
-  const getTextareaHeight = () => {
-    textareaHeight.value = 0;
-
-    if (textareaRef.value) {
-      const el = textareaRef.value.$el as HTMLDivElement;
-      textareaHeight.value = el.firstElementChild?.scrollHeight ?? 0;
-    }
-  };
-
-  watch(() => formData.access_db, getTextareaHeight);
 
   const handleSelectedAll = (value: boolean) => {
     if (value) {

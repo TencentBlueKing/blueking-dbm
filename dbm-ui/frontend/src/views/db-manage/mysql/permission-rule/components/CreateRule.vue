@@ -48,13 +48,12 @@
         property="access_db"
         required
         :rules="rules.access_db">
-        <DbTextarea
-          ref="textareaRef"
+        <BkInput
           v-model="state.formdata.access_db"
           :disabled="isEdit"
-          :max-height="400"
           :placeholder="t('请输入DB名称_可以使用通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔')"
-          :teleport-to-body="false" />
+          :rows="3"
+          type="textarea" />
       </BkFormItem>
       <BkFormItem
         class="rule-form__item"
@@ -163,19 +162,6 @@
             </div>
           </BkFormItem>
         </div>
-        <!-- <div
-          class="rule-setting-box"
-          style="margin-top: 16px;">
-          <BkFormItem
-            class="mb-0"
-            :label="t('所有权限')">
-            <BkCheckbox
-              :model-value="checkAllPrivileges"
-              @change="(value: boolean) => handleSelectAllPrivileges(value)">
-              all privileges（{{ t('包含所有权限，其他权限无需授予') }}）
-            </BkCheckbox>
-          </BkFormItem>
-        </div> -->
       </BkFormItem>
     </DbForm>
     <template #footer>
@@ -254,14 +240,6 @@
     },
   });
 
-  const getTextareaHeight = () => {
-    textareaHeight.value = 0;
-
-    if (textareaRef.value) {
-      const el = textareaRef.value.$el as HTMLDivElement;
-      textareaHeight.value = el.firstElementChild?.scrollHeight ?? 0;
-    }
-  };
 
   const { t } = useI18n();
 
@@ -269,8 +247,6 @@
   const checkAllPrivileges = ref(false);
   const showPopConfirm = ref(false);
   const precheckWarnTip = ref<JSX.Element>();
-  const textareaRef = ref();
-  const textareaHeight = ref(0);
   const editModeDisabledPrivileges = ref<string[]>([])
 
   const state = reactive({
@@ -285,7 +261,7 @@
 
   const selectedUserInfo = computed(() => state.accounts.find(item => item.account_id === state.formdata.account_id));
 
-  const rules = computed(() => ({
+  const rules = {
     auth: [
       {
         trigger: 'change',
@@ -305,11 +281,37 @@
       },
       {
         trigger: 'blur',
+        message: t('DB名称支持通配符_如Data_区分大小写_多个使用英文逗号_分号或换行分隔'),
+        validator: (value: string) => {
+          const dbs = value.split(/[\n;,]/);
+          return _.every(dbs, item => !item ? true: /^[0-9a-zA-Z][0-9a-zA-Z%]*$/.test(item))
+        },
+      },
+      {
+        trigger: 'blur',
         message: () => t('该账号下已存在xx规则', [state.existDBs.join('，')]),
-        validator: verifyAccountRules,
+        validator: async () => {
+          const user = selectedUserInfo.value?.user;
+          const dbs = state.formdata.access_db.replace(/\n|;/g, ',')
+            .split(',')
+            .filter(db => db);
+
+          if (!user || dbs.length === 0) return false;
+
+          const { results } = await queryAccountRules({
+            bizId: window.PROJECT_CONFIG.BIZ_ID,
+            user,
+            access_dbs: dbs,
+            account_type: 'mysql',
+          })
+          const intersection = results.find(item => item.account.user === user)?.rules
+            .filter(ruleItem => dbs.includes(ruleItem.access_db)) || [];
+          state.existDBs = intersection.map(item => item.access_db);
+          return !intersection.length;
+        },
       },
     ],
-  }));
+  };
 
   watch(isShow, (show) => {
     if (show) {
@@ -339,18 +341,6 @@
     }
   });
 
-
-  watch(() => state.formdata.access_db, getTextareaHeight);
-
-  // const handleSelectAllPrivileges = (checked: boolean) => {
-  //   checkAllPrivileges.value = checked;
-  //   if (checked) {
-  //     state.formdata.privilege.ddl = [];
-  //     state.formdata.privilege.dml = [];
-  //     state.formdata.privilege.glob = [];
-  //   }
-  // };
-
   // 获取权限设置全选框状态
   const getAllCheckedboxValue = (key: AuthItemKey) => state.formdata.privilege[key].length === dbOperations[key].length;
   const getAllCheckedboxIndeterminate = (key: AuthItemKey) => (
@@ -364,26 +354,6 @@
     }
 
     state.formdata.privilege[key] = [];
-  };
-
-  const verifyAccountRules = async () => {
-    const user = selectedUserInfo.value?.user;
-    const dbs = state.formdata.access_db.replace(/\n|;/g, ',')
-      .split(',')
-      .filter(db => db);
-
-    if (!user || dbs.length === 0) return false;
-
-    const { results } = await queryAccountRules({
-      bizId: window.PROJECT_CONFIG.BIZ_ID,
-      user,
-      access_dbs: dbs,
-      account_type: 'mysql',
-    })
-    const intersection = results.find(item => item.account.user === user)?.rules
-      .filter(ruleItem => dbs.includes(ruleItem.access_db)) || [];
-    state.existDBs = intersection.map(item => item.access_db);
-    return !intersection.length;
   };
 
   /**
@@ -407,7 +377,7 @@
 
   const handleBeforeClose = () => {
     if (window.changeConfirm) {
-      return new Promise((resolve) => {
+      return new Promise<boolean>((resolve, reject) => {
         InfoBox({
           title: t('确认离开当前页'),
           content: t('离开将会导致未保存信息丢失'),
@@ -418,6 +388,9 @@
             resolve(true);
             return true;
           },
+          onCancel: () => {
+            reject(false);
+          }
         });
       });
     }
