@@ -110,7 +110,7 @@ class SQLServerRollbackBackupFlowParamBuilder(builders.FlowParamBuilder):
             # 获取最近的一次日志备份记录的时间点
             last_time = str2datetime(SQLServerRollbackHandler(cluster_id).query_last_log_time(current_time))
             # 如果最近一次日志备份记录的时间大于等于回滚时间 则不需要备份
-            if last_time >= restore_time:
+            if last_time > restore_time:
                 continue
 
             backup_dbs = ClusterServiceHandler(self.ticket.bk_biz_id).get_dbs_for_drs(

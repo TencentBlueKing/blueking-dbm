@@ -40,10 +40,10 @@ class SQLServerRollbackHandler(object):
         @param end_time: 查询结束时间
         @param dbname: 查询db
         """
-        # 单独获取最后一个binlog
+        # 单独获取最后一个binlog, 加1秒为了保证获取比时间点大于的日志备份
         last_binlogs = self._get_log_from_bklog(
             collector="mssql_binlog_result",
-            start_time=end_time,
+            start_time=end_time + timedelta(seconds=1),
             end_time=end_time + timedelta(days=BACKUP_LOG_RANGE_DAYS),
             query_string=f"""cluster_id: {self.cluster.id} AND dbname: "{dbname}" """,
             size=1,
@@ -55,7 +55,7 @@ class SQLServerRollbackHandler(object):
         binlogs = self._get_log_from_bklog(
             collector="mssql_binlog_result",
             start_time=start_time,
-            end_time=end_time,
+            end_time=end_time + timedelta(seconds=1),
             query_string=f"""cluster_id: {self.cluster.id} AND dbname: "{dbname}" """,
         )
         # TODO: binlog是否需要聚合 or 转义
