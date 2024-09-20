@@ -85,9 +85,6 @@
       params: {
         page: 'ticket',
       },
-      query: {
-        ticketId,
-      },
     });
   };
 </script>
