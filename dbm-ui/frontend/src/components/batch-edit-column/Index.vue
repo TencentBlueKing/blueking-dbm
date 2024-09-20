@@ -54,6 +54,7 @@
             :disabled="disabled"
             has-delete-icon
             :model-value="localValue as string[]"
+            :paste-fn="tagInputPasteFn"
             @change="handleChange" />
           <BkDatePicker
             v-else-if="type === 'datetime'"
@@ -73,6 +74,8 @@
 <script setup lang="ts">
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
+
+  import { batchSplitRegex } from '@common/regex';
 
   interface Props {
     title: string;
@@ -116,6 +119,8 @@
       localValue.value = '';
     },
   );
+
+  const tagInputPasteFn = (value: string) => value.split(batchSplitRegex).map((item) => ({ id: item }));
 
   const handleChange = (value: UnwrapRef<typeof localValue>) => {
     localValue.value = value;
