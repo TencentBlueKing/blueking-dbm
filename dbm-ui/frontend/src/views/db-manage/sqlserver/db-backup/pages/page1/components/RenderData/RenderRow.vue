@@ -63,6 +63,7 @@
       id: number;
       domain: string;
       cloudId: number;
+      majorVersion: string;
     };
     dbList: string[];
     ignoreDbList: string[];
@@ -75,9 +76,7 @@
     dbList: data.dbList || [],
     ignoreDbList: data.ignoreDbList || [],
   });
-</script>
 
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -91,7 +90,8 @@
   interface Exposes {
     getValue: () => Promise<any>;
   }
-
+</script>
+<script setup lang="ts">
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
