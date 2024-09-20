@@ -17,7 +17,7 @@
       <AuthButton
         action-id="spec_create"
         class="w-88 mr-8"
-        :resource="databaseType"
+        :resource="dbType"
         theme="primary"
         @click="handleShowCreate">
         {{ t('新建') }}
@@ -87,13 +87,13 @@
       <BkTag
         class="ml-4"
         theme="info">
-        {{ clusterTypeLabel }}
+        {{ dbTypeLabel }}
       </BkTag>
     </template>
     <SpecCreate
       :key="specOperationState.data?.spec_id"
-      :cluster-type="clusterType"
       :data="specOperationState.data"
+      :db-type="dbType"
       :has-instance="hasInstance"
       :is-edit="isSpecOperationEdit && !!specOperationState.data?.is_refer"
       :machine-type="machineType"
@@ -124,8 +124,7 @@
   } from '@hooks';
 
   import {
-    clusterTypeInfos,
-    ClusterTypes,
+    DBTypes,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -140,8 +139,8 @@
   type SpecOperationType = 'create' | 'edit' | 'clone'
 
   interface Props {
-    clusterType: ClusterTypes,
-    clusterTypeLabel: string,
+    dbType: DBTypes,
+    dbTypeLabel: string,
     machineType: string,
     machineTypeLabel: string,
   }
@@ -156,7 +155,6 @@
   const disableSelectMethod = (row: ResourceSpecModel) => (row.is_refer ? t('该规格已被使用_无法删除') : false);
   const setRowClass = (data: ResourceSpecModel) => (data.isRecentSeconds ? 'is-new-row' : '');
 
-  const databaseType = clusterTypeInfos[props.clusterType].dbType;
   const tableRef = ref();
 
   const specOperationState = reactive({
@@ -168,7 +166,7 @@
   const selectedList = ref<ResourceSpecModel[]>([]);
   const hasSelected = computed(() => selectedList.value.length > 0);
   const isSpecOperationEdit = computed(() => specOperationState.type === 'edit');
-  const hasInstance = computed(() => [`${ClusterTypes.ES}_es_datanode`].includes(`${props.clusterType}_${props.machineType}`));
+  const hasInstance = computed(() => [`${DBTypes.ES}_es_datanode`].includes(`${props.dbType}_${props.machineType}`));
   const columns = computed(() => {
     const baseColumns: Column[] = [
       {
@@ -181,7 +179,7 @@
               default: () => (
                 <auth-button
                   action-id="spec_update"
-                  resource={databaseType}
+                  resource={props.dbType}
                   permission={data.permission.spec_update}
                   text
                   theme="primary"
@@ -299,7 +297,7 @@
               size="small"
               action-id="spec_update"
               permission={data.permission.spec_update}
-              resource={databaseType}
+              resource={props.dbType}
               model-value={data.enable}
               theme="primary"
             />
@@ -328,7 +326,7 @@
           <>
             <auth-button
               action-id="spec_update"
-              resource={databaseType}
+              resource={props.dbType}
               permission={data.permission.spec_update}
               class="mr-8"
               theme="primary"
@@ -338,7 +336,7 @@
             </auth-button>
             <auth-button
               action-id="spec_create"
-              resource={databaseType}
+              resource={props.dbType}
               permission={data.permission.spec_create}
               class="mr-8"
               theme="primary"
@@ -350,7 +348,7 @@
               <span class="inline-block;" v-bk-tooltips={t('该规格已被使用_无法删除')}>
                 <auth-button
                   action-id="spec_delete"
-                  resource={databaseType}
+                  resource={props.dbType}
                   permission={data.permission.spec_delete}
                   theme="primary"
                   text
@@ -361,7 +359,7 @@
             ) : (
               <auth-button
                 action-id="spec_delete"
-                resource={databaseType}
+                resource={props.dbType}
                 permission={data.permission.spec_delete}
                 theme="primary"
                 text
@@ -415,7 +413,7 @@
   });
 
   watch(() => [
-    props.clusterType,
+    props.dbType,
     props.machineType,
     searchKey.value,
   ], () => {
@@ -434,7 +432,7 @@
     tableRef.value.fetchData({
       spec_name: searchKey.value,
     }, {
-      spec_cluster_type: props.clusterType,
+      spec_cluster_type: props.dbType,
       spec_machine_type: props.machineType,
     });
   };

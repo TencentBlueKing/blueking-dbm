@@ -125,7 +125,7 @@
 
   const { loading } = useRequest(getResourceSpecList, {
     defaultParams: [{
-      spec_cluster_type: props.ticketDetails.group,
+      spec_cluster_type: 'riak',
       offset: 0,
       limit: -1,
     }],

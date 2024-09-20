@@ -129,7 +129,7 @@
   import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import { createResourceSpec, updateResourceSpec, verifyDuplicatedSpecName } from '@services/source/dbresourceSpec';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, DBTypes } from '@common/const';
 
   import { useHasQPS } from '../hooks/useHasQPS';
 
@@ -151,7 +151,7 @@
   }
 
   interface Props {
-    clusterType: string;
+    dbType: string;
     machineType: string;
     machineTypeLabel: string;
     mode: string;
@@ -164,20 +164,18 @@
   const emits = defineEmits<Emits>();
 
   const notRequiredStorageList = [
-    `${ClusterTypes.TENDBHA}_proxy`,
-    `${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}_twemproxy`,
-    `${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}_twemproxy`,
-    `${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}_predixy`,
-    `${ClusterTypes.ES}_es_client`,
-    `${ClusterTypes.PULSAR}_pulsar_broker`,
-    `${ClusterTypes.TENDBCLUSTER}_spider`,
+    `${DBTypes.MYSQL}_proxy`,
+    `${DBTypes.REDIS}_${ClusterTypes.TWEMPROXY_REDIS_INSTANCE}`,
+    `${DBTypes.REDIS}_${ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE}`,
+    `${DBTypes.REDIS}_${ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER}`,
+    `${DBTypes.ES}_es_client`,
+    `${DBTypes.PULSAR}_pulsar_broker`,
+    `${DBTypes.TENDBCLUSTER}_proxy`,
   ];
 
-  const isRequired = !notRequiredStorageList.includes(`${props.clusterType}_${props.machineType}`);
+  const isRequired = !notRequiredStorageList.includes(`${props.dbType}_${props.machineType}`);
 
-  const isSqlserver = [ClusterTypes.SQLSERVER_SINGLE, ClusterTypes.SQLSERVER_HA].includes(
-    props.clusterType as ClusterTypes,
-  );
+  const isSqlserver = computed(() => props.dbType === DBTypes.SQLSERVER);
 
   const initFormdata = () => {
     if (props.data) {
@@ -220,11 +218,11 @@
         max: '' as string | number,
         min: '' as string | number,
       },
-      storage_spec: isSqlserver ? genSystemDriveStorageSpec() : genStorageSpec(),
+      storage_spec: isSqlserver.value ? genSystemDriveStorageSpec() : genStorageSpec(),
       device_class: '-1' as string[] | string,
       desc: '',
       enable: true,
-      spec_cluster_type: props.clusterType,
+      spec_cluster_type: props.dbType,
       spec_machine_type: props.machineType,
       spec_name: '',
       spec_id: undefined,
@@ -260,7 +258,7 @@
     {
       validator: (value: string) =>
         verifyDuplicatedSpecName({
-          spec_cluster_type: props.clusterType,
+          spec_cluster_type: props.dbType,
           spec_machine_type: props.machineType,
           spec_name: value,
           spec_id: props.mode === 'edit' ? formdata.value.spec_id : undefined,

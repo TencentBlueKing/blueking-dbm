@@ -47,7 +47,6 @@
   import { useRequest } from 'vue-request';
 
   import RedisModel from '@services/model/redis/redis';
-  import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
   import type { RedisClusterTypeUpdateDetails } from '@services/model/ticket/details/redis';
   import TicketModel from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
@@ -157,28 +156,20 @@
       if (result.results.length < 1) {
         return;
       }
+
       const clusterMap = result.results.reduce((obj, item) => {
         Object.assign(obj, { [item.id]: item });
         return obj;
       }, {} as Record<string, RedisModel>);
-
-      // 避免重复查询
-      const clusterTypes = [...new Set(infos.map(item => item.target_cluster_type))];
-      const sepcMap: Record<string, ResourceSpecModel[]> = {};
-
-      await Promise.all(clusterTypes.map(async (type) => {
-        const ret = await getResourceSpecList({
-          spec_cluster_type: type,
-          limit: -1,
-          offset: 0,
-        });
-        sepcMap[type] = ret.results;
-      }));
-      loading.value = false;
+      const sepcListResult = await getResourceSpecList({
+        spec_cluster_type: 'redis',
+        limit: -1,
+        offset: 0,
+      });
       tableData.value = infos.map((item) => {
         const currentCluster = clusterMap[item.src_cluster];
         const specConfig = currentCluster.cluster_spec;
-        const targetSepcPlan = sepcMap[item.target_cluster_type].filter(row => row.spec_id === item.resource_spec.backend_group.spec_id);
+        const targetSepcPlan = sepcListResult.results.filter(row => row.spec_id === item.resource_spec.backend_group.spec_id);
         return ({
           clusterName: currentCluster.master_domain,
           srcClusterType: clusterTypeMap[clusters[item.src_cluster].cluster_type],
