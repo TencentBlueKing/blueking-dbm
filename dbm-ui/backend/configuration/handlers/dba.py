@@ -57,7 +57,7 @@ class DBAdministratorHandler(object):
             operator = new_dba[0]
             bk_bak_operator = new_dba[1] if len(new_dba) > 1 else operator
             cluster_types = ClusterType.db_type_to_cluster_types(db_type)
-            for cluster_type in cluster_types:
+            for cluster_type in cluster_types or []:
                 bk_host_ids = [
                     machine.bk_host_id
                     for machine in Machine.objects.filter(cluster_type=cluster_type, bk_biz_id=bk_biz_id)
