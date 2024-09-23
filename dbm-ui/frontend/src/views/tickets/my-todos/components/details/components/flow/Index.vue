@@ -18,7 +18,7 @@
       :key="data.id"
       :flows="state.flows"
       :ticket-data="data"
-      @processed="handleProcessed" />
+      @fetch-data="handleProcessed" />
   </BkLoading>
 </template>
 

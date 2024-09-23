@@ -17,80 +17,83 @@
         unique-select />
     </div>
     <div ref="table">
-      <BkTable
-        :data="dataList"
-        :max-height="tableMaxHeight"
-        :pagination="pagination"
-        remote-pagination
-        @page-limit-change="handlePageLimitChange"
-        @page-value-change="handlePageValueChange">
-        <BkTableColumn
-          field="id"
-          :label="t('单据')"
-          width="100">
-          <template #default="{ data }: { data: IRowData }">
-            <BkButton
-              v-if="data"
-              text
-              theme="primary"
-              @click="() => handleShowDetail(data)">
-              {{ data.id }}
-            </BkButton>
-          </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="bk_biz_name"
-          :label="t('业务')"
-          :min-width="150" />
-        <BkTableColumn
-          field="ticket_type_display"
-          :label="t('单据类型')"
-          :min-width="200" />
-        <BkTableColumn
-          field="ticket_type_display"
-          :label="t('集群')"
-          min-width="250">
-          <template #default="{ data }: { data: IRowData }">
-            <MultLineText
-              v-if="data.related_object.objects"
-              :line="3"
-              style="padding: 8px 0">
-              <div
-                v-for="item in data.related_object.objects"
-                :key="item"
-                style="line-height: 20px">
-                {{ item }}
-              </div>
-            </MultLineText>
-            <template v-else> -- </template>
-          </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="status"
-          :label="t('状态')"
-          :min-width="100">
-          <template #default="{ data }: { data: IRowData }">
-            <BkTag :theme="data.tagTheme">
-              {{ data.statusText }}
-            </BkTag>
-          </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="remark"
-          :label="t('备注')">
-          <template #default="{ data }: { data: IRowData }">
-            {{ data.remark || '--' }}
-          </template>
-        </BkTableColumn>
-        <BkTableColumn
-          field="creator"
-          :label="t('申请人')"
-          width="250" />
-        <BkTableColumn
-          field="createAtDisplay"
-          :label="t('申请时间')"
-          width="250" />
-      </BkTable>
+      <BkLoading :loading="isLoading">
+        <BkTable
+          :data="dataList"
+          :max-height="tableMaxHeight"
+          :pagination="pagination"
+          remote-pagination
+          show-overflow-tooltip
+          @page-limit-change="handlePageLimitChange"
+          @page-value-change="handlePageValueChange">
+          <BkTableColumn
+            field="id"
+            :label="t('单据')"
+            width="100">
+            <template #default="{ data }: { data: IRowData }">
+              <BkButton
+                v-if="data"
+                text
+                theme="primary"
+                @click="() => handleShowDetail(data)">
+                {{ data.id }}
+              </BkButton>
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="bk_biz_name"
+            :label="t('业务')"
+            :min-width="150" />
+          <BkTableColumn
+            field="ticket_type_display"
+            :label="t('单据类型')"
+            :min-width="200" />
+          <BkTableColumn
+            field="ticket_type_display"
+            :label="t('集群')"
+            min-width="250">
+            <template #default="{ data }: { data: IRowData }">
+              <MultLineText
+                v-if="data.related_object.objects"
+                :line="3"
+                style="padding: 8px 0">
+                <div
+                  v-for="item in data.related_object.objects"
+                  :key="item"
+                  style="line-height: 20px">
+                  {{ item }}
+                </div>
+              </MultLineText>
+              <template v-else> -- </template>
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="status"
+            :label="t('状态')"
+            :min-width="100">
+            <template #default="{ data }: { data: IRowData }">
+              <BkTag :theme="data.tagTheme">
+                {{ data.statusText }}
+              </BkTag>
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="remark"
+            :label="t('备注')">
+            <template #default="{ data }: { data: IRowData }">
+              {{ data.remark || '--' }}
+            </template>
+          </BkTableColumn>
+          <BkTableColumn
+            field="creator"
+            :label="t('申请人')"
+            width="250" />
+          <BkTableColumn
+            field="createAtDisplay"
+            :label="t('申请时间')"
+            width="250" />
+        </BkTable>
+      </BkLoading>
     </div>
   </div>
 </template>
@@ -103,6 +106,8 @@
 
   import { useStretchLayout, useUrlSearch } from '@hooks';
 
+  import MultLineText from '@components/mult-line-text/Index.vue';
+
   import useData from './hooks/use-data';
   import useDatePicker from './hooks/use-date-picker';
   import useSearchSelect from './hooks/use-search-select';
@@ -113,12 +118,12 @@
   const route = useRoute();
 
   const { t } = useI18n();
-  const { appendSearchParams } = useUrlSearch();
+  const { appendSearchParams, getSearchParams } = useUrlSearch();
 
   const { tableMaxHeight } = useTableHeight();
   const { splitScreen: stretchLayoutSplitScreen } = useStretchLayout();
   const { value: datePickerValue, shortcutsRange, formatValue: formatDateValue } = useDatePicker();
-  const { pagination, fetchTicketList, dataList } = useData();
+  const { loading: isLoading, pagination, fetchTicketList, dataList } = useData();
   const { value: searachSelectValue, searchSelectData, formatSearchValue } = useSearchSelect();
 
   const modelValue = defineModel<number>();
@@ -158,11 +163,8 @@
   };
 
   onMounted(() => {
-    if (dataList.value.length < 1) {
-      fetchData();
-    }
-
-    if (Number(route.query.viewId)) {
+    const searchParams = getSearchParams();
+    if (Number(searchParams.viewId)) {
       modelValue.value = Number(route.query.viewId);
       stretchLayoutSplitScreen();
     }
