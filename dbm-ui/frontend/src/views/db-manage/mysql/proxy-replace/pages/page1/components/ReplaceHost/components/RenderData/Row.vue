@@ -16,8 +16,11 @@
     <FixedColumn fixed="left">
       <RenderOriginalProxyHost
         ref="originRef"
-        v-model="localIp"
-        @input-finish="handleOriginProxyInputFinish" />
+        :cluster-types="['TendbhaHost']"
+        :model-value="data.originProxy"
+        :tab-list-config="tabListConfig"
+        type="ip"
+        @instance-change="handleOriginProxyInputFinish" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderRelatedInstances
@@ -45,7 +48,7 @@
     rowKey: string;
     originProxy: {
       ip: string;
-      bk_cloud_id: number | null;
+      bk_cloud_id: number;
       bk_host_id: number;
       bk_biz_id: number;
       port: number;
@@ -55,7 +58,7 @@
       instance: string;
     }[];
     targetProxy: {
-      bk_cloud_id: number | null;
+      bk_cloud_id: number;
       bk_host_id: number;
       bk_biz_id: number;
       cluster_id: number;
@@ -79,14 +82,14 @@
       cluster_ids: number[];
       origin_proxy: {
         ip: string;
-        bk_cloud_id: number | null;
+        bk_cloud_id: number;
         bk_host_id: number;
         bk_biz_id: number;
         port?: number;
       };
       target_proxy: {
         ip: string;
-        bk_cloud_id: number | null;
+        bk_cloud_id: number;
         bk_host_id: number;
         bk_biz_id: number;
         port?: number;
@@ -101,7 +104,7 @@
       data.originProxy ||
       ({
         ip: '',
-        bk_cloud_id: null,
+        bk_cloud_id: 0,
         bk_host_id: 0,
         bk_biz_id: 0,
         port: 0,
@@ -111,7 +114,7 @@
       data.targetProxy ||
       ({
         ip: '',
-        bk_cloud_id: null,
+        bk_cloud_id: 0,
         bk_host_id: 0,
         bk_biz_id: 0,
         port: 0,
@@ -120,17 +123,21 @@
 </script>
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderOriginalProxyHost from '@views/db-manage/mysql/common/edit-field/InstanceWithSelector.vue';
+
   import RenderTargetProxy from '../../../common/RenderTargetProxy.vue';
-  import RenderOriginalProxyHost from '../RenderOriginalProxyHost.vue';
   import RenderRelatedInstances from '../RenderRelatedInstances.vue';
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const originRef = ref<InstanceType<typeof RenderOriginalProxyHost>>();
   const relatedInstancesRef = ref<InstanceType<typeof RenderRelatedInstances>>();
@@ -138,6 +145,35 @@
 
   const localIp = ref('');
   const localRelatedInstances = ref<IDataRow['relatedInstances']>([]);
+
+  const tabListConfig = {
+    TendbhaHost: [
+      {
+        id: 'TendbhaHost',
+        name: t('目标Proxy主机'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 主机'),
+            field: 'ip',
+            role: 'proxy',
+          },
+          multiple: false,
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 主机'),
+            field: 'ip',
+            role: 'proxy',
+          },
+          multiple: false,
+        },
+      },
+    ],
+  } as any;
 
   watch(
     () => props.data,
@@ -149,8 +185,18 @@
     },
   );
 
-  const handleOriginProxyInputFinish = (value: IDataRow['relatedInstances']) => {
-    localRelatedInstances.value = value;
+  const handleOriginProxyInputFinish = (info: {
+    ip: string;
+    related_instances: {
+      cluster_id: number;
+      instance_address: string;
+    }[];
+  }) => {
+    localIp.value = info.ip;
+    localRelatedInstances.value = info.related_instances.map((item) => ({
+      cluster_id: item.cluster_id,
+      instance: item.instance_address,
+    }));
   };
 
   const handleAppend = () => {
@@ -171,7 +217,13 @@
         relatedInstancesRef.value!.getValue(),
         targetRef.value!.getValue(),
       ]).then(([originData, relatedInstancesData, targetData]) => ({
-        ...originData,
+        origin_proxy: {
+          ip: originData.ip,
+          bk_cloud_id: originData.bk_cloud_id,
+          bk_host_id: originData.bk_host_id,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          port: originData.port,
+        },
         ...relatedInstancesData,
         ...targetData,
       }));

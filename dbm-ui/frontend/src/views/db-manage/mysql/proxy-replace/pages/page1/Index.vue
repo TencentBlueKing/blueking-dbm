@@ -127,17 +127,18 @@
 
   const handleSubmit = () => {
     isSubmitting.value = true;
-    tableRef.value!.getValue().then((infos: MySQLProxySwitchDetails['infos']) => {
-      createTicket({
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        ticket_type: TicketTypes.MYSQL_PROXY_SWITCH,
-        remark: '',
-        details: {
-          infos,
-          is_safe: isSafe.value,
-        },
-      })
-        .then((data) => {
+    tableRef
+      .value!.getValue()
+      .then((infos: MySQLProxySwitchDetails['infos']) =>
+        createTicket({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          ticket_type: TicketTypes.MYSQL_PROXY_SWITCH,
+          remark: '',
+          details: {
+            infos,
+            is_safe: isSafe.value,
+          },
+        }).then((data) => {
           window.changeConfirm = false;
           router.push({
             name: 'MySQLProxyReplace',
@@ -148,11 +149,11 @@
               ticketId: data.id,
             },
           });
-        })
-        .finally(() => {
-          isSubmitting.value = false;
-        });
-    });
+        }),
+      )
+      .finally(() => {
+        isSubmitting.value = false;
+      });
   };
 
   const handleReset = () => {

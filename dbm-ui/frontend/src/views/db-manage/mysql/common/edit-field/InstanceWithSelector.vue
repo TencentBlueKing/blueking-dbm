@@ -49,13 +49,14 @@
     @change="handleInstancesChange" />
 </template>
 <script lang="ts">
+  type InstanceInfo = ServiceReturnType<typeof checkMysqlInstances>[number];
+
   const instanceWithSelectorMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
   import { checkMysqlInstances } from '@services/source/instances';
 
   import { ClusterTypes } from '@common/const';
@@ -63,6 +64,7 @@
 
   import InstanceSelector, {
     type InstanceSelectorValues,
+    type IValue,
     type PanelListType,
   } from '@components/instance-selector/Index.vue';
   import TableEditInput from '@components/render-table/columns/input/index.vue';
@@ -81,6 +83,11 @@
     db_module_name?: string;
     master_domain?: string;
     cluster_type?: string;
+    related_clusters?: InstanceInfo['related_clusters'];
+    related_instances?: {
+      cluster_id: number;
+      instance_address: string;
+    }[];
   }
 
   interface Props {
@@ -97,7 +104,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<InstanceBasicInfo>;
+    getValue: () => Promise<Required<InstanceBasicInfo>>;
     focus: () => void;
   }
 
@@ -119,9 +126,10 @@
   const isFocused = ref(false);
   const isShowInstanceSelecotr = ref(false);
   const localValue = ref('');
-  const selectedIntances = shallowRef<InstanceSelectorValues<TendbhaInstanceModel>>({ [ClusterTypes.TENDBHA]: [] });
+  const selectedIntances = shallowRef<InstanceSelectorValues<IValue>>({ [ClusterTypes.TENDBHA]: [] });
 
   const instanceKey = `instance_${random()}`;
+  let modelValueLocal: InstanceBasicInfo;
   instanceWithSelectorMemo[instanceKey] = {};
 
   const rules = [
@@ -155,10 +163,17 @@
           instanceWithSelectorMemo[instanceKey][instanceData.instance_address] = true;
           if (
             !modelValue.value?.instance_address ||
-            modelValue.value.instance_address !== instanceData.instance_address
+            modelValueLocal?.instance_address !== instanceData.instance_address
           ) {
-            modelValue.value = instanceData;
-            emits('instanceChange', instanceData);
+            modelValueLocal = _.cloneDeep({
+              ...instanceData,
+              related_instances: data.map((item) => ({
+                cluster_id: item.cluster_id,
+                instance_address: item.instance_address,
+              })),
+            });
+            modelValue.value = modelValueLocal;
+            emits('instanceChange', modelValueLocal as Required<InstanceBasicInfo>);
           }
           return true;
         }),
@@ -207,6 +222,11 @@
       } else {
         localValue.value = `${modelValue.value.bk_cloud_id}:${modelValue.value.ip}:${modelValue.value.port}`;
       }
+      if (modelValueLocal?.ip !== modelValue.value?.ip) {
+        setTimeout(() => {
+          inputRef.value.getValue();
+        });
+      }
     },
     {
       immediate: true,
@@ -218,9 +238,9 @@
   };
 
   // 批量选择
-  const handleInstancesChange = (selected: InstanceSelectorValues<TendbhaInstanceModel>) => {
+  const handleInstancesChange = (selected: InstanceSelectorValues<IValue>) => {
     selectedIntances.value = selected;
-    const list = selected[ClusterTypes.TENDBHA];
+    const list = _.flatMap(Object.values(selected));
     if (props.type === 'instance') {
       localValue.value = list[0].instance_address;
     } else if (props.type === 'ip') {

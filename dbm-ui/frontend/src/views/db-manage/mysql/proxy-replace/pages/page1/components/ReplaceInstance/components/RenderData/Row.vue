@@ -16,8 +16,9 @@
     <FixedColumn fixed="left">
       <RenderOriginalProxyInst
         ref="originRef"
-        v-model="localInstanceAddress"
-        @input-finish="handleOriginProxyInputFinish" />
+        :model-value="data.originProxy"
+        :tab-list-config="tabListConfig"
+        @instance-change="handleOriginProxyInputFinish" />
     </FixedColumn>
     <td style="padding: 0">
       <RenderRelatedClusters
@@ -46,7 +47,7 @@
     originProxy: {
       cluster_id: number;
       ip: string;
-      bk_cloud_id: number | null;
+      bk_cloud_id: number;
       bk_host_id: number;
       bk_biz_id: number;
       port: number;
@@ -58,7 +59,7 @@
     }[];
     targetProxy: {
       ip: string;
-      bk_cloud_id: number | null;
+      bk_cloud_id: number;
       bk_host_id: number;
       bk_biz_id: number;
     };
@@ -79,14 +80,14 @@
       cluster_ids: number[];
       origin_proxy: {
         ip: string;
-        bk_cloud_id: number | null;
+        bk_cloud_id: number;
         bk_host_id: number;
         bk_biz_id: number;
         port?: number;
       };
       target_proxy: {
         ip: string;
-        bk_cloud_id: number | null;
+        bk_cloud_id: number;
         bk_host_id: number;
         bk_biz_id: number;
         port?: number;
@@ -101,7 +102,7 @@
       data.originProxy ||
       ({
         ip: '',
-        bk_cloud_id: null,
+        bk_cloud_id: 0,
         bk_host_id: 0,
         bk_biz_id: 0,
         port: 0,
@@ -112,7 +113,7 @@
       data.targetProxy ||
       ({
         ip: '',
-        bk_cloud_id: null,
+        bk_cloud_id: 0,
         bk_host_id: 0,
         bk_biz_id: 0,
         port: 0,
@@ -121,17 +122,23 @@
 </script>
 <script setup lang="ts">
   import { ref } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
+  import { ClusterTypes } from '@common/const';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderOriginalProxyInst from '@views/db-manage/mysql/common/edit-field/InstanceWithSelector.vue';
+
   import RenderTargetProxy from '../../../common/RenderTargetProxy.vue';
-  import RenderOriginalProxyInst from '../RenderOriginalProxyInst.vue';
   import RenderRelatedClusters from '../RenderRelatedClusters.vue';
 
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
+
+  const { t } = useI18n();
 
   const originRef = ref<InstanceType<typeof RenderOriginalProxyInst>>();
   const relatedClustersRef = ref<InstanceType<typeof RenderRelatedClusters>>();
@@ -150,8 +157,47 @@
     },
   );
 
-  const handleOriginProxyInputFinish = (value: IDataRow['relatedClusters']) => {
-    localRelatedClusters.value = value;
+  const tabListConfig = {
+    [ClusterTypes.TENDBHA]: [
+      {
+        id: ClusterTypes.TENDBHA,
+        name: t('目标实例'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 实例'),
+            field: 'instance_address',
+            role: 'proxy',
+          },
+          multiple: false,
+        },
+      },
+      {
+        id: 'manualInput',
+        name: t('手动输入'),
+        tableConfig: {
+          firsrColumn: {
+            label: t('Proxy 实例'),
+            field: 'instance_address',
+            role: 'proxy',
+          },
+          multiple: false,
+        },
+      },
+    ],
+  } as any;
+
+  const handleOriginProxyInputFinish = (info: {
+    instance_address: string;
+    related_clusters: {
+      id: number;
+      master_domain: string;
+    }[];
+  }) => {
+    localInstanceAddress.value = info.instance_address;
+    localRelatedClusters.value = info.related_clusters.map((item) => ({
+      cluster_id: item.id,
+      domain: item.master_domain,
+    }));
   };
 
   const handleAppend = () => {
@@ -172,7 +218,15 @@
         relatedClustersRef.value!.getValue(),
         targetRef.value!.getValue(),
       ]).then(([originData, relatedClustersData, targetData]) => ({
-        ...originData,
+        origin_proxy: {
+          cluster_id: originData.cluster_id,
+          ip: originData.ip,
+          bk_cloud_id: originData.bk_cloud_id,
+          bk_host_id: originData.bk_host_id,
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+          port: originData.port,
+          instance_address: originData.instance_address,
+        },
         ...relatedClustersData,
         ...targetData,
       }));

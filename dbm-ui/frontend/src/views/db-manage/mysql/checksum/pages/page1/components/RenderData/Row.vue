@@ -124,6 +124,7 @@
       id: 0,
     },
     version: '',
+    is_stand_by: false,
   });
 
   export type IDataRowBatchKey = keyof Pick<IDataRow, 'dbPatterns' | 'ignoreDbs' | 'tablePatterns' | 'ignoreTables'>;
