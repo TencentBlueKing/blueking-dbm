@@ -51,13 +51,16 @@ export default function (originalData: Ref<HostDetails[]>) {
   const handlePaginationCurrentChange = (current: number) => {
     pagination.current = current;
   };
+
   const handlePaginationLimitChange = (limit: number) => {
     pagination.limit = limit;
+    pagination.current = 1;
   };
 
   watch(searchKey, () => {
     pagination.current = 1;
   });
+
   watch(
     serachList,
     (list) => {

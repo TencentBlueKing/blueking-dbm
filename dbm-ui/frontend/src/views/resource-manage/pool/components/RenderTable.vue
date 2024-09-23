@@ -459,6 +459,7 @@
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
+    pagination.current = 1;
     fetchListData();
   };
 

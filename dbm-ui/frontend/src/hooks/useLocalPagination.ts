@@ -51,6 +51,7 @@ export function useLocalPagination<T>(originalData: Ref<Array<T>>, callback: (ru
   };
   const handlePaginationLimitChange = (limit: number) => {
     pagination.limit = limit;
+    handlePaginationCurrentChange(1);
   };
 
   watch(searchKey, () => {
