@@ -17,7 +17,7 @@ Authority {
 Log {{log_path}}
 LogRotate 1d
 ClusterServerPool {
-    Password {{redis_password}}
+    Password "{{redis_password}}"
     RefreshInterval {{refresh_interval}}
     ServerFailureLimit {{server_failure_limit}} 
     ServerRetryTimeout {{server_retry_timeout}}
