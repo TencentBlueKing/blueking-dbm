@@ -372,7 +372,6 @@
   import EditInfo, {
     type InfoColumn,
   } from '@components/editable-info/index.vue';
-  import Minimap from '@components/minimap/Minimap.vue';
 
   import {
     generateId,
@@ -389,6 +388,7 @@
     type GraphLine,
     type GraphNode,
   } from '../common/utils';
+  import Minimap from '../components/Minimap.vue';
   import NodeLog from '../components/NodeLog.vue';
   import HostPreview from '../components/PreviewHost.vue';
   import PreviewNodeTree from '../components/PreviewNodeTree.vue';

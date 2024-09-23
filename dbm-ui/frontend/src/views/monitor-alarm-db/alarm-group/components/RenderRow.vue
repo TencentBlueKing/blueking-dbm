@@ -83,7 +83,7 @@
   import { useResizeObserver } from '@vueuse/core';
 
   interface Props {
-    data: ServiceReturnType<typeof getUserGroupList>
+    data: ServiceReturnType<typeof getUserGroupList>;
   }
 
   const props = defineProps<Props>();

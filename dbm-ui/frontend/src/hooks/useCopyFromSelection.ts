@@ -14,7 +14,7 @@ import { useCopy } from '@hooks';
 
 export const useCopyFromSelection = () => {
   const copy = useCopy();
-  
+
   return () => {
     const selection = window.getSelection();
     if (selection) {
@@ -23,5 +23,5 @@ export const useCopyFromSelection = () => {
         copy(selectedText);
       }
     }
-  }
-}
+  };
+};

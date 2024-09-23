@@ -53,11 +53,11 @@
       if (props.text.includes(':')) {
         const substringList = keyWordItem.split(':');
         const regex = new RegExp(`(${keyWordItem.split(':').join('|')})`);
-        const matchResult = props.text.split(regex).map(part => ({
+        const matchResult = props.text.split(regex).map((part) => ({
           text: part,
           isHighlight: substringList.includes(part),
         }));
-        if (matchResult.some(matchItem => matchItem.isHighlight)) {
+        if (matchResult.some((matchItem) => matchItem.isHighlight)) {
           return matchResult;
         }
       }

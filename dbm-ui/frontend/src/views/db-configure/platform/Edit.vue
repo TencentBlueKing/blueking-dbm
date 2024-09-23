@@ -103,31 +103,23 @@
 <script setup lang="ts">
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { useRoute, useRouter } from 'vue-router';
 
-  import {
-    getConfigBaseDetails,
-    updatePlatformConfig,
-  } from '@services/source/configs';
+  import { getConfigBaseDetails, updatePlatformConfig } from '@services/source/configs';
 
-  import DiffCompare from '../components/DiffCompare.vue';
+  import { type DiffItem, useDiff } from '@views/db-configure/hooks/useDiff';
+
+  import DiffCompare from '../components/diff-compare/Index.vue';
   import BaseInfo from '../components/EditBase.vue';
-  import {
-    type DiffItem,
-    useDiff,
-  } from '../hooks/useDiff';
 
   const { t } = useI18n();
   const router = useRouter();
   const route = useRoute();
 
   const { clusterType, confType, version } = route.params as {
-    clusterType: string,
-    confType: string,
-    version: string,
+    clusterType: string;
+    confType: string;
+    version: string;
   };
 
   const loading = ref(false);
@@ -165,13 +157,16 @@
   /**
    * step info
    */
-  const steps = [{
-    title: t('基本信息'),
-    icon: '1',
-  }, {
-    title: t('差异对比'),
-    icon: '2',
-  }];
+  const steps = [
+    {
+      title: t('基本信息'),
+      icon: '1',
+    },
+    {
+      title: t('差异对比'),
+      icon: '2',
+    },
+  ];
   const curStep = ref(1);
 
   /**
@@ -181,8 +176,7 @@
     text: string;
     theme: 'success' | 'warning' | 'danger' | 'primary' | undefined;
     isNext: boolean;
-  }
-  >(() => {
+  }>(() => {
     const isNext = curStep.value === 1;
     return {
       text: isNext ? t('下一步') : t('上一步'),
@@ -208,7 +202,12 @@
   const handleChangeStep = async () => {
     if (buttonInfo.value.isNext) {
       const isPass = await validate();
-      if (!isPass) return;
+
+      if (!isPass) {
+        return;
+      }
+
+      // 获取 diff 数据
 
       // 获取 diff 数据
       if (contentRef.value.getData) {
@@ -229,16 +228,22 @@
    */
   const publishFormRef = ref();
   const handleSaveAndPublish = async () => {
-    const validate = await publishFormRef.value.validate()
+    const validate = await publishFormRef.value
+      .validate()
       .then(() => true)
       .catch(() => false);
-    if (validate === false) return;
+
+    if (validate === false) {
+      return;
+    }
+
+    // 获取 conf_items
 
     // 获取 conf_items
     const { data } = useDiff(diffData.data.conf_items, diffData.origin);
     const confItems = data.map((item: DiffItem) => {
       const type = item.status === 'delete' ? 'remove' : 'update';
-      const data = item.status === 'delete' ?  item.before : item.after;
+      const data = item.status === 'delete' ? item.before : item.after;
       return Object.assign(data, { op_type: type });
     });
 

@@ -90,9 +90,10 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
-  import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
   import DbStatus from '@components/db-status/index.vue';
+
+  import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
+  import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
 
   import BaseInfo from './components/BaseInfo.vue';
   import ClusterEventChange from './components/EventChange.vue';

@@ -96,7 +96,7 @@
 <script setup lang="ts" generic="T extends IValue">
   import { useI18n } from 'vue-i18n';
 
-  import type { ListBase } from '@services/types'
+  import type { ListBase } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -110,17 +110,17 @@
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
-    manualConfig: Required<ManualConfigType>,
+    lastValues: InstanceSelectorValues<T>;
+    manualConfig: Required<ManualConfigType>;
     // clusterId?: number,
-    tableSetting: TableSetting,
-    firsrColumn?: TableConfigType['firsrColumn'],
-    statusFilter?: TableConfigType['statusFilter'],
+    tableSetting: TableSetting;
+    firsrColumn?: TableConfigType['firsrColumn'];
+    statusFilter?: TableConfigType['statusFilter'];
     getTableList: NonNullable<TableConfigType['getTableList']>;
   }
 
   interface Emits {
-    (e: 'change', value: InstanceSelectorValues<T>): void
+    (e: 'change', value: InstanceSelectorValues<T>): void;
   }
   const props = withDefaults(defineProps<Props>(), {
     firsrColumn: undefined,
@@ -178,10 +178,11 @@
   /**
    * 处理分隔内容，过滤空内容
    */
-  const getValues = () => inputState.values
-    .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
-    .split(' ')
-    .filter(value => value);
+  const getValues = () =>
+    inputState.values
+      .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
+      .split(' ')
+      .filter((value) => value);
 
   /**
    * 解析输入内容
@@ -216,15 +217,13 @@
       //   });
       // }
       const res = await (props.manualConfig.checkInstances as (params: any) => Promise<ListBase<any[]>>)(params);
-      const hostList = res.results
+      const hostList = res.results;
       const legalInstances = [];
       for (let i = lines.length - 1; i >= 0; i--) {
         const item = lines[i];
         const infos = hostList[i];
         const remove = lines.splice(i, 1);
-        const isExisted = hostList.find(existItem => (
-          existItem[props.manualConfig.checkKey] === item
-        ));
+        const isExisted = hostList.find((existItem) => existItem[props.manualConfig.checkKey] === item);
         if (!isExisted) {
           newLines.push(...remove);
         } else {
@@ -245,7 +244,13 @@
           lastValues[type] = [];
         }
         const list = lastValues[type];
-        const isExisted = list.length > 0 && list.find(i => `${i[props.manualConfig.checkKey]}_${i.bk_cloud_id}` === `${item[props.manualConfig.checkKey]}_${item.bk_cloud_id}`);
+        const isExisted =
+          list.length > 0 &&
+          list.find(
+            (i) =>
+              `${i[props.manualConfig.checkKey]}_${i.bk_cloud_id}` ===
+              `${item[props.manualConfig.checkKey]}_${item.bk_cloud_id}`,
+          );
         if (!isExisted) {
           lastValues[type].push({
             bk_host_id: item.bk_host_id,
@@ -257,11 +262,11 @@
             cluster_type: '',
             master_domain: item.related_clusters[0].immute_domain,
             bk_cloud_name: item.bk_cloud_name,
-            related_instances: (item.related_instances || []).map(instanceItem => ({
+            related_instances: (item.related_instances || []).map((instanceItem) => ({
               instance: instanceItem.instance,
-              status: instanceItem.status
+              status: instanceItem.status,
             })),
-            spec_config: item.spec_config
+            spec_config: item.spec_config,
           } as T);
         }
       }

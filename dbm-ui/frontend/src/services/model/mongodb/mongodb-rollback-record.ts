@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -41,7 +41,7 @@ export default class MongodbRollbackRecord {
   static MONGODB_TEMPORARY_DESTROY = 'MONGODB_TEMPORARY_DESTROY';
 
   static operationIconMap = {
-    [MongodbRollbackRecord.MONGODB_TEMPORARY_DESTROY]: t('销毁中'), 
+    [MongodbRollbackRecord.MONGODB_TEMPORARY_DESTROY]: t('销毁中'),
   };
 
   static operationTextMap = {
@@ -111,7 +111,7 @@ export default class MongodbRollbackRecord {
   }
 
   get runningOperation() {
-    return this.target_cluster.operations.find(item => item.ticket_type in MongodbRollbackRecord.operationTextMap);
+    return this.target_cluster.operations.find((item) => item.ticket_type in MongodbRollbackRecord.operationTextMap);
   }
 
   // 操作中的状态
@@ -157,7 +157,7 @@ export default class MongodbRollbackRecord {
   }
 
   get operationTagTips() {
-    return this.target_cluster.operations.map(item => ({
+    return this.target_cluster.operations.map((item) => ({
       icon: MongodbRollbackRecord.operationIconMap[item.ticket_type],
       tip: MongodbRollbackRecord.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

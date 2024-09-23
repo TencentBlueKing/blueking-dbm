@@ -30,9 +30,9 @@
         <div class="item-label">DataNode</div>
         <HostReplace
           ref="datanodeRef"
-          v-model:hostList="nodeInfoMap.datanode.hostList"
-          v-model:nodeList="nodeInfoMap.datanode.nodeList"
-          v-model:resourceSpec="nodeInfoMap.datanode.resourceSpec"
+          v-model:host-list="nodeInfoMap.datanode.hostList"
+          v-model:node-list="nodeInfoMap.datanode.nodeList"
+          v-model:resource-spec="nodeInfoMap.datanode.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -69,7 +69,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostReplace, { type TReplaceNode } from '@components/cluster-common/host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
   import { messageError } from '@utils';
 

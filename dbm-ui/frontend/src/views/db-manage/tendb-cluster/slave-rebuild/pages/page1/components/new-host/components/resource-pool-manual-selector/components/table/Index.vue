@@ -44,8 +44,8 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
+  import HostAgentStatus from '@components/host-agent-status/Index.vue';
 
   import { useTableData } from './useTableData';
 

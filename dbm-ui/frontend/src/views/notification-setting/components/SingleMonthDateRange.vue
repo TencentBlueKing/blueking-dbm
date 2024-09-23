@@ -44,38 +44,36 @@
   </BkSelect>
 </template>
 <script setup lang="ts">
-
   interface ListItem {
-    value: number,
-    active: boolean,
-    choosed: boolean,
-    isStart: boolean,
-    isEnd: boolean,
-    isToday: boolean,
+    value: number;
+    active: boolean;
+    choosed: boolean;
+    isStart: boolean;
+    isEnd: boolean;
+    isToday: boolean;
   }
 
   interface Emits {
-    (e: 'change', value: number[]): void
+    (e: 'change', value: number[]): void;
   }
 
   const emits = defineEmits<Emits>();
 
   function generateList() {
-    return new Array(31).fill(0)
-      .reduce((results, item, index) => {
-        const date = index + 1;
-        const isToday = date === todayDate;
-        const obj = {
-          value: date,
-          active: false,
-          choosed: false,
-          isStart: false,
-          isEnd: false,
-          isToday,
-        };
-        results.push(obj);
-        return results;
-      }, []) as ListItem[];
+    return new Array(31).fill(0).reduce((results, item, index) => {
+      const date = index + 1;
+      const isToday = date === todayDate;
+      const obj = {
+        value: date,
+        active: false,
+        choosed: false,
+        isStart: false,
+        isEnd: false,
+        isToday,
+      };
+      results.push(obj);
+      return results;
+    }, []) as ListItem[];
   }
 
   const showPanel = ref(false);
@@ -86,14 +84,19 @@
 
   const selectList = ref(generateList());
 
-  const selectedValue = computed(() => selectList.value.filter(item => item.choosed || item.active)
-    .map(item => item.value));
+  const selectedValue = computed(() =>
+    selectList.value.filter((item) => item.choosed || item.active).map((item) => item.value),
+  );
 
-  watch(selectedValue, (list) => {
-    emits('change', list);
-  }, {
-    immediate: true,
-  });
+  watch(
+    selectedValue,
+    (list) => {
+      emits('change', list);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClickNum = (index: number) => {
     if (choosedIndexArr.length === 2) {

@@ -30,4 +30,3 @@ const routes: RouteRecordRaw[] = [
 export default function getRoutes() {
   return checkDbConsole('globalConfigManage.whitelistManage') ? routes : [];
 }
-

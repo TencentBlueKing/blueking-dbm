@@ -18,38 +18,37 @@ export default class SpiderMachine {
   cluster_type: string;
   create_at: string;
   host_info: {
-    agent_id: number,
-    alive: number,
+    agent_id: number;
+    alive: number;
     biz: {
-      id: number,
-      name: string
-    },
-    bk_cpu: number,
-    bk_cpu_architecture: string,
-    bk_cpu_module:string
-    bk_disk: number,
-    bk_host_outerip: string,
-    bk_idc_id: string,
-    bk_idc_name: string,
-    bk_mem: number,
+      id: number;
+      name: string;
+    };
+    bk_cpu: number;
+    bk_cpu_architecture: string;
+    bk_cpu_module: string;
+    bk_disk: number;
+    bk_host_outerip: string;
+    bk_idc_id: string;
+    bk_idc_name: string;
+    bk_mem: number;
     cloud_area: {
-      id: number,
-      name: string
-    },
-    cloud_id: number,
-    cloud_vendor: string,
-    host_id: number,
-    host_name: string,
-    ip: string,
-    ipv6: string,
+      id: number;
+      name: string;
+    };
+    cloud_id: number;
+    cloud_vendor: string;
+    host_id: number;
+    host_name: string;
+    ip: string;
+    ipv6: string;
     meta: {
-      bk_biz_id: number
-      scope_id: number,
-      scope_type: string,
-    },
-    os_name: string,
-    os_type: number,
-
+      bk_biz_id: number;
+      scope_id: number;
+      scope_type: string;
+    };
+    os_name: string;
+    os_type: number;
   };
   instance_role: string;
   ip: string;
@@ -84,54 +83,54 @@ export default class SpiderMachine {
     bk_host_id: 247;
     bk_cloud_id: 0;
     spec_config: {
-      id: number,
+      id: number;
       cpu: {
-        max: number,
-        min: number
-      },
+        max: number;
+        min: number;
+      };
       mem: {
-        max: number,
-        min: number
-      },
+        max: number;
+        min: number;
+      };
       qps: {
-        max: number,
-        min: number
-      },
-      name: string,
-      count: number,
-      device_class: string[],
+        max: number;
+        min: number;
+      };
+      name: string;
+      count: number;
+      device_class: string[];
       storage_spec: {
-        size: number,
-        type: string,
-        mount_point: string
-      }[]
+        size: number;
+        type: string;
+        mount_point: string;
+      }[];
     };
     bk_biz_id: 3;
-    admin_port: 26000
+    admin_port: 26000;
   }[];
   spec_config: {
-    id: number,
+    id: number;
     cpu: {
-      max: number,
-      min: number
-    },
+      max: number;
+      min: number;
+    };
     mem: {
-      max: number,
-      min: number
-    },
+      max: number;
+      min: number;
+    };
     qps: {
-      max: number,
-      min: number
-    },
-    name: string,
-    count: number,
-    device_class: string[],
+      max: number;
+      min: number;
+    };
+    name: string;
+    count: number;
+    device_class: string[];
     storage_spec: {
-      size: number,
-      type: string,
-      mount_point: string
-    }[]
-  }
+      size: number;
+      type: string;
+      mount_point: string;
+    }[];
+  };
   spec_id: number;
 
   constructor(payload = {} as SpiderMachine) {

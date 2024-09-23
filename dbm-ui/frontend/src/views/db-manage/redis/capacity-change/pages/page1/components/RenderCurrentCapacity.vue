@@ -65,8 +65,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
+
+  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
 
   import type { IDataRow } from './Row.vue';
 

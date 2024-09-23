@@ -9,15 +9,11 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { generateId } from './generateId';
 
-import type {
-  SearchSelectData,
-  SearchSelectItem,
-  SearchSelectValues,
-} from '@/types/bkui-vue';
+import type { SearchSelectData, SearchSelectItem, SearchSelectValues } from '@/types/bkui-vue';
 
 /**
  * search-select 组件搜索功能函数
@@ -39,22 +35,24 @@ export function getMenuListSearch(
   if (searchItem) {
     const { children, multiple } = searchItem;
     if (multiple && children?.length) {
-      return children.filter(child => child.name.toLocaleLowerCase().includes(lowerCaseKeyword));
+      return children.filter((child) => child.name.toLocaleLowerCase().includes(lowerCaseKeyword));
     }
 
-    const resList = [{
-      ...searchItem,
-      realId: searchItem.id,
-      id: generateId('MISSION_SEARCH_ID_'),
-      value: {
-        id: keyword,
-        name: keyword,
+    const resList = [
+      {
+        ...searchItem,
+        realId: searchItem.id,
+        id: generateId('MISSION_SEARCH_ID_'),
+        value: {
+          id: keyword,
+          name: keyword,
+        },
       },
-    }];
+    ];
     if (children?.length) {
       const childList = children
-        .filter(child => child.name.toLocaleLowerCase().includes(lowerCaseKeyword))
-        .map(child => ({
+        .filter((child) => child.name.toLocaleLowerCase().includes(lowerCaseKeyword))
+        .map((child) => ({
           ...searchItem,
           realId: searchItem.id,
           id: generateId('MISSION_SEARCH_ID_'),
@@ -66,8 +64,8 @@ export function getMenuListSearch(
     return resList;
   }
 
-  const selected = (values || []).map(value => value.id);
-  const filterData = uniqueSelect ? data.filter(dataItem => !selected.includes(dataItem.id)) : data;
+  const selected = (values || []).map((value) => value.id);
+  const filterData = uniqueSelect ? data.filter((dataItem) => !selected.includes(dataItem.id)) : data;
   return filterData.reduce((list: any[], dataItem) => {
     dataItem.children?.forEach((child) => {
       if (child.name.toLocaleLowerCase().includes(lowerCaseKeyword)) {

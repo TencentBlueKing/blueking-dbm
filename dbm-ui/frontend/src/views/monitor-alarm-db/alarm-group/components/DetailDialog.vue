@@ -85,11 +85,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getAlarmGroupList,
-    insertAlarmGroup,
-    updateAlarmGroup,
-  } from '@services/source/monitorNoticeGroup';
+  import { getAlarmGroupList, insertAlarmGroup, updateAlarmGroup } from '@services/source/monitorNoticeGroup';
 
   import { useBeforeClose } from '@hooks';
 
@@ -99,14 +95,14 @@
   import ReceiversSelector from './ReceiversSelector.vue';
 
   interface Props {
-    type: 'add' | 'edit' | 'copy',
-    detailData: ServiceReturnType<typeof getAlarmGroupList>['results'][number],
-    bizId: number,
-    nameList: string[]
+    type: 'add' | 'edit' | 'copy';
+    detailData: ServiceReturnType<typeof getAlarmGroupList>['results'][number];
+    bizId: number;
+    nameList: string[];
   }
 
   interface Emits {
-    (e: 'successed'): void,
+    (e: 'successed'): void;
   }
 
   const props = defineProps<Props>();
@@ -127,7 +123,7 @@
   const nameRules = [
     {
       message: t('长度不能大于n', [80]),
-      validator: (value: string)  => value.length <= 80,
+      validator: (value: string) => value.length <= 80,
     },
     {
       message: t('告警组名称重复'),
@@ -154,20 +150,14 @@
 
   const sidesliderTitle = computed(() => `${titleMap[props.type]}`);
 
-  const {
-    loading: insertLoading,
-    run: insertAlarmGroupRun,
-  } = useRequest(insertAlarmGroup, {
+  const { loading: insertLoading, run: insertAlarmGroupRun } = useRequest(insertAlarmGroup, {
     manual: true,
     onSuccess() {
       runSuccess(t('创建成功'));
     },
   });
 
-  const {
-    loading: updateLoading,
-    run: updateAlarmGroupRun,
-  } = useRequest(updateAlarmGroup, {
+  const { loading: updateLoading, run: updateAlarmGroupRun } = useRequest(updateAlarmGroup, {
     manual: true,
     onSuccess() {
       runSuccess(t('编辑成功'));
@@ -177,7 +167,7 @@
   watch(isShow, (newVal) => {
     if (newVal && props.type !== 'add') {
       formData.name = props.detailData.name;
-      formData.receivers = props.detailData.receivers.map(item => item.id);
+      formData.receivers = props.detailData.receivers.map((item) => item.id);
     }
   });
 

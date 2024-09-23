@@ -82,9 +82,10 @@
     UserPersonalSettings,
   } from '@common/const';
 
-  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import DbStatus from '@components/db-status/index.vue';
-  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
+
+  import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
   import { getSearchSelectorParams } from '@utils';
 

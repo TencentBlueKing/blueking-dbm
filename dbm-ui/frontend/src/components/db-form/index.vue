@@ -25,8 +25,8 @@
   import { debounce } from 'lodash';
 
   interface Props {
-    model?: Record<string, any>,
-    autoLabelWidth?: boolean,
+    model?: Record<string, any>;
+    autoLabelWidth?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -36,15 +36,19 @@
 
   const dbFormRef = ref();
 
-  watch(() => props.model, () => {
-    if (isUserChange.value) {
-      window.changeConfirm = true;
-    }
-  }, { deep: true });
+  watch(
+    () => props.model,
+    () => {
+      if (isUserChange.value) {
+        window.changeConfirm = true;
+      }
+    },
+    { deep: true },
+  );
 
   /** 用户主动操作变更表单 */
   const isUserChange = ref(false);
-  const handleUserChange = () => isUserChange.value = true;
+  const handleUserChange = () => (isUserChange.value = true);
 
   const getCssStyle = (el: HTMLElement, prop: string) => window.getComputedStyle(el, null).getPropertyValue(prop);
   const calcLableWidth = () => {
@@ -99,8 +103,8 @@
   });
 
   defineExpose({
-    validate: (fields?: string | Array<string>) => dbFormRef.value.validate(fields)
-      .catch((error: Error) => {
+    validate: (fields?: string | Array<string>) =>
+      dbFormRef.value.validate(fields).catch((error: Error) => {
         const errorItemEl = dbFormRef.value.$el.querySelector('.bk-form-item.is-error');
         if (errorItemEl) {
           errorItemEl.scrollIntoView();

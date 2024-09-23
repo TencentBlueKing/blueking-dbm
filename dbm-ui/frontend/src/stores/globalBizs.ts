@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { defineStore } from 'pinia';
 
@@ -28,7 +28,7 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
     isError: false,
   }),
   getters: {
-    currentBizInfo: (state): BizItem | undefined => state.bizs.find(item => item.bk_biz_id === state.currentBizId),
+    currentBizInfo: (state): BizItem | undefined => state.bizs.find((item) => item.bk_biz_id === state.currentBizId),
   },
   actions: {
     /**
@@ -37,7 +37,7 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
      * @returns boolean | undefined
      */
     hasBizPermission(bizId: number) {
-      const targetBizItem = this.bizs.find(item => item.bk_biz_id === bizId);
+      const targetBizItem = this.bizs.find((item) => item.bk_biz_id === bizId);
       return targetBizItem && targetBizItem.permission.db_manage;
     },
     /**
@@ -98,12 +98,11 @@ export const useGlobalBizs = defineStore('GlobalBizs', {
           this.loading = false;
         });
     },
-    setBizs(payload: BizItem[]){
-      this.bizs = payload
+    setBizs(payload: BizItem[]) {
+      this.bizs = payload;
     },
     changeBizId(id: number) {
       this.currentBizId = id;
     },
   },
 });
-

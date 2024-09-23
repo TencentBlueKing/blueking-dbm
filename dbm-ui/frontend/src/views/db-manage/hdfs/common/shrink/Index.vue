@@ -53,8 +53,8 @@
 
   import HostShrink, {
     type TShrinkNode,
-  } from '@components/cluster-common/host-shrink/Index.vue';
-  import NodeStatusList from '@components/cluster-common/host-shrink/NodeStatusList.vue';
+  } from '@views/db-manage/common/host-shrink/Index.vue';
+  import NodeStatusList from '@views/db-manage/common/host-shrink/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 

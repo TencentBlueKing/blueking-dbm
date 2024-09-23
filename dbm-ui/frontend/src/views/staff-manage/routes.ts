@@ -24,7 +24,7 @@ const staffManageRoute = {
     fullScreen: true,
   },
   component: () => import('@views/staff-manage/Index.vue'),
-}
+};
 
 const platformStaffManageRoute = {
   name: 'PlatformStaffManage',
@@ -33,7 +33,7 @@ const platformStaffManageRoute = {
     navName: t('DBA人员管理'),
   },
   component: () => import('@views/staff-manage/Index.vue'),
-}
+};
 
 export default function getRoutes() {
   const routes: RouteRecordRaw[] = [];

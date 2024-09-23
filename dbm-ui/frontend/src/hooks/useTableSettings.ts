@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import type { Settings } from 'bkui-vue/lib/table/props';
 import _ from 'lodash';
@@ -37,7 +37,7 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
       // 获取后续新增字段
       const newFields = [];
       const defaultFields = defaultSettings.fields || [];
-      const updateFields = (updateSettings.fields || []).map(item => item.field);
+      const updateFields = (updateSettings.fields || []).map((item) => item.field);
       for (const item of defaultFields) {
         // 新增字段
         if (item.field && !updateFields.includes(item.field)) {
@@ -59,12 +59,12 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
           const defaultChecked = defaultSettings.checked || [];
           // 必须勾选项
           const disabledFieldsChecked = (defaultSettings.fields || [])
-            .filter(item => item.field && item.disabled)
-            .map(item => item.field as string);
+            .filter((item) => item.field && item.disabled)
+            .map((item) => item.field as string);
           // 新增字段默认勾选项
           const newFieldsChecked = newFields
-            .filter(item => item.field && defaultChecked.includes(item.field))
-            .map(item => item.field as string);
+            .filter((item) => item.field && defaultChecked.includes(item.field))
+            .map((item) => item.field as string);
 
           Object.assign(values, {
             [settingKey]: _.uniq(checked.concat(disabledFieldsChecked, newFieldsChecked)),
@@ -93,16 +93,18 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
    */
   function updateTableSettings(updateSettings: Settings) {
     const newSettings = getSettings(updateSettings);
-    newSettings.fields = newSettings.fields?.map(item => ({
+    newSettings.fields = newSettings.fields?.map((item) => ({
       field: item.field,
     }));
-    userProfileStore.updateProfile({
-      label: key,
-      values: newSettings,
-    }).then(() => {
-      newSettings.fields = defaultSettings.fields;
-      settings.value = newSettings;
-    });
+    userProfileStore
+      .updateProfile({
+        label: key,
+        values: newSettings,
+      })
+      .then(() => {
+        newSettings.fields = defaultSettings.fields;
+        settings.value = newSettings;
+      });
   }
 
   return {

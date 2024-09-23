@@ -215,14 +215,14 @@
 
   import { ClusterTypes, MachineTypes, TicketTypes } from '@common/const';
 
-  import AffinityItem from '@components/apply-items/AffinityItem.vue';
-  import BusinessItems from '@components/apply-items/BusinessItems.vue';
-  import CloudItem from '@components/apply-items/CloudItem.vue';
-  import DeployVersion from '@components/apply-items/DeployVersion.vue';
-  import RegionItem from '@components/apply-items/RegionItem.vue';
-  import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import DbForm from '@components/db-form/index.vue';
 
+  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
+  import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
+  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
+  import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
+  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import PasswordInput from '@views/db-manage/redis/common/password-input/Index.vue';
 
   import DomainTable, { type Domain } from './components/domain-table/Index.vue';
