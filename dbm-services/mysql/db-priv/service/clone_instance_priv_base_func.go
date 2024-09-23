@@ -100,10 +100,7 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 				wg.Done()
 				// <-tokenBucket
 			}()
-			var Grants []string
-			var err error
-			slog.Info("msg", "userHost", userHost)
-			err = GetUserGantSql(needShowCreateUser, userHost, address, &Grants, bkCloudId)
+			Grants, err := GetUserGantSql(needShowCreateUser, userHost, address, bkCloudId)
 			if err != nil {
 				errorChan <- err
 				return
@@ -131,56 +128,54 @@ func GetRemotePrivilege(address string, host string, bkCloudId int64, instanceTy
 }
 
 // GetUserGantSql 查询用户创建以及授权语句
-func GetUserGantSql(needShowCreateUser bool, userHost, address string, grants *[]string, bkCloudId int64) error {
+func GetUserGantSql(needShowCreateUser bool, userHost, address string, bkCloudId int64) ([]string, error) {
 	var (
-		sql      string
-		err      error
-		hasValue bool
+		sql    string
+		grants []string
 	)
 	if needShowCreateUser {
 		sql = fmt.Sprintf("show create user %s;", userHost)
-		err, hasValue = GetGrantResponse(sql, address, grants, bkCloudId)
+		res, err := GetGrantResponse(sql, address, bkCloudId)
 		if err != nil {
-			return err
-		} else if !hasValue {
-			return fmt.Errorf("execute (%s) return nothing", sql)
+			return grants, err
 		}
+		grants = append(grants, res...)
 	}
 	sql = fmt.Sprintf("show grants for %s ", userHost)
-	err, _ = GetGrantResponse(sql, address, grants, bkCloudId)
+	res, err := GetGrantResponse(sql, address, bkCloudId)
 	if err != nil {
-		return err
+		return grants, err
 	}
-	if len(*grants) == 0 {
-		return fmt.Errorf("show grants in %s fail,query return nothing", userHost)
+	grants = append(grants, res...)
+	if len(grants) == 0 {
+		return grants, fmt.Errorf("show grants in %s fail,query return nothing", userHost)
 	}
-	return nil
+	return grants, nil
 }
 
 // GetGrantResponse 执行sql语句，获取结果
-func GetGrantResponse(sql, address string, grants *[]string, bkCloudId int64) (error, bool) {
-	hasValue := false
+func GetGrantResponse(sql, address string, bkCloudId int64) ([]string, error) {
+	var grants []string
 	queryRequest := QueryRequest{[]string{address}, []string{sql}, true, 60, bkCloudId}
 	reps, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
-		return fmt.Errorf("execute (%s) fail, error:%s", sql, err.Error()), hasValue
+		return grants, fmt.Errorf("execute (%s) fail, error:%s", sql, err.Error())
 	}
 
 	if len(reps.CmdResults[0].TableData) > 0 {
 		for _, item := range reps.CmdResults[0].TableData {
 			for _, grant := range item {
 				if grant != nil {
-					*grants = append(*grants, grant.(string))
+					grants = append(grants, grant.(string))
 				} else {
-					return fmt.Errorf("execute (%s), content of return is null", sql), hasValue
+					return grants, fmt.Errorf("execute (%s), content of return is null", sql)
 				}
 			}
 		}
 	} else {
-		return nil, hasValue
+		return grants, nil
 	}
-	hasValue = true
-	return nil, hasValue
+	return grants, nil
 }
 
 // DealWithPrivileges 处理授权语句，做版本兼容
@@ -251,11 +246,12 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 				}
 				row.Grants = tmp
 			}
-			errInner := DiffVersionConvert(&row.Grants, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8, mysql8)
+			tmp, errInner := DiffVersionConvert(row.Grants, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8, mysql8)
 			if errInner != nil {
 				errorChan <- errInner
 				return
 			}
+			row.Grants = tmp
 			newUserGrants.mu.Lock()
 			newUserGrants.Data = append(newUserGrants.Data, row)
 			newUserGrants.mu.Unlock()
@@ -275,7 +271,7 @@ func (m *CloneInstancePrivPara) DealWithPrivileges(userGrants []UserGrant, insta
 }
 
 // DiffVersionConvert 跨版本克隆权限对授权语句变形，做兼容
-func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8, mysql8 bool) error {
+func DiffVersionConvert(grants []string, mysql80Tomysql57, mysql57Tomysql56, mysql5Tomysql8, mysql8 bool) ([]string, error) {
 	var err error
 	var tmp []string
 	regForCreateUser := regexp.MustCompile(`(?i)^\s*CREATE USER `) // CREATE USER变为CREATE USER IF NOT EXISTS
@@ -286,12 +282,12 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 
 	switch {
 	case mysql80Tomysql57:
-		err = PrivMysql80ToMysql57(grants)
+		tmp, err = PrivMysql80ToMysql57(grants)
 		if err != nil {
-			return err
+			return tmp, err
 		}
 	case mysql57Tomysql56:
-		for _, str := range *grants {
+		for _, str := range grants {
 			if regForPasswordExpired.MatchString(str) {
 				str = regForPasswordExpired.ReplaceAllString(str, ``)
 			}
@@ -303,16 +299,16 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 			}
 			tmp = append(tmp, str)
 		}
-		*grants = tmp
+		return tmp, nil
 	case mysql5Tomysql8:
-		err = PrivMysql5ToMysql8(grants)
+		tmp, err = PrivMysql5ToMysql8(grants)
 		if err != nil {
-			return err
+			return tmp, err
 		}
 	case mysql8:
-		PrivMysql8(grants)
+		tmp = PrivMysql8(grants)
 	default:
-		for _, str := range *grants {
+		for _, str := range grants {
 			if regForCreateUser.MatchString(str) {
 				str = regForCreateUser.ReplaceAllString(str, `CREATE USER /*!50706 IF NOT EXISTS */ `)
 			}
@@ -321,19 +317,18 @@ func DiffVersionConvert(grants *[]string, mysql80Tomysql57, mysql57Tomysql56, my
 			}
 			tmp = append(tmp, str)
 		}
-		*grants = tmp
 	}
-	return nil
+	return tmp, nil
 }
 
 // PrivMysql8 剔除txsql 8.0包含的动态权限
-func PrivMysql8(grants *[]string) {
+func PrivMysql8(grants []string) []string {
 	var tmp []string
 	regForCreateUser := regexp.MustCompile(`(?i)^\s*CREATE USER `) // CREATE USER变为CREATE USER IF NOT EXISTS
 	regForConnLog := regexp.MustCompile("`test`.`conn_log`")       // `test`.`conn_log`变为 infodba_schema.conn_log
 	// 8.0.30-txsql 包含的动态权限，但是开源版本不支持
 	var onlyForTxsql = []string{"READ_MASK"}
-	for _, item := range *grants {
+	for _, item := range grants {
 		dynamicGrantsFlag := false
 		for _, priv := range onlyForTxsql {
 			if regexp.MustCompile(priv).MatchString(item) {
@@ -353,16 +348,16 @@ func PrivMysql8(grants *[]string) {
 		}
 		tmp = append(tmp, item)
 	}
-	*grants = tmp
+	return tmp
 }
 
 // PrivMysql5ToMysql8 Mysql5授权语句向Mysql8兼容
-func PrivMysql5ToMysql8(grants *[]string) error {
+func PrivMysql5ToMysql8(grants []string) ([]string, error) {
 	var tmp []string
 	regForCreateUser := regexp.MustCompile(`(?i)^\s*CREATE USER `) // CREATE USER变为CREATE USER IF NOT EXISTS
 	regForConnLog := regexp.MustCompile("`test`.`conn_log`")       // `test`.`conn_log`变为 infodba_schema.conn_log
 	regForPlainText := regexp.MustCompile(`(?i)\s+IDENTIFIED\s+BY\s+`)
-	for _, item := range *grants {
+	for _, item := range grants {
 		if regForCreateUser.MatchString(item) {
 			item = regForCreateUser.ReplaceAllString(item, `CREATE USER /*!50706 IF NOT EXISTS */ `)
 		}
@@ -373,7 +368,7 @@ func PrivMysql5ToMysql8(grants *[]string) error {
 			sqlParser := parser.New()
 			stmtNodes, warns, err := sqlParser.Parse(item, "", "")
 			if err != nil {
-				return fmt.Errorf("parse sql failed, sql:%s, error:%s", item, err.Error())
+				return tmp, fmt.Errorf("parse sql failed, sql:%s, error:%s", item, err.Error())
 			}
 			if len(warns) > 0 {
 				slog.Warn("some warnings happend", warns)
@@ -382,7 +377,7 @@ func PrivMysql5ToMysql8(grants *[]string) error {
 				v := visitor{}
 				stmtNode.Accept(&v)
 				if !v.legal {
-					return fmt.Errorf("parse pass,but sql format error,sql:%s", item)
+					return tmp, fmt.Errorf("parse pass,but sql format error,sql:%s", item)
 				}
 				// statement which have password need to CREATE USER
 				if v.legal && len(v.secPassword) > 0 {
@@ -405,12 +400,11 @@ func PrivMysql5ToMysql8(grants *[]string) error {
 			tmp = append(tmp, item)
 		}
 	}
-	*grants = tmp
-	return nil
+	return tmp, nil
 }
 
 // PrivMysql80ToMysql57 Mysql8.0授权语句向Mysql5.7兼容
-func PrivMysql80ToMysql57(grants *[]string) error {
+func PrivMysql80ToMysql57(grants []string) ([]string, error) {
 	var tmp []string
 	var dynamicGrantsForMySQL8 = []string{
 		"APPLICATION_PASSWORD_ADMIN",
@@ -448,7 +442,7 @@ func PrivMysql80ToMysql57(grants *[]string) error {
 	) // 排除8.0使用caching_sha2_password作为密码验证方式
 	regForConnLog := regexp.MustCompile("`test`.`conn_log`") // `test`.`conn_log`变为 infodba_schema.conn_log
 
-	for _, item := range *grants {
+	for _, item := range grants {
 		if regForPasswordOption.MatchString(item) {
 			item = regForPasswordOption.ReplaceAllString(item, ``)
 		}
@@ -493,7 +487,7 @@ func PrivMysql80ToMysql57(grants *[]string) error {
 			}
 		}
 		if regForPasswordPlugin.MatchString(item) {
-			return fmt.Errorf("using caching_sha2_password, sql: %s", item)
+			return tmp, fmt.Errorf("using caching_sha2_password, sql: %s", item)
 		}
 		if regForCreateUser.MatchString(item) {
 			item = regForCreateUser.ReplaceAllString(item, `CREATE USER /*!50706 IF NOT EXISTS */ `)
@@ -503,8 +497,7 @@ func PrivMysql80ToMysql57(grants *[]string) error {
 		}
 		tmp = append(tmp, item)
 	}
-	*grants = tmp
-	return nil
+	return tmp, nil
 }
 
 // ValidateInstancePair 验证实例是否存在
@@ -581,12 +574,8 @@ func CheckGrantInMySqlVersion(userGrants []UserGrant, address string, bkCloudId 
 
 // ImportMysqlPrivileges 执行mysql权限
 func ImportMysqlPrivileges(userGrants []UserGrant, address string, bkCloudId int64) error {
-	// Err 错误信息列表
-	type Err struct {
-		mu   sync.RWMutex
-		errs []string
-	}
 	var errMsg Err
+	var grantRetry NewUserGrants
 	wg := sync.WaitGroup{}
 	limit := rate.Every(time.Millisecond * 20) // QPS：50
 	burst := 50                                // 桶容量 50
@@ -602,7 +591,54 @@ func ImportMysqlPrivileges(userGrants []UserGrant, address string, bkCloudId int
 			defer func() {
 				wg.Done()
 			}()
-			slog.Info("msg", "user@host", row.UserHost)
+			queryRequest := QueryRequest{[]string{address}, row.Grants, true, 60, bkCloudId}
+			_, err := OneAddressExecuteSql(queryRequest)
+			if err != nil {
+				if strings.Contains(err.Error(), "ERROR 1410") {
+					/* mysql 8.0及以上的问题处理：
+					show grants for testuser@1.1.1.1可以看到模糊匹配到的账号权限，
+					比如'testuser'@'%'的grant语句GRANT SELECT, SHOW VIEW ON `db1`.* TO 'testuser'@'%'。
+					show grants for testuser@1.1.1.1;
+					+-------------------------------------------------------
+					| Grants for testuser@1.1.1.1
+					+-------------------------------------------------------
+					| GRANT FILE ON *.* TO 'testuser'@'1.1.1.1'
+					| GRANT SELECT, INSERT ON `db1`.* TO 'testuser'@'1.1.1.1'
+					| GRANT SELECT, SHOW VIEW ON `db1`.* TO 'testuser'@'%'
+					+--------------------------------------------------------
+
+					但是并行创建用户，如果'testuser'@'%'还没有创建，在mysql 8.0版本执行这个grant语句，会报错。
+					需要在create user之后再执行grant。
+					GRANT SELECT, SHOW VIEW ON `db1`.* TO 'testuser'@'%';
+					ERROR 1410 (42000): You are not allowed to create a user with GRANT
+
+					实际上对于'testuser'@'%'用户的create和grant会在'testuser'@'%'用户的授权中完成，这里的报错是可以忽略的，稳妥起见重试。
+					*/
+					grantRetry.mu.Lock()
+					grantRetry.Data = append(grantRetry.Data, row)
+					grantRetry.mu.Unlock()
+					return
+				}
+				errMsg.mu.Lock()
+				errMsg.errs = append(errMsg.errs, err.Error())
+				errMsg.mu.Unlock()
+				return
+			}
+		}(row)
+	}
+	wg.Wait()
+	slog.Info("msg", "retry for 8.0", grantRetry.Data)
+	for _, row := range grantRetry.Data {
+		errLimiter := limiter.Wait(context.Background())
+		if errLimiter != nil {
+			slog.Error("msg", "limiter.Wait", errLimiter)
+			return errLimiter
+		}
+		wg.Add(1)
+		go func(row UserGrant) {
+			defer func() {
+				wg.Done()
+			}()
 			queryRequest := QueryRequest{[]string{address}, row.Grants, true, 60, bkCloudId}
 			_, err := OneAddressExecuteSql(queryRequest)
 			if err != nil {
