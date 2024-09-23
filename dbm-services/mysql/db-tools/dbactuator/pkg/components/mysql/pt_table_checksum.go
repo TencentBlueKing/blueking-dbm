@@ -133,6 +133,8 @@ func (c *PtTableChecksumComp) GenerateConfigFile() (err error) {
 		c.GeneralParam.RuntimeAccountParam.MonitorUser, c.GeneralParam.RuntimeAccountParam.MonitorPwd,
 		"http://127.0.0.1:9999", logDir, c.tools)
 
+	cfg.PtChecksum.Replicate = c.Params.ReplicateTable
+
 	var ignoreDbs []string
 	ignoreDbs = append(ignoreDbs, c.Params.SystemDbs...)
 	ignoreDbs = append(ignoreDbs, []string{
