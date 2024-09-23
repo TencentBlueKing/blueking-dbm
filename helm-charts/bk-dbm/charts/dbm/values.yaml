@@ -28,15 +28,44 @@ saas:
     resources: {}
     replicaCount: 1
     gunicornWorker: 8
-  celeryBeat:
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 100
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+  backendApi:
     enabled: true
     resources: {}
     replicaCount: 1
+    gunicornWorker: 8
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 100
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
   celeryWorker:
     enabled: true
     resources: {}
     replicaCount: 1
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 100
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
   pipelineWorker:
+    enabled: true
+    resources: {}
+    replicaCount: 1
+    autoscaling:
+      enabled: false
+      minReplicas: 1
+      maxReplicas: 100
+      targetCPUUtilizationPercentage: 80
+      targetMemoryUtilizationPercentage: 80
+  celeryBeat:
     enabled: true
     resources: {}
     replicaCount: 1

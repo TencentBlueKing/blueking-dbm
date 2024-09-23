@@ -1,0 +1,28 @@
+{{- if .Values.saas.api.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "bk-dbm.fullname" . }}
+  labels:
+    {{- include "bk-dbm.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "bk-dbm.fullname" . }}
+  minReplicas: {{ .Values.saas.api.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.saas.api.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.saas.api.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.saas.api.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.saas.api.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.saas.api.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

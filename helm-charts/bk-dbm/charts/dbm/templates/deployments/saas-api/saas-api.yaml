@@ -1,4 +1,4 @@
-{{- if .Values.enabled -}}
+{{- if .Values.saas.api.enabled | default .Values.enabled -}}
 {{- $fullName := ( include "dbm.saas-api.fullname" .) -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -7,7 +7,7 @@ metadata:
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
+  {{- if not .Values.saas.api.autoscaling.enabled }}
   replicas: {{ .Values.saas.api.replicaCount }}
   {{- end }}
   selector:

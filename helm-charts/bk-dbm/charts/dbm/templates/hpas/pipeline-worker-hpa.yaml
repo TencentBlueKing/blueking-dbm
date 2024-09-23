@@ -1,0 +1,28 @@
+{{- if .Values.saas.pipelineWorker.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dbm.pipeline-worker.fullname" . }}
+  labels:
+    {{- include "bk-dbm.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "dbm.pipeline-worker.fullname" . }}
+  minReplicas: {{ .Values.saas.pipelineWorker.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.saas.pipelineWorker.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.saas.pipelineWorker.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.saas.pipelineWorker.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.saas.pipelineWorker.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.saas.pipelineWorker.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
