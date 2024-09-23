@@ -123,7 +123,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
-  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import EditEntryConfig, { type RowData } from '@components/cluster-entry-config/Index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -300,6 +300,23 @@
     },
   });
 
+  const renderEntry = (data: RowData) => {
+    if (data.role === 'master_entry') {
+      return (
+        <span>
+          <bk-tag size="small" theme="success">{ t('主') }</bk-tag>{ data.entry }
+        </span>
+      )
+    }
+    return (
+      <span>
+        <bk-tag size="small" theme="info">{ t('从') }</bk-tag>{ data.entry }
+      </span>
+    )
+  }
+
+  const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -383,6 +400,8 @@
                   getDetailInfo={getHaClusterDetail}
                   permission={data.permission.access_entry_edit}
                   resource={DBTypes.SQLSERVER}
+                  renderEntry={renderEntry}
+                  sort={entrySort}
                   onSuccess={fetchData} />
               </>
             ),
@@ -533,6 +552,8 @@
                   getDetailInfo={getHaClusterDetail}
                   permission={data.permission.access_entry_edit}
                   resource={DBTypes.SQLSERVER}
+                  renderEntry={renderEntry}
+                  sort={entrySort}
                   onSuccess={fetchData} />
               </>
             )

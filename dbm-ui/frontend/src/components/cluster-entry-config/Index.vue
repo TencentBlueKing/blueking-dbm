@@ -37,30 +37,11 @@
   </BkDialog>
 </template>
 
-<script
-  setup
-  lang="tsx"
-  generic="
-    T extends
-      | RedisModel
-      | SpiderModel
-      | EsModel
-      | HdfsModel
-      | KafkaModel
-      | PulsarModel
-      | SqlServerHaClusterDetailModel
-      | SqlServerSingleClusterDetailModel
-  ">
+<script setup lang="tsx">
+  import type { JSX } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
 
-  import EsModel from '@services/model/es/es';
-  import HdfsModel from '@services/model/hdfs/hdfs';
-  import KafkaModel from '@services/model/kafka/kafka';
-  import PulsarModel from '@services/model/pulsar/pulsar';
-  import RedisModel from '@services/model/redis/redis';
-  import SpiderModel from '@services/model/spider/spider';
-  import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-cluster-detail';
-  import SqlServerSingleClusterDetailModel from '@services/model/sqlserver/sqlserver-single-cluster-detail';
+  import type { DBTypes } from '@common/const';
 
   import RenderBindIps from './RenderBindIps.vue';
 
@@ -81,6 +62,7 @@
     dbConsole: string;
     resource: DBTypes;
     permission: boolean;
+    renderEntry?: (data: RowData) => JSX.Element | string;
     getDetailInfo: (params: any) => Promise<{
       cluster_entry_details: {
         cluster_entry_type: string,
@@ -91,12 +73,14 @@
           port: number
         }[]
       }[]
-    }>
+    }>;
+    sort?: (data: RowData[]) => RowData[];
   }
 
   const props = withDefaults(defineProps<Props>(), {
     id: 0,
-    disabled: true,
+    renderEntry: (data: RowData) => data.entry,
+    sort: (data: RowData[]) => data,
   });
 
   const emits = defineEmits<Emits>();
@@ -117,20 +101,7 @@
       field: 'entry',
       width: 263,
       showOverflowTooltip: true,
-      render: ({ data }: { data: RowData }) => {
-        if (data.role === 'master_entry') {
-          return (
-            <>
-              <bk-tag size="small" theme="success">{ t('主') }</bk-tag>{ data.entry }
-            </>
-          )
-        }
-        return (
-          <>
-            <bk-tag size="small" theme="info">{ t('从') }</bk-tag>{ data.entry }
-          </>
-        )
-      },
+      render: ({ data }: { data: RowData }) => props.renderEntry(data),
     },
     {
       label: 'Bind IP',
@@ -160,13 +131,14 @@
       id: props.id,
     })
       .then((res) => {
-        tableData.value = res.cluster_entry_details.map(item => ({
+        const data = res.cluster_entry_details.map(item => ({
           type: item.cluster_entry_type,
           entry: item.entry,
           role: item.role,
           ips: item.target_details.map(row => row.ip).join('\n'),
           port: item.target_details[0].port,
         }));
+        tableData.value = props.sort(data);
       })
       .catch(() => {
         tableData.value = [];
