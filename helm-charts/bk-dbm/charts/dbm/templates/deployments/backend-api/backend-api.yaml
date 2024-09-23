@@ -1,4 +1,4 @@
-{{- if .Values.enabled -}}
+{{- if .Values.saas.backendApi.enabled | default .Values.enabled -}}
 {{- $fullName := ( include "dbm.backend-api.fullname" .) -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -7,8 +7,8 @@ metadata:
   labels:
     {{- include "dbm.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.saas.api.replicaCount }}
+  {{- if not .Values.saas.backendApi.autoscaling.enabled }}
+  replicas: {{ .Values.saas.backendApi.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
@@ -41,7 +41,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - export SERVICE_ONLY=true && gunicorn wsgi -w {{ .Values.saas.api.gunicornWorker }} -b :8000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+            - export SERVICE_ONLY=true && gunicorn wsgi -w {{ .Values.saas.backendApi.gunicornWorker }} -b :8000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
           ports:
             - name: http
               containerPort: 8000
@@ -66,7 +66,7 @@ spec:
             failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 3}}
           {{- include "dbm.container_env" . | nindent 10 }}
           resources:
-            {{- toYaml .Values.saas.api.resources | nindent 12 }}
+            {{- toYaml .Values.saas.backendApi.resources | nindent 12 }}
       {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

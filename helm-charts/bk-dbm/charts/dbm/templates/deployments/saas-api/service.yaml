@@ -1,4 +1,4 @@
-{{- if .Values.enabled -}}
+{{- if .Values.saas.api.enabled | default .Values.enabled -}}
 {{- $fullName := ( include "dbm.saas-api.fullname" .) -}}
 apiVersion: v1
 kind: Service

@@ -1,0 +1,28 @@
+{{- if .Values.saas.celeryWorker.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "dbm.celery-worker.fullname" . }}
+  labels:
+    {{- include "bk-dbm.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "dbm.celery-worker.fullname" . }}
+  minReplicas: {{ .Values.saas.celeryWorker.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.saas.celeryWorker.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.saas.celeryWorker.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.saas.celeryWorker.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.saas.celeryWorker.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.saas.celeryWorker.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

@@ -157,8 +157,22 @@ dbm:
         pathType: ImplementationSpecific
     tls: []
 
-  autoscaling:
-    enabled: false
+  saas:
+    api:
+      enabled: true
+      replicaCount: 1
+    backendApi:
+      enabled: true
+      replicaCount: 1
+    celeryBeat:
+      enabled: true
+      replicaCount: 1
+    celeryWorker:
+      enabled: true
+      replicaCount: 1
+    pipelineWorker:
+      enabled: true
+      replicaCount: 1
 
   migration:
     images:
