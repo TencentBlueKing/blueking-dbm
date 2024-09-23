@@ -37,6 +37,7 @@ export default (options?: { onSuccess?: (data: TicketModel<unknown>[]) => void }
     },
     {
       manual: true,
+      debounceInterval: 100,
       onSuccess(data) {
         dataList.value.forEach((ticketData) => {
           if (data[ticketData.id]) {
