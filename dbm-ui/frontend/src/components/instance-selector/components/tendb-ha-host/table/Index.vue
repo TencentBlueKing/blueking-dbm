@@ -30,7 +30,8 @@
         style="margin-top: 12px"
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage"
-        @refresh="fetchResources" />
+        @refresh="fetchResources"
+        @row-click.stop.prevent="handleRowClick" />
     </BkLoading>
   </div>
 </template>
@@ -60,6 +61,7 @@
     lastValues: InstanceSelectorValues<T>,
     tableSetting: TableSetting,
     clusterId?: number,
+    multiple?: TableConfigType['multiple'],
     isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
     // eslint-disable-next-line vue/no-unused-properties
@@ -128,7 +130,7 @@
     {
       width: 60,
       fixed: 'left',
-      label: () => (
+      label: () => props.multiple && (
         <bk-checkbox
           label={true}
           model-value={isSelectedAll.value}
@@ -147,11 +149,18 @@
             </bk-popover>
           );
         }
-        return (
+        return props.multiple ? (
           <bk-checkbox
             style="vertical-align: middle;"
             label={true}
             model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            onChange={(value: boolean) => handleTableSelectOne(value, data)}
+          />
+        ) : (
+          <bk-radio
+            style="vertical-align: middle;"
+            model-value={Boolean(checkedMap.value[data[firstColumnFieldId.value]])}
+            label={true}
             onChange={(value: boolean) => handleTableSelectOne(value, data)}
           />
         );
@@ -276,8 +285,22 @@
     }
   };
 
+  const handleRowClick = (row: unknown, data: T) => {
+    if (props.disabledRowConfig && props.disabledRowConfig.handler(data)) {
+      return;
+    }
+
+    const isChecked = !!checkedMap.value[data[firstColumnFieldId.value]];
+    if (isChecked && !props.multiple) {
+      // 单选不允许取消
+      return;
+    }
+
+    handleTableSelectOne(!isChecked, data);
+  };
+
   const handleTableSelectOne = (checked: boolean, data: T) => {
-    const lastCheckMap = { ...checkedMap.value };
+    const lastCheckMap = props.multiple ? { ...checkedMap.value } : {};
     if (checked) {
       lastCheckMap[data[firstColumnFieldId.value]] = formatValue(data);
     } else {

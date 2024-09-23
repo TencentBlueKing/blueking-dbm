@@ -17,8 +17,8 @@
       <RenderCluster
         ref="clusterRef"
         :model-value="localClusterData"
-        @change="handleClusterChange"
-        @input-create="handleCreate" />
+        tabs="both"
+        @cluster-change="handleClusterChange" />
     </FixedColumn>
     <template v-if="showHostColumn">
       <td style="padding: 0">
@@ -168,12 +168,12 @@
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
+  import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterNameWithSelector.vue';
   import RenderDbName from '@views/db-manage/mysql/common/edit-field/DbName.vue';
   import RenderTableName from '@views/db-manage/mysql/common/edit-field/TableName.vue';
 
   import RenderMode, { BackupTypes } from './components/render-mode/Index.vue';
   import RenderBackup, { BackupSources } from './components/RenderBackup.vue';
-  import RenderCluster from './components/RenderCluster.vue';
   import RenderClusterInputSelect from './components/RenderClusterInputSelect.vue';
   import RenderHostInputSelect from './components/RenderHostInputSelect.vue';
   import RenderHostSource from './components/RenderHostSource.vue';
@@ -222,20 +222,6 @@
 
   const handleBackupSourceChange = (value: BackupSources) => {
     localBackupSource.value = value;
-  };
-
-  const handleCreate = (list: Array<string>) => {
-    emits(
-      'add',
-      list.map((domain) =>
-        createRowData({
-          clusterData: {
-            id: 0,
-            domain,
-          },
-        }),
-      ),
-    );
   };
 
   const handleAppend = () => {
