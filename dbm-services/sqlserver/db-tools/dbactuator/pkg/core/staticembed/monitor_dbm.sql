@@ -3177,30 +3177,30 @@ BEGIN
 		--开始备份
 		SET @SQL = NULL
 		SELECT @SQL = ISNULL(@SQL+CHAR(13),'')+'
-		DECLARE @SUCCESS_'+NAME+' INT = 0,@CHECKER_'+NAME+' INT = 0
-		DECLARE @STARTTIME_'+NAME+' VARCHAR(25) = CONVERT(CHAR(19),GETDATE(),120),
-			@STARTTIME_SHORT_'+NAME+' VARCHAR(25) =REPLACE(REPLACE(REPLACE(CONVERT(CHAR(19),GETDATE(),120),'':'',''''),''-'',''''),'' '','''')
-		DECLARE @FILENAME_'+NAME+' VARCHAR(4000) = '''+NAME+'__'+@APP+'_'+@IP+'_'+LTRIM(@PORT)+'_''+@STARTTIME_SHORT_'+NAME+'+'''+@SUFFIX+'''
-		DECLARE @FULLFILENAME_'+NAME+' VARCHAR(4000) = '''+@BACKUP_PATH+'''+@FILENAME_'+NAME+'
-		EXEC @CHECKER_'+NAME+' = DBO.TOOL_CHECK_DISK_FREE_SIZE '''+@BACKUP_PATH+''','+LTRIM(@DISK_MIN_SIZE_MB)+'
-		IF @CHECKER_'+NAME+' = 1
+		DECLARE @SUCCESS_'+replace(NAME,'-','#')+' INT = 0,@CHECKER_'+replace(NAME,'-','#')+' INT = 0
+		DECLARE @STARTTIME_'+replace(NAME,'-','#')+' VARCHAR(25) = CONVERT(CHAR(19),GETDATE(),120),
+			@STARTTIME_SHORT_'+replace(NAME,'-','#')+' VARCHAR(25) =REPLACE(REPLACE(REPLACE(CONVERT(CHAR(19),GETDATE(),120),'':'',''''),''-'',''''),'' '','''')
+		DECLARE @FILENAME_'+replace(NAME,'-','#')+' VARCHAR(4000) = '''+NAME+'__'+@APP+'_'+@IP+'_'+LTRIM(@PORT)+'_''+@STARTTIME_SHORT_'+replace(NAME,'-','#')+'+'''+@SUFFIX+'''
+		DECLARE @FULLFILENAME_'+replace(NAME,'-','#')+' VARCHAR(4000) = '''+@BACKUP_PATH+'''+@FILENAME_'+replace(NAME,'-','#')+'
+		EXEC @CHECKER_'+replace(NAME,'-','#')+' = DBO.TOOL_CHECK_DISK_FREE_SIZE '''+@BACKUP_PATH+''','+LTRIM(@DISK_MIN_SIZE_MB)+'
+		IF @CHECKER_'+replace(NAME,'-','#')+' = 1
 		BEGIN
-			IF '+LTRIM(@TYPE)+' <> 1 AND NOT EXISTS(select 1 from msdb.dbo.backupset a, msdb.dbo.backupmediafamily b where a.media_set_id = b.media_set_id and a.database_name = '''+NAME+''' and backup_finish_date between getdate()-2 and getdate())
+			IF '+LTRIM(@TYPE)+' <> 1 AND NOT EXISTS(select 1 from msdb.dbo.backupset a, msdb.dbo.backupmediafamily b where a.media_set_id = b.media_set_id and a.database_name = '''+replace(NAME,'-','#')+''' and backup_finish_date between getdate()-2 and getdate())
 			BEGIN
-				DECLARE @NEWFULLFILENAME_'+NAME+' VARCHAR(4000) = REPLACE(REPLACE(@FULLFILENAME_'+NAME+','''+@SUFFIX+''',''.bak''),'''+@BACKUP_PATH+''','''+@FULL_BACKUP_PATH+''')
-				EXEC @SUCCESS_'+NAME+' = DBO.TOOL_BACKUP_DATABASE_OPERATOR 1,'''+NAME+''',@NEWFULLFILENAME_'+NAME+'
+				DECLARE @NEWFULLFILENAME_'+replace(NAME,'-','#')+' VARCHAR(4000) = REPLACE(REPLACE(@FULLFILENAME_'+replace(NAME,'-','#')+','''+@SUFFIX+''',''.bak''),'''+@BACKUP_PATH+''','''+@FULL_BACKUP_PATH+''')
+				EXEC @SUCCESS_'+replace(NAME,'-','#')+' = DBO.TOOL_BACKUP_DATABASE_OPERATOR 1,'''+NAME+''',@NEWFULLFILENAME_'+replace(NAME,'-','#')+'
 			END
-			EXEC @SUCCESS_'+NAME+' = DBO.TOOL_BACKUP_DATABASE_OPERATOR '+LTRIM(@TYPE)+','''+NAME+''',@FULLFILENAME_'+NAME+'
+			EXEC @SUCCESS_'+replace(NAME,'-','#')+' = DBO.TOOL_BACKUP_DATABASE_OPERATOR '+LTRIM(@TYPE)+','''+NAME+''',@FULLFILENAME_'+replace(NAME,'-','#')+'
 		END
-		DECLARE @ENDTIME_'+NAME+' VARCHAR(25) = CONVERT(CHAR(19),GETDATE(),120)
+		DECLARE @ENDTIME_'+replace(NAME,'-','#')+' VARCHAR(25) = CONVERT(CHAR(19),GETDATE(),120)
 		INSERT INTO DBO.BACKUP_TRACE(BACKUP_ID,DBNAME,[PATH],FILENAME,TYPE,STARTTIME,ENDTIME,FILESIZE,MD5CODE,SUCCESS,UPLOADED,WRITETIME)
-		VALUES('''+@BACKUP_ID+''','''+NAME+''','''+@BACKUP_PATH+''',@FILENAME_'+NAME+','+LTRIM(@TYPE)+',@STARTTIME_'+NAME+',@ENDTIME_'+NAME+',0,0,@SUCCESS_'+NAME+',0,GETDATE())'
+		VALUES('''+@BACKUP_ID+''','''+NAME+''','''+@BACKUP_PATH+''',@FILENAME_'+replace(NAME,'-','#')+','+LTRIM(@TYPE)+',@STARTTIME_'+replace(NAME,'-','#')+',@ENDTIME_'+replace(NAME,'-','#')+',0,0,@SUCCESS_'+replace(NAME,'-','#')+',0,GETDATE())'
 		FROM DBO.BACKUP_DBLIST WHERE NAME in(select RowValue from dbo.SplitStringByRow(@DBLIST,','))
 		--PRINT(@SQL)
 		EXEC (@SQL)
 	END TRY
 	BEGIN CATCH
-		PRINT '~~ error in backup database ~~'
+	PRINT '~~ error in backup database ~~'
 	END CATCH
 
 	SET @BACKUP_TASK_END_TIME=convert(varchar(19),getdate(),121)
