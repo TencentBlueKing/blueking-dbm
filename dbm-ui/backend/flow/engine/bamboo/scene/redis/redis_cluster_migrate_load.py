@@ -213,6 +213,7 @@ class RedisClusterMigrateLoadFlow(object):
             trans_files = GetFileList(db_type=DBType.Redis)
             act_kwargs.file_list = trans_files.redis_dbmon()
             act_kwargs.exec_ip = all_ips
+            act_kwargs.bk_cloud_id = self.data["bk_cloud_id"]
             sub_pipeline.add_act(
                 act_name=_("下发介质包"),
                 act_component_code=TransFileComponent.code,
