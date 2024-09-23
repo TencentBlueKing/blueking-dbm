@@ -153,7 +153,7 @@
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
-  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import EditEntryConfig, { type RowData } from '@components/cluster-entry-config/Index.vue';
   import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
@@ -334,6 +334,24 @@
     return funControllerStore.funControllerData.mysql.children[currentKey];
   });
 
+
+  const renderEntry = (data: RowData) => {
+    if (data.role === 'master_entry') {
+      return (
+        <span>
+          <bk-tag size="small" theme="success">{ t('主') }</bk-tag>{ data.entry }
+        </span>
+      )
+    }
+    return (
+      <span>
+        <bk-tag size="small" theme="info">{ t('从') }</bk-tag>{ data.entry }
+      </span>
+    )
+  }
+
+  const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -403,6 +421,8 @@
                   getDetailInfo={getTendbhaDetail}
                   permission={data.permission.access_entry_edit}
                   resource={DBTypes.MYSQL}
+                  renderEntry={renderEntry}
+                  sort={entrySort}
                   onSuccess={fetchData} />
               </>
             ),
@@ -462,6 +482,8 @@
                   getDetailInfo={getTendbhaDetail}
                   permission={data.permission.access_entry_edit}
                   resource={DBTypes.MYSQL}
+                  renderEntry={renderEntry}
+                  sort={entrySort}
                   onSuccess={fetchData} />
               </>
             ),
@@ -511,8 +533,8 @@
     {
       label: t('从访问入口'),
       field: 'slave_domain',
-      minWidth: 200,
-      width: 220,
+      minWidth: 280,
+      width: 280,
       showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
@@ -557,6 +579,8 @@
                 getDetailInfo={getTendbhaDetail}
                 permission={data.permission.access_entry_edit}
                 resource={DBTypes.MYSQL}
+                renderEntry={renderEntry}
+                sort={entrySort}
                 onSuccess={fetchData} />
             </>)
         }}
@@ -675,9 +699,8 @@
           dataSource={getTendbhaInstanceList}
         >
           {{
-            append: ({ data }: { data: TendbhaModel['slaves'][number] }) =>
-              data.is_stand_by &&
-              (<bk-tag class="is-stand-by" size="small">Standby</bk-tag>)
+            append: ({ data: instance }: { data: TendbhaModel['slaves'][number] }) =>
+              data.slaves.length > 1 && instance.is_stand_by && (<bk-tag class="is-stand-by" size="small">Standby</bk-tag>)
           }}
         </RenderInstances>
       ),

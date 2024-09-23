@@ -178,7 +178,7 @@
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
-  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import EditEntryConfig, { type RowData } from '@components/cluster-entry-config/Index.vue';
   import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
@@ -346,6 +346,25 @@
     }
     return [];
   });
+
+  const renderEntry = (data: RowData) => {
+    if (data.role === 'master_entry') {
+      return (
+        <span>
+          <bk-tag size="small" theme="success">{ t('主') }</bk-tag>{ data.entry }
+        </span>
+      )
+    }
+    return (
+      <span>
+        <bk-tag size="small" theme="info">{ t('从') }</bk-tag>{ data.entry }
+      </span>
+    )
+  }
+
+  const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
+
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -417,6 +436,8 @@
                   getDetailInfo={getSpiderDetail}
                   permission={data.permission.access_entry_edit}
                   resource={DBTypes.TENDBCLUSTER}
+                  renderEntry={renderEntry}
+                  sort={entrySort}
                   onSuccess={fetchData} />
               </>
             ),
@@ -557,6 +578,8 @@
             getDetailInfo={getSpiderDetail}
             permission={data.permission.access_entry_edit}
             resource={DBTypes.TENDBCLUSTER}
+            renderEntry={renderEntry}
+            sort={entrySort}
             onSuccess={fetchData} />
         </div>
       ),
