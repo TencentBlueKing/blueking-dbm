@@ -40,7 +40,7 @@
   </div>
 </template>
 <script lang="ts">
-  import { computed, type InjectionKey, provide, type Ref } from 'vue';
+  import { type InjectionKey, nextTick, provide, type Ref } from 'vue';
 
   export const provideKey: InjectionKey<{
     isOpen: Ref<boolean>;
@@ -79,13 +79,18 @@
   const isOpen = ref(false);
   const renderLeftWidth = ref(0);
   const isRightHidden = ref(true);
+  const isSplited = ref(false);
 
-  const isSplited = computed(() => {
-    if (!isShowTrigger.value) {
-      return false;
-    }
-    return renderLeftWidth.value < getMaxWidth();
-  });
+  const calcSplited = () => {
+    nextTick(() => {
+      if (!isShowTrigger.value) {
+        isSplited.value = false;
+      }
+      isSplited.value = renderLeftWidth.value < getMaxWidth();
+
+      console.log('isSplited = ', isSplited.value);
+    });
+  };
 
   // 拖动改变左侧宽度
   const handleLeftWidthChange = (newLeftWidth: number) => {
@@ -99,6 +104,7 @@
     } else {
       renderLeftWidth.value = newLeftWidth;
     }
+    calcSplited();
   };
 
   // 切换展开收起
@@ -111,12 +117,14 @@
     }
     isOpen.value = !isOpen.value;
     isRightHidden.value = renderLeftWidth.value === getMaxWidth();
+    calcSplited();
   };
 
   // 拖拽改变浏览器大小
   const handleWindowResize = () => {
     if (!isOpen.value) {
       renderLeftWidth.value = renderLeftWidth.value === 0 ? 0 : getMaxWidth();
+      calcSplited();
     }
   };
 
@@ -124,6 +132,7 @@
     isOpen: readonly(isOpen),
     isSplited,
     splitScreen() {
+      console.log('splitScreen');
       isShowTrigger.value = true;
       if (isOpen.value) {
         return;

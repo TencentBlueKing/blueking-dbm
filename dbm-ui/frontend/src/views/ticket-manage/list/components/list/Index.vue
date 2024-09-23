@@ -1,9 +1,7 @@
 <template>
-  <KeepAlive>
-    <Component
-      :is="renderCom"
-      v-bind="attrs" />
-  </KeepAlive>
+  <Component
+    :is="renderCom"
+    v-bind="attrs" />
 </template>
 <script setup lang="ts">
   import { useAttrs } from 'vue';

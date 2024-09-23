@@ -18,43 +18,45 @@
         unique-select />
     </div>
     <ScrollFaker style="height: calc(100% - 165px)">
-      <div
-        v-for="ticketData in dataList"
-        :key="ticketData.id"
-        class="ticket-info-box"
-        :class="{
-          'is-active': modelValue === ticketData.id,
-        }"
-        @click="handleSelect(ticketData)">
-        <div class="ticket-type">
-          {{ ticketData.ticket_type_display }}
-          <BkTag
-            class="ticket-status-tag"
-            size="small"
-            :theme="ticketData.tagTheme">
-            {{ ticketData.statusText }}
-          </BkTag>
-        </div>
-        <div class="ticket-info-more">
-          <div class="ticket-info-label">{{ t('集群') }}：</div>
-          <RenderRow
-            :data="ticketData.related_object.objects || []"
-            show-all
-            style="overflow: hidden" />
-        </div>
-        <div class="ticket-info-more">
-          <div class="ticket-info-label">{{ t('业务') }}：</div>
-          <div
-            v-overflow-tips
-            class="text-overflow">
-            {{ ticketData.bk_biz_name }}
+      <BkLoading :loading="isLoading">
+        <div
+          v-for="ticketData in dataList"
+          :key="ticketData.id"
+          class="ticket-info-box"
+          :class="{
+            'is-active': modelValue === ticketData.id,
+          }"
+          @click="handleSelect(ticketData)">
+          <div class="ticket-type">
+            {{ ticketData.ticket_type_display }}
+            <BkTag
+              class="ticket-status-tag"
+              size="small"
+              :theme="ticketData.tagTheme">
+              {{ ticketData.statusText }}
+            </BkTag>
+          </div>
+          <div class="ticket-info-more">
+            <div class="ticket-info-label">{{ t('集群') }}：</div>
+            <RenderRow
+              :data="ticketData.related_object.objects || []"
+              show-all
+              style="overflow: hidden" />
+          </div>
+          <div class="ticket-info-more">
+            <div class="ticket-info-label">{{ t('业务') }}：</div>
+            <div
+              v-overflow-tips
+              class="text-overflow">
+              {{ ticketData.bk_biz_name }}
+            </div>
+          </div>
+          <div class="ticket-info-more">
+            <div>{{ t('申请人') }}： {{ ticketData.creator }}</div>
+            <div style="margin-left: auto">{{ ticketData.createAtDisplay }}</div>
           </div>
         </div>
-        <div class="ticket-info-more">
-          <div>{{ t('申请人') }}： {{ ticketData.creator }}</div>
-          <div style="margin-left: auto">{{ ticketData.createAtDisplay }}</div>
-        </div>
-      </div>
+      </BkLoading>
     </ScrollFaker>
     <div class="data-pagination">
       <BkPagination
@@ -65,13 +67,13 @@
         :limit="pagination.limit"
         :show-total-count="false"
         small
-        @change="handlePaginationChange" />
+        @change="handlePageValueChange"
+        @limit-change="handlePageLimitChange" />
     </div>
   </div>
 </template>
 <script setup lang="ts">
-  import _ from 'lodash';
-  import { useTemplateRef } from 'vue';
+  import { onBeforeUnmount, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import TicketModel from '@services/model/ticket/ticket';
@@ -101,17 +103,24 @@
     });
   };
 
-  const { pagination, fetchTicketList, dataList } = useData({
+  const {
+    loading: isLoading,
+    pagination,
+    fetchTicketList,
+    dataList,
+  } = useData({
     onSuccess(data) {
       if (!modelValue.value && data.length > 0) {
         handleSelect(data[0]);
       }
-      const activeItem = rootRef.value!.querySelector('.is-active');
-      if (activeItem) {
-        activeItem.scrollIntoView({
-          block: 'center',
-        });
-      }
+      nextTick(() => {
+        const activeItem = rootRef.value!.querySelector('.is-active');
+        if (activeItem) {
+          activeItem.scrollIntoView({
+            block: 'center',
+          });
+        }
+      });
     },
   });
 
@@ -123,18 +132,32 @@
   };
 
   watch([formatDateValue, formatSearchValue], () => {
+    pagination.current = 1;
     fetchData();
   });
 
-  const handlePaginationChange = _.debounce(() => {
-    modelValue.value = undefined;
+  // 切换每页条数
+  const handlePageLimitChange = (pageLimit: number) => {
+    pagination.limit = pageLimit;
     fetchData();
-  }, 100);
+  };
+
+  // 切换页码
+  const handlePageValueChange = (pageValue: number) => {
+    pagination.current = pageValue;
+    fetchData();
+  };
 
   onMounted(() => {
     if (dataList.value.length < 1) {
       fetchData();
     }
+  });
+
+  onBeforeUnmount(() => {
+    appendSearchParams({
+      viewId: '',
+    });
   });
 </script>
 <style lang="less">

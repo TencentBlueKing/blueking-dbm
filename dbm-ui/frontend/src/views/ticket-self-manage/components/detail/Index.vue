@@ -67,12 +67,11 @@
   import PermissionCatch from '@components/apply-permission/Catch.vue';
 
   import TicketClone from '@views/tickets/common/components/TicketClone.vue';
+  import BaseInfo from '@views/tickets/my-tickets/components/details/components/BaseInfo.vue';
+  import DemandInfo from '@views/tickets/my-tickets/components/details/components/Demand.vue';
+  import FlowInfo from '@views/tickets/my-tickets/components/details/components/flow/Index.vue';
 
   import { useTimeoutFn } from '@vueuse/core';
-
-  import BaseInfo from './components/BaseInfo.vue';
-  import DemandInfo from './components/Demand.vue';
-  import FlowInfo from './components/flow/Index.vue';
 
   interface Props {
     ticketId: number;

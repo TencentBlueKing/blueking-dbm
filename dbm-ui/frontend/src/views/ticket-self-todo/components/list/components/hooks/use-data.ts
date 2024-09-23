@@ -1,6 +1,5 @@
 import { reactive, ref } from 'vue';
 import { useRequest } from 'vue-request';
-import { useRoute } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketStatus, getTodoTickets } from '@services/source/ticket';
@@ -9,6 +8,7 @@ import { useUrlSearch } from '@hooks';
 
 import { useTimeoutFn } from '@vueuse/core';
 
+const isLoading = ref(false);
 const dataList = ref<TicketModel<unknown>[]>([]);
 const pagination = reactive({
   offset: 0,
@@ -18,12 +18,12 @@ const pagination = reactive({
 });
 
 export default (options?: { onSuccess?: (data: TicketModel<unknown>[]) => void }) => {
-  const route = useRoute();
-  const { replaceSearchParams } = useUrlSearch();
+  const { replaceSearchParams, getSearchParams } = useUrlSearch();
+  const searchParams = getSearchParams();
 
-  if (route.query.limit && route.query.current) {
-    pagination.limit = Number(route.query.limit);
-    pagination.current = Number(route.query.current);
+  if (searchParams.limit && searchParams.current) {
+    pagination.limit = Number(searchParams.limit);
+    pagination.current = Number(searchParams.current);
   }
 
   const { run: fetchTicketStatus } = useRequest(
@@ -64,14 +64,29 @@ export default (options?: { onSuccess?: (data: TicketModel<unknown>[]) => void }
       }),
     {
       manual: true,
+      onBefore() {
+        isLoading.value = true;
+      },
+      onAfter() {
+        isLoading.value = false;
+      },
       onSuccess(data, params) {
         dataList.value = data.results;
         pagination.count = data.count;
-        replaceSearchParams({
+
+        const urlSearchParams = {
           limit: pagination.limit,
           current: pagination.current,
           ...params[0],
-        });
+        };
+
+        const searchParams = getSearchParams();
+        if (Number(searchParams.viewId)) {
+          Object.assign(urlSearchParams, {
+            viewId: searchParams.viewId,
+          });
+        }
+        replaceSearchParams(urlSearchParams);
         if (options && options.onSuccess) {
           options.onSuccess(data.results);
         }
@@ -80,6 +95,7 @@ export default (options?: { onSuccess?: (data: TicketModel<unknown>[]) => void }
   );
 
   return {
+    loading: isLoading,
     dataList,
     pagination,
     fetchTicketList,

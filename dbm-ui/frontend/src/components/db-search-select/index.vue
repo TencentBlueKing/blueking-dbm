@@ -49,10 +49,6 @@
   const { getSearchParams } = useUrlSearch();
 
   const getDefaultValue = () => {
-    const initValues = modelValues.value ?? [];
-    if (!props.parseUrl) {
-      return initValues;
-    }
     const searchParams = getSearchParams();
     const defaultValue: SearchSelectProps['modelValue'] = [];
     props.data?.forEach((item) => {
@@ -72,15 +68,11 @@
       }
     });
     // 保留初始化时传入的 modelValues
-    return defaultValue.length > 0 ? defaultValue : initValues;
+    return defaultValue.length > 0 ? defaultValue : [];
   };
 
   const modelValues = defineModel<SearchSelectProps['modelValue']>({
     default: [],
-  });
-
-  onMounted(() => {
-    modelValues.value = getDefaultValue();
   });
 
   watch(
@@ -95,12 +87,27 @@
         emits('change', modelValues.value);
       });
     },
-    { immediate: true, deep: true },
+    {
+      immediate: true,
+      deep: true,
+    },
   );
+
+  onMounted(() => {
+    if (props.parseUrl) {
+      modelValues.value = getDefaultValue();
+      emits('change', modelValues.value);
+    }
+  });
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .bk-search-select {
     background-color: white;
+
+    .search-container-selected {
+      height: 22px;
+      max-width: 250px !important;
+    }
   }
 </style>
