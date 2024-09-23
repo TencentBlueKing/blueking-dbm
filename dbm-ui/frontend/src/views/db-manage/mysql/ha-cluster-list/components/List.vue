@@ -173,6 +173,8 @@
     isRecentDays,
   } from '@utils';
 
+  import RenderEntries from './RenderEntries.vue';
+
   interface ColumnData {
     cell: string,
     data: TendbhaModel
@@ -533,11 +535,9 @@
           {t('从访问入口')}
         </RenderHeadCopy>
       ),
-      render: ({ data }: ColumnData) => data.slaveEntryList.length === 0 ? '--' : data.slaveEntryList.map((item, index) => (
-        <TextOverflowLayout class="slave-entry">
-          {{
-            default: () => item,
-            append: () => index === 0 && (
+      render: ({ data }: ColumnData) => <RenderEntries data={data.slaveEntryList}>
+        {{
+          append: ({ index }: { index: number }) => index === 0 && (
             <>
               <RenderCellCopy copyItems={
                 [
@@ -559,9 +559,8 @@
                 resource={DBTypes.MYSQL}
                 onSuccess={fetchData} />
             </>)
-          }}
-        </TextOverflowLayout>
-      ))
+        }}
+        </RenderEntries>
     },
     {
       label: 'Proxy',
