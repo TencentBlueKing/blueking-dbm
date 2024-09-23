@@ -137,12 +137,33 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             if "log_warnings" in cfg["mysqld"]:
                 value = cfg["mysqld"]["log_warnings"]
                 if value == "0":
-                    cfg["mysqld"]["log_error_verbosity"] = 1
+                    cfg["mysqld"]["log_error_verbosity"] = "1"
                 elif value == "1":
-                    cfg["mysqld"]["log_error_verbosity"] = 2
+                    cfg["mysqld"]["log_error_verbosity"] = "2"
                 else:
-                    cfg["mysqld"]["log_error_verbosity"] = 3
+                    cfg["mysqld"]["log_error_verbosity"] = "3"
                 del cfg["mysqld"]["log_warnings"]
+            # mysql8.0 无法识别这些参数
+            for key in [
+                "innodb_file_format",
+                "query_cache_size",
+                "query_cache_type",
+                "show_compatibility_56",
+                "query_response_time_stats",
+                "userstat",
+            ]:
+                if key in cfg["mysqld"]:
+                    del cfg["mysqld"][key]
+            if "thread_handling" in cfg["mysqld"]:
+                val = cfg["mysqld"]["thread_handling"]
+                # thread_handling = 2 是tmysql参数。社区版本和txsql 都不能识别
+                if val == "1":
+                    cfg["mysqld"]["thread_handling"] = "no-threads"
+                elif val == "2":
+                    cfg["mysqld"]["thread_handling"] = "one-thread-per-connection"
+                elif val == "3":
+                    cfg["mysqld"]["thread_handling"] = "loaded-dynamically"
+
         # 这里应该是社区版本等非Tendb数据库的版本需要处理的参数
         # 介质管理暂未记录介质来源属性
         if db_version >= "8.0.30":
