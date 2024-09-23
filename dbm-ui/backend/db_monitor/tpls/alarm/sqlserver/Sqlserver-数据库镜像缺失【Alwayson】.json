@@ -49,7 +49,7 @@
         "algorithms": [
           {
             "type": "Threshold",
-            "level": 1,
+            "level": 2,
             "config": [
               [
                 {
@@ -66,7 +66,7 @@
     ],
     "detects": [
       {
-        "level": 1,
+        "level": 2,
         "expression": "",
         "trigger_config": {
           "count": 3,
@@ -249,7 +249,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "MAX(mssql_alwayson_deploy)",
-  "version": 2,
+  "version": 3,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2024-04-02T16:01:58+08:00"
