@@ -67,6 +67,7 @@ export default (options?: { onSuccess?: (data: TicketModel<unknown>[]) => void }
       }),
     {
       manual: true,
+      debounceInterval: 100,
       onBefore() {
         isLoading.value = true;
       },

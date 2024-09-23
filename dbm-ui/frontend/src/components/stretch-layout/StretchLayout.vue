@@ -87,8 +87,6 @@
         isSplited.value = false;
       }
       isSplited.value = renderLeftWidth.value < getMaxWidth();
-
-      console.log('isSplited = ', isSplited.value);
     });
   };
 
@@ -132,7 +130,6 @@
     isOpen: readonly(isOpen),
     isSplited,
     splitScreen() {
-      console.log('splitScreen');
       isShowTrigger.value = true;
       if (isOpen.value) {
         return;

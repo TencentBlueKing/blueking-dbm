@@ -23,7 +23,11 @@
           :max-height="tableMaxHeight"
           :pagination="pagination"
           remote-pagination
-          show-overflow-tooltip
+          :show-overflow-tooltip="{
+            popoverOption: {
+              maxWidth: 500,
+            },
+          }"
           @page-limit-change="handlePageLimitChange"
           @page-value-change="handlePageValueChange">
           <BkTableColumn
