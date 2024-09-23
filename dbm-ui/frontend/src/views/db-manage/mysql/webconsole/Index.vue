@@ -2,5 +2,5 @@
   <WebConsole />
 </template>
 <script setup lang="ts">
-  import WebConsole from '@components/webconsole/Index.vue';
+  import WebConsole from '@views/db-manage/common/webconsole/Index.vue';
 </script>

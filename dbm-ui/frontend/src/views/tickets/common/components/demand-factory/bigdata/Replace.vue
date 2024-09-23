@@ -25,8 +25,6 @@
 
   import { useCopy } from '@hooks';
 
-  import type { IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
-
   interface Props {
     ticketDetails: TicketDetails<BigDataReplaceDetails>
   }
@@ -128,7 +126,7 @@
       const key = item[0];
       const value = item[1];
       if (value.length) {
-        const data = value.map((key: IHostTableData) => key.ip);
+        const data = value.map((key: any) => key.ip);
         nodeList.push({ key, value: data });
       }
     });

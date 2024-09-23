@@ -99,7 +99,7 @@
 
   import SpecPlanSelector, {
     type TicketSpecInfo,
-  }  from '@components/cluster-spec-plan-selector/Index.vue';
+  }  from '@views/db-manage/common/cluster-spec-plan-selector/Index.vue';
 
   import { t } from '@/locales';
   import { useGlobalBizs } from '@/stores';

@@ -126,11 +126,11 @@
 
   import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
 
-  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
   import type { CrossBusinessInfoItem } from '@views/db-manage/redis/db-data-copy/pages/page1/Index.vue';
 
   import { destroyLocalStorage } from '../../Index.vue';

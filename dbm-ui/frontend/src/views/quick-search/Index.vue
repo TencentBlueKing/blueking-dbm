@@ -142,7 +142,7 @@
     {} as Record<number, string>,
   );
 
-  const keyword = ref(route.query.keyword as string || '');
+  const keyword = ref((route.query.keyword as string) || '');
   const isTableSearching = ref(false);
   const dataMap = ref<Omit<ServiceReturnType<typeof quickSearch>, 'machine'>>({
     cluster_name: [],
@@ -234,18 +234,22 @@
       panelList[4].count = data.task.length;
       panelList[5].count = data.ticket.length;
 
-      const panelItem = panelList.find(panel => panel.count > 0);
+      const panelItem = panelList.find((panel) => panel.count > 0);
       if (panelItem) {
         activeTab.value = panelItem.name;
       }
     },
   });
 
-  watch(formData, () => {
-    handleSearch();
-  }, {
-    deep: true,
-  });
+  watch(
+    formData,
+    () => {
+      handleSearch();
+    },
+    {
+      deep: true,
+    },
+  );
 
   watch(keyword, (newKeyword, oldKeyword) => {
     const newKeywordArr = newKeyword.split(batchSplitRegex);

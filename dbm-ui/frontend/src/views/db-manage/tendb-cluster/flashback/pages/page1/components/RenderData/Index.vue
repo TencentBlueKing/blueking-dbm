@@ -163,9 +163,10 @@
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
 
-  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
+
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   import type { IDataRowBatchKey } from './Row.vue';
 

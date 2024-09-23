@@ -77,9 +77,10 @@
 
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
-  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 

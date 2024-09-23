@@ -375,17 +375,17 @@
   import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
   import { nameRegx } from '@common/regex';
 
-  import AffinityItem from '@components/apply-items/AffinityItem.vue';
-  import BackendQPSSpec from '@components/apply-items/BackendSpec.vue';
-  import BusinessItems from '@components/apply-items/BusinessItems.vue';
-  import CloudItem from '@components/apply-items/CloudItem.vue';
-  import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
-  import ClusterName from '@components/apply-items/ClusterName.vue';
-  import DeployVersion from '@components/apply-items/DeployVersion.vue';
-  import RegionItem from '@components/apply-items/RegionItem.vue';
-  import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
+  import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
+  import BackendQPSSpec from '@views/db-manage/common/apply-items/BackendSpec.vue';
+  import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
+  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
+  import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
+  import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
+  import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
+  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import PasswordInput from '@views/db-manage/redis/common/password-input/Index.vue';
 
   import { generateId } from '@utils';

@@ -57,7 +57,7 @@
 
   import { AccountTypes, ClusterTypes } from '@common/const';
 
-  import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
+  import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/ClusterAuthorize.vue';
 
   import { dbOperations } from '../permission/common/consts';
 

@@ -106,7 +106,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import StretchLayout from '@components/stretch-layout/StretchLayout.vue';
 
   import AddNodes from './components/components/AddNodes.vue';

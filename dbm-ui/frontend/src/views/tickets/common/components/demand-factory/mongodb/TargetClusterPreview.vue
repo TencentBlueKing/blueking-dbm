@@ -57,7 +57,7 @@
 
   import { useDefaultPagination } from '@hooks';
 
-  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
   import { getSearchSelectorParams } from '@utils';
 

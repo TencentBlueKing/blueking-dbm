@@ -9,8 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
-
+ */
 
 import type { Instance, Props } from 'tippy.js';
 import type { DirectiveBinding } from 'vue';
@@ -43,7 +42,9 @@ const placements = [
  * @returns
  */
 export function checkOverflow(el: Element) {
-  if (!el) return false;
+  if (!el) {
+    return false;
+  }
 
   const createDom = (el: Element, css: CSSStyleDeclaration) => {
     const dom = document.createElement('div');
@@ -79,7 +80,6 @@ export function checkOverflow(el: Element) {
   return isOverflow;
 }
 
-
 function beforeShow(instance: Instance) {
   const { reference } = instance;
   // eslint-disable-next-line no-underscore-dangle
@@ -101,10 +101,16 @@ function setupOnShow(props: TippyProps, customProps: TippyProps) {
   props.onShow = (instance) => {
     if (typeof customProps.onShow === 'function') {
       const result = customProps.onShow(instance);
-      if (!result) return false;
+
+      if (!result) {
+        return false;
+      }
     }
     const isShow = beforeShow(instance);
-    if (!isShow) return false;
+
+    if (!isShow) {
+      return false;
+    }
   };
 }
 
@@ -120,8 +126,11 @@ function setupTheme(props: TippyProps, customProps: TippyProps) {
 function formatModifiers(modifiers: Record<string, boolean>) {
   const keys = Object.entries(modifiers)
     // .filter(([key, value]) => value)
-    .map(item => item[0]);
-  if (keys.length === 0) return {};
+    .map((item) => item[0]);
+
+  if (keys.length === 0) {
+    return {};
+  }
 
   const props: Record<string, any> = {};
   // 设置 placement
@@ -173,6 +182,5 @@ const overflowTips = {
     delete el._bk_overflow_tips_;
   },
 };
-
 
 export default overflowTips;

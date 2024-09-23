@@ -109,10 +109,10 @@
 
   import { LocalStorageKeys, TicketTypes } from '@common/const';
 
-  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
 
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
   import type { SelectItem } from '@views/db-manage/redis/db-data-copy/pages/page1/components/RenderTargetCluster.vue';
   import type { SelfbuiltClusterToIntraInfoItem } from '@views/db-manage/redis/db-data-copy/pages/page1/Index.vue';
 

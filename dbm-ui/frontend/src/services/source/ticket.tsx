@@ -70,7 +70,7 @@ export function createTicket(formData: Record<string, any>) {
             id,
           },
         });
-        return new Promise((resolve, reject) => {
+        return new Promise<{ id: number }>((resolve, reject) => {
           InfoBox({
             title: t('是否继续提交单据'),
             content: () => {

@@ -178,7 +178,7 @@
 
   import { sqlServerType } from '@common/const';
 
-  import DeployVersion from '@components/apply-items/DeployVersion.vue';
+  import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
 
   import { messageSuccess } from '@utils';
 

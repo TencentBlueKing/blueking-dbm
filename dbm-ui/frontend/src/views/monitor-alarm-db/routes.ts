@@ -30,7 +30,7 @@ const dbMonitorStrategyRoute = {
     fullscreen: true,
   },
   component: () => import('@views/monitor-alarm-db/monitor-strategy/Index.vue'),
-}
+};
 
 const dbMonitorAlarmGroupRoute = {
   name: 'DBMonitorAlarmGroup',
@@ -39,7 +39,7 @@ const dbMonitorAlarmGroupRoute = {
     navName: t('告警组'),
   },
   component: () => import('@views/monitor-alarm-db/alarm-group/Index.vue'),
-}
+};
 
 export default function getRoutes() {
   const routes: RouteRecordRaw[] = [];

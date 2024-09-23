@@ -105,10 +105,11 @@
 
   import { ClusterTypes, DBTypes } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
-  import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
-  import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
-  import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
+
+  import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
+  import ClusterEventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
+  import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
 
   import { useDisableCluster } from '../../hooks/useDisableCluster';
 

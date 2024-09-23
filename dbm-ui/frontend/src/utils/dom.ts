@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 /**
  * @desc DOM 元素 offset
@@ -36,11 +36,11 @@ export const getOffset = (target: HTMLElement) => {
 };
 
 /**
-* @desc DOM 节点的 scrollParent
-* @param { DomElement } node
-* @returns { DomElement }
-*/
-export const getScrollParent = (node: HTMLElement): HTMLElement|null => {
+ * @desc DOM 节点的 scrollParent
+ * @param { DomElement } node
+ * @returns { DomElement }
+ */
+export const getScrollParent = (node: HTMLElement): HTMLElement | null => {
   if (node === null) {
     return null;
   }
@@ -52,10 +52,10 @@ export const getScrollParent = (node: HTMLElement): HTMLElement|null => {
 };
 
 /**
-* @desc 滚动动画
-* @param { DomElement } target
-* @param { Number } destScrollTop
-*/
+ * @desc 滚动动画
+ * @param { DomElement } target
+ * @param { Number } destScrollTop
+ */
 export const scrollTopSmooth = function (target: HTMLElement, destScrollTop: number) {
   if (!window.requestAnimationFrame) {
     window.requestAnimationFrame = function (cb) {
@@ -77,7 +77,7 @@ export const scrollTopSmooth = function (target: HTMLElement, destScrollTop: num
 };
 
 export const getParentByClass = (node: Element, className: string) => {
-  let parentNode: Element|null = node;
+  let parentNode: Element | null = node;
   while (parentNode) {
     if (parentNode.classList && parentNode.classList.contains(className)) {
       return parentNode;

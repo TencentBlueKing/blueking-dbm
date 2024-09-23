@@ -50,7 +50,7 @@
     if (!_.trim(text)) {
       return [];
     }
-    return text.split(batchSplitRegex).map(item => ({
+    return text.split(batchSplitRegex).map((item) => ({
       id: item,
       name: item,
     }));

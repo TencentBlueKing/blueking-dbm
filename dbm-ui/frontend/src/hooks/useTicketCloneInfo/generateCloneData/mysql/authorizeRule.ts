@@ -21,46 +21,46 @@ import { ClusterTypes } from '@common/const';
 // Mysql 集群授权
 export async function generateMysqlAuthorizeRuleCloneData(ticketData: TicketModel<MysqlAuthorizationDetails>) {
   const { authorize_data: authorizeData } = ticketData.details;
-  const sourceIpList: ServiceReturnType<typeof checkHost> = []
+  const sourceIpList: ServiceReturnType<typeof checkHost> = [];
   if (authorizeData.source_ips && Array.isArray(authorizeData.source_ips)) {
     const checkIpInfo = await checkHost({
-      ip_list: ticketData.details.authorize_data.source_ips!.map(item => item.ip),
+      ip_list: ticketData.details.authorize_data.source_ips!.map((item) => item.ip),
       scope_list: [
         {
-          scope_type: "biz",
+          scope_type: 'biz',
           scope_id: ticketData.bk_biz_id,
-        }
-      ]
+        },
+      ],
     });
     sourceIpList.push(...checkIpInfo);
   }
 
   const clusterList: {
-    master_domain: string,
-    cluster_name: string,
+    master_domain: string;
+    cluster_name: string;
   }[] = [];
 
   if (authorizeData.cluster_type === ClusterTypes.TENDBHA) {
     const clustersResult = await getTendbhaList({
       cluster_ids: authorizeData.cluster_ids,
       limit: -1,
-      offset: 0
+      offset: 0,
     });
     clusterList.push(...clustersResult.results);
   } else if (authorizeData.cluster_type === ClusterTypes.TENDBSINGLE) {
     const clustersResult = await getTendbsingleList({
       cluster_ids: authorizeData.cluster_ids,
       limit: -1,
-      offset: 0
+      offset: 0,
     });
     clusterList.push(...clustersResult.results);
   }
 
-  return ({
+  return {
     clusterType: authorizeData.cluster_type as ClusterTypes,
     clusterList,
     dbs: authorizeData.access_dbs,
     sourceIpList,
     user: authorizeData.user,
-  });
+  };
 }

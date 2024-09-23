@@ -115,21 +115,21 @@
     UserPersonalSettings,
   } from '@common/const';
 
-  import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
-  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
-  import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
-  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
-  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
-  import EditEntryConfig, { type RowData } from '@components/cluster-entry-config/Index.vue';
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import DbTable from '@components/db-table/index.vue';
-  import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
-  import RenderInstances from '@components/render-instances/RenderInstances.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+  import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/ClusterAuthorize.vue';
+  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
+  import EditEntryConfig, { type RowData } from '@views/db-manage/common/cluster-entry-config/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+  import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+  import ExcelAuthorize from '@views/db-manage/common/ExcelAuthorize.vue';
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
   import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
+  import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
   import ClusterReset from '@views/db-manage/sqlserver/components/cluster-reset/Index.vue'
 
   import {

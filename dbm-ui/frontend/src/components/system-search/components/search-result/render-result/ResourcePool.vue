@@ -9,9 +9,7 @@
         <HightLightText
           :key-word="keyWord"
           :text="item.ip" />
-        <div class="intro">
-          ({{ t('资源池主机') }})
-        </div>
+        <div class="intro">({{ t('资源池主机') }})</div>
       </div>
       <div class="biz-text">
         {{ t('资源池') }}
@@ -29,10 +27,10 @@
   import HightLightText from './components/HightLightText.vue';
 
   interface Props {
-    keyWord: string,
+    keyWord: string;
     data: {
-      ip: string,
-    }[],
+      ip: string;
+    }[];
   }
 
   defineProps<Props>();

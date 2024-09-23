@@ -41,26 +41,25 @@
 </script>
 
 <script setup lang="tsx">
-
   interface Props {
-    appKey?: string,
-    data?: SearchData[],
+    appKey?: string;
+    data?: SearchData[];
     // eslint-disable-next-line vue/no-unused-properties
-    placeholder?: string,
+    placeholder?: string;
     // eslint-disable-next-line vue/no-unused-properties
-    clearable?: boolean,
+    clearable?: boolean;
     // eslint-disable-next-line vue/no-unused-properties
-    showCondition?: boolean,
+    showCondition?: boolean;
     // ----- 自定义属性 -------
     // data 是否可重复选择
-    isRepeat?: boolean,
+    isRepeat?: boolean;
     // 是否允许自定义输入内容
-    isCustom?: boolean,
+    isCustom?: boolean;
   }
 
   interface Emits {
-    (e: 'change', value: SearchValue[]): void
-    (e: 'clear'): void
+    (e: 'change', value: SearchValue[]): void;
+    (e: 'clear'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -90,48 +89,54 @@
       return props.data;
     }
 
-    const selected = modelValue.value.map(value => value.id);
-    return props.data.filter(item => !selected.includes(item.id));
+    const selected = modelValue.value.map((value) => value.id);
+    return props.data.filter((item) => !selected.includes(item.id));
   });
 
-  watch(modelValue, (values) => {
-    const len = values.length;
-    if (props.isCustom === false && len > 0) {
-      const last = values[len - 1];
-      const valueIds = values.map(item => item.id);
-      const conditionIds = props.data.map(item => item.id);
-      const [firstId] = conditionIds;
-      // 自定义输入内容默认替换成 props.data 第一个选项
-      if (!conditionIds.includes(last.id)) {
-        const cloneValues = _.cloneDeep(values);
-        const index = valueIds.findIndex(id => id === firstId);
-        const { id, name } = props.data[0];
-        const item = {
-          id,
-          name,
-          values: [{
-            id: last.id,
-            name: last.id,
-          }],
-        };
-        if (index > -1) {
-          cloneValues.splice(len - 1, 1);
-          cloneValues.splice(index, 1);
-          cloneValues.push(item);
-        } else {
-          cloneValues.splice(len - 1, 1, item);
+  watch(
+    modelValue,
+    (values) => {
+      const len = values.length;
+      if (props.isCustom === false && len > 0) {
+        const last = values[len - 1];
+        const valueIds = values.map((item) => item.id);
+        const conditionIds = props.data.map((item) => item.id);
+        const [firstId] = conditionIds;
+        // 自定义输入内容默认替换成 props.data 第一个选项
+        if (!conditionIds.includes(last.id)) {
+          const cloneValues = _.cloneDeep(values);
+          const index = valueIds.findIndex((id) => id === firstId);
+          const { id, name } = props.data[0];
+          const item = {
+            id,
+            name,
+            values: [
+              {
+                id: last.id,
+                name: last.id,
+              },
+            ],
+          };
+          if (index > -1) {
+            cloneValues.splice(len - 1, 1);
+            cloneValues.splice(index, 1);
+            cloneValues.push(item);
+          } else {
+            cloneValues.splice(len - 1, 1, item);
+          }
+          modelValue.value = cloneValues;
         }
-        modelValue.value = cloneValues;
       }
-    }
-    handleChangeVueData();
+      handleChangeVueData();
 
-    // 控制 search-select 显示 popover 内容
-    compInstance.value?.hidePopper();
-    nextTick(() => {
-      filterData.value.length > 0 && compInstance.value?.showMenu();
-    });
-  }, { deep: true });
+      // 控制 search-select 显示 popover 内容
+      compInstance.value?.hidePopper();
+      nextTick(() => {
+        filterData.value.length > 0 && compInstance.value?.showMenu();
+      });
+    },
+    { deep: true },
+  );
 
   /**
    * 修改 vue2 实例数据
@@ -142,7 +147,6 @@
       vueInstance.value.values.splice(0, values.length, ...modelValue.value);
     }
   };
-
 
   onMounted(async () => {
     const { VITE_PUBLIC_PATH } = window.PROJECT_ENV;

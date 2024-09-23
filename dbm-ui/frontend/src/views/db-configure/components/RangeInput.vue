@@ -68,10 +68,13 @@
 
 <script setup lang="ts">
   interface Emits {
-    (e: 'change', value: {
-      min: number
-      max: number
-    }): void
+    (
+      e: 'change',
+      value: {
+        min: number;
+        max: number;
+      },
+    ): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -105,7 +108,9 @@
    * emit value
    */
   const handleValueChange = (emitName: 'min' | 'max', value: number | string) => {
-    if (value === '') return;
+    if (value === '') {
+      return;
+    }
     if (emitName === 'min') {
       min.value = Number(value);
     } else {
@@ -133,14 +138,17 @@
   onMounted(() => {
     const targetParant = rangeInputRef.value?.closest?.('.bk-table-body');
     if (targetParant) {
-      const intersectionObserver = new IntersectionObserver(() => {
-        if (isShow.value) {
-          isShow.value = false;
-        }
-      }, {
-        root: targetParant,
-        threshold: 0,
-      });
+      const intersectionObserver = new IntersectionObserver(
+        () => {
+          if (isShow.value) {
+            isShow.value = false;
+          }
+        },
+        {
+          root: targetParant,
+          threshold: 0,
+        },
+      );
       rangeInputRef.value && intersectionObserver.observe(rangeInputRef.value);
     }
   });

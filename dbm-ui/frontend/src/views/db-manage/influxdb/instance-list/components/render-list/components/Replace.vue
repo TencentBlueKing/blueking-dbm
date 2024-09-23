@@ -29,9 +29,9 @@
         class="item">
         <HostReplace
           ref="influxdbRef"
-          v-model:hostList="nodeInfoMap.influxdb.hostList"
-          v-model:nodeList="nodeInfoMap.influxdb.nodeList"
-          v-model:resourceSpec="nodeInfoMap.influxdb.resourceSpec"
+          v-model:host-list="nodeInfoMap.influxdb.hostList"
+          v-model:node-list="nodeInfoMap.influxdb.nodeList"
+          v-model:resource-spec="nodeInfoMap.influxdb.resourceSpec"
           :data="nodeInfoMap.influxdb"
           :ip-source="ipSource"
           @remove-node="handleRemoveNode" />
@@ -63,7 +63,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostReplace, { type TReplaceNode } from '@components/cluster-common/host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
   import { messageError } from '@utils';
 

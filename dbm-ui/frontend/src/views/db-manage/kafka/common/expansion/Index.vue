@@ -37,10 +37,10 @@
         <HostExpansion
           v-if="!isLoading"
           :key="nodeType"
-          v-model:expansionDisk="nodeInfoMap[nodeType].expansionDisk"
-          v-model:hostList="nodeInfoMap[nodeType].hostList"
-          v-model:resourceSpec="nodeInfoMap[nodeType].resourceSpec"
-          v-model:targetDisk="nodeInfoMap[nodeType].targetDisk"
+          v-model:expansion-disk="nodeInfoMap[nodeType].expansionDisk"
+          v-model:host-list="nodeInfoMap[nodeType].hostList"
+          v-model:resource-spec="nodeInfoMap[nodeType].resourceSpec"
+          v-model:target-disk="nodeInfoMap[nodeType].targetDisk"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -71,8 +71,8 @@
 
   import HostExpansion, {
     type TExpansionNode,
-  } from '@components/cluster-common/host-expansion/Index.vue';
-  import NodeStatusList from '@components/cluster-common/host-expansion/NodeStatusList.vue';
+  } from '@views/db-manage/common/host-expansion/Index.vue';
+  import NodeStatusList from '@views/db-manage/common/host-expansion/NodeStatusList.vue';
 
   import { messageError } from '@utils';
 

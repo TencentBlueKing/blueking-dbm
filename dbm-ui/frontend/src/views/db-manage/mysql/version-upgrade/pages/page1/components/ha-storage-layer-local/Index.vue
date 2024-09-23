@@ -91,12 +91,12 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
   import TicketRemark from '@components/ticket-remark/Index.vue';
 
+  import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
   import type { InfoItem } from '@views/db-manage/redis/db-data-copy/pages/page1/Index.vue';
 
   import RenderDataRow, { createRowData, type IDataRow } from './Row.vue';
