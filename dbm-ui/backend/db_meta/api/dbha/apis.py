@@ -361,7 +361,7 @@ def switch_instance_domain(ins1, ins2: StorageInstance, entry_obj: ClusterEntry)
     if not dns_manage.update_domain(
         old_instance=old_instance, new_instance=new_instance, update_domain_name=entry_obj.entry
     ):
-        raise Exception("update domain {} failed ".format(entry_obj.domain))
+        raise Exception("update domain {} failed ".format(entry_obj.entry))
 
 
 @transaction.atomic

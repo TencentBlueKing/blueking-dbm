@@ -27,6 +27,7 @@ from backend.db_meta.enums import (
 )
 from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple
 from backend.flow.utils.cc_manage import CcManage
+from backend.flow.utils.dns_manage import DnsManage
 from backend.flow.utils.redis.redis_module_operate import RedisCCTopoOperator
 
 logger = logging.getLogger("flow")
@@ -74,6 +75,7 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
                 )
             )
 
+        dns_manage = DnsManage(bk_biz_id=cluster.bk_biz_id, bk_cloud_id=cluster.bk_cloud_id)
         # 修改表 db_meta_storageinstancetuple ,## 这个时候会出现一主多从 ！
         for ms_pair in tendisss:
             ejector_obj = StorageInstance.objects.get(
@@ -95,6 +97,17 @@ def redo_slaves(cluster: Cluster, tendisss: List[Dict], created_by: str = ""):
             if cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY.value).exists():
                 slave_entry = cluster.clusterentry_set.filter(role=ClusterEntryRole.SLAVE_ENTRY.value).first()
                 receiver_obj.bind_entry.add(slave_entry)
+                ejector_obj.bind_entry.remove(slave_entry)
+
+                old_instance = "{}#{}".format(ejector_obj.machine.ip, ejector_obj.port)
+                new_instance = "{}#{}".format(receiver_obj.machine.ip, receiver_obj.port)
+                logger.info(
+                    "try update dns pointer {} from {} to {}".format(slave_entry.entry, old_instance, new_instance)
+                )
+                if not dns_manage.update_domain(
+                    old_instance=old_instance, new_instance=new_instance, update_domain_name=slave_entry.entry
+                ):
+                    raise Exception("update domain {} failed ".format(slave_entry.entry))
 
         # 修改表 db_meta_storageinstance_cluster
         cluster.storageinstance_set.add(*receiver_objs)

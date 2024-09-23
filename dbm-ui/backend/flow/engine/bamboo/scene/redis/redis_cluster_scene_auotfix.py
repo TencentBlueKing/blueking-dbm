@@ -516,6 +516,7 @@ class RedisClusterAutoFixSceneFlow(object):
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(sub_kwargs),
                 )
+            # 刷新slave域名 在《新节点加入集群》节点修改
 
         # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
         old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
