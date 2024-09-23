@@ -113,6 +113,7 @@
 
   const pageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
+    pagination.current = 1;
     fetchData();
   };
 
