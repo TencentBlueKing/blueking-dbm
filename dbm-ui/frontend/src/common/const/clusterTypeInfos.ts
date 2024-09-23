@@ -155,7 +155,7 @@ const redis: InfoType = {
 const bigdata: InfoType = {
   [ClusterTypes.ES]: {
     id: ClusterTypes.ES,
-    name: 'ES',
+    name: 'ElasticSearch',
     dbType: DBTypes.ES,
     moduleId: 'bigdata',
     machineList: [

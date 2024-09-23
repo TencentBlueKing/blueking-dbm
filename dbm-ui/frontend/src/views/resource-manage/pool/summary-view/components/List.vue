@@ -20,7 +20,6 @@
       <BkTable
         class="summary-view-table"
         :data="tableData"
-        :height="275"
         show-overflow-tooltip>
         <BkTableColumn
           :label="t('专用业务')"
@@ -54,8 +53,12 @@
               v-for="(value, key, index) in row.sub_zone_detail"
               :key="key">
               <span>{{ key }} : </span>
-              <span class="cell-num">{{ value }}</span>
-              <span>{{ index === Object.keys(row.sub_zone_detail).length - 1 ? ' ;' : ' , ' }}</span>
+              <span
+                class="cell-num"
+                @click="handleClick(row)">
+                {{ value }}
+              </span>
+              <span>{{ index === Object.keys(row.sub_zone_detail).length - 1 ? '' : ' , ' }}</span>
             </span>
           </template>
         </BkTableColumn>
@@ -65,7 +68,7 @@
           :width="100">
           <template #default="{ row }">
             <span
-              class="cell-num cursor-pointer"
+              class="cell-num"
               :class="{
                 'cell-num--zero': row.count === 0,
               }"
@@ -162,18 +165,17 @@
     }
 
     .summary-view-table {
+      height: calc(100vh - 686px) !important;
+
       :deep(.cell) {
         .cell-num {
           font-weight: bold;
           color: #3a84ff;
+          cursor: pointer;
         }
 
         .cell-num--zero {
           color: #000;
-        }
-
-        .cursor-pointer {
-          cursor: pointer;
         }
       }
     }

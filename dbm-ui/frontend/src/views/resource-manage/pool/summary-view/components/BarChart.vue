@@ -2,7 +2,7 @@
   <DbCard
     class="bar-chart"
     mode="collapse"
-    :title="t('主机数量 - 按组件统计')">
+    :title="t('主机数量 - 按DB类型统计')">
     <div class="y-axis-top">{{ t('数量（台）') }}</div>
     <div
       ref="chart"
@@ -19,6 +19,8 @@
   import { useRequest } from 'vue-request';
 
   import { getGroupCount } from '@services/source/dbresourceResource';
+
+  import { DBTypeInfos, DBTypes } from '@common/const';
 
   const { t } = useI18n();
 
@@ -103,7 +105,7 @@
     initialData: [],
     manual: true,
     onSuccess(data) {
-      option.value.xAxis[0].data = data.map((item) => item.rs_type);
+      option.value.xAxis[0].data = data.map((item) => DBTypeInfos[item.rs_type as DBTypes]?.name || t('公共'));
       option.value.series[0].data = data.map((item) => item.count);
       chartInstance.setOption(option.value);
     },
