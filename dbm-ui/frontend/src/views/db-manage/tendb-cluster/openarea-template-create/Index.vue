@@ -127,9 +127,10 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import PermissionRule from '@components/add-permission-rule-dialog/Index.vue';
   import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import PermissionRule from '@views/db-manage/common/add-permission-rule-dialog/Index.vue';
 
   import { messageSuccess } from '@utils';
 

@@ -201,21 +201,21 @@
       UserPersonalSettings,
     } from '@common/const';
 
-    import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
-    import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-    import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
-    import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
     import DbStatus from '@components/db-status/index.vue';
     import DbTable from '@components/db-table/index.vue';
-    import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
     import MiniTag from '@components/mini-tag/index.vue';
     import MoreActionExtend from '@components/more-action-extend/Index.vue';
-    import RenderInstances from '@components/render-instances/RenderInstances.vue';
     import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
+    import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
+    import EditEntryConfig from '@views/db-manage/common/cluster-entry-config/Index.vue';
     import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
+    import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
+    import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
     import RenderCellCopy from '@views/db-manage/common/render-cell-copy/Index.vue';
     import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
+    import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
+    import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
     import RedisBackup from '@views/db-manage/redis/common/cluster-oprations/Backup.vue';
     import ClusterPassword from '@views/db-manage/redis/common/cluster-oprations/ClusterPassword.vue';
     import DeleteKeys from '@views/db-manage/redis/common/cluster-oprations/DeleteKeys.vue';

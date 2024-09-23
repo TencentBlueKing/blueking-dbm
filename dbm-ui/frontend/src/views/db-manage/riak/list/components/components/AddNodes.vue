@@ -115,8 +115,9 @@
 
   import { ClusterTypes, OSTypes, TicketTypes } from '@common/const';
 
-  import SpecSelector from '@components/apply-items/SpecSelector.vue';
   import IpSelector from '@components/ip-selector/IpSelector.vue';
+
+  import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   import NodeNumber from './components/NodeNumber.vue';
 

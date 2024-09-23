@@ -76,9 +76,9 @@
 
   interface Props {
     data: {
-      id: string,
-      displayName: string
-    }[]
+      id: string;
+      displayName: string;
+    }[];
   }
 
   const props = defineProps<Props>();

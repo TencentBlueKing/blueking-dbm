@@ -55,29 +55,22 @@
 <script setup lang="ts">
   import _ from 'lodash';
 
-  import {
-    getConfigBaseDetails,
-    getConfigNames,
-    getLevelConfig,
-  } from '@services/source/configs';
+  import { getConfigBaseDetails, getConfigNames, getLevelConfig } from '@services/source/configs';
 
-  import {
-    ConfLevels,
-    type ConfLevelValues,
-  } from '@common/const';
+  import { ConfLevels, type ConfLevelValues } from '@common/const';
 
   import { useLevelParams } from '../hooks/useLevelParams';
 
   import ParameterTable from './ParameterTable.vue';
 
-  type ConfigBaseDetails = ServiceReturnType<typeof getLevelConfig>
+  type ConfigBaseDetails = ServiceReturnType<typeof getLevelConfig>;
 
   interface Props {
-    level?: ConfLevelValues
+    level?: ConfLevelValues;
   }
 
   interface Emits {
-    (e: 'change', value: { data: ConfigBaseDetails, changed: boolean }): void
+    (e: 'change', value: { data: ConfigBaseDetails; changed: boolean }): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -178,20 +171,25 @@
    * 校验参数配置
    */
   const parameterTableRef = ref();
-  const validate = async ()  => {
-    const parameterValidate = await parameterTableRef.value.validate()
+  const validate = async () => {
+    const parameterValidate = await parameterTableRef.value
+      .validate()
       .then(() => true)
       .catch(() => false);
     return parameterValidate;
   };
 
-  watch(() => state.data, (value) => {
-    const isChange = state.cloneDataStringify !== JSON.stringify(value);
-    emit('change', {
-      data: value,
-      changed: isChange,
-    });
-  }, { deep: true });
+  watch(
+    () => state.data,
+    (value) => {
+      const isChange = state.cloneDataStringify !== JSON.stringify(value);
+      emit('change', {
+        data: value,
+        changed: isChange,
+      });
+    },
+    { deep: true },
+  );
 
   /**
    * 返回 diff 数据参数
@@ -231,8 +229,8 @@
   };
 
   // 范围选择
-  const handleChangeRange = (index: number,  { max, min }: { max: number, min: number }) => {
-    state.data.conf_items[index].value_allowed = (min || max) ? `[${min || 0},${max || 0}]` : '';
+  const handleChangeRange = (index: number, { max, min }: { max: number; min: number }) => {
+    state.data.conf_items[index].value_allowed = min || max ? `[${min || 0},${max || 0}]` : '';
   };
 
   // multipleEnums 变更

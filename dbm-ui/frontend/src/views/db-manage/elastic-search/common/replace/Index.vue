@@ -32,9 +32,9 @@
         </div>
         <HostReplace
           ref="hotRef"
-          v-model:hostList="nodeInfoMap.hot.hostList"
-          v-model:nodeList="nodeInfoMap.hot.nodeList"
-          v-model:resourceSpec="nodeInfoMap.hot.resourceSpec"
+          v-model:host-list="nodeInfoMap.hot.hostList"
+          v-model:node-list="nodeInfoMap.hot.nodeList"
+          v-model:resource-spec="nodeInfoMap.hot.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -52,9 +52,9 @@
         </div>
         <HostReplace
           ref="coldRef"
-          v-model:hostList="nodeInfoMap.cold.hostList"
-          v-model:nodeList="nodeInfoMap.cold.nodeList"
-          v-model:resourceSpec="nodeInfoMap.cold.resourceSpec"
+          v-model:host-list="nodeInfoMap.cold.hostList"
+          v-model:node-list="nodeInfoMap.cold.nodeList"
+          v-model:resource-spec="nodeInfoMap.cold.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -72,9 +72,9 @@
         </div>
         <HostReplace
           ref="clientRef"
-          v-model:hostList="nodeInfoMap.client.hostList"
-          v-model:nodeList="nodeInfoMap.client.nodeList"
-          v-model:resourceSpec="nodeInfoMap.client.resourceSpec"
+          v-model:host-list="nodeInfoMap.client.hostList"
+          v-model:node-list="nodeInfoMap.client.nodeList"
+          v-model:resource-spec="nodeInfoMap.client.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -90,9 +90,9 @@
         <div class="item-label">Master</div>
         <HostReplace
           ref="masterRef"
-          v-model:hostList="nodeInfoMap.master.hostList"
-          v-model:nodeList="nodeInfoMap.master.nodeList"
-          v-model:resourceSpec="nodeInfoMap.master.resourceSpec"
+          v-model:host-list="nodeInfoMap.master.hostList"
+          v-model:node-list="nodeInfoMap.master.nodeList"
+          v-model:resource-spec="nodeInfoMap.master.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -130,7 +130,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostReplace, { type TReplaceNode } from '@components/cluster-common/es-host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/es-host-replace/Index.vue';
 
   import { messageError } from '@utils';
 

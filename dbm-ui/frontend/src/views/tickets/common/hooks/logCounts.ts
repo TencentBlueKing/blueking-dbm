@@ -82,24 +82,29 @@ export default function () {
       });
   };
 
-  watch(() => wholeLogList, () => {
-    const successLogs: any[] = [];
-    const failLogs: any[] = [];
-    wholeLogList.value.forEach((item) => {
-      const message = item.message.slice(0, 300);
-      if (message.match(fileStartReg)) {
-        successLogs.push(item);
-      }
-      if (message.match(fileEndReg)) {
-        failLogs.push(item);
-      }
-    });
-    const diffCounts = successLogs.length - failLogs.length;
-    counts.success =  successLogs.length - diffCounts;
-    counts.fail =  diffCounts === 0 ? 0 : diffCounts;
-  }, {
-    immediate: true, deep: true });
-
+  watch(
+    () => wholeLogList,
+    () => {
+      const successLogs: any[] = [];
+      const failLogs: any[] = [];
+      wholeLogList.value.forEach((item) => {
+        const message = item.message.slice(0, 300);
+        if (message.match(fileStartReg)) {
+          successLogs.push(item);
+        }
+        if (message.match(fileEndReg)) {
+          failLogs.push(item);
+        }
+      });
+      const diffCounts = successLogs.length - failLogs.length;
+      counts.success = successLogs.length - diffCounts;
+      counts.fail = diffCounts === 0 ? 0 : diffCounts;
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
   onBeforeUnmount(() => {
     clearTimeout(logTimer);

@@ -77,11 +77,11 @@
   import CollapseMini from './CollapseMini.vue';
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
-    titleMap: Record<string, string>,
-    showTitle?: boolean,
-    displayKey?: keyof IValue,
-    activePanelId?: string,
+    lastValues: InstanceSelectorValues<T>;
+    titleMap: Record<string, string>;
+    showTitle?: boolean;
+    displayKey?: keyof IValue;
+    activePanelId?: string;
   }
 
   type Keys = keyof Props['lastValues'];
@@ -102,7 +102,7 @@
   const copy = useCopy();
 
   const keys = computed(() => Object.keys(props.lastValues) as Keys[]);
-  const isEmpty = computed(() => keys.value.every(key => props.lastValues[key].length < 1));
+  const isEmpty = computed(() => keys.value.every((key) => props.lastValues[key].length < 1));
   const mainKey = computed(() => props.displayKey);
 
   const handleClear = () => {

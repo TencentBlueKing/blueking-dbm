@@ -68,9 +68,10 @@
     ClusterTypes,
   } from '@common/const';
 
-  import ClusterAuthorize from '@components/cluster-authorize/ClusterAuthorize.vue';
   import DbTable from '@components/db-table/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/ClusterAuthorize.vue';
 
   import { getSearchSelectorParams } from '@utils';
 

@@ -102,9 +102,11 @@
 
   import { getClusterVersions } from '@services/source/redisToolbox';
 
-  import BatchEditColumn from '@components/batch-edit-column/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
+
+  // import { getClusterVersions } from '@services/source/redisToolbox';
+  import BatchEditColumn from '@views/db-manage/common/batch-edit-column/Index.vue';
 
   import type { IDataRow, IDataRowBatchKey } from './Row.vue';
 

@@ -14,7 +14,7 @@ import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/m
 
 import { TicketTypes } from '@common/const';
 
-import type { IHostTableData } from '@components/cluster-common/big-data-host-table/HdfsHostTable.vue';
+import type { IHostTableData } from '@views/db-manage/common/big-data-host-table/HdfsHostTable.vue';
 
 /**
  * 单据详情

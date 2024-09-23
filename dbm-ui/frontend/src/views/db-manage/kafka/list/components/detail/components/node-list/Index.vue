@@ -191,10 +191,10 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderClusterRole from '@components/cluster-common/RenderRole.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
 
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import RenderClusterRole from '@views/db-manage/common/RenderRole.vue';
   import ClusterExpansion from '@views/db-manage/kafka/common/expansion/Index.vue';
   import ClusterReplace from '@views/db-manage/kafka/common/replace/Index.vue';
   import ClusterShrink from '@views/db-manage/kafka/common/shrink/Index.vue';

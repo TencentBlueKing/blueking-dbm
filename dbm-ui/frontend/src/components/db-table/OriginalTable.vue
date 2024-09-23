@@ -41,9 +41,9 @@
     (e: 'clearSearch'): void;
   }
   interface Props {
-    columns: InstanceType<typeof Table>['$props']['columns'],
-    isAnomalies?: boolean,
-    isSearching?: boolean,
+    columns: InstanceType<typeof Table>['$props']['columns'];
+    isAnomalies?: boolean;
+    isSearching?: boolean;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -55,9 +55,12 @@
 
   const tableKey = ref(Date.now().toString());
 
-  watch(() => props.columns, () => {
-    tableKey.value = Date.now().toString();
-  });
+  watch(
+    () => props.columns,
+    () => {
+      tableKey.value = Date.now().toString();
+    },
+  );
 
   const handleRefresh = () => emits('refresh');
   const handleClearSearch = () => emits('clearSearch');

@@ -29,7 +29,9 @@
           {{ t('DB 资源池管理') }}
         </span>
       </BkMenuItem>
-      <BkMenuItem key="resourcePoolDirtyMachines" v-db-console="'resourceManage.dirtyHostManage'">
+      <BkMenuItem
+        key="resourcePoolDirtyMachines"
+        v-db-console="'resourceManage.dirtyHostManage'">
         <template #icon>
           <DbIcon type="dirty-host" />
         </template>
@@ -39,7 +41,9 @@
           {{ t('污点主机处理') }}
         </span>
       </BkMenuItem>
-      <BkMenuItem key="resourcePoolOperationRecord" v-db-console="'resourceManage.resourceOperationRecord'">
+      <BkMenuItem
+        key="resourcePoolOperationRecord"
+        v-db-console="'resourceManage.resourceOperationRecord'">
         <template #icon>
           <DbIcon type="list" />
         </template>

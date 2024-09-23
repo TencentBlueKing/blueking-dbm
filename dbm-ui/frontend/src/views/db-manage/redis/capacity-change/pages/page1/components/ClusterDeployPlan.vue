@@ -259,9 +259,9 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
+  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue'
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue'
 
   import { convertStorageUnits, messageError } from '@utils';

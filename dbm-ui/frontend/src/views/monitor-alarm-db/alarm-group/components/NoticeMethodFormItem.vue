@@ -149,48 +149,45 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import {
-    getAlarmGroupList,
-    getAlarmGroupNotifyList,
-  } from '@services/source/monitorNoticeGroup';
+  import { getAlarmGroupList, getAlarmGroupNotifyList } from '@services/source/monitorNoticeGroup';
 
   import { messageWarn } from '@utils';
 
   interface Props {
-    type: 'add' | 'edit' | 'copy' | '',
-    details: AlarmGroupDetail,
-    disabled: boolean,
+    type: 'add' | 'edit' | 'copy' | '';
+    details: AlarmGroupDetail;
+    disabled: boolean;
   }
 
   interface Exposes {
     getSubmitData: () => AlarmGroupNotice[];
   }
 
-  type TimePickerRef = ComponentPublicInstance<typeof BkTimePicker>
-  type AlarmGroupDetail = ServiceReturnType<typeof getAlarmGroupList>['results'][number]['details']
-  type AlarmGroupNotice = AlarmGroupDetail['alert_notice'][number]
-  type AlarmGroupNotifyDisplay = Omit<ServiceReturnType<typeof getAlarmGroupNotifyList>[number], 'is_active'>
+  type TimePickerRef = ComponentPublicInstance<typeof BkTimePicker>;
+  type AlarmGroupDetail = ServiceReturnType<typeof getAlarmGroupList>['results'][number]['details'];
+  type AlarmGroupNotice = AlarmGroupDetail['alert_notice'][number];
+  type AlarmGroupNotifyDisplay = Omit<ServiceReturnType<typeof getAlarmGroupNotifyList>[number], 'is_active'>;
 
   interface LevelMapItem {
-    label: string,
-    type: 'default' | 'warning' | 'error',
-    level: 3 | 2 | 1
+    label: string;
+    type: 'default' | 'warning' | 'error';
+    level: 3 | 2 | 1;
   }
 
   interface PanelCheckbox extends AlarmGroupNotifyDisplay {
-    checked: boolean,
+    checked: boolean;
   }
 
   interface PanelInput extends AlarmGroupNotifyDisplay {
-    value: string
+    value: string;
   }
 
   interface TableHead {
-    label: string,
-    bold?: boolean,
-    type?: boolean,
-    icon?: string,
-    input?: boolean
+    label: string;
+    bold?: boolean;
+    type?: boolean;
+    icon?: string;
+    input?: boolean;
   }
 
   const props = defineProps<Props>();
@@ -237,8 +234,8 @@
   };
 
   const panelInitData: {
-    checkboxArr: PanelCheckbox[],
-    inputArr: PanelInput[]
+    checkboxArr: PanelCheckbox[];
+    inputArr: PanelInput[];
   } = {
     checkboxArr: [],
     inputArr: [],
@@ -248,32 +245,41 @@
     {
       required: true,
       message: t('每个告警级别至少选择一种通知方式'),
-      validator: () => panelList.value.every(item => item.dataList.every(dataItem => (dataItem.checkboxArr.some(checkItem => checkItem.checked) || dataItem.inputArr.some(inputItem => inputItem.value !== '')))),
+      validator: () =>
+        panelList.value.every((item) =>
+          item.dataList.every(
+            (dataItem) =>
+              dataItem.checkboxArr.some((checkItem) => checkItem.checked) ||
+              dataItem.inputArr.some((inputItem) => inputItem.value !== ''),
+          ),
+        ),
     },
   ];
 
   const timePickerRefs: Record<number, TimePickerRef> = {};
   let currentPanelIndex = -1;
-  let currentPanelTimeRange:[string, string] = ['', ''];
+  let currentPanelTimeRange: [string, string] = ['', ''];
 
   const active = ref('');
-  const panelList = ref<{
-    name: string,
-    open: boolean,
-    timeRange: [string, string],
-    dataList:({
-      checkboxArr: PanelCheckbox[],
-      inputArr: PanelInput[]
-    } & LevelMapItem)[]
-  }[]>([]);
+  const panelList = ref<
+    {
+      name: string;
+      open: boolean;
+      timeRange: [string, string];
+      dataList: ({
+        checkboxArr: PanelCheckbox[];
+        inputArr: PanelInput[];
+      } & LevelMapItem)[];
+    }[]
+  >([]);
 
   const addPanelTipDiabled = computed(() => {
-    const timeArr = panelList.value.map(item => timeRangeFormatter(item.timeRange));
+    const timeArr = panelList.value.map((item) => timeRangeFormatter(item.timeRange));
 
     return !isIntervalsFullDay(timeArr);
   });
 
-  const isTimePickerOpen = computed(() => panelList.value.some(panelItem => panelItem.open));
+  const isTimePickerOpen = computed(() => panelList.value.some((panelItem) => panelItem.open));
 
   useRequest(getAlarmGroupNotifyList, {
     onSuccess(notifyList) {
@@ -281,12 +287,7 @@
       const inputHead: TableHead[] = [];
 
       notifyList.forEach((item) => {
-        const {
-          type,
-          label,
-          is_active: isActive,
-          icon,
-        } = item;
+        const { type, label, is_active: isActive, icon } = item;
 
         if (isActive) {
           if (inputTypes.includes(type)) {
@@ -325,13 +326,15 @@
   });
 
   watch(active, () => {
-    panelList.value.forEach(item => Object.assign(item, { open: false }));
+    panelList.value.forEach((item) => Object.assign(item, { open: false }));
   });
 
-  const isIntervalsFullDay = (minutesIntervals: {
-    start: number,
-    end: number,
-  }[]) =>  {
+  const isIntervalsFullDay = (
+    minutesIntervals: {
+      start: number;
+      end: number;
+    }[],
+  ) => {
     if (minutesIntervals.length === 0) {
       return false;
     }
@@ -370,7 +373,7 @@
   };
 
   const findFirstAvailableTimeSlot = (): [string, string] => {
-    const timeRanges = panelList.value.map(item => item.timeRange);
+    const timeRanges = panelList.value.map((item) => item.timeRange);
     const fullDayInMinutes = 24 * 60;
 
     // 创建一个数组，用于表示整天的占用情况，初始都为空闲
@@ -378,10 +381,7 @@
 
     // 根据给定的时间段将已占用的分钟设置为 false
     for (const timeRangeItem of timeRanges) {
-      const {
-        start,
-        end,
-      } = timeRangeFormatter(timeRangeItem);
+      const { start, end } = timeRangeFormatter(timeRangeItem);
 
       for (let i = start; i <= end; i++) {
         availableMinutes[i] = false;
@@ -404,19 +404,14 @@
     }
 
     if (firstAvailableStart && firstAvailableEnd) {
-      return [
-        minutesToHoursAndMinutes(firstAvailableStart),
-        minutesToHoursAndMinutes(firstAvailableEnd),
-      ];
+      return [minutesToHoursAndMinutes(firstAvailableStart), minutesToHoursAndMinutes(firstAvailableEnd)];
     }
 
     return ['00:00', '23:59'];
   };
 
   const addPanel = () => {
-    const name = Math.random()
-      .toString(16)
-      .substring(4, 10);
+    const name = Math.random().toString(16).substring(4, 10);
 
     panelList.value.push({
       name,
@@ -454,9 +449,7 @@
     } else if (type === 'edit' || type === 'copy') {
       if (details?.alert_notice) {
         panelList.value = details.alert_notice.map((item) => {
-          const name = Math.random()
-            .toString(16)
-            .substring(4, 10);
+          const name = Math.random().toString(16).substring(4, 10);
 
           const dataList = item.notify_config.map((configItem) => {
             const checkboxArr = _.cloneDeep(panelInitData.checkboxArr);
@@ -464,13 +457,13 @@
 
             configItem.notice_ways.forEach((wayItem) => {
               if (inputTypes.includes(wayItem.name)) {
-                const idx = inputArr.findIndex(inputItem => inputItem.type === wayItem.name);
+                const idx = inputArr.findIndex((inputItem) => inputItem.type === wayItem.name);
 
                 if (idx > -1) {
                   inputArr[idx].value = wayItem.receivers?.join(',') as string;
                 }
               } else {
-                const idx = checkboxArr.findIndex(checkboxItem => checkboxItem.type === wayItem.name);
+                const idx = checkboxArr.findIndex((checkboxItem) => checkboxItem.type === wayItem.name);
 
                 if (idx > -1) {
                   checkboxArr[idx].checked = true;
@@ -502,13 +495,10 @@
 
   const areTimeRangesOverlapping = () => {
     const minuteOccupied = new Array(24 * 60).fill(false); // 创建一个布尔数组，用于跟踪每分钟的占用情况
-    const timeRanges = panelList.value.map(item => item.timeRange);
+    const timeRanges = panelList.value.map((item) => item.timeRange);
 
     for (const timeRangeItem of timeRanges) {
-      const {
-        start,
-        end,
-      } = timeRangeFormatter(timeRangeItem);
+      const { start, end } = timeRangeFormatter(timeRangeItem);
 
       // 检查时间段是否和已占用的时间冲突
       for (let i = start; i < end; i++) {
@@ -557,7 +547,7 @@
     });
   };
 
-  const timeArrayFormatter = (timeArr: string[]): string =>  {
+  const timeArrayFormatter = (timeArr: string[]): string => {
     if (timeArr && timeArr.length === 2) {
       const [start, end] = timeArr;
       let startArr = start.split(':');
@@ -593,45 +583,44 @@
   defineExpose<Exposes>({
     getSubmitData() {
       const submitData = panelList.value.map((item) => {
-        const {
-          timeRange,
-          dataList,
-        } = item;
+        const { timeRange, dataList } = item;
 
         return {
           time_range: timeRange.join('--'),
           notify_config: dataList.map((dataItem) => {
-            const {
-              checkboxArr,
-              inputArr,
-              level,
-            } = dataItem;
+            const { checkboxArr, inputArr, level } = dataItem;
 
-            const noticeWaysCheck = checkboxArr.reduce((prev, current) => {
-              if (current.checked) {
-                prev.push({
-                  name: current.type,
-                });
-              }
-              return prev;
-            }, [] as {
-              name: string,
-              receivers?: string[]
-            }[]);
+            const noticeWaysCheck = checkboxArr.reduce(
+              (prev, current) => {
+                if (current.checked) {
+                  prev.push({
+                    name: current.type,
+                  });
+                }
+                return prev;
+              },
+              [] as {
+                name: string;
+                receivers?: string[];
+              }[],
+            );
 
-            const noticeWaysInput = inputArr.reduce((prev, current) => {
-              if (current.value !== '') {
-                prev.push({
-                  name: current.type,
-                  receivers: current.value.split(','),
-                });
-              }
+            const noticeWaysInput = inputArr.reduce(
+              (prev, current) => {
+                if (current.value !== '') {
+                  prev.push({
+                    name: current.type,
+                    receivers: current.value.split(','),
+                  });
+                }
 
-              return prev;
-            }, [] as {
-              name: string,
-              receivers?: string[]
-            }[]);
+                return prev;
+              },
+              [] as {
+                name: string;
+                receivers?: string[];
+              }[],
+            );
 
             return {
               level,

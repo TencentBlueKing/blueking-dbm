@@ -140,7 +140,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import DeployVersion from '@components/apply-items/DeployVersion.vue';
+  import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
 
   import ModuleParameterTable from './components/ModuleParameterTable.vue';
 

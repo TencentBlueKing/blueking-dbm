@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { useGlobalBizs } from '@stores';
 
@@ -24,26 +24,26 @@ const path = `/apis/mongodb/bizs/${currentBizId}/permission/authorize`;
  */
 export function preCheckMongodbAuthorizeRules(params: {
   mongo_users: {
-    user: string,
-    access_dbs: string[]
-  }[],
-  target_instances: string[],
-  cluster_type: string,
-  cluster_ids?: number[],
+    user: string;
+    access_dbs: string[];
+  }[];
+  target_instances: string[];
+  cluster_type: string;
+  cluster_ids?: number[];
 }) {
   return http.post<{
     authorize_data: {
-      auth_db: string,
-      cluster_ids: number[],
-      password: string,
+      auth_db: string;
+      cluster_ids: number[];
+      password: string;
       rule_sets: {
-        db: string,
-        privileges: string[]
-      }[]
-      username: string
-    }[],
-    authorize_uid: string,
-    message: string,
-    pre_check: boolean
+        db: string;
+        privileges: string[];
+      }[];
+      username: string;
+    }[];
+    authorize_uid: string;
+    message: string;
+    pre_check: boolean;
   }>(`${path}/pre_check_rules/`, params);
 }

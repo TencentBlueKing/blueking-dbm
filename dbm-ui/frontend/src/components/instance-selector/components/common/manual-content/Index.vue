@@ -107,17 +107,16 @@
   type ManualConfigType = Required<PanelListType[number]>['manualConfig'];
 
   interface Props {
-    lastValues: InstanceSelectorValues<T>,
-    manualConfig: Required<ManualConfigType>,
+    lastValues: InstanceSelectorValues<T>;
+    manualConfig: Required<ManualConfigType>;
     // clusterId?: number,
-    tableSetting: TableSetting,
-    firsrColumn?: TableConfigType['firsrColumn'],
-    statusFilter?: TableConfigType['statusFilter'],
-
+    tableSetting: TableSetting;
+    firsrColumn?: TableConfigType['firsrColumn'];
+    statusFilter?: TableConfigType['statusFilter'];
   }
 
   interface Emits {
-    (e: 'change', value: Props['lastValues']): void
+    (e: 'change', value: Props['lastValues']): void;
   }
   const props = withDefaults(defineProps<Props>(), {
     firsrColumn: undefined,
@@ -175,10 +174,11 @@
   /**
    * 处理分隔内容，过滤空内容
    */
-  const getValues = () => inputState.values
-    .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
-    .split(' ')
-    .filter(value => value);
+  const getValues = () =>
+    inputState.values
+      .replace(/\s+|[；，｜]/g, ' ') // 将空格 换行符 ；，｜符号统一为空格
+      .split(' ')
+      .filter((value) => value);
 
   /**
    * 解析输入内容
@@ -227,9 +227,7 @@
         const item = lines[i];
         const infos = res[i];
         const remove = lines.splice(i, 1);
-        const isExisted = res.find(existItem => (
-          existItem[props.manualConfig.checkKey] === item
-        ));
+        const isExisted = res.find((existItem) => existItem[props.manualConfig.checkKey] === item);
         if (!isExisted) {
           newLines.push(...remove);
         } else {
@@ -250,7 +248,13 @@
           lastValues[type] = [];
         }
         const list = lastValues[type];
-        const isExisted = list.length > 0 && list.find(i => `${i[props.manualConfig.checkKey]}_${i.bk_cloud_id}` === `${item[props.manualConfig.checkKey]}_${item.bk_cloud_id}`);
+        const isExisted =
+          list.length > 0 &&
+          list.find(
+            (i) =>
+              `${i[props.manualConfig.checkKey]}_${i.bk_cloud_id}` ===
+              `${item[props.manualConfig.checkKey]}_${item.bk_cloud_id}`,
+          );
         if (!isExisted) {
           lastValues[type].push({
             bk_host_id: item.bk_host_id,

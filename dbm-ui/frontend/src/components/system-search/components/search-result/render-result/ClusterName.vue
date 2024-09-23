@@ -9,9 +9,7 @@
         <HightLightText
           :key-word="keyWord"
           :text="item.name" />
-        <div class="intro">
-          ({{ t('集群名') }}, {{ item.immute_domain }})
-        </div>
+        <div class="intro">({{ t('集群名') }}, {{ item.immute_domain }})</div>
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}

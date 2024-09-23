@@ -14,8 +14,8 @@
   import { useFunController } from '@stores';
 
   interface Props {
-    moduleId: ExtractedControllerDataKeys,
-    controllerId?: T
+    moduleId: ExtractedControllerDataKeys;
+    controllerId?: T;
   }
 
   const props = defineProps<Props>();

@@ -143,11 +143,12 @@
 
   import { TicketTypes } from '@common/const';
 
-  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import DbTable from '@components/db-table/index.vue';
   import MiniTag from '@components/mini-tag/index.vue';
   import RenderHostStatus from '@components/render-host-status/Index.vue';
   import RenderTextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
+
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
   import { messageWarn } from '@utils';
 

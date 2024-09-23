@@ -30,9 +30,9 @@
         <div class="item-label">Bookkeeper</div>
         <HostReplace
           ref="BookkeeperRef"
-          v-model:hostList="nodeInfoMap.bookkeeper.hostList"
-          v-model:nodeList="nodeInfoMap.bookkeeper.nodeList"
-          v-model:resourceSpec="nodeInfoMap.bookkeeper.resourceSpec"
+          v-model:host-list="nodeInfoMap.bookkeeper.hostList"
+          v-model:node-list="nodeInfoMap.bookkeeper.nodeList"
+          v-model:resource-spec="nodeInfoMap.bookkeeper.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -48,9 +48,9 @@
         <div class="item-label">Broker</div>
         <HostReplace
           ref="brokerRef"
-          v-model:hostList="nodeInfoMap.broker.hostList"
-          v-model:nodeList="nodeInfoMap.broker.nodeList"
-          v-model:resourceSpec="nodeInfoMap.broker.resourceSpec"
+          v-model:host-list="nodeInfoMap.broker.hostList"
+          v-model:node-list="nodeInfoMap.broker.nodeList"
+          v-model:resource-spec="nodeInfoMap.broker.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -66,9 +66,9 @@
         <div class="item-label">Zookeeper</div>
         <HostReplace
           ref="zookeeperRef"
-          v-model:hostList="nodeInfoMap.zookeeper.hostList"
-          v-model:nodeList="nodeInfoMap.zookeeper.nodeList"
-          v-model:resourceSpec="nodeInfoMap.zookeeper.resourceSpec"
+          v-model:host-list="nodeInfoMap.zookeeper.hostList"
+          v-model:node-list="nodeInfoMap.zookeeper.nodeList"
+          v-model:resource-spec="nodeInfoMap.zookeeper.resourceSpec"
           :cloud-info="{
             id: data.bk_cloud_id,
             name: data.bk_cloud_name,
@@ -106,7 +106,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import HostReplace, { type TReplaceNode } from '@components/cluster-common/host-replace/Index.vue';
+  import HostReplace, { type TReplaceNode } from '@views/db-manage/common/host-replace/Index.vue';
 
   import { messageError } from '@utils';
 

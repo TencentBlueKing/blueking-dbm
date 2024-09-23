@@ -142,10 +142,7 @@
     const query = Object.keys(options).reduce((prevQuery, optionKey) => {
       const optionItem = options[optionKey];
 
-      if (
-        optionItem !== ''
-        && !(Array.isArray(optionItem) && optionItem.length === 0)
-      ) {
+      if (optionItem !== '' && !(Array.isArray(optionItem) && optionItem.length === 0)) {
         if (Array.isArray(optionItem)) {
           return {
             ...prevQuery,

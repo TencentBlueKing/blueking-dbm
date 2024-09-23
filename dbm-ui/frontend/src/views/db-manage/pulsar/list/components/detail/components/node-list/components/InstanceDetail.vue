@@ -51,9 +51,9 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderInstanceStatus from '@components/cluster-common/RenderInstanceStatus.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import RenderInstanceStatus from '@views/db-manage/common/RenderInstanceStatus.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTag.vue';
 
   import { useTimeoutPoll } from '@vueuse/core';
 

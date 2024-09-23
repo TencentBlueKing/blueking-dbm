@@ -9,13 +9,8 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    ref,
-    watch,
-  } from 'vue';
-  import {
-    useRoute,
-  } from 'vue-router';
+  import { ref, watch } from 'vue';
+  import { useRoute } from 'vue-router';
 
   const route = useRoute();
 
@@ -31,7 +26,7 @@
     const last = _.last(route.matched);
     timer = setTimeout(() => {
       if (last && last.instances.default) {
-        const routerBackFn = (last.instances.default as {routerBack?: () => void}).routerBack;
+        const routerBackFn = (last.instances.default as { routerBack?: () => void }).routerBack;
         if (_.isFunction(routerBackFn)) {
           showRouterBackBtn.value = true;
           routerBack = routerBackFn;

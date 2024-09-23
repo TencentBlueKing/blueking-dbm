@@ -46,7 +46,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import PermissionRule from '@components/add-permission-rule-dialog/Index.vue';
+  import PermissionRule from '@views/db-manage/common/add-permission-rule-dialog/Index.vue';
 
   interface Props {
     clusterId: number;

@@ -11,7 +11,7 @@
           <I18nT
             class="ml-8"
             keypath="共n条"
-            style="color: #63656E;"
+            style="color: #63656e"
             tag="span">
             <template #n>
               <strong>{{ item.dataList.length }}</strong>
@@ -61,7 +61,7 @@
   import { UserPersonalSettings } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
-  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
   import { useRedirect } from '@components/system-search/hooks/useRedirect';

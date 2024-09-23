@@ -10,9 +10,7 @@
         <HightLightText
           :key-word="keyWord"
           :text="`${item.id}`" />
-        <div class="intro">
-          ({{ t('单据') }})
-        </div>
+        <div class="intro">({{ t('单据') }})</div>
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
