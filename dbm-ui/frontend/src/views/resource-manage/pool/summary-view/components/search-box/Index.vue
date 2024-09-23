@@ -9,7 +9,7 @@
         v-model:model-value="modelValue"
         @change="handleChangeDbType" />
     </BkFormItem>
-    <BkFormItem :label="t('专业业务')">
+    <BkFormItem :label="t('专用业务')">
       <Biz
         ref="bizRef"
         @change="handleChange" />
