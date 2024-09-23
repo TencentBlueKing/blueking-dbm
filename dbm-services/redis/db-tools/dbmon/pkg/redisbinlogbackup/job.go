@@ -233,10 +233,13 @@ func (job *Job) CheckOldBinlogBackupStatus(port int) {
 			// taskStatus==4,上传成功;
 			// taskStatus<4,上传中;
 			if taskStatus > 4 {
-				if row.Status != consts.BackupStatusToBakSystemFailed { // 失败状态不重复上报
+				if row.Status != consts.BackupStatusToBakSystemFailed &&
+					time.Now().Local().Sub(row.StartTime) > 1*time.Hour {
+					// 如果上传失败,且距离文件生成时间超过1小时,则上报
 					row.Status = consts.BackupStatusToBakSystemFailed
-					row.Message = fmt.Sprintf("上传失败,err:%s", statusMsg)
+					row.Message = fmt.Sprintf("上传失败,statusCode:%d,err:%s", taskStatus, statusMsg)
 					row.BackupRecordReport(job.Reporter)
+					mylog.Logger.Error(fmt.Sprintf("%s %s", row.BackupFile, row.Message))
 				}
 			} else if taskStatus < 4 {
 				// 上传中,下次继续探测

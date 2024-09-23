@@ -391,7 +391,7 @@ func (task *Task) mvBinlogToBackupDir() {
 	filename := filepath.Base(task.BackupFile)
 	var mvCmd string
 	var targetName, targetFullPath string
-	if strings.Contains(filename, strconv.Itoa(task.ServerPort)) {
+	if strings.Contains(filename, "-"+strconv.Itoa(task.ServerPort)+"-") {
 		// binlog-30012-0007515-20221110084710.log => binlog-1.1.1.1-30012-0007515-20221110084710.log
 		targetName = strings.Replace(filename, "binlog-", "binlog-"+task.ServerIP+"-", -1)
 		targetFullPath = filepath.Join(task.BackupDir, targetName)
