@@ -40,5 +40,5 @@ const routes = [
 ];
 
 export default function getRoutes() {
-  return checkDbConsole('observableManage.healthReport') ? routes : []
+  return checkDbConsole('observableManage.healthReport') ? routes : [];
 }

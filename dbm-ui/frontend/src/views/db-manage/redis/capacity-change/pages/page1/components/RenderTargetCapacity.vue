@@ -107,10 +107,10 @@
   import RedisModel, { RedisClusterTypes } from '@services/model/redis/redis';
   import ClusterSpecModel from '@services/model/resource-spec/cluster-sepc';
 
-  import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue';
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
   import RenderSpec from '@components/render-table/columns/spec-display/Index.vue';
 
+  import ClusterCapacityUsageRate from '@views/db-manage/common/cluster-capacity-usage-rate/Index.vue';
   import ValueDiff from '@views/db-manage/common/value-diff/Index.vue';
   import { AffinityType } from '@views/db-manage/redis/common/types';
 

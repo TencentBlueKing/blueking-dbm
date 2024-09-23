@@ -91,8 +91,11 @@
 
   import { useBeforeClose } from '@hooks';
 
-  import ClusterSpecPlanSelector, { type TicketSpecInfo } from '@components/cluster-spec-plan-selector/Index.vue';
   import DisableSelect from '@components/render-table/columns/select-disable/index.vue';
+
+  import ClusterSpecPlanSelector, {
+    type TicketSpecInfo,
+  } from '@views/db-manage/common/cluster-spec-plan-selector/Index.vue';
 
   import type { IDataRow } from './Row.vue';
 

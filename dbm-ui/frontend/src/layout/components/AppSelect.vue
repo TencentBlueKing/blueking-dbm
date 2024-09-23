@@ -9,37 +9,26 @@
 </template>
 <script setup lang="ts">
   import _ from 'lodash';
-  import {
-    computed,
-  } from 'vue';
-  import {
-    useRoute,
-    useRouter,
-  } from 'vue-router';
+  import { computed } from 'vue';
+  import { useRoute, useRouter } from 'vue-router';
 
   import { getBizs } from '@services/source/cmdb';
 
-  import {
-    useGlobalBizs,
-  } from '@stores';
+  import { useGlobalBizs } from '@stores';
 
   import DbAppSelect from '@components/db-app-select/Index.vue';
 
-  type IAppItem = ServiceReturnType<typeof getBizs>[number]
+  type IAppItem = ServiceReturnType<typeof getBizs>[number];
 
   const route = useRoute();
   const router = useRouter();
 
-  const {
-    bizs: bizList,
-  } = useGlobalBizs();
+  const { bizs: bizList } = useGlobalBizs();
 
-  const currentBiz = computed(() => _.find(bizList, item => item.bk_biz_id === window.PROJECT_CONFIG.BIZ_ID));
+  const currentBiz = computed(() => _.find(bizList, (item) => item.bk_biz_id === window.PROJECT_CONFIG.BIZ_ID));
 
   const handleAppChange = (appInfo: IAppItem) => {
-    const {
-      bk_biz_id: bkBizId,
-    } = appInfo;
+    const { bk_biz_id: bkBizId } = appInfo;
 
     const pathRoot = `/${bkBizId}`;
     if (!window.PROJECT_CONFIG.BIZ_ID) {
@@ -75,10 +64,7 @@
     }
 
     // 路由有多层嵌套
-    const {
-      path,
-      redirect,
-    } = matched[1];
+    const { path, redirect } = matched[1];
     // 重定向到指定的路由path
     if (_.isString(redirect)) {
       reload(redirect);
@@ -86,7 +72,7 @@
     }
     // 重定向到指定的路由name
     if (redirect && _.isPlainObject(redirect)) {
-      const redirectName = (redirect as {name: string}).name;
+      const redirectName = (redirect as { name: string }).name;
       if (redirectName) {
         const route = router.resolve({
           name: redirectName,

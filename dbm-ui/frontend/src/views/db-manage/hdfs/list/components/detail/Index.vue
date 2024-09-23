@@ -74,9 +74,9 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import ClusterTopo from '@components/cluster-details/ClusterTopo.vue';
-  import ClusterEventChange from '@components/cluster-event-change/EventChange.vue';
-  import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
+  import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
+  import ClusterEventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
+  import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
 
   import { checkDbConsole } from '@utils';
 

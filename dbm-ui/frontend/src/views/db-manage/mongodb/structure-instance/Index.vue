@@ -68,10 +68,11 @@
 
   import { TicketTypes } from '@common/const';
 
-  import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
   import RenderRow from '@components/render-row/index.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
+
+  import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
+  import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
 
   import { getSearchSelectorParams } from '@utils';
 

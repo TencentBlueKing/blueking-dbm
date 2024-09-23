@@ -159,24 +159,24 @@
   type CustomItem = MonitorPolicyModel['custom_conditions'][0];
 
   type FlowListType = {
-    activeAdd: boolean,
-    activeMinus: boolean,
-    id: TargetType,
-    isCustom: boolean,
-    isSelect: boolean,
-    method: string,
+    activeAdd: boolean;
+    activeMinus: boolean;
+    id: TargetType;
+    isCustom: boolean;
+    isSelect: boolean;
+    method: string;
     selectList: {
       value: string;
       label: string;
-    }[],
-    title: string,
+    }[];
+    title: string;
     titleList: {
       value: string;
       label: string;
-    }[],
-    value: string[],
-    valueList: string[],
-  }[]
+    }[];
+    value: string[];
+    valueList: string[];
+  }[];
 
   interface Exposes {
     getValue: () => any;
@@ -203,9 +203,7 @@
     const titles = [TargetType.CLUSTER, TargetType.MODULE] as string[];
     let selectCounts = 0;
     const targets = _.cloneDeep(props.targets).reduce((results, item) => {
-      if (
-        !([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)
-      ) {
+      if (!([TargetType.BIZ, TargetType.PLATFORM] as string[]).includes(item.level)) {
         if (titles.includes(item.level)) {
           selectCounts = selectCounts + 1;
         }
@@ -268,7 +266,7 @@
       };
     });
 
-    const customeList = props.customs.map(item => ({
+    const customeList = props.customs.map((item) => ({
       id: item.key,
       title: item.dimension_name,
       isCustom: true,
@@ -341,17 +339,16 @@
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
 
-  const isPlatform = computed(() => props.targets.filter(item => item.level === TargetType.PLATFORM).length  > 0);
+  const isPlatform = computed(() => props.targets.filter((item) => item.level === TargetType.PLATFORM).length > 0);
 
   const isMySql = computed(() => props.dbType === 'mysql');
 
-  const bizId = computed(() => (isPlatform.value
-    ? currentBizId
-    : props.targets.find(item => item.level === TargetType.BIZ)!.rule
-      .value[0]));
+  const bizId = computed(() =>
+    isPlatform.value ? currentBizId : props.targets.find((item) => item.level === TargetType.BIZ)!.rule.value[0],
+  );
 
   const bizObj = computed(() => {
-    const selectCount = flowList.value.filter(item => item.isSelect).length;
+    const selectCount = flowList.value.filter((item) => item.isSelect).length;
     return {
       title: '0',
       titleList: [
@@ -370,7 +367,6 @@
       activeAdd: isMySql.value ? selectCount < 2 : selectCount === 0,
     };
   });
-
 
   const flowList = ref<FlowListType>([]);
 
@@ -416,7 +412,7 @@
     if (!_.trim(text)) {
       return [];
     }
-    return text.split(batchSplitRegex).map(item => ({
+    return text.split(batchSplitRegex).map((item) => ({
       id: item,
       name: item,
     }));
@@ -425,9 +421,7 @@
   const handleTitleChange = (index: number, value: string) => {
     const isModule = value === '0';
     flowList.value[index].id = isModule ? TargetType.MODULE : TargetType.CLUSTER;
-    flowList.value[index].selectList = isModule
-      ? props.moduleList
-      : props.clusterList;
+    flowList.value[index].selectList = isModule ? props.moduleList : props.clusterList;
     flowList.value[index].value = [];
   };
 
@@ -443,7 +437,7 @@
 
     if (index === -1 && bizObj.value.activeAdd) {
       // 点击业务栏添加
-      const selectCount = flowList.value.filter(item => item.isSelect).length;
+      const selectCount = flowList.value.filter((item) => item.isSelect).length;
       if (selectCount === 1) {
         const newItem = generateFlowSelectItem();
         if (newItem.id === TargetType.MODULE) {
@@ -487,8 +481,8 @@
         level: TargetType.BIZ,
       };
       const targetList = flowList.value
-        .filter(item => !item.isCustom)
-        .map(row => ({
+        .filter((item) => !item.isCustom)
+        .map((row) => ({
           rule: {
             key: row.id,
             value: row.value,
@@ -497,8 +491,8 @@
         }));
       const targets = [defalutObj, ...targetList];
       const customs = flowList.value
-        .filter(item => item.isCustom)
-        .map(item => ({
+        .filter((item) => item.isCustom)
+        .map((item) => ({
           condition: 'and',
           dimension_name: item.title,
           key: item.id,

@@ -71,18 +71,8 @@
   export default {};
 </script>
 <script setup lang="ts">
-  import tippy, {
-    type Instance,
-    type SingleTarget,
-  } from 'tippy.js';
-  import {
-    computed,
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    shallowRef,
-    watch,
-  } from 'vue';
+  import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import ComFactory from '../com-factory/Index.vue';
@@ -91,13 +81,13 @@
 
   interface Props {
     name: string;
-    value: any,
-    model: Record<string, any>
+    value: any;
+    model: Record<string, any>;
   }
 
   interface Emits {
-    (e: 'remove', name: string): void
-    (e: 'change', name: string, value: any): void
+    (e: 'remove', name: string): void;
+    (e: 'change', name: string, value: any): void;
   }
 
   const props = defineProps<Props>();
@@ -151,15 +141,20 @@
     return valueList.join(', ');
   });
 
-  watch(() => props.model, () => {
-    localModel.value = { ...props.model };
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.model,
+    () => {
+      localModel.value = { ...props.model };
+    },
+    {
+      immediate: true,
+    },
+  );
 
   if (config.service) {
     isRemoteOriginLoading.value = true;
-    config.service(props.value)
+    config
+      .service(props.value)
       .then((data) => {
         remoteOriginalList.value = Array.isArray(data) ? data : [data];
       })
@@ -186,13 +181,12 @@
 
   // 提交编辑状态
   const handleSubmit = () => {
-    inputRef.value.getValue()
-      .then(() => {
-        if (valueMemo !== undefined) {
-          emits('change', props.name, valueMemo);
-        }
-        tippyIns.hide();
-      });
+    inputRef.value.getValue().then(() => {
+      if (valueMemo !== undefined) {
+        emits('change', props.name, valueMemo);
+      }
+      tippyIns.hide();
+    });
   };
 
   // 取消

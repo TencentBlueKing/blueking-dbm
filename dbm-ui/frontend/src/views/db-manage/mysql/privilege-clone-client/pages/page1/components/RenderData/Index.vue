@@ -51,9 +51,10 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import BatchOperateIcon from '@components/batch-operate-icon/Index.vue';
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
+
+  import BatchOperateIcon from '@views/db-manage/common/batch-operate-icon/Index.vue';
 
   interface Emits {
     (e: 'showIpSelector'): void;

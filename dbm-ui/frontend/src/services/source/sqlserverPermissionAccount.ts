@@ -28,13 +28,13 @@ const path = `/apis/sqlserver/bizs/${currentBizId}/permission/account`;
  * 添加账号规则
  */
 export function addSqlserverAccountRule(params: {
-  account_id: number
+  account_id: number;
   access_db: string;
   privilege: {
-    sqlserver_dml?: string[],
-    sqlserver_owner?: string[]
-  },
-  account_type: AccountTypesValues
+    sqlserver_dml?: string[];
+    sqlserver_owner?: string[];
+  };
+  account_type: AccountTypesValues;
 }) {
   return http.post<null>(`${path}/add_account_rule/`, params);
 }
@@ -42,21 +42,14 @@ export function addSqlserverAccountRule(params: {
 /**
  * 创建账号
  */
-export function createSqlserverAccount(params: {
-  user: string;
-  password: string;
-  account_type?: AccountTypesValues
-}) {
+export function createSqlserverAccount(params: { user: string; password: string; account_type?: AccountTypesValues }) {
   return http.post<null>(`${path}/create_account/`, params);
 }
 
 /**
  * 删除账号
  */
-export function deleteSqlserverAccount(params: {
-  account_id: number;
-  account_type?: AccountTypesValues
-}) {
+export function deleteSqlserverAccount(params: { account_id: number; account_type?: AccountTypesValues }) {
   return http.delete<null>(`${path}/delete_account/`, params);
 }
 

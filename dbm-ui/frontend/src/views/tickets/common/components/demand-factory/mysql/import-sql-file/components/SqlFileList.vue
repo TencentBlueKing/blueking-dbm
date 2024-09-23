@@ -53,16 +53,20 @@
 
   const localList = ref<Array<Record<'id' | 'name', string>>>([]);
 
-  watch(() => props.data, () => {
-    localList.value = props.data.map(fileName => ({
-      id: fileName,
-      name: fileName,
-    }));
-    const fileName = props.modelValue ? props.modelValue : localList.value[0].name;
-    emits('update:modelValue', fileName);
-  }, {
-    immediate: true,
-  });
+  watch(
+    () => props.data,
+    () => {
+      localList.value = props.data.map((fileName) => ({
+        id: fileName,
+        name: fileName,
+      }));
+      const fileName = props.modelValue ? props.modelValue : localList.value[0].name;
+      emits('update:modelValue', fileName);
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleClick = (fileName: string) => {
     emits('update:modelValue', fileName);

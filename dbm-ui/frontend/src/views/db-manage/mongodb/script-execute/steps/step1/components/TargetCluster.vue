@@ -51,10 +51,10 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
   import ClusterSelector, {
     type TabItem,
   } from '@components/cluster-selector/Index.vue';
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
   const modelValue = defineModel<number[]>();
 

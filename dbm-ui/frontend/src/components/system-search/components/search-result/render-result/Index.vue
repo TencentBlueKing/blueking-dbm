@@ -14,8 +14,8 @@
   import RenderTask from './Task.vue';
   import RenderTicket from './Ticket.vue';
 
-  interface Props{
-    name: string
+  interface Props {
+    name: string;
   }
 
   const props = defineProps<Props>();

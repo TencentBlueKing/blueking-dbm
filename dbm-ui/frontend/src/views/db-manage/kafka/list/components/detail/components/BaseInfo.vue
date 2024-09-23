@@ -19,7 +19,7 @@
 <script setup lang="ts">
   import { getKafkaDetail } from '@services/source/kafka';
 
-  import RenderBaseInfo from '@components/cluster-common/RenderBaseInfo.vue';
+  import RenderBaseInfo from '@views/db-manage/common/RenderBaseInfo.vue';
 
   interface Props {
     data: ServiceReturnType<typeof getKafkaDetail>;

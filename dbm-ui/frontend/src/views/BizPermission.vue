@@ -17,19 +17,19 @@
     :title="$t('无业务权限')"
     type="403">
     <p class="mb-24">
-      {{ $t("你没有相应业务的访问权限_请前往申请相关业务权限或创建业务") }}
+      {{ $t('你没有相应业务的访问权限_请前往申请相关业务权限或创建业务') }}
     </p>
     <BkButton
       class="mr-8"
       :loading="isLoading"
       theme="primary"
       @click="fetchResourcePermission">
-      {{ $t("申请业务权限") }}
+      {{ $t('申请业务权限') }}
     </BkButton>
     <BkButton
       theme="primary"
       @click="handleToCreate">
-      {{ $t("创建业务") }}
+      {{ $t('创建业务') }}
     </BkButton>
   </BkException>
 </template>
@@ -57,10 +57,12 @@
     isLoading.value = true;
     getApplyDataLink({
       action_ids: ['DB_MANAGE'],
-      resources: [{
-        type: 'biz',
-        id: window.PROJECT_CONFIG.BIZ_ID,
-      }],
+      resources: [
+        {
+          type: 'biz',
+          id: window.PROJECT_CONFIG.BIZ_ID,
+        },
+      ],
     })
       .then((res) => {
         window.open(res.apply_url, '__blank');

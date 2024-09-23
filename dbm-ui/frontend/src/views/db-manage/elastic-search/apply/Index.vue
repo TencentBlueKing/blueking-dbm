@@ -343,21 +343,22 @@
 
   import { OSTypes } from '@common/const';
 
-  // import AffinityItem from '@components/apply-items/AffinityItem.vue';
-  import BusinessItems from '@components/apply-items/BusinessItems.vue';
-  import CloudItem from '@components/apply-items/CloudItem.vue';
-  import ClusterAlias from '@components/apply-items/ClusterAlias.vue';
-  import ClusterName from '@components/apply-items/ClusterName.vue';
-  import DeployVersion from '@components/apply-items/DeployVersion.vue';
-  import RegionItem from '@components/apply-items/RegionItem.vue';
-  import SpecSelector from '@components/apply-items/SpecSelector.vue';
+  import IpSelector from '@components/ip-selector/IpSelector.vue';
+
+  // import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
+  import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
+  import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
+  import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
+  import ClusterName from '@views/db-manage/common/apply-items/ClusterName.vue';
+  import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
+  import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
+  import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import WithInstanceHostTable, {
     type IHostTableDataWithInstance,
-  } from '@components/cluster-common/big-data-host-table/es-host-table/index.vue';
+  } from '@views/db-manage/common/big-data-host-table/es-host-table/index.vue';
   import RenderHostTable, {
     type IHostTableData,
-  } from '@components/cluster-common/big-data-host-table/RenderHostTable.vue';
-  import IpSelector from '@components/ip-selector/IpSelector.vue';
+  } from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
 
   const route = useRoute();
   const router = useRouter();

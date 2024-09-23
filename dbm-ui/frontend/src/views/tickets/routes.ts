@@ -24,7 +24,7 @@ const selfServiceMyTicketsRoute = {
     fullscreen: true,
   },
   component: () => import('@views/tickets/my-tickets/Index.vue'),
-}
+};
 
 const myTodosRoute = {
   name: 'MyTodos',
@@ -34,7 +34,7 @@ const myTodosRoute = {
     fullscreen: true,
   },
   component: () => import('@views/tickets/my-todos/Index.vue'),
-}
+};
 
 export default function getRoutes() {
   const routes: RouteRecordRaw[] = [];

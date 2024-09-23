@@ -9,9 +9,7 @@
         <HightLightText
           :key-word="keyWord"
           :text="item.ip" />
-        <div class="intro">
-          ({{ t('主机') }})
-        </div>
+        <div class="intro">({{ t('主机') }})</div>
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
@@ -31,12 +29,12 @@
   interface Props {
     keyWord: string;
     data: {
-      bk_biz_id: number,
-      ip: string,
-      cluster_type: string,
-      cluster_id: number
-    }[],
-    bizIdNameMap: Record<number, string>
+      bk_biz_id: number;
+      ip: string;
+      cluster_type: string;
+      cluster_id: number;
+    }[];
+    bizIdNameMap: Record<number, string>;
   }
 
   defineProps<Props>();

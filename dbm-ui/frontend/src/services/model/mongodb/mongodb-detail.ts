@@ -9,7 +9,7 @@
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
-*/
+ */
 
 import { TicketTypes } from '@common/const';
 
@@ -29,28 +29,28 @@ interface MongoInstance {
   port: number;
   role?: string;
   spec_config: {
-    id: number,
+    id: number;
     cpu: {
-      max: number,
-      min: number
-    },
+      max: number;
+      min: number;
+    };
     mem: {
-      max: number,
-      min: number
-    },
+      max: number;
+      min: number;
+    };
     qps: {
-      max: number,
-      min: number
-    },
-    name: string,
-    count: number,
-    device_class: string[],
+      max: number;
+      min: number;
+    };
+    name: string;
+    count: number;
+    device_class: string[];
     storage_spec: {
-      size: number,
-      type: string,
-      mount_point: string
-    }[]
-  }
+      size: number;
+      type: string;
+      mount_point: string;
+    }[];
+  };
   status: string;
 }
 
@@ -78,19 +78,19 @@ export default class MongodbDetail {
     role: string;
     entry: string;
     target_details: {
-      app: string,
-      bk_cloud_iduid: number,
-      dns_str: string,
-      domain_name: string,
-      domain_typeuid: number,
-      ip: string,
-      last_change_time: string,
-      manager: string,
-      port: number,
-      remark: string,
-      start_time: string,
-      status: string,
-      uid: number,
+      app: string;
+      bk_cloud_iduid: number;
+      dns_str: string;
+      domain_name: string;
+      domain_typeuid: number;
+      ip: string;
+      last_change_time: string;
+      manager: string;
+      port: number;
+      remark: string;
+      start_time: string;
+      status: string;
+      uid: number;
     }[];
   }[];
   cluster_id: number;
@@ -110,36 +110,36 @@ export default class MongodbDetail {
     cluster_type: string;
     create_at: string;
     host_info?: {
-      alive: number,
+      alive: number;
       biz: {
-        id: number,
-        name: string
-      },
+        id: number;
+        name: string;
+      };
       cloud_area: {
-        id: number,
-        name: string
-      },
-      cloud_id: number,
-      host_id: number,
-      host_name?: string,
-      ip: string,
-      ipv6: string,
+        id: number;
+        name: string;
+      };
+      cloud_id: number;
+      host_id: number;
+      host_name?: string;
+      ip: string;
+      ipv6: string;
       meta: {
-        bk_biz_id: number,
-        scope_id: number,
-        scope_type: string
-      },
-      scope_id: string,
-      scope_type: string,
-      os_name: string,
-      bk_cpu?: number,
-      bk_disk?: number,
-      bk_mem?: number,
-      os_type: string,
-      agent_id: number,
-      cpu: string,
-      cloud_vendor: string,
-      bk_idc_name?: string,
+        bk_biz_id: number;
+        scope_id: number;
+        scope_type: string;
+      };
+      scope_id: string;
+      scope_type: string;
+      os_name: string;
+      bk_cpu?: number;
+      bk_disk?: number;
+      bk_mem?: number;
+      os_type: string;
+      agent_id: number;
+      cpu: string;
+      cloud_vendor: string;
+      bk_idc_name?: string;
     };
     instance_address: string;
     ip: string;
@@ -173,12 +173,12 @@ export default class MongodbDetail {
   mongos: MongoInstance[];
   mongo_config: MongoInstance[];
   operations: {
-    cluster_id: number,
-    flow_id: number,
-    status: string,
-    ticket_id: number,
-    ticket_type: string,
-    title: string,
+    cluster_id: number;
+    flow_id: number;
+    status: string;
+    ticket_id: number;
+    ticket_type: string;
+    title: string;
   }[];
   phase: string;
   phase_name: string;
@@ -191,22 +191,22 @@ export default class MongodbDetail {
     cpu: {
       max: number;
       min: number;
-    },
+    };
     id: number;
     mem: {
       max: number;
       min: number;
-    },
+    };
     name: string;
     qps: {
       max: number;
       min: number;
-    },
+    };
     storage_spec: {
       mount_point: string;
       size: number;
       type: string;
-    }[],
+    }[];
   };
   status: string;
 
@@ -252,12 +252,12 @@ export default class MongodbDetail {
   }
 
   get isStarting() {
-    return Boolean(this.operations.find(item => item.ticket_type === TicketTypes.MONGODB_ENABLE));
+    return Boolean(this.operations.find((item) => item.ticket_type === TicketTypes.MONGODB_ENABLE));
   }
 
   get runningOperation() {
     const operateTicketTypes = Object.keys(MongodbDetail.operationTextMap);
-    return this.operations.find(item => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
+    return this.operations.find((item) => operateTicketTypes.includes(item.ticket_type) && item.status === 'RUNNING');
   }
 
   // 操作中的状态
@@ -318,10 +318,9 @@ export default class MongodbDetail {
   }
 
   get isOfflineOperationRunning() {
-    return ([
-      TicketTypes.MONGODB_ENABLE,
-      TicketTypes.MONGODB_DESTROY,
-    ] as string[]).includes(this.operationRunningStatus);
+    return ([TicketTypes.MONGODB_ENABLE, TicketTypes.MONGODB_DESTROY] as string[]).includes(
+      this.operationRunningStatus,
+    );
   }
 
   get isDisabled() {
@@ -329,7 +328,7 @@ export default class MongodbDetail {
   }
 
   get operationTagTips() {
-    return this.operations.map(item => ({
+    return this.operations.map((item) => ({
       icon: MongodbDetail.operationIconMap[item.ticket_type],
       tip: MongodbDetail.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,

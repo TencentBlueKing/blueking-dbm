@@ -36,7 +36,7 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import RenderTargetSpec from '@components/apply-items/SpecSelector.vue';
+  import RenderTargetSpec from '@views/db-manage/common/apply-items/SpecSelector.vue';
 
   interface Props {
     data: MongoDBModel;

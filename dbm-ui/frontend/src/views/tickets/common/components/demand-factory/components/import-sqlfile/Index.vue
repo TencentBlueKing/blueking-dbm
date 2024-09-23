@@ -121,7 +121,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
+  import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
   import InfoList, {
     Item as InfoItem,

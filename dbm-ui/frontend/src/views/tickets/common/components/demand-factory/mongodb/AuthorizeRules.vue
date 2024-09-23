@@ -248,7 +248,6 @@
       .cell {
         padding: 0 !important;
       }
-
     }
 
     td:first-child {

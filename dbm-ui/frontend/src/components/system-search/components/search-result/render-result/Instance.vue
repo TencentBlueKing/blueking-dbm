@@ -10,7 +10,8 @@
           :key-word="keyWord"
           :text="getMatchText(item)" />
         <div class="intro">
-          ({{ t('实例') }}<span v-if="item.cluster_domain">, {{ item.cluster_domain }}</span>)
+          ({{ t('实例') }}<span v-if="item.cluster_domain">, {{ item.cluster_domain }}</span
+          >)
         </div>
       </div>
       <div class="biz-text">

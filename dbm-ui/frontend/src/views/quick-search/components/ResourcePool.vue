@@ -9,7 +9,7 @@
         <I18nT
           class="ml-8"
           keypath="共n条"
-          style="color: #63656E;"
+          style="color: #63656e"
           tag="span">
           <template #n>
             <strong>{{ data.length }}</strong>
@@ -47,9 +47,9 @@
 
   import { UserPersonalSettings } from '@common/const';
 
-  import HostAgentStatus from '@components/cluster-common/HostAgentStatus.vue';
   import DiskPopInfo from '@components/disk-pop-info/DiskPopInfo.vue';
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
+  import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 

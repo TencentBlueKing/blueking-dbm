@@ -135,10 +135,9 @@
 
   import { mysqlType, type MysqlTypeString } from '@common/const';
 
-  import DeployVersion from '@components/apply-items/DeployVersion.vue';
-
   import ParameterTable from '@views/db-configure/components/ParameterTable.vue';
   import { type DiffItem, useDiff } from '@views/db-configure/hooks/useDiff';
+  import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
 
   type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 

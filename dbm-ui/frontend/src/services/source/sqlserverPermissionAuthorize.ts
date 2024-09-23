@@ -33,17 +33,17 @@ export function preCheckSqlserverAuthorizeRules(params: {
 }) {
   return http.post<{
     authorize_data: {
-      bk_biz_id: number,
-      operator: string,
-      user: string,
-      access_dbs: string[],
+      bk_biz_id: number;
+      operator: string;
+      user: string;
+      access_dbs: string[];
       account_rules: {
-          bk_biz_id: number,
-          dbname: string
-      }[],
-      source_ips: string[],
-      target_instances: string[],
-      cluster_type: string
+        bk_biz_id: number;
+        dbname: string;
+      }[];
+      source_ips: string[];
+      target_instances: string[];
+      cluster_type: string;
     }[];
     authorize_uid: string;
     message: string;

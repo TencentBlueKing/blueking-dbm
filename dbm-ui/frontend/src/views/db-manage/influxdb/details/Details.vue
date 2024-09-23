@@ -84,9 +84,10 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import EventChange from '@components/cluster-event-change/EventChange.vue';
-  import MonitorDashboard from '@components/cluster-monitor/MonitorDashboard.vue';
   import EditInfo from '@components/editable-info/index.vue';
+
+  import EventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
+  import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
 
   import AsideList from './AsideList.vue';
 

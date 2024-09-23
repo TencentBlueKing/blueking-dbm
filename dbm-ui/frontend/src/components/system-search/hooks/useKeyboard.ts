@@ -1,7 +1,11 @@
 import _ from 'lodash';
 import { onBeforeUnmount, onMounted, type Ref, ref } from 'vue';
 
-export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|undefined>, inputType: 'input'|'textarea' = 'input') => {
+export default (
+  rootEle: Ref<HTMLElement | undefined>,
+  panelEle: Ref<HTMLElement | undefined>,
+  inputType: 'input' | 'textarea' = 'input',
+) => {
   const activeIndex = ref(-1);
 
   const handleKeydown = _.throttle((event: KeyboardEvent) => {
@@ -14,7 +18,7 @@ export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|u
       return;
     }
 
-    const index = _.findIndex(resultItemElList, el => el.classList.contains('active'));
+    const index = _.findIndex(resultItemElList, (el) => el.classList.contains('active'));
     if (event.code === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       event.stopPropagation();
@@ -40,7 +44,7 @@ export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|u
     }
 
     activeIndex.value = nextIndex;
-    resultItemElList.forEach(ele => ele.classList.remove('active'));
+    resultItemElList.forEach((ele) => ele.classList.remove('active'));
     if (nextIndex > -1) {
       resultItemElList[nextIndex].classList.add('active');
     }
@@ -52,10 +56,10 @@ export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|u
       const activeOffsetTop = (panelEle.value!.querySelector('.active') as HTMLElement).offsetTop;
 
       if (activeOffsetTop + 32 > wraperHeight) {
-      // eslint-disable-next-line no-param-reassign
+        // eslint-disable-next-line no-param-reassign
         panelEle.value!.querySelector('.scroll-faker-content')!.scrollTop = activeOffsetTop - wraperHeight + 64;
       } else if (activeOffsetTop <= 42) {
-      // eslint-disable-next-line no-param-reassign
+        // eslint-disable-next-line no-param-reassign
         panelEle.value!.querySelector('.scroll-faker-content')!.scrollTop = 0;
       }
     });
@@ -65,9 +69,9 @@ export default (rootEle: Ref<HTMLElement|undefined>, panelEle: Ref<HTMLElement|u
     const target = event.target as HTMLElement;
     if (target.classList.contains('result-item')) {
       const resultItemElList = panelEle.value!.querySelectorAll('.result-item');
-      resultItemElList.forEach(ele => ele.classList.remove('active'));
+      resultItemElList.forEach((ele) => ele.classList.remove('active'));
       target.classList.add('active');
-      activeIndex.value = _.findIndex(resultItemElList, ele => ele === target);
+      activeIndex.value = _.findIndex(resultItemElList, (ele) => ele === target);
     }
   }, 100);
 

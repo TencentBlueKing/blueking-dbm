@@ -9,9 +9,7 @@
         <HightLightText
           :key-word="formattedKeyword"
           :text="item.immute_domain" />
-        <div class="intro">
-          ({{ t('域名') }})
-        </div>
+        <div class="intro">({{ t('域名') }})</div>
       </div>
       <div class="biz-text">
         {{ bizIdNameMap[item.bk_biz_id] }}
@@ -46,15 +44,17 @@
   const { t } = useI18n();
   const handleRedirect = useRedirect();
 
-  const formattedKeyword = computed(() => props.keyWord
-    .split(batchSplitRegex)
-    .map((item) => {
-      if (item.includes(':')) {
-        return item.split(':')[0];
-      }
-      return item;
-    })
-    .join(' '));
+  const formattedKeyword = computed(() =>
+    props.keyWord
+      .split(batchSplitRegex)
+      .map((item) => {
+        if (item.includes(':')) {
+          return item.split(':')[0];
+        }
+        return item;
+      })
+      .join(' '),
+  );
 
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.immute_domain);

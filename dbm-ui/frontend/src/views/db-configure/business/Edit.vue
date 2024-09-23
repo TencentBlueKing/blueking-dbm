@@ -142,21 +142,16 @@
   import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import {
-    getLevelConfig,
-    updateBusinessConfig,
-  } from '@services/source/configs';
+  import { getLevelConfig, updateBusinessConfig } from '@services/source/configs';
 
   import { useBeforeClose } from '@hooks';
 
   import { ConfLevels } from '@common/const';
 
-  import DiffCompare from '../components/DiffCompare.vue';
+  import { type DiffItem, useDiff } from '@views/db-configure/hooks/useDiff';
+
+  import DiffCompare from '../components/diff-compare/Index.vue';
   import BaseInfo from '../components/EditBase.vue';
-  import {
-    type DiffItem,
-    useDiff,
-  } from '../hooks/useDiff';
   import { useLevelParams } from '../hooks/useLevelParams';
 
   const { t } = useI18n();
@@ -165,9 +160,9 @@
   const handleBeforeClose = useBeforeClose();
 
   const { clusterType, confType, version } = route.params as {
-    clusterType: string,
-    confType: string,
-    version: string,
+    clusterType: string;
+    confType: string;
+    version: string;
   };
 
   // 获取业务层级相关参数
@@ -220,22 +215,25 @@
   /**
    * step info
    */
-  const steps = [{
-    title: t('基本信息'),
-    icon: '1',
-  }, {
-    title: t('差异对比'),
-    icon: '2',
-  }];
+  const steps = [
+    {
+      title: t('基本信息'),
+      icon: '1',
+    },
+    {
+      title: t('差异对比'),
+      icon: '2',
+    },
+  ];
   const curStep = ref(1);
 
   /**
    * (pre | next) control
    */
   const buttonInfo = computed<{
-    text: string,
-    theme?: 'primary' | 'success' | 'warning' | 'danger',
-    isNext: boolean
+    text: string;
+    theme?: 'primary' | 'success' | 'warning' | 'danger';
+    isNext: boolean;
   }>(() => {
     const isNext = curStep.value === 1;
     return {
@@ -262,7 +260,12 @@
   const handleChangeStep = async () => {
     if (buttonInfo.value.isNext) {
       const isPass = await validate();
-      if (!isPass) return;
+
+      if (!isPass) {
+        return;
+      }
+
+      // 获取 diff 数据
 
       // 获取 diff 数据
       if (contentRef.value.getData) {
@@ -286,17 +289,21 @@
   const handleSaveAndPublish = async () => {
     // 非集群类型需要校验发布备注
     if (!isCluster.value) {
-      const validate = await publishFormRef.value.validate()
+      const validate = await publishFormRef.value
+        .validate()
         .then(() => true)
         .catch(() => false);
-      if (validate === false) return;
+
+      if (validate === false) {
+        return;
+      }
     }
 
     // 获取 conf_items
     const { data } = useDiff(diffData.data.conf_items, diffData.origin);
     const confItems = data.map((item: DiffItem) => {
       const type = item.status === 'delete' ? 'remove' : 'update';
-      const data = item.status === 'delete' ?  item.before : item.after;
+      const data = item.status === 'delete' ? item.before : item.after;
       return Object.assign(data, { op_type: type });
     });
 
