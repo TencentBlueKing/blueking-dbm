@@ -12,13 +12,11 @@ from django.utils.decorators import method_decorator
 from rest_framework import status
 
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.configuration.constants import DBType
 from backend.db_services.dbbase.resources import serializers
 from backend.db_services.sqlserver.resources import constants
 from backend.db_services.sqlserver.resources.sqlserver_ha import yasg_slz
 from backend.db_services.sqlserver.resources.sqlserver_ha.query import ListRetrieveResource
-from backend.db_services.sqlserver.resources.views import BaseSQLServerViewset
-from backend.iam_app.dataclass.actions import ActionEnum
+from backend.db_services.sqlserver.resources.views import BaseSQLServerViewSet
 
 
 @method_decorator(
@@ -73,12 +71,8 @@ from backend.iam_app.dataclass.actions import ActionEnum
         tags=[constants.RESOURCE_TAG],
     ),
 )
-class SQLServerHaViewSet(BaseSQLServerViewset):
+class SQLServerHaViewSet(BaseSQLServerViewSet):
     """SQLServer Ha 架构资源"""
 
     query_class = ListRetrieveResource
     query_serializer_class = serializers.ListSQLServerResourceSLZ
-    db_type = DBType.Sqlserver
-
-    list_perm_actions = [ActionEnum.SQLSERVER_VIEW]
-    list_instance_perm_actions = [ActionEnum.SQLSERVER_VIEW]
