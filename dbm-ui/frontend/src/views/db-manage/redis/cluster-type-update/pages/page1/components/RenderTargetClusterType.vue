@@ -74,7 +74,7 @@
     },
     {
       value: ClusterTypes.PREDIXY_REDIS_CLUSTER,
-      label: t('RedisCluster集群'),
+      label: 'RedisCluster',
     },
   ];
 

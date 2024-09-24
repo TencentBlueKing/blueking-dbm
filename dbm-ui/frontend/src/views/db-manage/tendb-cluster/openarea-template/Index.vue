@@ -149,17 +149,15 @@
       nextTick(() => {
         tableRef.value.fetchData({
           config_name: searchKey.value,
+        }, {
           cluster_type: 'tendbcluster',
         });
       })
-    },
-    {
-      immediate: true
     }
   );
 
   const fetchData = () => {
-    tableRef.value.fetchData({
+    tableRef.value.fetchData({}, {
       cluster_type: 'tendbcluster',
     });
   };
