@@ -13,9 +13,9 @@
 
 // import type { DatePickerValueType } from 'bkui-vue/lib/date-picker/interface';
 
-import TaskFlowModel from '@services/model/taskflow/taskflow';
+import type { ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
-import type { SearchSelectValues } from '@/types/bkui-vue';
+import TaskFlowModel from '@services/model/taskflow/taskflow';
 
 /**
  * 任务历史列表基础 state
@@ -25,6 +25,6 @@ export interface ListState {
   ticketTypes: Array<{ id: string; name: string }>;
   filter: {
     daterange: [string, string];
-    searchValues?: SearchSelectValues;
+    searchValues?: ISearchValue[];
   };
 }

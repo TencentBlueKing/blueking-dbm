@@ -34,7 +34,6 @@
   </div>
 </template>
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
   import { getLevelConfig } from '@services/source/configs';
@@ -44,8 +43,6 @@
     ConfLevels,
     type ConfLevelValues,
   } from '@common/const';
-
-  import type { TableColumnRender } from '@/types/bkui-vue';
 
   type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number]
 
@@ -81,37 +78,43 @@
     return props.data.filter(item => item.conf_name.includes(search.value));
   });
 
-  const columns: Column[] = [
+  const columns = [
     {
       label: t('参数项'),
       field: 'conf_name',
-      render: ({ data }: TableColumnRender) => (
-          <>
-            <div
-              v-overflow-tips
-              class="text-overflow config-name-box">
-              {data.conf_name}
-            </div>
-            <db-icon
-              v-show={Boolean(data.description)}
-              v-bk-tooltips={data.description}
-              class="ml-4"
-              type="attention" />
-          </>
-        ),
+      render: ({ data }: {data: ParameterConfigItem}) => (
+        <>
+          <div
+            v-overflow-tips
+            class="text-overflow config-name-box">
+            {data.conf_name}
+          </div>
+          <db-icon
+            v-show={Boolean(data.description)}
+            v-bk-tooltips={data.description}
+            class="ml-4"
+            type="attention" />
+        </>
+      ),
     },
     {
       label: t('参数值'),
       field: isPlat.value && !props.isRecord ? 'value_default' : 'conf_value',
-      render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
+      render: ({ data }: {data: ParameterConfigItem}) => (
+        <div
+          class="text-overflow"
+          v-overflow-tips>
+          {isPlat.value && !props.isRecord ? data.value_default : data.conf_value}
+        </div>
+      ),
     },
     {
       label: t('允许值设定'),
       field: 'value_allowed',
-      render: ({ cell, data }: TableColumnRender) => {
+      render: ({ data }: {data: ParameterConfigItem}) => {
         const enumType = ['ENUM', 'ENUMS'];
         // 将 | 转为逗号(,) 增加可读性
-        const displayValue = enumType.includes(data.value_type_sub as string) ? cell.replace(/\|/g, ', ') : cell;
+        const displayValue = enumType.includes(data.value_type_sub as string) ? data.value_allowed.replace(/\|/g, ', ') : data.value_allowed;
         return <div class="text-overflow" v-overflow-tips>{displayValue}</div>;
       },
     },

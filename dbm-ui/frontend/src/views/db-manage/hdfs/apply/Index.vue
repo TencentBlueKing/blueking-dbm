@@ -350,7 +350,6 @@
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  // import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
@@ -358,7 +357,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
-  import HdfsHostTable, { type IHostTableData } from '@views/db-manage/common/big-data-host-table/HdfsHostTable.vue';
+  import HdfsHostTable from '@views/db-manage/common/big-data-host-table/HdfsHostTable.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
 
   const route = useRoute();
@@ -378,9 +377,9 @@
       ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
-        namenode: [] as Array<IHostTableData>,
-        zookeeper: [] as Array<IHostTableData>,
-        datanode: [] as Array<IHostTableData>,
+        namenode: [] as Array<HostDetails>,
+        zookeeper: [] as Array<HostDetails>,
+        datanode: [] as Array<HostDetails>,
       },
       resource_spec: {
         zookeeper: {
@@ -417,7 +416,7 @@
   });
   const formData = reactive(genDefaultFormData());
 
-  const nodeAndZookerperMergeList = shallowRef<Array<IHostTableData>>([]);
+  const nodeAndZookerperMergeList = shallowRef<Array<HostDetails>>([]);
 
   // const isDefaultCity = computed(() => formData.details.city_code === 'default');
 
@@ -513,7 +512,7 @@
     nodeAndZookerperMergeList.value = data;
   };
 
-  const handleNameAndZookeeperChange = (nameNode: Array<IHostTableData>, zookeeper: Array<IHostTableData>) => {
+  const handleNameAndZookeeperChange = (nameNode: Array<HostDetails>, zookeeper: Array<HostDetails>) => {
     formData.details.nodes.namenode = nameNode;
     formData.details.nodes.zookeeper = zookeeper;
   };
@@ -546,7 +545,7 @@
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
-      const mapIpField = (ipList: Array<IHostTableData>) =>
+      const mapIpField = (ipList: Array<HostDetails>) =>
         ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

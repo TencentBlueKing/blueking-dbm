@@ -73,6 +73,8 @@
   </BkLoading>
 </template>
 <script setup lang="ts">
+  import type { Table } from 'bkui-vue';
+
   import RedisModel from '@services/model/redis/redis';
   import { getRedisList } from '@services/source/redis';
 
@@ -81,15 +83,13 @@
   import type { PanelTypes } from './PanelTab.vue';
   import RenderRedisHost from './RenderRedisHost.vue';
 
-  import type { TableProps } from '@/types/bkui-vue';
-
   interface Emits {
     (e: 'change', value: InstanceSelectorValues): void;
   }
 
   interface Props {
     lastValues: InstanceSelectorValues;
-    tableSettings: TableProps['settings'];
+    tableSettings: InstanceType<typeof Table>['$props']['settings'];
     role?: string;
     activeTab?: PanelTypes;
     isRadioMode?: boolean;

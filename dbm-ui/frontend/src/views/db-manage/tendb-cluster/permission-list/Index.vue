@@ -64,7 +64,6 @@
   import ExcelAuthorize from './components/ExcelAuthorize.vue';
 
   import { useGlobalBizs } from '@/stores';
-  import type { TableProps } from '@/types/bkui-vue';
 
   const tableSearch = ref([]);
   const authorizeShow = ref(false);
@@ -80,7 +79,7 @@
   });
 
   const keyword = ref('');
-  const columns: TableProps['columns'] = [
+  const columns = [
     {
       label: t('账号'),
       field: 'user',

@@ -73,8 +73,6 @@
   import type { ListState } from '../common/types';
   import RedisResultFiles from '../components/RedisResultFiles.vue';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
-
   const route = useRoute();
   const { t } = useI18n();
 
@@ -154,7 +152,7 @@
       label: 'ID',
       field: 'root_id',
       fixed: 'left',
-      render: ({ cell, data }: TableColumnRender) => (
+      render: ({ data }: { data: TaskFlowModel }) => (
         <auth-router-link
           action-id="flow_detail"
           resource={data.root_id}
@@ -168,7 +166,7 @@
               from: route.name,
             },
           }}>
-          { cell }
+          { data.root_id }
         </auth-router-link>
       ),
     },

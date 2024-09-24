@@ -30,15 +30,16 @@
 
   import { ClusterTypes } from '@/common/const';
   import { useGlobalBizs } from '@/stores';
-  import type { TableColumnRender } from '@/types/bkui-vue';
 
   interface Props {
     queryInfos: {
-      dbModuleId: number,
-      version: string,
-      clusterId: number
-    }
+      dbModuleId: number;
+      version: string;
+      clusterId: number;
+    };
   }
+
+  type IRowData = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 
   const props = defineProps<Props>();
 
@@ -53,31 +54,40 @@
     conf_items: [],
   } as ServiceReturnType<typeof getLevelConfig>);
 
-  const columns = [{
-    label: t('参数项'),
-    field: 'conf_name',
-    render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
-  }, {
-    label: t('参数值'),
-    field: 'conf_value',
-    render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
-  }, {
-    label: t('描述'),
-    field: 'description',
-    render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell || '--'}</div>,
-  }, {
-    label: t('重启实例生效'),
-    field: 'need_restart',
-    width: 200,
-    render: ({ cell }: {cell: number}) => (cell === 1 ? t('是') : t('否')),
-  }];
+  const columns = [
+    {
+      label: t('参数项'),
+      field: 'conf_name',
+      render: ({ data }: { data: IRowData }) => data.conf_name,
+    },
+    {
+      label: t('参数值'),
+      field: 'conf_value',
+      render: ({ data }: { data: IRowData }) => data.conf_value,
+    },
+    {
+      label: t('描述'),
+      field: 'description',
+      render: ({ data }: { data: IRowData }) => data.description || '--',
+    },
+    {
+      label: t('重启实例生效'),
+      field: 'need_restart',
+      width: 200,
+      render: ({ cell }: { cell: number }) => (cell === 1 ? t('是') : t('否')),
+    },
+  ];
 
-  watch(() => props.queryInfos, (infos) => {
-    const { dbModuleId, version, clusterId } = infos;
-    if (dbModuleId && version && clusterId) {
-      fetchClusterConfig();
-    }
-  }, { immediate: true, deep: true });
+  watch(
+    () => props.queryInfos,
+    (infos) => {
+      const { dbModuleId, version, clusterId } = infos;
+      if (dbModuleId && version && clusterId) {
+        fetchClusterConfig();
+      }
+    },
+    { immediate: true, deep: true },
+  );
 
   /**
    * 获取集群配置
@@ -101,7 +111,7 @@
       .finally(() => {
         isLoading.value = false;
       });
-  }
+  };
 </script>
 
 <style lang="less" scoped>

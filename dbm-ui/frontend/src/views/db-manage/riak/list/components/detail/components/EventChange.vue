@@ -40,13 +40,13 @@
   import { useI18n } from 'vue-i18n';
 
   import { getClusterOperateRecords } from '@services/source/ticket';
-  import type { ClusterOperateRecord } from '@services/types/ticket';
 
   import DbStatus from '@components/db-status/index.vue';
 
   interface Props {
     id: number,
   }
+  type IRowData = ServiceReturnType<typeof getClusterOperateRecords>['results'][number]
 
   const props = defineProps<Props>();
   const loadingCount = defineModel<number>('loadingCount', {
@@ -76,26 +76,10 @@
       label: t('操作类型'),
       field: 'op_type',
     },
-    // {
-    //   label: t('操作对象'),
-    //   field: 'op_type',
-    //   showOverflowTooltip: false,
-    //   render: ({ data }: { data: ClusterOperateRecord }) => (
-    //     <>
-    //       <RenderRow data={data.ips} />
-    //       <bk-button
-    //         text
-    //         theme="primary"
-    //         onclick={ () => handleCopy(data.ips) }>
-    //         <db-icon type="copy" />
-    //       </bk-button>
-    //     </>
-    //   ),
-    // },
     {
       label: t('操作结果'),
       field: 'op_status',
-      render: ({ data }: { data: ClusterOperateRecord }) => {
+      render: ({ data }: { data: IRowData }) => {
         const status = statusInfoMap[data.op_status] || errorStatus;
         return (
           <DbStatus
@@ -158,7 +142,7 @@
     immediate: true,
   });
 
-  const handleRequestSuccess = ({ results } : { results: ClusterOperateRecord[] }) => {
+  const handleRequestSuccess = ({ results } : { results: IRowData[] }) => {
     loadingCount.value = results.filter(resultItem => ['PENDING', 'RUNNING'].includes(resultItem.op_status)).length;
   };
 
