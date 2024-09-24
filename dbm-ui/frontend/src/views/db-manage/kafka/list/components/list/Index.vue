@@ -733,6 +733,7 @@
       'zookeeper',
       'broker',
     ],
+    showLineHeight: false,
     trigger: 'manual' as const,
   };
 

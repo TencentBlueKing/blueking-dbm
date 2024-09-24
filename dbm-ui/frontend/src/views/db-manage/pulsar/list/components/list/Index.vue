@@ -756,6 +756,7 @@
       'pulsar_zookeeper',
       'pulsar_broker',
     ],
+    showLineHeight: false,
     trigger: 'manual' as const,
   };
 

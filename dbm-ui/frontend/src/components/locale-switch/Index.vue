@@ -26,6 +26,15 @@
       <div class="local-switch-menu">
         <div
           class="item"
+          :class="{ active: $i18n.locale === 'zh-cn' }"
+          @click="handleSwitchLocale('zh-cn')">
+          <DbIcon
+            class="mr-4"
+            type="cn" />
+          中文
+        </div>
+        <div
+          class="item"
           :class="{
             active: $i18n.locale === 'en',
           }"
@@ -34,15 +43,6 @@
             class="mr-4"
             type="en" />
           English
-        </div>
-        <div
-          class="item"
-          :class="{ active: $i18n.locale === 'zh-cn' }"
-          @click="handleSwitchLocale('zh-cn')">
-          <DbIcon
-            class="mr-4"
-            type="cn" />
-          中文
         </div>
       </div>
     </template>

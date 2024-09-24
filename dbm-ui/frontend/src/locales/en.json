@@ -352,7 +352,6 @@
   "新Proxy主机": "New Proxy host",
   "新主库IP": "New Master IP",
   "新从库IP": "New Slave IP",
-  "新从库主机": "New Slave host",
   "新实例": "New instance",
   "新客户端IP": "New client IP",
   "新节点IP": "New node IP",
@@ -1005,7 +1004,7 @@
   "清空": "Cleanup",
   "角色": "Role",
   "解析并添加": "Parse and add",
-  "请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔": "Please enter IP:Port, such as (127.0.0.1:10000)\nMultiples can be separated by newlines, spaces or ;, |",
+  "请输入IP_Port_如_1_1_1_1_10000_多个可使用换行_空格或_分隔": "Please enter IP:Port, such as (127.0.0.1:10000)\nMultiples can be separated by newlines, spaces or ；，｜",
   "请输入实例": "Please enter an instance",
   "请选择实例": "Please select an instance",
   "Agent异常无法使用": "Agent is abnormally",
@@ -1596,6 +1595,6 @@
   "规格名称不能为空": "Specification name cannot be empty",
   "主机资源不足_等待管理员users补货_补货完成后可以前往place重试": "Host resources are insufficient. Wait for the administrator ({users}) to replenish the inventory. After the replenishment is complete, you can go to \"{place}\" and try again",
   "可用主机数": "Number of available hosts",
-
+  "版本日志": "Release Notes",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

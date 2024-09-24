@@ -16,7 +16,7 @@
     <RenderTable>
       <template #default>
         <RenderTableHeadColumn
-          :min-width="100"
+          :min-width="200"
           :width="270">
           <span>{{ t('源集群') }}</span>
           <template #append>
@@ -56,7 +56,7 @@
           <span>{{ t('当前集群容量/QPS') }}</span>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="120"
+          :min-width="180"
           :width="350">
           <BkPopover
             :content="t('将会部署新的集群以进行集群变更')"
@@ -66,8 +66,8 @@
           </BkPopover>
         </RenderTableHeadColumn>
         <RenderTableHeadColumn
-          :min-width="100"
-          :width="140">
+          :min-width="200"
+          :width="250">
           <span>{{ t('版本') }}</span>
           <template
             v-if="versionList.length"

@@ -796,6 +796,7 @@
       'es_datanode_hot',
       'es_datanode_cold',
     ],
+    showLineHeight: false,
     trigger: 'manual' as const,
   };
 
