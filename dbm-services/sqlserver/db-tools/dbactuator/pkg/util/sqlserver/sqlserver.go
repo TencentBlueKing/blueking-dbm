@@ -329,12 +329,12 @@ func (h *DbWorker) DBRestoreForFullBackup(dbname string, fullBakFile string, mov
 	var restoreSQL string
 	if move == "" {
 		restoreSQL = fmt.Sprintf(
-			"restore database %s from disk='%s' with file = 1, %s , NOUNLOAD,  REPLACE,  STATS = 5",
+			"restore database [%s] from disk='%s' with file = 1, %s , NOUNLOAD,  REPLACE,  STATS = 5",
 			dbname, fullBakFile, restoreMode,
 		)
 	} else {
 		restoreSQL = fmt.Sprintf(
-			"restore database %s from disk='%s' with file = 1, %s, %s, NOUNLOAD,  REPLACE,  STATS = 5",
+			"restore database [%s] from disk='%s' with file = 1, %s, %s, NOUNLOAD,  REPLACE,  STATS = 5",
 			dbname, fullBakFile, move, restoreMode,
 		)
 
@@ -352,12 +352,12 @@ func (h *DbWorker) DBRestoreForLogBackup(dbname string, logBakFile string, resto
 	var restoreSQL string
 	if restoreTime != "" {
 		restoreSQL = fmt.Sprintf(
-			"restore log %s from disk='%s' with file = 1, %s, STOPAT = N'%s'",
+			"restore log [%s] from disk='%s' with file = 1, %s, STOPAT = N'%s'",
 			dbname, logBakFile, restoreMode, restoreTime,
 		)
 	} else {
 		restoreSQL = fmt.Sprintf(
-			"restore log %s from disk='%s' with file = 1, %s",
+			"restore log [%s] from disk='%s' with file = 1, %s",
 			dbname, logBakFile, restoreMode,
 		)
 	}
