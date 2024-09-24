@@ -108,10 +108,6 @@
         :cluster-id="operationData.id" />
     </BkSideslider>
   </div>
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getHdfsDetail" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -142,6 +138,7 @@
 
   import {
     ClusterTypes,
+    DBTypes,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -227,8 +224,6 @@
   const isShowPassword = ref(false);
   const isShowSettings = ref(false);
   const isInit = ref(true);
-  const showEditEntryConfig = ref(false);
-
   const operationData = shallowRef<HdfsModel>();
   const selected = ref<HdfsModel[]>([])
   const selectedIds = computed(() => selected.value.map(item => item.id));
@@ -391,17 +386,14 @@
                       ]
                     } />
                   )}
-                  <auth-button
-                    v-bk-tooltips={t('修改入口配置')}
-                    v-db-console="hdfs.clusterManage.modifyEntryConfiguration"
-                    action-id="access_entry_edit"
-                    resource="hdfs"
-                    permission={data.permission.access_entry_edit}
-                    text
-                    theme="primary"
-                    onClick={() => handleOpenEntryConfig(data)}>
-                    <db-icon type="edit" />
-                  </auth-button>
+                  <span v-db-console="hdfs.clusterManage.modifyEntryConfiguration">
+                    <EditEntryConfig
+                      id={data.id}
+                      getDetailInfo={getHdfsDetail}
+                      permission={data.permission.access_entry_edit}
+                      resource={DBTypes.HDFS}
+                      onSuccess={fetchTableData} />
+                  </span>
                 </>
               ),
             }}
@@ -859,11 +851,6 @@
     return serachData.value.find(set => set.id === item.id)?.children || [];
   };
 
-  const handleOpenEntryConfig = (row: HdfsModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-  };
-
   const fetchTableData = (loading?:boolean) => {
     const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
@@ -1080,7 +1067,7 @@
         align-items: center;
       }
 
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-left: 4px;
         color: @primary-color;
@@ -1089,7 +1076,7 @@
     }
 
     :deep(tr:hover) {
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }

@@ -73,10 +73,6 @@
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.SQLSERVER_HA"
     :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
-  <EditEntryConfig
-    :id="showEnterConfigClusterId"
-    v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getHaClusterDetail" />
   <ClusterReset
     v-if="currentData"
     v-model:is-show="isShowClusterReset"
@@ -113,6 +109,7 @@
   import {
     AccountTypes,
     ClusterTypes,
+    DBTypes,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -124,7 +121,7 @@
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
   import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
   import RenderClusterStatus from '@components/cluster-common/RenderStatus.vue';
-  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import EditEntryConfig, { type RowData } from '@components/cluster-entry-config/Index.vue';
   import DbTable from '@components/db-table/index.vue';
   import DropdownExportExcel from '@components/dropdown-export-excel/index.vue';
   import RenderInstances from '@components/render-instances/RenderInstances.vue';
@@ -199,8 +196,6 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false)
-  const showEditEntryConfig = ref(false);
-  const showEnterConfigClusterId = ref(0);
   const currentData = ref<SqlServerHaClusterModel>()
   const selected = ref<SqlServerHaClusterModel[]>([])
 
@@ -303,6 +298,23 @@
     },
   });
 
+  const renderEntry = (data: RowData) => {
+    if (data.role === 'master_entry') {
+      return (
+        <span>
+          <bk-tag size="small" theme="success">{ t('主') }</bk-tag>{ data.entry }
+        </span>
+      )
+    }
+    return (
+      <span>
+        <bk-tag size="small" theme="info">{ t('从') }</bk-tag>{ data.entry }
+      </span>
+    )
+  }
+
+  const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -377,14 +389,16 @@
                       data-text="NEW"/>
                   )
                 }
-                <bk-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  class="ml-4"
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </bk-button>
+                <span v-db-console="sqlserver.haClusterList.modifyEntryConfiguration">
+                  <EditEntryConfig
+                    id={data.id}
+                    getDetailInfo={getHaClusterDetail}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.SQLSERVER}
+                    renderEntry={renderEntry}
+                    sort={entrySort}
+                    onSuccess={fetchData} />
+                </span>
               </>
             ),
           }}
@@ -528,14 +542,16 @@
                     }
                   ]
                 } />
-                <bk-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  class="ml-4"
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </bk-button>
+                <span v-db-console="sqlserver.haClusterList.modifyEntryConfiguration">
+                  <EditEntryConfig
+                    id={data.id}
+                    getDetailInfo={getHaClusterDetail}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.SQLSERVER}
+                    renderEntry={renderEntry}
+                    sort={entrySort}
+                    onSuccess={fetchData} />
+                </span>
               </>
             )
           }}
@@ -824,10 +840,6 @@
     }, [] as string[]);
     copy(copyList.join('\n'));
   }
-  const handleOpenEntryConfig = (row: SqlServerHaClusterModel) => {
-    showEditEntryConfig.value  = true;
-    showEnterConfigClusterId.value = row.id;
-  };
 
   // 获取列表数据下的实例子列表
   const getInstanceListByRole = (dataList: SqlServerHaClusterModel[], field: keyof SqlServerHaClusterModel) => dataList.reduce((result, curRow) => {
@@ -1022,7 +1034,7 @@
 
       .db-icon-copy,
       .db-icon-link,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-left: 4px;
         color: @primary-color;
@@ -1049,7 +1061,7 @@
     td:hover {
       .db-icon-copy,
       .db-icon-link,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }

@@ -67,6 +67,10 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     ticket_type: string;
     title: string;
   }>;
+  permission: {
+    access_entry_edit: boolean;
+    sqlserver_view: boolean;
+  };
   phase: string;
   phase_name: string;
   region: string;

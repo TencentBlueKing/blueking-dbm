@@ -35,6 +35,9 @@
             size="small">
             {{ t('不可用') }}
           </BkTag>
+          <slot
+            :data="inst"
+            name="append" />
           <template v-if="index === 0">
             <DbIcon
               ref="copyRootRef"
@@ -116,16 +119,23 @@
     </template>
   </BkDialog>
 </template>
-<script lang="tsx">
-  interface InstanceListData {
-    instance_address: string;
-    role: string;
-    status: string;
-    create_at: string;
-  }
-</script>
-<script setup lang="tsx" generic="T extends InstanceListData">
+
+<script
+  setup
+  lang="tsx"
+  generic="
+    T extends {
+      bk_instance_id: number;
+      create_at: string;
+      instance_address: string;
+      ip: string;
+      port: number;
+      role: string;
+      status: string;
+    }
+  ">
   import tippy, { type Instance, type SingleTarget } from 'tippy.js';
+  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import type {
@@ -147,31 +157,18 @@
 
   import { messageWarn } from '@utils';
 
-  interface InstanceData {
-    bk_instance_id: number,
-    ip: string,
-    name: string,
-    port: number,
-    status: string
-  }
-
-
-  interface DialogState {
-    isShow: boolean,
-    keyword: string,
-    data: Array<InstanceListData>,
-  }
-
   interface Props {
-    title: string,
-    role: string,
-    data: Array<InstanceData>;
-    clusterId: number,
-    dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>,
-    highlightIps?: string[],
+    title: string;
+    role: string;
+    data: T[];
+    clusterId: number;
+    dataSource: (params: Record<string, any>) => Promise<ListBase<T[]>>;
+    highlightIps?: string[];
   }
+
   const props = withDefaults(defineProps<Props>(), {
     highlightIps: () => ([]),
+    tagKeyConfig: () => ([]),
   });
 
   const copy = useCopy();
@@ -187,10 +184,10 @@
   const renderData = computed(() => props.data.slice(0, 10));
   const hasMore = computed(() => props.data.length > 10);
 
-  const dialogState = reactive<DialogState>({
+  const dialogState = reactive({
     isShow: false,
     keyword: '',
-    data: [],
+    data: [] as T[],
   });
 
   const columns = [
@@ -241,8 +238,8 @@
     fetchInstance();
   }
 
-  const handleRequestFinished = (data: InstanceListData[]) => {
-    dialogState.data = data;
+  const handleRequestFinished = (data: T[]) => {
+    dialogState.data = data as UnwrapRef<T[]>;
   }
 
   /**
@@ -295,25 +292,27 @@
 
   onMounted(() => {
     nextTick(() => {
-      tippyIns = tippy(copyRootRef.value[0].$el as SingleTarget, {
-        content: popRef.value[0],
-        placement: 'top',
-        appendTo: () => document.body,
-        theme: 'light',
-        maxWidth: 'none',
-        trigger: 'mouseenter click',
-        interactive: true,
-        arrow: false,
-        allowHTML: true,
-        zIndex: 999999,
-        hideOnClick: true,
-        onShow() {
-          isCopyIconClicked.value = true;
-        },
-        onHide() {
-          isCopyIconClicked.value = false;
-        },
-      });
+      if (copyRootRef.value) {
+        tippyIns = tippy(copyRootRef.value[0].$el as SingleTarget, {
+          content: popRef.value[0],
+          placement: 'top',
+          appendTo: () => document.body,
+          theme: 'light',
+          maxWidth: 'none',
+          trigger: 'mouseenter click',
+          interactive: true,
+          arrow: false,
+          allowHTML: true,
+          zIndex: 999999,
+          hideOnClick: true,
+          onShow() {
+            isCopyIconClicked.value = true;
+          },
+          onHide() {
+            isCopyIconClicked.value = false;
+          },
+        });
+      }
     });
   });
 
