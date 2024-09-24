@@ -11,6 +11,7 @@
 package backupexe
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -144,9 +145,7 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 	logger.Log.Info("logical dump command: ", cmd.String())
 
 	outFile, err := os.Create(
-		filepath.Join(
-			l.dbbackupHome,
-			"logs",
+		filepath.Join(logger.GetLogDir(),
 			fmt.Sprintf("mydumper_%d_%d.log", l.cnf.Public.MysqlPort, int(time.Now().Weekday()))))
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
@@ -157,11 +156,13 @@ func (l *LogicalDumper) Execute(enableTimeOut bool) error {
 	}()
 
 	cmd.Stdout = outFile
-	cmd.Stderr = outFile
+	//cmd.Stderr = outFile
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	err = cmd.Run()
 	if err != nil {
-		logger.Log.Error("run logical backup failed: ", err)
-		return err
+		logger.Log.Error("run logical backup failed: ", err, stderr.String())
+		return errors.WithMessage(err, stderr.String())
 	}
 	return nil
 }

@@ -11,6 +11,7 @@
 package backupexe
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -226,11 +227,8 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 
 	logger.Log.Info("logical dump command with mysqldump: ", cmd.String())
 
-	outFile, err := os.Create(
-		filepath.Join(
-			l.dbbackupHome,
-			"logs",
-			fmt.Sprintf("mysqldump_%d.log", int(time.Now().Weekday()))))
+	outFile, err := os.Create(filepath.Join(logger.GetLogDir(),
+		fmt.Sprintf("mysqldump_%d.log", int(time.Now().Weekday()))))
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
 		return err
@@ -239,7 +237,9 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 		_ = outFile.Close()
 	}()
 	cmd.Stdout = outFile
-	cmd.Stderr = outFile
+	//cmd.Stderr = outFile
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 
 	mysqldumpBeginTime := time.Now().Format("2006-01-02 15:04:05")
 	l.backupInfo.BackupBeginTime, err = time.ParseInLocation(cst.MydumperTimeLayout, mysqldumpBeginTime, time.Local)
@@ -248,8 +248,8 @@ func (l *LogicalDumperMysqldump) Execute(enableTimeOut bool) (err error) {
 	}
 	err = cmd.Run()
 	if err != nil {
-		logger.Log.Error("run logical backup(with mysqldump) failed: ", err)
-		return err
+		logger.Log.Error("run logical backup(with mysqldump) failed: ", err, stderr.String())
+		return errors.WithMessage(err, stderr.String())
 	}
 	mysqldumpEndTime := time.Now().Format("2006-01-02 15:04:05")
 	l.backupInfo.BackupEndTime, err = time.ParseInLocation(cst.MydumperTimeLayout, mysqldumpEndTime, time.Local)

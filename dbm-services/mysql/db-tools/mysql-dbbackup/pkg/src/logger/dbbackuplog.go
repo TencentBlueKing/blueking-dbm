@@ -18,12 +18,21 @@ var Log *logrus.Logger
 
 const DefaultLogFileName = "dbbackup.log"
 
+// GetLogDir get log dir
+func GetLogDir() string {
+	logDir := viper.GetString("log-dir")
+	if logDir == "" {
+		executable, _ := os.Executable()
+		logDir = filepath.Join(filepath.Dir(executable), "logs")
+	}
+	return logDir
+}
+
 // InitLog Initialize dbbackupLog
 // 如果 logDir 为空，则 log记录到 dbbackup/logs 下
 // 如果 logFileName 包含相对目录，则根据在命令当前目录下创建相对目录
 // 如果 logFileName 包含绝对目录，则以绝对目录的 log file 来记录
 func InitLog(logFileName string) (err error) {
-	logDir := viper.GetString("log-dir")
 	Log = logrus.New()
 	Log.SetFormatter(&logrus.TextFormatter{
 		FullTimestamp: true,
@@ -31,10 +40,7 @@ func InitLog(logFileName string) (err error) {
 	if logFileName == "" {
 		logFileName = DefaultLogFileName
 	}
-	if logDir == "" {
-		executable, _ := os.Executable()
-		logDir = filepath.Join(filepath.Dir(executable), "logs")
-	}
+	logDir := GetLogDir()
 	if !cmutil.IsDirectory(logDir) {
 		_ = os.Mkdir(logDir, 0755)
 	}

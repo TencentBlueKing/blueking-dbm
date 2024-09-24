@@ -74,9 +74,10 @@ func init() {
 }
 
 var dumpCmd = &cobra.Command{
-	Use:   "dumpbackup",
-	Short: "Run backup",
-	Long:  `Run backup using config, include logical and physical`,
+	Use:          "dumpbackup",
+	Short:        "Run backup",
+	Long:         `Run backup using config, include logical and physical`,
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) (err error) {
 		defer func() {
 			cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", cst.DbbackupGoInstallPath)

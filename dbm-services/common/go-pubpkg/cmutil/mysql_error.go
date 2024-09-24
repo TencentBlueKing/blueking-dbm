@@ -42,8 +42,18 @@ var mysqlErrors = map[int]MySQLError{
 		Message:  "Can't connect to MySQL server",
 		regexStr: regexp.MustCompile(`ERROR 2003 .*: Can't connect to MySQL server.*`),
 	},
+	1062: {
+		Code:     1062,
+		Message:  "Duplicate entry",
+		regexStr: regexp.MustCompile(`(?i)Error 1062.*: Duplicate entry.*`),
+	},
+	1213: {
+		Code:     1213,
+		Message:  "Deadlock found when trying to get lock",
+		regexStr: regexp.MustCompile(`(?i)Error 1213.*: Deadlock found when trying to get lock.*`),
+	},
 }
-var codeParser = regexp.MustCompile(`Error (\d+) .*`)
+var codeParser = regexp.MustCompile(`(?i)Error (\d+) .*`)
 
 // NewMySQLError 对象化 mysql error, err入参要求非 nil
 func NewMySQLError(err error) MySQLError {

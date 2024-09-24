@@ -49,7 +49,7 @@ func (m *DBLoader) Init() error {
 		}
 	}
 
-	if err = m.initDirs(); err != nil {
+	if err = m.initDirs(false); err != nil {
 		return err
 	}
 	return nil
@@ -151,7 +151,7 @@ func (m *DBLoader) Start() error {
 		cmutil.ExecCommand(false, "", "chown", "-R", "mysql.mysql", m.taskDir)
 	}()
 	logger.Info("开始解压 taskDir=%s", m.taskDir)
-	if err := m.BackupInfo.indexObj.UntarFiles(m.taskDir); err != nil {
+	if err := m.BackupInfo.indexObj.UntarFiles(m.taskDir, false); err != nil {
 		return err
 	}
 	logger.Info("开始数据恢复 targetDir=%s", m.targetDir)
@@ -180,7 +180,8 @@ func (m *DBLoader) ReturnChangeMaster() (*mysqlutil.ChangeMaster, error) {
 	}
 }
 
-func (m *DBLoader) initDirs() error {
+// initDirs 如果 removeOld =  true，会删除当前任务目录下，之前的解压目录，可能是重试导致的废弃目录
+func (m *DBLoader) initDirs(removeOld bool) error {
 	if m.BackupInfo.WorkDir == "" {
 		return errors.Errorf("work_dir %s should not be empty", m.WorkDir)
 	}

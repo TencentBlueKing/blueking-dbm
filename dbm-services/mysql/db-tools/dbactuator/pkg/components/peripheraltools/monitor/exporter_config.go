@@ -1,15 +1,16 @@
 package monitor
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/peripheraltools/internal"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
-	"fmt"
-	"os"
-	"path/filepath"
 )
 
 func (c *MySQLMonitorComp) GenerateExporterConfig() (err error) {
@@ -29,7 +30,7 @@ func generateExporterConfigIns(mmp *MySQLMonitorParam, instance *internal.Instan
 	)
 
 	if mmp.MachineType == "proxy" {
-		f, err := os.OpenFile(exporterConfigPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		f, err := os.OpenFile(exporterConfigPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 		if err != nil {
 			logger.Error(err.Error())
 			return err
