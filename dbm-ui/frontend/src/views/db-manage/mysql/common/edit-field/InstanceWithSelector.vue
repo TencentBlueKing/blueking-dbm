@@ -49,15 +49,14 @@
     @change="handleInstancesChange" />
 </template>
 <script lang="ts">
-  type InstanceInfo = ServiceReturnType<typeof checkMysqlInstances>[number];
-
   const instanceWithSelectorMemo: { [key: string]: Record<string, boolean> } = {};
 </script>
 <script setup lang="ts">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { checkMysqlInstances } from '@services/source/instances';
+  import { checkInstance } from '@services/source/dbbase';
+  import type { InstanceInfos } from '@services/types/clusters';
 
   import { ClusterTypes } from '@common/const';
   import { ipPort, ipv4 } from '@common/regex';
@@ -83,7 +82,7 @@
     db_module_name?: string;
     master_domain?: string;
     cluster_type?: string;
-    related_clusters?: InstanceInfo['related_clusters'];
+    related_clusters?: InstanceInfos['related_clusters'];
     related_instances?: {
       cluster_id: number;
       instance_address: string;
@@ -151,8 +150,8 @@
     },
     {
       validator: (value: string) =>
-        checkMysqlInstances({
-          bizId: window.PROJECT_CONFIG.BIZ_ID,
+        checkInstance<InstanceInfos>({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           instance_addresses: [value],
         }).then((data) => {
           if (data.length < 1) {
