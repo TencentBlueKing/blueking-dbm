@@ -171,8 +171,8 @@ class RedisProxyScaleFlow(object):
             }
             # 如果从config_info中取出了admin_pwd，则说明是predixy，需要补充进params
             if proxy_version == ConfigFileEnum.Predixy:
-                if "predixy_admin_passwd" in config_info and config_info["predixy_admin_passwd"]:
-                    params["proxy_admin_pwd"] = config_info["predixy_admin_passwd"]
+                if "redis_proxy_admin_password" in config_info and config_info["redis_proxy_admin_password"]:
+                    params["proxy_admin_pwd"] = config_info["redis_proxy_admin_password"]
                 else:
                     # 集群架构是predixy，但是之前没有管理密码，默认跟读写密码一样
                     params["proxy_admin_pwd"] = config_info["password"]
