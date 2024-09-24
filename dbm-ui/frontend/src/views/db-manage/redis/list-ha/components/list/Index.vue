@@ -123,10 +123,6 @@
     <RedisPurge
       v-model:is-show="purgeState.isShow"
       :data="purgeState.data" />
-    <EditEntryConfig
-      :id="clusterId"
-      v-model:is-show="showEditEntryConfig"
-      :get-detail-info="getRedisDetail" />
   </div>
 </template>
 
@@ -276,8 +272,6 @@
   });
 
   const isShowDropdown = ref(false);
-  const showEditEntryConfig = ref(false);
-
   const selected = shallowRef<RedisModel[]>([])
 
   /** 查看密码 */
@@ -465,17 +459,14 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-db-console="redis.haClusterManage.modifyEntryConfiguration"
-                  v-bk-tooltips={t('修改入口配置')}
-                  action-id="access_entry_edit"
-                  resource="redis"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <span v-db-console="redis.haClusterManage.modifyEntryConfiguration">
+                  <EditEntryConfig
+                    id={data.id}
+                    getDetailInfo={getRedisDetail}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.REDIS}
+                    onSuccess={fetchData} />
+                </span>
               </>
             ),
           }}
@@ -635,17 +626,14 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-db-console="redis.haClusterManage.modifyEntryConfiguration"
-                  v-bk-tooltips={t('修改入口配置')}
-                  action-id="access_entry_edit"
-                  resource="redis"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <span v-db-console="redis.haClusterManage.modifyEntryConfiguration">
+                  <EditEntryConfig
+                    id={data.id}
+                    getDetailInfo={getRedisDetail}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.REDIS}
+                    onSuccess={fetchData} />
+                </span>
               </>
             )
           }}
@@ -1136,11 +1124,6 @@
     clusterId.value = id;
   };
 
-  const handleOpenEntryConfig = (row: RedisModel) => {
-    showEditEntryConfig.value = true;
-    clusterId.value = row.id;
-  };
-
   const handleShowPassword = (id: number) => {
     passwordState.isShow = true;
     passwordState.fetchParams.cluster_id = id;
@@ -1322,7 +1305,7 @@
           line-height: unset !important;
 
           .db-icon-copy,
-          .db-icon-edit {
+          .db-icon-visible1 {
             display: none;
             margin-top: 1px;
             margin-left: 4px;
@@ -1389,7 +1372,7 @@
         :deep(th:hover),
         :deep(td:hover) {
           .db-icon-copy,
-          .db-icon-edit {
+          .db-icon-visible1 {
             display: inline-block;
           }
         }

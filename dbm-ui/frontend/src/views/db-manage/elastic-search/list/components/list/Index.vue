@@ -97,10 +97,6 @@
       </template>
     </BkDialog>
   </div>
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getEsDetail" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -133,6 +129,7 @@
 
   import {
     ClusterTypes,
+    DBTypes,
     UserPersonalSettings,
   } from '@common/const';
 
@@ -275,7 +272,6 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
-  const showEditEntryConfig = ref(false);
   const selected = ref<EsModel[]>([])
   const operationData = shallowRef<EsModel>();
   const tableDataActionLoadingMap = shallowRef<Record<number, boolean>>({});
@@ -377,17 +373,14 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  v-db-console="es.clusterManage.modifyEntryConfiguration"
-                  action-id="access_entry_edit"
-                  resource="es"
+                <span v-db-console="es.clusterManage.modifyEntryConfiguration">
+                  <EditEntryConfig
+                  id={data.id}
+                  getDetailInfo={getEsDetail}
                   permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                  resource={DBTypes.ES}
+                  onSuccess={fetchTableData} />
+                </span>
               </>
             ),
           }}
@@ -834,11 +827,6 @@
     return serachData.value.find(set => set.id === item.id)?.children || [];
   };
 
-  const handleOpenEntryConfig = (row: EsModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-  };
-
   const fetchTableData = (loading?:boolean) => {
     const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
@@ -1141,7 +1129,7 @@
         align-items: center;
       }
 
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-top: 1px;
         margin-left: 4px;
@@ -1151,7 +1139,7 @@
     }
 
     :deep(td:hover) {
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }
