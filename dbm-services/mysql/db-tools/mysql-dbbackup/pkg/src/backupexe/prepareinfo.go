@@ -149,7 +149,7 @@ func openXtrabackupFile(binpath string, fileName string, tmpFileName string) (*b
 	return bytes.NewBuffer(content), nil
 }
 
-// parseXtraInfo get xtrabackup start_time / end_time
+// parseXtraInfo get start_time / end_time from xtrabackup_info
 // return startTime,endTime,error
 func parseXtraInfo(qpress string, fileName string, tmpFileName string, metaInfo *dbareport.IndexContent) error {
 	fileBytes, err := openXtrabackupFile(qpress, fileName, tmpFileName)

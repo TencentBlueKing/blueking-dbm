@@ -2,6 +2,9 @@ package restore
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/jinzhu/copier"
 	"github.com/pkg/errors"
@@ -49,7 +52,7 @@ func (m *DBLoader) Init() error {
 		}
 	}
 
-	if err = m.initDirs(false); err != nil {
+	if err = m.initDirs(true); err != nil {
 		return err
 	}
 	return nil
@@ -188,16 +191,26 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 	if m.WorkID == "" {
 		m.WorkID = newTimestampString()
 	}
+	if removeOld { // 删除旧目录
+		timeNow := time.Now()
+		oldDirs, _ := filepath.Glob(fmt.Sprintf("%s/doDr_*", m.WorkDir))
+		for _, oldDir := range oldDirs {
+			if dirInfo, err := os.Stat(oldDir); err == nil && dirInfo.IsDir() {
+				if timeNow.Sub(dirInfo.ModTime()) > 1*time.Minute {
+					logger.Warn("remove old recover work directory: ", oldDirs)
+					_ = os.RemoveAll(oldDir)
+				}
+			}
+		}
+	}
+
 	m.taskDir = fmt.Sprintf("%s/doDr_%s/%d", m.WorkDir, m.WorkID, m.TgtInstance.Port)
 	if err := osutil.CheckAndMkdir("", m.taskDir); err != nil {
 		return err
 	}
-	/*
-		if m.BackupInfo.indexObj.GetMetafileBasename() == "" {
-			return errors.New("backup file baseName error")
-		}
-	*/
 	m.targetDir = m.BackupInfo.indexObj.GetTargetDir(m.taskDir)
+	logger.Info("current recover work directory: ", m.taskDir)
+	logger.Info("current recover work target directory: ", m.targetDir)
 	return nil
 }
 
