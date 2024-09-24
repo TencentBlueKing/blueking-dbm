@@ -18,7 +18,7 @@
         :disabled="isBatchRestartDisabled || isRestartActionDisabled"
         :loading="isBatchRestartLoading"
         @click="handleBatchRestart">
-        {{ $t('批量重启') }}
+        {{ t('批量重启') }}
       </BkButton>
     </div>
     <BkLoading :loading="isLoading">

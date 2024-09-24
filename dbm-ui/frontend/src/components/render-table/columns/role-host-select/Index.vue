@@ -38,8 +38,7 @@
       :list="selectList"
       :placeholder="t('请选择')"
       :rules="rules"
-      @change="(value) => handleChange(value as string)"
-      @option-click="(value) => handleOptionClick(value as string)">
+      @change="(value) => handleChange(value as string)">
       <template #default="{ optionItem }">
         <div class="role-host-select-option">
           <div>{{ optionItem.label }}</div>
@@ -167,11 +166,11 @@
     emits('type-change', value);
   };
 
-  const handleOptionClick = (value: string) => {
-    if (value === localValue.value) {
-      isShowInstanceSelecotr.value = true;
-    }
-  };
+  // const handleOptionClick = (value: string) => {
+  //   if (value === localValue.value) {
+  //     isShowInstanceSelecotr.value = true;
+  //   }
+  // };
 
   const handleInstancesChange = (selectedValues: InstanceSelectorValues<IValue>) => {
     selected.value = selectedValues;
