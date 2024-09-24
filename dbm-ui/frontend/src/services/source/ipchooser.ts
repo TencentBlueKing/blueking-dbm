@@ -38,11 +38,17 @@ export function checkHost(params: {
  */
 export function getHostDetails(params: {
   mode?: string;
-  host_list: Array<Partial<HostDetails>>;
+  host_list: {
+    host_id: number;
+    meta?: {
+      bk_biz_id: number;
+      scope_id: string;
+      scope_type: string;
+    };
+  }[];
   scope_list: {
-    scope_id: number;
+    scope_id: string;
     scope_type: string;
-    bk_cloud_id?: number | string;
   }[];
 }) {
   return http.post<HostDetails[]>(`${path}/host/details/`, params);

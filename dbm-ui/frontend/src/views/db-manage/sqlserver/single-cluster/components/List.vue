@@ -79,6 +79,7 @@
 
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
+  import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import {
@@ -136,11 +137,6 @@
     getSearchSelectorParams,
     isRecentDays,
   } from '@utils';
-
-  import type {
-    SearchSelectData,
-    SearchSelectItem,
-  } from '@/types/bkui-vue';
 
   const singleClusterData = defineModel<{ clusterId: number }>('singleClusterData');
 
@@ -277,7 +273,7 @@
       multiple: true,
       children: searchAttrs.value.time_zone,
     },
-  ] as SearchSelectData);
+  ]);
 
   const tableOperationWidth = computed(() => {
     if (!isStretchLayoutOpen.value) {
@@ -660,7 +656,7 @@
     },
   });
 
-  const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+  const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
     }

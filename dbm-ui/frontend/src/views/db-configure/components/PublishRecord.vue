@@ -25,7 +25,7 @@
     </BkLoading>
 
     <BkSideslider
-      v-model:isShow="sideState.isShow"
+      v-model:is-show="sideState.isShow"
       quick-close
       render-directive="if"
       :width="960">
@@ -70,7 +70,6 @@
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
   import {
@@ -85,8 +84,6 @@
   } from '@components/editable-info/index.vue';
 
   import ReadonlyTable from './ReadonlyTable.vue';
-
-  import type { TableColumnRender } from '@/types/bkui-vue';
 
   type ConfigVersionDetails = ServiceReturnType<typeof getConfigVersionDetails>
   type ConfigVersionListResult = ServiceReturnType<typeof getConfigVersionList>
@@ -111,11 +108,16 @@
   /**
    * table columns
    */
-  const columns: Column[] = [{
+  const columns = [{
     label: t('发布时间'),
     field: 'created_at',
-    render: ({ cell, data }: TableColumnRender) => (
-      <bk-button text theme="primary" onClick={handleToDetails.bind(this, data)}>{cell}</bk-button>
+    render: ({ data }: {data: ConfigVersionListResult['versions'][number]}) => (
+      <bk-button
+        text
+        theme="primary"
+        onClick={() => handleToDetails(data)}>
+        {data.created_at}
+      </bk-button>
     ),
   }, {
     label: t('发布人'),

@@ -84,6 +84,15 @@
 
   import type { HostDetails } from '@services/types';
 
+  interface Props {
+    data: Array<IHostTableDataWithInstance>;
+    searchable?: boolean;
+  }
+
+  interface Emits {
+    (e: 'update:data', value: Array<IHostTableDataWithInstance>): void;
+  }
+
   export interface IHostTableDataWithInstance extends HostDetails {
     instance_num: number;
   }
@@ -106,14 +115,7 @@
 
   import EditHostInstance from './components/EditHostInstance.vue';
 
-  interface Props {
-    data: Array<IHostTableDataWithInstance>,
-    searchable?: boolean,
-  }
 
-  interface Emits {
-    (e: 'update:data', value: Array<IHostTableDataWithInstance>): void
-  }
 
   const props = withDefaults(defineProps<Props>(), {
     searchable: true,
@@ -152,8 +154,8 @@
     },
     {
       label: t('机型'),
-      field: 'cpu',
-      render: ({ data }: {data: IHostTableDataWithInstance}) => data.cpu || '--',
+      field: 'bk_cpu',
+      render: ({ data }: {data: IHostTableDataWithInstance}) => data.bk_cpu || '--',
     },
     {
       label: t('机房'),

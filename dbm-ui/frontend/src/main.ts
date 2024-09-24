@@ -80,9 +80,5 @@ window.addEventListener('beforeunload', (event) => {
   if (e) {
     e.returnValue = '离开将会导致未保存信息丢失';
   }
-  // 如果是通过登录触发提示，则关闭登录 dialog
-  if (window.login.isShow) {
-    window.login.hideLogin();
-  }
   return '离开将会导致未保存信息丢失';
 });

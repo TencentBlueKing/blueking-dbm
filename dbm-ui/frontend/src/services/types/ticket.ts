@@ -11,10 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
+import type { HostDetails } from '@services/types';
 
 import { TicketTypes } from '@common/const';
-
-import type { IHostTableData } from '@views/db-manage/common/big-data-host-table/HdfsHostTable.vue';
 
 /**
  * 单据详情
@@ -108,10 +107,10 @@ export interface TicketDetailsES {
   http_port: number;
   ip_source: string;
   nodes: {
-    client: IHostTableData[];
-    master: IHostTableData[];
-    hot: IHostTableData[];
-    cold: IHostTableData[];
+    client: HostDetails[];
+    master: HostDetails[];
+    hot: HostDetails[];
+    cold: HostDetails[];
   };
 }
 
@@ -126,9 +125,9 @@ export interface TicketDetailsHDFS {
   db_version: string;
   ip_source: string;
   nodes: {
-    datanode: IHostTableData[];
-    namenode: IHostTableData[];
-    zookeeper: IHostTableData[];
+    datanode: HostDetails[];
+    namenode: HostDetails[];
+    zookeeper: HostDetails[];
   };
 }
 
@@ -143,8 +142,8 @@ export interface TicketDetailsKafka {
   db_version: string;
   ip_source: string;
   nodes: {
-    broker: IHostTableData[];
-    zookeeper: IHostTableData[];
+    broker: HostDetails[];
+    zookeeper: HostDetails[];
   };
   partition_num: number;
   port: number;
@@ -156,16 +155,16 @@ export interface TicketDetailsKafka {
  * 节点类型
  */
 export interface NodesType {
-  datanode: IHostTableData[];
-  hot: IHostTableData[];
-  cold: IHostTableData[];
-  master: IHostTableData[];
-  client: IHostTableData[];
-  namenode: IHostTableData[];
-  zookeeper: IHostTableData[];
-  broker: IHostTableData[];
-  proxy: IHostTableData[];
-  slave: IHostTableData[];
+  datanode: HostDetails[];
+  hot: HostDetails[];
+  cold: HostDetails[];
+  master: HostDetails[];
+  client: HostDetails[];
+  namenode: HostDetails[];
+  zookeeper: HostDetails[];
+  broker: HostDetails[];
+  proxy: HostDetails[];
+  slave: HostDetails[];
 }
 
 /**

@@ -30,8 +30,6 @@
   import { getLevelConfig } from '@services/source/configs';
   import { retrieveRedisInstance } from '@services/source/redis';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
-
   interface Props {
     instanceData: ServiceReturnType<typeof retrieveRedisInstance>;
   }
@@ -52,7 +50,7 @@
     {
       label: t('描述'),
       field: 'description',
-      render: ({ cell }: TableColumnRender) => cell || '--',
+      render: ({ cell }: { cell: string }) => cell || '--',
     },
   ];
 

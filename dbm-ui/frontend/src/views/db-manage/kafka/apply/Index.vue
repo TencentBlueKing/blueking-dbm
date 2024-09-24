@@ -333,7 +333,6 @@
 
   import { useApplyBase } from '@hooks';
 
-  // import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import { OSTypes } from '@common/const';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
@@ -345,9 +344,7 @@
   import DeployVersion from '@views/db-manage/common/apply-items/DeployVersion.vue';
   import RegionItem from '@views/db-manage/common/apply-items/RegionItem.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
-  import RenderHostTable, {
-    type IHostTableData,
-  } from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
+  import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -373,8 +370,8 @@
       ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
-        zookeeper: [] as Array<IHostTableData>,
-        broker: [] as Array<IHostTableData>,
+        zookeeper: [] as Array<HostDetails>,
+        broker: [] as Array<HostDetails>,
       },
       resource_spec: {
         zookeeper: {
@@ -522,7 +519,7 @@
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
-      const mapIpField = (ipList: Array<IHostTableData>) =>
+      const mapIpField = (ipList: Array<HostDetails>) =>
         ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

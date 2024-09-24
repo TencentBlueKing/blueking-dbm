@@ -345,7 +345,6 @@
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
 
-  // import AffinityItem from '@views/db-manage/common/apply-items/AffinityItem.vue';
   import BusinessItems from '@views/db-manage/common/apply-items/BusinessItems.vue';
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
   import ClusterAlias from '@views/db-manage/common/apply-items/ClusterAlias.vue';
@@ -356,9 +355,7 @@
   import WithInstanceHostTable, {
     type IHostTableDataWithInstance,
   } from '@views/db-manage/common/big-data-host-table/es-host-table/index.vue';
-  import RenderHostTable, {
-    type IHostTableData,
-  } from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
+  import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
 
   const route = useRoute();
   const router = useRouter();
@@ -387,8 +384,8 @@
       ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
-        master: [] as Array<IHostTableData>,
-        client: [] as Array<IHostTableData>,
+        master: [] as Array<HostDetails>,
+        client: [] as Array<HostDetails>,
         hot: [] as Array<IHostTableDataWithInstance>,
         cold: [] as Array<IHostTableDataWithInstance>,
       },
@@ -636,7 +633,7 @@
       }
       baseState.isSubmitting = true;
 
-      const mapIpField = (ipList: Array<IHostTableData>) =>
+      const mapIpField = (ipList: Array<HostDetails>) =>
         ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

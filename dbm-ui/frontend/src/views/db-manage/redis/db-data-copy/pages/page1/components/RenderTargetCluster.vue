@@ -24,12 +24,6 @@
     </div>
   </BkLoading>
 </template>
-<script lang="ts">
-  export interface SelectItem {
-    value: number;
-    label: string;
-  }
-</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
@@ -47,6 +41,11 @@
 
   interface Emits {
     (e: 'select-change', value: number): void;
+  }
+
+  export interface SelectItem {
+    value: number;
+    label: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {

@@ -54,12 +54,11 @@
   import { useRequest } from 'vue-request';
 
   import { getHostDetails } from '@services/source/ipchooser';
+  import type { HostDetails } from '@services/types';
 
   import { useCopy } from '@hooks';
 
   import DbStatus from '@components/db-status/index.vue';
-
-  import type { TableColumnRender } from '@/types/bkui-vue';
 
   interface Props {
     hostIds: number[],
@@ -83,44 +82,44 @@
   }, {
     label: 'IPv6',
     field: 'ipv6',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostDetails}) => data.ipv6 || '--',
   }, {
     label: t('管控区域'),
     field: 'bk_cloud_name',
-    render: ({ cell }: any) => <span>{cell?.name || '--'}</span>,
+    render: ({ data }: {data: HostDetails}) => data.cloud_area.name || '--',
   }, {
     label: t('Agent状态'),
     field: 'alive',
-    render: ({ cell }: { cell: number }) => {
-      if (typeof cell !== 'number') return '--';
+    render: ({ data }: {data: HostDetails}) => {
+      if (typeof data.alive !== 'number') return '--';
 
       const text = [t('异常'), t('正常')];
-      return <DbStatus theme={cell === 1 ? 'success' : 'danger'}>{text[cell]}</DbStatus>;
+      return <DbStatus theme={data.alive === 1 ? 'success' : 'danger'}>{text[data.alive]}</DbStatus>;
     },
   }, {
     label: t('主机名称'),
-    field: 'bk_host_name',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    field: 'host_name',
+    render: ({ data }: {data: HostDetails}) => data.host_name || '--',
   }, {
     label: t('OS名称'),
-    field: 'bk_os_name',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    field: 'os_name',
+    render: ({ data }: {data: HostDetails}) => data.os_name || '--',
   }, {
     label: t('所属云厂商'),
-    field: 'bk_cloud_vendor',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    field: 'cloud_vendor',
+    render: ({ data }: {data: HostDetails}) => data.cloud_vendor || '--',
   }, {
     label: t('OS类型'),
-    field: 'bk_os_type',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    field: 'os_type',
+    render: ({ data }: {data: HostDetails}) => data.os_type || '--',
   }, {
     label: t('主机ID'),
-    field: 'bk_host_id',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    field: 'host_id',
+    render: ({ data }: {data: HostDetails}) => data.host_id || '--',
   }, {
     label: 'Agent ID',
-    field: 'bk_agent_id',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    field: 'agent_id',
+    render: ({ data }: {data: HostDetails}) => data.agent_id || '--',
   }];
   const settings = {
     fields: columns.map(item => ({
@@ -154,17 +153,8 @@
       mode: 'all',
       host_list: props.hostIds.map(hostId => ({
         host_id: hostId,
-        // meta: {
-        //   bk_biz_id: props.bizId,
-        //   scope_id: props.bizId,
-        //   scope_type: 'biz',
-        // },
       })),
       scope_list: [],
-      // scope_list: [{
-      //   scope_id: props.bizId,
-      //   scope_type: 'biz',
-      // }],
     });
   };
 

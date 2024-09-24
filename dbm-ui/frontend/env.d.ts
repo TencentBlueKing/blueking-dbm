@@ -36,21 +36,19 @@ declare module '*.css' {
   export default css;
 }
 
-declare interface Window {
-  changeConfirm: boolean | 'popover';
-  clipboardData: {
-    getData: (params: string) => string;
+declare module 'vite-plugin-monaco-editor' {
+  interface MonacoEditorOptions {
+    // 根据实际插件文档填写选项
+    language?: string;
+    theme?: string;
+    // 其他可能的选项...
+  }
+
+  const monacoEditorPlugin: (options: MonacoEditorOptions) => any;
+
+  export default {
+    default: monacoEditorPlugin,
   };
-  PROJECT_ENV: {
-    VITE_PUBLIC_PATH: string;
-    VITE_AJAX_URL_PREFIX: string;
-    VITE_ROUTER_PERFIX: string;
-  };
-  PROJECT_CONFIG: {
-    BIZ_ID: number;
-    TICKET_DETAIL_REQUEST_CONTROLLER: AbortController;
-  };
-  BKApp: App<Element>;
 }
 
 declare module 'js-cookie';
@@ -86,3 +84,20 @@ type KeyExpand<T> = {
 };
 
 type LeftIsExtendsRightReturnValue<L, R, V> = L extends R ? never : V;
+
+declare interface Window {
+  changeConfirm: boolean | 'popover';
+  clipboardData: {
+    getData: (params: string) => string;
+  };
+  PROJECT_ENV: {
+    VITE_PUBLIC_PATH: string;
+    VITE_AJAX_URL_PREFIX: string;
+    VITE_ROUTER_PERFIX: string;
+  };
+  PROJECT_CONFIG: {
+    BIZ_ID: number;
+    TICKET_DETAIL_REQUEST_CONTROLLER: AbortController;
+  };
+  BKApp: App<Element>;
+}

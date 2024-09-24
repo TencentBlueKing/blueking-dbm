@@ -67,19 +67,6 @@
     </BkLoading>
   </div>
 </template>
-<script lang="tsx">
-  export interface IPagination {
-    count: number;
-    current: number;
-    limit: number;
-    limitList: Array<number>;
-    align: string;
-    layout: Array<string>;
-  }
-  export interface IPaginationExtra {
-    small?: boolean;
-  }
-</script>
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
   import _ from 'lodash';
@@ -108,7 +95,9 @@
     dataSource: (params: any, payload?: IRequestPayload)=> Promise<any>,
     fixedPagination?: boolean,
     clearSelection?: boolean,
-    paginationExtra?: IPaginationExtra,
+    paginationExtra?: {
+    small?: boolean;
+  },
     selectable?: boolean,
     disableSelectMethod?: (data: any) => boolean|string,
     // data 数据的主键
@@ -239,7 +228,14 @@
   const isAnomalies = ref(false);
   const rowSelectMemo = shallowRef<Record<string|number, Record<any, any>>>({});
   const isWholeChecked = ref(false);
-  const pagination = reactive<IPagination>({
+  const pagination = reactive<{
+    count: number;
+    current: number;
+    limit: number;
+    limitList: Array<number>;
+    align: string;
+    layout: Array<string>;
+  }>({
     count: 0,
     current: 1,
     limit: 10,

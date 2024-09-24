@@ -90,8 +90,6 @@
 
   import BatchEdit from './BatchEdit.vue';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
-
   interface DataItem extends RedisModel {
     target: string,
     backup_type: string
@@ -116,14 +114,11 @@
   const { t } = useI18n();
   const ticketMessage = useTicketMessage();
 
-  const formRef = ref();
+
 
   const globalBizsStore = useGlobalBizs();
   const handleBeforeClose = useBeforeClose();
-  // 判断是否为批量操作
-  const isBatch = computed(() => props.data.length > 1);
-  // 第一个集群的数据
-  const firstData = computed(() => props.data[0]);
+
   const backupList = [{
     id: 'normal_backup',
     label: t('常规备份'),
@@ -157,7 +152,7 @@
   }, {
     label: t('架构版本'),
     field: 'cluster_type_name',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: { data: DataItem }) => data.cluster_type_name || '--',
   }, {
     label: () => (
       <span class="key-table-header">
@@ -229,6 +224,14 @@
       </bk-form-item>
     ),
   }];
+
+  const formRef = ref();
+
+   // 判断是否为批量操作
+   const isBatch = computed(() => props.data.length > 1);
+  // 第一个集群的数据
+  const firstData = computed(() => props.data[0]);
+
   // 实际渲染表头配置
   const rederColumns = computed(() => {
     if (isBatch.value) {
@@ -259,11 +262,10 @@
   });
 
   watch(() => props.data, (data) => {
-    state.formdata = data.map(item => ({
+    state.formdata = data.map(item => Object.assign({}, {
       backup_type: '',
       target: '',
-      ...item,
-    }));
+    }, item))
     state.renderKey = generateId('BACKUP_FORM_');
   }, { immediate: true, deep: true });
 

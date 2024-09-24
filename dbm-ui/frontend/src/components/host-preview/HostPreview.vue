@@ -69,8 +69,6 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
-
   interface Props {
     fetchParams: Record<string, any>,
     fetchNodes: (params: any) => Promise<HostNode[]>,
@@ -96,48 +94,48 @@
   }, {
     label: t('每台主机节点数'),
     field: 'instance_num',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.instance_num || '--',
   }, {
     label: 'IPv6',
     field: 'bk_host_innerip_v6',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.bk_host_innerip_v6 || '--',
   }, {
     label: t('管控区域'),
     field: 'bk_cloud_name',
-    render: ({ cell }: any) => <span>{cell?.name || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.bk_cloud_name || '--',
   }, {
     label: t('Agent状态'),
     field: 'status',
-    render: ({ cell }: { cell: number }) => {
-      if (typeof cell !== 'number') return '--';
+    render: ({ data }: {data: HostNode}) => {
+      if (typeof data.status !== 'number') return '--';
 
       const text = [t('异常'), t('正常')];
-      return <DbStatus theme={cell === 1 ? 'success' : 'danger'}>{text[cell]}</DbStatus>;
+      return <DbStatus theme={data.status === 1 ? 'success' : 'danger'}>{text[data.status]}</DbStatus>;
     },
   }, {
     label: t('主机名称'),
     field: 'bk_host_name',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.bk_host_name || '--',
   }, {
     label: t('OS名称'),
     field: 'bk_os_name',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.bk_os_name || '--',
   }, {
     label: t('所属云厂商'),
     field: 'bk_cloud_vendor',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.bk_cloud_vendor || '--',
   }, {
     label: t('OS类型'),
     field: 'bk_os_type',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.bk_os_type || '--',
   }, {
     label: t('主机ID'),
     field: 'bk_host_id',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.bk_host_id || '--',
   }, {
     label: 'Agent ID',
     field: 'bk_agent_id',
-    render: ({ cell }: TableColumnRender) => <span>{cell || '--'}</span>,
+    render: ({ data }: {data: HostNode}) => data.bk_agent_id || '--',
   }];
   const state = reactive({
     isLoading: false,
