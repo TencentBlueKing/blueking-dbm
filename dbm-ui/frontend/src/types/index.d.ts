@@ -11,18 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { TablePropTypes } from 'bkui-vue/lib/table/props';
 import type { Router } from 'vue-router';
 
 declare global {
-  interface Window {
-    changeConfirm: boolean | 'popover';
-    login: {
-      showLogin: ({ src, width, height }) => void;
-      hideLogin: () => void;
-      isShow: boolean;
-    };
-  }
   interface Element {
     _bk_overflow_tips_: any;
     _tippy: any;
@@ -40,12 +31,6 @@ declare global {
       innerText: string;
     } | null;
   }
-
-  type ClusterTableProps = {
-    -readonly [K in keyof TablePropTypes]: TablePropTypes[K];
-  };
-
-  type BKTagTheme = 'success' | 'info' | 'warning' | 'danger' | undefined;
 }
 
 declare module 'pinia' {

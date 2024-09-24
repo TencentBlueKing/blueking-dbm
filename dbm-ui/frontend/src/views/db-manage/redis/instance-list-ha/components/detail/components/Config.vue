@@ -32,14 +32,14 @@
 
   import { ClusterTypes } from '@common/const';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
-
   interface Props {
     queryInfos: {
-      version: string,
-      clusterId: number
-    }
+      version: string;
+      clusterId: number;
+    };
   }
+
+  type IRowData = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 
   const props = defineProps<Props>();
 
@@ -57,35 +57,33 @@
     {
       label: t('参数项'),
       field: 'conf_name',
-      render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
+      render: ({ data }: { data: IRowData }) => data.conf_name,
     },
     {
       label: t('参数值'),
       field: 'conf_value',
-      render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell}</div>,
+      render: ({ data }: { data: IRowData }) => data.conf_value,
     },
     {
       label: t('描述'),
       field: 'description',
-      render: ({ cell }: TableColumnRender) => <div class="text-overflow" v-overflow-tips>{cell || '--'}</div>,
+      render: ({ data }: { data: IRowData }) => data.description || '--',
     },
-    // {
-    //   label: t('重启实例生效'),
-    //   field: 'need_restart',
-    //   width: 200,
-    //   render: ({ cell }: {cell: number}) => (cell === 1 ? t('是') : t('否')),
-    // }
   ];
 
-  watch(() => props.queryInfos, (infos) => {
-    const { version, clusterId } = infos;
-    if (version && clusterId) {
-      fetchClusterConfig();
-    }
-  }, {
-    immediate: true,
-    deep: true,
-  });
+  watch(
+    () => props.queryInfos,
+    (infos) => {
+      const { version, clusterId } = infos;
+      if (version && clusterId) {
+        fetchClusterConfig();
+      }
+    },
+    {
+      immediate: true,
+      deep: true,
+    },
+  );
 
   /**
    * 获取集群配置
@@ -99,9 +97,6 @@
       level_name: 'cluster',
       conf_type: 'dbconf',
       version: props.queryInfos.version,
-      // level_info: {
-      //   module: String(props.queryInfos.dbModuleId),
-      // },
     })
       .then((res) => {
         data.value = res;
@@ -109,7 +104,7 @@
       .finally(() => {
         isLoading.value = false;
       });
-  }
+  };
 </script>
 
 <style lang="less" scoped>

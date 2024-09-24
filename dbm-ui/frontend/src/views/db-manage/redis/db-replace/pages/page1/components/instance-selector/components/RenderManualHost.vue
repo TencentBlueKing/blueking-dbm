@@ -30,6 +30,7 @@
 </template>
 
 <script setup lang="tsx">
+  import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -39,7 +40,6 @@
   import  type { InstanceItem } from './RenderManualInput.vue';
   import type { ChoosedItem } from './RenderRedisHost.vue';
 
-  import type { TableProps } from '@/types/bkui-vue';
 
   interface TableItem {
     data: InstanceItem
@@ -49,7 +49,7 @@
     role?: string;
     lastValues: InstanceSelectorValues;
     tableData: InstanceItem[];
-    tableSettings: TableProps['settings'];
+    tableSettings: InstanceType<typeof Table>['$props']['settings'];
   }
 
   interface Emits {

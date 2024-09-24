@@ -78,8 +78,6 @@
 
   import { downloadUrl, generateBkRepoDownloadUrl,messageWarn } from '@utils';
 
-  import type { TableSelectionData } from '@/types/bkui-vue';
-
   type KeyFileItem = ServiceReturnType<typeof getKeyFiles>[number]
 
   interface Props {
@@ -222,28 +220,34 @@
   /**
    * 表格选中
    */
-  function handleTableSelected({ isAll, checked, data, row }: TableSelectionData<KeyFileItem>) {
-    // 全选 checkbox 切换
-    if (isAll) {
-      state.selected = checked ? [...data] : [];
-      return;
-    }
-
-    // 单选 checkbox 选中
-    if (checked) {
-      const toggleIndex = state.selected.findIndex(item => item.domain === row.domain);
-      if (toggleIndex === -1) {
-        state.selected.push(row);
+  function handleTableSelected({ isAll, checked, data, row }: {
+    checked: boolean;
+    data: KeyFileItem[];
+    index: number;
+    isAll: boolean;
+    row: KeyFileItem
+  }) {
+      // 全选 checkbox 切换
+      if (isAll) {
+        state.selected = checked ? [...data] : [];
+        return;
       }
-      return;
-    }
 
-    // 单选 checkbox 取消选中
-    const toggleIndex = state.selected.findIndex(item => item.domain === row.domain);
-    if (toggleIndex > -1) {
-      state.selected.splice(toggleIndex, 1);
+      // 单选 checkbox 选中
+      if (checked) {
+        const toggleIndex = state.selected.findIndex(item => item.domain === row.domain);
+        if (toggleIndex === -1) {
+          state.selected.push(row);
+        }
+        return;
+      }
+
+      // 单选 checkbox 取消选中
+      const toggleIndex = state.selected.findIndex(item => item.domain === row.domain);
+      if (toggleIndex > -1) {
+        state.selected.splice(toggleIndex, 1);
+      }
     }
-  }
 
   /**
    * 打包下载文件

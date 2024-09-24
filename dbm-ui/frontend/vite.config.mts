@@ -22,9 +22,6 @@ import basicSsl from '@vitejs/plugin-basic-ssl';
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
 
-// 用于判断前端资源更新
-const uniqueKey = `${new Date().getTime()}.1e78f18e-01c1-11ed-b939-0242ac120002`;
-
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
   const isHttps = mode === 'https';
@@ -84,7 +81,6 @@ export default defineConfig(({ mode }) => {
           {
             src: 'src/images/monitoring.png',
             dest: './',
-            rename: uniqueKey,
           },
           {
             src: 'lib',
@@ -110,7 +106,7 @@ export default defineConfig(({ mode }) => {
         '/bkrepo_upload': {
           target: '', // 见获取bkrepo上传凭证接口
           changeOrigin: true,
-          rewrite: path => path.replace(/^\/bkrepo_upload/, ''),
+          rewrite: (path) => path.replace(/^\/bkrepo_upload/, ''),
         },
       },
     },

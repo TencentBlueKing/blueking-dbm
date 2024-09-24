@@ -74,19 +74,15 @@
     </div>
   </div>
 </template>
-<script lang="tsx">
-  import { useI18n } from 'vue-i18n';
-
-  import type { HostDetails } from '@services/types';
-
-  export type IHostTableData = HostDetails;
-</script>
 <script setup lang="tsx">
   import {
     ref,
     shallowRef,
     watch,
   } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
+  import type { HostDetails } from '@services/types';
 
   import { useCopy } from '@hooks';
 
@@ -95,14 +91,12 @@
   import tableSetting from './common/tableSetting';
   import useLocalPagination from './hook/useLocalPagination';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
-
   interface Props {
-    data: Array<IHostTableData>
+    data: Array<HostDetails>
   }
 
   interface Emits {
-    (e: 'update:data', value: Array<IHostTableData>): void
+    (e: 'update:data', value: Array<HostDetails>): void
   }
 
   const props = defineProps<Props>();
@@ -123,23 +117,23 @@
     },
     {
       label: t('机型'),
-      field: 'cpu',
-      render: ({ data }: TableColumnRender) => data.cpu || '--',
+      field: 'bk_cpu',
+      render: ({ data }: {data: HostDetails}) => data.bk_cpu || '--',
     },
     {
       label: t('机房'),
       field: 'bk_idc_name',
-      render: ({ data }: TableColumnRender) => data.bk_idc_name || '--',
+      render: ({ data }: {data: HostDetails}) => data.bk_idc_name || '--',
     },
     {
       label: t('主机名称'),
       field: 'host_name',
-      render: ({ data }: TableColumnRender) => data.host_name || '--',
+      render: ({ data }: {data: HostDetails}) => data.host_name || '--',
     },
     {
       label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: TableColumnRender) => {
+      render: ({ data }: {data: HostDetails}) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
@@ -147,33 +141,33 @@
     {
       label: t('管控区域'),
       field: 'cloud_area',
-      render: ({ data }: TableColumnRender) => data.cloud_area.name || '--',
+      render: ({ data }: {data: HostDetails}) => data.cloud_area.name || '--',
     },
     {
       label: t('OS名称'),
       field: 'os_name',
-      render: ({ data }: TableColumnRender) => data.os_name || '--',
+      render: ({ data }: {data: HostDetails}) => data.os_name || '--',
     },
     {
       label: t('OS类型'),
       field: 'os_type',
-      render: ({ data }: TableColumnRender) => data.os_type || '--',
+      render: ({ data }: {data: HostDetails}) => data.os_type || '--',
     },
     {
       label: t('主机ID'),
       field: 'host_id',
-      render: ({ data }: TableColumnRender) => data.host_id || '--',
+      render: ({ data }: {data: HostDetails}) => data.host_id || '--',
     },
     {
       label: 'Agent ID',
       field: 'agent_id',
-      render: ({ data }: TableColumnRender) => data.agent_id || '--',
+      render: ({ data }: {data: HostDetails}) => data.agent_id || '--',
     },
     {
       label: t('操作'),
       field: 'operation',
       width: 100,
-      render: ({ data }: TableColumnRender) => (
+      render: ({ data }: {data: HostDetails}) => (
         <bk-button
           text
           theme="primary"
@@ -205,13 +199,13 @@
   };
 
   // 移除指定主机节点数
-  const handleRemove = (data: IHostTableData) => {
+  const handleRemove = (data: HostDetails) => {
     const result = props.data.reduce((result, item) => {
       if (item.host_id !== data.host_id) {
         result.push(item);
       }
       return result;
-    }, [] as Array<IHostTableData>);
+    }, [] as Array<HostDetails>);
     emits('update:data', result);
   };
 
@@ -227,7 +221,7 @@
         result.push(hostData);
       }
       return result;
-    }, [] as Array<IHostTableData>);
+    }, [] as Array<HostDetails>);
     emits('update:data', result);
   };
 
@@ -248,7 +242,7 @@
         result.push(hostData);
       }
       return result;
-    }, [] as Array<IHostTableData>);
+    }, [] as Array<HostDetails>);
     emits('update:data', result);
   };
 
