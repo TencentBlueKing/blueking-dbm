@@ -146,6 +146,7 @@
   watch(searchKey, () => {
     tableRef.value.fetchData({
       config_name: searchKey.value,
+    }, {
       cluster_type: 'tendbcluster',
     });
   });
@@ -157,7 +158,7 @@
   })
 
   const fetchData = () => {
-    tableRef.value.fetchData({
+    tableRef.value.fetchData({}, {
       cluster_type: 'tendbcluster',
     });
   };
