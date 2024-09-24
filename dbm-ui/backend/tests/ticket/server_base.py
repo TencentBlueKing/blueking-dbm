@@ -19,22 +19,23 @@ class TestFlowBase:
     测试流程的基类。
     """
 
+    patches = [
+        patch.object(TicketViewSet, "permission_classes"),
+        patch.object(InnerFlow, "_run"),
+        patch.object(InnerFlow, "status", new_callable=PropertyMock),
+        patch.object(PauseFlow, "status", new_callable=PropertyMock),
+        patch.object(TicketViewSet, "get_permissions"),
+        patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock()),
+        patch("backend.db_services.cmdb.biz.CCApi", CCApiMock()),
+        patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条待办事项需要您处理"),
+        patch("backend.db_services.cmdb.biz.Permission", PermissionMock),
+    ]
+
     def apply_patches(self):
         """
         应用测试所需的所有patches。
         """
-        patches = [
-            patch.object(TicketViewSet, "permission_classes"),
-            patch.object(InnerFlow, "_run"),
-            patch.object(InnerFlow, "status", new_callable=PropertyMock),
-            patch.object(PauseFlow, "status", new_callable=PropertyMock),
-            patch.object(TicketViewSet, "get_permissions"),
-            patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock()),
-            patch("backend.db_services.cmdb.biz.CCApi", CCApiMock()),
-            patch("backend.components.cmsi.handler.CmsiHandler.send_msg", lambda msg: "有一条待办事项需要您处理"),
-            patch("backend.db_services.cmdb.biz.Permission", PermissionMock),
-        ]
-        self.mocks = [patcher.start() for patcher in patches]
+        self.mocks = [patcher.start() for patcher in self.patches]
 
     def setup(self):
         """

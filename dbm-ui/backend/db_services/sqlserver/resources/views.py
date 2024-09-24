@@ -18,6 +18,7 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
+from backend.configuration.constants import DBType
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.db_module import DBModule
 from backend.db_meta.models.storage_set_dtl import SqlserverClusterSyncMode
@@ -27,6 +28,8 @@ from backend.db_services.dbbase.resources.serializers import SearchResourceTreeS
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
 from backend.db_services.dbbase.resources.yasg_slz import ResourceTreeSLZ
 from backend.db_services.sqlserver.resources import constants
+from backend.iam_app.dataclass import ResourceEnum
+from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.iam_app.handlers.permission import Permission
 
@@ -89,7 +92,21 @@ class ResourceTreeViewSet(SystemViewSet):
         return Response(tree)
 
 
-class BaseSQLServerViewset(viewsets.ResourceViewSet):
+class BaseSQLServerViewSet(viewsets.ResourceViewSet):
+
+    db_type = DBType.Sqlserver
+
+    list_perm_actions = [ActionEnum.SQLSERVER_VIEW]
+    list_instance_perm_actions = [ActionEnum.SQLSERVER_VIEW]
+    list_external_perm_actions = [ActionEnum.ACCESS_ENTRY_EDIT]
+
+    @staticmethod
+    def _external_perm_param_field(kwargs):
+        return {
+            ResourceEnum.BUSINESS.id: kwargs["bk_biz_id"],
+            ResourceEnum.DBTYPE.id: kwargs["view_class"].db_type.value,
+        }
+
     @Permission.decorator_permission_field(
         id_field=lambda d: d["id"],
         data_field=lambda d: d["results"],

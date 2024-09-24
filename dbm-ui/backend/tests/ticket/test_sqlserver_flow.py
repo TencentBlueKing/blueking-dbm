@@ -78,6 +78,14 @@ class TestSqlServerApplyFlow(TestFlowBase, TestCase):
     SQLSERVER APPLY测试类。
     """
 
+    patches = [
+        *TestFlowBase.patches,
+        patch(
+            "backend.ticket.builders.common.base.CommonValidate.validate_sqlserver_table_selector",
+            lambda *args, **kwargs: (True, ""),
+        ),
+    ]
+
     # SQLSERVER single部署: start --> itsm --> PAUSE --> RESOURC --> INNER_FLOW --> end
     def test_sqlserver_single_apply_flow(self):
         self.flow_test(client, SQLSERVER_SINGLE_APPLY_TICKET_DATA)
