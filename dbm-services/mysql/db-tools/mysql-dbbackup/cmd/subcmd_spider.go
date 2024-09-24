@@ -92,9 +92,10 @@ func findSpiderBackupConfigFile(cnfFiles []string) (string, error) {
 }
 
 var spiderScheduleCmd = &cobra.Command{
-	Use:   "schedule",
-	Short: "spiderbackup schedule",
-	Long:  `Start spider global backup. Will initialize backup tasks using one backup-id, only run on spider master`,
+	Use:          "schedule",
+	SilenceUsage: true,
+	Short:        "spiderbackup schedule",
+	Long:         `Start spider global backup. Will initialize backup tasks using one backup-id on spider master`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := logger.InitLog("dbbackup_spider.log"); err != nil {
 			return err

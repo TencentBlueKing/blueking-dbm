@@ -1,6 +1,7 @@
 package backupexe
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -190,11 +191,8 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 			fmt.Sprintf(`%s %s`, binPath, strings.Join(args, " ")))
 	}
 
-	outFile, err := os.Create(
-		filepath.Join(
-			p.dbbackupHome,
-			"logs",
-			fmt.Sprintf("xtrabackup_%d_%d.log", p.cnf.Public.MysqlPort, int(time.Now().Weekday()))))
+	outFile, err := os.Create(filepath.Join(logger.GetLogDir(),
+		fmt.Sprintf("xtrabackup_%d_%d.log", p.cnf.Public.MysqlPort, int(time.Now().Weekday()))))
 	if err != nil {
 		logger.Log.Error("create log file failed: ", err)
 		return err
@@ -204,13 +202,15 @@ func (p *PhysicalDumper) Execute(enableTimeOut bool) error {
 	}()
 
 	cmd.Stdout = outFile
-	cmd.Stderr = outFile
+	//cmd.Stderr = outFile
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 	logger.Log.Info("xtrabackup command: ", cmd.String())
 
 	err = cmd.Run()
 	if err != nil {
-		logger.Log.Error("run physical backup failed: ", err)
-		return err
+		logger.Log.Error("run physical backup failed: ", err, stderr.Bytes())
+		return errors.WithMessage(err, stderr.String())
 	}
 	return nil
 }

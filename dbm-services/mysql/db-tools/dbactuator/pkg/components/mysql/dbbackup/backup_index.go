@@ -134,7 +134,7 @@ func (f *BackupIndexFile) ValidateFiles() error {
 
 // UntarFiles merge and untar
 // set targetDir
-func (f *BackupIndexFile) UntarFiles(untarDir string) error {
+func (f *BackupIndexFile) UntarFiles(untarDir string, removeOriginal bool) error {
 	if untarDir == "" {
 		return errors.Errorf("untar target dir should not be emtpy")
 	}

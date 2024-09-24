@@ -150,7 +150,7 @@ func (c *Component) GenerateBackupConfig() error {
 
 		backupConfig.LogicalBackup.Regex = ""
 		if c.Params.BackupType == "logical" {
-			//backupConfig.LogicalBackup.UseMysqldump = "auto"
+			backupConfig.LogicalBackup.UseMysqldump = "auto"
 			ignoreDbs := slices.DeleteFunc(native.DBSys, func(s string) bool {
 				return s == "infodba_schema"
 			})

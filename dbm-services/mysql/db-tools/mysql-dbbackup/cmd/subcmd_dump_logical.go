@@ -64,8 +64,9 @@ func init() {
 }
 
 var dumpLogicalCmd = &cobra.Command{
-	Use:   "logical",
-	Short: "logical dump using mydumper or mysqldump",
+	Use:          "logical",
+	Short:        "logical dump using mydumper or mysqldump",
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		if err = logger.InitLog("dbbackup_dump.log"); err != nil {

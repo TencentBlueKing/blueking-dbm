@@ -71,11 +71,12 @@ func (p *PhysicalLoader) Execute() error {
 	return nil
 }
 
+// decompress todo use qpress command instead
 func (p *PhysicalLoader) decompress() error {
 	binPath := filepath.Join(p.dbbackupHome, p.innodbCmd.innobackupexBin)
 
 	args := []string{
-		"--decompress",
+		"--decompress", "--remove-original",
 		//fmt.Sprintf("--qpress=%s", filepath.Join(p.dbbackupHome, "/bin", "qpress")),
 		fmt.Sprintf("--parallel=%d", p.cnf.PhysicalLoad.Threads),
 	}
