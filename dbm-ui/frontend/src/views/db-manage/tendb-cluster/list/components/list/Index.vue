@@ -74,7 +74,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getTendbClusterList"
+        :data-source="fetchData"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         selectable
@@ -123,10 +123,6 @@
     v-model:is-show="excelAuthorizeShow"
     :cluster-type="ClusterTypes.TENDBCLUSTER"
     :ticket-type="TicketTypes.TENDBCLUSTER_EXCEL_AUTHORIZE_RULES" />
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getSpiderDetail" />
   <ClusterExportData
     v-if="currentData"
     v-model:is-show="showDataExportSlider"
@@ -142,6 +138,7 @@
   // import Shrink from './components/Shrink.vue';
   import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
   import {
     useRoute,
     useRouter,
@@ -149,6 +146,7 @@
 
   import TendbClusterModel from '@services/model/spider/tendbCluster';
   import {
+    getSpiderClusterPrimary,
     getSpiderDetail,
     getSpiderInstanceList,
     getTendbClusterList,
@@ -169,6 +167,7 @@
   import {
     AccountTypes,
     ClusterTypes,
+    DBTypes,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -178,8 +177,8 @@
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import ExcelAuthorize from '@components/cluster-common/ExcelAuthorize.vue';
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
-  import RenderOperationTag from '@components/cluster-common/RenderOperationTag.vue';
-  import EditEntryConfig from '@components/cluster-entry-config/Index.vue';
+  import RenderOperationTag from '@components/cluster-common/RenderOperationTagNew.vue';
+  import EditEntryConfig, { type RowData } from '@components/cluster-entry-config/Index.vue';
   import ClusterExportData from '@components/cluster-export-data/Index.vue'
   import DbStatus from '@components/db-status/index.vue';
   import DbTable from '@components/db-table/index.vue';
@@ -252,11 +251,11 @@
   // const isChangeCapacityForm = ref(false);
   const removeMNTInstanceIds = ref<number[]>([]);
   const excelAuthorizeShow = ref(false);
-  const showEditEntryConfig = ref(false);
   const clusterAuthorizeShow = ref(false);
   const showDataExportSlider = ref(false)
   const currentData = ref<IColumn['data']>()
   const selected = ref<TendbClusterModel[]>([]);
+  const clusterPrimaryMap = ref<Record<string, boolean>>({});
   // const operationData = shallowRef({} as TendbClusterModel);
 
   const hasSelected = computed(() => selected.value.length > 0);
@@ -347,6 +346,25 @@
     }
     return [];
   });
+
+  const renderEntry = (data: RowData) => {
+    if (data.role === 'master_entry') {
+      return (
+        <span>
+          <bk-tag size="small" theme="success">{ t('主') }</bk-tag>{ data.entry }
+        </span>
+      )
+    }
+    return (
+      <span>
+        <bk-tag size="small" theme="info">{ t('从') }</bk-tag>{ data.entry }
+      </span>
+    )
+  }
+
+  const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
+
+
   const columns = computed(() => [
     {
       label: 'ID',
@@ -412,17 +430,16 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration"
-                  action-id="access_entry_edit"
-                  resource="tendbcluster"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <span v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration">
+                  <EditEntryConfig
+                    id={data.id}
+                    getDetailInfo={getSpiderDetail}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.TENDBCLUSTER}
+                    renderEntry={renderEntry}
+                    sort={entrySort}
+                    onSuccess={fetchData} />
+                </span>
               </>
             ),
           }}
@@ -556,17 +573,16 @@
                 onClick={() => copy(data.slaveDomainDisplayName)} />
             )
           }
-          <auth-button
-            v-bk-tooltips={t('修改入口配置')}
-            v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration"
-            action-id="access_entry_edit"
-            resource="tendbcluster"
-            permission={data.permission.access_entry_edit}
-            text
-            theme="primary"
-            onClick={() => handleOpenEntryConfig(data)}>
-            <db-icon type="edit" />
-          </auth-button>
+          <span v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration">
+            <EditEntryConfig
+              id={data.id}
+              getDetailInfo={getSpiderDetail}
+              permission={data.permission.access_entry_edit}
+              resource={DBTypes.TENDBCLUSTER}
+              renderEntry={renderEntry}
+              sort={entrySort}
+              onSuccess={fetchData} />
+          </span>
         </div>
       ),
     },
@@ -642,9 +658,7 @@
           {'Spider Master'}
         </RenderHeadCopy>
       ),
-      render: ({ data }: IColumn) => {
-        if (data.spider_master.length === 0) return '--';
-        return (
+      render: ({ data }: IColumn) => (
           <RenderInstances
             highlightIps={searchIp.value}
             data={data.spider_master}
@@ -654,9 +668,14 @@
             role="spider_master"
             clusterId={data.id}
             dataSource={getSpiderInstanceList}
-          />
-        );
-      },
+          >
+            {{
+              append: ({ data }: { data: TendbClusterModel['spider_master'][number] }) =>
+                clusterPrimaryMap.value[data.ip] &&
+                (<bk-tag class="is-primary" size="small">Primary</bk-tag>)
+            }}
+          </RenderInstances>
+        )
     },
     {
       label: 'Spider Slave',
@@ -1029,6 +1048,33 @@
     },
   ]);
 
+  const { run: getSpiderClusterPrimaryRun } = useRequest(getSpiderClusterPrimary, {
+    manual: true,
+    onSuccess(data) {
+      if (data.length > 0) {
+        clusterPrimaryMap.value = data.reduce<Record<string, boolean>>((acc, cur) => {
+          const ip = cur.primary.split(':')[0];
+          if (ip) {
+            acc[ip] = true;
+          }
+          return acc;
+        }, {});
+      }
+    },
+  });
+
+  const { runAsync: fetchData } = useRequest(getTendbClusterList, {
+    manual: true,
+    onSuccess(data) {
+      const clusterIds = data.results.map(item => item.id);
+      if (clusterIds.length > 0) {
+        getSpiderClusterPrimaryRun({
+          cluster_ids: clusterIds,
+        });
+      }
+    },
+  });
+
   const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
     if (item?.id !== 'creator' && keyword) {
       return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
@@ -1056,11 +1102,6 @@
 
     // 不需要远层加载
     return searchSelectData.value.find(set => set.id === item.id)?.children || [];
-  };
-
-  const handleOpenEntryConfig = (row: TendbClusterModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
   };
 
   const handleClickRelatedTicket = (billId: number) => {
@@ -1396,6 +1437,18 @@
       }
     }
 
+    .table-wrapper {
+      background-color: white;
+
+      .bk-table {
+        height: 100% !important;
+      }
+
+      :deep(.bk-table-body) {
+        max-height: calc(100% - 100px);
+      }
+    }
+
     .is-shrink-table {
       :deep(.bk-table-body) {
         overflow: hidden auto;
@@ -1407,117 +1460,28 @@
 
       .domain {
         display: flex;
-        align-items: center;
+        flex-wrap: wrap;
+
+        .bk-search-select {
+          flex: 1;
+          max-width: 320px;
+          min-width: 320px;
+          margin-left: auto;
+        }
+      }
+
+      .is-primary {
+        color: #531dab !important;
+        background: #f9f0ff !important;
       }
 
       .db-icon-copy,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-top: 2px;
         margin-left: 4px;
         color: @primary-color;
         cursor: pointer;
-      }
-
-      .operations-more {
-        .db-icon-more {
-          display: block;
-          font-size: @font-size-normal;
-          color: @default-color;
-          cursor: pointer;
-
-          &:hover {
-            background-color: @bg-disable;
-            border-radius: 2px;
-          }
-        }
-      }
-    }
-
-    :deep(th:hover),
-    :deep(td:hover) {
-      .db-icon-copy,
-      .db-icon-edit {
-        display: inline-block !important;
-      }
-    }
-
-    :deep(.is-offline) {
-      a {
-        color: @gray-color;
-      }
-
-      .cell {
-        color: @disable-color;
-      }
-    }
-
-    :deep(.cluster-name-container) {
-      display: flex;
-      align-items: center;
-      padding: 8px 0;
-      overflow: hidden;
-
-      .operations {
-        display: flex;
-        margin-bottom: 16px;
-        flex-wrap: wrap;
-      }
-
-      .is-shrink-table {
-        :deep(.bk-table-body) {
-          overflow: hidden auto;
-        }
-      }
-
-      :deep(td .cell) {
-        line-height: normal !important;
-
-        .domain {
-          display: flex;
-          align-items: center;
-        }
-
-        .db-icon-copy,
-        .db-icon-edit {
-          display: none;
-          margin-top: 2px;
-          margin-left: 4px;
-          color: @primary-color;
-          cursor: pointer;
-        }
-
-        .operations-more {
-          .db-icon-more {
-            display: block;
-            font-size: @font-size-normal;
-            color: @default-color;
-            cursor: pointer;
-
-            &:hover {
-              background-color: @bg-disable;
-              border-radius: 2px;
-            }
-          }
-        }
-      }
-
-      :deep(th:hover),
-      :deep(td:hover) {
-        .db-icon-copy,
-        .db-icon-edit {
-          display: inline-block !important;
-        }
-      }
-
-      :deep(.is-offline) {
-        a {
-          color: @gray-color;
-        }
-
-        .cell {
-          color: @disable-color;
-        }
       }
 
       :deep(.cluster-name-container) {
@@ -1542,8 +1506,39 @@
         }
 
         .cluster-tag {
-          margin: 2px;
+          margin: 2px 0;
           flex-shrink: 0;
+        }
+      }
+    }
+
+    :deep(th:hover),
+    :deep(td:hover) {
+      .db-icon-copy,
+      .db-icon-visible1 {
+        display: inline-block !important;
+      }
+    }
+
+    :deep(.is-offline) {
+      a {
+        color: @gray-color;
+      }
+
+      .cell {
+        color: @disable-color;
+      }
+    }
+
+    :deep(.operations-more) {
+      .db-icon-more {
+        font-size: 16px;
+        color: @default-color;
+        cursor: pointer;
+
+        &:hover {
+          background-color: @bg-disable;
+          border-radius: 2px;
         }
       }
     }
