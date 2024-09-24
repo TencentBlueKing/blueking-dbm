@@ -34,8 +34,9 @@ func init() {
 }
 
 var migrateOldCmd = &cobra.Command{
-	Use:   "migrateold",
-	Short: "migrate old backup .info to .index",
+	Use:          "migrateold",
+	Short:        "migrate old backup .info to .index",
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		oldBackupDir := "/home/mysql/dbbackup"
 		if !cmutil.FileExists(oldBackupDir) {
