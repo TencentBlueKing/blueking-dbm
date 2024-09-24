@@ -9,9 +9,10 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.configuration.constants import DBType
+from backend.db_services.ipchooser.constants import BkOsTypeCode
 from backend.flow.consts import DBA_ROOT_USER, WINDOW_SYSTEM_JOB_USER
 
-os_script_language_map = {"linux": 1, "window": 5}
+os_script_language_map = {BkOsTypeCode.LINUX: 1, BkOsTypeCode.WINDOWS: 5}
 
 mysql_clear_machine_script = """
 echo "clear mysql crontab...."
@@ -315,8 +316,20 @@ echo "end : `date "+%F %T"`" >> $force_tag
 echo "`date "+%F %T"` : done clean dirty machine 4 redis by Force."
 """
 
+mongo_clear_machine_script = """
+rm -rf /data1/mongodata /data/mongodata /data/mongolog /data/dbbak/* /data/install
+rm -rf /usr/local/mongodb /usr/local/mongodb-linux*
+rm -rf /home/mysql/dbmon /home/mysql/filebeat-deploy /home/mysql/install /home/mysql/prometheus
+rm -rf /home/mysql/log /home/mysql/bk-dbmon /home/mysql/dbtools /home/mysql/dbareport
+"""
+
+riak_clear_machine_script = """
+echo 1
+"""
+
 db_type_script_map = {
     DBType.MySQL.value: mysql_clear_machine_script,
+    DBType.TenDBCluster.value: mysql_clear_machine_script,
     DBType.Sqlserver.value: sqlserver_clear_machine_script,
     DBType.Es.value: es_clear_machine_script,
     DBType.Kafka.value: kafka_clear_machine_script,
@@ -325,10 +338,13 @@ db_type_script_map = {
     DBType.Doris.value: doris_clear_machine_script,
     DBType.Vm.value: vm_clear_machine_script,
     DBType.Redis.value: redis_clear_machine_script,
+    DBType.MongoDB.value: mongo_clear_machine_script,
+    DBType.Riak.value: riak_clear_machine_script,
 }
 
 db_type_account_user_map = {
     DBType.MySQL.value: DBA_ROOT_USER,
+    DBType.TenDBCluster.value: DBA_ROOT_USER,
     DBType.Sqlserver.value: WINDOW_SYSTEM_JOB_USER,
     DBType.Es.value: DBA_ROOT_USER,
     DBType.Kafka.value: DBA_ROOT_USER,
@@ -337,4 +353,6 @@ db_type_account_user_map = {
     DBType.Doris.value: DBA_ROOT_USER,
     DBType.Vm.value: DBA_ROOT_USER,
     DBType.Redis.value: DBA_ROOT_USER,
+    DBType.MongoDB.value: DBA_ROOT_USER,
+    DBType.Riak.value: DBA_ROOT_USER,
 }

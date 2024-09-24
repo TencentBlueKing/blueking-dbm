@@ -14,6 +14,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.tendbcluster.base import (
     BaseTendbTicketFlowBuilder,
     TendbClustersTakeDownDetailsSerializer,
@@ -22,16 +23,17 @@ from backend.ticket.constants import TicketType
 
 
 class TendbDestroyDetailSerializer(TendbClustersTakeDownDetailsSerializer):
-    pass
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class TendbDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = SpiderController.spider_cluster_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class TendbDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
 
     serializer = TendbDestroyDetailSerializer
     inner_flow_builder = TendbDestroyFlowParamBuilder
     inner_flow_name = _("TenDB Cluster 下架执行")
+    need_patch_recycle_cluster_details = True

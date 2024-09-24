@@ -14,19 +14,16 @@ from django.db import transaction
 
 from backend.core import notify
 from backend.ticket import constants
-from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus
+from backend.ticket.builders import BuilderFactory
+from backend.ticket.constants import FLOW_FINISHED_STATUS, FlowType, TicketStatus, TicketType
 from backend.ticket.flow_manager.delivery import DeliveryFlow, DescribeTaskFlow
-from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, QuickInnerFlow
+from backend.ticket.flow_manager.inner import IgnoreResultInnerFlow, InnerFlow, QuickInnerFlow, SimpleTaskFlow
 from backend.ticket.flow_manager.itsm import ItsmFlow
 from backend.ticket.flow_manager.pause import PauseFlow
-from backend.ticket.flow_manager.resource import (
-    ResourceApplyFlow,
-    ResourceBatchApplyFlow,
-    ResourceBatchDeliveryFlow,
-    ResourceDeliveryFlow,
-)
+from backend.ticket.flow_manager.resource import ResourceApplyFlow, ResourceBatchApplyFlow, ResourceDeliveryFlow
 from backend.ticket.flow_manager.timer import TimerFlow
 from backend.ticket.models import Ticket
+from backend.ticket.tasks.ticket_tasks import create_recycle_ticket
 
 SUPPORTED_FLOW_MAP = {
     FlowType.BK_ITSM.value: ItsmFlow,
@@ -40,7 +37,7 @@ SUPPORTED_FLOW_MAP = {
     FlowType.RESOURCE_APPLY: ResourceApplyFlow,
     FlowType.RESOURCE_DELIVERY: ResourceDeliveryFlow,
     FlowType.RESOURCE_BATCH_APPLY: ResourceBatchApplyFlow,
-    FlowType.RESOURCE_BATCH_DELIVERY: ResourceBatchDeliveryFlow,
+    FlowType.HOST_RECYCLE: SimpleTaskFlow,
 }
 
 logger = logging.getLogger("root")
@@ -108,13 +105,21 @@ class TicketFlowManager(object):
                 return
             origin_status, ticket.status = ticket.status, target_status
             ticket.save(update_fields=["status", "update_at"])
-            self.ticket_status_trigger(origin_status, target_status)
+
+        # 执行状态更新钩子函数
+        self.ticket_status_trigger(origin_status, target_status)
 
     def ticket_status_trigger(self, origin_status, target_status):
-        """单据状态更新后的钩子函数"""
+        """单据状态更新后的钩子函数。注：如果钩子函数非关键链路，请异步发起"""
 
         # 单据状态变更后，发送通知。
         # 忽略运行中：流转到内置任务无需通知，待继续在todo创建时才触发通知
         # 忽略待补货：到资源申请节点，单据状态总会流转为待补货，但是只有待补货todo创建才触发通知
         if target_status not in [TicketStatus.RUNNING, TicketStatus.RESOURCE_REPLENISH]:
             notify.send_msg.apply_async(args=(self.ticket.id,))
+
+        # 如果是inner flow的终止，要联动回收主机。TODO: 暂时去掉，改为flow独立决定回收机器
+        # 如果是待下架单据，正常结束要联动回收主机
+        if target_status == TicketStatus.SUCCEEDED and self.ticket.ticket_type in BuilderFactory.recycle_ticket_type:
+            recycle_old_hosts = self.ticket.details["recycle_hosts"]
+            create_recycle_ticket.apply_async(args=(self.ticket.id, recycle_old_hosts, TicketType.RECYCLE_OLD_HOST))

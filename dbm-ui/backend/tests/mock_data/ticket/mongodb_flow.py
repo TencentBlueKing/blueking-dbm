@@ -83,7 +83,7 @@ MONGODB_REDUCE_MONGOS_DATA = {
             {
                 "cluster_id": CLUSTER_ID,
                 "role": "mongos",
-                "reduce_nodes": [{"ip": "2.1.1.4", "bk_cloud_id": 0, "bk_host_id": 1004}],
+                "old_nodes": {"mongos": [{"ip": "127.0.0.1", "bk_cloud_id": 0, "bk_host_id": 1004}]},
             }
         ],
     },
@@ -105,9 +105,9 @@ MONGODB_CUTOFF_TICKET_DATA = {
         "infos": [
             {
                 "cluster_id": CLUSTER_ID,
-                "mongos": [{"ip": "2.1.1.3", "spec_id": 3, "bk_cloud_id": 0}],
-                "mongodb": [{"ip": "2.1.1.1", "spec_id": 3, "bk_cloud_id": 0}],
-                "mongo_config": [{"ip": "2.1.1.2", "spec_id": 3, "bk_cloud_id": 0}],
+                "mongos": [{"ip": "1.1.1.3", "spec_id": 3, "bk_cloud_id": 0, "bk_host_id": 1}],
+                "mongodb": [{"ip": "1.1.1.4", "spec_id": 3, "bk_cloud_id": 0, "bk_host_id": 2}],
+                "mongo_config": [{"ip": "1.1.1.5", "spec_id": 3, "bk_cloud_id": 0, "bk_host_id": 3}],
             }
         ],
     },

@@ -26,6 +26,8 @@ MACHINE_RESOURCE_DATA = {
     "bk_cloud_id": 0,
     "sub_zone_id": "141",
     "device_class": "SA5.MEDIUM4",
+    "os_name": "linux 3.1",
+    "os_type": "linux",
     "storage_device": {
         "/data": {"size": 50, "disk_id": "disk-ofkfne6j", "disk_type": "HDD", "file_type": "ext4"},
         "/data1": {"size": 50, "disk_id": "disk-ofkfne6j", "disk_type": "SSD", "file_type": "ext4"},

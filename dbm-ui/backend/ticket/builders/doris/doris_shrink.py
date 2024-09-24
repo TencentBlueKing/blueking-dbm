@@ -19,6 +19,7 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.doris import DorisController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BaseDorisTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -32,15 +33,16 @@ class DorisShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         cold = serializers.ListField(help_text=_("cold信息列表"), child=serializers.DictField())
         observer = serializers.ListField(help_text=_("observer信息列表"), child=serializers.DictField())
 
-    nodes = NodesSerializer(help_text=_("nodes节点列表"))
+    old_nodes = NodesSerializer(help_text=_("nodes节点列表"))
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         super().validate(attrs)
 
         role_hash = {
-            InstanceRole.DORIS_BACKEND_HOT: attrs["nodes"]["hot"],
-            InstanceRole.DORIS_BACKEND_COLD: attrs["nodes"]["cold"],
-            InstanceRole.DORIS_OBSERVER: attrs["nodes"]["observer"],
+            InstanceRole.DORIS_BACKEND_HOT: attrs["old_nodes"]["hot"],
+            InstanceRole.DORIS_BACKEND_COLD: attrs["old_nodes"]["cold"],
+            InstanceRole.DORIS_OBSERVER: attrs["old_nodes"]["observer"],
         }
 
         cluster = Cluster.objects.get(id=attrs["cluster_id"])
@@ -89,10 +91,10 @@ class DorisShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         hot_node_count = len(exist_hot_hosts - shrink_hot_hosts)
         cold_node_count = len(exist_cold_hosts - shrink_cold_hosts)
         total_nodes = hot_node_count + cold_node_count
-        if not total_nodes:
-            raise serializers.ValidationError(_("请保证冷/热节点必选1种以上"))
         if not (hot_node_count >= constants.DORIS_HOT_COLD_LIMIT or cold_node_count >= constants.DORIS_HOT_COLD_LIMIT):
             raise serializers.ValidationError(_("请保证部署的冷/热节点的角色为2以上"))
+        if not total_nodes:
+            raise serializers.ValidationError(_("请保证冷/热节点必选1种以上"))
 
         # 不允许缩容follower节点
         all_shrink_hosts = {host["bk_host_id"] for role in role_hash for host in role_hash[role]}
@@ -109,11 +111,13 @@ class DorisShrinkFlowParamBuilder(builders.FlowParamBuilder):
     controller = DorisController.doris_shrink_scene
 
     def format_ticket_data(self):
+        self.ticket_data["nodes"] = self.ticket_data.pop("old_nodes")
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.DORIS_SHRINK)
+@builders.BuilderFactory.register(TicketType.DORIS_SHRINK, is_recycle=True)
 class DorisShrinkFlowBuilder(BaseDorisTicketFlowBuilder):
     serializer = DorisShrinkDetailSerializer
     inner_flow_builder = DorisShrinkFlowParamBuilder
     inner_flow_name = _("Doris集群缩容")
+    need_patch_recycle_host_details = True

@@ -65,7 +65,7 @@ class ClearMachineScriptService(BkJobService):
             "bk_biz_id": env.JOB_BLUEKING_BIZ_ID,
             "task_name": f"DBM_{node_name}_{node_id}",
             "script_content": base64_encode(db_type_script_map[global_data["db_type"]]),
-            "script_language": os_script_language_map[global_data["os_name"]],
+            "script_language": os_script_language_map[global_data["os_type"]],
             "target_server": {"ip_list": exec_ips},
         }
         self.log_debug("[{}] ready start task with body {}".format(node_name, body))

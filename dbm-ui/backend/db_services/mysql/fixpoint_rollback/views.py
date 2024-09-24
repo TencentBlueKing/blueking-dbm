@@ -109,7 +109,7 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         limit, offset = validated_data["limit"], validated_data["offset"]
 
         # 查询目前定点回档临时集群
-        tmp_clusters = Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster, tag__name=SystemTagEnum.TEMPORARY)
+        tmp_clusters = Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster, tags__key=SystemTagEnum.TEMPORARY)
         tmp_clusters_count = tmp_clusters.count()
         # 查询定点回档记录
         temp_clusters = tmp_clusters[offset : limit + offset]
@@ -121,18 +121,26 @@ class FixPointRollbackViewSet(viewsets.SystemViewSet):
         fixpoint_logs: List[Dict[str, Any]] = []
         for record in records:
             ticket_data = record.ticket.details["infos"][0]
-            clusters = record.ticket.details["clusters"]
             target_cluster = Cluster.objects.get(id=record.cluster_id)
+            # 获取回档的节点信息
+            if "rollback_host" in ticket_data:
+                rollback_host = ticket_data["rollback_host"]
+            else:
+                rollback_host = {
+                    "remote_hosts": ticket_data["resource_spec"]["remote_hosts"]["hosts"],
+                    "spider_host": ticket_data["resource_spec"]["spider_host"]["hosts"][0],
+                }
+            # 填充回档记录
             fixpoint_logs.append(
                 {
                     "databases": ticket_data["databases"],
                     "databases_ignore": ticket_data["databases_ignore"],
                     "tables": ticket_data["tables"],
                     "tables_ignore": ticket_data["tables_ignore"],
-                    "source_cluster": clusters[str(ticket_data["cluster_id"])],
+                    "source_cluster": record.ticket.details["clusters"][str(ticket_data["cluster_id"])],
                     "target_cluster": {
                         "cluster_id": record.cluster_id,
-                        "nodes": ticket_data["rollback_host"],
+                        "nodes": rollback_host,
                         "status": target_cluster.status,
                         "phase": target_cluster.phase,
                         "operations": ClusterOperateRecord.objects.get_cluster_operations(record.cluster_id),

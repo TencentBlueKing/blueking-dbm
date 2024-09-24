@@ -38,7 +38,7 @@ class ClusterViewSet(BaseClusterViewSet):
     default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
-        operation_summary=_("通过过滤条件批量查询集群"),
+        operation_summary=_("通过过滤条件批量查询集群[Deprecated!! 这个方法将被移除，请不要调用]"),
         request_body=QueryClustersRequestSerializer(),
         tags=[SWAGGER_TAG],
         responses={status.HTTP_200_OK: QueryClustersResponseSerializer()},

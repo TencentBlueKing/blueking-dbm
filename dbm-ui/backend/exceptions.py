@@ -45,6 +45,7 @@ class ErrorCode(object):
     SQL_IMPORT_CODE = "17"
     EXTERNAL_PROXY_CODE = "18"
     CONFIGURATION_CODE = "20"
+    DB_DIRTY_POOL_CODE = "21"
 
 
 class AppBaseException(Exception):

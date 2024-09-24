@@ -15,12 +15,14 @@ from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import AppCache
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
 class MongoDBDestroyDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_ids = serializers.ListField(help_text=_("集群ID列表"), child=serializers.IntegerField())
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         return attrs
@@ -34,8 +36,9 @@ class MongoDBDestroyFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.MONGODB_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class MongoDBDestroyApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBDestroyDetailSerializer
     inner_flow_builder = MongoDBDestroyFlowParamBuilder
     inner_flow_name = _("MongoDB 集群下架")
+    need_patch_recycle_cluster_details = True

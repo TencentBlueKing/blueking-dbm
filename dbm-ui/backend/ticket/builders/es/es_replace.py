@@ -46,9 +46,10 @@ class EsReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.ES_REPLACE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.ES_REPLACE, is_apply=True, is_recycle=True)
 class EsReplaceFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsReplaceDetailSerializer
     inner_flow_builder = EsReplaceFlowParamBuilder
     inner_flow_name = _("ES集群替换")
     resource_apply_builder = EsReplaceResourceParamBuilder
+    need_patch_recycle_host_details = True

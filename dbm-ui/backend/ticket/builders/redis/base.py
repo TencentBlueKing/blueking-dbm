@@ -122,6 +122,7 @@ class DataCheckRepairSettingSerializer(serializers.Serializer):
 class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def post_callback(self):
         next_flow = self.ticket.next_flow()
+        drop_proxy_hosts = []
         for info in next_flow.details["ticket_data"]["infos"]:
             group_num = info["resource_spec"]["backend_group"]["count"]
             shard_num = info["cluster_shard_num"]
@@ -141,7 +142,14 @@ class RedisUpdateApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
                 # 分片数
                 shard_num=shard_num,
             )
+            # 新proxy也会下架，这里需要加入到old_nodes里面
+            drop_proxy_hosts.extend(info["proxy"])
+
         next_flow.save(update_fields=["details"])
+
+        # 将下架的新proxy更新到清理流程中
+        self.ticket.details["recycle_hosts"].extend(drop_proxy_hosts)
+        self.ticket.save()
 
 
 class ClusterValidateMixin(object):

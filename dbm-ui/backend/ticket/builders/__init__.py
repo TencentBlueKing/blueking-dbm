@@ -19,10 +19,13 @@ from django.utils.translation import ugettext as _
 from rest_framework import serializers
 
 from backend import env
-from backend.configuration.constants import AffinityEnum, SystemSettingsEnum
+from backend.components.dbresource.client import DBResourceApi
+from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.db_meta.models import AppCache, Cluster, Machine
+from backend.db_dirty.constants import PoolType
+from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.engine.controller.base import BaseController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
@@ -232,9 +235,9 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         from backend.ticket.builders.common.base import fetch_cluster_ids
 
         cluster_ids = fetch_cluster_ids(self.ticket_data["infos"])
-        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        cluster_id_map = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket_data["infos"]:
-            cluster = id__cluster[info.get("cluster_id") or info.get("src_cluster")]
+            cluster = cluster_id_map[fetch_cluster_ids(info)[0]]
             self.patch_affinity_location(cluster, info["resource_spec"], roles)
             # 工具箱操作，补充业务和云区域ID
             info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
@@ -257,6 +260,134 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
                 resource_spec[role]["location_spec"].update(sub_zone_ids=[bk_sub_zone_id], include_or_exclude=True)
 
 
+class RecycleParamBuilder(FlowParamBuilder):
+    """
+    回收清理主机流程 参数构建器
+    职责：获取单据中的下架机器，并走回收流程
+    """
+
+    controller_map = {
+        DBType.MySQL.value: "mysql.MySQLController.mysql_machine_clear_scene",
+        DBType.TenDBCluster.value: "spider.SpiderController.tendbcluster_machine_clear_scene",
+        DBType.Doris.value: "doris.DorisController.doris_machine_clear_scene",
+        DBType.Kafka.value: "kafka.KafkaController.kafka_machine_clear_scene",
+        DBType.Es.value: "es.EsController.es_machine_clear_scene",
+        DBType.Hdfs.value: "hdfs.HdfsController.hdfs_machine_clear_scene",
+        DBType.Pulsar.value: "pulsar.PulsarController.pulsar_machine_clear_scene",
+        DBType.Vm.value: "vm.VmController.vm_machine_clear_scene",
+        DBType.Redis.value: "redis.RedisController.redis_machine_clear_scene",
+        # TODO sqlserver，mongo，riak清理流程暂时没有
+        DBType.Sqlserver.value: "",
+        DBType.MongoDB.value: "",
+        DBType.Riak.value: "",
+    }
+
+    def __init__(self, ticket: Ticket):
+        super().__init__(ticket)
+
+    def build_controller_info(self) -> dict:
+        db_type = self.ticket_data["db_type"]
+        # TODO: 暂时兼容没有清理流程的组件，默认用mysql
+        clear_db_type = db_type if self.controller_map.get(db_type) else DBType.MySQL.value
+
+        file_name, class_name, flow_name = self.controller_map[clear_db_type].split(".")
+        module = importlib.import_module(f"backend.flow.engine.controller.{file_name}")
+        self.controller = getattr(getattr(module, class_name), flow_name)
+
+        return super().build_controller_info()
+
+    def format_ticket_data(self):
+        data = self.ticket_data
+        # 汇总四类回收机器，都需要进行数据清理
+        hosts = [*data["fault_hosts"], *data["recycle_hosts"], *data["resource_hosts"], *data["recycled_hosts"]]
+        self.ticket_data.update(
+            {
+                "hosts": hosts,
+                # 一批机器的操作系统类型一致，任取一个即可
+                "os_name": hosts[0]["os_name"],
+                "os_type": hosts[0]["os_type"],
+                "db_type": self.ticket_data["group"],
+            }
+        )
+
+
+class ImportResourceParamBuilder(FlowParamBuilder):
+    """
+    资源重导入流程 参数构造器 - 此流程目前仅用于回收后/终止部署使用
+    职责：获取单据中下架/新上架机器的机器，并走资源池导入流程
+    """
+
+    controller = BaseController.import_resource_init_step
+
+    def __init__(self, ticket: Ticket):
+        super().__init__(ticket)
+
+    def format_ticket_data(self):
+        hosts = self.ticket_data["resource_hosts"]
+        # 我们认为，在资源申请的情况下，不会混用多个集群类型
+        self.ticket_data.update(
+            {
+                "ticket_id": self.ticket.id,
+                # 固定回收到公共资源池
+                "for_biz": 0,
+                "bk_biz_id": hosts[0]["bk_biz_id"],
+                "resource_type": self.ticket_data["group"],
+                "os_type": hosts[0]["os_type"],
+                "hosts": hosts,
+                "operator": self.ticket.creator,
+                # 标记为退回
+                "return_resource": True,
+                # 是否资源重导入
+                "reimport": self.ticket.ticket_type == TicketType.RECYCLE_APPLY_HOST,
+            }
+        )
+        # 如果单据类型是，新主机退回，则需要拿到申请的主机信息
+        if self.ticket_data["reimport"]:
+            from backend.ticket.builders.common.base import fetch_apply_hosts
+
+            parent_ticket = Ticket.objects.get(id=self.ticket_data["parent_ticket"])
+            apply_hosts = fetch_apply_hosts(parent_ticket.details)
+            host_ids = [host["bk_host_id"] for host in self.ticket_data["hosts"]]
+            self.ticket_data["hosts"] = [host for host in apply_hosts if host["bk_host_id"] in host_ids]
+
+    def pre_callback(self):
+        # 在run的时候才会生成task id，此时要更新到资源池参数里面
+        flow = self.ticket.current_flow()
+        flow.update_details(task_id=flow.flow_obj_id)
+        # 添加导入记录
+        hosts = flow.details["ticket_data"]["hosts"]
+        import_record = {"task_id": flow.flow_obj_id, "operator": self.ticket.creator, "hosts": hosts}
+        DBResourceApi.import_operation_create(params=import_record)
+
+
+class ImportPoolParamBuilder(FlowParamBuilder):
+    """
+    主机导入故障池/待回收池 参数构造器 - 此流程目前仅用于回收后使用
+    职责：获取单据中下架的机器，并走故障池导入
+    """
+
+    controller = BaseController.import_machine_pool
+
+    def __init__(self, ticket: Ticket, host_key: str, ip_dest: PoolType):
+        super().__init__(ticket)
+        self.host_key = host_key
+        self.ip_recycle = {"for_biz": self.ticket.bk_biz_id, "ip_dest": ip_dest}
+
+    def format_ticket_data(self):
+        self.ticket_data.update(
+            {
+                "ticket_id": self.ticket.id,
+                "bk_biz_id": self.ip_recycle["for_biz"],
+                "hosts": self.ticket_data[self.host_key],
+                "sa_check_ips": [recycle["ip"] for recycle in self.ticket_data["recycle_hosts"]],
+                "operator": self.ticket.creator,
+                "ip_dest": self.ip_recycle["ip_dest"],
+                "remark": self.ticket_data.get("remark", ""),
+                "db_type": self.ticket_data["group"],
+            }
+        )
+
+
 class TicketFlowBuilder:
     """
     单据流程构建器
@@ -268,12 +399,14 @@ class TicketFlowBuilder:
     serializer = None
     alarm_transform_serializer = None
 
-    # 默认的参数构造器
+    # 默认任务参数构造器
     inner_flow_name: str = ""
     inner_flow_builder: FlowParamBuilder = None
+    # 默认暂停参数构造器
     pause_node_builder: PauseParamBuilder = PauseParamBuilder
+    # 默认审批参数构造器
     itsm_flow_builder: ItsmParamBuilder = ItsmParamBuilder
-
+    # 默认资源申请参数构造器
     # resource_apply_builder和resource_batch_apply_builder只能存在其一，表示是资源池单次申请还是批量申请
     resource_apply_builder: ResourceApplyParamBuilder = None
     resource_batch_apply_builder: ResourceApplyParamBuilder = None
@@ -345,7 +478,7 @@ class TicketFlowBuilder:
     def init_ticket_flows(self):
         """
         自定义流程，默认流程是：
-        单据审批(可选, 默认有) --> 人工确认(可选, 默认无) --> 资源申请(由单据参数判断) ---> inner节点 --> 资源交付(由单据参数判断)
+        单据审批(可选, 默认有) --> 人工确认(可选, 默认无) --> 资源申请(由单据参数判断) ---> inner节点
         如果有特殊的flow需求，可在custom_ticket_flows中定制，会替换掉inner节点为custom流程
         对于复杂流程，可以直接覆写init_ticket_flows
         """
@@ -385,12 +518,10 @@ class TicketFlowBuilder:
 
         # 判断并添加资源申请节点
         if self.need_resource_pool:
-
             if not self.resource_apply_builder:
                 flow_type, resource_builder = FlowType.RESOURCE_BATCH_APPLY, self.resource_batch_apply_builder
             else:
                 flow_type, resource_builder = FlowType.RESOURCE_APPLY, self.resource_apply_builder
-
             flows.append(
                 Flow(
                     ticket=self.ticket,
@@ -414,11 +545,6 @@ class TicketFlowBuilder:
                     retry_type=self.retry_type,
                 )
             )
-
-        # 如果使用资源池，则在最后需要进行资源交付
-        if self.need_resource_pool:
-            flow_type = FlowType.RESOURCE_DELIVERY if self.resource_apply_builder else FlowType.RESOURCE_BATCH_DELIVERY
-            flows.append(Flow(ticket=self.ticket, flow_type=flow_type))
 
         Flow.objects.bulk_create(flows)
         return list(Flow.objects.filter(ticket=self.ticket))
@@ -448,7 +574,7 @@ class TicketFlowBuilder:
         """
         @param flow_config_map: 单据类型与配置的映射
         单据构造类的默认流程描述，固定为：
-        单据审批(可选, 默认有) --> 人工确认(可选, 默认有) --> 资源申请(由单据参数判断) ---> inner节点 --> 资源交付(由单据参数判断)
+        单据审批(可选, 默认有) --> 人工确认(可选, 默认有) --> 资源申请(由单据参数判断) ---> inner节点
         如果子类覆写了custom_ticket_flows/init_ticket_flows，则同时需要覆写该方法
         """
         need_resource = (cls.resource_apply_builder or cls.resource_batch_apply_builder) is not None
@@ -457,8 +583,6 @@ class TicketFlowBuilder:
             flow_desc.append(FlowType.get_choice_label(FlowType.RESOURCE_APPLY))
         if cls.inner_flow_name:
             flow_desc.append(cls.inner_flow_name)
-        if need_resource:
-            flow_desc.append(FlowType.get_choice_label(FlowType.RESOURCE_DELIVERY))
 
         return flow_desc
 
@@ -468,12 +592,12 @@ class BuilderFactory:
     registry = {}
     # 部署类单据集合
     apply_ticket_type = []
+    # 回收类单据集合
+    recycle_ticket_type = []
     # 敏感类单据集合
     sensitive_ticket_type = []
     # 单据与集群状态的映射
     ticket_type__cluster_phase = {}
-    # 部署类单据和集群类型的映射
-    ticket_type__cluster_type = {}
     # 单据和权限动作/资源类型的映射
     ticket_type__iam_action = {}
 
@@ -484,9 +608,10 @@ class BuilderFactory:
         @param ticket_type: 单据类型
         @param kwargs: 单据注册的额外信息，主要是将单据归为不同的集合中，目前有这几种类型
         1. is_apply: bool ---- 表示单据是否是部署类单据(类似集群的部署，扩容，替换等)
-        2. phase: ClusterPhase ---- 表示单据与集群状态的映射
-        3. cluster_type: ClusterType ---- 表示单据与集群类型的映射
+        2. is_recycle: bool ---- 表示单据是否是下架类单据(类似集群的下架，缩容，替换等)
+        3. phase: ClusterPhase ---- 表示单据与集群状态的映射
         4. action: ActionMeta ---- 表示单据与权限动作的映射
+        5. is_sensitive: bool --- 是否为敏感类单据（有特殊鉴权）
         """
 
         def inner_wrapper(wrapped_class: TicketFlowBuilder) -> TicketFlowBuilder:
@@ -501,12 +626,12 @@ class BuilderFactory:
 
             if kwargs.get("is_apply") and kwargs.get("is_apply") not in cls.apply_ticket_type:
                 cls.apply_ticket_type.append(ticket_type)
+            if kwargs.get("is_recycle") and kwargs.get("is_recycle") not in cls.recycle_ticket_type:
+                cls.recycle_ticket_type.append(ticket_type)
             if kwargs.get("is_sensitive") and kwargs.get("is_sensitive") not in cls.sensitive_ticket_type:
                 cls.sensitive_ticket_type.append(ticket_type)
             if kwargs.get("phase"):
                 cls.ticket_type__cluster_phase[ticket_type] = kwargs["phase"]
-            if kwargs.get("cluster_type"):
-                cls.ticket_type__cluster_type[ticket_type] = kwargs["cluster_type"]
             if hasattr(ActionEnum, ticket_type) or kwargs.get("iam"):
                 # 单据类型和权限动作默认一一对应，如果是特殊指定的则通过iam参数传递
                 cls.ticket_type__iam_action[ticket_type] = getattr(ActionEnum, ticket_type, None) or kwargs.get("iam")

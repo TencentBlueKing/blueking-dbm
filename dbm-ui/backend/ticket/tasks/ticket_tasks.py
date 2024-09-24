@@ -350,3 +350,9 @@ def apply_ticket_task(
             raise TicketTaskTriggerException(_("不支持的定时类型: {}").format(eta))
 
     return res
+
+
+@shared_task
+def create_recycle_ticket(revoke_ticket_id: int, recycle_old_hosts: list, recycle_type: TicketType):
+    """创建主机回收单据"""
+    Ticket.create_recycle_ticket(revoke_ticket_id, recycle_old_hosts, recycle_type)

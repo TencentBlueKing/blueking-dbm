@@ -15,6 +15,7 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.es import EsController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BaseEsTicketFlowBuilder, BigDataTakeDownDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -22,15 +23,16 @@ logger = logging.getLogger("root")
 
 
 class EsDestroyDetailSerializer(BigDataTakeDownDetailSerializer):
-    pass
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class EsDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = EsController.es_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.ES_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.ES_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class EsDestroyFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsDestroyDetailSerializer
     inner_flow_builder = EsDestroyFlowParamBuilder
     inner_flow_name = _("ES集群删除")
+    need_patch_recycle_cluster_details = True

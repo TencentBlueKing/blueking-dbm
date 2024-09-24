@@ -36,6 +36,7 @@ class ClearPulsarMachineFlow(object):
         self.root_id = root_id
         self.data = data
         self.data["ticket_type"] = "clear_machines"
+        self.data["clear_hosts"] = self.data.pop("hosts")
 
         # 如果data里有bk_cloud_id这个字段，则bk_cloud_id=self.data["bk_cloud_id"]
         # 否则，取clear_hosts里面的bk_cloud_id

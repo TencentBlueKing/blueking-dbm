@@ -258,7 +258,7 @@ class CcManage(object):
         transfer_host_ids = list(set(transfer_host_ids))
         if transfer_host_ids:
             resp = CCApi.transfer_host_to_idlemodule(
-                {"bk_biz_id": bk_biz_id, "bk_host_id": transfer_host_ids}, raw=True
+                {"bk_biz_id": bk_biz_id, "bk_host_id": transfer_host_ids}, raw=True, use_admin=True
             )
             if resp.get("result"):
                 return
@@ -267,6 +267,28 @@ class CcManage(object):
                 logger.warning(f"transfer_host_to_idlemodule, resp:{resp}")
             else:
                 raise ApiError(f"transfer_host_to_idlemodule error, resp:{resp}")
+
+    @classmethod
+    def transfer_host_to_idlemodule_across_biz(cls, bk_biz_id: int, bk_host_ids: List[int]):
+        """
+        将一批主机转移到指定业务的空闲机
+        """
+        # 查询任意一台主机的业务信息，将当前主机转移到当前业务下
+        src_biz = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids})[0]["bk_biz_id"]
+        cls(src_biz, "").transfer_host_to_idlemodule(src_biz, bk_host_ids)
+
+        if src_biz == bk_biz_id:
+            return
+
+        # 如果业务不同，在跨业务转移
+        idle = cls.get_biz_internal_module(bk_biz_id)[IDLE_HOST_MODULE]["bk_module_id"]
+        params = {
+            "src_bk_biz_id": src_biz,
+            "dst_bk_biz_id": bk_biz_id,
+            "bk_host_id": bk_host_ids,
+            "bk_module_id": idle,
+        }
+        CCApi.transfer_host_across_biz(params, use_admin=True)
 
     def transfer_host_module(
         self,

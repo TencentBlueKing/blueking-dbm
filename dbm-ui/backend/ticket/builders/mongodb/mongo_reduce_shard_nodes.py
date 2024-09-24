@@ -18,7 +18,9 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import AppCache, Cluster
 from backend.flow.engine.controller.mongodb import MongoDBController
+from backend.flow.utils.mongodb.shard_reduce_node_get_host import get_hosts_reduce_node
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
@@ -33,6 +35,7 @@ class MongoDBReduceShardNodesDetailSerializer(BaseMongoDBOperateDetailSerializer
 
     is_safe = serializers.BooleanField(help_text=_("是否做安全检测"))
     infos = serializers.ListSerializer(help_text=_("缩容shard节点数信息"), child=ReduceMongosDetailSerializer())
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         cluster_ids = list(itertools.chain(*[info["cluster_ids"] for info in attrs["infos"]]))
@@ -49,22 +52,31 @@ class MongoDBReduceShardNodesFlowParamBuilder(builders.FlowParamBuilder):
     def format_ticket_data(self):
         bk_biz_id = self.ticket_data["bk_biz_id"]
         self.ticket_data["bk_app_abbr"] = AppCache.objects.get(bk_biz_id=bk_biz_id).db_app_abbr
-        cluster_ids = [cluster_id for info in self.ticket_data["infos"] for cluster_id in info["cluster_ids"]]
-        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+
+
+@builders.BuilderFactory.register(TicketType.MONGODB_REDUCE_SHARD_NODES, is_recycle=True)
+class MongoDBAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
+    serializer = MongoDBReduceShardNodesDetailSerializer
+    inner_flow_builder = MongoDBReduceShardNodesFlowParamBuilder
+    inner_flow_name = _("MongoDB 缩容Shard节点数执行")
+    need_patch_recycle_host_details = True
+
+    def patch_old_shard_nodes(self):
         mongo_type__apply_infos: Dict[str, List] = defaultdict(list)
-        for info in self.ticket_data["infos"]:
+        cluster_ids = [cluster_id for info in self.ticket.details["infos"] for cluster_id in info["cluster_ids"]]
+        id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
+        for info in self.ticket.details["infos"]:
             cluster = id__cluster[info["cluster_ids"][0]]
             info["db_version"] = cluster.major_version
             cluster_type = cluster.cluster_type
             if cluster_type == ClusterType.MongoShardedCluster.value:
                 info["cluster_id"] = info.pop("cluster_ids")[0]
             mongo_type__apply_infos[cluster_type].append(info)
+        for cluster_type in [ClusterType.MongoReplicaSet.value, ClusterType.MongoShardedCluster.value]:
+            mongo_type__apply_infos.setdefault(cluster_type, [])
+        self.ticket.details["infos"] = mongo_type__apply_infos
+        self.ticket.details["infos"]["old_nodes"] = {"reduced_shard_hosts": get_hosts_reduce_node(self.ticket.details)}
 
-        self.ticket_data["infos"] = mongo_type__apply_infos
-
-
-@builders.BuilderFactory.register(TicketType.MONGODB_REDUCE_SHARD_NODES)
-class MongoDBAddMongosApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
-    serializer = MongoDBReduceShardNodesDetailSerializer
-    inner_flow_builder = MongoDBReduceShardNodesFlowParamBuilder
-    inner_flow_name = _("MongoDB 缩容Shard节点数执行")
+    def patch_ticket_detail(self):
+        self.patch_old_shard_nodes()
+        super().patch_ticket_detail()

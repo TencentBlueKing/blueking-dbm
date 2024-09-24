@@ -178,20 +178,24 @@ class BizSettings(AbstractSettings):
         1. 支持 MySQL 托管在 DBA 平台业务下，Redis 独立托管在业务下
         2. 全部托管到业务下
         """
+        # 没有类型，直接返回该业务
         if not cluster_type:
-            return env.DBA_APP_BK_BIZ_ID
-
-        if cluster_type in cls.get_setting_value(
-            bk_biz_id, constants.BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value, default=[]
-        ):
             return bk_biz_id
-        else:
-            db_type = ClusterType.cluster_type_to_db_type(cluster_type)
-            if db_type in cls.get_setting_value(
-                bk_biz_id, constants.BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value, default=[]
-            ):
-                return bk_biz_id
 
+        # 是独立管控的组件/集群类型，返回该业务
+        hosting_db_types = cls.get_setting_value(
+            bk_biz_id, constants.BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value, default=[]
+        )
+        # 将集群类型转换为组件类型
+        try:
+            db_type = ClusterType.cluster_type_to_db_type(cluster_type)
+        except ValueError:
+            db_type = cluster_type
+
+        if db_type in hosting_db_types:
+            return bk_biz_id
+
+        # 默认都管控在DBA业务
         return env.DBA_APP_BK_BIZ_ID
 
     @classmethod

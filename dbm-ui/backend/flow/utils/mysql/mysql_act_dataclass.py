@@ -507,6 +507,22 @@ class InitCheckForResourceKwargs:
     account_name: str = "root"
 
 
+@dataclass
+class ImportMachinePollKwargs:
+    """
+    定义导入主机池的私有变量结构体
+    """
+
+    bk_biz_id: int
+    db_type: str
+    recycle_hosts: list
+    operator: str
+    ips: list
+    ip_dest: str
+    ticket_id: int
+    remark: str
+
+
 @dataclass()
 class IpKwargs:
     """

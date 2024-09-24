@@ -25,6 +25,11 @@ class _DBResourceApi(BaseApi):
             url="resource/import",
             description=_("资源导入"),
         )
+        self.resource_reimport = self.generate_data_api(
+            method="POST",
+            url="resource/reimport",
+            description=_("资源重导入"),
+        )
         self.resource_list = self.generate_data_api(
             method="POST",
             url="resource/list",
@@ -105,6 +110,14 @@ class _DBResourceApi(BaseApi):
         )
         self.resource_summary = self.generate_data_api(
             method="POST", url="/statistic/summary", description=_("按照条件聚合资源统计")
+        )
+        self.resource_label_count = self.generate_data_api(
+            method="POST", url="/resource/groupby/label/count", description=_("按照标签统计资源数量")
+        )
+        self.resource_append_labels = self.generate_data_api(
+            method="POST",
+            url="/resource/append/labels",
+            description=_("追加标签"),
         )
 
 

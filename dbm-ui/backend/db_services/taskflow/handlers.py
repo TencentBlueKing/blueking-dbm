@@ -55,23 +55,18 @@ class TaskFlowHandler:
         if tree.status in PENDING_STATES:
             tree.status = StateType.REVOKED
             tree.save()
-            return EngineAPIResult(result=True, message=_("pipeline未创建，仅更新FlowTree"))
-
-        # 撤销pipeline
-        bamboo_engine = BambooEngine(root_id=self.root_id)
-        result = bamboo_engine.revoke_pipeline()
-        if not result.result:
-            raise RevokePipelineException(",".join(result.exc.args))
-
-        # 终止正在运行的节点，并将节点状态设置为revoke
-        running_node_ids = list(
-            FlowNode.objects.filter(root_id=self.root_id, status=StateType.RUNNING).values_list("node_id", flat=True)
-        )
-        for node_id in running_node_ids:
-            # TODO 这里无法强制失败节点以后再设置节点的状态为revoke，这里需要强制失败吗？
-            # self.force_fail_node(node_id)
-            # 更新节点状态为revoke
-            bamboo_engine.runtime.set_state(node_id=node_id, to_state=StateType.REVOKED)
+            result = EngineAPIResult(result=True, message=_("pipeline未创建，仅更新FlowTree"))
+        else:
+            # 撤销pipeline
+            bamboo_engine = BambooEngine(root_id=self.root_id)
+            result = bamboo_engine.revoke_pipeline()
+            if not result.result:
+                raise RevokePipelineException(",".join(result.exc.args))
+            # 终止正在运行的节点，并将节点状态设置为revoke
+            running_nodes = FlowNode.objects.filter(root_id=self.root_id, status=StateType.RUNNING)
+            running_node_ids = list(running_nodes.values_list("node_id", flat=True))
+            for node_id in running_node_ids:
+                bamboo_engine.runtime.set_state(node_id=node_id, to_state=StateType.REVOKED)
 
         return result
 

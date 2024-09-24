@@ -15,12 +15,13 @@ from typing import Any, Dict, List
 from django.forms import model_to_dict
 from django.utils.translation import ugettext as _
 
+from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.gse.client import GseApi
 from backend.configuration.constants import COST_ESTIMATE_TEMPLATE, DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
-from backend.db_meta.models import AppCache, Spec
+from backend.db_meta.models import AppCache, Spec, Tag
 from backend.db_services.dbresource.exceptions import SpecOperateException
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 
@@ -430,7 +431,7 @@ class ResourceHandler(object):
     def resource_list(params):
         """资源列表"""
 
-        def _format_resource_fields(data, _cloud_info, _biz_infos):
+        def _format_resource_fields(data, _cloud_info, _biz_infos, _tag_infos):
             data.update(
                 {
                     "bk_cloud_name": _cloud_info[str(data["bk_cloud_id"])]["bk_cloud_name"],
@@ -446,6 +447,7 @@ class ResourceHandler(object):
                     "agent_status": int(
                         (data.pop("gse_agent_status_code") == GseApi.Constants.GSE_AGENT_RUNNING_CODE)
                     ),
+                    "labels": [{"id": _tag, "name": _tag_infos.get(int(_tag))} for _tag in data.pop("labels") or []],
                 }
             )
             return data
@@ -458,9 +460,13 @@ class ResourceHandler(object):
         cloud_info = ResourceQueryHelper.search_cc_cloud(get_cache=True)
         for_biz_ids = [data["dedicated_biz"] for data in resource_data["details"] if data["dedicated_biz"]]
         for_biz_infos = AppCache.batch_get_app_attr(bk_biz_ids=for_biz_ids, attr_name="bk_biz_name")
+        # 获取标签信息
+        label_ids = itertools.chain(*[data["labels"] for data in resource_data["details"] if data["labels"]])
+        label_ids = [int(id) for id in label_ids if isinstance(id, int) or id.isdigit()]
+        tag_infos = {tag.id: tag.value for tag in Tag.objects.filter(id__in=label_ids)}
         # 格式化资源池字段信息
         for data in resource_data.get("details") or []:
-            _format_resource_fields(data, cloud_info, for_biz_infos)
+            _format_resource_fields(data, cloud_info, for_biz_infos, tag_infos)
 
         resource_data["results"] = resource_data.pop("details")
         return resource_data
@@ -490,3 +496,25 @@ class ResourceHandler(object):
             excepted_cost += (cpu_per_cost + mem_per_cost + disk_per_cost) * count
 
         return excepted_cost
+
+    @classmethod
+    def standardized_resource_host(cls, hosts):
+        """标准化主机信息，将cc字段统一成资源池字段"""
+        host_ids = [host["bk_host_id"] for host in hosts]
+        # 获取主机通用信息
+        hosts = ResourceQueryHelper.search_cc_hosts(role_host_ids=host_ids)
+        # 获取主机拓扑信息
+        host_topos = CCApi.find_host_biz_relations({"bk_host_id": host_ids})
+        host_biz_map = {host["bk_host_id"]: host["bk_biz_id"] for host in host_topos}
+        # 补充主机信息
+        for host in hosts:
+            host.update(
+                bk_biz_id=host_biz_map.get(host["bk_host_id"]),
+                ip=host.get("bk_host_innerip"),
+                city=host.get("idc_city_name"),
+                host_id=host.get("bk_host_id"),
+                os_name=host.get("bk_os_name"),
+                os_type=host.get("bk_os_type"),
+                device_class=host.get("svr_device_class"),
+            )
+        return hosts

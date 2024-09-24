@@ -105,7 +105,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "BK_DBM_URL": env.BK_SAAS_HOST,
             "DBA_APP_BK_BIZ_ID": env.DBA_APP_BK_BIZ_ID,
             "DBA_APP_BK_BIZ_NAME": AppCache.get_biz_name(env.DBA_APP_BK_BIZ_ID),
-            "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value),
+            "CC_MANAGE_TOPO": SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO),
             "AFFINITY": SystemSettings.get_setting_value(key=SystemSettingsEnum.AFFINITY.value),
             "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,
         }

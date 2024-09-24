@@ -18,10 +18,11 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerHATicketFlowBuilder,
     SQLServerBaseOperateDetailSerializer,
@@ -34,13 +35,19 @@ from backend.utils.basic import get_target_items_from_details
 
 class SQLServerRestoreSlaveDetailSerializer(SQLServerBaseOperateDetailSerializer):
     class SlaveInfoSerializer(serializers.Serializer):
+        class OldSlaveSerializer(serializers.Serializer):
+            old_slave_host = serializers.ListSerializer(child=HostInfoSerializer())
+
         cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
         resource_spec = serializers.JSONField(help_text=_("资源池规格"), required=False)
-        old_slave_host = HostInfoSerializer(help_text=_("旧slave机器信息"))
+        old_nodes = OldSlaveSerializer(help_text=_("旧slave机器信息"))
         new_slave_host = HostInfoSerializer(help_text=_("新slave机器信息"), required=False)
 
     infos = serializers.ListField(help_text=_("重建从库列表"), child=SlaveInfoSerializer())
-    ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
+    ip_source = serializers.ChoiceField(
+        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
+    )
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.FAULT_DEFAULT)
 
     def validate(self, attrs):
         # 校验实例的角色为slave
@@ -59,15 +66,14 @@ class SQLServerRestoreSlaveFlowParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.slave_rebuild_in_new_slave_scene
 
     def format_ticket_data(self):
-        pass
-        # for info in self.ticket_data["infos"]:
-        #     info["slave_host"] = info.pop("slave")
-        #     info["port"] = info["slave_host"].pop("port")
+        for info in self.ticket_data["infos"]:
+            old_nodes = info.pop("old_nodes")
+            info["old_slave_host"] = old_nodes["old_slave_host"][0]
 
 
 class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBuilder):
     def format(self):
-        slave_hosts = get_target_items_from_details(self.ticket.details, match_keys=["bk_host_id"])
+        slave_hosts = get_target_items_from_details(self.ticket_data, match_keys=["bk_host_id"])
         # 根据从库host_id获取对应主库的host_id
         slave_master_mapping = (
             Machine.objects.prefetch_related(
@@ -86,7 +92,7 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
         # 提取master
         master_hosts = [entry["master_host_id"] for entry in slave_master_mapping]
         # 处理映射 {slave_host_id:master_host_id}
-        formatted_dict = {item["slave_host_id"]: item["master_host_id"] for item in slave_master_mapping}
+        slave__master_host_map = {item["slave_host_id"]: item["master_host_id"] for item in slave_master_mapping}
 
         id__machine = {
             machine.bk_host_id: machine
@@ -94,25 +100,29 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
                 bk_host_id__in=master_hosts
             )
         }
-        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket.details["infos"]]))
+        cluster_ids = list(itertools.chain(*[infos["cluster_ids"] for infos in self.ticket_data["infos"]]))
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
 
         for info in self.ticket_data["infos"]:
             cluster = id__cluster[info["cluster_ids"][0]]
+
             # 申请新的slave, 需要和当前集群中的master处于不同机房;
-            master_machine = id__machine[formatted_dict[info["old_slave_host"]["bk_host_id"]]]
+            old_slave_host = info["old_nodes"]["old_slave_host"][0]
+            master_machine = id__machine[slave__master_host_map[old_slave_host["bk_host_id"]]]
             info.update(bk_cloud_id=master_machine.bk_cloud_id)
-            # TODO: 还有补充操作系统
-            info["resource_spec"]["sqlserver_ha"]["location_spec"] = {
-                "city": master_machine.bk_city.logical_city.name,
-                "sub_zone_ids": [],
-            }
-            info["resource_spec"]["sqlserver_ha"].update(affinity=cluster.disaster_tolerance_level)
+
+            # 补充操作系统、亲和性和城市信息
+            info["resource_params"] = {"os_type": BkOsType.WINDOWS.value}
+            info["resource_spec"]["sqlserver_ha"].update(
+                affinity=cluster.disaster_tolerance_level,
+                location_spec={"city": master_machine.bk_city.logical_city.name, "sub_zone_ids": []},
+            )
+
+            # 根据亲和性补充园区信息
             if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
                 info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
                     sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=False
                 )
-
             elif cluster.disaster_tolerance_level in [
                 AffinityEnum.SAME_SUBZONE,
                 AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
@@ -128,12 +138,13 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_SLAVE)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_RESTORE_SLAVE, is_recycle=True, is_apply=True)
 class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
     serializer = SQLServerRestoreSlaveDetailSerializer
     resource_batch_apply_builder = SQLServerRestoreSlaveResourceParamBuilder
     inner_flow_builder = SQLServerRestoreSlaveFlowParamBuilder
     inner_flow_name = _("SQLServer Slave重建执行")
+    need_patch_recycle_host_details = True
 
     def patch_ticket_detail(self):
         # 补充数据库版本和字符集
@@ -148,7 +159,7 @@ class SQLServerRestoreSlaveFlowBuilder(BaseSQLServerHATicketFlowBuilder):
             )
             # 校验配置是否存在
             if not db_config.get("db_version") or not db_config.get("charset") or not db_config.get("sync_type"):
-                raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数, db_config: {}").format(db_config))
+                raise TicketParamsVerifyException(_("获取数据库字符集或版本失败，请检查获取参数: {}").format(db_config))
 
             info["system_version"] = db_config["system_version"].split(",")
 

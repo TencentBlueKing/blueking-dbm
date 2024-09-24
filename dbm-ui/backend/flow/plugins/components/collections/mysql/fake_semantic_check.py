@@ -22,6 +22,7 @@ class FakeSemanticCheck(BaseService):
     """模拟语义执行，仅用作测试"""
 
     def _execute(self, data, parent_data, callback=None) -> bool:
+        return True
         kwargs = data.get_one_of_inputs("kwargs")
         root_id = kwargs.get("root_id")
 

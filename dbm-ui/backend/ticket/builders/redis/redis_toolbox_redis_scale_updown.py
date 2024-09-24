@@ -20,6 +20,8 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     DisplayInfoSerializer,
+    HostInfoSerializer,
+    HostRecycleSerializer,
     SkipToRepresentationMixin,
 )
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
@@ -40,6 +42,9 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
 
             backend_group = BackendGroupSerializer()
 
+        class OldNodesSerializer(serializers.Serializer):
+            backend_hosts = serializers.ListSerializer(child=HostInfoSerializer(help_text=_("待下架的机器")))
+
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         shard_num = serializers.IntegerField(help_text=_("集群分片数"))
@@ -54,8 +59,12 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
             help_text=_("容量变更类型"), choices=RedisCapacityUpdateType.get_choices(), required=False
         )
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
+        old_nodes = OldNodesSerializer(help_text=_("下架机器"))
 
-    ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
+    ip_source = serializers.ChoiceField(
+        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
+    )
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
 
@@ -78,9 +87,13 @@ class RedisScaleUpDownResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN, is_apply=True)
+@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN, is_apply=True, is_recycle=True)
 class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisScaleUpDownDetailSerializer
     inner_flow_builder = RedisScaleUpDownParamBuilder
     inner_flow_name = _("Redis 集群容量变更")
     resource_batch_apply_builder = RedisScaleUpDownResourceParamBuilder
+    need_patch_recycle_host_details = True
+
+    def patch_ticket_detail(self):
+        super().patch_ticket_detail()

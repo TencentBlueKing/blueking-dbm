@@ -74,6 +74,7 @@ def generate_single_autofix_ticket(cluster: RedisAutofixCore):
                 "instance_type": fault_machine["instance_type"],
                 "spec_config": fault_obj.spec_config,
                 "cluster_type": cluster.cluster_type,
+                "bk_host_id": fault_obj.bk_host_id,
             }
             if fault_machine["instance_type"] in [MachineType.TWEMPROXY.value, MachineType.PREDIXY.value]:
                 redis_proxies.append(fault_info)

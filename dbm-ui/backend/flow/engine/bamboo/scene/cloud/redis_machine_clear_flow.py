@@ -17,7 +17,7 @@ from django.utils.translation import ugettext as _
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.exec_clear_machine import ClearMachineScriptComponent
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
-from backend.flow.utils.mysql.mysql_act_dataclass import DBMetaOPKwargs
+from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
 
 logger = logging.getLogger("flow")
@@ -36,6 +36,7 @@ class ClearRedisMachineFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.data["clear_hosts"] = self.data.pop("hosts")
 
     def run_flow(self):
         """
@@ -47,14 +48,20 @@ class ClearRedisMachineFlow(object):
         # 定义主流程
         main_pipeline = Builder(root_id=self.root_id, data=self.data)
 
+        kwargs = ActKwargs(
+            cluster={"meta_func_name": RedisDBMeta.clear_machines.__name__},
+            set_trans_data_dataclass=CommonContext.__name__,
+        )
+        clear_hosts_ips = [host["ip"] for host in self.data["clear_hosts"]]
+
         main_pipeline.add_act(
-            act_name=_("清理元数据-{}".format(self.data["clear_hosts"])),
+            act_name=_("清理元数据-{}".format(clear_hosts_ips)),
             act_component_code=RedisDBMetaComponent.code,
-            kwargs=asdict(DBMetaOPKwargs(db_meta_class_func=RedisDBMeta.clear_machines.__name__)),
+            kwargs=asdict(kwargs),
         )
 
         main_pipeline.add_act(
-            act_name=_("清理机器-{}".format(self.data["clear_hosts"])),
+            act_name=_("清理机器-{}".format(clear_hosts_ips)),
             act_component_code=ClearMachineScriptComponent.code,
             kwargs={"exec_ips": self.data["clear_hosts"]},
         )

@@ -43,7 +43,7 @@ DORIS_ENABLE_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "remark": "测试启用doris集群",
     "ticket_type": TicketType.DORIS_ENABLE,
-    "details": {"cluster_id": CLUSTER_ID + 1},
+    "details": {"cluster_id": CLUSTER_ID},
 }
 
 # doris禁用单据
@@ -51,7 +51,7 @@ DORIS_DISABLE_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "remark": "测试禁用doris集群",
     "ticket_type": TicketType.DORIS_DISABLE,
-    "details": {"cluster_id": CLUSTER_ID},
+    "details": {"cluster_id": CLUSTER_ID + 1},
 }
 
 # doris下架单据
@@ -59,7 +59,7 @@ DORIS_DESTROY_TICKET_DATA = {
     "bk_biz_id": BK_BIZ_ID,
     "remark": "测试下架doris集群",
     "ticket_type": TicketType.DORIS_DESTROY,
-    "details": {"cluster_id": CLUSTER_ID + 1},
+    "details": {"cluster_id": CLUSTER_ID},
 }
 
 # doris扩容input单据
@@ -81,7 +81,7 @@ DORIS_SHRINK_TICKET_DATA = {
     "remark": "",
     "details": {
         "cluster_id": CLUSTER_ID,
-        "nodes": {
+        "old_nodes": {
             "hot": [],
             "cold": [],
             "observer": [
@@ -169,7 +169,7 @@ DORIS_CLUSTER_DATA = [
         "db_module_id": 0,
         "immute_domain": "doris.doris01.dba.db",
         "major_version": "2.0.4",
-        "phase": "online",
+        "phase": "offline",
         "status": "normal",
         "bk_cloud_id": 0,
         "region": "default",
@@ -187,7 +187,7 @@ DORIS_CLUSTER_DATA = [
         "db_module_id": 0,
         "immute_domain": "doris.doris02.dba.db",
         "major_version": "2.0.4",
-        "phase": "offline",
+        "phase": "online",
         "status": "normal",
         "bk_cloud_id": 0,
         "region": "default",

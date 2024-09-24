@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 
 from backend.db_meta.enums import ClusterType
+from backend.flow.engine.bamboo.scene.cloud.mysql_machine_clear_flow import ClearMysqlMachineFlow
 from backend.flow.engine.bamboo.scene.spider.append_deploy_ctl_flow import AppendDeployCTLFlow
 from backend.flow.engine.bamboo.scene.spider.db_table_backup import TenDBClusterDBTableBackupFlow
 from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFullBackupFlow
@@ -241,3 +242,10 @@ class SpiderController(BaseController):
     def metadata_import_scene(self):
         flow = SpiderClusterMetadataImportFlow(root_id=self.root_id, data=self.ticket_data)
         flow.import_meta()
+
+    def tendbcluster_machine_clear_scene(self):
+        """
+        清理mysql机器
+        """
+        flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.run_flow()

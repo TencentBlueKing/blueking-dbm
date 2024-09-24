@@ -32,3 +32,7 @@ class BaseController:
     def import_resource_init_step(self):
         flow = ImportResourceInitStepFlow(root_id=self.root_id, data=self.ticket_data)
         flow.machine_init_flow()
+
+    def import_machine_pool(self):
+        flow = ImportResourceInitStepFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.machine_import_pool_flow()

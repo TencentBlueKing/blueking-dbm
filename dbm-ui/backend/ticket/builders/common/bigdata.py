@@ -26,6 +26,7 @@ from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     BigDataTicketFlowBuilderPatchMixin,
     CommonValidate,
+    HostRecycleSerializer,
     InfluxdbTicketFlowBuilderPatchMixin,
     format_bigdata_resource_spec,
 )
@@ -180,12 +181,15 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
 
 
 class BigDataReplaceDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
-    ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     old_nodes = serializers.DictField(help_text=_("旧节点信息集合"), child=serializers.ListField(help_text=_("节点信息")))
     new_nodes = serializers.DictField(
         help_text=_("新节点信息集合"), child=serializers.ListField(help_text=_("节点信息")), required=False
     )
     resource_spec = serializers.JSONField(help_text=_("规格类型"), required=False)
+    ip_source = serializers.ChoiceField(
+        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
+    )
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         # 校验替换前后角色类型和数量一致
@@ -196,11 +200,13 @@ class BigDataReplaceDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
 
         for role in old_nodes:
             old_role_num = len(old_nodes[role])
-            new_role_num = (
-                len(new_nodes[role]) if attrs["ip_source"] == IpSource.MANUAL_INPUT else new_nodes[role]["count"]
-            )
+            if attrs["ip_source"] == IpSource.MANUAL_INPUT:
+                new_role_num = len(new_nodes[role])
+            else:
+                # 兼容资源池自动匹配和手动输入的场景
+                new_role_num = new_nodes[role].get("count") or len(new_nodes[role].get("hosts", []))
             if old_role_num != new_role_num:
-                raise serializers.ValidationError(_("角色{}替换前后数量不一致，请保证替换前后角色类型和数量一致！").format(role))
+                raise serializers.ValidationError(_("角色{}替换前后数量不一致").format(role))
 
         # 判断主机是否来自手工输入，从资源池拿到的主机不需要校验
         if attrs["ip_source"] == IpSource.RESOURCE_POOL:

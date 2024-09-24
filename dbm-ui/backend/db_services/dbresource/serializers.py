@@ -16,10 +16,11 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import DBType
 from backend.constants import INT_MAX
+from backend.db_dirty.constants import MachineEventType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Spec
-from backend.db_meta.models.machine import DeviceClass
+from backend.db_meta.models.machine import DeviceClass, Machine
 from backend.db_services.dbresource import mock
 from backend.db_services.dbresource.constants import ResourceGroupByEnum, ResourceOperation
 from backend.db_services.dbresource.mock import (
@@ -30,12 +31,13 @@ from backend.db_services.dbresource.mock import (
 )
 from backend.db_services.ipchooser.constants import BkOsTypeCode
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
+from backend.ticket.builders.common.base import HostInfoSerializer
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketStatus
 
 
 class ResourceImportSerializer(serializers.Serializer):
-    class HostInfoSerializer(serializers.Serializer):
+    class ResourceHostSerializer(serializers.Serializer):
         ip = serializers.CharField()
         host_id = serializers.IntegerField()
         bk_cloud_id = serializers.IntegerField()
@@ -44,8 +46,21 @@ class ResourceImportSerializer(serializers.Serializer):
     for_biz = serializers.IntegerField(help_text=_("专属业务"))
     resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True)
     bk_biz_id = serializers.IntegerField(help_text=_("机器当前所属的业务id	"), default=env.DBA_APP_BK_BIZ_ID)
-    hosts = serializers.ListSerializer(help_text=_("主机"), child=HostInfoSerializer())
-    labels = serializers.DictField(help_text=_("标签信息"), required=False)
+    hosts = serializers.ListSerializer(help_text=_("资源主机"), child=ResourceHostSerializer())
+    labels = serializers.ListField(help_text=_("标签"), child=serializers.CharField(), required=False)
+    return_resource = serializers.BooleanField(help_text=_("是否为退回资源"), required=False)
+
+    def validate(self, attrs):
+        host_ids = [host["host_id"] for host in attrs["hosts"]]
+
+        # 如果主机存在元数据，则拒绝导入
+        exist_hosts = list(Machine.objects.filter(bk_host_id__in=host_ids).values_list("ip", flat=True))
+        if exist_hosts:
+            raise serializers.ValidationError(_("导入主机{}存在元数据，请检查后重新导入").format(exist_hosts))
+
+        # TODO：如果主机存在裁撤单 / uwork单，则不允许导入
+
+        return attrs
 
 
 class ResourceApplySerializer(serializers.Serializer):
@@ -55,7 +70,7 @@ class ResourceApplySerializer(serializers.Serializer):
         spec = serializers.DictField(help_text=_("cpu&mem参数"), required=False)
         storage_spec = serializers.ListField(help_text=_("磁盘参数"), child=serializers.DictField(), required=False)
         location_spec = serializers.DictField(help_text=_("位置匹配参数"), required=False)
-        labels = serializers.DictField(help_text=_("标签"), required=False)
+        labels = serializers.ListField(help_text=_("标签"), required=False, child=serializers.CharField())
         affinity = serializers.CharField(help_text=_("亲和性"), required=False)
         count = serializers.IntegerField(help_text=_("数量"))
 
@@ -72,7 +87,9 @@ class ResourceImportResponseSerializer(serializers.Serializer):
 
 class ResourceListSerializer(serializers.Serializer):
     for_biz = serializers.IntegerField(help_text=_("专属业务"), required=False)
+    for_bizs = serializers.ListField(help_text=_("专属业务列表"), child=serializers.IntegerField(), required=False)
     resource_type = serializers.CharField(help_text=_("专属DB"), required=False, allow_null=True, allow_blank=True)
+    resource_types = serializers.ListField(help_text=_("专属DB列表"), child=serializers.CharField(), required=False)
     device_class = serializers.CharField(help_text=_("机型"), required=False)
     hosts = serializers.CharField(help_text=_("主机IP列表"), required=False)
     bk_cloud_ids = serializers.CharField(help_text=_("云区域ID列表"), required=False)
@@ -80,10 +97,8 @@ class ResourceListSerializer(serializers.Serializer):
     subzones = serializers.CharField(help_text=_("园区"), required=False)
     subzone_ids = serializers.CharField(help_text=_("园区ID"), required=False)
 
-    set_empty_biz = serializers.BooleanField(help_text=_("是否无专用业务"), required=False, default=False)
-    set_empty_resource_type = serializers.BooleanField(help_text=_("是否无专用资源类型"), required=False, default=False)
-
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
+    os_names = serializers.ListField(help_text=_("操作系统版本"), child=serializers.CharField(), required=False)
     cpu = serializers.CharField(help_text=_("cpu资源限制"), required=False)
     mem = serializers.CharField(help_text=_("内存资源限制"), required=False)
     disk = serializers.CharField(help_text=_("磁盘资源限制"), required=False)
@@ -92,17 +107,13 @@ class ResourceListSerializer(serializers.Serializer):
     spec_id = serializers.IntegerField(help_text=_("过滤的规格ID"), required=False)
 
     agent_status = serializers.BooleanField(help_text=_("agent状态"), required=False)
-    labels = serializers.DictField(help_text=_("标签信息"), required=False)
+    labels = serializers.CharField(help_text=_("标签列表id"), required=False)
 
     limit = serializers.IntegerField(help_text=_("单页数量"))
     offset = serializers.IntegerField(help_text=_("偏移量"))
 
     @staticmethod
     def format_fields(attrs, fields):
-        # 如果没有专用业务和专用DB，则无限制查询
-        attrs["set_empty_biz"] = "for_biz" not in attrs
-        attrs["set_empty_resource_type"] = "resource_type" not in attrs
-
         # 用逗号方便前端URL渲染，这里统一转换为数组 or obj
         for field in fields:
             divider = "-" if field in ["cpu", "mem", "disk"] else ","
@@ -152,6 +163,7 @@ class ResourceListSerializer(serializers.Serializer):
                 "mem",
                 "disk",
                 "bk_cloud_ids",
+                "labels",
             ],
         )
         return attrs
@@ -163,6 +175,8 @@ class ResourceListResponseSerializer(serializers.Serializer):
 
 
 class ListDBAHostsSerializer(QueryHostsBaseSer):
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False, default=env.DBA_APP_BK_BIZ_ID)
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         if not attrs.get("conditions"):
@@ -186,12 +200,14 @@ class ResourceConfirmSerializer(serializers.Serializer):
 
 
 class ResourceDeleteSerializer(serializers.Serializer):
-    bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
+    hosts = serializers.ListSerializer(help_text=_("主机列表"), child=HostInfoSerializer())
+    event = serializers.ChoiceField(help_text=_("删除事件(移入故障池/撤销导入)"), choices=MachineEventType.get_choices())
+    remark = serializers.CharField(help_text=_("备注"), required=False, default="")
 
 
 class ResourceUpdateSerializer(serializers.Serializer):
     bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
-    labels = serializers.DictField(help_text=_("Labels"), required=False)
+    labels = serializers.ListField(help_text=_("标签"), required=False, child=serializers.CharField())
     for_biz = serializers.IntegerField(help_text=_("专用业务ID"), required=False)
     resource_type = serializers.CharField(help_text=_("专属DB"), allow_blank=True, allow_null=True, required=False)
     storage_device = serializers.JSONField(help_text=_("磁盘挂载点信息"), required=False)
@@ -451,3 +467,8 @@ class UworkIpsSerializer(serializers.Serializer):
 
     def validate_ip_list(self, value):
         return value.split(",")
+
+
+class AppendHostLabelSerializer(serializers.Serializer):
+    bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
+    labels = serializers.ListField(help_text=_("追加标签列表"), child=serializers.CharField())

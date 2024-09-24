@@ -32,8 +32,8 @@ from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
 from backend.db_monitor.utils import create_bklog_collector, create_bkmonitor_action
-from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
-from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DEFAULT_CLOUD, DIRTY_MODULE, RESOURCE_MODULE
+from backend.db_services.cmdb.biz import get_or_create_resource_module
+from backend.db_services.ipchooser.constants import DEFAULT_CLOUD
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
 from backend.exceptions import ApiError
 from backend.iam_app.dataclass import generate_iam_migration_json
@@ -178,27 +178,7 @@ class Services:
         AppMonitorTopo.init_topo()
 
         # 初始化db的管理集群和相关模块
-        if not SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value):
-            # 创建管理集群
-            manage_set_id = get_or_create_set_with_name(bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_name=DB_MANAGE_SET)
-            # 创建资源池模块和污点池模块
-            manage_modules = [RESOURCE_MODULE, DIRTY_MODULE]
-            module_name__module_id = {}
-            for module in manage_modules:
-                module_id = get_or_create_cmdb_module_with_name(
-                    bk_biz_id=env.DBA_APP_BK_BIZ_ID, bk_set_id=manage_set_id, bk_module_name=module
-                )
-                module_name__module_id[module] = module_id
-            # 插入管理集群的配置
-            SystemSettings.insert_setting_value(
-                key=SystemSettingsEnum.MANAGE_TOPO.value,
-                value_type="dict",
-                value={
-                    "set_id": manage_set_id,
-                    "resource_module_id": module_name__module_id[RESOURCE_MODULE],
-                    "dirty_module_id": module_name__module_id[DIRTY_MODULE],
-                },
-            )
+        get_or_create_resource_module()
 
         # 初始化主机自定义属性，用于system数据拷贝
         Services.init_cc_dbm_meta()

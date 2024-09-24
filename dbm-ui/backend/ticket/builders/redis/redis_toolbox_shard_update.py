@@ -17,7 +17,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.common.base import HostRecycleSerializer, SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
     ClusterValidateMixin,
@@ -69,7 +69,10 @@ class RedisShardUpdateDetailSerializer(SkipToRepresentationMixin, serializers.Se
             return attr
 
     data_check_repair_setting = DataCheckRepairSettingSerializer()
-    ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
+    ip_source = serializers.ChoiceField(
+        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
+    )
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer(), allow_empty=False)
 
 
@@ -88,9 +91,13 @@ class RedisShardUpdateResourceParamBuilder(RedisUpdateApplyResourceParamBuilder)
             info["resource_spec"]["proxy"]["group_count"] = 2
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.REDIS_CLUSTER_SHARD_NUM_UPDATE, is_apply=True, is_recycle=True)
 class RedisShardUpdateFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisShardUpdateDetailSerializer
     inner_flow_builder = RedisShardUpdateParamBuilder
     inner_flow_name = _("Redis 集群分片变更")
     resource_batch_apply_builder = RedisShardUpdateResourceParamBuilder
+    need_patch_recycle_cluster_details = True
+
+    def patch_recycle_cluster_details(self):
+        super().patch_recycle_cluster_details(role="backend")

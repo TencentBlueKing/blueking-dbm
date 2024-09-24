@@ -407,7 +407,6 @@ class TicketType(str, StructuredEnum):
     REDIS_TENDISPLUS_LIGHTNING_DATA = TicketEnumField("REDIS_TENDISPLUS_LIGHTNING_DATA", _("Tendisplus闪电导入数据"), _("集群维护"))  # noqa
     REDIS_CLUSTER_INS_MIGRATE = TicketEnumField("REDIS_CLUSTER_INS_MIGRATE", _("Redis 集群指定实例迁移"), _("集群管理"))
     REDIS_SINGLE_INS_MIGRATE = TicketEnumField("REDIS_SINGLE_INS_MIGRATE", _("Redis 主从指定实例迁移"), _("集群管理"))
-
     # 大数据
     KAFKA_APPLY = TicketEnumField("KAFKA_APPLY", _("Kafka 集群部署"), register_iam=False)
     KAFKA_SCALE_UP = TicketEnumField("KAFKA_SCALE_UP", _("Kafka 集群扩容"), _("集群管理"))
@@ -495,6 +494,7 @@ class TicketType(str, StructuredEnum):
     MONGODB_EXCEL_AUTHORIZE_RULES = TicketEnumField("MONGODB_EXCEL_AUTHORIZE_RULES", _("MongoDB Excel授权"), _("权限管理"))  # noqa
     MONGODB_IMPORT = TicketEnumField("MONGODB_IMPORT", _("MongoDB 数据导入"), _("集群维护"))
     MONGODB_RESTORE = TicketEnumField("MONGODB_RESTORE", _("MongoDB 定点回档"), _("集群维护"))
+    MONGODB_PITR_RESTORE = TicketEnumField("MONGODB_PITR_RESTORE", _("MongoDB Pitr回档"), _("集群维护"))
     MONGODB_TEMPORARY_DESTROY = TicketEnumField("MONGODB_TEMPORARY_DESTROY", _("MongoDB 临时集群销毁"), _("集群维护"))
     MONGODB_INSTALL_DBMON = TicketEnumField("MONGODB_INSTALL_DBMON", _("MongoDB 安装DBMon"), _("集群维护"))
     MONGODB_AUTOFIX = TicketEnumField("MONGODB_AUTOFIX", _("MongoDB 故障自愈"), _("集群维护"))
@@ -527,6 +527,8 @@ class TicketType(str, StructuredEnum):
     # 资源池
     RESOURCE_IMPORT = EnumField("RESOURCE_IMPORT", _("资源池导入"))
     ADMIN_PASSWORD_MODIFY = EnumField("ADMIN_PASSWORD_MODIFY", _("临时密码修改"))
+    RECYCLE_APPLY_HOST = EnumField("RECYCLE_APPLY_HOST", _("新分配主机退回"))
+    RECYCLE_OLD_HOST = EnumField("RECYCLE_OLD_HOST", _("已下架主机处理"))
     # fmt: on
 
     # VM
@@ -564,12 +566,12 @@ class FlowType(str, StructuredEnum):
     TIMER = EnumField("TIMER", _("定时"))
     # 资源申请节点，用于根据资源规格申请对应机器
     RESOURCE_APPLY = EnumField("RESOURCE_APPLY", _("资源申请"))
-    # 资源交付节点，用于机器部署成功后通过资源池服务
+    # 资源交付节点，用于机器部署成功后通过资源池服务. TODO: 已废弃，保留仅因为历史单据展示
     RESOURCE_DELIVERY = EnumField("RESOURCE_DELIVERY", _("资源交付"))
     # 资源批量申请节点
     RESOURCE_BATCH_APPLY = EnumField("RESOURCE_BATCH_APPLY", _("资源批量申请"))
-    # 资源批量交付节点
-    RESOURCE_BATCH_DELIVERY = EnumField("RESOURCE_BATCH_DELIVERY", _("资源批量交付"))
+    # 主机回收
+    HOST_RECYCLE = EnumField("HOST_RECYCLE", _("主机回收"))
 
 
 class FlowContext(str, StructuredEnum):

@@ -21,9 +21,9 @@ from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import AppCache, Cluster, Tag
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import MongoDBClusterDefaultPort
+from backend.flow.engine.bamboo.scene.mongodb.sub_task.fetch_backup_record_subtask import FetchBackupRecordSubTask
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
-from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBTicketFlowBuilder,
@@ -43,7 +43,7 @@ class MongoDBRestoreDetailSerializer(BaseMongoDBOperateDetailSerializer):
     cluster_ids = serializers.ListField(help_text=_("集群列表"), child=serializers.IntegerField())
     cluster_type = serializers.ChoiceField(help_text=_("集群类型"), choices=ClusterType.get_choices(), required=False)
     ns_filter = DBTableSerializer(help_text=_("库表选择器"), required=False)
-    rollback_time = DBTimezoneField(help_text=_("回档时间"), required=False)
+    rollback_time = serializers.JSONField(help_text=_("回档时间"))
     backupinfo = serializers.JSONField(help_text=_("指定备份记录[集群ID: 记录]"), required=False)
     city_code = serializers.CharField(help_text=_("部署城市"), required=False, default="default")
     instance_per_host = serializers.IntegerField(help_text=_("每台主机部署的节点数"))
@@ -61,6 +61,17 @@ class MongoDBRestoreDetailSerializer(BaseMongoDBOperateDetailSerializer):
         # 副本集集群回档的版本和城市需要一致
         if cluster_type == ClusterType.MongoReplicaSet:
             self.validate_cluster_same_attr(clusters, attrs=["region", "major_version"])
+
+        # 如果是指定回档时间，检查是否有备份记录
+        rollback_time = attrs.get("rollback_time")
+        if not rollback_time:
+            return attrs
+
+        for cluster in clusters:
+            cluster_rollback_time = rollback_time[f"{str(cluster.id)}"]
+            FetchBackupRecordSubTask.fetch_backup_record(
+                cluster_id=cluster.id, shard_name=None, dst_time_str=cluster_rollback_time
+            )
 
         return attrs
 
@@ -97,7 +108,7 @@ class MongoDBRestoreClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
-    controller = MongoDBController.fake_scene
+    controller = MongoDBController.mongo_pitr_restore
 
     def format_ticket_data(self):
         pass
@@ -115,7 +126,7 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
 
         tmp_cluster_filters = Q()
         for cluster_name in cluster_names:
-            tmp_cluster_filters |= Q(bk_biz_id=bk_biz_id, cluster_type=cluster_type, cluster_name=cluster_name)
+            tmp_cluster_filters |= Q(bk_biz_id=bk_biz_id, cluster_type=cluster_type, alias=cluster_name)
         tmp_clusters = Cluster.objects.filter(tmp_cluster_filters)
 
         # 为临时集群添加临时标志和记录
@@ -125,8 +136,8 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
         source_cluster_name__cluster: Dict[str, Cluster] = {}
         cluster_records: List[ClusterOperateRecord] = []
         for cluster in tmp_clusters:
-            cluster.tag_set.add(temporary_tag)
-            source_cluster_name__cluster[cluster.name.rsplit("-", 2)[0]] = cluster
+            cluster.tags.add(temporary_tag)
+            source_cluster_name__cluster[cluster.alias.rsplit("-", 2)[0]] = cluster
             cluster_records.append(ClusterOperateRecord(cluster_id=cluster.id, ticket=self.ticket, flow=rollback_flow))
 
         ClusterOperateRecord.objects.bulk_create(cluster_records)
@@ -135,12 +146,15 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=ticket_data["cluster_ids"])}
         infos: List[Dict[str, Any]] = []
         for cluster_id in ticket_data["cluster_ids"]:
+            rollback_time = self.ticket_data.get("rollback_time", None)
             restore_info = {
-                "cluster_id": cluster_id,
-                "temporary_cluster_id": source_cluster_name__cluster[id__cluster[cluster_id].name].id,
-                "ns_filter": self.ticket_data["ns_filter"],
-                "rollback_time": self.ticket_data.get("rollback_time", None),
+                "src_cluster_id": cluster_id,
+                "dst_cluster_id": source_cluster_name__cluster[id__cluster[cluster_id].name].id,
+                "dst_cluster_type": source_cluster_name__cluster[id__cluster[cluster_id].name].cluster_type,
+                # "ns_filter": self.ticket_data.get("ns_filter"),f"{str(cluster.id)}"
+                "dst_time": rollback_time[f"{str(cluster_id)}"] if rollback_time else None,
                 "backupinfo": self.ticket_data.get("backupinfo", {}).get(cluster_id, None),
+                "apply_oplog": True,
             }
             infos.append(restore_info)
 
@@ -148,7 +162,7 @@ class MongoDBRestoreFlowParamBuilder(builders.FlowParamBuilder):
         rollback_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_RESTORE)
+@builders.BuilderFactory.register(TicketType.MONGODB_PITR_RESTORE, is_apply=True)
 class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     serializer = MongoDBRestoreDetailSerializer
 
@@ -235,7 +249,6 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
         cluster_type = self.ticket.details["cluster_type"]
         flow_infix = "_" if cluster_type == ClusterType.MongoShardedCluster else "_BATCH_"
         resource_apply_flow_type = getattr(FlowType, f"RESOURCE{flow_infix}APPLY")
-        resource_deliver_flow_type = getattr(FlowType, f"RESOURCE{flow_infix}DELIVERY")
 
         flows = [
             Flow(
@@ -258,16 +271,11 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
                 flow_alias=_("MongoDB 回档执行"),
                 retry_type=FlowRetryType.MANUAL_RETRY.value,
             ),
-            Flow(
-                ticket=self.ticket,
-                flow_type=resource_deliver_flow_type,
-                flow_alias=_("资源确认"),
-            ),
         ]
         return flows
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("MongoDB 回档执行"), _("资源确认")])
+        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("MongoDB 回档执行")])
         return flow_desc

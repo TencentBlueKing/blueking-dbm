@@ -36,6 +36,7 @@ class ClearMysqlMachineFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.data["clear_hosts"] = self.data.pop("hosts")
 
     def run_flow(self):
         """

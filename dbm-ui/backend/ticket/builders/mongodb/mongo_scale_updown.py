@@ -19,6 +19,7 @@ from backend.db_meta.models import AppCache, Cluster, Machine
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer, fetch_cluster_ids
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -40,6 +41,7 @@ class MongoDBScaleUpDownDetailSerializer(BaseMongoDBOperateDetailSerializer):
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
     )
     infos = serializers.ListSerializer(help_text=_("集群容量变更申请信息"), child=ScaleUpDownDetailSerializer())
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         # 校验count = 机器组数 * 集群分片节点数
@@ -108,9 +110,27 @@ class MongoDBScaleUpDownResourceParamBuilder(BaseMongoDBOperateResourceParamBuil
             next_flow.details["ticket_data"]["infos"] = mongo_type__apply_infos
 
 
-@builders.BuilderFactory.register(TicketType.MONGODB_SCALE_UPDOWN, is_apply=True)
+@builders.BuilderFactory.register(TicketType.MONGODB_SCALE_UPDOWN, is_apply=True, is_recycle=True)
 class MongoDBScaleUpDownFlowBuilder(BaseMongoShardedTicketFlowBuilder):
     serializer = MongoDBScaleUpDownDetailSerializer
     inner_flow_builder = MongoDBScaleUpDownFlowParamBuilder
     inner_flow_name = _("MongoDB 集群容量变更执行")
     resource_batch_apply_builder = MongoDBScaleUpDownResourceParamBuilder
+    need_patch_recycle_host_details = True
+
+    def patch_old_shard_nodes(self):
+        # 获取所有下架的mongodb节点
+        cluster_ids = fetch_cluster_ids(self.ticket.details)
+        cluster_map = Cluster.objects.prefetch_related("storageinstance_set__machine").in_bulk(cluster_ids)
+        for info in self.ticket.details["infos"]:
+            cluster = cluster_map[info["cluster_id"]]
+            old_hosts = [
+                s.machine.bk_host_id
+                for s in cluster.storageinstance_set.all()
+                if s.machine.machine_type == MachineType.MONGODB
+            ]
+            info["old_nodes"] = {"old_shard": [{"bk_host_id": host} for host in set(old_hosts)]}
+
+    def patch_ticket_detail(self):
+        self.patch_old_shard_nodes()
+        super().patch_ticket_detail()

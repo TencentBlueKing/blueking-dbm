@@ -35,6 +35,7 @@ class ClearKafkaMachineFlow(object):
         """
         self.root_id = root_id
         self.data = data
+        self.data["clear_hosts"] = self.data.pop("hosts")
         self.data["ticket_type"] = "clear_machines"
 
         # 如果data里有bk_cloud_id这个字段，则bk_cloud_id=self.data["bk_cloud_id"]

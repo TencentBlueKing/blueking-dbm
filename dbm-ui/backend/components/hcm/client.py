@@ -11,6 +11,7 @@ See the License for the specific language governing permissions and limitations 
 
 from django.utils.translation import ugettext_lazy as _
 
+from .. import CCApi
 from ..base import BaseApi
 from ..domains import HCM_APIGW_DOMAIN
 
@@ -25,6 +26,38 @@ class _HCMApi(BaseApi):
             url="/api/v1/woa/config/findmany/config/cvm/device/detail/",
             description=_("获取可用的CVM机型"),
         )
+        self.dissolve_check = self.generate_data_api(
+            method="POST",
+            url="/api/v1/woa/bizs/{bk_biz_id}/dissolve/hosts/status/check/",
+            description=_("查询主机是否为待裁撤阶段"),
+        )
+        self.uwork_check = self.generate_data_api(
+            method="POST",
+            url="/api/v1/woa/bizs/{bk_biz_id}/task/hosts/uwork_tickets/status/check/",
+            description=_("检查主机是否有未完结的uwork单据"),
+        )
+
+    def check_host_is_dissolved(self, bk_host_ids: list):
+        if not HCM_APIGW_DOMAIN:
+            return []
+
+        # 查询主机的业务信息，这里查询的主机必须为同一业务
+        biz = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids}, use_admin=True)[0]["bk_biz_id"]
+        # 查询裁撤主机列表
+        resp = self.dissolve_check(params={"bk_biz_id": biz, "bk_host_ids": bk_host_ids}, use_admin=True)
+        dissolved_hosts = [d["bk_host_id"] for d in resp["info"] if d["status"]]
+        return dissolved_hosts
+
+    def check_host_has_uwork(self, bk_host_ids: list):
+        if not HCM_APIGW_DOMAIN:
+            return {}
+
+        # 查询主机的业务信息，这里查询的主机必须为同一业务
+        biz = CCApi.find_host_biz_relations({"bk_host_id": bk_host_ids}, use_admin=True)[0]["bk_biz_id"]
+        # 查询包含uwork主机列表
+        resp = self.uwork_check(params={"bk_biz_id": biz, "bk_host_ids": bk_host_ids}, use_admin=True)
+        has_uwork_hosts_map = {d["bk_host_id"]: d for d in resp["details"] if d["has_open_tickets"]}
+        return has_uwork_hosts_map
 
 
 HCMApi = _HCMApi()

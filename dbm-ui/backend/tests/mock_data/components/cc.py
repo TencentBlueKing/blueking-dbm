@@ -29,7 +29,9 @@ MOCK_SEARCH_BUSINESS_WITH_MULTI_BIZ_RETURN = {
     "count": 2,
 }
 MOCK_FIND_HOST_BIZ_RELATIONS_RETURN = [
-    {"bk_host_id": 10001, "bk_biz_id": constant.BK_BIZ_ID, "bk_module_id": constant.BK_MODULE_ID}
+    {"bk_host_id": 1, "bk_biz_id": constant.BK_BIZ_ID, "bk_module_id": constant.BK_MODULE_ID},
+    {"bk_host_id": 2, "bk_biz_id": constant.BK_BIZ_ID, "bk_module_id": constant.BK_MODULE_ID},
+    {"bk_host_id": 3, "bk_biz_id": constant.BK_BIZ_ID, "bk_module_id": constant.BK_MODULE_ID},
 ]
 
 MOCK_GET_BIZ_INTERNAL_MODULE_RETURN = {
@@ -59,6 +61,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "bk_idc_area": "华东",
             "bk_idc_area_id": 5,
             "bk_os_name": "Tencent linux release 1.2 (Final)",
+            "bk_os_type": "linux",
             "bk_svr_device_cls_name": "D2-4-50-10",
             "idc_city_id": REGISTERED_CITY_ID,
             "idc_city_name": "上海",
@@ -76,6 +79,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "bk_idc_area": "华东",
             "bk_idc_area_id": 5,
             "bk_os_name": "Tencent linux release 1.2 (Final)",
+            "bk_os_type": "linux",
             "bk_svr_device_cls_name": "D2-4-50-10",
             "idc_city_id": REGISTERED_CITY_ID,
             "idc_city_name": "上海",
@@ -93,6 +97,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "bk_idc_area": "华东",
             "bk_idc_area_id": 5,
             "bk_os_name": "Tencent linux release 1.2 (Final)",
+            "bk_os_type": "linux",
             "bk_svr_device_cls_name": "D2-4-50-10",
             "idc_city_id": REGISTERED_CITY_ID,
             "idc_city_name": "上海",
@@ -110,6 +115,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "bk_idc_area": "华东",
             "bk_idc_area_id": 5,
             "bk_os_name": "Tencent linux release 1.2 (Final)",
+            "bk_os_type": "linux",
             "bk_svr_device_cls_name": "D2-4-50-10",
             "idc_city_id": REGISTERED_CITY_ID,
             "idc_city_name": "上海",
@@ -127,6 +133,7 @@ MOCK_LIST_HOSTS_WITHOU_BIZ_RETURN = {
             "bk_idc_area": "华东",
             "bk_idc_area_id": 5,
             "bk_os_name": "Tencent linux release 1.2 (Final)",
+            "bk_os_type": "linux",
             "bk_svr_device_cls_name": "D2-4-50-10",
             # 未录入DBM系统的 City ID
             "idc_city_id": NOT_REGISTERED_CITY_ID,
@@ -197,6 +204,11 @@ class CCApiMock:
         return self.search_module_return
 
     def find_host_biz_relations(self, *args, **kwargs):
+        if args[0].get("bk_host_id"):
+            return [
+                {"bk_host_id": host_id, "bk_biz_id": constant.BK_BIZ_ID, "bk_module_id": constant.BK_MODULE_ID}
+                for host_id in args[0]["bk_host_id"]
+            ]
         return self.find_host_biz_relations_return
 
     def list_service_instance_detail(self, *args, **kwargs):

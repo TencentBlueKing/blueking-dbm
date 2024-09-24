@@ -39,9 +39,10 @@ class PulsarReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_REPLACE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.PULSAR_REPLACE, is_apply=True, is_recycle=True)
 class PulsarReplaceFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarReplaceDetailSerializer
     inner_flow_builder = PulsarReplaceFlowParamBuilder
     inner_flow_name = _("Pulsar 集群替换")
     resource_apply_builder = PulsarReplaceResourceParamBuilder
+    need_patch_recycle_host_details = True

@@ -91,6 +91,7 @@ class TenDBClusterReduceNodesFlow(object):
         if spider_reduced_hosts:
             return [{"ip": host["ip"]} for host in spider_reduced_hosts]
 
+        # TODO: 这块逻辑放到单据，需要提前拿到待下架机器
         # 计算合理的待下架的spider节点列表
         ctl_primary = cluster.tendbcluster_ctl_primary_address()
 

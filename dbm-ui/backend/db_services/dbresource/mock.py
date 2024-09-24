@@ -88,28 +88,31 @@ RESOURCE_UPDATE_PARAMS = {
     "storage_device": {"/data3": {"size": 200, "disk_type": "HDD"}},
 }
 
-RESOURCE_SUMMARY_DATA = [
-    {
-        "dedicated_biz": 3,
-        "for_biz_name": "业务1",
-        "city": "上海",
-        "spec_id": 1,
-        "spec_name": "2核4G100G磁盘",
-        "spec_machine_type": "single",
-        "count": 1,
-        "sub_zone_detail": {"上海-宝信": 1},
-    },
-    {
-        "dedicated_biz": 1001,
-        "for_biz_name": "业务2",
-        "city": "上海",
-        "device_class": "S5.4XLARGE32",
-        "disk_summary": "",
-        "cpu_mem_summary": "16核32000G",
-        "count": 1,
-        "sub_zone_detail": {"上海-宝信": 1},
-    },
-]
+RESOURCE_SUMMARY_DATA = {
+    "summary_data": [
+        {
+            "dedicated_biz": 3,
+            "for_biz_name": "业务1",
+            "city": "上海",
+            "spec_id": 1,
+            "spec_name": "2核4G100G磁盘",
+            "spec_machine_type": "single",
+            "count": 1,
+            "sub_zone_detail": {"上海-宝信": 1},
+        },
+        {
+            "dedicated_biz": 1001,
+            "for_biz_name": "业务2",
+            "city": "上海",
+            "device_class": "S5.4XLARGE32",
+            "disk_summary": "",
+            "cpu_mem_summary": "16核32000G",
+            "count": 1,
+            "sub_zone_detail": {"上海-宝信": 1},
+        },
+    ],
+    "no_spec_ip_list": [],
+}
 
 DEVICE_CLASS_DATA = {
     "count": 1,

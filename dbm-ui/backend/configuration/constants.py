@@ -70,11 +70,11 @@ class AffinityEnum(str, StructuredEnum):
     """
 
     # 这个swtich 拼写错误不要改, 可能会影响老集群
-    SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("同城同subzone跨交换机跨机架"))
-    SAME_SUBZONE = EnumField("SAME_SUBZONE", _("同城同subzone"))
-    CROS_SUBZONE = EnumField("CROS_SUBZONE", _("CROS_SUBZONE"))
-    CROSS_RACK = EnumField("CROSS_RACK", _("跨机架"))
-    NONE = EnumField("NONE", _("NONE"))
+    SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("指定园区"))
+    SAME_SUBZONE = EnumField("SAME_SUBZONE", _("指定园区(无机架要求)"))
+    CROS_SUBZONE = EnumField("CROS_SUBZONE", _("跨园区"))
+    CROSS_RACK = EnumField("CROSS_RACK", _("不限园区"))
+    NONE = EnumField("NONE", _("无限制"))
     MAX_EACH_ZONE_EQUAL = EnumField("MAX_EACH_ZONE_EQUAL", _("每个subzone尽量均匀分布"))
 
 
@@ -221,8 +221,15 @@ BIZ_CONFIG_INFO = {
     "OPEN_AREA_VARS": [{"desc": "APP", "name": "APP", "builtin": True}]
 }
 
-# 默认的环境容灾要求
-AFFINITY_VALUE = []
+# 默认的环境容灾要求: 同城同园区，同城跨园区，同城无园区
+AFFINITY_VALUE = [
+    {
+        "value": AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
+        "label": AffinityEnum.get_choice_label(AffinityEnum.SAME_SUBZONE_CROSS_SWTICH),
+    },
+    {"value": AffinityEnum.CROSS_RACK, "label": AffinityEnum.get_choice_label(AffinityEnum.CROSS_RACK)},
+    {"value": AffinityEnum.CROS_SUBZONE, "label": AffinityEnum.get_choice_label(AffinityEnum.CROS_SUBZONE)},
+]
 
 # 默认具备迁移权限的人员
 DBM_DEFAULT_MIGRATE_USER = ["admin"]
@@ -237,7 +244,7 @@ DEFAULT_SETTINGS = [
     [SystemSettingsEnum.BKM_DUTY_NOTICE.value, "dict", BKM_DUTY_NOTICE_VALUE, _("默认通知配置")],
     [SystemSettingsEnum.DBM_MIGRATE_USER, "list", DBM_DEFAULT_MIGRATE_USER, _("具备迁移权限的人员名单")],
     [SystemSettingsEnum.BIZ_CONFIG, "dict", BIZ_CONFIG_INFO, _("默认的全业务配置信息")],
-    [SystemSettingsEnum.AFFINITY, "list", [], _("环境的容灾要求")],
+    [SystemSettingsEnum.AFFINITY, "list", AFFINITY_VALUE, _("环境的容灾要求")],
     [SystemSettingsEnum.SYSTEM_MSG_TYPE, "list", ["weixin", "mail"], _("系统消息通知方式")],
     [SystemSettingsEnum.PADDING_PROXY_CLUSTER_LIST, "list", [], _("补全proxy的集群域名列表")],
     [SystemSettingsEnum.VIRTUAL_USERS, "list", [], _("平台调用的虚拟账户列表")],

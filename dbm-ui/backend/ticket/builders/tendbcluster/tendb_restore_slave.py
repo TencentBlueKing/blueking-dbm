@@ -12,30 +12,34 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import StorageInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
-from backend.ticket.builders.mysql.mysql_restore_slave import MysqlRestoreSlaveDetailSerializer
+from backend.ticket.builders.mysql.mysql_restore_slave import (
+    MysqlRestoreSlaveDetailSerializer,
+    MysqlRestoreSlaveResourceParamBuilder,
+)
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
-from backend.utils.basic import get_target_items_from_details
 
 
 class TendbClusterRestoreSlaveDetailSerializer(MysqlRestoreSlaveDetailSerializer, TendbBaseOperateDetailSerializer):
     class RestoreInfoSerializer(serializers.Serializer):
-        old_slave = HostInfoSerializer(help_text=_("旧从库 IP"))
+        class OldSlaveSerializer(serializers.Serializer):
+            old_slave = serializers.ListSerializer(child=HostInfoSerializer(help_text=_("旧从库 IP")))
+
         new_slave = HostInfoSerializer(help_text=_("新从库 IP"), required=False)
+        old_nodes = OldSlaveSerializer(help_text=_("旧从库信息"))
         resource_spec = serializers.JSONField(help_text=_("新从库资源池参数"), required=False)
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 
     ip_source = serializers.ChoiceField(
         help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
     )
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     infos = serializers.ListField(help_text=_("集群重建信息"), child=RestoreInfoSerializer())
 
@@ -65,44 +69,14 @@ class TendbClusterRestoreSlaveParamBuilder(builders.FlowParamBuilder):
             info["bk_old_slave"], info["bk_new_slave"] = info.pop("old_slave"), info.pop("new_slave")
 
 
-class TendbClusterRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
-    def patch_slave_subzone(self):
-        # 对于亲和性为跨园区的，slave和master需要在不同园区
-        slave_host_ids = get_target_items_from_details(self.ticket.details, match_keys=["bk_host_id"])
-        slaves = StorageInstance.objects.prefetch_related("as_receiver__ejector__machine", "machine").filter(
-            machine__bk_host_id__in=slave_host_ids, cluster_type=ClusterType.TenDBCluster
-        )
-        slave_host_map = {slave.machine.bk_host_id: slave for slave in slaves}
-        for info in self.ticket_data["infos"]:
-            resource_spec = info["resource_spec"]["new_slave"]
-            slave = slave_host_map[info["old_slave"]["bk_host_id"]]
-            master_subzone_id = slave.as_receiver.get().ejector.machine.bk_sub_zone_id
-            # 同城跨园区，要求slave和master在不同subzone
-            if resource_spec["affinity"] == AffinityEnum.CROS_SUBZONE:
-                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=False)
-            # 同城同园区，要求slave和master在一个subzone
-            elif resource_spec["affinity"] in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
-                resource_spec["location_spec"].update(sub_zone_ids=[master_subzone_id], include_or_exclue=True)
-
-    def format(self):
-        # 补充亲和性和城市信息
-        super().patch_info_affinity_location(roles=["new_slave"])
-        # 补充slave园区申请
-        self.patch_slave_subzone()
-
-    def post_callback(self):
-        next_flow = self.ticket.next_flow()
-        ticket_data = next_flow.details["ticket_data"]
-        for info in ticket_data["infos"]:
-            info["bk_old_slave"], info["bk_new_slave"] = info.pop("old_slave"), info.pop("new_slave")[0]
-            info["old_slave_ip"], info["new_slave_ip"] = info["bk_old_slave"]["ip"], info["bk_new_slave"]["ip"]
-
-        next_flow.save(update_fields=["details"])
+class TendbClusterRestoreSlaveResourceParamBuilder(MysqlRestoreSlaveResourceParamBuilder):
+    pass
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RESTORE_SLAVE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RESTORE_SLAVE, is_apply=True, is_recycle=True)
 class TendbClusterRestoreSlaveFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterRestoreSlaveDetailSerializer
     inner_flow_builder = TendbClusterRestoreSlaveParamBuilder
     inner_flow_name = _("TenDB Cluster Slave重建")
     resource_batch_apply_builder = TendbClusterRestoreSlaveResourceParamBuilder
+    need_patch_recycle_host_details = True

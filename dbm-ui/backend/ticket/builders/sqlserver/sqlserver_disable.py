@@ -30,7 +30,7 @@ class SQLServerDisableFlowParamBuilder(builders.FlowParamBuilder):
 @builders.BuilderFactory.register(
     TicketType.SQLSERVER_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.SQLSERVER_ENABLE_DISABLE
 )
-class SQLServerDestroyFlowBuilder(BaseSQLServerTicketFlowBuilder):
+class SQLServerDisableFlowBuilder(BaseSQLServerTicketFlowBuilder):
     """Sqlserver禁用流程的构建基类"""
 
     serializer = SQLServerDisableDetailSerializer

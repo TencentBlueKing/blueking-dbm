@@ -213,7 +213,7 @@ class RedisProxyScaleFlow(object):
         redis_pipeline.run_pipeline()
 
     @staticmethod
-    def __calc_scale_down_ips(bk_biz_id, proxy_ips, target_proxy_count):
+    def calc_scale_down_ips(bk_biz_id, proxy_ips, target_proxy_count):
         # 统计proxy的idc情况
         idc_ips = defaultdict(list)
         max_count = 0
@@ -262,7 +262,7 @@ class RedisProxyScaleFlow(object):
                     raise Exception("proxy ip {} not in cluster {}".format(ip, cluster_name))
         else:
             # 根据数量缩容
-            scale_down_ips = cls.__calc_scale_down_ips(bk_biz_id, proxy_ips, target_proxy_count)
+            scale_down_ips = cls.calc_scale_down_ips(bk_biz_id, proxy_ips, target_proxy_count)
 
         return {
             "proxy_port": proxy_port,

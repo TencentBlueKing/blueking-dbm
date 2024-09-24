@@ -20,9 +20,12 @@ from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum
 from backend.configuration.models import DBAdministrator
 from backend.core import notify
+from backend.db_dirty.constants import MachineEventType
+from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import Spec
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.ticket import constants
+from backend.ticket.builders.common.base import fetch_apply_hosts
 from backend.ticket.constants import FlowCallbackType, FlowType, ResourceApplyErrCode, TodoType
 from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.flow_manager.delivery import DeliveryFlow
@@ -42,8 +45,12 @@ class ResourceApplyFlow(BaseTicketFlow):
 
     def __init__(self, flow_obj: Flow):
         super().__init__(flow_obj=flow_obj)
+        # 资源申请状态
         self.resource_apply_status = flow_obj.details.get("resource_apply_status", None)
+        # 是否允许资源申请为空
         self.allow_resource_empty = flow_obj.details.get("allow_resource_empty", False)
+        # 资源申请额外参数
+        self.extra_resource_params = flow_obj.details.get("resource_params", {})
 
     @property
     def _start_time(self) -> str:
@@ -123,15 +130,18 @@ class ResourceApplyFlow(BaseTicketFlow):
         """格式化申请的主机参数"""
         return [
             {
-                # 没有业务ID，认为是公共资源
+                # 主机来源业务
                 "bk_biz_id": host.get("bk_biz_id", 0),
                 "ip": host["ip"],
                 "bk_cloud_id": host["bk_cloud_id"],
+                "host_id": host["bk_host_id"],
                 "bk_host_id": host["bk_host_id"],
-                # 补充机器的内存，cpu和磁盘信息。(bk_disk的单位是GB, bk_mem的单位是MB)
+                # 补充机器的内存，cpu，磁盘和操作系统信息。(bk_disk的单位是GB, bk_mem的单位是MB)
                 "bk_cpu": host["cpu_num"],
                 "bk_disk": host["total_storage_cap"],
                 "bk_mem": host["dram_cap"],
+                "os_name": host["os_name"],
+                "os_type": host["os_type"],
                 # bk_disk为系统盘，storage_device为数据盘/data|/data1
                 "storage_device": host["storage_device"],
                 # 补充城市和园区
@@ -140,6 +150,10 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "sub_zone_id": host.get("sub_zone_id"),
                 "rack_id": host.get("rack_id"),
                 "device_class": host.get("device_class"),
+                # 补充主机资源池原信息，可能用于重导入
+                "for_biz": host["dedicated_biz"],
+                "labels": host["labels"],
+                "resource_type": host["rs_type"],
             }
             for host in hosts
         ]
@@ -163,12 +177,12 @@ class ResourceApplyFlow(BaseTicketFlow):
 
         # groups_in_same_location只在同城同园区亲和性下才成效，保证所有组申请的机器都在同园区
         # 目前所有组亲和性相同，任取一个判断即可
-        affinity = apply_params["details"][0]["affinity"]
+        affinity = apply_params["details"][0].get("affinity", AffinityEnum.NONE)
         if affinity in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
             apply_params.update(groups_in_same_location=True)
 
         # 向资源池申请机器
-        resp = DBResourceApi.resource_pre_apply(params=apply_params, raw=True)
+        resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
         if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
             # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
             self.create_replenish_todo()
@@ -197,6 +211,16 @@ class ResourceApplyFlow(BaseTicketFlow):
                 node_infos[group_name].append({"master": host_infos[0], "slave": host_infos[1]})
             else:
                 node_infos[group_name].extend(host_infos)
+
+        # 记录申请记录
+        applied_host_infos = fetch_apply_hosts({"nodes": node_infos})
+        MachineEvent.host_event_trigger(
+            self.ticket.bk_biz_id,
+            applied_host_infos,
+            event=MachineEventType.ApplyResource,
+            operator=self.ticket.creator,
+            ticket=self.ticket,
+        )
 
         return resource_request_id, node_infos
 
@@ -231,6 +255,12 @@ class ResourceApplyFlow(BaseTicketFlow):
         # 根据规格来填充相应机器的申请参数
         resource_spec = ticket_data["resource_spec"]
         for role, role_spec in resource_spec.items():
+            # 如果是指定主机，则直接请求，不走解析规格的逻辑，指定主机group_count固定为1组，也无需考虑亲和性问题
+            if role_spec.get("hosts"):
+                hosts = role_spec["hosts"]
+                params = {"group_mark": f"{role}_0", "hosts": hosts, "bk_cloud_id": bk_cloud_id, "count": len(hosts)}
+                details.append(params)
+                continue
             # 如果申请数量为0/规格ID不合法(存在spec id为0 --> 是前端表单的默认值)，则跳过
             if not role_spec["count"] or not role_spec["spec_id"]:
                 continue
@@ -257,9 +287,8 @@ class ResourceApplyFlow(BaseTicketFlow):
             raise ResourceApplyException(_("申请的资源总数为0，资源申请不合法"))
 
         # 如果有额外的过滤条件，则补充到每个申请group的details中
-        if ticket_data.get("resource_params"):
-            resource_params = ticket_data["resource_params"]
-            details = [{**detail, **resource_params} for detail in details]
+        if self.extra_resource_params:
+            details = [{**detail, **self.extra_resource_params} for detail in details]
 
         return details
 
@@ -273,6 +302,10 @@ class ResourceApplyFlow(BaseTicketFlow):
         spec_map = spec_map or {}
         resource_spec = ticket_data["resource_spec"]
         for role, role_spec in copy.deepcopy(resource_spec).items():
+            # 如果是手动指定主机申请，则规格无意义
+            if "hosts" in role_spec:
+                resource_spec[role] = {"id": 0}
+                continue
             # 如果该存在无需申请，则跳过
             if not role_spec["count"] or not role_spec["spec_id"]:
                 continue
@@ -335,7 +368,7 @@ class ResourceBatchApplyFlow(ResourceApplyFlow):
     def patch_resource_spec(self, ticket_data):
         spec_ids: List[int] = []
         for info in ticket_data["infos"]:
-            spec_ids.extend([data["spec_id"] for data in info["resource_spec"].values()])
+            spec_ids.extend([data["spec_id"] for data in info["resource_spec"].values() if data.get("spec_id")])
 
         # 提前缓存数据库查询数据，避免多次IO
         spec_map = {spec.spec_id: spec for spec in Spec.objects.filter(spec_id__in=spec_ids)}
@@ -371,6 +404,7 @@ class ResourceBatchApplyFlow(ResourceApplyFlow):
 class ResourceDeliveryFlow(DeliveryFlow):
     """
     内置资源申请交付流程，主要是通知资源池机器使用成功
+    # TODO: 暂时废弃，无需资源确认了。
     """
 
     def confirm_resource(self, ticket_data):
@@ -396,14 +430,4 @@ class ResourceDeliveryFlow(DeliveryFlow):
 
     def _run(self) -> str:
         self.confirm_resource(self.ticket.details)
-        return super()._run()
-
-
-class ResourceBatchDeliveryFlow(ResourceDeliveryFlow):
-    """
-    内置资源申请批量交付流程，主要是通知资源池机器使用成功
-    """
-
-    def _run(self) -> str:
-        # 暂时与单独交付节点没有区别
         return super()._run()

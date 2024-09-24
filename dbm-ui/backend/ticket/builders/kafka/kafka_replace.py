@@ -40,9 +40,10 @@ class KafkaReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_REPLACE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.KAFKA_REPLACE, is_apply=True, is_recycle=True)
 class KafkaReplaceFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaReplaceDetailSerializer
     inner_flow_builder = KafkaReplaceFlowParamBuilder
     inner_flow_name = _("Kafka 集群替换")
     resource_apply_builder = KafkaReplaceResourceParamBuilder
+    need_patch_recycle_host_details = True

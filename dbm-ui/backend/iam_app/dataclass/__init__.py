@@ -292,4 +292,4 @@ def flush_groups_auth():
             # 分配权限
             assign_auth_to_group(iam, biz, group_id)
         except Exception as e:
-            raise BaseIAMError(_("用户组{}刷新失败，错误信息:{}").format(group, e))
+            logger.error(_("用户组{}刷新失败，错误信息:{}").format(group, e))
