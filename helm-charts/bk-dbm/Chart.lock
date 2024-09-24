@@ -19,7 +19,7 @@ dependencies:
   version: 7.9.8
 - name: dbm
   repository: file://charts/dbm
-  version: 0.1.42
+  version: 0.1.43
 - name: dbconfig
   repository: file://charts/dbconfig
   version: 0.1.13
@@ -65,5 +65,5 @@ dependencies:
 - name: db-dbha
   repository: file://charts/db-dbha
   version: 0.1.0
-digest: sha256:a0cc97116fc4c063d525b75adb4dab479456c1509f975700b887cc19517d1348
-generated: "2024-09-23T12:17:47.539237+08:00"
+digest: sha256:3c575b03f6b51f8db997a5db4b4f5c85199d050d0ce3700c989a2481eba024ea
+generated: "2024-09-24T12:16:55.926025+08:00"
