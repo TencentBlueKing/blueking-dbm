@@ -42,13 +42,16 @@
 </template>
 
 <script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
   import { useI18n } from 'vue-i18n';
 
-  import type { TableColumnRender } from '@/types/bkui-vue';
+  import { getLevelConfig } from '@services/source/configs';
+
+  import { type DiffItem } from '@views/db-configure/hooks/useDiff';
+
+  type ParameterConfigItem = ServiceReturnType<typeof getLevelConfig>['conf_items'][number];
 
   interface Props {
-    data?: Record<string, any>[],
+    data?: DiffItem[],
     count?: {
       create: number,
       update: number,
@@ -71,20 +74,24 @@
 
   const { t } = useI18n();
 
-  const columns: Column[] = [{
+  const columns = [{
     label: t('参数名'),
     field: 'name',
-    render: ({ cell, data }: TableColumnRender) => (
-      <strong class={['bk-diff__parameter', `bk-diff__parameter--${data.status}`]} v-overflow-tips>{cell}</strong>
+    render: ({ data }: {data: DiffItem}) => (
+      <strong class={['bk-diff__parameter', `bk-diff__parameter--${data.status}`]} v-overflow-tips>{data.name}</strong>
     ),
   }, {
     label: t('更新前'),
     field: 'before',
-    render: ({ data }: TableColumnRender) => (
+    render: ({ data }: {data: DiffItem}) => (
       <>
         {props.labels.map((label) => {
+
       const itemData = data.before;
-      const displayValue = label.render ? label.render(data, 'before') : itemData[label.key];
+      if (!itemData){
+        return '--'
+      }
+      const displayValue = label.render ? label.render(data, 'before') : itemData[label.key as keyof ParameterConfigItem];
       return (
         <div class="bk-diff__item">
           <span class="bk-diff__item-label">{label.label}</span>
@@ -97,15 +104,17 @@
   }, {
     label: t('更新后'),
     field: 'after',
-    render: ({ data }: TableColumnRender) => (
+    render: ({ data }: {data: DiffItem}) => (
       <>
         {props.labels.map((label) => {
-        const itemData = data.after;
-        const displayValue = label.render ? label.render(data, 'after') : itemData[label.key];
+        if (!data.before || !data.after){
+          return '--'
+        }
+        const displayValue = label.render ? label.render(data, 'after') : data.after[label.key as keyof ParameterConfigItem];
 
         let { status } = data;
         if (status === 'update') {
-          status = data.after[label.key] === data.before[label.key] ? '' : 'update';
+          status = data.after[label.key as keyof ParameterConfigItem] === data.before[label.key as keyof ParameterConfigItem] ? '' : 'update';
         }
         const statusCls = status ? `bk-diff__item--${data.status}` : '';
 

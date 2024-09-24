@@ -11,9 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { generateId } from './generateId';
+import type { ISearchItem, ISearchValue } from 'bkui-vue/lib/search-select/utils';
 
-import type { SearchSelectData, SearchSelectItem, SearchSelectValues } from '@/types/bkui-vue';
+import { generateId } from './generateId';
 
 /**
  * search-select 组件搜索功能函数
@@ -25,10 +25,10 @@ import type { SearchSelectData, SearchSelectItem, SearchSelectValues } from '@/t
  * @returns menu list
  */
 export function getMenuListSearch(
-  searchItem: SearchSelectItem | undefined,
+  searchItem: ISearchItem | undefined,
   keyword: string,
-  data: SearchSelectData,
-  values: SearchSelectValues,
+  data: ISearchItem[],
+  values: ISearchValue[],
   uniqueSelect = true,
 ) {
   const lowerCaseKeyword = keyword.toLocaleLowerCase();

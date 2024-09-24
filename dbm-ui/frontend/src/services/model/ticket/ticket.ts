@@ -32,7 +32,7 @@ export default class Ticket<T extends unknown | DetailBase> {
     REVOKED: 'danger',
     TERMINATED: 'danger',
     ALL: undefined,
-  };
+  } as const;
   static statusTextMap = {
     ALL: t('全部'),
     PENDING: t('审批中'),
@@ -90,7 +90,7 @@ export default class Ticket<T extends unknown | DetailBase> {
 
   // 获取状态对应文案
   get tagTheme() {
-    return Ticket.themeMap[this.status] as BKTagTheme;
+    return Ticket.themeMap[this.status] as (typeof Ticket.themeMap)[keyof typeof Ticket.themeMap];
   }
 
   get statusText() {

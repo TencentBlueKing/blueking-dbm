@@ -22,8 +22,8 @@ type DiffData = ComputedRef<ParameterConfigItem[]> | ParameterConfigItem[];
 export type DiffItem = {
   name: string;
   status: string;
-  before: ParameterConfigItem;
-  after: ParameterConfigItem;
+  before?: ParameterConfigItem;
+  after?: ParameterConfigItem;
 };
 
 export const useDiff = (data: DiffData, origin: DiffData) => {
@@ -33,7 +33,7 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
       update: 0,
       delete: 0,
     },
-    data: [] as any,
+    data: [] as DiffItem[],
   });
 
   const diff = () => {
@@ -49,7 +49,7 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
       state.data.push({
         name: item.conf_name,
         status: 'create',
-        before: {},
+        before: undefined,
         after: item,
       });
     }
@@ -62,7 +62,7 @@ export const useDiff = (data: DiffData, origin: DiffData) => {
         name: item.conf_name,
         status: 'delete',
         before: item,
-        after: {},
+        after: undefined,
       });
     }
 

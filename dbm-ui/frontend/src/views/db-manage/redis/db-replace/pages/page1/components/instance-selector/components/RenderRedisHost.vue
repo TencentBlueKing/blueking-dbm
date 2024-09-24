@@ -43,6 +43,7 @@
   </div>
 </template>
 <script setup lang="tsx">
+  import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import { getRedisMachineList } from '@services/source/redis';
@@ -64,8 +65,6 @@
 
   import { activePanelInjectionKey } from './PanelTab.vue';
 
-  import type { TableProps } from '@/types/bkui-vue';
-
   type RedisHostModel = ServiceReturnType<typeof getRedisMachineList>['results'][number] & {
     isShowTip?: boolean;
   };
@@ -75,7 +74,7 @@
   }
 
   export interface Props {
-    tableSettings: TableProps['settings'],
+    tableSettings: InstanceType<typeof Table>['$props'],
     lastValues: InstanceSelectorValues,
     node?: {
       id: number,

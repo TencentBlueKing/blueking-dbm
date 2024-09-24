@@ -15,22 +15,20 @@
   <div class="event-change db-scroll-y">
     <div class="event-change__operations mb-16">
       <BkDatePicker
-        v-model="state.daterange"
+        v-model="daterange"
         append-to-body
         :placeholder="$t('请选择')"
         style="width: 410px"
         type="datetimerange"
         @change="fetchData" />
     </div>
-    <BkLoading :loading="state.isLoading">
-      <DbTable
-        ref="tableRef"
-        :columns="columns"
-        :data-source="dataSource"
-        fixed-pagination
-        releate-url-query
-        @clear-search="handleClearFilters" />
-    </BkLoading>
+    <DbTable
+      ref="tableRef"
+      :columns="columns"
+      :data-source="dataSource"
+      fixed-pagination
+      releate-url-query
+      @clear-search="handleClearFilters" />
   </div>
 </template>
 
@@ -43,22 +41,15 @@
     getClusterOperateRecords,
     getInstanceOperateRecords,
   } from '@services/source/ticket';
-  import type { ClusterOperateRecord } from '@services/types/ticket';
 
   import DbStatus from '@components/db-status/index.vue';
-
-  import type { TableProps } from '@/types/bkui-vue';
-
-  interface State {
-    daterange: [string | Date, string | Date],
-    data: ClusterOperateRecord[],
-    isLoading: boolean
-  }
 
   interface Props {
     id: number, // 集群 or 实例 id
     isFetchInstance?: boolean
   }
+
+  type IRowData = ServiceReturnType<typeof getInstanceOperateRecords>['results'][number]
 
   const props = withDefaults(defineProps<Props>(), {
     isFetchInstance: false,
@@ -67,15 +58,12 @@
   const { t } = useI18n();
 
   const tableRef = ref();
-  const state = reactive<State>({
-    daterange: [subDays(new Date(), 6), new Date()],
-    isLoading: false,
-    data: [],
-  });
+
+  const daterange = ref<[string, string]|[Date, Date]>([subDays(new Date(), 6), new Date()])
 
   const dataSource = computed(() => (props.isFetchInstance ? getInstanceOperateRecords : getClusterOperateRecords));
 
-  const columns: TableProps['columns'] = [
+  const columns = [
     {
       label: t('时间'),
       field: 'create_at',
@@ -85,7 +73,7 @@
     }, {
       label: t('操作结果'),
       field: 'op_status',
-      render: ({ data }: {data: ClusterOperateRecord}) => {
+      render: ({ data }: {data: IRowData}) => {
         const errorStatus = { text: t('失败'), theme: 'danger' };
         const successStatus = { text: t('成功'), theme: 'success' };
         const loadingStatus = { text: t('执行中'), theme: 'loading' };
@@ -105,7 +93,7 @@
     }, {
       label: t('单据链接'),
       field: 'ticket_id',
-      render: ({ data }: {data: ClusterOperateRecord}) => (
+      render: ({ data }: {data: IRowData}) => (
         <router-link
           to={{
             name: 'bizTicketManage',
@@ -124,7 +112,7 @@
     nextTick(() => {
       if (!props.id) return;
 
-      const [start, end] = state.daterange;
+      const [start, end] = daterange.value;
       const dateParams = start && end ? {
         start_time: format(new Date(Number(start)), 'yyyy-MM-dd HH:mm:ss'),
         end_time: format(new Date(Number(end)), 'yyyy-MM-dd HH:mm:ss'),
@@ -148,7 +136,7 @@
   });
 
   function handleClearFilters() {
-    state.daterange = ['', ''];
+    daterange.value = ['', ''];
     fetchData();
   }
 </script>

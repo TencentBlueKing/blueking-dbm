@@ -140,7 +140,7 @@
       host_id: item.bk_host_id,
       meta: {
         bk_biz_id: item.bk_biz_id,
-        scope_id: item.bk_biz_id,
+        scope_id: `${item.bk_biz_id}`,
         scope_type: 'biz',
       },
     }));
@@ -149,7 +149,7 @@
     getHostDetails({
       host_list: hostIdList,
       scope_list: [{
-        scope_id: bizId,
+        scope_id: `${bizId}`,
         scope_type: 'biz',
       }],
     }).then((data) => {

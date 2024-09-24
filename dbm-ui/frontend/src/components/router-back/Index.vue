@@ -17,7 +17,7 @@
   const showRouterBackBtn = ref(false);
   let routerBack = () => {};
 
-  let timer = 0;
+  let timer: ReturnType<typeof setTimeout>;
 
   watch(route, () => {
     clearTimeout(timer);

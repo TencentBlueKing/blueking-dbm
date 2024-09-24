@@ -22,9 +22,10 @@
 </template>
 
 <script setup lang="tsx">
+  import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { TableProps } from '@types/bkui-vue';
+  type TableProps = InstanceType<typeof Table>['$props'];
 
   interface HostInfo {
     ip: string,

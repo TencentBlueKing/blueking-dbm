@@ -166,6 +166,7 @@
 </template>
 <script setup lang="tsx">
     import { InfoBox, Message } from 'bkui-vue';
+    import type { ISearchItem } from 'bkui-vue/lib/search-select/utils';
     import _ from 'lodash';
     import { useI18n } from 'vue-i18n';
     import {
@@ -229,12 +230,6 @@
     } from '@utils';
 
     import EntryPanel from './components/EntryPanel.vue';
-
-    import type {
-      SearchSelectData,
-      SearchSelectItem,
-      TableColumnRender,
-    } from '@/types/bkui-vue';
 
     type ColumnRenderData = { data: RedisModel }
 
@@ -436,7 +431,7 @@
         multiple: true,
         children: searchAttrs.value.time_zone,
       },
-    ] as SearchSelectData);
+    ]);
 
     const paginationExtra = computed(() => {
       if (isStretchLayoutOpen.value) {
@@ -1127,7 +1122,7 @@
       updateTableSettings,
     } = useTableSettings(UserPersonalSettings.REDIS_TABLE_SETTINGS, defaultSettings);
 
-    const getMenuList = async (item: SearchSelectItem | undefined, keyword: string) => {
+    const getMenuList = async (item: ISearchItem | undefined, keyword: string) => {
       if (item?.id !== 'creator' && keyword) {
         return getMenuListSearch(item, keyword, searchSelectData.value, searchValue.value);
       }
@@ -1250,8 +1245,9 @@
       });
     };
 
-    const handleSelection = (data: RedisModel, list: RedisModel[]) => {
+    const handleSelection = (idList: number[], list: RedisModel[]) => {
       selected.value = list;
+      console.log('list = ', list)
     };
 
   /**

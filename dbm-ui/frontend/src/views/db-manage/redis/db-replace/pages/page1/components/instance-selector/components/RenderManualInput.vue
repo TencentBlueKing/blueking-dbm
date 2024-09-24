@@ -90,6 +90,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import type { Table } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
@@ -105,8 +106,6 @@
   import type { PanelTypes } from './PanelTab.vue';
   import RenderManualHost from './RenderManualHost.vue';
 
-  import type { TableProps } from '@/types/bkui-vue';
-
   export interface InstanceItem extends Omit<InstanceInfos, 'spec_config'> {
     spec_config: RedisClusterNodeByIpModel['spec_config'];
   }
@@ -114,7 +113,7 @@
   interface Props {
     validTab: Exclude<PanelTypes, 'manualInput'>;
     lastValues: InstanceSelectorValues;
-    tableSettings: TableProps['settings'];
+    tableSettings: InstanceType<typeof Table>['$props']['settings'];
     role?: string;
   }
 
