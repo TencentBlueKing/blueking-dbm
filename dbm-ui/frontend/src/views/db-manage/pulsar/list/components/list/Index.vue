@@ -93,10 +93,6 @@
       </template>
     </BkDialog>
   </div>
-  <EditEntryConfig
-    :id="clusterId"
-    v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getPulsarDetail" />
 </template>
 <script setup lang="tsx">
   import { InfoBox, Message } from 'bkui-vue';
@@ -124,7 +120,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { ClusterTypes, UserPersonalSettings } from '@common/const';
+  import { ClusterTypes, DBTypes, UserPersonalSettings } from '@common/const';
 
   import ClusterCapacityUsageRate from '@components/cluster-capacity-usage-rate/Index.vue'
   import OperationBtnStatusTips from '@components/cluster-common/OperationBtnStatusTips.vue';
@@ -218,7 +214,6 @@
   const isShowShrink = ref(false);
   const isShowPassword = ref(false);
   const isInit = ref(true);
-  const showEditEntryConfig = ref(false);
   const selected = ref<PulsarModel[]>([])
   const operationData = shallowRef<PulsarModel>();
 
@@ -308,17 +303,14 @@
                     ]
                   } />
                 )}
-                <auth-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  v-db-console="pulsar.clusterManage.modifyEntryConfiguration"
-                  action-id="access_entry_edit"
-                  resource="pulsar"
-                  permission={data.permission.access_entry_edit}
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </auth-button>
+                <span v-db-console="pulsar.clusterManage.modifyEntryConfiguration">
+                  <EditEntryConfig
+                    id={data.id}
+                    getDetailInfo={getPulsarDetail}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.PULSAR}
+                    onSuccess={fetchTableData} />
+                </span>
               </>
             ),
           }}
@@ -798,11 +790,6 @@
     selected.value = list;
   };
 
-  const handleOpenEntryConfig = (row: PulsarModel) => {
-    showEditEntryConfig.value  = true;
-    clusterId.value = row.id;
-  };
-
   const fetchTableData = (loading?:boolean) => {
     const searchParams = getSearchSelectorParams(searchValue.value);
     tableRef.value?.fetchData(searchParams, { ...sortValue }, loading);
@@ -1118,7 +1105,7 @@
         align-items: center;
       }
 
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-top: 2px;
         margin-left: 4px;
@@ -1128,7 +1115,7 @@
     }
 
     :deep(tr:hover) {
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }

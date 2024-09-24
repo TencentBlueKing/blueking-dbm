@@ -48,7 +48,7 @@
     }
 
     let color = '#2DCB56';
-    const { used, total, in_use: inUse } = props.clusterStats;
+    const { used = 0, total = 0, in_use: inUse = 0 } = props.clusterStats;
 
     if (inUse >= 90) {
       color = '#EA3636';
@@ -71,8 +71,8 @@
     align-items: center;
 
     .usage-rate {
-      color: #63656e;
       font-weight: 700;
+      color: #63656e;
     }
 
     .usage-text {

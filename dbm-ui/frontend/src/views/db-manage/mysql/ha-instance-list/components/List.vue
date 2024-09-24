@@ -176,7 +176,7 @@
         label: t('实例'),
         field: 'instance_address',
         fixed: 'left',
-        minWidth: 200,
+        width: 200,
         showOverflowTooltip: false,
         render: ({ cell, data }: ColumnData) => (
           <TextOverflowLayout>
@@ -197,36 +197,6 @@
             }}
           </TextOverflowLayout>
         ),
-      },
-      {
-        label: t('集群名称'),
-        field: 'cluster_name',
-        minWidth: 200,
-        showOverflowTooltip: false,
-        render: ({ cell, data }: ColumnData) => (
-        <TextOverflowLayout>
-          {{
-            default: () => (
-              <auth-button
-                action-id="mysql_view"
-                resource={data.cluster_id}
-                permission={data.permission.mysql_view}
-                text
-                theme="primary"
-                onClick={() => handleToClusterDetails(data)}>
-                {cell}
-              </auth-button>
-            ),
-            append: () => (
-              <db-icon
-                v-bk-tooltips={t('复制集群名称')}
-                type="copy"
-                class="copy-btn"
-                onClick={() => copy(cell)} />
-            ),
-          }}
-        </TextOverflowLayout>
-      ),
       },
       {
         label: t('状态'),
@@ -255,58 +225,68 @@
         },
       },
       {
-        label: t('主访问入口'),
-        field: 'master_domain',
-        minWidth: 200,
-        showOverflowTooltip: false,
-        render: ({ cell }: ColumnData) => (
-          <TextOverflowLayout>
-            {{
-              default: () => cell,
-              append: () => (
-                <db-icon
-                  v-bk-tooltips={t('复制主访问入口')}
-                  type="copy"
-                  class="copy-btn"
-                  onClick={() => copy(cell)} />
-              ),
-            }}
-          </TextOverflowLayout>
-        ),
-      },
-      {
-        label: t('从访问入口'),
-        field: 'slave_domain',
-        minWidth: 200,
-        showOverflowTooltip: false,
-        render: ({ cell }: ColumnData) => (
-          <TextOverflowLayout>
-            {{
-              default: () => cell,
-              append: () => (
-                <db-icon
-                  v-bk-tooltips={t('复制从访问入口')}
-                  type="copy"
-                  class="copy-btn"
-                  onClick={() => copy(cell)} />
-              ),
-            }}
-          </TextOverflowLayout>
-        ),
-      },
-      {
         label: t('部署角色'),
         field: 'role',
-        width: 100,
+        width: 140,
         filter: {
           list: columnAttrs.value.role,
           checked: columnCheckedMap.value.role,
         },
       },
       {
+        label: t('所属集群'),
+        field: 'master_domain',
+        width: 260,
+        showOverflowTooltip: false,
+        render: ({ cell }: ColumnData) => (
+          <TextOverflowLayout>
+            {{
+              default: () => cell,
+              append: () => (
+                <db-icon
+                  v-bk-tooltips={t('复制所属集群')}
+                  type="copy"
+                  class="copy-btn"
+                  onClick={() => copy(cell)} />
+              ),
+            }}
+          </TextOverflowLayout>
+        ),
+      },
+      {
+        label: t('集群名称'),
+        field: 'cluster_name',
+        width: 180,
+        showOverflowTooltip: false,
+        render: ({ cell, data }: ColumnData) => (
+          <TextOverflowLayout>
+            {{
+              default: () => (
+                <auth-button
+                  action-id="mysql_view"
+                  resource={data.cluster_id}
+                  permission={data.permission.mysql_view}
+                  text
+                  theme="primary"
+                  onClick={() => handleToClusterDetails(data)}>
+                  {cell}
+                </auth-button>
+              ),
+              append: () => (
+                <db-icon
+                  v-bk-tooltips={t('复制集群名称')}
+                  type="copy"
+                  class="copy-btn"
+                  onClick={() => copy(cell)} />
+              ),
+            }}
+          </TextOverflowLayout>
+        ),
+      },
+      {
         label: t('部署时间'),
         field: 'create_at',
-        width: 250,
+        width: 240,
         sort: true,
         render: ({ data }: { data: TendbhaInstanceModel }) => data.createAtDisplay || '--',
       },

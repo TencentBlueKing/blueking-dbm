@@ -209,3 +209,14 @@ export const getList = function (params: Record<string, any>) {
 export const getDetail = function (params: { id: number }) {
   return http.get<SpiderModel>(`${getRootPath()}/${params.id}/`).then((data) => new SpiderModel(data));
 };
+
+/**
+ * 获取集群primary关系映射
+ */
+export const getSpiderClusterPrimary = (params: { cluster_ids: number[] }) =>
+  http.post<
+    {
+      cluster_id: number;
+      primary: string;
+    }[]
+  >(`${getRootPath()}/get_cluster_primary/`, params);

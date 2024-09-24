@@ -71,10 +71,6 @@
     v-model:is-show="isShowExcelAuthorize"
     :cluster-type="ClusterTypes.SQLSERVER_SINGLE"
     :ticket-type="TicketTypes.SQLSERVER_EXCEL_AUTHORIZE_RULES" />
-  <EditEntryConfig
-    :id="showEnterConfigClusterId"
-    v-model:is-show="showEditEntryConfig"
-    :get-detail-info="getSingleClusterDetail" />
   <ClusterReset
     v-if="currentData"
     v-model:is-show="isShowClusterReset"
@@ -112,6 +108,7 @@
   import {
     AccountTypes,
     ClusterTypes,
+    DBTypes,
     TicketTypes,
     type TicketTypesStrings,
     UserPersonalSettings,
@@ -195,8 +192,6 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false)
-  const showEditEntryConfig = ref(false);
-  const showEnterConfigClusterId = ref(0);
   const currentData = ref<SqlServerSingleClusterModel>()
   const selected = ref<SqlServerSingleClusterModel[]>([])
 
@@ -364,14 +359,14 @@
                       data-text="NEW" />
                   )
                 }
-                <bk-button
-                  v-bk-tooltips={t('修改入口配置')}
-                  class="ml-4"
-                  text
-                  theme="primary"
-                  onClick={() => handleOpenEntryConfig(data)}>
-                  <db-icon type="edit" />
-                </bk-button>
+                <span v-db-console="sqlserver.singleClusterList.modifyEntryConfiguration">
+                  <EditEntryConfig
+                    id={data.id}
+                    getDetailInfo={getSingleClusterDetail}
+                    permission={data.permission.access_entry_edit}
+                    resource={DBTypes.SQLSERVER}
+                    onSuccess={fetchData} />
+                </span>
               </>
             ),
           }}
@@ -793,11 +788,6 @@
     copy(copyList.join('\n'));
   }
 
-  const handleOpenEntryConfig = (row: SqlServerSingleClusterModel) => {
-    showEditEntryConfig.value  = true;
-    showEnterConfigClusterId.value = row.id;
-  };
-
   // 获取列表数据下的实例子列表
   const getInstanceListByRole = (dataList: SqlServerSingleClusterModel[], field: keyof SqlServerSingleClusterModel) => dataList.reduce((result, curRow) => {
     result.push(...curRow[field] as SqlServerSingleClusterModel['storages']);
@@ -911,7 +901,7 @@
 
       .db-icon-copy,
       .db-icon-link,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: none;
         margin-left: 4px;
         color: @primary-color;
@@ -937,7 +927,7 @@
     td:hover {
       .db-icon-copy,
       .db-icon-link,
-      .db-icon-edit {
+      .db-icon-visible1 {
         display: inline-block !important;
       }
     }
