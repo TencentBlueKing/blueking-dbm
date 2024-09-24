@@ -8,20 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.contrib import admin
-
-from . import models
 
 
-@admin.register(models.DirtyMachine)
-class DirtyMachineAdmin(admin.ModelAdmin):
-    list_display = ("ip", "bk_biz_id", "bk_host_id", "ticket", "pool")
-    list_filter = ("ip", "ticket", "pool")
-    search_fields = ("ip", "bk_biz_id", "bk_host_id")
-
-
-@admin.register(models.MachineEvent)
-class MachineEventAdmin(admin.ModelAdmin):
-    list_display = ("ip", "bk_biz_id", "bk_host_id", "event", "to", "ticket")
-    list_filter = ("ip", "bk_biz_id", "to")
-    search_fields = ("ip", "bk_biz_id", "bk_host_id")
+RELATED_RESOURCE_DATA = [
+    {"id": 1, "related_resources": [{"id": 15, "display": "127.0.0.1"}, {"id": 16, "display": "127.0.0.2"}]},
+    {"id": 2, "related_resources": [{"id": 15, "display": "127.0.0.1"}, {"id": 16, "display": "127.0.0.2"}]},
+]

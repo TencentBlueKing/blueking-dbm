@@ -261,7 +261,7 @@ class CcManage(object):
         transfer_host_ids = list(set(transfer_host_ids))
         if transfer_host_ids:
             resp = CCApi.transfer_host_to_idlemodule(
-                {"bk_biz_id": bk_biz_id, "bk_host_id": transfer_host_ids}, raw=True
+                {"bk_biz_id": bk_biz_id, "bk_host_id": transfer_host_ids}, raw=True, use_admin=True
             )
             if resp.get("result"):
                 return

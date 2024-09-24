@@ -14,6 +14,8 @@ from rest_framework import serializers
 
 from backend.bk_web.serializers import AuditedSerializer
 from backend.db_meta.models import Tag
+from backend.db_services.tag import mock
+from backend.db_services.tag.constants import TagResourceType
 
 
 class TagSerializer(AuditedSerializer, serializers.ModelSerializer):
@@ -48,4 +50,9 @@ class DeleteTagsSerializer(serializers.Serializer):
 
 class QueryRelatedResourceSerializer(serializers.Serializer):
     ids = serializers.ListSerializer(child=serializers.IntegerField(help_text=_("标签 ID")), help_text=_("标签 ID 列表"))
-    resource_type = serializers.CharField(help_text=_("资源类型"), required=False)
+    resource_type = serializers.ChoiceField(help_text=_("资源类型"), choices=TagResourceType.get_choices())
+
+
+class RelatedResourceResponseSerializer(serializers.Serializer):
+    class Meta:
+        swagger_schema_fields = {"example": mock.RELATED_RESOURCE_DATA}

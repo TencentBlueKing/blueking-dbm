@@ -17,10 +17,11 @@ from django.utils.translation import ugettext as _
 
 from backend import env
 from backend.components import CCApi
-from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.db_dirty.models import DirtyMachine
+from backend.db_dirty.constants import MachineEventType, PoolType
+from backend.db_dirty.exceptions import PoolTransferException
+from backend.db_dirty.models import DirtyMachine, MachineEvent
 from backend.db_meta.models import AppCache
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.handlers.topo_handler import TopoHandler
@@ -28,8 +29,8 @@ from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.consts import FAILED_STATES
 from backend.flow.utils.cc_manage import CcManage
 from backend.ticket.builders import BuilderFactory
+from backend.ticket.builders.common.base import fetch_apply_hosts
 from backend.ticket.models import Flow, Ticket
-from backend.utils.basic import get_target_items_from_details
 from backend.utils.batch_request import request_multi_thread
 
 logger = logging.getLogger("root")
@@ -41,28 +42,34 @@ class DBDirtyMachineHandler(object):
     """
 
     @classmethod
-    def transfer_dirty_machines(cls, bk_host_ids: List[int]):
+    def transfer_hosts_to_pool(cls, operator: str, bk_host_ids: List[int], source: PoolType, target: PoolType):
         """
-        将污点主机转移待回收模块，并从资源池移除
+        将主机转移待回收/故障池模块
         @param bk_host_ids: 主机列表
+        @param operator: 操作者
+        @param source: 主机来源
+        @param target: 主机去向
         """
-        # 将主机移动到待回收模块
-        dirty_machines = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
-        bk_biz_id__host_ids = defaultdict(list)
-        for machine in dirty_machines:
-            bk_biz_id__host_ids[machine.bk_biz_id].append(machine.bk_host_id)
+        # 将主机按照业务分组
+        recycle_hosts = DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids)
+        biz_grouped_recycle_hosts = itertools.groupby(recycle_hosts, key=lambda x: x.bk_biz_id)
 
-        for bk_biz_id, bk_host_ids in bk_biz_id__host_ids.items():
-            CcManage(int(bk_biz_id), "").recycle_host(bk_host_ids)
-
-        # 删除污点池记录，并从资源池移除(忽略删除错误，因为机器可能不来自资源池)
-        dirty_machines.delete()
-        DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids}, raise_exception=False)
+        for bk_biz_id, hosts in biz_grouped_recycle_hosts:
+            hosts = [{"bk_host_id": host.bk_host_id} for host in hosts]
+            # 故障池 ---> 待回收
+            if source == PoolType.Recycle and target == PoolType.Recycled:
+                CcManage(bk_biz_id, "").recycle_host([h["bk_host_id"] for h in hosts])
+                MachineEvent.host_event_trigger(bk_biz_id, hosts, event=MachineEventType.Recycled, operator=operator)
+            # 待回收 ---> 回收
+            elif source == PoolType.Fault and target == PoolType.Recycle:
+                MachineEvent.host_event_trigger(bk_biz_id, hosts, event=MachineEventType.ToRecycle, operator=operator)
+            else:
+                raise PoolTransferException(_("{}--->{}转移不合法").format(source, target))
 
     @classmethod
     def query_dirty_machine_records(cls, bk_host_ids: List[int]):
         """
-        查询污点池主机信息
+        查询污点池主机信息 TODO: 污点池废弃，代码将被移除
         @param bk_host_ids: 主机列表
         """
 
@@ -165,7 +172,7 @@ class DBDirtyMachineHandler(object):
     @classmethod
     def insert_dirty_machines(cls, bk_biz_id: int, bk_host_ids: List[Dict[str, Any]], ticket: Ticket, flow: Flow):
         """
-        将机器导入到污点池中
+        将机器导入到污点池中 TODO: 污点池废弃，代码将被移除
         @param bk_biz_id: 业务ID
         @param bk_host_ids: 主机列表
         @param ticket: 关联的单据
@@ -224,18 +231,6 @@ class DBDirtyMachineHandler(object):
         )
 
     @classmethod
-    def remove_dirty_machines(cls, bk_host_ids: List[Dict[str, Any]]):
-        """
-        将机器从污点池挪走，一般是重试后会调用此函数。
-        这里只用删除记录，无需做其他挪模块的操作，原因如下：
-        1. 如果重试依然失败，则机器会重新回归污点池，模块不变
-        2. 如果重试成功，则机器已经由flow挪到了对应的DB模块
-        3. 如果手动处理，则机器会被挪到待回收模块
-        @param bk_host_ids: 主机列表
-        """
-        DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids).delete()
-
-    @classmethod
     def handle_dirty_machine(cls, ticket_id, root_id, origin_tree_status, target_tree_status):
         """处理执行失败/重试成功涉及的污点池机器"""
         if (origin_tree_status not in FAILED_STATES) and (target_tree_status not in FAILED_STATES):
@@ -243,7 +238,6 @@ class DBDirtyMachineHandler(object):
 
         try:
             ticket = Ticket.objects.get(id=ticket_id)
-            flow = Flow.objects.get(flow_obj_id=root_id)
             # 如果不是部署类单据，则无需处理
             if ticket.ticket_type not in BuilderFactory.apply_ticket_type:
                 return
@@ -251,20 +245,19 @@ class DBDirtyMachineHandler(object):
             return
 
         # 如果初始状态是失败，则证明是重试，将机器从污点池中移除
-        bk_host_ids = get_target_items_from_details(
-            obj=ticket.details, match_keys=["host_id", "bk_host_id", "bk_host_ids"]
-        )
+        hosts = fetch_apply_hosts(ticket.details)
+        bk_host_ids = [h["bk_host_id"] for h in hosts]
 
         if not bk_host_ids:
             return
 
+        # 如果是原状态失败，则证明是重试，这里只用删除记录
         if origin_tree_status in FAILED_STATES:
             logger.info(_("【污点池】主机列表:{} 将从污点池挪出").format(bk_host_ids))
-            DBDirtyMachineHandler.remove_dirty_machines(bk_host_ids)
+            DirtyMachine.objects.filter(bk_host_id__in=bk_host_ids).delete()
 
         # 如果是目标状态失败，则证明是执行失败，将机器加入污点池
         if target_tree_status in FAILED_STATES:
-            logger.info(_("【污点池】单据-{}：任务-{}执行失败，主机列表:{}挪到污点池").format(ticket_id, root_id, bk_host_ids))
-            DBDirtyMachineHandler.insert_dirty_machines(
-                bk_biz_id=ticket.bk_biz_id, bk_host_ids=bk_host_ids, ticket=ticket, flow=flow
-            )
+            logger.info(_("【污点池】主机列表:{} 移入污点池").format(bk_host_ids))
+            hosts = fetch_apply_hosts(ticket.details)
+            MachineEvent.host_event_trigger(ticket.bk_biz_id, hosts, MachineEventType.ToDirty, ticket.creator, ticket)

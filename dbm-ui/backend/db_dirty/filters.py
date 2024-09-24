@@ -13,40 +13,38 @@ from django.utils.translation import ugettext_lazy as _
 from django_filters import rest_framework as filters
 from django_filters.filters import BaseInFilter, NumberFilter
 
-from backend.db_dirty.models import DirtyMachine
+from backend.db_dirty.models import DirtyMachine, MachineEvent
 
 
 class NumberInFilter(BaseInFilter, NumberFilter):
     pass
 
 
-class DirtyMachineFilter(filters.FilterSet):
-    ticket_types = filters.CharFilter(field_name="ticket__ticket_type", method="filter_ticket_types", label=_("单据类型"))
-    ticket_ids = filters.CharFilter(field_name="ticket__id", method="filter_ticket_ids", label=_("单据ID"))
-    task_ids = filters.CharFilter(field_name="flow__flow_obj_id", method="filter_task_ids", label=_("任务ID"))
-    operator = filters.CharFilter(field_name="ticket__creator", lookup_expr="icontains", label=_("操作者"))
-    ip = filters.CharFilter(field_name="ip", method="filter_ip", label=_("过滤IP"))
-    bk_cloud_ids = NumberInFilter(field_name="bk_cloud_id", lookup_expr="in")
-    bk_biz_ids = NumberInFilter(field_name="bk_biz_id", lookup_expr="in")
+class MachineEventFilter(filters.FilterSet):
+    operator = filters.CharFilter(field_name="creator", lookup_expr="icontains", label=_("操作者"))
+    bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", label=_("业务"))
+    event = filters.CharFilter(field_name="event", lookup_expr="exact", label=_("事件类型"))
+    ips = filters.CharFilter(field_name="ip", method="filter_ips", label=_("过滤IP"))
 
-    def _split_int(self, value):
-        try:
-            return list(map(int, value.split(",")))
-        except ValueError:
-            return []
-
-    def filter_ip(self, queryset, name, value):
+    def filter_ips(self, queryset, name, value):
         return queryset.filter(ip__in=value.split(","))
 
-    def filter_ticket_ids(self, queryset, name, value):
-        return queryset.filter(ticket__id__in=self._split_int(value))
+    class Meta:
+        model = MachineEvent
+        fields = ["operator", "bk_biz_id", "event", "ips"]
 
-    def filter_ticket_types(self, queryset, name, value):
-        return queryset.filter(ticket__ticket_type__in=value.split(","))
 
-    def filter_task_ids(self, queryset, name, value):
-        return queryset.filter(flow__flow_obj_id__in=value.split(","))
+class DirtyMachinePoolFilter(filters.FilterSet):
+    ips = filters.CharFilter(field_name="ip", method="filter_ips", label=_("过滤IP"))
+    city = filters.CharFilter(field_name="city", lookup_expr="icontains", label=_("城市"))
+    sub_zone = filters.CharFilter(field_name="sub_zone", lookup_expr="icontains", label=_("园区"))
+    rack_id = filters.CharFilter(field_name="rack_id", lookup_expr="icontains", label=_("机架"))
+    device_class = filters.CharFilter(field_name="device_class", lookup_expr="icontains", label=_("机型"))
+    os_name = filters.CharFilter(field_name="os_name", lookup_expr="icontains", label=_("操作系统"))
+
+    def filter_ips(self, queryset, name, value):
+        return queryset.filter(ip__in=value.split(","))
 
     class Meta:
         model = DirtyMachine
-        fields = ["ticket_types", "ticket_ids", "task_ids", "operator", "ip"]
+        fields = {"bk_biz_id": ["exact"], "creator": ["exact"], "pool": ["exact"]}

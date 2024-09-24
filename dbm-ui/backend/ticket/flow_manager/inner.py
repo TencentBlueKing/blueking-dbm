@@ -271,3 +271,32 @@ class IgnoreResultInnerFlow(InnerFlow):
             return constants.TicketFlowStatus.SUCCEEDED
 
         return status
+
+
+class SimpleTaskFlow(InnerFlow):
+    """
+    内置简单任务流程。
+    此任务通常跟集群无关，eg: 主机清理，资源导入等
+    """
+
+    def __init__(self, flow_obj: Flow):
+        self.root_id = flow_obj.flow_obj_id
+        super().__init__(flow_obj=flow_obj)
+
+    def run(self) -> None:
+        root_id = self.flow_obj.flow_obj_id or generate_root_id()
+        self.run_status_handler(root_id)
+        # 运行回收流程
+        try:
+            self.callback(callback_type=FlowCallbackType.PRE_CALLBACK.value)
+            self._run()
+        except Exception as err:  # pylint: disable=broad-except
+            self.run_error_status_handler(err)
+
+    def _run(self) -> None:
+        return super()._run()
+
+    def _retry(self) -> None:
+        # 重试则将机器挪出污点池
+        self.flush_error_status_handler()
+        self.run()

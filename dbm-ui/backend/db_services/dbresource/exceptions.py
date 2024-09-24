@@ -40,3 +40,9 @@ class SpecFilterClassDoesNotExistException(ResourcePoolBaseException):
     ERROR_CODE = "003"
     MESSAGE = _("规格筛选类不存在")
     MESSAGE_TPL = _("规格筛选类不存在")
+
+
+class ResourceReturnException(ResourcePoolBaseException):
+    ERROR_CODE = "005"
+    MESSAGE = _("资源池退回异常")
+    MESSAGE_TPL = _("资源池退回异常")

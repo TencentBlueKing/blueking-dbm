@@ -223,7 +223,7 @@ class CommonQueryResourceMixin(abc.ABC):
     @classmethod
     def get_temporary_cluster_info(cls, cluster, ticket_type):
         """如果当前集群是临时集群，则补充临时集群相关信息。"""
-        tags = [tag.key for tag in cluster.tag_set.all()]
+        tags = [tag.key for tag in cluster.tags.all()]
         if SystemTagEnum.TEMPORARY.value not in tags:
             return {}
         record = ClusterOperateRecord.objects.filter(cluster_id=cluster.id, ticket__ticket_type=ticket_type).first()
@@ -425,6 +425,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             "exact_domain": Q(immute_domain__in=query_params.get("exact_domain", "").split(",")),
             # 域名
             "domain": build_q_for_domain_by_cluster(domains=query_params.get("domain", "").split(",")),
+            # 标签
+            "tags": Q(tags__in=query_params.get("tags", "").split(",")),
         }
 
         filter_params_map.update(inner_filter_params_map)
@@ -434,13 +436,8 @@ class ListRetrieveResource(BaseListRetrieveResource):
             if query_params.get(param):
                 query_filters &= filter_params_map[param]
 
-        # 对标签进行过滤，标签“且”查询，需以追加 filter 的方式实现
-        cluster_queryset = Cluster.objects.filter(query_filters)
-        for tag_id in query_params.get("tag_ids", "").split(","):
-            cluster_queryset = cluster_queryset.filter(tags__id=tag_id)
-
         # 一join多的一方会有重复的数据,去重
-        cluster_queryset = cluster_queryset.distinct()
+        cluster_queryset = Cluster.objects.filter(query_filters).distinct()
 
         # 实例筛选
         def filter_instance_func(_query_params, _cluster_queryset, _proxy_queryset, _storage_queryset):

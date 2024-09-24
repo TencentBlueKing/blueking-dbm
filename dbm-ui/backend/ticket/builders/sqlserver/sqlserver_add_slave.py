@@ -17,6 +17,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import HostInfoSerializer
+from backend.ticket.builders.mysql.mysql_add_slave import MysqlAddSlaveResourceParamBuilder
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerHATicketFlowBuilder,
     SQLServerBaseOperateDetailSerializer,
@@ -51,10 +52,17 @@ class SQLServerAddSlaveFlowParamBuilder(builders.FlowParamBuilder):
 
 
 class SQLServerAddSlaveResourceParamBuilder(SQLServerBaseOperateResourceParamBuilder):
+    def format(self):
+        # 补充城市和亲和性
+        super().patch_info_affinity_location()
+        # 新增slave亲和性同mysql一致
+        MysqlAddSlaveResourceParamBuilder.patch_slave_subzone(self.ticket_data)
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         for info in next_flow.details["ticket_data"]["infos"]:
-            info["new_slave_host"] = info["sqlserver"][0]
+            info["new_slave_host"] = info.pop("new_slave")[0]
+            info["resource_spec"]["sqlserver_ha"] = info["resource_spec"].pop("new_slave")
         next_flow.save(update_fields=["details"])
 
 

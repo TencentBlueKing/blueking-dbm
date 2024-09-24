@@ -198,7 +198,7 @@ def clear_info_for_machine(machines: Optional[List]):
 
         # 清理storage相关信息
         for s in storages:
-            for info in StorageInstanceTuple.objects.filter(Q(ejector="Alice") | Q(receiver=s)):
+            for info in StorageInstanceTuple.objects.filter(Q(ejector=s) | Q(receiver=s)):
                 # 先删除额外关联信息，否则会报ProtectedError 异常
                 info.tendbclusterstorageset.delete()
                 info.delete()

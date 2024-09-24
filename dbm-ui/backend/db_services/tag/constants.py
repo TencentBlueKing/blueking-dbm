@@ -10,8 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
+from backend.db_meta.models import Cluster, Machine
 from blue_krill.data_types.enum import EnumField, StructuredEnum
 
 
 class TagResourceType(str, StructuredEnum):
-    DB_RESOURCE = EnumField("db_resource", _("资源池"))
+    DB_RESOURCE = EnumField("resource", _("资源池"))
+    CLUSTER = EnumField("cluster", _("集群"))
+
+
+TAG_RELATED_RESOURCE_DISPLAY_FIELD = {
+    TagResourceType.CLUSTER: Cluster.immute_domain.field.name,
+    TagResourceType.DB_RESOURCE: Machine.ip.field.name,
+}

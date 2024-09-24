@@ -13,8 +13,10 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
@@ -24,8 +26,12 @@ class TendbMNTApplyDetailSerializer(TendbBaseOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
         spider_ip_list = serializers.ListField(help_text=_("运维节点信息"), child=serializers.DictField())
+        resource_spec = serializers.JSONField(help_text=_("资源规格参数"), required=False)
 
     infos = serializers.ListField(help_text=_("添加spider运维节点信息"), child=MNTApplySerializer())
+    ip_source = serializers.ChoiceField(
+        help_text=_("机器导入类型"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
+    )
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -45,8 +51,13 @@ class TendbMNTApplyParamBuilder(builders.FlowParamBuilder):
             info.update(immutable_domain=cluster_id__domain[info["cluster_id"]])
 
 
+class TendbMNTApplyResourceParamBuilder(BaseOperateResourceParamBuilder):
+    pass
+
+
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_SPIDER_MNT_APPLY, is_apply=True)
 class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbMNTApplyDetailSerializer
     inner_flow_builder = TendbMNTApplyParamBuilder
+    resource_batch_apply_builder = TendbMNTApplyResourceParamBuilder
     inner_flow_name = _("TendbCluster 添加运维节点")

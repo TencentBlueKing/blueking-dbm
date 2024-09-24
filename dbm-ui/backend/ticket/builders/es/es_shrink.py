@@ -18,6 +18,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.es import EsController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BaseEsTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -31,7 +32,8 @@ class EsShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
         cold = serializers.ListField(help_text=_("cold信息列表"), child=serializers.DictField())
         client = serializers.ListField(help_text=_("client信息列表"), child=serializers.DictField())
 
-    nodes = NodesSerializer(help_text=_("nodes节点列表"))
+    old_nodes = NodesSerializer(help_text=_("nodes节点列表"))
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -68,11 +70,13 @@ class EsShrinkFlowParamBuilder(builders.FlowParamBuilder):
     controller = EsController.es_shrink_scene
 
     def format_ticket_data(self):
+        self.ticket_data["nodes"] = self.ticket_data.pop("old_nodes")
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.ES_SHRINK)
+@builders.BuilderFactory.register(TicketType.ES_SHRINK, is_recycle=True)
 class EsShrinkFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsShrinkDetailSerializer
     inner_flow_builder = EsShrinkFlowParamBuilder
     inner_flow_name = _("ES集群缩容")
+    need_patch_recycle_host_details = True

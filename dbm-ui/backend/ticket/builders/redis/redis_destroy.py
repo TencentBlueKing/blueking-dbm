@@ -14,7 +14,7 @@ from rest_framework import serializers
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import SkipToRepresentationMixin
+from backend.ticket.builders.common.base import HostRecycleSerializer, SkipToRepresentationMixin
 from backend.ticket.builders.redis.base import (
     BaseRedisInstanceTicketFlowBuilder,
     BaseRedisTicketFlowBuilder,
@@ -25,7 +25,7 @@ from backend.ticket.constants import TicketType
 
 
 class RedisDestroyDetailSerializer(RedisSingleOpsBaseDetailSerializer):
-    pass
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class RedisDestroyFlowParamBuilder(builders.FlowParamBuilder):
@@ -59,9 +59,10 @@ class RedisInstanceDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = RedisController.redis_ins_shutdown
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_INSTANCE_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.REDIS_INSTANCE_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class RedisInstanceCloseFlowBuilder(BaseRedisInstanceTicketFlowBuilder):
     serializer = RedisInstanceDestroyDetailSerializer
     inner_flow_builder = RedisInstanceDestroyFlowParamBuilder
     inner_flow_name = _("下架集群")
     pause_node_builder = RedisBasePauseParamBuilder
+    need_patch_recycle_cluster_details = True

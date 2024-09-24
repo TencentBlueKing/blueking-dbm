@@ -14,9 +14,10 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, HostInfoSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource, RollbackBuildClusterType
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.mysql.base import (
@@ -33,6 +34,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         cluster_id = serializers.IntegerField(help_text=_("集群ID"))
         target_cluster_id = serializers.IntegerField(help_text=_("回档集群ID"), default=False)
         rollback_host = HostInfoSerializer(help_text=_("备份新机器"), default=False)
+        resource_spec = serializers.JSONField(help_text=_("资源规格"), required=False)
         backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
         rollback_time = DBTimezoneField(
             help_text=_("回档时间"), required=False, allow_blank=True, allow_null=True, default=""
@@ -49,6 +51,7 @@ class MySQLFixPointRollbackDetailSerializer(MySQLBaseOperateDetailSerializer):
         help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
     )
     ignore_check_db = serializers.BooleanField(help_text=_("是否忽略业务库"), required=False, default=False)
+    ip_source = serializers.ChoiceField(help_text=_("机器来源"), choices=IpSource.get_choices(), required=False)
     infos = serializers.ListSerializer(help_text=_("定点构造信息"), child=FixPointRollbackSerializer())
 
     @classmethod
@@ -112,9 +115,22 @@ class MySQLFixPointRollbackFlowParamBuilder(builders.FlowParamBuilder):
         return super().build_controller_info()
 
 
+class MysqlFixPointRollbackResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def format(self):
+        self.patch_info_affinity_location()
+
+    def post_callback(self):
+        next_flow = self.ticket.next_flow()
+        for info in next_flow.details["ticket_data"]["infos"]:
+            info["rollback_ip"] = info["rollback_host"]["ip"]
+            info["bk_rollback"] = info.pop("rollback_host")
+        next_flow.save(update_fields=["details"])
+
+
 @builders.BuilderFactory.register(TicketType.MYSQL_ROLLBACK_CLUSTER)
 class MysqlFixPointRollbackFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFixPointRollbackDetailSerializer
     inner_flow_builder = MySQLFixPointRollbackFlowParamBuilder
+    resource_batch_apply_builder = MysqlFixPointRollbackResourceParamBuilder
     inner_flow_name = _("定点构造执行")
     retry_type = FlowRetryType.MANUAL_RETRY

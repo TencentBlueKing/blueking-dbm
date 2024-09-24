@@ -15,12 +15,13 @@ from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder, MySQLClustersTakeDownDetailsSerializer
 from backend.ticket.constants import TicketType
 
 
 class MysqlSingleDestroyDetailSerializer(MySQLClustersTakeDownDetailsSerializer):
-    pass
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class MysqlSingleDestroyFlowParamBuilder(builders.FlowParamBuilder):
@@ -28,9 +29,10 @@ class MysqlSingleDestroyFlowParamBuilder(builders.FlowParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.MYSQL_SINGLE_DESTROY, phase=ClusterPhase.DESTROY, iam=ActionEnum.MYSQL_DESTROY
+    TicketType.MYSQL_SINGLE_DESTROY, phase=ClusterPhase.DESTROY, iam=ActionEnum.MYSQL_DESTROY, is_recycle=True
 )
 class MysqlSingleDestroyFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MysqlSingleDestroyDetailSerializer
     inner_flow_builder = MysqlSingleDestroyFlowParamBuilder
     inner_flow_name = _("MySQL单节点销毁执行")
+    need_patch_recycle_cluster_details = True

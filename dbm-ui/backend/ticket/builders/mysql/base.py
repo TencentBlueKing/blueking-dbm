@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import datetime
 import re
-from typing import Any, Dict, List, Union
+from typing import Dict, List, Union
 
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
@@ -33,6 +33,7 @@ from backend.ticket.builders.common.base import (
     fetch_cluster_ids,
 )
 from backend.ticket.constants import TicketType
+from backend.utils.basic import get_target_items_from_details
 
 
 class BaseMySQLTicketFlowBuilder(MySQLTicketFlowBuilderPatchMixin, TicketFlowBuilder):
@@ -87,21 +88,6 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         ClusterDBHAStatusFlags.BackendMasterUnavailable: MASTER_UNAVAILABLE_WHITELIST,
     }
 
-    @classmethod
-    def fetch_obj_by_keys(cls, obj_dict: Dict, keys: List[str]):
-        """从给定的字典中提取key值"""
-        objs: List[Any] = []
-        for key in keys:
-            if key not in obj_dict:
-                continue
-
-            if isinstance(obj_dict[key], list):
-                objs.extend(obj_dict[key])
-            else:
-                objs.append(obj_dict[key])
-
-        return objs
-
     def validate_cluster_can_access(self, attrs):
         """校验集群状态是否可以提单"""
         clusters = Cluster.objects.filter(id__in=fetch_cluster_ids(details=attrs))
@@ -125,8 +111,8 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
     def validate_hosts_clusters_in_same_cloud_area(self, attrs, host_key: List[str], cluster_key: List[str]):
         """校验新增机器和集群是否在同一云区域下"""
         for info in attrs["infos"]:
-            host_infos = self.fetch_obj_by_keys(info, host_key)
-            cluster_ids = self.fetch_obj_by_keys(info, cluster_key)
+            host_infos = get_target_items_from_details(info, host_key)
+            cluster_ids = get_target_items_from_details(info, cluster_key)
             if not CommonValidate.validate_hosts_clusters_in_same_cloud_area(host_infos, cluster_ids):
                 raise serializers.ValidationError(_("请保证所选集群{}与新增机器{}在同一云区域下").format(cluster_ids, host_infos))
 
@@ -134,7 +120,7 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         """校验实例的角色类型是否一致"""
         inst_list: List[Dict] = []
         for info in attrs["infos"]:
-            inst_list.extend(self.fetch_obj_by_keys(info, instance_key))
+            inst_list.extend(get_target_items_from_details(info, instance_key))
 
         if not CommonValidate.validate_instance_role(inst_list, role):
             raise serializers.ValidationError(_("请保证实例f{}的角色类型为{}").format(inst_list, role))
@@ -150,8 +136,8 @@ class MySQLBaseOperateDetailSerializer(SkipToRepresentationMixin, serializers.Se
         """校验实例的关联集群是否一致"""
         # TODO: 貌似这里只能循环校验，数据量大可能会带来性能问题
         for info in attrs["infos"]:
-            inst = self.fetch_obj_by_keys(info, instance_key)[0]
-            cluster_ids = self.fetch_obj_by_keys(info, cluster_key)
+            inst = get_target_items_from_details(info, instance_key)[0]
+            cluster_ids = get_target_items_from_details(info, cluster_key)
             if not CommonValidate.validate_instance_related_clusters(inst, cluster_ids, role):
                 raise serializers.ValidationError(_("请保证所选实例{}的关联集群为{}").format(inst, cluster_ids))
 

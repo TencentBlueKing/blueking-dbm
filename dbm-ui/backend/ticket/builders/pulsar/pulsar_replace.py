@@ -39,7 +39,7 @@ class PulsarReplaceResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_REPLACE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.PULSAR_REPLACE, is_apply=True, is_recycle=True)
 class PulsarReplaceFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarReplaceDetailSerializer
     inner_flow_builder = PulsarReplaceFlowParamBuilder

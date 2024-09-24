@@ -17,6 +17,7 @@ from backend.db_meta.enums import ClusterPhase
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BigDataTakeDownDetailSerializer
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -25,7 +26,7 @@ logger = logging.getLogger("root")
 
 
 class RiakDestroyDetailSerializer(BigDataTakeDownDetailSerializer):
-    pass
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class RiakDestroyFlowParamBuilder(builders.FlowParamBuilder):
@@ -36,8 +37,9 @@ class RiakDestroyFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
 
-@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class RiakDestroyFlowBuilder(BaseRiakTicketFlowBuilder):
     serializer = RiakDestroyDetailSerializer
     inner_flow_builder = RiakDestroyFlowParamBuilder
     inner_flow_name = _("Riak 集群销毁")
+    need_patch_recycle_cluster_details = True

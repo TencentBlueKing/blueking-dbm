@@ -19,6 +19,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.db_meta.models import Tag
 from backend.db_services.tag import serializers
+from backend.db_services.tag.filters import TagListFilter
 from backend.db_services.tag.handlers import TagHandler
 
 SWAGGER_TAG = _("标签")
@@ -41,8 +42,9 @@ class TagViewSet(AuditedModelViewSet):
 
     queryset = Tag.objects.all()
     serializer_class = serializers.TagSerializer
-    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
-    filter_fields = ("bk_biz_id", "key", "value", "type")
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filter_class = TagListFilter
+    ordering_fields = ["create_at", "creator"]
 
     @common_swagger_auto_schema(
         operation_summary=_("查询标签关联资源"), request_body=serializers.QueryRelatedResourceSerializer(), tags=[SWAGGER_TAG]

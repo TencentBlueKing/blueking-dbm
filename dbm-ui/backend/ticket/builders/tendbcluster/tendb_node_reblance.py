@@ -16,6 +16,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.constants import MySQLBackupSource
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.tendbcluster.base import (
@@ -44,6 +45,7 @@ class TendbNodeRebalanceDetailSerializer(TendbBaseOperateDetailSerializer):
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     need_checksum = serializers.BooleanField(help_text=_("执行前是否需要数据校验"))
     trigger_checksum_type = serializers.ChoiceField(help_text=_("数据校验触发类型"), choices=TriggerChecksumType.get_choices())
     trigger_checksum_time = DBTimezoneField(help_text=_("数据校验 触发时间"))
@@ -85,9 +87,10 @@ class TendbNodeRebalanceResourceParamBuilder(TendbBaseOperateResourceParamBuilde
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_NODE_REBALANCE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_NODE_REBALANCE, is_apply=True, is_recycle=True)
 class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbNodeRebalanceDetailSerializer
     inner_flow_builder = TendbNodeRebalanceFlowParamBuilderBuilder
     resource_batch_apply_builder = TendbNodeRebalanceResourceParamBuilder
     inner_flow_name = _("TendbCluster 集群容量变更")
+    need_patch_recycle_cluster_details = True

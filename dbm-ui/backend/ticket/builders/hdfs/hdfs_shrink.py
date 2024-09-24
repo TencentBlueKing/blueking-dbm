@@ -18,6 +18,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BaseHdfsTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -29,7 +30,8 @@ class HdfsShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     class NodesSerializer(serializers.Serializer):
         datanode = serializers.ListField(help_text=_("broker信息列表"), child=serializers.DictField())
 
-    nodes = NodesSerializer(help_text=_("nodes节点信息"))
+    old_nodes = NodesSerializer(help_text=_("nodes节点信息"))
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -65,11 +67,13 @@ class HdfsShrinkFlowParamBuilder(builders.FlowParamBuilder):
     controller = HdfsController.hdfs_shrink_scene
 
     def format_ticket_data(self):
+        self.ticket_data["nodes"] = self.ticket_data.pop("old_nodes")
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_SHRINK)
+@builders.BuilderFactory.register(TicketType.HDFS_SHRINK, is_recycle=True)
 class HdfsShrinkFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsShrinkDetailSerializer
     inner_flow_builder = HdfsShrinkFlowParamBuilder
     inner_flow_name = _("HDFS 集群缩容")
+    need_patch_recycle_host_details = True

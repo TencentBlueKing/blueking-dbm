@@ -241,20 +241,12 @@ class ResourceQueryHelper:
             return
         ResourceQueryHelper.query_agent_status_from_nodeman(cc_hosts, fill_key)
 
-    @staticmethod
-    def fill_cloud_name(cc_hosts):
+    @classmethod
+    def fill_cloud_name(cls, cc_hosts):
         if not cc_hosts:
             return
-
         # 补充云区域名称
-        resp = CCApi.search_cloud_area({"page": {"start": 0, "limit": 1000}}, use_admin=True)
-
-        cloud_map = (
-            {cloud_info["bk_cloud_id"]: cloud_info["bk_cloud_name"] for cloud_info in resp["info"]}
-            if resp.get("info")
-            else {}
-        )
-
+        cloud_map = {int(cloud): info["bk_cloud_name"] for cloud, info in cls.search_cc_cloud().items()}
         for host in cc_hosts:
             host["bk_cloud_name"] = cloud_map.get(host["bk_cloud_id"], host["bk_cloud_id"])
 

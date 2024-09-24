@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,20 +7,18 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.contrib import admin
 
-from . import models
+from django.utils.translation import ugettext_lazy as _
 
-
-@admin.register(models.DirtyMachine)
-class DirtyMachineAdmin(admin.ModelAdmin):
-    list_display = ("ip", "bk_biz_id", "bk_host_id", "ticket", "pool")
-    list_filter = ("ip", "ticket", "pool")
-    search_fields = ("ip", "bk_biz_id", "bk_host_id")
+from backend.exceptions import AppBaseException, ErrorCode
 
 
-@admin.register(models.MachineEvent)
-class MachineEventAdmin(admin.ModelAdmin):
-    list_display = ("ip", "bk_biz_id", "bk_host_id", "event", "to", "ticket")
-    list_filter = ("ip", "bk_biz_id", "to")
-    search_fields = ("ip", "bk_biz_id", "bk_host_id")
+class DBDirtyPoolBaseException(AppBaseException):
+    MODULE_CODE = ErrorCode.DB_DIRTY_POOL_CODE
+    MESSAGE = _("主机池异常")
+
+
+class PoolTransferException(DBDirtyPoolBaseException):
+    ERROR_CODE = "001"
+    MESSAGE = _("主机池转移异常")
+    MESSAGE_TPL = _("主机池转移异常")

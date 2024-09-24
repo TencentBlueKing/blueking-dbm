@@ -30,8 +30,9 @@ class KafkaDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = KafkaController.kafka_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.KAFKA_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class KafkaDestroyFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaDestroyDetailSerializer
     inner_flow_builder = KafkaDestroyFlowParamBuilder
     inner_flow_name = _("Kafka 集群销毁")
+    need_patch_recycle_cluster_details = True

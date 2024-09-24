@@ -8,13 +8,14 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from collections import defaultdict
 from typing import Dict, List
 
 from django.db.models import ManyToManyRel
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.models import Tag
-from backend.db_services.tag.constants import TagResourceType
+from backend.db_services.tag.constants import TAG_RELATED_RESOURCE_DISPLAY_FIELD, TagResourceType
 from backend.exceptions import ValidationError
 
 
@@ -49,30 +50,37 @@ class TagHandler:
         """
         查询关联资源
         """
-        # 1. 查询外键关联资源
-        data = []
-        for tag_id in ids:
-            info = {"id": tag_id, "related_resources": []}
-            for field in Tag._meta.get_fields():
-                if isinstance(field, ManyToManyRel) and (field.name == resource_type or resource_type is None):
-                    related_objs = field.related_model.objects.prefetch_related("tags").filter(tags__id=tag_id)
-                    info["related_resources"].append(
-                        {
-                            "resource_type": field.name,
-                            "count": related_objs.count(),
-                        }
-                    )
+        if not resource_type:
+            return []
 
-            # 2. 查询第三方服务关联资源（如资源池、后续可能扩展的别的服务）
-            if resource_type == TagResourceType.DB_RESOURCE.value or resource_type is None:
-                info["related_resources"].append(
-                    {
-                        "resource_type": TagResourceType.DB_RESOURCE.value,
-                        # TODO 请求资源池接口得到统计数量
-                        "count": 0,
-                    }
-                )
-            data.append(info)
+        # 资源类型与展示字段映射
+        data: List[Dict] = []
+        # 1. 查询dbm内部关联资源
+        for field in Tag._meta.get_fields():
+            # 非此关联资源，忽略
+            if not isinstance(field, ManyToManyRel) or (resource_type and field.name != resource_type):
+                continue
+
+            # 查询关联资源并按照标签聚合
+            tag__resource_list = defaultdict(list)
+            related_objs = field.related_model.objects.prefetch_related("tags").filter(tags__in=ids)
+            for obj in related_objs:
+                for tag in obj.tags:
+                    tag__resource_list[tag.id].append(obj)
+
+            # 填充关联资源信息
+            display_field = TAG_RELATED_RESOURCE_DISPLAY_FIELD[resource_type]
+            for tag_id in ids:
+                related_objs = tag__resource_list[tag_id]
+                related_resources = [{"id": obj.pk, "display": getattr(obj, display_field)} for obj in related_objs]
+                data.append({"id": tag_id, "related_resources": related_resources})
+
+        # 2. 查询第三方服务关联资源（如资源池、后续可能扩展的别的服务）
+
+        if resource_type == TagResourceType.DB_RESOURCE.value:
+            # 资源池根据标签聚合数量
+            data = [{"id": tag_id, "ip_count": 0} for tag_id in ids]
+
         return data
 
     @classmethod

@@ -29,8 +29,9 @@ class EsDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = EsController.es_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.ES_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.ES_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class EsDestroyFlowBuilder(BaseEsTicketFlowBuilder):
     serializer = EsDestroyDetailSerializer
     inner_flow_builder = EsDestroyFlowParamBuilder
     inner_flow_name = _("ES集群删除")
+    need_patch_recycle_cluster_details = True

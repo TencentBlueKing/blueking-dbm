@@ -30,8 +30,9 @@ class PulsarDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = PulsarController.pulsar_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.PULSAR_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.PULSAR_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class PulsarDestroyFlowBuilder(BasePulsarTicketFlowBuilder):
     serializer = PulsarDestroyDetailSerializer
     inner_flow_builder = PulsarDestroyFlowParamBuilder
     inner_flow_name = _("Pulsar 集群删除")
+    need_patch_recycle_cluster_details = True

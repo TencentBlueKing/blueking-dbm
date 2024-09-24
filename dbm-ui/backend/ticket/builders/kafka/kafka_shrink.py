@@ -18,6 +18,7 @@ from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.kafka import KafkaController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BaseKafkaTicketFlowBuilder, BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -30,7 +31,8 @@ class KafkaShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
     class NodesSerializer(serializers.Serializer):
         broker = serializers.ListField(help_text=_("broker信息列表"), child=serializers.DictField())
 
-    nodes = NodesSerializer(help_text=_("nodes节点信息"))
+    old_nodes = NodesSerializer(help_text=_("nodes节点信息"))
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         super().validate(attrs)
@@ -67,11 +69,13 @@ class KafkaShrinkFlowParamBuilder(builders.FlowParamBuilder):
     controller = KafkaController.kafka_shrink_scene
 
     def format_ticket_data(self):
+        self.ticket_data["nodes"] = self.ticket_data.pop("old_nodes")
         super().format_ticket_data()
 
 
-@builders.BuilderFactory.register(TicketType.KAFKA_SHRINK)
+@builders.BuilderFactory.register(TicketType.KAFKA_SHRINK, is_recycle=True)
 class KafkaShrinkFlowBuilder(BaseKafkaTicketFlowBuilder):
     serializer = KafkaShrinkDetailSerializer
     inner_flow_builder = KafkaShrinkFlowParamBuilder
     inner_flow_name = _("Kafka 集群缩容")
+    need_patch_recycle_host_details = True

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# -*- coding:utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -8,20 +8,20 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from django.contrib import admin
 
-from . import models
+from django.utils.translation import ugettext_lazy as _
+from django_filters import rest_framework as filters
 
-
-@admin.register(models.DirtyMachine)
-class DirtyMachineAdmin(admin.ModelAdmin):
-    list_display = ("ip", "bk_biz_id", "bk_host_id", "ticket", "pool")
-    list_filter = ("ip", "ticket", "pool")
-    search_fields = ("ip", "bk_biz_id", "bk_host_id")
+from backend.db_meta.models import Tag
 
 
-@admin.register(models.MachineEvent)
-class MachineEventAdmin(admin.ModelAdmin):
-    list_display = ("ip", "bk_biz_id", "bk_host_id", "event", "to", "ticket")
-    list_filter = ("ip", "bk_biz_id", "to")
-    search_fields = ("ip", "bk_biz_id", "bk_host_id")
+class TagListFilter(filters.FilterSet):
+    key = filters.CharFilter(field_name="key", lookup_expr="icontains", label=_("键"))
+    value = filters.CharFilter(field_name="value", lookup_expr="icontains", label=_("值"))
+
+    class Meta:
+        model = Tag
+        fields = {
+            "bk_biz_id": ["exact"],
+            "type": ["exact"],
+        }

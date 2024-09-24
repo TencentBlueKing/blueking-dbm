@@ -17,7 +17,7 @@ from typing import Dict, List
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
-from django.db.models import Count, Q, QuerySet
+from django.db.models import Q, QuerySet
 from django.forms import model_to_dict
 from django.utils.translation import ugettext_lazy as _
 
@@ -100,29 +100,6 @@ class Cluster(AuditedModel):
                 "major_version",
             ],
         )
-
-    @property
-    def extra_desc(self):
-        """追加额外信息，不适合大批量序列化场景"""
-
-        simple_desc = self.simple_desc
-
-        # 追加角色部署数量信息
-        simple_desc["proxy_count"] = self.proxyinstance_set.all().count()
-        for storage in (
-            self.storageinstance_set.values("instance_role")
-            .annotate(cnt=Count("machine__ip", distinct=True))
-            .order_by()
-        ):
-            simple_desc["{}_count".format(storage["instance_role"])] = storage["cnt"]
-
-        return simple_desc
-
-    @classmethod
-    def get_cluster_id_immute_domain_map(cls, cluster_ids: List[int]) -> Dict[int, str]:
-        """查询集群ID和域名的映射关系"""
-        clusters = cls.objects.filter(id__in=cluster_ids).only("id", "immute_domain")
-        return {cluster.id: cluster.immute_domain for cluster in clusters}
 
     @classmethod
     def is_exclusive(cls, cluster_id, ticket_type=None, **kwargs):
@@ -347,13 +324,9 @@ class Cluster(AuditedModel):
             return self.storageinstance_set.first().port
         elif self.cluster_type == ClusterType.TenDBHA:
             return self.proxyinstance_set.first().port
-        # TODO: tendbcluster的端口是spider master？
         elif self.cluster_type == ClusterType.TenDBCluster:
-            return (
-                self.proxyinstance_set.filter(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
-                .first()
-                .port
-            )
+            role = TenDBClusterSpiderRole.SPIDER_MASTER
+            return self.proxyinstance_set.filter(tendbclusterspiderext__spider_role=role).first().port
 
     def tendbcluster_ctl_primary_address(self) -> str:
         """
@@ -404,7 +377,6 @@ class Cluster(AuditedModel):
         cluster_stats = {}
         for cluster_type in cluster_types:
             cluster_stats.update(json.loads(cache.get(f"{CACHE_CLUSTER_STATS}_{bk_biz_id}_{cluster_type}", "{}")))
-
         return cluster_stats
 
     def is_dbha_disabled(self) -> bool:
@@ -428,6 +400,20 @@ class Cluster(AuditedModel):
     def enable_dbha(self):
         ClusterDBHAExt.objects.filter(cluster=self).delete()
         self.refresh_from_db()
+
+    @classmethod
+    def get_cluster_related_machines(cls, cluster_ids: List[int]) -> List:
+        """
+        通过集群id查询集群关联的所有主机信息，即实例所在的主机
+        """
+        from backend.db_meta.models import Machine
+
+        clusters = Cluster.objects.filter(id__in=cluster_ids)
+        host_ids = set(clusters.values_list("storageinstance__machine__bk_host_id", flat=True)) | set(
+            clusters.values_list("proxyinstance__machine__bk_host_id", flat=True)
+        )
+        machines = Machine.objects.filter(bk_host_id__in=host_ids)
+        return machines
 
     @classmethod
     def get_cluster_id__primary_address_map(cls, cluster_ids: List[int]) -> Dict[int, str]:

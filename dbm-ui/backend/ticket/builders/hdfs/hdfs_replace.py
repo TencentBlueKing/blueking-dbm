@@ -49,7 +49,7 @@ class HdfsResourceParamBuilder(BigDataReplaceResourceParamBuilder):
     pass
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_REPLACE, is_apply=True)
+@builders.BuilderFactory.register(TicketType.HDFS_REPLACE, is_apply=True, is_recycle=True)
 class HdfsReplaceFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsReplaceDetailSerializer
     inner_flow_builder = HdfsReplaceFlowParamBuilder

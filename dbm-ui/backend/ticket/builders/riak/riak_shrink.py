@@ -17,7 +17,7 @@ from rest_framework import serializers
 from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import HostInfoSerializer
+from backend.ticket.builders.common.base import HostInfoSerializer, HostRecycleSerializer
 from backend.ticket.builders.common.bigdata import BigDataSingleClusterOpsDetailsSerializer
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
@@ -26,8 +26,12 @@ logger = logging.getLogger("root")
 
 
 class RiakShrinkDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
+    class RiakNodeSerializer(serializers.Serializer):
+        riak = serializers.ListSerializer(help_text=_("缩容节点"), child=HostInfoSerializer())
+
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
-    nodes = serializers.ListSerializer(help_text=_("缩容节点"), child=HostInfoSerializer())
+    nodes = RiakNodeSerializer(help_text=_("缩容信息"))
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         return attrs
@@ -41,8 +45,9 @@ class RiakShrinkFlowParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["bk_cloud_id"] = cluster.bk_cloud_id
 
 
-@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_SCALE_IN)
+@builders.BuilderFactory.register(TicketType.RIAK_CLUSTER_SCALE_IN, is_recycle=True)
 class RiakShrinkFlowBuilder(BaseRiakTicketFlowBuilder):
     serializer = RiakShrinkDetailSerializer
     inner_flow_builder = RiakShrinkFlowParamBuilder
     inner_flow_name = _("Riak 集群缩容")
+    need_patch_recycle_host_details = True

@@ -12,7 +12,9 @@ from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend.configuration.constants import AffinityEnum
+from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.flow.consts import RedisCapacityUpdateType
 from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_proxy_util import get_major_version_by_version_name
@@ -20,6 +22,7 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     DisplayInfoSerializer,
+    HostRecycleSerializer,
     SkipToRepresentationMixin,
 )
 from backend.ticket.builders.redis.base import BaseRedisTicketFlowBuilder, ClusterValidateMixin
@@ -55,7 +58,10 @@ class RedisScaleUpDownDetailSerializer(SkipToRepresentationMixin, serializers.Se
         )
         resource_spec = ResourceSpecSerializer(help_text=_("资源申请"))
 
-    ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
+    ip_source = serializers.ChoiceField(
+        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
+    )
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
 
 
@@ -78,9 +84,26 @@ class RedisScaleUpDownResourceParamBuilder(BaseOperateResourceParamBuilder):
         super().post_callback()
 
 
-@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN, is_apply=True)
+@builders.BuilderFactory.register(TicketType.REDIS_SCALE_UPDOWN, is_apply=True, is_recycle=True)
 class RedisScaleUpDownFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisScaleUpDownDetailSerializer
     inner_flow_builder = RedisScaleUpDownParamBuilder
     inner_flow_name = _("Redis 集群容量变更")
     resource_batch_apply_builder = RedisScaleUpDownResourceParamBuilder
+
+    def patch_down_cluster_hosts(self):
+        """针对全部全部机器替换，获取所有的下架机器"""
+        cluster_ids = [
+            info["cluster_id"]
+            for info in self.ticket.details["infos"]
+            if info["update_mode"] == RedisCapacityUpdateType.ALL_MACHINES_REPLACE
+        ]
+        recycle_hosts = Cluster.get_cluster_related_machines(cluster_ids)
+        recycle_hosts = [{"bk_host_id": host_id} for host_id in recycle_hosts]
+        self.ticket.details["recycle_hosts"] = ResourceHandler.standardized_resource_host(
+            recycle_hosts, self.ticket.bk_biz_id
+        )
+
+    def patch_ticket_detail(self):
+        self.patch_down_cluster_hosts()
+        super().patch_ticket_detail()

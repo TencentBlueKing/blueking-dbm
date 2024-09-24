@@ -18,6 +18,8 @@ from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_dirty.constants import MachineEventType
+from backend.db_dirty.models import MachineEvent
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder
@@ -26,6 +28,16 @@ from backend.flow.plugins.components.collections.common.sa_idle_check import Che
 from backend.flow.plugins.components.collections.common.sa_init import SaInitComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.utils.mysql.mysql_act_dataclass import InitCheckForResourceKwargs
+from backend.ticket.models import Ticket
+
+
+def insert_host_event(params, data, kwargs, global_data):
+    """导入资源池成功后，记录主机事件"""
+    bk_biz_id, hosts, operator = global_data["bk_biz_id"], global_data["hosts"], global_data["operator"]
+    ticket = Ticket.objects.filter(id=global_data.get("ticket_id", 0)).first()
+    event = MachineEventType.ReturnResource if global_data.get("return_resource") else MachineEventType.ImportResource
+    hosts = [{"bk_host_id": host["host_id"], **host} for host in hosts]
+    MachineEvent.host_event_trigger(bk_biz_id, hosts, event=event, operator=operator, ticket=ticket, standard=True)
 
 
 class ImportResourceInitStepFlow(object):
@@ -78,6 +90,7 @@ class ImportResourceInitStepFlow(object):
                 "api_import_path": DBResourceApi.__module__,
                 "api_import_module": "DBResourceApi",
                 "api_call_func": "resource_import",
+                "success_callback_path": f"{insert_host_event.__module__}.{insert_host_event.__name__}",
             },
         )
 

@@ -59,6 +59,9 @@ class TendbFixPointRollbackDetailSerializer(TendbBaseOperateDetailSerializer):
     rollback_cluster_type = serializers.ChoiceField(
         help_text=_("回档集群类型"), choices=RollbackBuildClusterType.get_choices()
     )
+    ip_source = serializers.ChoiceField(
+        help_text=_("机器来源"), choices=IpSource.get_choices(), required=False, default=IpSource.MANUAL_INPUT
+    )
     infos = serializers.ListSerializer(help_text=_("回档信息"), child=RollbackInfoSerializer())
     ignore_check_db = serializers.BooleanField(help_text=_("是否忽略业务库"), required=False, default=False)
 
@@ -151,10 +154,13 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
             remote_machine_data.append(
                 {"machine__bk_host_id": master_machine.bk_host_id, "machine__spec_id": master_machine.spec_id}
             )
+        # 获取回档机器
+        if details["ip_source"] == IpSource.MANUAL_INPUT:
+            rollback_host = self.ticket.details["infos"][0]["rollback_host"]
+        else:
+            rollback_host = self.ticket.details["infos"][0]["resource_spec"]
 
-        rollback_host = self.ticket.details["infos"][0]["rollback_host"]
         remote_machine_count = len(rollback_host["remote_hosts"])
-
         details.update(
             cluster_shard_num=cluster_shard_num,
             remote_shard_num=int(cluster_shard_num / remote_machine_count),

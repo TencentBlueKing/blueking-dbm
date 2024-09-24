@@ -14,19 +14,20 @@ from django.utils.translation import ugettext_lazy as _
 from backend.db_meta.enums import ClusterPhase
 from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
+from backend.ticket.builders.common.base import HostRecycleSerializer
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerTakeDownDetailsSerializer
 from backend.ticket.constants import FlowRetryType, TicketType
 
 
 class SQLServerDestroyDetailSerializer(SQLServerTakeDownDetailsSerializer):
-    pass
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
 
 class SQLServerDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = SqlserverController.cluster_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.SQLSERVER_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.SQLSERVER_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class SQLServerDestroyFlowBuilder(BaseSQLServerTicketFlowBuilder):
     """Sqlserver下架流程的构建基类"""
 
@@ -34,3 +35,4 @@ class SQLServerDestroyFlowBuilder(BaseSQLServerTicketFlowBuilder):
     inner_flow_builder = SQLServerDestroyFlowParamBuilder
     inner_flow_name = _("SQLServer 销毁执行")
     retry_type = FlowRetryType.MANUAL_RETRY
+    need_patch_recycle_cluster_details = True

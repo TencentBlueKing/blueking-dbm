@@ -29,8 +29,9 @@ class HdfsDestroyFlowParamBuilder(builders.FlowParamBuilder):
     controller = HdfsController.hdfs_destroy_scene
 
 
-@builders.BuilderFactory.register(TicketType.HDFS_DESTROY, phase=ClusterPhase.DESTROY)
+@builders.BuilderFactory.register(TicketType.HDFS_DESTROY, phase=ClusterPhase.DESTROY, is_recycle=True)
 class HdfsDestroyFlowBuilder(BaseHdfsTicketFlowBuilder):
     serializer = HdfsDestroyDetailSerializer
     inner_flow_builder = HdfsDestroyFlowParamBuilder
     inner_flow_name = _("HDFS 集群删除")
+    need_patch_recycle_cluster_details = True

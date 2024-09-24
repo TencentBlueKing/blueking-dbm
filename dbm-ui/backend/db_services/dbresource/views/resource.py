@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
 import time
 from collections import defaultdict
 from typing import Dict, List
@@ -22,11 +21,10 @@ from backend import env
 from backend.bk_web import viewsets
 from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
-from backend.components import CCApi
 from backend.components.dbresource.client import DBResourceApi
 from backend.components.uwork.client import UWORKApi
-from backend.configuration.constants import SystemSettingsEnum
-from backend.configuration.models import SystemSettings
+from backend.db_dirty.constants import MachineEventType
+from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.machine import DeviceClass
 from backend.db_services.dbresource.constants import (
@@ -34,6 +32,7 @@ from backend.db_services.dbresource.constants import (
     RESOURCE_IMPORT_TASK_FIELD,
     SWAGGER_TAG,
 )
+from backend.db_services.dbresource.exceptions import ResourceReturnException
 from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.dbresource.serializers import (
@@ -67,6 +66,7 @@ from backend.db_services.ipchooser.types import ScopeList
 from backend.flow.consts import FAILED_STATES, SUCCEED_STATES
 from backend.flow.engine.controller.base import BaseController
 from backend.flow.models import FlowTree
+from backend.flow.utils.cc_manage import CcManage
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
@@ -106,16 +106,15 @@ class DBResourceViewSet(viewsets.SystemViewSet):
         responses={status.HTTP_200_OK: ResourceListResponseSerializer()},
         tags=[SWAGGER_TAG],
     )
-    @action(
-        detail=False, methods=["POST"], url_path="list", serializer_class=ResourceListSerializer, pagination_class=None
-    )
+    @action(detail=False, methods=["POST"], url_path="list", serializer_class=ResourceListSerializer)
     @Permission.decorator_external_permission_field(
         param_field=lambda d: None,
         actions=[ActionEnum.RESOURCE_POLL_MANAGE],
         resource_meta=None,
     )
     def resource_list(self, request):
-        return Response(ResourceHandler.resource_list(self.params_validate(self.get_serializer_class())))
+        params = self.params_validate(self.get_serializer_class())
+        return Response(ResourceHandler.resource_list(params))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取DBA业务下的主机信息"),
@@ -125,11 +124,10 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["GET"], url_path="list_dba_hosts", serializer_class=ListDBAHostsSerializer)
     def list_dba_hosts(self, request):
         params = self.params_validate(self.get_serializer_class())
+        bk_biz_id = params.pop("bk_biz_id")
 
         # 查询DBA空闲机模块的meta，构造查询空闲机参数的node_list
-        scope_list: ScopeList = [
-            {"scope_id": env.DBA_APP_BK_BIZ_ID, "scope_type": "biz", "bk_biz_id": env.DBA_APP_BK_BIZ_ID}
-        ]
+        scope_list: ScopeList = [{"scope_id": bk_biz_id, "scope_type": "biz", "bk_biz_id": bk_biz_id}]
         trees: List[Dict] = TopoHandler.trees(all_scope=True, mode=ModeType.IDLE_ONLY.value, scope_list=scope_list)
         node_list: ScopeList = [
             {"instance_id": trees[0]["instance_id"], "meta": trees[0]["meta"], "object_id": "module"}
@@ -327,22 +325,24 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     )
     @action(detail=False, methods=["POST"], url_path="delete", serializer_class=ResourceDeleteSerializer)
     def resource_delete(self, request):
-        validated_data = self.params_validate(self.get_serializer_class())
-        # 从资源池删除机器
-        resp = DBResourceApi.resource_delete(params=validated_data)
-        # 将在资源池模块的机器移到空闲机，若机器处于其他模块，则忽略
-        move_idle_hosts: List[int] = []
-        resource_topo = SystemSettings.get_setting_value(key=SystemSettingsEnum.MANAGE_TOPO.value)
-        for topo in CCApi.find_host_biz_relations({"bk_host_id": validated_data["bk_host_ids"]}):
-            if (
-                topo["bk_set_id"] == resource_topo["set_id"]
-                and topo["bk_module_id"] == resource_topo["resource_module_id"]
-            ):
-                move_idle_hosts.append(topo["bk_host_id"])
+        params = self.params_validate(self.get_serializer_class())
+        operator = request.user.username
+        bk_host_ids = params["bk_host_ids"]
+        bk_biz_id = params["bk_biz_id"] or env.DBA_APP_BK_BIZ_ID
 
-        if move_idle_hosts:
-            CCApi.transfer_host_to_idlemodule({"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "bk_host_id": move_idle_hosts})
+        # 撤销导入需要判断机器是否可退回
+        if params["event"] == MachineEventType.UndoImport:
+            ok, message = MachineEvent.hosts_can_return(bk_host_ids)
+            if not ok:
+                raise ResourceReturnException(message)
+            # 从资源池删除机器，并移入业务空闲机
+            CcManage(bk_biz_id, "").transfer_host_to_idlemodule(bk_biz_id=bk_biz_id, bk_host_ids=bk_host_ids)
 
+        # 删除资源
+        resp = DBResourceApi.resource_delete(params={"bk_host_ids": bk_host_ids})
+        # 记录撤销事件
+        hosts = [{"bk_host_id": host} for host in bk_host_ids]
+        MachineEvent.host_event_trigger(bk_biz_id, hosts, event=params["event"], operator=operator)
         return Response(resp)
 
     @common_swagger_auto_schema(

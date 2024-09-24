@@ -26,6 +26,7 @@ from backend.ticket.builders.common.base import (
     BaseOperateResourceParamBuilder,
     BigDataTicketFlowBuilderPatchMixin,
     CommonValidate,
+    HostRecycleSerializer,
     InfluxdbTicketFlowBuilderPatchMixin,
     format_bigdata_resource_spec,
 )
@@ -180,12 +181,15 @@ class BigDataApplyDetailsSerializer(BigDataDetailsSerializer):
 
 
 class BigDataReplaceDetailSerializer(BigDataSingleClusterOpsDetailsSerializer):
-    ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     old_nodes = serializers.DictField(help_text=_("旧节点信息集合"), child=serializers.ListField(help_text=_("节点信息")))
     new_nodes = serializers.DictField(
         help_text=_("新节点信息集合"), child=serializers.ListField(help_text=_("节点信息")), required=False
     )
     resource_spec = serializers.JSONField(help_text=_("规格类型"), required=False)
+    ip_source = serializers.ChoiceField(
+        help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL
+    )
+    ip_recycle = HostRecycleSerializer(help_text=_("主机回收信息"), default=HostRecycleSerializer.DEFAULT)
 
     def validate(self, attrs):
         # 校验替换前后角色类型和数量一致

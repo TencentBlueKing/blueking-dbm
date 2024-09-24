@@ -79,6 +79,11 @@ class MysqlProxyAddParamBuilder(builders.FlowParamBuilder):
 
 
 class MysqlProxyAddResourceParamBuilder(BaseOperateResourceParamBuilder):
+    def format(self):
+        self.patch_info_affinity_location(roles=["new_proxy"])
+        for info in self.ticket_data["infos"]:
+            info["resource_spec"]["new_proxy"]["group_count"] = 2
+
     def post_callback(self):
         next_flow = self.ticket.next_flow()
         ticket_data = next_flow.details["ticket_data"]
