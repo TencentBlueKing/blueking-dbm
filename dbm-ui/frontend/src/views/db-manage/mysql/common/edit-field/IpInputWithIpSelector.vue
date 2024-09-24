@@ -58,7 +58,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { checkMysqlInstances } from '@services/source/instances';
+  import { checkInstance } from '@services/source/dbbase';
   import type { HostDetails } from '@services/types';
 
   import { OSTypes } from '@common/const';
@@ -150,8 +150,8 @@
         if (props.type === 'cloud-ip') {
           ip = value.split(':')[1];
         }
-        return checkMysqlInstances({
-          bizId: window.PROJECT_CONFIG.BIZ_ID,
+        return checkInstance<Required<IpBasicInfo>>({
+          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           instance_addresses: [ip],
         }).then((data) => {
           if (data.length < 1) {
