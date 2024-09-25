@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-export default class SpiderMachine {
+export default class tendbSingleMachine {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
@@ -133,7 +133,7 @@ export default class SpiderMachine {
   };
   spec_id: number;
 
-  constructor(payload = {} as SpiderMachine) {
+  constructor(payload = {} as tendbSingleMachine) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_host_id = payload.bk_host_id;
