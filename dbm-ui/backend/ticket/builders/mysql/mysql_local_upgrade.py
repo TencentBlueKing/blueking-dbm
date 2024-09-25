@@ -25,6 +25,7 @@ class MysqlLocalUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
         pkg_id = serializers.IntegerField(help_text=_("目标版本包ID"))
 
     infos = serializers.ListField(help_text=_("单据信息"), child=InfoSerializer())
+    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
 
 
 class MysqlLocalUpgradeParamBuilder(builders.FlowParamBuilder):

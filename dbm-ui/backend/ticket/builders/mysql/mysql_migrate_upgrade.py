@@ -44,6 +44,7 @@ class MysqlMigrateUpgradeDetailSerializer(MySQLBaseOperateDetailSerializer):
     )
     backup_source = serializers.ChoiceField(help_text=_("备份源"), choices=MySQLBackupSource.get_choices())
     infos = serializers.ListField(help_text=_("添加信息"), child=InfoSerializer())
+    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
 
     def validate(self, attrs):
         # 校验集群是否可用，集群类型为高可用
