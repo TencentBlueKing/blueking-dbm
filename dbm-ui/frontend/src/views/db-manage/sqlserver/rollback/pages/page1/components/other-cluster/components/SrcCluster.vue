@@ -37,8 +37,8 @@
   import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
   import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
@@ -66,7 +66,7 @@
   const isShowBatchSelector = ref(false);
   const localDomain = ref('');
 
-  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
+  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleModel | SqlServerHaModel)[] }>({
     [ClusterTypes.SQLSERVER_HA]: [],
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
@@ -103,7 +103,7 @@
     },
     {
       validator: (value: string) =>
-        filterClusters<SqlServerHaClusterModel>({
+        filterClusters<SqlServerHaModel>({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: value,
         }).then((data) => {
@@ -156,9 +156,7 @@
     isShowBatchSelector.value = true;
   };
 
-  const handelClusterChange = (selected: {
-    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
-  }) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SqlServerSingleModel | SqlServerHaModel> }) => {
     selectedClusters.value = selected;
     const [clusterData] = Object.values(selected)[0];
     modelValue.value = {

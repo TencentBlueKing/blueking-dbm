@@ -12,11 +12,11 @@
  */
 
 import FixpointLogModel from '@services/model/fixpoint-rollback/fixpoint-log';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 export interface BackupLogRecord {
   backup_begin_time: string;

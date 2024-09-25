@@ -12,9 +12,9 @@
  */
 
 import IpWhiteModel from '@services/model/ip-white/ip-white';
+import type { ListBase } from '@services/types';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const path = '/apis/conf/ip_whitelist';
 

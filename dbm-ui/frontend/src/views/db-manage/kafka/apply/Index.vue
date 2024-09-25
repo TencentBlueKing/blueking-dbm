@@ -329,7 +329,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
-  import type { BizItem, HostDetails } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase } from '@hooks';
 
@@ -350,7 +350,7 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  const formatIpData = (data: HostDetails[]) =>
+  const formatIpData = (data: HostInfo[]) =>
     data.map((item) => ({
       ...item,
       instance_num: 1,
@@ -370,8 +370,8 @@
       ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
-        zookeeper: [] as Array<HostDetails>,
-        broker: [] as Array<HostDetails>,
+        zookeeper: [] as Array<HostInfo>,
+        broker: [] as Array<HostInfo>,
       },
       resource_spec: {
         zookeeper: {
@@ -507,11 +507,11 @@
     formData.details.nodes.broker = [];
   }
 
-  const handleZookeeperChange = (data: HostDetails[]) => {
+  const handleZookeeperChange = (data: HostInfo[]) => {
     formData.details.nodes.zookeeper = formatIpData(data);
   };
 
-  const handleBrokerChange = (data: HostDetails[]) => {
+  const handleBrokerChange = (data: HostInfo[]) => {
     formData.details.nodes.broker = formatIpData(data);
   };
 
@@ -519,7 +519,7 @@
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
-      const mapIpField = (ipList: Array<HostDetails>) =>
+      const mapIpField = (ipList: Array<HostInfo>) =>
         ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

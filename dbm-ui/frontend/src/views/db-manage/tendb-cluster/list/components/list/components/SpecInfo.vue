@@ -35,7 +35,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { type InstanceSpecInfo } from '@services/model/spider/tendbCluster';
+  import { type InstanceSpecInfo } from '@services/model/tendbcluster/tendbcluster';
 
   interface Props {
     data: InstanceSpecInfo;

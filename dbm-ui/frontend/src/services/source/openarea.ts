@@ -1,9 +1,9 @@
 import OpenareaTemplateModel from '@services/model/openarea/openareaTemplate';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 

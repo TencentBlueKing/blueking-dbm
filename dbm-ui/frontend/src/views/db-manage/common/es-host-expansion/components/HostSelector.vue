@@ -82,7 +82,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -111,7 +111,7 @@
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const calcSelectHostDisk = (hostList: HostDetails[]) => hostList
+  const calcSelectHostDisk = (hostList: HostInfo[]) => hostList
     .reduce((result, hostItem) => result + ~~Number(hostItem.bk_disk), 0);
 
 

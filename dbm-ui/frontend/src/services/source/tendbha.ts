@@ -12,10 +12,11 @@
  */
 
 import TendbhaModel from '@services/model/mysql/tendbha';
+import TendbhaDetailModel from '@services/model/mysql/tendbha-detail';
 import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
+import type { ListBase, ResourceTopo } from '@services/types';
 
 import http from '../http';
-import type { ListBase, ResourceTopo } from '../types';
 
 const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/tendbha_resources`;
 
@@ -122,14 +123,16 @@ export function retrieveTendbhaInstance(params: {
   cluster_id?: number;
   dbType: string;
 }) {
-  return http.get<TendbhaInstanceModel>(`${getRootPath()}/retrieve_instance/`, params);
+  return http
+    .get<TendbhaInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
+    .then((data) => new TendbhaInstanceModel(data));
 }
 
 /**
  * 获取集群详情
  */
 export function getTendbhaDetail(params: { id: number }) {
-  return http.get<TendbhaModel>(`${getRootPath()}/${params.id}/`);
+  return http.get<TendbhaDetailModel>(`${getRootPath()}/${params.id}/`).then((data) => new TendbhaDetailModel(data));
 }
 
 /**

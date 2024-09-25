@@ -197,7 +197,7 @@
   import type { JSX } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
 
-  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
+  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
   import { createAccountRule, getPermissionRules, modifyAccountRule, preCheckAddAccountRule, queryAccountRules } from '@services/source/permission';
   import type { AccountRule, PermissionRuleAccount } from '@services/types/permission';
 

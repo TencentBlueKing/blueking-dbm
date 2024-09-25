@@ -27,8 +27,8 @@
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
-  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
+  import MongodbPermissonAccountModel from '@services/model/mongodb/mongodb-permission-account';
+  import SqlserverPermissionAccountModel from '@services/model/sqlserver/sqlserver-permission-account';
   import { getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { getSqlserverPermissionRules } from '@services/source/sqlserverPermissionAccount';
 

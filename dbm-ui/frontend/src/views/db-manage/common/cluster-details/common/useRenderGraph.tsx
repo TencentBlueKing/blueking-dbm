@@ -21,7 +21,7 @@ import { retrieveKafkaInstance } from '@services/source/kafka';
 import { retrievePulsarInstance } from '@services/source/pulsar';
 import { retrieveRedisInstance } from '@services/source/redis';
 import { retrieveRiakInstance } from '@services/source/riak';
-import { getSpiderInstanceDetails } from '@services/source/spider';
+import { getTendbclusterInstanceDetail } from '@services/source/tendbcluster';
 import { retrieveTendbhaInstance } from '@services/source/tendbha';
 import { retrieveTendbsingleInstance } from '@services/source/tendbsingle';
 import type { ResourceTopo } from '@services/types';
@@ -165,7 +165,7 @@ const apiMap: Record<string, (params: any) => Promise<any>> = {
   redis: retrieveRedisInstance,
   tendbsingle: retrieveTendbsingleInstance,
   tendbha: retrieveTendbhaInstance,
-  tendbcluster: getSpiderInstanceDetails,
+  tendbcluster: getTendbclusterInstanceDetail,
   riak: retrieveRiakInstance,
 };
 

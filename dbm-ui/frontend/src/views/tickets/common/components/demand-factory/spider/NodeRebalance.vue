@@ -45,7 +45,7 @@
   import type { SpiderNodeRebalanceDetails } from '@services/model/ticket/details/spider';
   import TicketModel from '@services/model/ticket/ticket';
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
-  import { getSpiderListByBizId } from '@services/source/spider';
+  import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 
   import { utcDisplayTime } from '@utils';
 
@@ -105,7 +105,7 @@
     },
   ];
 
-  useRequest(getSpiderListByBizId, {
+  useRequest(getTendbclusterListByBizId, {
     defaultParams: [{
       bk_biz_id: props.ticketDetails.bk_biz_id,
       offset: 0,

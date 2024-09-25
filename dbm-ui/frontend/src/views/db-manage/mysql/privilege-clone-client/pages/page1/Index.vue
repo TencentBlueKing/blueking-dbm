@@ -78,7 +78,7 @@
 
   import { precheckPermissionClone } from '@services/source/permission';
   import { createTicket } from '@services/source/ticket';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -115,7 +115,7 @@
   const tableData = ref<Array<IDataRow>>([createRowData({})]);
   const remark = ref('');
 
-  const selectedIps = shallowRef<HostDetails[]>([]);
+  const selectedIps = shallowRef<HostInfo[]>([]);
 
   let ipMemo = {} as Record<string, boolean>;
 
@@ -150,7 +150,7 @@
     isShowIpSelector.value = true;
   };
 
-  const handleHostChange = (data: HostDetails[]) => {
+  const handleHostChange = (data: HostInfo[]) => {
     selectedIps.value = data;
     const newList = data.reduce<IDataRow[]>((result, item) => {
       const { ip } = item;

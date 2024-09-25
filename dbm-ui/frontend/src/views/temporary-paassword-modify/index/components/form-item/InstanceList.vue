@@ -46,11 +46,11 @@
   import { useRequest } from 'vue-request';
 
   import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
-  import TendbInstanceModel from '@services/model/spider/tendbInstance';
   import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
   import SqlServerSingleInstanceModel from '@services/model/sqlserver/sqlserver-single-instance';
+  import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
   import { queryAdminPassword } from '@services/source/permission';
-  import { getSpiderInstanceList } from '@services/source/spider';
+  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
   import { getTendbhaInstanceList } from '@services/source/tendbha';
 
   import { clusterTypeInfos,ClusterTypes } from '@common/const';
@@ -58,7 +58,7 @@
   import InstanceSelector, { type InstanceSelectorValues, type IValue, type PanelListType } from '@components/instance-selector/Index.vue';
 
 
-  type IRowData = TendbhaInstanceModel|TendbInstanceModel|SqlServerHaInstanceModel|SqlServerSingleInstanceModel
+  type IRowData = TendbhaInstanceModel|TendbclusterInstanceModel|SqlServerHaInstanceModel|SqlServerSingleInstanceModel
 
   const { t } = useI18n();
 
@@ -87,7 +87,7 @@
       {
         name: 'TendbCluster',
         tableConfig: {
-          getTableList: (params: ServiceParameters<typeof getSpiderInstanceList>) => getSpiderInstanceList({
+          getTableList: (params: ServiceParameters<typeof getTendbclusterInstanceList>) => getTendbclusterInstanceList({
             ...params,
             spider_ctl: true,
           }),
@@ -110,7 +110,7 @@
   const instanceSelectorValue = shallowRef<Record<string, IValue[]>>({
     [ClusterTypes.TENDBSINGLE]: [] as TendbhaInstanceModel[],
     [ClusterTypes.TENDBHA]: [] as TendbhaInstanceModel[],
-    [ClusterTypes.TENDBCLUSTER]: [] as TendbInstanceModel[],
+    [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterInstanceModel[],
     [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaInstanceModel[],
     [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleInstanceModel[],
   });

@@ -12,25 +12,14 @@
  */
 import { uniq } from 'lodash';
 
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
 
 // const STATUS_NORMAL = 'normal';
 const STATUS_ABNORMAL = 'abnormal';
-
-type Node = {
-  bk_biz_id: number;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_instance_id: number;
-  instance: string;
-  ip: string;
-  name: string;
-  phase: string;
-  port: number;
-  status: 'running' | 'unavailable';
-};
 
 export default class Hdfs {
   static HDFS_SCALE_UP = 'HDFS_SCALE_UP';
@@ -61,53 +50,32 @@ export default class Hdfs {
     [Hdfs.HDFS_REBOOT]: t('实例重启任务进行中'),
   };
 
+  access_url: string;
   bk_biz_id: number;
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
   cluster_alias: string;
+  cluster_entry: ClusterListEntry;
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
+  cluster_time_zone: string;
   cluster_type: string;
   cluster_type_name: string;
-  cluster_time_zone: string;
-  cluster_entry_details: {
-    cluster_entry_type: string;
-    entry: string;
-    role: string;
-    target_details: {
-      app: string;
-      bk_cloud_iduid: number;
-      dns_str: string;
-      domain_name: string;
-      domain_typeuid: number;
-      ip: string;
-      last_change_time: string;
-      manager: string;
-      port: number;
-      remark: string;
-      start_time: string;
-      status: string;
-      uid: number;
-    }[];
-  }[];
   create_at: string;
   creator: string;
+  db_module_id: number;
+  db_module_name: string;
   domain: string;
-  hdfs_datanode: Array<Node>;
-  hdfs_journalnode: Array<Node>;
-  hdfs_namenode: Array<Node>;
-  hdfs_zookeeper: Array<Node>;
+  hdfs_datanode: Array<ClusterListNode>;
+  hdfs_journalnode: Array<ClusterListNode>;
+  hdfs_namenode: Array<ClusterListNode>;
+  hdfs_zookeeper: Array<ClusterListNode>;
   id: number;
   major_version: string;
-  operations: Array<{
-    cluster_id: number;
-    flow_id: number;
-    status: string;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-  }>;
+  master_domain: string;
+  operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
     hdfs_access_entry_view: boolean;
@@ -121,25 +89,29 @@ export default class Hdfs {
   };
   phase: string;
   region: string;
+  slave_domain: string;
   status: string;
   update_at: string;
   updater: string;
-  access_url: string;
 
   constructor(payload = {} as Hdfs) {
+    this.access_url = payload.access_url;
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
+    this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
-    this.cluster_entry_details = payload.cluster_entry_details;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.db_module_id = payload.db_module_id;
+    this.db_module_name = payload.db_module_name;
     this.domain = payload.domain;
     this.hdfs_datanode = payload.hdfs_datanode;
     this.hdfs_journalnode = payload.hdfs_journalnode;
@@ -147,13 +119,14 @@ export default class Hdfs {
     this.hdfs_zookeeper = payload.hdfs_zookeeper;
     this.id = payload.id;
     this.major_version = payload.major_version;
+    this.master_domain = payload.master_domain;
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.region = payload.region;
+    this.slave_domain = payload.slave_domain;
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
-    this.access_url = payload.access_url;
 
     this.operations = this.initOperations(payload.operations);
   }

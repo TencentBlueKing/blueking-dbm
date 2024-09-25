@@ -132,7 +132,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { checkHost, getHostTopoInfos } from '@services/source/ipchooser';
-  import type { HostDetails } from '@services/types/ip';
+  import type { HostInfo } from '@services/types/ip';
 
   import { useGlobalBizs } from '@stores';
 
@@ -189,7 +189,7 @@
 
   const conflicHostMap = shallowRef<Record<string, Array<HostTopoInfo>>>({});
   const conflicHostSelectMap = shallowRef<Record<string, HostTopoInfo>>({});
-  const localHostList = shallowRef<HostDetails[]>([]);
+  const localHostList = shallowRef<HostInfo[]>([]);
 
   let masterHost = {} as HostTopoInfo;
   let slaveHost = {} as HostTopoInfo;
@@ -344,12 +344,11 @@
     isShowIpSelector.value = true;
   };
 
-  const disableDialogSubmitMethod = (hostList: HostDetails[]) => (hostList.length === 2 ? false : t('需n台', { n: 2 }));
+  const disableDialogSubmitMethod = (hostList: HostInfo[]) => (hostList.length === 2 ? false : t('需n台', { n: 2 }));
 
-  const disableHostMethod = (data: HostDetails, list: HostDetails[]) =>
-    list.length >= 2 ? t('仅需n台', { n: 2 }) : false;
+  const disableHostMethod = (data: HostInfo, list: HostInfo[]) => (list.length >= 2 ? t('仅需n台', { n: 2 }) : false);
 
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostInfo[]) => {
     localHostList.value = hostList;
     localValue.value = hostList.map((hostItem) => hostItem.ip).join(',');
   };

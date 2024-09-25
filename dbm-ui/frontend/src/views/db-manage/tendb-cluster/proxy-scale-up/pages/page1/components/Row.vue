@@ -57,7 +57,7 @@
   </tr>
 </template>
 <script lang="ts">
-  import SpiderModel from '@services/model/spider/spider';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
@@ -80,8 +80,8 @@
     masterCount: number;
     slaveCount: number;
     mntCount: number; // 校验 spider_master + spider _mnt <=37
-    spiderMasterList: SpiderModel['spider_master'];
-    spiderSlaveList: SpiderModel['spider_slave'];
+    spiderMasterList: TendbClusterModel['spider_master'];
+    spiderSlaveList: TendbClusterModel['spider_slave'];
     // spec?: SpecInfo;
     specId?: number;
     targetNum?: string;

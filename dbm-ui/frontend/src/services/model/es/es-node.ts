@@ -29,12 +29,17 @@ export default class EsNode {
   machine_type: string;
   mem: number;
   node_count: number;
+  permission: {
+    es_view: boolean;
+    es_enable_disable: boolean;
+    es_destroy: boolean;
+    es_scale_up: boolean;
+    es_shrink: boolean;
+    es_replace: boolean;
+    es_reboot: boolean;
+  };
   role: string;
   status: number;
-  permission: Record<
-    'es_view' | 'es_enable_disable' | 'es_destroy' | 'es_scale_up' | 'es_shrink' | 'es_replace' | 'es_reboot',
-    boolean
-  >;
 
   constructor(payload = {} as EsNode) {
     this.bk_cloud_id = payload.bk_cloud_id;
@@ -48,9 +53,9 @@ export default class EsNode {
     this.machine_type = payload.machine_type;
     this.mem = payload.mem || 0;
     this.node_count = payload.node_count || 0;
+    this.permission = payload.permission || {};
     this.role = payload.role;
     this.status = payload.status || 0;
-    this.permission = payload.permission || {};
   }
 
   get isMaster() {

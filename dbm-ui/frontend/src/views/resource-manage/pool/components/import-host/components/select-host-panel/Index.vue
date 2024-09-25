@@ -56,15 +56,15 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type ImportHostModel from '@services/model/db-resource/import-host';
   import { fetchListDbaHost } from '@services/source/dbresourceResource';
+  import type { HostInfo } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
 
   import HostEmpty from './components/HostEmpty.vue';
 
   interface Props {
-    modelValue: ImportHostModel[],
+    modelValue: HostInfo[],
     contentHeight: number
   }
   interface Emits {
@@ -89,7 +89,7 @@
     {
       label: 'IPV6',
       field: 'ipv6',
-      render: ({ data }: { data: ImportHostModel}) => data.ipv6 || '--',
+      render: ({ data }: { data: HostInfo}) => data.ipv6 || '--',
     },
     {
       label: t('管控区域'),
@@ -98,7 +98,7 @@
     {
       label: t('Agent 状态'),
       field: 'agent',
-      render: ({ data }: { data: ImportHostModel}) => {
+      render: ({ data }: { data: HostInfo}) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },
@@ -121,7 +121,7 @@
     const newValueIdMap = newModleValue.reduce((result, item) => ({
       ...result,
       [item.host_id]: true,
-    }), {} as Record<ImportHostModel['host_id'], boolean>);
+    }), {} as Record<HostInfo['host_id'], boolean>);
     oldModleValue.forEach((hostData) => {
       if (!newValueIdMap[hostData.host_id]) {
         tableRef.value.removeSelectByKey(hostData.host_id);
@@ -129,7 +129,7 @@
     });
   });
 
-  const disableSelectMethod = (data: ImportHostModel) => {
+  const disableSelectMethod = (data: HostInfo) => {
     if (data.alive !== 1) {
       return t('异常主机不可用');
     }
@@ -153,7 +153,7 @@
     fetchData();
   };
 
-  const handleSelection = (key: number[], dataList: ImportHostModel[]) => {
+  const handleSelection = (key: number[], dataList: HostInfo[]) => {
     emits('update:modelValue', dataList);
   };
 

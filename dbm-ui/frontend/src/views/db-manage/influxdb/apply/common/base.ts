@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { HostDetails } from '@services/types';
+import type { HostInfo } from '@services/types';
 
 /**
  * 初始化表单数据
@@ -31,7 +31,7 @@ export const getInitFormdata = () => ({
     group_id: '',
     disaster_tolerance_level: 'NONE', // 同 affinity
     nodes: {
-      influxdb: [] as HostDetails[],
+      influxdb: [] as HostInfo[],
     },
     resource_spec: {
       influxdb: {

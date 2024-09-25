@@ -11,10 +11,11 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ListBase } from '@services/types';
+
 import http from '../http';
 import ClusterSpecModel from '../model/resource-spec/cluster-sepc';
 import ResourceSpecModel from '../model/resource-spec/resourceSpec';
-import type { ListBase } from '../types';
 
 const path = '/apis/dbresource/spec';
 

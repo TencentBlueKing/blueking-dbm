@@ -386,7 +386,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
-  import type { BizItem, HostDetails } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
@@ -657,7 +657,7 @@
           })
         : false,
   };
-  const makeMapByHostId = (hostList: HostDetails[]) =>
+  const makeMapByHostId = (hostList: HostInfo[]) =>
     hostList.reduce(
       (result, item) => ({
         ...result,
@@ -696,7 +696,7 @@
   /**
    * 更新 Proxy IP
    */
-  function handleProxyIpChange(data: HostDetails[]) {
+  function handleProxyIpChange(data: HostInfo[]) {
     formdata.details.nodes.proxy = [...data];
     if (formdata.details.nodes.proxy.length > 0) {
       proxyRef.value.clearValidate();
@@ -706,7 +706,7 @@
   /**
    * 更新 Backend
    */
-  function handleBackendIpChange(data: HostDetails[]) {
+  function handleBackendIpChange(data: HostInfo[]) {
     formdata.details.nodes.backend = [...data];
     if (formdata.details.nodes.backend.length > 0) {
       backendRef.value.clearValidate();
@@ -755,7 +755,7 @@
   /**
    * 格式化 IP 提交格式
    */
-  function formatNodes(hosts: HostDetails[]) {
+  function formatNodes(hosts: HostInfo[]) {
     return hosts.map((host) => ({
       ip: host.ip,
       bk_host_id: host.host_id,

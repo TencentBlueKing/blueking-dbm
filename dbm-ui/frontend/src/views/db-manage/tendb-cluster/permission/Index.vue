@@ -65,7 +65,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
+  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
   import { getPermissionRules } from '@services/source/permission';
   import type { PermissionRuleInfo } from '@services/types/permission';
 

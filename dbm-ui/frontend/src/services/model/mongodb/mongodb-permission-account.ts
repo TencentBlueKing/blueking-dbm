@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import dayjs from 'dayjs';
+import { isRecentDays } from '@utils';
 
 export default class MongodbPermissonAccount {
   account: {
@@ -38,12 +38,6 @@ export default class MongodbPermissonAccount {
   }
 
   get isNew() {
-    const createTime = this.account.create_time;
-    if (!createTime) {
-      return false;
-    }
-    const createDay = dayjs(createTime);
-    const today = dayjs();
-    return today.diff(createDay, 'hour') <= 24;
+    return isRecentDays(this.account.create_time, 24 * 3);
   }
 }

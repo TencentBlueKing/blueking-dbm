@@ -1,10 +1,10 @@
 import PartitionModel from '@services/model/partition/partition';
 import PartitionLogModel from '@services/model/partition/partition-log';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 // 分区列表
 export const getList = function (params: Record<string, any>) {

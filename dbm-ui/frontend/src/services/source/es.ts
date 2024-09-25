@@ -12,14 +12,15 @@
  */
 
 import EsModel from '@services/model/es/es';
+import EsDetailModel from '@services/model/es/es-detail';
 import EsInstanceModel from '@services/model/es/es-instance';
 import EsNodeModel from '@services/model/es/es-node';
 import EsPasswordModel from '@services/model/es/es-password';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -70,14 +71,7 @@ export function retrieveEsInstance(params: { bk_biz_id: number }) {
  * 获取集群详情
  */
 export function getEsDetail(params: { id: number }) {
-  return http.get<EsModel>(`${path}/${params.id}/`).then((data) => new EsModel(data));
-}
-
-/**
- * 获取集群节点
- */
-export function getEsNodes(params: { cluster_id: number }) {
-  return http.get<ListBase<EsModel[]>>(`${path}/${params.cluster_id}/get_nodes/`);
+  return http.get<EsDetailModel>(`${path}/${params.id}/`).then((data) => new EsDetailModel(data));
 }
 
 /**

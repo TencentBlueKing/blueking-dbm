@@ -12,8 +12,7 @@
  */
 import http from '@services/http';
 import RedisModel from '@services/model/redis/redis';
-
-import type { ListBase } from '../types';
+import type { ListBase } from '@services/types';
 
 const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/toolbox`;
 

@@ -2,10 +2,10 @@ import dayjs from 'dayjs';
 
 import { utcDisplayTime } from '@utils';
 
-export default class timeBaseClass {
+export default class DateTime {
   create_at: string;
 
-  constructor(payload: timeBaseClass) {
+  constructor(payload: DateTime) {
     this.create_at = payload.create_at;
   }
 

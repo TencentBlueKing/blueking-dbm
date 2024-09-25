@@ -16,11 +16,11 @@ import MongodbModel from '@services/model/mongodb/mongodb';
 import MongodbDetailModel from '@services/model/mongodb/mongodb-detail';
 import MongodbInstanceModel from '@services/model/mongodb/mongodb-instance';
 import MongodbInstanceDetailModel from '@services/model/mongodb/mongodb-instance-detail';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 

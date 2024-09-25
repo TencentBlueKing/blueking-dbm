@@ -115,7 +115,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import SpiderModel from '@services/model/spider/spider';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -156,7 +156,7 @@
   const isSubmitting = ref(false);
 
   const tableData = shallowRef<Array<IDataRow>>([createRowData({})]);
-  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbClusterModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const formData = reactive({
     backup_source: 'local',
@@ -184,7 +184,7 @@
   };
 
   // 批量选择
-  const handelClusterChange = (selected: Record<string, Array<SpiderModel>>) => {
+  const handelClusterChange = (selected: Record<string, Array<TendbClusterModel>>) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {

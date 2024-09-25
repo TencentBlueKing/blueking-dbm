@@ -67,8 +67,8 @@
 <script lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import SpiderModel from '@services/model/spider/spider';
-  import { getSpiderMachineList } from '@services/source/spider';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getTendbclusterMachineList } from '@services/source/tendbcluster';
 
   import { ClusterTypes } from '@common/const';
 
@@ -94,8 +94,8 @@
     nodeType: string;
     masterCount: number;
     slaveCount: number;
-    spiderMasterList: SpiderModel['spider_master'];
-    spiderSlaveList: SpiderModel['spider_slave'];
+    spiderMasterList: TendbClusterModel['spider_master'];
+    spiderSlaveList: TendbClusterModel['spider_slave'];
     spec?: SpecInfo;
     hostSelectType?: string;
     selectedNodeList?: IValue[];
@@ -175,15 +175,15 @@
           name: t('主机选择'),
           topoConfig: {
             filterClusterId: props.data!.clusterId,
-            countFunc: (clusterItem: SpiderModel) => {
+            countFunc: (clusterItem: TendbClusterModel) => {
               const hostList = isMater ? clusterItem.spider_master : clusterItem.spider_slave;
               const ipList = hostList.map((hostItem) => hostItem.ip);
               return new Set(ipList).size;
             },
           },
           tableConfig: {
-            getTableList: (params: ServiceReturnType<typeof getSpiderMachineList>) =>
-              getSpiderMachineList({
+            getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
+              getTendbclusterMachineList({
                 ...params,
                 spider_role: isMater ? 'spider_master' : 'spider_slave',
               }),
@@ -196,8 +196,8 @@
         },
         {
           tableConfig: {
-            getTableList: (params: ServiceReturnType<typeof getSpiderMachineList>) =>
-              getSpiderMachineList({
+            getTableList: (params: ServiceReturnType<typeof getTendbclusterMachineList>) =>
+              getTendbclusterMachineList({
                 ...params,
                 spider_role: isMater ? 'spider_master' : 'spider_slave',
               }),

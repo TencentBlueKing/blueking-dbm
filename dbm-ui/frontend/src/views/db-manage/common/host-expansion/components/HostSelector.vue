@@ -82,7 +82,7 @@
   } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -136,22 +136,22 @@
     {
       label: t('节点 IP'),
       field: 'ip',
-      render: ({ data }: {data: HostDetails}) => data.ip || '--',
+      render: ({ data }: {data: HostInfo}) => data.ip || '--',
     },
     {
       label: t('Agent状态'),
       field: 'alive',
-      render: ({ data }: { data: HostDetails }) => <HostAgentStatus data={data.alive} />,
+      render: ({ data }: { data: HostInfo }) => <HostAgentStatus data={data.alive} />,
     },
     {
       label: t('磁盘_GB'),
       field: 'bk_disk',
-      render: ({ data }: {data: HostDetails}) => data.bk_disk || '--',
+      render: ({ data }: {data: HostInfo}) => data.bk_disk || '--',
     },
     {
       label: t('操作'),
       width: 100,
-      render: ({ data }: {data: HostDetails}) => (
+      render: ({ data }: {data: HostInfo}) => (
         <bk-button
           text
           theme="primary"

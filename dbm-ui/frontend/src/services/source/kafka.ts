@@ -12,14 +12,15 @@
  */
 
 import KafkaModel from '@services/model/kafka/kafka';
+import KafkaDetailModel from '@services/model/kafka/kafka-detail';
 import KafkaInstanceModel from '@services/model/kafka/kafka-instance';
 import KafkaNodeModel from '@services/model/kafka/kafka-node';
 import KafkaPasswordModel from '@services/model/kafka/kafka-password';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -70,12 +71,7 @@ export function retrieveKafkaInstance(params: { bk_biz_id: number }) {
  * 获取集群详情
  */
 export function getKafkaDetail(params: { id: number }) {
-  return http.get<KafkaModel>(`${path}/${params.id}/`).then((data) => new KafkaModel(data));
-}
-
-// 获取集群详情（入口配置）
-export function getClusterDetailEntryConfig(params: { id: number }) {
-  return http.get<KafkaModel>(`${path}/${params.id}/`).then((data) => new KafkaModel(data));
+  return http.get<KafkaDetailModel>(`${path}/${params.id}/`).then((data) => new KafkaDetailModel(data));
 }
 
 /**

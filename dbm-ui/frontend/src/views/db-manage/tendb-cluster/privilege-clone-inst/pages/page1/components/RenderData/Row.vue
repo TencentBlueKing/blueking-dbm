@@ -78,7 +78,7 @@
   });
 </script>
 <script setup lang="ts">
-  import type SpiderModel from '@services/model/spider/spider';
+  import type SpiderModel from '@services/model/tendbcluster/tendbcluster';
 
   import RenderCluster from './RenderCluster.vue';
   import RenderModule from './RenderModule.vue';

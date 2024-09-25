@@ -100,7 +100,7 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
-  import TendbClusterModel from '@services/model/spider/tendbCluster';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getClusterDatabaseNameList } from '@services/source/remoteService';
   import { createTicket } from '@services/source/ticket';
 

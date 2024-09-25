@@ -124,7 +124,7 @@
 
   import type EsModel from '@services/model/es/es';
   import { createTicket } from '@services/source/ticket';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -270,7 +270,7 @@
   );
 
   // 节点主机互斥
-  const nodeDisableHostMethod = (hostData: HostDetails, type: keyof typeof disableTipsMap) => {
+  const nodeDisableHostMethod = (hostData: HostInfo, type: keyof typeof disableTipsMap) => {
     const types = Object.keys(disableTipsMap);
     for (const key of types) {
       if (key !== type) {

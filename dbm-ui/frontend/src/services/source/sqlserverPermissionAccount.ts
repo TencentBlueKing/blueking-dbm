@@ -11,14 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
+import SqlserverPermissionAccountModel from '@services/model/sqlserver/sqlserver-permission-account';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import type { AccountTypesValues } from '@common/const';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 

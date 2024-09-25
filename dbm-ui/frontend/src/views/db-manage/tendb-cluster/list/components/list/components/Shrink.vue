@@ -59,7 +59,7 @@
   import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import type TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';

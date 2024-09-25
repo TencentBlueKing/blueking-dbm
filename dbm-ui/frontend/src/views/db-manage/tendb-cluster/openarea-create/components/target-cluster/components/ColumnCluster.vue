@@ -27,8 +27,8 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import SpiderModel from '@services/model/spider/spider';
-  import { getSpiderList } from '@services/source/spider';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   import TableEditInput from '@views/db-manage/tendb-cluster/common/edit/Input.vue';
 
@@ -40,7 +40,7 @@
   }
 
   interface Emits {
-    (e: 'clusterInputFinish', value: SpiderModel): void;
+    (e: 'clusterInputFinish', value: TendbClusterModel): void;
   }
 
   interface Exposes {
@@ -72,7 +72,7 @@
     },
     {
       validator: (value: string) =>
-        getSpiderList({ exact_domain: value }).then((data) => {
+        getTendbClusterList({ exact_domain: value }).then((data) => {
           if (data.results.length > 0) {
             if (!isSkipInputFinish) {
               emits('clusterInputFinish', data.results[0]);

@@ -214,7 +214,7 @@
   import { useRequest } from 'vue-request';
 
   import { getModules } from '@services/source/cmdb';
-  import type { BizItem, HostDetails } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase } from '@hooks';
 
@@ -247,7 +247,7 @@
       cluster_alias: '',
       city_code: '',
       db_version: '2.2',
-      nodes: [] as HostDetails[],
+      nodes: [] as HostInfo[],
       // http_port: 8087,
     },
   });
@@ -294,7 +294,7 @@
     ],
     'details.nodes': [
       {
-        validator: (value: HostDetails[]) => value.length >= 3,
+        validator: (value: HostInfo[]) => value.length >= 3,
         message: t('节点数至少为n台', [3]),
         trigger: 'change',
       },
@@ -326,10 +326,10 @@
     formData.details.nodes = [];
   };
 
-  const disableHostSubmitMethods = (hostList: Array<HostDetails[]>) =>
+  const disableHostSubmitMethods = (hostList: Array<HostInfo[]>) =>
     hostList.length < 3 ? t('至少n台', { n: 3 }) : false;
 
-  const handleProxyIpChange = (data: HostDetails[]) => {
+  const handleProxyIpChange = (data: HostInfo[]) => {
     formData.details.nodes = data;
     if (formData.details.nodes.length > 0) {
       nodesRef.value.clearValidate();

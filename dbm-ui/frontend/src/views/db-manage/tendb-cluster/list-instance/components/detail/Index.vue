@@ -40,8 +40,8 @@
 <script setup lang="tsx">
   import { useRequest } from 'vue-request';
 
-  import type TendbInstanceModel from '@services/model/spider/tendbInstance';
-  import { getSpiderInstanceDetails } from '@services/source/spider';
+  import type TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
+  import { getTendbclusterInstanceDetail } from '@services/source/tendbcluster';
 
   import BaseInfo from './components/BaseInfo.vue';
   import ParamsConfig from './components/ParamsConfig.vue';
@@ -56,14 +56,14 @@
   const props = defineProps<Props>();
 
   const activePanel = ref('info');
-  const data = ref<TendbInstanceModel>();
+  const data = ref<TendbclusterInstanceModel>();
   const queryConfigInfos = computed(() => ({
     dbModuleId: data.value?.db_module_id ?? 0,
     clusterId: props.instanceData?.clusterId,
     version: data.value?.version ?? '',
   }));
 
-  const { loading: isLoading, run: fetchInstDetails } = useRequest(getSpiderInstanceDetails, {
+  const { loading: isLoading, run: fetchInstDetails } = useRequest(getTendbclusterInstanceDetail, {
     manual: true,
     onSuccess(result) {
       data.value = result;

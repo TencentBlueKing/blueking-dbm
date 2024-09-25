@@ -11,21 +11,21 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import TendbInstanceModel from '@services/model/spider/tendbInstance';
+import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
 import type { SpiderSlaveRebuid } from '@services/model/ticket/details/spider';
 import TicketModel from '@services/model/ticket/ticket';
-import { getSpiderInstanceList } from '@services/source/spider';
+import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // spider 重建从库-本地重建
 export async function generateSpiderSlaveRebuildLocalCloneData(ticketData: TicketModel<SpiderSlaveRebuid>) {
   const { infos, backup_source } = ticketData.details;
-  const instanceListResult = await getSpiderInstanceList({
+  const instanceListResult = await getTendbclusterInstanceList({
     instance: infos.map((item) => item.slave.ip),
     role: 'remote_slave',
   });
-  const instanceMap = instanceListResult.results.reduce<Record<string, TendbInstanceModel>>((obj, item) => {
+  const instanceMap = instanceListResult.results.reduce<Record<string, TendbclusterInstanceModel>>((obj, item) => {
     Object.assign(obj, {
       [item.ip]: item,
     });

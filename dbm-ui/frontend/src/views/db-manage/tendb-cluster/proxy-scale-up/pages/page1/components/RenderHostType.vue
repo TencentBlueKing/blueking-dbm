@@ -33,7 +33,7 @@
     </TableEditSelect>
   </div>
   <IpSelector
-    v-model:showDialog="showIpSelector"
+    v-model:show-dialog="showIpSelector"
     :biz-id="bizId"
     button-text=""
     :data="selectedIpList"
@@ -46,7 +46,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import IpSelector from '@components/ip-selector/IpSelector.vue';
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
@@ -82,7 +82,7 @@
   const localValue = ref(props.data);
   const showIpSelector = ref(false);
 
-  const selectedIpList = shallowRef<HostDetails[]>([]);
+  const selectedIpList = shallowRef<HostInfo[]>([]);
 
   const ipList = computed(() => selectedIpList.value.map((item) => item.ip));
 
@@ -120,7 +120,7 @@
   //   })
   // }
 
-  const handleChangeIP = (ipList: HostDetails[]) => {
+  const handleChangeIP = (ipList: HostInfo[]) => {
     selectedIpList.value = ipList;
     emits(
       'ip-list-change',

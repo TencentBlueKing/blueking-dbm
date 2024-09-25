@@ -85,7 +85,7 @@
   import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import { getSpiderMachineList } from '@services/source/spider';
+  import { getTendbclusterMachineList } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useGlobalBizs } from '@stores';
@@ -220,7 +220,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const spiderMachineResult = await getSpiderMachineList({
+    const spiderMachineResult = await getTendbclusterMachineList({
       ip,
       instance_role: 'remote_slave',
     }).finally(() => {
