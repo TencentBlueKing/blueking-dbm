@@ -16,6 +16,7 @@ import TendbhaDetailModel from '@services/model/mysql/tendbha-detail';
 import TendbhaInstanceModel from '@services/model/mysql/tendbha-instance';
 import TendbhaMachineModel from '@services/model/mysql/tendbha-machine';
 import type { ListBase, ResourceTopo } from '@services/types';
+import TendbHaMachineModel from '@services/model/mysql/tendbHaMachine';
 
 import http from '../http';
 

@@ -101,13 +101,21 @@
       </template>
     </BkResizeLayout>
     <template #footer>
-      <BkButton
-        class="cluster-selector-button mr-8"
-        :disabled="isEmpty"
-        theme="primary"
-        @click="handleConfirm">
-        {{ t('确定') }}
-      </BkButton>
+      <span class="mr24">
+        <slot
+          v-if="slots.submitTips"
+          :cluster-list="selectedClusterList"
+          name="submitTips" />
+      </span>
+      <span v-bk-tooltips="submitButtonDisabledInfo.tooltips">
+        <BkButton
+          class="cluster-selector-button mr-8"
+          :disabled="submitButtonDisabledInfo.disabled"
+          theme="primary"
+          @click="handleConfirm">
+          {{ t('确定') }}
+        </BkButton>
+      </span>
       <BkButton
         class="cluster-selector-button"
         @click="handleClose">
@@ -201,6 +209,7 @@
     tabListConfig?: Record<string, TabConfig>;
     onlyOneType?: boolean;
     supportOfflineData?: boolean;
+    disableDialogSubmitMethod?: (hostList: Array<string>) => string | boolean;
   }
 
   interface Emits {
@@ -215,6 +224,7 @@
     default: false,
   });
 
+  const slots = useSlots();
   const copy = useCopy();
   const { dialogWidth } = useSelectorDialogWidth();
   const { t } = useI18n();
@@ -413,6 +423,41 @@
   // const showSwitchTabTips = computed(() => showTabTips.value && tabList.value.length > 1);
   // 选中结果是否为空
   const isEmpty = computed(() => _.every(Object.values(selectedMap.value), (item) => Object.keys(item).length < 1));
+
+  const selectedClusterList = computed(() =>
+    Object.values(selectedMap.value).reduce<string[]>((prevList, selectedItem) => {
+      const clusterList = Object.values(selectedItem).map((clusterItem) => clusterItem.master_domain);
+      prevList.push(...clusterList);
+      return prevList;
+    }, []),
+  );
+
+  const submitButtonDisabledInfo = computed(() => {
+    const info = {
+      disabled: false,
+      tooltips: {
+        disabled: true,
+        content: '',
+      },
+    };
+
+    if (isEmpty.value) {
+      info.disabled = true;
+      info.tooltips.disabled = false;
+      info.tooltips.content = t('请选择集群');
+      return info;
+    }
+
+    const checkValue = props.disableDialogSubmitMethod
+      ? props.disableDialogSubmitMethod(selectedClusterList.value)
+      : false;
+    if (checkValue) {
+      info.disabled = true;
+      info.tooltips.disabled = false;
+      info.tooltips.content = _.isString(checkValue) ? checkValue : t('无法保存');
+    }
+    return info;
+  });
 
   watch(
     () => props.clusterTypes,
