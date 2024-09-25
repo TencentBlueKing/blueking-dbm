@@ -66,7 +66,7 @@
   import type PulsarModel from '@services/model/pulsar/pulsar';
   import { getHostDetails } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useTicketMessage } from '@hooks';
 
@@ -191,8 +191,8 @@
         scope_type: 'biz',
       }],
     }).then((data) => {
-      const bookkeeperOriginalHostList: HostDetails[] = [];
-      const brokerOriginalHostList: HostDetails[] = [];
+      const bookkeeperOriginalHostList: HostInfo[] = [];
+      const brokerOriginalHostList: HostInfo[] = [];
 
       let bookkeeperDiskTotal = 0;
       let brokerDiskTotal = 0;

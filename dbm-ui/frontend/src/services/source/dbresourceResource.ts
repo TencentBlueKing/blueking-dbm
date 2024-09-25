@@ -12,11 +12,10 @@
  */
 
 import DbResourceModel from '@services/model/db-resource/DbResource';
-import ImportHostModel from '@services/model/db-resource/import-host';
 import OperationModel from '@services/model/db-resource/Operation';
+import type { HostInfo, ListBase } from '@services/types';
 
 import http, { type IRequestPayload } from '../http';
-import type { HostDetails, ListBase } from '../types';
 
 const path = '/apis/dbresource/resource';
 
@@ -94,7 +93,7 @@ export function fetchListDbaHost(params: { limit: number; offset: number; search
   return http
     .get<{
       total: number;
-      data: ImportHostModel[];
+      data: HostInfo[];
     }>(`${path}/list_dba_hosts/`, {
       search_content: params.search_content,
       start: params.offset,
@@ -110,7 +109,7 @@ export function fetchListDbaHost(params: { limit: number; offset: number; search
  * 查询DBA业务下的主机信息
  */
 export function fetchHostListByHostId(params: { bk_host_ids: string }) {
-  return http.get<HostDetails[]>(`${path}/query_dba_hosts/`, params);
+  return http.get<HostInfo[]>(`${path}/query_dba_hosts/`, params);
 }
 
 /**

@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { HostDetails } from '@services/types';
+import type { HostInfo } from '@services/types';
 
 /**
  * 初始化表单数据
@@ -38,9 +38,9 @@ export const getInitFormdata = () => ({
     db_app_abbr: '',
     disaster_tolerance_level: 'NONE', // 同 affinity
     nodes: {
-      zookeeper: [] as HostDetails[],
-      broker: [] as HostDetails[],
-      bookkeeper: [] as HostDetails[],
+      zookeeper: [] as HostInfo[],
+      broker: [] as HostInfo[],
+      bookkeeper: [] as HostInfo[],
     },
     resource_spec: {
       zookeeper: {

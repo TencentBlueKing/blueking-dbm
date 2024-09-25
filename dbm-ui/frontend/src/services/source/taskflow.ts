@@ -12,9 +12,9 @@
  */
 
 import TaskFlowModel from '@services/model/taskflow/taskflow';
+import type { ListBase } from '@services/types';
 
 import http, { type IRequestPayload } from '../http';
-import type { ListBase } from '../types';
 import type { FlowItemTodo } from '../types/ticket';
 
 const path = '/apis/taskflow';

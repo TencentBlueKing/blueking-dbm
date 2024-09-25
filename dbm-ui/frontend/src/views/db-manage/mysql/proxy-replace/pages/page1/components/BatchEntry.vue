@@ -115,7 +115,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { checkMysqlInstances } from '@services/source/instances';
-  import type { InstanceInfos } from '@services/types/clusters';
+  import type { InstanceInfos } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 

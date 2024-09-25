@@ -92,9 +92,9 @@
   import { getPulsarTopoGraph } from '@services/source/pulsar';
   import { getRedisTopoGraph } from '@services/source/redis';
   import { getRiakTopoGraph } from '@services/source/riak';
-  import { getSpiderTopoGraph } from '@services/source/spider';
   import { getHaClusterTopoGraph } from '@services/source/sqlserveHaCluster';
   import { getSingleClusterTopoGraph } from '@services/source/sqlserverSingleCluster';
+  import { getTendbclusterTopoGraph } from '@services/source/tendbcluster';
   import { getTendbhaTopoGraph } from '@services/source/tendbha';
   import { getTendbsingleTopoGraph } from '@services/source/tendbsingle';
 
@@ -132,7 +132,7 @@
     redis: getRedisTopoGraph,
     tendbsingle: getTendbsingleTopoGraph,
     tendbha: getTendbhaTopoGraph,
-    tendbcluster: getSpiderTopoGraph,
+    tendbcluster: getTendbclusterTopoGraph,
     riak: getRiakTopoGraph,
     mongodb: getMongoClustersTopoGraph,
     sqlserver_ha: getHaClusterTopoGraph,

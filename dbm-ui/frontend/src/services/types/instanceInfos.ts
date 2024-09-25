@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { HostDetails } from '../types';
+import type { HostInfo } from '@services/types';
 
 /**
  * 实例详细信息（包含主机、集群）
@@ -27,7 +27,7 @@ export interface InstanceInfos {
   create_at: string;
   db_module_id: number;
   db_module_name: string;
-  host_info: HostDetails;
+  host_info: HostInfo;
   instance_address: string;
   ip: string;
   master_domain: string;

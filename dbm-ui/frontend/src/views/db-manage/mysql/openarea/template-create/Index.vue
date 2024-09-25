@@ -118,8 +118,8 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
+  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
   import { create as createOpenarea, getDetail, update as updateOpenarea } from '@services/source/openarea';
   import { getPermissionRules } from '@services/source/permission';
   import { getTendbhaList } from '@services/source/tendbha';

@@ -114,7 +114,7 @@
   import { differenceInHours } from 'date-fns';
   import { useI18n } from 'vue-i18n';
 
-  import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
+  import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
   import {
     deleteAccount,
     getPermissionRules,

@@ -64,8 +64,8 @@
   import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type ImportHostModel from '@services/model/db-resource/import-host';
   import { importResource } from '@services/source/dbresourceResource';
+  import type { HostInfo } from '@services/types';
 
   import { messageSuccess } from '@utils';
 
@@ -86,7 +86,7 @@
 
   const formRef = ref();
   const isSubmiting = ref(false);
-  const hostSelectList = shallowRef<ImportHostModel[]>([]);
+  const hostSelectList = shallowRef<HostInfo[]>([]);
   const width = Math.ceil(window.innerWidth * 0.8);
 
   const contentHeight = Math.ceil(window.innerHeight * 0.8 - 48);
@@ -128,6 +128,7 @@
     .bk-modal-header {
       display: none;
     }
+
     .bk-dialog-content {
       padding: 0;
       margin: 0;

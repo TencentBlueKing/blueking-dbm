@@ -57,7 +57,7 @@
 <script setup lang="ts">
   import { watch } from 'vue';
 
-  import SpiderModel from '@services/model/spider/spider';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
   import ColumnCluster from './ColumnCluster.vue';
   import ColumnHost from './ColumnHost.vue';
@@ -90,7 +90,7 @@
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
     (e: 'clone', value: IDataRow): void;
-    (e: 'clusterInputFinish', value: SpiderModel): void;
+    (e: 'clusterInputFinish', value: TendbClusterModel): void;
   }
 
   interface Exposes {
@@ -117,7 +117,7 @@
     },
   );
 
-  const handleClusterInputFinish = (value: SpiderModel) => {
+  const handleClusterInputFinish = (value: TendbClusterModel) => {
     emits('clusterInputFinish', value);
   };
 

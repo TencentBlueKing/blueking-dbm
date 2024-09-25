@@ -90,7 +90,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { getSpiderList } from '@services/source/spider';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   import { useCopy } from '@hooks';
 
@@ -104,7 +104,7 @@
     variableList: string[];
   }
 
-  type SpiderModel = ServiceReturnType<typeof getSpiderList>['results'][number];
+  type SpiderModel = ServiceReturnType<typeof getTendbClusterList>['results'][number];
 
   const props = defineProps<Props>();
   const emits = defineEmits<Emits>();
@@ -210,7 +210,7 @@
     loading.value = true;
     const newLineInfos = newLines.map((item) => getContents(item));
     const clusters = newLineInfos.map((item) => item[0]);
-    const clusterInfoResults = await getSpiderList({
+    const clusterInfoResults = await getTendbClusterList({
       offset: 0,
       limit: -1,
       domain: clusters.join(','),

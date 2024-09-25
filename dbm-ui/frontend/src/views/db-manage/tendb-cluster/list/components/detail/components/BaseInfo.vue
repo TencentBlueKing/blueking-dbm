@@ -21,7 +21,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import type TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
   import EditInfo, { type InfoColumn } from '@components/editable-info/index.vue';
 

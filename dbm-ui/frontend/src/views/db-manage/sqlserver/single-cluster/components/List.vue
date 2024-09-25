@@ -87,7 +87,7 @@
     useRouter,
   } from 'vue-router';
 
-  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
   import {
     getSingleClusterDetail,
     getSingleClusterList,
@@ -188,8 +188,8 @@
   const tableRef = ref<InstanceType<typeof DbTable>>();
   const isShowExcelAuthorize = ref(false);
   const isShowClusterReset = ref(false)
-  const currentData = ref<SqlServerSingleClusterModel>()
-  const selected = ref<SqlServerSingleClusterModel[]>([])
+  const currentData = ref<SqlServerSingleModel>()
+  const selected = ref<SqlServerSingleModel[]>([])
 
   /** 集群授权 */
   const authorizeShow = ref(false);
@@ -316,7 +316,7 @@
           {t('访问入口')}
         </RenderHeadCopy>
       ),
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => (
+      render: ({ data }: { data: SqlServerSingleModel }) => (
         <TextOverflowLayout>
           {{
             default: () => (
@@ -391,7 +391,7 @@
           {t('集群名称')}
         </RenderHeadCopy>
       ),
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => (
+      render: ({ data }: { data: SqlServerSingleModel }) => (
         <TextOverflowLayout>
           {{
             default: () => data.cluster_name,
@@ -434,7 +434,7 @@
         checked: columnCheckedMap.value.bk_cloud_id,
       },
       width: 90,
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.bk_cloud_name || '--'}</span>,
+      render: ({ data }: { data: SqlServerSingleModel }) => <span>{data.bk_cloud_name || '--'}</span>,
     },
     {
       label: t('状态'),
@@ -453,14 +453,14 @@
         ],
         checked: columnCheckedMap.value.status,
       },
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <RenderClusterStatus data={data.status} />,
+      render: ({ data }: { data: SqlServerSingleModel }) => <RenderClusterStatus data={data.status} />,
     },
     {
       label: t('容量使用率'),
       field: 'cluster_stats',
       width: 240,
       showOverflowTooltip: false,
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
+      render: ({ data }: { data: SqlServerSingleModel }) => <ClusterCapacityUsageRate clusterStats={data.cluster_stats} />
     },
     {
       label: t('实例'),
@@ -489,7 +489,7 @@
           {t('实例')}
         </RenderHeadCopy>
       ),
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => (
+      render: ({ data }: { data: SqlServerSingleModel }) => (
         <RenderInstances
           highlightIps={batchSearchIpInatanceList.value}
           data={data.storages}
@@ -509,7 +509,7 @@
         list: columnAttrs.value.db_module_id,
         checked: columnCheckedMap.value.db_module_id,
       },
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.db_module_name || '--'}</span>,
+      render: ({ data }: { data: SqlServerSingleModel }) => <span>{data.db_module_name || '--'}</span>,
     },
     {
       label: t('版本'),
@@ -520,7 +520,7 @@
         list: columnAttrs.value.major_version,
         checked: columnCheckedMap.value.major_version,
       },
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.major_version || '--'}</span>,
+      render: ({ data }: { data: SqlServerSingleModel }) => <span>{data.major_version || '--'}</span>,
     },
     {
       label: t('地域'),
@@ -531,20 +531,20 @@
         list: columnAttrs.value.region,
         checked: columnCheckedMap.value.region,
       },
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.region || '--'}</span>,
+      render: ({ data }: { data: SqlServerSingleModel }) => <span>{data.region || '--'}</span>,
     },
     {
       label: t('创建人'),
       field: 'creator',
       width: 140,
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.creator || '--'}</span>,
+      render: ({ data }: { data: SqlServerSingleModel }) => <span>{data.creator || '--'}</span>,
     },
     {
       label: t('部署时间'),
       field: 'create_at',
       width: 160,
       sort: true,
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.createAtDisplay || '--'}</span>,
+      render: ({ data }: { data: SqlServerSingleModel }) => <span>{data.createAtDisplay || '--'}</span>,
     },
     {
       label: t('时区'),
@@ -554,14 +554,14 @@
         list: columnAttrs.value.time_zone,
         checked: columnCheckedMap.value.time_zone,
       },
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => <span>{data.cluster_time_zone || '--'}</span>,
+      render: ({ data }: { data: SqlServerSingleModel }) => <span>{data.cluster_time_zone || '--'}</span>,
     },
     {
       label: t('操作'),
       field: '',
       width: tableOperationWidth.value,
       fixed: isStretchLayoutOpen.value ? false : 'right',
-      render: ({ data }: { data: SqlServerSingleClusterModel }) => (
+      render: ({ data }: { data: SqlServerSingleModel }) => (
         <>
           {
             data.isOnline ? (
@@ -690,7 +690,7 @@
    */
   const handleSwitchCluster = (
     type: TicketTypesStrings,
-    data: SqlServerSingleClusterModel,
+    data: SqlServerSingleModel,
   ) => {
     if (!type) return;
 
@@ -725,7 +725,7 @@
   /**
    * 删除集群
    */
-  const handleDeleteCluster = (data: SqlServerSingleClusterModel) => {
+  const handleDeleteCluster = (data: SqlServerSingleModel) => {
     const { cluster_name: name } = data;
     InfoBox({
       type: 'warning',
@@ -753,7 +753,7 @@
     });
   };
 
-  const handleResetCluster = (data: SqlServerSingleClusterModel) => {
+  const handleResetCluster = (data: SqlServerSingleModel) => {
     currentData.value = data
     isShowClusterReset.value = true
   }
@@ -785,12 +785,12 @@
   }
 
   // 获取列表数据下的实例子列表
-  const getInstanceListByRole = (dataList: SqlServerSingleClusterModel[], field: keyof SqlServerSingleClusterModel) => dataList.reduce((result, curRow) => {
-    result.push(...curRow[field] as SqlServerSingleClusterModel['storages']);
+  const getInstanceListByRole = (dataList: SqlServerSingleModel[], field: keyof SqlServerSingleModel) => dataList.reduce((result, curRow) => {
+    result.push(...curRow[field] as SqlServerSingleModel['storages']);
     return result;
-  }, [] as SqlServerSingleClusterModel['storages']);
+  }, [] as SqlServerSingleModel['storages']);
 
-  const handleCopySelected = <T,>(field: keyof T, role?: keyof SqlServerSingleClusterModel) => {
+  const handleCopySelected = <T,>(field: keyof T, role?: keyof SqlServerSingleModel) => {
     if(role) {
       handleCopy(getInstanceListByRole(selected.value, role) as T[], field)
       return;
@@ -798,8 +798,8 @@
     handleCopy(selected.value as T[], field)
   }
 
-  const handleCopyAll = async <T,>(field: keyof T, role?: keyof SqlServerSingleClusterModel) => {
-    const allData = await tableRef.value!.getAllData<SqlServerSingleClusterModel>();
+  const handleCopyAll = async <T,>(field: keyof T, role?: keyof SqlServerSingleModel) => {
+    const allData = await tableRef.value!.getAllData<SqlServerSingleModel>();
     if(allData.length === 0) {
       Message({
         theme: 'primary',
@@ -815,7 +815,7 @@
   }
 
   // 设置行样式
-  const setRowClass = (row: SqlServerSingleClusterModel) => {
+  const setRowClass = (row: SqlServerSingleModel) => {
     const classStack = [];
     if (row.isNew) {
       classStack.push('is-new-row');
@@ -826,8 +826,8 @@
     return classStack.join(' ');
   };
 
-  const handleSelection = (key: number[], list: Record<number, SqlServerSingleClusterModel>[]) => {
-    selected.value = list as unknown as SqlServerSingleClusterModel[];
+  const handleSelection = (key: number[], list: Record<number, SqlServerSingleModel>[]) => {
+    selected.value = list as unknown as SqlServerSingleModel[];
   };
 
   const handleClearSelected = () => {
@@ -848,7 +848,7 @@
    * 查看详情
    */
   const handleToDetails = (
-    data: SqlServerSingleClusterModel,
+    data: SqlServerSingleModel,
     isAllSpread: boolean = false,
   ) => {
     stretchLayoutSplitScreen();

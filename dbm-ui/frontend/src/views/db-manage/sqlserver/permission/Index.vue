@@ -100,7 +100,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
+  import SqlserverPermissionAccountModel from '@services/model/sqlserver/sqlserver-permission-account';
   import {
     deleteSqlserverAccount,
     getSqlserverPermissionRules,

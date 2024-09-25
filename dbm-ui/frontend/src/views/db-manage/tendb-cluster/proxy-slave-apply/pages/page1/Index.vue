@@ -67,8 +67,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import SpiderModel from '@services/model/spider/spider';
-  import { getSpiderList } from '@services/source/spider';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -105,7 +105,7 @@
   const tableData = ref([createRowData()]);
   const remark = ref('');
 
-  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbClusterModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length);
 
@@ -113,7 +113,7 @@
     [ClusterTypes.TENDBCLUSTER]: {
       disabledRowConfig: [
         {
-          handler: (data: SpiderModel) => data.spider_slave.length > 0,
+          handler: (data: TendbClusterModel) => data.spider_slave.length > 0,
           tip: t('该集群已有只读集群'),
         },
       ],
@@ -138,7 +138,7 @@
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
-  const generateRowDateFromRequest = (item: SpiderModel) => ({
+  const generateRowDateFromRequest = (item: TendbClusterModel) => ({
     rowKey: random(),
     isLoading: false,
     cluster: item.master_domain,
@@ -156,7 +156,7 @@
   });
 
   // 批量选择
-  const handelClusterChange = async (selected: { [key: string]: Array<SpiderModel> }) => {
+  const handelClusterChange = async (selected: { [key: string]: Array<TendbClusterModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -188,7 +188,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await getSpiderList({ domain }).finally(() => {
+    const ret = await getTendbClusterList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.results.length < 1) {

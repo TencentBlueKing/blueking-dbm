@@ -11,12 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 import AdminPasswordModel from '@services/model/admin-password/admin-password';
-import MysqlPermissonAccountModel from '@services/model/mysql-permisson/mysql-permission-account';
+import MysqlPermissonAccountModel from '@services/model/mysql/mysql-permission-account';
+import type { ListBase } from '@services/types';
 
 import type { AccountTypesValues, ClusterTypes, DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
-import type { ListBase } from '../types';
 import type {
   AccountRule,
   AuthorizePreCheckData,

@@ -91,7 +91,7 @@
   import { getResourceSpecList } from '@services/source/dbresourceSpec';
 
   // import { checkHost, getHostTopo } from '@services/source/ipchooser'
-  // import type { HostDetails } from '@services/types/ip';
+  // import type { HostInfo } from '@services/types/ip';
   import { useGlobalBizs } from '@stores';
 
   import { ClusterTypes } from '@common/const';
@@ -335,9 +335,9 @@
   //   return false
   // }
 
-  // const disableIdleDialogSubmitMethod = (hostList: HostDetails[]) => hostList.length === 1 ? false : t('需n台', { n: 1 });
+  // const disableIdleDialogSubmitMethod = (hostList: HostInfo[]) => hostList.length === 1 ? false : t('需n台', { n: 1 });
 
-  // const disableIdleHostMethod = (data: HostDetails, list: HostDetails[]) => {
+  // const disableIdleHostMethod = (data: HostInfo, list: HostInfo[]) => {
   //   const otherAllSelectHostMap = getOtherAllSelectHostMap(idleHostSelectMemo)
   //   if (otherAllSelectHostMap[data.ip]) {
   //     return t('已被其他行选中');
@@ -348,7 +348,7 @@
   //   return false
   // }
 
-  // const handleIdleHostChange = (hostList: HostDetails[]) => {
+  // const handleIdleHostChange = (hostList: HostInfo[]) => {
   //   localHostList.value = hostList.map(hostItem => ({
   //     bk_biz_id: hostItem.biz.id,
   //     bk_cloud_id: hostItem.cloud_id,

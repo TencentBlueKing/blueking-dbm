@@ -25,13 +25,12 @@
       :ticket-type="ticketType" />
   </DbSideslider>
 </template>
-
-<script setup lang="tsx">
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
-  import TendbClusterModel from '@services/model/spider/tendbCluster';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
 
   import { TicketTypes } from '@common/const';
 
@@ -56,8 +55,8 @@
     .cluster-domain {
       padding-left: 8px;
       margin-left: 8px;
-      color: #979ba5;
       font-size: 14px;
+      color: #979ba5;
       border-left: 1px solid #dcdee5;
     }
   }

@@ -12,11 +12,11 @@
  */
 
 import DumperModel from '@services/model/dumper/dumper';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http, { type IRequestPayload } from '../http';
-import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 

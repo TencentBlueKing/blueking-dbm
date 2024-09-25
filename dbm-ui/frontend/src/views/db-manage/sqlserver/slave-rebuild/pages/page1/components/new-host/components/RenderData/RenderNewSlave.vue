@@ -54,7 +54,7 @@
   import { useRequest } from 'vue-request';
 
   import { getModuleDetail } from '@services/source/configs';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -84,7 +84,7 @@
 
   const disabledTips = computed(() => (props.oldSlave ? '' : t('请先选择从库主机')));
 
-  const disableHostMethod = (hostData: HostDetails) => {
+  const disableHostMethod = (hostData: HostInfo) => {
     if (!hostModuleRelatedSystemVersion.value) {
       return t('获取从库主机操作系统失败');
     }
@@ -104,7 +104,7 @@
   const elementRef = ref<ComponentExposed<typeof RenderElement>>();
   const isShowIpSelector = ref(false);
 
-  const localHostData = shallowRef<HostDetails>();
+  const localHostData = shallowRef<HostInfo>();
   const hostModuleRelatedSystemVersion = ref('');
 
   const rules = [
@@ -143,7 +143,7 @@
     isShowIpSelector.value = true;
   };
 
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostInfo[]) => {
     [localHostData.value] = hostList;
   };
 

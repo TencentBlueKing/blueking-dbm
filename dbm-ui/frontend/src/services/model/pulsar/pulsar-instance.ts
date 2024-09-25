@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { HostInfo, InstanceListOperation, InstanceRelatedCluster } from '@services/types';
+
 import { t } from '@locales/index';
 
 export default class PulsarInstance {
@@ -30,18 +32,12 @@ export default class PulsarInstance {
   create_at: string;
   restart_at: string;
   domain: string;
+  host_info: HostInfo;
   id: number;
   instance_address: string;
   instance_name: string;
-  operations: Array<{
-    flow_id: number;
-    instance_id: number;
-    operator: string;
-    status: string;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-  }>;
+  operations: InstanceListOperation[];
+  related_clusters: InstanceRelatedCluster[];
   role: string;
   status: string;
 
@@ -52,13 +48,14 @@ export default class PulsarInstance {
     this.create_at = payload.create_at;
     this.restart_at = payload.restart_at;
     this.domain = payload.domain;
+    this.host_info = payload.host_info;
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
+    this.operations = payload.operations || [];
+    this.related_clusters = payload.related_clusters || [];
     this.role = payload.role;
     this.status = payload.status;
-
-    this.operations = this.initOperations(payload.operations);
   }
 
   // 操作中的状态
@@ -106,13 +103,5 @@ export default class PulsarInstance {
       tip: PulsarInstance.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
-  }
-
-  initOperations(payload = [] as PulsarInstance['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload;
   }
 }

@@ -95,7 +95,7 @@
 
   import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-by-ip';
   import { checkRedisInstances } from '@services/source/instances';
-  import type { InstanceInfos } from '@services/types/clusters';
+  import type { InstanceInfos } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 

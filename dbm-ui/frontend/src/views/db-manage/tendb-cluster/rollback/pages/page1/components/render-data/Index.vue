@@ -43,7 +43,7 @@
     @change="handelClusterChange" />
 </template>
 <script lang="ts">
-  import { getTendbClusterList } from '@services/source/spider';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   import type { HostDataItem } from '@views/db-manage/mysql/rollback/pages/page1/components/common/RenderHostInputSelect.vue';
 
@@ -117,7 +117,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import TendbClusterModel from '@services/model/spider/tendbCluster';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
   import { createTicket } from '@services/source/ticket';
 

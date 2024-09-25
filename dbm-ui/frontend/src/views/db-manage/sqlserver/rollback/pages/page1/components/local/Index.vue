@@ -32,8 +32,8 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -61,7 +61,7 @@
 
   const { t } = useI18n();
 
-  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
+  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleModel | SqlServerHaModel)[] }>({
     [ClusterTypes.SQLSERVER_HA]: [],
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
@@ -95,9 +95,7 @@
     isShowBatchSelector.value = true;
   };
   // 批量选择
-  const handelClusterChange = (selected: {
-    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
-  }) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SqlServerSingleModel | SqlServerHaModel> }) => {
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {

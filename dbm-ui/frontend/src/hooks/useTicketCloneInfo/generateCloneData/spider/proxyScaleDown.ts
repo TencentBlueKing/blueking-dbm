@@ -13,11 +13,11 @@
 
 import _ from 'lodash';
 
-import SpiderModel from '@services/model/spider/spider';
-import TendbInstanceModel from '@services/model/spider/tendbInstance';
+import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
+import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
 import type { SpiderReduceNodesDetails } from '@services/model/ticket/details/spider';
 import TicketModel from '@services/model/ticket/ticket';
-import { getSpiderInstanceList, getSpiderList } from '@services/source/spider';
+import { getTendbclusterInstanceList, getTendbClusterList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
@@ -25,27 +25,27 @@ import { random } from '@utils';
 export async function generateSpiderProxyScaleDownCloneData(ticketData: TicketModel<SpiderReduceNodesDetails>) {
   const { infos, is_safe: isSafe } = ticketData.details;
   const [clusterListResult, instanceListResult] = await Promise.all([
-    getSpiderList({
+    getTendbClusterList({
       cluster_ids: infos.map((item) => item.cluster_id),
     }),
-    getSpiderInstanceList({
+    getTendbclusterInstanceList({
       ip: _.flatten(infos.map((infoItem) => infoItem.spider_reduced_hosts?.map((hostItem) => hostItem.ip))).join(','),
     }),
   ]);
-  const clusterListMap = clusterListResult.results.reduce<Record<number, SpiderModel>>((obj, item) => {
+  const clusterListMap = clusterListResult.results.reduce<Record<number, TendbclusterModel>>((obj, item) => {
     Object.assign(obj, {
       [item.id]: item,
     });
     return obj;
   }, {});
-  const instanceListMap = instanceListResult.results.reduce<Record<string, TendbInstanceModel>>((obj, item) => {
+  const instanceListMap = instanceListResult.results.reduce<Record<string, TendbclusterInstanceModel>>((obj, item) => {
     Object.assign(obj, {
       [item.ip]: item,
     });
     return obj;
   }, {});
 
-  const formatValue = (data: TendbInstanceModel) => ({
+  const formatValue = (data: TendbclusterInstanceModel) => ({
     bk_host_id: data.bk_host_id,
     instance_address: data.instance_address || '',
     cluster_id: data.cluster_id,

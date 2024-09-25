@@ -40,12 +40,12 @@
   import { exportPulsarClusterToExcel, exportPulsarInstanceToExcel } from '@services/source/pulsar';
   import { exportRedisClusterToExcel, exportRedisInstanceToExcel } from '@services/source/redis';
   import { exportRiakClusterToExcel, exportRiakInstanceToExcel } from '@services/source/riak';
-  import { exportSpiderClusterToExcel, exportSpiderInstanceToExcel } from '@services/source/spider';
   import {
     exportSqlServerHaClusterToExcel,
     exportSqlServerHaInstanceToExcel,
   } from '@services/source/sqlserveHaCluster';
   import { exportSqlServerSingleClusterToExcel } from '@services/source/sqlserverSingleCluster';
+  import { exportTendbclusterInstanceToExcel, exportTendbclusterToExcel } from '@services/source/tendbcluster';
   import { exportTendbhaClusterToExcel, exportTendbhaInstanceToExcel } from '@services/source/tendbha';
   import { exportTendbsingleClusterToExcel, exportTendbsingleInstanceToExcel } from '@services/source/tendbsingle';
 
@@ -91,8 +91,8 @@
       instance: exportTendbhaInstanceToExcel,
     },
     spider: {
-      cluster: exportSpiderClusterToExcel,
-      instance: exportSpiderInstanceToExcel,
+      cluster: exportTendbclusterToExcel,
+      instance: exportTendbclusterInstanceToExcel,
     },
     redis: {
       cluster: exportRedisClusterToExcel,

@@ -12,9 +12,9 @@
  */
 
 import DeployPlanModel from '@services/model/db-resource/DeployPlan';
+import type { ListBase } from '@services/types';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const path = '/apis/dbresource/deploy_plan';
 

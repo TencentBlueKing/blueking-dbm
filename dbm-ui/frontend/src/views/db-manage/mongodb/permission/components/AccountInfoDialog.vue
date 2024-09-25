@@ -38,7 +38,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
+  import MongodbPermissonAccountModel from '@services/model/mongodb/mongodb-permission-account';
 
   import { useDeleteAccount } from '../hooks/useDeleteAccount';
 

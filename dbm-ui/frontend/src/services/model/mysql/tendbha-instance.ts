@@ -11,9 +11,11 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
+
 import { utcDisplayTime } from '@utils';
 
-export default class tendbhaInstance {
+export default class TendbhaInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
@@ -23,70 +25,24 @@ export default class tendbhaInstance {
   create_at: string;
   db_module_id: number;
   db_module_name: string;
-  host_info: {
-    alive: number;
-    biz: {
-      id: number;
-      name: string;
-    };
-    cloud_area: {
-      id: number;
-      name: string;
-    };
-    cloud_id: number;
-    host_id: number;
-    host_name?: string;
-    ip: string;
-    ipv6: string;
-    meta: {
-      bk_biz_id: number;
-      scope_id: number;
-      scope_type: string;
-    };
-    scope_id: string;
-    scope_type: string;
-    os_name: string;
-    bk_cpu?: number;
-    bk_disk?: number;
-    bk_mem?: number;
-    os_type: string;
-    agent_id: number;
-    cpu: string;
-    cloud_vendor: string;
-    bk_idc_name?: string;
-  };
+  host_info: HostInfo;
   id: number;
   instance_address: string;
   ip: string;
+  machine_type: string;
   master_domain: string;
-  permission: Record<'mysql_view', boolean>;
+  permission: {
+    mysql_view: boolean;
+  };
   port: number;
+  related_clusters: InstanceRelatedCluster[];
   role: string;
   slave_domain: string;
-  spce_config: {
-    count: number;
-    cpu: {
-      max: number;
-      min: number;
-    };
-    device_class: string[];
-    id: number;
-    mem: {
-      max: number;
-      min: number;
-    };
-    name: string;
-    qps: Record<any, any>;
-    storage_spec: {
-      mount_point: string;
-      size: number;
-      type: string;
-    }[];
-  };
+  spce_config: InstanceListSpecConfig;
   status: string;
   version: string;
 
-  constructor(payload = {} as tendbhaInstance) {
+  constructor(payload = {} as TendbhaInstance) {
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
     this.bk_host_id = payload.bk_host_id || 0;
@@ -100,9 +56,11 @@ export default class tendbhaInstance {
     this.id = payload.id || 0;
     this.instance_address = payload.instance_address || '';
     this.ip = payload.ip || '';
+    this.machine_type = payload.machine_type;
     this.master_domain = payload.master_domain || '';
     this.permission = payload.permission || {};
     this.port = payload.port || 0;
+    this.related_clusters = payload.related_clusters || [];
     this.role = payload.role || '';
     this.slave_domain = payload.slave_domain || '';
     this.spce_config = payload.spce_config || {};

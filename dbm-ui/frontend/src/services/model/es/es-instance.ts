@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { HostInfo, InstanceListOperation, InstanceRelatedCluster } from '@services/types';
+
 import { t } from '@locales/index';
 
 export default class EsInstance {
@@ -30,18 +32,12 @@ export default class EsInstance {
   create_at: string;
   restart_at: string;
   domain: string;
+  host_info: HostInfo;
   id: number;
   instance_address: string;
   instance_name: string;
-  operations: Array<{
-    flow_id: number;
-    instance_id: number;
-    operator: string;
-    status: string;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-  }>;
+  operations: InstanceListOperation[];
+  related_clusters: InstanceRelatedCluster[];
   role: string;
   status: string;
 
@@ -52,9 +48,11 @@ export default class EsInstance {
     this.create_at = payload.create_at;
     this.restart_at = payload.restart_at;
     this.domain = payload.domain;
+    this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
+    this.related_clusters = payload.related_clusters || [];
     this.role = payload.role;
     this.status = payload.status;
 

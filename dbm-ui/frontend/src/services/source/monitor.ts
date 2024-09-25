@@ -13,8 +13,7 @@
 import http, { type IRequestPayload } from '@services/http';
 import DutyRuleModel from '@services/model/monitor/duty-rule';
 import MonitorPolicyModel from '@services/model/monitor/monitor-policy';
-
-import type { ListBase } from '../types';
+import type { ListBase } from '@services/types';
 
 interface UpdatePolicyParams {
   custom_conditions: {

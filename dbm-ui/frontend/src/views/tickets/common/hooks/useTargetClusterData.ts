@@ -16,7 +16,7 @@ import { useI18n } from 'vue-i18n';
 
 import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
-import { getResourcesByBizId as getSpiderResources } from '@services/source/spider';
+import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 import { getTendbhaListByBizId } from '@services/source/tendbha';
 import { getTendbsingleListByBizId } from '@services/source/tendbsingle';
 
@@ -31,7 +31,7 @@ export function useTargetClusterData(ticketDetails: TicketModel<MysqlAuthorizati
   const apiMap = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleListByBizId,
     [ClusterTypes.TENDBHA]: getTendbhaListByBizId,
-    spider: getSpiderResources,
+    [ClusterTypes.TENDBCLUSTER]: getTendbclusterListByBizId,
   };
 
   const listState = reactive({
@@ -76,11 +76,7 @@ export function useTargetClusterData(ticketDetails: TicketModel<MysqlAuthorizati
    * 获取目标集群列表
    */
   const fetchCluster = () => {
-    const type = (
-      ticketDetails?.details?.authorize_data?.cluster_type === ClusterTypes.TENDBCLUSTER
-        ? 'spider'
-        : ticketDetails?.details?.authorize_data?.cluster_type
-    ) as keyof typeof apiMap;
+    const type = ticketDetails?.details?.authorize_data?.cluster_type as keyof typeof apiMap;
 
     if (!apiMap[type]) {
       return;

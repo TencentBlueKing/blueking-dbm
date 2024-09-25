@@ -19,7 +19,7 @@ import { getModules } from '@services/source/cmdb';
 import { getLevelConfig } from '@services/source/configs';
 import { getInfrasHostSpecs } from '@services/source/infras';
 import { createTicket } from '@services/source/ticket';
-import type { HostDetails } from '@services/types';
+import type { HostInfo } from '@services/types';
 
 import { mysqlType, type MysqlTypeString } from '@common/const';
 
@@ -48,8 +48,8 @@ const getFormData = (type: string) => ({
     disaster_tolerance_level: 'NONE', // 同 affinity
     ip_source: 'resource_pool',
     nodes: {
-      backend: [] as HostDetails[],
-      proxy: [] as HostDetails[],
+      backend: [] as HostInfo[],
+      proxy: [] as HostInfo[],
     },
     resource_spec: {
       single: {

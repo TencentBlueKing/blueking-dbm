@@ -11,10 +11,10 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import SpiderModel from '@services/model/spider/spider';
+import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
 import type { SpiderNodeRebalanceDetails } from '@services/model/ticket/details/spider';
 import TicketModel from '@services/model/ticket/ticket';
-import { getSpiderList } from '@services/source/spider';
+import { getTendbClusterList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
@@ -27,10 +27,10 @@ export async function generateSpiderCapacityChangeCloneData(ticketData: TicketMo
     trigger_checksum_time: triggerChecksumTime,
     backup_source: backupSource,
   } = ticketData.details;
-  const clusterListResult = await getSpiderList({
+  const clusterListResult = await getTendbClusterList({
     cluster_ids: infos.map((item) => item.cluster_id),
   });
-  const clusterListMap = clusterListResult.results.reduce<Record<number, SpiderModel>>((obj, item) => {
+  const clusterListMap = clusterListResult.results.reduce<Record<number, TendbclusterModel>>((obj, item) => {
     Object.assign(obj, {
       [item.id]: item,
     });

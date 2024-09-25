@@ -20,7 +20,7 @@ export default class BizConfTopoTree {
   instance_name: string;
   obj_id: ConfLevels;
   obj_name: string;
-  children?: BizConfTopoTree[];
+  children: BizConfTopoTree[];
   extra: {
     domain: string;
     proxy_version: string;
@@ -32,7 +32,7 @@ export default class BizConfTopoTree {
     this.instance_name = payload.instance_name;
     this.obj_id = payload.obj_id;
     this.obj_name = payload.obj_name;
-    this.children = payload.children;
+    this.children = payload.children || [];
     this.extra = payload.extra;
   }
 }

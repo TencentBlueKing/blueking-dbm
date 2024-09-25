@@ -205,8 +205,8 @@
   import { useI18n } from 'vue-i18n';
 
   import MongodbModel from '@services/model/mongodb/mongodb';
-  import MongodbPermissonAccountModel from '@services/model/mongodb-permission/mongodb-permission-account';
-  import SqlserverPermissionAccountModel from '@services/model/sqlserver-permission/sqlserver-permission-account';
+  import MongodbPermissonAccountModel from '@services/model/mongodb/mongodb-permission-account';
+  import SqlserverPermissionAccountModel from '@services/model/sqlserver/sqlserver-permission-account';
   import { checkHost } from '@services/source/ipchooser';
   import { getMongodbPermissionRules } from '@services/source/mongodbPermissionAccount';
   import { preCheckMongodbAuthorizeRules } from '@services/source/mongodbPermissionAuthorize';

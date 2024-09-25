@@ -146,7 +146,7 @@
     edit as editPartition,
     verifyPartitionField,
   } from '@services/source/partitionManage';
-  import { getSpiderList } from '@services/source/spider';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   import { dbSysExclude } from '@common/const';
   import { dbRegex } from '@common/regex';
@@ -284,7 +284,7 @@
     ],
   }));
 
-  const { loading: isCluserListLoading, data: clusterList } = useRequest(getSpiderList, {
+  const { loading: isCluserListLoading, data: clusterList } = useRequest(getTendbClusterList, {
     defaultParams: [
       {
         limit: -1,
