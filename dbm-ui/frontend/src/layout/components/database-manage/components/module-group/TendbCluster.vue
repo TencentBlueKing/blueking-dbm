@@ -52,6 +52,13 @@
             {{ t('授权规则') }}
           </span>
         </BkMenuItem>
+        <BkMenuItem key="SpiderPermissionRetrieve">
+          <span
+            v-overflow-tips.right
+            class="text-overflow">
+            {{ t('权限查询') }}
+          </span>
+        </BkMenuItem>
         <BkMenuItem key="spiderWhitelist">
           <span
             v-overflow-tips.right

@@ -14,6 +14,7 @@ import TendbsingleInstanceModel from '@services/model/mysql/tendbha-instance';
 import TendbsingleModel from '@services/model/mysql/tendbsingle';
 import TendbsingleDetailModel from '@services/model/mysql/tendbsingle-detail';
 import type { ListBase, ResourceTopo } from '@services/types';
+import TendbSingleMachineModel from '@services/model/mysql/tendbSingleMachine';
 
 import http from '../http';
 
@@ -129,4 +130,26 @@ export function exportTendbsingleClusterToExcel(params: { cluster_ids?: number[]
  */
 export function exportTendbsingleInstanceToExcel(params: { bk_host_ids?: number[] }) {
   return http.post<string>(`${getRootPath()}/export_instance/`, params, { responseType: 'blob' });
+}
+
+/**
+ * 查询主机列表
+ */
+export function getTendbSingleMachineList(params: {
+  limit?: number;
+  offset?: number;
+  bk_host_id?: number;
+  ip?: string;
+  machine_type?: string;
+  bk_os_name?: string;
+  bk_cloud_id?: number;
+  bk_agent_id?: string;
+  instance_role?: string;
+  spider_role?: string;
+  creator?: string;
+}) {
+  return http.get<ListBase<TendbSingleMachineModel[]>>(`${getRootPath()}/list_machines/`, params).then((data) => ({
+    ...data,
+    results: data.results.map((item) => new TendbSingleMachineModel(item)),
+  }));
 }
