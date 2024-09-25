@@ -41,7 +41,7 @@ spec:
             - /bin/bash
             - -c
           args:
-            - export SERVICE_ONLY=true && gunicorn wsgi -w {{ .Values.saas.backendApi.gunicornWorker }} -b :8000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+            - export SERVICE_ONLY=true && gunicorn wsgi -k gevent -w {{ .Values.saas.backendApi.gunicornWorker }} -b :8000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
           ports:
             - name: http
               containerPort: 8000
