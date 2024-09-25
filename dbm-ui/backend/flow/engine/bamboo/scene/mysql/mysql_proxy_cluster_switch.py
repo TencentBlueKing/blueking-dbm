@@ -67,8 +67,12 @@ class MySQLProxyClusterSwitchFlow(object):
         """
         cluster = Cluster.objects.get(id=cluster_id)
 
-        # 选择集群标记running状态的proxy实例，作为流程中克隆权限的依据
-        template_proxy = ProxyInstance.objects.filter(cluster=cluster, status=InstanceStatus.RUNNING.value).all()[0]
+        # 选择集群标记running状态的proxy实例，作为流程中克隆权限的依据, 排除待替换的ip
+        template_proxy = (
+            ProxyInstance.objects.filter(cluster=cluster, status=InstanceStatus.RUNNING.value)
+            .exclude(machine__ip=origin_proxy_ip)
+            .all()[0]
+        )
         mysql_ip_list = StorageInstance.objects.filter(cluster=cluster).all()
         master = StorageInstance.objects.get(cluster=cluster, instance_inner_role=InstanceInnerRole.MASTER)
         dns_list = template_proxy.bind_entry.filter(cluster_entry_type=ClusterEntryType.DNS.value).all()
@@ -267,6 +271,18 @@ class MySQLProxyClusterSwitchFlow(object):
                     )
                 switch_proxy_sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
+                switch_proxy_sub_pipeline.add_act(
+                    act_name=_("回收旧proxy集群映射"),
+                    act_component_code=MySQLDnsManageComponent.code,
+                    kwargs=asdict(
+                        RecycleDnsRecordKwargs(
+                            bk_cloud_id=cluster["bk_cloud_id"],
+                            dns_op_exec_port=cluster["proxy_port"],
+                            exec_ip=cluster["origin_proxy_ip"],
+                        ),
+                    ),
+                )
+
                 switch_proxy_sub_list.append(
                     switch_proxy_sub_pipeline.build_sub_process(sub_name=_("{}集群替换proxy实例").format(cluster["name"]))
                 )
@@ -285,10 +301,18 @@ class MySQLProxyClusterSwitchFlow(object):
                 ),
             )
 
-            # 阶段3 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架旧实例操作
+            # 阶段3 新的proxy添加事件监控
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_monitor_payload.__name__
+            sub_pipeline.add_act(
+                act_name=_("Proxy安装mysql-monitor"),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
+            # 阶段4 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架旧实例操作
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
-            # 阶段4 机器维度，下架旧机器节点
+            # 阶段5 机器维度，下架旧机器节点
             reduce_proxy_sub_list = []
             for cluster_id in info["cluster_ids"]:
                 cluster = Cluster.objects.get(id=cluster_id)
@@ -302,7 +326,7 @@ class MySQLProxyClusterSwitchFlow(object):
                 )
             sub_pipeline.add_parallel_sub_pipeline(sub_flow_list=reduce_proxy_sub_list)
 
-            # 阶段5 按照机器维度变更db-meta数据
+            # 阶段6 按照机器维度变更db-meta数据
             sub_pipeline.add_act(
                 act_name=_("回收旧proxy机器的元数据信息"),
                 act_component_code=MySQLDBMetaComponent.code,
@@ -312,14 +336,6 @@ class MySQLProxyClusterSwitchFlow(object):
                         cluster=info,
                     )
                 ),
-            )
-
-            # 阶段6 新的proxy添加事件监控
-            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_deploy_mysql_monitor_payload.__name__
-            sub_pipeline.add_act(
-                act_name=_("Proxy安装mysql-monitor"),
-                act_component_code=ExecuteDBActuatorScriptComponent.code,
-                kwargs=asdict(exec_act_kwargs),
             )
 
             # 阶段7 清理机器级别的配置
@@ -398,18 +414,6 @@ class MySQLProxyClusterSwitchFlow(object):
             act_name=_("卸载proxy实例"),
             act_component_code=ExecuteDBActuatorScriptComponent.code,
             kwargs=asdict(reduce_proxy_sub_act_kwargs),
-        )
-
-        sub_pipeline.add_act(
-            act_name=_("回收对应proxy集群映射"),
-            act_component_code=MySQLDnsManageComponent.code,
-            kwargs=asdict(
-                RecycleDnsRecordKwargs(
-                    bk_cloud_id=bk_cloud_id,
-                    dns_op_exec_port=origin_proxy_port,
-                    exec_ip=origin_proxy_ip,
-                ),
-            ),
         )
 
         return sub_pipeline.build_sub_process(sub_name=_("[{}:{}]下线").format(origin_proxy_ip, origin_proxy_port))
