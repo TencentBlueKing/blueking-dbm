@@ -342,7 +342,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
-  import type { BizItem, HostDetails } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase } from '@hooks';
 
@@ -377,9 +377,9 @@
       ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
-        namenode: [] as Array<HostDetails>,
-        zookeeper: [] as Array<HostDetails>,
-        datanode: [] as Array<HostDetails>,
+        namenode: [] as Array<HostInfo>,
+        zookeeper: [] as Array<HostInfo>,
+        datanode: [] as Array<HostInfo>,
       },
       resource_spec: {
         zookeeper: {
@@ -416,7 +416,7 @@
   });
   const formData = reactive(genDefaultFormData());
 
-  const nodeAndZookerperMergeList = shallowRef<Array<HostDetails>>([]);
+  const nodeAndZookerperMergeList = shallowRef<Array<HostInfo>>([]);
 
   // const isDefaultCity = computed(() => formData.details.city_code === 'default');
 
@@ -508,11 +508,11 @@
     return false;
   };
 
-  const handleNameAndZookeeperMergeHostChange = (data: HostDetails[]) => {
+  const handleNameAndZookeeperMergeHostChange = (data: HostInfo[]) => {
     nodeAndZookerperMergeList.value = data;
   };
 
-  const handleNameAndZookeeperChange = (nameNode: Array<HostDetails>, zookeeper: Array<HostDetails>) => {
+  const handleNameAndZookeeperChange = (nameNode: Array<HostInfo>, zookeeper: Array<HostInfo>) => {
     formData.details.nodes.namenode = nameNode;
     formData.details.nodes.zookeeper = zookeeper;
   };
@@ -537,7 +537,7 @@
 
     return hostIdMap[data.host_id] ? t('主机已被使用') : false;
   };
-  const handleDatanodeChange = (data: HostDetails[]) => {
+  const handleDatanodeChange = (data: HostInfo[]) => {
     formData.details.nodes.datanode = data;
   };
 
@@ -545,7 +545,7 @@
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
-      const mapIpField = (ipList: Array<HostDetails>) =>
+      const mapIpField = (ipList: Array<HostInfo>) =>
         ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

@@ -65,7 +65,7 @@
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
 
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import type TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';

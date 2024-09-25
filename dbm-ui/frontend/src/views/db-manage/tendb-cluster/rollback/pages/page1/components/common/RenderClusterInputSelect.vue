@@ -30,9 +30,9 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import type TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { queryClusters } from '@services/source/mysqlCluster';
-  import { getSpiderListByBizId } from '@services/source/spider';
+  import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 
   import { useGlobalBizs } from '@stores';
 
@@ -113,7 +113,7 @@
   ];
 
   const queryClustersById = (id: number) => {
-    getSpiderListByBizId({
+    getTendbclusterListByBizId({
       cluster_ids: [id],
       bk_biz_id: currentBizId,
     }).then((data) => {

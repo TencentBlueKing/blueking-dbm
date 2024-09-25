@@ -298,7 +298,7 @@
 
   import { getModules } from '@services/source/cmdb';
   import { getLevelConfig } from '@services/source/configs';
-  import type { BizItem, HostDetails } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase } from '@hooks';
 
@@ -342,7 +342,7 @@
       domains: [{ key: '' }],
       ip_source: 'resource_pool',
       nodes: {
-        backend: [] as HostDetails[],
+        backend: [] as HostInfo[],
       },
       resource_spec: {
         backend: {
@@ -577,11 +577,11 @@
     },
   );
 
-  const backendHost = (hostList: Array<HostDetails>) =>
+  const backendHost = (hostList: Array<HostInfo>) =>
     hostList.length !== hostNums.value ? t('xx共需n台', { title: 'Master / Slave', n: hostNums.value }) : false;
 
   // 只能选择 module 配置中对应操作系统版本的机器
-  const disableHostMethod = (data: HostDetails) => {
+  const disableHostMethod = (data: HostInfo) => {
     const osName = data.os_name.replace(/\s+/g, '');
     return systemVersionList.value.every((versionItem) => !osName.includes(versionItem))
       ? t('操作系统版本不符合模块配置')
@@ -636,14 +636,14 @@
   /**
    * 更新 Backend
    */
-  const handleBackendIpChange = (data: HostDetails[]) => {
+  const handleBackendIpChange = (data: HostInfo[]) => {
     formData.details.nodes.backend = data;
     if (data.length > 0) {
       backendRef.value.clearValidate();
     }
   };
 
-  const formatNodes = (hosts: HostDetails[]) =>
+  const formatNodes = (hosts: HostInfo[]) =>
     hosts.map((host) => ({
       ip: host.ip,
       bk_host_id: host.host_id,

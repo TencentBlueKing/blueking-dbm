@@ -40,12 +40,12 @@
   };
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
   .operation-more-main {
-    color: #3a84ff;
     display: flex;
-    align-items: center;
+    color: #3a84ff;
     cursor: pointer;
+    align-items: center;
 
     .more-icon {
       transform: rotate(0deg);

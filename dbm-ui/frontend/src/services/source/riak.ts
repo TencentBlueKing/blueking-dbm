@@ -12,13 +12,14 @@
  */
 
 import RiakModel from '@services/model/riak/riak';
+import RiakDetailModel from '@services/model/riak/riak-detail';
 import RiakInstanceModel from '@services/model/riak/riak-instance';
 import RiakNodeModel from '@services/model/riak/riak-node';
+import type { ListBase, ResourceTopo } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase, ResourceTopo } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -50,7 +51,10 @@ export function getRiakInstanceList(params: {
   cluster_id: number;
   role: string;
 }) {
-  return http.get<ListBase<RiakInstanceModel[]>>(`${path}/list_instances/`, params);
+  return http.get<ListBase<RiakInstanceModel[]>>(`${path}/list_instances/`, params).then((res) => ({
+    ...res,
+    results: res.results.map((item) => new RiakInstanceModel(item)),
+  }));
 }
 
 /**
@@ -69,7 +73,7 @@ export function retrieveRiakInstance(params: {
  * 获取集群详情
  */
 export function getRiakDetail(params: { id: number }) {
-  return http.get<RiakModel>(`${path}/${params.id}/`).then((res) => new RiakModel(res));
+  return http.get<RiakDetailModel>(`${path}/${params.id}/`).then((res) => new RiakDetailModel(res));
 }
 
 /**

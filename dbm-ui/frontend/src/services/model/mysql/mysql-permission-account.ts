@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import dayjs from 'dayjs';
+import { isRecentDays } from '@utils';
 
 export default class MysqlPermissonAccount {
   account: {
@@ -19,7 +19,6 @@ export default class MysqlPermissonAccount {
     bk_biz_id: number;
     create_time: string;
     creator: string;
-    // password: string;
     user: string;
   };
   permission: {
@@ -45,12 +44,6 @@ export default class MysqlPermissonAccount {
   }
 
   get isNew() {
-    const createTime = this.account.create_time;
-    if (!createTime) {
-      return false;
-    }
-    const createDay = dayjs(createTime);
-    const today = dayjs();
-    return today.diff(createDay, 'hour') <= 24;
+    return isRecentDays(this.account.create_time, 24 * 3);
   }
 }

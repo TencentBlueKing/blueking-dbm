@@ -64,7 +64,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import TendbClusterModel from '@services/model/spider/tendbCluster';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';

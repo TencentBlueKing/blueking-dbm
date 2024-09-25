@@ -26,7 +26,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import RemotePairInstanceModel from '@services/model/mysql-cluster/remote-pair-instance';
+  import RemotePairInstanceModel from '@services/model/mysql/remote-pair-instance';
   import { getRemoteMachineInstancePair } from '@services/source/mysqlCluster';
 
   import RenderText from '@components/render-table/columns/text-plain/index.vue';

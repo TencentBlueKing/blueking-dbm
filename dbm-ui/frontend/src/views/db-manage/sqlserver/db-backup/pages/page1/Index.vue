@@ -111,8 +111,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -160,7 +160,7 @@
   const tableData = ref<IDataRow[]>([createRowData()]);
   const formData = reactive(createDefaultData());
 
-  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
+  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleModel | SqlServerHaModel)[] }>({
     [ClusterTypes.SQLSERVER_HA]: [],
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
@@ -210,9 +210,7 @@
 
   // 输入集群后查询集群信息并填充到table
   // 批量选择
-  const handelClusterChange = (selected: {
-    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
-  }) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SqlServerSingleModel | SqlServerHaModel> }) => {
     selectedClusters.value = selected;
     const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {

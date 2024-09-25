@@ -11,11 +11,11 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import dayjs from 'dayjs';
+import type { HostInfo, InstanceListSpecConfig, InstanceRelatedCluster } from '@services/types';
 
 import { type ClusterInstStatus, clusterInstStatus } from '@common/const';
 
-import { utcDisplayTime } from '@utils';
+import { isRecentDays, utcDisplayTime } from '@utils';
 
 export default class RedisInstance {
   bk_cloud_id: number;
@@ -26,37 +26,19 @@ export default class RedisInstance {
   cluster_type: string;
   create_at: string;
   db_module_id: number;
+  host_info: HostInfo;
   id: number;
   instance_address: string;
   ip: string;
   master_domain: string;
-  permission: { redis_view: boolean };
+  permission: {
+    redis_view: boolean;
+  };
   port: number;
+  related_clusters: InstanceRelatedCluster[];
   role: string;
   slave_domain: string;
-  spce_config: {
-    count: number;
-    cpu: {
-      max: number;
-      min: number;
-    };
-    device_class: string[];
-    id: number;
-    mem: {
-      max: number;
-      min: number;
-    };
-    name: string;
-    qps: {
-      max: number;
-      min: number;
-    };
-    storage_spec: {
-      mount_point: string;
-      size: number;
-      type: string;
-    }[];
-  };
+  spce_config: InstanceListSpecConfig;
   status: ClusterInstStatus;
   version: string;
 
@@ -69,12 +51,14 @@ export default class RedisInstance {
     this.cluster_type = payload.cluster_type || '';
     this.create_at = payload.create_at || '';
     this.db_module_id = payload.db_module_id || 0;
+    this.host_info = payload.host_info || {};
     this.id = payload.id || 0;
     this.instance_address = payload.instance_address || '';
     this.ip = payload.ip || '';
     this.master_domain = payload.master_domain || '';
     this.permission = payload.permission || {};
     this.port = payload.port || 0;
+    this.related_clusters = payload.related_clusters || [];
     this.role = payload.role || '';
     this.slave_domain = payload.slave_domain || '';
     this.spce_config = payload.spce_config || {};
@@ -87,7 +71,7 @@ export default class RedisInstance {
   }
 
   get isNew() {
-    return dayjs().isBefore(dayjs(this.create_at).add(24, 'hour'));
+    return isRecentDays(this.create_at, 24 * 3);
   }
 
   get getStatusInfo() {

@@ -83,7 +83,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -119,7 +119,7 @@
   const showEditIcon = ref(false);
   const isOverflow = ref(false);
 
-  const localHostData = shallowRef<HostDetails>();
+  const localHostData = shallowRef<HostInfo>();
 
   const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
 
@@ -143,7 +143,7 @@
           cloud_id: props.newSlave.bkCloudId,
           host_id: props.newSlave.bkHostId,
           ip: props.newSlave.ip,
-        } as HostDetails;
+        } as HostInfo;
       }
     },
     {
@@ -175,7 +175,7 @@
     isShowIpSelector.value = true;
   };
 
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostInfo[]) => {
     [localHostData.value] = hostList;
   };
 
@@ -285,11 +285,11 @@
         position: absolute;
         top: 50%;
         left: 50%;
-        transform: translateY(-50%);
         display: flex;
         padding-right: 35px;
         font-size: 14px;
         color: #ea3636;
+        transform: translateY(-50%);
         align-items: center;
         justify-content: flex-end;
       }

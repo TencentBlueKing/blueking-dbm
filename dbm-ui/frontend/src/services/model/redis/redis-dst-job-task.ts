@@ -13,6 +13,7 @@
 import { TransmissionTypes, WriteModes } from '@services/model/redis/redis-dst-history-job';
 
 const failedTransmissions = [TransmissionTypes.FULL_TRANSFER_FAILED, TransmissionTypes.INCREMENTAL_TRANSFER_FAILED];
+
 export default class RedisDSTJobTask {
   app: string;
   bill_id: number;
@@ -58,6 +59,7 @@ export default class RedisDSTJobTask {
   update_time: string;
   user: string;
   write_mode: WriteModes;
+
   constructor(payload = {} as RedisDSTJobTask) {
     this.app = payload.app;
     this.bill_id = payload.bill_id;

@@ -13,27 +13,13 @@
 
 import { uniq } from 'lodash';
 
-import { PipelineStatus } from '@common/const';
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
 import { t } from '@locales/index';
 
-import TimeBaseClassModel from '../utils/time-base-class';
+import DateTime from '../_dateTime';
 
-interface SqlServerHaInstance {
-  bk_biz_id: number;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_instance_id: number;
-  instance: string;
-  ip: string;
-  name: string;
-  phase: string;
-  port: number;
-  spec_config: Record<'id', number>;
-  status: string;
-}
-
-export default class SqlServerHaCluster extends TimeBaseClassModel {
+export default class SqlServerHaCluster extends DateTime {
   static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
@@ -61,7 +47,7 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   bk_cloud_name: string;
   cluster_access_port: number;
   cluster_alias: string;
-  cluster_entry: string[];
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
@@ -74,16 +60,8 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   id: number;
   major_version: string;
   master_domain: string;
-  masters: SqlServerHaInstance[];
-  operations: Array<{
-    cluster_id: number;
-    flow_id: number;
-    operator: string;
-    status: PipelineStatus;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-  }>;
+  masters: ClusterListNode[];
+  operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
     sqlserver_view: boolean;
@@ -92,30 +70,8 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
   phase_name: string;
   region: string;
   slave_domain: string;
-  slaves: SqlServerHaInstance[];
-  spec_config: {
-    id: number;
-    cpu: {
-      max: number;
-      min: number;
-    };
-    mem: {
-      max: number;
-      min: number;
-    };
-    qps: {
-      max: number;
-      min: number;
-    };
-    name: string;
-    count: number;
-    device_class: string[];
-    storage_spec: {
-      size: number;
-      type: string;
-      mount_point: string;
-    }[];
-  };
+  slaves: ClusterListNode[];
+  spec_config: ClusterListSpec;
   status: string;
   sync_mode: string;
   update_at: Date | string;
@@ -142,15 +98,15 @@ export default class SqlServerHaCluster extends TimeBaseClassModel {
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
-    this.masters = payload.masters;
+    this.masters = payload.masters || [];
     this.operations = payload.operations;
     this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;
     this.slave_domain = payload.slave_domain;
-    this.slaves = payload.slaves;
-    this.spec_config = payload.spec_config;
+    this.slaves = payload.slaves || [];
+    this.spec_config = payload.spec_config || {};
     this.status = payload.status;
     this.sync_mode = payload.sync_mode;
     this.update_at = payload.update_at;

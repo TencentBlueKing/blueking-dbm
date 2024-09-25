@@ -13,13 +13,13 @@
 
 import { type Ref, ref } from 'vue';
 
-import type { HostDetails } from '@services/types';
+import type { HostInfo } from '@services/types';
 
 import { useDebouncedRef } from '@hooks';
 
 import { encodeRegexp } from '@utils';
 
-export default function (originalData: Ref<HostDetails[]>) {
+export default function (originalData: Ref<HostInfo[]>) {
   const pagination = reactive({
     count: 0,
     current: 1,
@@ -39,7 +39,7 @@ export default function (originalData: Ref<HostDetails[]>) {
         result.push(item);
       }
       return result;
-    }, [] as HostDetails[]);
+    }, [] as HostInfo[]);
   });
 
   const isShowPagination = ref(false);

@@ -11,8 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ListBase } from '@services/types';
+
 import http from '../http';
-import type { ListBase } from '../types';
 
 const path = '/apis/users';
 

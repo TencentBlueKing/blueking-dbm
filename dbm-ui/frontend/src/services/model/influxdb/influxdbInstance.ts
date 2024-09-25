@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { HostInfo, InstanceListOperation } from '@services/types';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
@@ -41,19 +43,12 @@ export default class InfluxDBInstance {
   disk: number;
   group_id: null | number;
   group_name: null | string;
+  host_info: HostInfo;
   id: number;
   instance_address: string;
   instance_name: string;
   mem: number;
-  operations: Array<{
-    flow_id: number;
-    instance_id: number;
-    operator: string;
-    status: string;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-  }>;
+  operations: InstanceListOperation[];
   permission: {
     influxdb_destroy: boolean;
     influxdb_enable_disable: boolean;
@@ -78,10 +73,12 @@ export default class InfluxDBInstance {
     this.disk = payload.disk;
     this.group_id = payload.group_id;
     this.group_name = payload.group_name;
+    this.host_info = payload.host_info || {};
     this.id = payload.id;
     this.instance_address = payload.instance_address;
     this.instance_name = payload.instance_name;
     this.mem = payload.mem;
+    this.operations = payload.operations || [];
     this.permission = payload.permission;
     this.phase = payload.phase;
     this.restart_at = payload.restart_at;
@@ -89,8 +86,6 @@ export default class InfluxDBInstance {
     this.status = payload.status;
     this.update_at = payload.update_at;
     this.version = payload.version;
-
-    this.operations = this.initOperations(payload.operations);
   }
 
   get ip() {
@@ -182,13 +177,5 @@ export default class InfluxDBInstance {
       tip: InfluxDBInstance.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
-  }
-
-  initOperations(payload = [] as InfluxDBInstance['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-
-    return payload;
   }
 }

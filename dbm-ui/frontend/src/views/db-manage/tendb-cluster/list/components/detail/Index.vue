@@ -60,9 +60,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import type TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
-  import { getSpiderDetails } from '@services/source/spider';
+  import { getTendbclusterDetail } from '@services/source/tendbcluster';
 
   import { useGlobalBizs } from '@stores';
 
@@ -101,7 +101,7 @@
     return targetPanel;
   });
 
-  const { loading: isLoading, run: fetchResourceDetails } = useRequest(getSpiderDetails, {
+  const { loading: isLoading, run: fetchResourceDetails } = useRequest(getTendbclusterDetail, {
     manual: true,
     onSuccess(data) {
       clusterData.value = data;

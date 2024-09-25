@@ -53,7 +53,7 @@
   import { useI18n } from 'vue-i18n';
 
   import TendbhaModel from '@services/model/mysql/tendbha';
-  import type { HostDetails } from '@services/types/ip';
+  import type { HostInfo } from '@services/types/ip';
 
   import { ClusterTypes, OSTypes } from '@common/const';
 
@@ -92,7 +92,7 @@
   const isShowBatchInput = ref(false);
   const tableData = ref<IDataRow[]>([createRowData()]);
 
-  const localHostList = shallowRef<HostDetails[]>([]);
+  const localHostList = shallowRef<HostInfo[]>([]);
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({
     [ClusterTypes.TENDBHA]: [],
     [ClusterTypes.TENDBSINGLE]: [],
@@ -103,7 +103,7 @@
   // 集群域名是否已存在表格的映射表
   const domainMemo: Record<string, boolean> = {};
 
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostInfo[]) => {
     if (checkListEmpty(tableData.value)) {
       return;
     }
@@ -120,7 +120,7 @@
     const localIps = localHostList.value.map((item) => item.ip);
     const whiteIps = _.flatMap(whiteList.map((item) => item.ips));
     const finalIps = Array.from(new Set([...localIps, ...whiteIps]));
-    localHostList.value = finalIps.map((ip) => ({ ip }) as HostDetails);
+    localHostList.value = finalIps.map((ip) => ({ ip }) as HostInfo);
     tableData.value.forEach((item) => (item.authorizeIps = localHostList.value.map((info) => info.ip)));
   };
 

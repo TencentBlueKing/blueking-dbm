@@ -13,14 +13,15 @@
 
 import HdfsModel from '@services/model/hdfs/hdfs';
 import ClusterConfigXmlsModel from '@services/model/hdfs/hdfs-cluster-config-xmls';
+import HdfsDetailModel from '@services/model/hdfs/hdfs-detail';
 import HdfsInstanceModel from '@services/model/hdfs/hdfs-instance';
 import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
 import HdfsPasswordModel from '@services/model/hdfs/hdfs-password';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -70,7 +71,7 @@ export function retrieveHdfsInstance(params: { bk_biz_id: number }) {
  * 获取集群详情
  */
 export function getHdfsDetail(params: { id: number }) {
-  return http.get<HdfsModel>(`${path}/${params.id}/`).then((data) => new HdfsModel(data));
+  return http.get<HdfsDetailModel>(`${path}/${params.id}/`).then((data) => new HdfsDetailModel(data));
 }
 
 /**

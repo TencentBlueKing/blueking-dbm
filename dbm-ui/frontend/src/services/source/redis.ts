@@ -13,11 +13,12 @@
 
 import BizConfTopoTreeModel from '@services/model/config/biz-conf-topo-tree';
 import RedisModel from '@services/model/redis/redis';
+import RedisDetailModel from '@services/model/redis/redis-detail';
 import RedisInstanceModel from '@services/model/redis/redis-instance';
 import RedisMachineModel from '@services/model/redis/redis-machine';
+import type { HostNode, ListBase, ResourceTopo } from '@services/types';
 
 import http from '../http';
-import type { HostNode, ListBase, ResourceTopo } from '../types';
 
 const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/redis_resources`;
 
@@ -110,14 +111,16 @@ export function retrieveRedisInstance(params: {
   instance_address: string;
   cluster_id?: number;
 }) {
-  return http.get<RedisInstanceModel>(`${getRootPath()}/retrieve_instance/`, params);
+  return http
+    .get<RedisInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
+    .then((data) => new RedisInstanceModel(data));
 }
 
 /**
  * 获取集群详情
  */
 export function getRedisDetail(params: { id: number }) {
-  return http.get<RedisModel>(`${getRootPath()}/${params.id}/`);
+  return http.get<RedisDetailModel>(`${getRootPath()}/${params.id}/`).then((data) => new RedisDetailModel(data));
 }
 
 /**

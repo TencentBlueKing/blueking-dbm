@@ -82,7 +82,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import { getSpiderMachineList } from '@services/source/spider';
+  import { getTendbclusterMachineList } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -201,7 +201,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const spiderMachineResult = await getSpiderMachineList({
+    const spiderMachineResult = await getTendbclusterMachineList({
       ip,
       instance_role: 'remote_master',
     }).finally(() => {

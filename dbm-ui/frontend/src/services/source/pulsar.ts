@@ -15,11 +15,11 @@ import PulsarModel from '@services/model/pulsar/pulsar';
 import PulsarInstanceModel from '@services/model/pulsar/pulsar-instance';
 import PulsarNodeModel from '@services/model/pulsar/pulsar-node';
 import PulsarPasswordModel from '@services/model/pulsar/pulsar-password';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 

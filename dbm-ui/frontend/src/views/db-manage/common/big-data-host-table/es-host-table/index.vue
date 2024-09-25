@@ -82,7 +82,7 @@
 <script lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   interface Props {
     data: Array<IHostTableDataWithInstance>;
@@ -93,7 +93,7 @@
     (e: 'update:data', value: Array<IHostTableDataWithInstance>): void;
   }
 
-  export interface IHostTableDataWithInstance extends HostDetails {
+  export interface IHostTableDataWithInstance extends HostInfo {
     instance_num: number;
   }
 </script>
@@ -140,7 +140,7 @@
       label: 'IP',
       field: 'ip',
       width: 120,
-      render: ({ data }: {data: HostDetails}) => data.ip,
+      render: ({ data }: {data: HostInfo}) => data.ip,
     },
     {
       label: t('每台主机实例数'),

@@ -27,18 +27,17 @@ export default class KafkaNode {
   machine_type: string;
   mem: number;
   node_count: number;
+  permission: {
+    kafka_view: boolean;
+    kafka_enable_disable: boolean;
+    kafka_destroy: boolean;
+    kafka_scale_up: boolean;
+    kafka_shrink: boolean;
+    kafka_replace: boolean;
+    kafka_reboot: boolean;
+  };
   role: string;
   status: number;
-  permission: Record<
-    | 'kafka_view'
-    | 'kafka_enable_disable'
-    | 'kafka_destroy'
-    | 'kafka_scale_up'
-    | 'kafka_shrink'
-    | 'kafka_replace'
-    | 'kafka_reboot',
-    boolean
-  >;
 
   constructor(payload = {} as KafkaNode) {
     this.bk_cloud_id = payload.bk_cloud_id;

@@ -46,12 +46,12 @@
   </BkDialog>
 </template>
 
-<script setup lang="ts" generic="T extends SqlServerSingleClusterModel | SqlServerHaClusterModel">
+<script setup lang="ts" generic="T extends SqlServerSingleModel | SqlServerHaModel">
   import { Form } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketMessage } from '@hooks';

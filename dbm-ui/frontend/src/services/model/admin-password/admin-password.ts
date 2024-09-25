@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import dayjs from 'dayjs';
+import { utcDisplayTime } from '@utils';
 
 export default class AdminPassword {
   bk_biz_id: number;
@@ -45,10 +45,10 @@ export default class AdminPassword {
   }
 
   get lockUntilDisplay() {
-    return dayjs(this.lock_until).format('YYYY-MM-DD HH:mm:ss');
+    return utcDisplayTime(this.lock_until);
   }
 
   get updateTimeDisplay() {
-    return dayjs(this.update_time).format('YYYY-MM-DD HH:mm:ss');
+    return utcDisplayTime(this.update_time);
   }
 }

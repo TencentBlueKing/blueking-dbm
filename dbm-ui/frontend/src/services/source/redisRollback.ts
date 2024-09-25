@@ -11,9 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 import RedisRollbackModel from '@services/model/redis/redis-rollback';
+import type { ListBase } from '@services/types';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 const getRootPath = () => `/apis/redis/bizs/${window.PROJECT_CONFIG.BIZ_ID}/rollback`;
 

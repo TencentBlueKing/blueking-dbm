@@ -11,11 +11,11 @@
  * the specific language governing permissions and limitations under the License.
  */
 import MongodbRollbackRecordModel from '@services/model/mongodb/mongodb-rollback-record';
+import type { ListBase } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase } from '../types';
 
 interface ClusterBackupLog {
   app: string;

@@ -107,7 +107,7 @@
 
   import RiakModel from '@services/model/riak/riak';
   import { createTicket } from '@services/source/ticket';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useTicketMessage } from '@hooks';
 
@@ -150,7 +150,7 @@
     ],
     nodes: [
       {
-        validator: (value: HostDetails[]) => value.length >= 1,
+        validator: (value: HostInfo[]) => value.length >= 1,
         message: t('节点数至少为n台', [1]),
         trigger: 'change',
       },
@@ -163,13 +163,13 @@
     ip_source: 'resource_pool',
     spec_id: '',
     count: 1,
-    nodes: [] as HostDetails[],
+    nodes: [] as HostInfo[],
   });
 
-  const disableHostSubmitMethods = (hostList: Array<HostDetails[]>) =>
+  const disableHostSubmitMethods = (hostList: Array<HostInfo[]>) =>
     hostList.length < 1 ? t('至少n台', { n: 1 }) : false;
 
-  const handleProxyIpChange = (data: HostDetails[]) => {
+  const handleProxyIpChange = (data: HostInfo[]) => {
     formData.nodes = data;
     if (formData.nodes.length > 0) {
       nodesRef.value.clearValidate();

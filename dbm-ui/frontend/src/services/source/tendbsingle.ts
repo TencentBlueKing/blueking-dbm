@@ -12,9 +12,10 @@
  */
 import TendbsingleInstanceModel from '@services/model/mysql/tendbha-instance';
 import TendbsingleModel from '@services/model/mysql/tendbsingle';
+import TendbsingleDetailModel from '@services/model/mysql/tendbsingle-detail';
+import type { ListBase, ResourceTopo } from '@services/types';
 
 import http from '../http';
-import type { ListBase, ResourceTopo } from '../types';
 
 const getRootPath = () => `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/tendbsingle_resources`;
 
@@ -79,14 +80,18 @@ export function retrieveTendbsingleInstance(params: {
   cluster_id?: number;
   dbType: string;
 }) {
-  return http.get<TendbsingleInstanceModel>(`${getRootPath()}/retrieve_instance/`, params);
+  return http
+    .get<TendbsingleInstanceModel>(`${getRootPath()}/retrieve_instance/`, params)
+    .then((data) => new TendbsingleInstanceModel(data));
 }
 
 /**
  * 获取集群详情
  */
 export function getTendbsingleDetail(params: { id: number }) {
-  return http.get<TendbsingleModel>(`${getRootPath()}/${params.id}/`);
+  return http
+    .get<TendbsingleDetailModel>(`${getRootPath()}/${params.id}/`)
+    .then((data) => new TendbsingleDetailModel(data));
 }
 
 /**

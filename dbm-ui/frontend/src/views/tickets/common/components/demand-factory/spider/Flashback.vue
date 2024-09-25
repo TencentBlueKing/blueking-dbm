@@ -25,7 +25,7 @@
 
   import type { SpiderFlashbackDetails } from '@services/model/ticket/details/spider';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getSpiderListByBizId } from '@services/source/spider';
+  import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 
   import { utcDisplayTime } from '@utils';
 
@@ -87,7 +87,7 @@
     },
   ];
 
-  const { loading } = useRequest(getSpiderListByBizId, {
+  const { loading } = useRequest(getTendbclusterListByBizId, {
     defaultParams: [
       {
         bk_biz_id: props.ticketDetails.bk_biz_id,
