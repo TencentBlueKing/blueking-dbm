@@ -67,7 +67,7 @@ func BuildDumper(cnf *config.BackupConfig, storageEngine string) (dumper Dumper,
 			return nil, err
 		}
 
-		if cst.StorageEnginRocksdb == storageEngine {
+		if cst.StorageEngineRocksdb == storageEngine {
 			dumper = &PhysicalRocksdbDumper{
 				cfg: cnf,
 			}

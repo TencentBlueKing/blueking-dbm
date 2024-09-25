@@ -17,7 +17,7 @@ const (
 )
 
 const (
-	StorageEnginRocksdb = "rocksdb"
+	StorageEngineRocksdb = "rocksdb"
 )
 
 // backup role: dbm-services/mysql/db-tools/dbactuator/pkg/core/cst/mysql.go

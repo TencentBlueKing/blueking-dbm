@@ -21,12 +21,16 @@ import (
 
 type PhysicalRocksdbDumper struct {
 	cfg             *config.BackupConfig
+	backupLogfile   string
 	dbbackupHome    string
 	checkpointDir   string
 	mysqlVersion    string
 	isOfficial      bool
 	rocksdbCmd      string
 	storageEngine   string
+	mysqlRole       string
+	masterHost      string
+	masterPort      int
 	backupStartTime time.Time
 	backupEndTime   time.Time
 }
@@ -36,10 +40,10 @@ func (p *PhysicalRocksdbDumper) buildArgs() []string {
 	targetPath := filepath.Join(p.cfg.Public.BackupDir, p.cfg.Public.TargetName())
 
 	args := []string{
-		fmt.Sprintf("--host=%s", p.cfg.Public.MysqlHost),
-		fmt.Sprintf("--port=%d", p.cfg.Public.MysqlPort),
 		fmt.Sprintf("--user=%s", p.cfg.Public.MysqlUser),
 		fmt.Sprintf("--password=%s", p.cfg.Public.MysqlPasswd),
+		fmt.Sprintf("--host=%s", p.cfg.Public.MysqlHost),
+		fmt.Sprintf("--port=%d", p.cfg.Public.MysqlPort),
 		fmt.Sprintf("--checkpoint_dir=%s", p.checkpointDir),
 		fmt.Sprintf("--backup_dir=%s", targetPath),
 		"--stream=disabled",
@@ -69,25 +73,36 @@ func (p *PhysicalRocksdbDumper) initConfig(mysqlVersion string) error {
 
 	p.dbbackupHome = filepath.Dir(cmdPath)
 	db, err := mysqlconn.InitConn(&p.cfg.Public)
-
 	if err != nil {
+		logger.Log.Errorf("can not connect to the mysql, host:%s, port:%d, errmsg:%s", p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
 		return err
 	}
-
-	p.mysqlVersion, p.isOfficial = util.VersionParser(mysqlVersion)
-	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
-
-	if err != nil {
-		return err
-	}
-	p.storageEngine = strings.ToLower(p.storageEngine)
 
 	defer func() {
 		_ = db.Close()
 	}()
 
-	p.checkpointDir = fmt.Sprintf("%s/MyRocks_checkpoint", p.cfg.Public.BackupDir)
-	p.rocksdbCmd = "/bin/" + cst.ToolMyrocksHotbackup
+	p.mysqlVersion, p.isOfficial = util.VersionParser(mysqlVersion)
+	p.storageEngine, err = mysqlconn.GetStorageEngine(db)
+
+	if err != nil {
+		logger.Log.Errorf("can not get the storage engine from the mysql, host:%s, port:%d, errmsg:%s", p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+		return err
+	}
+
+	p.storageEngine = strings.ToLower(p.storageEngine)
+	p.mysqlRole = strings.ToLower(p.cfg.Public.MysqlRole)
+
+	if p.mysqlRole == cst.RoleSlave || p.mysqlRole == cst.RoleRepeater {
+		p.masterHost, p.masterPort, err = mysqlconn.ShowMysqlSlaveStatus(db)
+		if err != nil {
+			logger.Log.Errorf("can not get the master host and port from the mysql, host:%s, port:%d, errmsg:%s", p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort, err)
+			return err
+		}
+	}
+
+	p.checkpointDir = filepath.Join(p.cfg.Public.BackupDir, "MyRocks_checkpoint")
+	p.rocksdbCmd = filepath.Join("bin", cst.ToolMyrocksHotbackup)
 	BackupTool = cst.ToolMyrocksHotbackup
 	return nil
 }
@@ -98,19 +113,20 @@ func (p *PhysicalRocksdbDumper) Execute(enableTimeOut bool) error {
 		p.backupEndTime = time.Now()
 	}()
 
-	if p.storageEngine != cst.StorageEnginRocksdb {
-		err := fmt.Errorf("%s engine not support", p.storageEngine)
+	if p.storageEngine != cst.StorageEngineRocksdb {
+		err := fmt.Errorf("unsupported engine:%s, host:%s, port:%d", p.storageEngine, p.cfg.Public.MysqlHost, p.cfg.Public.MysqlPort)
 		logger.Log.Error(err)
 		return err
 	}
 
 	_, err := os.Stat(p.checkpointDir)
 	if os.IsNotExist(err) {
+		logger.Log.Infof("the checkpoint does not exist, will create it. checkpoint:%s", p.checkpointDir)
 		err = os.MkdirAll(p.checkpointDir, 0755)
 	}
 
 	if err != nil {
-		logger.Log.Errorf("failed to create checkpoint(%s), err-msg:%s", p.checkpointDir, err)
+		logger.Log.Errorf("can not create the checkpoint:%s, errmsg:%s", p.checkpointDir, err)
 		return err
 	}
 
@@ -134,13 +150,13 @@ func (p *PhysicalRocksdbDumper) Execute(enableTimeOut bool) error {
 		cmd = exec.Command("sh", "-c", backupCmd)
 	}
 
-	backuplogFilename := fmt.Sprintf("%s_backup_%d_%d.log", p.storageEngine, p.cfg.Public.MysqlPort, int(time.Now().Weekday()))
-	rocksdbBackuplogFilename := filepath.Join(p.dbbackupHome, "logs", backuplogFilename)
+	p.backupLogfile = fmt.Sprintf("dumper_%s_%s_%d_%d.log", p.storageEngine, cst.ToolMyrocksHotbackup, p.cfg.Public.MysqlPort, int(time.Now().Weekday()))
+	p.backupLogfile = filepath.Join(p.dbbackupHome, "logs", p.backupLogfile)
 
-	outFile, err := os.Create(rocksdbBackuplogFilename)
+	outFile, err := os.Create(p.backupLogfile)
 
 	if err != nil {
-		logger.Log.Error("create log file failed: ", err)
+		logger.Log.Errorf("can not create the dumper log file, file name:%s, errmsg:%s", p.backupLogfile, err)
 		return err
 	}
 
@@ -150,38 +166,18 @@ func (p *PhysicalRocksdbDumper) Execute(enableTimeOut bool) error {
 
 	cmd.Stdout = outFile
 	cmd.Stderr = outFile
-	logger.Log.Info("rocksdb backup command: ", cmd.String())
 
 	err = cmd.Run()
 	if err != nil {
-		logger.Log.Error("run rocksdb physical backup failed: ", err)
+		logger.Log.Errorf("can not run the rocksdb physical dumper command:%s, engine:%s, errmsg:%s", backupCmd, p.storageEngine, err)
 		return err
 	}
 
+	logger.Log.Infof("dump rocksdb success, command:%s", cmd.String())
 	return nil
 }
 
 func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) (*dbareport.IndexContent, error) {
-	db, err := mysqlconn.InitConn(&cnf.Public)
-	if err != nil {
-		return nil, errors.WithMessage(err, "IndexContent")
-	}
-
-	defer func() {
-		_ = db.Close()
-	}()
-
-	storageEngine, err := mysqlconn.GetStorageEngine(db)
-	if err != nil {
-		return nil, err
-	}
-
-	storageEngine = strings.ToLower(storageEngine)
-
-	if storageEngine != "rocksdb" {
-		logger.Log.Errorf("unknown storage engine(%s)", storageEngine)
-		return nil, nil
-	}
 
 	xtrabackupBinlogInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "xtrabackup_binlog_info")
 	xtrabackupSlaveInfoFileName := filepath.Join(cnf.Public.BackupDir, cnf.Public.TargetName(), "xtrabackup_slave_info")
@@ -200,30 +196,32 @@ func (p *PhysicalRocksdbDumper) PrepareBackupMetaInfo(cnf *config.BackupConfig) 
 		BinlogInfo: dbareport.BinlogStatusInfo{},
 	}
 
-	if masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName); err != nil {
+	masterStatus, err := parseXtraBinlogInfo(qpressPath, xtrabackupBinlogInfoFileName, tmpFileName)
+	if err != nil {
+		logger.Log.Errorf("do not parse xtrabackup binlog file, file name:%s, errmsg:%s", xtrabackupBinlogInfoFileName, err)
 		return nil, err
-	} else {
-		metaInfo.BinlogInfo.ShowMasterStatus = masterStatus
-		metaInfo.BinlogInfo.ShowMasterStatus.MasterHost = cnf.Public.MysqlHost
-		metaInfo.BinlogInfo.ShowMasterStatus.MasterPort = cnf.Public.MysqlPort
 	}
 
-	if mysqlRole := strings.ToLower(cnf.Public.MysqlRole); mysqlRole == cst.RoleSlave || mysqlRole == cst.RoleRepeater {
-		if slaveStatus, err := parseXtraSlaveInfo(qpressPath, xtrabackupSlaveInfoFileName, tmpFileName); err != nil {
+	metaInfo.BinlogInfo.ShowMasterStatus = masterStatus
+	metaInfo.BinlogInfo.ShowMasterStatus.MasterHost = cnf.Public.MysqlHost
+	metaInfo.BinlogInfo.ShowMasterStatus.MasterPort = cnf.Public.MysqlPort
+
+	if p.mysqlRole == cst.RoleSlave || p.mysqlRole == cst.RoleRepeater {
+		slaveStatus, err := parseXtraSlaveInfo(qpressPath, xtrabackupSlaveInfoFileName, tmpFileName)
+
+		if err != nil {
+			logger.Log.Errorf("do not parse xtrabackup slave information, xtrabackup file:%s, errmsg:%s", xtrabackupSlaveInfoFileName, err)
 			return nil, err
-		} else {
-			metaInfo.BinlogInfo.ShowSlaveStatus = slaveStatus
-			masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
-			if err != nil {
-				return nil, err
-			}
-			metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = masterHost
-			metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
 		}
+
+		metaInfo.BinlogInfo.ShowSlaveStatus = slaveStatus
+		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = p.masterHost
+		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = p.masterPort
 	}
 
 	metaInfo.JudgeIsFullBackup(&cnf.Public)
 	if err = os.Remove(tmpFileName); err != nil {
+		logger.Log.Errorf("do not delete the tmp file, file name:%s, errmsg:%s", tmpFileName, err)
 		return &metaInfo, err
 	}
 
