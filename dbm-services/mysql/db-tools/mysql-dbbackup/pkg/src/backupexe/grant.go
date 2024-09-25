@@ -25,7 +25,7 @@ func BackupGrant(cfg *config.Public) error {
 
 	rows, err := db.Query("select user, host from mysql.user where user not in ('ADMIN','yw','dba_bak_all_sel')")
 	if err != nil {
-		logger.Log.Error("can't send query to Mysql server %v\n", err)
+		logger.Log.Errorf("can't send query to Mysql server %v\n", err)
 		return err
 	}
 	defer rows.Close()
