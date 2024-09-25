@@ -366,7 +366,7 @@
 
   import type { RedisFunctions } from '@services/model/function-controller/functionController';
   import { getCapSpecs } from '@services/source/infras';
-  import type { BizItem, HostDetails } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase, useTicketCloneInfo } from '@hooks';
 
@@ -442,9 +442,9 @@
       disaster_tolerance_level: 'NONE',
       proxy_pwd: '',
       nodes: {
-        proxy: [] as HostDetails[],
-        master: [] as HostDetails[],
-        slave: [] as HostDetails[],
+        proxy: [] as HostInfo[],
+        master: [] as HostInfo[],
+        slave: [] as HostInfo[],
       },
       resource_spec: {
         proxy: {
@@ -499,14 +499,14 @@
       {
         message: t('Proxy数量至少为2台'),
         trigger: 'change',
-        validator: (value: HostDetails[]) => value.length >= 2,
+        validator: (value: HostInfo[]) => value.length >= 2,
       },
     ],
     'details.nodes.master': [
       {
         message: t('Master数量至少为1台_且机器数要和Slave相等'),
         trigger: 'change',
-        validator: (value: HostDetails[]) =>
+        validator: (value: HostInfo[]) =>
           value.length > 0 && state.formdata.details.nodes.slave.length === value.length,
       },
     ],
@@ -514,7 +514,7 @@
       {
         message: t('Slave数量至少为1台_且机器数要和Master相等'),
         trigger: 'change',
-        validator: (value: HostDetails[]) =>
+        validator: (value: HostInfo[]) =>
           value.length > 0 && state.formdata.details.nodes.master.length === value.length,
       },
     ],
@@ -669,7 +669,7 @@
     slave: (hostList: Array<any>) => (hostList.length >= 1 ? false : t('至少n台', { n: 1 })),
   };
 
-  const makeMapByHostId = (hostList: HostDetails[]) =>
+  const makeMapByHostId = (hostList: HostInfo[]) =>
     hostList.reduce(
       (result, item) => ({
         ...result,
@@ -723,14 +723,14 @@
   /**
    * 更新 Proxy IP
    */
-  const handleProxyIpChange = (data: HostDetails[]) => {
+  const handleProxyIpChange = (data: HostInfo[]) => {
     state.formdata.details.nodes.proxy = [...data];
   };
 
   /**
    * 更新 Master IP
    */
-  const handleMasterIpChange = (data: HostDetails[]) => {
+  const handleMasterIpChange = (data: HostInfo[]) => {
     state.formdata.details.nodes.master = [...data];
     fetchCapSpecs(state.formdata.details.city_code);
     masterRef.value?.validate?.();
@@ -741,7 +741,7 @@
   /**
    * 更新 Slave IP
    */
-  const handleSlaveIpChange = (data: HostDetails[]) => {
+  const handleSlaveIpChange = (data: HostInfo[]) => {
     state.formdata.details.nodes.slave = [...data];
     fetchCapSpecs(state.formdata.details.city_code);
     masterRef.value?.validate?.();
@@ -752,7 +752,7 @@
   /**
    * 格式化 IP 提交格式
    */
-  const formatNodes = (hosts: HostDetails[]) =>
+  const formatNodes = (hosts: HostInfo[]) =>
     hosts.map((host) => ({
       ip: host.ip,
       bk_host_id: host.host_id,

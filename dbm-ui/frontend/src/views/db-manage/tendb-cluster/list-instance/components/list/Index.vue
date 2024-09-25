@@ -39,7 +39,7 @@
       <DbTable
         ref="tableRef"
         :columns="columns"
-        :data-source="getSpiderInstanceList"
+        :data-source="getTendbclusterInstanceList"
         :pagination-extra="paginationExtra"
         :row-class="setRowClass"
         selectable
@@ -55,8 +55,8 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type TendbInstanceModel from '@services/model/spider/tendbInstance';
-  import { getSpiderInstanceList } from '@services/source/spider';
+  import type TendbInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
+  import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
   import {
     useCopy,

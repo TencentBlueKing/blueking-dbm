@@ -42,7 +42,7 @@
 
   import type OperationModel from '@services/model/db-resource/Operation';
   import { fetchHostListByHostId } from '@services/source/dbresourceResource';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import DbStatus from '@components/db-status/index.vue';
 
@@ -71,7 +71,7 @@
     {
       label: 'IPV6',
       field: 'ipv6',
-      render: ({ data }: { data: HostDetails}) => data.ipv6 || '--',
+      render: ({ data }: { data: HostInfo}) => data.ipv6 || '--',
     },
     {
       label: '管控区域',
@@ -80,7 +80,7 @@
     {
       label: 'Agent 状态',
       field: 'agent',
-      render: ({ data }: { data: HostDetails}) => {
+      render: ({ data }: { data: HostInfo}) => {
         const info = data.alive === 1 ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return (
           <DbStatus theme={info.theme}>

@@ -41,7 +41,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { checkHost } from '@services/source/ipchooser';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -110,7 +110,7 @@
   const editRef = ref();
   const isShowIpSelector = ref(false);
   const localValue = ref();
-  const localHostList = shallowRef<HostDetails[]>([]);
+  const localHostList = shallowRef<HostInfo[]>([]);
 
   const placeholder = computed(() => (props.single ? t('请输入或选择 (1台)') : t('请输入或选择')));
 
@@ -119,7 +119,7 @@
   };
 
   // 批量选择
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostInfo[]) => {
     allocatData(hostList);
     window.changeConfirm = true;
     setTimeout(() => {
@@ -127,7 +127,7 @@
     });
   };
 
-  const allocatData = (data: HostDetails[]) => {
+  const allocatData = (data: HostInfo[]) => {
     localValue.value = data.map((item) => item?.ip).join(',');
     localHostList.value = data;
   };
@@ -139,7 +139,7 @@
       if (!fristHost?.ip) {
         return;
       }
-      allocatData(data as unknown as HostDetails[]);
+      allocatData(data as unknown as HostInfo[]);
     },
     {
       immediate: true,
@@ -148,7 +148,7 @@
 
   defineExpose<Exposes>({
     getValue() {
-      const formatHost = (hostList: HostDetails[]) =>
+      const formatHost = (hostList: HostInfo[]) =>
         hostList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

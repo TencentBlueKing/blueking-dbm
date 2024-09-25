@@ -14,26 +14,26 @@
 /**
  * 主机详情
  */
-export interface HostDetails {
+export interface HostInfo {
   agent_id: number;
   alive: number;
   biz: {
     id: number;
     name: string;
   };
-  bk_cpu?: number;
+  bk_cpu: number;
   bk_cpu_architecture: string;
   bk_cpu_module: string;
   bk_disk: number;
   bk_host_outerip: string;
-  bk_idc_id?: number;
-  bk_idc_name?: string;
+  bk_idc_id: number;
+  bk_idc_name: string;
   bk_mem: number;
   cloud_area: { id: number; name: string };
   cloud_id: number;
   cloud_vendor: string;
   host_id: number;
-  host_name?: string;
+  host_name: string;
   ip: string;
   ipv6: string;
   meta: {
@@ -41,6 +41,7 @@ export interface HostDetails {
     scope_id: string;
     scope_type: string;
   };
+  occupancy: boolean;
   os_name: string;
   os_type: string;
 }

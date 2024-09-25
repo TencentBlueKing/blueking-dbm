@@ -54,7 +54,7 @@
   import { useRequest } from 'vue-request';
 
   import { getHostDetails } from '@services/source/ipchooser';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useCopy } from '@hooks';
 
@@ -82,15 +82,15 @@
   }, {
     label: 'IPv6',
     field: 'ipv6',
-    render: ({ data }: {data: HostDetails}) => data.ipv6 || '--',
+    render: ({ data }: {data: HostInfo}) => data.ipv6 || '--',
   }, {
     label: t('管控区域'),
     field: 'bk_cloud_name',
-    render: ({ data }: {data: HostDetails}) => data.cloud_area.name || '--',
+    render: ({ data }: {data: HostInfo}) => data.cloud_area.name || '--',
   }, {
     label: t('Agent状态'),
     field: 'alive',
-    render: ({ data }: {data: HostDetails}) => {
+    render: ({ data }: {data: HostInfo}) => {
       if (typeof data.alive !== 'number') return '--';
 
       const text = [t('异常'), t('正常')];
@@ -99,27 +99,27 @@
   }, {
     label: t('主机名称'),
     field: 'host_name',
-    render: ({ data }: {data: HostDetails}) => data.host_name || '--',
+    render: ({ data }: {data: HostInfo}) => data.host_name || '--',
   }, {
     label: t('OS名称'),
     field: 'os_name',
-    render: ({ data }: {data: HostDetails}) => data.os_name || '--',
+    render: ({ data }: {data: HostInfo}) => data.os_name || '--',
   }, {
     label: t('所属云厂商'),
     field: 'cloud_vendor',
-    render: ({ data }: {data: HostDetails}) => data.cloud_vendor || '--',
+    render: ({ data }: {data: HostInfo}) => data.cloud_vendor || '--',
   }, {
     label: t('OS类型'),
     field: 'os_type',
-    render: ({ data }: {data: HostDetails}) => data.os_type || '--',
+    render: ({ data }: {data: HostInfo}) => data.os_type || '--',
   }, {
     label: t('主机ID'),
     field: 'host_id',
-    render: ({ data }: {data: HostDetails}) => data.host_id || '--',
+    render: ({ data }: {data: HostInfo}) => data.host_id || '--',
   }, {
     label: 'Agent ID',
     field: 'agent_id',
-    render: ({ data }: {data: HostDetails}) => data.agent_id || '--',
+    render: ({ data }: {data: HostInfo}) => data.agent_id || '--',
   }];
   const settings = {
     fields: columns.map(item => ({

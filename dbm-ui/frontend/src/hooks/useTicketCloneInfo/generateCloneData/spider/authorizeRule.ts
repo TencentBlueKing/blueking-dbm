@@ -13,7 +13,7 @@
 import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
 import { checkHost } from '@services/source/ipchooser';
-import { getSpiderList } from '@services/source/spider';
+import { getTendbClusterList } from '@services/source/tendbcluster';
 
 import { ClusterTypes } from '@common/const';
 
@@ -34,7 +34,7 @@ export async function generateSpiderAuthorizeRuleCloneData(ticketData: TicketMod
     sourceIpList.push(...checkIpInfo);
   }
 
-  const clustersResult = await getSpiderList({
+  const clustersResult = await getTendbClusterList({
     cluster_ids: authorizeData.cluster_ids,
     limit: -1,
     offset: 0,

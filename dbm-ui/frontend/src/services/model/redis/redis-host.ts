@@ -15,14 +15,14 @@ import RedisClusterNodeByIpModel from '@services/model/redis/redis-cluster-node-
 
 import { switchToNormalRole } from '@utils';
 
-import type { HostDetails } from '../../types';
+import type { HostInfo } from '../../types';
 
 export default class RedisHost {
   bk_cloud_id: number;
   bk_cloud_name: string;
   bk_host_id: number;
   cluster_id: number;
-  host_info: HostDetails;
+  host_info: HostInfo;
   ip: string;
   instance_count: number;
   role: string;

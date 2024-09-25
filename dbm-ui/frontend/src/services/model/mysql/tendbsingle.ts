@@ -12,24 +12,11 @@
  */
 import { uniq } from 'lodash';
 
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
-
-interface TendbsingleInstance {
-  bk_biz_id: number;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_instance_id: number;
-  instance: string;
-  ip: string;
-  name: string;
-  phase: string;
-  port: number;
-  spec_config: Record<'id', number>;
-  status: string;
-  version: string;
-}
 
 export default class Tendbsingle {
   static MYSQL_HA_DESTROY = 'MYSQL_HA_DESTROY';
@@ -61,26 +48,23 @@ export default class Tendbsingle {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
+  cluster_alias: string;
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
-  cluster_time_zone: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
+  cluster_time_zone: string;
   cluster_type: string;
+  cluster_type_name: string;
   create_at: string;
   creator: string;
+  db_module_id: number;
   db_module_name: string;
   id: number;
-  master_domain: string;
   major_version: string;
-  masters: TendbsingleInstance[];
-  operations: Array<{
-    cluster_id: number;
-    flow_id: number;
-    operator: string;
-    status: string;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-  }>;
+  master_domain: string;
+  masters: ClusterListNode[];
+  operations: ClusterListOperation[];
   permission: {
     mysql_destroy: boolean;
     mysql_dump_data: boolean;
@@ -91,23 +75,28 @@ export default class Tendbsingle {
   };
   phase: string;
   phase_name: string;
-  proxies: TendbsingleInstance[];
   region: string;
   slave_domain: string;
-  slaves: TendbsingleInstance[];
   status: string;
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as Tendbsingle) {
     this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
+    this.cluster_access_port = payload.cluster_access_port;
+    this.cluster_alias = payload.cluster_alias;
+    this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name || '';
     this.cluster_time_zone = payload.cluster_time_zone || '';
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
+    this.cluster_type_name = payload.cluster_type_name;
     this.create_at = payload.create_at || '';
     this.creator = payload.creator || '';
+    this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name || '';
     this.id = payload.id || 0;
     this.master_domain = payload.master_domain || '';
@@ -117,11 +106,11 @@ export default class Tendbsingle {
     this.permission = payload.permission || {};
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
-    this.proxies = payload.proxies || [];
     this.region = payload.region || '';
     this.slave_domain = payload.slave_domain || '';
-    this.slaves = payload.slaves || [];
     this.status = payload.status || '';
+    this.update_at = payload.update_at;
+    this.updater = payload.updater;
   }
 
   get isOnline() {
@@ -147,7 +136,7 @@ export default class Tendbsingle {
   }
 
   get allInstanceList() {
-    return [...this.masters, ...this.proxies, ...this.slaves];
+    return [...this.masters];
   }
 
   get allIPList() {

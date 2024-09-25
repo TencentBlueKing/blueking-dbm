@@ -144,13 +144,13 @@
     useRouter,
   } from 'vue-router';
 
-  import TendbClusterModel from '@services/model/spider/tendbCluster';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import {
-    getSpiderClusterPrimary,
-    getSpiderDetail,
-    getSpiderInstanceList,
+    getTendbclusterDetail,
+    getTendbclusterInstanceList,
     getTendbClusterList,
-  } from '@services/source/spider';
+    getTendbclusterPrimary,
+  } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
 
@@ -433,7 +433,7 @@
                 <span v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration">
                   <EditEntryConfig
                     id={data.id}
-                    getDetailInfo={getSpiderDetail}
+                    getDetailInfo={getTendbclusterDetail}
                     permission={data.permission.access_entry_edit}
                     resource={DBTypes.TENDBCLUSTER}
                     renderEntry={renderEntry}
@@ -576,7 +576,7 @@
           <span v-db-console="tendbCluster.clusterManage.modifyEntryConfiguration">
             <EditEntryConfig
               id={data.id}
-              getDetailInfo={getSpiderDetail}
+              getDetailInfo={getTendbclusterDetail}
               permission={data.permission.access_entry_edit}
               resource={DBTypes.TENDBCLUSTER}
               renderEntry={renderEntry}
@@ -667,7 +667,7 @@
             })}
             role="spider_master"
             clusterId={data.id}
-            dataSource={getSpiderInstanceList}
+            dataSource={getTendbclusterInstanceList}
           >
             {{
               append: ({ data }: { data: TendbClusterModel['spider_master'][number] }) =>
@@ -715,7 +715,7 @@
             })}
             role="spider_slave"
             clusterId={data.id}
-            dataSource={getSpiderInstanceList}
+            dataSource={getTendbclusterInstanceList}
           />
         );
       },
@@ -758,7 +758,7 @@
             })}
             role="spider_mnt"
             clusterId={data.id}
-            dataSource={getSpiderInstanceList}
+            dataSource={getTendbclusterInstanceList}
           />
         );
       },
@@ -799,7 +799,7 @@
             title={t('【inst】实例预览', { inst: data.master_domain, title: 'RemoteDB' })}
             role="remote_master"
             clusterId={data.id}
-            dataSource={getSpiderInstanceList}>
+            dataSource={getTendbclusterInstanceList}>
             {{
               default: ({ data }: { data:TendbClusterModel['remote_db'][0] }) => {
                 if (data.shard_id !== undefined) {
@@ -848,7 +848,7 @@
             title={t('【inst】实例预览', { inst: data.master_domain, title: 'RemoteDR' })}
             role="remote_slave"
             clusterId={data.id}
-            dataSource={getSpiderInstanceList}>
+            dataSource={getTendbclusterInstanceList}>
             {{
               default: ({ data }: { data:TendbClusterModel['remote_dr'][0] }) => {
                 if (data.shard_id !== undefined) {
@@ -1048,7 +1048,7 @@
     },
   ]);
 
-  const { run: getSpiderClusterPrimaryRun } = useRequest(getSpiderClusterPrimary, {
+  const { run: getSpiderClusterPrimaryRun } = useRequest(getTendbclusterPrimary, {
     manual: true,
     onSuccess(data) {
       if (data.length > 0) {

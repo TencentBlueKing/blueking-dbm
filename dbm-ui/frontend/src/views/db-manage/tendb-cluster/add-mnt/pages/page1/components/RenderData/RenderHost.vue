@@ -87,7 +87,7 @@
   import { useI18n } from 'vue-i18n';
 
   import { checkHost } from '@services/source/ipchooser';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { OSTypes } from '@common/const';
 
@@ -126,7 +126,7 @@
   const showEditIcon = ref(false);
   const isOverflow = ref(false);
 
-  const localHostList = shallowRef<HostDetails[]>([]);
+  const localHostList = shallowRef<HostInfo[]>([]);
 
   const isShowOverflowTip = computed(() => isOverflow.value && showEditIcon.value);
 
@@ -186,13 +186,13 @@
     isShowIpSelector.value = true;
   };
 
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostInfo[]) => {
     localHostList.value = hostList;
   };
 
   defineExpose<Exposes>({
     getValue() {
-      const formatHost = (hostList: HostDetails[]) =>
+      const formatHost = (hostList: HostInfo[]) =>
         hostList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

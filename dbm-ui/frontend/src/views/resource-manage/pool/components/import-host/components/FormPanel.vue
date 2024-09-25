@@ -154,16 +154,16 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import type ImportHostModel from '@services/model/db-resource/import-host';
   import { getBizs } from '@services/source/cmdb';
   import { fetchDbTypeList } from '@services/source/infras';
+  import type { HostInfo } from '@services/types';
 
   import { useCopy } from '@hooks';
 
   import { messageWarn } from '@utils';
 
   interface Props {
-    hostList: ImportHostModel[];
+    hostList: HostInfo[];
   }
   interface Emits {
     (e: 'update:hostList', value: Props['hostList']): void;
@@ -243,17 +243,17 @@
     copy(ipList.join('\n'));
   };
   // 复制单个指定主机 IP
-  const handleCopy = (hostItem: ImportHostModel) => {
+  const handleCopy = (hostItem: HostInfo) => {
     copy(hostItem.ip);
   };
   // 删除单个主机
-  const handleRemove = (hostItem: ImportHostModel) => {
+  const handleRemove = (hostItem: HostInfo) => {
     const hostListResult = props.hostList.reduce((result, item) => {
       if (item.host_id !== hostItem.host_id) {
         result.push(item);
       }
       return result;
-    }, [] as ImportHostModel[]);
+    }, [] as HostInfo[]);
 
     emits('update:hostList', hostListResult);
   };

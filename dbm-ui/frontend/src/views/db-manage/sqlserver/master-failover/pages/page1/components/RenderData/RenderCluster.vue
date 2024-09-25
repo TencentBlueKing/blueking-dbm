@@ -33,7 +33,7 @@
   import { ref, shallowRef, watch } from 'vue';
 
   import { checkMysqlInstances } from '@services/source/instances';
-  import type { InstanceInfos } from '@services/types/clusters';
+  import type { InstanceInfos } from '@services/types';
 
   import type { IHostData } from './Row.vue';
 

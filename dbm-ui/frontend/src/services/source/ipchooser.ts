@@ -11,8 +11,9 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { HostInfo } from '@services/types';
+
 import http from '../http';
-import type { HostDetails } from '../types';
 
 const path = '/apis/ipchooser';
 
@@ -30,7 +31,7 @@ export function checkHost(params: {
     bk_cloud_id?: number | string;
   }[];
 }) {
-  return http.post<HostDetails[]>(`${path}/host/check/`, params);
+  return http.post<HostInfo[]>(`${path}/host/check/`, params);
 }
 
 /**
@@ -51,7 +52,7 @@ export function getHostDetails(params: {
     scope_type: string;
   }[];
 }) {
-  return http.post<HostDetails[]>(`${path}/host/details/`, params);
+  return http.post<HostInfo[]>(`${path}/host/details/`, params);
 }
 
 /**
@@ -75,7 +76,7 @@ export function getHostIdInfos(params: {
   node_list: Array<{
     instance_id: number;
     object_id: string;
-    meta: HostDetails['meta'];
+    meta: HostInfo['meta'];
   }>;
   page_size: number;
   start: number;
@@ -90,7 +91,7 @@ export function getHosts(params: {
   node_list: Array<{
     instance_id: number;
     object_id: string;
-    meta: HostDetails['meta'];
+    meta: HostInfo['meta'];
   }>;
   page_size: number;
   start: number;

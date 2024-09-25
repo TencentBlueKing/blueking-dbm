@@ -12,25 +12,11 @@
  */
 import { uniq } from 'lodash';
 
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
+
 import { utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
-
-interface TendbhaInstance {
-  bk_biz_id: number;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_instance_id: number;
-  instance: string;
-  ip: string;
-  is_stand_by: boolean;
-  name: string;
-  phase: string;
-  port: number;
-  spec_config: Record<'id', number>;
-  status: string;
-  version: string;
-}
 
 export default class Tendbha {
   static MYSQL_HA_DESTROY = 'MYSQL_HA_DESTROY';
@@ -62,32 +48,23 @@ export default class Tendbha {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
-  cluster_entry: {
-    cluster_entry_type: string;
-    entry: string;
-    role: 'master_entry' | 'slave_entry';
-  }[];
+  cluster_access_port: number;
+  cluster_alias: string;
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_type: string;
   cluster_time_zone: string;
+  cluster_type: string;
+  cluster_type_name: string;
   create_at: string;
   creator: string;
-  db_module_name: string;
   db_module_id: number;
+  db_module_name: string;
   id: number;
-  master_domain: string;
   major_version: string;
-  masters: TendbhaInstance[];
-  operations: Array<{
-    cluster_id: number;
-    flow_id: number;
-    operator: string;
-    status: string;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-  }>;
+  master_domain: string;
+  masters: ClusterListNode[];
+  operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
     mysql_destroy: boolean;
@@ -99,21 +76,26 @@ export default class Tendbha {
   };
   phase: string;
   phase_name: string;
-  proxies: TendbhaInstance[];
+  proxies: ClusterListNode[];
   region: string;
   slave_domain: string;
-  slaves: TendbhaInstance[];
+  slaves: ClusterListNode[];
   status: string;
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as Tendbha) {
     this.bk_biz_id = payload.bk_biz_id || 0;
     this.bk_biz_name = payload.bk_biz_name || '';
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
+    this.cluster_access_port = payload.cluster_access_port;
+    this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name || '';
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
+    this.cluster_type_name = payload.cluster_type_name || '';
     this.cluster_time_zone = payload.cluster_time_zone || '';
     this.create_at = payload.create_at || '';
     this.creator = payload.creator || '';
@@ -132,6 +114,8 @@ export default class Tendbha {
     this.slave_domain = payload.slave_domain || '';
     this.slaves = payload.slaves || [];
     this.status = payload.status || '';
+    this.update_at = payload.update_at;
+    this.updater = payload.updater;
   }
 
   get isOnline() {

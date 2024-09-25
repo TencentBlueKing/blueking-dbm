@@ -27,7 +27,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getSpiderList } from '@services/source/spider';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
 
   import TableEditSelect from '@components/render-table/columns/select/index.vue';
 
@@ -67,7 +67,7 @@
   const localValue = ref('');
   const backupList = shallowRef<Record<'label' | 'value', string>[]>([]);
 
-  const { run: fetchClusterList, loading: isListLoading } = useRequest(getSpiderList, {
+  const { run: fetchClusterList, loading: isListLoading } = useRequest(getTendbClusterList, {
     onSuccess(data) {
       if (data.results.length < 1) {
         backupList.value = [...baseList];

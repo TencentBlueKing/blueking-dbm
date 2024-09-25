@@ -12,9 +12,9 @@
  */
 
 import NoticGroupModel from '@services/model/notice-group/notice-group';
+import type { ListBase } from '@services/types';
 
 import http, { type IRequestPayload } from '../http';
-import type { ListBase } from '../types';
 
 const path = '/apis/monitor/notice_group';
 

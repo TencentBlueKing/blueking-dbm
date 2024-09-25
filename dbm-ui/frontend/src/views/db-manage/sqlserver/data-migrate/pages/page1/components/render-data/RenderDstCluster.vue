@@ -44,8 +44,8 @@
   import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
   import { filterClusters } from '@services/source/dbbase';
 
   import { ClusterTypes } from '@common/const';
@@ -91,7 +91,7 @@
   const isShowBatchSelector = ref(false);
   const localDomain = ref('');
 
-  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleClusterModel | SqlServerHaClusterModel)[] }>({
+  const selectedClusters = shallowRef<{ [key: string]: (SqlServerSingleModel | SqlServerHaModel)[] }>({
     [ClusterTypes.SQLSERVER_HA]: [],
     [ClusterTypes.SQLSERVER_SINGLE]: [],
   });
@@ -104,12 +104,11 @@
       name: t('SqlServer 主从'),
       disabledRowConfig: [
         {
-          handler: (data: SqlServerHaClusterModel) => data.isOffline,
+          handler: (data: SqlServerHaModel) => data.isOffline,
           tip: t('集群已禁用'),
         },
         {
-          handler: (data: SqlServerHaClusterModel) =>
-            compareVersion(data.major_version, props.srcClusterData!.majorVersion),
+          handler: (data: SqlServerHaModel) => compareVersion(data.major_version, props.srcClusterData!.majorVersion),
           tip: t('不允许高版本往低版本迁移'),
         },
       ],
@@ -120,11 +119,11 @@
       name: t('SqlServer 单节点'),
       disabledRowConfig: [
         {
-          handler: (data: SqlServerSingleClusterModel) => data.isOffline,
+          handler: (data: SqlServerSingleModel) => data.isOffline,
           tip: t('集群已禁用'),
         },
         {
-          handler: (data: SqlServerSingleClusterModel) =>
+          handler: (data: SqlServerSingleModel) =>
             compareVersion(data.major_version, props.srcClusterData!.majorVersion),
           tip: t('不允许高版本往低版本迁移'),
         },
@@ -140,7 +139,7 @@
     },
     {
       validator: (value: string) =>
-        filterClusters<SqlServerHaClusterModel>({
+        filterClusters<SqlServerHaModel>({
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           exact_domain: value,
         }).then((data) => {
@@ -195,9 +194,7 @@
     isShowBatchSelector.value = true;
   };
 
-  const handelClusterChange = (selected: {
-    [key: string]: Array<SqlServerSingleClusterModel | SqlServerHaClusterModel>;
-  }) => {
+  const handelClusterChange = (selected: { [key: string]: Array<SqlServerSingleModel | SqlServerHaModel> }) => {
     const [clusterData] = Object.values(selected)[0];
     modelValue.value = {
       id: clusterData.id,

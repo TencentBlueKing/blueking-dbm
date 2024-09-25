@@ -70,8 +70,8 @@
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
-  import SpiderModel from '@services/model/spider/spider';
-  import { getSpiderList } from '@services/source/spider';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
   import { useTicketCloneInfo } from '@hooks';
@@ -109,7 +109,7 @@
   const clusterNodeTypeMap = ref<Record<string, string[]>>({});
   const remark = ref('');
 
-  const selectedClusters = shallowRef<{ [key: string]: Array<SpiderModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
+  const selectedClusters = shallowRef<{ [key: string]: Array<TendbClusterModel> }>({ [ClusterTypes.TENDBCLUSTER]: [] });
 
   const canSubmit = computed(() => tableData.value.filter((item) => Boolean(item.cluster)).length > 0);
 
@@ -117,7 +117,7 @@
     [ClusterTypes.TENDBCLUSTER]: {
       disabledRowConfig: [
         {
-          handler: (data: SpiderModel) => data.status !== 'normal',
+          handler: (data: TendbClusterModel) => data.status !== 'normal',
           tip: t('集群异常'),
         },
       ],
@@ -159,7 +159,7 @@
   };
 
   // 根据集群选择返回的数据加工成table所需的数据
-  const generateRowDateFromRequest = (item: SpiderModel) => {
+  const generateRowDateFromRequest = (item: TendbClusterModel) => {
     const masterCount = item.spider_master.length;
     const slaveCount = item.spider_slave.length;
     return {
@@ -185,7 +185,7 @@
   };
 
   // 批量选择
-  const handelClusterChoosed = async (selected: { [key: string]: Array<SpiderModel> }) => {
+  const handelClusterChoosed = async (selected: { [key: string]: Array<TendbClusterModel> }) => {
     selectedClusters.value = selected;
     const list = selected[ClusterTypes.TENDBCLUSTER];
     const newList = list.reduce((result, item) => {
@@ -218,7 +218,7 @@
       return;
     }
     tableData.value[index].isLoading = true;
-    const ret = await getSpiderList({ domain }).finally(() => {
+    const ret = await getTendbClusterList({ domain }).finally(() => {
       tableData.value[index].isLoading = false;
     });
     if (ret.results.length < 1) {

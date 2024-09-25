@@ -55,7 +55,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import SpiderMachineModel from '@services/model/spider/spiderMachine';
+  import TendbclusterMachineModel from '@services/model/tendbcluster/tendbcluster-machine';
 
   import type { IValue } from '@components/instance-selector/Index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
@@ -76,7 +76,7 @@
       ip: string;
       domian: string;
       clusterId: number;
-      specConfig: SpiderMachineModel['spec_config'];
+      specConfig: TendbclusterMachineModel['spec_config'];
       slaveInstanceList: NonNullable<IValue['related_instances']>;
     };
   }

@@ -94,7 +94,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types/ip';
+  import type { HostInfo } from '@services/types/ip';
 
   import { OSTypes } from '@common/const';
 
@@ -126,7 +126,7 @@
   // const showEditIcon = ref(false);
   // const isOverflow = ref(false);
 
-  const localHostList = shallowRef<HostDetails[]>([]);
+  const localHostList = shallowRef<HostInfo[]>([]);
 
   const renderText = computed(() => localHostList.value.map((item) => item.ip).join(',  '));
 
@@ -138,7 +138,7 @@
     () => props.data,
     () => {
       if (props.data.length) {
-        localHostList.value = props.data.map((ip) => ({ ip })) as HostDetails[];
+        localHostList.value = props.data.map((ip) => ({ ip })) as HostInfo[];
       }
     },
     {
@@ -168,7 +168,7 @@
     isShowIpSelector.value = true;
   };
 
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostInfo[]) => {
     localHostList.value = hostList;
   };
 
@@ -176,7 +176,7 @@
     const localIps = localHostList.value.map((item) => item.ip);
     const whiteIps = _.flatMap(whiteList.map((item) => item.ips));
     const finalIps = Array.from(new Set([...localIps, ...whiteIps]));
-    localHostList.value = finalIps.map((ip) => ({ ip }) as HostDetails);
+    localHostList.value = finalIps.map((ip) => ({ ip }) as HostInfo);
   };
 
   defineExpose<Exposes>({

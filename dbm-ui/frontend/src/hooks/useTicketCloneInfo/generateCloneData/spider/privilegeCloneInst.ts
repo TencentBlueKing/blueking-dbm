@@ -11,21 +11,21 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import TendbInstanceModel from '@services/model/spider/tendbInstance';
+import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
 import type { MySQLInstanceCloneDetails } from '@services/model/ticket/details/mysql';
 import TicketModel from '@services/model/ticket/ticket';
-import { getSpiderInstanceList } from '@services/source/spider';
+import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // Spider 权限克隆
 export async function generateSpiderPrivilegeCloneInstCloneData(ticketData: TicketModel<MySQLInstanceCloneDetails>) {
   const { clone_data: cloneData } = ticketData.details;
-  const instanceListResult = await getSpiderInstanceList({
+  const instanceListResult = await getTendbclusterInstanceList({
     // instance_address: cloneData.reduce<string[]>((prev, item) => [...prev, item.source], []).join(','),
     instance_address: cloneData.map((cloneDataItem) => cloneDataItem.source),
   });
-  const instanceListMap = instanceListResult.results.reduce<Record<string, TendbInstanceModel>>((obj, item) => {
+  const instanceListMap = instanceListResult.results.reduce<Record<string, TendbclusterInstanceModel>>((obj, item) => {
     Object.assign(obj, {
       [item.instance_address]: item,
     });

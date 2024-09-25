@@ -21,10 +21,10 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type SpiderModel from '@services/model/spider/spider';
+  import type TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
-  import { getSpiderListByBizId } from '@services/source/spider';
+  import { getTendbclusterListByBizId } from '@services/source/tendbcluster';
 
   import { type BackupSources, selectList } from '@views/db-manage/mysql/rollback/pages/page1/components/common/const';
 
@@ -129,7 +129,7 @@
     },
   ];
 
-  const targetClusters = shallowRef<Array<SpiderModel>>([]);
+  const targetClusters = shallowRef<Array<TendbclusterModel>>([]);
 
   const tableData = computed(()=>{
     const { clusters, infos } = props.ticketDetails.details;
@@ -145,7 +145,7 @@
     ()=> props.ticketDetails.details,
     () => {
       const targetClusterIds = props.ticketDetails.details.infos.map(item => Number(item.target_cluster_id));
-      getSpiderListByBizId({
+      getTendbclusterListByBizId({
         cluster_ids: targetClusterIds,
         bk_biz_id: props.ticketDetails.bk_biz_id,
       }).then((data) => {

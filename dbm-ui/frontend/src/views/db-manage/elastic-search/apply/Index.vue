@@ -337,7 +337,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
-  import type { BizItem, HostDetails } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase } from '@hooks';
 
@@ -361,7 +361,7 @@
   const router = useRouter();
   const { t } = useI18n();
 
-  const makeMapByHostId = (hostList: HostDetails[]) =>
+  const makeMapByHostId = (hostList: HostInfo[]) =>
     hostList.reduce(
       (result, item) => ({
         ...result,
@@ -384,8 +384,8 @@
       ip_source: 'resource_pool',
       disaster_tolerance_level: 'NONE', // 同 affinity
       nodes: {
-        master: [] as Array<HostDetails>,
-        client: [] as Array<HostDetails>,
+        master: [] as Array<HostInfo>,
+        client: [] as Array<HostInfo>,
         hot: [] as Array<IHostTableDataWithInstance>,
         cold: [] as Array<IHostTableDataWithInstance>,
       },
@@ -411,7 +411,7 @@
     },
   });
 
-  const formatIpDataWidthInstance = (data: HostDetails[]) =>
+  const formatIpDataWidthInstance = (data: HostInfo[]) =>
     data.map((item) => ({
       instance_num: 1,
       ...item,
@@ -608,19 +608,19 @@
   const masterDisableDialogSubmitMethod = (hostList: Array<any>) =>
     hostList.length >= 3 ? false : t('至少n台', { n: 3 });
   // 更新 master 节点
-  const handleMasterIpListChange = (data: HostDetails[]) => {
+  const handleMasterIpListChange = (data: HostInfo[]) => {
     formData.details.nodes.master = data;
   };
   // 更新 client 节点IP
-  const handleClientIpListChange = (data: HostDetails[]) => {
+  const handleClientIpListChange = (data: HostInfo[]) => {
     formData.details.nodes.client = data;
   };
   // 更新热节点IP
-  const handleHotIpListChange = (data: HostDetails[]) => {
+  const handleHotIpListChange = (data: HostInfo[]) => {
     formData.details.nodes.hot = formatIpDataWidthInstance(data);
   };
   // 更新冷节点IP
-  const handleColdIpListChange = (data: HostDetails[]) => {
+  const handleColdIpListChange = (data: HostInfo[]) => {
     formData.details.nodes.cold = formatIpDataWidthInstance(data);
   };
 
@@ -633,7 +633,7 @@
       }
       baseState.isSubmitting = true;
 
-      const mapIpField = (ipList: Array<HostDetails>) =>
+      const mapIpField = (ipList: Array<HostInfo>) =>
         ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

@@ -43,7 +43,7 @@
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SpiderModel from '@services/model/spider/spider';
+  import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import type {
     ListBase,
   } from '@services/types';
@@ -57,9 +57,9 @@
 
   interface Props {
     activeTab: string,
-    selected: Record<string, SpiderModel[]>,
+    selected: Record<string, TendbClusterModel[]>,
     // eslint-disable-next-line vue/no-unused-properties
-    getResourceList: (params: Record<string, any>) => Promise<ListBase<SpiderModel[]>>
+    getResourceList: (params: Record<string, any>) => Promise<ListBase<TendbClusterModel[]>>
   }
 
   interface Emits {
@@ -153,7 +153,7 @@
       label: t('集群'),
       field: 'cluster_name',
       showOverflowTooltip: true,
-      render: ({ data }: { data: SpiderModel }) => (
+      render: ({ data }: { data: TendbClusterModel }) => (
       <div class="cluster-name-box">
           <div class="cluster-name">{data.master_domain}</div>
           {data.operations && data.operations.length > 0 && <bk-popover
@@ -185,7 +185,7 @@
       label: t('状态'),
       field: 'status',
       minWidth: 100,
-      render: ({ data }: { data: SpiderModel }) => {
+      render: ({ data }: { data: TendbClusterModel }) => {
         const info = data.status === 'normal' ? { theme: 'success', text: t('正常') } : { theme: 'danger', text: t('异常') };
         return <DbStatus theme={info.theme}>{info.text}</DbStatus>;
       },

@@ -123,11 +123,11 @@
     T extends
       | RedisModel
       | TendbhaModel
-      | SpiderModel
+      | TendbclusterModel
       | TendbsingleModel
       | MongodbModel
-      | SqlServerHaClusterModel
-      | SqlServerSingleClusterModel
+      | SqlServerHaModel
+      | SqlServerSingleModel
   ">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
@@ -136,14 +136,14 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
   import RedisModel from '@services/model/redis/redis';
-  import SpiderModel from '@services/model/spider/tendbCluster';
-  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
+  import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
   import { getMongoList } from '@services/source/mongodb';
   import { getRedisList } from '@services/source/redis';
-  import { getSpiderList } from '@services/source/spider';
   import { getHaClusterList } from '@services/source/sqlserveHaCluster';
   import { getSingleClusterList } from '@services/source/sqlserverSingleCluster';
+  import { getTendbClusterList } from '@services/source/tendbcluster';
   import { getTendbhaList, getTendbhaSalveList } from '@services/source/tendbha';
   import { getTendbsingleList } from '@services/source/tendbsingle';
   import type { ListBase } from '@services/types';
@@ -229,7 +229,7 @@
         },
       ],
       multiple: true,
-      getResourceList: getSpiderList,
+      getResourceList: getTendbClusterList,
       tableContent: SpiderTable,
       resultContent: ResultPreview,
     },

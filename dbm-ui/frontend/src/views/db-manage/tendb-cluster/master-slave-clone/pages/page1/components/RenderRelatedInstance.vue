@@ -9,7 +9,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getSpiderMachineList } from '@services/source/spider';
+  import { getTendbclusterMachineList } from '@services/source/tendbcluster';
 
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
@@ -33,7 +33,7 @@
     loading,
     data: spiderMachineListResult,
     run: getSpiderMachineListRun,
-  } = useRequest(getSpiderMachineList, {
+  } = useRequest(getTendbclusterMachineList, {
     manual: true,
   });
 

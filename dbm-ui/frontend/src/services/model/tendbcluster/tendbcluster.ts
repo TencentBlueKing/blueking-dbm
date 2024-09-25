@@ -13,7 +13,7 @@
 
 import { uniq } from 'lodash';
 
-import type ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
@@ -41,21 +41,6 @@ export type InstanceSpecInfo = {
     min: number;
     max: number;
   };
-};
-
-export type Instance = {
-  bk_biz_id: number;
-  bk_cloud_id: number;
-  bk_host_id: number;
-  bk_instance_id: number;
-  instance: string;
-  ip: string;
-  name: string;
-  phase: 'online' | 'offline';
-  port: number;
-  status: 'running' | 'unavailable';
-  spec_config: InstanceSpecInfo;
-  shard_id?: number;
 };
 
 export default class TendbCluster {
@@ -89,13 +74,17 @@ export default class TendbCluster {
   bk_biz_name: string;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  cluster_access_port: number;
+  cluster_alias: string;
   cluster_capacity: number;
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_shard_num: number;
-  cluster_spec: ResourceSpecModel;
+  cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
-  cluster_type: string;
   cluster_time_zone: string;
+  cluster_type: string;
+  cluster_type_name: string;
   create_at: string;
   creator: string;
   db_module_id: number;
@@ -104,18 +93,7 @@ export default class TendbCluster {
   machine_pair_cnt: number;
   major_version: string;
   master_domain: string;
-  operations: Array<{
-    cluster_id: number;
-    flow_id: number;
-    status: string;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-    operationStatusText: string;
-    operationStatusIcon: string;
-    operationTicketId: number;
-    operationDisabled: boolean;
-  }>;
+  operations: ClusterListOperation[];
   permission: {
     tendbcluster_destroy: boolean;
     tendbcluster_dump_data: boolean;
@@ -130,32 +108,38 @@ export default class TendbCluster {
     access_entry_edit: boolean;
   };
   phase: 'online' | 'offline';
+  phase_name: string;
   region: string;
-  remote_db: Instance[];
-  remote_dr: Instance[];
+  remote_db: ClusterListNode[];
+  remote_dr: ClusterListNode[];
   remote_shard_num: number;
   slave_domain: string;
-  spider_master: Instance[];
-  spider_mnt: Instance[];
-  spider_slave: Instance[];
-  spider_ctl_primary: string;
+  spider_master: ClusterListNode[];
+  spider_mnt: ClusterListNode[];
+  spider_slave: ClusterListNode[];
   status: string;
   temporary_info: {
-    source_cluster?: string;
+    source_cluster: string;
     ticket_id: number;
   };
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as TendbCluster) {
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.cluster_access_port = payload.cluster_access_port;
+    this.cluster_alias = payload.cluster_alias;
     this.cluster_capacity = payload.cluster_capacity;
+    this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
     this.cluster_shard_num = payload.cluster_shard_num;
     this.cluster_spec = payload.cluster_spec;
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
+    this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
@@ -165,8 +149,10 @@ export default class TendbCluster {
     this.machine_pair_cnt = payload.machine_pair_cnt;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
+    this.operations = payload.operations || [];
     this.permission = payload.permission || {};
     this.phase = payload.phase;
+    this.phase_name = payload.phase_name;
     this.region = payload.region;
     this.remote_db = payload.remote_db;
     this.remote_dr = payload.remote_dr;
@@ -175,11 +161,10 @@ export default class TendbCluster {
     this.spider_master = payload.spider_master;
     this.spider_mnt = payload.spider_mnt;
     this.spider_slave = payload.spider_slave;
-    this.spider_ctl_primary = payload.spider_ctl_primary;
     this.status = payload.status;
     this.temporary_info = payload.temporary_info;
-
-    this.operations = this.initOperations(payload.operations);
+    this.update_at = payload.update_at;
+    this.updater = payload.updater;
   }
 
   get allInstanceList() {
@@ -298,12 +283,5 @@ export default class TendbCluster {
 
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
-  }
-
-  initOperations(payload = [] as TendbCluster['operations']) {
-    if (!Array.isArray(payload)) {
-      return [];
-    }
-    return payload;
   }
 }

@@ -66,7 +66,7 @@
   import type ESModel from '@services/model/es/es';
   import { getHostDetails } from '@services/source/ipchooser';
   import { createTicket } from '@services/source/ticket';
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useTicketMessage } from '@hooks';
 
@@ -215,8 +215,8 @@
         scope_type: 'biz',
       }],
     }).then((data) => {
-      const hotOriginalHostList: HostDetails[] = [];
-      const coldOriginalHostList: HostDetails[] = [];
+      const hotOriginalHostList: HostInfo[] = [];
+      const coldOriginalHostList: HostInfo[] = [];
 
       let hotDiskTotal = 0;
       let coldDiskTotal = 0;

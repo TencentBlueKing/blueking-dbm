@@ -11,21 +11,21 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import SpiderMachineModel from '@services/model/spider/spiderMachine';
+import TendbclusterMachineModel from '@services/model/tendbcluster/tendbcluster-machine';
 import type { SpiderMigrateCluster } from '@services/model/ticket/details/spider';
 import TicketModel from '@services/model/ticket/ticket';
-import { getSpiderMachineList } from '@services/source/spider';
+import { getTendbclusterMachineList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // spider 迁移主从
 export async function generateSpiderMasterSlaveCloneCloneData(ticketData: TicketModel<SpiderMigrateCluster>) {
   const { infos, backup_source: backupSource } = ticketData.details;
-  const masterMachineResult = await getSpiderMachineList({
+  const masterMachineResult = await getTendbclusterMachineList({
     ip: infos.map((item) => item.old_master.ip).join(','),
     instance_role: 'remote_master',
   });
-  const masterMachineMap = masterMachineResult.results.reduce<Record<string, SpiderMachineModel>>((obj, item) => {
+  const masterMachineMap = masterMachineResult.results.reduce<Record<string, TendbclusterMachineModel>>((obj, item) => {
     Object.assign(obj, {
       [item.ip]: item,
     });

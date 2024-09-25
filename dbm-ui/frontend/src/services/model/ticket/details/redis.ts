@@ -18,7 +18,7 @@ import {
   RepairAndVerifyModes,
   WriteModes,
 } from '@services/model/redis/redis-dst-history-job';
-import type { ExecuteModes, HostDetails, OnlineSwitchType, RepairModes } from '@services/types';
+import type { ExecuteModes, HostInfo, OnlineSwitchType, RepairModes } from '@services/types';
 
 import type { ClusterTypes } from '@common/const';
 
@@ -274,9 +274,9 @@ export interface RedisDetails extends DetailBase {
   disaster_tolerance_level: string;
   ip_source: string;
   nodes: {
-    proxy: HostDetails[];
-    master: HostDetails[];
-    slave: HostDetails[];
+    proxy: HostInfo[];
+    master: HostInfo[];
+    slave: HostInfo[];
   };
   proxy_port: number;
   proxy_pwd: string;

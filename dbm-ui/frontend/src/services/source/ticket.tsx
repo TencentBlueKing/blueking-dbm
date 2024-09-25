@@ -14,6 +14,8 @@ import InfoBox from 'bkui-vue/lib/info-box';
 
 import TicketModel from '@services/model/ticket/ticket';
 import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
+import type { HostNode, ListBase } from '@services/types';
+import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
 import { getRouter } from '@router/index';
 
@@ -22,8 +24,6 @@ import { messageError } from '@utils';
 import { locale, t } from '@locales/index';
 
 import http, { type IRequestPayload } from '../http';
-import type { HostNode, ListBase } from '../types';
-import type { FlowItem, FlowItemTodo } from '../types/ticket';
 
 const path = '/apis/tickets';
 

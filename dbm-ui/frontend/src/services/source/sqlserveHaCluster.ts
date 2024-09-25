@@ -11,14 +11,14 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-cluster-detail';
+import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
+import SqlServerHaClusterDetailModel from '@services/model/sqlserver/sqlserver-ha-detail';
 import SqlServerHaInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
+import type { ListBase, ResourceTopo } from '@services/types';
 
 import { useGlobalBizs } from '@stores';
 
 import http from '../http';
-import type { ListBase, ResourceTopo } from '../types';
 
 const { currentBizId } = useGlobalBizs();
 
@@ -28,9 +28,9 @@ const path = `/apis/sqlserver/bizs/${currentBizId}/sqlserver_ha_resources`;
  * 获取集群列表
  */
 export function getHaClusterList(params: { limit?: number; offset?: number; sys_mode?: 'mirrorin' | 'always_on' }) {
-  return http.get<ListBase<SqlServerHaClusterModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<SqlServerHaModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
-    results: data.results.map((item) => new SqlServerHaClusterModel(item)),
+    results: data.results.map((item) => new SqlServerHaModel(item)),
   }));
 }
 
@@ -39,11 +39,11 @@ export function getHaClusterList(params: { limit?: number; offset?: number; sys_
  */
 export function getHaClusterWholeList() {
   return http
-    .get<ListBase<SqlServerHaClusterModel[]>>(`${path}/`, {
+    .get<ListBase<SqlServerHaModel[]>>(`${path}/`, {
       limit: -1,
       offset: 0,
     })
-    .then((data) => data.results.map((item) => new SqlServerHaClusterModel(item)));
+    .then((data) => data.results.map((item) => new SqlServerHaModel(item)));
 }
 
 /**

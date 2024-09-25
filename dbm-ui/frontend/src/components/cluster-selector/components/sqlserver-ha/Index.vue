@@ -44,8 +44,8 @@
   import { shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import SqlServerHaClusterModel from '@services/model/sqlserver/sqlserver-ha-cluster';
-  import SqlServerSingleClusterModel from '@services/model/sqlserver/sqlserver-single-cluster';
+  import SqlServerHaModel from '@services/model/sqlserver/sqlserver-ha';
+  import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
 
   import { useLinkQueryColumnSerach } from '@hooks';
 
@@ -63,7 +63,7 @@
 
   interface Props {
     activeTab: ClusterTypes,
-    selected: Record<string, (SqlServerSingleClusterModel | SqlServerHaClusterModel)[]>,
+    selected: Record<string, (SqlServerSingleModel | SqlServerHaModel)[]>,
     getResourceList: NonNullable<TabItem['getResourceList']>,
     disabledRowConfig: NonNullable<TabItem['disabledRowConfig']>,
     columnStatusFilter?: TabItem['columnStatusFilter'],

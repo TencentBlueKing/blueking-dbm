@@ -27,7 +27,7 @@
   import { onBeforeUnmount, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type TendbClusterModel from '@services/model/spider/tendbCluster';
+  import type TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
   import { filterClusters } from '@services/source/dbbase';
 
   import { useGlobalBizs } from '@stores';

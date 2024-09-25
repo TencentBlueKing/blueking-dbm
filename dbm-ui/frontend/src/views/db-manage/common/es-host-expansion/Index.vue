@@ -89,7 +89,7 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import HostSelector from './components/HostSelector.vue';
   import ResourcePoolSelector from './components/ResourcePoolSelector.vue';
@@ -102,11 +102,11 @@
     // 集群的节点类型
     role: string;
     // 初始主机
-    originalHostList: HostDetails[];
+    originalHostList: HostInfo[];
     // 服务器来源
     ipSource: 'resource_pool' | 'manual_input';
     // 扩容主机
-    hostList: Array<HostDetails & { instance_num: number }>;
+    hostList: Array<HostInfo & { instance_num: number }>;
     // 当前主机的总容量
     totalDisk: number;
     // 扩容目标容量
@@ -132,7 +132,7 @@
     };
     data: TExpansionNode;
     ipSource: string;
-    disableHostMethod?: (params: HostDetails) => string | boolean;
+    disableHostMethod?: (params: HostInfo) => string | boolean;
   }
 
   const props = defineProps<Props>();

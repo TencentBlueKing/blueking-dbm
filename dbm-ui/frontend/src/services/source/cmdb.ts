@@ -12,8 +12,9 @@
  */
 import pinyin from 'tiny-pinyin';
 
+import type { BizItem } from '@services/types';
+
 import http from '../http';
-import type { BizItem } from '../types';
 
 const path = '/apis/cmdb';
 

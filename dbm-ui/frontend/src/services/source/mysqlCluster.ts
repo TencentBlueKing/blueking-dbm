@@ -11,8 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import RemotePairInstanceModel from '@services/model/mysql/remote-pair-instance';
 import TendbhaModel from '@services/model/mysql/tendbha';
-import RemotePairInstanceModel from '@services/model/mysql-cluster/remote-pair-instance';
 
 import http from '../http';
 

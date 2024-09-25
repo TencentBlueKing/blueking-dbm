@@ -12,25 +12,21 @@
  */
 
 import SqlServerInstanceModel from '@services/model/sqlserver/sqlserver-ha-instance';
-import SqlServerClusterListModel from '@services/model/sqlserver/sqlserver-single-cluster';
-import SqlServerSingleClusterDetailModel from '@services/model/sqlserver/sqlserver-single-cluster-detail';
-
-import { useGlobalBizs } from '@stores';
+import SqlServerSingleModel from '@services/model/sqlserver/sqlserver-single';
+import SqlServerSingleDetailModel from '@services/model/sqlserver/sqlserver-single-detail';
+import type { ListBase, ResourceTopo } from '@services/types';
 
 import http from '../http';
-import type { ListBase, ResourceTopo } from '../types';
 
-const { currentBizId } = useGlobalBizs();
-
-const path = `/apis/sqlserver/bizs/${currentBizId}/sqlserver_single_resources`;
+const getPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sqlserver_single_resources`;
 
 /**
  * 获取集群列表
  */
 export function getSingleClusterList(params: { limit?: number; offset?: number }) {
-  return http.get<ListBase<SqlServerClusterListModel[]>>(`${path}/`, params).then((data) => ({
+  return http.get<ListBase<SqlServerSingleModel[]>>(`${getPath()}/`, params).then((data) => ({
     ...data,
-    results: data.results.map((item) => new SqlServerClusterListModel(item)),
+    results: data.results.map((item) => new SqlServerSingleModel(item)),
   }));
 }
 
@@ -39,22 +35,22 @@ export function getSingleClusterList(params: { limit?: number; offset?: number }
  */
 export function getSingleClusterDetail(params: { id: number }) {
   return http
-    .get<SqlServerSingleClusterDetailModel>(`${path}/${params.id}/`)
-    .then((data) => new SqlServerSingleClusterDetailModel(data));
+    .get<SqlServerSingleDetailModel>(`${getPath()}/${params.id}/`)
+    .then((data) => new SqlServerSingleDetailModel(data));
 }
 
 /**
  * 获取集群拓扑
  */
 export function getSingleClusterTopoGraph(params: { cluster_id: number }) {
-  return http.get<ResourceTopo>(`${path}/${params.cluster_id}/get_topo_graph/`);
+  return http.get<ResourceTopo>(`${getPath()}/${params.cluster_id}/get_topo_graph/`);
 }
 
 /**
  * 导出数据为 excel 文件
  */
 export function exportSqlServerSingleClusterToExcel(params: { bk_host_ids?: number[] }) {
-  return http.post<string>(`${path}/export_instance/`, params, { responseType: 'blob' });
+  return http.post<string>(`${getPath()}/export_instance/`, params, { responseType: 'blob' });
 }
 
 /**
@@ -67,7 +63,7 @@ export function getSqlServerInstanceList(params: {
   cluster_id?: number;
   role?: string;
 }) {
-  return http.get<ListBase<SqlServerInstanceModel[]>>(`${path}/list_instances/`, params).then((data) => ({
+  return http.get<ListBase<SqlServerInstanceModel[]>>(`${getPath()}/list_instances/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new SqlServerInstanceModel(item)),
   }));

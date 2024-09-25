@@ -11,7 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
-import type { HostDetails } from '@services/types';
+import type { HostInfo } from '@services/types';
 
 import { TicketTypes } from '@common/const';
 
@@ -107,10 +107,10 @@ export interface TicketDetailsES {
   http_port: number;
   ip_source: string;
   nodes: {
-    client: HostDetails[];
-    master: HostDetails[];
-    hot: HostDetails[];
-    cold: HostDetails[];
+    client: HostInfo[];
+    master: HostInfo[];
+    hot: HostInfo[];
+    cold: HostInfo[];
   };
 }
 
@@ -125,9 +125,9 @@ export interface TicketDetailsHDFS {
   db_version: string;
   ip_source: string;
   nodes: {
-    datanode: HostDetails[];
-    namenode: HostDetails[];
-    zookeeper: HostDetails[];
+    datanode: HostInfo[];
+    namenode: HostInfo[];
+    zookeeper: HostInfo[];
   };
 }
 
@@ -142,8 +142,8 @@ export interface TicketDetailsKafka {
   db_version: string;
   ip_source: string;
   nodes: {
-    broker: HostDetails[];
-    zookeeper: HostDetails[];
+    broker: HostInfo[];
+    zookeeper: HostInfo[];
   };
   partition_num: number;
   port: number;
@@ -155,16 +155,16 @@ export interface TicketDetailsKafka {
  * 节点类型
  */
 export interface NodesType {
-  datanode: HostDetails[];
-  hot: HostDetails[];
-  cold: HostDetails[];
-  master: HostDetails[];
-  client: HostDetails[];
-  namenode: HostDetails[];
-  zookeeper: HostDetails[];
-  broker: HostDetails[];
-  proxy: HostDetails[];
-  slave: HostDetails[];
+  datanode: HostInfo[];
+  hot: HostInfo[];
+  cold: HostInfo[];
+  master: HostInfo[];
+  client: HostInfo[];
+  namenode: HostInfo[];
+  zookeeper: HostInfo[];
+  broker: HostInfo[];
+  proxy: HostInfo[];
+  slave: HostInfo[];
 }
 
 /**

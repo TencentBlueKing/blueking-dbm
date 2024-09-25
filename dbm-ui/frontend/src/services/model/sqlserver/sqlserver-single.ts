@@ -13,13 +13,13 @@
 
 import { uniq } from 'lodash';
 
-import { PipelineStatus } from '@common/const';
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
 import { t } from '@locales/index';
 
-import TimeBaseClassModel from '../utils/time-base-class';
+import DateTime from '../_dateTime';
 
-export default class SqlServerSingleCluster extends TimeBaseClassModel {
+export default class SqlServerSingleCluster extends DateTime {
   static SQLSERVER_DESTROY = 'SQLSERVER_DESTROY';
   static SQLSERVER_DISABLE = 'SQLSERVER_DISABLE';
   static SQLSERVER_ENABLE = 'SQLSERVER_ENABLE';
@@ -47,26 +47,20 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   bk_cloud_name: string;
   cluster_access_port: number;
   cluster_alias: string;
+  cluster_entry: ClusterListEntry[];
   cluster_name: string;
-  cluster_time_zone: string;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
+  cluster_time_zone: string;
   cluster_type: string;
   cluster_type_name: string;
+  create_at: string;
   creator: string;
   db_module_id: number;
   db_module_name: string;
   id: number;
   major_version: string;
   master_domain: string;
-  operations: Array<{
-    cluster_id: number;
-    flow_id: number;
-    operator: string;
-    status: PipelineStatus;
-    ticket_id: number;
-    ticket_type: string;
-    title: string;
-  }>;
+  operations: ClusterListOperation[];
   permission: {
     access_entry_edit: boolean;
     sqlserver_view: boolean;
@@ -76,36 +70,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
   region: string;
   slave_domain: string;
   status: string;
-  storages: Array<{
-    bk_biz_id: number;
-    bk_cloud_id: number;
-    bk_host_id: number;
-    bk_instance_id: number;
-    instance: string;
-    ip: string;
-    name: string;
-    port: number;
-    spec_config: {
-      count: number;
-      cpu: {
-        max: number;
-        min: number;
-      };
-      id: number;
-      mem: {
-        max: number;
-        min: number;
-      };
-      name: string;
-      storage_spec: Array<{
-        mount_point: string;
-        size: number;
-        type: string;
-      }>;
-    };
-    status: string;
-    phase: string;
-  }>;
+  storages: ClusterListNode[];
   sync_mode: string;
   update_at: string;
   updater: string;
@@ -118,11 +83,13 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
+    this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
+    this.create_at = payload.create_at;
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
@@ -130,6 +97,7 @@ export default class SqlServerSingleCluster extends TimeBaseClassModel {
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
     this.operations = payload.operations;
+    this.permission = payload.permission || {};
     this.phase = payload.phase;
     this.phase_name = payload.phase_name;
     this.region = payload.region;

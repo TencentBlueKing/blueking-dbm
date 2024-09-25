@@ -12,10 +12,11 @@
  */
 
 export * from './bizItem';
-export * from './clusters';
 export * from './common';
-export * from './hostDetails';
+export * from './db';
+export * from './hostInfo';
 export * from './hostNode';
+export * from './instanceInfos';
 export * from './listBase';
 export * from './permission';
 export * from './resourceTopo';

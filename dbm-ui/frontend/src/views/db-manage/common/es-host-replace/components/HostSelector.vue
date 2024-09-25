@@ -67,7 +67,7 @@
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import type { HostDetails } from '@services/types';
+  import type { HostInfo } from '@services/types';
 
   import { useGlobalBizs } from '@stores';
 
@@ -82,7 +82,7 @@
   interface Props {
     data: TReplaceNode;
     placehoderId: string;
-    disableHostMethod?: (params: HostDetails) => string | boolean;
+    disableHostMethod?: (params: HostInfo) => string | boolean;
   }
 
   const props = defineProps<Props>();
@@ -94,7 +94,7 @@
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
 
-  const formatIpDataWidthInstance = (data: HostDetails[]) =>
+  const formatIpDataWidthInstance = (data: HostInfo[]) =>
     data.map((item) => ({
       instance_num: 1,
       ...item,
@@ -111,7 +111,7 @@
     return undefined;
   });
 
-  const disableDialogSubmitMethod = (hostList: HostDetails[]) =>
+  const disableDialogSubmitMethod = (hostList: HostInfo[]) =>
     hostList.length === props.data.nodeList.length ? false : t('需n台', { n: props.data.nodeList.length });
 
   const isShowIpSelector = ref(false);
@@ -122,7 +122,7 @@
   };
 
   // 添加新IP
-  const handleHostChange = (hostList: HostDetails[]) => {
+  const handleHostChange = (hostList: HostInfo[]) => {
     modelValue.value = formatIpDataWidthInstance(hostList);
   };
 

@@ -365,7 +365,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRoute, useRouter } from 'vue-router';
 
-  import type { BizItem, HostDetails } from '@services/types';
+  import type { BizItem, HostInfo } from '@services/types';
 
   import { useApplyBase } from '@hooks';
 
@@ -487,7 +487,7 @@
     formdata.details.nodes.zookeeper = [];
   };
 
-  const makeMapByHostId = (hostList: HostDetails[]) =>
+  const makeMapByHostId = (hostList: HostInfo[]) =>
     hostList.reduce(
       (result, item) => ({
         ...result,
@@ -545,22 +545,22 @@
     return false;
   };
   // 更新 bookkeeper 节点
-  const handleBookkeeperIpListChange = (data: HostDetails[]) => {
+  const handleBookkeeperIpListChange = (data: HostInfo[]) => {
     formdata.details.nodes.bookkeeper = data;
   };
   // 更新 zookeeper 节点
-  const handleZookeeperIpListChange = (data: HostDetails[]) => {
+  const handleZookeeperIpListChange = (data: HostInfo[]) => {
     formdata.details.nodes.zookeeper = data;
   };
   // 更新 broker 节点
-  const handleBrokerIpListChange = (data: HostDetails[]) => {
+  const handleBrokerIpListChange = (data: HostInfo[]) => {
     formdata.details.nodes.broker = data;
   };
 
   const handleSubmit = () => {
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
-      const mapIpField = (ipList: HostDetails[]) =>
+      const mapIpField = (ipList: HostInfo[]) =>
         ipList.map((item) => ({
           bk_host_id: item.host_id,
           ip: item.ip,

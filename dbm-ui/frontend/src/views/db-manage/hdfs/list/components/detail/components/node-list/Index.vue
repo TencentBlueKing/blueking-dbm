@@ -170,7 +170,7 @@
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
 
-  import type HdfsModel from '@services/model/hdfs/hdfs';
+  import type HdfsDetailModel from '@services/model/hdfs/hdfs-detail';
   import HdfsNodeModel from '@services/model/hdfs/hdfs-node';
   import { getHdfsDetail, getHdfsNodeList } from '@services/source/hdfs';
 
@@ -290,7 +290,7 @@
   const isShowDetail = ref(false);
   const isCopyDropdown = ref(false);
 
-  const operationData = shallowRef<HdfsModel>();
+  const operationData = shallowRef<HdfsDetailModel>();
   const operationNodeData = shallowRef();
   const operationNodeList = shallowRef<Array<HdfsNodeModel>>([]);
   const tableData = shallowRef<HdfsNodeModel[]>([]);
