@@ -3,6 +3,7 @@ package backupexe
 import (
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
+	"strings"
 )
 
 // ExecuteLoad execute load backup command
@@ -11,7 +12,8 @@ func ExecuteLoad(cnf *config.BackupConfig, indexFileContent *dbareport.IndexCont
 		return envErr
 	}
 
-	loader, err := BuildLoader(cnf, indexFileContent.BackupType, indexFileContent.BackupTool)
+	backupStorageEngine := strings.ToLower(indexFileContent.StorageEngine)
+	loader, err := BuildLoader(cnf, indexFileContent.BackupType, indexFileContent.BackupTool, backupStorageEngine)
 	if err != nil {
 		return err
 	}
