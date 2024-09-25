@@ -24,8 +24,8 @@ class TestAutoCreateServices(TestCase):
         service_id = Services.auto_create_itsm_service()
         self.assertEqual(service_id, 94)
 
-    @patch("backend.dbm_init.services.BKLogApi", BKLogApiMock)
-    @patch("backend.dbm_init.json_files.format.CCApi", CCApiMock)
+    @patch("backend.db_monitor.utils.BKLogApi", BKLogApiMock)
+    @patch("backend.db_monitor.format.CCApi", CCApiMock)
     def test_auto_create_bklog_service(self):
         is_success = Services.auto_create_bklog_service()
         self.assertEqual(is_success, True)

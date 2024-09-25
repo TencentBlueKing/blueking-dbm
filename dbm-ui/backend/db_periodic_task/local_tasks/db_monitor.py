@@ -8,24 +8,19 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import datetime
 import json
 import logging
-import os
 
 from blueapps.core.celery.celery import app
 from celery.schedules import crontab
 from django.core.cache import cache
-from django.utils import timezone
 
 from backend import env
 from backend.configuration.constants import DEFAULT_DB_ADMINISTRATORS, PLAT_BIZ_ID, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS, TPLS_ALARM_DIR, TargetPriority
-from backend.db_monitor.exceptions import BkMonitorSaveAlarmException
+from backend.db_monitor.constants import DEFAULT_ALERT_NOTICE, MONITOR_EVENTS
 from backend.db_monitor.models import CollectInstance, DispatchGroup, MonitorPolicy, NoticeGroup
 from backend.db_monitor.tasks import update_app_policy
-from backend.db_monitor.utils import get_dbm_autofix_action_id
 from backend.db_periodic_task.local_tasks.register import register_periodic_task
 from backend.db_periodic_task.utils import TimeUnit, calculate_countdown
 
@@ -73,103 +68,9 @@ def update_dba_notice_group(dba_id: int):
 
 
 @register_periodic_task(run_every=crontab(minute="*/5"))
-def sync_plat_monitor_policy(action_id=None):
+def sync_plat_monitor_policy(action_id=None, db_type=None, force=False):
     """同步平台告警策略"""
-    if action_id is None:
-        action_id = get_dbm_autofix_action_id()
-    skip_dir = "v1"
-    now = datetime.datetime.now(timezone.utc)
-    logger.warning("[sync_plat_monitor_policy] sync bkm alarm policy start: %s", now)
-
-    # 逐个json导入，本地+远程
-    updated_policies = 0
-    for root, dirs, files in os.walk(TPLS_ALARM_DIR):
-        if skip_dir in dirs:
-            dirs.remove(skip_dir)
-
-        for alarm_tpl in files:
-            with open(os.path.join(root, alarm_tpl), "r", encoding="utf-8") as f:
-                logger.info("[sync_plat_monitor_policy] start sync bkm alarm tpl: %s " % alarm_tpl)
-                try:
-                    template_dict = json.loads(f.read())
-                    # 监控API不支持传入额外的字段
-                    template_dict.pop("export_at", "")
-                    policy_name = template_dict["name"]
-                except json.decoder.JSONDecodeError:
-                    logger.error("[sync_plat_monitor_policy] load template failed: %s", alarm_tpl)
-                    continue
-
-                deleted = template_dict.pop("deleted", False)
-
-                if not template_dict.get("details"):
-                    logger.error(("[sync_plat_monitor_policy] template %s has no details" % alarm_tpl))
-                    continue
-
-                # patch template
-                labels = list(set(template_dict["details"]["labels"]))
-                template_dict["details"]["labels"] = labels
-                template_dict["details"]["name"] = policy_name
-                template_dict["details"]["priority"] = TargetPriority.PLATFORM.value
-                # 平台策略仅开启基于分派通知
-                template_dict["details"]["notice"]["options"]["assign_mode"] = ["by_rule"]
-                for label in labels:
-                    if label.startswith("NEED_AUTOFIX") and action_id is not None:
-                        template_dict["details"]["actions"] = [
-                            {
-                                "config_id": action_id,
-                                "signal": ["abnormal"],
-                                "user_groups": [],
-                                "options": {
-                                    "converge_config": {
-                                        "is_enabled": False,
-                                        "converge_func": "skip_when_success",
-                                        "timedelta": 60,
-                                        "count": 1,
-                                    }
-                                },
-                            }
-                        ]
-
-                policy = MonitorPolicy(**template_dict)
-
-            policy_name = policy.name
-            logger.info("[sync_plat_monitor_policy] start sync bkm alarm policy: %s " % policy_name)
-            try:
-                synced_policy = MonitorPolicy.objects.get(bk_biz_id=policy.bk_biz_id, name=policy_name)
-
-                if deleted:
-                    logger.info("[sync_plat_monitor_policy] delete old alarm: %s " % policy_name)
-                    synced_policy.delete()
-                    continue
-
-                if synced_policy.version >= policy.version:
-                    logger.info("[sync_plat_monitor_policy] skip same version alarm: %s " % policy_name)
-                    continue
-
-                for keeped_field in MonitorPolicy.KEEPED_FIELDS:
-                    setattr(policy, keeped_field, getattr(synced_policy, keeped_field))
-
-                policy.details["id"] = synced_policy.monitor_policy_id
-                logger.info("[sync_plat_monitor_policy] update bkm alarm policy: %s " % policy_name)
-            except MonitorPolicy.DoesNotExist:
-                logger.info("[sync_plat_monitor_policy] create bkm alarm policy: %s " % policy_name)
-
-            try:
-                # fetch targets/test_rules/notify_rules/notify_groups from parent details
-                for attr, value in policy.parse_details().items():
-                    setattr(policy, attr, value)
-
-                policy.save()
-                updated_policies += 1
-                logger.error("[sync_plat_monitor_policy] save bkm alarm policy success: %s", policy_name)
-            except BkMonitorSaveAlarmException as e:
-                logger.error("[sync_plat_monitor_policy] save bkm alarm policy failed: %s, %s ", policy_name, e)
-
-    logger.warning(
-        "[sync_plat_monitor_policy] finish sync bkm alarm policy end: %s, update_cnt: %s",
-        datetime.datetime.now(timezone.utc) - now,
-        updated_policies,
-    )
+    MonitorPolicy.sync_plat_monitor_policy(action_id=action_id, db_type=db_type, force=force)
 
 
 @register_periodic_task(run_every=crontab(minute=0, hour="*/1"))

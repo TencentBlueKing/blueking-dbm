@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import copy
 import datetime
 import json
 import logging
@@ -24,7 +23,7 @@ from django.utils import timezone
 
 from backend import env
 from backend.bk_dataview.grafana.views import SwitchOrgView
-from backend.components import BKLogApi, BKMonitorV3Api, CCApi, ItsmApi
+from backend.components import BKMonitorV3Api, CCApi, ItsmApi
 from backend.components.constants import SSL_KEY
 from backend.configuration.constants import DBM_REPORT_INITIAL_VALUE, SystemSettingsEnum
 from backend.configuration.models.system import SystemSettings
@@ -32,13 +31,11 @@ from backend.core.storages.constants import FileCredentialType, StorageType
 from backend.core.storages.file_source import BkJobFileSourceManager
 from backend.core.storages.storage import get_storage
 from backend.db_meta.models import AppMonitorTopo
-from backend.db_monitor.constants import AUTOFIX_ACTION_TEMPLATE
-from backend.db_monitor.utils import get_dbm_autofix_action_id
+from backend.db_monitor.utils import create_bklog_collector, create_bkmonitor_action
 from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
 from backend.db_services.ipchooser.constants import DB_MANAGE_SET, DEFAULT_CLOUD, DIRTY_MODULE, RESOURCE_MODULE
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR, CC_HOST_DBM_ATTR
-from backend.dbm_init.json_files.format import JsonConfigFormat
-from backend.exceptions import ApiError, ApiRequestError, ApiResultError
+from backend.exceptions import ApiError
 from backend.iam_app.dataclass import generate_iam_migration_json
 from backend.utils.time import datetime2str
 
@@ -110,88 +107,7 @@ class Services:
         """
         创建/更新 日志平台 采集项
         """
-        bklog_json_files_path = "backend/dbm_init/json_files/bklog"
-        for filename in os.listdir(bklog_json_files_path):
-            if not filename.endswith(".json"):
-                continue
-            if not filename.startswith(startswith):
-                continue
-
-            # 读取日志采集项json文件，并渲染配置
-            with open(os.path.join(bklog_json_files_path, filename), "r", encoding="utf-8") as file:
-                try:
-                    bklog_params = json.load(file)
-                except json.decoder.JSONDecodeError as err:
-                    logger.error(f"读取json文件失败: {filename}, {err}")
-                    raise err
-                log_name = filename.split(".")[0]
-                # 优先获取指定了 log_name 的 formatter
-                if hasattr(JsonConfigFormat, f"format_{log_name}"):
-                    bklog_params = JsonConfigFormat.format(bklog_params, f"format_{log_name}")
-                # 根据不同 db 类型，指定对应的 formatter，主要是区分采集目标
-                elif "mysql" in filename:
-                    bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_mysql.__name__)
-                elif "redis" in filename:
-                    bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_redis.__name__)
-                elif "mssql" in filename:
-                    bklog_params = JsonConfigFormat.format(bklog_params, JsonConfigFormat.format_mssql.__name__)
-                else:
-                    logger.warning(f"格式化函数{log_name}不存在(如果无需格式化json可忽略)")
-
-                # 针对特殊需求修改请求参数
-                if hasattr(JsonConfigFormat, f"custom_modify_{log_name}"):
-                    bklog_params = JsonConfigFormat.custom_modify(bklog_params, f"custom_modify_{log_name}")
-                # 如果存在对应的环境变量设置了日志自定义的保留天数，则进行更新
-                retention = getattr(env, f"BKLOG_{log_name.upper()}_RETENTION", "") or env.BKLOG_DEFAULT_RETENTION
-                bklog_params["retention"] = retention
-                # 自定义了 ES 存储集群，则指定 storage_cluster_id
-                if env.BKLOG_STORAGE_CLUSTER_ID:
-                    bklog_params["storage_cluster_id"] = env.BKLOG_STORAGE_CLUSTER_ID
-                # 如果集群支持冷热数据，则补充 allocation_min_days，为 retention 的一半即可
-                if env.BKLOG_CLUSTER_SUPPORT_HOT_COLD:
-                    bklog_params["allocation_min_days"] = retention // 2
-
-            # 获取当前采集项的列表
-            data = BKLogApi.list_collectors(
-                {"bk_biz_id": env.DBA_APP_BK_BIZ_ID, "pagesize": 500, "page": 1}, use_admin=True
-            )
-            collectors_name__info_map = {
-                collector["collector_config_name_en"]: collector for collector in data["list"]
-            }
-
-            # 判断采集项是否重复创建
-            collector_name = bklog_params["collector_config_name_en"]
-            data = BKLogApi.pre_check(
-                {
-                    "bk_biz_id": env.DBA_APP_BK_BIZ_ID,
-                    "collector_config_name_en": collector_name,
-                },
-                use_admin=True,
-            )
-            if not data["allowed"]:
-                # 采集项已创建，对采集项进行更新
-                try:
-                    collector_config_id = collectors_name__info_map[collector_name]["collector_config_id"]
-                except KeyError:
-                    logger.error(f"采集项{collector_name}被创建后删除，暂无法自动重建，请联系管理员处理。")
-                    continue
-                bklog_params.update({"collector_config_id": collector_config_id})
-                logger.info(f"采集项{collector_name}已创建, 对采集项进行更新...")
-                try:
-                    BKLogApi.fast_update(params=bklog_params, use_admin=True)
-                except (ApiRequestError, ApiResultError) as e:
-                    logger.error(f"采集项{collector_name}更新失败，请联系管理员。错误信息：{e}")
-
-                continue
-
-            # 创建采集项
-            try:
-                data = BKLogApi.fast_create(params=bklog_params, use_admin=True)
-                logger.info(f"采集项创建成功，相关信息: {data}")
-            except (ApiRequestError, ApiResultError) as e:
-                # 当前采集项创建失败默认不影响下一个采集项的创建
-                logger.error(f"采集项创建失败，请联系管理员。错误信息：{e}")
-
+        create_bklog_collector(startswith=startswith)
         return True
 
     @staticmethod
@@ -423,35 +339,19 @@ class Services:
         )
 
     @staticmethod
-    def auto_create_bkmonitor_action() -> int:
-        """初始化监控处理套餐"""
-        action_id = get_dbm_autofix_action_id()
-        action_config = copy.deepcopy(AUTOFIX_ACTION_TEMPLATE)
-
-        if action_id is None:
-            BKMonitorV3Api.save_action_config(action_config)
-        else:
-            action_config["id"] = action_id
-            BKMonitorV3Api.edit_action_config(action_config)
-
-        return action_id
-
-    @staticmethod
     def auto_create_bkmonitor_alarm() -> bool:
         """初始化bkmonitor配置"""
-
-        from backend.db_monitor.models import CollectInstance
-        from backend.db_periodic_task.local_tasks import sync_plat_monitor_policy
+        from backend.db_monitor.models import CollectInstance, MonitorPolicy
 
         logger.info("auto_create_bkmonitor_service")
 
-        action_id = Services.auto_create_bkmonitor_action()
+        action_id = create_bkmonitor_action()
 
         # 加载采集策略
         CollectInstance.sync_collect_strategy()
 
         # 加载告警策略
-        sync_plat_monitor_policy(action_id)
+        MonitorPolicy.sync_plat_monitor_policy(action_id=action_id)
 
         return True
 

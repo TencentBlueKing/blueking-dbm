@@ -21,7 +21,8 @@ from backend.configuration.models import BizSettings, DBAdministrator
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppMonitorTopo, Cluster, ClusterMonitorTopo, Machine, StorageInstance
 from backend.db_meta.models.cluster_monitor import INSTANCE_MONITOR_PLUGINS, SET_NAME_TEMPLATE
-from backend.db_monitor.models import CollectInstance
+from backend.db_monitor.models import CollectInstance, MonitorPolicy
+from backend.db_monitor.utils import create_bklog_collector
 from backend.db_services.cmdb.biz import get_or_create_cmdb_module_with_name, get_or_create_set_with_name
 from backend.db_services.ipchooser.constants import IDLE_HOST_MODULE
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
@@ -107,10 +108,14 @@ class CcManage(object):
 
             machine_topo[machine_type] = topo.bk_module_id
 
-        # 同步采集项
+        # 同步采集项、监控策略
         if sync_collector_flag:
-            CollectInstance.sync_collect_strategy(db_type=db_type, force=True)
-            Services.auto_create_bklog_service(startswith=db_type)
+            try:
+                create_bklog_collector(startswith=db_type)
+                CollectInstance.sync_collect_strategy(db_type=db_type, force=True)
+                MonitorPolicy.sync_plat_monitor_policy(db_type=db_type, force=True)
+            except ApiError as e:
+                logger.exception("{} sync_collector error: {}".format(db_type, e))
 
         logger.info("get_or_create_set_module machine_topo: {}".format(machine_topo))
         return machine_topo
