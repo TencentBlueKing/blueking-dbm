@@ -2338,7 +2338,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 "extend": {
                     "host": kwargs["ip"],
                     "ports": self.cluster["ports"],
-                    "force": False,
+                    "force": self.ticket_data["force"],
                     "pkg": mysql_pkg.name,
                     "pkg_md5": mysql_pkg.md5,
                     "run": self.cluster["run"],

@@ -35,6 +35,7 @@ class ProxyScaleUpDetailSerializer(SkipToRepresentationMixin, serializers.Serial
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
+    force = serializers.BooleanField(help_text=_("是否强制执行"), required=False, default=False)
 
 
 class ProxyScaleUpParamBuilder(builders.FlowParamBuilder):
