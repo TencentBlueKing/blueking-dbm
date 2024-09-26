@@ -56,6 +56,13 @@
             @remove="handleRemove(index)" />
         </template>
       </RenderTable>
+      <div class="force-action">
+        <BkCheckbox
+          v-model="isForce"
+          v-bk-tooltips="t('如忽略，有连接的情况下也会执行强制升级')">
+          <span class="force-action-text">{{ t('忽略业务连接') }}</span>
+        </BkCheckbox>
+      </div>
       <TicketRemark v-model="localRemark" />
       <ClusterSelector
         v-model:is-show="isShowClusterSelector"
@@ -107,6 +114,7 @@
 
   interface Props {
     tableList: IDataRow[];
+    force: boolean;
     remark: string;
   }
 
@@ -125,6 +133,7 @@
   const rowRefs = ref();
   const isSubmitting = ref(false);
   const localRemark = ref('');
+  const isForce = ref(false);
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
@@ -150,6 +159,10 @@
       immediate: true,
     },
   );
+
+  watchEffect(() => {
+    isForce.value = props.force;
+  });
 
   const handleShowMasterBatchSelector = () => {
     isShowClusterSelector.value = true;
@@ -253,6 +266,7 @@
         remark: localRemark.value,
         details: {
           infos,
+          force: isForce.value,
         },
         bk_biz_id: currentBizId,
       }).then((data) => {
