@@ -18,6 +18,8 @@ from backend import env
 from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
+from backend.db_services.ipchooser.constants import BkOsType
+from backend.flow.consts import LINUX_ADMIN_USER_FOR_CHECK, WINDOW_ADMIN_USER_FOR_CHECK
 from backend.flow.engine.bamboo.scene.common.builder import Builder
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
@@ -39,12 +41,23 @@ class ImportResourceInitStepFlow(object):
         p = Builder(root_id=self.root_id, data=self.data)
         ip_list = self.data["hosts"]
         bk_biz_id = self.data["bk_biz_id"]
+
+        if self.data.get("os_type", BkOsType.LINUX.value) == BkOsType.WINDOWS.value:
+            # 如果是window类型机器，用administrator账号
+            account_name = WINDOW_ADMIN_USER_FOR_CHECK
+        else:
+            account_name = LINUX_ADMIN_USER_FOR_CHECK
+
         # 先执行空闲检查
         if env.SA_CHECK_TEMPLATE_ID:
             p.add_act(
                 act_name=_("执行sa空闲检查"),
                 act_component_code=CheckMachineIdleComponent.code,
-                kwargs=asdict(InitCheckForResourceKwargs(ips=[host["ip"] for host in ip_list], bk_biz_id=bk_biz_id)),
+                kwargs=asdict(
+                    InitCheckForResourceKwargs(
+                        ips=[host["ip"] for host in ip_list], bk_biz_id=bk_biz_id, account_name=account_name
+                    )
+                ),
             )
 
         # 在执行sa初始化
@@ -53,7 +66,7 @@ class ImportResourceInitStepFlow(object):
             p.add_act(
                 act_name=_("执行sa初始化"),
                 act_component_code=SaInitComponent.code,
-                kwargs={"ips": [host["ip"] for host in ip_list], "bk_biz_id": bk_biz_id},
+                kwargs={"ips": [host["ip"] for host in ip_list], "bk_biz_id": bk_biz_id, "account_name": account_name},
             )
 
         # 调用资源导入接口

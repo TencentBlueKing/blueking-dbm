@@ -68,6 +68,9 @@ DEFAULT_SQLSERVER_PATH = "d:\\install"
 # window操作系统超级账号,标准运维调用
 WINDOW_ADMIN_USER_FOR_CHECK = "Administrator"
 
+# linux操作系统超级账号,标准运维调用
+LINUX_ADMIN_USER_FOR_CHECK = "root"
+
 # tendisplus默认kvstorecount
 DEFAULT_TENDISPLUS_KVSTORECOUNT = 10
 

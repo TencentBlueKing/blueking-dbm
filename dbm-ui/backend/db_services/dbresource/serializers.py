@@ -25,6 +25,7 @@ from backend.db_services.dbresource.mock import (
     RESOURCE_UPDATE_PARAMS,
     SPEC_DATA,
 )
+from backend.db_services.ipchooser.constants import BkOsTypeCode
 from backend.db_services.ipchooser.serializers.base import QueryHostsBaseSer
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketStatus
@@ -35,6 +36,7 @@ class ResourceImportSerializer(serializers.Serializer):
         ip = serializers.CharField()
         host_id = serializers.IntegerField()
         bk_cloud_id = serializers.IntegerField()
+        os_type = serializers.CharField(required=False, default=BkOsTypeCode.LINUX)
 
     for_bizs = serializers.ListSerializer(help_text=_("专属业务的ID列表"), child=serializers.IntegerField())
     resource_types = serializers.ListField(

@@ -474,6 +474,7 @@ class InitCheckForResourceKwargs:
 
     ips: list
     bk_biz_id: int = env.DBA_APP_BK_BIZ_ID
+    account_name: str = "root"
 
 
 @dataclass()
