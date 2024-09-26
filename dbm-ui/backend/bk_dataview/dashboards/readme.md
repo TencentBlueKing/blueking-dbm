@@ -1,4 +1,5 @@
 # 导出仪表盘
+TODO: 把此步骤脚本化
 到开发环境中，配置好仪表盘后，在设置中点击 JSON Model，复制对应的仪表盘到本目录对应的 json 文件中
 保留 __inputs 为:
 ```
@@ -63,6 +64,7 @@ find . -type f -name "*.json" -exec sed -i '' -e 's#"id": [0-9]*,#"id": null,#g'
 templating.list.hide 设置为 2，这里一般把需暴露出来的变量设置为 0，不暴露的设置为 2
 
 # 替换 datasource 为 bkmonitor_timeseries 或者 bklog
+templating.list.datasource.uid 设置为 bkmonitor_timeseries 或者 bklog
 
 
 # 导入监控的方法，还原模板后导入
