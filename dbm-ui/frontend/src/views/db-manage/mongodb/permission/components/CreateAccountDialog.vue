@@ -19,7 +19,7 @@
     :is-show="isShow"
     :quick-close="false"
     :title="t('新建账号')"
-    :width="480"
+    :width="580"
     @closed="handleClose">
     <BkForm
       v-if="isShow"
@@ -41,7 +41,9 @@
           trigger="click">
           <BkInput
             v-model="formData.user"
-            :placeholder="t('格式为：(库名).（名称）_如 admin.linda')" />
+            :maxlength="32"
+            :placeholder="t('格式为：(库名).（名称）_如 admin.linda')"
+            show-word-limit />
         </BkPopover>
         <p style="color: #ff9c01">
           {{ t('账号创建后，不支持修改。') }}

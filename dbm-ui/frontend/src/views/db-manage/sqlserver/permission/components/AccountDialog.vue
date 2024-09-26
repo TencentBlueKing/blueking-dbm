@@ -6,7 +6,7 @@
     :is-show="accountDialogIsShow"
     :quick-close="false"
     :title="t('新建账号')"
-    :width="480"
+    :width="580"
     @closed="handleClose">
     <BkForm
       v-if="accountDialogIsShow"
@@ -27,7 +27,9 @@
             theme: 'light',
             content: userPlaceholder,
           }"
-          :placeholder="userPlaceholder" />
+          :maxlength="32"
+          :placeholder="userPlaceholder"
+          show-word-limit />
         <p style="color: #ff9c01">
           {{ t('账号创建后，不支持修改。') }}
         </p>
@@ -185,7 +187,7 @@
       {
         trigger: 'change',
         message: userPlaceholder,
-        validator: (value: string) => /^[a-z0-9][a-z0-9-_.]*$/g.test(value),
+        validator: (value: string) => /^[a-zA-Z0-9][a-zA-Z0-9-_.]{0,31}$/.test(value),
       },
     ],
     password: [
