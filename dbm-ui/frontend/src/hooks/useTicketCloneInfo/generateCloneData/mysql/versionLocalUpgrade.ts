@@ -24,7 +24,7 @@ import { random } from '@utils';
 
 // MySQL 原地升级
 export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: TicketModel<MySQLLocalUpgradeDetails>) {
-  const { clusters, infos } = ticketData.details;
+  const { clusters, infos, force } = ticketData.details;
   const clusterType = infos[0].display_info.cluster_type;
   const apiMap = {
     [ClusterTypes.TENDBSINGLE]: getTendbsingleList,
@@ -60,5 +60,5 @@ export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: Tick
     };
   });
 
-  return Promise.resolve({ tableList, remark: ticketData.remark });
+  return Promise.resolve({ tableList, remark: ticketData.remark, force });
 }

@@ -18,7 +18,7 @@ import { random } from '@utils';
 
 // MySQL Proxy 升级
 export function generateMysqlVersionProxyUpgradeCloneData(ticketData: TicketModel<MySQLProxyUpgradeDetails>) {
-  const { clusters, infos } = ticketData.details;
+  const { clusters, infos, force } = ticketData.details;
   const tableList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];
     return {
@@ -34,5 +34,5 @@ export function generateMysqlVersionProxyUpgradeCloneData(ticketData: TicketMode
     };
   });
 
-  return Promise.resolve({ tableList, remark: ticketData.remark });
+  return Promise.resolve({ tableList, remark: ticketData.remark, force });
 }
