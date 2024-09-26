@@ -47,7 +47,7 @@ class ClusterFilter:
             filter_conditions["cluster_type__in"] = filter_conditions.pop("cluster_type")
 
         # 如果是实例过滤. TODO: 临时给插件支持，后续统一替换成filter_clusters接口
-        if re.compile(IP_PORT_RE_PATTERN).match(filter_conditions["immute_domain"]):
+        if re.compile(IP_PORT_RE_PATTERN).match(filter_conditions.get("immute_domain", "")):
             ip, port = filter_conditions.pop("immute_domain").split(IP_PORT_DIVIDER)
             filter_conditions["storageinstance__machine__ip"] = ip
             filter_conditions["storageinstance__port"] = port
