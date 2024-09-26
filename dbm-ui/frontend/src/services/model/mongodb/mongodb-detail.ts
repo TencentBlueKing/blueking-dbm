@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import type { ClusterListEntry } from '@services/types';
+
 import { TicketTypes } from '@common/const';
 
 import { utcDisplayTime } from '@utils';
@@ -73,6 +75,7 @@ export default class MongodbDetail {
   bk_cloud_name: string;
   cluster_access_port: number;
   cluster_alias: string;
+  cluster_entry: ClusterListEntry[];
   cluster_entry_details: {
     cluster_entry_type: string;
     role: string;
@@ -217,6 +220,7 @@ export default class MongodbDetail {
     this.bk_cloud_name = payload.bk_cloud_name;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_access_port = payload.cluster_access_port;
+    this.cluster_entry = payload.cluster_entry || [];
     this.cluster_entry_details = payload.cluster_entry_details;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
@@ -337,5 +341,39 @@ export default class MongodbDetail {
 
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
+  }
+
+  get isMongoReplicaSet() {
+    return this.cluster_type === 'MongoReplicaSet';
+  }
+
+  get entryDomain() {
+    if (this.isMongoReplicaSet) {
+      const domainList = this.cluster_entry.reduce<string[]>((prevDomainList, entryItem) => {
+        if (!entryItem.entry.includes('backup')) {
+          return prevDomainList.concat(`${entryItem.entry}:${this.cluster_access_port}`);
+        }
+        return prevDomainList;
+      }, []);
+      return domainList.join(',');
+    }
+    return `${this.master_domain}:${this.cluster_access_port}`;
+  }
+
+  get entryAccess() {
+    if (this.isMongoReplicaSet) {
+      return `mongodb://{username}:{password}@${this.entryDomain}/?replicaSet=${this.cluster_name}&authSource=admin`;
+    }
+    return `mongodb://{username}:{password}@${this.entryDomain}/?authSource=admin`;
+  }
+
+  get entryAccessClb() {
+    if (!this.isMongoReplicaSet) {
+      const clbItem = this.cluster_entry.find((entryItem) => entryItem.cluster_entry_type === 'clbDns');
+      if (clbItem) {
+        return `mongodb://{username}:{password}@${clbItem.entry}:${this.cluster_access_port}/?authSource=admin`;
+      }
+    }
+    return '';
   }
 }

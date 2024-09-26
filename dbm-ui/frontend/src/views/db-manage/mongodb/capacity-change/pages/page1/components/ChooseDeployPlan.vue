@@ -40,9 +40,9 @@
               <span v-if="targetSepc">{{ targetSepc }}</span>
               <span
                 v-else
-                style="color: #c4c6cc"
-                >{{ t('请先选择部署方案') }}</span
-              >
+                style="color: #c4c6cc">
+                {{ t('请先选择部署方案') }}
+              </span>
             </div>
           </div>
         </div>
@@ -130,7 +130,7 @@
             @row-click.stop="handleRowClick">
             <template #empty>
               <p
-                v-if="!capacityNeed || !capacityFutureNeed"
+                v-if="!capacityNeed"
                 style="width: 100%; line-height: 128px; text-align: center">
                 <DbIcon
                   class="mr-4"
@@ -212,7 +212,7 @@
   const { currentBizId } = useGlobalBizs();
 
   const capacityNeed = ref();
-  const capacityFutureNeed = ref();
+  // const capacityFutureNeed = ref();
   const radioValue  = ref(-1);
   const radioChoosedId  = ref(''); // 标记，sort重新定位index用
   const isTableLoading = ref(false);
@@ -369,7 +369,8 @@
     if (capacityNeed.value > 0) {
       isTableLoading.value = true;
       const params = {
-        spec_cluster_type: 'MongoShardedCluster',
+        // spec_cluster_type: 'MongoShardedCluster',
+        spec_cluster_type: props.data.clusterType,
         spec_machine_type: 'mongodb',
         capacity: capacityNeed.value,
         shard_num: props.data.shardNum,

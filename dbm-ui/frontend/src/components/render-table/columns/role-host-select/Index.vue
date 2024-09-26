@@ -79,7 +79,7 @@
       clusterId: number;
       hostSelectType?: string;
     };
-    clusterType: ClusterTypes | 'TendbClusterHost';
+    clusterType: ClusterTypes | 'TendbClusterHost' | 'mongoCluster';
     tabListConfig: ComponentProps<typeof InstanceSelector>['tabListConfig'];
     selectedNodeList?: IValue[];
     count?: number;

@@ -37,21 +37,27 @@
         :model="formData"
         style="margin-top: 16px">
         <BkFormItem
-          :label="t('备份文件保存时间')"
+          :label="t('备份保存时间')"
           property="file_tag">
           <BkRadioGroup
             v-model="formData.file_tag"
             size="small">
             <BkRadio label="normal_backup">
-              {{ t('常规备份（25天）') }}
+              {{ t('25天') }}
+            </BkRadio>
+            <BkRadio label="half_year_backup">
+              {{ t('6个月') }}
+            </BkRadio>
+            <BkRadio label="a_year_backup">
+              {{ t('1年') }}
             </BkRadio>
             <BkRadio label="forever_backup">
-              {{ t('长期备份（3年）') }}
+              {{ t('3年') }}
             </BkRadio>
           </BkRadioGroup>
         </BkFormItem>
         <BkFormItem
-          :label="t('是否开启 Oplog')"
+          :label="t('是否备份 Oplog')"
           property="oplog">
           <BkRadioGroup
             v-model="formData.oplog"
@@ -69,6 +75,7 @@
     <template #action>
       <BkButton
         class="w-88"
+        :disabled="totalNum === 0"
         :loading="isSubmitting"
         theme="primary"
         @click="handleSubmit">
@@ -95,7 +102,6 @@
 </template>
 
 <script setup lang="ts">
-  import { InfoBox } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -114,6 +120,7 @@
 
   const createDefaultData = () => ({
     file_tag: 'normal_backup',
+    // file_tag: 'DBFILE1M',
     oplog: '0',
   });
 
@@ -243,42 +250,34 @@
   };
 
   const handleSubmit = async () => {
-    const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
-
-    const params = {
-      bk_biz_id: currentBizId,
-      ticket_type: TicketTypes.MONGODB_FULL_BACKUP,
-      remark: '',
-      details: {
-        file_tag: formData.file_tag,
-        oplog: formData.oplog === '1',
-        infos,
-      },
-    };
-
-    InfoBox({
-      title: t('确认提交n个全库备份任务', { n: totalNum.value }),
-      width: 480,
-      onConfirm: () => {
-        isSubmitting.value = true;
-        createTicket(params)
-          .then((data) => {
-            window.changeConfirm = false;
-            router.push({
-              name: 'MongoDbBackup',
-              params: {
-                page: 'success',
-              },
-              query: {
-                ticketId: data.id,
-              },
-            });
-          })
-          .finally(() => {
-            isSubmitting.value = false;
-          });
-      },
-    });
+    try {
+      isSubmitting.value = true;
+      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const params = {
+        bk_biz_id: currentBizId,
+        ticket_type: TicketTypes.MONGODB_FULL_BACKUP,
+        remark: '',
+        details: {
+          file_tag: formData.file_tag,
+          oplog: formData.oplog === '1',
+          infos,
+        },
+      };
+      await createTicket(params).then((data) => {
+        window.changeConfirm = false;
+        router.push({
+          name: 'MongoDbBackup',
+          params: {
+            page: 'success',
+          },
+          query: {
+            ticketId: data.id,
+          },
+        });
+      });
+    } finally {
+      isSubmitting.value = false;
+    }
   };
 
   const handleReset = () => {

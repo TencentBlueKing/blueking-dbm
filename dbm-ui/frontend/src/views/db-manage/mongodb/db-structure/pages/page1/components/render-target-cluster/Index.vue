@@ -51,6 +51,7 @@
     @change="handelClusterChange" />
 </template>
 <script setup lang="ts">
+  import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
   import MongoDBModel from '@services/model/mongodb/mongodb';
@@ -81,7 +82,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, any>>;
+    getValue: () => Promise<Awaited<ReturnType<ComponentExposed<typeof RenderDataRow>['getValue']>>[]>;
   }
 
   const props = defineProps<Props>();
@@ -89,7 +90,7 @@
 
   const { t } = useI18n();
 
-  const rowRefs = ref();
+  const rowRefs = ref<ComponentExposed<typeof RenderDataRow>[]>();
 
   const selectedClusters = shallowRef<{ [key: string]: Array<MongoDBModel> }>({
     [ClusterTypes.MONGO_REPLICA_SET]: [],
@@ -149,7 +150,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      const infos = await Promise.all(rowRefs.value.map((item: { getValue: () => Promise<any> }) => item.getValue()));
+      const infos = await Promise.all(rowRefs.value!.map((item) => item.getValue()));
       return infos;
     },
   });

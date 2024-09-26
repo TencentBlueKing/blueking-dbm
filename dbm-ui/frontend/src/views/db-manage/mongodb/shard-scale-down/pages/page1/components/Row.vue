@@ -96,12 +96,6 @@
     isMongoReplicaSet: false,
     shardNum: 0,
   });
-</script>
-<script setup lang="ts">
-  import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
-  import { getRelatedClustersByClusterIds } from '@services/source/mongodb';
 
   interface Props {
     data: IDataRow;
@@ -118,6 +112,12 @@
   interface Exposes {
     getValue: () => Promise<InfoItem>;
   }
+</script>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
+
+  import { getRelatedClustersByClusterIds } from '@services/source/mongodb';
 
   const props = withDefaults(defineProps<Props>(), {
     inputedClusters: () => [],
