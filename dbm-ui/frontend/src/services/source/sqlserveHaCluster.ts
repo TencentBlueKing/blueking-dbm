@@ -30,7 +30,9 @@ const path = `/apis/sqlserver/bizs/${currentBizId}/sqlserver_ha_resources`;
 export function getHaClusterList(params: { limit?: number; offset?: number; sys_mode?: 'mirrorin' | 'always_on' }) {
   return http.get<ListBase<SqlServerHaModel[]>>(`${path}/`, params).then((data) => ({
     ...data,
-    results: data.results.map((item) => new SqlServerHaModel(item)),
+    results: data.results.map(
+      (item) => new SqlServerHaModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
+    ),
   }));
 }
 
@@ -43,7 +45,11 @@ export function getHaClusterWholeList() {
       limit: -1,
       offset: 0,
     })
-    .then((data) => data.results.map((item) => new SqlServerHaModel(item)));
+    .then((data) =>
+      data.results.map(
+        (item) => new SqlServerHaModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
+      ),
+    );
 }
 
 /**
