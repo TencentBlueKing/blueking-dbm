@@ -26,7 +26,9 @@ const getPath = () => `/apis/sqlserver/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sqls
 export function getSingleClusterList(params: { limit?: number; offset?: number }) {
   return http.get<ListBase<SqlServerSingleModel[]>>(`${getPath()}/`, params).then((data) => ({
     ...data,
-    results: data.results.map((item) => new SqlServerSingleModel(item)),
+    results: data.results.map(
+      (item) => new SqlServerSingleModel(Object.assign({}, item, Object.assign(item.permission, data.permission))),
+    ),
   }));
 }
 
