@@ -313,7 +313,7 @@ func (t *SimulationTask) executeOneObject(e ExcuteSQLFileObj, containerName stri
 	}
 	realexcutedbs = util.FilterOutStringSlice(intentionDbs, ignoreDbs)
 	if len(realexcutedbs) == 0 {
-		return "", "", fmt.Errorf("the changed db does not exist")
+		return "", "", fmt.Errorf("需要执行的db:%v,需要忽略的db:%v,查询线上存在的db,计算后没有找到任何变更的目标db,请检查你的输入是否正确", e.DbNames, e.IgnoreDbNames)
 	}
 	for idx, cmd := range t.getLoadSQLCmd(t.Path, e.SQLFile, realexcutedbs) {
 		sstdout += util.RemovePassword(cmd) + "\n"
