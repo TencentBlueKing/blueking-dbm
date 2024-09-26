@@ -16,7 +16,8 @@ from rest_framework import serializers
 
 from backend import env
 from backend.components.sql_import.client import SQLSimulationApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import BizSettingsEnum, DBType
+from backend.configuration.models import BizSettings
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
 from backend.db_services.mysql.sql_import.handlers import SQLHandler
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -113,6 +114,10 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     @property
     def need_itsm(self):
+        # 业务强制需要审批流
+        force_need_itsm = BizSettings.get_setting_value(self.ticket.bk_biz_id, BizSettingsEnum.SQL_IMPORT_FORCE_ITSM)
+        if force_need_itsm:
+            return True
         # 非高危的SQL变更单据，不需要审批节点
         grammar_check_info = self.ticket.details["grammar_check_info"].values()
         high_risk = [check["highrisk_warnings"] for check in grammar_check_info if check["highrisk_warnings"]]

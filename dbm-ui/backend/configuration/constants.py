@@ -108,6 +108,7 @@ class BizSettingsEnum(str, StructuredEnum):
     INDEPENDENT_HOSTING_DB_TYPES = EnumField("INDEPENDENT_HOSTING_DB_TYPES", _("独立托管机器的数据库类型"))
     # TODO: 后续待删除
     SKIP_GRAMMAR_CHECK = EnumField("SKIP_GRAMMAR_CHECK", _("是否跳过语义检查"))
+    SQL_IMPORT_FORCE_ITSM = EnumField("SQL_IMPORT_FORCE_ITSM", _("是否变更SQL强制需要审批流"))
 
 
 DEFAULT_DB_ADMINISTRATORS = ["admin"]
