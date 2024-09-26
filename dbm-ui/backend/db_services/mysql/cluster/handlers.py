@@ -87,8 +87,10 @@ class ClusterServiceHandler(BaseClusterServiceHandler):
             bk_biz_id=self.bk_biz_id,
         )
 
-        clusters: QuerySet = Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set").filter(
-            filter_conditions
+        clusters: QuerySet = (
+            Cluster.objects.prefetch_related("storageinstance_set", "proxyinstance_set")
+            .filter(filter_conditions)
+            .distinct()
         )
         cluster_db_module_ids: List[int] = [cluster.db_module_id for cluster in clusters]
         db_module_names: Dict[int, str] = {
