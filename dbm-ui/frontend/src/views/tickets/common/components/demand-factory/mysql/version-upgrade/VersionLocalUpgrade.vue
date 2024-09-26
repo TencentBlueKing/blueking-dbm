@@ -15,6 +15,11 @@
   <DbOriginalTable
     :columns="columns"
     :data="dataList" />
+  <InfoList>
+    <InfoItem :label="t('忽略业务连接：')">
+      {{ ticketDetails.details.force ? t('是') : t('否') }}
+    </InfoItem>
+  </InfoList>
 </template>
 
 <script setup lang="tsx">
@@ -24,6 +29,10 @@
   import type { MySQLLocalUpgradeDetails } from '@services/model/ticket/details/mysql';
   import TicketModel from '@services/model/ticket/ticket';
   import { getPackages } from '@services/source/package';
+
+  import InfoList, {
+    Item as InfoItem,
+  } from '@views/tickets/common/components/demand-factory/components/info-list/Index.vue';
 
   import VersionContent from './components/VersionContent.vue'
 
