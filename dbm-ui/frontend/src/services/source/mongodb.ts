@@ -215,3 +215,15 @@ export function getRelatedClustersByClusterIds(params: { cluster_ids: number[] }
     params,
   );
 }
+
+/**
+ * 获取 Mongo 集群访问密码
+ */
+export function getMongoPassword(params: { cluster_id: number }) {
+  return http.get<{
+    cluster_name: string;
+    domain: string;
+    username: string;
+    password: string;
+  }>(`${path}/${params.cluster_id}/get_password/`);
+}
