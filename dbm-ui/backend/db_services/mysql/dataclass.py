@@ -8,9 +8,11 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import re
 from dataclasses import asdict, dataclass
 from typing import Dict, List
 
+from backend.constants import IP_PORT_DIVIDER, IP_PORT_RE_PATTERN
 from backend.db_meta.enums.cluster_type import ClusterType
 
 
@@ -43,5 +45,11 @@ class ClusterFilter:
         # 格式化过滤条件
         if isinstance(filter_conditions["cluster_type"], list):
             filter_conditions["cluster_type__in"] = filter_conditions.pop("cluster_type")
+
+        # 如果是实例过滤. TODO: 临时给插件支持，后续统一替换成filter_clusters接口
+        if re.compile(IP_PORT_RE_PATTERN).match(filter_conditions["immute_domain"]):
+            ip, port = filter_conditions.pop("immute_domain").split(IP_PORT_DIVIDER)
+            filter_conditions["storageinstance__machine__ip"] = ip
+            filter_conditions["storageinstance__port"] = port
 
         return filter_conditions
