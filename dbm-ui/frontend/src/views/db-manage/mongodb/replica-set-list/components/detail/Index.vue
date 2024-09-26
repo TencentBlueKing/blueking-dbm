@@ -29,6 +29,12 @@
           @click="handleCopyMasterDomainDisplayName">
           {{ t('复制访问地址') }}
         </BkButton>
+        <BkButton
+          class="ml-4"
+          size="small"
+          @click="handleCapacityChange">
+          {{ t('集群容量变更') }}
+        </BkButton>
         <BkDropdown class="ml-4">
           <BkButton
             class="more-button"
@@ -89,6 +95,24 @@
         v-if="activePanelKey === activePanel?.name"
         :url="activePanel?.link" />
     </div>
+    <DbSideslider
+      v-if="capacityData"
+      v-model:is-show="capacityChangeShow"
+      :disabled-confirm="!isCapacityChange"
+      :width="960">
+      <template #header>
+        <span>
+          {{ t('MongoDB 集群容量变更【xxx】', [capacityData.clusterName]) }}
+          <BkTag theme="info">
+            {{ t('存储层') }}
+          </BkTag>
+        </span>
+      </template>
+      <CapacityChange
+        v-model:is-change="isCapacityChange"
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        :data="capacityData" />
+    </DbSideslider>
   </div>
 </template>
 
@@ -96,7 +120,7 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getMongoClusterDetails } from '@services/source/mongodb';
+  import { getMongoClusterDetails, getMongoPassword } from '@services/source/mongodb';
   import { getMonitorUrls } from '@services/source/monitorGrafana';
 
   import { useCopy, useStretchLayout } from '@hooks';
@@ -110,6 +134,7 @@
   import ClusterTopo from '@views/db-manage/common/cluster-details/ClusterTopo.vue';
   import ClusterEventChange from '@views/db-manage/common/cluster-event-change/EventChange.vue';
   import MonitorDashboard from '@views/db-manage/common/cluster-monitor/MonitorDashboard.vue';
+  import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
   import { useDisableCluster } from '../../hooks/useDisableCluster';
 
@@ -128,6 +153,18 @@
   const disableCluster = useDisableCluster();
 
   const activePanelKey = ref('topo');
+  const capacityChangeShow = ref(false);
+  const isCapacityChange = ref(false);
+  const capacityData = ref<{
+    id: number;
+    clusterName: string;
+    specId: number;
+    specName: string;
+    bizId: number;
+    cloudId: number;
+    shardNum: number;
+    shardNodeCount: number;
+  }>();
   const monitorPanelList = ref<
     {
       label: string;
@@ -144,6 +181,29 @@
     run: fetchResourceDetails,
   } = useRequest(getMongoClusterDetails, {
     manual: true,
+    onSuccess(result) {
+      const {
+        id,
+        cluster_name: clusterName,
+        bk_biz_id: bizId,
+        bk_cloud_id: cloudId,
+        shard_num: shardNum,
+        shard_node_count: shardNodeCount,
+        mongodb,
+      } = result;
+      const { id: specId, name } = mongodb[0].spec_config;
+
+      capacityData.value = {
+        id,
+        clusterName,
+        specId,
+        specName: name,
+        bizId,
+        cloudId,
+        shardNum,
+        shardNodeCount,
+      };
+    },
   });
 
   const { run: runGetMonitorUrls } = useRequest(getMonitorUrls, {
@@ -180,7 +240,24 @@
   );
 
   const handleCopyMasterDomainDisplayName = () => {
-    copy(data.value!.masterDomainDisplayName);
+    const row = data.value;
+    if (row) {
+      const getUrl = (username: string, password: string) =>
+        `mongodb://${username}:${password}@${row.master_domain}/?replicaSet=${row.cluster_name}&authSource=admin`;
+
+      getMongoPassword({ cluster_id: row.id }).then((passwordResult) => {
+        const { username, password } = passwordResult;
+        if (username && password) {
+          copy(getUrl(username, password));
+        } else {
+          copy(getUrl('username', 'password'));
+        }
+      });
+    }
+  };
+
+  const handleCapacityChange = () => {
+    capacityChangeShow.value = true;
   };
 
   const handleDisableCluster = () => {

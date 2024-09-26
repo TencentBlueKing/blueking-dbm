@@ -54,14 +54,16 @@
     </template>
     <ClusterSelector
       v-model:is-show="isShowSelector"
-      :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER]"
+      :cluster-types="[ClusterTypes.MONGO_SHARED_CLUSTER, ClusterTypes.MONGO_REPLICA_SET]"
       :selected="selectedClusters"
+      :tab-list-config="tabListConfig"
       @change="handelClusterChange" />
   </SmartAction>
 </template>
 
 <script setup lang="tsx">
   import { InfoBox } from 'bkui-vue';
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
@@ -73,7 +75,7 @@
 
   import { ClusterTypes, TicketTypes } from '@common/const';
 
-  import ClusterSelector from '@components/cluster-selector/Index.vue';
+  import ClusterSelector, { type TabConfig } from '@components/cluster-selector/Index.vue';
 
   import RenderData from './components/Index.vue';
   import RenderDataRow, { createRowData, type IDataRow, type InfoItem } from './components/Row.vue';
@@ -89,7 +91,17 @@
 
   const selectedClusters = shallowRef<{ [key: string]: Array<MongodbModel> }>({
     [ClusterTypes.MONGO_SHARED_CLUSTER]: [],
+    [ClusterTypes.MONGO_REPLICA_SET]: [],
   });
+
+  const tabListConfig = {
+    [ClusterTypes.MONGO_SHARED_CLUSTER]: {
+      showPreviewResultTitle: true,
+    },
+    [ClusterTypes.MONGO_REPLICA_SET]: {
+      showPreviewResultTitle: true,
+    },
+  } as unknown as Record<string, TabConfig>;
 
   const totalNum = computed(() => tableData.value.filter((item) => Boolean(item.clusterName)).length);
 
@@ -132,7 +144,7 @@
   // 批量选择
   const handelClusterChange = (selected: Record<string, MongodbModel[]>) => {
     selectedClusters.value = selected;
-    const list = selected[ClusterTypes.MONGO_SHARED_CLUSTER];
+    const list = _.flatten(Object.values(selected));
     const newList = list.reduce((result, item) => {
       const domain = item.master_domain;
       if (!domainMemo[domain]) {
@@ -175,7 +187,7 @@
     const row = generateRowDateFromRequest(data);
     tableData.value[index] = row;
     domainMemo[domain] = true;
-    selectedClusters.value[ClusterTypes.MONGO_SHARED_CLUSTER].push(data);
+    selectedClusters.value[data.cluster_type].push(data);
   };
 
   // 追加一个集群
@@ -185,13 +197,11 @@
 
   // 删除一个集群
   const handleRemove = (index: number) => {
-    const { clusterName } = tableData.value[index];
+    const { clusterName, clusterType } = tableData.value[index];
     tableData.value.splice(index, 1);
     delete domainMemo[clusterName];
-    const clustersArr = selectedClusters.value[ClusterTypes.MONGO_SHARED_CLUSTER];
-    selectedClusters.value[ClusterTypes.MONGO_SHARED_CLUSTER] = clustersArr.filter(
-      (item) => item.master_domain !== clusterName,
-    );
+    const clustersArr = selectedClusters.value[clusterType];
+    selectedClusters.value[clusterType] = clustersArr.filter((item) => item.master_domain !== clusterName);
   };
 
   // 点击提交按钮
@@ -236,6 +246,7 @@
   const handleReset = () => {
     tableData.value = [createRowData()];
     selectedClusters.value[ClusterTypes.MONGO_SHARED_CLUSTER] = [];
+    selectedClusters.value[ClusterTypes.MONGO_REPLICA_SET] = [];
     domainMemo = {};
     window.changeConfirm = false;
   };

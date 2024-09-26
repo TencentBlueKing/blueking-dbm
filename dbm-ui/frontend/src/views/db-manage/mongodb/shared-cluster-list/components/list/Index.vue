@@ -96,6 +96,7 @@
     </template>
     <CapacityChange
       v-model:is-change="isCapacityChange"
+      :cluster-type="ClusterTypes.MONGO_SHARED_CLUSTER"
       :data="detailData" />
   </DbSideslider>
 </template>
@@ -109,6 +110,7 @@
   import {
     getMongoInstancesList,
     getMongoList,
+    getMongoPassword
   } from '@services/source/mongodb';
   import { createTicket } from '@services/source/ticket';
   import { getUserList } from '@services/source/user';
@@ -146,6 +148,7 @@
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
+  import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
   import {
     getMenuListSearch,
@@ -153,7 +156,6 @@
   } from '@utils';
 
   import { useDisableCluster } from '../../hooks/useDisableCluster';
-  import CapacityChange from '../components/CapacityChange.vue';
 
   const clusterId = defineModel<number>('clusterId');
 
@@ -747,7 +749,17 @@
   };
 
   const handleCopyMasterDomainDisplayName = (row: MongodbModel) => {
-    copy(row.masterDomainDisplayName);
+    const getUrl = (username: string, password: string) => `mongodb://${username}:${password}@${row.master_domain}/?authSource=admin`
+
+    getMongoPassword({ cluster_id: row.id })
+      .then((passwordResult) => {
+        const { username, password } = passwordResult
+        if (username && password) {
+          copy(getUrl(username, password));
+        } else {
+          copy(getUrl('username', 'password'));
+        }
+      })
   };
 
   const handleToDetails = (id: number) => {

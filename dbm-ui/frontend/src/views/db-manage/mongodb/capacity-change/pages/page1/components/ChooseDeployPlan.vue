@@ -369,7 +369,8 @@
     if (capacityNeed.value > 0) {
       isTableLoading.value = true;
       const params = {
-        spec_cluster_type: 'MongoShardedCluster',
+        // spec_cluster_type: 'MongoShardedCluster',
+        spec_cluster_type: props.data.clusterType,
         spec_machine_type: 'mongodb',
         capacity: capacityNeed.value,
         shard_num: props.data.shardNum,
