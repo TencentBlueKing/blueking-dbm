@@ -50,7 +50,7 @@ const sqlserver: InfoType = {
 const bigdata: InfoType = {
   [DBTypes.ES]: {
     id: DBTypes.ES,
-    name: 'ES',
+    name: 'ElasticSearch',
     moduleId: 'bigdata',
   },
   [DBTypes.KAFKA]: {
@@ -84,7 +84,7 @@ const bigdata: InfoType = {
     moduleId: 'bigdata',
   },
 };
-export const DBTypeInfos: RequiredInfoType = {
+export const DBTypeInfos = {
   ...mysql,
   ...redis,
   ...mongo,
