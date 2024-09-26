@@ -125,6 +125,9 @@ class RedisClusterCutOffFlowBuilder(BaseRedisTicketFlowBuilder):
                         "location_spec": {"city": cluster.region, "sub_zone_ids": []},
                         "affinity": cluster.disaster_tolerance_level,
                     }
+                    # 如果是proxy，则至少跨两个机房
+                    if role == InstanceRole.REDIS_PROXY.value:
+                        resource_spec[resource_role].update(group_count=2)
                 elif role == InstanceRole.REDIS_SLAVE.value:
                     # 如果是替换slave， 需要和当前集群中的配对的 master 不同机房
                     redis_slaves = StorageInstance.objects.prefetch_related("as_receiver", "machine").filter(
