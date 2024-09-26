@@ -57,6 +57,13 @@
             @remove="handleRemove(index)" />
         </template>
       </RenderTable>
+      <div class="force-action">
+        <BkCheckbox
+          v-model="isForce"
+          v-bk-tooltips="t('如忽略，有连接的情况下也会执行强制升级')">
+          <span class="force-action-text">{{ t('忽略业务连接') }}</span>
+        </BkCheckbox>
+      </div>
       <BkForm
         class="storage-remote-form mt-24"
         form-type="vertical">
@@ -125,6 +132,7 @@
   interface Props {
     tableList: IDataRow[];
     backupSource: string;
+    force: boolean;
     remark: string;
   }
 
@@ -144,6 +152,7 @@
   const isSubmitting = ref(false);
   const localBackupSource = ref('local');
   const localRemark = ref('');
+  const isForce = ref(false);
 
   const selectedClusters = shallowRef<{ [key: string]: Array<TendbhaModel> }>({ [ClusterTypes.TENDBHA]: [] });
 
@@ -176,6 +185,10 @@
       immediate: true,
     },
   );
+
+  watchEffect(() => {
+    isForce.value = props.force;
+  });
 
   // 集群域名是否已存在表格的映射表
   let domainMemo: Record<string, boolean> = {};
@@ -286,6 +299,7 @@
           ip_source: 'manual_input',
           backup_source: localBackupSource.value,
           infos,
+          force: isForce.value,
         },
         bk_biz_id: currentBizId,
       }).then((data) => {
