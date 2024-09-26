@@ -133,47 +133,30 @@ func GetUserGantSql(needShowCreateUser bool, userHost, address string, bkCloudId
 		sql    string
 		grants []string
 	)
+	var sqls []string
 	if needShowCreateUser {
 		sql = fmt.Sprintf("show create user %s;", userHost)
-		res, err := GetGrantResponse(sql, address, bkCloudId)
-		if err != nil {
-			return grants, err
-		}
-		grants = append(grants, res...)
+		sqls = append(sqls, sql)
 	}
-	sql = fmt.Sprintf("show grants for %s ", userHost)
-	res, err := GetGrantResponse(sql, address, bkCloudId)
-	if err != nil {
-		return grants, err
-	}
-	grants = append(grants, res...)
-	if len(grants) == 0 {
-		return grants, fmt.Errorf("show grants in %s fail,query return nothing", userHost)
-	}
-	return grants, nil
-}
-
-// GetGrantResponse 执行sql语句，获取结果
-func GetGrantResponse(sql, address string, bkCloudId int64) ([]string, error) {
-	var grants []string
-	queryRequest := QueryRequest{[]string{address}, []string{sql}, true, 60, bkCloudId}
+	sqls = append(sqls, fmt.Sprintf("show grants for %s ", userHost))
+	queryRequest := QueryRequest{[]string{address}, sqls, true, 60, bkCloudId}
 	reps, err := OneAddressExecuteSql(queryRequest)
 	if err != nil {
-		return grants, fmt.Errorf("execute (%s) fail, error:%s", sql, err.Error())
+		return grants, fmt.Errorf("execute (%s) fail, error:%s", sqls, err.Error())
 	}
-
-	if len(reps.CmdResults[0].TableData) > 0 {
-		for _, item := range reps.CmdResults[0].TableData {
+	for _, data := range reps.CmdResults {
+		for _, item := range data.TableData {
 			for _, grant := range item {
 				if grant != nil {
 					grants = append(grants, grant.(string))
 				} else {
-					return grants, fmt.Errorf("execute (%s), content of return is null", sql)
+					return grants, fmt.Errorf("execute (%s), content of return is null", sqls)
 				}
 			}
 		}
-	} else {
-		return grants, nil
+	}
+	if len(grants) == 0 {
+		return grants, fmt.Errorf("show grants in %s fail,query return nothing", userHost)
 	}
 	return grants, nil
 }
@@ -577,8 +560,8 @@ func ImportMysqlPrivileges(userGrants []UserGrant, address string, bkCloudId int
 	var errMsg Err
 	var grantRetry NewUserGrants
 	wg := sync.WaitGroup{}
-	limit := rate.Every(time.Millisecond * 20) // QPS：50
-	burst := 50                                // 桶容量 50
+	limit := rate.Every(time.Millisecond * 50) // QPS：20
+	burst := 20                                // 桶容量 20
 	limiter := rate.NewLimiter(limit, burst)
 	for _, row := range userGrants {
 		errLimiter := limiter.Wait(context.Background())
