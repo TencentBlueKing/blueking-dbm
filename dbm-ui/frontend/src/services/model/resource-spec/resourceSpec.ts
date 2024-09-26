@@ -12,6 +12,8 @@
  */
 import { differenceInSeconds } from 'date-fns';
 
+import type { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
+
 import { utcDisplayTime } from '@utils';
 
 export default class ResourceSpec {
@@ -33,8 +35,9 @@ export default class ResourceSpec {
   creator: string;
   desc: string;
   enable: boolean;
-  spec_cluster_type: string;
-  spec_machine_type: string;
+  spec_db_type: DBTypes;
+  spec_cluster_type: ClusterTypes;
+  spec_machine_type: MachineTypes;
   spec_name: string;
   update_at: string;
   updater: string;
@@ -60,6 +63,7 @@ export default class ResourceSpec {
     this.creator = payload.creator;
     this.desc = payload.desc;
     this.enable = payload.enable;
+    this.spec_db_type = payload.spec_db_type;
     this.spec_cluster_type = payload.spec_cluster_type;
     this.spec_machine_type = payload.spec_machine_type;
     this.spec_name = payload.spec_name;
