@@ -66,6 +66,7 @@
     <Component
       :is="currentTable"
       :backup-source="backupSource"
+      :force="force"
       :remark="remark"
       :table-list="tableList" />
   </div>
@@ -97,6 +98,7 @@
     type: TicketTypes.MYSQL_PROXY_UPGRADE,
     onSuccess(cloneData) {
       tableList.value = cloneData.tableList;
+      force.value = cloneData.force;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
       formData.roleType = 'haAccessLayer';
@@ -108,6 +110,7 @@
     type: TicketTypes.MYSQL_LOCAL_UPGRADE,
     onSuccess(cloneData) {
       tableList.value = cloneData.tableList;
+      force.value = cloneData.force;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
 
@@ -122,6 +125,7 @@
     type: TicketTypes.MYSQL_MIGRATE_UPGRADE,
     onSuccess(cloneData) {
       backupSource.value = cloneData.backupSource;
+      force.value = cloneData.force;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
 
@@ -157,6 +161,7 @@
 
   const backupSource = ref('');
   const remark = ref('');
+  const force = ref(false);
 
   const tableList = shallowRef<
     HaAccessLayerRow[] | HaStorageLayerLocalRow[] | HaStorageLayerRemoteRow[] | SingleStorageRow[]
@@ -201,6 +206,17 @@
     tableList.value = [];
   };
 </script>
+
+<style lang="less">
+  .force-action {
+    margin-top: 20px;
+
+    .force-action-text {
+      padding-bottom: 2px;
+      border-bottom: 1px dashed #979ba5;
+    }
+  }
+</style>
 
 <style lang="less" scoped>
   .mysql-version-upgrade-page {
