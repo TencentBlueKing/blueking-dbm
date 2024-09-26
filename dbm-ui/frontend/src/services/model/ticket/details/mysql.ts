@@ -565,6 +565,7 @@ export interface MySQLProxyUpgradeDetails extends DetailBase {
       current_version: string;
     };
   }[];
+  force: boolean;
 }
 
 /**
@@ -584,6 +585,7 @@ export interface MySQLLocalUpgradeDetails extends DetailBase {
       current_module_name: string;
     };
   }[];
+  force: boolean;
 }
 
 /**
@@ -609,4 +611,5 @@ export interface MySQLMigrateUpgradeDetails extends DetailBase {
       target_module_name: string;
     };
   }[];
+  force: boolean;
 }
