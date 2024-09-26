@@ -64,6 +64,8 @@ export function createTicket(formData: Record<string, any>) {
         const id = data.duplicate_ticket_id;
         const router = getRouter();
 
+        console.log('router = ', router);
+
         const route = router.resolve({
           name: 'bizTicketManage',
           query: {
