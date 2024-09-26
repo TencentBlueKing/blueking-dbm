@@ -13,7 +13,10 @@
 
 import DbResourceModel from '@services/model/db-resource/DbResource';
 import OperationModel from '@services/model/db-resource/Operation';
+import SummaryModel from '@services/model/db-resource/summary';
 import type { HostInfo, ListBase } from '@services/types';
+
+import type { DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
@@ -48,18 +51,11 @@ export function fetchMountPoints() {
 }
 
 /**
- * 根据逻辑城市查询园区
- */
-export function fetchSubzones(params: { citys: string }) {
-  return http.get<string[]>(`${path}/get_subzones/`, params);
-}
-
-/**
  * 资源池导入
  */
 export function importResource(params: {
-  for_bizs: number[];
-  resource_types: string[];
+  for_biz: number;
+  resource_type: string;
   hosts: Array<{
     ip: string;
     host_id: number;
@@ -169,9 +165,9 @@ export function getSpecResourceCount(params: {
  */
 export function updateResource(params: {
   bk_host_ids: number[];
-  for_bizs: number[];
+  for_biz: number;
   rack_id: string;
-  resource_types: string[];
+  resource_type: string;
   set_empty_biz: boolean;
   set_empty_resource_type: boolean;
   storage_device: Record<string, { size: number; disk_type: string }>;
@@ -184,4 +180,32 @@ export function updateResource(params: {
  */
 export function getOsTypeList(params: { offset?: number; limit?: number }) {
   return http.get<string[]>(`${path}/get_os_types/`, params);
+}
+
+/**
+ * 按照组件统计资源数量
+ */
+export function getGroupCount() {
+  return http.post<{ rs_type: string; count: number }[]>(`${path}/resource_group_count/`);
+}
+
+/**
+ * 按照条件聚合资源统计
+ */
+export function getSummaryList(params: {
+  group_by: string;
+  for_biz?: number;
+  city?: string;
+  sub_zones?: string[];
+  spec_param: {
+    db_type: DBTypes;
+    machine_type?: string;
+    cluster_type?: string;
+    spec_id_list?: number[];
+  };
+}) {
+  return http.get<SummaryModel[]>(`${path}/resource_summary/`, params).then((data) => ({
+    count: data.length || 0,
+    results: data.map((item) => new SummaryModel(item)),
+  }));
 }
