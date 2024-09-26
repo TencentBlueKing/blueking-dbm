@@ -29,7 +29,7 @@
         <RenderSql
           ref="sqlFielsRef"
           v-model="localSqlFiles"
-          v-model:importMode="localImportMode"
+          v-model:import-mode="localImportMode"
           :cluster-version-list="clusterVersionList"
           :db-names="localDbnames"
           :ignore-db-names="localIgnoreDbnames" />
@@ -71,8 +71,7 @@
     sql_files: data.sql_files || [],
     import_mode: data.import_mode || 'manual',
   });
-</script>
-<script setup lang="ts">
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -86,7 +85,8 @@
   interface Exposes {
     getValue: () => Promise<IDataRow>;
   }
-
+</script>
+<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
