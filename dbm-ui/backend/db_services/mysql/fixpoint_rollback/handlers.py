@@ -138,35 +138,6 @@ class FixPointRollbackHandler:
     def _get_log_from_bklog(collector: str, start_time: datetime, end_time: datetime, query_string="*") -> List[Dict]:
         return BKLogHandler.query_logs(collector, start_time, end_time, query_string)
 
-    @staticmethod
-    def _format_backup_for_tendb(raw_log: Dict[str, Any], backup_log: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        对tendb cluster的日志进行进一步的格式化
-        @param backup_log: 通过aggregate_backup_log_by_id已经聚合后的日志
-        """
-        # 初始化相关角色集合，并舍弃无用的字段信息
-        if "remote_node" not in backup_log:
-            backup_log["remote_node"] = {}
-            backup_log["spider_node"], backup_log["spider_slave"] = [], []
-            delete_fields = [
-                "mysql_host",
-                "mysql_port",
-                "master_host",
-                "master_port",
-                "mysql_role",
-                "binlog_info",
-                "data_schema_grant",
-            ]
-            for field in delete_fields:
-                backup_log.pop(field)
-
-        # 同一个backid中，取最小的backup_begin_time，最大的backup_end_time和最大的consistent_backup_time。
-        # 因为是字典序比较，所以可以直接用来比较时间
-        backup_log["backup_begin_time"] = min(backup_log["backup_begin_time"], raw_log["backup_begin_time"])
-        backup_log["backup_end_time"] = min(backup_log["backup_end_time"], raw_log["backup_end_time"])
-        backup_log["backup_time"] = max(backup_log["backup_time"], raw_log["consistent_backup_time"])
-        return backup_log
-
     def aggregate_tendb_dbbackup_logs(self, backup_logs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         聚合tendb的mysql_backup_result日志，按照backup_id聚合mysql备份记录
@@ -221,6 +192,7 @@ class FixPointRollbackHandler:
                 return None
 
             if not _backup_node or (
+                # TODO: 此条件永真，后续可以去掉
                 _log["backup_host"] not in _backup_node
                 and (
                     # 能覆盖的条件：
@@ -249,6 +221,7 @@ class FixPointRollbackHandler:
                 _backup_node["mysql_role"] = _log["mysql_role"]
                 _backup_node["host"], _backup_node["port"] = _log["backup_host"], _log["backup_port"]
                 _backup_node["file_list_details"] = []
+                _backup_node["binlog_info"] = _log.get("binlog_info")
 
             # 更新备份时间，并插入文件列表信息
             insert_time_field(_backup_node, _log)
