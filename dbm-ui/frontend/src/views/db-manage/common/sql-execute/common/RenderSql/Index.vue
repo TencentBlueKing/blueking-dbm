@@ -18,7 +18,7 @@
   </RenderTextPlain>
   <SqlContent
     v-model="modelValue"
-    v-model:importMode="importMode"
+    v-model:import-mode="importMode"
     v-model:is-show="isShowSql"
     :cluster-version-list="clusterVersionList">
     <template #header>
