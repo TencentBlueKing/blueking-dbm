@@ -79,7 +79,11 @@
     isLoading: boolean;
     disabled: boolean;
     isCheckAffinity: boolean;
-    max?: number;
+    count: number;
+  }
+
+  interface Emits {
+    (e: 'change', value: number): void;
   }
 
   interface Exposes {
@@ -93,20 +97,18 @@
   }
 
   const props = defineProps<Props>();
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
   const localValue = ref<string[]>([]);
 
   const ipSelectList = computed(() => {
-    if (!props.max) {
-      return [];
-    }
-    if (localValue.value.length === props.max) {
+    if (props.count - localValue.value.length < 3) {
       return props.selectList.map((item) => {
         Object.assign(item, {
           disabled: !localValue.value.includes(item.value as string),
-          tip: t('只能选择n台', { n: props.max }),
+          tip: t('缩容后不能少于2台'),
         });
         return item;
       });
@@ -123,10 +125,6 @@
     {
       validator: (list: string[]) => list.length > 0,
       message: t('IP不能为空'),
-    },
-    {
-      validator: (list: string[]) => list.length === props.max,
-      message: t('必须缩容n台主机', { n: props.max }),
     },
     {
       validator: (list: string[]) => {
@@ -148,20 +146,15 @@
 
   const { message: errorMessage, validator } = useValidtor(rules);
 
-  watch(
-    () => props.max,
-    () => {
-      if (props.max && localValue.value.length > props.max) {
-        localValue.value.length = props.max;
-      }
-    },
-  );
-
   // 选择
   const handleSelect = (value: string[]) => {
     localValue.value = value;
     window.changeConfirm = true;
   };
+
+  watch(localValue, () => {
+    emits('change', localValue.value.length);
+  });
 
   defineExpose<Exposes>({
     getValue() {

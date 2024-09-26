@@ -39,6 +39,8 @@
   import type { Ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
+  import { ClusterTypes } from '@common/const';
+
   import DbStatus from '@components/db-status/index.vue';
   import type {
     InstanceSelectorValues,
@@ -65,7 +67,7 @@
     manualTableData?: DataRow[];
     isRemotePagination?: TableConfigType['isRemotePagination'],
     firsrColumn?: TableConfigType['firsrColumn'],
-    roleFilterList?: TableConfigType['roleFilterList'],
+    // roleFilterList?: TableConfigType['roleFilterList'],
     disabledRowConfig?: TableConfigType['disabledRowConfig'],
     multiple: boolean,
     getTableList: NonNullable<TableConfigType['getTableList']>,
@@ -96,6 +98,7 @@
 
   const checkedMap = shallowRef({} as DataRow);
 
+  const initRole = computed(() => props.firsrColumn?.role);
   const selectClusterId = computed(() => props.clusterId);
   const firstColumnFieldId = computed(() => (props.firsrColumn?.field || 'instance_address') as keyof IValue);
   const mainSelectDisable = computed(() => (props.disabledRowConfig
@@ -111,7 +114,7 @@
     fetchResources,
     handleChangePage,
     handeChangeLimit,
-  } = useTableData<DataRow>(selectClusterId);
+  } = useTableData<DataRow>(selectClusterId, initRole);
 
   const renderManualData = computed(() => {
     if (searchValue.value === '') {
@@ -194,11 +197,31 @@
       label: props.firsrColumn?.label ? firstLetterToUpper(props.firsrColumn.label) : t('实例'),
       field: props.firsrColumn?.field ? props.firsrColumn.field : 'instance_address',
     },
+    // {
+    //   label: t('角色'),
+    //   field: 'role',
+    //   showOverflowTooltip: true,
+    //   filter: props.roleFilterList,
+    // },
     {
       label: t('角色'),
       field: 'role',
+      minWidth: 160,
       showOverflowTooltip: true,
-      filter: props.roleFilterList,
+      rowspan: ({ row }: { row: DataRow }) => {
+        if (row.machine_type === 'mongodb') {
+          const rowSpan = tableData.value.filter((item) => item.master_domain === row.master_domain && item.machine_type === row.machine_type && item.shard === row.shard).length;
+          return rowSpan > 1 ? rowSpan : 1;
+        }
+        const rowSpan = tableData.value.filter((item) => item.master_domain === row.master_domain && item.machine_type === row.machine_type).length;
+        return rowSpan > 1 ? rowSpan : 1;
+      },
+      render: ({ row }: { row: DataRow }) => {
+        if (row.cluster_type === ClusterTypes.MONGO_SHARED_CLUSTER && row.machine_type === 'mongodb') {
+          return row.shard
+        }
+        return row.machine_type
+      }
     },
     {
       label: t('实例状态'),

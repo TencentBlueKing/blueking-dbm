@@ -80,6 +80,28 @@
       v-model:is-show="excelAuthorizeShow"
       :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
       :ticket-type="TicketTypes.MONGODB_EXCEL_AUTHORIZE" />
+    <DbSideslider
+      v-if="detailData"
+      v-model:is-show="capacityChangeShow"
+      :disabled-confirm="!isCapacityChange"
+      :width="960">
+      <template #header>
+        <span>
+          {{ t('MongoDB 集群容量变更【xxx】', [detailData.clusterName]) }}
+          <BkTag theme="info">
+            {{ t('存储层') }}
+          </BkTag>
+        </span>
+      </template>
+      <CapacityChange
+        v-model:is-change="isCapacityChange"
+        :cluster-type="ClusterTypes.MONGO_REPLICA_SET"
+        :data="detailData" />
+    </DbSideslider>
+    <AccessEntry
+      v-if="accessEntryInfo"
+      v-model:is-show="accessEntryInfoShow"
+      :data="accessEntryInfo" />
   </div>
 </template>
 
@@ -129,6 +151,8 @@
   import RenderHeadCopy from '@views/db-manage/common/render-head-copy/Index.vue';
   import RenderInstances from '@views/db-manage/common/render-instances/RenderInstances.vue';
   import RenderOperationTag from '@views/db-manage/common/RenderOperationTagNew.vue';
+  import AccessEntry from '@views/db-manage/mongodb/components/AccessEntry.vue';
+  import CapacityChange from '@views/db-manage/mongodb/components/CapacityChange.vue';
 
   import {
     getMenuListSearch,
@@ -246,6 +270,20 @@
   const clusterAuthorizeShow = ref(false);
   const excelAuthorizeShow = ref(false);
   const selected = ref<MongodbModel[]>([])
+  const capacityChangeShow = ref(false);
+  const isCapacityChange = ref(false);
+  const detailData = ref<{
+    id: number,
+    clusterName: string,
+    specId: number,
+    specName: string
+    bizId: number,
+    cloudId: number,
+    shardNum: number,
+    shardNodeCount: number,
+  }>();
+  const accessEntryInfoShow = ref(false);
+  const accessEntryInfo = ref<MongodbModel | undefined>();
 
   const tableDataList = computed(() => tableRef.value?.getData<MongodbModel>() || [])
   const hasData = computed(() => tableDataList.value.length > 0);
@@ -530,12 +568,23 @@
       fixed: isStretchLayoutOpen.value ? false : 'right',
       render: ({ data }: { data: MongodbModel }) => {
         const baseButtons = [
-          <bk-button
-            text
-            theme="primary"
-            onclick={() => handleCopyMasterDomainDisplayName(data)}>
-            { t('复制访问地址') }
-          </bk-button>,
+        <bk-button
+          disabled={data.isOffline}
+          text
+          theme="primary"
+          onClick={() => handleShowAccessEntry(data)}>
+          { t('获取访问方式') }
+        </bk-button>,
+          <OperationBtnStatusTips data={data}>
+            <bk-button
+              text
+              theme="primary"
+              class="ml-16"
+              disabled={data.operationDisabled}
+              onclick={() => handleCapacityChange(data)}>
+              { t('集群容量变更') }
+            </bk-button>
+          </OperationBtnStatusTips>,
         ];
         const onlineButtons = [
           <OperationBtnStatusTips data={data}>
@@ -665,6 +714,34 @@
     });
   };
 
+  const handleCapacityChange = (row: MongodbModel) => {
+    const {
+      id,
+      cluster_name: clusterName,
+      bk_biz_id: bizId,
+      bk_cloud_id: cloudId,
+      shard_num: shardNum,
+      shard_node_count: shardNodeCount,
+      mongodb,
+    } = row;
+    const {
+      id: specId,
+      name,
+    } = mongodb[0].spec_config;
+
+    detailData.value = {
+      id,
+      clusterName,
+      specId,
+      specName: name,
+      bizId,
+      cloudId,
+      shardNum,
+      shardNodeCount
+    };
+    capacityChangeShow.value = true;
+  };
+
   const handleSelection = (key: number[], list: Record<any, any>[]) => {
     selected.value = list as MongodbModel[];
   };
@@ -681,8 +758,9 @@
     selected.value = [];
   };
 
-  const handleCopyMasterDomainDisplayName = (row: MongodbModel) => {
-    copy(row.masterDomainDisplayName);
+  const handleShowAccessEntry = (data: MongodbModel) => {
+    accessEntryInfo.value = data;
+    accessEntryInfoShow.value = true
   };
 
   const handleToDetails = (id: number) => {

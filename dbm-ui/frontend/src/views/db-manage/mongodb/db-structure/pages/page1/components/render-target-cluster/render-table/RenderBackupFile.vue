@@ -25,7 +25,9 @@
 
   import { queryClustersBackupLog } from '@services/source/mongodbRestore';
 
-  import TableEditSelect from '@views/db-manage/mysql/common/edit/Select.vue';
+  import { ClusterTypes } from '@common/const';
+
+  import TableEditSelect, { type IListItem } from '@components/render-table/columns/select/index.vue';
 
   import { utcDisplayTime } from '@utils';
 
@@ -44,6 +46,8 @@
 
   const { t } = useI18n();
 
+  const getBackupId = (backupLog: ClusterBackupLogs[number]) => `${backupLog.set_name}-${backupLog.file_name}`;
+
   const rules = [
     {
       validator: (value: string) => !!value,
@@ -54,7 +58,7 @@
   const localBackupidRef = ref<InstanceType<typeof TableEditSelect>>();
   const localBackupid = ref('');
 
-  const logRecordList = shallowRef<{ id: string; name: string }[]>([]);
+  const logRecordList = shallowRef<IListItem[]>([]);
 
   const editDisabled = computed(() => !props.clusterId);
 
@@ -66,10 +70,18 @@
       if (!data[props.clusterId]) {
         return;
       }
-      logRecordList.value = data[props.clusterId].map((item) => ({
-        id: item.file_name,
-        name: `${item.role_type}${utcDisplayTime(item.end_time)}`,
-      }));
+      logRecordList.value = data[props.clusterId].map((item) => {
+        if (props.clusterType === ClusterTypes.MONGO_SHARED_CLUSTER) {
+          return {
+            value: getBackupId(item),
+            label: `${item.set_name}-${item.role_type}-${utcDisplayTime(item.end_time)}`,
+          };
+        }
+        return {
+          value: `${item.file_name}`,
+          label: `${item.role_type}${utcDisplayTime(item.end_time)}`,
+        };
+      });
       logRecordListMemo = data[props.clusterId];
     },
   });
@@ -93,7 +105,12 @@
   defineExpose<Exposes>({
     getValue() {
       return localBackupidRef.value!.getValue().then(() => {
-        const backupInfo = logRecordListMemo.find((item) => item.file_name === localBackupid.value)!;
+        const backupInfo = logRecordListMemo.find((item) => {
+          if (props.clusterType === ClusterTypes.MONGO_SHARED_CLUSTER) {
+            return getBackupId(item) === localBackupid.value;
+          }
+          return item.file_name === localBackupid.value;
+        })!;
         return {
           [props.clusterId]: backupInfo,
         };
