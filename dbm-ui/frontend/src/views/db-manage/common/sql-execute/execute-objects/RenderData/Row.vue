@@ -30,7 +30,7 @@
         <RenderSql
           ref="sqlFielsRef"
           v-model="localSqlFiles"
-          v-model:importMode="localImportMode"
+          v-model:import-mode="localImportMode"
           :cluster-version-list="clusterVersionList"
           :db-names="localDbnames"
           :ignore-db-names="localIgnoreDbnames" />
@@ -63,16 +63,6 @@
     import_mode: ComponentProps<typeof RenderSql>['importMode'];
   }
 
-  // 创建表格数据
-  export const createRowData = (data = {} as Partial<IDataRow>) => ({
-    rowKey: random(),
-    dbnames: data.dbnames || [],
-    ignore_dbnames: data.ignore_dbnames || [],
-    sql_files: data.sql_files || [],
-    import_mode: data.import_mode || 'manual',
-  });
-</script>
-<script setup lang="ts">
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -87,6 +77,16 @@
     getValue: () => Promise<IDataRow>;
   }
 
+  // 创建表格数据
+  export const createRowData = (data = {} as Partial<IDataRow>) => ({
+    rowKey: random(),
+    dbnames: data.dbnames || [],
+    ignore_dbnames: data.ignore_dbnames || [],
+    sql_files: data.sql_files || [],
+    import_mode: data.import_mode || 'manual',
+  });
+</script>
+<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
