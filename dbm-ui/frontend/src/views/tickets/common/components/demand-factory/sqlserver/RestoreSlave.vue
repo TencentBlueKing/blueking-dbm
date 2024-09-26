@@ -14,7 +14,7 @@
 <template>
   <BkTable :data="ticketDetails.details.infos">
     <BkTableColumn
-      field="new_slave_host.ip"
+      field="old_slave_host.ip"
       :label="t('待重建从库主机')" />
     <BkTableColumn
       field="new_cluster_name"
@@ -29,7 +29,7 @@
       </template>
     </BkTableColumn>
     <BkTableColumn
-      field="old_slave_host.ip"
+      field="new_slave_host.ip"
       :label="t('新从库主机')" />
   </BkTable>
 </template>
