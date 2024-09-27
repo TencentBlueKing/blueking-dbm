@@ -75,6 +75,9 @@ NON_EXTERNAL_PROXY_ROUTING = [
     "/apis/conf/function_controller/",
     # 环境变量
     "/apis/conf/system_settings/environ/",
+    # django
+    "/swagger/",
+    "/admin/",
 ]
 
 # 外部请求允许的白名单单据类型

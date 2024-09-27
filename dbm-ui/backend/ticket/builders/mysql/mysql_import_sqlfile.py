@@ -232,5 +232,6 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
-        flow_desc = [_("SQL模拟执行状态查询"), _("单据审批"), _("库表备份(可选)"), _("变更SQL执行")]
+        flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
+        flow_desc = [_("SQL模拟执行状态查询")] + flow_desc + [_("库表备份(可选)"), _("变更SQL执行")]
         return flow_desc
