@@ -2464,3 +2464,17 @@ class RedisActPayload(object):
                 "reset_flush_meet_params": params["reset_flush_meet_params"],
             },
         }
+
+    def redis_replicas_force_resync(self, **kwargs) -> dict:
+        """
+        redis replicas force resync
+        """
+        params = kwargs["params"]
+        return {
+            "db_type": DBActuatorTypeEnum.Redis.value,
+            "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.REPLICAS_FORCE_RESYNC.value,
+            "payload": {
+                "slave_ip": params["slave_ip"],
+                "slave_ports": params["slave_ports"],
+            },
+        }

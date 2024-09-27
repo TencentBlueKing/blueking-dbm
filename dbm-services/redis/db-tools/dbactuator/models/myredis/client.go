@@ -1215,6 +1215,36 @@ func (db *RedisClient) ClusterMeet(ip, port string) (ret string, err error) {
 	return
 }
 
+// ClusterMeetAndUtilFinish TODO
+func (db *RedisClient) ClusterMeetAndUtilFinish(ip, port string) (err error) {
+	// 执行 cluster addslots 命令只能用 普通redis client
+	if db.InstanceClient == nil {
+		err = fmt.Errorf("ClusterMeetAndUtilFinish redis:%s must create a standalone client", db.Addr)
+		mylog.Logger.Error(err.Error())
+		return
+	}
+	mylog.Logger.Info("redis(%s) 'cluster meet %s %s' start", db.Addr, ip, port)
+	_, err = db.ClusterMeet(ip, port)
+	if err != nil {
+		return
+	}
+	targetAddr := fmt.Sprintf("%s:%s", ip, port)
+	var addrMapToNodes map[string]*ClusterNodeData
+	for {
+		addrMapToNodes, err = db.GetAddrMapToNodes()
+		if err != nil {
+			return
+		}
+		if _, ok := addrMapToNodes[targetAddr]; ok {
+			mylog.Logger.Info("redis:%s cluster meet %s %s success", db.Addr, ip, port)
+			break
+		}
+		mylog.Logger.Info("redis:%s cluster meet %s %s done,but not in 'cluster nodes'", db.Addr, ip, port)
+		time.Sleep(3 * time.Second)
+	}
+	return nil
+}
+
 // ClusterAddSlots 添加slots, 'cluster addslots 'command
 func (db *RedisClient) ClusterAddSlots(slots []int) (ret string, err error) {
 	// 执行 cluster addslots 命令只能用 普通redis client
