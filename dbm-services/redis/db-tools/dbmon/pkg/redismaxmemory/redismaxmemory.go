@@ -130,7 +130,7 @@ func (job *Job) Run() {
 }
 
 // GetRedisUsedMemory 并发获得redis实例的used_memory
-func (job *Job) GetRedisUsedMemory() (err error) {
+func (job *Job) GetRedisUsedMemory() {
 	job.SortUsedMemItems = []*RedisUsedMemItem{}
 	for _, server := range job.Conf.Servers {
 		if !consts.IsRedisMetaRole(server.MetaRole) {
@@ -151,7 +151,8 @@ func (job *Job) GetRedisUsedMemory() (err error) {
 		redisItem := item
 		redisItem.GetPassword()
 		if redisItem.Err != nil {
-			return redisItem.Err
+			job.Err = redisItem.Err
+			return
 		}
 	}
 	// concurrently get multi redis used memory
@@ -213,7 +214,8 @@ func (job *Job) GetRedisUsedMemory() (err error) {
 		redisItem := item
 		if redisItem.Err != nil {
 			mylog.Logger.Error(redisItem.Err.Error())
-			return redisItem.Err
+			job.Err = redisItem.Err
+			return
 		}
 		job.UsedMemSum += redisItem.UsedMemory
 		job.addrToUsedMem[redisItem.Addr()] = redisItem.UsedMemory
@@ -221,7 +223,7 @@ func (job *Job) GetRedisUsedMemory() (err error) {
 	sort.Slice(job.SortUsedMemItems, func(i, j int) bool {
 		return job.SortUsedMemItems[i].UsedMemory < job.SortUsedMemItems[j].UsedMemory
 	})
-	return nil
+	return
 }
 
 // DisConnectAllRedis disconnect all redis client connection in job.SortUsedMemItems
@@ -463,14 +465,24 @@ func (job *Job) CalculateRedisMaxMemory() {
 
 	// 获取最大的used_memory的redis节点
 	maxUsedMemItem := job.SortUsedMemItems[len(job.SortUsedMemItems)-1]
+	var sumMaxmemory int64 = 0
 	for _, item := range job.SortUsedMemItems {
 		redisItem := item
 		redisItem.MaxMemory = int64(float64(redisItem.UsedMemory)/float64(job.UsedMemSum)*float64(job.OsAvailMem-
 			job.UsedMemSum) +
 			float64(redisItem.UsedMemory))
+		sumMaxmemory = sumMaxmemory + redisItem.MaxMemory
 		if maxUsedMemItem.UsedMemory > 10*redisItem.UsedMemory {
 			redisItem.MaxMemory = redisItem.MaxMemory + 500*consts.MiByte
+			// 超小的redis,则其maxmemory不添加到 sumMaxmemory
 		}
+	}
+	if sumMaxmemory > job.OsAvailMem {
+		// 如果sumMaxmemory大于OsAvailMem,则说明计算出来的maxmemory总和大于系统可用内存,则直接报错
+		job.Err = fmt.Errorf("sumMaxmemory:%s > OsAvailMem:%s",
+			util.SizeToHumanStr(sumMaxmemory), util.SizeToHumanStr(job.OsAvailMem))
+		mylog.Logger.Error(job.Err.Error())
+		return
 	}
 	return
 }
@@ -548,16 +560,16 @@ var resourceSpecOsMem = map[string]int64{
 	"8g_avail":   consts.GiByte * 8 * 75 / 100, // 6GB可用
 	"16g_min":    consts.GiByte * 15,
 	"16g_max":    consts.GiByte * 16,
-	"16g_avail":  consts.GiByte * 16 * 85 / 100, // 13.6GB可用
+	"16g_avail":  consts.GiByte * 16 * 81 / 100, // 13GB可用
 	"32g_min":    consts.GiByte * 30,
 	"32g_max":    consts.GiByte * 32,
 	"32g_avail":  consts.GiByte * 32 * 85 / 100, // 27.2GB可用
 	"64g_min":    consts.GiByte * 61,
 	"64g_max":    consts.GiByte * 64,
-	"64g_avail":  consts.GiByte * 64 * 9 / 10, // 57.6GB可用
+	"64g_avail":  consts.GiByte * 64 * 87 / 100, // 55.68GB可用
 	"128g_min":   consts.GiByte * 125,
 	"128g_max":   consts.GiByte * 128,
-	"128g_avail": consts.GiByte * 128 * 9 / 10, // 115.2GB可用
+	"128g_avail": consts.GiByte * 128 * 90 / 100, // 115.2GB可用
 }
 
 // GetLocalHostAvailMemory TODO

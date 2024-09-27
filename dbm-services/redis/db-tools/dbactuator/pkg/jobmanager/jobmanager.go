@@ -205,6 +205,7 @@ func (m *JobGenericManager) atomjobsMapperLoading() {
 		m.atomJobMapper[atomproxy.NewPredixyAddModulesCmds().Name()] = atomproxy.NewPredixyAddModulesCmds
 		m.atomJobMapper[atomredis.NewRedisReshape().Name()] = atomredis.NewRedisReshape
 		m.atomJobMapper[atomredis.NewClusterResetFlushMeet().Name()] = atomredis.NewClusterResetFlushMeet
+		m.atomJobMapper[atomredis.NewReplicasForceResync().Name()] = atomredis.NewReplicasForceResync
 		// 老备份系统
 		// m.atomJobMapper[atomredis.NewRedisDataRecover().Name()] = atomredis.NewRedisDataRecover
 		m.atomJobMapper[atomredis.NewRedisDataStructure().Name()] = atomredis.NewRedisDataStructure

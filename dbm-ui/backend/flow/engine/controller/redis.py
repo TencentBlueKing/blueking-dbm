@@ -50,6 +50,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_predixy_config_servers_rewrite
 )
 from backend.flow.engine.bamboo.scene.redis.redis_proxy_scale import RedisProxyScaleFlow
 from backend.flow.engine.bamboo.scene.redis.redis_remove_dts_server import RedisRemoveDtsServerFlow
+from backend.flow.engine.bamboo.scene.redis.redis_replicas_force_resync import RedisReplicasForceResyncSceneFlow
 from backend.flow.engine.bamboo.scene.redis.redis_reupload_old_backup_records import RedisReuploadOldBackupRecordsFlow
 from backend.flow.engine.bamboo.scene.redis.redis_slots_migrate import RedisSlotsMigrateFlow
 from backend.flow.engine.bamboo.scene.redis.redis_storages_client_conns_kill import (
@@ -401,3 +402,10 @@ class RedisController(BaseController):
         """
         flow = TendisPlusLightningData(root_id=self.root_id, data=self.ticket_data)
         flow.lightning_data_flow()
+
+    def redis_replicas_force_resync_scene(self):
+        """
+        tendis 强制slave重建同步关系
+        """
+        flow = RedisReplicasForceResyncSceneFlow(root_id=self.root_id, data=self.ticket_data)
+        flow.replicas_force_resync()
