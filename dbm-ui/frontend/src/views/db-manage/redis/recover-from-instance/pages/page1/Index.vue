@@ -88,6 +88,8 @@
 
   import { useTicketCloneInfo } from '@hooks';
 
+  import { useGlobalBizs } from '@stores';
+
   import { ClusterTypes, LocalStorageKeys, TicketTypes } from '@common/const';
 
   import VisitEntrySelector from '@components/cluster-selector/Index.vue';
@@ -98,6 +100,7 @@
 
   const { t } = useI18n();
   const router = useRouter();
+  const { currentBizId } = useGlobalBizs();
 
   // 单据克隆
   useTicketCloneInfo({
