@@ -28,7 +28,7 @@ from backend.ticket.constants import TicketType
 class MongoReplicaSetApplyDetailSerializer(serializers.Serializer):
     class ReplicaSet(serializers.Serializer):
         set_id = serializers.CharField(help_text=_("复制集群ID（英文数字及下划线）"))
-        name = serializers.CharField(help_text=_("集群别名"))
+        name = serializers.CharField(help_text=_("集群别名"), allow_blank=True, allow_null=True)
         domain = serializers.CharField(help_text=_("集群域名"))
 
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
