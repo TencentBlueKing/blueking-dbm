@@ -209,8 +209,8 @@ func (m *DBLoader) initDirs(removeOld bool) error {
 		return err
 	}
 	m.targetDir = m.BackupInfo.indexObj.GetTargetDir(m.taskDir)
-	logger.Info("current recover work directory: ", m.taskDir)
-	logger.Info("current recover work target directory: ", m.targetDir)
+	logger.Info("current recover work directory: %s", m.taskDir)
+	logger.Info("current recover work target directory: %s", m.targetDir)
 	return nil
 }
 

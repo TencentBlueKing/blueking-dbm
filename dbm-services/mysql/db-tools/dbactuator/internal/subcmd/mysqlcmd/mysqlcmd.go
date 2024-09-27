@@ -82,6 +82,7 @@ func NewMysqlCommand() *cobra.Command {
 				NewPushNewDbBackupConfigCommand(),
 				NewPushMySQLRotateBinlogConfigCommand(),
 				NewPushMySQLCrondConfigCommand(),
+				ChangeServerIdCommand(),
 			},
 		},
 		{

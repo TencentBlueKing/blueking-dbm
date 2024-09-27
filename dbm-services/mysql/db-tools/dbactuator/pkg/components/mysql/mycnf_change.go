@@ -29,9 +29,9 @@ type MycnfChangeComp struct {
 
 	// 自动判断的是否 需要重启
 	needRestart bool
-	connMap     map[Port]*native.DbWorker
+	ConnMap     map[Port]*native.DbWorker `json:"-"`
+	CnfMap      map[Port]*util.CnfFile    `json:"-"`
 	socketMap   map[Port]string
-	cnfMap      map[Port]*util.CnfFile
 	adminUser   string
 	adminPwd    string
 }
@@ -75,13 +75,15 @@ func (c *MycnfChangeComp) Example() interface{} {
 // 移除一个配置项时，代表要回归系统的默认值（不是配置中心plat或者其它地方定义的默认值），因为我们不知道这个值所以不修改 runtime
 type MycnfChangeParam struct {
 	Items map[string]*ConfItemOp `json:"items" validate:"required"`
-	// 是否持久化到 my.cnf 文件，-1: 不持久化，1: 持久化, 2: 仅持久化但不修改运行时
+	// 是否持久化到 my.cnf 文件，
+	// -1: set global var，但不持久化到文件
+	// 1: set global var，且持久化到文件
+	// 2: 仅持久化，针对部分变量不支持 set global (read only)
 	Persistent int `json:"persistent" validate:"required" enums:"-1,1,2"`
 	// 指定是否 允许重启, -1:不重启, 1: 重启, 2:根据 items need_restart 自动判断是否重启
-	Restart int `json:"restart" validate:"required" enums:"-1,1,2"`
-	// TgtInstance native.InsObject `json:"tgt_instance" validate:"required"`
-	Host  string `json:"host"`
-	Ports []int  `json:"ports"`
+	Restart int    `json:"restart" validate:"required" enums:"-1,1,2"`
+	Host    string `json:"host"`
+	Ports   []int  `json:"ports"`
 }
 
 func (m MycnfChangeParam) justModiftMyCnfCannotRestart() bool {
@@ -105,9 +107,9 @@ type ConfItemOp struct {
 
 // Init init
 func (c *MycnfChangeComp) Init() (err error) {
-	c.connMap = make(map[Port]*native.DbWorker)
+	c.ConnMap = make(map[Port]*native.DbWorker)
 	c.socketMap = make(map[Port]string)
-	c.cnfMap = make(map[int]*util.CnfFile)
+	c.CnfMap = make(map[int]*util.CnfFile)
 	c.adminUser = c.GeneralParam.RuntimeAccountParam.AdminUser
 	c.adminPwd = c.GeneralParam.RuntimeAccountParam.AdminPwd
 	for _, port := range c.Params.Ports {
@@ -127,7 +129,7 @@ func (c *MycnfChangeComp) Init() (err error) {
 		if errx != nil {
 			logger.Warn("backup origin my.cnf failed %s,stderr:%s", errx, stderr)
 		}
-		c.connMap[port] = dbConn
+		c.ConnMap[port] = dbConn
 		cnf := &util.CnfFile{FileName: util.GetMyCnfFileName(port)}
 		if err := cnf.Load(); err != nil {
 			return err
@@ -137,7 +139,7 @@ func (c *MycnfChangeComp) Init() (err error) {
 			return err
 		}
 		c.socketMap[port] = socket
-		c.cnfMap[port] = cnf
+		c.CnfMap[port] = cnf
 	}
 	return nil
 }
@@ -146,14 +148,20 @@ func (c *MycnfChangeComp) Init() (err error) {
 func (c *MycnfChangeComp) PreCheck() (err error) {
 	var errList []error
 	for _, port := range c.Params.Ports {
-		myCnf := &util.CnfFile{FileName: util.GetMyCnfFileName(port)}
 		for k, v := range c.Params.Items {
 			sk := util.GetSectionFromKey(k, true)
 			switch {
 			case v.OPType == OPTypeUpsert:
 				// 如果是持久化配置文件，就检查配置文件里面的变量
 				if c.Params.justModiftMyCnfCannotRestart() {
-					if v.confValueOld, err = myCnf.GetMySQLCnfByKey(sk.Section, sk.Key); err != nil {
+					/*
+						myCnf := &util.CnfFile{FileName: util.GetMyCnfFileName(port)}
+						if v.confValueOld, err = myCnf.GetMySQLCnfByKey(sk.Section, sk.Key); err != nil {
+							errList = append(errList, err)
+							continue
+						}
+					*/
+					if v.confValueOld, err = c.CnfMap[port].GetMySQLCnfByKey(sk.Section, sk.Key); err != nil {
 						errList = append(errList, err)
 						continue
 					}
@@ -164,7 +172,7 @@ func (c *MycnfChangeComp) PreCheck() (err error) {
 					if sk.Section != util.MysqldSec {
 						continue
 					}
-					conn, ok := c.connMap[port]
+					conn, ok := c.ConnMap[port]
 					if !ok {
 						return fmt.Errorf("get %d conn failed", port)
 					}
@@ -194,69 +202,8 @@ func (c *MycnfChangeComp) PreCheck() (err error) {
 	return nil
 }
 
-// PreCheck 前置检查
-// 会初始化 needRestart
-// func (c *MycnfChangeComp) PreCheck() error {
-// 	var errList []error
-// 	var err error
-// 	// persistent == 2 时表示不修改运行时，所以不检查连接性。修改配置只能操作 my.cnf 已有项
-// 	// 即关机状态下不允许写入新的配置项，因为没法判断配置项是否合法。但可以 remove
-// 	if c.Params.Persistent == 2 {
-// 		for k, v := range c.Params.Items {
-// 			sk := util.GetSectionFromKey(k, true)
-// 			if v.OPType != OPTypeRemove {
-// 				if v.confValueOld, err = c.myCnf.GetMySQLCnfByKey(sk.Section, sk.Key); err != nil {
-// 					errList = append(errList, err)
-// 				} else {
-// 					logger.Warn("change [%s]%s new: %s. old: %s", sk.Section, sk.Key, v.ConfValue, v.confValueOld)
-// 				}
-// 			}
-// 			// 仅写到文件，也判断是否需要重启。但如果进程没在运行，则不启动
-// 			if v.NeedRestart && computil.IsInstanceRunning(c.TgtInstance) {
-// 				c.needRestart = true
-// 			}
-// 		}
-// 	} else if c.Params.Persistent <= 1 {
-// 		// 判断连接性
-// 		if dbw, err := c.TgtInstance.Conn(); err != nil {
-// 			return err
-// 		} else {
-// 			c.dbworker = dbw
-// 		}
-// 		for k, v := range c.Params.Items {
-// 			if v.OPType == OPTypeRemove { // 不校验 key 是否存在
-// 				if v.NeedRestart {
-// 					c.needRestart = true
-// 				}
-// 				continue
-// 			}
-// 			sk := util.GetSectionFromKey(k, true)
-// 			if sk.Section != util.MysqldSec {
-// 				continue
-// 			}
-// 			v.confValueOld, err = c.dbworker.GetSingleGlobalVar(sk.Key) // valRuntime
-// 			logger.Warn("change cnf: [%s]%s new: %s. old: %s", sk.Section, sk.Key, v.ConfValue, v.confValueOld)
-// 			if err != nil {
-// 				errList = append(errList, err)
-// 			} else if v.ConfValue != v.confValueOld {
-// 				if v.NeedRestart {
-// 					c.needRestart = true
-// 				}
-// 			} else {
-// 				// 运行值与修改值相同，不必重启. 但不妨碍多修改一次
-// 			}
-// 		}
-// 	} else {
-// 		return fmt.Errorf("unknown persistent %d", c.Params.Persistent)
-// 	}
-// 	if len(errList) > 0 {
-// 		return errors.Join(errList...)
-// 	}
-// 	return nil
-// }
-
-func (c *MycnfChangeComp) doInstance(port int, myCnf *util.CnfFile) (err error) {
-	conn, ok := c.connMap[port]
+func (c *MycnfChangeComp) DoInstance(port int, myCnf *util.CnfFile) (err error) {
+	conn, ok := c.ConnMap[port]
 	if !ok {
 		return fmt.Errorf("get %d conn failed", port)
 	}
@@ -312,7 +259,7 @@ func (c *MycnfChangeComp) doInstance(port int, myCnf *util.CnfFile) (err error) 
 func (c *MycnfChangeComp) Start() error {
 	for _, port := range c.Params.Ports {
 		logger.Info("start change  %d's my.cnf ", port)
-		if err := c.doInstance(port, c.cnfMap[port]); err != nil {
+		if err := c.DoInstance(port, c.CnfMap[port]); err != nil {
 			logger.Error("change %d my.cnf failed %v", port, err)
 			return err
 		}
