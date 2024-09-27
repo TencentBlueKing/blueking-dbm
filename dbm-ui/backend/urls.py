@@ -87,6 +87,7 @@ if getattr(settings, "ENVIRONMENT", "") not in []:
 # 外部路由转发仅提供给外部环境使用
 if env.ENABLE_EXTERNAL_PROXY or env.ENABLE_OPEN_EXTERNAL_PROXY:
     methods_map = {method: "external_proxy" for method in views.APIView.http_method_names}
+    methods_map.pop("trace")
     urlpatterns.append(
         re_path(
             "^external/(?P<path>.*)$",

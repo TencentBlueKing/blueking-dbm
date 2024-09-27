@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 from blueapps.account.decorators import login_exempt
 from django.conf import settings
-from django.http import HttpResponse, StreamingHttpResponse
+from django.http import HttpResponse, QueryDict, StreamingHttpResponse
 from django.utils.decorators import classonlymethod
 from rest_framework import permissions, serializers, status, viewsets
 from rest_framework.response import Response
@@ -249,8 +249,9 @@ class ExternalProxyViewSet(viewsets.ViewSet):
         return HttpResponse(response)
 
     def external_proxy(self, request, *args, **kwargs):
-        params = dict(request.data or request.query_params)
-        params.update(_url_path=kwargs["path"])
+        params = request.data or request.query_params
+        if isinstance(params, QueryDict):
+            params._mutable = True
         headers = self.fill_request_headers(request, *args, **kwargs)
-        resp = getattr(DBConsoleApi, request.method.lower())(params=params, headers=headers)
+        resp = getattr(DBConsoleApi, request.method.lower())(url_path=kwargs["path"], params=params, headers=headers)
         return self.after_response(request, resp, *args, **kwargs)

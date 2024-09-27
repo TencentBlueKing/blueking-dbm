@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-
+from django.http import QueryDict
 from django.utils.translation import gettext as _
 
 from backend import env
@@ -53,6 +53,7 @@ class ExternalProxyAPI(DataAPI):
 
     def __call__(
         self,
+        url_path,
         params=None,
         data=None,
         raw=False,
@@ -62,13 +63,9 @@ class ExternalProxyAPI(DataAPI):
         headers=None,
         current_retry_times=0,
     ):
+        params = params or QueryDict(mutable=True)
         # 解析url
-        params = params or None
-        if "_url_path" not in params and not self.url:
-            raise DataAPIException(_("必须在请求体中传入 url 参数"))
-
-        self.url = f'{self.base.rstrip("/")}/{params["_url_path"].lstrip("/")}'
-
+        self.url = f'{self.base.rstrip("/")}/{url_path.lstrip("/")}'
         # 添加自定义headers
         headers = headers or {}
         headers.update({"IS-EXTERNAL": "true"})
