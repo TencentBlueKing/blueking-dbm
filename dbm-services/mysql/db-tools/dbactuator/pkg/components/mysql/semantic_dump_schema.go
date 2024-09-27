@@ -71,8 +71,9 @@ type DumpSchemaRunTimeCtx struct {
 	dbs           []string // 需要备份的表结构的数据库名称集合
 	charset       string   // 当前实例的字符集
 	dumpCmd       string
-	useTmysqldump bool // 使用自研的mysqldump 并发导出
-	isSpider      bool // 是否spider中控
+	useTmysqldump bool     // 使用自研的mysqldump 并发导出
+	isSpider      bool     // 是否spider中控
+	ignoreTables  []string // 忽略的表集合
 }
 
 // Example godoc
@@ -136,7 +137,8 @@ func (c *SemanticDumpSchemaComp) Init() (err error) {
 	reg := regexp.MustCompile(`^bak_cbs`)
 	ignoreDBs := computil.GetGcsSystemDatabasesIgnoreTest(version)
 	if c.isSpider {
-		ignoreDBs = computil.GetGcsSystemDatabases(version)
+		// test 库里面的这些表没有主键，导入中控会失败
+		c.ignoreTables = []string{"test.conn_log", "test.free_space"}
 	}
 	for _, db := range util.FilterOutStringSlice(alldbs, ignoreDBs) {
 		if reg.MatchString(db) {
@@ -200,6 +202,7 @@ func (c *SemanticDumpSchemaComp) DumpSchema() (err error) {
 			DbBackupUser:    c.GeneralParam.RuntimeAccountParam.AdminUser,
 			DbBackupPwd:     c.GeneralParam.RuntimeAccountParam.AdminPwd,
 			DbNames:         c.dbs,
+			IgnoreTables:    c.ignoreTables,
 			DumpCmdFile:     c.dumpCmd,
 			Charset:         c.charset,
 			MySQLDumpOption: dumpOption,
@@ -261,7 +264,7 @@ func (c UploadBkRepoParam) Upload() (err error) {
 			resp.RequestId,
 		)
 		logger.Error(errMsg)
-		return fmt.Errorf(errMsg)
+		return fmt.Errorf("%s", errMsg)
 	}
 	logger.Info("resp: code:%d,msg:%s,traceid:%s", resp.Code, resp.Message, resp.RequestId)
 	var uploadRespdata bkrepo.UploadRespData
