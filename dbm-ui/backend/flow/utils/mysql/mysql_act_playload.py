@@ -2686,3 +2686,19 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 },
             },
         }
+
+    def mysql_change_server_id(self, **kwargs):
+        payload = {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.ChangeServerId.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": [
+                    {
+                        "host": self.cluster["new_slave_ip"],
+                        "port": self.cluster["new_slave_port"],
+                    }
+                ],
+            },
+        }
+        return payload

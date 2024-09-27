@@ -506,6 +506,13 @@ class MySQLRestoreSlaveRemoteFlow(object):
                 kwargs=asdict(exec_act_kwargs),
             )
 
+            exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.mysql_change_server_id.__name__
+            tendb_migrate_pipeline.add_act(
+                act_name=_("重置server_id {}".format(exec_act_kwargs.exec_ip)),
+                act_component_code=ExecuteDBActuatorScriptComponent.code,
+                kwargs=asdict(exec_act_kwargs),
+            )
+
             cluster = {
                 "cluster_id": cluster_model.id,
                 "master_ip": master.machine.ip,
