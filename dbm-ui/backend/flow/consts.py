@@ -436,6 +436,7 @@ class DBActuatorActionEnum(str, StructuredEnum):
     PushChecksumConfig = EnumField("push-checksum-config", _("推送mysql-table-checksum配置"))
     PushNewDbBackupConfig = EnumField("push-new-db-backup-config", _("推送备份配置"))
     PushMySQLRotatebinlogConfig = EnumField("push-mysql-rotatebinlog-config", _("推送rotatebinlog配置"))
+    ChangeServerId = EnumField("change-server-id", _("change-server-id"))
 
 
 class RedisActuatorActionEnum(str, StructuredEnum):

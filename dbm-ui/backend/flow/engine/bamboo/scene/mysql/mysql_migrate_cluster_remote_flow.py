@@ -344,7 +344,9 @@ class MySQLMigrateClusterRemoteFlow(object):
                 )
             # 第四步 卸载实例
             uninstall_svr_sub_pipeline_list = []
+            uninstall_surrounding_sub_pipeline_list = []
             for ip in [self.data["slave_ip"], self.data["master_ip"]]:
+                uninstall_surrounding_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 uninstall_svr_sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(self.data))
                 # 考虑到部分实例成对迁移的情况(即拆分)
                 cluster = {
@@ -354,7 +356,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     "bk_cloud_id": cluster_class.bk_cloud_id,
                 }
 
-                uninstall_svr_sub_pipeline.add_act(
+                uninstall_surrounding_sub_pipeline.add_act(
                     act_name=_("下发db-actor到节点{}".format(ip)),
                     act_component_code=TransFileComponent.code,
                     kwargs=asdict(
@@ -366,7 +368,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                     ),
                 )
 
-                uninstall_svr_sub_pipeline.add_act(
+                uninstall_surrounding_sub_pipeline.add_act(
                     act_name=_("清理实例级别周边配置"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
                     kwargs=asdict(
@@ -412,6 +414,10 @@ class MySQLMigrateClusterRemoteFlow(object):
                     sub_flow=uninstall_instance_sub_flow(
                         root_id=self.root_id, ticket_data=copy.deepcopy(self.data), ip=ip, ports=self.data["ports"]
                     )
+                )
+
+                uninstall_surrounding_sub_pipeline_list.append(
+                    uninstall_surrounding_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点周边{}".format(ip)))
                 )
                 uninstall_svr_sub_pipeline_list.append(
                     uninstall_svr_sub_pipeline.build_sub_process(sub_name=_("卸载remote节点{}".format(ip)))
@@ -494,6 +500,7 @@ class MySQLMigrateClusterRemoteFlow(object):
                         )
                     ),
                 )
+            tendb_migrate_pipeline.add_parallel_sub_pipeline(sub_flow_list=uninstall_surrounding_sub_pipeline_list)
             # 卸载流程人工确认
             tendb_migrate_pipeline.add_act(act_name=_("人工确认卸载实例"), act_component_code=PauseComponent.code, kwargs={})
             # 卸载remote节点
