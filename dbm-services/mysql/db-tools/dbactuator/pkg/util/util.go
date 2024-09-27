@@ -46,7 +46,7 @@ func Retry(r RetryConfig, f func() error) (err error) {
 		if err = f(); err == nil {
 			return nil
 		}
-		logger.Warn("第%d次重试,函数错误:%s", i, err.Error(), err.Error())
+		logger.Warn("第 %d 次重试,函数错误: %s", i, err.Error())
 	}
 	return
 }

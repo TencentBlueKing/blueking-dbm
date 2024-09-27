@@ -178,7 +178,7 @@ func (r *BackupLogReport) ReportBackupStatus(status string) error {
 
 	if !cmutil.IsDirectory(r.cfg.Public.StatusReportPath) {
 		if err := os.MkdirAll(r.cfg.Public.StatusReportPath, 0755); err != nil {
-			logger.Log.Errorf("fail to mkdir: %s", r.cfg.Public.StatusReportPath)
+			logger.Log.Warnf("fail to mkdir Report Dir: %s", r.cfg.Public.StatusReportPath)
 		}
 	}
 	statusFileName = filepath.Join(r.cfg.Public.StatusReportPath, statusFileName)
@@ -246,12 +246,12 @@ func (r *BackupLogReport) ReportToLocalBackup(indexFilePath string, metaInfo *In
 		return err
 	}
 	// 因为可能会改变 session 变量，所以那单独的连接处理
-	conn, err := db.Conn(context.Background())
+	ctx := context.Background()
+	conn, err := db.Conn(ctx)
 	if err != nil {
 		return err
 	}
 	defer conn.Close()
-	ctx := context.Background()
 	if isTspider {
 		if _, err = conn.ExecContext(ctx, "set session ddl_execute_by_ctl=OFF;"); err != nil {
 			return err

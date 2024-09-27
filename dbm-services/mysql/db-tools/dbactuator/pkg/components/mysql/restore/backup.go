@@ -93,7 +93,7 @@ func (b *BackupInfo) GetBackupMetaFile(fileType string) error {
 		metaFilename = indexInfoFile
 		metaFilePath = filepath.Join(b.BackupDir, metaFilename)
 	}
-	logger.Info("GetBackupMetaFile backupType:%+v metaFilename", b.backupType, metaFilename)
+	logger.Info("GetBackupMetaFile backupType:%s metaFilename %s", b.backupType, metaFilename)
 	if strings.HasSuffix(metaFilename, ".info") {
 		b.infoFilePath = metaFilePath
 		//b.backupBaseName = strings.TrimSuffix(metaFilename, ".info")

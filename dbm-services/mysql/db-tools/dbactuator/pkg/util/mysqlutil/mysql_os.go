@@ -2,8 +2,10 @@ package mysqlutil
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
@@ -148,4 +150,25 @@ func GenMysqlServerId(ip string, port int) (uint64, error) {
 	serverId := fmt.Sprintf("%08b%08b%08b%08b", first, two, three, four)
 	logger.Info("serverID:%s\n", serverId)
 	return strconv.ParseUint(serverId, 2, 64)
+}
+
+// GenMysqlServerIdByRandom 根据随机数+时间戳，生产 server_id
+// 比如毫秒时间戳 1727423 789001
+// 生产3位数的随机数 + 时间戳后6位
+// mysql的server-id是4字节整数，范围从0-4294967295
+func GenMysqlServerIdByRandom() uint64 {
+	rand.Seed(time.Now().UnixNano())
+	//partOne := rand.Intn(900) + 100
+	partOne := rand.Intn(3000) + 1000
+
+	ts := time.Now().UnixMilli()
+	partTwo := ts % 1000000
+	//s := strconv.FormatInt(ts, 10)
+	//partTwo := s[len(s)-6:]
+
+	serverId := fmt.Sprintf("%d%d", partOne, partTwo)
+	logger.Info("serverID:%s", serverId)
+
+	id, _ := strconv.ParseUint(serverId, 10, 64)
+	return id
 }

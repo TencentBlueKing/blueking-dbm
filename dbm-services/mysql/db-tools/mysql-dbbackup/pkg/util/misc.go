@@ -134,6 +134,9 @@ func CalBackupDataSize() (uint64, error) {
 func DiskUsage(path string) (disk DiskStatus, err error) {
 	switch runtime.GOOS {
 	case "linux":
+		if realPath, _ := os.Readlink(path); realPath != "" {
+			path = realPath
+		}
 		fs := syscall.Statfs_t{}
 		err = syscall.Statfs(path, &fs)
 		if err != nil {

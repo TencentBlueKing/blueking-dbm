@@ -367,7 +367,7 @@ func realVal(v sql.NullString) string {
 // RecordBinPos 记录切换时候的bin postion
 func (s *AltSlaveInfo) RecordBinPos() (binPosJsonStr string, err error) {
 	pos, _ := s.dbConn.ShowMasterStatus()
-	logger.Info("show master status on %s,detail: File:%s,Pos:%s", s.Addr(), pos.File, pos.Position)
+	logger.Info("show master status on %s,detail: File:%s,Pos:%d", s.Addr(), pos.File, pos.Position)
 	b, err := json.Marshal(pos)
 	if err != nil {
 		return "", err

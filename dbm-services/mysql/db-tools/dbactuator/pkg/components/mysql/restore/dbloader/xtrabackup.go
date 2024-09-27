@@ -40,7 +40,7 @@ func (x *Xtrabackup) PreRun() error {
 	// 关闭本地mysql
 	inst := x.TgtInstance
 
-	logger.Info("stop local mysqld ", inst.Socket)
+	logger.Info("stop local mysqld %s", inst.Socket)
 	param := &computil.ShutdownMySQLParam{MySQLUser: inst.User, MySQLPwd: inst.Pwd, Socket: inst.Socket}
 	if err := param.ForceShutDownMySQL(); err != nil {
 		logger.Error("shutdown mysqld failed %s", inst.Socket)

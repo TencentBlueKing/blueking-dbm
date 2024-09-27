@@ -224,7 +224,7 @@ type MySQLDbBackupAccount struct {
 func (m MySQLDbBackupAccount) GetAccountPrivs(ver string, grantHosts ...string) MySQLAccountPrivs {
 	var isMysql80 = cmutil.MySQLVersionParse(ver) >= cmutil.MySQLVersionParse("8.0") &&
 		!strings.Contains(ver, "tspider")
-	logger.Info("mysql version %s >=8.0: %v", ver, isMysql80)
+	logger.Info("mysql version %s >=8.0: %t", ver, isMysql80)
 	privPairs := []PrivPari{
 		{Object: "*.*", Privs: backupUserPriv},
 		{
