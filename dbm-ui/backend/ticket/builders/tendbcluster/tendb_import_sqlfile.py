@@ -11,8 +11,6 @@ specific language governing permissions and limitations under the License.
 
 import logging
 
-from django.utils.translation import ugettext as _
-
 from backend.configuration.constants import DBType
 from backend.flow.engine.controller.spider import SpiderController
 from backend.ticket import builders
@@ -70,8 +68,3 @@ class TenDBClusterSqlImportFlowBuilder(MysqlSqlImportFlowBuilder, BaseTendbTicke
 
     def init_ticket_flows(self):
         super().init_ticket_flows()
-
-    @classmethod
-    def describe_ticket_flows(cls, flow_config_map):
-        flow_desc = [_("SQL模拟执行状态查询"), _("单据审批"), _("库表备份(可选)"), _("变更SQL执行")]
-        return flow_desc
