@@ -1,3 +1,6 @@
 node_modules
 dist
+lib
+patch
+public
 src/types/auto-imports.d.ts

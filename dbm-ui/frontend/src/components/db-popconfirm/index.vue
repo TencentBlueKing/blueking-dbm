@@ -21,12 +21,14 @@
   </div>
   <div
     ref="popRef"
-    style="width: 280px; padding: 15px 10px">
+    :style="contentStyle">
     <div style="font-size: 16px; line-height: 20px; color: #313238">
       {{ title }}
     </div>
     <div style="margin-top: 10px; font-size: 12px; color: #63656e">
-      {{ content }}
+      <slot name="content">
+        {{ content }}
+      </slot>
     </div>
     <div style="margin-top: 16px; text-align: right">
       <BkButton
@@ -51,14 +53,17 @@
 
   interface Props {
     title: string;
-    content: string;
+    content?: string;
     placement?: Placement;
+    width?: number;
     confirmHandler: () => Promise<any> | void;
     cancelHandler?: () => Promise<any> | void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     placement: 'top',
+    content: '',
+    width: 280,
     cancelHandler: () => Promise.resolve(),
   });
 
@@ -71,6 +76,11 @@
   const rootRef = ref();
   const popRef = ref();
   const isConfirmLoading = ref(false);
+
+  const contentStyle = computed(() => ({
+    width: `${props.width}px`,
+    padding: '15px 10px',
+  }));
 
   const handleConfirm = () => {
     isConfirmLoading.value = true;

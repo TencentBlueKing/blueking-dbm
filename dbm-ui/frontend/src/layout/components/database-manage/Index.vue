@@ -36,7 +36,7 @@
           v-db-console="'databaseManage.missionManage'"
           :name="t('任务中心')">
           <BkMenuItem
-            key="ticketManage"
+            key="bizTicketManage"
             v-db-console="'databaseManage.missionManage.ticketManage'">
             <template #icon>
               <DbIcon type="ticket" />

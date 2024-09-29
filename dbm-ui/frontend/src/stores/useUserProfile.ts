@@ -15,26 +15,18 @@ import { defineStore } from 'pinia';
 
 import { getProfile, upsertProfile } from '@services/source/profile';
 
-// import { UserPersonalSettings } from '@common/const';
-
 type ProfileItem = ServiceReturnType<typeof getProfile>['profile'][number];
-
-interface State {
-  globalManage: boolean;
-  profile: Record<string, any>;
-  rerourceManage: boolean;
-  username: string;
-}
 
 /**
  * 获取系统个人配置信息
  */
 export const useUserProfile = defineStore('UserProfile', {
-  state: (): State => ({
+  state: () => ({
     globalManage: false,
-    profile: {} as State['profile'],
+    profile: {} as Record<string, any>,
     rerourceManage: false,
     username: '',
+    isSuperuser: false,
   }),
   actions: {
     /**
@@ -45,13 +37,14 @@ export const useUserProfile = defineStore('UserProfile', {
         this.globalManage = Boolean(result.global_manage);
         this.rerourceManage = Boolean(result.resource_manage);
         this.username = result.username;
+        this.isSuperuser = result.is_superuser;
 
         this.profile = result.profile.reduce(
           (result, item) =>
             Object.assign(result, {
               [item.label]: item.values,
             }),
-          {} as State['profile'],
+          {},
         );
 
         return result;
