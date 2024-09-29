@@ -33,7 +33,7 @@
     bk_cloud_id: number
   }
   interface Nodes {
-    proxy: Array<HostInfo>,
+    proxy?: Array<HostInfo>,
     backend: Array<HostInfo>,
   }
   interface Props {
@@ -217,11 +217,11 @@
 
 <style lang="less" scoped>
   .preview-table {
-    :deep(.bk-table-body) {
+    :deep(.bk-vxe-table) {
       td {
         position: relative;
 
-        &.host-td .cell {
+        &.host-td .vxe-cell {
           height: 100% !important;
           padding: 0;
           line-height: normal !important;

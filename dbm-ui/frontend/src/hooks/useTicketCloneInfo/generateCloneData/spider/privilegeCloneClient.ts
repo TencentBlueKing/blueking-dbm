@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { MySQLCloneDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Spider 权限克隆
-export function generateSpiderPrivilegeCloneClientCloneData(ticketData: TicketModel<MySQLCloneDetails>) {
+export function generateSpiderPrivilegeCloneClientCloneData(ticketData: TicketModel<TendbCluster.ClientCloneRules>) {
   return Promise.resolve({
     tableDataList: ticketData.details.clone_data.map((item) => ({
       rowKey: random(),

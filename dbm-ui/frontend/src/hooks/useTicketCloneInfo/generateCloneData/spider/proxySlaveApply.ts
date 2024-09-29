@@ -12,14 +12,13 @@
  */
 
 import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
-import type { SpiderSlaveApplyDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { getTendbClusterList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // Spider slave集群添加
-export async function generateSpiderProxySlaveApplyCloneData(ticketData: TicketModel<SpiderSlaveApplyDetails>) {
+export async function generateSpiderProxySlaveApplyCloneData(ticketData: TicketModel<TendbCluster.SpiderSlaveApply>) {
   const { infos } = ticketData.details;
   const clusterListResult = await getTendbClusterList({
     cluster_ids: infos.map((item) => item.cluster_id),

@@ -139,28 +139,34 @@
     {
       label: t('实例类型'),
       field: 'db_type',
+      minWidth: 100,
     },
     {
       label: t('实例角色'),
       field: 'db_role',
+      minWidth: 100,
       render: ({ cell }: { cell: string }) => cell || '--',
     },
     {
       label: t('故障IP'),
       field: 'ip',
+      minWidth: 100,
     },
     {
       label: t('故障Port'),
       field: 'port',
+      minWidth: 100,
     },
     {
       label: t('新IP'),
       field: 'slave_ip',
+      minWidth: 150,
       render: ({ cell }: { cell: string }) => cell || '--',
     },
     {
       label: t('新Port'),
       field: 'slave_port',
+      minWidth: 150,
     },
     {
       label: t('开始时间'),
@@ -177,10 +183,12 @@
     {
       label: t('耗时'),
       field: 'cost_time',
+      minWidth: 150,
     },
     {
       label: t('切换结果'),
       field: 'switch_result',
+      minWidth: 150,
       render: ({ cell, data }: { cell: string, data: TableItem }) => {
         if (['failed', 'success'].includes(cell)) {
           return (

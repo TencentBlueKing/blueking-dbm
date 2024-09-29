@@ -284,7 +284,7 @@
 
       await createTicket({
         bk_biz_id: currentBizId,
-        ticket_type: 'MYSQL_HA_FULL_BACKUP',
+        ticket_type: TicketTypes.MYSQL_HA_FULL_BACKUP,
         remark: formData.remark,
         details: {
           backup_type: formData.backup_type,

@@ -30,7 +30,7 @@
         class="fail-tip">
         &nbsp;,&nbsp;
         <span style="color: #ea3636">{{ $t('执行失败') }}</span>
-        &nbsp;,&nbsp;{{ $t('待确认') }}
+        &nbsp;,&nbsp;{{ $t('待继续') }}
       </span>
     </div>
   </div>

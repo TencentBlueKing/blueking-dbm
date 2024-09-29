@@ -145,7 +145,7 @@
     {
       label: t('操作时间'),
       field: 'update_time',
-      fixed: true,
+      fixed: 'left',
       width: 200,
       sort: true,
       render: ({ data }: {data: OperationModel}) => data.updateTimeDisplay,

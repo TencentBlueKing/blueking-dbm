@@ -485,7 +485,7 @@
         machine_pair: specInfo.count
       })
       Object.assign(capacityInfo, {
-        current: specInfo.totalCapcity,
+        current: props.data.capacity.total,
         future: specInfo.totalCapcity
       })
     }

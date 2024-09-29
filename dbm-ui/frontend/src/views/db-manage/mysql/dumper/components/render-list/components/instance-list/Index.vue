@@ -755,7 +755,7 @@
     .table-box {
       .is-stoped {
         td {
-          .cell {
+          .vxe-cell {
             color: #c4c6cc !important;
           }
         }
@@ -865,7 +865,7 @@
         color: @gray-color;
       }
 
-      .cell {
+      .vxe-cell {
         color: @disable-color !important;
       }
     }

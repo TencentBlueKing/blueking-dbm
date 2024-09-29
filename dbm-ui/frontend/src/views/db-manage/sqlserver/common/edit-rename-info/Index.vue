@@ -123,8 +123,8 @@
   .edit-name-box {
     padding: 20px 24px;
 
-    :deep(.bk-table-body) {
-      .cell {
+    :deep(.bk-vxe-table) {
+      .vxe-cell {
         padding: 0 !important;
       }
 

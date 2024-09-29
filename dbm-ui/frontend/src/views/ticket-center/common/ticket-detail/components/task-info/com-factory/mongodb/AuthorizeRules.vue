@@ -24,21 +24,20 @@
 <script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
-  import type { TicketDetails } from '@services/types/ticket';
+  import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
 
   import { TicketTypes } from '@common/const';
 
   import TextEllipsisOneLine from '@components/text-ellipsis-one-line/index.vue';
 
-  import type { MongoDBAuthorizeRules } from '../common/types';
   import DemandInfo, {
     type DemandInfoConfig,
   } from '../components/DemandInfo.vue';
 
-  import TargetClusterPreview from './TargetClusterPreview.vue';
+  import TargetClusterPreview from './components/TargetClusterPreview.vue';
 
   interface Props {
-    ticketDetails: TicketDetails<MongoDBAuthorizeRules>
+    ticketDetails: TicketModel<Mongodb.AuthorizeRules>
   }
 
   type dataItem = {
@@ -51,6 +50,11 @@
   }
 
   const props = defineProps<Props>();
+
+  defineOptions({
+    name: TicketTypes.MONGODB_AUTHORIZE_RULES,
+    inheritAttrs: false,
+  });
 
   const { t } = useI18n();
 
@@ -245,7 +249,7 @@
     transition: all 0.5s;
 
     td {
-      .cell {
+      .vxe-cell {
         padding: 0 !important;
       }
     }

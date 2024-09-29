@@ -29,7 +29,7 @@ export * from './privilegeCloneInst';
 export * from './proxyScaleDown';
 export * from './proxyScaleUp';
 export * from './proxySlaveApply';
-export * from './rollback';
+// export * from './rollback';
 export * from './slaveRebuildLocal';
 export * from './slaveRebuildNew';
 export * from './sqlExecute';

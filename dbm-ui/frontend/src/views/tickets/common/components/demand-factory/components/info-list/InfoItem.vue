@@ -36,7 +36,7 @@
     white-space: nowrap;
     flex: 1;
 
-    & > .bk-table {
+    & > .bk-vxe-table {
       margin-top: 8px;
     }
   }

@@ -20,7 +20,12 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 export default class RedisInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cpu: number;
+  bk_disk: number;
   bk_host_id: number;
+  bk_mem: number;
+  db_version: string;
+  bk_sub_zone: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
@@ -45,12 +50,17 @@ export default class RedisInstance {
   constructor(payload = {} as RedisInstance) {
     this.bk_cloud_id = payload.bk_cloud_id || 0;
     this.bk_cloud_name = payload.bk_cloud_name || '';
+    this.bk_cpu = payload.bk_cpu || 0;
+    this.bk_disk = payload.bk_disk || 0;
     this.bk_host_id = payload.bk_host_id || 0;
+    this.bk_mem = payload.bk_mem || 0;
+    this.bk_sub_zone = payload.bk_sub_zone || '';
     this.cluster_id = payload.cluster_id || 0;
     this.cluster_name = payload.cluster_name || '';
     this.cluster_type = payload.cluster_type || '';
     this.create_at = payload.create_at || '';
     this.db_module_id = payload.db_module_id || 0;
+    this.db_version = payload.db_version || '';
     this.host_info = payload.host_info || {};
     this.id = payload.id || 0;
     this.instance_address = payload.instance_address || '';

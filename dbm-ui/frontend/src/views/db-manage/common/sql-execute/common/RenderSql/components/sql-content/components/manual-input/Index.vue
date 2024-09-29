@@ -215,6 +215,7 @@
     } else {
       selectFileName.value = '';
     }
+
     triggerGramarCheckChange();
     triggerChange();
   };

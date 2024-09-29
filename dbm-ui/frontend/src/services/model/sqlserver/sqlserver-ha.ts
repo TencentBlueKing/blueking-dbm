@@ -15,6 +15,8 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
+import { ClusterAffinityMap } from '@common/const';
+
 import { t } from '@locales/index';
 
 import DateTime from '../_dateTime';
@@ -57,6 +59,7 @@ export default class SqlServerHaCluster extends DateTime {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   id: number;
   major_version: string;
   master_domain: string;
@@ -95,6 +98,7 @@ export default class SqlServerHaCluster extends DateTime {
     this.creator = payload.creator;
     this.db_module_id = payload.db_module_id;
     this.db_module_name = payload.db_module_name;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.id = payload.id;
     this.major_version = payload.major_version;
     this.master_domain = payload.master_domain;
@@ -228,5 +232,9 @@ export default class SqlServerHaCluster extends DateTime {
 
   get isStarting() {
     return Boolean(this.operations.find((item) => item.ticket_type === SqlServerHaCluster.SQLSERVER_ENABLE));
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

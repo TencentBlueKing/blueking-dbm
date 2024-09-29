@@ -75,8 +75,9 @@
 
     .info {
       display: flex;
-      align-items: center;
+      overflow: hidden;
       line-height: 32px;
+      align-items: center;
     }
 
     .info-name {
@@ -91,6 +92,7 @@
     }
 
     .info-value {
+      width: 100%;
       color: @title-color;
     }
   }
