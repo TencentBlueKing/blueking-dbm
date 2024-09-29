@@ -12,8 +12,7 @@
  */
 import _ from 'lodash';
 
-import type { MysqlOpenAreaDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 import { getDetail } from '@services/source/openarea';
 
 import { random } from '@utils';
@@ -25,7 +24,7 @@ const parser = (pattern: string, input: string) => {
 };
 
 // MySQL 开区
-export async function generateMysqlOpenAreaCloneData(ticketData: TicketModel<MysqlOpenAreaDetails>) {
+export async function generateMysqlOpenAreaCloneData(ticketData: TicketModel<Mysql.OpenArea>) {
   const { details } = ticketData;
   // 获取模板详情
   const templateDetail = await getDetail({ id: details.config_id });

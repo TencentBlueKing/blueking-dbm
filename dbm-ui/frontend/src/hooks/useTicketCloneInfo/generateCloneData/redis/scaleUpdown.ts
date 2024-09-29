@@ -11,8 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import RedisModel from '@services/model/redis/redis';
-import type { RedisScaleUpDownDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 import { getRedisList } from '@services/source/redis';
 
 import { ClusterTypes } from '@common/const';
@@ -20,7 +19,7 @@ import { ClusterTypes } from '@common/const';
 import { random } from '@utils';
 
 // Redis 集群容量变更
-export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<RedisScaleUpDownDetails>) {
+export async function generateRedisScaleUpdownCloneData(ticketData: TicketModel<Redis.ScaleUpdown>) {
   const { clusters, infos } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.cluster_id).join(','),

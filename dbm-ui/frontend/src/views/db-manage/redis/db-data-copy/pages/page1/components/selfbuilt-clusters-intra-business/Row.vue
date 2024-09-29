@@ -61,8 +61,6 @@
   </tr>
 </template>
 <script lang="ts">
-  import { RedisClusterType as ClusterType } from '@services/model/ticket/details/redis';
-
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
 
   import RenderKeyRelated from '@views/db-manage/redis/common/edit-field/RegexKeys.vue';
@@ -76,6 +74,11 @@
   import RenderAccessCode from './RenderAccessCode.vue';
   import RenderClusterType from './RenderClusterType.vue';
   import RenderSourceCluster from './RenderSourceCluster.vue';
+
+  enum ClusterType {
+    REDIS_INSTANCE = 'RedisInstance', // 主从版
+    REDIS_CLUSTER = 'RedisCluster', // 集群版
+  }
 
   export interface IDataRow {
     rowKey: string;
@@ -101,8 +104,7 @@
     includeKey: ['*'],
     excludeKey: [],
   });
-</script>
-<script setup lang="ts">
+
   interface Props {
     data: IDataRow;
     removeable: boolean;
@@ -118,7 +120,8 @@
   interface Exposes {
     getValue: () => Promise<SelfbuiltClusterToIntraInfoItem>;
   }
-
+</script>
+<script setup lang="ts">
   const props = defineProps<Props>();
 
   const emits = defineEmits<Emits>();
