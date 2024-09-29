@@ -11,11 +11,10 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
 // spider SQL变更执行
-export function generateSpiderSqlExecuteCloneData(ticketData: TicketModel<MySQLImportSQLFileDetails>) {
+export function generateSpiderSqlExecuteCloneData(ticketData: TicketModel<TendbCluster.ImportSqlFile>) {
   const { details } = ticketData;
   return Promise.resolve({
     backup: details.backup,
@@ -23,7 +22,6 @@ export function generateSpiderSqlExecuteCloneData(ticketData: TicketModel<MySQLI
     cluster_ids: details.cluster_ids,
     execute_objects: details.execute_objects,
     ticket_mode: details.ticket_mode,
-    execute_sql_files: details.execute_sql_files as string[],
     path: details.path,
     remark: ticketData.remark,
   });

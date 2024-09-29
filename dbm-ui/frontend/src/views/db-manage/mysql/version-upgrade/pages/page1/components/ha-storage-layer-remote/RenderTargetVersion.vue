@@ -439,6 +439,7 @@
         new_db_module_id: localModule.value as number,
         display_info: {
           target_version: localVersion.value,
+          target_package: packageSelectList.value.find((item) => item.id === localPackage.value)?.name || '',
           target_module_name: moduleSelectList.value.find((item) => item.id === localModule.value)?.name || '',
         },
       }));

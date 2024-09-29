@@ -53,6 +53,7 @@
         releate-url-query
         :row-class="setRowClass"
         row-hover="auto"
+        :show-overflow="false"
         :show-settgings="false"
         @clear-search="handleClearSearch"
         @refresh="fetchData" />
@@ -303,7 +304,8 @@
     {
       label: t('账号名称'),
       field: 'user',
-      width: 200,
+      minWidth: 200,
+      fixed: 'left',
       render: ({ data }: { data: PermissionRule }) => (
         <TextOverflowLayout>
           {{
@@ -390,7 +392,7 @@
     {
       label: t('权限'),
       field: 'privilege',
-      width: 400,
+      minWidth: 250,
       render: ({ data }: { data: PermissionRule }) => (
         getRenderList(data).map((rule) => {
           const { privilege } = rule;
@@ -426,7 +428,7 @@
     },
     {
       label: t('操作'),
-      width: 150,
+      minWidth: 100,
       fixed: 'right',
       render: ({ data }: { data: PermissionRule }) => {
         if (data.rules.length === 0) {

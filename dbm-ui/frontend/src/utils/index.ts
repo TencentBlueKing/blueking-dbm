@@ -27,6 +27,7 @@ export * from './encode';
 export * from './execCopy';
 export * from './exportExcelFile';
 export * from './generateId';
+export * from './getBusinessHref';
 export * from './getCostTimeDisplay';
 export * from './getMenuListSearch';
 export * from './getSearchSelectorParams';

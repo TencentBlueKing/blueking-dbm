@@ -12,14 +12,15 @@
  */
 
 import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
-import type { SpiderSlaveRebuid } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // spider 重建从库-本地重建
-export async function generateSpiderSlaveRebuildLocalCloneData(ticketData: TicketModel<SpiderSlaveRebuid>) {
+export async function generateSpiderSlaveRebuildLocalCloneData(
+  ticketData: TicketModel<TendbCluster.RestoreLocalSlave>,
+) {
   const { infos, backup_source } = ticketData.details;
   const instanceListResult = await getTendbclusterInstanceList({
     instance: infos.map((item) => item.slave.ip),

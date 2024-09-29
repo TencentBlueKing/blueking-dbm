@@ -19,7 +19,7 @@
     :model-value="localValue"
     :placeholder="t('请选择xx', [t('备份位置')])"
     :rules="rules"
-    @change="(value) => handleChange(value as string)" />
+    @change="(value: string) => handleChange(value)" />
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -36,7 +36,9 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>;
+    getValue: () => Promise<{
+      backup_local: string;
+    }>;
   }
 
   const props = defineProps<Props>();

@@ -33,7 +33,7 @@
     bk_cloud_id: number
   }
   interface Nodes {
-    proxy: Array<HostInfo>,
+    proxy?: Array<HostInfo>,
     backend: Array<HostInfo>,
   }
   interface Props {

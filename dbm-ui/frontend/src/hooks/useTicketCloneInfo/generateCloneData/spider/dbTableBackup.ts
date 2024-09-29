@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { SpiderTableBackupDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Spider TenDBCluster 库表备份
-export function generateSpiderDbTableBackupCloneData(ticketData: TicketModel<SpiderTableBackupDetails>) {
+export function generateSpiderDbTableBackupCloneData(ticketData: TicketModel<TendbCluster.DbTableBackup>) {
   const { infos, clusters } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterItem = clusters[item.cluster_id];

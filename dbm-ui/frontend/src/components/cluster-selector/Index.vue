@@ -497,6 +497,7 @@
             [tabKey]: tabSelectMap,
           };
         }, {} as SelectMapValueType<T>);
+
       showTabTips.value = true;
     }
   });

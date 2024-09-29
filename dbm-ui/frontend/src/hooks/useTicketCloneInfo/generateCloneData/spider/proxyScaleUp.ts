@@ -12,14 +12,13 @@
  */
 
 import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
-import type { SpiderAddNodesDeatils } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { getTendbClusterList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // spider扩容接入层
-export async function generateSpiderProxyScaleUpCloneData(ticketData: TicketModel<SpiderAddNodesDeatils>) {
+export async function generateSpiderProxyScaleUpCloneData(ticketData: TicketModel<TendbCluster.SpiderAddNodes>) {
   const { infos } = ticketData.details;
   const clusterListResult = await getTendbClusterList({
     cluster_ids: infos.map((item) => item.cluster_id),

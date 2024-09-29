@@ -33,13 +33,14 @@ import getServiceApplyRoutes from '@views/service-apply/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
+import getTicketRoutes from '@views/ticket-center/routes';
 import getTicketCooperationSettingRoutes from '@views/ticket-cooperation-setting/routes';
 import getTicketFlowSettingBizRoutes from '@views/ticket-flow-setting-biz/routes';
 import getTicketFlowSettingGlobalRoutes from '@views/ticket-flow-setting-global/routes';
-import getTicketManageRoutes from '@views/ticket-manage/routes';
-import getTicketSelfApplyRoutes from '@views/ticket-self-apply/routes';
-import getTicketSelfManageRoutes from '@views/ticket-self-manage/routes';
-import getTicketSelfTodoRoutes from '@views/ticket-self-todo/routes';
+// import getTicketManageRoutes from '@views/ticket-manage/routes';
+// import getTicketSelfApplyRoutes from '@views/ticket-self-apply/routes';
+// import getTicketSelfManageRoutes from '@views/ticket-self-manage/routes';
+// import getTicketSelfTodoRoutes from '@views/ticket-self-todo/routes';
 import getVersionFilesRoutes from '@views/version-files/routes';
 import getWhitelistRoutes from '@views/whitelist/routes';
 
@@ -59,6 +60,16 @@ const renderPageWithComponent = (route: RouteRecordRaw, component: typeof BizPer
       renderPageWithComponent(item, component);
     });
   }
+};
+
+const moduleList: RouteRecordRaw[] = [];
+export const registerModule = (routeList: RouteRecordRaw[]) => {
+  moduleList.push(...routeList);
+};
+
+const businessModuleList: RouteRecordRaw[] = [];
+export const registerBusinessModule = (routeList: RouteRecordRaw[]) => {
+  businessModuleList.push(...routeList);
 };
 
 export default () => {
@@ -92,12 +103,14 @@ export default () => {
     bizPermission = true;
   }
 
+  getTicketRoutes();
+
   const routes = [
     {
       path: rootPath,
       name: 'index',
       redirect: {
-        name: checkDbConsole('personalWorkbench.serviceApply') ? 'serviceApply' : 'DatabaseTendbha',
+        name: checkDbConsole('personalWorkbench.serviceApply') ? 'MyTodos' : 'DatabaseTendbha',
       },
       children: [
         ...getResourceManageRoutes(),
@@ -108,9 +121,7 @@ export default () => {
         ...getQuickSearchRoutes(),
         ...getDutyRuleManageRoutes(),
         ...getClusterStandardRoutes(),
-        ...getTicketSelfApplyRoutes(),
-        ...getTicketSelfTodoRoutes(),
-        ...getTicketSelfManageRoutes(),
+        ...moduleList,
       ],
     },
     {
@@ -126,11 +137,12 @@ export default () => {
         ...getStaffManageRoutes(),
         ...getTaskHistoryRoutes(),
         ...getWhitelistRoutes(),
-        ...getTicketManageRoutes(),
+        // ...getTicketManageRoutes(),
         ...getTemporaryPasswordModify(),
         ...getTicketFlowSettingBizRoutes(),
         ...getTicketCooperationSettingRoutes(),
         ...getTicketFlowSettingGlobalRoutes(),
+        ...businessModuleList,
       ],
     },
     {
@@ -139,6 +151,8 @@ export default () => {
       component: () => import('@views/404.vue'),
     },
   ];
+
+  console.log('routes = ', routes);
 
   if (!bizPermission) {
     renderPageWithComponent(routes[1], BizPermission);

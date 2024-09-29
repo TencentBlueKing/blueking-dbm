@@ -91,9 +91,9 @@
     white-space: nowrap;
 
     .content {
+      color: #313238;
       // padding-bottom: 2px;
       cursor: pointer;
-      color: #313238;
       // border-bottom: 1px dotted #979ba5;
     }
   }
@@ -104,8 +104,8 @@
   }
 
   .visible-icon {
+    font-size: 16px;
     color: #3a84ff;
     cursor: pointer;
-    font-size: 16px;
   }
 </style>
