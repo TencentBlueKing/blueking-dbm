@@ -69,10 +69,12 @@ export default () => {
   });
 
   onBeforeRouteUpdate((route) => {
-    if (currentRoute.name === route.name) {
-      return;
-    }
-    value.value = ['', ''];
+    setTimeout(() => {
+      if (currentRoute.name === route.name) {
+        return;
+      }
+      value.value = ['', ''];
+    });
   });
 
   return {

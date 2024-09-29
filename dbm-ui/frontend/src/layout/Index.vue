@@ -157,7 +157,13 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.personalWorkbench]: ['SelfServiceMyTickets', 'MyTodos', 'serviceApply', 'ticketSelfManage'],
+    [menuEnum.personalWorkbench]: [
+      'serviceApply',
+      'SelfServiceMyTickets',
+      'MyTodos',
+      'ticketSelfDone',
+      'ticketSelfManage',
+    ],
   } as Record<string, string[]>;
 
   const menuType = ref('');

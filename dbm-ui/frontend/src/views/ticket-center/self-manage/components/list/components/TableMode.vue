@@ -38,17 +38,13 @@
       </template>
       <template #action>
         <BkTableColumn
-          field="createAtDisplay"
           fixed="right"
           :label="t('操作')"
-          width="100">
+          width="250">
           <template #default="{ data }: { data: IRowData }">
-            <BkButton
-              text
-              theme="primary"
-              @click="handleGoCreateTicket(data)">
-              {{ t('再次提单') }}
-            </BkButton>
+            <TicketClone
+              v-if="data"
+              :data="data" />
           </template>
         </BkTableColumn>
       </template>
@@ -68,6 +64,7 @@
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
+  import TicketClone from '@views/ticket-center/common/TicketClone.vue';
 
   type IRowData = TicketModel<unknown>;
 
@@ -96,10 +93,6 @@
     appendSearchParams({
       viewId: data.id,
     });
-  };
-
-  const handleGoCreateTicket = (data: IRowData) => {
-    console.log('handleGoCreateTicket ', data);
   };
 
   onMounted(() => {

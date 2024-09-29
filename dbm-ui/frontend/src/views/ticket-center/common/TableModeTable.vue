@@ -103,6 +103,13 @@
           sort
           width="250" />
         <slot name="action" />
+        <template #empty>
+          <EmptyStatus
+            :is-anomalies="false"
+            :is-searching="isSearching"
+            @clear-search="handleClearSearch"
+            @refresh="fetchRefresh" />
+        </template>
       </BkTable>
     </div>
   </BkLoading>
@@ -114,6 +121,7 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { getTickets } from '@services/source/ticket';
 
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import MultLineText from '@components/mult-line-text/Index.vue';
 
   import useDatePicker from './hooks/use-date-picker';
@@ -146,13 +154,20 @@
 
   let isInited = false;
 
-  const { formatValue: formatDateValue } = useDatePicker();
+  const { value: datePickerValue, formatValue: formatDateValue } = useDatePicker();
   const { loading: isLoading, pagination, tableMaxHeight, fetchTicketList, dataList } = useFetchData(props.dataSource);
-  const { formatSearchValue } = useSearchSelect();
+  const { value: searchSelectValue, formatSearchValue } = useSearchSelect();
 
   const isWholeChecked = ref(false);
   const isCurrentPageAllSelected = ref(false);
   const rowSelectMemo = ref<Record<number, TicketModel<unknown>>>({});
+
+  const isSearching = computed(
+    () =>
+      Object.keys(formatSearchValue.value).length > 0 ||
+      formatDateValue.value.create_at__gte !== '' ||
+      formatDateValue.value.create_at__lte !== '',
+  );
 
   const fetchData = () => {
     fetchTicketList({
@@ -279,6 +294,15 @@
     pagination.current = pageValue;
     fetchData();
   };
+
+  const handleClearSearch = () => {
+    searchSelectValue.value = []
+    datePickerValue.value = ['', '']
+  }
+
+  const fetchRefresh = () => {
+    fetchData();
+  }
 
   onBeforeRouteLeave(() => {
     pause()

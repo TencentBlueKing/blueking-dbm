@@ -5,23 +5,23 @@
         v-model="ticketStatus"
         type="capsule">
         <BkRadioButton :label="TicketModel.STATUS_TODO">
-          {{ t('待我审批') }}
+          {{ t('待审批') }}
           <span>({{ ticketCount?.TODO }})</span>
         </BkRadioButton>
         <BkRadioButton :label="TicketModel.STATUS_APPROVE">
-          {{ t('待我确认') }}
+          {{ t('待执行') }}
           <span>({{ ticketCount?.APPROVE }})</span>
         </BkRadioButton>
         <BkRadioButton :label="TicketModel.STATUS_RESOURCE_REPLENISH">
-          {{ t('待我补货') }}
+          {{ t('待补货') }}
           <span>({{ ticketCount?.RESOURCE_REPLENISH }})</span>
         </BkRadioButton>
         <BkRadioButton :label="TicketModel.STATUS_FAILED">
-          {{ t('待我处理失败') }}
+          {{ t('失败待处理') }}
           <span>({{ ticketCount?.FAILED }})</span>
         </BkRadioButton>
         <BkRadioButton :label="TicketModel.STATUS_RUNNING">
-          {{ t('待我继续') }}
+          {{ t('待确认') }}
           <span>({{ ticketCount?.RUNNING }})</span>
         </BkRadioButton>
       </BkRadioGroup>

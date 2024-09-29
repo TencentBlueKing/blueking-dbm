@@ -20,7 +20,8 @@
 <script setup lang="ts">
   import TicketModel from '@services/model/ticket/ticket';
 
-  import ComFactory from './com-factory/Index.vue';
+  // import ComFactory from './com-factory/Index.vue';
+  import ComFactory from '@views/tickets/common/components/demand-factory/Index.vue';
 
   interface Props {
     data: TicketModel<unknown>;

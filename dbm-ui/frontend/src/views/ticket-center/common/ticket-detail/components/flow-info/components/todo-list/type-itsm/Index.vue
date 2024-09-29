@@ -11,6 +11,8 @@
 
   import StatusCommon from '../common';
 
+  import StatusTodo from './StatusTodo.vue';
+
   interface Props {
     data: FlowMode['todos'][number];
     flowData: FlowMode;
@@ -18,5 +20,7 @@
 
   const props = defineProps<Props>();
 
-  const renderCom = StatusCommon[props.data.status];
+  const renderCom = Object.assign({}, StatusCommon, {
+    [FlowMode.TODO_STATUS_TODO]: StatusTodo,
+  })[props.data.status];
 </script>

@@ -16,8 +16,8 @@
     <BkLoading :loading="isLoading">
       <DbTimeLine>
         <template
-          v-for="(item, index) in flowList"
-          :key="index">
+          v-for="item in flowList"
+          :key="`${item.flow_type}#${item.status}`">
           <template v-if="flowTypeModule[item.flow_type]">
             <Component
               :is="flowTypeModule[item.flow_type]"
@@ -65,7 +65,7 @@
   );
 
   const isLoading = ref(true);
-  const flowList = ref<ServiceReturnType<typeof getTicketFlows>>([]);
+  const flowList = shallowRef<ServiceReturnType<typeof getTicketFlows>>([]);
 
   const { runAsync: fetchTicketFlows } = useRequest(getTicketFlows, {
     manual: true,
@@ -74,6 +74,7 @@
         return;
       }
       flowList.value = data;
+      console.log('fetchTicketFlows', flowList.value);
     },
   });
 

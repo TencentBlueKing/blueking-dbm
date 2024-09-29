@@ -1,7 +1,7 @@
 import { computed, shallowRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
-import { onBeforeRouteUpdate, useRoute } from 'vue-router';
+import { onBeforeRouteLeave, useRoute } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketTypes } from '@services/source/ticket';
@@ -17,8 +17,8 @@ const value = ref<SearchValue[]>([]);
 const ticketTypeList = shallowRef<{ id: string; name: string }[]>([]);
 
 export default () => {
+  const route = useRoute();
   const { t } = useI18n();
-  const currentRoute = useRoute();
   const globalBizsStore = useGlobalBizs();
 
   const searchSelectData = computed(() => [
@@ -79,11 +79,13 @@ export default () => {
     },
   });
 
-  onBeforeRouteUpdate((route) => {
-    if (currentRoute.name === route.name) {
-      return;
-    }
-    value.value = [];
+  onBeforeRouteLeave((currentRoute) => {
+    setTimeout(() => {
+      if (currentRoute.name === route.name) {
+        return;
+      }
+      value.value = [];
+    });
   });
 
   return {
