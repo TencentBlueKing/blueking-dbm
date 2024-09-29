@@ -12,14 +12,15 @@
  */
 
 import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
-import type { MySQLInstanceCloneDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { getTendbclusterInstanceList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // Spider 权限克隆
-export async function generateSpiderPrivilegeCloneInstCloneData(ticketData: TicketModel<MySQLInstanceCloneDetails>) {
+export async function generateSpiderPrivilegeCloneInstCloneData(
+  ticketData: TicketModel<TendbCluster.InstanceCloneRules>,
+) {
   const { clone_data: cloneData } = ticketData.details;
   const instanceListResult = await getTendbclusterInstanceList({
     // instance_address: cloneData.reduce<string[]>((prev, item) => [...prev, item.source], []).join(','),

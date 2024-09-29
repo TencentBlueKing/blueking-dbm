@@ -10,13 +10,12 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { MySQLCloneDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Mysql 客户端权限克隆
-export function generateMysqlClientCloneData(ticketData: TicketModel<MySQLCloneDetails>) {
+export function generateMysqlClientCloneData(ticketData: TicketModel<Mysql.ClientCloneRules>) {
   return Promise.resolve({
     tableDataList: ticketData.details.clone_data.map((item) => ({
       ...item,

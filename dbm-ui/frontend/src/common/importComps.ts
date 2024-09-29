@@ -64,4 +64,6 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('AuthSwitcher', AuthSwitch);
   app.component('AuthRouterLink', AuthRouterLink);
   app.component('BKTableColumn', Table.Column);
+
+  console.log('aapp = ', app);
 };

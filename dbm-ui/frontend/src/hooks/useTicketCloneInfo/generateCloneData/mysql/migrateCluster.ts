@@ -10,13 +10,12 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { MySQLMigrateDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // MySQL 迁移(克隆)主从
-export function generateMysqlMigrateClusterCloneData(ticketData: TicketModel<MySQLMigrateDetails>) {
+export function generateMysqlMigrateClusterCloneData(ticketData: TicketModel<Mysql.MigrateCluster>) {
   const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];

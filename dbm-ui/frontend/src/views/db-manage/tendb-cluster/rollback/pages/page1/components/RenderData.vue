@@ -43,14 +43,28 @@
     :tab-list-config="tabListConfig"
     @change="handelClusterChange" />
 </template>
+<script lang="ts">
+  const enum RollbackClusterTypes {
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
+    BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
+    BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+  }
 
+  interface Props {
+    data: IDataRow[];
+    rollbackClusterType: RollbackClusterTypes;
+  }
+
+  interface Exposes {
+    reset: () => void;
+  }
+</script>
 <script setup lang="ts">
   import { debounce } from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRouter } from 'vue-router';
 
   import TendbClusterModel from '@services/model/tendbcluster/tendbcluster';
-  import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
   import { getTendbClusterList } from '@services/source/tendbcluster';
   import { createTicket } from '@services/source/ticket';
 
@@ -62,15 +76,6 @@
 
   import RenderRow, { createRowData, type IDataRow } from './render-row/Index.vue';
   import RenderTable from './RenderTable.vue';
-
-  interface Props {
-    data: IDataRow[];
-    rollbackClusterType: RollbackClusterTypes;
-  }
-
-  interface Exposes {
-    reset: () => void;
-  }
 
   const props = defineProps<Props>();
 

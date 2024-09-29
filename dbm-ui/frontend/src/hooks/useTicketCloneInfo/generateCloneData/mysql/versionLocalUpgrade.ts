@@ -13,8 +13,7 @@
 
 import TendbhaModel from '@services/model/mysql/tendbha';
 import TendbsingleModel from '@services/model/mysql/tendbsingle';
-import type { MySQLLocalUpgradeDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 import { getTendbhaList } from '@services/source/tendbha';
 import { getTendbsingleList } from '@services/source/tendbsingle';
 
@@ -23,7 +22,7 @@ import { ClusterTypes } from '@common/const';
 import { random } from '@utils';
 
 // MySQL 原地升级
-export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: TicketModel<MySQLLocalUpgradeDetails>) {
+export async function generateMysqlVersionLocalUpgradeCloneData(ticketData: TicketModel<Mysql.LocalUpgrade>) {
   const { clusters, infos, force } = ticketData.details;
   const clusterType = infos[0].display_info.cluster_type;
   const apiMap = {

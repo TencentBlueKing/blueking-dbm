@@ -11,8 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 import RedisModel from '@services/model/redis/redis';
-import type { RedisClusterTypeUpdateDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 import { getRedisList } from '@services/source/redis';
 
 import { random } from '@utils';
@@ -20,7 +19,7 @@ import { random } from '@utils';
 import { t } from '@locales/index';
 
 // Redis 集群类型变更
-export async function generateRedisClusterTypeUpdateCloneData(ticketData: TicketModel<RedisClusterTypeUpdateDetails>) {
+export async function generateRedisClusterTypeUpdateCloneData(ticketData: TicketModel<Redis.ClusterTypeUpdate>) {
   const { clusters, infos } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.src_cluster).join(','),

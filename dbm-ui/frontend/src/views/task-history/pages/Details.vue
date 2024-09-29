@@ -124,7 +124,7 @@
                 margin-right
                 :nodes-count="todoNodesCount"
                 :nodes-tree-data="todoNodesTreeData"
-                status-keypath="待确认n"
+                status-keypath="待继续n"
                 theme="warning"
                 title-keypath="人工确认节点（n）"
                 :tooltips="t('人工确认节点列表')"
@@ -283,7 +283,7 @@
               children="todoChildren"
               :nodes-count="todoNodesCount"
               :nodes-tree-data="todoNodesTreeData"
-              status-keypath="待确认n"
+              status-keypath="待继续n"
               theme="warning"
               title-keypath="人工确认节点（n）"
               :tooltips="t('人工确认节点列表')"

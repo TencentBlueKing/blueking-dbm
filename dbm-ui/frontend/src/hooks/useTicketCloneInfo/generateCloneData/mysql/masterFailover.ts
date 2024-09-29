@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { MySQLMasterFailDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // MySQL 主库故障切换
-export function generateMysqlMasterFailoverCloneData(ticketData: TicketModel<MySQLMasterFailDetails>) {
+export function generateMysqlMasterFailoverCloneData(ticketData: TicketModel<Mysql.MasterFailOver>) {
   const {
     clusters,
     infos,

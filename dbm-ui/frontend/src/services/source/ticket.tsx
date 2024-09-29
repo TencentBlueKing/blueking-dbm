@@ -42,6 +42,8 @@ export function getTickets(
     remark?: string;
     creator?: string;
     cluster?: string;
+    todo?: string;
+    self_manage?: number;
   } = {},
 ) {
   return http.get<ListBase<TicketModel<unknown>[]>>(`${path}/`, params).then((data) => ({
@@ -198,6 +200,8 @@ export function getTodoTickets(
     remark?: string;
     creator?: string;
     cluster?: string;
+    todo_status?: string;
+    status__in?: string;
   } = {},
 ) {
   return http.get<ListBase<TicketModel<unknown>[]>>(`${path}/get_todo_tickets/`, params).then((data) => ({

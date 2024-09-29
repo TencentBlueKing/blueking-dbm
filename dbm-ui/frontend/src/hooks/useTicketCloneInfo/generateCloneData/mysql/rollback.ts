@@ -10,13 +10,12 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { MySQLRollbackDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // MySQL 定点构造
-export function generateMysqlRollbackCloneData(ticketData: TicketModel<MySQLRollbackDetails>) {
+export function generateMysqlRollbackCloneData(ticketData: TicketModel<Mysql.RollbackCluster>) {
   const { clusters, infos, rollback_cluster_type } = ticketData.details;
   const tableDataList = infos.map((item) => ({
     rowKey: random(),

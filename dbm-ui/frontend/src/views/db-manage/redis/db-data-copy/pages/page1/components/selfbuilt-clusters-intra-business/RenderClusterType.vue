@@ -24,10 +24,8 @@
     </div>
   </BkLoading>
 </template>
-<script setup lang="ts">
+<script lang="ts">
   import { useI18n } from 'vue-i18n';
-
-  import { RedisClusterType as ClusterType } from '@services/model/ticket/details/redis';
 
   import TableEditSelect from '@views/db-manage/redis/common/edit/Select.vue';
 
@@ -39,7 +37,12 @@
   interface Exposes {
     getValue: () => Promise<string>;
   }
-
+  enum ClusterType {
+    REDIS_INSTANCE = 'RedisInstance', // 主从版
+    REDIS_CLUSTER = 'RedisCluster', // 集群版
+  }
+</script>
+<script setup lang="ts">
   const props = withDefaults(defineProps<Props>(), {
     data: ClusterType.REDIS_INSTANCE,
     isLoading: false,
