@@ -37,10 +37,10 @@ export default {
   for_biz: {
     label: t('所属业务'),
     component: 'for_biz',
-    type: 'number',
+    type: 'string',
     service: getBizs,
-    getNameByKey: (value: number, item: { bk_biz_id: number; display_name: string }) => {
-      if (`${value}` === `${item.bk_biz_id}`) {
+    getNameByKey: (value: string, item: { bk_biz_id: number; display_name: string }) => {
+      if (value === `${item.bk_biz_id}`) {
         return item.display_name;
       }
       return undefined;

@@ -15,7 +15,7 @@
   <BkSelect
     filterable
     :input-search="false"
-    :model-value="localValue"
+    :model-value="defaultValue"
     :placeholder="t('请选择所属业务')"
     show-selected-icon
     @change="handleChange">
@@ -53,12 +53,12 @@
     simple?: boolean;
   }
   interface Emits {
-    (e: 'change', value: number | undefined): void;
+    (e: 'change', value: Props['defaultValue']): void;
     (e: 'submit'): void;
     (e: 'cancel'): void;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
+  withDefaults(defineProps<Props>(), {
     defaultValue: '',
     simple: false,
   });
@@ -77,8 +77,6 @@
       display_name: string;
     }[]
   >([]);
-
-  const localValue = computed(() => Number(props.defaultValue) || '');
 
   useRequest(getBizs, {
     onSuccess(data) {
@@ -102,6 +100,6 @@
   };
 
   const handleChange = (value: Props['defaultValue']) => {
-    emits('change', value ? Number(value) : undefined);
+    emits('change', value);
   };
 </script>
