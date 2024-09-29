@@ -94,10 +94,6 @@
         label: t('所在城市'),
         key: 'idc_city_name',
       },
-      {
-        label: t('所在机房'),
-        key: 'bk_idc_name',
-      },
     ],
     [
       {
@@ -111,6 +107,36 @@
       {
         label: t('部署时间'),
         key: 'create_at',
+      },
+      {
+        label: 'CPU',
+        key: 'bk_cpu',
+        render: () => {
+          if (!Number.isFinite(props.data.bk_cpu)) {
+            return '--';
+          }
+          return `${props.data.bk_cpu}${t('核')}`;
+        },
+      },
+      {
+        label: t('内存'),
+        key: 'bk_mem',
+        render: () => {
+          if (!Number.isFinite(props.data.bk_mem)) {
+            return '--';
+          }
+          return `${props.data.bk_mem}MB`;
+        },
+      },
+      {
+        label: t('磁盘'),
+        key: 'bk_disk',
+        render: () => {
+          if (!Number.isFinite(props.data.bk_disk)) {
+            return '--';
+          }
+          return `${props.data.bk_disk}GB`;
+        },
       },
     ],
   ];

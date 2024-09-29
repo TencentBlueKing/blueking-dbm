@@ -66,6 +66,7 @@
               :max="168"
               :min="24"
               style="width: 200px"
+              suffix="h"
               type="number" />
           </BkFormItem>
           <BkFormItem

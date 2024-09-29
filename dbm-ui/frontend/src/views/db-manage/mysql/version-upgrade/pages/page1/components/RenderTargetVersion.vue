@@ -111,6 +111,7 @@
       new_db_module_id: number;
       display_info: {
         target_version: string;
+        target_package: string;
       };
     }>;
   }
@@ -275,6 +276,7 @@
         new_db_module_id: localModule.value as number,
         display_info: {
           target_version: localVersion.value,
+          target_package: packageSelectList.value.find((item) => item.id === localPackage.value)?.name || '',
         },
       }));
     },

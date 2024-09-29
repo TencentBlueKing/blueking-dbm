@@ -289,12 +289,14 @@
 
     .info {
       display: flex;
-      align-items: center;
+      overflow: hidden;
       line-height: 32px;
+      align-items: center;
     }
 
     .info-name {
       display: inline-block;
+      width: 100%;
       padding-bottom: 12px;
     }
 

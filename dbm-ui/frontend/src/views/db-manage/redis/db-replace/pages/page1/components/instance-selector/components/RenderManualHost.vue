@@ -244,11 +244,5 @@
 <style lang="less">
   .instance-selector-render-manual-host {
     padding: 0 24px;
-
-    .bk-table-body {
-      tr {
-        cursor: pointer;
-      }
-    }
   }
 </style>

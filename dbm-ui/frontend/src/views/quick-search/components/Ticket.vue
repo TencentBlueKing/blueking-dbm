@@ -41,6 +41,7 @@
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import HightLightText from '@components/system-search/components/search-result/render-result/components/HightLightText.vue';
+  import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   interface Props {
     keyword: string,
@@ -117,11 +118,7 @@
       label: t('单据状态'),
       field: 'status',
       sort: true,
-      render: ({ data }: { data: TicketModel }) => (
-        <bk-tag theme={data.tagTheme}>
-          {t(data.statusText)}
-        </bk-tag>
-      ),
+      render: ({ data }: { data: TicketModel }) => <TicketStatusTag data={data} />,
     },
     {
       label: t('业务'),

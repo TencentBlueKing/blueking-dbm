@@ -12,14 +12,13 @@
  */
 
 import TendbhaModel from '@services/model/mysql/tendbha';
-import type { MySQLMigrateUpgradeDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 import { getTendbhaList } from '@services/source/tendbha';
 
 import { random } from '@utils';
 
 // MySQL 迁移升级
-export async function generateMysqlVersionMigrateUpgradeCloneData(ticketData: TicketModel<MySQLMigrateUpgradeDetails>) {
+export async function generateMysqlVersionMigrateUpgradeCloneData(ticketData: TicketModel<Mysql.MigrateUpgrade>) {
   const { clusters, infos, backup_source: backupSource, force } = ticketData.details;
   const clusterListResult = await getTendbhaList({
     cluster_ids: infos.map((item) => item.cluster_ids[0]),

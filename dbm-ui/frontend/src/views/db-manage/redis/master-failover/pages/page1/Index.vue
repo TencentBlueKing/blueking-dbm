@@ -117,6 +117,8 @@
       isForceSwitch.value = force;
       remark.value = cloneData.remark;
       window.changeConfirm = true;
+
+      console.log('asdasd = ', tableData.value);
     },
   });
 

@@ -119,7 +119,7 @@
           {
             label: t('主访问入口'),
             field: 'cluster_domain',
-            width: 160,
+            width: 240,
             render: ({ data }: { data: QuickSearchInstanceModel }) => (
               <TextOverflowLayout>
                 {{

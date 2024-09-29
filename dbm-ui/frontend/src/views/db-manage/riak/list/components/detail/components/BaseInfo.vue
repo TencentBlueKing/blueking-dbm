@@ -29,7 +29,7 @@
     data: RiakModel;
   }
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
 
@@ -44,8 +44,13 @@
         key: 'domain',
       },
       {
+        label: t('地域'),
+        key: 'region',
+      },
+      {
         label: t('管控区域'),
         key: 'bk_cloud_name',
+        render: () => (props.data.bk_cloud_name ? `${props.data.bk_cloud_name}[${props.data.bk_cloud_id}]` : '--'),
       },
     ],
     [
@@ -56,6 +61,15 @@
       {
         label: t('创建时间'),
         key: 'create_at',
+      },
+      {
+        label: t('容灾要求'),
+        key: 'disasterToleranceLevelName',
+      },
+      {
+        label: t('规格'),
+        key: 'spec_name',
+        render: () => props.data.cluster_spec.spec_name || '--',
       },
     ],
   ];

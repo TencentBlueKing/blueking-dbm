@@ -279,8 +279,8 @@
 <style lang="less" scoped>
   @import './specFormItem.less';
 
-  :deep(.bk-table-body) {
-    .cell {
+  :deep(.bk-vxe-table) {
+    .vxe-cell {
       padding: 0 !important;
 
       .large-size {

@@ -480,7 +480,7 @@
   function handleChangeLock(index: number, value: boolean) {
     emits('onChangeLock', index, value);
     // 设置 tips 信息
-    if (tipsAgain) {
+    if (tipsAgain.value) {
       lockTipsList.value.forEach((_, index) => {
         lockTipsList.value[index] = false;
       });
@@ -601,39 +601,37 @@
   .parameter-table.custom-edit-table {
     .sticky-table(var(--sticky-top));
 
-    .bk-table-body {
+    .bk-vxe-table {
       height: calc(var(--height) - 42px) !important;
 
-      .bk-table-body-content {
-        .parameter-add {
-          td {
-            background: #f1fcf5 !important;
-          }
-
-          &:not(:hover) {
-            .bk-input--text,
-            .bk-tag-input .bk-tag-input-trigger,
-            .bk-tag-input .bk-tag-input-trigger .tag-input,
-            .bk-select-input,
-            .range-input {
-              background-color: #f1fcf5;
-            }
-          }
+      .parameter-add {
+        td {
+          background: #f1fcf5 !important;
         }
 
-        .parameter-update {
-          td {
-            background: #fff8e7 !important;
+        &:not(:hover) {
+          .bk-input--text,
+          .bk-tag-input .bk-tag-input-trigger,
+          .bk-tag-input .bk-tag-input-trigger .tag-input,
+          .bk-select-input,
+          .range-input {
+            background-color: #f1fcf5;
           }
+        }
+      }
 
-          &:not(:hover) {
-            .bk-input--text,
-            .bk-tag-input .bk-tag-input-trigger,
-            .bk-tag-input .bk-tag-input-trigger .tag-input,
-            .bk-select-input,
-            .range-input {
-              background-color: #fff8e7;
-            }
+      .parameter-update {
+        td {
+          background: #fff8e7 !important;
+        }
+
+        &:not(:hover) {
+          .bk-input--text,
+          .bk-tag-input .bk-tag-input-trigger,
+          .bk-tag-input .bk-tag-input-trigger .tag-input,
+          .bk-select-input,
+          .range-input {
+            background-color: #fff8e7;
           }
         }
       }

@@ -52,6 +52,7 @@
         :row-class="getRowClass"
         selectable
         :settings="tableSetting"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -307,7 +308,7 @@
     {
       label: t('访问入口'),
       field: 'domain',
-      minWidth: 320,
+      minWidth: 300,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -445,15 +446,6 @@
       ),
     },
     {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: {data: DorisModel}) => <span>{data.bk_cloud_name ?? '--'}</span>,
-    },
-    {
       label: t('状态'),
       field: 'status',
       minWidth: 100,
@@ -489,6 +481,12 @@
       },
     },
     {
+        label: t('容灾要求'),
+        field: 'disaster_tolerance_level',
+        minWidth: 100,
+        render: ({ data }: { data: DorisModel }) => data.disasterToleranceLevelName || '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -497,6 +495,15 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: {data: DorisModel}) => <span>{data?.region || '--'}</span>,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: { data: DorisModel }) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('Follower节点'),
@@ -814,6 +821,7 @@
       'cluster_name',
       'bk_cloud_id',
       'major_version',
+      'disaster_tolerance_level',
       'region',
       'status',
       'doris_follower',
@@ -984,20 +992,6 @@
       .bk-nested-loading {
         height: 100%;
       }
-
-      .bk-table {
-        height: 100% !important;
-      }
-
-      .bk-table-body {
-        max-height: calc(100% - 100px);
-      }
-    }
-
-    .is-shrink-table {
-      .bk-table-body {
-        overflow: hidden auto;
-      }
     }
 
     .db-icon-more {
@@ -1045,9 +1039,7 @@
 
 <style lang="less" scoped>
   .doris-list-page {
-    :deep(.cell) {
-      line-height: normal !important;
-
+    :deep(.vxe-cell) {
       .db-icon-edit {
         display: none;
         margin-left: 4px;

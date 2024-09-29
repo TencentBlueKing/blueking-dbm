@@ -103,7 +103,6 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisDSTHistoryJobModel from '@services/model/redis/redis-dst-history-job';
-  import type { RedisClusterType as ClusterType } from '@services/model/ticket/details/redis';
 
   import { useTicketCloneInfo } from '@hooks';
 
@@ -134,6 +133,11 @@
   const emits = defineEmits<{
     'change-table-available': [status: boolean];
   }>();
+
+  enum ClusterType {
+    REDIS_INSTANCE = 'RedisInstance', // 主从版
+    REDIS_CLUSTER = 'RedisCluster', // 集群版
+  }
 
   const { t } = useI18n();
 

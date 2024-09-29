@@ -57,6 +57,8 @@
   });
 </script>
 <script setup lang="ts">
+  import { type Mysql } from '@services/model/ticket/ticket';
+
   import RenderCluster from '@views/db-manage/mysql/common/edit-field/ClusterName.vue';
 
   import RenderBackupLocal from './RenderBackupLocal.vue';
@@ -65,6 +67,7 @@
     data: IDataRow;
     removeable: boolean;
   }
+
   interface Emits {
     (e: 'add', params: Array<IDataRow>): void;
     (e: 'remove'): void;
@@ -73,7 +76,7 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<any>;
+    getValue: () => Promise<Mysql.HaFullBackup['infos'][number]>;
   }
 
   const props = defineProps<Props>();

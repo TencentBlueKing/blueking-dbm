@@ -12,14 +12,13 @@
  */
 
 import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
-import type { SpiderMNTApplyDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { getTendbClusterList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // Spider 临时节点添加
-export async function generateSpiderAddMntDataCloneData(ticketData: TicketModel<SpiderMNTApplyDetails>) {
+export async function generateSpiderAddMntDataCloneData(ticketData: TicketModel<TendbCluster.SpiderMntApply>) {
   const { infos } = ticketData.details;
   const clusterListResult = await getTendbClusterList({
     cluster_ids: infos.map((item) => item.cluster_id),

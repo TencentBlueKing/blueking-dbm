@@ -115,7 +115,7 @@
           {
             label: t('主访问入口'),
             field: 'immute_domain',
-            width: 160,
+            width: 240,
             render: ({ data }: { data: QuickSearchClusterNameModel }) => (
               <TextOverflowLayout>
                 {{
@@ -189,7 +189,7 @@
           {
             label: t('创建时间'),
             field: 'create_at',
-            width: 150,
+            width: 240,
             sort: true,
             render: ({ data }: { data: QuickSearchClusterNameModel }) => data.createAtDisplay || '--',
           },

@@ -11,14 +11,13 @@
  * the specific language governing permissions and limitations under the License.
  */
 import RedisModel from '@services/model/redis/redis';
-import type { RedisProxyScaleUpDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 import { getRedisList } from '@services/source/redis';
 
 import { random } from '@utils';
 
 // Redis 接入层扩容
-export async function generateRedisProxyScaleUpCloneData(ticketData: TicketModel<RedisProxyScaleUpDetails>) {
+export async function generateRedisProxyScaleUpCloneData(ticketData: TicketModel<Redis.ProxyScaleUp>) {
   const { clusters, infos, specs } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.cluster_id).join(','),

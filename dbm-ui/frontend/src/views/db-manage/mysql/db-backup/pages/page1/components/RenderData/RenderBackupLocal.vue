@@ -36,7 +36,9 @@
   }
 
   interface Exposes {
-    getValue: () => Promise<Record<string, string>>;
+    getValue: () => Promise<{
+      backup_local: string;
+    }>;
   }
 
   const props = defineProps<Props>();

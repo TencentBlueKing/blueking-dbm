@@ -15,9 +15,13 @@ import { uniq } from 'lodash';
 
 import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
 
+import { ClusterAffinityMap } from '@common/const';
+
 import { isRecentDays, utcDisplayTime } from '@utils';
 
 import { t } from '@locales/index';
+
+import type ClusterSpec from '../resource-spec/cluster-sepc';
 
 export default class Riak {
   static RIAK_CLUSTER_SCALE_OUT = 'RIAK_CLUSTER_SCALE_OUT';
@@ -54,6 +58,7 @@ export default class Riak {
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
+  cluster_spec: ClusterSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
   cluster_type: string;
@@ -62,6 +67,7 @@ export default class Riak {
   creator: string;
   db_module_id: number;
   db_module_name: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   domain: string;
   id: number;
   major_version: string;
@@ -96,6 +102,7 @@ export default class Riak {
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name || '';
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type || '';
     this.cluster_type_name = payload.cluster_type_name || '';
@@ -104,6 +111,7 @@ export default class Riak {
     this.creator = payload.creator || '';
     this.db_module_id = payload.db_module_id || 0;
     this.db_module_name = payload.db_module_name || '';
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.id = payload.id || 0;
     this.master_domain = payload.master_domain || '';
@@ -222,5 +230,9 @@ export default class Riak {
       tip: Riak.operationTextMap[item.ticket_type],
       ticketId: item.ticket_id,
     }));
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

@@ -60,6 +60,7 @@
           :row-class="getRowClass"
           selectable
           :settings="settings"
+          :show-overflow="false"
           @clear-search="clearSearchValue"
           @column-filter="columnFilterChange"
           @column-sort="columnSortChange"
@@ -379,7 +380,7 @@
     {
       label: t('访问入口'),
       field: 'master_domain',
-      minWidth: 320,
+      minWidth: 280,
       fixed: 'left',
       renderHead: () => (
         <RenderHeadCopy
@@ -490,7 +491,6 @@
       label: t('集群名称'),
       field: 'cluster_name',
       minWidth: 200,
-      showOverflowTooltip: false,
       renderHead: () => (
         <RenderHeadCopy
           hasSelected={hasSelected.value}
@@ -529,15 +529,6 @@
             onClick={() => copy(data.cluster_name)} />
         </div>
       ),
-    },
-    {
-      label: t('管控区域'),
-      field: 'bk_cloud_id',
-      filter: {
-        list: columnAttrs.value.bk_cloud_id,
-        checked: columnCheckedMap.value.bk_cloud_id,
-      },
-      render: ({ data }: ColumnRenderData) => <span>{data.bk_cloud_name ?? '--'}</span>,
     },
     {
       label: t('状态'),
@@ -715,6 +706,12 @@
       render: ({ data }: ColumnRenderData) => data.module_names.length ? data.module_names.map(item=><p class="mb-4">{item}</p>) : '--',
     },
     {
+      label: t('容灾要求'),
+      field: 'disaster_tolerance_level',
+      minWidth: 100,
+      render: ({ data }: ColumnRenderData) => data.disasterToleranceLevelName || '--',
+    },
+    {
       label: t('地域'),
       field: 'region',
       minWidth: 100,
@@ -723,6 +720,15 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ data }: ColumnRenderData) => data.region || '--',
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      render: ({ data }: ColumnRenderData) => data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('更新人'),
@@ -1031,7 +1037,9 @@
         'cluster_type_name',
         'major_version',
         'module_names',
+        'disaster_tolerance_level',
         'region',
+        'spec_name',
       ],
       showLineHeight: false,
       trigger: 'manual' as const,
@@ -1314,11 +1322,11 @@
       .table-wrapper {
         background-color: white;
 
-        .bk-table {
+        .vxe-table {
           height: 100% !important;
         }
 
-        :deep(td .cell) {
+        :deep(td .vxe-cell) {
           line-height: unset !important;
 
           .db-icon-copy,
@@ -1407,13 +1415,9 @@
             }
           }
 
-          .cell {
+          .vxe-cell {
             color: @disable-color;
           }
-        }
-
-        :deep(.bk-table-body) {
-          max-height: calc(100% - 100px);
         }
       }
     }
