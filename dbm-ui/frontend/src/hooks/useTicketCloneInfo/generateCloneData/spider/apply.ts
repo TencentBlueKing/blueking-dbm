@@ -11,11 +11,10 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { SpiderApplyDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
 // spider 集群部署
-export async function generateSpiderApplyCloneData(ticketData: TicketModel<SpiderApplyDetails>) {
+export async function generateSpiderApplyCloneData(ticketData: TicketModel<TendbCluster.Apply>) {
   const { details } = ticketData;
 
   return Promise.resolve({

@@ -12,14 +12,13 @@
  */
 
 import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
-import type { SpiderNodeRebalanceDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { getTendbClusterList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // Spider 集群remote节点扩缩容
-export async function generateSpiderCapacityChangeCloneData(ticketData: TicketModel<SpiderNodeRebalanceDetails>) {
+export async function generateSpiderCapacityChangeCloneData(ticketData: TicketModel<TendbCluster.NodeRebalance>) {
   const {
     infos,
     need_checksum: needChecksum,

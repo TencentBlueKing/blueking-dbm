@@ -43,8 +43,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
-
   import { useTicketCloneInfo } from '@hooks';
 
   import { TicketTypes } from '@common/const';
@@ -53,6 +51,12 @@
 
   import { createRowData, type IDataRow } from './components/render-row/Index.vue';
   import RenderData from './components/RenderData.vue';
+
+  const enum RollbackClusterTypes {
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
+    BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
+    BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+  }
 
   const { t } = useI18n();
 

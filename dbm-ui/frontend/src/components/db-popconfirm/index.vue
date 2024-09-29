@@ -21,12 +21,14 @@
   </div>
   <div
     ref="popRef"
-    style="width: 280px; padding: 15px 10px">
+    :style="contentStyle">
     <div style="font-size: 16px; line-height: 20px; color: #313238">
       {{ title }}
     </div>
     <div style="margin-top: 10px; font-size: 12px; color: #63656e">
-      {{ content }}
+      <slot name="content">
+        {{ content }}
+      </slot>
     </div>
     <div style="margin-top: 16px; text-align: right">
       <BkButton
@@ -51,14 +53,17 @@
 
   interface Props {
     title: string;
-    content: string;
+    content?: string;
     placement?: Placement;
+    width?: number;
     confirmHandler: () => Promise<any> | void;
     cancelHandler?: () => Promise<any> | void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     placement: 'top',
+    content: '',
+    width: 280,
     cancelHandler: () => Promise.resolve(),
   });
 
@@ -71,6 +76,11 @@
   const rootRef = ref();
   const popRef = ref();
   const isConfirmLoading = ref(false);
+
+  const contentStyle = computed(() => ({
+    width: `${props.width}px`,
+    padding: '15px 10px',
+  }));
 
   const handleConfirm = () => {
     isConfirmLoading.value = true;
@@ -114,7 +124,7 @@
             {
               name: 'flip',
               options: {
-                fallbackPlacements: ['top-start', 'top-end'],
+                fallbackPlacements: ['top', 'bottom'],
                 allowedAutoPlacements: ['top-start', 'top-end'],
               },
             },
@@ -147,25 +157,25 @@
       background-color: #fff;
     }
 
-    .tippy-arrow {
-      position: absolute;
-      bottom: -6px !important;
-      left: 50% !important;
-      background: #fff;
-      border: 1px solid #dcdee5 !important;
-      transform: translateX(-50%) rotateZ(45deg) !important;
-      box-shadow: 0 0 6px 0 #dcdee5 !important;
+    // .tippy-arrow {
+    //   position: absolute;
+    //   bottom: -6px !important;
+    //   left: 50% !important;
+    //   background: #fff;
+    //   border: 1px solid #dcdee5 !important;
+    //   transform: translateX(-50%) rotateZ(45deg) !important;
+    //   box-shadow: 0 0 6px 0 #dcdee5 !important;
 
-      &::before {
-        content: none;
-      }
-    }
+    //   &::before {
+    //     content: none;
+    //   }
+    // }
 
-    &[data-placement^='top-end'] {
-      & > .tippy-arrow {
-        right: -6px;
-        left: unset !important;
-      }
-    }
+    // &[data-placement^='top-end'] {
+    //   & > .tippy-arrow {
+    //     right: -6px;
+    //     left: unset !important;
+    //   }
+    // }
   }
 </style>

@@ -12,14 +12,13 @@
  */
 
 import TendbclusterMachineModel from '@services/model/tendbcluster/tendbcluster-machine';
-import type { SpiderMigrateCluster } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { getTendbclusterMachineList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // spider 迁移主从
-export async function generateSpiderMasterSlaveCloneCloneData(ticketData: TicketModel<SpiderMigrateCluster>) {
+export async function generateSpiderMasterSlaveCloneCloneData(ticketData: TicketModel<TendbCluster.MigrateCluster>) {
   const { infos, backup_source: backupSource } = ticketData.details;
   const masterMachineResult = await getTendbclusterMachineList({
     ip: infos.map((item) => item.old_master.ip).join(','),

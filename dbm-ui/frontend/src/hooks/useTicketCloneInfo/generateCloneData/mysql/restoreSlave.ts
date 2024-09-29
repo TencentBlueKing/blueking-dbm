@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { MySQLRestoreSlaveDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // MySQL 重建从库-新机重建
-export function generateMysqlRestoreSlaveCloneData(ticketData: TicketModel<MySQLRestoreSlaveDetails>) {
+export function generateMysqlRestoreSlaveCloneData(ticketData: TicketModel<Mysql.RestoreSlave>) {
   const { infos } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];

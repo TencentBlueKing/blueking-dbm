@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { SpiderMasterSlaveSwitchDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Spider 主从切换
-export function generateSpiderMasterSlaveSwapCloneData(ticketData: TicketModel<SpiderMasterSlaveSwitchDetails>) {
+export function generateSpiderMasterSlaveSwapCloneData(ticketData: TicketModel<TendbCluster.MasterSlaveSwitch>) {
   const {
     clusters,
     infos,

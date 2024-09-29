@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { MySQLMasterSlaveDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // MySQL 主从互换
-export function generateMysqlMasterSlaveSwicthCloneData(ticketData: TicketModel<MySQLMasterSlaveDetails>) {
+export function generateMysqlMasterSlaveSwicthCloneData(ticketData: TicketModel<Mysql.MasterSlaveSwitch>) {
   const {
     clusters,
     infos,
