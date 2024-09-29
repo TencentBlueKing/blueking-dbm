@@ -92,6 +92,7 @@
       border-radius: 20px;
     }
   }
+
   .sql-execute-more-action-box {
     display: flex;
     margin-top: 12px;

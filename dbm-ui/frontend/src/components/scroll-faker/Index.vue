@@ -71,11 +71,12 @@
       scrollContent: any;
     };
   }
-</script>
-<script setup lang="ts">
+
   interface Props {
     theme?: string;
   }
+</script>
+<script setup lang="ts">
   withDefaults(defineProps<Props>(), {
     theme: 'light',
   });
@@ -129,21 +130,19 @@
     handleCalcScroller();
   });
 
-  const getScroll = () => {
-    const { scrollLeft, scrollTop } = scrollContent.value;
-    return {
-      scrollLeft,
-      scrollTop,
-    };
-  };
-
-  const scrollTo = (scrollLeft: number, scrollTop: number) => {
-    scrollContent.value.scrollTo(scrollLeft, scrollTop);
-  };
-
   defineExpose({
-    getScroll,
-    scrollTo,
+    getScroll: () => {
+      const { scrollLeft, scrollTop } = scrollContent.value;
+      return {
+        scrollLeft,
+        scrollTop,
+      };
+    },
+    scrollTo: (scrollLeft: number, scrollTop: number) => {
+      scrollContent.value.scrollTo(scrollLeft, scrollTop);
+      verticalScroll.value?.scrollTo(0, scrollTop);
+      horizontalScrollbar.value?.scrollTo(scrollLeft, 0);
+    },
     boxState,
   });
 </script>
@@ -177,9 +176,9 @@
     }
 
     & > .scroll-faker-content {
-      height: inherit;
-      max-width: inherit;
-      max-height: inherit;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
       overflow: scroll;
 
       &::-webkit-scrollbar {

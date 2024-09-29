@@ -9,9 +9,9 @@
           <td>{{ ticketData.id }}</td>
           <td>{{ t('单据状态') }}:</td>
           <td>
-            <BkTag :theme="ticketData.tagTheme">
-              {{ t(ticketData.statusText) }}
-            </BkTag>
+            <TicketStatusTag
+              :data="ticketData"
+              small />
           </td>
           <td>{{ t('已耗时') }}:</td>
           <td>
@@ -39,6 +39,7 @@
   import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
+  import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 

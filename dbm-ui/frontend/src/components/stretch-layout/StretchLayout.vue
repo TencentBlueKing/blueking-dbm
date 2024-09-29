@@ -42,6 +42,22 @@
 <script lang="ts">
   import { type InjectionKey, nextTick, provide, type Ref } from 'vue';
 
+  interface Props {
+    name: string;
+    leftWidth?: number;
+    minLeftWidth?: number;
+  }
+
+  interface Slots {
+    list(): any;
+    default(): any;
+    right(): any;
+  }
+
+  interface Emits {
+    (e: 'change', split: boolean): void;
+  }
+
   export const provideKey: InjectionKey<{
     isOpen: Ref<boolean>;
     isSplited: Ref<boolean>;
@@ -54,23 +70,14 @@
 
   import DragResize from './components/DragResize.vue';
 
-  const props = withDefaults(
-    defineProps<{
-      name: string;
-      leftWidth?: number;
-      minLeftWidth?: number;
-    }>(),
-    {
-      leftWidth: 456,
-      minLeftWidth: 200,
-    },
-  );
+  const props = withDefaults(defineProps<Props>(), {
+    leftWidth: 456,
+    minLeftWidth: 200,
+  });
 
-  defineSlots<{
-    list(): any;
-    default(): any;
-    right(): any;
-  }>();
+  const emits = defineEmits<Emits>();
+
+  defineSlots<Slots>();
 
   const getMaxWidth = () => rootRef.value.getBoundingClientRect().width;
 
@@ -79,6 +86,7 @@
   const isOpen = ref(false);
   const renderLeftWidth = ref(0);
   const isRightHidden = ref(true);
+  // 左右分屏状态
   const isSplited = ref(false);
 
   const calcSplited = () => {
@@ -87,6 +95,7 @@
         isSplited.value = false;
       }
       isSplited.value = renderLeftWidth.value < getMaxWidth();
+      emits('change', isSplited.value);
     });
   };
 

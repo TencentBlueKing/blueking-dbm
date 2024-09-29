@@ -10,13 +10,12 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { RedisDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
 import { TicketTypes } from '@common/const';
 
 // Redis 集群部署
-export function generateRedisApplyCloneData(ticketData: TicketModel<RedisDetails>) {
+export function generateRedisApplyCloneData(ticketData: TicketModel<Redis.ClusterApply>) {
   const { details } = ticketData;
   return Promise.resolve({
     bk_biz_id: ticketData.bk_biz_id,

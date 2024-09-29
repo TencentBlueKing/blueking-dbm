@@ -10,15 +10,14 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { checkHost } from '@services/source/ipchooser';
 import { getTendbClusterList } from '@services/source/tendbcluster';
 
 import { ClusterTypes } from '@common/const';
 
 // Spider 集群授权
-export async function generateSpiderAuthorizeRuleCloneData(ticketData: TicketModel<MysqlAuthorizationDetails>) {
+export async function generateSpiderAuthorizeRuleCloneData(ticketData: TicketModel<TendbCluster.AuthorizeRules>) {
   const { authorize_data: authorizeData } = ticketData.details;
   const sourceIpList: ServiceReturnType<typeof checkHost> = [];
   if (authorizeData.source_ips && Array.isArray(authorizeData.source_ips)) {

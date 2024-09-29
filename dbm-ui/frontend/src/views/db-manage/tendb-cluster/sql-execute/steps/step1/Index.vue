@@ -66,7 +66,7 @@
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
-  import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
+  import { type TendbCluster } from '@services/model/ticket/ticket';
   import { querySemanticData, semanticCheck } from '@services/source/mysqlSqlImport';
   import { getTicketDetails } from '@services/source/ticket';
 
@@ -148,7 +148,7 @@
     ],
     manual: !ticketId,
     onSuccess(ticketData) {
-      uploadFilePath.value = (ticketData.details as MySQLImportSQLFileDetails).path;
+      uploadFilePath.value = (ticketData.details as TendbCluster.ImportSqlFile).path;
     },
   });
 

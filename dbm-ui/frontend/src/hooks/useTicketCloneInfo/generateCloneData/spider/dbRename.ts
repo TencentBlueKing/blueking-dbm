@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { SpiderRenameDatabaseDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Spider Tendbcluster 重命名
-export function generateSpiderDbRenameCloneData(ticketData: TicketModel<SpiderRenameDatabaseDetails>) {
+export function generateSpiderDbRenameCloneData(ticketData: TicketModel<TendbCluster.RenameDataBase>) {
   const { infos, force, clusters } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterItem = clusters[item.cluster_id];

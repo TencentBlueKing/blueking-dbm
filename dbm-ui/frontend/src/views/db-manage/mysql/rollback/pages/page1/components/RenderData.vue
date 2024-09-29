@@ -55,7 +55,22 @@
     :selected="selectedClusters"
     @change="handelClusterChange" />
 </template>
+<script lang="ts">
+  const enum RollbackClusterTypes {
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
+    BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
+    BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+  }
 
+  interface Props {
+    data: IDataRow[];
+    rollbackClusterType: RollbackClusterTypes;
+  }
+
+  interface Exposes {
+    reset: () => void;
+  }
+</script>
 <script setup lang="ts">
   import { debounce } from 'lodash';
   import { useI18n } from 'vue-i18n';
@@ -63,7 +78,6 @@
 
   import TendbhaModel from '@services/model/mysql/tendbha';
   import TendbsingleModel from '@services/model/mysql/tendbsingle';
-  import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
   import { createTicket } from '@services/source/ticket';
 
   import { ClusterTypes, TicketTypes } from '@common/const';
@@ -74,15 +88,6 @@
 
   import RenderRow, { createRowData, type IDataRow } from './render-row/Index.vue';
   import RenderTable from './RenderTable.vue';
-
-  interface Props {
-    data: IDataRow[];
-    rollbackClusterType: RollbackClusterTypes;
-  }
-
-  interface Exposes {
-    reset: () => void;
-  }
 
   const props = defineProps<Props>();
 

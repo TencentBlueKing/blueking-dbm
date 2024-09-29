@@ -1,0 +1,69 @@
+<template>
+  <StatusFailed
+    :data="data"
+    :ticket-detail="ticketDetail">
+    <template #content>
+      <I18nT keypath="m_耗时_t">
+        <span style="color: #ea3636">{{ t('执行失败') }}</span>
+        <CostTimer
+          :is-timing="false"
+          :start-time="utcTimeToSeconds(data.start_time)"
+          :value="data.cost_time" />
+      </I18nT>
+      <template v-if="data.url">
+        <span> ，</span>
+        <a
+          :href="data.url"
+          target="_blank">
+          {{ t('查看详情') }}
+        </a>
+      </template>
+      <div
+        v-if="data.err_msg || [0, 2].includes(data.err_code)"
+        class="mt-12">
+        <ProcessRetry :data="ticketDetail">
+          <BkButton
+            class="w-88"
+            theme="primary">
+            {{ t('重试') }}
+          </BkButton>
+        </ProcessRetry>
+        <ProcessTerminate :data="ticketDetail">
+          <BkButton
+            class="ml-8 w-88"
+            theme="danger">
+            {{ t('终止') }}
+          </BkButton>
+        </ProcessTerminate>
+      </div>
+    </template>
+  </StatusFailed>
+</template>
+<script setup lang="ts">
+  import { useI18n } from 'vue-i18n';
+
+  import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
+
+  import CostTimer from '@components/cost-timer/CostTimer.vue';
+
+  import ProcessRetry from '@views/ticket-center/common/action-confirm/ProcessRetry.vue';
+  import ProcessTerminate from '@views/ticket-center/common/action-confirm/ProcessTerminate.vue';
+
+  import { utcTimeToSeconds } from '@utils';
+
+  import StatusFailed from '../flow-type-common/StatusFailed.vue';
+
+  interface Props {
+    data: FlowMode;
+    ticketDetail: TicketModel<unknown>;
+  }
+
+  defineProps<Props>();
+
+  defineOptions({
+    name: FlowMode.STATUS_FAILED,
+  });
+
+  const { t } = useI18n();
+</script>

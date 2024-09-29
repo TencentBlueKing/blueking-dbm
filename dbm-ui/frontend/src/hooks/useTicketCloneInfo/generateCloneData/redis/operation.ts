@@ -11,11 +11,10 @@
  * the specific language governing permissions and limitations under the License.
  */
 import RedisModel from '@services/model/redis/redis';
-import type { RedisKeysDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
 // Redis 提取Key/删除Key/备份
-export function generateRedisOperationCloneData(ticketData: TicketModel<RedisKeysDetails>) {
+export function generateRedisOperationCloneData(ticketData: TicketModel<Redis.KeysDelete>) {
   const { clusters, rules } = ticketData.details;
   return Promise.resolve(
     rules.map(
