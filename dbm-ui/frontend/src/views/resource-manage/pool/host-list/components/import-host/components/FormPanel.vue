@@ -99,7 +99,6 @@
           <div class="com-input">
             <BkSelect
               v-model="formData.for_biz"
-              :disabled="isSetEmptyBiz"
               filterable>
               <BkOption
                 v-for="bizItem in bizList"
@@ -107,12 +106,6 @@
                 :label="bizItem.display_name"
                 :value="bizItem.bk_biz_id" />
             </BkSelect>
-            <BkCheckbox
-              v-model="isSetEmptyBiz"
-              class="ml-12"
-              @change="handleEmptyBizChange">
-              {{ t('无限制') }}
-            </BkCheckbox>
           </div>
         </BkFormItem>
         <BkFormItem
@@ -121,7 +114,6 @@
           <div class="com-input">
             <BkSelect
               v-model="formData.resource_type"
-              :disabled="isSetEmptyResourceType"
               filterable>
               <BkOption
                 v-for="item in dbTypeList"
@@ -129,12 +121,6 @@
                 :label="item.name"
                 :value="item.id" />
             </BkSelect>
-            <BkCheckbox
-              v-model="isSetEmptyResourceType"
-              class="ml-12"
-              @change="handleEmptyResourceTypeChange">
-              {{ t('无限制') }}
-            </BkCheckbox>
           </div>
         </BkFormItem>
       </DbForm>
@@ -172,8 +158,6 @@
 
   const formRef = ref();
   const isShowHostActionPop = ref(false);
-  const isSetEmptyBiz = ref(false);
-  const isSetEmptyResourceType = ref(false);
   const formData = reactive({
     for_biz: '',
     resource_type: '',
@@ -289,19 +273,11 @@
     emits('update:hostList', hostListResult);
   };
 
-  const handleEmptyBizChange = () => {
-    formData.for_biz = '0';
-  };
-
-  const handleEmptyResourceTypeChange = () => {
-    formData.resource_type = '';
-  };
-
   defineExpose<Expose>({
     getValue() {
       return formRef.value.validate().then(() => ({
-        for_biz: isSetEmptyBiz.value ? 0 : Number(formData.for_biz),
-        resource_type: isSetEmptyResourceType.value ? '' : formData.resource_type,
+        for_biz: Number(formData.for_biz),
+        resource_type: formData.resource_type,
       }));
     },
   });

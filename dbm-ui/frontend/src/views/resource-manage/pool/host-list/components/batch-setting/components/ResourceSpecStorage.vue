@@ -52,8 +52,8 @@
 
   interface Props {
     modelValue: IStorageSpecItem[],
-    isEdit: boolean,
-    isRequired: boolean
+    isEdit?: boolean,
+    isRequired?: boolean
   }
 
   interface Emits {

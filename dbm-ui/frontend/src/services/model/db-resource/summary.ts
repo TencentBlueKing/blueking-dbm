@@ -62,8 +62,8 @@ export default class Summary {
   }
 
   get subzoneDetailDisplay() {
-    return `${Object.entries(this.sub_zone_detail)
-      .map(([zone, count]) => `${zone}: ${count}`)
+    return `${Object.values(this.sub_zone_detail)
+      .map((item) => `${item.name}: ${item.count}`)
       .join(', ')};`;
   }
 }

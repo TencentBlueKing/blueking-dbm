@@ -49,17 +49,17 @@
   import { getBizs } from '@services/source/cmdb';
 
   interface Props {
-    defaultValue?: number;
+    defaultValue?: string;
     simple?: boolean;
   }
   interface Emits {
-    (e: 'change', value: number): void;
+    (e: 'change', value: number | undefined): void;
     (e: 'submit'): void;
     (e: 'cancel'): void;
   }
 
   const props = withDefaults(defineProps<Props>(), {
-    defaultValue: 0,
+    defaultValue: '',
     simple: false,
   });
 
@@ -71,13 +71,14 @@
 
   const { t } = useI18n();
 
-  const localValue = ref('0');
   const bizList = shallowRef<
     {
       bk_biz_id: number;
       display_name: string;
     }[]
   >([]);
+
+  const localValue = computed(() => Number(props.defaultValue) || '');
 
   useRequest(getBizs, {
     onSuccess(data) {
@@ -93,16 +94,6 @@
     },
   });
 
-  watch(
-    () => props.defaultValue,
-    () => {
-      localValue.value = `${props.defaultValue}`;
-    },
-    {
-      immediate: true,
-    },
-  );
-
   const handleSubmit = () => {
     emits('submit');
   };
@@ -110,7 +101,7 @@
     emits('cancel');
   };
 
-  const handleChange = (value: string) => {
-    emits('change', Number(value));
+  const handleChange = (value: Props['defaultValue']) => {
+    emits('change', value ? Number(value) : undefined);
   };
 </script>
