@@ -728,6 +728,10 @@ class MySQLDBMeta(object):
                 bk_cloud_id=int(self.ticket_data["bk_cloud_id"]),
                 creator=self.ticket_data["created_by"],
             )
+            machine_objs = Machine.objects.filter(
+                bk_cloud_id=self.ticket_data["bk_cloud_id"], ip=self.cluster["install_ip"]
+            )
+            machine_objs.update(db_module_id=self.ticket_data["db_module_id"])
             storage_objs = api.storage_instance.create(
                 instances=storage_instances,
                 creator=self.ticket_data["created_by"],
@@ -939,6 +943,11 @@ class MySQLDBMeta(object):
             api.machine.create(
                 bk_cloud_id=self.ticket_data["bk_cloud_id"], machines=machines, creator=self.ticket_data["created_by"]
             )
+            machines_objs = Machine.objects.filter(
+                bk_cloud_id=self.ticket_data["bk_cloud_id"],
+                ip__in=[self.cluster["new_slave_ip"], self.cluster["new_master_ip"]],
+            )
+            machines_objs.update(db_module_id=self.ticket_data["db_module_id"])
             storage_objs = api.storage_instance.create(
                 instances=storage_instances,
                 creator=self.ticket_data["created_by"],
