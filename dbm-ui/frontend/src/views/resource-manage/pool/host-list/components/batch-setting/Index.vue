@@ -23,7 +23,6 @@
             <div class="com-input">
               <BkSelect
                 v-model="formData.for_biz"
-                :disabled="formData.set_empty_biz"
                 filterable>
                 <BkOption
                   v-for="bizItem in bizList"
@@ -31,12 +30,6 @@
                   :label="bizItem.display_name"
                   :value="bizItem.bk_biz_id" />
               </BkSelect>
-              <BkCheckbox
-                v-model="formData.set_empty_biz"
-                class="ml-12"
-                @change="handleEmptyBizChange">
-                {{ t('无限制') }}
-              </BkCheckbox>
             </div>
           </DbFormItem>
           <DbFormItem
@@ -45,7 +38,6 @@
             <div class="com-input">
               <BkSelect
                 v-model="formData.resource_type"
-                :disabled="formData.set_empty_resource_type"
                 filterable>
                 <BkOption
                   v-for="item in dbTypeList"
@@ -53,12 +45,6 @@
                   :label="item.name"
                   :value="item.id" />
               </BkSelect>
-              <BkCheckbox
-                v-model="formData.set_empty_resource_type"
-                class="ml-12"
-                @change="handleEmptyResourceTypeChange">
-                {{ t('无限制') }}
-              </BkCheckbox>
             </div>
           </DbFormItem>
           <DbFormItem :label="t('磁盘')">
@@ -119,8 +105,6 @@
     rack_id: '',
     resource_type: '',
     storage_spec: [] as IStorageSpecItem[],
-    set_empty_biz: false,
-    set_empty_resource_type: false,
   });
 
   const formRef = ref();
@@ -140,14 +124,7 @@
   const formData = reactive(genDefaultData());
 
   const isSubmitDisabled = computed(
-    () =>
-      !(
-        formData.for_biz ||
-        formData.resource_type ||
-        formData.storage_spec.length > 0 ||
-        formData.set_empty_biz ||
-        formData.set_empty_resource_type
-      ),
+    () => !(formData.for_biz || formData.resource_type || formData.storage_spec.length > 0),
   );
 
   useRequest(getBizs, {
@@ -175,14 +152,6 @@
     },
   });
 
-  const handleEmptyBizChange = () => {
-    formData.for_biz = '0';
-  };
-
-  const handleEmptyResourceTypeChange = () => {
-    formData.resource_type = '';
-  };
-
   const handleSubmit = () => {
     isSubmiting.value = true;
     formRef.value
@@ -200,11 +169,9 @@
         );
         return updateResource({
           bk_host_ids: props.data.map((item) => ~~item),
-          for_biz: formData.set_empty_biz ? 0 : Number(formData.for_biz),
+          for_biz: Number(formData.for_biz),
           rack_id: formData.rack_id,
-          resource_type: formData.set_empty_resource_type ? '' : formData.resource_type,
-          set_empty_biz: formData.set_empty_biz,
-          set_empty_resource_type: formData.set_empty_resource_type,
+          resource_type: formData.resource_type,
           storage_device: storageDevice,
         }).then(() => {
           window.changeConfirm = false;

@@ -168,8 +168,6 @@ export function updateResource(params: {
   for_biz: number;
   rack_id: string;
   resource_type: string;
-  set_empty_biz: boolean;
-  set_empty_resource_type: boolean;
   storage_device: Record<string, { size: number; disk_type: string }>;
 }) {
   return http.post(`${path}/update/`, params);

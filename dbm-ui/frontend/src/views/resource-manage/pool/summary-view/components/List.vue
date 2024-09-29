@@ -1,8 +1,7 @@
 <template>
   <DbCard
     class="summary-view-list"
-    mode="collapse"
-    :title="t('分布情况')">
+    :title="t('资源分布统计')">
     <SearchBox @search="fetchListData" />
     <div class="opearte-row">
       <DimensionSelect

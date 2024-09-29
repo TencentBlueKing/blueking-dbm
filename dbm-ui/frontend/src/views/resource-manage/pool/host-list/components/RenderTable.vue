@@ -127,8 +127,6 @@
 
   import { useUrlSearch } from '@hooks';
 
-  import { useGlobalBizs } from '@stores';
-
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import {
@@ -206,7 +204,6 @@
   });
 
   const { t } = useI18n();
-  const { currentBizId } = useGlobalBizs();
 
   const rootRef = ref();
   const bkTableRef = ref();
@@ -292,7 +289,6 @@
       .then(() => {
         isLoading.value = loading;
         const params = {
-          bk_biz_id: currentBizId,
           offset: (pagination.current - 1) * pagination.limit,
           limit: pagination.limit,
           ...paramsMemo,
@@ -400,7 +396,6 @@
   // 跨页全选
   const handleWholeSelect = () => {
     props.dataSource({
-      bk_biz_id: currentBizId,
       offset: (pagination.current - 1) * pagination.limit,
       limit: -1,
       ...paramsMemo,

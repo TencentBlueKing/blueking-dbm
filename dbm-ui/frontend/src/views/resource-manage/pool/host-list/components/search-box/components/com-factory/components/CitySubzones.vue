@@ -70,12 +70,9 @@
   const subzoneIds = ref<string[]>([]);
   const citiyList = ref<CityItem[]>([]);
 
-  const filterSubzoneList = computed(() => {
-    if (!cityCode.value) {
-      return [];
-    }
-    return (subzoneList.value || []).filter((item) => item.bk_city_code === cityCode.value);
-  });
+  const filterSubzoneList = computed(() =>
+    (subzoneList.value || []).filter((item) => item.bk_city_code === cityCode.value),
+  );
 
   useRequest(getInfrasCities, {
     onSuccess(data) {

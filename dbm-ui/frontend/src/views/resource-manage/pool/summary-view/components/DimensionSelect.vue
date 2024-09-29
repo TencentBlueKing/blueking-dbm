@@ -44,11 +44,11 @@
 
   const dimensions = [
     {
-      label: t('所属业务 + 地域 + 规格'),
+      label: t('地域 + 规格'),
       value: 'spec',
     },
     {
-      label: t('所属业务 + 地域 + 机型（硬盘）'),
+      label: t('地域 + 机型（硬盘）'),
       value: 'device_class',
     },
   ];

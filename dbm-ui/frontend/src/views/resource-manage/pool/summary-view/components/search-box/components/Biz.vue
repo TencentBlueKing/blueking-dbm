@@ -54,8 +54,7 @@
     },
   });
 
-  const handleChange = (value: string) => {
-    localValue.value = value;
+  const handleChange = () => {
     emits('change');
   };
 

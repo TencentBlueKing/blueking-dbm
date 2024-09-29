@@ -56,9 +56,9 @@
       <template v-if="isShowMore">
         <div class="row">
           <ComFactory
-            :ref="(el: any) => initInputRefCallback(el, 'mount_point')"
+            :ref="(el: any) => initInputRefCallback(el, 'os_type')"
             :model="localValueMemo"
-            name="mount_point"
+            name="os_type"
             @change="handleChange" />
           <ComFactory
             :ref="(el: any) => initInputRefCallback(el, 'cpu')"
@@ -70,11 +70,7 @@
             :model="localValueMemo"
             name="mem"
             @change="handleChange" />
-          <ComFactory
-            :ref="(el: any) => initInputRefCallback(el, 'disk')"
-            :model="localValueMemo"
-            name="disk"
-            @change="handleChange" />
+          <div style="flex: 1" />
         </div>
         <div class="row">
           <ComFactory
@@ -83,9 +79,14 @@
             name="disk_type"
             @change="handleChange" />
           <ComFactory
-            :ref="(el: any) => initInputRefCallback(el, 'os_type')"
+            :ref="(el: any) => initInputRefCallback(el, 'disk')"
             :model="localValueMemo"
-            name="os_type"
+            name="disk"
+            @change="handleChange" />
+          <ComFactory
+            :ref="(el: any) => initInputRefCallback(el, 'mount_point')"
+            :model="localValueMemo"
+            name="mount_point"
             @change="handleChange" />
           <div style="flex: 1" />
         </div>

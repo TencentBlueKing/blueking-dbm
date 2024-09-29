@@ -59,7 +59,7 @@
   }
 
   withDefaults(defineProps<Props>(), {
-    defaultValue: 'PUBLIC',
+    defaultValue: '',
     simple: false,
   });
 

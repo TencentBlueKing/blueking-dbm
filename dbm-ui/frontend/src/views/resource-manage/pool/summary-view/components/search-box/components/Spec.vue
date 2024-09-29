@@ -44,12 +44,12 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { type ClusterTypeInfoItem, clusterTypeInfos, ClusterTypes, DBTypes } from '@common/const';
+  import { type ClusterTypeInfoItem, clusterTypeInfos, ClusterTypes } from '@common/const';
 
   import { getResourceSpecList } from '@/services/source/dbresourceSpec';
 
   interface Props {
-    dbType: DBTypes;
+    dbType: string;
   }
 
   interface Emits {

@@ -21,7 +21,7 @@
       show-select-all
       @change="handleChangeSubzone">
       <BkOption
-        v-for="item in subzoneList"
+        v-for="item in renderSubzoneList"
         :key="item.bk_sub_zone_id"
         :label="item.bk_sub_zone"
         :value="`${item.bk_sub_zone_id}`" />
@@ -59,31 +59,20 @@
 
   const citiyList = ref<CityItem[]>([]);
 
+  const renderSubzoneList = computed(() =>
+    (subzoneList.value || []).filter((item) => item.bk_city_code === cityCode.value),
+  );
+
   useRequest(getInfrasCities, {
     onSuccess(data) {
       citiyList.value = data.filter((item) => item.city_code !== 'default');
     },
   });
-  const { data: subzoneList, run: fetchData } = useRequest(getInfrasSubzonesByCity, {
-    manual: true,
+  const { data: subzoneList } = useRequest(getInfrasSubzonesByCity, {
     onSuccess() {
       subzoneIds.value = [];
     },
   });
-
-  watch(
-    cityCode,
-    () => {
-      if (cityCode.value) {
-        fetchData({
-          city_code: cityCode.value === 'default' ? '' : cityCode.value,
-        });
-      }
-    },
-    {
-      immediate: true,
-    },
-  );
 
   const handleChangeCity = () => {
     subzoneIds.value = [];

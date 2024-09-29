@@ -50,7 +50,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const dbType = defineModel<DBTypes>('dbType', {
+  const dbType = defineModel<string>({
     default: DBTypes.REDIS,
   });
 
