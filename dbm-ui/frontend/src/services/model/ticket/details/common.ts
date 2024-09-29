@@ -41,6 +41,7 @@ export interface DetailClusters {
 
 export interface DetailSpecs {
   [key: string]: {
+    count: number;
     cpu: {
       max: number;
       min: number;
@@ -56,6 +57,7 @@ export interface DetailSpecs {
       max: number;
       min: number;
     };
+    spec_id: number;
     storage_spec: {
       mount_point: string;
       size: number;
@@ -65,8 +67,6 @@ export interface DetailSpecs {
 }
 
 export interface SpecInfo {
-  spec_id: number;
-  spec_name: string;
   count: number;
   cpu: {
     max: number;
@@ -76,9 +76,28 @@ export interface SpecInfo {
     max: number;
     min: number;
   };
+  qps: Record<string, any>;
+  spec_id: number;
+  spec_name: string;
   storage_spec: {
     mount_point: string;
     size: number;
     type: string;
   }[];
+}
+
+export interface NodeInfo {
+  bk_biz_id: number;
+  bk_cloud_id: number;
+  bk_cpu: number;
+  bk_disk: number;
+  bk_host_id: number;
+  bk_mem: number;
+  city: string;
+  device_class: string;
+  ip: string;
+  rack_id: string;
+  storage_device: Record<string, any>;
+  sub_zone: string;
+  sub_zone_id: string;
 }

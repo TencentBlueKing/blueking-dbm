@@ -37,6 +37,8 @@
 
   import { useGlobalBizs } from '@stores';
 
+  import { TicketTypes } from '@common/const'
+
   const { t } = useI18n();
   const { currentBizId } = useGlobalBizs();
   const ticketMessage = useTicketMessage();
@@ -165,7 +167,7 @@
   const handleDestroy = (payload: FixpointLogModel) => createTicket({
     bk_biz_id: currentBizId,
     remark: '',
-    ticket_type: 'TENDBCLUSTER_TEMPORARY_DESTROY',
+    ticket_type: TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
     details: {
       cluster_ids: [payload.target_cluster.cluster_id],
     },
@@ -181,7 +183,7 @@
   const handleBatchDisable = () => createTicket({
     bk_biz_id: currentBizId,
     remark: '',
-    ticket_type: 'TENDBCLUSTER_TEMPORARY_DESTROY',
+    ticket_type: TicketTypes.TENDBCLUSTER_TEMPORARY_DESTROY,
     details: {
       cluster_ids: selectionList.value,
     },

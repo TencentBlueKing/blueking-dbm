@@ -10,13 +10,12 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { RedisDBReplaceDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Redis 整机替换
-export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<RedisDBReplaceDetails>) {
+export function generateRedisClusterCutoffCloneData(ticketData: TicketModel<Redis.ClusterCutoff>) {
   const { clusters, infos, specs } = ticketData.details;
   return Promise.resolve({
     tableDataList: infos.flatMap((info) =>

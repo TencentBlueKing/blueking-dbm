@@ -10,11 +10,10 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { MySQLImportSQLFileDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 // Mysql SQL变更执行
-export function generateMysqlImportSqlFileCloneData(ticketData: TicketModel<MySQLImportSQLFileDetails>) {
+export function generateMysqlImportSqlFileCloneData(ticketData: TicketModel<Mysql.ImportSqlFile>) {
   const { details } = ticketData;
   return Promise.resolve({
     backup: details.backup,
@@ -22,7 +21,6 @@ export function generateMysqlImportSqlFileCloneData(ticketData: TicketModel<MySQ
     cluster_ids: details.cluster_ids,
     execute_objects: details.execute_objects,
     ticket_mode: details.ticket_mode,
-    execute_sql_files: details.execute_sql_files as string[],
     path: details.path,
     remark: ticketData.remark,
   });

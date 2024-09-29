@@ -99,6 +99,25 @@
 <script lang="ts">
   import { random } from '@utils';
 
+  /**
+   * MySql 定点回档类型
+   */
+  enum RollbackClusterTypes {
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
+    BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
+    BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+  }
+
+  /**
+   * MySql 定点回档主机信息
+   */
+  interface RollbackHost {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }
+
   export interface IDataRow {
     rowKey: string;
     clusterData: {
@@ -161,8 +180,6 @@
 </script>
 <script setup lang="ts">
   import { ref, watch } from 'vue';
-
-  import { RollbackClusterTypes, type RollbackHost } from '@services/model/ticket/details/mysql';
 
   import FixedColumn from '@components/render-table/columns/fixed-column/index.vue';
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';

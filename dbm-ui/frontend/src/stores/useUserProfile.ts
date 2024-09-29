@@ -15,26 +15,18 @@ import { defineStore } from 'pinia';
 
 import { getProfile, upsertProfile } from '@services/source/profile';
 
-// import { UserPersonalSettings } from '@common/const';
-
 type ProfileItem = ServiceReturnType<typeof getProfile>['profile'][number];
-
-interface State {
-  globalManage: boolean;
-  profile: Record<string, any>;
-  rerourceManage: boolean;
-  username: string;
-}
 
 /**
  * 获取系统个人配置信息
  */
 export const useUserProfile = defineStore('UserProfile', {
-  state: (): State => ({
-    globalManage: false,
-    profile: {} as State['profile'],
-    rerourceManage: false,
+  state: () => ({
+    globalManage: false, // 顶部导航全部配置访问权限
+    profile: {} as Record<string, any>,
+    rerourceManage: false, // 顶部导航资源管理访问权限
     username: '',
+    isSuperuser: false, // 登录用户超级管理员权限
   }),
   actions: {
     /**
@@ -45,13 +37,14 @@ export const useUserProfile = defineStore('UserProfile', {
         this.globalManage = Boolean(result.global_manage);
         this.rerourceManage = Boolean(result.resource_manage);
         this.username = result.username;
+        this.isSuperuser = result.is_superuser;
 
         this.profile = result.profile.reduce(
           (result, item) =>
             Object.assign(result, {
               [item.label]: item.values,
             }),
-          {} as State['profile'],
+          {},
         );
 
         return result;

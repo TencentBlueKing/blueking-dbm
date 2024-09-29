@@ -163,12 +163,10 @@
   watch(
     filenameList,
     () => {
-      if (filenameList.value.length) {
-        localList.value = filenameList.value.map((fileName) => ({
-          id: fileName,
-          name: fileName,
-        }));
-      }
+      localList.value = filenameList.value.map((fileName) => ({
+        id: fileName,
+        name: fileName,
+      }));
     },
     {
       immediate: true,

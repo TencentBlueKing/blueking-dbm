@@ -12,8 +12,7 @@
  */
 import _ from 'lodash';
 
-import type { MySQLInstanceCloneDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 import { checkMysqlInstances } from '@services/source/instances';
 
 import { random } from '@utils';
@@ -21,7 +20,7 @@ import { random } from '@utils';
 type InstanceInfo = ServiceReturnType<typeof checkMysqlInstances>[number];
 
 // Mysql DB实例权限克隆
-export async function generateMysqlInstanceCloneData(ticketData: TicketModel<MySQLInstanceCloneDetails>) {
+export async function generateMysqlInstanceCloneData(ticketData: TicketModel<Mysql.InstanceCloneRules>) {
   const instanceList = _.flatMap(ticketData.details.clone_data.map((item) => [item.source, item.target]));
   const instanceListInfos = await checkMysqlInstances({
     bizId: ticketData.bk_biz_id,

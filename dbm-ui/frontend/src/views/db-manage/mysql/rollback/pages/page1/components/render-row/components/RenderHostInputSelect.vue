@@ -40,7 +40,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import type { RollbackHost } from '@services/model/ticket/details/mysql';
   import { checkHost } from '@services/source/ipchooser';
   import type { HostInfo } from '@services/types';
 
@@ -56,6 +55,16 @@
   import { messageWarn } from '@utils';
 
   import type { IDataRow } from '../Index.vue';
+
+  /**
+   * MySql 定点回档主机信息
+   */
+  interface RollbackHost {
+    bk_biz_id: number;
+    bk_cloud_id: number;
+    bk_host_id: number;
+    ip: string;
+  }
 
   interface Props {
     clusterData: IDataRow['clusterData'];

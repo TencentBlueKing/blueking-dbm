@@ -335,7 +335,7 @@
     return funControllerStore.funControllerData.mysql.children[currentKey];
   });
 
-  const entrySort = (data: RowData[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
+  const entrySort = (data: ClusterEntryInfo[]) => data.sort(a => a.role === 'master_entry' ? -1 : 1);
 
   const columns = computed(() => [
     {
@@ -348,7 +348,6 @@
       label: t('主访问入口'),
       field: 'master_domain',
       fixed: 'left',
-      width: 280,
       minWidth: 280,
       showOverflowTooltip: false,
       renderHead: () => (
@@ -737,6 +736,16 @@
         checked: columnCheckedMap.value.region,
       },
       render: ({ cell }: ColumnData) => <span>{cell || '--'}</span>,
+    },
+    {
+      label: t('管控区域'),
+      field: 'bk_cloud_id',
+      filter: {
+        list: columnAttrs.value.bk_cloud_id,
+        checked: columnCheckedMap.value.bk_cloud_id,
+      },
+      width: 90,
+      render: ({ data }: ColumnData) =>  data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--',
     },
     {
       label: t('创建人'),

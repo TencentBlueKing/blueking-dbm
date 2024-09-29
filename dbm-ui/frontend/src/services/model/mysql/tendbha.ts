@@ -248,4 +248,8 @@ export default class Tendbha {
   get isNew() {
     return isRecentDays(this.create_at, 24);
   }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
+  }
 }

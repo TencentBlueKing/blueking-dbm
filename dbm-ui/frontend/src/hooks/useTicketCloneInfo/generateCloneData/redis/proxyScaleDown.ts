@@ -15,14 +15,13 @@ import _ from 'lodash';
 
 import RedisModel from '@services/model/redis/redis';
 import RedisInstanceModel from '@services/model/redis/redis-instance';
-import type { RedisProxyScaleDownDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 import { getRedisInstances, getRedisList } from '@services/source/redis';
 
 import { random } from '@utils';
 
 // Redis 接入层缩容
-export async function generateRedisProxyScaleDownCloneData(ticketData: TicketModel<RedisProxyScaleDownDetails>) {
+export async function generateRedisProxyScaleDownCloneData(ticketData: TicketModel<Redis.ProxyScaleDown>) {
   const { clusters, infos } = ticketData.details;
   const [clusterListResult, instanceListResult] = await Promise.all([
     getRedisList({
