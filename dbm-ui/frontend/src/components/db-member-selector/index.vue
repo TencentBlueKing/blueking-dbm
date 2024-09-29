@@ -13,75 +13,124 @@
 
 <template>
   <div
-    class="db-member-selector-wrapper"
-    :class="{ 'is-focus': isFocous }">
-    <BkTagInput
+    class="member-selector-wrapper"
+    :class="{ 'is-hover': isHover }"
+    @mouseenter="handleHover"
+    @mouseleave="handleBlur">
+    <UserSelector
+      ref="userSelectorRef"
       v-model="modelValue"
-      allow-auto-match
-      allow-create
-      :create-tag-validator="createTagValidator"
-      has-delete-icon
-      :list="peopleList"
-      v-bind="listeners"
-      @input="remoteFilter" />
+      class="member-selector"
+      :exact-search-method="exactSearchMethod"
+      fast-clear
+      :fixed-height="false"
+      :fuzzy-search-method="fuzzySearchMethod"
+      :paste-validator="pasteValidator"
+      :render-list="renderList"
+      :render-tag="renderTag"
+      :search-from-default-alternate="false"
+      tag-clearable
+      @remove-selected="handleRemoveSelected" />
     <DbIcon
+      v-if="modelValue.length > 0"
       v-bk-tooltips="t('复制')"
-      type="copy db-member-selector-copy"
+      class="db-member-selector-copy"
+      type="copy"
       @click.stop="handleCopy" />
   </div>
 </template>
 
-<script setup lang="tsx">
-  import _ from 'lodash';
+<script setup lang="ts">
+  import { Fragment } from 'vue/jsx-runtime';
   import { useI18n } from 'vue-i18n';
 
   import { getUserList } from '@services/source/user';
 
-  import { useCopy, useListeners } from '@hooks';
+  import { useCopy } from '@hooks';
 
-  type GetUsesParams = ServiceParameters<typeof getUserList>;
+  const emits = defineEmits<{
+    (e: 'change', value: string[]): void;
+  }>();
 
   const modelValue = defineModel<string[]>({
-    default: () => [],
+    required: true,
   });
 
-  const listeners = useListeners();
-
-  const copy = useCopy();
   const { t } = useI18n();
+  const copy = useCopy();
 
-  const peopleList = ref<
-    {
-      id: string;
-      name: string;
-    }[]
-  >([]);
+  const userSelectorRef = ref();
+  const isHover = ref(false);
 
-  const isFocous = ref(false);
+  const exactSearchMethod = () =>
+    getUserList({
+      exact_lookups: modelValue.value.join(','),
+    }).then((result) => result.results);
 
-  const createTagValidator = (tag: string) => !!peopleList.value.find((item) => item.name === tag);
+  const pasteValidator = (values: string[]) => values;
 
-  /**
-   * 获取人员列表
-   */
-  const fetchUseList = async (params: GetUsesParams = {}) => {
-    await getUserList(params).then((res) => {
-      // 过滤已经选中的用户
-      peopleList.value = res.results
-        .filter((item) => !modelValue.value?.includes(item.username))
-        .map((item) => ({
-          id: item.username,
-          name: item.username,
-        }));
-    });
+  const fuzzySearchMethod = (keyword: string) =>
+    getUserList({
+      fuzzy_lookups: keyword,
+    }).then((searchList) => ({
+      next: false,
+      results: searchList.results.map((userItem) => ({
+        username: userItem.username,
+        display_name: userItem.display_name,
+      })),
+    }));
+
+  const renderTag = (
+    renderMethod: typeof h,
+    node: {
+      username: string;
+      user: {
+        username: string;
+        display_name: string;
+      };
+    },
+  ) =>
+    renderMethod('div', null, [
+      renderMethod(
+        'span',
+        {
+          class: 'mr-4',
+        },
+        `${node.username}(${node.user?.display_name || node.username})`,
+      ),
+    ]);
+
+  const renderList = (
+    renderMethod: typeof h,
+    node: {
+      user: {
+        username: string;
+        display_name: string;
+        type: string;
+      };
+    },
+  ) => {
+    const { display_name: displayName, username } = node.user;
+
+    return renderMethod(Fragment, [renderMethod('span', `${username}(${displayName})`)]);
   };
-  // 初始化加载
-  fetchUseList({ limit: 200, offset: 0 });
 
-  /**
-   * 远程搜索人员
-   */
-  const remoteFilter = _.debounce((value: string) => fetchUseList({ fuzzy_lookups: value }), 500);
+  watch(modelValue, () => {
+    console.log('from watchch modelvall = ', modelValue.value);
+    emits('change', modelValue.value);
+  });
+
+  const handleRemoveSelected = () => {
+    userSelectorRef.value.search();
+  };
+
+  const handleHover = () => {
+    isHover.value = true;
+  };
+
+  const handleBlur = () => {
+    isHover.value = false;
+  };
 
   const handleCopy = () => {
     copy(modelValue.value.join(';'));
@@ -89,35 +138,45 @@
 </script>
 
 <style lang="less" scoped>
-  .db-member-selector-wrapper {
+  .member-selector-wrapper {
     position: relative;
+    line-height: 1;
 
-    &:hover,
-    &.is-focus {
+    &.is-hover {
+      :deep(.user-selector-clear) {
+        visibility: visible;
+      }
+    }
+
+    &:hover {
       .db-member-selector-copy {
         display: block;
       }
     }
-  }
 
-  .db-member-selector-copy {
-    position: absolute;
-    top: 50%;
-    right: 2px;
-    z-index: 99;
-    display: none;
-    width: 20px;
-    height: 20px;
-    margin-top: -10px;
-    margin-right: 4px;
-    font-size: 16px;
-    line-height: 20px;
-    cursor: pointer;
-    background-color: white;
+    .member-selector {
+      width: 100%;
+    }
 
-    &:hover {
-      color: @primary-color;
-      background-color: #e1ecff;
+    .db-member-selector-copy {
+      position: absolute;
+      top: 50%;
+      right: 24px;
+      z-index: 99;
+      display: none;
+      width: 20px;
+      height: 20px;
+      margin-top: -15px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #979ba5;
+      cursor: pointer;
+      background-color: white;
+
+      &:hover {
+        color: @primary-color;
+        background-color: #e1ecff;
+      }
     }
   }
 </style>

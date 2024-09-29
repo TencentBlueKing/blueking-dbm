@@ -72,7 +72,7 @@
 
   import { getAdmins, updateAdmins } from '@services/source/dbadmin';
 
-  import MemberSelector from './components/MemberSelector.vue';
+  import MemberSelector from '@components/db-member-selector/index.vue';
 
   const { t } = useI18n();
   const route = useRoute();
