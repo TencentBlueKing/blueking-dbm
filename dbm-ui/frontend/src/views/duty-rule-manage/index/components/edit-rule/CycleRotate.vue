@@ -23,9 +23,7 @@
       property="peopleList"
       required>
       <span class="cycle-title-tip">（{{ t('排班时将会按照人员的顺序进行排班，可拖动 Tag 进行排序') }}）</span>
-      <SortTagInput
-        :list="formModel.peopleList"
-        @change="handleSortTagInputChange" />
+      <MemberSelector v-model="formModel.peopleList" />
     </BkFormItem>
     <div class="cycle-duty-box">
       <BkFormItem
@@ -60,12 +58,11 @@
   <div class="title-spot cycle-table-box mt-24">{{ t('轮值起止时间') }}<span class="required" /></div>
   <BkDatePicker
     ref="datePickerRef"
+    v-model="dateTimeRange"
     append-to-body
     :clearable="false"
-    :model-value="dateTimeRange"
     style="width: 100%"
-    type="daterange"
-    @change="handlerChangeDatetime" />
+    type="daterange" />
   <div class="cycle-time-select-box">
     <div class="select-item">
       <BkSelect
@@ -138,12 +135,12 @@
   import type { DutyCycleItem } from '@services/model/monitor/duty-rule';
   import DutyRuleModel from '@services/model/monitor/duty-rule';
 
+  import MemberSelector from '@components/db-member-selector/index.vue';
+
   import {
     getDiffDays,
     random,
   } from '@utils';
-
-  import SortTagInput from './SortTagInput.vue';
 
   interface RowData {
     dateTime: string,
@@ -185,13 +182,6 @@
     return timeStr;
   }
 
-  function initDateTimrRange() {
-    return [
-      formatDate(new Date().toISOString()),
-      formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()),
-    ] as [string, string];
-  }
-
   function initDateSelect() {
     return ({
       date: 'daily',
@@ -205,7 +195,7 @@
 
   const { t } = useI18n();
 
-  const dateTimeRange = ref(initDateTimrRange());
+  const dateTimeRange = ref<[string, string]>([dayjs().format('YYYY-MM-DD HH:mm:ss'), dayjs().add(1, 'day').format('YYYY-MM-DD HH:mm:ss')]);
   const dateSelect = ref(initDateSelect());
   const tableData = ref<RowData[]>([]);
   const formRef = ref();
@@ -305,6 +295,19 @@
   watch(
     [dateTimeRange, dateSelect, formModel],
     ([dateRange, data, formModel]) => {
+      const getRangeList = (arr: string[], startIndex: number, counts: number) => {
+        const ret = [];
+        let start = startIndex;
+        for (let i = 0; i < counts; i++) {
+          if (start >= arr.length) {
+            start = 0;
+          }
+          ret.push(arr[start]);
+          start = start + 1;
+        }
+        return ret;
+      };
+
       if (data.date && formModel.peopleList.length > 0) {
         const { singleDutyPeoples, sinlgeDutyDays, peopleList } = formModel;
         const days = sinlgeDutyDays;
@@ -378,22 +381,6 @@
     immediate: true,
   });
 
-  const getRangeList = (arr: string[], startIndex: number, counts: number) => {
-    const ret = [];
-    let start = startIndex;
-    for (let i = 0; i < counts; i++) {
-      if (start >= arr.length) {
-        start = 0;
-      }
-      ret.push(arr[start]);
-      start = start + 1;
-    }
-    return ret;
-  };
-
-  const handleSortTagInputChange = (arr: string[]) => {
-    formModel.peopleList = arr;
-  };
 
   const handleAddTime = () => {
     dateSelect.value.timeList.push({
@@ -406,30 +393,20 @@
     dateSelect.value.timeList.splice(index, 1);
   };
 
-  const handlerChangeDatetime = (range: [string, string]) => {
-    dateTimeRange.value = range;
-  };
-
-  // 临时处理，待组件支持分钟后去除
-  const splitTimeToMinute = (str: string) => {
-    const strArr = str.split(':');
-    if (strArr.length <= 2) {
-      return str;
-    }
-    strArr.pop();
-    return strArr.join(':');
-  };
 
   defineExpose<Exposes>({
     async getValue() {
-      await formRef.value.validate();
-      let effctTime = dateTimeRange.value[0];
-      effctTime = `${effctTime.split(' ')[0]} 00:00:00`;
-      let endTime = dateTimeRange.value[1];
-      endTime = `${endTime.split(' ')[0]} 00:00:00`;
+      const splitTimeToMinute = (str: string) => {
+        const strArr = str.split(':');
+        if (strArr.length <= 2) {
+          return str;
+        }
+        strArr.pop();
+        return strArr.join(':');
+      };
       return {
-        effective_time: effctTime,
-        end_time: endTime,
+        effective_time: dayjs(dateTimeRange.value![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        end_time: dayjs(dateTimeRange.value![1]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
         duty_arranges: tableData.value.map(item => ({
           duty_number: formModel.singleDutyPeoples,
           duty_day: formModel.sinlgeDutyDays,

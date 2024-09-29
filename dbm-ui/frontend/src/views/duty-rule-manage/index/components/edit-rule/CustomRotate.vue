@@ -15,12 +15,12 @@
   <div class="title-spot custom-item-title mt-24">{{ t('轮值起止时间') }}<span class="required" /></div>
   <BkDatePicker
     ref="datePickerRef"
+    v-model="dateTimeRange"
     append-to-body
     :clearable="false"
-    :model-value="dateTimeRange"
     style="width: 100%"
     type="daterange"
-    @change="handlerChangeDatetime" />
+    @change="handleDatetimeRangeChange" />
   <div class="title-spot custom-item-title mt-24">{{ t('轮值排班') }}<span class="required" /></div>
   <DbOriginalTable
     class="custom-table-box"
@@ -31,17 +31,16 @@
 <script setup lang="tsx">
   import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import type { DutyCustomItem } from '@services/model/monitor/duty-rule';
   import DutyRuleModel from '@services/model/monitor/duty-rule';
-  import { getUserList } from '@services/source/user';
+
+  import MemberSelector from '@components/db-member-selector/index.vue';
 
   import { getDiffDays, random } from '@utils';
 
   interface Props {
     data?: DutyRuleModel;
-    isSetEmpty?: boolean;
   }
 
   interface RowData {
@@ -50,7 +49,7 @@
       id: string,
       value: string[];
     }[],
-    peoples: string[],
+    members: string[],
   }
 
   interface Exposes {
@@ -67,34 +66,12 @@
 
   const props = defineProps<Props>();
 
-  function formatDate(date: string) {
-    return dayjs(date).format('YYYY-MM-DD');
-  }
-
-  // 临时处理，待时间选择器修复后去除
-  function transferToTimePicker(timeStr: string) {
-    const arr = timeStr.split(':');
-    if (arr.length === 2) {
-      return `${timeStr}:00`;
-    }
-    return timeStr;
-  }
-
-  function initDateRange() {
-    return [
-      formatDate(new Date().toISOString()),
-      formatDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()),
-    ] as [string, string];
-  }
-
   const { t } = useI18n();
 
-  const dateTimeRange = ref<[string, string]>(initDateRange());
-  const copiedStr = ref('');
+  const dateTimeRange = ref<[string, string]>();
   const tableData = ref<RowData[]>([]);
-  const contactList = ref<SelectItem<string>[]>([]);
 
-  const columns = computed(() => ([
+  const columns = [
     {
       label: t('轮值日期'),
       field: 'dateTime',
@@ -131,119 +108,58 @@
     },
     {
       label: t('轮值人员'),
-      field: 'peoples',
-      render: ({ data }: {data: RowData}) => (
-        <div class="peoples">
-          <bk-select
-            class="people-select"
-            clearable={false}
-            v-model={data.peoples}
-            placeholder={t('请选择人员')}
-            filterable
-            multiple
-            input-search={false}
-            multiple-mode="tag"
-          >
-          {
-            contactList.value.map((item, index) => <bk-option
-              key={index}
-              value={item.value}
-              label={item.label}
-            />)
-          }
-          </bk-select>
-          {/* <bk-tag-input
-            clearable={false}
-            v-model={data.peoples}
-            placeholder={t('请选择人员')}
-            allow-create
-            has-delete-icon
-            collapse-tags
-          /> */}
-          <div class="operate-box">
-            {copiedStr.value !== '' && <db-icon
-              class="operate-icon"
-              type="paste"
-              onClick={() => handleClickPaste(data)}/>}
-            {data.peoples.length > 0 && <db-icon
-              class="ml-10 operate-icon"
-              type="copy-2"
-              onClick={() => handleClickCopy(data)}/>}
-          </div>
-        </div>
-        ),
+      field: 'members',
+      render: ({data, index}: {data: RowData, index: number}) =>(
+        <MemberSelector
+          modelValue={data.members}
+          onChange={(value: string[]) => handelPeopleChange(value, index)} />
+      ),
     },
-  ]));
+  ];
 
-  useRequest(getUserList, {
-    onSuccess: (res) => {
-      const list = res.results.map(item => ({ label: item.username, value: item.username }));
-      contactList.value = list;
-    },
+  watch(() => props.data, (data) => {
+    const transferToTimePicker = (timeStr: string) => {
+      const arr = timeStr.split(':');
+      if (arr.length === 2) {
+        return `${timeStr}:00`;
+      }
+      return timeStr;
+    }
+
+    if (data && data.category === 'regular') {
+      dateTimeRange.value = [data.effective_time, data.end_time];
+      tableData.value = (data.duty_arranges as DutyCustomItem[]).map(item => ({
+        dateTime: item.date,
+        timeRange: item.work_times.map(i => ({
+          id: random(),
+          value: i.split('--').map(time => transferToTimePicker(time)),
+        })),
+        members: item.members,
+      }));
+    } else {
+      tableData.value = []
+    }
+  }, {
+    immediate: true,
   });
 
-  watch(dateTimeRange, (range) => {
-    const dateArr = getDiffDays(range[0] as string, range[1]);
+
+  const handleDatetimeRangeChange = (value: [string, string]) => {
+    dateTimeRange.value = value;
+    const dateArr = getDiffDays(value[0], value[1]);
     tableData.value = dateArr.map(item => ({
       dateTime: item,
       timeRange: [{
         id: random(),
         value: ['00:00:00', '23:59:59'],
       }],
-      peoples: [],
+      members: [],
     }));
-  }, {
-    immediate: true,
-  });
+  }
 
-  watch(() => props.data, (data) => {
-    if (data) {
-      dateTimeRange.value = [data.effective_time, data.end_time];
-      setTimeout(() => {
-        const arranges = data.duty_arranges as DutyCustomItem[];
-        tableData.value = arranges.map(item => ({
-          dateTime: item.date,
-          timeRange: item.work_times.map(i => ({
-            id: random(),
-            value: i.split('--').map(time => transferToTimePicker(time)),
-          })),
-          peoples: item.members,
-        }));
-      });
-    }
-  }, {
-    immediate: true,
-  });
-
-  watch(() => props.isSetEmpty, (status) => {
-    if (status) {
-      // 设置初始化
-      setTimeout(() => {
-        dateTimeRange.value = initDateRange();
-      });
-    }
-  }, {
-    immediate: true,
-  });
-
-  const handleClickCopy = (row: RowData) => {
-    copiedStr.value = row.peoples.join(',');
-  };
-
-  const handleClickPaste = (row: RowData) => {
-    const oldArr = row.peoples;
-    if (oldArr.length === 0) {
-      Object.assign(row, {
-        peoples: copiedStr.value.split(','),
-      });
-    } else {
-      const addArr = copiedStr.value.split(',');
-      const newArr = [...new Set([...oldArr, ...addArr])];
-      Object.assign(row, {
-        peoples: newArr,
-      });
-    }
-  };
+  const handelPeopleChange = (value: string[], index: number) => {
+    tableData.value[index].members = value
+  }
 
   const handleAddTime = (index: number) => {
     tableData.value[index].timeRange.push({
@@ -256,33 +172,24 @@
     tableData.value[outerIndex].timeRange.splice(innerIndex, 1);
   };
 
-  const handlerChangeDatetime = (range: [string, string]) => {
-    dateTimeRange.value = range;
-  };
-
-  // 临时处理，待组件支持分钟后去除
-  const splitTimeToMinute = (str: string) => {
-    const strArr = str.split(':');
-    if (strArr.length <= 2) {
-      return str;
-    }
-    strArr.pop();
-    return strArr.join(':');
-  };
 
   defineExpose<Exposes>({
     getValue() {
-      let effctTime = dateTimeRange.value[0];
-      effctTime = `${effctTime.split(' ')[0]} 00:00:00`;
-      let endTime = dateTimeRange.value[1];
-      endTime = `${endTime.split(' ')[0]} 00:00:00`;
+      const splitTimeToMinute = (str: string) => {
+        const strArr = str.split(':');
+        if (strArr.length <= 2) {
+          return str;
+        }
+        strArr.pop();
+        return strArr.join(':');
+      };
       return {
-        effective_time: effctTime,
-        end_time: endTime,
+        effective_time: dayjs(dateTimeRange.value![0]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
+        end_time: dayjs(dateTimeRange.value![1]).startOf('day').format('YYYY-MM-DD HH:mm:ss'),
         duty_arranges: tableData.value.map(item => ({
           date: item.dateTime,
           work_times: item.timeRange.map(data => data.value.map(str => splitTimeToMinute(str)).join('--')),
-          members: item.peoples,
+          members: item.members,
         })),
       };
     },
@@ -306,7 +213,7 @@
       background-color: #f5f7fa !important;
     }
 
-    :deep(.peoples) {
+    :deep(.members) {
       position: relative;
       display: flex;
       width: 100%;
