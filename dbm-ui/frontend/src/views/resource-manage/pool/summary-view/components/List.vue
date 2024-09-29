@@ -8,7 +8,7 @@
         v-model="dimension"
         @change="handleChangeDimension" />
       <Export
-        :data="tableData"
+        :data="allTableData"
         :dimension="dimension" />
     </div>
     <BkLoading
@@ -153,6 +153,7 @@
       city: row.city,
       subzone_ids: subzoneId,
       spec_id: row.spec_id,
+      device_class: row.device_class,
     };
     router.push({
       name: 'resourcePool',
