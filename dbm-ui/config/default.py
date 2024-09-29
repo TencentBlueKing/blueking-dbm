@@ -586,3 +586,5 @@ GRAFANA = {
 # 开启DEBUG_TOOL_BAR，需要内联IP
 if env.DEBUG_TOOL_BAR:
     INTERNAL_IPS = ["127.0.0.1", "localhost"]
+
+
