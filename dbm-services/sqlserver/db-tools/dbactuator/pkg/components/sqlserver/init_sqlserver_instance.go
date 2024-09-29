@@ -110,6 +110,16 @@ func (r *InitSqlserverInstanceComp) CreateSysUser() error {
 		logger.Error("init drs login failed %v", err)
 		return err
 	}
+	// 初始化dbha账号
+	if err := r.DB.CreateLoginUser(
+		r.GeneralParam.RuntimeAccountParam.DBHAUser,
+		r.GeneralParam.RuntimeAccountParam.DBHAPwd,
+		"sysadmin",
+	); err != nil {
+		logger.Error("init dbha login failed %v", err)
+		return err
+	}
+
 	// 初始化mssql_exporter账号
 	if err := r.DB.CreateLoginUser(
 		r.GeneralParam.RuntimeAccountParam.MssqlExporterUser,
@@ -120,12 +130,12 @@ func (r *InitSqlserverInstanceComp) CreateSysUser() error {
 		return err
 	}
 	// mssql_exporter账号, 授权
-	cmd := fmt.Sprintf(
+	exporterCmd := fmt.Sprintf(
 		cst.GRANT_MSSQL_EXPORTER_SQL,
 		r.GeneralParam.RuntimeAccountParam.MssqlExporterUser,
 	)
-	if _, err := r.DB.Exec(cmd); err != nil {
-		logger.Error("init mssql_exporter failed %v", err)
+	if _, err := r.DB.Exec(exporterCmd); err != nil {
+		logger.Error("init mssql_exporter-grant failed %v", err)
 		return err
 	}
 	return nil

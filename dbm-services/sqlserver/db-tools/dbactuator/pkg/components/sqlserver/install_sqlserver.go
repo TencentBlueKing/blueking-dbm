@@ -545,18 +545,9 @@ func (i *InstallSqlServerComp) InitUsers() (err error) {
 		if err := dbWork.CreateLoginUser(
 			i.GeneralParam.RuntimeAccountParam.DBHAUser,
 			i.GeneralParam.RuntimeAccountParam.DBHAPwd,
-			"public",
+			"sysadmin",
 		); err != nil {
 			logger.Error("init dbha login failed %v", err)
-			return err
-		}
-		// dbha账号, 授权
-		dbhaCmd := fmt.Sprintf(
-			cst.GRANT_DBHA_SQL,
-			i.GeneralParam.RuntimeAccountParam.DBHAUser,
-		)
-		if _, err := dbWork.Exec(dbhaCmd); err != nil {
-			logger.Error("init dbha-grant failed %v", err)
 			return err
 		}
 

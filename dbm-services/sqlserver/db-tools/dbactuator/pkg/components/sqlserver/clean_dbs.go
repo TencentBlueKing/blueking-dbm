@@ -250,7 +250,7 @@ func (c *CleanDBSComp) DropdbwithMirroring(dbName string) error {
 	}
 	// 表示有建立镜像关系，所以drop之前需要解除
 	if cnt != 0 {
-		execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE %s SET PARTNER OFF;", dbName))
+		execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE [%s] SET PARTNER OFF;", dbName))
 	}
 	// 查询数据库是否有关联的快照库
 	getSnapshots := fmt.Sprintf(
@@ -264,11 +264,11 @@ func (c *CleanDBSComp) DropdbwithMirroring(dbName string) error {
 	// 如果有存在快照，则先删除快照库
 	if len(dbSnapshots) != 0 {
 		for _, snapshot := range dbSnapshots {
-			execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE %s;", snapshot))
+			execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE [%s];", snapshot))
 		}
 	}
 	// 拼接执行删除源库
-	execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE %s", dbName))
+	execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE [%s]", dbName))
 
 	// 执行drop 批命令
 	if _, err := c.DB.ExecMore(execDBSQLs); err != nil {
@@ -339,11 +339,11 @@ func (c *CleanDBSComp) DropdbwithAlwayson(dbName string) error {
 	// 如果有存在快照，则先删除快照库
 	if len(dbSnapshots) != 0 {
 		for _, snapshot := range dbSnapshots {
-			execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE %s;", snapshot))
+			execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE [%s];", snapshot))
 		}
 	}
 	// 拼接执行删除源库
-	execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE %s", dbName))
+	execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE [%s]", dbName))
 
 	// 执行drop 批命令
 	if _, err := c.DB.ExecMore(execDBSQLs); err != nil {

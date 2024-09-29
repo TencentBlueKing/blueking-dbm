@@ -124,8 +124,8 @@ GO
 
 IF DB_ID('Monitor') IS NOT NULL
 BEGIN
-	ALTER DATABASE Monitor SET SINGLE_USER WITH ROLLBACK IMMEDIATE
-	DROP DATABASE Monitor
+	ALTER DATABASE [Monitor] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+	DROP DATABASE [Monitor]
 END
 
 --****************************************** DATABASE ****************************************
@@ -960,14 +960,14 @@ BEGIN
 			BEGIN
 				IF EXISTS (SELECT name FROM sys.databases WHERE name = @dr)
 				BEGIN
-					SET @cmd='DROP DATABASE '+@dr
+					SET @cmd='DROP DATABASE ['+@dr+']'
 					EXEC (@cmd)
 					
 					SET @cmd2='EXEC MASTER.DBO.xp_cmdshell ''del /q d:\gamedb\'+@dr+'.'+@port+'.*.spst'';'
 					EXEC (@cmd2)
 				END
 
-				select @filename=null,@cmd='',@fileid=0,@cmd='CREATE DATABASE '+@dr+' ON '
+				select @filename=null,@cmd='',@fileid=0,@cmd='CREATE DATABASE ['+@dr+'] ON '
 				declare cur1 cursor for select name from sys.master_files where database_id=@dbid and type_desc='ROWS' and state_desc='ONLINE'
 				open cur1
 				while 1=1
@@ -2728,7 +2728,7 @@ BEGIN TRY
 		WHILE @@FETCH_STATUS = 0
 		BEGIN
 				--强制故障切换
-				set @strsql='Use master  alter database '+@dbname+' set partner FORCE_SERVICE_ALLOW_DATA_LOSS;'
+				set @strsql='Use master  alter database ['+@dbname+'] set partner FORCE_SERVICE_ALLOW_DATA_LOSS;'
 				exec(@strsql)
 				if @@error>0
 				begin
@@ -2936,7 +2936,7 @@ BEGIN TRY
 		WHILE @@FETCH_STATUS = 0
 		BEGIN
 				--强制故障切换
-				set @strsql='Use master  alter database '+@dbname+' set partner FORCE_SERVICE_ALLOW_DATA_LOSS;'
+				set @strsql='Use master  alter database ['+@dbname+'] set partner FORCE_SERVICE_ALLOW_DATA_LOSS;'
 				exec(@strsql)
 				if @@error>0
 				begin
