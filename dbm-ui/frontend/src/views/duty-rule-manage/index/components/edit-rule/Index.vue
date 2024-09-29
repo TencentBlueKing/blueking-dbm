@@ -46,8 +46,7 @@
       <div class="title-spot item-title">{{ t('轮值方式') }}<span class="required" /></div>
       <BkRadioGroup
         v-model="rotateType"
-        type="card"
-        @change="handleChangeRotateType">
+        type="card">
         <BkRadioButton
           v-for="(item, index) in rotateTypeList"
           :key="index"
@@ -63,80 +62,30 @@
           <BkRadio :label="0">
             {{ t('全部业务') }}
           </BkRadio>
-          <!-- <div class="biz-box-control">
-            <div
-              class="biz-box-append"
-              @click="handleClickAppendExcludeBizs">
-              <template v-if="!isShowSelectExcludeBizBox">
-                <DbIcon
-                  class="mr-6"
-                  style="color: #3A84FF;"
-                  type="add" />
-                <span>{{ t('追加排除业务') }}</span>
-              </template>
-              <template v-else>
-                <BkSelect
-                  v-model="partialBizs"
-                  class="biz-select"
-                  multiple
-                  :placeholder="t('请选择排除业务')"
-                  show-select-all>
-                  <BkOption
-                    v-for="(item, index) in bizList"
-                    :key="index"
-                    :label="item.label"
-                    :value="item.value" />
-                </BkSelect>
-                <DbIcon
-                  v-if="partialBizs.length > 0"
-                  v-bk-tooltips="{
-                    content: t('删除排除项'),
-                    theme: 'dark'
-                  }"
-                  class="ml-10"
-                  style="font-size: 16px;color:#979BA5;"
-                  type="delete"
-                  @click="handleDeleteExcludes" />
-              </template>
-            </div>
-          </div> -->
         </div>
-        <!-- <div class="biz-box">
-          <BkRadio :label="t('部分业务')" />
-          <div class="biz-box-control">
-            <BkSelect
-              v-model="partialBizs"
-              class="biz-select"
-              multiple
-              show-select-all>
-              <BkOption
-                v-for="(item, index) in bizList"
-                :key="index"
-                :label="item.label"
-                :value="item.value" />
-            </BkSelect>
-          </div>
-        </div> -->
       </BkRadioGroup>
-      <CycleRotate
-        v-if="rotateType === '0'"
-        ref="cycleRef"
-        :data="data" />
-      <CustomRotate
-        v-else
-        ref="customRef"
-        :data="data"
-        :is-set-empty="isSetCutomEmpty" />
+      <KeepAlive>
+        <CycleRotate
+          v-if="rotateType === 'handoff'"
+          ref="cycleRef"
+          :data="data" />
+        <CustomRotate
+          v-else
+          ref="customRef"
+          :data="data" />
+      </KeepAlive>
     </div>
-
     <template #footer>
       <BkButton
         class="mr-8"
+        :loading="isCreateLoading || isUpdateLoading"
         theme="primary"
         @click="handleConfirm">
         {{ t('确定') }}
       </BkButton>
-      <BkButton @click="handleClose">
+      <BkButton
+        :disabled="isCreateLoading || isUpdateLoading"
+        @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -180,18 +129,14 @@
   const handleBeforeClose = useBeforeClose();
 
   const nameTip = ref('');
-  const rotateType = ref('0');
+  const rotateType = ref('handoff');
   const bizType = ref(0);
   const customRef = ref();
   const cycleRef = ref();
-  const isSetCutomEmpty = ref(false);
   const formRef = ref();
   const formModel = reactive({
     ruleName: '',
   });
-
-  // const partialBizs = ref([]);
-  // const isShowSelectExcludeBizBox = ref(false);
 
   const isCreate = computed(() => props.pageType !== 'edit');
 
@@ -203,11 +148,11 @@
 
   const rotateTypeList = [
     {
-      value: '0',
+      value: 'handoff',
       label: t('周期轮值'),
     },
     {
-      value: '1',
+      value: 'regular',
       label: t('自定义轮值'),
     },
   ];
@@ -249,86 +194,66 @@
     ],
   };
 
-  const { run: runCreateDutyRule } = useRequest(createDutyRule, {
+  const { loading: isCreateLoading, run: runCreateDutyRule } = useRequest(createDutyRule, {
     manual: true,
-    onSuccess: (createResult) => {
-      if (createResult) {
-        messageSuccess(t('保存成功'));
-        emits('success');
-      }
+    onSuccess: () => {
+      messageSuccess(t('保存成功'));
+      emits('success');
+      isShow.value = false;
     },
   });
 
-  const { run: runUpdateDutyRule } = useRequest(updateDutyRule, {
+  const { loading: isUpdateLoading, run: runUpdateDutyRule } = useRequest(updateDutyRule, {
     manual: true,
-    onSuccess: (updateResult) => {
-      if (updateResult) {
-        // 成功
-        messageSuccess(t('保存成功'));
-        emits('success');
-      }
+    onSuccess: () => {
+      // 成功
+      messageSuccess(t('编辑成功'));
+      emits('success');
+      isShow.value = false;
     },
   });
-
-  // const bizList = ref<SelectItem[]>([]);
 
   watch(
     () => [props.pageType, props.data],
     () => {
-      checkPageTypeAndData();
+      if (props.pageType !== 'create' && props.data) {
+        // 编辑或者克隆
+        formModel.ruleName = props.data.name;
+        rotateType.value = props.data.category;
+        return;
+      }
+      formModel.ruleName = '';
     },
   );
-
-  const checkPageTypeAndData = () => {
-    if (props.pageType !== 'create' && props.data) {
-      // 编辑或者克隆
-      formModel.ruleName = props.data.name;
-      rotateType.value = props.data.category === 'handoff' ? '0' : '1';
-      return;
-    }
-    formModel.ruleName = '';
-  };
-
-  const handleChangeRotateType = (value: string) => {
-    isSetCutomEmpty.value = value === '1';
-  };
-
-  // const handleClickAppendExcludeBizs = () => {
-  //   isShowSelectExcludeBizBox.value = true;
-  // };
-
-  // const handleDeleteExcludes = () => {
-  //   partialBizs.value = [];
-  // };
 
   // 点击确定
   const handleConfirm = async () => {
     await formRef.value.validate();
-    if (rotateType.value === '0') {
+    if (rotateType.value === 'handoff') {
       const cycleValues = await cycleRef.value.getValue();
       const cycleParams = {
         name: formModel.ruleName,
         priority: 1,
         db_type: props.dbType,
-        category: 'handoff',
+        category: rotateType.value,
         effective_time: cycleValues.effective_time,
         end_time: cycleValues.end_time,
         duty_arranges: cycleValues.duty_arranges,
       };
       if (isCreate.value) {
         // 新建/克隆
-        runCreateDutyRule(cycleParams);
+        await runCreateDutyRule(cycleParams);
       } else {
         // 克隆或者编辑
         if (props.data) {
           cycleParams.effective_time = cycleValues.effective_time;
           cycleParams.end_time = cycleValues.end_time;
-          runUpdateDutyRule(props.data.id, cycleParams);
+          await runUpdateDutyRule(props.data.id, cycleParams);
         }
       }
     } else {
       // 自定义轮值
-      const customValues = customRef.value.getValue();
+      const customValues = await customRef.value.getValue();
       const customParams = {
         name: formModel.ruleName,
         priority: 2,
@@ -340,26 +265,25 @@
       };
       if (isCreate.value) {
         // 新建/克隆
-        runCreateDutyRule(customParams);
+        await runCreateDutyRule(customParams);
       } else {
         // 克隆或者编辑
         if (props.data) {
-          runUpdateDutyRule(props.data.id, customParams);
+          await runUpdateDutyRule(props.data.id, customParams);
         }
       }
     }
-    isShow.value = false;
   };
 
   async function handleClose() {
     const result = await handleBeforeClose();
 
     if (!result) {
-      return;
+      return false;
     }
-    checkPageTypeAndData();
     window.changeConfirm = false;
     isShow.value = false;
+    return true;
   }
 </script>
 
