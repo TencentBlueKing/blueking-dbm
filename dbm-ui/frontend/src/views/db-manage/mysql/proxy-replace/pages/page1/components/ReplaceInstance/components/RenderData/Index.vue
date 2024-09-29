@@ -17,7 +17,7 @@
       fixed="left"
       :min-width="200"
       :width="240">
-      {{ t('目标实例') }}
+      {{ t('目标Proxy实例') }}
       <template #append>
         <span
           v-bk-tooltips="t('批量选择')"

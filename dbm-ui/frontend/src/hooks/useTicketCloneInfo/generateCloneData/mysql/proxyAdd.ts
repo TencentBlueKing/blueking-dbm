@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { MySQLProxyAddDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // MySQL 添加Proxy
-export function generateMysqlProxyAddCloneData(ticketData: TicketModel<MySQLProxyAddDetails>) {
+export function generateMysqlProxyAddCloneData(ticketData: TicketModel<Mysql.ProxyAdd>) {
   const { clusters, infos } = ticketData.details;
   const tableDataList = infos.map((item) => {
     const clusterId = item.cluster_ids[0];

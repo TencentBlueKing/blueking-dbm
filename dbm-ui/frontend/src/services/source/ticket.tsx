@@ -30,20 +30,21 @@ const path = '/apis/tickets';
 /**
  * 单据列表
  */
-export function getTickets(
-  params: {
-    bk_biz_id?: number;
-    ticket_type?: string;
-    status?: string;
-    limit?: number;
-    offset?: number;
-    create_at__lte?: string;
-    create_at__gte?: string;
-    remark?: string;
-    creator?: string;
-    cluster?: string;
-  } = {},
-) {
+export function getTickets(params: {
+  id?: number;
+  bk_biz_id?: number;
+  ticket_type?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+  create_at__lte?: string;
+  create_at__gte?: string;
+  remark?: string;
+  creator?: string;
+  cluster?: string;
+  todo?: string;
+  self_manage?: number;
+}) {
   return http.get<ListBase<TicketModel<unknown>[]>>(`${path}/`, params).then((data) => ({
     ...data,
     results: data.results.map((item) => new TicketModel(item)),
@@ -198,6 +199,8 @@ export function getTodoTickets(
     remark?: string;
     creator?: string;
     cluster?: string;
+    todo_status?: string;
+    status__in?: string;
   } = {},
 ) {
   return http.get<ListBase<TicketModel<unknown>[]>>(`${path}/get_todo_tickets/`, params).then((data) => ({

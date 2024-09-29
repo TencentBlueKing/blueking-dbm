@@ -67,12 +67,12 @@
   import { useI18n } from 'vue-i18n';
 
   import RedisModel from '@services/model/redis/redis';
+  import { type Redis } from '@services/model/ticket/ticket';
 
   import OperateColumn from '@components/render-table/columns/operate-column/index.vue';
   import RenderText from '@components/render-table/columns/text-plain/index.vue';
 
   import RenderTargetCluster from '@views/db-manage/redis/common/edit-field/ClusterName.vue';
-  import { AffinityType } from '@views/db-manage/redis/common/types';
 
   import { random } from '@utils';
 
@@ -108,23 +108,7 @@
     spec?: RedisModel['cluster_spec'];
   }
 
-  export interface InfoItem {
-    cluster_id: number;
-    bk_cloud_id: number;
-    db_version: string;
-    shard_num: number;
-    group_num: number;
-    online_switch_type: OnlineSwitchType;
-    capacity: number;
-    future_capacity: number;
-    resource_spec: {
-      backend_group: {
-        spec_id: number;
-        count: number; // 机器组数
-        affinity: AffinityType; // 暂时固定 'CROS_SUBZONE',
-      };
-    };
-  }
+  export type InfoItem = Redis.ScaleUpdown['infos'][number];
 
   // 创建表格数据
   export const createRowData = (): IDataRow => ({
@@ -168,6 +152,13 @@
   const targetCapacityRef = ref<InstanceType<typeof RenderTargetCapacity>>();
   const switchModeRef = ref<InstanceType<typeof RenderSwitchMode>>();
   const localTargetVersion = ref<string>('');
+  const displayInfo = ref<InfoItem['display_info']>({
+    cluster_stats: {},
+    cluster_spec: {},
+    cluster_shard_num: 0,
+    cluster_capacity: 0,
+    machine_pair_cnt: 0,
+  } as InfoItem['display_info']);
 
   const handleTargetVersionChange = (value: string) => {
     localTargetVersion.value = value;
@@ -175,6 +166,13 @@
 
   const handleInputFinish = (value: RedisModel) => {
     emits('clusterInputFinish', value);
+    displayInfo.value = {
+      cluster_stats: value.cluster_stats,
+      cluster_spec: value.cluster_spec,
+      cluster_shard_num: value.cluster_shard_num,
+      cluster_capacity: value.cluster_capacity,
+      machine_pair_cnt: value.machine_pair_cnt,
+    };
   };
 
   const handleAppend = () => {
@@ -187,7 +185,7 @@
 
   defineExpose<Exposes>({
     async getValue() {
-      await clusterRef.value!.getValue(true);
+      await clusterRef.value!.getValue();
       return Promise.all([
         versionRef.value!.getValue(),
         switchModeRef.value!.getValue(),
@@ -200,6 +198,7 @@
           bk_cloud_id: props.data.bkCloudId,
           online_switch_type: switchMode,
           ...targetCapacity,
+          display_info: displayInfo.value,
         };
       });
     },

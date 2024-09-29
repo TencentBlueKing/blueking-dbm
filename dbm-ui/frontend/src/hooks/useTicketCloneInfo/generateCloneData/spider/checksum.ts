@@ -11,13 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type { SpiderCheckSumDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Spider Checksum
-export function generateSpiderChecksumCloneData(ticketData: TicketModel<SpiderCheckSumDetails>) {
+export function generateSpiderChecksumCloneData(ticketData: TicketModel<TendbCluster.CheckSum>) {
   const { details, remark } = ticketData;
   const { infos, clusters } = details;
   const tableDataList = infos.map((item) => {
