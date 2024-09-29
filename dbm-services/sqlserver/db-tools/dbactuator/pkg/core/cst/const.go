@@ -254,14 +254,6 @@ var (
 	`
 )
 
-// dbha账号权限sql
-var (
-	GRANT_DBHA_SQL = `
-	use [master]
-	GRANT CONTROL SERVER TO [%s] AS [sa]
-	`
-)
-
 // mssql_exporter账号权限
 var (
 	GRANT_MSSQL_EXPORTER_SQL = `

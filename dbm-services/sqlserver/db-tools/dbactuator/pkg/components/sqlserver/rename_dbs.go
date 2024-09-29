@@ -266,11 +266,11 @@ func DropOldDatabaseOnslave(dbname string, DRS []slaves) error {
 		// 如果有存在快照，则先删除快照库
 		if len(dbSnapshots) != 0 {
 			for _, snapshot := range dbSnapshots {
-				execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE %s;", snapshot))
+				execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE [%s];", snapshot))
 			}
 		}
 		// 拼接执行删除源库
-		execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE %s", dbname))
+		execDBSQLs = append(execDBSQLs, fmt.Sprintf("DROP DATABASE [%s]", dbname))
 
 		// 执行drop 从库
 		if _, err := slave.Connet.ExecMore(execDBSQLs); err != nil {

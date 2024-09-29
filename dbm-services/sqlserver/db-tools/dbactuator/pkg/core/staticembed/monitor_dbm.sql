@@ -124,8 +124,8 @@ GO
 
 IF DB_ID('Monitor') IS NOT NULL
 BEGIN
-	ALTER DATABASE Monitor SET SINGLE_USER WITH ROLLBACK IMMEDIATE
-	DROP DATABASE Monitor
+	ALTER DATABASE [Monitor] SET SINGLE_USER WITH ROLLBACK IMMEDIATE
+	DROP DATABASE [Monitor]
 END
 
 --****************************************** DATABASE ****************************************
