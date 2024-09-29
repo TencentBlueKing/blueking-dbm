@@ -14,7 +14,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta import api, request_validator
 from backend.db_meta.api import common
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus, MachineType
-from backend.db_meta.models import Cluster, StorageInstance, StorageInstanceTuple, TenDBClusterStorageSet
+from backend.db_meta.models import Cluster, Machine, StorageInstance, StorageInstanceTuple, TenDBClusterStorageSet
 from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
@@ -44,7 +44,9 @@ class TenDBClusterMigrateRemoteDb:
         mysql_pkg = Package.get_latest_package(version=mysql_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
         machines = []
         storages = []
+        machine_ips = []
         if master_ip is not None:
+            machine_ips.append(master_ip)
             machines.append(
                 {
                     "ip": master_ip,
@@ -65,6 +67,7 @@ class TenDBClusterMigrateRemoteDb:
                     },
                 )
         if slave_ip is not None:
+            machine_ips.append(slave_ip)
             machines.append(
                 {
                     "ip": slave_ip,
@@ -86,6 +89,8 @@ class TenDBClusterMigrateRemoteDb:
                 )
 
         api.machine.create(machines=machines, creator=creator, bk_cloud_id=bk_cloud_id)
+        machine_objs = Machine.objects.filter(bk_cloud_id=bk_cloud_id, ip__in=machine_ips)
+        machine_objs.update(db_module_id=cluster.db_module_id)
         api.storage_instance.create(
             instances=storages, creator=creator, time_zone=time_zone, status=InstanceStatus.RESTORING
         )
