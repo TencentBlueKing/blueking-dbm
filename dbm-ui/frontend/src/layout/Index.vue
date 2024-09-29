@@ -133,7 +133,7 @@
       'DorisManage',
       'taskHistory',
       'DatabaseWhitelist',
-      'ticketManage',
+      'bizTicketManage',
       'DBPasswordTemporaryModify',
     ],
     [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],

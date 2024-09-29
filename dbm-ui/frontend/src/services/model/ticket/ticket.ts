@@ -23,25 +23,55 @@ export type * as Mysql from './details/mysql';
 export type * as Redis from './details/redis';
 export type * as Sqlserver from './details/sqlserver';
 
+const STATUS_PENDING = 'PENDING';
+const STATUS_APPROVE = 'APPROVE';
+const STATUS_RESOURCE_REPLENISH = 'RESOURCE_REPLENISH';
+const STATUS_TODO = 'TODO';
+const STATUS_TIMER = 'TIMER';
+const STATUS_RUNNING = 'RUNNING';
+const STATUS_SUCCEEDED = 'SUCCEEDED';
+const STATUS_FAILED = 'FAILED';
+const STATUS_REVOKED = 'REVOKED';
+const STATUS_TERMINATED = 'TERMINATED';
+
 export default class Ticket<T extends unknown | DetailBase> {
-  static themeMap = {
-    PENDING: 'warning',
-    RUNNING: 'info',
-    SUCCEEDED: 'success',
-    FAILED: 'danger',
-    REVOKED: 'danger',
-    TERMINATED: 'danger',
-    ALL: undefined,
-  } as const;
+  static STATUS_PENDING = STATUS_PENDING;
+  static STATUS_APPROVE = STATUS_APPROVE;
+  static STATUS_RESOURCE_REPLENISH = STATUS_RESOURCE_REPLENISH;
+  static STATUS_TODO = STATUS_TODO;
+  static STATUS_TIMER = STATUS_TIMER;
+  static STATUS_RUNNING = STATUS_RUNNING;
+  static STATUS_SUCCEEDED = STATUS_SUCCEEDED;
+  static STATUS_FAILED = STATUS_FAILED;
+  static STATUS_REVOKED = STATUS_REVOKED;
+  static STATUS_TERMINATED = STATUS_TERMINATED;
+
   static statusTextMap = {
-    ALL: t('全部'),
-    PENDING: t('审批中'),
-    RUNNING: t('进行中'),
-    SUCCEEDED: t('已完成'),
-    FAILED: t('已失败'),
-    TERMINATED: t('已终止'),
-    REVOKED: t('已撤销'),
+    [STATUS_PENDING]: t('审批中'),
+    [STATUS_RUNNING]: t('进行中'),
+    [STATUS_SUCCEEDED]: t('已完成'),
+    [STATUS_FAILED]: t('已失败'),
+    [STATUS_TERMINATED]: t('已终止'),
+    [STATUS_REVOKED]: t('已撤销'),
+    [STATUS_APPROVE]: t('待审批'),
+    [STATUS_RESOURCE_REPLENISH]: t('待补货'),
+    [STATUS_TODO]: t('待执行'),
+    [STATUS_TIMER]: t('定时中'),
   };
+
+  static themeMap = {
+    ALL: undefined,
+    [STATUS_PENDING]: 'warning',
+    [STATUS_RUNNING]: 'info',
+    [STATUS_SUCCEEDED]: 'success',
+    [STATUS_FAILED]: 'danger',
+    [STATUS_REVOKED]: 'danger',
+    [STATUS_TERMINATED]: 'danger',
+    [STATUS_APPROVE]: undefined,
+    [STATUS_RESOURCE_REPLENISH]: undefined,
+    [STATUS_TODO]: undefined,
+    [STATUS_TIMER]: undefined,
+  } as const;
 
   bk_biz_id: number;
   bk_biz_name: string;

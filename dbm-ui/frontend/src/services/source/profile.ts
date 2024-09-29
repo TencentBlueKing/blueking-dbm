@@ -28,6 +28,7 @@ export function getProfile() {
     }[];
     resource_manage: boolean;
     username: string;
+    is_superuser: boolean;
   }>(`${path}/get_profile/`);
 }
 

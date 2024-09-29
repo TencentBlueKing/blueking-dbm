@@ -108,6 +108,11 @@
     .search-container-selected {
       height: 22px;
       max-width: 250px !important;
+
+      .selected-name {
+        height: 22px;
+        overflow: hidden;
+      }
     }
   }
 </style>
