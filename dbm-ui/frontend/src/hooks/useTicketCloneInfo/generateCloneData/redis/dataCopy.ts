@@ -10,13 +10,12 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { RedisDataCopyDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 // Redis 集群数据复制
-export function generateRedisDataCopyCloneData(ticketData: TicketModel<RedisDataCopyDetails>) {
+export function generateRedisDataCopyCloneData(ticketData: TicketModel<Redis.ClusterDataCopy>) {
   const { clusters, infos } = ticketData.details;
 
   const tableList = infos.map((item) => ({

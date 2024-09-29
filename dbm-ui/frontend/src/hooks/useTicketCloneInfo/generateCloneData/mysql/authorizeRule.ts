@@ -10,8 +10,7 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import type { MysqlAuthorizationDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 import { checkHost } from '@services/source/ipchooser';
 import { getTendbhaList } from '@services/source/tendbha';
 import { getTendbsingleList } from '@services/source/tendbsingle';
@@ -19,7 +18,7 @@ import { getTendbsingleList } from '@services/source/tendbsingle';
 import { ClusterTypes } from '@common/const';
 
 // Mysql 集群授权
-export async function generateMysqlAuthorizeRuleCloneData(ticketData: TicketModel<MysqlAuthorizationDetails>) {
+export async function generateMysqlAuthorizeRuleCloneData(ticketData: TicketModel<Mysql.AuthorizeRules>) {
   const { authorize_data: authorizeData } = ticketData.details;
   const sourceIpList: ServiceReturnType<typeof checkHost> = [];
   if (authorizeData.source_ips && Array.isArray(authorizeData.source_ips)) {

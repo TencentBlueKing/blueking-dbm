@@ -77,11 +77,11 @@
               <div style="font-size: 12px; font-weight: bold; line-height: 22px; color: #ea3636">
                 {{ getSQLFilename(data.file_name) }}
               </div>
-              <MultLineText
+              <MultlineText
                 :line="3"
                 style="margin-top: 4px; line-height: 20px; color: #63656e">
                 {{ data.err_msg }}
-              </MultLineText>
+              </MultlineText>
             </div>
             <div v-else>--</div>
           </template>
@@ -98,7 +98,7 @@
 
   import { getSemanticExecuteResult, querySemanticData } from '@services/source/mysqlSqlImport';
 
-  import MultLineText from '@components/mult-line-text/Index.vue';
+  import MultlineText from '@components/multline-text/Index.vue';
 
   import { getSQLFilename } from '@utils';
 

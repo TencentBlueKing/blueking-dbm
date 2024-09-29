@@ -11,7 +11,6 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { Table } from 'bkui-vue';
 import type { App } from 'vue';
 
 import AuthButton from '@components/auth-component/button.vue';
@@ -37,7 +36,10 @@ import SkeletonLoading from '@components/skeleton-loading/Index.vue';
 import SmartAction from '@components/smart-action/Index.vue';
 import { ipSelector } from '@components/vue2/ip-selector';
 
+// import { Table, TableColumn } from '@blueking/table';
 import UserSelector from '@patch/user-selector/selector.vue';
+
+// import('@blueking/table/vue3/vue3.css');
 
 export const setGlobalComps = (app: App<Element>) => {
   app.component('DbCard', DbCard);
@@ -63,5 +65,11 @@ export const setGlobalComps = (app: App<Element>) => {
   app.component('AuthOption', AuthOption);
   app.component('AuthSwitcher', AuthSwitch);
   app.component('AuthRouterLink', AuthRouterLink);
-  app.component('BKTableColumn', Table.Column);
+
+  console.log('aapp = ', app);
+
+  // setTimeout(() => {
+  //   app.component('BkTable', Table);
+  //   app.component('BkTableColumn', TableColumn);
+  // });
 };

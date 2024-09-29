@@ -11,14 +11,13 @@
  * the specific language governing permissions and limitations under the License.
  */
 import RedisModel from '@services/model/redis/redis';
-import type { RedisDataStructrueDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 import { getRedisList } from '@services/source/redis';
 
 import { random } from '@utils';
 
 // Redis 定点构造
-export async function generateRedisDataStructureCloneData(ticketData: TicketModel<RedisDataStructrueDetails>) {
+export async function generateRedisDataStructureCloneData(ticketData: TicketModel<Redis.DataStructure>) {
   const { infos } = ticketData.details;
   const clusterListResult = await getRedisList({
     cluster_ids: infos.map((item) => item.cluster_id).join(','),

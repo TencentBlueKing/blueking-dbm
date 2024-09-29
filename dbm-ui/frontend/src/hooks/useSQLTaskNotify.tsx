@@ -40,8 +40,8 @@ export const useSQLTaskNotify = () => {
   };
 
   const { cancel: cancelRequest } = useRequest(getUserSemanticTasks, {
-    pollingInterval: 10000,
-    debounceInterval: 10000,
+    pollingInterval: 10000000,
+    debounceInterval: 10000000,
     onSuccess(data) {
       const isAlterItem = _.find(data, (item) => item.is_alter);
 

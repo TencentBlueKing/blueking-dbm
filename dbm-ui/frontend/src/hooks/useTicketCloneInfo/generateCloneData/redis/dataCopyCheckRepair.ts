@@ -12,15 +12,14 @@
  */
 import dayjs from 'dayjs';
 
-import type { RedisDataCheckAndRepairDetails } from '@services/model/ticket/details/redis';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Redis } from '@services/model/ticket/ticket';
 
 import { random } from '@utils';
 
 import { t } from '@locales/index';
 
 // Redis 数据校验与修复
-export function generateRedisDataCopyCheckRepairCloneData(ticketData: TicketModel<RedisDataCheckAndRepairDetails>) {
+export function generateRedisDataCopyCheckRepairCloneData(ticketData: TicketModel<Redis.DatacopyCheckRepair>) {
   const { details } = ticketData;
   const tableList = details.infos.map((item) => ({
     rowKey: random(),
