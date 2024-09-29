@@ -73,7 +73,9 @@ class DnsManage(object):
                 cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, role=ClusterEntryRole.SLAVE_ENTRY.value
             ).all()
         else:
-            dns_info = ClusterEntry.objects.filter(cluster=cluster, cluster_entry_type=ClusterEntryType.DNS).all()
+            dns_info = ClusterEntry.objects.filter(
+                cluster=cluster, cluster_entry_type__in=[ClusterEntryType.DNS, ClusterEntryType.CLBDNS]
+            ).all()
         for d in dns_info:
             delete_domain_payload = [{"domain_name": self.format_domain(d.entry)}]
             logger.info(d.entry)
