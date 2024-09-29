@@ -420,8 +420,8 @@ class DataAPI(object):
         bkapi_auth_headers = {
             "bk_app_code": params.pop("bk_app_code", env.APP_CODE),
             "bk_app_secret": params.pop("bk_app_secret", env.SECRET_KEY),
-            # 如果既不是use_admin，也非local_request请求，则用户先置为匿名
-            "bk_username": "Anonymous",
+            # 如果既不是use_admin，也非local_request请求，则用户先置为空
+            "bk_username": "",
         }
         if use_admin or self.is_backend_request():
             # 使用管理员/平台身份调用接口
