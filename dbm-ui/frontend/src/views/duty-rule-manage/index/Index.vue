@@ -20,13 +20,15 @@
   </div>
 </template>
 <script setup lang="ts">
+  import { DBTypes } from '@common/const';
+
   import DbTab from '@components/db-tab/Index.vue';
 
   import RenderContent from './components/content/Index.vue';
 
   const route = useRoute();
 
-  const activeTab = ref<string>(route.query.db_type as string);
+  const activeTab = ref<string>((route.query.db_type as string) || DBTypes.MYSQL);
 </script>
 <style lang="less">
   .duty-rule-manage-content {
