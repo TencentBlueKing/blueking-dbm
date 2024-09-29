@@ -20,7 +20,11 @@ import { isRecentDays, utcDisplayTime } from '@utils';
 export default class SqlServerHaInstance {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cpu: number;
+  bk_disk: number;
   bk_host_id: number;
+  bk_mem: number;
+  bk_sub_zone: string;
   cluster_id: number;
   cluster_name: string;
   cluster_type: string;
@@ -47,7 +51,11 @@ export default class SqlServerHaInstance {
   constructor(payload: SqlServerHaInstance) {
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.bk_cpu = payload.bk_cpu;
+    this.bk_disk = payload.bk_disk;
     this.bk_host_id = payload.bk_host_id;
+    this.bk_mem = payload.bk_mem;
+    this.bk_sub_zone = payload.bk_sub_zone;
     this.cluster_id = payload.cluster_id;
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;

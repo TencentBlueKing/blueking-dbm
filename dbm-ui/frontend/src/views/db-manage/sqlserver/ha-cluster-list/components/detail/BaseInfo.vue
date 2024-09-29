@@ -45,6 +45,10 @@
         label: t('管控区域'),
         key: 'bk_cloud_name',
       },
+      {
+        label: t('容灾要求'),
+        key: 'disasterToleranceLevelName',
+      },
     ],
     [
       {

@@ -24,39 +24,43 @@
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage">
         <BkTableColumn
+          field="city"
           fixed="left"
           :label="t('地域')"
-          prop="city"
-          :width="150" />
+          :min-width="150">
+          <template #default="{ row }">
+            {{ row.city || '--' }}
+          </template>
+        </BkTableColumn>
         <template v-if="isSpec">
           <BkTableColumn
+            field="specTypeDisplay"
             :label="t('规格类型')"
-            prop="specTypeDisplay"
-            :width="150" />
+            :min-width="150" />
           <BkTableColumn
+            field="spec_name"
             :label="t('规格')"
-            prop="spec_name"
             :width="150" />
         </template>
         <template v-else>
           <BkTableColumn
+            field="deviceDisplay"
             :label="t('机型（硬盘）')"
-            prop="deviceDisplay"
-            :width="150" />
+            :min-width="150" />
           <BkTableColumn
+            field="cpu_mem_summary"
             :label="t('CPU 内存')"
-            prop="cpu_mem_summary"
-            :width="150" />
+            :min-width="150" />
         </template>
         <BkTableColumn
+          field="sub_zone_detail"
           :label="t('园区分布（台）')"
-          prop="sub_zone_detail"
           :width="400">
           <template #default="{ row }">
             <span
               v-for="(item, subzoneId, index) in row.sub_zone_detail"
               :key="subzoneId">
-              <span>{{ item.name }} : </span>
+              <span v-if="item.name">{{ item.name }} : </span>
               <span
                 class="cell-num"
                 @click="handleClick(row, subzoneId)">
@@ -67,10 +71,10 @@
           </template>
         </BkTableColumn>
         <BkTableColumn
+          field="count"
           fixed="right"
           :label="t('总数（台）')"
           :min-width="100"
-          prop="count"
           :width="100">
           <template #default="{ row }">
             <span
@@ -194,9 +198,6 @@
     }
 
     .summary-view-table {
-      height: calc(100vh - 400px) !important;
-      max-height: none !important;
-
       :deep(.cell) {
         .cell-num {
           font-weight: bold;

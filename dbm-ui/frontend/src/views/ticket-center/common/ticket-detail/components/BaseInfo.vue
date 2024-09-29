@@ -1,5 +1,6 @@
 <template>
   <DbCard
+    :collapse="isBaseinfoCardCollapse"
     mode="collapse"
     :title="t('基本信息')">
     <table class="ticket-base-info">
@@ -9,9 +10,9 @@
           <td>{{ ticketData.id }}</td>
           <td>{{ t('单据状态') }}:</td>
           <td>
-            <BkTag :theme="ticketData.tagTheme">
-              {{ t(ticketData.statusText) }}
-            </BkTag>
+            <TicketStatusTag
+              :data="ticketData"
+              small />
           </td>
           <td>{{ t('已耗时') }}:</td>
           <td>
@@ -35,32 +36,42 @@
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
+  import { useRoute } from 'vue-router';
 
   import TicketModel from '@services/model/ticket/ticket';
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
+  import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
   import { utcDisplayTime, utcTimeToSeconds } from '@utils';
 
   interface Props {
-    ticketData: TicketModel<unknown>;
+    ticketData: TicketModel;
   }
 
   defineProps<Props>();
 
   const { t } = useI18n();
+  const route = useRoute();
+
+  const isBaseinfoCardCollapse = route.name === 'ticketDetail';
 </script>
 <style lang="less">
   .ticket-base-info {
+    table-layout: fixed;
+
     td {
-      width: 18%;
       line-height: 32px;
       color: #313238;
 
       &:nth-child(2n + 1) {
-        width: 12%;
+        width: 150px;
         padding-right: 8px;
         text-align: right;
+      }
+
+      &:first-child {
+        width: 100px;
       }
     }
   }

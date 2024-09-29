@@ -254,14 +254,6 @@
         padding-bottom: 12px;
         color: @title-color;
       }
-
-      :deep(.bk-table) {
-        .bk-table-body-content {
-          tr {
-            cursor: pointer;
-          }
-        }
-      }
     }
   }
 </style>

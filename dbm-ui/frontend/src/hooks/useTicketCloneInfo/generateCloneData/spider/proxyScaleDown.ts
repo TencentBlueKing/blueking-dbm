@@ -15,14 +15,13 @@ import _ from 'lodash';
 
 import TendbclusterModel from '@services/model/tendbcluster/tendbcluster';
 import TendbclusterInstanceModel from '@services/model/tendbcluster/tendbcluster-instance';
-import type { SpiderReduceNodesDetails } from '@services/model/ticket/details/spider';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type TendbCluster } from '@services/model/ticket/ticket';
 import { getTendbclusterInstanceList, getTendbClusterList } from '@services/source/tendbcluster';
 
 import { random } from '@utils';
 
 // spider 缩容接入层
-export async function generateSpiderProxyScaleDownCloneData(ticketData: TicketModel<SpiderReduceNodesDetails>) {
+export async function generateSpiderProxyScaleDownCloneData(ticketData: TicketModel<TendbCluster.SpiderReduceNodes>) {
   const { infos, is_safe: isSafe } = ticketData.details;
   const [clusterListResult, instanceListResult] = await Promise.all([
     getTendbClusterList({

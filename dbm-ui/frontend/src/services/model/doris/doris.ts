@@ -13,9 +13,9 @@
 
 import { uniq } from 'lodash';
 
-import type { ClusterListEntry, ClusterListNode, ClusterListOperation } from '@services/types';
+import type { ClusterListEntry, ClusterListNode, ClusterListOperation, ClusterListSpec } from '@services/types';
 
-import { TicketTypes } from '@common/const';
+import { ClusterAffinityMap, TicketTypes } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
@@ -58,16 +58,19 @@ export default class Doris {
   bk_biz_name: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_sub_zone: string;
   cluster_access_port: number;
   cluster_alias: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
+  cluster_spec: ClusterListSpec;
   cluster_stats: Record<'used' | 'total' | 'in_use', number>;
   cluster_time_zone: string;
   cluster_type: string;
   cluster_type_name: string;
   create_at: string;
   creator: string;
+  disaster_tolerance_level: keyof typeof ClusterAffinityMap;
   domain: string;
   doris_backend_cold: Array<ClusterListNode>;
   doris_backend_hot: Array<ClusterListNode>;
@@ -99,16 +102,19 @@ export default class Doris {
     this.bk_biz_name = payload.bk_biz_name;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.bk_sub_zone = payload.bk_sub_zone;
     this.cluster_access_port = payload.cluster_access_port;
     this.cluster_alias = payload.cluster_alias;
     this.cluster_entry = payload.cluster_entry;
     this.cluster_name = payload.cluster_name;
+    this.cluster_spec = payload.cluster_spec || {};
     this.cluster_stats = payload.cluster_stats || {};
     this.cluster_type = payload.cluster_type;
     this.cluster_type_name = payload.cluster_type_name;
     this.cluster_time_zone = payload.cluster_time_zone;
     this.create_at = payload.create_at;
     this.creator = payload.creator;
+    this.disaster_tolerance_level = payload.disaster_tolerance_level;
     this.domain = payload.domain;
     this.doris_backend_cold = payload.doris_backend_cold;
     this.doris_backend_hot = payload.doris_backend_hot;
@@ -245,5 +251,9 @@ export default class Doris {
     }
 
     return payload;
+  }
+
+  get disasterToleranceLevelName() {
+    return ClusterAffinityMap[this.disaster_tolerance_level];
   }
 }

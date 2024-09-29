@@ -11,14 +11,13 @@
  * the specific language governing permissions and limitations under the License.
  */
 import TendbhaModel from '@services/model/mysql/tendbha';
-import type { MySQLChecksumDetails } from '@services/model/ticket/details/mysql';
-import TicketModel from '@services/model/ticket/ticket';
+import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
 import { getTendbhaList } from '@services/source/tendbha';
 
 import { random } from '@utils';
 
 // Mysql SQL变更执行
-export async function generateMysqlChecksumCloneData(ticketData: TicketModel<MySQLChecksumDetails>) {
+export async function generateMysqlChecksumCloneData(ticketData: TicketModel<Mysql.CheckSum>) {
   const { details, remark } = ticketData;
   const clustersResult = await getTendbhaList({
     cluster_ids: details.infos.map((item) => item.cluster_id),

@@ -133,7 +133,7 @@
       'DorisManage',
       'taskHistory',
       'DatabaseWhitelist',
-      'ticketManage',
+      'bizTicketManage',
       'DBPasswordTemporaryModify',
     ],
     [menuEnum.observableManage]: ['DBHASwitchEvents', 'inspectionManage'],
@@ -158,7 +158,13 @@
       'PlatformTicketFlowSetting',
       'PlatformStaffManage',
     ],
-    [menuEnum.personalWorkbench]: ['SelfServiceMyTickets', 'MyTodos', 'serviceApply', 'ticketSelfManage'],
+    [menuEnum.personalWorkbench]: [
+      'serviceApply',
+      'SelfServiceMyTickets',
+      'MyTodos',
+      'ticketSelfDone',
+      'ticketSelfManage',
+    ],
   } as Record<string, string[]>;
 
   const menuType = ref('');
@@ -178,7 +184,7 @@
   const contentTitle = computed(() => route.meta.navName);
   const isContendFullscreen = computed(() => Boolean(route.meta.fullscreen));
   // 全局搜索结果页面不显示，点击顶部导航栏后显示并自动跳转
-  const needMenu = computed(() => !(route.name === 'QuickSearch' && menuType.value === ''));
+  const needMenu = computed(() => Boolean(menuType.value));
 
   // 解析路由分组
   watch(
@@ -206,6 +212,13 @@
           menuType.value = routeGroupMap[routeName];
         }
       });
+
+      // // fix: menu 组件 acitve 生效有延迟的问题
+      // setTimeout(() => {
+      //   document.body.querySelector('.bk-menu-item.is-active')?.scrollIntoView({
+      //     block: 'start',
+      //   });
+      // }, 300);
     },
     {
       immediate: true,

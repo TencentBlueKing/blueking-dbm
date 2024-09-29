@@ -46,6 +46,7 @@
         :row-class="setRowClass"
         selectable
         :settings="settings"
+        :show-overflow="false"
         @clear-search="clearSearchValue"
         @column-filter="columnFilterChange"
         @column-sort="columnSortChange"
@@ -292,6 +293,12 @@
         field: 'shard',
         render: ({ data }: { data: MongodbInstanceModel }) => data.shard || '--',
 
+      },
+      {
+        label: t('所在园区'),
+        field: 'bk_sub_zone',
+        width: 140,
+        render: ({ data }: { data: MongodbInstanceModel }) => data.bk_sub_zone || '--',
       },
       {
         label: t('部署时间'),

@@ -48,18 +48,11 @@ if (axios.interceptors.response.handlers.length < 1) {
 const { CancelToken } = axios;
 const CSRF_TOKEN_KEY = 'dbm_csrftoken';
 
-const csrfHashCode = (key: string) => {
-  let hashCode = 5381;
-  for (let i = 0; i < key.length; i++) {
-    hashCode += (hashCode << 5) + key.charCodeAt(i);
-  }
-  return hashCode & 0x7fffffff;
-};
 const CSRFToken = Cookie.get(CSRF_TOKEN_KEY);
 
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 if (CSRFToken !== undefined) {
-  axios.defaults.headers.common['X-CSRFToken'] = csrfHashCode(CSRFToken);
+  axios.defaults.headers.common['X-CSRFToken'] = CSRFToken;
 } else {
   console.warn('Can not find csrftoken in document.cookie');
 }

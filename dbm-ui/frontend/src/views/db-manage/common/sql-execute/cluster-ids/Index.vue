@@ -58,6 +58,8 @@
   import ClusterSelector from '@components/cluster-selector/Index.vue';
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
 
+
+
   interface IClusterData {
     id: number;
     cluster_name: string;
@@ -158,7 +160,7 @@
 
   const fetchClusterData = (clusterIds: number[]) => {
     isLoading.value = true;
-    filterClusters<TendbhaModel>({
+    filterClusters<SelectorRowDataType>({
       cluster_ids: clusterIds.join(','),
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
     })
@@ -167,14 +169,21 @@
         clusterVersionList.value = _.uniq(data.map(item => item.major_version));
         clusterSelectorValue.value = data.reduce((result, item) => {
           if (item.cluster_type === ClusterTypes.TENDBHA) {
-            result[ClusterTypes.TENDBHA].push(item);
-          } else {
-            result[ClusterTypes.TENDBSINGLE].push(item);
+            result[ClusterTypes.TENDBHA].push(item as TendbhaModel);
+          } else if (item.cluster_type === ClusterTypes.TENDBSINGLE) {
+            result[ClusterTypes.TENDBSINGLE].push(item as TendbsingleModel);
+          } else if (item.cluster_type === ClusterTypes.TENDBCLUSTER) {
+            result[ClusterTypes.TENDBCLUSTER].push(item as TendbclusterModel);
+          } else if (item.cluster_type === ClusterTypes.SQLSERVER_HA) {
+            result[ClusterTypes.SQLSERVER_HA].push(item as SqlServerHaClusterModel);
+          } else if (item.cluster_type === ClusterTypes.SQLSERVER_SINGLE) {
+            result[ClusterTypes.SQLSERVER_SINGLE].push(item as SqlServerSingleClusterModel);
           }
           return result;
         }, {
           [ClusterTypes.TENDBHA]: [] as TendbhaModel[],
           [ClusterTypes.TENDBSINGLE]: [] as TendbsingleModel[],
+          [ClusterTypes.TENDBCLUSTER]: [] as TendbclusterModel[],
           [ClusterTypes.SQLSERVER_HA]: [] as SqlServerHaClusterModel[],
           [ClusterTypes.SQLSERVER_SINGLE]: [] as SqlServerSingleClusterModel[],
         })

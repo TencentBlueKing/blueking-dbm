@@ -210,11 +210,24 @@
     </template>
   </RenderTable>
 </template>
+<script lang="ts">
+  const enum RollbackClusterTypes {
+    BUILD_INTO_NEW_CLUSTER = 'BUILD_INTO_NEW_CLUSTER',
+    BUILD_INTO_EXIST_CLUSTER = 'BUILD_INTO_EXIST_CLUSTER',
+    BUILD_INTO_METACLUSTER = 'BUILD_INTO_METACLUSTER',
+  }
 
+  interface Props {
+    rollbackClusterType: RollbackClusterTypes;
+  }
+
+  interface Emits {
+    (e: 'showSelector'): void;
+    (e: 'batchEdit', obj: Record<string, any>): void;
+  }
+</script>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-
-  import { RollbackClusterTypes } from '@services/model/ticket/details/mysql';
 
   import RenderTableHeadColumn from '@components/render-table/HeadColumn.vue';
   import RenderTable from '@components/render-table/Index.vue';
@@ -225,15 +238,6 @@
   import { backupTypeList, BackupTypes } from './render-row/components/render-mode/Index.vue';
   import { backupSourceList } from './render-row/components/RenderBackup.vue';
   import type { IDataRow } from './render-row/Index.vue';
-
-  interface Props {
-    rollbackClusterType: RollbackClusterTypes;
-  }
-
-  interface Emits {
-    (e: 'showSelector'): void;
-    (e: 'batchEdit', obj: Record<string, any>): void;
-  }
 
   const props = withDefaults(defineProps<Props>(), {
     rollbackClusterType: RollbackClusterTypes.BUILD_INTO_NEW_CLUSTER,

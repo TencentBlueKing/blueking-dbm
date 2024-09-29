@@ -127,11 +127,11 @@
 
 <style lang="less" scoped>
   .preview-table {
-    :deep(.bk-table-body) {
+    :deep(.bk-vxe-table) {
       td {
         position: relative;
 
-        &.host-td .cell {
+        &.host-td .vxe-cell {
           height: 100% !important;
           padding: 0;
           line-height: normal !important;

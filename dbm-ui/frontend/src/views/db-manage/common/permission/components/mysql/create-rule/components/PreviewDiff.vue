@@ -28,10 +28,14 @@
       :is-active="collapseActive.accessDb"
       mode="collapse"
       :title="t('访问DB')">
-      <BkTable
-        :border="['col', 'outer']"
-        :columns="accessColumns"
-        :data="accessDbData" />
+      <BkTable :data="accessDbData">
+        <BkTableColumn
+          field="oldAccessDb"
+          :label="t('变更前')" />
+        <BkTableColumn
+          field="newAccessDb"
+          :label="t('变更后')" />
+      </BkTable>
     </DbCard>
     <DbCard
       v-model:collapse="collapseActive.privilege"
@@ -48,18 +52,49 @@
         </I18nT>
       </template>
       <BkTable
-        :border="['col', 'outer']"
-        :cell-class="getCellClass"
         class="privilege-table"
-        :columns="privilegeColumns"
         :data="privilegeData"
-        row-key="diffType" />
+        :merge-cells="mergeCells">
+        <BkTableColumn
+          class-name="cell-bold"
+          field="privilegeDisplay"
+          :label="t('权限类型')" />
+        <BkTableColumn :label="t('变更前')">
+          <template #default="{ data }: { data: PrivilegeRow }">
+            <div v-if="data.beforePrivilege">
+              <span>{{ data.beforePrivilege }}</span>
+              <span
+                v-if="data.isSensitiveWord"
+                class="sensitive-tip">
+                {{ t('敏感') }}
+              </span>
+            </div>
+            <span v-else>--</span>
+          </template>
+        </BkTableColumn>
+        <BkTableColumn
+          class-name="cell-privilege"
+          :label="t('变更后')">
+          <template #default="{ data }: { data: PrivilegeRow }">
+            <div
+              v-if="data.afterPrivilege"
+              :class="[data.diffType]">
+              <span>{{ data.afterPrivilege }}</span>
+              <span
+                v-if="data.isSensitiveWord"
+                class="sensitive-tip">
+                {{ t('敏感') }}
+              </span>
+            </div>
+            <span v-else>--</span>
+          </template>
+        </BkTableColumn>
+      </BkTable>
     </DbCard>
   </div>
 </template>
 
-<script setup lang="tsx">
-  import type { Column } from 'bkui-vue/lib/table/props';
+<script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
   import type { AccountRule, AccountRulePrivilege, AccountRulePrivilegeKey } from '@services/types';
@@ -77,13 +112,13 @@
 
   interface Props {
     ruleSettingsConfig: {
-      dbOperations: AccountRulePrivilege,
-      ddlSensitiveWords: string[],
+      dbOperations: AccountRulePrivilege;
+      ddlSensitiveWords: string[];
     };
     rulesFormData: {
       beforeChange: AccountRule;
       afterChange: AccountRule;
-    }
+    };
   }
 
   interface Exposes {
@@ -104,6 +139,8 @@
     accessDb: true,
     privilege: true,
   });
+  const privilegeData = shallowRef<PrivilegeRow[]>([]);
+  const mergeCells = shallowRef<Array<{ row: number; col: number; rowspan: number; colspan: number }>>([]);
 
   const accessDbData = computed(() => [
     {
@@ -111,138 +148,100 @@
       newAccessDb: props.rulesFormData.afterChange?.access_db || '--',
     },
   ]);
+  const addCount = computed(() => privilegeData.value.filter((item) => item.diffType === 'add').length);
+  const deleteCount = computed(() => privilegeData.value.filter((item) => item.diffType === 'delete').length);
+
+  const tags: {
+    type: PrivilegeRow['diffType'];
+    text: string;
+  }[] = [
+    {
+      type: 'add',
+      text: t('新增'),
+    },
+    {
+      type: 'delete',
+      text: t('删除'),
+    },
+    {
+      type: 'unchanged',
+      text: t('不变'),
+    },
+  ];
 
   const diffArray = (oldArray: string[], newArray: string[]) => {
     const diffMap: Record<string, PrivilegeRow['diffType']> = Object.fromEntries(
-      oldArray.map(item => [item, 'delete'])
+      oldArray.map((item) => [item, 'delete']),
     );
-    newArray.forEach(item => {
+    newArray.forEach((item) => {
       diffMap[item] = diffMap[item] ? 'unchanged' : 'add';
     });
     return diffMap;
-  }
+  };
 
-  const getSensitiveWordMap = () => Object.fromEntries(
-    (props.ruleSettingsConfig.ddlSensitiveWords || []).map(word => [word, true])
-  );
+  const getSensitiveWordMap = () =>
+    Object.fromEntries((props.ruleSettingsConfig.ddlSensitiveWords || []).map((word) => [word, true]));
 
   const getPrivilegeData = (key: AccountRulePrivilegeKey) => {
     const beforeList = props.rulesFormData.beforeChange?.privilege[key] || [];
     const afterList = props.rulesFormData.afterChange?.privilege[key] || [];
     const diffMap = diffArray(beforeList, afterList);
     const sensitiveWordMap = getSensitiveWordMap();
-    return Object.entries(diffMap).reduce<PrivilegeRow[]>((acc, [privilege, diffType]) => [...acc, {
-      privilegeKey: key,
-      privilegeDisplay: key === 'glob' ? t('全局') : key.toUpperCase(),
-      beforePrivilege: diffType === 'add' ? '' : privilege,
-      afterPrivilege: privilege,
-      diffType,
-      isSensitiveWord: key === 'glob' || sensitiveWordMap[privilege],
-    }], [])
+    return Object.entries(diffMap).reduce<PrivilegeRow[]>(
+      (acc, [privilege, diffType]) => [
+        ...acc,
+        {
+          privilegeKey: key,
+          privilegeDisplay: key === 'glob' ? t('全局') : key.toUpperCase(),
+          beforePrivilege: diffType === 'add' ? '' : privilege,
+          afterPrivilege: privilege,
+          diffType,
+          isSensitiveWord: key === 'glob' || sensitiveWordMap[privilege],
+        },
+      ],
+      [],
+    );
   };
 
-  const privilegeData = computed(() => [
-    ...getPrivilegeData('dml'),
-    ...getPrivilegeData('ddl'),
-    ...getPrivilegeData('glob'),
-  ]);
-
-  const addCount = computed(() => privilegeData.value.filter(item => item.diffType === 'add').length);
-  const deleteCount = computed(() => privilegeData.value.filter(item => item.diffType === 'delete').length);
-
-  const tags: {
-    type: PrivilegeRow['diffType'],
-    text: string
-  }[] = [
+  watchEffect(() => {
+    const dmlData = getPrivilegeData('dml');
+    const ddlData = getPrivilegeData('ddl');
+    const globData = getPrivilegeData('glob');
+    mergeCells.value = [
       {
-        type: 'add',
-        text: t('新增'),
+        row: 0,
+        col: 0,
+        rowspan: dmlData.length,
+        colspan: 1,
       },
       {
-        type: 'delete',
-        text: t('删除'),
+        row: dmlData.length,
+        col: 0,
+        rowspan: ddlData.length,
+        colspan: 1,
       },
       {
-        type: 'unchanged',
-        text: t('不变'),
+        row: dmlData.length + ddlData.length,
+        col: 0,
+        rowspan: globData.length,
+        colspan: 1,
       },
     ];
-  const accessColumns: Column[] = [
-    {
-      label: t('变更前'),
-      field: 'oldAccessDb',
-      width: 300,
-    },
-    {
-      label: t('变更后'),
-      field: 'newAccessDb',
-      width: 300,
-    },
-  ];
-  const privilegeColumns: Column[] = [
-    {
-      label: t('权限类型'),
-      field: 'privilegeDisplay',
-      width: 200,
-      rowspan: ({ row }: { row: PrivilegeRow }) => {
-        const { privilegeKey } = row;
-        const rowSpan = privilegeData.value.filter((item) => item.privilegeKey === privilegeKey).length;
-        return rowSpan > 1 ? rowSpan : 1;
-      },
-      render: ({ row }: { row: PrivilegeRow }) => <span class="cell-bold">{row.privilegeDisplay}</span>
-    },
-    {
-      label: t('变更前'),
-      field: 'beforePrivilege',
-      width: 200,
-      render: ({ row }: { row: PrivilegeRow }) => {
-        const { beforePrivilege, isSensitiveWord } = row;
-        return beforePrivilege ? (
-          <div>
-            <span>{beforePrivilege}</span>
-            {
-              isSensitiveWord && <span class="sensitive-tip">{t('敏感')}</span>
-            }
-          </div>
-        ) : '--'
-      }
-    },
-    {
-      label: t('变更后'),
-      field: 'afterPrivilege',
-      width: 200,
-      render: ({ row }: { row: PrivilegeRow }) => {
-        const { afterPrivilege, isSensitiveWord } = row;
-        return (
-          <div>
-            <span>{afterPrivilege}</span>
-            {
-              isSensitiveWord && <span class="sensitive-tip">{t('敏感')}</span>
-            }
-          </div>
-        )
-      }
-    },
-  ];
-
-  const getCellClass = (data: { field: string }) => data.field === 'afterPrivilege' ? 'cell-privilege' : '';
+    privilegeData.value = [...dmlData, ...ddlData, ...globData];
+  });
 
   defineExpose<Exposes>({
     changed: {
-      accessDb: accessDbData.value[0].newAccessDb!== accessDbData.value[0].oldAccessDb,
+      accessDb: accessDbData.value[0].newAccessDb !== accessDbData.value[0].oldAccessDb,
       privilege: {
         addCount: addCount.value,
         deleteCount: deleteCount.value,
-      }
-    }
-  })
+      },
+    },
+  });
 </script>
 
 <style lang="less" scoped>
-  :deep(.bk-scrollbar-wrapper .bk-scrollbar-content-el) {
-    display: flex;
-  }
-
   .preview-diff {
     padding: 18px 24px;
 
@@ -317,8 +316,6 @@
       }
 
       .privilege-table {
-        height: calc(100vh - 400px) !important;
-
         .cell-bold {
           font-weight: 700;
         }
@@ -335,27 +332,14 @@
           border-radius: 2px;
         }
 
-        .cell-privilege {
-          .cell {
-            padding: 0;
-
-            div {
-              padding-left: 16px;
-            }
-          }
-        }
-
-        .cell-privilege[data-id^='add_'] {
+        .cell-privilege:has(.vxe-cell .add) {
           background-color: #f2fff4;
         }
 
-        .cell-privilege[data-id^='delete_'] {
+        .cell-privilege:has(.vxe-cell .delete) {
+          color: #f8b4b4;
+          text-decoration: line-through;
           background-color: #ffeeeee6;
-
-          .cell {
-            color: #f8b4b4;
-            text-decoration: line-through;
-          }
         }
       }
     }

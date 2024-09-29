@@ -10,7 +10,7 @@
       "@/*": ["src/*"],
       "@services/*": ["src/services/*"],
       "@hooks": ["src/hooks"],
-      "@router/*": ["src/router/*"],
+      "@router": ["src/router"],
       "@stores": ["src/stores"],
       "@common/*": ["src/common/*"],
       "@components/*": ["src/components/*"],

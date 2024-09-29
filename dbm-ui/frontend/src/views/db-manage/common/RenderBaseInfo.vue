@@ -47,6 +47,18 @@
         <tr>
           <td>{{ $t('创建时间') }}：</td>
           <td>{{ data.create_at }}</td>
+          <td>{{ $t('容灾要求') }}：</td>
+          <td>{{ data.disasterToleranceLevelName || '--' }}</td>
+        </tr>
+        <tr>
+          <td>{{ $t('地域') }}：</td>
+          <td>{{ data.region || '--' }}</td>
+          <td>{{ $t('规格') }}：</td>
+          <td>{{ data.cluster_spec.spec_name || '--' }}</td>
+        </tr>
+        <tr>
+          <td>{{ $t('管控区域') }}：</td>
+          <td>{{ data.bk_cloud_name ? `${data.bk_cloud_name}[${data.bk_cloud_id}]` : '--' }}</td>
         </tr>
       </tbody>
     </table>
