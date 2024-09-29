@@ -15,9 +15,9 @@ from typing import Dict, Optional
 from bamboo_engine.builder import SubProcess
 from django.utils.translation import ugettext as _
 
-from backend.db_meta.enums import ClusterEntryRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType
 from backend.db_meta.models import Cluster, ClusterEntry
-from backend.flow.consts import DEFAULT_REDIS_START_PORT, AccessType, DnsOpType
+from backend.flow.consts import DEFAULT_REDIS_START_PORT, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.plugins.components.collections.common.clb_manage import RedisClbManageComponent
 from backend.flow.plugins.components.collections.common.polaris_manage import RedisPolarisManageComponent
@@ -219,11 +219,11 @@ def PolarisManagerAtomJob(root_id, ticket_data, act_kwargs: ActKwargs, param: Di
 def generic_manager(
     cluster_entry_type, root_id, ticket_data, act_kwargs: ActKwargs, param: Dict
 ) -> Optional[SubProcess]:
-    if cluster_entry_type == AccessType.DNS:
+    if cluster_entry_type == ClusterEntryType.DNS:
         return DNSManagerAtomJob(root_id, ticket_data, act_kwargs, param)
-    if cluster_entry_type == AccessType.CLB:
+    if cluster_entry_type == ClusterEntryType.CLB:
         return CLBManagerAtomJob(root_id, ticket_data, act_kwargs, param)
-    if cluster_entry_type == AccessType.POLARIS:
+    if cluster_entry_type == ClusterEntryType.POLARIS:
         return PolarisManagerAtomJob(root_id, ticket_data, act_kwargs, param)
 
 

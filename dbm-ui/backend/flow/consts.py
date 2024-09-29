@@ -1093,12 +1093,6 @@ class TenDBBackUpLocation(str, StructuredEnum):
     SPIDER_MNT = EnumField("spider_mnt", _("spider_mnt"))
 
 
-class AccessType(str, StructuredEnum):
-    CLB = EnumField("clb", _("clb"))
-    POLARIS = EnumField("polaris", _("北极星"))
-    DNS = EnumField("dns", _("域名"))
-
-
 class TBinlogDumperAddType(str, StructuredEnum):
     """
     TBinlogDumper添加类型
