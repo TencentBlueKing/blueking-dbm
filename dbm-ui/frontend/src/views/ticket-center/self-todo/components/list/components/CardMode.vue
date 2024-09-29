@@ -16,19 +16,19 @@
         </template>
         <BkOption
           :id="TicketModel.STATUS_TODO"
-          :name="`${t('待我审批')}(${ticketCount?.TODO ?? 0})`" />
+          :name="`${t('待审批')}(${ticketCount?.TODO ?? 0})`" />
         <BkOption
           :id="TicketModel.STATUS_APPROVE"
-          :name="`${t('待我确认')}(${ticketCount?.APPROVE})`" />
+          :name="`${t('待执行')}(${ticketCount?.APPROVE})`" />
         <BkOption
           :id="TicketModel.STATUS_RESOURCE_REPLENISH"
-          :name="`${t('待我补货')}(${ticketCount?.RESOURCE_REPLENISH})`" />
+          :name="`${t('待补货')}(${ticketCount?.RESOURCE_REPLENISH})`" />
         <BkOption
           :id="TicketModel.STATUS_FAILED"
-          :name="`${t('待我处理失败')}(${ticketCount?.FAILED})`" />
+          :name="`${t('失败待处理')}(${ticketCount?.FAILED})`" />
         <BkOption
           :id="TicketModel.STATUS_RUNNING"
-          :name="`${t('待我继续')}(${ticketCount?.RUNNING})`" />
+          :name="`${t('待确认')}(${ticketCount?.RUNNING})`" />
       </BkSelect>
       <BkDatePicker
         v-model="datePickerValue"
@@ -103,6 +103,10 @@
     appendSearchParams({
       viewId: modelValue.value,
     });
+  });
+
+  onActivated(() => {
+    ticketType.value = (route.params.status as string) || TicketModel.STATUS_TODO;
   });
 
   onBeforeUnmount(() => {

@@ -47,7 +47,7 @@ export default class Ticket<T extends unknown | DetailBase> {
   static STATUS_TERMINATED = STATUS_TERMINATED;
 
   static statusTextMap = {
-    [STATUS_PENDING]: t('审批中'),
+    [STATUS_PENDING]: t('等待中'),
     [STATUS_RUNNING]: t('进行中'),
     [STATUS_SUCCEEDED]: t('已完成'),
     [STATUS_FAILED]: t('已失败'),

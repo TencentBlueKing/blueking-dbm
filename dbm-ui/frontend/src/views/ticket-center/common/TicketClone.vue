@@ -12,14 +12,20 @@
 -->
 
 <template>
-  <BkButton
-    v-if="isShowTicketClone"
-    text
-    theme="primary"
-    v-bind="attrs"
-    @click="handleResubmitTicket">
-    {{ t('再次提单') }}
-  </BkButton>
+  <span
+    v-bk-tooltips="{
+      content: t('暂不支持'),
+      disabled: isSupported,
+    }">
+    <BkButton
+      :disabled="!isSupported"
+      text
+      theme="primary"
+      v-bind="attrs"
+      @click="handleResubmitTicket">
+      {{ t('再次提单') }}
+    </BkButton>
+  </span>
 </template>
 <script setup lang="ts">
   import { useAttrs } from 'vue';
@@ -142,7 +148,7 @@
     [TicketTypes.TENDBCLUSTER_RESTORE_SLAVE]: 'spiderSlaveRebuild', // spider 重建从库-新机重建
   };
 
-  const isShowTicketClone = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
+  const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
 
   const handleResubmitTicket = async () => {
     let name = '';

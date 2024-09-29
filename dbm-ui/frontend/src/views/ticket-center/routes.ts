@@ -14,15 +14,6 @@ export default () => {
       component: () => import('@views/ticket-center/self-apply/Index.vue'),
     },
     {
-      name: 'ticketSelfManage',
-      path: 'ticket-self-manage',
-      meta: {
-        navName: t('我负责的业务'),
-        fullscreen: true,
-      },
-      component: () => import('@views/ticket-center/self-manage/Index.vue'),
-    },
-    {
       name: 'MyTodos',
       path: 'ticket-self-todo/:status?',
       meta: {
@@ -39,6 +30,15 @@ export default () => {
         fullscreen: true,
       },
       component: () => import('@views/ticket-center/self-done/Index.vue'),
+    },
+    {
+      name: 'ticketSelfManage',
+      path: 'ticket-self-manage',
+      meta: {
+        navName: t('我负责的业务'),
+        fullscreen: true,
+      },
+      component: () => import('@views/ticket-center/self-manage/Index.vue'),
     },
   ]);
 

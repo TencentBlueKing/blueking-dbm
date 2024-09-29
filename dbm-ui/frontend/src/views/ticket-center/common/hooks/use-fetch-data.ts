@@ -1,6 +1,7 @@
+import _ from 'lodash';
 import { reactive, ref } from 'vue';
 import { useRequest } from 'vue-request';
-import { onBeforeRouteLeave } from 'vue-router';
+import { onBeforeRouteLeave, useRoute } from 'vue-router';
 
 import TicketModel from '@services/model/ticket/ticket';
 import { getTicketStatus, getTodoTickets } from '@services/source/ticket';
@@ -28,6 +29,7 @@ export default (
   dataSource: typeof getTodoTickets,
   options?: { onSuccess?: (data: TicketModel<unknown>[]) => void },
 ) => {
+  const route = useRoute();
   const eventBus = useEventBus();
   const { replaceSearchParams, getSearchParams } = useUrlSearch();
   const searchParams = getSearchParams();
@@ -68,32 +70,22 @@ export default (
     fetchTicketStatus();
   }, 1000000);
 
-  const { run: fetchTicketList } = useRequest(
-    (params: ServiceParameters<typeof getTodoTickets>) =>
-      dataSource({
-        limit: pagination.limit,
-        offset: (pagination.current - 1) * pagination.limit,
-        ...params,
-      }),
-    {
-      manual: true,
-      onBefore() {
-        console.log('onBefore');
-        isLoading.value = true;
-      },
-      onAfter() {
-        isLoading.value = false;
-      },
-      onSuccess(data, params) {
+  const fetchTicketList = (params: ServiceParameters<typeof getTodoTickets>) => {
+    isLoading.value = true;
+    dataSource({
+      limit: pagination.limit,
+      offset: (pagination.current - 1) * pagination.limit,
+      ...params,
+    })
+      .then((data) => {
         dataList.value = data.results;
 
-        console.log('dataList.value = ', dataList.value);
         pagination.count = data.count;
 
         const urlSearchParams = {
           limit: pagination.limit,
           current: pagination.current,
-          ...params[0],
+          ...params,
         };
 
         const searchParams = getSearchParams();
@@ -107,18 +99,13 @@ export default (
         if (options && options.onSuccess) {
           options.onSuccess(data.results);
         }
-      },
-    },
-  );
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
 
-  eventBus.on('refreshTicketStatus', fetchTicketStatus);
-
-  onMounted(() => {
-    if (isMounted) {
-      return;
-    }
-    isMounted = true;
-
+  const calcTableMaxHeight = () => {
     const { top } = getOffset(tableRef.value as HTMLElement);
     const totalHeight = window.innerHeight;
     const tableHeaderHeight = 42;
@@ -135,15 +122,30 @@ export default (
     pagination.limit = Math.floor(tableMaxHeight.value / 42);
 
     pagination.limit = rowNum;
-    pagination.limitList = [...pagination.limitList, rowNum].sort((a, b) => a - b);
+    pagination.limitList = _.uniq([...pagination.limitList, rowNum]).sort((a, b) => a - b);
+  };
+
+  eventBus.on('refreshTicketStatus', fetchTicketStatus);
+
+  onMounted(() => {
+    if (isMounted) {
+      return;
+    }
+    isMounted = true;
+    calcTableMaxHeight();
   });
 
   onBeforeUnmount(() => {
     eventBus.off('refreshTicketStatus', fetchTicketStatus);
   });
 
-  onBeforeRouteLeave(() => {
-    isMounted = false;
+  onBeforeRouteLeave((currentRoute) => {
+    setTimeout(() => {
+      if (currentRoute.name === route.name) {
+        return;
+      }
+      isMounted = false;
+    });
   });
 
   return {

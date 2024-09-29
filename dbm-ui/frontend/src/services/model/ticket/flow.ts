@@ -116,7 +116,7 @@ export default class Flow<D = unknown, S = string> {
   update_at: string;
   url: string;
 
-  constructor(payload = {} as Flow<D>) {
+  constructor(payload = {} as Flow<D, S>) {
     this.context = payload.context;
     this.cost_time = payload.cost_time;
     this.create_at = payload.create_at;

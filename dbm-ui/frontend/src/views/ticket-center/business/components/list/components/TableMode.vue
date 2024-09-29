@@ -35,6 +35,18 @@
           </template>
         </BkTableColumn>
       </template>
+      <template #action>
+        <BkTableColumn
+          fixed="right"
+          :label="t('操作')"
+          width="250">
+          <template #default="{ data }: { data: IRowData }">
+            <TicketClone
+              v-if="data"
+              :data="data" />
+          </template>
+        </BkTableColumn>
+      </template>
     </TableModeTable>
   </div>
 </template>
@@ -51,6 +63,7 @@
   import useDatePicker from '@views/ticket-center/common/hooks/use-date-picker';
   import useSearchSelect from '@views/ticket-center/common/hooks/use-search-select';
   import TableModeTable from '@views/ticket-center/common/TableModeTable.vue';
+  import TicketClone from '@views/ticket-center/common/TicketClone.vue';
 
   type IRowData = TicketModel<unknown>;
 
