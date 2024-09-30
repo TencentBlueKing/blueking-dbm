@@ -305,8 +305,8 @@ class SqlserverHAClusterHandler(ClusterHandler):
             )[0]
             new_slave_obj.db_module_id = cluster.db_module_id
             new_slave_obj.machine.db_module_id = cluster.db_module_id
-            new_slave_obj.save(update_fields=["db_module_id"])
-            new_slave_obj.machine.save(update_fields=["db_module_id"])
+            new_slave_obj.save()
+            new_slave_obj.machine.save()
             cluster.storageinstance_set.add(new_slave_obj)
 
             # 切换slave域名信息
