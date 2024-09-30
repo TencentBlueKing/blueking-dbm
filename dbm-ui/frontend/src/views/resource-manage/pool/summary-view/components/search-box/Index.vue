@@ -7,6 +7,7 @@
       required>
       <Biz
         ref="bizRef"
+        :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
     <BkFormItem
@@ -14,18 +15,19 @@
       required>
       <Db
         ref="dbRef"
-        v-model="dbType"
+        :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
     <BkFormItem :label="t('地域 - 园区')">
       <Region
         ref="regionRef"
+        :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
     <BkFormItem :label="t('规格')">
       <Spec
         ref="specRef"
-        :db-type="dbType"
+        :model="searchParams"
         @change="handleSearch" />
     </BkFormItem>
   </BkForm>
@@ -36,8 +38,6 @@
   import { useI18n } from 'vue-i18n';
 
   import { useUrlSearch } from '@hooks';
-
-  import { DBTypes } from '@common/const';
 
   import Biz from './components/Biz.vue';
   import Db from './components/Db.vue';
@@ -50,17 +50,14 @@
 
   const emits = defineEmits<Emits>();
 
-  const dbType = defineModel<string>({
-    default: DBTypes.REDIS,
-  });
-
   const { t } = useI18n();
-  const { replaceSearchParams } = useUrlSearch();
+  const { getSearchParams, replaceSearchParams } = useUrlSearch();
 
   const bizRef = ref<InstanceType<typeof Biz>>();
   const dbRef = ref<InstanceType<typeof Db>>();
   const regionRef = ref<InstanceType<typeof Region>>();
   const specRef = ref<InstanceType<typeof Spec>>();
+  const searchParams = ref(getSearchParams());
 
   const filterEmptyValues = (obj: any): any =>
     _.pickBy(obj, (value) => value !== '' && (!_.isArray(value) || !_.isEmpty(value)));
@@ -72,19 +69,23 @@
       regionRef.value!.getValue(),
       specRef.value!.getValue(),
     ]).then(([biz, db, region, spec]) => {
-      replaceSearchParams(
-        filterEmptyValues({
-          ...biz,
-          ...db,
-          ...region,
-          ...spec,
-        }),
-      );
+      const parmas = filterEmptyValues({
+        ...biz,
+        ...db,
+        ...region,
+        ...spec,
+      });
+      replaceSearchParams(parmas);
+      searchParams.value = parmas;
       emits('search');
     });
   };
 
   onMounted(() => {
+    handleSearch();
+  });
+
+  onActivated(() => {
     handleSearch();
   });
 </script>

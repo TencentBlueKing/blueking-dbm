@@ -74,9 +74,9 @@
         </div>
         <div class="row">
           <ComFactory
-            :ref="(el: any) => initInputRefCallback(el, 'disk_type')"
+            :ref="(el: any) => initInputRefCallback(el, 'mount_point')"
             :model="localValueMemo"
-            name="disk_type"
+            name="mount_point"
             @change="handleChange" />
           <ComFactory
             :ref="(el: any) => initInputRefCallback(el, 'disk')"
@@ -84,9 +84,9 @@
             name="disk"
             @change="handleChange" />
           <ComFactory
-            :ref="(el: any) => initInputRefCallback(el, 'mount_point')"
+            :ref="(el: any) => initInputRefCallback(el, 'disk_type')"
             :model="localValueMemo"
-            name="mount_point"
+            name="disk_type"
             @change="handleChange" />
           <div style="flex: 1" />
         </div>
@@ -155,6 +155,14 @@
   const isShowMore = ref(false);
   const inputRef = shallowRef<Record<string, typeof ComFactory>>({});
   const localValueMemo = shallowRef<Record<string, any>>({});
+  const moreKeys: Record<string, true> = {
+    os_type: true,
+    cpu: true,
+    mem: true,
+    mount_point: true,
+    disk: true,
+    disk_type: true,
+  };
 
   const initInputRefCallback = (com: typeof ComFactory, name: string) => {
     inputRef.value[name] = com;
@@ -165,6 +173,7 @@
     () => props.modelValue,
     () => {
       localValueMemo.value = { ...props.modelValue };
+      isShowMore.value = Object.keys(props.modelValue).some((key) => moreKeys[key]);
     },
     {
       immediate: true,

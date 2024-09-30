@@ -1,19 +1,19 @@
 <template>
   <BkComposeFormItem class="search-box-select-spec">
     <BkSelect
-      v-model="currentCluster"
+      v-model="clusterType"
       style="width: 150px"
       @change="handleChangeCluster">
       <BkOption
-        v-for="item in currentClusterList"
+        v-for="item in clusterTypeList"
         :key="item.id"
         :label="item.name"
         :value="item.id" />
     </BkSelect>
     <BkSelect
-      :key="currentCluster"
-      v-model="currentMachine"
-      :disabled="!currentCluster"
+      :key="clusterType"
+      v-model="machineType"
+      :disabled="!clusterType"
       style="width: 150px"
       @change="handleChangeMachine">
       <BkOption
@@ -23,10 +23,10 @@
         :value="item.id" />
     </BkSelect>
     <BkSelect
-      :key="currentMachine"
-      v-model:model-value="currentSpecIdList"
+      :key="machineType"
+      v-model:model-value="specIdList"
       collapse-tags
-      :disabled="!currentMachine"
+      :disabled="!machineType"
       :loading="isLoading"
       multiple
       multiple-mode="tag"
@@ -36,7 +36,7 @@
         v-for="item in resourceSpecList?.results"
         :key="item.spec_id"
         :label="item.spec_name"
-        :value="item.spec_id" />
+        :value="`${item.spec_id}`" />
     </BkSelect>
   </BkComposeFormItem>
 </template>
@@ -49,7 +49,7 @@
   import { getResourceSpecList } from '@/services/source/dbresourceSpec';
 
   interface Props {
-    dbType: string;
+    model: Record<string, string>;
   }
 
   interface Emits {
@@ -58,9 +58,8 @@
 
   interface Exposes {
     getValue: () => {
-      db_type: string;
-      machine_type: string;
       cluster_type: string;
+      machine_type: string;
       spec_id_list: string;
     };
   }
@@ -69,13 +68,12 @@
 
   const emits = defineEmits<Emits>();
 
-  const currentCluster = ref('');
-  const currentMachine = ref('');
-  const currentSpecIdList = ref<number[]>([]);
+  const clusterType = ref('');
+  const machineType = ref('');
+  const specIdList = ref<string[]>([]);
   const clusterMachineList = ref<ClusterTypeInfoItem['machineList']>([]);
-
-  const currentClusterList = computed(
-    () => Object.values(clusterTypeInfos).filter((item) => item.dbType === props.dbType) || [],
+  const clusterTypeList = computed(
+    () => Object.values(clusterTypeInfos).filter((item) => item.dbType === props.model.db_type) || [],
   );
 
   const {
@@ -87,41 +85,55 @@
   });
 
   watch(
-    () => props.dbType,
+    () => props.model,
     () => {
-      currentCluster.value = '';
-      currentMachine.value = '';
-      currentSpecIdList.value = [];
+      if (props.model.cluster_type) {
+        clusterType.value = props.model.cluster_type;
+        clusterMachineList.value = clusterTypeInfos[props.model.cluster_type as ClusterTypes]?.machineList || [];
+      }
+      if (props.model.machine_type) {
+        machineType.value = props.model.machine_type;
+        fetchResourceSpecList({
+          spec_cluster_type: clusterType.value,
+          spec_machine_type: props.model.machine_type,
+          limit: -1,
+        });
+      }
+      if (props.model.spec_id_list) {
+        specIdList.value = props.model.spec_id_list.split(',');
+      }
+    },
+    {
+      immediate: true,
     },
   );
 
-  const handleChange = () => {
+  const handleChange = (value: string[]) => {
+    specIdList.value = value;
     emits('change');
+  };
+
+  const handleChangeMachine = (value: string) => {
+    machineType.value = value;
+    fetchResourceSpecList({
+      spec_cluster_type: clusterType.value,
+      spec_machine_type: value,
+      limit: -1,
+    });
+    handleChange([]);
   };
 
   const handleChangeCluster = (value: string) => {
     clusterMachineList.value = clusterTypeInfos[value as ClusterTypes]?.machineList || [];
-    currentMachine.value = '';
-    currentSpecIdList.value = [];
-    handleChange();
-  };
-
-  const handleChangeMachine = (value: string) => {
-    currentSpecIdList.value = [];
-    fetchResourceSpecList({
-      spec_cluster_type: currentCluster.value,
-      spec_machine_type: value,
-      limit: -1,
-    });
-    handleChange();
+    clusterType.value = value;
+    handleChangeMachine('');
   };
 
   defineExpose<Exposes>({
     getValue: () => ({
-      db_type: props.dbType,
-      machine_type: currentMachine.value,
-      cluster_type: currentCluster.value,
-      spec_id_list: currentSpecIdList.value.join(','),
+      cluster_type: clusterType.value,
+      machine_type: machineType.value,
+      spec_id_list: specIdList.value.join(','),
     }),
   });
 </script>

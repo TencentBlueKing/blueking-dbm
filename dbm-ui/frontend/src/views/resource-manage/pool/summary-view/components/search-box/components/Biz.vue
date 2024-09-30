@@ -17,6 +17,10 @@
 
   import { getBizs } from '@services/source/cmdb';
 
+  interface Props {
+    model: Record<string, string>;
+  }
+
   interface Emits {
     (e: 'change'): void;
   }
@@ -27,12 +31,13 @@
     };
   }
 
-  const emits = defineEmits<Emits>();
+  const props = defineProps<Props>();
 
-  const localValue = ref('0');
+  const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
 
+  const localValue = ref<string>('0');
   const bizList = shallowRef<
     {
       bk_biz_id: number;
@@ -53,6 +58,18 @@
       bizList.value = cloneData;
     },
   });
+
+  watch(
+    () => props.model,
+    () => {
+      if (props.model.for_biz) {
+        localValue.value = `${props.model.for_biz}`;
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 
   const handleChange = () => {
     emits('change');

@@ -23,6 +23,7 @@
         @page-limit-change="handeChangeLimit"
         @page-value-change="handleChangePage">
         <BkTableColumn
+          fixed="left"
           :label="t('地域')"
           prop="city"
           :width="150" />
@@ -154,6 +155,9 @@
       subzone_ids: subzoneId,
       spec_id: row.spec_id,
       device_class: row.device_class,
+      mount_point: row.disk_summary?.[0].mount_point,
+      disk: row.disk_summary?.[0].size ? `${row.disk_summary?.[0].size}-` : '',
+      disk_type: row.disk_summary?.[0].disk_type,
     };
     router.push({
       name: 'resourcePool',

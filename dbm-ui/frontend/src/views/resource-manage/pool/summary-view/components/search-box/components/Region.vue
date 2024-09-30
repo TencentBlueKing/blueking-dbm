@@ -36,6 +36,10 @@
 
   type CityItem = ServiceReturnType<typeof getInfrasCities>[number];
 
+  interface Props {
+    model: Record<string, string>;
+  }
+
   interface Emits {
     (e: 'change'): void;
   }
@@ -47,18 +51,13 @@
     };
   }
 
+  const props = defineProps<Props>();
+
   const emits = defineEmits<Emits>();
 
-  const cityCode = defineModel<string>('cityCode', {
-    default: '',
-  });
-
-  const subzoneIds = defineModel<string[]>('subzoneIds', {
-    default: [],
-  });
-
   const citiyList = ref<CityItem[]>([]);
-
+  const cityCode = ref<string>('');
+  const subzoneIds = ref<string[]>([]);
   const renderSubzoneList = computed(() =>
     (subzoneList.value || []).filter((item) => item.bk_city_code === cityCode.value),
   );
@@ -68,11 +67,22 @@
       citiyList.value = data.filter((item) => item.city_code !== 'default');
     },
   });
-  const { data: subzoneList } = useRequest(getInfrasSubzonesByCity, {
-    onSuccess() {
-      subzoneIds.value = [];
+  const { data: subzoneList } = useRequest(getInfrasSubzonesByCity);
+
+  watch(
+    () => props.model,
+    () => {
+      if (props.model.city) {
+        cityCode.value = props.model.city;
+      }
+      if (props.model.subzone_ids) {
+        subzoneIds.value = props.model.subzone_ids.split(',');
+      }
     },
-  });
+    {
+      immediate: true,
+    },
+  );
 
   const handleChangeCity = () => {
     subzoneIds.value = [];
@@ -85,7 +95,7 @@
 
   defineExpose<Exposes>({
     getValue: () => ({
-      city: cityCode.value === 'default' ? '' : cityCode.value,
+      city: cityCode.value,
       subzone_ids: subzoneIds.value.join(','),
     }),
   });
