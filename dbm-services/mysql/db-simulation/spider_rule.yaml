@@ -61,10 +61,6 @@ SpiderCreateTableRule:
     turnOn: true
     ban: true
     desc: "UNSUPPORT SQL CREATE TABLE WITH SELECT"
-  CreateTbLike:
-    turnOn: true
-    ban: true
-    desc: "UNSUPPORT SQL CREATE TABLE LIKE"
   ShardKeyNotPk:
     turnOn: true
     ban: true

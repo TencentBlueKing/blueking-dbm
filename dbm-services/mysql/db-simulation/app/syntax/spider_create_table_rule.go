@@ -33,16 +33,16 @@ func (c CreateTableResult) SpiderChecker(spiderVersion string) (r *CheckerResult
 			return SpecialCharValidator(c.TableName)
 		})
 	}
-	if c.IsCreateTableLike {
-		r.Trigger(SR.SpiderCreateTableRule.CreateTbLike, "")
-	}
 	if c.IsCreateTableSelect {
 		r.Trigger(SR.SpiderCreateTableRule.CreateWithSelect, "")
 	}
 	if c.ColCharsetNotEqTbCharset() {
 		r.Trigger(SR.SpiderCreateTableRule.ColChasetNotEqTbChaset, "")
 	}
-	c.shardKeyChecker(r)
+	// when sql is create table like, no check shard key
+	if !c.IsCreateTableLike {
+		c.shardKeyChecker(r)
+	}
 	return r
 }
 

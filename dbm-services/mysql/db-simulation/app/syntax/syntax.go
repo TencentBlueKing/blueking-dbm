@@ -303,59 +303,69 @@ func getSQLParseResultFile(fileName, version string) string {
 	return fmt.Sprintf("%s-%s.json", version, fileName)
 }
 
-func (t *TmysqlParse) getCommand(filename, version string) (cmd string) {
-	var in, out string
-	in = path.Join(t.tmpWorkdir, filename)
+// getCommand generates the command string for running TmysqlParse
+// It takes the input filename and MySQL version as parameters
+func (t *TmysqlParse) getCommand(filename, version string) string {
+	// Construct input and output file paths
+	inputPath := path.Join(t.tmpWorkdir, filename)
 	outputFileName := getSQLParseResultFile(filename, version)
-	out = path.Join(t.tmpWorkdir, outputFileName)
+	outputPath := path.Join(t.tmpWorkdir, outputFileName)
 
-	cmd = fmt.Sprintf(`%s --sql-file=%s --output-path=%s --print-query-mode=2 --output-format='JSON_LINE_PER_OBJECT' --sql-mode='' `,
-		t.TmysqlParseBinPath, in, out)
+	// Build the base command with common options
+	cmd := fmt.Sprintf(`%s --sql-file=%s --output-path=%s `+
+		`--print-query-mode=2 --output-format='JSON_LINE_PER_OBJECT' --sql-mode=''`,
+		t.TmysqlParseBinPath, inputPath, outputPath)
 
+	// Add MySQL version if provided
 	if lo.IsNotEmpty(version) {
-		cmd += fmt.Sprintf(" --mysql-version=%s ", version)
+		cmd += fmt.Sprintf(" --mysql-version=%s", version)
 	}
 
 	return cmd
 }
 
-// Execute 运行tmysqlpase
-//
-//	@receiver tf
-//	@return err
+// Execute runs the TmysqlParse command for each SQL file in parallel.
+// It takes a channel to send the names of successfully executed files and the MySQL version as parameters.
+// The function returns an error if any of the executions fail.
 func (tf *TmysqlParseFile) Execute(alreadExecutedSqlfileCh chan string, version string) (err error) {
 	var wg sync.WaitGroup
 	var errs []error
-	c := make(chan struct{}, 10)
+	c := make(chan struct{}, 10) // Semaphore to limit concurrent goroutines
 	errChan := make(chan error, 5)
+
+	// Iterate through all SQL files
 	for _, fileName := range tf.Param.FileNames {
 		wg.Add(1)
-		c <- struct{}{}
+		c <- struct{}{} // Acquire semaphore
 		go func(sqlfile, ver string) {
+			defer wg.Done()
+			defer func() { <-c }() // Release semaphore
+
 			//nolint
 			command := exec.Command("/bin/bash", "-c", tf.getCommand(sqlfile, ver))
 			logger.Info("command is %s", command)
 
 			output, err := command.CombinedOutput()
 			if err != nil {
-				errChan <- fmt.Errorf("tmysqlparse.sh command run failed. error info:" + err.Error() + "," + string(output))
+				errChan <- fmt.Errorf("tmysqlparse.sh command run failed. error info: %v, %s", err, string(output))
 			} else {
 				alreadExecutedSqlfileCh <- sqlfile
 			}
-			<-c
-			wg.Done()
 		}(fileName, version)
 	}
 
+	// Wait for all goroutines to finish and close error channel
 	go func() {
 		wg.Wait()
 		close(errChan)
 	}()
 
+	// Collect all errors
 	for err := range errChan {
 		errs = append(errs, err)
 	}
 
+	// Join all errors and return
 	return errors.Join(errs...)
 }
 
