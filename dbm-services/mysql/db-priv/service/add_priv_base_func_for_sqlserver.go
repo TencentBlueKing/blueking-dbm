@@ -135,7 +135,7 @@ func GenerateSqlserverSQL(account TbAccounts, rules []TbAccountRules, address st
 			}
 			// 拼接db级别的授权语句
 			for _, dbName := range realDBS {
-				sqls = append(sqls, fmt.Sprintf(`USE %s
+				sqls = append(sqls, fmt.Sprintf(`USE [%s]
 	ALTER AUTHORIZATION ON SCHEMA::db_owner TO dbo;
 	IF EXISTS (SELECT 1 FROM [%s].sys.database_principals WHERE name = N'%s') 
 	BEGIN 
@@ -148,7 +148,7 @@ func GenerateSqlserverSQL(account TbAccounts, rules []TbAccountRules, address st
 	`,
 					dbName, dbName, account.User, dbName, account.User, account.User, account.User,
 				))
-				sqls = append(sqls, fmt.Sprintf("USE %s", dbName))
+				sqls = append(sqls, fmt.Sprintf("USE [%s]", dbName))
 				for _, p := range strings.Split(rule.Priv, ",") {
 					sqls = append(sqls, fmt.Sprintf("EXEC SP_ADDROLEMEMBER N'%s', N'%s';", p, account.User))
 				}

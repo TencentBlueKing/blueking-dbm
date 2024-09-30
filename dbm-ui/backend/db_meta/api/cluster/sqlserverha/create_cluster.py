@@ -146,7 +146,7 @@ def create(
         m.db_module_id = db_module_id
         # 保存最新的time_zone
         ins.time_zone = get_instance_time_zone(ins)
-        ins.save(update_fields=["db_module_id"])
-        m.save(update_fields=["db_module_id"])
+        ins.save()
+        m.save()
 
     return cluster

@@ -159,7 +159,7 @@ func (r *RenameDBSComp) DoRenameDBWithMirroring() error {
 		if cnt != 0 {
 			execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE [%s] SET PARTNER OFF;", i.DBName))
 		}
-		execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE [%s] MODIFY NAME = %s", i.DBName, i.TargetDBName))
+		execDBSQLs = append(execDBSQLs, fmt.Sprintf("ALTER DATABASE [%s] MODIFY NAME = [%s]", i.DBName, i.TargetDBName))
 		// 执行rename 命令
 		if _, err := r.DB.ExecMore(execDBSQLs); err != nil {
 			logger.Error(
@@ -209,7 +209,7 @@ func (r *RenameDBSComp) DoRenameDBWithAlwayson() error {
 		}
 		execDBSQLs = append(
 			execDBSQLs,
-			fmt.Sprintf("ALTER DATABASE [%s] MODIFY NAME = %s;", i.DBName, i.TargetDBName),
+			fmt.Sprintf("ALTER DATABASE [%s] MODIFY NAME = [%s];", i.DBName, i.TargetDBName),
 		)
 		// 执行rename 命令
 		if _, err := r.DB.ExecMore(execDBSQLs); err != nil {
