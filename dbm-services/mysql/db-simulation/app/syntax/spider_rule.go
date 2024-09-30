@@ -38,7 +38,6 @@ type SpiderRules struct {
 type SpiderCreateTableRule struct {
 	ColChasetNotEqTbChaset                 *BoolRuleItem `yaml:"ColChasetNotEqTbChaset"`
 	CreateWithSelect                       *BoolRuleItem `yaml:"CreateWithSelect"`
-	CreateTbLike                           *BoolRuleItem `yaml:"CreateTbLike"`
 	ShardKeyNotPk                          *BoolRuleItem `yaml:"ShardKeyNotPk"`
 	ShardKeyNotIndex                       *BoolRuleItem `yaml:"ShardKeyNotIndex"`
 	IllegalComment                         *BoolRuleItem `yaml:"IllegalComment"`

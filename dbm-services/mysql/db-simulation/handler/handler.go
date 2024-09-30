@@ -36,8 +36,9 @@ type Response struct {
 
 // CreateClusterParam 创建临时的spider的集群参数
 type CreateClusterParam struct {
-	Pwd     string `json:"pwd"`
-	PodName string `json:"podname"`
+	Pwd           string `json:"pwd"`
+	PodName       string `json:"podname"`
+	SpiderVersion string `json:"spider_version"`
 }
 
 // CreateTmpSpiderPodCluster 创建临时的spider的集群,多用于测试，debug
@@ -55,8 +56,7 @@ func CreateTmpSpiderPodCluster(r *gin.Context) {
 		Charset: "utf8mb4",
 	}
 	ps.DbImage = config.GAppConfig.Image.Tendb57Img
-	ps.TdbCtlImage = config.GAppConfig.Image.TdbCtlImg
-	ps.SpiderImage = config.GAppConfig.Image.SpiderImg
+	ps.SpiderImage, ps.TdbCtlImage = getSpiderAndTdbctlImg(param.SpiderVersion, LatestVersion)
 	if err := ps.CreateClusterPod(); err != nil {
 		logger.Error(err.Error())
 		return
