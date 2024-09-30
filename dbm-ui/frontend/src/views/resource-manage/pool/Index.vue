@@ -24,9 +24,11 @@
       :name="item.name" />
   </BkTab>
   <div class="pool-content">
-    <Component
-      :is="renderComponent"
-      ref="comRef" />
+    <KeepAlive>
+      <Component
+        :is="renderComponent"
+        ref="comRef" />
+    </KeepAlive>
   </div>
 </template>
 
@@ -55,7 +57,7 @@
 
   const comRef = ref();
 
-  const activeTab = useDebouncedRef('summary-view');
+  const activeTab = useDebouncedRef(route.params.page);
 
   const renderComponentMap = {
     'summary-view': SummaryView,
@@ -66,11 +68,8 @@
 
   watch(
     () => route.params,
-    (value) => {
-      activeTab.value = value.page as string;
-    },
-    {
-      immediate: true,
+    () => {
+      activeTab.value = route.params.page as string;
     },
   );
 

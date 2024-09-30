@@ -16,6 +16,7 @@
     <KeepAlive>
       <Component
         :is="renderCom"
+        :key="renderKey"
         v-model="searchParams"
         @submit="handleSubmit" />
     </KeepAlive>
@@ -28,8 +29,6 @@
 </template>
 <script setup lang="ts">
   import { computed, onMounted, ref } from 'vue';
-
-  import { useUrlSearch } from '@hooks';
 
   import fieldConfig from './components/field-config';
   import FieldInput from './components/field-input/Index.vue';
@@ -45,44 +44,46 @@
 
   const emits = defineEmits<Emits>();
 
+  const route = useRoute();
+
   const comMap = {
     input: FieldInput,
     tag: FieldTag,
   } as Record<string, any>;
 
-  const { getSearchParams } = useUrlSearch();
-  const urlSearchParams = getSearchParams();
-
   const renderStatus = ref('input');
   const searchParams = ref<Record<string, any>>({});
+  const renderKey = ref(0);
 
   const renderCom = computed(() => comMap[renderStatus.value]);
-
-  // 解析 url 上面附带的查询参数
-  Object.keys(urlSearchParams).forEach((fieldName) => {
-    const config = fieldConfig[fieldName];
-    const value = urlSearchParams[fieldName];
-
-    if (config && value) {
-      switch (config.type) {
-        case 'array':
-          searchParams.value[fieldName] = value.split(',');
-          break;
-        case 'rang':
-          searchParams.value[fieldName] = value.split('-');
-          break;
-        case 'number':
-          searchParams.value[fieldName] = Number(value);
-          break;
-        default:
-          searchParams.value[fieldName] = value;
-      }
-    }
-  });
 
   // 切换搜索展示样式
   const handleToggle = () => {
     renderStatus.value = renderStatus.value === 'input' ? 'tag' : 'input';
+  };
+
+  // 解析 url 上面附带的查询参数
+  const parseUrlParams = () => {
+    Object.keys(route.query).forEach((fieldName) => {
+      const config = fieldConfig[fieldName as keyof typeof fieldConfig];
+      const value = route.query[fieldName] as string;
+
+      if (config && value) {
+        switch (config.type) {
+          case 'array':
+            searchParams.value[fieldName] = value.split(',');
+            break;
+          case 'rang':
+            searchParams.value[fieldName] = value.split('-');
+            break;
+          case 'number':
+            searchParams.value[fieldName] = Number(value);
+            break;
+          default:
+            searchParams.value[fieldName] = value;
+        }
+      }
+    });
   };
 
   // 提交搜索
@@ -104,10 +105,21 @@
 
       return acc;
     }, {});
+
     emits('change', params);
   };
 
+  onBeforeMount(() => {
+    parseUrlParams();
+  });
+
   onMounted(() => {
+    handleSubmit();
+  });
+
+  onActivated(() => {
+    renderKey.value += 1;
+    parseUrlParams();
     handleSubmit();
   });
 

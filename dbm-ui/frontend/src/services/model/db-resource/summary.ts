@@ -22,7 +22,13 @@ export default class Summary {
   spec_cluster_type?: ClusterTypes;
   spec_machine_type?: MachineTypes;
   device_class?: string;
-  disk_summary?: string;
+  disk_summary?: {
+    mount_point: string;
+    size: number;
+    file_type: string;
+    disk_type: string;
+    disk_id: string | number;
+  }[];
   cpu_mem_summary?: string;
   count: number;
   sub_zone_detail: Record<
@@ -49,7 +55,11 @@ export default class Summary {
   }
 
   get deviceDisplay() {
-    return `${this.device_class} (${this.disk_summary})`;
+    if (this.disk_summary && this.disk_summary?.length > 0) {
+      const diskInfo = this.disk_summary.map((item) => `${item.mount_point}:${item.size}G:${item.disk_type}`).join(';');
+      return `${this.device_class} (${diskInfo})`;
+    }
+    return `${this.device_class}`;
   }
 
   get specTypeDisplay() {
