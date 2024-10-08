@@ -35,7 +35,7 @@
         class="mr8"
         :loading="isConfirmLoading"
         size="small"
-        theme="primary"
+        :theme="theme"
         @click="handleConfirm">
         {{ $t('确认') }}
       </BkButton>
@@ -58,13 +58,14 @@
     placement?: Placement;
     title: string;
     width?: number;
+    confirmHandler: () => Promise<any> | void;
+    cancelHandler?: () => Promise<any> | void;
+    theme?: 'primary' | 'danger';
   }
 
   const props = withDefaults(defineProps<Props>(), {
     cancelHandler: () => Promise.resolve(),
-    content: '',
-    placement: 'top',
-    width: 280,
+    theme: 'primary',
   });
 
   defineOptions({

@@ -70,7 +70,7 @@ export function importResource(params: {
     host_id: number;
     ip: string;
   }>;
-  labels: number;
+  labels: number[];
 }) {
   return http.post(`${path}/import/`, params);
 }

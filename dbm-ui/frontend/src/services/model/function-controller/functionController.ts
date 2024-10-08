@@ -45,6 +45,41 @@ interface ControllerItem<T extends string> {
 export type ExtractedControllerDataKeys = Extract<keyof FunctionController, string>;
 
 export default class FunctionController {
+  addons: ControllerItem<AddonsFunctions>;
+  mysql: ControllerItem<MySQLFunctions>;
+  redis: ControllerItem<RedisFunctions>;
+  bigdata: ControllerItem<BigdataFunctions>;
+  monitor: ControllerItem<MonitorFunctions>;
+  mongodb: ControllerItem<MongoFunctions>;
+  sqlserver: ControllerItem<SqlServerFunctions>;
+
+  // dbconsole 路由有关的开关
+  personalWorkbench: ControllerItem<string>;
+  'personalWorkbench.serviceApply': ControllerItem<string>;
+  'personalWorkbench.myTickets': ControllerItem<string>;
+  'personalWorkbench.myTodos': ControllerItem<string>;
+  observableManage: ControllerItem<string>;
+  'observableManage.DBHASwitchEvents': ControllerItem<string>;
+  'observableManage.healthReport': ControllerItem<string>;
+  globalConfigManage: ControllerItem<string>;
+  'globalConfigManage.dbConfig': ControllerItem<string>;
+  'globalConfigManage.versionFile': ControllerItem<string>;
+  'globalConfigManage.monitorStrategy': ControllerItem<string>;
+  'globalConfigManage.rotationManage': ControllerItem<string>;
+  'globalConfigManage.passwordSafe': ControllerItem<string>;
+  'globalConfigManage.staffManage': ControllerItem<string>;
+  'globalConfigManage.ticketFlowSetting': ControllerItem<string>;
+  'globalConfigManage.alarmGroup': ControllerItem<string>;
+  'globalConfigManage.whitelistManage': ControllerItem<string>;
+  resourceManage: ControllerItem<string>;
+  'resourceManage.resourceSpec': ControllerItem<string>;
+  'resourceManage.resourcePool': ControllerItem<string>;
+  'resourceManage.faultPool': ControllerItem<string>;
+  'resourceManage.toRecyclePool': ControllerItem<string>;
+  'resourceManage.dirtyHostManage': ControllerItem<string>;
+  'resourceManage.resourceOperationRecord': ControllerItem<string>;
+  bizConfigManage: ControllerItem<string>;
+  'bizConfigManage.monitorStrategy': ControllerItem<string>;
   'bizConfigManage.alarmGroup': ControllerItem<string>;
   'bizConfigManage.dbConfigure': ControllerItem<string>;
   'bizConfigManage.monitorStrategy': ControllerItem<string>;
