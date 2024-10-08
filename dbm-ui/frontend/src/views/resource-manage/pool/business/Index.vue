@@ -10,63 +10,64 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
 -->
-
 <template>
-  <BkTab
-    v-model:active="activeTab"
-    class="pool-tab"
-    type="unborder-card"
-    @change="handleChange">
-    <BkTabPanel
-      v-for="item in panels"
-      :key="item.name"
-      :label="item.label"
-      :name="item.name" />
-  </BkTab>
-  <div class="pool-content">
-    <KeepAlive>
-      <Component :is="renderComponent" />
-    </KeepAlive>
+  <div class="pool-container">
+    <Teleport to="#dbContentTitleAppend">
+      <BkTag
+        class="ml-8"
+        theme="info">
+        {{ t('业务') }}
+      </BkTag>
+    </Teleport>
+    <BkTab
+      v-model:active="activeTab"
+      class="pool-tab"
+      type="unborder-card"
+      @change="handleChange">
+      <BkTabPanel
+        v-for="item in panels"
+        :key="item.name"
+        :label="item.label"
+        :name="item.name" />
+    </BkTab>
+    <div class="pool-content">
+      <HostList
+        :key="activeTab"
+        :type="activeTab" />
+    </div>
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup lang="tsx">
   import { useI18n } from 'vue-i18n';
 
   import { useDebouncedRef } from '@hooks';
 
-  import HostList from './host-list/Index.vue';
-  import SummaryView from './summary-view/Index.vue';
+  import HostList from '../components/host-list/Index.vue';
+  import { ResourcePool } from '../type';
 
   const { t } = useI18n();
-  const router = useRouter();
   const route = useRoute();
+  const router = useRouter();
+  const activeTab = useDebouncedRef(route.params.page as ResourcePool);
 
   const panels = [
     {
-      name: 'summary-view',
-      label: t('统计视图'),
+      name: 'business',
+      label: t('业务资源池'),
     },
     {
-      name: 'host-list',
-      label: t('主机列表'),
+      name: 'public',
+      label: t('公共资源池'),
     },
   ];
-
-  const activeTab = useDebouncedRef(route.params.page);
-
-  const renderComponentMap = {
-    'summary-view': SummaryView,
-    'host-list': HostList,
-  };
-
-  const renderComponent = computed(() => renderComponentMap[activeTab.value as keyof typeof renderComponentMap]);
 
   watch(
     () => route.params,
     () => {
-      activeTab.value = route.params.page as string;
+      activeTab.value = route.params.page as ResourcePool;
     },
+    { immediate: true },
   );
 
   const handleChange = (value: string) => {
@@ -80,17 +81,18 @@
 </script>
 
 <style lang="less" scoped>
-  .pool-tab {
-    padding: 0 24px;
-    background: #fff;
-    box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
+  .pool-container {
+    .pool-tab {
+      background: #fff;
+      box-shadow: 0 3px 4px 0 rgb(0 0 0 / 4%);
 
-    :deep(.bk-tab-content) {
-      display: none;
+      :deep(.bk-tab-content) {
+        display: none;
+      }
     }
-  }
 
-  .pool-content {
-    padding: 24px;
+    .pool-content {
+      padding: 24px;
+    }
   }
 </style>

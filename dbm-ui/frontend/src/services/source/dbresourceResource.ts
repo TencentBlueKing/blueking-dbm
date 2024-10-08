@@ -20,12 +20,14 @@ import type { DBTypes } from '@common/const';
 
 import http, { type IRequestPayload } from '../http';
 
+export type DeleteEvent = 'to_recycle' | 'to_fault' | 'undo_import';
+
 const path = '/apis/dbresource/resource';
 
 /**
  * 资源删除
  */
-export function removeResource(params: { bk_host_ids: number[] }) {
+export function removeResource(params: { bk_host_ids: number[]; event: DeleteEvent }) {
   return http.post<{ bk_host_ids: number[] }>(`${path}/delete/`, params);
 }
 
@@ -61,6 +63,7 @@ export function importResource(params: {
     host_id: number;
     bk_cloud_id: number;
   }>;
+  labels: number;
 }) {
   return http.post(`${path}/import/`, params);
 }
@@ -165,6 +168,7 @@ export function getSpecResourceCount(params: {
  */
 export function updateResource(params: {
   bk_host_ids: number[];
+  labels?: string[];
   for_biz: number;
   rack_id: string;
   resource_type: string;

@@ -23,6 +23,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
   -moz-osx-font-smoothing: grayscale;
 }
 
+.db-icon-tags:before {
+	content: "\e206";
+}
 .db-icon-check-circle-fill:before {
 	content: "\e1a7";
 }
@@ -556,6 +559,9 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 }
 .db-icon-dirty-host:before {
 	content: "\e1ca";
+}
+.db-icon-tag-3:before {
+	content: "\e207";
 }
 .db-icon-saoba:before {
 	content: "\e1f4";

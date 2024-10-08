@@ -12,20 +12,12 @@
 -->
 
 <template>
-  <div class="import-host-form-panel">
+  <div class="batch-assign-list-panel">
     <div class="title">
-      {{ t('导入设置') }}
-    </div>
-    <div class="host-header">
-      <div>
-        <I18nT keypath="已选n台">
-          <span
-            class="number"
-            style="color: #3a84ff">
-            {{ hostList.length }}
-          </span>
-        </I18nT>
-      </div>
+      <span>
+        {{ t('已选主机') }}
+      </span>
+
       <BkPopover
         :arrow="false"
         :is-show="isShowHostActionPop"
@@ -37,6 +29,7 @@
           :class="{
             active: isShowHostActionPop,
           }"
+          @blur="handleHideHostAction"
           @click="handleShowHostAction">
           <DbIcon type="more" />
         </div>
@@ -48,26 +41,30 @@
           </div>
           <div
             class="item"
-            @click="handleRemoveAbnormal">
-            {{ t('清除异常 IP') }}
-          </div>
-          <div
-            class="item"
             @click="handleCopyAll">
             {{ t('复制所有 IP') }}
-          </div>
-          <div
-            class="item"
-            @click="handleCopyAbnormal">
-            {{ t('复制异常 IP') }}
           </div>
         </template>
       </BkPopover>
     </div>
+    <div class="host-header">
+      <div>
+        <DbIcon
+          class="mr-6"
+          type="down-big" />
+        <I18nT keypath="共n台">
+          <span
+            class="number"
+            style="color: #3a84ff">
+            {{ hostList.length }}
+          </span>
+        </I18nT>
+      </div>
+    </div>
     <div class="host-list">
       <div
         v-for="hostItem in hostList"
-        :key="hostItem.host_id"
+        :key="hostItem.bk_host_id"
         class="host-item">
         <div>{{ hostItem.ip }}</div>
         <div class="action-box">
@@ -84,46 +81,9 @@
       </div>
       <BkException
         v-if="hostList.length < 1"
-        :description="t('暂无数据，请从左侧添加对象')"
+        :description="t('暂无数据')"
         scene="part"
         type="empty" />
-    </div>
-    <div class="more-info-form">
-      <DbForm
-        ref="formRef"
-        form-type="vertical"
-        :model="formData">
-        <BkFormItem
-          :label="t('所属业务')"
-          property="for_biz">
-          <div class="com-input">
-            <BkSelect
-              v-model="formData.for_biz"
-              filterable>
-              <BkOption
-                v-for="bizItem in bizList"
-                :key="bizItem.bk_biz_id"
-                :label="bizItem.display_name"
-                :value="bizItem.bk_biz_id" />
-            </BkSelect>
-          </div>
-        </BkFormItem>
-        <BkFormItem
-          :label="t('所属DB类型')"
-          property="resource_type">
-          <div class="com-input">
-            <BkSelect
-              v-model="formData.resource_type"
-              filterable>
-              <BkOption
-                v-for="item in dbTypeList"
-                :key="item.id"
-                :label="item.name"
-                :value="item.id" />
-            </BkSelect>
-          </div>
-        </BkFormItem>
-      </DbForm>
     </div>
   </div>
 </template>
@@ -132,16 +92,17 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
+  import DbResourceModel from '@services/model/db-resource/DbResource';
   import { getBizs } from '@services/source/cmdb';
   import { fetchDbTypeList } from '@services/source/infras';
-  import type { HostInfo } from '@services/types';
+  import { listTag } from '@services/source/tag';
 
   import { useCopy } from '@hooks';
 
   import { messageWarn } from '@utils';
 
   interface Props {
-    hostList: HostInfo[];
+    hostList: DbResourceModel[];
   }
   interface Emits {
     (e: 'update:hostList', value: Props['hostList']): void;
@@ -161,6 +122,7 @@
   const formData = reactive({
     for_biz: '',
     resource_type: '',
+    labels: '',
   });
   const bizList = shallowRef<
     {
@@ -171,6 +133,12 @@
   const dbTypeList = shallowRef<
     {
       id: string;
+      name: string;
+    }[]
+  >([]);
+  const tagList = shallowRef<
+    {
+      id: number;
       name: string;
     }[]
   >([]);
@@ -198,28 +166,36 @@
     },
   });
 
+  watch(
+    () => formData.for_biz,
+    () => {
+      if (formData.for_biz) {
+        runListTag({ bk_biz_id: Number(formData.for_biz) });
+      }
+    },
+  );
+
+  const { run: runListTag } = useRequest(listTag, {
+    onSuccess(data) {
+      tagList.value = data.results.map((item) => ({
+        id: item.id,
+        name: item.value,
+      }));
+    },
+    manual: true,
+  });
+
   const handleShowHostAction = () => {
     isShowHostActionPop.value = true;
+  };
+
+  const handleHideHostAction = () => {
+    isShowHostActionPop.value = false;
   };
 
   // 清空所有主机
   const handleRemoveAll = () => {
     emits('update:hostList', []);
-    isShowHostActionPop.value = false;
-  };
-
-  // 清空所有异常主机
-  const handleRemoveAbnormal = () => {
-    const result = props.hostList.reduce(
-      (result, item) => {
-        if (item.alive !== 0) {
-          result.push(item);
-        }
-        return result;
-      },
-      [] as Props['hostList'],
-    );
-    emits('update:hostList', result);
     isShowHostActionPop.value = false;
   };
 
@@ -235,38 +211,19 @@
     copy(ipList.join('\n'));
   };
 
-  // 复制所有异常主机 IP
-  const handleCopyAbnormal = () => {
-    const ipList = props.hostList.reduce((result, item) => {
-      if (item.alive === 0) {
-        result.push(item.ip);
-      }
-      return result;
-    }, [] as string[]);
-
-    isShowHostActionPop.value = false;
-
-    if (ipList.length < 1) {
-      messageWarn(t('暂无可复制 IP'));
-      return;
-    }
-
-    copy(ipList.join('\n'));
-  };
-
   // 复制单个指定主机 IP
-  const handleCopy = (hostItem: HostInfo) => {
+  const handleCopy = (hostItem: DbResourceModel) => {
     copy(hostItem.ip);
   };
 
   // 删除单个主机
-  const handleRemove = (hostItem: HostInfo) => {
+  const handleRemove = (hostItem: DbResourceModel) => {
     const hostListResult = props.hostList.reduce((result, item) => {
-      if (item.host_id !== hostItem.host_id) {
+      if (item.bk_host_id !== hostItem.bk_host_id) {
         result.push(item);
       }
       return result;
-    }, [] as HostInfo[]);
+    }, [] as DbResourceModel[]);
 
     emits('update:hostList', hostListResult);
   };
@@ -276,31 +233,27 @@
       return formRef.value.validate().then(() => ({
         for_biz: Number(formData.for_biz),
         resource_type: formData.resource_type,
+        labels: formData.labels,
       }));
     },
   });
 </script>
 <style lang="less">
-  .import-host-form-panel {
+  .batch-assign-list-panel {
     display: flex;
     height: 100%;
     background: #f5f6fa;
     flex-direction: column;
 
     .title {
-      padding: 12px 24px 0;
-      font-size: 14px;
-      line-height: 22px;
+      padding: 8px 12px 10px 24px;
+      font-weight: 700;
+      font-size: 12px;
       color: #313238;
-    }
-
-    .host-header {
+      background: #ffffff;
+      border: 1px solid #dcdee5;
+      border-radius: 0 2px 2px 0;
       display: flex;
-      padding: 0 24px;
-      margin-top: 14px;
-      margin-bottom: 4px;
-      line-height: 24px;
-      color: #63656e;
 
       .host-action {
         display: flex;
@@ -320,8 +273,18 @@
       }
     }
 
+    .host-header {
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      margin-top: 14px;
+      margin-bottom: 4px;
+      line-height: 24px;
+      color: #63656e;
+      font-size: 12px;
+    }
+
     .host-list {
-      height: calc(100% - 290px);
       padding: 0 24px;
       overflow-y: auto;
       font-size: 12px !important;
@@ -360,21 +323,6 @@
             cursor: pointer;
           }
         }
-      }
-    }
-
-    .more-info-form {
-      padding: 15px 24px 30px;
-      margin-top: auto;
-      background: #fff;
-      box-shadow: 0 -2px 4px 0 #0000001a;
-    }
-
-    .com-input {
-      display: flex;
-
-      .bk-select {
-        flex: 1;
       }
     }
   }

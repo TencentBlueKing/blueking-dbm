@@ -17,6 +17,7 @@
     class="import-host-dialog"
     :esc-close="false"
     :quick-close="false"
+    render-directive="if"
     :width="width">
     <BkResizeLayout
       :border="false"
@@ -40,12 +41,13 @@
       <div>
         <span
           v-bk-tooltips="{
-            disabled: hostSelectList.length > 1,
+            disabled: hostSelectList.length > 0,
             content: t('请选择主机'),
           }">
           <BkButton
+            v-bk-tooltips="tooltip"
             :disabled="hostSelectList.length < 1"
-            :loading="isSubmiting"
+            :loading="isSubmitting"
             theme="primary"
             @click="handleSubmit">
             {{ t('确定') }}
@@ -60,7 +62,8 @@
     </template>
   </BkDialog>
 </template>
-<script setup lang="ts">
+<script setup lang="tsx">
+  import BkButton from 'bkui-vue/lib/button';
   import { ref, shallowRef } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -83,9 +86,10 @@
   });
 
   const { t } = useI18n();
+  const router = useRouter();
 
   const formRef = ref();
-  const isSubmiting = ref(false);
+  const isSubmitting = ref(false);
   const hostSelectList = shallowRef<HostInfo[]>([]);
   const width = Math.ceil(window.innerWidth * 0.8);
 
@@ -93,9 +97,21 @@
   const layoutStyle = {
     height: `${contentHeight}px`,
   };
+  const tooltip = computed(() => {
+    const path = router.resolve({
+      name: 'taskHistory'
+    });
+    return {
+      theme: 'light',
+      disabled: hostSelectList.value.length < 1,
+      content: () => (<div>
+        {t('提交后，将会进行主机初始化任务，具体的导入结果，可以通过“')}<a href={path.href} target='_blank'>{t('任务历史')}</a>{t('”查看')}
+      </div>)
+    }
+  });
 
   const handleSubmit = () => {
-    isSubmiting.value = true;
+    isSubmitting.value = true;
     formRef.value
       .getValue()
       .then((data: any) =>
@@ -107,6 +123,7 @@
             host_id: item.host_id,
             bk_cloud_id: item.cloud_id,
           })),
+          labels: data.labels,
         }).then(() => {
           window.changeConfirm = false;
           messageSuccess(t('操作成功'));
@@ -115,7 +132,7 @@
         }),
       )
       .finally(() => {
-        isSubmiting.value = false;
+        isSubmitting.value = false;
       });
   };
 
