@@ -18,18 +18,17 @@
         class="editor-wrapper">
         <BkInput
           v-model="tagValue"
-          class="editor"
-          @blur="handleClose" />
+          class="editor" />
         <div
           class="operator-wrapper"
-          @click="handleCreate">
+          @click.stop="handleCreate">
           <DbIcon
             class="check-line"
             type="check-line" />
         </div>
         <div
           class="operator-wrapper"
-          @click="handleClose">
+          @click.stop="handleClose">
           <DbIcon
             class="close"
             type="close" />
@@ -110,18 +109,20 @@
   const { run: runCreate } = useRequest(createTag, {
     manual: true,
     onSuccess() {
-      pagination.count += 1;
-      loadMore();
-      isEdit.value = false;
+      if (pagination.count === tagList.value.length) {
+        runListTag({
+          bk_biz_id: props.bkBizId,
+          offset: tagList.value.length,
+          ordering: 'create_at',
+        });
+      }
+      handleClose();
       messageSuccess(t('新建成功'));
     },
   });
 
   const loadMore = () => {
-    if (listTagLoading.value) {
-      return;
-    }
-    if (tagList.value.length >= pagination.count) {
+    if (listTagLoading.value || pagination.offset >= pagination.count) {
       return;
     }
     pagination.offset = Math.min(pagination.count, pagination.offset + pagination.limit);
@@ -140,6 +141,7 @@
       tagList.value = [];
       runListTag({
         bk_biz_id: props.bkBizId,
+        ordering: 'create_at',
       });
     },
   );
@@ -153,6 +155,7 @@
       offset: pagination.offset,
       limit: pagination.limit,
       value: searchVal.value,
+      ordering: 'create_at',
     });
   });
 
@@ -161,6 +164,7 @@
   };
 
   const handleClose = () => {
+    tagValue.value = '';
     isEdit.value = false;
   };
 
@@ -204,6 +208,7 @@
       bk_biz_id: props.bkBizId,
       offset: 0,
       limit: pagination.limit,
+      ordering: 'create_time',
     });
   });
 </script>
@@ -250,7 +255,6 @@
 
       &:hover {
         cursor: pointer;
-        background-color: #e1ecff;
       }
 
       .check-line {
