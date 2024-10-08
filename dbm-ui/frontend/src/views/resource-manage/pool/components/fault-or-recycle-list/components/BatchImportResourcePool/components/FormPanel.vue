@@ -12,16 +12,10 @@
 -->
 
 <template>
-  <div class="batch-assign-form-panel">
+  <div class="batch-import-form-panel">
     <div class="title">
-      {{ t('批量添加资源归属') }}
+      {{ t('批量导入资源池') }}
     </div>
-    <BkAlert
-      class="mt-12"
-      closable
-      theme="warning">
-      {{ t('为主机添加或更新所属 DB、标签设置，若设置不存在则添加，已存在则覆盖更新') }}
-    </BkAlert>
     <BkForm
       ref="formRef"
       class="mt-16"
@@ -33,8 +27,7 @@
         required>
         <BkSelect
           v-model="formData.for_biz"
-          :allow-empty-values="[0]"
-          disabled>
+          :allow-empty-values="[0]">
           <BkOption
             v-for="bizItem in bizList"
             :key="bizItem.bk_biz_id"
@@ -69,16 +62,13 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getBizs } from '@services/source/cmdb';
   import { fetchDbTypeList } from '@services/source/infras';
   import { listTag } from '@services/source/tag';
   import type { BizItem } from '@services/types';
 
-  import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
+  import { useGlobalBizs } from '@stores';
 
-  interface Props {
-    bizId: number;
-  }
+  import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
   interface Expose {
     getValue: () => Promise<{
@@ -88,9 +78,9 @@
     }>;
   }
 
-  const props = defineProps<Props>();
-
+  const globalBizsStore = useGlobalBizs();
   const { t } = useI18n();
+
   const formRef = useTemplateRef('formRef');
 
   const formData = reactive({
@@ -99,21 +89,16 @@
     labels: [] as number[],
   });
 
-  const bizList = shallowRef<ServiceReturnType<typeof getBizs>>([]);
   const dbTypeList = shallowRef<ServiceReturnType<typeof fetchDbTypeList>>([]);
   const tagList = shallowRef<ServiceReturnType<typeof listTag>['results']>([]);
 
-  useRequest(getBizs, {
-    onSuccess(data) {
-      bizList.value = [
-        {
-          bk_biz_id: 0,
-          display_name: t('公共资源池'),
-        } as BizItem,
-        ...data,
-      ];
-    },
-  });
+  const bizList = computed(() => [
+    {
+      bk_biz_id: 0,
+      display_name: t('公共资源池'),
+    } as BizItem,
+    ...globalBizsStore.bizs,
+  ]);
 
   useRequest(fetchDbTypeList, {
     onSuccess(data) {
@@ -130,23 +115,13 @@
   useRequest(listTag, {
     defaultParams: [
       {
-        bk_biz_id: props.bizId,
+        bk_biz_id: 0,
       },
     ],
     onSuccess(data) {
       tagList.value = data.results;
     },
   });
-
-  watch(
-    () => props.bizId,
-    () => {
-      formData.for_biz = props.bizId;
-    },
-    {
-      immediate: true,
-    },
-  );
 
   defineExpose<Expose>({
     getValue() {
@@ -160,7 +135,7 @@
 </script>
 
 <style lang="less">
-  .batch-assign-form-panel {
+  .batch-import-form-panel {
     padding: 16px 24px;
 
     .title {
