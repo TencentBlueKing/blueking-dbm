@@ -17,14 +17,16 @@
     :min-height="389"
     @toggle="handleToggle">
     <template #trigger>
-      <div
-        ref="businessSelectorRef"
-        class="business-selector">
-        <div>{{ bizIdMap.get(selected as number)?.name }}</div>
-        <AngleDownFill
-          class="triangle-icon mt-2 ml-7"
-          :class="[{ rotate: !isExpanded }]" />
-      </div>
+      <slot name="trigger">
+        <div
+          ref="businessSelectorRef"
+          class="business-selector">
+          <div>{{ bizIdMap.get(selected as number)?.name }}</div>
+          <AngleDownFill
+            class="triangle-icon mt-2 ml-7"
+            :class="[{ rotate: !isExpanded }]" />
+        </div>
+      </slot>
     </template>
     <BkOption
       v-for="item in sortedBizList"
@@ -125,12 +127,12 @@
 
 <style lang="less" scoped>
   .business-selector {
-    cursor: pointer;
-    color: #3a84ff;
     display: flex;
-    align-items: center;
-    font-size: 14px;
     width: 360px;
+    font-size: 14px;
+    color: #3a84ff;
+    cursor: pointer;
+    align-items: center;
 
     .triangle-icon {
       transition: transform 0.2s ease; // 确保过渡效果应用到 transform
@@ -143,8 +145,8 @@
 
   .bk-select-option {
     .biz-info {
-      color: #979ba5;
       margin-left: 2px;
+      color: #979ba5;
     }
 
     .unfavored {
