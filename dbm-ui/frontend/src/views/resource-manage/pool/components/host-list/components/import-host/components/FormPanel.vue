@@ -151,7 +151,7 @@
 
   import { useCopy } from '@hooks';
 
-  import TagSelector from '@views/resource-manage/pool/components/host-list/components/tag-selector/Index.vue';
+  import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
   import { messageWarn } from '@utils';
 

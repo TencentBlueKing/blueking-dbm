@@ -30,6 +30,30 @@
         </span>
       </BkMenuItem>
       <BkMenuItem
+        key="toRecyclePool"
+        v-db-console="'resourceManage.toRecyclePool'">
+        <template #icon>
+          <DbIcon type="daihuishou" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('待回收池') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem
+        key="faultPool"
+        v-db-console="'resourceManage.faultPool'">
+        <template #icon>
+          <DbIcon type="guzhangji" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('故障池') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem
         key="resourcePoolDirtyMachines"
         v-db-console="'resourceManage.dirtyHostManage'">
         <template #icon>

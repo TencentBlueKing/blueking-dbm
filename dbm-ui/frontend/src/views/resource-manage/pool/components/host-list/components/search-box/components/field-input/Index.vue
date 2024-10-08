@@ -73,7 +73,7 @@
           <ComFactory
             :ref="(el: any) => initInputRefCallback(el, 'label')"
             :model="localValueMemo"
-            name="label"
+            name="labels"
             @change="handleChange" />
           <div style="flex: 1" />
         </div>
@@ -164,7 +164,7 @@
     os_type: true,
     cpu: true,
     mem: true,
-    label: true,
+    labels: true,
     mount_point: true,
     disk: true,
     disk_type: true,

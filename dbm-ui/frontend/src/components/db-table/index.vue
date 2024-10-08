@@ -675,9 +675,12 @@
     getData() {
       return tableData.value.results;
     },
-    loading: isLoading,
-    removeSelectByKey(key: string) {
-      delete rowSelectMemo.value[key];
+    // 获取全量数据
+    getAllData: fetchAllData,
+    // 清空选择
+    clearSelected() {
+      rowSelectMemo.value = {};
+      bkTableRef.value?.clearSelection();
     },
     updateTableKey() {
       tableKey.value = Date.now().toString();
