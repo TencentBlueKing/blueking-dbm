@@ -15,10 +15,13 @@
   <div>
     <Teleport to="#dbContentTitleAppend">
       <BkTag
-        class="ml-8"
+        class="ml-8 mr-8"
         theme="info">
         {{ t('全局') }}
       </BkTag>
+      <ImportHostBtn
+        class="w-88"
+        @export-host="handleImportHost" />
     </Teleport>
     <BkTab
       v-model:active="activeTab"
@@ -35,6 +38,7 @@
       <KeepAlive>
         <Component :is="renderComponent" />
       </KeepAlive>
+      <ImportHost v-model:is-show="isShowImportHost" />
     </div>
   </div>
 </template>
@@ -44,6 +48,8 @@
 
   import { useDebouncedRef } from '@hooks';
 
+  import ImportHost from '../components/host-list/components/import-host/Index.vue';
+  import ImportHostBtn from '../components/host-list/components/ImportHostBtn.vue';
   import HostList from '../components/host-list/Index.vue';
   import SummaryView from '../components/summary-view/Index.vue';
 
@@ -51,14 +57,16 @@
   const router = useRouter();
   const route = useRoute();
 
+  const isShowImportHost = ref(false);
+
   const panels = [
-    {
-      name: 'summary-view',
-      label: t('统计视图'),
-    },
     {
       name: 'host-list',
       label: t('主机列表'),
+    },
+    {
+      name: 'summary-view',
+      label: t('统计视图'),
     },
   ];
 
@@ -84,6 +92,11 @@
         page: value,
       },
     });
+  };
+
+  // 导入主机
+  const handleImportHost = () => {
+    isShowImportHost.value = true;
   };
 </script>
 

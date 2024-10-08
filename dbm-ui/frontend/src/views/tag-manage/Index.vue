@@ -165,7 +165,7 @@
           const { href } = router.resolve({
             name: isBusiness ? 'BizResourcePool' : 'resourcePool',
             query: {
-              label: data.id
+              labels: data.id
             },
             params: {
               page: isBusiness ? 'business' : 'host-list'
