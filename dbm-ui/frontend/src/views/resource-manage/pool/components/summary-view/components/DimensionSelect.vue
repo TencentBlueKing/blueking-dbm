@@ -24,6 +24,13 @@
         </BkRadio>
       </BkRadioGroup>
     </div>
+    <div class="check-box-wrapper">
+      <BkCheckbox
+        v-model="isSpecEnable"
+        class="mr-6"
+        @change="changeSpecEnable" />
+      {{ t('仅统计已启用的规格') }}
+    </div>
   </div>
 </template>
 
@@ -32,6 +39,7 @@
 
   interface Emits {
     (e: 'change', value: string): void;
+    (e: 'changeSpecEnable', value: boolean): void;
   }
 
   const emits = defineEmits<Emits>();
@@ -56,12 +64,17 @@
   const selectTriggerRef = ref();
   const selectWrapperRef = ref();
   const showSelectWrapper = ref(false);
+  const isSpecEnable = ref(true);
 
   const renderLabel = computed(() => dimensions.find((item) => item.value === modelValue.value)?.label as string);
 
   const changeDimension = (value: string) => {
     showSelectWrapper.value = false;
     emits('change', value);
+  };
+
+  const changeSpecEnable = (value: boolean) => {
+    emits('changeSpecEnable', value);
   };
 </script>
 
@@ -70,6 +83,14 @@
     display: flex;
     margin: 16px 0;
     align-items: center;
+
+    .check-box-wrapper {
+      display: flex;
+      margin-right: 21px;
+      font-size: 12px;
+      color: #4d4f56;
+      align-items: center;
+    }
 
     .select-main {
       padding: 0 6px;
