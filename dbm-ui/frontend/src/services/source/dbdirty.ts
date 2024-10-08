@@ -12,6 +12,7 @@
  */
 
 import DirtyMachinesModel from '@services/model/db-resource/dirtyMachines';
+import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
 import type { ListBase } from '@services/types';
 
 import http from '../http';
@@ -51,4 +52,25 @@ export function transferDirtyMachines(params: { bk_host_ids: number[] }) {
  */
 export function deleteDirtyRecords(params: { bk_host_ids: number[] }) {
   return http.delete(`${path}/delete_dirty_records/`, params);
+}
+
+/**
+ * 故障池、待回收池列表
+ */
+export function getMachinePool(params: { limit?: number; offset?: number; ips?: string; pool: 'fault' | 'recycle' }) {
+  return http.get<ListBase<FaultOrRecycleMachineModel[]>>(`${path}/query_machine_pool/`, params).then((res) => ({
+    ...res,
+    results: res.results.map((item: FaultOrRecycleMachineModel) => new FaultOrRecycleMachineModel(item)),
+  }));
+}
+
+/**
+ * 将主机转移至待回收/故障池模块
+ */
+export function transferMachinePool(params: {
+  bk_host_ids: number[];
+  source: 'fault' | 'recycle';
+  target: 'fault' | 'recycle' | 'recycled';
+}) {
+  return http.post(`${path}/transfer_hosts_to_pool/`, params);
 }
