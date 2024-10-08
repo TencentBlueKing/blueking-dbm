@@ -224,7 +224,7 @@
     ...params,
   });
 
-  const searchParams: Record<string, any> = {};
+  let searchParams: Record<string, any> = {};
   let selectionListWholeDataMemo: DbResourceModel[] = [];
   const tableColumn = [
     {
@@ -252,10 +252,10 @@
         <div class='resource-owner-wrapper'>
           <div class='resource-owner'>
             <Tag
-              theme={(data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name) ? 'success' : undefined}>{t('所属业务')} : {data.for_biz_display}
+              theme={(data.for_biz.bk_biz_id === 0 || !data.for_biz.bk_biz_name) ? 'success' : undefined}>{t('所属业务')} : {data.forBizDisplay}
             </Tag>
             <Tag
-              theme={(!data.resource_type || data.resource_type === 'PUBLIC') ? 'success' : undefined}>{t('所属DB')} : {data.resource_type_display}
+              theme={(!data.resource_type || data.resource_type === 'PUBLIC') ? 'success' : undefined}>{t('所属DB')} : {data.resourceTypeDisplay}
             </Tag>
             {
               data.labels && Array.isArray(data.labels) && (
@@ -393,7 +393,8 @@
   };
 
   const handleSearch = (params: Record<string, any>) => {
-    tableRef.value.fetchData(params);
+    searchParams = {...searchParams, ...params};
+    tableRef.value.fetchData(searchParams);
   };
 
   // 导入主机
