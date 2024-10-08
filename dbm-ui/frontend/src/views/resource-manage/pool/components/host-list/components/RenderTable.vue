@@ -25,18 +25,18 @@
         :data="tableData.results"
         :max-height="tableMaxHeight"
         :pagination="pagination"
-        :remote-pagination="remotePagination"
-        show-overflow
-        :show-settings="showSettings"
+        :pagination-heihgt="60"
+        remote-pagination
+        :row-class="rowCls"
+        show-overflow-tooltip
         v-bind="$attrs"
         @column-sort="handleColumnSortChange"
         @page-limit-change="handlePageLimitChange"
-        @page-value-change="handlePageValueChange"
-        @row-click="handleRowClick">
+        @page-value-change="handlePageValueChange">
         <template
-          v-if="releateUrlQuery && Object.keys(rowSelectMemo).length > 0"
+          v-if="Object.keys(rowSelectMemo).length > 0"
           #prepend>
-          <div class="head-prepend-row">
+          <div class="prepend-row">
             <I18nT keypath="已选n条，">
               <span class="number">{{ Object.keys(rowSelectMemo).length }}</span>
             </I18nT>
@@ -67,12 +67,55 @@
     </BkLoading>
   </div>
 </template>
+<script lang="tsx">
+  export interface IPagination {
+    count: number;
+    current: number;
+    limit: number;
+    limitList: Array<number>;
+    align: string;
+    layout: Array<string>;
+  }
+  export interface IPaginationExtra {
+    small?: boolean;
+  }
+
+  interface Props {
+    columns: InstanceType<typeof Table>['$props']['columns'];
+    dataSource: (params: any, payload?: IRequestPayload) => Promise<any>;
+    fixedPagination?: boolean;
+    clearSelection?: boolean;
+    paginationExtra?: IPaginationExtra;
+    selectable?: boolean;
+    disableSelectMethod?: (data: any) => boolean | string;
+    rowCls?: string;
+    // data 数据的主键
+    primaryKey?: string;
+  }
+
+  interface Emits {
+    (e: 'requestSuccess', value: any): void;
+    (e: 'requestFinished', value: any[]): void;
+    (e: 'clearSearch'): void;
+    (e: 'selection', key: string[], list: any[]): void;
+    (e: 'selection', key: number[], list: any[]): void;
+  }
+
+  interface Exposes {
+    fetchData: (params: Record<string, any>, baseParams: Record<string, any>) => void;
+    getData: <T>() => Array<T>;
+    clearSelected: () => void;
+    loading: Ref<boolean>;
+    bkTableRef: Ref<InstanceType<typeof Table>>;
+    updateTableKey: () => void;
+    removeSelectByKey: (key: string) => void;
+  }
+</script>
 <script setup lang="tsx">
   import type { Table } from 'bkui-vue';
   import _ from 'lodash';
   import {
     computed,
-    nextTick,
     onMounted,
     reactive,
     type Ref,
@@ -88,78 +131,26 @@
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
-  import { getOffset } from '@utils';
-
-  interface Props {
-    columns?: InstanceType<typeof Table>['$props']['columns'],
-    dataSource: (params: any, payload?: IRequestPayload)=> Promise<any>,
-    fixedPagination?: boolean,
-    clearSelection?: boolean,
-    paginationExtra?: {
-      small?: boolean;
-    },
-    selectable?: boolean,
-    disableSelectMethod?: (data: any) => boolean|string,
-    // data 数据的主键
-    primaryKey?: string,
-    // 是否解析 URL query 参数
-    releateUrlQuery?: boolean,
-    // 没提供默认使用浏览器窗口的高度 window.innerHeight
-    containerHeight?: number,
-    // 是否开启远程分页
-    remotePagination?: boolean,
-    // 是否允许行点击选中
-    allowRowClickSelect?: boolean,
-    remoteSort?: boolean,
-    showSettings?: boolean,
-    sortType?: 'ordering' | 'default';
-  }
-
-  interface Emits {
-    (e: 'requestSuccess', value: any): void,
-    (e: 'requestFinished', value: any[]): void,
-    (e: 'clearSearch'): void,
-    (e: 'selection', key: string[], list: Record<any, any>[]): void,
-    (e: 'selection', key: number[], list: Record<any, any>[]): void,
-  }
-
-  interface Exposes {
-    fetchData: (params?: Record<string, any>, baseParams?: Record<string, any>, loading?: boolean) => void,
-    getData: <T>() => Array<T>,
-    getAllData: <T>() => Promise<Array<T>>,
-    clearSelected: () => void,
-    loading: Ref<boolean>,
-    bkTableRef: Ref<InstanceType<typeof Table>>,
-    updateTableKey: () => void,
-    removeSelectByKey: (key: string) => void,
-  }
+  import {
+    getOffset,
+    random,
+  } from '@utils';
 
   const props = withDefaults(defineProps<Props>(), {
-    columns: () => [],
     fixedPagination: false,
     clearSelection: true,
     paginationExtra: () => ({}),
     selectable: false,
     disableSelectMethod: () => false,
     primaryKey: 'id',
-    releateUrlQuery: false,
     containerHeight: undefined,
-    remotePagination: true,
-    allowRowClickSelect: false,
-    remoteSort: false,
-    showSettings: true,
-    sortType: 'default',
   });
 
   const emits = defineEmits<Emits>();
 
-  defineOptions({
-    inheritAttrs: false,
-  });
-
   // 生成可选中列配置
   const genSelectionColumn = () => ({
-    width: 80,
+    width: 60,
     fixed: 'left',
     label: () => {
       const renderCheckbox = () => {
@@ -206,8 +197,8 @@
         <span v-bk-tooltips={tips}>
           <bk-checkbox
             label={true}
-            disabled={Boolean(selectDisabled)}
-            onChange={() => handleSelecteRow(data)}
+            disabled={selectDisabled}
+            onChange={() => handleRowClick(data)}
             modelValue={Boolean(rowSelectMemo.value[_.get(data, props.primaryKey)])} />
         </span>
       );
@@ -218,9 +209,9 @@
 
   const rootRef = ref();
   const bkTableRef = ref();
-  const tableKey = ref(Date.now().toString());
+  const tableKey = ref(random());
   const isLoading = ref(false);
-  const tableMaxHeight = ref<number | 'auto'>('auto');
+  const tableMaxHeight = ref(0);
   const tableData = ref<ListBase<any>>({
     count: 0,
     next: '',
@@ -232,18 +223,11 @@
   const isAnomalies = ref(false);
   const rowSelectMemo = shallowRef<Record<string|number, Record<any, any>>>({});
   const isWholeChecked = ref(false);
-  const pagination = reactive<{
-    count: number;
-    current: number;
-    limit: number;
-    limitList: Array<number>;
-    align: string;
-    layout: Array<string>;
-  }>({
+  const pagination = reactive<IPagination>({
     count: 0,
     current: 1,
     limit: 10,
-    limitList: [10, 20, 50, 100, 500],
+    limitList: [10, 20, 50, 100],
     align: 'right',
     layout: ['total', 'limit', 'list'],
     ...props.paginationExtra,
@@ -267,6 +251,7 @@
     if (!props.selectable || !props.columns) {
       return props.columns;
     }
+
     return [
       genSelectionColumn(),
       ...props.columns,
@@ -308,26 +293,14 @@
         const params = {
           offset: (pagination.current - 1) * pagination.limit,
           limit: pagination.limit,
-          bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           ...paramsMemo,
           ...sortParams,
         };
-
-        const payload = {};
-        // API 参数需要和 URL 联动基本可以确认是页面级别的列表
-        // 这个时候权限提示交互为页面嵌入的方式
-        if (props.releateUrlQuery) {
-          Object.assign(payload, {
-            permission: 'page',
-          });
-        }
-
-        isAnomalies.value = false;
-
-        props.dataSource(params, payload)
+        props.dataSource(params, {
+          permission: 'page',
+        })
           .then((data) => {
             tableData.value = data;
-            console.log('tabledata = ', data);
             pagination.count = data.count;
             isSearching.value = getSearchingStatus();
             isAnomalies.value = false;
@@ -337,41 +310,23 @@
               bkTableRef.value?.clearSelection?.();
             }
 
-            if (!props.fixedPagination && props.releateUrlQuery) {
+            if (!props.fixedPagination) {
               replaceSearchParams(params);
             }
 
             emits('requestSuccess', data);
           })
-          .catch((error) => {
-            console.log('from dbtable error = ', error);
+          .catch(() => {
             tableData.value.results = [];
             pagination.count = 0;
             isAnomalies.value = true;
           })
           .finally(() => {
-            isReady = false;
             isLoading.value = false;
             emits('requestFinished', tableData.value.results);
           });
       });
   };
-
-  // 拉取全量数据
-  const fetchAllData = async () => {
-    const { results } = await props.dataSource({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-      offset: (pagination.current - 1) * pagination.limit,
-      limit: -1,
-      ...paramsMemo,
-      ...sortParams,
-    })
-    return results;
-  };
-
-  watch(() => props.columns, () => {
-    tableKey.value = Date.now().toString();
-  });
 
   const triggerSelection = () => {
     emits('selection', Object.keys(rowSelectMemo.value), Object.values(rowSelectMemo.value));
@@ -379,7 +334,7 @@
 
   // 解析 URL 上面的分页信息
   const parseURL = () => {
-    if (!props.releateUrlQuery || props.fixedPagination) {
+    if (props.fixedPagination) {
       return;
     }
     const {
@@ -421,9 +376,7 @@
     const selectMap = { ...rowSelectMemo.value };
     tableData.value.results.forEach((dataItem: any) => {
       if (checked) {
-        if (!props.disableSelectMethod(dataItem)) {
-          selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
-        }
+        selectMap[_.get(dataItem, props.primaryKey)] = dataItem;
       } else {
         delete selectMap[_.get(dataItem, props.primaryKey)];
       }
@@ -445,7 +398,6 @@
   // 跨页全选
   const handleWholeSelect = () => {
     props.dataSource({
-      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       offset: (pagination.current - 1) * pagination.limit,
       limit: -1,
       ...paramsMemo,
@@ -465,34 +417,11 @@
   };
 
   // 选中单行
-  const handleRowClick = (event: MouseEvent, data: any) => {
-    if (!props.allowRowClickSelect) {
-      return;
-    }
-    const targetElement = event.target as HTMLElement;
-    if (/bk-button/.test(targetElement.className)) {
-      return;
-    }
-    if (!props.selectable) {
-      return;
-    }
-    if (props.disableSelectMethod(data)) {
-      return;
-    }
-    const selectMap = { ...rowSelectMemo.value };
-    if (!selectMap[_.get(data, props.primaryKey)]) {
-      selectMap[_.get(data, props.primaryKey)] = data;
-    } else {
-      delete selectMap[_.get(data, props.primaryKey)];
-      isWholeChecked.value = false;
-    }
-    rowSelectMemo.value = selectMap;
-
-    triggerSelection();
-  };
-
-  // 勾选单行
-  const handleSelecteRow = (data: any) => {
+  const handleRowClick = (data: any) => {
+    // const targetElement = event.target as HTMLElement;
+    // if (/bk-button/.test(targetElement.className)) {
+    //   return;
+    // }
     if (!props.selectable) {
       return;
     }
@@ -513,33 +442,19 @@
 
   // 排序
   const handleColumnSortChange = (sortPayload: any) => {
-    if (!props.remoteSort) {
-      return;
-    }
     const valueMap = {
       null: undefined,
       desc: 0,
       asc: 1,
     };
-    if (props.sortType === 'ordering') {
-      sortParams = {
-        ordering: `${valueMap[sortPayload.type as keyof typeof valueMap] === 0 ? '-' : ''}${sortPayload.column.field}`
-      };
-    }
-    else {
-      sortParams = {
-        [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
-      };
-    }
+    sortParams = {
+      [sortPayload.column.field]: valueMap[sortPayload.type as keyof typeof valueMap],
+    };
     fetchListData();
   };
 
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
-  console.log('pagination.limit = ', pagination.limit,pageLimit )
-  if (pagination.limit === pageLimit){
-    return
-  }
     pagination.limit = pageLimit;
     pagination.current = 1;
     fetchListData();
@@ -547,12 +462,7 @@
 
   // 切换页码
   const handlePageValueChange = (pageValue:number) => {
-    if (pagination.current === pageValue) {
-      return
-    }
     pagination.current = pageValue;
-
-    console.log('pagination.current = ', pagination.current, pageValue, pagination )
     fetchListData();
   };
 
@@ -561,36 +471,54 @@
     emits('clearSearch');
   };
 
-  const calcTableHeight = () => {
-    if (props.fixedPagination) {
-      return;
-    }
-    nextTick(() => {
-      const top = props.containerHeight ? 0 : getOffset(rootRef.value).top;
-      const totalHeight = props.containerHeight ? props.containerHeight : window.innerHeight;
-      const tableHeaderHeight = 42;
-      const paginationHeight = 60;
-      const pageOffsetBottom = props.containerHeight ? 0 : 20;
-      const tableRowHeight = 42;
 
-      const tableRowTotalHeight = totalHeight - top - tableHeaderHeight - paginationHeight - pageOffsetBottom;
+  const calcPageLimit = () => {
+    const windowInnerHeight = window.innerHeight;
+    const tableHeaderHeight = 42;
+    const tableRowHeight = 42;
+    const pageOffsetTop = 260;
+    const tableFooterHeight = 60;
 
-      const rowNum = Math.max(Math.floor(tableRowTotalHeight / tableRowHeight), 5);
-      const pageLimit = new Set([
-        ...pagination.limitList,
-        rowNum,
-      ]);
+    const tableRowTotalHeight = windowInnerHeight
+      - pageOffsetTop
+      - tableHeaderHeight
+      - tableFooterHeight;
 
-      pagination.limit = rowNum;
-      pagination.limitList = [...pageLimit].sort((a, b) => a - b);
-
-      tableMaxHeight.value = tableHeaderHeight + rowNum * tableRowHeight + paginationHeight + 3;
-    });
+    const rowNum = Math.floor(tableRowTotalHeight / tableRowHeight);
+    const pageLimit = new Set([
+      ...pagination.limitList,
+      rowNum,
+    ]);
+    pagination.limit = rowNum;
+    pagination.limitList = [...pageLimit].sort((a, b) => a - b);
   };
+
+  const calcTableHeight = _.throttle(() => {
+    if (rootRef.value) {
+      const windowInnerHeight = window.innerHeight;
+      const { top } = getOffset(rootRef.value);
+      tableMaxHeight.value = windowInnerHeight - top - 24;
+    }
+  }, 100);
 
   onMounted(() => {
     parseURL();
+    calcPageLimit();
     calcTableHeight();
+    window.addEventListener('resize', calcTableHeight);
+    const observer = new MutationObserver(() => {
+      calcTableHeight();
+    });
+    observer.observe(document.querySelector('body') as Node, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+    onBeforeUnmount(() => {
+      observer.takeRecords();
+      observer.disconnect();
+      window.removeEventListener('resize', calcTableHeight);
+    });
   });
 
   defineExpose<Exposes>({
@@ -612,15 +540,12 @@
     getData() {
       return tableData.value.results;
     },
-    // 获取全量数据
-    getAllData: fetchAllData,
     // 清空选择
     clearSelected() {
-      // bkTableRef.value?.clearSelection();
-      handleClearWholeSelect();
+      bkTableRef.value?.clearSelection();
     },
     updateTableKey() {
-      tableKey.value = Date.now().toString();
+      tableKey.value = random();
     },
     removeSelectByKey(key: string) {
       delete rowSelectMemo.value[key];
@@ -631,7 +556,7 @@
 </script>
 <style lang="less">
   .db-table {
-    .head-prepend-row {
+    .prepend-row {
       display: flex;
       height: 30px;
       background: #ebecf0;
