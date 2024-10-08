@@ -30,6 +30,7 @@ import getQuickSearchRoutes from '@views/quick-search/routes';
 import getResourceManageRoutes from '@views/resource-manage/routes';
 import getServiceApplyRoutes from '@views/service-apply/routes';
 import getStaffManageRoutes from '@views/staff-manage/routes';
+import getResourceTagRoutes from '@views/tag-manage/routes';
 import getTaskHistoryRoutes from '@views/task-history/routes';
 import getTemporaryPasswordModify from '@views/temporary-paassword-modify/routes';
 import getTicketFlowSettingBizRoutes from '@views/ticket-flow-setting-biz/routes';
@@ -113,6 +114,7 @@ export default () => {
     {
       path: `${rootPath}${currentBiz}`,
       children: [
+        ...getResourceTagRoutes(),
         ...getDbManageRoutes(),
         ...getDbConfRoutes(),
         ...getDbhaSwitchEventsRouters(),
