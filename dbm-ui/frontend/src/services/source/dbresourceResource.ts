@@ -70,7 +70,7 @@ export function importResource(params: {
     host_id: number;
     ip: string;
   }>;
-  labels: number;
+  labels: number[];
   resource_type: string;
 }) {
   return http.post(`${path}/import/`, params);
@@ -96,12 +96,13 @@ export function fetchList(params: Record<string, any>, payload = {} as IRequestP
 /**
  * 获取DBA业务下的主机信息
  */
-export function fetchListDbaHost(params: { limit: number; offset: number; search_content: string }) {
+export function fetchListDbaHost(params: { bk_biz_id: number; limit: number; offset: number; search_content: string }) {
   return http
     .get<{
       data: HostInfo[];
       total: number;
     }>(`${path}/list_dba_hosts/`, {
+      bk_biz_id: params.bk_biz_id,
       page_size: params.limit,
       search_content: params.search_content,
       start: params.offset,
@@ -176,7 +177,7 @@ export function getSpecResourceCount(params: {
  */
 export function updateResource(params: {
   bk_host_ids: number[];
-  for_biz: number;
+  for_biz?: number;
   labels?: number[];
   rack_id: string;
   resource_type?: string;
@@ -209,6 +210,7 @@ export function getSummaryList(params: {
   spec_param: {
     cluster_type?: string;
     db_type: DBTypes;
+    enable_spec?: boolean;
     machine_type?: string;
     spec_id_list?: number[];
   };
@@ -218,4 +220,11 @@ export function getSummaryList(params: {
     count: data.length || 0,
     results: data.map((item) => new SummaryModel(item)),
   }));
+}
+
+/**
+ * 追加主机标签
+ */
+export function appendHostLabel(params: { bk_host_ids: number[]; labels: number[] }) {
+  return http.post(`${path}/append_labels/`, params);
 }

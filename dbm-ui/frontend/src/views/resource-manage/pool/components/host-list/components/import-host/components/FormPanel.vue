@@ -101,6 +101,7 @@
             <BkSelect
               v-model="formData.for_biz"
               :allow-empty-values="[0]"
+              :disabled="isBusiness"
               filterable>
               <BkOption
                 v-for="bizItem in bizList"
@@ -152,7 +153,9 @@
   import { execCopy, messageWarn } from '@utils';
   import { useCopy } from '@hooks';
 
-  import TagSelector from '@views/resource-manage/pool/components/host-list/components/tag-selector/Index.vue';
+  import { useGlobalBizs } from '@stores';
+
+  import TagSelector from '@views/resource-manage/pool/components/tag-selector/Index.vue';
 
   interface Props {
     hostList: HostInfo[];
@@ -168,11 +171,15 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const route = useRoute();
+  const globalBizsStore = useGlobalBizs();
+
+  const isBusiness = route.name === 'BizResourcePool';
 
   const formRef = ref();
   const isShowHostActionPop = ref(false);
   const formData = reactive({
-    for_biz: 0,
+    for_biz: isBusiness ? globalBizsStore.currentBizId : 0,
     resource_type: '',
     labels: [],
   });

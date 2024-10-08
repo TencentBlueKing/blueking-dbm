@@ -6,6 +6,42 @@
     @click="handleMenuChange">
     <BkMenuGroup :name="t('资源管理')">
       <BkMenuItem
+        key="resourcePool"
+        v-db-console="'resourceManage.resourcePool'">
+        <template #icon>
+          <DbIcon type="list" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('资源池') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem
+        key="toRecyclePool"
+        v-db-console="'resourceManage.toRecyclePool'">
+        <template #icon>
+          <DbIcon type="daihuishou" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('待回收池') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem
+        key="faultPool"
+        v-db-console="'resourceManage.faultPool'">
+        <template #icon>
+          <DbIcon type="guzhangji" />
+        </template>
+        <span
+          v-overflow-tips.right
+          class="text-overflow">
+          {{ t('故障池') }}
+        </span>
+      </BkMenuItem>
+      <BkMenuItem
         key="resourceSpec"
         v-db-console="'resourceManage.resourceSpec'">
         <template #icon>
@@ -15,30 +51,6 @@
           v-overflow-tips.right
           class="text-overflow">
           {{ t('资源规格管理') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="resourcePool"
-        v-db-console="'resourceManage.resourcePool'">
-        <template #icon>
-          <DbIcon type="list" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('DB 资源池管理') }}
-        </span>
-      </BkMenuItem>
-      <BkMenuItem
-        key="resourcePoolDirtyMachines"
-        v-db-console="'resourceManage.dirtyHostManage'">
-        <template #icon>
-          <DbIcon type="dirty-host" />
-        </template>
-        <span
-          v-overflow-tips.right
-          class="text-overflow">
-          {{ t('污点主机处理') }}
         </span>
       </BkMenuItem>
       <BkMenuItem
@@ -53,6 +65,8 @@
           {{ t('资源标签管理') }}
         </span>
       </BkMenuItem>
+    </BkMenuGroup>
+    <BkMenuGroup :name="t('其他')">
       <BkMenuItem
         key="resourcePoolOperationRecord"
         v-db-console="'resourceManage.resourceOperationRecord'">
@@ -82,5 +96,5 @@
     key: currentActiveKey,
     parentKey,
     routeLocation: handleMenuChange,
-  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'resourceSpec');
+  } = useActiveKey(menuRef as Ref<InstanceType<typeof Menu>>, 'resourcePool');
 </script>
