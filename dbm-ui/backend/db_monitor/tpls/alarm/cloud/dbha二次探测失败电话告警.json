@@ -245,7 +245,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "COUNT(dbha_doublecheck_ssh_fail-dbm_report_channel)",
-  "version": 1,
+  "version": 2,
   "alert_source": "event",
   "custom_conditions": [],
   "export_at": "2024-08-13T15:24:37+08:00"
