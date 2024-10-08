@@ -71,7 +71,7 @@ export function importResource(params: {
     host_id: number;
     bk_cloud_id: number;
   }>;
-  labels: number;
+  labels: number[];
 }) {
   return http.post(`${path}/import/`, params);
 }
