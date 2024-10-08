@@ -72,6 +72,7 @@ interface ControllerData {
   'resourceManage.resourceSpec': ControllerItem<string>;
   'resourceManage.resourcePool': ControllerItem<string>;
   'resourceManage.dirtyHostManage': ControllerItem<string>;
+  'resourceManage.resourceTagsManagement': ControllerItem<string>;
   'resourceManage.resourceOperationRecord': ControllerItem<string>;
   bizConfigManage: ControllerItem<string>;
   'bizConfigManage.monitorStrategy': ControllerItem<string>;

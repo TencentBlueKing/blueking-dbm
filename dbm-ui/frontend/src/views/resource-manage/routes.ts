@@ -43,6 +43,15 @@ const resourcePoolDirtyMachinesRoute = {
   component: () => import('@views/resource-manage/dirty-machine/Index.vue'),
 };
 
+const resourceTagsManagementRoute = {
+  name: 'resourceTagsManagement',
+  path: 'tags-management',
+  meta: {
+    navName: t('资源标签管理'),
+  },
+  component: () => import('@views/resource-manage/tags-management/Index.vue'),
+};
+
 const resourceSpecRoute = {
   name: 'resourceSpec',
   path: 'spec',
@@ -79,6 +88,10 @@ export default function getRoutes() {
 
   if (checkDbConsole('resourceManage.dirtyHostManage')) {
     mainRoute[0].children.push(resourcePoolDirtyMachinesRoute);
+  }
+
+  if (checkDbConsole('resourceManage.resourceTagsManagement')) {
+    mainRoute[0].children.push(resourceTagsManagementRoute);
   }
 
   if (checkDbConsole('resourceManage.resourceOperationRecord')) {
