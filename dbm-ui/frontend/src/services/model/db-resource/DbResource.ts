@@ -38,7 +38,10 @@ export default class DbResource {
     bk_biz_name: string;
   };
   ip: string;
-  label: string;
+  labels: {
+    name: string;
+    id: number;
+  }[];
   net_device_id: string;
   os_bit: string;
   os_type: string;
@@ -81,7 +84,7 @@ export default class DbResource {
     this.device_class = payload.device_class;
     this.for_biz = payload.for_biz;
     this.ip = payload.ip;
-    this.label = payload.label;
+    this.labels = payload.labels;
     this.net_device_id = payload.net_device_id;
     this.os_bit = payload.os_bit;
     this.os_type = payload.os_type;
